@@ -166,9 +166,37 @@
     .freshness-change.is-missing .freshness-change-value { color: var(--muted); }
     .freshness-change:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 2px; }
     .freshness-footer { flex: 0 0 auto; border-top: 1px solid var(--line); }
+    .poll-waves { margin-top: 12px; }
+    .poll-wave-grid {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+      padding: 10px; background: rgba(3, 11, 20, .2);
+    }
+    .poll-wave-card {
+      display: grid; gap: 8px; min-width: 0; padding: 11px 12px;
+      border: 1px solid #15354e; border-radius: 6px; background: rgba(13, 31, 49, .72);
+    }
+    .poll-wave-card:hover, .poll-wave-card:focus-within { border-color: #2873a8; background: rgba(16, 39, 61, .84); }
+    .poll-wave-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 14px; min-width: 0; }
+    .poll-wave-pollster { color: var(--text); font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
+    .poll-wave-date { color: var(--cyan); font-size: 10px; text-align: right; white-space: nowrap; }
+    .poll-wave-details { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--muted); font-size: 10px; }
+    .poll-wave-detail { min-width: 0; overflow-wrap: anywhere; }
+    .poll-wave-detail b { color: #b9d3e4; font-weight: 500; }
+    .poll-wave-sources {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px;
+      min-width: 0; padding-top: 7px; border-top: 1px solid #15354e;
+    }
+    .poll-wave-source-count { color: var(--muted); font-size: 9px; }
+    .poll-wave-source {
+      max-width: 100%; padding: 3px 6px; border: 1px solid #1b4d6c; border-radius: 999px;
+      background: #081725; font-size: 9px; overflow-wrap: anywhere;
+    }
+    .poll-wave-loading { grid-column: 1 / -1; padding: 18px 6px; color: var(--muted); }
+    .poll-wave-footer { padding: 8px 13px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
     footer { margin-top: 12px; color: var(--muted); font-size: 11px; text-align: right; }
     @media (max-width: 850px) {
       .top-dashboard, .grid { grid-template-columns: 1fr; }
+      .poll-wave-grid { grid-template-columns: 1fr; }
       .top-dashboard > .panel { height: auto; }
       .freshness { height: 450px !important; }
       header { align-items: flex-start; }
@@ -204,6 +232,8 @@
       .freshness-change { grid-column: 2 / -1; grid-row: auto; display: grid; grid-template-columns: auto auto; justify-content: end; column-gap: 7px; align-items: baseline; }
       .freshness-change-label { grid-column: 1 / -1; }
       .freshness-change-meta { margin-top: 0; }
+      .poll-wave-top { align-items: flex-start; flex-direction: column; gap: 3px; }
+      .poll-wave-date { text-align: left; white-space: normal; }
     }
 
     #legend {
@@ -364,6 +394,20 @@
       </article>
     </section>
 
+    <section class="panel poll-waves" aria-labelledby="poll-waves-title">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow">Polling feed</div>
+          <h2 id="poll-waves-title">Latest poll waves</h2>
+          <div class="sub">Newest source-linked first-round polling, ordered by publication date where known, otherwise fieldwork end.</div>
+        </div>
+      </div>
+      <div class="poll-wave-grid" id="poll-wave-list" aria-live="polite">
+        <div class="poll-wave-loading">Loading latest poll waves…</div>
+      </div>
+      <div class="poll-wave-footer" id="poll-wave-summary">Loading poll-wave summary…</div>
+    </section>
+
     <section class="grid">
       <article class="panel">
         <div class="panel-head">
@@ -405,6 +449,19 @@
     const palette = ["#35d5ff", "#52e5a3", "#ffbf4b", "#9d8cff", "#ff7c8a", "#75a7ff"];
     const formatDate = (iso) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${iso}T00:00:00Z`));
     const formatScore = (value) => Number.isInteger(value) ? `${value}%` : `${value.toFixed(1)}%`;
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, character => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[character]);
+    const escapeAttribute = escapeHtml;
+
+    function safeSourceUrl(value) {
+      try {
+        const url = new URL(String(value));
+        return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+      } catch (error) {
+        return "";
+      }
+    }
 
     function renderElectionClock() {
       const metrics = {
@@ -869,6 +926,109 @@
       draw();
     }
 
+    function derivePollWaves(events) {
+      const waves = new Map();
+
+      events.forEach(event => {
+        const groupKey = JSON.stringify([
+          event.pollster,
+          event.fieldwork_start,
+          event.fieldwork_end,
+          event.publication_date ?? null
+        ]);
+
+        if (!waves.has(groupKey)) {
+          waves.set(groupKey, {
+            groupKey,
+            pollster: event.pollster,
+            fieldworkStart: event.fieldwork_start,
+            fieldworkEnd: event.fieldwork_end,
+            publicationDate: event.publication_date ?? null,
+            sources: new Set(),
+            commissioners: new Set(),
+            sampleSizes: new Set(),
+            eventIds: []
+          });
+        }
+
+        const wave = waves.get(groupKey);
+        if (event.source_url) wave.sources.add(event.source_url);
+        if (event.commissioner) wave.commissioners.add(event.commissioner);
+        if (event.sample_size !== null && event.sample_size !== undefined) wave.sampleSizes.add(event.sample_size);
+        wave.eventIds.push(event.event_id);
+      });
+
+      return [...waves.values()].map(wave => ({
+        ...wave,
+        displayDate: wave.publicationDate || wave.fieldworkEnd,
+        sources: [...wave.sources].sort((a, b) => a.localeCompare(b)),
+        commissioners: [...wave.commissioners].sort((a, b) => a.localeCompare(b, "fr")),
+        sampleSizes: [...wave.sampleSizes].sort((a, b) => Number(a) - Number(b)),
+        eventIds: [...wave.eventIds].sort((a, b) => String(a).localeCompare(String(b))),
+        hypothesisCount: wave.eventIds.length
+      })).sort((a, b) =>
+        b.displayDate.localeCompare(a.displayDate) ||
+        b.fieldworkEnd.localeCompare(a.fieldworkEnd) ||
+        String(a.pollster).localeCompare(String(b.pollster), "fr") ||
+        a.groupKey.localeCompare(b.groupKey)
+      );
+    }
+
+    function renderPollWaves(events) {
+      const waves = derivePollWaves(events);
+      const visibleWaves = waves.slice(0, 8);
+
+      if (!visibleWaves.length) {
+        $("#poll-wave-list").innerHTML = '<div class="empty poll-wave-loading">No complete first-round poll waves are available.</div>';
+        $("#poll-wave-summary").textContent = "Showing 0 of 0 poll waves";
+        return;
+      }
+
+      $("#poll-wave-list").innerHTML = visibleWaves.map(wave => {
+        const dateLabel = wave.publicationDate ? "Published" : "Fieldwork ended";
+        const fieldworkRange = `${formatDate(wave.fieldworkStart)}–${formatDate(wave.fieldworkEnd)}`;
+        const hypothesisLabel = `${wave.hypothesisCount} ${wave.hypothesisCount === 1 ? "hypothesis" : "hypotheses"}`;
+        const sampleLabel = wave.sampleSizes.length === 1
+          ? `Sample <b>${Number(wave.sampleSizes[0]).toLocaleString("en-GB")}</b>`
+          : wave.sampleSizes.length > 1
+            ? `Samples <b>${wave.sampleSizes.map(size => Number(size).toLocaleString("en-GB")).join(" · ")}</b>`
+            : "";
+        const commissionerLabel = wave.commissioners.length
+          ? `Commissioned by <b>${wave.commissioners.map(escapeHtml).join(" · ")}</b>`
+          : "";
+        const sourceLinks = wave.sources.map((source, index) => {
+          const safeUrl = safeSourceUrl(source);
+          if (!safeUrl) return '<span class="poll-wave-source-count">Source unavailable</span>';
+          const hostname = new URL(safeUrl).hostname.toLowerCase();
+          const sourceStatus = hostname === "commission-des-sondages.fr" || hostname.endsWith(".commission-des-sondages.fr")
+            ? "Commission notice"
+            : "Source-linked";
+          const sequence = wave.sources.length > 1 ? ` ${index + 1}` : "";
+          return `<a class="poll-wave-source" href="${escapeAttribute(safeUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeAttribute(wave.pollster)} source ${index + 1}">${sourceStatus}${sequence} ↗</a>`;
+        }).join("");
+
+        return `
+          <article class="poll-wave-card" data-poll-wave-key="${escapeAttribute(wave.groupKey)}">
+            <div class="poll-wave-top">
+              <div class="poll-wave-pollster">${escapeHtml(wave.pollster)}</div>
+              <div class="poll-wave-date">${dateLabel} ${formatDate(wave.displayDate)}</div>
+            </div>
+            <div class="poll-wave-details">
+              <span class="poll-wave-detail">Fieldwork <b>${fieldworkRange}</b></span>
+              ${sampleLabel ? `<span class="poll-wave-detail">${sampleLabel}</span>` : ""}
+              <span class="poll-wave-detail"><b>${hypothesisLabel}</b></span>
+              ${commissionerLabel ? `<span class="poll-wave-detail">${commissionerLabel}</span>` : ""}
+            </div>
+            <div class="poll-wave-sources">
+              ${wave.sources.length > 1 ? `<span class="poll-wave-source-count">${wave.sources.length} distinct sources</span>` : ""}
+              ${sourceLinks || '<span class="poll-wave-source-count">Source unavailable</span>'}
+            </div>
+          </article>`;
+      }).join("");
+
+      $("#poll-wave-summary").textContent = `Showing ${visibleWaves.length} of ${waves.length} poll waves`;
+    }
+
     function renderFreshness(events) {
       const candidates = new Map();
 
@@ -1019,6 +1179,7 @@
         showHypothesis(latestPackage[0]);
         renderTrend(complete);
         renderFreshness(complete);
+        renderPollWaves(complete);
         document.documentElement.dataset.ready = "true";
       })
       .catch(error => {
@@ -1029,6 +1190,8 @@
         $("#freshness-latest").textContent = "Unavailable";
         $("#freshness-pollsters").textContent = "—";
         $("#freshness-candidates").textContent = "—";
+        $("#poll-wave-list").innerHTML = `<div class="error poll-wave-loading">Latest poll waves unavailable: ${escapeHtml(error.message)}</div>`;
+        $("#poll-wave-summary").textContent = "Poll-wave summary unavailable.";
         document.documentElement.dataset.ready = "error";
       });
   </script>
