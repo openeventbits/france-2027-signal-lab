@@ -1,0 +1,150 @@
+name: Update polls
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: update-polls
+  cancel-in-progress: false
+
+jobs:
+  update-polls:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check pandas lxml
+
+      - name: Fetch polls into temporary file
+        run: python fetch_polls.py --output /tmp/polls.json
+
+      - name: Validate and stage fetched data
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          current_path = Path("polls.json")
+          fetched_path = Path("/tmp/polls.json")
+
+          current = json.loads(current_path.read_text(encoding="utf-8"))
+          fetched = json.loads(fetched_path.read_text(encoding="utf-8"))
+
+          if not isinstance(current, list) or not isinstance(fetched, list):
+              raise SystemExit("polls data must be a JSON list")
+
+          if not fetched:
+              raise SystemExit("refusing to replace polls.json with an empty dataset")
+
+          if len(fetched) < len(current):
+              raise SystemExit(
+                  f"refusing dataset shrink: {len(current)} -> {len(fetched)} events"
+              )
+
+          required = {
+              "event_id",
+              "pollster",
+              "fieldwork_start",
+              "fieldwork_end",
+              "round",
+              "scenario_key",
+              "source_url",
+              "candidates",
+          }
+
+          event_ids = set()
+
+          for index, event in enumerate(fetched):
+              missing = required - event.keys()
+
+              if missing:
+                  raise SystemExit(
+                      f"event {index} missing fields: {sorted(missing)}"
+                  )
+
+              if event["event_id"] in event_ids:
+                  raise SystemExit(
+                      f"duplicate event_id: {event['event_id']}"
+                  )
+
+              event_ids.add(event["event_id"])
+
+              if event["round"] != "first_round":
+                  raise SystemExit(f"unexpected round in event {index}")
+
+              if (
+                  not isinstance(event["candidates"], list)
+                  or len(event["candidates"]) < 2
+              ):
+                  raise SystemExit(
+                      f"event {index} has fewer than two candidates"
+                  )
+
+          current_latest = max(
+              (event["fieldwork_end"] for event in current),
+              default="",
+          )
+          fetched_latest = max(
+              event["fieldwork_end"] for event in fetched
+          )
+
+          if fetched_latest < current_latest:
+              raise SystemExit(
+                  "refusing older latest fieldwork date: "
+                  f"{current_latest} -> {fetched_latest}"
+              )
+
+          current_path.write_bytes(fetched_path.read_bytes())
+
+          print(
+              f"Validated {len(fetched)} events; "
+              f"latest fieldwork end {fetched_latest}"
+          )
+          PY
+
+      - name: Commit changed poll data
+        id: commit
+        shell: bash
+        run: |
+          if git diff --quiet -- polls.json; then
+            echo "No poll changes detected."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -- polls.json
+          git commit -m "Update polls data"
+          git push origin HEAD:main
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Request GitHub Pages rebuild
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          curl --fail-with-body --location --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "X-GitHub-Api-Version: 2026-03-10" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/pages/builds"
