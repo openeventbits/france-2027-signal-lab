@@ -27,7 +27,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: python -m pip install --disable-pip-version-check pandas lxml
+        run: python -m pip install --disable-pip-version-check pandas lxml pypdf
 
       - name: Fetch polls into temporary file
         run: python fetch_polls.py --output /tmp/polls.json
@@ -68,6 +68,7 @@ jobs:
           }
 
           event_ids = set()
+          source_urls = set()
 
           for index, event in enumerate(fetched):
               missing = required - event.keys()
@@ -83,6 +84,7 @@ jobs:
                   )
 
               event_ids.add(event["event_id"])
+              source_urls.add(event["source_url"])
 
               if event["round"] != "first_round":
                   raise SystemExit(f"unexpected round in event {index}")
@@ -94,6 +96,71 @@ jobs:
                   raise SystemExit(
                       f"event {index} has fewer than two candidates"
                   )
+
+          required_notices = {
+              "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2166",
+              "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2197",
+              "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2216",
+          }
+          missing_notices = required_notices - source_urls
+          if missing_notices:
+              raise SystemExit(
+                  "missing configured Commission notices: "
+                  f"{sorted(missing_notices)}"
+              )
+
+          official_waves = {
+              ("Elabe", "2026-03-25", "2026-03-27"): (
+                  "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2166",
+                  6,
+              ),
+              ("Ipsos", "2026-05-27", "2026-05-28"): (
+                  "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2197",
+                  8,
+              ),
+              ("Ifop", "2026-06-22", "2026-06-24"): (
+                  "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2216",
+                  8,
+              ),
+          }
+          for (pollster, start, end), (notice_url, expected_count) in (
+              official_waves.items()
+          ):
+              wave_events = [
+                  event
+                  for event in fetched
+                  if event["pollster"] == pollster
+                  and event["fieldwork_start"] == start
+                  and event["fieldwork_end"] == end
+              ]
+              if len(wave_events) != expected_count:
+                  raise SystemExit(
+                      f"{pollster} {start} to {end}: expected "
+                      f"{expected_count} events, found {len(wave_events)}"
+                  )
+              if any(
+                  event["source_url"] != notice_url for event in wave_events
+              ):
+                  raise SystemExit(
+                      f"{pollster} {start} to {end}: non-notice source remains"
+                  )
+
+          bardella_latest = max(
+              (
+                  event["fieldwork_end"]
+                  for event in fetched
+                  if any(
+                      candidate.get("name") == "Jordan Bardella"
+                      for candidate in event["candidates"]
+                  )
+              ),
+              default="",
+          )
+          if bardella_latest < "2026-06-24":
+              raise SystemExit(
+                  "Jordan Bardella latest fieldwork end is too old: "
+                  f"{bardella_latest or 'missing'}"
+              )
 
           current_latest = max(
               (event["fieldwork_end"] for event in current),
