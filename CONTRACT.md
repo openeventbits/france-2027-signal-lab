@@ -1,10 +1,5 @@
 # France 2027 Signal Lab — Contract
 
-Keep this file in the repo root. It defines the rules the project must follow at every
-stage. This document does not get "revised" as the project grows — it should stay true
-whether there is 1 widget or 10. Widget-specific decisions (colors, layout, which chart
-library) are NOT contract material — those are made in the moment, per widget.
-
 ---
 
 ## Data rules (non-negotiable)
