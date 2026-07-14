@@ -131,7 +131,7 @@
     }
     .freshness-list:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
     .freshness-card {
-      display: grid; grid-template-columns: 40px minmax(150px, 1fr) auto minmax(150px, .9fr);
+      display: grid; grid-template-columns: 40px minmax(150px, 1fr) auto minmax(150px, .9fr) minmax(118px, auto);
       gap: 9px; align-items: center; min-width: 0; padding: 6px 9px; margin-bottom: 5px;
       border: 1px solid #15354e; border-radius: 6px; background: rgba(13, 31, 49, .72);
     }
@@ -155,6 +155,16 @@
       background: #081725; font-size: 9px; white-space: nowrap;
     }
     .freshness-hypotheses { width: 100%; color: var(--muted); font-size: 9px; }
+    .freshness-change { min-width: 0; text-align: right; font-variant-numeric: tabular-nums; }
+    .freshness-change-label { color: var(--muted); font-size: 8px; letter-spacing: .12em; }
+    .freshness-change-value { margin-top: 1px; color: #b7c9d6; font-size: 13px; font-weight: 700; line-height: 1.1; white-space: nowrap; }
+    .freshness-change-meta { margin-top: 2px; color: var(--muted); font-size: 9px; line-height: 1.1; }
+    .freshness-change.is-positive .freshness-change-value { color: var(--cyan); }
+    .freshness-change.is-negative .freshness-change-value { color: #9d8cff; }
+    .freshness-change.is-mixed .freshness-change-value { color: var(--warn); }
+    .freshness-change.is-zero .freshness-change-value,
+    .freshness-change.is-missing .freshness-change-value { color: var(--muted); }
+    .freshness-change:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 2px; }
     .freshness-footer { flex: 0 0 auto; border-top: 1px solid var(--line); }
     footer { margin-top: 12px; color: var(--muted); font-size: 11px; text-align: right; }
     @media (max-width: 850px) {
@@ -168,9 +178,15 @@
     }
     @media (min-width: 851px) and (max-width: 1000px) {
       .clock-count { font-size: 44px; }
-      .freshness-card { grid-template-columns: 36px minmax(120px, 1fr) auto; }
+      .freshness-card { grid-template-columns: 36px minmax(120px, 1fr) auto minmax(110px, auto); }
       .candidate-monogram { width: 34px; height: 34px; }
-      .freshness-sources { grid-column: 2 / -1; }
+      .freshness-sources { grid-column: 2 / 4; }
+      .freshness-change { grid-column: 4; grid-row: 1 / span 2; }
+    }
+    @media (min-width: 561px) and (max-width: 650px) {
+      .freshness-card { grid-template-columns: 36px minmax(120px, 1fr) auto minmax(110px, auto); }
+      .freshness-sources { grid-column: 2 / 4; }
+      .freshness-change { grid-column: 4; grid-row: 1 / span 2; }
     }
     @media (max-width: 560px) {
       .shell { width: min(100% - 16px, 1180px); padding-top: 8px; }
@@ -185,6 +201,9 @@
       .freshness-sort { min-height: 34px; }
       .freshness-card { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 7px; padding: 8px; }
       .freshness-sources { grid-column: 2 / -1; }
+      .freshness-change { grid-column: 2 / -1; grid-row: auto; display: grid; grid-template-columns: auto auto; justify-content: end; column-gap: 7px; align-items: baseline; }
+      .freshness-change-label { grid-column: 1 / -1; }
+      .freshness-change-meta { margin-top: 0; }
     }
 
     #legend {
@@ -341,7 +360,7 @@
           </div>
         </div>
         <div class="freshness-list" id="freshness-watch" role="region" aria-labelledby="freshness-title" tabindex="0"></div>
-        <div class="freshness-footer">A hypothesis is one candidate lineup within a poll event. Source links open the latest supporting poll.</div>
+        <div class="freshness-footer">A hypothesis is one candidate lineup within a poll event. Change uses the nearest previous matching lineup, preferring the same pollster; exact gaps are shown and no averages are used. Source links open supporting polls.</div>
       </article>
     </section>
 
@@ -460,6 +479,107 @@
         .join("")
         .slice(0, 3)
         .toUpperCase();
+    }
+
+    function candidateScore(event, candidateName) {
+      const score = Array.isArray(event?.candidates)
+        ? event.candidates.find(candidate => candidate?.name === candidateName)?.score
+        : null;
+      return typeof score === "number" && Number.isFinite(score) ? score : null;
+    }
+
+    function normalizeComparableText(value) {
+      return String(value ?? "")
+        .normalize("NFKC")
+        .trim()
+        .replace(/\s+/g, " ")
+        .toLocaleLowerCase("fr");
+    }
+
+    function deriveComparableChange(events, candidateName, latestDate) {
+      const dayMs = 86400000;
+      const retained = [];
+      const currentEvents = events.filter(event =>
+        event.fieldwork_end === latestDate && candidateScore(event, candidateName) !== null
+      );
+
+      currentEvents.forEach(current => {
+        const currentTime = Date.parse(`${current.fieldwork_end}T00:00:00Z`);
+        const currentScore = candidateScore(current, candidateName);
+        if (!Number.isFinite(currentTime) || typeof current.scenario_key !== "string") return;
+
+        const currentPollster = normalizeComparableText(current.pollster);
+        const priorPool = [];
+        events.forEach(previous => {
+          if (previous.scenario_key !== current.scenario_key || previous.fieldwork_end >= current.fieldwork_end) return;
+          const previousScore = candidateScore(previous, candidateName);
+          const previousTime = Date.parse(`${previous.fieldwork_end}T00:00:00Z`);
+          const gap = (currentTime - previousTime) / dayMs;
+          if (currentScore === null || previousScore === null || !Number.isInteger(gap) || gap <= 0) return;
+
+          const previousPollster = normalizeComparableText(previous.pollster);
+          priorPool.push({
+            current,
+            previous,
+            currentScore,
+            previousScore,
+            gap,
+            delta: Number((currentScore - previousScore).toFixed(10)),
+            samePollster: currentPollster !== "" && currentPollster === previousPollster
+          });
+        });
+
+        if (!priorPool.length) return;
+        const samePollster = priorPool.filter(comparison => comparison.samePollster);
+        const preferredPool = samePollster.length ? samePollster : priorPool;
+        const shortestGap = Math.min(...preferredPool.map(comparison => comparison.gap));
+        retained.push(...preferredPool.filter(comparison => comparison.gap === shortestGap));
+      });
+
+      if (!retained.length) return { classification: "NO COMPARABLE PRIOR", retained: [] };
+      retained.sort((a, b) =>
+        normalizeComparableText(a.current.pollster).localeCompare(normalizeComparableText(b.current.pollster), "fr") ||
+        String(a.current.event_id).localeCompare(String(b.current.event_id)) ||
+        b.previous.fieldwork_end.localeCompare(a.previous.fieldwork_end) ||
+        normalizeComparableText(a.previous.pollster).localeCompare(normalizeComparableText(b.previous.pollster), "fr") ||
+        String(a.previous.event_id).localeCompare(String(b.previous.event_id))
+      );
+      const deltas = [...new Set(retained.map(comparison => comparison.delta))].sort((a, b) => a - b);
+      const hasPositive = deltas.some(delta => delta > 0);
+      const hasNegative = deltas.some(delta => delta < 0);
+      const classification = deltas.length === 1
+        ? "EXACT"
+        : hasPositive && hasNegative ? "MIXED" : "SAME-DIRECTION RANGE";
+
+      return { classification, retained, deltas };
+    }
+
+    function formatComparableDelta(value) {
+      const rounded = Math.round(value * 10) / 10;
+      if (rounded > 0) return `+${rounded}`;
+      if (rounded < 0) return `−${Math.abs(rounded)}`;
+      return "0";
+    }
+
+    function formatComparableChange(change) {
+      if (change.classification === "NO COMPARABLE PRIOR") {
+        return { value: "—", meta: "No prior match", tone: "is-missing" };
+      }
+
+      const meta = change.retained.length === 1
+        ? `${change.retained[0].gap}d · ${change.retained[0].samePollster ? change.retained[0].current.pollster : "cross-pollster"}`
+        : `${[...new Set(change.retained.map(comparison => comparison.gap))].sort((a, b) => a - b).map(gap => `${gap}d`).join(", ")} · ${change.retained.length} comparisons`;
+      if (change.classification === "MIXED") {
+        return { value: "MIXED", meta, tone: "is-mixed" };
+      }
+
+      const value = change.classification === "EXACT"
+        ? `${formatComparableDelta(change.deltas[0])} pts`
+        : `${formatComparableDelta(change.deltas[0])} to ${formatComparableDelta(change.deltas.at(-1))} pts`;
+      const tone = change.deltas.every(delta => delta === 0)
+        ? "is-zero"
+        : change.deltas.some(delta => delta > 0) ? "is-positive" : "is-negative";
+      return { value, meta, tone };
     }
 
     function renderBars(event) {
@@ -804,6 +924,18 @@
         $("#freshness-watch").innerHTML = ordered.map(candidate => {
           const sources = [...candidate.latestSources.entries()].sort((a, b) => a[0].localeCompare(b[0], "fr"));
           const hypothesisCount = candidate.hypotheses.size;
+          const change = deriveComparableChange(events, candidate.name, candidate.latestDate);
+          const formattedChange = formatComparableChange(change);
+          const changeSummary = change.classification === "MIXED"
+            ? `${candidate.name}: MIXED with unique deltas ${change.deltas.map(formatComparableDelta).join(", ")} points.`
+            : `${candidate.name}: ${change.classification}, ${formattedChange.value}.`;
+          const comparisonDetails = change.retained.map((comparison, index) =>
+            `Comparison ${index + 1} of ${change.retained.length}: current pollster ${comparison.current.pollster}, fieldwork end ${comparison.current.fieldwork_end}, score ${formatScore(comparison.currentScore)}; previous pollster ${comparison.previous.pollster}, fieldwork end ${comparison.previous.fieldwork_end}, score ${formatScore(comparison.previousScore)}; exact gap ${comparison.gap} days; ${comparison.samePollster ? "same-pollster" : "cross-pollster"}; delta ${formatComparableDelta(comparison.delta)} points.`
+          ).join(" ");
+          const changeDetail = change.retained.length
+            ? `${changeSummary} ${change.retained.length} retained ${change.retained.length === 1 ? "comparison" : "comparisons"}. ${comparisonDetails}`
+            : `${candidate.name}: no comparable prior. No earlier event with the same scenario key and a valid candidate score was found.`;
+          const changeDetailAttribute = changeDetail.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;");
           const sourceLinks = sources.map(([pollster, sourceUrl]) =>
             `<a class="freshness-source" href="${sourceUrl}" target="_blank" rel="noopener noreferrer" aria-label="Open latest ${pollster} source for ${candidate.name}">${pollster} ↗</a>`
           ).join("");
@@ -816,6 +948,11 @@
               </div>
               <div class="freshness-age"><b>${candidate.daysSince}</b> ${candidate.daysSince === 1 ? "day" : "days"} ago</div>
               <div class="freshness-sources">${sourceLinks}<div class="freshness-hypotheses">${hypothesisCount} ${hypothesisCount === 1 ? "hypothesis" : "hypotheses"}</div></div>
+              <div class="freshness-change ${formattedChange.tone}" tabindex="0" title="${changeDetailAttribute}" aria-label="${changeDetailAttribute}">
+                <div class="freshness-change-label">CHANGE</div>
+                <div class="freshness-change-value">${formattedChange.value}</div>
+                <div class="freshness-change-meta">${formattedChange.meta}</div>
+              </div>
             </article>`;
         }).join("");
       }
