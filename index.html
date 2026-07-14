@@ -75,18 +75,116 @@
     .axis-label { fill: #7895aa; font-size: 10px; }
     .trend-line { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
     .trend-point { stroke: #07101b; stroke-width: 1.5; }
+    .visually-hidden {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+    .top-dashboard {
+      display: grid; grid-template-columns: minmax(320px, .72fr) minmax(0, 1.28fr);
+      gap: 12px; align-items: stretch; margin-top: 12px;
+    }
+    .top-dashboard > .panel { height: 392px; }
+    .election-clock { display: flex; flex-direction: column; }
+    .election-clock .panel-head, .freshness .panel-head { padding: 11px 13px 9px; }
+    .clock-metrics { display: grid; grid-template-rows: repeat(3, 1fr); flex: 1; min-height: 0; }
+    .clock-metric {
+      display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center;
+      min-height: 82px; padding: 8px 13px; border-bottom: 1px solid var(--line);
+      background: linear-gradient(90deg, rgba(38, 140, 255, .035), transparent 48%);
+    }
+    .clock-count { color: var(--cyan); font-size: 48px; font-weight: 600; line-height: .95; font-variant-numeric: tabular-nums; }
+    .clock-count.is-word { font-size: 16px; letter-spacing: .04em; }
+    .clock-unit { margin-top: 3px; color: var(--muted); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; }
+    .clock-label { font-size: 13px; font-weight: 600; line-height: 1.25; }
+    .clock-date { margin-top: 2px; color: var(--muted); font-size: 11px; }
+    .clock-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; margin-top: 5px; }
+    .clock-qualifier {
+      padding: 2px 5px; border: 1px solid #31506a; border-radius: 999px;
+      color: #a7bfd0; font-size: 8px; letter-spacing: .08em; white-space: nowrap;
+    }
+    .clock-source { font-size: 10px; }
+    .clock-footer, .freshness-footer { padding: 8px 13px; color: var(--muted); font-size: 10px; line-height: 1.45; }
+    .freshness { display: flex; flex-direction: column; min-width: 0; }
+    .freshness-toolbar {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+      gap: 6px 10px; padding: 7px 10px; border-bottom: 1px solid var(--line);
+    }
+    .freshness-kpis, .freshness-sorts { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+    .freshness-kpi {
+      display: inline-flex; align-items: baseline; gap: 5px; padding: 4px 7px;
+      border: 1px solid #1d4563; border-radius: 999px; background: #081725; font-size: 9px;
+    }
+    .freshness-kpi:nth-child(2) { border-color: #1d3f75; }
+    .freshness-kpi:nth-child(3) { border-color: #334a5c; }
+    .freshness-kpi-label { color: var(--muted); }
+    .freshness-kpi-value { color: var(--text); font-weight: 600; white-space: nowrap; }
+    .freshness-sort {
+      min-height: 28px; padding: 4px 8px; border: 1px solid #23445d; border-radius: 999px;
+      background: #071522; color: var(--muted); font: inherit; font-size: 9px; cursor: pointer;
+    }
+    .freshness-sort:hover { border-color: #2873a8; color: var(--text); }
+    .freshness-sort.active { border-color: var(--blue); background: #0b2032; color: var(--cyan); }
+    .freshness-sort:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+    .freshness-list {
+      flex: 1; min-height: 0; overflow-y: auto; scrollbar-gutter: stable;
+      padding: 5px; background: rgba(3, 11, 20, .2);
+    }
+    .freshness-list:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
+    .freshness-card {
+      display: grid; grid-template-columns: 40px minmax(150px, 1fr) auto minmax(150px, .9fr);
+      gap: 9px; align-items: center; min-width: 0; padding: 6px 9px; margin-bottom: 5px;
+      border: 1px solid #15354e; border-radius: 6px; background: rgba(13, 31, 49, .72);
+    }
+    .freshness-card:last-child { margin-bottom: 0; }
+    .freshness-card:hover, .freshness-card:focus-within { border-color: #2873a8; background: rgba(16, 39, 61, .84); }
+    .candidate-monogram {
+      width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid #2873a8;
+      border-radius: 50%; background: linear-gradient(145deg, #0c2236, #07111d); color: #9db9cc;
+      font-size: 10px; font-weight: 700; letter-spacing: .02em;
+    }
+    .freshness-name { color: var(--text); font-size: 13px; font-weight: 600; line-height: 1.2; }
+    .freshness-date { margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .freshness-age {
+      min-width: 76px; padding: 4px 7px; border: 1px solid #22618b; border-radius: 999px;
+      color: var(--muted); font-size: 9px; line-height: 1; text-align: center; white-space: nowrap;
+    }
+    .freshness-age b { color: var(--cyan); font-size: 16px; font-variant-numeric: tabular-nums; }
+    .freshness-sources { display: flex; align-items: center; flex-wrap: wrap; gap: 3px; min-width: 0; }
+    .freshness-source {
+      padding: 2px 5px; border: 1px solid #1b4d6c; border-radius: 999px;
+      background: #081725; font-size: 9px; white-space: nowrap;
+    }
+    .freshness-hypotheses { width: 100%; color: var(--muted); font-size: 9px; }
+    .freshness-footer { flex: 0 0 auto; border-top: 1px solid var(--line); }
     footer { margin-top: 12px; color: var(--muted); font-size: 11px; text-align: right; }
     @media (max-width: 850px) {
-      .grid { grid-template-columns: 1fr; }
+      .top-dashboard, .grid { grid-template-columns: 1fr; }
+      .top-dashboard > .panel { height: auto; }
+      .freshness { height: 450px !important; }
       header { align-items: flex-start; }
       .status { display: none; }
       .meta { grid-template-columns: 1fr; }
       .meta .wide { grid-column: auto; }
     }
+    @media (min-width: 851px) and (max-width: 1000px) {
+      .clock-count { font-size: 44px; }
+      .freshness-card { grid-template-columns: 36px minmax(120px, 1fr) auto; }
+      .candidate-monogram { width: 34px; height: 34px; }
+      .freshness-sources { grid-column: 2 / -1; }
+    }
     @media (max-width: 560px) {
       .shell { width: min(100% - 16px, 1180px); padding-top: 8px; }
       .tag { display: none; }
       .bar-row { grid-template-columns: 112px 1fr 46px; gap: 7px; }
+      .clock-metric { grid-template-columns: 76px minmax(0, 1fr); padding-inline: 10px; }
+      .clock-count { font-size: 40px; }
+      .clock-count.is-word { font-size: 13px; }
+      .freshness { height: auto !important; }
+      .freshness-list { max-height: min(65vh, 520px); }
+      .freshness-toolbar { align-items: flex-start; flex-direction: column; }
+      .freshness-sort { min-height: 34px; }
+      .freshness-card { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 7px; padding: 8px; }
+      .freshness-sources { grid-column: 2 / -1; }
     }
 
     #legend {
@@ -184,6 +282,69 @@
       <div class="status" id="status">loading polls.json…</div>
     </header>
 
+    <section class="top-dashboard">
+      <article class="panel election-clock" aria-labelledby="clock-title" aria-describedby="clock-description">
+        <div class="panel-head">
+          <div>
+            <div class="eyebrow">Election clock</div>
+            <h2 id="clock-title">2027 presidential election</h2>
+            <div class="sub">Official voting dates and legally derived deadlines.</div>
+          </div>
+        </div>
+        <p class="visually-hidden" id="clock-description">Countdowns to the 2027 French presidential election. Voting dates are official; the sponsorship deadline is calculated from French electoral law.</p>
+        <div class="clock-metrics">
+          <div class="clock-metric" data-clock-target="sponsorship" title="The deadline is the sixth Friday before the first round at 18:00 Paris time. Sponsorship collection opens only after the voter-convocation decree is published.">
+            <div><div class="clock-count">—</div><div class="clock-unit">Countdown unavailable</div></div>
+            <div>
+              <div class="clock-label">Candidate sponsorship deadline</div>
+              <div class="clock-date">12 Mar 2027 · 18:00 Paris</div>
+              <div class="clock-meta"><span class="clock-qualifier">LEGALLY DERIVED</span><a class="clock-source" href="https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000684037" target="_blank" rel="noopener noreferrer">Law 62-1292 · Art. 3 ↗</a></div>
+            </div>
+          </div>
+          <div class="clock-metric" data-clock-target="first" title="The Government selected 18 April 2027 on 1 July 2026. The voter-convocation decree is still pending.">
+            <div><div class="clock-count">—</div><div class="clock-unit">Countdown unavailable</div></div>
+            <div>
+              <div class="clock-label">First round</div>
+              <div class="clock-date">18 Apr 2027</div>
+              <div class="clock-meta"><span class="clock-qualifier">OFFICIAL DATE</span><a class="clock-source" href="https://www.elysee.fr/emmanuel-macron/2026/07/01/compte-rendu-du-conseil-des-ministres-du-mercredi-1er-juillet-2026" target="_blank" rel="noopener noreferrer">Élysée · 1 Jul 2026 ↗</a></div>
+            </div>
+          </div>
+          <div class="clock-metric" data-clock-target="second" title="Held only if no candidate wins an absolute majority in the first round.">
+            <div><div class="clock-count">—</div><div class="clock-unit">Countdown unavailable</div></div>
+            <div>
+              <div class="clock-label">Second round</div>
+              <div class="clock-date">2 May 2027</div>
+              <div class="clock-meta"><span class="clock-qualifier">OFFICIAL DATE · IF REQUIRED</span><a class="clock-source" href="https://www.elysee.fr/emmanuel-macron/2026/07/01/compte-rendu-du-conseil-des-ministres-du-mercredi-1er-juillet-2026" target="_blank" rel="noopener noreferrer">Élysée · 1 Jul 2026 ↗</a></div>
+            </div>
+          </div>
+        </div>
+        <div class="clock-footer">Official dates announced 1 Jul 2026. The voter-convocation decree has not yet been published. Counts use the Europe/Paris calendar.</div>
+      </article>
+
+      <article class="panel freshness" aria-labelledby="freshness-title">
+        <div class="panel-head">
+          <div>
+            <div class="eyebrow">Freshness watch</div>
+            <h2 id="freshness-title">Latest pollster appearances</h2>
+            <div class="sub">Last source-linked poll appearance per candidate.</div>
+          </div>
+        </div>
+        <div class="freshness-toolbar">
+          <div class="freshness-kpis" aria-label="Freshness summary">
+            <div class="freshness-kpi"><span class="freshness-kpi-label">Latest update</span><span class="freshness-kpi-value" id="freshness-latest">—</span></div>
+            <div class="freshness-kpi"><span class="freshness-kpi-label">Pollsters</span><span class="freshness-kpi-value" id="freshness-pollsters">—</span></div>
+            <div class="freshness-kpi"><span class="freshness-kpi-label">Candidates</span><span class="freshness-kpi-value" id="freshness-candidates">—</span></div>
+          </div>
+          <div class="freshness-sorts" aria-label="Sort candidates">
+            <button class="freshness-sort active" type="button" data-freshness-sort="recent" aria-pressed="true">Recent first</button>
+            <button class="freshness-sort" type="button" data-freshness-sort="absent" aria-pressed="false">Longest absent</button>
+          </div>
+        </div>
+        <div class="freshness-list" id="freshness-watch" role="region" aria-labelledby="freshness-title" tabindex="0"></div>
+        <div class="freshness-footer">A hypothesis is one candidate lineup within a poll event. Source links open the latest supporting poll.</div>
+      </article>
+    </section>
+
     <section class="grid">
       <article class="panel">
         <div class="panel-head">
@@ -225,6 +386,81 @@
     const palette = ["#35d5ff", "#52e5a3", "#ffbf4b", "#9d8cff", "#ff7c8a", "#75a7ff"];
     const formatDate = (iso) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${iso}T00:00:00Z`));
     const formatScore = (value) => Number.isInteger(value) ? `${value}%` : `${value.toFixed(1)}%`;
+
+    function renderElectionClock() {
+      const metrics = {
+        sponsorship: { year: 2027, month: 3, day: 12 },
+        first: { year: 2027, month: 4, day: 18 },
+        second: { year: 2027, month: 5, day: 2 }
+      };
+
+      try {
+        const now = new Date();
+        const parisParts = Object.fromEntries(
+          new Intl.DateTimeFormat("en-GB", {
+            timeZone: "Europe/Paris",
+            year: "numeric",
+            month: "numeric",
+            day: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+            hourCycle: "h23"
+          }).formatToParts(now).filter(part => part.type !== "literal").map(part => [part.type, Number(part.value)])
+        );
+        const parisTodayUtc = Date.UTC(parisParts.year, parisParts.month - 1, parisParts.day);
+
+        Object.entries(metrics).forEach(([key, target]) => {
+          const metric = document.querySelector(`[data-clock-target="${key}"]`);
+          const count = metric.querySelector(".clock-count");
+          const unit = metric.querySelector(".clock-unit");
+          const targetUtc = Date.UTC(target.year, target.month - 1, target.day);
+          const daysRemaining = Math.max(0, Math.ceil((targetUtc - parisTodayUtc) / 86400000));
+          const isTargetDay = targetUtc === parisTodayUtc;
+
+          count.classList.remove("is-word");
+          if (key === "sponsorship") {
+            if (now.getTime() >= Date.UTC(2027, 2, 12, 17, 0)) {
+              count.textContent = "CLOSED";
+              count.classList.add("is-word");
+              unit.textContent = "";
+            } else if (isTargetDay) {
+              count.textContent = "TODAY";
+              count.classList.add("is-word");
+              unit.textContent = "";
+            } else {
+              count.textContent = daysRemaining;
+              unit.textContent = "DAYS";
+            }
+          } else if (parisTodayUtc > targetUtc) {
+            count.textContent = "HELD";
+            count.classList.add("is-word");
+            unit.textContent = "";
+          } else if (isTargetDay) {
+            count.textContent = "VOTING DAY";
+            count.classList.add("is-word");
+            unit.textContent = "";
+          } else {
+            count.textContent = daysRemaining;
+            unit.textContent = "DAYS";
+          }
+        });
+      } catch (error) {
+        document.querySelectorAll(".clock-metric").forEach(metric => {
+          metric.querySelector(".clock-count").textContent = "—";
+          metric.querySelector(".clock-unit").textContent = "Countdown unavailable";
+        });
+      }
+    }
+
+    function candidateMonogram(name) {
+      return name
+        .split(/[\s-]+/)
+        .filter(Boolean)
+        .map(part => part[0])
+        .join("")
+        .slice(0, 3)
+        .toUpperCase();
+    }
 
     function renderBars(event) {
       const ordered = [...event.candidates].sort((a, b) => b.score - a.score);
@@ -513,6 +749,95 @@
       draw();
     }
 
+    function renderFreshness(events) {
+      const candidates = new Map();
+
+      events.forEach(event => {
+        event.candidates.forEach(candidate => {
+          if (!candidates.has(candidate.name)) {
+            candidates.set(candidate.name, {
+              name: candidate.name,
+              latestDate: event.fieldwork_end,
+              latestSources: new Map(),
+              hypotheses: new Set()
+            });
+          }
+
+          const record = candidates.get(candidate.name);
+          record.hypotheses.add(`${event.event_id}|${event.scenario_key}`);
+
+          if (event.fieldwork_end > record.latestDate) {
+            record.latestDate = event.fieldwork_end;
+            record.latestSources.clear();
+          }
+
+          if (event.fieldwork_end === record.latestDate) {
+            record.latestSources.set(event.pollster, event.source_url);
+          }
+        });
+      });
+
+      const now = new Date();
+      const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+      const rows = [...candidates.values()].map(candidate => {
+          const [year, month, day] = candidate.latestDate.split("-").map(Number);
+          return {
+            ...candidate,
+            daysSince: (todayUtc - Date.UTC(year, month - 1, day)) / 86400000
+          };
+        });
+      let sortMode = "recent";
+
+      const latestDays = Math.min(...rows.map(candidate => candidate.daysSince));
+      $("#freshness-latest").textContent = `${latestDays} ${latestDays === 1 ? "day" : "days"} ago`;
+      $("#freshness-pollsters").textContent = new Set(events.map(event => event.pollster)).size;
+      $("#freshness-candidates").textContent = candidates.size;
+
+      function drawRows() {
+        const ordered = [...rows].sort((a, b) =>
+          (sortMode === "recent"
+            ? b.latestDate.localeCompare(a.latestDate)
+            : a.latestDate.localeCompare(b.latestDate)) ||
+          a.name.localeCompare(b.name, "fr")
+        );
+
+        $("#freshness-watch").innerHTML = ordered.map(candidate => {
+          const sources = [...candidate.latestSources.entries()].sort((a, b) => a[0].localeCompare(b[0], "fr"));
+          const hypothesisCount = candidate.hypotheses.size;
+          const sourceLinks = sources.map(([pollster, sourceUrl]) =>
+            `<a class="freshness-source" href="${sourceUrl}" target="_blank" rel="noopener noreferrer" aria-label="Open latest ${pollster} source for ${candidate.name}">${pollster} ↗</a>`
+          ).join("");
+          return `
+            <article class="freshness-card">
+              <div class="candidate-monogram" aria-hidden="true">${candidateMonogram(candidate.name)}</div>
+              <div>
+                <div class="freshness-name">${candidate.name}</div>
+                <div class="freshness-date">Last seen ${formatDate(candidate.latestDate)}</div>
+              </div>
+              <div class="freshness-age"><b>${candidate.daysSince}</b> ${candidate.daysSince === 1 ? "day" : "days"} ago</div>
+              <div class="freshness-sources">${sourceLinks}<div class="freshness-hypotheses">${hypothesisCount} ${hypothesisCount === 1 ? "hypothesis" : "hypotheses"}</div></div>
+            </article>`;
+        }).join("");
+      }
+
+      document.querySelectorAll("[data-freshness-sort]").forEach(button => {
+        button.onclick = () => {
+          sortMode = button.dataset.freshnessSort;
+          document.querySelectorAll("[data-freshness-sort]").forEach(sortButton => {
+            const active = sortButton === button;
+            sortButton.classList.toggle("active", active);
+            sortButton.setAttribute("aria-pressed", String(active));
+          });
+          drawRows();
+        };
+      });
+
+      drawRows();
+    }
+
+    renderElectionClock();
+    setInterval(renderElectionClock, 60 * 60 * 1000);
+
     fetch("polls.json", { cache: "no-store" })
       .then(response => {
         if (!response.ok) throw new Error(`polls.json returned HTTP ${response.status}`);
@@ -556,12 +881,17 @@
           `${complete.length} historical events · ${latestPackage.length} latest hypotheses`;
         showHypothesis(latestPackage[0]);
         renderTrend(complete);
+        renderFreshness(complete);
         document.documentElement.dataset.ready = "true";
       })
       .catch(error => {
         $("#status").textContent = "load failed";
         $("#bars").innerHTML = `<div class="error">${error.message}</div>`;
         $("#chart-wrap").innerHTML = '<div class="error">Could not render trendline.</div>';
+        $("#freshness-watch").innerHTML = `<div class="error">Could not render Candidate Freshness Watch: ${error.message}</div>`;
+        $("#freshness-latest").textContent = "Unavailable";
+        $("#freshness-pollsters").textContent = "—";
+        $("#freshness-candidates").textContent = "—";
         document.documentElement.dataset.ready = "error";
       });
   </script>
