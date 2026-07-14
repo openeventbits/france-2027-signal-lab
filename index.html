@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>France 2027 Signal Lab — Poll Slice</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050b14;
+      --panel: #091523;
+      --panel-2: #0b1b2c;
+      --line: #16344d;
+      --text: #d7e9f6;
+      --muted: #7895aa;
+      --cyan: #35d5ff;
+      --blue: #268cff;
+      --green: #52e5a3;
+      --warn: #ffbf4b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 75% 0%, #09203a 0, transparent 32rem), var(--bg);
+      color: var(--text);
+      font: 14px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .shell { width: min(1180px, calc(100% - 28px)); margin: 0 auto; padding: 22px 0 34px; }
+    header {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 12px 15px; border: 1px solid var(--line); background: rgba(7, 18, 31, .9);
+      box-shadow: 0 0 28px rgba(31, 147, 255, .08);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .mark {
+      width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--blue);
+      border-radius: 8px; color: var(--cyan); box-shadow: inset 0 0 16px rgba(38, 140, 255, .18);
+    }
+    h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+    .tag { color: var(--green); border: 1px solid #145b4a; padding: 4px 7px; font-size: 11px; }
+    .status { color: var(--muted); font-size: 12px; text-align: right; }
+    .grid { display: grid; grid-template-columns: 1fr 1.05fr; gap: 12px; margin-top: 12px; }
+    .panel { border: 1px solid var(--line); background: rgba(9, 21, 35, .94); min-width: 0; }
+    .panel-head {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+      padding: 13px 15px 11px; border-bottom: 1px solid var(--line);
+    }
+    .eyebrow { color: var(--cyan); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
+    h2 { margin: 4px 0 0; font-size: 16px; }
+    .sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
+    .bars { padding: 12px 15px 14px; }
+    .bar-row { display: grid; grid-template-columns: minmax(132px, 1.1fr) 2.8fr 54px; gap: 10px; align-items: center; margin: 9px 0; }
+    .candidate { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .track { height: 13px; background: #07101b; border: 1px solid #102a40; position: relative; overflow: hidden; }
+    .fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--cyan)); box-shadow: 0 0 12px rgba(53, 213, 255, .32); }
+    .score { text-align: right; color: #eef8ff; }
+    .meta {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px;
+      padding: 11px 15px 13px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px;
+    }
+    .meta b { color: var(--text); font-weight: 500; }
+    .meta .wide { grid-column: 1 / -1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .chart-wrap { padding: 8px 10px 2px; min-height: 352px; display: grid; grid-template-rows: 1fr auto; }
+    #trend { width: 100%; height: 300px; display: block; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 14px; padding: 5px 8px 10px; color: var(--muted); font-size: 11px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .empty, .error { padding: 28px 16px; color: var(--muted); }
+    .error { color: #ff8b8b; }
+    .axis { stroke: #21425c; stroke-width: 1; }
+    .gridline { stroke: #122b41; stroke-width: 1; stroke-dasharray: 3 4; }
+    .axis-label { fill: #7895aa; font-size: 10px; }
+    .trend-line { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+    .trend-point { stroke: #07101b; stroke-width: 1.5; }
+    footer { margin-top: 12px; color: var(--muted); font-size: 11px; text-align: right; }
+    @media (max-width: 850px) {
+      .grid { grid-template-columns: 1fr; }
+      header { align-items: flex-start; }
+      .status { display: none; }
+      .meta { grid-template-columns: 1fr; }
+      .meta .wide { grid-column: auto; }
+    }
+    @media (max-width: 560px) {
+      .shell { width: min(100% - 16px, 1180px); padding-top: 8px; }
+      .tag { display: none; }
+      .bar-row { grid-template-columns: 112px 1fr 46px; gap: 7px; }
+    }
+
+    #legend {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding: 8px 8px 12px;
+      scrollbar-width: thin;
+    }
+    .candidate-chip {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #173650;
+      background: #081725;
+      color: #7895aa;
+      padding: 6px 9px;
+      font: inherit;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .candidate-chip:hover {
+      border-color: #2873a8;
+      color: #b9d9ef;
+    }
+    .candidate-chip.active {
+      border-color: #2e9ee8;
+      color: #e8f6ff;
+      background: #0b2032;
+    }
+
+
+    .chart-wrap {
+      position: relative;
+    }
+
+    .poll-tooltip {
+      position: absolute;
+      z-index: 20;
+      min-width: 190px;
+      max-width: 260px;
+      padding: 11px 13px;
+      border: 1px solid #2e9ee8;
+      background: rgba(4, 15, 25, 0.97);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      color: #dcecff;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 100ms ease, transform 100ms ease;
+    }
+
+    .poll-tooltip.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .poll-tooltip-name {
+      color: #35d5ff;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .poll-tooltip-score {
+      color: #ffffff;
+      font-size: 25px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .poll-tooltip-meta {
+      color: #9bbbd2;
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .poll-tooltip-meta b {
+      color: #e4f4ff;
+      font-weight: 600;
+    }
+
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand">
+        <div class="mark">⌁</div>
+        <div><h1>France 2027 <span style="color:var(--blue)">Signal Lab</span></h1></div>
+        <span class="tag">SOURCE-LINKED</span>
+      </div>
+      <div class="status" id="status">loading polls.json…</div>
+    </header>
+
+    <section class="grid">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="eyebrow">Latest coherent poll event</div>
+            <h2 id="latest-title">Loading…</h2>
+            <div class="sub" id="latest-sub"></div>
+          </div>
+          <label style="font-size:11px;color:#7895aa;text-align:right">
+            HYPOTHESIS
+            <select id="hypothesis-select" style="display:block;margin-top:6px;max-width:210px;background:#071522;color:#dcecff;border:1px solid #1b405c;padding:7px 9px;font:inherit">
+            </select>
+          </label>
+        </div>
+        <div class="bars" id="bars"></div>
+        <div class="meta" id="meta"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="eyebrow">Candidate polling history</div>
+            <h2>All reported scores</h2>
+            <div class="sub" id="trend-sub">Every first-round observation; multiple points on one date reflect alternative hypotheses.</div>
+          </div>
+        </div>
+        <div class="chart-wrap" id="chart-wrap">
+          <svg id="trend" viewBox="0 0 640 300" role="img" aria-label="All reported candidate polling scores over time"></svg>
+          <div id="poll-tooltip" class="poll-tooltip" role="status"></div>
+          <div class="legend" id="legend"></div>
+        </div>
+      </article>
+    </section>
+    <footer>Descriptive polling data · no averages · no forecast · no voting advice</footer>
+  </main>
+
+  <script>
+    const $ = (selector) => document.querySelector(selector);
+    const palette = ["#35d5ff", "#52e5a3", "#ffbf4b", "#9d8cff", "#ff7c8a", "#75a7ff"];
+    const formatDate = (iso) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${iso}T00:00:00Z`));
+    const formatScore = (value) => Number.isInteger(value) ? `${value}%` : `${value.toFixed(1)}%`;
+
+    function renderBars(event) {
+      const ordered = [...event.candidates].sort((a, b) => b.score - a.score);
+      const max = Math.max(...ordered.map(c => c.score), 1);
+      $("#bars").innerHTML = ordered.map(candidate => `
+        <div class="bar-row">
+          <div class="candidate" title="${candidate.name}">${candidate.name}</div>
+          <div class="track"><div class="fill" style="width:${(candidate.score / max) * 100}%"></div></div>
+          <div class="score">${formatScore(candidate.score)}</div>
+        </div>`).join("");
+    }
+
+    function renderMeta(event) {
+      const sample = event.sample_size ? event.sample_size.toLocaleString("en-GB") : "not stated";
+      const publication = event.publication_date ? formatDate(event.publication_date) : "not stated on Wikipedia";
+      $("#meta").innerHTML = `
+        <div>Pollster: <b>${event.pollster}</b></div>
+        <div>Sample: <b>${sample}</b></div>
+        <div>Fieldwork: <b>${formatDate(event.fieldwork_start)}–${formatDate(event.fieldwork_end)}</b></div>
+        <div>Published: <b>${publication}</b></div>
+        <div class="wide" title="${event.hypothesis}">Hypothesis: <b>${event.hypothesis}</b></div>
+        <div class="wide"><a href="${event.source_url}" target="_blank" rel="noopener noreferrer">Open source ↗</a></div>`;
+    }
+
+    function renderTrend(events) {
+      const observations = new Map();
+
+      events.forEach(event => {
+        event.candidates.forEach(candidate => {
+          if (!observations.has(candidate.name)) {
+            observations.set(candidate.name, []);
+          }
+
+          observations.get(candidate.name).push({
+            date: event.fieldwork_end,
+            score: candidate.score,
+            event
+          });
+        });
+      });
+
+      observations.forEach(points => {
+        points.sort((a, b) =>
+          a.date.localeCompare(b.date) ||
+          a.event.event_id.localeCompare(b.event.event_id)
+        );
+      });
+
+      const latestDate = events.reduce(
+        (latest, event) =>
+          event.fieldwork_end > latest ? event.fieldwork_end : latest,
+        ""
+      );
+
+      const ranked = [...observations.entries()]
+        .map(([name, points]) => {
+          const latestPoints = points.filter(point => point.date === latestDate);
+          const latestScore = latestPoints.length
+            ? Math.max(...latestPoints.map(point => point.score))
+            : points[points.length - 1].score;
+
+          return {
+            name,
+            points,
+            latestDate: points[points.length - 1].date,
+            latestScore
+          };
+        })
+        .sort((a, b) => {
+          const aCurrent = a.latestDate === latestDate ? 1 : 0;
+          const bCurrent = b.latestDate === latestDate ? 1 : 0;
+
+          return (
+            bCurrent - aCurrent ||
+            b.latestScore - a.latestScore ||
+            b.latestDate.localeCompare(a.latestDate) ||
+            a.name.localeCompare(b.name)
+          );
+        });
+
+      const active = new Set(
+        ranked
+          .filter(item => item.latestDate === latestDate)
+          .slice(0, 6)
+          .map(item => item.name)
+      );
+
+      if (!active.size) {
+        ranked.slice(0, 6).forEach(item => active.add(item.name));
+      }
+
+      const colorIndex = new Map(
+        ranked.map((item, index) => [item.name, index])
+      );
+
+      const allTimes = events.map(event =>
+        new Date(`${event.fieldwork_end}T00:00:00Z`).getTime()
+      );
+      const minTime = Math.min(...allTimes);
+      const maxTime = Math.max(...allTimes);
+      const timeSpan = Math.max(maxTime - minTime, 86400000);
+
+      const allScores = ranked.flatMap(item =>
+        item.points.map(point => point.score)
+      );
+      const yMax = Math.max(
+        10,
+        Math.ceil(Math.max(...allScores) / 5) * 5
+      );
+
+      function draw() {
+        const svg = $("#trend");
+        const width = 640;
+        const height = 300;
+        const margin = { top: 18, right: 18, bottom: 42, left: 42 };
+        const plotW = width - margin.left - margin.right;
+        const plotH = height - margin.top - margin.bottom;
+        const ns = "http://www.w3.org/2000/svg";
+
+        svg.innerHTML = "";
+
+        const selected = ranked.filter(item => active.has(item.name));
+        const tooltip = $("#poll-tooltip");
+        const chartWrap = $("#chart-wrap");
+
+        function positionTooltip(mouseEvent) {
+          const rect = chartWrap.getBoundingClientRect();
+          const gap = 14;
+          const padding = 10;
+
+          let left = mouseEvent.clientX - rect.left + gap;
+          let top = mouseEvent.clientY - rect.top + gap;
+
+          if (left + tooltip.offsetWidth > rect.width - padding) {
+            left = mouseEvent.clientX - rect.left - tooltip.offsetWidth - gap;
+          }
+
+          if (top + tooltip.offsetHeight > rect.height - padding) {
+            top = mouseEvent.clientY - rect.top - tooltip.offsetHeight - gap;
+          }
+
+          tooltip.style.left = `${Math.max(padding, left)}px`;
+          tooltip.style.top = `${Math.max(padding, top)}px`;
+        }
+
+        $("#trend-sub").textContent =
+          `${events.length} poll events · ${observations.size} candidates · ` +
+          `raw observations · click candidates below · ${formatDate(events[events.length - 1].fieldwork_end)}–${formatDate(latestDate)}`;
+
+        for (let step = 0; step <= 4; step += 1) {
+          const value = (yMax / 4) * step;
+          const y = margin.top + plotH - (value / yMax) * plotH;
+
+          const line = document.createElementNS(ns, "line");
+          line.setAttribute("x1", margin.left);
+          line.setAttribute("x2", width - margin.right);
+          line.setAttribute("y1", y);
+          line.setAttribute("y2", y);
+          line.setAttribute("class", "gridline");
+          svg.appendChild(line);
+
+          const label = document.createElementNS(ns, "text");
+          label.setAttribute("x", margin.left - 8);
+          label.setAttribute("y", y + 3);
+          label.setAttribute("text-anchor", "end");
+          label.setAttribute("class", "axis-label");
+          label.textContent = `${value.toFixed(0)}%`;
+          svg.appendChild(label);
+        }
+
+        const dateFormatter = new Intl.DateTimeFormat("en-GB", {
+          month: "short",
+          year: "2-digit"
+        });
+
+        for (let step = 0; step <= 3; step += 1) {
+          const time = minTime + (timeSpan * step) / 3;
+          const x = margin.left + (plotW * step) / 3;
+
+          const label = document.createElementNS(ns, "text");
+          label.setAttribute("x", x);
+          label.setAttribute("y", height - 13);
+          label.setAttribute(
+            "text-anchor",
+            step === 0 ? "start" : step === 3 ? "end" : "middle"
+          );
+          label.setAttribute("class", "axis-label");
+          label.textContent = dateFormatter.format(new Date(time));
+          svg.appendChild(label);
+        }
+
+        selected.forEach(item => {
+          const color = palette[colorIndex.get(item.name) % palette.length];
+          const coords = item.points.map(point => {
+            const time = new Date(`${point.date}T00:00:00Z`).getTime();
+            return {
+              x: margin.left + ((time - minTime) / timeSpan) * plotW,
+              y: margin.top + plotH - (point.score / yMax) * plotH,
+              point
+            };
+          });
+
+          coords.forEach(coord => {
+            const circle = document.createElementNS(ns, "circle");
+            circle.setAttribute("cx", coord.x);
+            circle.setAttribute("cy", coord.y);
+            circle.setAttribute("r", 3.6);
+            circle.setAttribute("fill", color);
+            circle.setAttribute("class", "trend-point");
+            circle.setAttribute("opacity", "0.88");
+
+            circle.addEventListener("mouseenter", mouseEvent => {
+              const sample = coord.point.event.sample_size
+                ? coord.point.event.sample_size.toLocaleString("en-GB")
+                : "not stated";
+
+              const fieldwork =
+                coord.point.event.fieldwork_start === coord.point.event.fieldwork_end
+                  ? formatDate(coord.point.event.fieldwork_end)
+                  : `${formatDate(coord.point.event.fieldwork_start)}–${formatDate(coord.point.event.fieldwork_end)}`;
+
+              tooltip.innerHTML = `
+                <div class="poll-tooltip-name">${item.name}</div>
+                <div class="poll-tooltip-score">${formatScore(coord.point.score)}</div>
+                <div class="poll-tooltip-meta">
+                  <b>${coord.point.event.pollster}</b><br>
+                  Fieldwork: ${fieldwork}<br>
+                  Sample: ${sample}
+                </div>`;
+
+              tooltip.style.borderColor = color;
+              tooltip.querySelector(".poll-tooltip-name").style.color = color;
+              tooltip.classList.add("visible");
+              circle.setAttribute("r", "6");
+              circle.setAttribute("stroke", "#ffffff");
+              circle.setAttribute("stroke-width", "2");
+              circle.setAttribute("opacity", "1");
+              positionTooltip(mouseEvent);
+            });
+
+            circle.addEventListener("mousemove", positionTooltip);
+
+            circle.addEventListener("mouseleave", () => {
+              tooltip.classList.remove("visible");
+              circle.setAttribute("r", "3.6");
+              circle.setAttribute("stroke", "#07101b");
+              circle.setAttribute("stroke-width", "1.5");
+              circle.setAttribute("opacity", "0.88");
+            });
+
+            svg.appendChild(circle);
+          });
+        });
+
+        $("#legend").innerHTML = ranked.map(item => {
+          const color = palette[colorIndex.get(item.name) % palette.length];
+          const selectedClass = active.has(item.name) ? " active" : "";
+
+          return `
+            <button
+              type="button"
+              class="candidate-chip${selectedClass}"
+              data-candidate="${encodeURIComponent(item.name)}"
+              title="${item.points.length} reported scores"
+            >
+              <span class="dot" style="background:${color}"></span>
+              ${item.name}
+            </button>`;
+        }).join("");
+
+        document.querySelectorAll(".candidate-chip").forEach(button => {
+          button.addEventListener("click", () => {
+            const name = decodeURIComponent(button.dataset.candidate);
+
+            if (active.has(name)) {
+              if (active.size > 1) active.delete(name);
+            } else {
+              active.add(name);
+            }
+
+            draw();
+          });
+        });
+      }
+
+      draw();
+    }
+
+    fetch("polls.json", { cache: "no-store" })
+      .then(response => {
+        if (!response.ok) throw new Error(`polls.json returned HTTP ${response.status}`);
+        return response.json();
+      })
+      .then(events => {
+        if (!Array.isArray(events) || events.length === 0) throw new Error("polls.json contains no events");
+        const complete = events.filter(event => event.round === "first_round" && event.event_id && event.scenario_key && Array.isArray(event.candidates) && event.candidates.length >= 2);
+        if (!complete.length) throw new Error("No complete first-round events found");
+        complete.sort((a, b) =>
+          b.fieldwork_end.localeCompare(a.fieldwork_end) ||
+          a.pollster.localeCompare(b.pollster)
+        );
+
+        const latest = complete[0];
+        const latestPackage = complete.filter(event =>
+          event.pollster === latest.pollster &&
+          event.fieldwork_start === latest.fieldwork_start &&
+          event.fieldwork_end === latest.fieldwork_end &&
+          event.sample_size === latest.sample_size
+        );
+
+        function showHypothesis(event) {
+          $("#latest-title").textContent = event.pollster;
+          $("#latest-sub").textContent =
+            `${formatDate(event.fieldwork_start)}–${formatDate(event.fieldwork_end)} · first round`;
+          renderBars(event);
+          renderMeta(event);
+        }
+
+        const selector = $("#hypothesis-select");
+        selector.innerHTML = latestPackage.map((event, index) =>
+          `<option value="${index}">Hypothesis ${index + 1} · ${event.candidates.length} candidates</option>`
+        ).join("");
+
+        selector.addEventListener("change", () => {
+          showHypothesis(latestPackage[Number(selector.value)]);
+        });
+
+        $("#status").textContent =
+          `${complete.length} historical events · ${latestPackage.length} latest hypotheses`;
+        showHypothesis(latestPackage[0]);
+        renderTrend(complete);
+        document.documentElement.dataset.ready = "true";
+      })
+      .catch(error => {
+        $("#status").textContent = "load failed";
+        $("#bars").innerHTML = `<div class="error">${error.message}</div>`;
+        $("#chart-wrap").innerHTML = '<div class="error">Could not render trendline.</div>';
+        document.documentElement.dataset.ready = "error";
+      });
+  </script>
+</body>
+</html>
