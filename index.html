@@ -193,10 +193,130 @@
     }
     .poll-wave-loading { grid-column: 1 / -1; padding: 18px 6px; color: var(--muted); }
     .poll-wave-footer { padding: 8px 13px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
+    .closest-runoff {
+      position: relative; margin-top: 12px; overflow: hidden; isolation: isolate;
+      background: rgba(7, 18, 31, .97);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .2), inset 0 1px rgba(255, 255, 255, .015);
+    }
+    .closest-runoff::before, .closest-runoff::after {
+      content: ""; position: absolute; z-index: -1; pointer-events: none;
+    }
+    .closest-runoff::before {
+      width: 320px; height: 320px; right: -150px; top: -190px; border: 1px solid rgba(53, 213, 255, .1);
+      border-radius: 50%; box-shadow: 0 0 0 54px rgba(53, 213, 255, .018), 0 0 0 108px rgba(157, 140, 255, .012);
+    }
+    .closest-runoff::after {
+      width: 180px; height: 1px; left: 42%; top: 88px; opacity: .22;
+      background: repeating-linear-gradient(90deg, var(--cyan) 0 2px, transparent 2px 8px);
+      transform: rotate(-18deg);
+    }
+    .closest-runoff-head { align-items: center; padding: 18px 20px 15px; }
+    .closest-runoff-head h2 { margin-top: 5px; font-size: clamp(20px, 2vw, 27px); line-height: 1.1; letter-spacing: -.025em; }
+    .closest-runoff-head .sub { margin-top: 6px; font-size: 12px; }
+    .runoff-status {
+      flex: 0 0 auto; padding: 6px 9px; border: 1px solid #24789b; border-radius: 999px;
+      background: rgba(17, 79, 105, .22); color: #8ce8ff; font-size: 9px; font-weight: 700;
+      letter-spacing: .1em; line-height: 1; text-align: center;
+    }
+    .runoff-status.is-split, .runoff-status.is-ambiguous { border-color: #55548b; background: rgba(75, 69, 126, .18); color: #c8c2ff; }
+    .runoff-status.is-insufficient { border-color: #3a5061; background: rgba(42, 61, 74, .18); color: #9aafbd; }
+    .runoff-evidence {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 7px 17px; padding: 10px 20px;
+      border-bottom: 1px solid var(--line); background: rgba(4, 13, 23, .4);
+    }
+    .runoff-evidence-item { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
+    .runoff-evidence-label { color: #66859b; font-size: 8px; letter-spacing: .14em; text-transform: uppercase; }
+    .runoff-evidence-value { color: #bfd5e3; font-size: 10px; font-weight: 700; letter-spacing: .035em; text-transform: uppercase; }
+    .runoff-layout { display: grid; grid-template-columns: minmax(0, 1.85fr) minmax(280px, 1fr); min-width: 0; }
+    .runoff-hero { min-width: 0; padding: 22px 24px 24px; }
+    .runoff-context { min-width: 0; padding: 22px 20px; border-left: 1px solid var(--line); background: rgba(10, 27, 44, .5); }
+    .runoff-conclusion { max-width: 700px; color: #f1f8fd; font-size: clamp(20px, 2.4vw, 31px); font-weight: 700; line-height: 1.12; letter-spacing: -.035em; }
+    .runoff-secondary { margin-top: 7px; color: #9db7ca; font-size: 12px; }
+    .runoff-head-to-head { margin-top: 23px; }
+    .runoff-candidates {
+      display: grid; grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr); align-items: center; gap: 14px;
+      margin-bottom: 18px;
+    }
+    .runoff-candidate { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .runoff-candidate.is-right { flex-direction: row-reverse; text-align: right; }
+    .runoff-monogram {
+      position: relative; isolation: isolate; overflow: hidden;
+      flex: 0 0 auto; width: 54px; height: 54px; display: grid; place-items: center; border: 1px solid #2878a3;
+      border-radius: 50%; background: #0a2235; color: #8ce8ff; box-shadow: inset 0 0 18px rgba(53, 213, 255, .07);
+      font-size: 13px; font-weight: 800; letter-spacing: .04em;
+    }
+    .runoff-candidate.is-right .runoff-monogram { border-color: #595b8c; background: #171d35; color: #d2d0ef; box-shadow: inset 0 0 18px rgba(157, 140, 255, .05); }
+    .runoff-monogram-fallback {
+      width: 100%; height: 100%; display: grid; place-items: center;
+    }
+    .runoff-monogram img {
+      position: absolute; z-index: 1; inset: 0; display: block;
+      width: 100%; height: 100%; max-width: none;
+      object-fit: cover; object-position: center 18%;
+      border-radius: 50%;
+    }
+    .ai-portrait-note { margin-top: 5px; color: #66869c; }
+    .runoff-candidate-name { min-width: 0; color: #dcecf6; font-size: clamp(12px, 1.25vw, 15px); font-weight: 750; line-height: 1.2; letter-spacing: .035em; text-transform: uppercase; overflow-wrap: anywhere; }
+    .runoff-centre {
+      position: relative; align-self: stretch; display: grid; place-items: center; color: #f5fbff; font-size: 15px; font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .runoff-centre::before { content: ""; position: absolute; width: 1px; height: calc(100% + 24px); background: rgba(239, 248, 255, .62); }
+    .runoff-centre span { position: relative; padding: 3px 5px; background: #07131f; border: 1px solid #30495b; border-radius: 3px; }
+    .runoff-results { display: grid; gap: 10px; }
+    .runoff-result {
+      display: grid; grid-template-columns: minmax(120px, .8fr) minmax(190px, 2.1fr) minmax(112px, auto);
+      gap: 12px; align-items: center; min-width: 0; padding: 11px 12px; border: 1px solid #17374f;
+      border-radius: 7px; background: rgba(8, 24, 39, .76);
+    }
+    .runoff-result:hover, .runoff-result:focus-within { border-color: #28698e; background: rgba(10, 31, 49, .86); }
+    .runoff-pollster { color: #dcecf6; font-size: 11px; font-weight: 700; letter-spacing: .035em; text-transform: uppercase; overflow-wrap: anywhere; }
+    .runoff-score-line { min-width: 0; }
+    .runoff-score-values { display: flex; justify-content: space-between; margin-bottom: 5px; color: #edf8ff; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .runoff-score-values span:last-child { color: #d4d4ee; }
+    .runoff-rail { position: relative; display: flex; height: 10px; overflow: hidden; border: 1px solid #28445a; border-radius: 999px; background: #050d17; }
+    .runoff-rail-left { background: #278eb9; }
+    .runoff-rail-right { flex: 1; background: #65678f; }
+    .runoff-rail-centre { position: absolute; z-index: 2; top: -3px; bottom: -3px; left: 50%; width: 1px; background: #f4fbff; box-shadow: 0 0 4px rgba(255, 255, 255, .45); }
+    .runoff-result-meta { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 5px 9px; min-width: 0; }
+    .runoff-gap { color: #b9d1df; font-size: 10px; font-weight: 700; white-space: nowrap; text-transform: uppercase; }
+    .runoff-source {
+      padding: 3px 6px; border: 1px solid #1c5877; border-radius: 999px; color: #79ddf7; font-size: 9px; white-space: nowrap;
+    }
+    .runoff-source:hover { border-color: var(--cyan); text-decoration: none; }
+    .runoff-source:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+    .runoff-context-title { margin: 0; color: #e5f2fa; font-size: 14px; }
+    .runoff-context-sub { margin: 4px 0 14px; color: var(--muted); font-size: 10px; }
+    .runoff-context-list { display: grid; gap: 8px; }
+    .runoff-context-row { padding: 10px; border: 1px solid #17364e; border-radius: 7px; background: rgba(7, 21, 34, .6); }
+    .runoff-context-row.is-selected { border-color: #26799c; background: rgba(17, 60, 80, .22); box-shadow: inset 3px 0 #35bfe5; }
+    .runoff-context-matchup { color: #cfe2ed; font-size: 11px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+    .runoff-context-row.is-selected .runoff-context-matchup { color: #e9f9ff; }
+    .runoff-context-tag { margin-left: 6px; color: #70dbf5; font-size: 8px; letter-spacing: .1em; text-transform: uppercase; }
+    .runoff-context-results { display: grid; gap: 5px; margin-top: 8px; }
+    .runoff-context-result { display: grid; grid-template-columns: minmax(75px, 1fr) minmax(48px, .7fr) auto auto; gap: 7px; align-items: center; min-width: 0; }
+    .runoff-context-pollster { min-width: 0; color: #7f9caf; font-size: 9px; overflow-wrap: anywhere; }
+    .runoff-mini-gap { position: relative; height: 3px; border-radius: 999px; background: #132f45; overflow: hidden; }
+    .runoff-mini-gap span { display: block; height: 100%; min-width: 2px; border-radius: inherit; background: #6b86a1; }
+    .runoff-context-row.is-selected .runoff-mini-gap span { background: #32acd0; }
+    .runoff-context-gap { color: #b7cad7; font-size: 9px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .runoff-context-source { color: #60cde9; font-size: 9px; white-space: nowrap; }
+    .runoff-state-grid { display: grid; gap: 11px; margin-top: 19px; }
+    .runoff-state-card { padding: 13px; border: 1px solid #203c55; border-radius: 7px; background: rgba(10, 27, 44, .64); }
+    .runoff-state-pollster { color: #88def5; font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .runoff-state-matchup { margin-top: 5px; color: #e4f1f9; font-size: 14px; font-weight: 700; }
+    .runoff-state-result { margin-top: 9px; }
+    .runoff-state-note { margin-top: 5px; color: var(--muted); font-size: 10px; }
+    .runoff-insufficient { min-height: 190px; display: grid; align-content: center; max-width: 710px; }
+    .runoff-insufficient .runoff-conclusion { color: #c0d0db; font-size: clamp(18px, 2vw, 25px); }
+    .runoff-insufficient-copy { margin-top: 9px; color: #849eaf; font-size: 12px; line-height: 1.6; }
+    .runoff-disclosure { padding: 11px 20px; border-top: 1px solid var(--line); color: #6f899b; font-size: 10px; line-height: 1.5; }
     footer { margin-top: 12px; color: var(--muted); font-size: 11px; text-align: right; }
     @media (max-width: 850px) {
       .top-dashboard, .grid { grid-template-columns: 1fr; }
       .poll-wave-grid { grid-template-columns: 1fr; }
+      .runoff-layout { grid-template-columns: 1fr; }
+      .runoff-context { border-top: 1px solid var(--line); border-left: 0; }
       .top-dashboard > .panel { height: auto; }
       .freshness { height: 450px !important; }
       header { align-items: flex-start; }
@@ -234,6 +354,17 @@
       .freshness-change-meta { margin-top: 0; }
       .poll-wave-top { align-items: flex-start; flex-direction: column; gap: 3px; }
       .poll-wave-date { text-align: left; white-space: normal; }
+      .closest-runoff-head { align-items: flex-start; }
+      .runoff-status { max-width: 155px; line-height: 1.25; }
+      .runoff-evidence { gap: 7px 13px; padding-inline: 13px; }
+      .runoff-hero, .runoff-context { padding: 18px 13px; }
+      .runoff-candidates { grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr); gap: 7px; }
+      .runoff-candidate { align-items: flex-start; flex-direction: column; gap: 7px; }
+      .runoff-candidate.is-right { align-items: flex-end; flex-direction: column; }
+      .runoff-monogram { width: 44px; height: 44px; font-size: 11px; }
+      .runoff-result { grid-template-columns: 1fr; gap: 7px; }
+      .runoff-result-meta { justify-content: space-between; }
+      .runoff-disclosure { padding-inline: 13px; }
     }
 
     #legend {
@@ -408,6 +539,31 @@
       <div class="poll-wave-footer" id="poll-wave-summary">Loading poll-wave summary…</div>
     </section>
 
+    <section class="panel closest-runoff" aria-labelledby="closest-runoff-title">
+      <div class="panel-head closest-runoff-head">
+        <div>
+          <div class="eyebrow">Runoff test</div>
+          <h2 id="closest-runoff-title">Which runoff is closest?</h2>
+          <div class="sub">The closest second-round matchup in the latest common pollster test.</div>
+        </div>
+        <div class="runoff-status" id="closest-runoff-status">LOADING RUNOFF TEST</div>
+      </div>
+      <div id="closest-runoff-evidence" class="runoff-evidence" aria-label="Runoff test evidence context">
+        <div class="runoff-evidence-item"><span class="runoff-evidence-label">Fieldwork</span><span class="runoff-evidence-value">Loading…</span></div>
+      </div>
+      <div class="runoff-layout" id="closest-runoff-result" aria-live="polite">
+        <div class="runoff-hero" id="closest-runoff-hero">
+          <div class="runoff-conclusion">Loading the latest common runoff test…</div>
+          <div class="runoff-secondary">Reported poll results will remain separate.</div>
+        </div>
+        <aside class="runoff-context" id="closest-runoff-context" aria-label="Common matchup comparison">
+          <h3 class="runoff-context-title">Why is this the closest matchup?</h3>
+          <p class="runoff-context-sub">Loading common matchup comparisons…</p>
+        </aside>
+      </div>
+      <div class="runoff-disclosure" id="closest-runoff-disclosure">Second-round polling, not a forecast. Each poll is shown separately; no average or probability is calculated.</div>
+    </section>
+
     <section class="grid">
       <article class="panel">
         <div class="panel-head">
@@ -441,7 +597,10 @@
         </div>
       </article>
     </section>
-    <footer>Descriptive polling data · no averages · no forecast · no voting advice</footer>
+    <footer>
+      <div>Descriptive polling data · no averages · no forecast · no voting advice</div>
+      <div class="ai-portrait-note">Candidate portraits are AI-generated illustrations for visual identification.</div>
+    </footer>
   </main>
 
   <script>
@@ -536,6 +695,308 @@
         .join("")
         .slice(0, 3)
         .toUpperCase();
+    }
+
+    function runoffMonogram(name) {
+      return String(name ?? "")
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .split(/[\s-]+/)
+        .filter(Boolean)
+        .map(part => part[0])
+        .join("")
+        .slice(0, 3)
+        .toUpperCase();
+    }
+
+    function runoffShortName(name) {
+      const parts = String(name ?? "").trim().split(/\s+/).filter(Boolean);
+      if (parts.length < 2) return parts[0] || "";
+      const particles = new Set(["de", "du", "des", "le", "la", "les", "van", "von"]);
+      return particles.has(parts.at(-2).toLocaleLowerCase("fr"))
+        ? parts.slice(-2).join(" ")
+        : parts.at(-1);
+    }
+
+    function formatRunoffFieldwork(windowValue) {
+      const start = new Date(`${windowValue.start}T00:00:00Z`);
+      const end = new Date(`${windowValue.end}T00:00:00Z`);
+      const day = date => new Intl.DateTimeFormat("en-GB", { day: "numeric", timeZone: "UTC" }).format(date);
+      const month = date => new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" }).format(date).toUpperCase();
+      const year = date => new Intl.DateTimeFormat("en-GB", { year: "numeric", timeZone: "UTC" }).format(date);
+      if (windowValue.start === windowValue.end) return `${day(start)} ${month(start)} ${year(start)}`;
+      if (start.getUTCFullYear() === end.getUTCFullYear() && start.getUTCMonth() === end.getUTCMonth()) {
+        return `${day(start)}–${day(end)} ${month(end)} ${year(end)}`;
+      }
+      return `${day(start)} ${month(start)} ${year(start) === year(end) ? "" : year(start)}–${day(end)} ${month(end)} ${year(end)}`.replace(/\s+–/, "–");
+    }
+
+    function runoffGapLabel(value) {
+      const margin = Number(value);
+      return `${margin}-point gap`;
+    }
+
+    function runoffMatchupLabel(candidates) {
+      return candidates.map(escapeHtml).join(" vs ");
+    }
+
+    function isValidRunoffResult(result) {
+      return result && typeof result.pollster === "string" && result.pollster.trim() !== "" &&
+        Array.isArray(result.candidates) && result.candidates.length === 2 &&
+        result.candidates.every(candidate => candidate && typeof candidate.name === "string" && Number.isFinite(candidate.score)) &&
+        Number.isFinite(result.margin) && safeSourceUrl(result.source_url) !== "";
+    }
+
+    function validateClosestRunoffPayload(payload) {
+      const statuses = new Set(["agree", "split", "ambiguous", "insufficient"]);
+      if (!payload || typeof payload !== "object" || !statuses.has(payload.status)) throw new Error("Unrecognised runoff payload status");
+      if (typeof payload.message !== "string" || typeof payload.disclosure !== "string") throw new Error("Runoff payload copy is incomplete");
+      if (payload.status === "insufficient") return payload;
+      if (!payload.fieldwork_window || !/^\d{4}-\d{2}-\d{2}$/.test(payload.fieldwork_window.start) || !/^\d{4}-\d{2}-\d{2}$/.test(payload.fieldwork_window.end)) {
+        throw new Error("Runoff fieldwork window is invalid");
+      }
+      if (!Number.isInteger(payload.pollster_count) || payload.pollster_count < 2 || !Number.isInteger(payload.common_matchup_count) || payload.common_matchup_count < 2) {
+        throw new Error("Runoff comparison counts are invalid");
+      }
+      if (!Array.isArray(payload.pollsters) || payload.pollsters.length < 2 || !Array.isArray(payload.common_matchups) || payload.common_matchups.length < 2) {
+        throw new Error("Runoff comparison evidence is incomplete");
+      }
+      if (payload.pollster_count !== payload.pollsters.length || payload.common_matchup_count !== payload.common_matchups.length) {
+        throw new Error("Runoff comparison counts do not match the evidence");
+      }
+      payload.common_matchups.forEach(matchup => {
+        if (!matchup || typeof matchup.matchup_key !== "string" || !Array.isArray(matchup.candidates) || matchup.candidates.length !== 2 ||
+            !Array.isArray(matchup.results) || matchup.results.length < 2 || !matchup.results.every(isValidRunoffResult)) {
+          throw new Error("A common runoff matchup is invalid");
+        }
+      });
+      payload.pollsters.forEach(pollster => {
+        if (!pollster || typeof pollster.pollster !== "string" || !Array.isArray(pollster.closest_matchups) || !pollster.closest_matchups.length ||
+            !pollster.closest_matchups.every(matchup => Array.isArray(matchup.candidates) && matchup.candidates.length === 2 && isValidRunoffResult(matchup.result))) {
+          throw new Error("Pollster closest-matchup evidence is invalid");
+        }
+      });
+      if (payload.status === "agree" && (!payload.selected_matchup || !Array.isArray(payload.selected_matchup.candidates) || payload.selected_matchup.candidates.length !== 2 ||
+          !Array.isArray(payload.selected_matchup.results) || payload.selected_matchup.results.length < 2 || !payload.selected_matchup.results.every(isValidRunoffResult))) {
+        throw new Error("Agreed runoff selection is invalid");
+      }
+      if (payload.status === "agree" && (!payload.common_matchups.some(matchup => matchup.matchup_key === payload.selected_matchup.matchup_key) ||
+          !payload.pollsters.every(pollster => pollster.closest_matchups.length === 1 && pollster.closest_matchups[0].matchup_key === payload.selected_matchup.matchup_key))) {
+        throw new Error("Agreed runoff evidence is inconsistent");
+      }
+      if (payload.status === "split" && (!payload.pollsters.every(pollster => pollster.closest_matchups.length === 1) ||
+          new Set(payload.pollsters.map(pollster => pollster.closest_matchups[0].matchup_key)).size < 2)) {
+        throw new Error("Split runoff evidence is inconsistent");
+      }
+      if (payload.status === "ambiguous" && !payload.pollsters.some(pollster =>
+          pollster.closest_matchups.length > 1 && new Set(pollster.closest_matchups.map(matchup => matchup.result.margin)).size === 1)) {
+        throw new Error("Ambiguous runoff evidence contains no tied smallest margins");
+      }
+      return payload;
+    }
+
+    function runoffSourceLink(result, candidates, className = "runoff-source") {
+      const safeUrl = safeSourceUrl(result.source_url);
+      const matchup = candidates.join(" versus ");
+      return `<a class="${className}" href="${escapeAttribute(safeUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeAttribute(result.pollster)} source for ${escapeAttribute(matchup)}">Source ↗</a>`;
+    }
+
+    function runoffScoreRail(result, referenceCandidates) {
+      const scores = referenceCandidates.map(name => result.candidates.find(candidate => candidate.name === name)?.score);
+      if (!scores.every(Number.isFinite)) throw new Error("Runoff result candidates do not match the matchup");
+      const total = scores[0] + scores[1];
+      const division = total > 0 ? Math.max(0, Math.min(100, scores[0] / total * 100)) : 50;
+      return `
+        <div class="runoff-score-line" aria-label="Reported score ${escapeAttribute(referenceCandidates[0])} ${scores[0]} percent, ${escapeAttribute(referenceCandidates[1])} ${scores[1]} percent">
+          <div class="runoff-score-values"><span>${escapeHtml(scores[0])}%</span><span>${escapeHtml(scores[1])}%</span></div>
+          <div class="runoff-rail" aria-hidden="true">
+            <span class="runoff-rail-left" style="width:${division.toFixed(2)}%"></span>
+            <span class="runoff-rail-right"></span>
+            <span class="runoff-rail-centre"></span>
+          </div>
+        </div>`;
+    }
+
+    function runoffResultRow(result, candidates) {
+      return `
+        <div class="runoff-result">
+          <div class="runoff-pollster">${escapeHtml(result.pollster)}</div>
+          ${runoffScoreRail(result, candidates)}
+          <div class="runoff-result-meta">
+            <span class="runoff-gap">${escapeHtml(runoffGapLabel(result.margin))}</span>
+            ${runoffSourceLink(result, candidates)}
+          </div>
+        </div>`;
+    }
+
+    function renderRunoffEvidence(payload) {
+      const evidence = $("#closest-runoff-evidence");
+      if (payload.status === "insufficient" || !payload.fieldwork_window) {
+        evidence.innerHTML = `<div class="runoff-evidence-item"><span class="runoff-evidence-label">Comparison</span><span class="runoff-evidence-value">${escapeHtml(payload.message)}</span></div>`;
+        return;
+      }
+      evidence.innerHTML = `
+        <div class="runoff-evidence-item"><span class="runoff-evidence-label">Fieldwork</span><span class="runoff-evidence-value">${escapeHtml(formatRunoffFieldwork(payload.fieldwork_window))}</span></div>
+        <div class="runoff-evidence-item"><span class="runoff-evidence-value">${escapeHtml(payload.pollster_count)}</span><span class="runoff-evidence-label">${payload.pollster_count === 1 ? "Pollster" : "Pollsters"}</span></div>
+        <div class="runoff-evidence-item"><span class="runoff-evidence-value">${escapeHtml(payload.common_matchup_count)}</span><span class="runoff-evidence-label">Common matchups</span></div>`;
+    }
+
+    function renderRunoffContext(payload, selectedKey = "") {
+      const context = $("#closest-runoff-context");
+      if (!Array.isArray(payload.common_matchups) || !payload.common_matchups.length) {
+        context.innerHTML = `<h3 class="runoff-context-title">Comparable evidence</h3><p class="runoff-context-sub">${escapeHtml(payload.message)}</p>`;
+        return;
+      }
+      const maxMargin = Math.max(1, ...payload.common_matchups.flatMap(matchup => matchup.results.map(result => result.margin)));
+      const ordered = [...payload.common_matchups].sort((a, b) =>
+        Number(b.matchup_key === selectedKey) - Number(a.matchup_key === selectedKey) ||
+        Math.max(...a.results.map(result => result.margin)) - Math.max(...b.results.map(result => result.margin)) ||
+        a.candidates.join("|").localeCompare(b.candidates.join("|"), "fr")
+      );
+      const heading = payload.status === "agree" ? "Why is this the closest matchup?" : "Common matchup evidence";
+      context.innerHTML = `
+        <h3 class="runoff-context-title">${heading}</h3>
+        <p class="runoff-context-sub">Each pollster’s reported gap, shown separately.</p>
+        <div class="runoff-context-list">
+          ${ordered.map(matchup => {
+            const selected = matchup.matchup_key === selectedKey;
+            return `
+              <article class="runoff-context-row${selected ? " is-selected" : ""}">
+                <div class="runoff-context-matchup">${runoffMatchupLabel(matchup.candidates)}${selected ? '<span class="runoff-context-tag">Closest</span>' : ""}</div>
+                <div class="runoff-context-results">
+                  ${matchup.results.map(result => `
+                    <div class="runoff-context-result">
+                      <span class="runoff-context-pollster">${escapeHtml(result.pollster)}</span>
+                      <span class="runoff-mini-gap" aria-hidden="true"><span style="width:${Math.max(2, result.margin / maxMargin * 100).toFixed(2)}%"></span></span>
+                      <span class="runoff-context-gap">${escapeHtml(runoffGapLabel(result.margin))}</span>
+                      ${runoffSourceLink(result, matchup.candidates, "runoff-context-source")}
+                    </div>`).join("")}
+                </div>
+              </article>`;
+          }).join("")}
+        </div>`;
+    }
+
+    const candidatePortraits = Object.freeze({
+      "Édouard Philippe": "assets/candidates/edouard-philippe.png",
+      "Marine Le Pen": "assets/candidates/marine-le-pen.png"
+    });
+
+    function runoffCandidateMarker(candidateName) {
+      const initials = escapeHtml(runoffMonogram(candidateName));
+      const portrait = candidatePortraits[candidateName];
+
+      if (!portrait) {
+        return `<div class="runoff-monogram" aria-hidden="true"><span class="runoff-monogram-fallback">${initials}</span></div>`;
+      }
+
+      return `
+        <div class="runoff-monogram has-portrait">
+          <span class="runoff-monogram-fallback" aria-hidden="true">${initials}</span>
+          <img
+            src="${escapeAttribute(portrait)}"
+            alt="AI-generated portrait of ${escapeAttribute(candidateName)}"
+            loading="eager"
+            decoding="async"
+            onerror="this.remove()"
+          >
+        </div>`;
+    }
+
+    function renderAgreedRunoff(payload) {
+      const selected = payload.selected_matchup;
+      const [candidateA, candidateB] = selected.candidates;
+      const conclusion = `${runoffShortName(candidateA)}–${runoffShortName(candidateB)} is the closest tested runoff`;
+      $("#closest-runoff-hero").innerHTML = `
+        <div class="runoff-conclusion">${escapeHtml(conclusion)}</div>
+        ${payload.secondary_message ? `<div class="runoff-secondary">${escapeHtml(payload.secondary_message)}</div>` : ""}
+        <div class="runoff-head-to-head">
+          <div class="runoff-candidates">
+            <div class="runoff-candidate">
+              ${runoffCandidateMarker(candidateA)}
+              <div class="runoff-candidate-name">${escapeHtml(candidateA)}</div>
+            </div>
+            <div class="runoff-centre" aria-label="Fifty percent centre marker"><span>50</span></div>
+            <div class="runoff-candidate is-right">
+              ${runoffCandidateMarker(candidateB)}
+              <div class="runoff-candidate-name">${escapeHtml(candidateB)}</div>
+            </div>
+          </div>
+          <div class="runoff-results">${selected.results.map(result => runoffResultRow(result, selected.candidates)).join("")}</div>
+        </div>`;
+      renderRunoffContext(payload, selected.matchup_key);
+    }
+
+    function renderUnresolvedRunoff(payload) {
+      const isSplit = payload.status === "split";
+      const conclusion = isSplit ? "Pollsters split" : "No single closest matchup";
+      $("#closest-runoff-hero").innerHTML = `
+        <div class="runoff-conclusion">${conclusion}</div>
+        <div class="runoff-secondary">${escapeHtml(payload.message)}</div>
+        <div class="runoff-state-grid">
+          ${payload.pollsters.map(pollster => `
+            <section class="runoff-state-card" aria-label="${escapeAttribute(pollster.pollster)} closest tested runoff evidence">
+              <div class="runoff-state-pollster">${escapeHtml(pollster.pollster)}</div>
+              ${pollster.closest_matchups.map(matchup => `
+                <div class="runoff-state-matchup">${runoffMatchupLabel(matchup.candidates)}</div>
+                <div class="runoff-state-result">${runoffScoreRail(matchup.result, matchup.candidates)}</div>
+                <div class="runoff-result-meta">
+                  <span class="runoff-gap">${escapeHtml(runoffGapLabel(matchup.result.margin))}</span>
+                  ${runoffSourceLink(matchup.result, matchup.candidates)}
+                </div>`).join("")}
+              ${!isSplit && pollster.closest_matchups.length > 1 ? '<div class="runoff-state-note">Tied at this pollster’s smallest tested margin.</div>' : ""}
+            </section>`).join("")}
+        </div>`;
+      renderRunoffContext(payload);
+    }
+
+    function renderRunoffDisclosure(payload) {
+      const base = "Second-round polling, not a forecast. Each poll is shown separately; no average or probability is calculated.";
+      const additional = String(payload.disclosure ?? "")
+        .match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map(sentence => sentence.trim())
+        .filter(sentence => sentence && !/(average|combined score|synthetic margin|probabilit|forecast)/i.test(sentence)) || [];
+      $("#closest-runoff-disclosure").textContent = [base, ...additional].join(" ");
+    }
+
+    function renderClosestRunoff(payload) {
+      validateClosestRunoffPayload(payload);
+      const status = $("#closest-runoff-status");
+      status.className = `runoff-status is-${payload.status}`;
+      status.textContent = payload.status === "agree"
+        ? payload.pollster_count === 2 ? "BOTH POLLSTERS AGREE" : "POLLSTERS AGREE"
+        : payload.status === "split" ? "POLLSTERS SPLIT"
+          : payload.status === "ambiguous" ? "NO SINGLE CLOSEST MATCHUP"
+            : "NOT ENOUGH COMPARABLE RUNOFF POLLS";
+      renderRunoffEvidence(payload);
+      renderRunoffDisclosure(payload);
+      if (payload.status === "agree") renderAgreedRunoff(payload);
+      else if (payload.status === "split" || payload.status === "ambiguous") renderUnresolvedRunoff(payload);
+      else {
+        $("#closest-runoff-hero").innerHTML = `
+          <div class="runoff-insufficient">
+            <div class="runoff-conclusion">Not enough comparable runoff polls</div>
+            <div class="runoff-insufficient-copy">${escapeHtml(payload.message)} At least two pollsters testing at least two common matchups are required.</div>
+          </div>`;
+        renderRunoffContext(payload);
+      }
+      document.documentElement.dataset.runoffReady = payload.status;
+    }
+
+    function loadClosestRunoff() {
+      return fetch("closest_tested_runoff.json", { cache: "no-store" })
+        .then(response => {
+          if (!response.ok) throw new Error(`closest_tested_runoff.json returned HTTP ${response.status}`);
+          return response.json();
+        })
+        .then(renderClosestRunoff)
+        .catch(error => {
+          $("#closest-runoff-status").className = "runoff-status is-insufficient";
+          $("#closest-runoff-status").textContent = "RUNOFF TEST UNAVAILABLE";
+          $("#closest-runoff-evidence").innerHTML = '<div class="runoff-evidence-item"><span class="runoff-evidence-label">Status</span><span class="runoff-evidence-value">Could not load runoff evidence</span></div>';
+          $("#closest-runoff-hero").innerHTML = `<div class="runoff-insufficient"><div class="runoff-conclusion">Runoff comparison unavailable</div><div class="runoff-insufficient-copy">The closest-runoff data could not be loaded or validated: ${escapeHtml(error.message)}</div></div>`;
+          $("#closest-runoff-context").innerHTML = '<h3 class="runoff-context-title">Comparable evidence unavailable</h3><p class="runoff-context-sub">Other dashboard sections are unaffected.</p>';
+          document.documentElement.dataset.runoffReady = "error";
+        });
     }
 
     function candidateScore(event, candidateName) {
@@ -1134,6 +1595,7 @@
 
     renderElectionClock();
     setInterval(renderElectionClock, 60 * 60 * 1000);
+    loadClosestRunoff();
 
     fetch("polls.json", { cache: "no-store" })
       .then(response => {
@@ -1195,5 +1657,6 @@
         document.documentElement.dataset.ready = "error";
       });
   </script>
+
 </body>
 </html>

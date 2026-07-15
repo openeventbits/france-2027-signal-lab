@@ -6,13 +6,16 @@ import argparse
 import hashlib
 import io
 import json
+import math
 import re
 import unicodedata
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlencode, urljoin, urlparse
 from urllib.request import Request, urlopen
 
 import pandas as pd
+from lxml import html as lxml_html
 from pypdf import PdfReader
 
 
@@ -21,8 +24,12 @@ SOURCE_URL = (
     "Opinion_polling_for_the_2027_French_presidential_election"
 )
 USER_AGENT = "France2027SignalLab/1.0 (contact: malatazen@gmail.com)"
+MEDIAWIKI_API_URL = "https://en.wikipedia.org/w/api.php"
+SOURCE_PAGE = "Opinion_polling_for_the_2027_French_presidential_election"
+WIKIPEDIA_LICENSE = "CC BY-SA 4.0"
 FIRST_ROUND_TABLES = range(4, 8)
 ROUND = "first_round"
+SECOND_ROUND = "second_round"
 DASHES = {"", "-", "–", "—", "−", "nan", "none"}
 OFFICIAL_NOTICES = {
     "Elabe": {
@@ -198,9 +205,11 @@ def candidate_name(value: object) -> str:
     return re.sub(r"\s+", " ", name).strip()
 
 
-def make_scenario_key(names: list[str]) -> str:
+def make_scenario_key(
+    names: list[str], *, round_name: str = ROUND
+) -> str:
     normalized_names = sorted(normalize(name) for name in names)
-    material = ROUND + "|" + "|".join(normalized_names)
+    material = round_name + "|" + "|".join(normalized_names)
     return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
 
@@ -210,12 +219,14 @@ def make_event_id(
     fieldwork_end: str,
     hypothesis: str,
     source_url: str,
+    *,
+    round_name: str = ROUND,
 ) -> str:
     material = (
         normalize(pollster)
         + fieldwork_start
         + fieldwork_end
-        + ROUND
+        + round_name
         + normalize(hypothesis)
         + source_url
     )
@@ -334,6 +345,723 @@ def fetch_wikipedia_events() -> tuple[list[dict], list[str]]:
 
     # Wikipedia tables are already ordered newest first.
     return events, skipped
+
+
+def fetch_mediawiki_parse(parameters: dict[str, str]) -> dict:
+    """Fetch a parsed MediaWiki response with the repository User-Agent."""
+    query = {
+        "action": "parse",
+        "format": "json",
+        "formatversion": "2",
+        **parameters,
+    }
+    request = Request(
+        f"{MEDIAWIKI_API_URL}?{urlencode(query)}",
+        headers={"User-Agent": USER_AGENT},
+    )
+    with urlopen(request, timeout=60) as response:
+        payload = json.load(response)
+    if "error" in payload:
+        raise ValueError(f"MediaWiki parse error: {payload['error']}")
+    if "parse" not in payload:
+        raise ValueError("MediaWiki response is missing parsed page data")
+    return payload["parse"]
+
+
+def canonical_matchup_candidate(value: str) -> str:
+    """Resolve a full name or unique surname-style label to a candidate."""
+    raw_name = candidate_name(value)
+    direct = CANDIDATE_ALIASES.get(normalize(raw_name))
+    if direct:
+        return direct
+
+    short = normalize(raw_name)
+    matches = [
+        name
+        for name in CANONICAL_CANDIDATES
+        if normalize(name) == short or normalize(name).endswith(f" {short}")
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            f"matchup candidate is not uniquely canonical: {value!r}"
+        )
+    return matches[0]
+
+
+def matchup_candidates_from_heading(heading: str) -> list[str]:
+    parts = re.split(r"\s+vs\.?\s+", heading.strip(), flags=re.IGNORECASE)
+    if len(parts) != 2 or not all(part.strip() for part in parts):
+        raise ValueError(f"invalid matchup section heading: {heading!r}")
+    candidates = [canonical_matchup_candidate(part) for part in parts]
+    if len(set(candidates)) != 2:
+        raise ValueError(f"duplicate candidate in matchup heading: {heading!r}")
+    return candidates
+
+
+def discover_second_round_sections() -> tuple[int, list[dict]]:
+    """Discover main second-round matchup sections from MediaWiki hierarchy."""
+    parsed = fetch_mediawiki_parse(
+        {"page": SOURCE_PAGE, "prop": "tocdata|revid"}
+    )
+    revision_id = parsed.get("revid")
+    tocdata = parsed.get("tocdata")
+    sections = tocdata.get("sections") if isinstance(tocdata, dict) else None
+    if not revision_id or not isinstance(sections, list):
+        raise ValueError("MediaWiki tocdata response lacks revision or sections")
+
+    top_matches = [
+        (index, section)
+        for index, section in enumerate(sections)
+        if section.get("tocLevel") == 1
+        and normalize(str(section.get("line", ""))) == "second round"
+    ]
+    if len(top_matches) != 1:
+        raise ValueError(
+            "expected exactly one top-level 'Second round' section, found "
+            f"{len(top_matches)}"
+        )
+
+    start_index, top = top_matches[0]
+    boundary: list[dict] = [top]
+    for section in sections[start_index + 1 :]:
+        if int(section.get("tocLevel", 0)) <= int(top["tocLevel"]):
+            break
+        boundary.append(section)
+
+    stack: list[dict] = []
+    matchups: list[dict] = []
+    for section in boundary:
+        level = int(section["tocLevel"])
+        while stack and int(stack[-1]["tocLevel"]) >= level:
+            stack.pop()
+
+        heading = str(section.get("line", "")).strip()
+        if re.search(r"\s+vs\.?\s+", heading, flags=re.IGNORECASE):
+            candidates = matchup_candidates_from_heading(heading)
+            ancestry = [str(item["line"]).strip() for item in stack]
+            declined = any(
+                normalize(item) == "declined to be candidates"
+                for item in ancestry
+            )
+            if declined:
+                source_scope = "source_declined_candidate_section"
+            elif len(stack) == 1 and stack[0] is top:
+                source_scope = "current_tested"
+            else:
+                raise ValueError(
+                    f"matchup section has unsupported ancestry: "
+                    f"{' > '.join([*ancestry, heading])}"
+                )
+            matchups.append(
+                {
+                    "index": str(section["index"]),
+                    "heading": heading,
+                    "path": [*ancestry, heading],
+                    "scope": source_scope,
+                    "candidates": candidates,
+                }
+            )
+
+        stack.append(section)
+
+    if not matchups:
+        raise ValueError("no matchup sections found in main Second round boundary")
+    return int(revision_id), matchups
+
+
+def table_header_columns(table: object) -> list[list[object]]:
+    """Expand row/column spans into deterministic per-column header cells."""
+    rows = table.xpath("./thead/tr | ./tbody/tr | ./tr")
+    header_rows: list[object] = []
+    for row in rows:
+        if row.xpath("./td"):
+            break
+        if row.xpath("./th"):
+            header_rows.append(row)
+    if not header_rows:
+        return []
+
+    grid: dict[tuple[int, int], object] = {}
+    for row_index, row in enumerate(header_rows):
+        column_index = 0
+        for cell in row.xpath("./th"):
+            while (row_index, column_index) in grid:
+                column_index += 1
+            try:
+                rowspan = int(cell.get("rowspan", "1"))
+                colspan = int(cell.get("colspan", "1"))
+            except ValueError as exc:
+                raise ValueError("non-numeric table header span") from exc
+            if rowspan < 1 or colspan < 1:
+                raise ValueError("invalid table header span")
+            for target_row in range(row_index, row_index + rowspan):
+                for target_column in range(
+                    column_index, column_index + colspan
+                ):
+                    position = (target_row, target_column)
+                    if position in grid:
+                        raise ValueError("overlapping table header spans")
+                    grid[position] = cell
+            column_index += colspan
+
+    width = max(column for _, column in grid) + 1
+    columns: list[list[object]] = []
+    for column_index in range(width):
+        cells: list[object] = []
+        seen: set[int] = set()
+        for row_index in range(len(header_rows)):
+            cell = grid.get((row_index, column_index))
+            if cell is not None and id(cell) not in seen:
+                cells.append(cell)
+                seen.add(id(cell))
+        columns.append(cells)
+    return columns
+
+
+def header_text(cells: list[object]) -> str:
+    parts = [
+        re.sub(r"\s+", " ", cell.text_content()).strip() for cell in cells
+    ]
+    return " ".join(part for part in parts if part)
+
+
+def header_candidate(
+    cells: list[object], expected_candidates: list[str]
+) -> str | None:
+    values: list[str] = []
+    for cell in cells:
+        for anchor in cell.xpath(".//a"):
+            values.extend(
+                [anchor.get("title", ""), anchor.text_content().strip()]
+            )
+
+    matches: set[str] = set()
+    for value in values:
+        short = normalize(candidate_name(value))
+        if not short:
+            continue
+        for expected in expected_candidates:
+            full = normalize(expected)
+            if short == full or full.endswith(f" {short}"):
+                matches.add(expected)
+    if len(matches) > 1:
+        raise ValueError(
+            f"ambiguous candidate links in table header: {sorted(matches)}"
+        )
+    return next(iter(matches), None)
+
+
+def table_column_roles(
+    table: object, expected_candidates: list[str]
+) -> list[tuple[str, str | None]]:
+    roles: list[tuple[str, str | None]] = []
+    for cells in table_header_columns(table):
+        text = normalize(header_text(cells))
+        candidate = header_candidate(cells, expected_candidates)
+        if candidate:
+            roles.append(("candidate", candidate))
+        elif text in {"polling firm", "pollingfirm", "pollster"}:
+            roles.append(("pollster", None))
+        elif text in {"fieldwork date", "fieldworkdate", "fieldwork"}:
+            roles.append(("fieldwork", None))
+        elif text in {"sample size", "samplesize", "sample"}:
+            roles.append(("sample_size", None))
+        elif "commissioner" in text or "client" in text:
+            roles.append(("commissioner", None))
+        elif "publication date" in text or "published" in text:
+            roles.append(("publication_date", None))
+        else:
+            roles.append(("unknown", header_text(cells) or None))
+    return roles
+
+
+def valid_http_url(value: str) -> bool:
+    parsed = urlparse(value)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def compact_number(value: float) -> int | float:
+    return int(value) if value.is_integer() else value
+
+
+def parse_publication_date(value: str) -> str | None:
+    if normalize(value) in DASHES:
+        return None
+    start, end = parse_fieldwork(value)
+    if start != end:
+        raise ValueError(f"ambiguous publication date range: {value!r}")
+    return start
+
+
+def qualify_second_round_table(
+    table: object,
+    frame: pd.DataFrame,
+    section: dict,
+) -> dict | None:
+    roles = table_column_roles(table, section["candidates"])
+    role_names = [role for role, _ in roles]
+    required = {"pollster", "fieldwork", "sample_size"}
+    candidate_count = role_names.count("candidate")
+
+    if not required.issubset(role_names) or candidate_count != 2:
+        return None
+    if len(roles) != len(frame.columns):
+        raise ValueError(
+            f"{section['heading']}: rendered header has {len(roles)} columns "
+            f"but pandas parsed {len(frame.columns)}"
+        )
+
+    duplicates = [
+        role
+        for role in (
+            "pollster",
+            "fieldwork",
+            "sample_size",
+            "commissioner",
+            "publication_date",
+        )
+        if role_names.count(role) > 1
+    ]
+    if duplicates:
+        raise ValueError(
+            f"{section['heading']}: ambiguous duplicate fields {duplicates}"
+        )
+
+    unknown = [detail or "<blank>" for role, detail in roles if role == "unknown"]
+    if unknown:
+        raise ValueError(
+            f"{section['heading']}: unknown structural columns {unknown}"
+        )
+
+    header_candidates = [detail for role, detail in roles if role == "candidate"]
+    if set(header_candidates) != set(section["candidates"]):
+        raise ValueError(
+            f"{section['heading']}: heading candidates "
+            f"{section['candidates']} disagree with table headers "
+            f"{header_candidates}"
+        )
+
+    indexes: dict[str, int] = {}
+    candidate_indexes: list[tuple[int, str]] = []
+    for index, (role, detail) in enumerate(roles):
+        if role == "candidate":
+            if detail is None:
+                raise ValueError(f"{section['heading']}: blank candidate header")
+            candidate_indexes.append((index, detail))
+        else:
+            indexes[role] = index
+    indexes["candidates"] = candidate_indexes  # type: ignore[assignment]
+    return indexes
+
+
+def validate_second_round_event(event: dict) -> None:
+    candidates = event.get("candidates")
+    if not isinstance(candidates, list) or len(candidates) != 2:
+        raise ValueError("second-round event must have exactly two candidates")
+
+    for candidate in candidates:
+        name = candidate.get("name")
+        score = candidate.get("score")
+        if canonical_candidate_name(str(name), strict=True) != name:
+            raise ValueError(f"non-canonical candidate name: {name!r}")
+        if (
+            isinstance(score, bool)
+            or not isinstance(score, (int, float))
+            or not math.isfinite(score)
+            or not 0 <= score <= 100
+        ):
+            raise ValueError(f"invalid candidate score: {score!r}")
+
+    total = sum(candidate["score"] for candidate in candidates)
+    if not 99 <= total <= 101:
+        raise ValueError(f"second-round candidate total is {total:g}")
+    if not event.get("fieldwork_start") or not event.get("fieldwork_end"):
+        raise ValueError("second-round event lacks parsed fieldwork dates")
+    if not str(event.get("pollster", "")).strip():
+        raise ValueError("second-round event lacks pollster")
+    if not valid_http_url(str(event.get("source_url", ""))):
+        raise ValueError(
+            f"second-round event lacks direct HTTP source: "
+            f"{event.get('source_url')!r}"
+        )
+
+    names = [candidate["name"] for candidate in candidates]
+    expected_matchup_key = make_scenario_key(
+        names, round_name=SECOND_ROUND
+    )
+    if event.get("matchup_key") != expected_matchup_key:
+        raise ValueError("non-deterministic second-round matchup_key")
+    expected_event_id = make_event_id(
+        event["pollster"],
+        event["fieldwork_start"],
+        event["fieldwork_end"],
+        event["hypothesis"],
+        event["source_url"],
+        round_name=SECOND_ROUND,
+    )
+    if event.get("event_id") != expected_event_id:
+        raise ValueError("non-deterministic second-round event_id")
+    expected_margin = abs(candidates[0]["score"] - candidates[1]["score"])
+    if event.get("margin") != expected_margin:
+        raise ValueError("second-round margin does not match exact scores")
+    if event.get("round") != SECOND_ROUND:
+        raise ValueError("second-round event has unexpected round")
+    if event.get("source_scope") not in {
+        "current_tested",
+        "source_declined_candidate_section",
+    }:
+        raise ValueError("second-round event has unexpected source_scope")
+
+
+def parse_second_round_section(
+    section: dict, revision_id: int
+) -> tuple[list[dict], int]:
+    parsed = fetch_mediawiki_parse(
+        {
+            "oldid": str(revision_id),
+            "prop": "text|revid",
+            "section": section["index"],
+        }
+    )
+    if int(parsed.get("revid", 0)) != revision_id:
+        raise ValueError(
+            f"{section['heading']}: MediaWiki revision changed while parsing"
+        )
+    section_html = parsed.get("text")
+    if not isinstance(section_html, str):
+        raise ValueError(f"{section['heading']}: missing rendered section HTML")
+
+    root = lxml_html.fromstring(section_html)
+    dom_tables = root.xpath(".//table")
+    frames = pd.read_html(io.StringIO(section_html), extract_links="all")
+    if len(dom_tables) != len(frames):
+        raise ValueError(
+            f"{section['heading']}: lxml found {len(dom_tables)} tables but "
+            f"pandas found {len(frames)}"
+        )
+
+    qualifying: list[tuple[pd.DataFrame, dict]] = []
+    for table, frame in zip(dom_tables, frames, strict=True):
+        indexes = qualify_second_round_table(table, frame, section)
+        if indexes is not None:
+            qualifying.append((frame, indexes))
+    if len(qualifying) != 1:
+        raise ValueError(
+            f"{section['heading']}: expected exactly one qualifying polling "
+            f"table, found {len(qualifying)}"
+        )
+
+    frame, indexes = qualifying[0]
+    events: list[dict] = []
+    excluded_comparisons = 0
+    for row_number, (_, row) in enumerate(frame.iterrows(), start=1):
+        pollster = cell_text(row.iloc[indexes["pollster"]])
+        if normalize(pollster) in {"2022 election", "election"}:
+            excluded_comparisons += 1
+            continue
+        if not pollster:
+            raise ValueError(
+                f"{section['heading']} row {row_number}: blank pollster"
+            )
+
+        source_link = cell_link(row.iloc[indexes["pollster"]])
+        source_url = urljoin(SOURCE_URL, source_link) if source_link else ""
+        if not valid_http_url(source_url):
+            raise ValueError(
+                f"{section['heading']} row {row_number}: pollster "
+                f"{pollster!r} lacks a direct supporting source URL"
+            )
+
+        fieldwork_raw = cell_text(row.iloc[indexes["fieldwork"]])
+        try:
+            fieldwork_start, fieldwork_end = parse_fieldwork(fieldwork_raw)
+        except ValueError as exc:
+            raise ValueError(
+                f"{section['heading']} row {row_number}: ambiguous fieldwork "
+                f"date {fieldwork_raw!r}"
+            ) from exc
+
+        candidates: list[dict] = []
+        for column_index, name in indexes["candidates"]:
+            raw_score = cell_text(row.iloc[column_index])
+            try:
+                score = parse_score(raw_score)
+            except ValueError as exc:
+                raise ValueError(
+                    f"{section['heading']} row {row_number}: {name} {exc}"
+                ) from exc
+            if score is None:
+                raise ValueError(
+                    f"{section['heading']} row {row_number}: missing score "
+                    f"for {name}"
+                )
+            candidates.append({"name": name, "score": compact_number(score)})
+
+        commissioner = (
+            cell_text(row.iloc[indexes["commissioner"]])
+            if "commissioner" in indexes
+            else None
+        ) or None
+        publication_date = None
+        if "publication_date" in indexes:
+            publication_raw = cell_text(row.iloc[indexes["publication_date"]])
+            publication_date = parse_publication_date(publication_raw)
+
+        sample_size = parse_sample_size(
+            cell_text(row.iloc[indexes["sample_size"]])
+        )
+        quality_flags = [] if sample_size is not None else ["missing_sample_size"]
+        names = [candidate["name"] for candidate in candidates]
+        hypothesis = "Second round — " + " vs ".join(names)
+        matchup_key = make_scenario_key(names, round_name=SECOND_ROUND)
+        margin = compact_number(
+            abs(float(candidates[0]["score"]) - float(candidates[1]["score"]))
+        )
+        event = {
+            "event_id": make_event_id(
+                pollster,
+                fieldwork_start,
+                fieldwork_end,
+                hypothesis,
+                source_url,
+                round_name=SECOND_ROUND,
+            ),
+            "round": SECOND_ROUND,
+            "pollster": pollster,
+            "commissioner": commissioner,
+            "publication_date": publication_date,
+            "fieldwork_start": fieldwork_start,
+            "fieldwork_end": fieldwork_end,
+            "sample_size": sample_size,
+            "matchup_key": matchup_key,
+            "hypothesis": hypothesis,
+            "candidates": candidates,
+            "margin": margin,
+            "source_url": source_url,
+            "source_page_url": SOURCE_URL,
+            "source_section": section["heading"],
+            "source_section_path": section["path"],
+            "source_scope": section["scope"],
+            "quality_flags": quality_flags,
+        }
+        validate_second_round_event(event)
+        events.append(event)
+    return events, excluded_comparisons
+
+
+def fetch_second_round_events() -> tuple[list[dict], dict]:
+    revision_id, sections = discover_second_round_sections()
+    events: list[dict] = []
+    excluded_comparisons = 0
+    for section in sections:
+        section_events, section_excluded = parse_second_round_section(
+            section, revision_id
+        )
+        events.extend(section_events)
+        excluded_comparisons += section_excluded
+
+    events.sort(
+        key=lambda event: (
+            -int(event["fieldwork_end"].replace("-", "")),
+            -int(event["fieldwork_start"].replace("-", "")),
+            normalize(event["pollster"]),
+            event["matchup_key"],
+            event["event_id"],
+        )
+    )
+    event_ids = [event["event_id"] for event in events]
+    if len(event_ids) != len(set(event_ids)):
+        raise ValueError("second-round events contain duplicate event_id values")
+    for event in events:
+        validate_second_round_event(event)
+
+    audit = {
+        "revision_id": revision_id,
+        "table_count": len(sections),
+        "excluded_comparison_rows": excluded_comparisons,
+        "source_scope_counts": {
+            scope: sum(event["source_scope"] == scope for event in events)
+            for scope in (
+                "current_tested",
+                "source_declined_candidate_section",
+            )
+        },
+    }
+    return events, audit
+
+
+def derive_closest_tested_runoff(events: list[dict]) -> dict:
+    """Derive agreement from exact common matchups in the newest valid window."""
+    current_events = [
+        event for event in events if event["source_scope"] == "current_tested"
+    ]
+    windows: dict[tuple[str, str], list[dict]] = {}
+    for event in current_events:
+        window = (event["fieldwork_start"], event["fieldwork_end"])
+        windows.setdefault(window, []).append(event)
+
+    selected_window: tuple[str, str] | None = None
+    selected_by_pollster: dict[str, dict[str, dict]] = {}
+    common_keys: set[str] = set()
+    for window in sorted(windows, key=lambda item: (item[1], item[0]), reverse=True):
+        by_pollster: dict[str, dict[str, dict]] = {}
+        duplicate = False
+        for event in windows[window]:
+            pollster_events = by_pollster.setdefault(event["pollster"], {})
+            if event["matchup_key"] in pollster_events:
+                duplicate = True
+                break
+            pollster_events[event["matchup_key"]] = event
+        if duplicate:
+            raise ValueError(
+                f"duplicate pollster/matchup record in fieldwork window {window}"
+            )
+        if len(by_pollster) < 2:
+            continue
+        if any(len(pollster_events) < 2 for pollster_events in by_pollster.values()):
+            continue
+        intersection = set.intersection(
+            *(set(pollster_events) for pollster_events in by_pollster.values())
+        )
+        if len(intersection) < 2:
+            continue
+        selected_window = window
+        selected_by_pollster = by_pollster
+        common_keys = intersection
+        break
+
+    if selected_window is None:
+        return {
+            "status": "insufficient",
+            "message": (
+                "No recent common testing window has enough pollsters and "
+                "matchups."
+            ),
+            "secondary_message": None,
+            "fieldwork_window": None,
+            "pollster_count": 0,
+            "common_matchup_count": 0,
+            "selected_matchup": None,
+            "pollsters": [],
+            "common_matchups": [],
+        }
+
+    pollster_names = sorted(selected_by_pollster, key=normalize)
+    closest_keys: dict[str, list[str]] = {}
+    for pollster in pollster_names:
+        common_events = selected_by_pollster[pollster]
+        minimum = min(common_events[key]["margin"] for key in common_keys)
+        closest_keys[pollster] = sorted(
+            key
+            for key in common_keys
+            if common_events[key]["margin"] == minimum
+        )
+
+    if any(len(keys) > 1 for keys in closest_keys.values()):
+        status = "ambiguous"
+    elif len({keys[0] for keys in closest_keys.values()}) == 1:
+        status = "agree"
+    else:
+        status = "split"
+
+    selected_key = closest_keys[pollster_names[0]][0] if status == "agree" else None
+    if status == "agree" and len(pollster_names) == 2:
+        message = "Both pollsters agree this is the closest tested runoff"
+    elif status == "agree":
+        message = (
+            f"All {len(pollster_names)} pollsters agree this is the closest "
+            "tested runoff"
+        )
+    elif status == "split":
+        message = "Pollsters identify different closest tested runoffs"
+    else:
+        message = "At least one pollster has a tie for the closest tested runoff"
+
+    secondary_message = None
+    if status == "agree" and selected_key is not None:
+        selected_margins = {
+            selected_by_pollster[pollster][selected_key]["margin"]
+            for pollster in pollster_names
+        }
+        if len(selected_margins) > 1:
+            secondary_message = "Same closest matchup, different distance."
+
+    def result_record(event: dict) -> dict:
+        return {
+            "event_id": event["event_id"],
+            "pollster": event["pollster"],
+            "candidates": event["candidates"],
+            "margin": event["margin"],
+            "source_url": event["source_url"],
+        }
+
+    common_matchups: list[dict] = []
+    for matchup_key in sorted(common_keys):
+        representative = selected_by_pollster[pollster_names[0]][matchup_key]
+        common_matchups.append(
+            {
+                "matchup_key": matchup_key,
+                "candidates": [
+                    candidate["name"] for candidate in representative["candidates"]
+                ],
+                "results": [
+                    result_record(selected_by_pollster[pollster][matchup_key])
+                    for pollster in pollster_names
+                ],
+            }
+        )
+
+    pollsters = []
+    for pollster in pollster_names:
+        pollsters.append(
+            {
+                "pollster": pollster,
+                "closest_matchups": [
+                    {
+                        "matchup_key": key,
+                        "candidates": [
+                            candidate["name"]
+                            for candidate in selected_by_pollster[pollster][key][
+                                "candidates"
+                            ]
+                        ],
+                        "result": result_record(
+                            selected_by_pollster[pollster][key]
+                        ),
+                    }
+                    for key in closest_keys[pollster]
+                ],
+            }
+        )
+
+    selected_matchup = None
+    if selected_key is not None:
+        representative = selected_by_pollster[pollster_names[0]][selected_key]
+        selected_matchup = {
+            "matchup_key": selected_key,
+            "candidates": [
+                candidate["name"] for candidate in representative["candidates"]
+            ],
+            "results": [
+                result_record(selected_by_pollster[pollster][selected_key])
+                for pollster in pollster_names
+            ],
+        }
+
+    return {
+        "status": status,
+        "message": message,
+        "secondary_message": secondary_message,
+        "fieldwork_window": {
+            "start": selected_window[0],
+            "end": selected_window[1],
+        },
+        "pollster_count": len(pollster_names),
+        "common_matchup_count": len(common_keys),
+        "selected_matchup": selected_matchup,
+        "pollsters": pollsters,
+        "common_matchups": common_matchups,
+    }
 
 
 def fetch_pdf(url: str) -> PdfReader:
@@ -644,6 +1372,12 @@ def validate_merged_official_waves(events: list[dict]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", default="polls.json")
+    parser.add_argument(
+        "--second-round-output", default="second_round_polls.json"
+    )
+    parser.add_argument(
+        "--closest-runoff-output", default="closest_tested_runoff.json"
+    )
     args = parser.parse_args()
 
     wikipedia_events, skipped = fetch_wikipedia_events()
@@ -652,9 +1386,49 @@ def main() -> None:
         wikipedia_events, official_events
     )
     validate_merged_official_waves(events)
+    second_round_events, second_round_audit = fetch_second_round_events()
+    closest_derivation = derive_closest_tested_runoff(second_round_events)
+
+    generated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    source_metadata = {
+        "page_url": SOURCE_URL,
+        "revision_id": str(second_round_audit["revision_id"]),
+        "license": WIKIPEDIA_LICENSE,
+        "modified": True,
+        "attribution": "Derived from Wikipedia contributors",
+    }
+    second_round_output_data = {
+        "schema_version": "1.0",
+        "generated_at": generated_at,
+        "source": source_metadata,
+        "events": second_round_events,
+    }
+    closest_output_data = {
+        "schema_version": "1.0",
+        "generated_at": generated_at,
+        **closest_derivation,
+        "source": source_metadata,
+        "disclosure": (
+            "Uses exact reported scores and margins for common matchups in one "
+            "shared fieldwork window. No averages, combined scores, synthetic "
+            "margins, win probabilities, or forecasts are calculated."
+        ),
+    }
+
+    # All network parsing and validation completes before any output is written.
     output = Path(args.output)
+    second_round_output = Path(args.second_round_output)
+    closest_runoff_output = Path(args.closest_runoff_output)
     output.write_text(
         json.dumps(events, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    second_round_output.write_text(
+        json.dumps(second_round_output_data, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    closest_runoff_output.write_text(
+        json.dumps(closest_output_data, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
 
@@ -688,6 +1462,26 @@ def main() -> None:
     print(f"Skipped/ambiguous rows: {len(skipped)}")
     for reason in skipped:
         print(f"  - {reason}")
+
+    scope_counts = second_round_audit["source_scope_counts"]
+    print(f"Second-round revision: {second_round_audit['revision_id']}")
+    print(f"Second-round matchup tables: {second_round_audit['table_count']}")
+    print(f"Second-round genuine rows: {len(second_round_events)}")
+    print(
+        "Second-round current_tested rows: "
+        f"{scope_counts['current_tested']}"
+    )
+    print(
+        "Second-round source_declined_candidate_section rows: "
+        f"{scope_counts['source_declined_candidate_section']}"
+    )
+    print(
+        "Second-round comparison rows excluded: "
+        f"{second_round_audit['excluded_comparison_rows']}"
+    )
+    print(f"Wrote second-round events to {second_round_output}")
+    print(f"Closest tested runoff status: {closest_derivation['status']}")
+    print(f"Wrote closest tested runoff to {closest_runoff_output}")
 
 
 if __name__ == "__main__":
