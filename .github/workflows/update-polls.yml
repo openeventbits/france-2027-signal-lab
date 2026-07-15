@@ -29,8 +29,12 @@ jobs:
       - name: Install dependencies
         run: python -m pip install --disable-pip-version-check pandas lxml pypdf
 
-      - name: Fetch polls into temporary file
-        run: python fetch_polls.py --output /tmp/polls.json
+      - name: Fetch polls into temporary files
+        run: |
+          python fetch_polls.py \
+            --output /tmp/polls.json \
+            --second-round-output /tmp/second_round_polls.json \
+            --closest-runoff-output /tmp/closest_tested_runoff.json
 
       - name: Validate and stage fetched data
         shell: bash
@@ -41,9 +45,19 @@ jobs:
 
           current_path = Path("polls.json")
           fetched_path = Path("/tmp/polls.json")
+          second_round_path = Path("second_round_polls.json")
+          fetched_second_round_path = Path("/tmp/second_round_polls.json")
+          closest_path = Path("closest_tested_runoff.json")
+          fetched_closest_path = Path("/tmp/closest_tested_runoff.json")
 
           current = json.loads(current_path.read_text(encoding="utf-8"))
           fetched = json.loads(fetched_path.read_text(encoding="utf-8"))
+          second_round = json.loads(
+              fetched_second_round_path.read_text(encoding="utf-8")
+          )
+          closest = json.loads(
+              fetched_closest_path.read_text(encoding="utf-8")
+          )
 
           if not isinstance(current, list) or not isinstance(fetched, list):
               raise SystemExit("polls data must be a JSON list")
@@ -176,11 +190,51 @@ jobs:
                   f"{current_latest} -> {fetched_latest}"
               )
 
+          second_events = (
+              second_round.get("events")
+              if isinstance(second_round, dict)
+              else None
+          )
+          if (
+              not isinstance(second_round, dict)
+              or second_round.get("schema_version") != "1.0"
+              or not isinstance(second_events, list)
+              or not second_events
+          ):
+              raise SystemExit("invalid second-round output contract")
+          if any(
+              event.get("round") != "second_round"
+              or len(event.get("candidates", [])) != 2
+              or not str(event.get("source_url", "")).startswith(
+                  ("http://", "https://")
+              )
+              for event in second_events
+          ):
+              raise SystemExit("invalid second-round event")
+
+          if not isinstance(closest, dict) or closest.get("status") not in {
+              "agree",
+              "split",
+              "ambiguous",
+              "insufficient",
+          }:
+              raise SystemExit("invalid closest-runoff output contract")
+          if closest.get("source") != second_round.get("source"):
+              raise SystemExit("generated source attribution does not match")
+          if closest["status"] == "agree" and not closest.get(
+              "selected_matchup"
+          ):
+              raise SystemExit("agree status lacks selected matchup")
+
           current_path.write_bytes(fetched_path.read_bytes())
+          second_round_path.write_bytes(fetched_second_round_path.read_bytes())
+          closest_path.write_bytes(fetched_closest_path.read_bytes())
 
           print(
-              f"Validated {len(fetched)} events; "
-              f"latest fieldwork end {fetched_latest}"
+              f"Validated {len(fetched)} first-round and "
+              f"{len(second_events)} second-round events; "
+              f"closest-runoff status {closest['status']}; "
+              f"latest first-round fieldwork end {fetched_latest}"
           )
           PY
 
@@ -188,7 +242,8 @@ jobs:
         id: commit
         shell: bash
         run: |
-          if git diff --quiet -- polls.json; then
+          if git diff --quiet -- \
+            polls.json second_round_polls.json closest_tested_runoff.json; then
             echo "No poll changes detected."
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -198,7 +253,8 @@ jobs:
           git config user.email \
             "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add -- polls.json
+          git add -- \
+            polls.json second_round_polls.json closest_tested_runoff.json
           git commit -m "Update polls data"
           git push origin HEAD:main
 
