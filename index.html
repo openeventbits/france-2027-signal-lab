@@ -138,9 +138,19 @@
     .freshness-card:last-child { margin-bottom: 0; }
     .freshness-card:hover, .freshness-card:focus-within { border-color: #2873a8; background: rgba(16, 39, 61, .84); }
     .candidate-monogram {
+      position: relative; isolation: isolate; overflow: hidden;
       width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid #2873a8;
       border-radius: 50%; background: linear-gradient(145deg, #0c2236, #07111d); color: #9db9cc;
       font-size: 10px; font-weight: 700; letter-spacing: .02em;
+    }
+    .candidate-monogram-fallback {
+      width: 100%; height: 100%; display: grid; place-items: center;
+    }
+    .candidate-monogram img {
+      position: absolute; z-index: 1; inset: 0; display: block;
+      width: 100%; height: 100%; max-width: none;
+      object-fit: cover; object-position: center 18%;
+      border-radius: 50%;
     }
     .freshness-name { color: var(--text); font-size: 13px; font-weight: 600; line-height: 1.2; }
     .freshness-date { margin-top: 3px; color: var(--muted); font-size: 10px; }
@@ -878,8 +888,26 @@
     }
 
     const candidatePortraits = Object.freeze({
-      "Édouard Philippe": "assets/candidates/edouard-philippe.png",
-      "Marine Le Pen": "assets/candidates/marine-le-pen.png"
+      "Nathalie Arthaud": "assets/candidates/arthaud.png",
+      "Gabriel Attal": "assets/candidates/attal.png",
+      "Jordan Bardella": "assets/candidates/bardella.png",
+      "Gérald Darmanin": "assets/candidates/darmanin.png",
+      "Dominique de Villepin": "assets/candidates/devillepin.png",
+      "Nicolas Dupont-Aignan": "assets/candidates/dupontaignan.png",
+      "Olivier Faure": "assets/candidates/faure.png",
+      "Raphaël Glucksmann": "assets/candidates/glucksmann.png",
+      "François Hollande": "assets/candidates/hollande.png",
+      "Sarah Knafo": "assets/candidates/knafo.png",
+      "Sébastien Lecornu": "assets/candidates/lecornu.png",
+      "Marine Le Pen": "assets/candidates/lepen.png",
+      "David Lisnard": "assets/candidates/lisnard.png",
+      "Jean-Luc Mélenchon": "assets/candidates/melenchon.png",
+      "Édouard Philippe": "assets/candidates/philippe.png",
+      "Bruno Retailleau": "assets/candidates/retailleau.png",
+      "Fabien Roussel": "assets/candidates/roussel.png",
+      "François Ruffin": "assets/candidates/ruffin.png",
+      "Marine Tondelier": "assets/candidates/tondelier.png",
+      "Éric Zemmour": "assets/candidates/zemmour.png"
     });
 
     function runoffCandidateMarker(candidateName) {
@@ -897,6 +925,27 @@
             src="${escapeAttribute(portrait)}"
             alt="AI-generated portrait of ${escapeAttribute(candidateName)}"
             loading="eager"
+            decoding="async"
+            onerror="this.remove()"
+          >
+        </div>`;
+    }
+
+    function freshnessCandidateMarker(candidateName) {
+      const initials = escapeHtml(candidateMonogram(candidateName));
+      const portrait = candidatePortraits[candidateName];
+
+      if (!portrait) {
+        return `<div class="candidate-monogram" aria-hidden="true"><span class="candidate-monogram-fallback">${initials}</span></div>`;
+      }
+
+      return `
+        <div class="candidate-monogram has-portrait">
+          <span class="candidate-monogram-fallback" aria-hidden="true">${initials}</span>
+          <img
+            src="${escapeAttribute(portrait)}"
+            alt="AI-generated portrait of ${escapeAttribute(candidateName)}"
+            loading="lazy"
             decoding="async"
             onerror="this.remove()"
           >
@@ -1562,7 +1611,7 @@
           ).join("");
           return `
             <article class="freshness-card">
-              <div class="candidate-monogram" aria-hidden="true">${candidateMonogram(candidate.name)}</div>
+              ${freshnessCandidateMarker(candidate.name)}
               <div>
                 <div class="freshness-name">${candidate.name}</div>
                 <div class="freshness-date">Last seen ${formatDate(candidate.latestDate)}</div>
