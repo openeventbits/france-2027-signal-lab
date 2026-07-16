@@ -176,6 +176,55 @@
     .freshness-change.is-missing .freshness-change-value { color: var(--muted); }
     .freshness-change:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 2px; }
     .freshness-footer { flex: 0 0 auto; border-top: 1px solid var(--line); }
+    .news-wire { margin-top: 12px; }
+    .news-wire-head { align-items: center; }
+    .news-wire-status {
+      flex: 0 0 auto; max-width: 440px; color: var(--muted); font-size: 10px;
+      line-height: 1.45; text-align: right;
+    }
+    .news-wire-toolbar {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+      gap: 7px 12px; padding: 8px 10px; border-bottom: 1px solid var(--line);
+      background: rgba(3, 11, 20, .28);
+    }
+    .news-wire-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+    .news-wire-tab {
+      min-height: 32px; padding: 5px 9px; border: 1px solid #23445d; border-radius: 999px;
+      background: #071522; color: var(--muted); font: inherit; font-size: 10px; cursor: pointer;
+    }
+    .news-wire-tab:hover { border-color: #2873a8; color: var(--text); }
+    .news-wire-tab.active { border-color: var(--blue); background: #0b2032; color: var(--cyan); }
+    .news-wire-tab:focus-visible, .news-card-link:focus-visible {
+      outline: 2px solid var(--cyan); outline-offset: 2px;
+    }
+    .news-wire-tab-count { color: var(--text); font-variant-numeric: tabular-nums; }
+    .news-wire-source-note { color: var(--muted); font-size: 9px; }
+    .news-wire-list {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+      max-height: 560px; min-width: 0; overflow-y: auto; scrollbar-gutter: stable;
+      padding: 10px; background: rgba(3, 11, 20, .2);
+    }
+    .news-card {
+      display: grid; align-content: start; gap: 7px; min-width: 0; padding: 11px 12px;
+      border: 1px solid #15354e; border-radius: 6px; background: rgba(13, 31, 49, .72);
+    }
+    .news-card:hover, .news-card:focus-within { border-color: #2873a8; background: rgba(16, 39, 61, .84); }
+    .news-card-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 7px 12px; min-width: 0; }
+    .news-card-date { color: var(--muted); font-size: 9px; white-space: nowrap; }
+    .news-card-publisher { min-width: 0; color: var(--cyan); font-size: 9px; font-weight: 700; letter-spacing: .08em; text-align: right; text-transform: uppercase; overflow-wrap: anywhere; }
+    .news-card-link {
+      display: block; color: #e4f1f9; font-size: 13px; font-weight: 650; line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+    .news-card-arrow { color: var(--cyan); white-space: nowrap; }
+    .news-card-labels { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; min-height: 18px; }
+    .news-card-chip {
+      padding: 2px 5px; border: 1px solid #1b4d6c; border-radius: 999px;
+      background: #081725; color: #9db9cc; font-size: 8px; line-height: 1.35;
+    }
+    .news-card-chip.is-election { border-color: #24789b; color: #8ce8ff; }
+    .news-wire-state { grid-column: 1 / -1; padding: 22px 6px; color: var(--muted); }
+    .news-wire-state.error { padding: 22px 6px; }
     .poll-waves { margin-top: 12px; }
     .poll-wave-grid {
       display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
@@ -324,7 +373,7 @@
     footer { margin-top: 12px; color: var(--muted); font-size: 11px; text-align: right; }
     @media (max-width: 850px) {
       .top-dashboard, .grid { grid-template-columns: 1fr; }
-      .poll-wave-grid { grid-template-columns: 1fr; }
+      .news-wire-list, .poll-wave-grid { grid-template-columns: 1fr; }
       .runoff-layout { grid-template-columns: 1fr; }
       .runoff-context { border-top: 1px solid var(--line); border-left: 0; }
       .top-dashboard > .panel { height: auto; }
@@ -357,6 +406,12 @@
       .freshness-list { max-height: min(65vh, 520px); }
       .freshness-toolbar { align-items: flex-start; flex-direction: column; }
       .freshness-sort { min-height: 34px; }
+      .news-wire-head { align-items: flex-start; flex-direction: column; }
+      .news-wire-status { max-width: none; text-align: left; }
+      .news-wire-toolbar { align-items: flex-start; flex-direction: column; }
+      .news-wire-tab { min-height: 36px; }
+      .news-wire-source-note { overflow-wrap: anywhere; }
+      .news-wire-list { max-height: min(70vh, 560px); }
       .freshness-card { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 7px; padding: 8px; }
       .freshness-sources { grid-column: 2 / -1; }
       .freshness-change { grid-column: 2 / -1; grid-row: auto; display: grid; grid-template-columns: auto auto; justify-content: end; column-gap: 7px; align-items: baseline; }
@@ -535,6 +590,27 @@
       </article>
     </section>
 
+    <section class="panel news-wire" aria-labelledby="news-wire-title">
+      <div class="panel-head news-wire-head">
+        <div>
+          <div class="eyebrow">Live coverage</div>
+          <h2 id="news-wire-title">Election News Wire</h2>
+          <div class="sub">Direct publisher headlines mentioning France 2027 or figures tracked by this dashboard.</div>
+        </div>
+        <div class="news-wire-status" id="news-wire-status">Loading news wire…</div>
+      </div>
+      <div class="news-wire-toolbar">
+        <div class="news-wire-tabs" role="group" aria-label="Choose news wire view">
+          <button class="news-wire-tab active" type="button" data-news-wire-tab="election_news" aria-pressed="true">ELECTION NEWS <span class="news-wire-tab-count" data-news-wire-count="election_news">—</span></button>
+          <button class="news-wire-tab" type="button" data-news-wire-tab="candidate_watch" aria-pressed="false">CANDIDATE WATCH <span class="news-wire-tab-count" data-news-wire-count="candidate_watch">—</span></button>
+        </div>
+        <div class="news-wire-source-note" id="news-wire-source-note">Loading publisher sources…</div>
+      </div>
+      <div class="news-wire-list" id="news-wire-list" aria-live="polite">
+        <div class="news-wire-state">Loading direct publisher headlines…</div>
+      </div>
+    </section>
+
     <section class="panel poll-waves" aria-labelledby="poll-waves-title">
       <div class="panel-head">
         <div>
@@ -630,6 +706,115 @@
       } catch (error) {
         return "";
       }
+    }
+
+    function validateNewsWirePayload(payload) {
+      if (!payload || typeof payload !== "object" || payload.schema_version !== 1) {
+        throw new Error("Unsupported or missing news-wire schema");
+      }
+      if (!Array.isArray(payload.election_news) || !Array.isArray(payload.candidate_watch)) {
+        throw new Error("News-wire item lists are malformed");
+      }
+      if (!payload.generated_at || !Number.isFinite(new Date(payload.generated_at).getTime())) {
+        throw new Error("News-wire update time is malformed");
+      }
+      if (!payload.counts || typeof payload.counts !== "object" || !Array.isArray(payload.sources)) {
+        throw new Error("News-wire status metadata is malformed");
+      }
+
+      const lists = [payload.election_news, payload.candidate_watch];
+      const validItem = item => item && typeof item === "object" &&
+        [item.publisher, item.headline, item.published_at].every(value => typeof value === "string" && value.trim()) &&
+        Number.isFinite(new Date(item.published_at).getTime()) && safeSourceUrl(item.url) !== "" &&
+        Array.isArray(item.candidates) && item.candidates.every(candidate => typeof candidate === "string" && candidate.trim()) &&
+        typeof item.explicit_election === "boolean";
+      if (lists.some(items => items.some(item => !validItem(item)))) {
+        throw new Error("News-wire items are malformed");
+      }
+
+      const expectedCounts = {
+        election_news: payload.election_news.length,
+        candidate_watch: payload.candidate_watch.length
+      };
+      if (!Number.isInteger(payload.counts.successful_sources) || payload.counts.successful_sources < 0 ||
+          !Number.isInteger(payload.counts.election_news) || payload.counts.election_news !== expectedCounts.election_news ||
+          !Number.isInteger(payload.counts.candidate_watch) || payload.counts.candidate_watch !== expectedCounts.candidate_watch) {
+        throw new Error("News-wire counts are malformed");
+      }
+      return payload;
+    }
+
+    function formatNewsDateTime(value) {
+      return new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/Paris",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+        timeZoneName: "short"
+      }).format(new Date(value));
+    }
+
+    let newsWirePayload = null;
+    let activeNewsWireTab = "election_news";
+
+    function renderNewsWire() {
+      if (!newsWirePayload) return;
+      const items = newsWirePayload[activeNewsWireTab];
+      document.querySelectorAll("[data-news-wire-tab]").forEach(button => {
+        const active = button.dataset.newsWireTab === activeNewsWireTab;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+      $("#news-wire-list").innerHTML = items.length ? items.map(item => {
+        const safeUrl = safeSourceUrl(item.url);
+        const labels = [
+          item.explicit_election ? '<span class="news-card-chip is-election">FRANCE 2027</span>' : "",
+          ...item.candidates.map(candidate => `<span class="news-card-chip">${escapeHtml(candidate)}</span>`)
+        ].join("");
+        return `
+          <article class="news-card">
+            <div class="news-card-meta">
+              <time class="news-card-date" datetime="${escapeAttribute(item.published_at)}">${escapeHtml(formatNewsDateTime(item.published_at))}</time>
+              <span class="news-card-publisher">${escapeHtml(item.publisher)}</span>
+            </div>
+            <a class="news-card-link" href="${escapeAttribute(safeUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeAttribute(item.headline)} from ${escapeAttribute(item.publisher)} in a new tab">${escapeHtml(item.headline)} <span class="news-card-arrow" aria-hidden="true">↗</span></a>
+            <div class="news-card-labels">${labels}</div>
+          </article>`;
+      }).join("") : '<div class="news-wire-state">No matching publisher headlines in this update.</div>';
+    }
+
+    function loadNewsWire() {
+      document.querySelectorAll("[data-news-wire-tab]").forEach(button => {
+        button.onclick = () => {
+          activeNewsWireTab = button.dataset.newsWireTab;
+          renderNewsWire();
+        };
+      });
+
+      fetch("news_wire.json", { cache: "no-store" })
+        .then(response => {
+          if (!response.ok) throw new Error(`news_wire.json returned HTTP ${response.status}`);
+          return response.json();
+        })
+        .then(validateNewsWirePayload)
+        .then(payload => {
+          newsWirePayload = payload;
+          const sourceTotal = payload.sources.length;
+          $("#news-wire-status").textContent = `Generated ${formatNewsDateTime(payload.generated_at)} · ${payload.counts.successful_sources}/${sourceTotal} sources`;
+          $("#news-wire-source-note").textContent = `${payload.counts.election_news} Election News · ${payload.counts.candidate_watch} Candidate Watch · direct publisher links`;
+          document.querySelectorAll("[data-news-wire-count]").forEach(count => {
+            count.textContent = `(${payload.counts[count.dataset.newsWireCount]})`;
+          });
+          renderNewsWire();
+        })
+        .catch(error => {
+          $("#news-wire-status").textContent = "News wire unavailable";
+          $("#news-wire-source-note").textContent = "Publisher headlines could not be loaded.";
+          $("#news-wire-list").innerHTML = `<div class="news-wire-state error">Election News Wire unavailable: ${escapeHtml(error.message)}</div>`;
+        });
     }
 
     function renderElectionClock() {
@@ -1645,6 +1830,7 @@
     renderElectionClock();
     setInterval(renderElectionClock, 60 * 60 * 1000);
     loadClosestRunoff();
+    loadNewsWire();
 
     fetch("polls.json", { cache: "no-store" })
       .then(response => {
