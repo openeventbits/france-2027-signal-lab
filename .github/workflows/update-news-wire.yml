@@ -1,0 +1,256 @@
+name: Update Election News Wire
+
+on:
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: update-news-wire
+  cancel-in-progress: false
+
+jobs:
+  update-news-wire:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Fetch News Wire into a temporary file
+        run: |
+          python fetch_news_wire.py \
+            --polls polls.json \
+            --output /tmp/news_wire.json \
+            --window-days 30 \
+            --max-items 60
+
+      - name: Validate and stage fetched News Wire
+        id: validate
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import tempfile
+          from datetime import datetime
+          from pathlib import Path
+          from urllib.parse import urlparse
+
+          current_path = Path("news_wire.json")
+          fetched_path = Path("/tmp/news_wire.json")
+
+          expected_item_fields = {
+              "id",
+              "publisher",
+              "published_at",
+              "headline",
+              "url",
+              "explicit_election",
+              "candidates",
+          }
+          forbidden_item_fields = {
+              "summary",
+              "description",
+              "article_body",
+              "body",
+              "image",
+              "sentiment",
+              "rank",
+              "score",
+          }
+
+          def fail(message):
+              raise SystemExit(f"News Wire validation failed: {message}")
+
+          def load_json(path):
+              try:
+                  return json.loads(path.read_text(encoding="utf-8"))
+              except (OSError, json.JSONDecodeError) as error:
+                  fail(f"could not read {path}: {error}")
+
+          def valid_datetime(value):
+              if not isinstance(value, str) or not value.strip():
+                  return False
+              try:
+                  datetime.fromisoformat(value.replace("Z", "+00:00"))
+              except ValueError:
+                  return False
+              return True
+
+          def valid_http_url(value):
+              if not isinstance(value, str):
+                  return False
+              parsed = urlparse(value)
+              return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+          def validate_items(view_name, items):
+              seen_ids = set()
+              for index, item in enumerate(items):
+                  if not isinstance(item, dict):
+                      fail(f"{view_name}[{index}] is not an object")
+                  fields = set(item)
+                  if fields != expected_item_fields:
+                      missing = sorted(expected_item_fields - fields)
+                      extra = sorted(fields - expected_item_fields)
+                      fail(
+                          f"{view_name}[{index}] has unexpected public fields; "
+                          f"missing={missing}, extra={extra}"
+                      )
+                  forbidden = sorted(fields & forbidden_item_fields)
+                  if forbidden:
+                      fail(f"{view_name}[{index}] contains forbidden fields: {forbidden}")
+
+                  item_id = item["id"]
+                  if not isinstance(item_id, str) or not item_id.strip():
+                      fail(f"{view_name}[{index}] has an empty id")
+                  if item_id in seen_ids:
+                      fail(f"duplicate id in {view_name}: {item_id}")
+                  seen_ids.add(item_id)
+
+                  if not isinstance(item["publisher"], str) or not item["publisher"].strip():
+                      fail(f"{view_name}[{index}] has an empty publisher")
+                  if not isinstance(item["headline"], str) or not item["headline"].strip():
+                      fail(f"{view_name}[{index}] has an empty headline")
+                  if not valid_datetime(item["published_at"]):
+                      fail(f"{view_name}[{index}] has an invalid published_at")
+                  if not valid_http_url(item["url"]):
+                      fail(f"{view_name}[{index}] has a non-HTTP(S) URL")
+                  if not isinstance(item["explicit_election"], bool):
+                      fail(f"{view_name}[{index}] has a non-boolean explicit_election")
+                  if not isinstance(item["candidates"], list):
+                      fail(f"{view_name}[{index}] candidates is not an array")
+
+          fetched = load_json(fetched_path)
+          if not isinstance(fetched, dict):
+              fail("top-level value is not an object")
+          if fetched.get("schema_version") != 1:
+              fail("schema_version must equal 1")
+
+          roster = fetched.get("candidate_roster")
+          if not isinstance(roster, dict) or not isinstance(roster.get("names"), list):
+              fail("candidate_roster.names must be an array")
+          if roster.get("count") != len(roster["names"]):
+              fail("candidate_roster count does not match names")
+          if len(roster["names"]) < 15:
+              fail("candidate_roster must contain at least 15 names")
+
+          sources = fetched.get("sources")
+          if not isinstance(sources, list) or len(sources) != 5:
+              fail("exactly five configured source records are required")
+          if any(not isinstance(source, dict) or source.get("status") != "ok" for source in sources):
+              fail("all five configured sources must have status ok")
+
+          counts = fetched.get("counts")
+          if not isinstance(counts, dict):
+              fail("counts must be an object")
+          if counts.get("successful_sources") != 5:
+              fail("counts.successful_sources must equal 5")
+
+          election_news = fetched.get("election_news")
+          candidate_watch = fetched.get("candidate_watch")
+          if not isinstance(election_news, list) or not isinstance(candidate_watch, list):
+              fail("election_news and candidate_watch must be arrays")
+          if counts.get("election_news") != len(election_news):
+              fail("counts.election_news does not match its array length")
+          if counts.get("candidate_watch") != len(candidate_watch):
+              fail("counts.candidate_watch does not match its array length")
+          if not election_news and not candidate_watch:
+              fail("both public views are empty")
+
+          validate_items("election_news", election_news)
+          validate_items("candidate_watch", candidate_watch)
+
+          def public_projection(payload):
+              payload_counts = payload["counts"]
+              return {
+                  "candidate_roster": payload["candidate_roster"],
+                  "counts": {
+                      "successful_sources": payload_counts["successful_sources"],
+                      "election_news": payload_counts["election_news"],
+                      "candidate_watch": payload_counts["candidate_watch"],
+                  },
+                  "election_news": payload["election_news"],
+                  "candidate_watch": payload["candidate_watch"],
+              }
+
+          current = load_json(current_path)
+          changed = public_projection(current) != public_projection(fetched)
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
+              output.write(f"changed={str(changed).lower()}\n")
+
+          if not changed:
+              print("No public News Wire change was detected.")
+              raise SystemExit(0)
+
+          fetched_bytes = fetched_path.read_bytes()
+          descriptor, staged_name = tempfile.mkstemp(
+              prefix=".news_wire.",
+              suffix=".tmp",
+              dir=current_path.parent,
+          )
+          try:
+              with os.fdopen(descriptor, "wb") as staged:
+                  staged.write(fetched_bytes)
+                  staged.flush()
+                  os.fsync(staged.fileno())
+              os.replace(staged_name, current_path)
+          finally:
+              staged_path = Path(staged_name)
+              if staged_path.exists():
+                  staged_path.unlink()
+
+          print(
+              "Validated and staged "
+              f"{len(election_news)} Election News and "
+              f"{len(candidate_watch)} Candidate Watch items."
+          )
+          PY
+
+      - name: Commit changed News Wire data
+        id: commit
+        env:
+          NEWS_WIRE_CHANGED: ${{ steps.validate.outputs.changed }}
+        shell: bash
+        run: |
+          if [ "$NEWS_WIRE_CHANGED" != "true" ]; then
+            echo "No public News Wire change was detected."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -- news_wire.json
+          git commit -m "Update Election News Wire" -- news_wire.json
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Request GitHub Pages rebuild
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          curl --fail-with-body --location --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "X-GitHub-Api-Version: 2026-03-10" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/pages/builds"
