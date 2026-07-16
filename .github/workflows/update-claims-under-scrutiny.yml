@@ -1,0 +1,153 @@
+name: Update Claims Under Scrutiny
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "47 7 * * *"
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: update-claims-under-scrutiny
+  cancel-in-progress: false
+
+jobs:
+  update-claims-under-scrutiny:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Run deterministic collector tests
+        run: python -m unittest -v test_fetch_claims_under_scrutiny.py
+
+      - name: Fetch Claims Under Scrutiny into temporary files
+        env:
+          GOOGLE_FACTCHECK_API_KEY: ${{ secrets.GOOGLE_FACTCHECK_API_KEY }}
+        run: |
+          python fetch_claims_under_scrutiny.py \
+            --polls polls.json \
+            --output /tmp/claims_under_scrutiny.json \
+            --diagnostics-output /tmp/claims_under_scrutiny_diagnostics.json \
+            --candidate-window-days 45 \
+            --archive-window-days 365
+
+      - name: Validate and atomically stage fetched public data
+        id: validate
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          from fetch_claims_under_scrutiny import (
+              CollectorError,
+              atomic_write_json,
+              semantic_public_content,
+              validate_public_bundle,
+          )
+
+          current_path = Path("claims_under_scrutiny.json")
+          fetched_path = Path("/tmp/claims_under_scrutiny.json")
+
+          def fail(message):
+              raise SystemExit(f"Claims Under Scrutiny validation failed: {message}")
+
+          def load_json(path):
+              try:
+                  return json.loads(path.read_text(encoding="utf-8"))
+              except (OSError, json.JSONDecodeError) as error:
+                  fail(f"could not read {path}: {error}")
+
+          fetched = load_json(fetched_path)
+          try:
+              validate_public_bundle(
+                  fetched,
+                  expected_candidate_window_days=45,
+                  expected_archive_window_days=365,
+              )
+          except CollectorError as error:
+              fail(str(error))
+
+          if current_path.exists():
+              current = load_json(current_path)
+              try:
+                  validate_public_bundle(
+                      current,
+                      expected_candidate_window_days=45,
+                      expected_archive_window_days=365,
+                  )
+              except CollectorError as error:
+                  fail(f"existing public file is malformed; preserving it: {error}")
+              changed = semantic_public_content(current) != semantic_public_content(fetched)
+          else:
+              changed = True
+
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
+              output.write(f"changed={str(changed).lower()}\n")
+
+          if not changed:
+              print("No semantic public data change was detected; generated_at is ignored.")
+              raise SystemExit(0)
+
+          atomic_write_json(current_path, fetched)
+          print(
+              "Validated and atomically staged "
+              f"{fetched['counts']['reviews']} reviews for "
+              f"{fetched['candidate_roster']['count']} eligible candidates."
+          )
+          PY
+
+      - name: Commit changed Claims Under Scrutiny data
+        id: commit
+        env:
+          CLAIMS_CHANGED: ${{ steps.validate.outputs.changed }}
+        shell: bash
+        run: |
+          if [ "$CLAIMS_CHANGED" != "true" ]; then
+            echo "No semantic public data change was detected."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -- claims_under_scrutiny.json
+          git commit -m "Update Claims Under Scrutiny" -- claims_under_scrutiny.json
+          git fetch origin main
+          git rebase origin/main
+
+          if git diff --quiet origin/main..HEAD -- claims_under_scrutiny.json; then
+            echo "The semantic data change is already present on main."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git push origin HEAD:main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Request GitHub Pages rebuild
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          curl --fail-with-body --location --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "X-GitHub-Api-Version: 2026-03-10" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/pages/builds"

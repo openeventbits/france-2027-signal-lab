@@ -370,12 +370,155 @@
     .runoff-insufficient .runoff-conclusion { color: #c0d0db; font-size: clamp(18px, 2vw, 25px); }
     .runoff-insufficient-copy { margin-top: 9px; color: #849eaf; font-size: 12px; line-height: 1.6; }
     .runoff-disclosure { padding: 11px 20px; border-top: 1px solid var(--line); color: #6f899b; font-size: 10px; line-height: 1.5; }
+    .claims-scrutiny { margin-top: 12px; }
+    .claims-scrutiny-head { align-items: center; padding-block: 13px; }
+    .claims-scrutiny-head h2 { font-size: 19px; }
+    .claims-scrutiny-status {
+      flex: 0 0 auto; max-width: 420px; color: var(--muted); font-size: 10px;
+      line-height: 1.5; text-align: right;
+    }
+    .claims-coverage { color: #a9c1d1; }
+    .claims-controls {
+      display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap;
+      gap: 8px 14px; padding: 9px 11px; border-bottom: 1px solid var(--line);
+      background: rgba(3, 11, 20, .36);
+    }
+    .claims-relationship { display: flex; flex-wrap: wrap; gap: 6px; }
+    .claims-filter-button {
+      min-height: 32px; padding: 5px 9px; border: 1px solid #23445d; border-radius: 999px;
+      background: #071522; color: var(--muted); font: inherit; font-size: 9px; cursor: pointer;
+      transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+    }
+    .claims-filter-button:hover { border-color: #2873a8; color: var(--text); }
+    .claims-filter-button.active { border-color: var(--blue); background: #0b2032; color: var(--cyan); }
+    .claims-selects { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 7px; }
+    .claims-select-label { display: grid; gap: 3px; color: var(--muted); font-size: 8px; letter-spacing: .08em; text-transform: uppercase; }
+    .claims-select {
+      min-height: 32px; max-width: 210px; padding: 5px 25px 5px 8px; border: 1px solid #23445d;
+      border-radius: 4px; background: #071522; color: var(--text); font: inherit; font-size: 10px;
+    }
+    .claims-filter-button:focus-visible, .claims-select:focus-visible, .claim-expand:focus-visible,
+    .claim-source:focus-visible, .claims-scroll:focus-visible {
+      outline: 2px solid var(--cyan); outline-offset: 2px;
+    }
+    .claims-panels {
+      display: grid; grid-template-columns: minmax(0, 2.45fr) minmax(270px, 1fr);
+      gap: 10px; align-items: stretch; padding: 10px; background: rgba(3, 11, 20, .2);
+    }
+    .claims-inner-panel {
+      min-width: 0; display: flex; flex-direction: column; border: 1px solid #183a54;
+      border-radius: 6px; background: rgba(8, 23, 37, .8); overflow: hidden;
+    }
+    .claims-inner-head {
+      min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 9px 11px; border-bottom: 1px solid #183a54; background: rgba(10, 29, 46, .86);
+    }
+    .claims-inner-title { margin: 0; color: #dcecf6; font-size: 11px; letter-spacing: .12em; }
+    .claims-inner-sub { margin-top: 2px; color: var(--muted); font-size: 9px; }
+    .claims-match-count { color: var(--cyan); font-size: 9px; text-align: right; white-space: nowrap; }
+    .claims-scroll {
+      height: 420px; min-height: 420px; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable;
+      scrollbar-color: #285a78 #07111d; scrollbar-width: thin; overscroll-behavior: contain;
+    }
+    .claim-columns, .claim-row {
+      display: grid; grid-template-columns: 68px minmax(125px, 1.15fr) minmax(190px, 1.75fr) minmax(90px, .7fr) minmax(76px, .62fr) 94px;
+      gap: 7px; min-width: 0;
+    }
+    .claim-columns {
+      position: sticky; z-index: 3; top: 0; padding: 7px 9px; border-bottom: 1px solid #1a405b;
+      background: #0a1d2e; color: #7593a7; font-size: 8px; letter-spacing: .09em; text-transform: uppercase;
+    }
+    .claim-month {
+      padding: 5px 9px; border-bottom: 1px solid #15354e; background: rgba(21, 53, 78, .35);
+      color: #8fb5ca; font-size: 8px; font-weight: 700; letter-spacing: .12em;
+    }
+    .claim-row {
+      position: relative; align-items: start; padding: 11px 9px; border-bottom: 1px solid #15354e;
+      cursor: pointer; transition: background-color 140ms ease, box-shadow 140ms ease;
+    }
+    .claim-row:last-child { border-bottom: 0; }
+    .claim-row:hover, .claim-row:focus-within { background: rgba(16, 39, 61, .78); }
+    .claim-row.is-expanded { background: rgba(16, 42, 65, .88); box-shadow: inset 2px 0 var(--cyan); }
+    .claim-date { color: #9ab2c2; font-size: 9px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .claim-associations { display: grid; gap: 5px; min-width: 0; }
+    .claim-association { display: flex; align-items: center; gap: 5px; min-width: 0; }
+    .claim-portrait {
+      position: relative; isolation: isolate; overflow: hidden; flex: 0 0 auto; width: 30px; height: 30px;
+      display: grid; place-items: center; border: 1px solid #2873a8; border-radius: 50%;
+      background: linear-gradient(145deg, #0c2236, #07111d); color: #9db9cc; font-size: 7px; font-weight: 700;
+    }
+    .claim-portrait img { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 18%; }
+    .claim-relationship {
+      flex: 0 0 auto; padding: 2px 6px; border: 1px solid #286486; border-radius: 999px;
+      color: #8ce8ff; font-size: 8px; font-weight: 700; line-height: 1.35; letter-spacing: .06em;
+    }
+    .claim-relationship.is-about { border-color: #4e547a; color: #c3c5e6; }
+    .claim-candidate-name { min-width: 0; color: #c7dbe8; font-size: 10px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+    .claim-text-wrap { min-width: 0; }
+    .claim-text {
+      display: -webkit-box; overflow: hidden; color: #e3eff7; font-size: 11.5px; font-weight: 600; line-height: 1.4;
+      overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    }
+    .claim-row.is-expanded .claim-text { display: block; overflow: visible; -webkit-line-clamp: initial; }
+    .claim-claimant { margin-top: 4px; color: #7794a8; font-size: 8px; line-height: 1.35; overflow-wrap: anywhere; }
+    .claim-rating {
+      display: inline-block; max-width: 100%; padding: 3px 6px; border: 1px solid #536879; border-radius: 999px;
+      background: rgba(93, 112, 127, .1); color: #c6d2da; font-size: 9px; line-height: 1.25;
+      text-align: center; overflow-wrap: anywhere;
+    }
+    .claim-rating.is-false { border-color: #a94750; background: rgba(190, 55, 67, .1); color: #ff9da4; }
+    .claim-rating.is-mostly-false { border-color: #9a622d; background: rgba(194, 112, 37, .1); color: #f6b56f; }
+    .claim-rating.is-misleading { border-color: #7654a8; background: rgba(126, 82, 180, .11); color: #c9a7f5; }
+    .claim-rating.is-missing-context { border-color: #5962a8; background: rgba(86, 95, 175, .11); color: #adb8ff; }
+    .claim-rating.is-partly-true { border-color: #287f79; background: rgba(35, 139, 126, .1); color: #7ddbd0; }
+    .claim-rating.is-mostly-true { border-color: #25867f; background: rgba(31, 150, 137, .1); color: #78e2d4; }
+    .claim-rating.is-true { border-color: #3b8757; background: rgba(48, 147, 82, .1); color: #89dfa4; }
+    .claim-rating.is-manipulated-video { border-color: #a43e67; background: rgba(185, 48, 101, .1); color: #f29abb; }
+    .claim-publisher { color: #8fb0c4; font-size: 9px; overflow-wrap: anywhere; }
+    .claim-actions { min-width: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 5px; }
+    .claim-source { font-size: 10px; line-height: 1.3; overflow-wrap: anywhere; }
+    .claim-expand {
+      flex: 0 0 32px; width: 32px; height: 32px; display: grid; place-items: center; padding: 0;
+      border: 1px solid #286486; border-radius: 4px; background: #071522; color: var(--cyan);
+      font: inherit; font-size: 18px; line-height: 1; cursor: pointer;
+    }
+    .claim-expand:hover { border-color: var(--cyan); background: #0b2032; }
+    .claims-state { padding: 26px 14px; color: var(--muted); font-size: 11px; }
+    .claims-state.error { color: #ff8b8b; }
+    .archive-scroll { padding: 0 11px 13px; }
+    .archive-section { padding: 12px 0; border-bottom: 1px solid #15354e; }
+    .archive-section:last-child { border-bottom: 0; }
+    .archive-section-title { margin: 0 0 8px; color: #7fa5bb; font-size: 8px; letter-spacing: .12em; }
+    .archive-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    .archive-stat { padding: 7px; border: 1px solid #183b55; border-radius: 4px; background: rgba(11, 31, 49, .62); }
+    .archive-stat-value { color: #dcecf6; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .archive-stat-label { color: var(--muted); font-size: 8px; line-height: 1.25; }
+    .archive-candidates { display: flex; flex-wrap: wrap; gap: 5px; }
+    .archive-candidate {
+      display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 4px 7px 4px 4px;
+      border: 1px solid #1b415d; border-radius: 999px; background: #081725; color: #bdd2df; font-size: 9px; font-weight: 600;
+    }
+    .archive-candidate .claim-portrait { width: 24px; height: 24px; font-size: 7px; }
+    .association-mix-labels { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; color: #9bb3c3; font-size: 8px; }
+    .association-mix-bar { display: flex; height: 9px; overflow: hidden; border: 1px solid #23465e; border-radius: 999px; background: #07111d; }
+    .association-mix-by { background: #287f9f; }
+    .association-mix-about { background: #626787; }
+    .archive-chart { height: 92px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; align-items: end; }
+    .archive-month { min-width: 0; height: 100%; display: grid; grid-template-rows: 1fr auto; gap: 3px; align-items: end; text-align: center; }
+    .archive-bar-wrap { height: 68px; display: flex; align-items: end; justify-content: center; }
+    .archive-bar { width: min(12px, 70%); min-height: 2px; background: linear-gradient(180deg, var(--cyan), #287398); opacity: .82; }
+    .archive-month-label { color: #718da0; font-size: 7px; line-height: 1; white-space: nowrap; }
+    .archive-publishers { display: grid; gap: 5px; }
+    .archive-publisher { display: flex; justify-content: space-between; gap: 10px; color: #afc6d5; font-size: 9px; }
+    .archive-publisher-count { color: var(--cyan); font-variant-numeric: tabular-nums; }
+    .archive-disclosure { margin: 0; color: #718da0; font-size: 9px; line-height: 1.5; }
     footer { margin-top: 12px; color: var(--muted); font-size: 11px; text-align: right; }
     @media (max-width: 850px) {
       .top-dashboard, .grid { grid-template-columns: 1fr; }
       .news-wire-list, .poll-wave-grid { grid-template-columns: 1fr; }
       .runoff-layout { grid-template-columns: 1fr; }
       .runoff-context { border-top: 1px solid var(--line); border-left: 0; }
+      .claims-panels { grid-template-columns: 1fr; }
       .top-dashboard > .panel { height: auto; }
       .freshness { height: 450px !important; }
       header { align-items: flex-start; }
@@ -430,6 +573,28 @@
       .runoff-result { grid-template-columns: 1fr; gap: 7px; }
       .runoff-result-meta { justify-content: space-between; }
       .runoff-disclosure { padding-inline: 13px; }
+      .claims-scrutiny-head { align-items: flex-start; flex-direction: column; }
+      .claims-scrutiny-status { max-width: none; text-align: left; }
+      .claims-controls { align-items: flex-start; flex-direction: column; }
+      .claims-selects, .claims-select-label, .claims-select { width: 100%; max-width: none; }
+      .claim-columns { display: none; }
+      .claim-row { grid-template-columns: 62px minmax(0, 1fr) auto; gap: 7px; }
+      .claim-associations { grid-column: 2 / -1; }
+      .claim-text-wrap { grid-column: 1 / -1; }
+      .claim-rating { grid-column: 1 / 3; justify-self: start; }
+      .claim-publisher { grid-column: 3; grid-row: 3; text-align: right; }
+      .claim-actions { grid-column: 1 / -1; }
+    }
+
+    @media (min-width: 851px) and (max-width: 1000px) {
+      .claim-columns, .claim-row {
+        grid-template-columns: 58px minmax(100px, .95fr) minmax(130px, 1.45fr) minmax(76px, .7fr) minmax(62px, .55fr) 74px;
+        gap: 5px;
+      }
+      .claim-columns, .claim-row { padding-inline: 7px; }
+      .claim-candidate-name { font-size: 10px; }
+      .claim-source { font-size: 9px; }
+      .claim-publisher { font-size: 8px; }
     }
 
     #legend {
@@ -648,6 +813,56 @@
         </aside>
       </div>
       <div class="runoff-disclosure" id="closest-runoff-disclosure">Second-round polling, not a forecast. Each poll is shown separately; no average or probability is calculated.</div>
+    </section>
+
+    <section class="panel claims-scrutiny" aria-labelledby="claims-scrutiny-title">
+      <div class="panel-head claims-scrutiny-head">
+        <div>
+          <div class="eyebrow">Independent fact checks</div>
+          <h2 id="claims-scrutiny-title">Claims Under Scrutiny</h2>
+        </div>
+        <div class="claims-scrutiny-status" id="claims-scrutiny-status" aria-live="polite">Loading claims archive…</div>
+      </div>
+      <div class="claims-controls" aria-label="Filter claims under scrutiny">
+        <div class="claims-relationship" role="group" aria-label="Relationship to candidates">
+          <button class="claims-filter-button active" type="button" data-claims-relationship="all" aria-pressed="true">ALL CHECKS</button>
+          <button class="claims-filter-button" type="button" data-claims-relationship="by" aria-pressed="false">BY CANDIDATES</button>
+          <button class="claims-filter-button" type="button" data-claims-relationship="about" aria-pressed="false">ABOUT CANDIDATES</button>
+        </div>
+        <div class="claims-selects">
+          <label class="claims-select-label">Candidate
+            <select class="claims-select" id="claims-candidate-filter" disabled><option value="">All candidates</option></select>
+          </label>
+          <label class="claims-select-label">Publisher
+            <select class="claims-select" id="claims-publisher-filter" disabled><option value="">All publishers</option></select>
+          </label>
+        </div>
+      </div>
+      <div class="claims-panels">
+        <section class="claims-inner-panel" aria-labelledby="claim-wire-title">
+          <div class="claims-inner-head">
+            <div>
+              <h3 class="claims-inner-title" id="claim-wire-title">CLAIM WIRE</h3>
+              <div class="claims-inner-sub">Newest publisher reviews first</div>
+            </div>
+            <div class="claims-match-count" id="claims-match-count">Loading…</div>
+          </div>
+          <div class="claims-scroll" id="claim-wire-scroll" role="region" aria-labelledby="claim-wire-title" tabindex="0">
+            <div class="claims-state">Loading publisher reviews…</div>
+          </div>
+        </section>
+        <aside class="claims-inner-panel" aria-labelledby="archive-pulse-title">
+          <div class="claims-inner-head">
+            <div>
+              <h3 class="claims-inner-title" id="archive-pulse-title">ARCHIVE PULSE</h3>
+              <div class="claims-inner-sub">Complete rolling archive</div>
+            </div>
+          </div>
+          <div class="claims-scroll archive-scroll" id="archive-pulse-scroll" role="region" aria-labelledby="archive-pulse-title" tabindex="0">
+            <div class="claims-state">Loading archive summary…</div>
+          </div>
+        </aside>
+      </div>
     </section>
 
     <section class="grid">
@@ -1135,6 +1350,290 @@
             onerror="this.remove()"
           >
         </div>`;
+    }
+
+    const claimsDisclosure = "Coverage reflects publishers’ editorial choices and the availability of structured fact-check records. It is not a representative measure of any political figure’s accuracy. BY identifies the recorded claimant; ABOUT identifies a candidate mentioned in a claim attributed to someone else. Candidates remain in scope while they have a qualifying numeric first-round poll appearance within the previous 45 days.";
+    const claimRatingDisplay = Object.freeze({
+      "Faux": { label: "False", tone: "is-false" },
+      "Plutôt faux": { label: "Mostly false", tone: "is-mostly-false" },
+      "Trompeur": { label: "Misleading", tone: "is-misleading" },
+      "Manque de contexte": { label: "Missing context", tone: "is-missing-context" },
+      "En partie vrai": { label: "Partly true", tone: "is-partly-true" },
+      "Plutôt vrai": { label: "Mostly true", tone: "is-mostly-true" },
+      "Vrai": { label: "True", tone: "is-true" },
+      "Vidéo manipulée": { label: "Manipulated video", tone: "is-manipulated-video" }
+    });
+    let claimsPayload = null;
+    let claimsRelationship = "all";
+
+    function isValidClaimsDate(value) {
+      return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+        Number.isFinite(new Date(`${value}T00:00:00Z`).getTime());
+    }
+
+    function isValidClaimReview(review) {
+      const requiredText = [review?.id, review?.publisher_name, review?.review_date, review?.claim_text, review?.claimant, review?.rating];
+      return review && typeof review === "object" && requiredText.every(value => typeof value === "string" && value.trim()) &&
+        isValidClaimsDate(review.review_date) && safeSourceUrl(review.review_url) !== "" &&
+        Array.isArray(review.candidate_associations) && review.candidate_associations.length > 0 &&
+        review.candidate_associations.every(association => association && typeof association === "object" &&
+          typeof association.candidate_id === "string" && association.candidate_id.trim() &&
+          typeof association.candidate_name === "string" && association.candidate_name.trim() &&
+          ["by", "about"].includes(association.relationship));
+    }
+
+    function validateClaimsPayload(payload) {
+      if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new Error("Claims archive is not an object");
+      if (!Array.isArray(payload.reviews)) throw new Error("Claims archive reviews are malformed");
+      if (!payload.candidate_roster || typeof payload.candidate_roster !== "object" || !Array.isArray(payload.candidate_roster.candidates)) {
+        throw new Error("Claims archive candidate roster is missing");
+      }
+      if (!payload.counts || typeof payload.counts !== "object") throw new Error("Claims archive counts are missing");
+      if (!payload.generated_at || !Number.isFinite(new Date(payload.generated_at).getTime())) throw new Error("Claims archive update date is malformed");
+      if (!Number.isInteger(payload.candidate_roster.count) || payload.candidate_roster.count !== payload.candidate_roster.candidates.length) {
+        throw new Error("Claims archive candidate roster count is inconsistent");
+      }
+      if (payload.candidate_roster.candidates.some(candidate => !candidate || typeof candidate.candidate_name !== "string" || !candidate.candidate_name.trim())) {
+        throw new Error("Claims archive candidate roster entries are malformed");
+      }
+
+      const validReviews = payload.reviews.filter(isValidClaimReview);
+      if (payload.reviews.length && !validReviews.length) throw new Error("No claim reviews can be rendered safely");
+      return {
+        generatedAt: payload.generated_at,
+        rosterCount: payload.candidate_roster.candidates.length,
+        reviews: validReviews.sort((a, b) => b.review_date.localeCompare(a.review_date) || a.id.localeCompare(b.id)),
+        skippedReviews: payload.reviews.length - validReviews.length
+      };
+    }
+
+    function claimsMetrics(reviews) {
+      const candidates = new Map();
+      const publishers = new Map();
+      let byAssociations = 0;
+      let aboutAssociations = 0;
+      reviews.forEach(review => {
+        publishers.set(review.publisher_name, (publishers.get(review.publisher_name) || 0) + 1);
+        review.candidate_associations.forEach(association => {
+          candidates.set(association.candidate_id, association.candidate_name);
+          if (association.relationship === "by") byAssociations += 1;
+          else aboutAssociations += 1;
+        });
+      });
+      return { candidates, publishers, byAssociations, aboutAssociations };
+    }
+
+    function claimPortrait(candidateName) {
+      const initials = escapeHtml(candidateMonogram(candidateName));
+      const portrait = candidatePortraits[candidateName];
+      if (!portrait) return `<span class="claim-portrait" aria-hidden="true">${initials}</span>`;
+      return `<span class="claim-portrait"><span aria-hidden="true">${initials}</span><img src="${escapeAttribute(portrait)}" alt="AI-generated portrait of ${escapeAttribute(candidateName)}" loading="lazy" decoding="async" onerror="this.remove()"></span>`;
+    }
+
+    function claimAssociation(association) {
+      const relationship = association.relationship.toUpperCase();
+      return `<span class="claim-association">${claimPortrait(association.candidate_name)}<span class="claim-relationship${association.relationship === "about" ? " is-about" : ""}">${relationship}</span><span class="claim-candidate-name">${escapeHtml(association.candidate_name)}</span></span>`;
+    }
+
+    function claimRatingBadge(sourceRating) {
+      const display = claimRatingDisplay[sourceRating];
+      const visibleLabel = display?.label || sourceRating;
+      const toneClass = display?.tone ? ` ${display.tone}` : "";
+      const originalRating = `Original publisher rating: ${sourceRating}`;
+      const accessibleLabel = display
+        ? `${visibleLabel}. Original publisher rating: ${sourceRating}`
+        : `${visibleLabel}. Original publisher rating: ${sourceRating}; untranslated.`;
+      return `<span class="claim-rating${toneClass}"${display ? "" : ' lang="fr"'} title="${escapeAttribute(originalRating)}" aria-label="${escapeAttribute(accessibleLabel)}">${escapeHtml(visibleLabel)}</span>`;
+    }
+
+    function normalizedClaimant(value) {
+      return String(value ?? "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("fr");
+    }
+
+    function shouldShowClaimant(review) {
+      const by = review.candidate_associations.filter(association => association.relationship === "by");
+      const about = review.candidate_associations.filter(association => association.relationship === "about");
+      if (!by.length && about.length) return true;
+      const claimant = normalizedClaimant(review.claimant);
+      return !by.some(association => claimant.includes(normalizedClaimant(association.candidate_name)));
+    }
+
+    function claimsMonthLabel(value) {
+      const date = new Date(`${value}T00:00:00Z`);
+      return new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(date).toUpperCase();
+    }
+
+    function claimTextId(value) {
+      return `claim-text-${Array.from(String(value), character => character.codePointAt(0).toString(16)).join("-")}`;
+    }
+
+    function claimReviewDateLabel(value) {
+      return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })
+        .format(new Date(`${value}T00:00:00Z`));
+    }
+
+    function renderClaimWire() {
+      if (!claimsPayload) return;
+      const candidateId = $("#claims-candidate-filter").value;
+      const publisher = $("#claims-publisher-filter").value;
+      const filtered = claimsPayload.reviews.filter(review =>
+        (claimsRelationship === "all" || review.candidate_associations.some(association => association.relationship === claimsRelationship)) &&
+        (!candidateId || review.candidate_associations.some(association => association.candidate_id === candidateId)) &&
+        (!publisher || review.publisher_name === publisher)
+      );
+
+      $("#claims-match-count").textContent = `${filtered.length} matching ${filtered.length === 1 ? "review" : "reviews"}`;
+      const wire = $("#claim-wire-scroll");
+      if (!claimsPayload.rosterCount) {
+        wire.innerHTML = '<div class="claims-state">No political figures currently meet the rolling 45-day polling eligibility rule.</div>';
+        return;
+      }
+      if (!claimsPayload.reviews.length) {
+        wire.innerHTML = '<div class="claims-state">No matching publisher reviews were found in the rolling 12-month archive.</div>';
+        return;
+      }
+      if (!filtered.length) {
+        wire.innerHTML = '<div class="claims-state">No reviews match the selected filters.</div>';
+        return;
+      }
+
+      const grouped = new Map();
+      filtered.forEach(review => {
+        const key = review.review_date.slice(0, 7);
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key).push(review);
+      });
+      const rows = [...grouped.values()].map(monthReviews => {
+        const heading = `${claimsMonthLabel(monthReviews[0].review_date)} · ${monthReviews.length} ${monthReviews.length === 1 ? "REVIEW" : "REVIEWS"}`;
+        return `<div class="claim-month">${escapeHtml(heading)}</div>${monthReviews.map(review => {
+          const claimant = shouldShowClaimant(review)
+            ? `<div class="claim-claimant" lang="fr">Claimant: ${escapeHtml(review.claimant)}</div>` : "";
+          const textId = claimTextId(review.id);
+          const reviewDateLabel = claimReviewDateLabel(review.review_date);
+          return `<article class="claim-row" data-claim-id="${escapeAttribute(review.id)}">
+            <time class="claim-date" datetime="${escapeAttribute(review.review_date)}">${escapeHtml(formatDate(review.review_date))}</time>
+            <div class="claim-associations">${review.candidate_associations.map(claimAssociation).join("")}</div>
+            <div class="claim-text-wrap"><div class="claim-text" id="${escapeAttribute(textId)}" lang="fr">${escapeHtml(review.claim_text)}</div>${claimant}</div>
+            <div>${claimRatingBadge(review.rating)}</div>
+            <div class="claim-publisher">${escapeHtml(review.publisher_name)}</div>
+            <div class="claim-actions"><a class="claim-source" href="${escapeAttribute(safeSourceUrl(review.review_url))}" target="_blank" rel="noopener noreferrer" aria-label="Read at ${escapeAttribute(review.publisher_name)} in a new tab">Read at ${escapeHtml(review.publisher_name)} <span aria-hidden="true">↗</span></a><button class="claim-expand" type="button" aria-controls="${escapeAttribute(textId)}" aria-expanded="false" aria-label="Expand full reviewed claim from ${escapeAttribute(reviewDateLabel)}" data-claim-date-label="${escapeAttribute(reviewDateLabel)}"><span aria-hidden="true">+</span></button></div>
+          </article>`;
+        }).join("")}`;
+      }).join("");
+
+      wire.innerHTML = `<div class="claim-columns" aria-hidden="true"><span>DATE</span><span>CANDIDATE RELATIONSHIP(S)</span><span>CLAIM REVIEWED</span><span>RATING</span><span>PUBLISHER</span><span>SOURCE</span></div>${rows}`;
+      const interactiveSelector = "a, button, input, select, textarea, summary, [role='button'], [role='link'], [contenteditable='true'], [tabindex]:not([tabindex='-1'])";
+      wire.querySelectorAll(".claim-row").forEach(row => {
+        const button = row.querySelector(".claim-expand");
+        const indicator = button.querySelector("[aria-hidden='true']");
+        const toggle = () => {
+          const expanded = button.getAttribute("aria-expanded") === "true";
+          const nextExpanded = !expanded;
+          row.classList.toggle("is-expanded", nextExpanded);
+          button.setAttribute("aria-expanded", String(nextExpanded));
+          button.setAttribute("aria-label", `${nextExpanded ? "Collapse" : "Expand"} full reviewed claim from ${button.dataset.claimDateLabel}`);
+          indicator.textContent = nextExpanded ? "−" : "+";
+        };
+        button.addEventListener("click", toggle);
+        row.addEventListener("click", event => {
+          const interactive = event.target.closest(interactiveSelector);
+          if (!interactive || !row.contains(interactive)) toggle();
+        });
+      });
+    }
+
+    function archiveMonthSeries(reviews, generatedAt) {
+      const end = new Date(generatedAt);
+      const months = [];
+      for (let offset = 11; offset >= 0; offset -= 1) {
+        const date = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - offset, 1));
+        const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+        months.push({ key, date, count: reviews.filter(review => review.review_date.startsWith(key)).length });
+      }
+      return months;
+    }
+
+    function renderArchivePulse() {
+      const reviews = claimsPayload.reviews;
+      const metrics = claimsMetrics(reviews);
+      const candidates = [...metrics.candidates.entries()].sort((a, b) => a[1].localeCompare(b[1], "fr"));
+      const publishers = [...metrics.publishers.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "fr"));
+      const associationTotal = metrics.byAssociations + metrics.aboutAssociations;
+      const byWidth = associationTotal ? metrics.byAssociations / associationTotal * 100 : 0;
+      const aboutWidth = associationTotal ? metrics.aboutAssociations / associationTotal * 100 : 0;
+      const months = archiveMonthSeries(reviews, claimsPayload.generatedAt);
+      const maxMonth = Math.max(1, ...months.map(month => month.count));
+      const monthName = date => new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
+
+      $("#archive-pulse-scroll").innerHTML = `
+        <section class="archive-section"><h4 class="archive-section-title">ARCHIVE AT A GLANCE</h4><div class="archive-stats">
+          <div class="archive-stat"><div class="archive-stat-value">${reviews.length}</div><div class="archive-stat-label">reviews</div></div>
+          <div class="archive-stat"><div class="archive-stat-value">${metrics.byAssociations}</div><div class="archive-stat-label">BY associations</div></div>
+          <div class="archive-stat"><div class="archive-stat-value">${metrics.aboutAssociations}</div><div class="archive-stat-label">ABOUT associations</div></div>
+          <div class="archive-stat"><div class="archive-stat-value">${candidates.length}</div><div class="archive-stat-label">candidates covered</div></div>
+          <div class="archive-stat"><div class="archive-stat-value">${publishers.length}</div><div class="archive-stat-label">publishers represented</div></div>
+        </div></section>
+        <section class="archive-section"><h4 class="archive-section-title">CANDIDATES COVERED</h4><div class="archive-candidates">${candidates.length ? candidates.map(([, name]) => `<span class="archive-candidate">${claimPortrait(name)}<span>${escapeHtml(name)}</span></span>`).join("") : '<span class="archive-disclosure">No candidates have public review associations.</span>'}</div></section>
+        <section class="archive-section"><h4 class="archive-section-title">RELATIONSHIP MIX</h4><div class="association-mix-labels"><span>BY associations · ${metrics.byAssociations}</span><span>ABOUT associations · ${metrics.aboutAssociations}</span></div><div class="association-mix-bar" role="img" aria-label="Candidate association mix: ${metrics.byAssociations} BY associations and ${metrics.aboutAssociations} ABOUT associations"><span class="association-mix-by" style="width:${byWidth.toFixed(2)}%"></span><span class="association-mix-about" style="width:${aboutWidth.toFixed(2)}%"></span></div><p class="archive-disclosure" style="margin-top:6px">Candidate association mix</p></section>
+        <section class="archive-section"><h4 class="archive-section-title">CHECK VOLUME — 12 MONTHS</h4><div class="archive-chart" role="list" aria-label="Monthly review counts from oldest to newest">${months.map(month => {
+          const label = monthName(month.date);
+          const height = month.count ? Math.max(8, month.count / maxMonth * 100) : 3;
+          return `<span class="archive-month" role="listitem" title="${escapeAttribute(label)}: ${month.count} ${month.count === 1 ? "review" : "reviews"}" aria-label="${escapeAttribute(label)}: ${month.count} ${month.count === 1 ? "review" : "reviews"}"><span class="archive-bar-wrap" aria-hidden="true"><span class="archive-bar" style="height:${height.toFixed(2)}%"></span></span><span class="archive-month-label">${escapeHtml(new Intl.DateTimeFormat("en-GB", { month: "narrow", timeZone: "UTC" }).format(month.date))}</span></span>`;
+        }).join("")}</div></section>
+        <section class="archive-section"><h4 class="archive-section-title">PUBLISHERS REPRESENTED</h4><div class="archive-publishers">${publishers.length ? publishers.map(([name, count]) => `<div class="archive-publisher"><span>${escapeHtml(name)}</span><span class="archive-publisher-count">${count} ${count === 1 ? "review" : "reviews"}</span></div>`).join("") : '<p class="archive-disclosure">No publishers are represented in this archive.</p>'}</div></section>
+        <section class="archive-section"><h4 class="archive-section-title">DISCLOSURE</h4><p class="archive-disclosure">${escapeHtml(claimsDisclosure)}</p></section>`;
+    }
+
+    function populateClaimsFilters() {
+      const metrics = claimsMetrics(claimsPayload.reviews);
+      const candidates = [...metrics.candidates.entries()].sort((a, b) => a[1].localeCompare(b[1], "fr"));
+      const publishers = [...metrics.publishers.keys()].sort((a, b) => a.localeCompare(b, "fr"));
+      const candidateSelect = $("#claims-candidate-filter");
+      const publisherSelect = $("#claims-publisher-filter");
+      candidateSelect.innerHTML = '<option value="">All candidates</option>' + candidates.map(([id, name]) => `<option value="${escapeAttribute(id)}">${escapeHtml(name)}</option>`).join("");
+      publisherSelect.innerHTML = '<option value="">All publishers</option>' + publishers.map(name => `<option value="${escapeAttribute(name)}">${escapeHtml(name)}</option>`).join("");
+      candidateSelect.disabled = !candidates.length;
+      publisherSelect.disabled = !publishers.length;
+      candidateSelect.onchange = renderClaimWire;
+      publisherSelect.onchange = renderClaimWire;
+    }
+
+    function renderClaimsUnderScrutiny(payload) {
+      claimsPayload = validateClaimsPayload(payload);
+      const metrics = claimsMetrics(claimsPayload.reviews);
+      const coverage = `${claimsPayload.reviews.length} reviews · ${metrics.candidates.size} candidates covered · ${metrics.publishers.size} publishers · rolling 12-month archive`;
+      $("#claims-scrutiny-status").innerHTML = `<div class="claims-coverage">${escapeHtml(coverage)}</div><div>Archive updated ${escapeHtml(formatDate(claimsPayload.generatedAt.slice(0, 10)))}${claimsPayload.skippedReviews ? ` · ${claimsPayload.skippedReviews} malformed ${claimsPayload.skippedReviews === 1 ? "review" : "reviews"} skipped` : ""}</div>`;
+      populateClaimsFilters();
+      renderClaimWire();
+      renderArchivePulse();
+      document.documentElement.dataset.claimsReady = "true";
+    }
+
+    function loadClaimsUnderScrutiny() {
+      document.querySelectorAll("[data-claims-relationship]").forEach(button => {
+        button.onclick = () => {
+          claimsRelationship = button.dataset.claimsRelationship;
+          document.querySelectorAll("[data-claims-relationship]").forEach(filterButton => {
+            const active = filterButton === button;
+            filterButton.classList.toggle("active", active);
+            filterButton.setAttribute("aria-pressed", String(active));
+          });
+          renderClaimWire();
+        };
+      });
+      fetch("claims_under_scrutiny.json", { cache: "no-store" })
+        .then(response => {
+          if (!response.ok) throw new Error(`claims_under_scrutiny.json returned HTTP ${response.status}`);
+          return response.json();
+        })
+        .then(renderClaimsUnderScrutiny)
+        .catch(error => {
+          $("#claims-scrutiny-status").textContent = "Claims archive unavailable";
+          $("#claims-match-count").textContent = "Unavailable";
+          $("#claim-wire-scroll").innerHTML = `<div class="claims-state error">Claims Under Scrutiny unavailable: ${escapeHtml(error.message)}</div>`;
+          $("#archive-pulse-scroll").innerHTML = '<div class="claims-state error">Archive summary could not be rendered. Other dashboard sections are unaffected.</div>';
+          document.documentElement.dataset.claimsReady = "error";
+        });
     }
 
     function renderAgreedRunoff(payload) {
@@ -1831,6 +2330,7 @@
     setInterval(renderElectionClock, 60 * 60 * 1000);
     loadClosestRunoff();
     loadNewsWire();
+    loadClaimsUnderScrutiny();
 
     fetch("polls.json", { cache: "no-store" })
       .then(response => {
