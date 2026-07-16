@@ -28,7 +28,10 @@
     }
     a { color: var(--cyan); text-decoration: none; }
     a:hover { text-decoration: underline; }
-    .shell { width: min(1180px, calc(100% - 28px)); margin: 0 auto; padding: 22px 0 34px; }
+    .shell {
+      width: 100%; margin: 0 auto; padding: 22px clamp(12px, 1.25vw, 24px) 34px;
+      box-sizing: border-box;
+    }
     header {
       display: flex; align-items: center; justify-content: space-between; gap: 16px;
       padding: 12px 15px; border: 1px solid var(--line); background: rgba(7, 18, 31, .9);
@@ -539,7 +542,7 @@
       .freshness-change { grid-column: 4; grid-row: 1 / span 2; }
     }
     @media (max-width: 560px) {
-      .shell { width: min(100% - 16px, 1180px); padding-top: 8px; }
+      .shell { padding-top: 8px; }
       .tag { display: none; }
       .bar-row { grid-template-columns: 112px 1fr 46px; gap: 7px; }
       .clock-metric { grid-template-columns: 76px minmax(0, 1fr); padding-inline: 10px; }
