@@ -29,20 +29,20 @@
     a { color: var(--cyan); text-decoration: none; }
     a:hover { text-decoration: underline; }
     .shell {
-      width: 100%; margin: 0 auto; padding: 22px clamp(12px, 1.25vw, 24px) 34px;
+      width: 100%; max-width: 1560px; margin-inline: auto; padding: 22px clamp(12px, 1.25vw, 24px) 34px;
       box-sizing: border-box;
     }
     header {
       display: flex; align-items: center; justify-content: space-between; gap: 16px;
-      padding: 12px 15px; border: 1px solid var(--line); background: rgba(7, 18, 31, .9);
-      box-shadow: 0 0 28px rgba(31, 147, 255, .08);
+      padding: 11px 13px; border-block: 1px solid var(--line); background: rgba(7, 18, 31, .82);
+      box-shadow: 0 0 24px rgba(31, 147, 255, .05);
     }
     .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
     .mark {
       width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--blue);
       border-radius: 8px; color: var(--cyan); box-shadow: inset 0 0 16px rgba(38, 140, 255, .18);
     }
-    h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+    h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
     .tag { color: var(--green); border: 1px solid #145b4a; padding: 4px 7px; font-size: 11px; }
     .status { color: var(--muted); font-size: 12px; text-align: right; }
     .grid { display: grid; grid-template-columns: 1fr 1.05fr; gap: 12px; margin-top: 12px; }
@@ -82,6 +82,80 @@
       position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
       overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
     }
+    .masthead-brand-copy { min-width: 0; }
+    .masthead-tagline { margin-top: 2px; color: var(--muted); font-size: 10px; line-height: 1.25; }
+    .masthead-tools {
+      display: flex; align-items: center; justify-content: flex-end; gap: 7px 12px; min-width: 0;
+      color: var(--muted); font-size: 10px;
+    }
+    .masthead-data { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 4px 12px; }
+    .masthead-data span { white-space: nowrap; }
+    .masthead-method {
+      display: inline-flex; align-items: center; min-height: 30px; padding: 4px 8px;
+      border: 1px solid #23445d; border-radius: 4px; color: var(--text); font-size: 10px;
+    }
+    .masthead-method:hover { border-color: var(--cyan); text-decoration: none; }
+    .masthead-method:focus-visible, .what-changed-link:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+    .masthead-countdown {
+      display: grid; grid-template-columns: auto auto; align-items: center; gap: 3px 9px; min-width: 142px;
+      padding: 6px 8px; border: 1px solid #245273; background: rgba(10, 31, 49, .75);
+    }
+    .masthead-countdown .clock-count {
+      grid-row: 1 / span 2; font-size: 25px; line-height: 1; color: var(--cyan); font-variant-numeric: tabular-nums;
+    }
+    .masthead-countdown .clock-count.is-word { font-size: 11px; }
+    .masthead-countdown-label { color: var(--text); font-size: 9px; font-weight: 700; letter-spacing: .08em; }
+    .masthead-countdown-date { color: var(--muted); font-size: 9px; white-space: nowrap; }
+    .masthead-countdown .clock-unit { margin-left: 2px; color: var(--muted); font-size: 8px; }
+    .hero-grid {
+      display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px;
+      align-items: stretch; margin-top: 16px;
+    }
+    .hero-grid > .panel { min-height: 0; }
+    .what-changed { display: flex; flex-direction: column; }
+    .what-changed-list { display: grid; flex: 1; padding: 3px 14px 6px; }
+    .what-changed-list[data-count="3"] { grid-template-rows: 1.15fr .925fr .925fr; }
+    .what-changed-list[data-count="2"] { grid-template-rows: 1.15fr .85fr; }
+    .what-changed-list[data-count="1"] { grid-template-rows: 1fr; }
+    .what-changed-list:not([data-count]) { align-items: center; }
+    .what-changed-item {
+      display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; gap: 9px 12px; padding: 13px 0;
+      border-bottom: 1px solid #143149;
+    }
+    .what-changed-item:last-child { border-bottom: 0; }
+    .what-changed-number { color: #52758c; font-size: 11px; font-variant-numeric: tabular-nums; }
+    .what-changed-category { color: var(--cyan); font-size: 9px; font-weight: 700; letter-spacing: .13em; }
+    .what-changed-headline { margin-top: 4px; color: #edf7fc; font-size: 14px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+    .what-changed-context { margin-top: 5px; color: #9ab2c2; font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+    .what-changed-meta { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin-top: 7px; color: var(--muted); font-size: 9px; }
+    .what-changed-link { margin-left: auto; white-space: nowrap; }
+    .what-changed-state { padding: 24px 2px; color: var(--muted); font-size: 12px; }
+    .race-glance { display: flex; flex-direction: column; }
+    .race-glance .panel-head { align-items: center; }
+    .race-heading { min-width: 0; }
+    .race-event { margin-top: 8px; }
+    .race-event-title { color: #edf7fc; font-size: 15px; font-weight: 700; }
+    .race-interpretation {
+      padding: 7px 15px; border-bottom: 1px solid var(--line); background: rgba(4, 13, 23, .34);
+      color: #8fb0c4; font-size: 10px;
+    }
+    .hypothesis-label { flex: 0 0 auto; color: var(--muted); font-size: 9px; text-align: right; letter-spacing: .08em; }
+    #hypothesis-select {
+      display: block; width: 100%; max-width: 230px; margin-top: 6px; padding: 7px 9px;
+      border: 1px solid #1b405c; background: #071522; color: #dcecff; font: inherit;
+    }
+    #hypothesis-select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+    .context-strip {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 16px;
+      border: 1px solid var(--line); background: rgba(7, 18, 31, .86);
+    }
+    .context-cell { min-width: 0; padding: 10px 13px; border-right: 1px solid var(--line); }
+    .context-cell:last-child { border-right: 0; }
+    .context-label { color: #6f8ea3; font-size: 8px; font-weight: 700; letter-spacing: .14em; }
+    .context-value { margin-top: 4px; color: #e1eef6; font-size: 13px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+    .context-meta { margin-top: 3px; color: var(--muted); font-size: 9px; line-height: 1.4; overflow-wrap: anywhere; }
+    .history-grid { grid-template-columns: 1fr; gap: 16px; margin-top: 12px; }
+
     .top-dashboard {
       display: grid; grid-template-columns: minmax(320px, .72fr) minmax(0, 1.28fr);
       gap: 12px; align-items: stretch; margin-top: 12px;
@@ -516,6 +590,35 @@
     .archive-publisher-count { color: var(--cyan); font-variant-numeric: tabular-nums; }
     .archive-disclosure { margin: 0; color: #718da0; font-size: 9px; line-height: 1.5; }
     footer { margin-top: 12px; color: var(--muted); font-size: 11px; text-align: right; }
+    @media (max-width: 1119px) {
+      header { flex-wrap: wrap; }
+      .masthead-tools { flex: 1 1 520px; }
+      .hero-grid { grid-template-columns: 1fr; }
+      .context-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .context-cell:nth-child(2) { border-right: 0; }
+      .context-cell:nth-child(-n + 2) { border-bottom: 1px solid var(--line); }
+    }
+    @media (max-width: 719px) {
+      header { align-items: stretch; flex-direction: column; }
+      .masthead-tools { width: 100%; flex: 0 1 auto; justify-content: flex-start; flex-wrap: wrap; }
+      .masthead-data { flex: 1 1 210px; justify-content: flex-start; }
+      .masthead-countdown { margin-left: auto; }
+      .candidate { overflow: visible; white-space: normal; text-overflow: clip; line-height: 1.25; }
+      .bar-row { grid-template-columns: minmax(105px, .9fr) minmax(90px, 1.5fr) 46px; }
+    }
+    @media (max-width: 520px) {
+      .masthead-tools { align-items: stretch; }
+      .masthead-data { flex-basis: 100%; }
+      .masthead-countdown { margin-left: 0; }
+      .race-glance .panel-head { align-items: flex-start; flex-direction: column; }
+      .hypothesis-label { width: 100%; text-align: left; }
+      #hypothesis-select { max-width: none; }
+      .context-strip { grid-template-columns: 1fr; }
+      .context-cell { border-right: 0; border-bottom: 1px solid var(--line); }
+      .context-cell:nth-child(3) { border-bottom: 1px solid var(--line); }
+      .context-cell:last-child { border-bottom: 0; }
+      .what-changed-link { margin-left: 0; }
+    }
     @media (max-width: 850px) {
       .top-dashboard, .grid { grid-template-columns: 1fr; }
       .news-wire-list, .poll-wave-grid { grid-template-columns: 1fr; }
@@ -686,78 +789,87 @@
 </head>
 <body>
   <main class="shell">
-    <header>
+    <header class="masthead">
       <div class="brand">
-        <div class="mark">⌁</div>
-        <div><h1>France 2027 <span style="color:var(--blue)">Signal Lab</span></h1></div>
-        <span class="tag">SOURCE-LINKED</span>
+        <div class="mark" aria-hidden="true">⌁</div>
+        <div class="masthead-brand-copy">
+          <h1>FRANCE 2027 <span style="color:var(--blue)">SIGNAL LAB</span></h1>
+          <div class="masthead-tagline">Live, source-linked signals from the French presidential race.</div>
+        </div>
       </div>
-      <div class="status" id="status">loading polls.json…</div>
+      <div class="masthead-tools">
+        <span class="tag">SOURCE-LINKED</span>
+        <div class="masthead-data" aria-live="polite">
+          <span id="masthead-updated">Updated time loading…</span>
+          <span id="masthead-sources">Publisher sources loading…</span>
+        </div>
+        <a class="masthead-method" href="#method-disclosure">Method</a>
+        <div class="masthead-countdown" data-clock-target="first" aria-label="First-round election countdown">
+          <div><span class="clock-count">—</span><span class="clock-unit"></span></div>
+          <div class="masthead-countdown-label">FIRST ROUND</div>
+          <div class="masthead-countdown-date">18 Apr 2027</div>
+        </div>
+      </div>
     </header>
 
-    <section class="top-dashboard">
-      <article class="panel election-clock" aria-labelledby="clock-title" aria-describedby="clock-description">
+    <section class="hero-grid" aria-label="Top briefing">
+      <article class="panel what-changed" aria-labelledby="what-changed-title">
         <div class="panel-head">
           <div>
-            <div class="eyebrow">Election clock</div>
-            <h2 id="clock-title">2027 presidential election</h2>
-            <div class="sub">Official voting dates and legally derived deadlines.</div>
+            <div class="eyebrow">Briefing</div>
+            <h2 id="what-changed-title">LATEST SIGNALS</h2>
+            <div class="sub">Newest source-linked developments across the dashboard.</div>
           </div>
         </div>
-        <p class="visually-hidden" id="clock-description">Countdowns to the 2027 French presidential election. Voting dates are official; the sponsorship deadline is calculated from French electoral law.</p>
-        <div class="clock-metrics">
-          <div class="clock-metric" data-clock-target="sponsorship" title="The deadline is the sixth Friday before the first round at 18:00 Paris time. Sponsorship collection opens only after the voter-convocation decree is published.">
-            <div><div class="clock-count">—</div><div class="clock-unit">Countdown unavailable</div></div>
-            <div>
-              <div class="clock-label">Candidate sponsorship deadline</div>
-              <div class="clock-date">12 Mar 2027 · 18:00 Paris</div>
-              <div class="clock-meta"><span class="clock-qualifier">LEGALLY DERIVED</span><a class="clock-source" href="https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000684037" target="_blank" rel="noopener noreferrer">Law 62-1292 · Art. 3 ↗</a></div>
-            </div>
-          </div>
-          <div class="clock-metric" data-clock-target="first" title="The Government selected 18 April 2027 on 1 July 2026. The voter-convocation decree is still pending.">
-            <div><div class="clock-count">—</div><div class="clock-unit">Countdown unavailable</div></div>
-            <div>
-              <div class="clock-label">First round</div>
-              <div class="clock-date">18 Apr 2027</div>
-              <div class="clock-meta"><span class="clock-qualifier">OFFICIAL DATE</span><a class="clock-source" href="https://www.elysee.fr/emmanuel-macron/2026/07/01/compte-rendu-du-conseil-des-ministres-du-mercredi-1er-juillet-2026" target="_blank" rel="noopener noreferrer">Élysée · 1 Jul 2026 ↗</a></div>
-            </div>
-          </div>
-          <div class="clock-metric" data-clock-target="second" title="Held only if no candidate wins an absolute majority in the first round.">
-            <div><div class="clock-count">—</div><div class="clock-unit">Countdown unavailable</div></div>
-            <div>
-              <div class="clock-label">Second round</div>
-              <div class="clock-date">2 May 2027</div>
-              <div class="clock-meta"><span class="clock-qualifier">OFFICIAL DATE · IF REQUIRED</span><a class="clock-source" href="https://www.elysee.fr/emmanuel-macron/2026/07/01/compte-rendu-du-conseil-des-ministres-du-mercredi-1er-juillet-2026" target="_blank" rel="noopener noreferrer">Élysée · 1 Jul 2026 ↗</a></div>
-            </div>
-          </div>
+        <div class="what-changed-list" id="what-changed-list" aria-live="polite">
+          <div class="what-changed-state">Checking for source-linked dashboard signals…</div>
         </div>
-        <div class="clock-footer">Official dates announced 1 Jul 2026. The voter-convocation decree has not yet been published. Counts use the Europe/Paris calendar.</div>
       </article>
 
-      <article class="panel freshness" aria-labelledby="freshness-title">
+      <article class="panel race-glance" aria-labelledby="race-glance-title">
         <div class="panel-head">
-          <div>
-            <div class="eyebrow">Freshness watch</div>
-            <h2 id="freshness-title">Latest pollster appearances</h2>
-            <div class="sub">Last source-linked poll appearance per candidate.</div>
+          <div class="race-heading">
+            <div class="eyebrow">Latest polling</div>
+            <h2 id="race-glance-title">RACE AT A GLANCE</h2>
+            <div class="sub">Latest complete first-round poll event</div>
+            <div class="race-event">
+              <div class="race-event-title" id="latest-title">Loading…</div>
+              <div class="sub" id="latest-sub"></div>
+            </div>
           </div>
+          <label class="hypothesis-label">
+            HYPOTHESIS
+            <select id="hypothesis-select" disabled aria-label="Choose a reported first-round poll hypothesis"></select>
+          </label>
         </div>
-        <div class="freshness-toolbar">
-          <div class="freshness-kpis" aria-label="Freshness summary">
-            <div class="freshness-kpi"><span class="freshness-kpi-label">Latest update</span><span class="freshness-kpi-value" id="freshness-latest">—</span></div>
-            <div class="freshness-kpi"><span class="freshness-kpi-label">Pollsters</span><span class="freshness-kpi-value" id="freshness-pollsters">—</span></div>
-            <div class="freshness-kpi"><span class="freshness-kpi-label">Candidates</span><span class="freshness-kpi-value" id="freshness-candidates">—</span></div>
-          </div>
-          <div class="freshness-sorts" aria-label="Sort candidates">
-            <button class="freshness-sort active" type="button" data-freshness-sort="recent" aria-pressed="true">Recent first</button>
-            <button class="freshness-sort" type="button" data-freshness-sort="absent" aria-pressed="false">Longest absent</button>
-          </div>
-        </div>
-        <div class="freshness-list" id="freshness-watch" role="region" aria-labelledby="freshness-title" tabindex="0"></div>
-        <div class="freshness-footer">A hypothesis is one candidate lineup within a poll event. Change uses the nearest previous matching lineup, preferring the same pollster; exact gaps are shown and no averages are used. Source links open supporting polls.</div>
+        <div class="race-interpretation">One reported hypothesis. No average or forecast.</div>
+        <div class="bars" id="bars"><div class="empty">Loading candidate scores…</div></div>
+        <div class="meta" id="meta"></div>
       </article>
     </section>
 
+    <section class="context-strip" aria-label="Dashboard context">
+      <article class="context-cell">
+        <div class="context-label">NEXT MILESTONE</div>
+        <div class="context-value" id="context-milestone-value">Calculating…</div>
+        <div class="context-meta" id="context-milestone-meta">Europe/Paris calendar</div>
+      </article>
+      <article class="context-cell">
+        <div class="context-label">LATEST POLL</div>
+        <div class="context-value" id="context-poll-value">Loading…</div>
+        <div class="context-meta" id="context-poll-meta">Latest complete first-round event</div>
+      </article>
+      <article class="context-cell">
+        <div class="context-label">POLL COVERAGE</div>
+        <div class="context-value" id="context-coverage-value">Loading…</div>
+        <div class="context-meta" id="context-coverage-meta">Target: first round</div>
+      </article>
+      <article class="context-cell">
+        <div class="context-label">DATA STATUS</div>
+        <div class="context-value" id="context-status-value">0 of 4 datasets loaded</div>
+        <div class="context-meta" id="context-status-meta">Loading local dashboard data</div>
+      </article>
+    </section>
     <section class="panel news-wire" aria-labelledby="news-wire-title">
       <div class="panel-head news-wire-head">
         <div>
@@ -868,24 +980,7 @@
       </div>
     </section>
 
-    <section class="grid">
-      <article class="panel">
-        <div class="panel-head">
-          <div>
-            <div class="eyebrow">Latest coherent poll event</div>
-            <h2 id="latest-title">Loading…</h2>
-            <div class="sub" id="latest-sub"></div>
-          </div>
-          <label style="font-size:11px;color:#7895aa;text-align:right">
-            HYPOTHESIS
-            <select id="hypothesis-select" style="display:block;margin-top:6px;max-width:210px;background:#071522;color:#dcecff;border:1px solid #1b405c;padding:7px 9px;font:inherit">
-            </select>
-          </label>
-        </div>
-        <div class="bars" id="bars"></div>
-        <div class="meta" id="meta"></div>
-      </article>
-
+    <section class="grid history-grid">
       <article class="panel">
         <div class="panel-head">
           <div>
@@ -901,7 +996,7 @@
         </div>
       </article>
     </section>
-    <footer>
+    <footer id="method-disclosure">
       <div>Descriptive polling data · no averages · no forecast · no voting advice</div>
       <div class="ai-portrait-note">Candidate portraits are AI-generated illustrations for visual identification.</div>
     </footer>
@@ -926,6 +1021,270 @@
       }
     }
 
+    const dashboardState = {
+      polls: null,
+      runoff: null,
+      news: null,
+      claims: null,
+      loadState: { polls: "loading", runoff: "loading", news: "loading", claims: "loading" },
+      updatedAt: {}
+    };
+
+    function markDataset(name, status, payload = null, updatedAt = "") {
+      dashboardState.loadState[name] = status;
+      dashboardState[name] = status === "loaded" ? payload : null;
+      if (status === "loaded" && updatedAt) dashboardState.updatedAt[name] = updatedAt;
+      else delete dashboardState.updatedAt[name];
+      renderMastheadMetadata();
+      renderContextStrip();
+      renderWhatChanged();
+    }
+
+    function dashboardTimestamp(value) {
+      if (typeof value !== "string" || !value) return NaN;
+      return new Date(value.includes("T") ? value : value + "T00:00:00Z").getTime();
+    }
+
+    function renderMastheadMetadata() {
+      const updated = Object.values(dashboardState.updatedAt)
+        .filter(value => Number.isFinite(dashboardTimestamp(value)))
+        .sort((a, b) => dashboardTimestamp(b) - dashboardTimestamp(a))[0];
+      $("#masthead-updated").textContent = updated
+        ? "Updated " + (updated.includes("T") ? formatNewsDateTime(updated) : formatDate(updated))
+        : "Updated time unavailable";
+
+      if (dashboardState.news) {
+        const count = dashboardState.news.sources.length;
+        $("#masthead-sources").textContent = count + " monitored publisher " + (count === 1 ? "source" : "sources");
+      } else {
+        $("#masthead-sources").textContent = dashboardState.loadState.news === "error"
+          ? "Publisher sources unavailable"
+          : "Publisher sources loading…";
+      }
+    }
+
+    function pollFieldworkLabel(event) {
+      return formatDate(event.fieldwork_start) + "–" + formatDate(event.fieldwork_end);
+    }
+
+    function newPollSignal() {
+      const pollState = dashboardState.polls;
+      if (!pollState || !pollState.latestPackage.length) return null;
+      const latest = pollState.latestPackage[0];
+      const sourceUrl = safeSourceUrl(latest.source_url);
+      if (!sourceUrl) return null;
+      const count = pollState.latestPackage.length;
+      const sample = latest.sample_size
+        ? Number(latest.sample_size).toLocaleString("en-GB") + " respondents"
+        : "sample not stated";
+      return {
+        category: "NEW POLL",
+        headline: "Latest " + latest.pollster + " first-round event contains " + count + " published " + (count === 1 ? "hypothesis" : "hypotheses") + ".",
+        context: "Fieldwork " + pollFieldworkLabel(latest) + " · " + sample + ".",
+        date: latest.publication_date ? "Published " + formatDate(latest.publication_date) : "Publication date not stated",
+        sourceName: latest.pollster,
+        sourceUrl
+      };
+    }
+
+    function runoffSignal() {
+      const payload = dashboardState.runoff;
+      if (!payload || payload.status === "insufficient") return null;
+      let matchup = payload.status === "agree" ? payload.selected_matchup : null;
+      if (!matchup) {
+        const candidates = payload.pollsters.flatMap(pollster =>
+          pollster.closest_matchups.map(item => ({
+            matchup_key: item.matchup_key || "",
+            candidates: item.candidates,
+            results: [item.result]
+          }))
+        );
+        candidates.sort((a, b) =>
+          a.results[0].margin - b.results[0].margin ||
+          a.candidates.join("|").localeCompare(b.candidates.join("|"), "fr")
+        );
+        matchup = candidates[0] || null;
+        const common = matchup && payload.common_matchups.find(item =>
+          (matchup.matchup_key && item.matchup_key === matchup.matchup_key) ||
+          item.candidates.join("|") === matchup.candidates.join("|")
+        );
+        if (common) matchup = common;
+      }
+      if (!matchup || !Array.isArray(matchup.results) || !matchup.results.length) return null;
+      const ordered = [...matchup.results].sort((a, b) => a.margin - b.margin || a.pollster.localeCompare(b.pollster, "fr"));
+      const closest = ordered[0];
+      const sourceUrl = safeSourceUrl(closest.source_url);
+      if (!sourceUrl) return null;
+      const observations = ordered.length;
+      return {
+        category: "RUNOFF STATUS",
+        headline: matchup.candidates.join(" vs ") + " has a smallest reported margin of " + closest.margin + " points.",
+        context: observations + " supporting " + (observations === 1 ? "observation is" : "observations are") + " shown separately; no average is calculated.",
+        date: payload.fieldwork_window ? "Fieldwork ended " + formatDate(payload.fieldwork_window.end) : "Fieldwork date unavailable",
+        sourceName: closest.pollster,
+        sourceUrl
+      };
+    }
+
+    function factCheckSignal() {
+      const payload = dashboardState.claims;
+      if (!payload || !payload.reviews.length) return null;
+      const eligible = payload.reviews.filter(review =>
+        review.candidate_associations.some(association => payload.trackedCandidateNames.has(association.candidate_name))
+      );
+      if (!eligible.length) return null;
+      const byReviews = eligible.filter(review =>
+        review.candidate_associations.some(association =>
+          association.relationship === "by" && payload.trackedCandidateNames.has(association.candidate_name)
+        )
+      );
+      const review = (byReviews.length ? byReviews : eligible)[0];
+      const byAssociation = review.candidate_associations.find(association =>
+        association.relationship === "by" && payload.trackedCandidateNames.has(association.candidate_name)
+      );
+      const relationshipNote = byAssociation
+        ? "Candidate relationship: BY."
+        : "Candidate relationship: ABOUT, not attribution.";
+      return {
+        category: "FACT CHECK",
+        headline: review.claim_text,
+        context: review.publisher_name + " records the claimant as “" + review.claimant + "” and the rating as “" + review.rating + "”. " + relationshipNote,
+        date: "Reviewed " + formatDate(review.review_date),
+        sourceName: review.publisher_name,
+        sourceUrl: safeSourceUrl(review.review_url)
+      };
+    }
+
+    function appendBriefingText(parent, className, text, tagName = "div") {
+      const element = document.createElement(tagName);
+      element.className = className;
+      element.textContent = text;
+      parent.appendChild(element);
+      return element;
+    }
+
+    function renderWhatChanged() {
+      const container = $("#what-changed-list");
+      if (!container) return;
+      const items = [newPollSignal(), runoffSignal(), factCheckSignal()].filter(Boolean).slice(0, 3);
+      delete container.dataset.count;
+      container.replaceChildren();
+
+      if (!items.length) {
+        const loading = Object.values(dashboardState.loadState).includes("loading");
+        appendBriefingText(
+          container,
+          "what-changed-state",
+          loading ? "Checking for source-linked dashboard signals…" : "No qualifying source-linked signals are available."
+        );
+        return;
+      }
+
+      container.dataset.count = String(items.length);
+      items.forEach((item, index) => {
+        const article = document.createElement("article");
+        article.className = "what-changed-item";
+        appendBriefingText(article, "what-changed-number", String(index + 1).padStart(2, "0"));
+        const body = document.createElement("div");
+        appendBriefingText(body, "what-changed-category", item.category);
+        appendBriefingText(body, "what-changed-headline", item.headline);
+        appendBriefingText(body, "what-changed-context", item.context);
+        const meta = document.createElement("div");
+        meta.className = "what-changed-meta";
+        appendBriefingText(meta, "", item.date, "time");
+        appendBriefingText(meta, "", item.sourceName, "span");
+        const source = document.createElement("a");
+        source.className = "what-changed-link";
+        source.href = item.sourceUrl;
+        source.target = "_blank";
+        source.rel = "noopener noreferrer";
+        source.textContent = "Evidence ↗";
+        source.setAttribute("aria-label", "Open " + item.category.toLowerCase() + " evidence from " + item.sourceName);
+        meta.appendChild(source);
+        body.appendChild(meta);
+        article.appendChild(body);
+        container.appendChild(article);
+      });
+    }
+
+    function subtractCalendarMonths(iso, months) {
+      const parts = iso.split("-").map(Number);
+      const targetMonthIndex = parts[1] - 1 - months;
+      const targetYear = parts[0] + Math.floor(targetMonthIndex / 12);
+      const normalizedMonth = ((targetMonthIndex % 12) + 12) % 12;
+      const lastDay = new Date(Date.UTC(targetYear, normalizedMonth + 1, 0)).getUTCDate();
+      return [
+        targetYear,
+        String(normalizedMonth + 1).padStart(2, "0"),
+        String(Math.min(parts[2], lastDay)).padStart(2, "0")
+      ].join("-");
+    }
+
+    function derivePollCoverage(events) {
+      const dated = events.map(event => ({
+        event,
+        date: event.publication_date || event.fieldwork_end
+      })).filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date));
+      if (!dated.length) return null;
+      dated.sort((a, b) => b.date.localeCompare(a.date));
+      const latestDate = dated[0].date;
+      const startDate = subtractCalendarMonths(latestDate, 6);
+      const pollsters = new Set(dated
+        .filter(item => item.date >= startDate && item.date <= latestDate)
+        .map(item => item.event.pollster));
+      return { count: pollsters.size, startDate, latestDate };
+    }
+
+    function renderContextStrip() {
+      try {
+        const snapshot = getElectionClockSnapshot();
+        const milestone = snapshot.targets.find(target => !target.held) || snapshot.targets.at(-1);
+        $("#context-milestone-value").textContent = milestone.label;
+        $("#context-milestone-meta").textContent = milestone.absoluteLabel + " · " + milestone.status;
+      } catch (error) {
+        $("#context-milestone-value").textContent = "Milestone unavailable";
+        $("#context-milestone-meta").textContent = "Europe/Paris countdown unavailable";
+      }
+
+      if (dashboardState.polls) {
+        const latest = dashboardState.polls.latestPackage[0];
+        $("#context-poll-value").textContent = latest.pollster;
+        $("#context-poll-meta").textContent =
+          (latest.publication_date ? "Published " + formatDate(latest.publication_date) : "Publication date not stated") +
+          " · Fieldwork " + pollFieldworkLabel(latest);
+        const coverage = derivePollCoverage(dashboardState.polls.events);
+        $("#context-coverage-value").textContent = coverage
+          ? coverage.count + " distinct " + (coverage.count === 1 ? "pollster" : "pollsters")
+          : "Coverage unavailable";
+        $("#context-coverage-meta").textContent = coverage
+          ? "Target: first round · " + formatDate(coverage.startDate) + "–" + formatDate(coverage.latestDate)
+          : "Target: first round";
+      } else {
+        const pollError = dashboardState.loadState.polls === "error";
+        $("#context-poll-value").textContent = pollError ? "Polling unavailable" : "Loading…";
+        $("#context-poll-meta").textContent = "Latest complete first-round event";
+        $("#context-coverage-value").textContent = pollError ? "Polling unavailable" : "Loading…";
+        $("#context-coverage-meta").textContent = "Target: first round";
+      }
+
+      const states = Object.values(dashboardState.loadState);
+      const loaded = states.filter(state => state === "loaded").length;
+      const loading = states.filter(state => state === "loading").length;
+      if (dashboardState.loadState.polls === "error") {
+        $("#context-status-value").textContent = "Polling unavailable";
+      } else if (loaded === 4) {
+        $("#context-status-value").textContent = "4 datasets loaded";
+      } else if (loading) {
+        $("#context-status-value").textContent = loaded + " of 4 datasets loaded";
+      } else {
+        $("#context-status-value").textContent = "Partial data: " + loaded + " of 4 datasets loaded";
+      }
+      $("#context-status-meta").textContent = loading
+        ? loading + " local " + (loading === 1 ? "dataset" : "datasets") + " still loading"
+        : loaded === 4
+          ? "All required local datasets loaded and validated"
+          : "Other dashboard sections remain independent";
+    }
     function validateNewsWirePayload(payload) {
       if (!payload || typeof payload !== "object" || payload.schema_version !== 1) {
         throw new Error("Unsupported or missing news-wire schema");
@@ -1014,92 +1373,125 @@
 
       fetch("news_wire.json", { cache: "no-store" })
         .then(response => {
-          if (!response.ok) throw new Error(`news_wire.json returned HTTP ${response.status}`);
+          if (!response.ok) throw new Error("news_wire.json returned HTTP " + response.status);
           return response.json();
         })
         .then(validateNewsWirePayload)
         .then(payload => {
           newsWirePayload = payload;
           const sourceTotal = payload.sources.length;
-          $("#news-wire-status").textContent = `Generated ${formatNewsDateTime(payload.generated_at)} · ${payload.counts.successful_sources}/${sourceTotal} sources`;
-          $("#news-wire-source-note").textContent = `${payload.counts.election_news} Election News · ${payload.counts.candidate_watch} Candidate Watch · direct publisher links`;
+          $("#news-wire-status").textContent = "Generated " + formatNewsDateTime(payload.generated_at) + " · " + payload.counts.successful_sources + "/" + sourceTotal + " sources";
+          $("#news-wire-source-note").textContent = payload.counts.election_news + " Election News · " + payload.counts.candidate_watch + " Candidate Watch · direct publisher links";
           document.querySelectorAll("[data-news-wire-count]").forEach(count => {
-            count.textContent = `(${payload.counts[count.dataset.newsWireCount]})`;
+            count.textContent = "(" + payload.counts[count.dataset.newsWireCount] + ")";
           });
           renderNewsWire();
+          document.documentElement.dataset.newsReady = "true";
+          markDataset("news", "loaded", payload, payload.generated_at);
         })
         .catch(error => {
           $("#news-wire-status").textContent = "News wire unavailable";
           $("#news-wire-source-note").textContent = "Publisher headlines could not be loaded.";
-          $("#news-wire-list").innerHTML = `<div class="news-wire-state error">Election News Wire unavailable: ${escapeHtml(error.message)}</div>`;
+          $("#news-wire-list").innerHTML = '<div class="news-wire-state error">Election News Wire unavailable: ' + escapeHtml(error.message) + '</div>';
+          document.documentElement.dataset.newsReady = "error";
+          markDataset("news", "error");
         });
+    }
+    const electionClockTargets = Object.freeze([
+      {
+        key: "sponsorship",
+        label: "Candidate sponsorship deadline",
+        year: 2027,
+        month: 3,
+        day: 12,
+        absoluteLabel: "12 Mar 2027 · 18:00 Paris",
+        cutoffUtc: Date.UTC(2027, 2, 12, 17, 0),
+        sourceUrl: "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000684037",
+        sourceLabel: "Law 62-1292 · Art. 3"
+      },
+      {
+        key: "first",
+        label: "First round",
+        year: 2027,
+        month: 4,
+        day: 18,
+        absoluteLabel: "18 Apr 2027",
+        sourceUrl: "https://www.elysee.fr/emmanuel-macron/2026/07/01/compte-rendu-du-conseil-des-ministres-du-mercredi-1er-juillet-2026",
+        sourceLabel: "Élysée · 1 Jul 2026"
+      },
+      {
+        key: "second",
+        label: "Second round if required",
+        year: 2027,
+        month: 5,
+        day: 2,
+        absoluteLabel: "2 May 2027",
+        sourceUrl: "https://www.elysee.fr/emmanuel-macron/2026/07/01/compte-rendu-du-conseil-des-ministres-du-mercredi-1er-juillet-2026",
+        sourceLabel: "Élysée · 1 Jul 2026"
+      }
+    ]);
+
+    function getElectionClockSnapshot(now = new Date()) {
+      const parisParts = Object.fromEntries(
+        new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Europe/Paris",
+          year: "numeric",
+          month: "numeric",
+          day: "numeric",
+          hour: "numeric",
+          minute: "numeric",
+          hourCycle: "h23"
+        }).formatToParts(now).filter(part => part.type !== "literal").map(part => [part.type, Number(part.value)])
+      );
+      const parisTodayUtc = Date.UTC(parisParts.year, parisParts.month - 1, parisParts.day);
+      return {
+        parisParts,
+        targets: electionClockTargets.map(target => {
+          const targetUtc = Date.UTC(target.year, target.month - 1, target.day);
+          const isTargetDay = targetUtc === parisTodayUtc;
+          const held = target.key === "sponsorship"
+            ? now.getTime() >= target.cutoffUtc
+            : parisTodayUtc > targetUtc;
+          const daysRemaining = Math.max(0, Math.ceil((targetUtc - parisTodayUtc) / 86400000));
+          const status = held
+            ? target.key === "sponsorship" ? "CLOSED" : "HELD"
+            : isTargetDay
+              ? target.key === "sponsorship" ? "TODAY" : "VOTING DAY"
+              : daysRemaining + " " + (daysRemaining === 1 ? "day" : "days");
+          return { ...target, held, isTargetDay, daysRemaining, status };
+        })
+      };
     }
 
     function renderElectionClock() {
-      const metrics = {
-        sponsorship: { year: 2027, month: 3, day: 12 },
-        first: { year: 2027, month: 4, day: 18 },
-        second: { year: 2027, month: 5, day: 2 }
-      };
-
       try {
-        const now = new Date();
-        const parisParts = Object.fromEntries(
-          new Intl.DateTimeFormat("en-GB", {
-            timeZone: "Europe/Paris",
-            year: "numeric",
-            month: "numeric",
-            day: "numeric",
-            hour: "numeric",
-            minute: "numeric",
-            hourCycle: "h23"
-          }).formatToParts(now).filter(part => part.type !== "literal").map(part => [part.type, Number(part.value)])
-        );
-        const parisTodayUtc = Date.UTC(parisParts.year, parisParts.month - 1, parisParts.day);
-
-        Object.entries(metrics).forEach(([key, target]) => {
-          const metric = document.querySelector(`[data-clock-target="${key}"]`);
-          const count = metric.querySelector(".clock-count");
-          const unit = metric.querySelector(".clock-unit");
-          const targetUtc = Date.UTC(target.year, target.month - 1, target.day);
-          const daysRemaining = Math.max(0, Math.ceil((targetUtc - parisTodayUtc) / 86400000));
-          const isTargetDay = targetUtc === parisTodayUtc;
-
-          count.classList.remove("is-word");
-          if (key === "sponsorship") {
-            if (now.getTime() >= Date.UTC(2027, 2, 12, 17, 0)) {
-              count.textContent = "CLOSED";
-              count.classList.add("is-word");
-              unit.textContent = "";
-            } else if (isTargetDay) {
-              count.textContent = "TODAY";
+        const snapshot = getElectionClockSnapshot();
+        snapshot.targets.forEach(target => {
+          document.querySelectorAll('[data-clock-target="' + target.key + '"]').forEach(metric => {
+            const count = metric.querySelector(".clock-count");
+            const unit = metric.querySelector(".clock-unit");
+            if (!count || !unit) return;
+            count.classList.remove("is-word");
+            if (target.held || target.isTargetDay) {
+              count.textContent = target.status;
               count.classList.add("is-word");
               unit.textContent = "";
             } else {
-              count.textContent = daysRemaining;
+              count.textContent = target.daysRemaining;
               unit.textContent = "DAYS";
             }
-          } else if (parisTodayUtc > targetUtc) {
-            count.textContent = "HELD";
-            count.classList.add("is-word");
-            unit.textContent = "";
-          } else if (isTargetDay) {
-            count.textContent = "VOTING DAY";
-            count.classList.add("is-word");
-            unit.textContent = "";
-          } else {
-            count.textContent = daysRemaining;
-            unit.textContent = "DAYS";
-          }
+          });
         });
+        renderContextStrip();
       } catch (error) {
-        document.querySelectorAll(".clock-metric").forEach(metric => {
-          metric.querySelector(".clock-count").textContent = "—";
-          metric.querySelector(".clock-unit").textContent = "Countdown unavailable";
+        document.querySelectorAll("[data-clock-target]").forEach(metric => {
+          const count = metric.querySelector(".clock-count");
+          const unit = metric.querySelector(".clock-unit");
+          if (count) count.textContent = "—";
+          if (unit) unit.textContent = "";
         });
       }
     }
-
     function candidateMonogram(name) {
       return name
         .split(/[\s-]+/)
@@ -1405,6 +1797,7 @@
       return {
         generatedAt: payload.generated_at,
         rosterCount: payload.candidate_roster.candidates.length,
+        trackedCandidateNames: new Set(payload.candidate_roster.candidates.map(candidate => candidate.candidate_name)),
         reviews: validReviews.sort((a, b) => b.review_date.localeCompare(a.review_date) || a.id.localeCompare(b.id)),
         skippedReviews: payload.reviews.length - validReviews.length
       };
@@ -1610,6 +2003,7 @@
       renderClaimWire();
       renderArchivePulse();
       document.documentElement.dataset.claimsReady = "true";
+      markDataset("claims", "loaded", claimsPayload, claimsPayload.generatedAt);
     }
 
     function loadClaimsUnderScrutiny() {
@@ -1636,6 +2030,7 @@
           $("#claim-wire-scroll").innerHTML = `<div class="claims-state error">Claims Under Scrutiny unavailable: ${escapeHtml(error.message)}</div>`;
           $("#archive-pulse-scroll").innerHTML = '<div class="claims-state error">Archive summary could not be rendered. Other dashboard sections are unaffected.</div>';
           document.documentElement.dataset.claimsReady = "error";
+          markDataset("claims", "error");
         });
     }
 
@@ -1716,6 +2111,7 @@
         renderRunoffContext(payload);
       }
       document.documentElement.dataset.runoffReady = payload.status;
+      markDataset("runoff", "loaded", payload, payload.fieldwork_window?.end || "");
     }
 
     function loadClosestRunoff() {
@@ -1732,6 +2128,7 @@
           $("#closest-runoff-hero").innerHTML = `<div class="runoff-insufficient"><div class="runoff-conclusion">Runoff comparison unavailable</div><div class="runoff-insufficient-copy">The closest-runoff data could not be loaded or validated: ${escapeHtml(error.message)}</div></div>`;
           $("#closest-runoff-context").innerHTML = '<h3 class="runoff-context-title">Comparable evidence unavailable</h3><p class="runoff-context-sub">Other dashboard sections are unaffected.</p>';
           document.documentElement.dataset.runoffReady = "error";
+          markDataset("runoff", "error");
         });
     }
 
@@ -1849,16 +2246,18 @@
 
     function renderMeta(event) {
       const sample = event.sample_size ? event.sample_size.toLocaleString("en-GB") : "not stated";
-      const publication = event.publication_date ? formatDate(event.publication_date) : "not stated on Wikipedia";
-      $("#meta").innerHTML = `
-        <div>Pollster: <b>${event.pollster}</b></div>
-        <div>Sample: <b>${sample}</b></div>
-        <div>Fieldwork: <b>${formatDate(event.fieldwork_start)}–${formatDate(event.fieldwork_end)}</b></div>
-        <div>Published: <b>${publication}</b></div>
-        <div class="wide" title="${event.hypothesis}">Hypothesis: <b>${event.hypothesis}</b></div>
-        <div class="wide"><a href="${event.source_url}" target="_blank" rel="noopener noreferrer">Open source ↗</a></div>`;
+      const publication = event.publication_date ? formatDate(event.publication_date) : "not stated in dataset";
+      const source = safeSourceUrl(event.source_url);
+      $("#meta").innerHTML =
+        "<div>Pollster: <b>" + escapeHtml(event.pollster) + "</b></div>" +
+        "<div>Sample: <b>" + escapeHtml(sample) + "</b></div>" +
+        "<div>Fieldwork: <b>" + escapeHtml(formatDate(event.fieldwork_start) + "–" + formatDate(event.fieldwork_end)) + "</b></div>" +
+        "<div>Published: <b>" + escapeHtml(publication) + "</b></div>" +
+        '<div class="wide" title="' + escapeAttribute(event.hypothesis) + '">Hypothesis: <b>' + escapeHtml(event.hypothesis) + "</b></div>" +
+        '<div class="wide">' + (source
+          ? '<a href="' + escapeAttribute(source) + '" target="_blank" rel="noopener noreferrer">Open source ↗</a>'
+          : "Source unavailable") + "</div>";
     }
-
     function renderTrend(events) {
       const observations = new Map();
 
@@ -2329,6 +2728,9 @@
       drawRows();
     }
 
+    renderMastheadMetadata();
+    renderWhatChanged();
+    renderContextStrip();
     renderElectionClock();
     setInterval(renderElectionClock, 60 * 60 * 1000);
     loadClosestRunoff();
@@ -2337,12 +2739,18 @@
 
     fetch("polls.json", { cache: "no-store" })
       .then(response => {
-        if (!response.ok) throw new Error(`polls.json returned HTTP ${response.status}`);
+        if (!response.ok) throw new Error("polls.json returned HTTP " + response.status);
         return response.json();
       })
       .then(events => {
         if (!Array.isArray(events) || events.length === 0) throw new Error("polls.json contains no events");
-        const complete = events.filter(event => event.round === "first_round" && event.event_id && event.scenario_key && Array.isArray(event.candidates) && event.candidates.length >= 2);
+        const complete = events.filter(event =>
+          event.round === "first_round" &&
+          event.event_id &&
+          event.scenario_key &&
+          Array.isArray(event.candidates) &&
+          event.candidates.length >= 2
+        );
         if (!complete.length) throw new Error("No complete first-round events found");
         complete.sort((a, b) =>
           b.fieldwork_end.localeCompare(a.fieldwork_end) ||
@@ -2360,39 +2768,46 @@
         function showHypothesis(event) {
           $("#latest-title").textContent = event.pollster;
           $("#latest-sub").textContent =
-            `${formatDate(event.fieldwork_start)}–${formatDate(event.fieldwork_end)} · first round`;
+            pollFieldworkLabel(event) + " · first round";
           renderBars(event);
           renderMeta(event);
         }
 
         const selector = $("#hypothesis-select");
-        selector.innerHTML = latestPackage.map((event, index) =>
-          `<option value="${index}">Hypothesis ${index + 1} · ${event.candidates.length} candidates</option>`
-        ).join("");
-
+        selector.replaceChildren();
+        latestPackage.forEach((event, index) => {
+          const option = document.createElement("option");
+          option.value = String(index);
+          option.textContent = "Hypothesis " + (index + 1) + " · " + event.candidates.length + " candidates";
+          selector.appendChild(option);
+        });
+        selector.disabled = false;
         selector.addEventListener("change", () => {
           showHypothesis(latestPackage[Number(selector.value)]);
         });
 
-        $("#status").textContent =
-          `${complete.length} historical events · ${latestPackage.length} latest hypotheses`;
         showHypothesis(latestPackage[0]);
         renderTrend(complete);
-        renderFreshness(complete);
         renderPollWaves(complete);
         document.documentElement.dataset.ready = "true";
+        markDataset(
+          "polls",
+          "loaded",
+          { events: complete, latestPackage },
+          latest.publication_date || latest.fieldwork_end
+        );
       })
       .catch(error => {
-        $("#status").textContent = "load failed";
-        $("#bars").innerHTML = `<div class="error">${error.message}</div>`;
+        $("#latest-title").textContent = "Polling unavailable";
+        $("#latest-sub").textContent = "Latest complete first-round event could not be loaded.";
+        $("#hypothesis-select").disabled = true;
+        $("#bars").innerHTML = '<div class="error">' + escapeHtml(error.message) + "</div>";
+        $("#meta").replaceChildren();
         $("#chart-wrap").innerHTML = '<div class="error">Could not render trendline.</div>';
-        $("#freshness-watch").innerHTML = `<div class="error">Could not render Candidate Freshness Watch: ${error.message}</div>`;
-        $("#freshness-latest").textContent = "Unavailable";
-        $("#freshness-pollsters").textContent = "—";
-        $("#freshness-candidates").textContent = "—";
-        $("#poll-wave-list").innerHTML = `<div class="error poll-wave-loading">Latest poll waves unavailable: ${escapeHtml(error.message)}</div>`;
+        $("#poll-wave-list").innerHTML = '<div class="error poll-wave-loading">Latest poll waves unavailable: ' + escapeHtml(error.message) + "</div>";
         $("#poll-wave-summary").textContent = "Poll-wave summary unavailable.";
         document.documentElement.dataset.ready = "error";
+        markDataset("polls", "error");
       });
   </script>
 
