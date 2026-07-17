@@ -483,6 +483,118 @@
     .poll-wave-lineup-label { color: var(--cyan); font-size: 9px; font-weight: 700; }
     .poll-wave-lineup-candidates { margin-top: 4px; color: #bdd1dd; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
     .poll-wave-detail-sources { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+    .scenario-switch-controls {
+      display: grid; grid-template-columns: minmax(220px, 1.35fr) repeat(2, minmax(170px, 1fr));
+      gap: 8px; padding: 10px; border-bottom: 1px solid #183a54; background: rgba(3, 11, 20, .22);
+    }
+    .scenario-switch-control { display: grid; gap: 4px; min-width: 0; }
+    .scenario-switch-control > span {
+      color: #6f8ea3; font-size: 8px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase;
+    }
+    .scenario-switch-select {
+      width: 100%; min-width: 0; min-height: 36px; padding: 6px 28px 6px 8px;
+      border: 1px solid #23445d; border-radius: 4px; background: #071522; color: var(--text);
+      font: inherit; font-size: 10px; line-height: 1.35;
+    }
+    .scenario-switch-select:disabled { color: #627e91; cursor: not-allowed; }
+    .scenario-switch-select:focus-visible,
+    .scenario-switch-scroll:focus-visible,
+    .scenario-switch-source:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+    .scenario-switch-summary {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+      gap: 5px 12px; padding: 8px 10px; border-bottom: 1px solid #183a54;
+      color: var(--muted); font-size: 10px; line-height: 1.4;
+    }
+    .scenario-switch-summary strong { color: #cfe2ed; font-weight: 650; }
+    .scenario-switch-changes { padding: 10px; border-bottom: 1px solid #183a54; }
+    .scenario-switch-change-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .scenario-switch-change-card {
+      min-width: 0; padding: 9px; border: 1px solid #17384f; border-radius: 4px;
+      background: rgba(7, 21, 34, .56);
+    }
+    .scenario-switch-change-card.is-removed { border-color: #4e4d77; }
+    .scenario-switch-change-card.is-added { border-color: #236b83; }
+    .scenario-switch-change-label {
+      color: #7897aa; font-size: 8px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase;
+    }
+    .scenario-switch-change-card.is-removed .scenario-switch-change-label { color: #b9b4e4; }
+    .scenario-switch-change-card.is-added .scenario-switch-change-label { color: #83dff5; }
+    .scenario-switch-chip-list { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+    .scenario-switch-chip {
+      max-width: 100%; padding: 3px 6px; border: 1px solid #28516b; border-radius: 999px;
+      background: #081725; color: #c1d5e1; font-size: 9px; line-height: 1.35; overflow-wrap: anywhere;
+    }
+    .scenario-switch-empty { color: var(--muted); font-size: 9px; line-height: 1.45; }
+    .scenario-switch-scroll {
+      max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin;
+      background: rgba(3, 11, 20, .18);
+    }
+    .scenario-switch-table {
+      width: 100%; min-width: 620px; border-collapse: separate; border-spacing: 0;
+      color: #bfd3df; font-size: 10px; font-variant-numeric: tabular-nums;
+    }
+    .scenario-switch-table caption { text-align: left; }
+    .scenario-switch-table th,
+    .scenario-switch-table td {
+      height: 40px; padding: 7px 9px; border-right: 1px solid #143149;
+      border-bottom: 1px solid #143149; text-align: right; vertical-align: middle;
+    }
+    .scenario-switch-table th:last-child,
+    .scenario-switch-table td:last-child { border-right: 0; }
+    .scenario-switch-table tbody tr:last-child th,
+    .scenario-switch-table tbody tr:last-child td { border-bottom: 0; }
+    .scenario-switch-table thead th {
+      color: #7f9caf; background: #0a1d2e; font-size: 8px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+    }
+    .scenario-switch-table tbody tr:hover th,
+    .scenario-switch-table tbody tr:hover td { background: rgba(16, 39, 61, .48); }
+    .scenario-switch-candidate {
+      position: sticky; left: 0; z-index: 1; width: 230px; min-width: 230px;
+      text-align: left !important; background: #091a2a; box-shadow: 1px 0 #1b405c;
+      color: #dcecf6; font-size: 11px; font-weight: 650; overflow-wrap: anywhere;
+    }
+    thead .scenario-switch-candidate { z-index: 2; background: #0a1d2e; }
+    .scenario-switch-score { color: #d5e6ef; font-size: 12px; }
+    .scenario-switch-delta {
+      display: inline-flex; justify-content: center; min-width: 54px; padding: 3px 6px;
+      border: 1px solid #38566b; border-radius: 999px; color: #aabfcd; font-size: 10px; font-weight: 700;
+    }
+    .scenario-switch-delta.is-positive { border-color: #24799b; color: #79e0f8; }
+    .scenario-switch-delta.is-negative { border-color: #575383; color: #c1baff; }
+    .scenario-switch-delta.is-zero { color: #718b9d; }
+    .scenario-switch-disclosure {
+      padding: 9px 10px; border-top: 1px solid #183a54; color: #6f899b; font-size: 9px; line-height: 1.5;
+    }
+    .scenario-switch-state { padding: 24px 12px; color: var(--muted); font-size: 11px; }
+    .scenario-switch-state.error { color: #ff8b8b; }
+    .scenario-detail-body { display: grid; gap: 13px; padding: 12px; }
+    .scenario-detail-pollster { color: #edf7fc; font-size: 18px; font-weight: 750; line-height: 1.2; overflow-wrap: anywhere; }
+    .scenario-detail-date { margin-top: 4px; color: var(--cyan); font-size: 10px; line-height: 1.45; }
+    .scenario-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .scenario-detail-metric {
+      min-width: 0; padding: 8px; border: 1px solid #17384f; border-radius: 4px;
+      background: rgba(7, 21, 34, .62);
+    }
+    .scenario-detail-label {
+      color: #6f8ea3; font-size: 8px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    }
+    .scenario-detail-value { margin-top: 4px; color: #d3e3ec; font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+    .scenario-detail-section { min-width: 0; }
+    .scenario-detail-section h4 {
+      margin: 0 0 7px; color: #8fb5ca; font-size: 9px; letter-spacing: .11em; text-transform: uppercase;
+    }
+    .scenario-detail-card {
+      padding: 9px; border: 1px solid #17384f; border-radius: 4px; background: rgba(7, 21, 34, .46);
+    }
+    .scenario-detail-card-label { color: var(--cyan); font-size: 9px; font-weight: 700; }
+    .scenario-detail-hypothesis { margin-top: 6px; color: #bdd1dd; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+    .scenario-detail-meta { margin-top: 6px; color: var(--muted); font-size: 9px; line-height: 1.45; }
+    .scenario-switch-source {
+      display: inline-flex; margin-top: 7px; padding: 3px 6px; border: 1px solid #1b4d6c;
+      border-radius: 999px; background: #081725; font-size: 9px;
+    }
+    .scenario-switch-source:hover { border-color: var(--cyan); text-decoration: none; }
     .closest-runoff {
       position: relative; margin-top: 12px; overflow: hidden; isolation: isolate;
       background: rgba(7, 18, 31, .97);
@@ -951,6 +1063,11 @@
       .polling-explorer-tabs { padding-inline: 4px; }
       .polling-explorer-tab { flex: 1 1 0; min-width: 148px; min-height: 44px; padding-inline: 7px; white-space: normal; }
       .polling-explorer-layout { gap: 12px; padding: 8px; }
+      .scenario-switch-controls { grid-template-columns: 1fr; }
+      .scenario-switch-change-grid { grid-template-columns: 1fr; }
+      .scenario-switch-table { min-width: 560px; }
+      .scenario-switch-candidate { width: 180px; min-width: 180px; }
+      .scenario-detail-grid { grid-template-columns: 1fr; }
       .field-formation-table { min-width: 850px; }
       .field-pollsters-column,
       .field-last-column { display: none; }
@@ -1368,13 +1485,17 @@
         <div>
           <div class="eyebrow">Polling workspace</div>
           <h2 id="polling-explorer-title">EXPLORE THE POLLING RECORD</h2>
-          <div class="sub">Inspect how the developing field is tested and review the latest accepted first-round poll events.</div>
+          <div class="sub">Inspect field formation, compare reported hypotheses within the same poll wave, and review the latest accepted first-round events.</div>
         </div>
       </div>
       <div class="polling-explorer-tabs" role="tablist" aria-label="Polling Explorer views">
         <button class="polling-explorer-tab active" id="polling-explorer-tab-field" type="button" role="tab"
           aria-selected="true" aria-controls="polling-explorer-panel-field" tabindex="0" data-explorer-tab="field">
           FIELD FORMATION
+        </button>
+        <button class="polling-explorer-tab" id="polling-explorer-tab-scenarios" type="button" role="tab"
+          aria-selected="false" aria-controls="polling-explorer-panel-scenarios" tabindex="-1" data-explorer-tab="scenarios">
+          SCENARIO SWITCH
         </button>
         <button class="polling-explorer-tab" id="polling-explorer-tab-waves" type="button" role="tab"
           aria-selected="false" aria-controls="polling-explorer-panel-waves" tabindex="-1" data-explorer-tab="waves">
@@ -1410,6 +1531,60 @@
             </div>
             <div id="field-formation-detail" aria-live="polite">
               <div class="field-formation-state">Loading selected figure…</div>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <div class="polling-explorer-panel" id="polling-explorer-panel-scenarios" role="tabpanel"
+        aria-labelledby="polling-explorer-tab-scenarios" tabindex="0" hidden>
+        <div class="polling-explorer-layout">
+          <section class="polling-explorer-main" aria-labelledby="scenario-switch-title">
+            <div class="polling-explorer-inner-head">
+              <h3 class="polling-explorer-inner-title" id="scenario-switch-title">SCENARIO SWITCH</h3>
+              <div class="polling-explorer-inner-sub">Compare two reported hypotheses from the same poll wave. Differences are descriptive, not causal estimates.</div>
+            </div>
+            <div class="scenario-switch-controls" aria-label="Scenario Switch controls">
+              <label class="scenario-switch-control" for="scenario-wave-select">
+                <span>Poll wave</span>
+                <select class="scenario-switch-select" id="scenario-wave-select" disabled>
+                  <option>Loading qualifying waves…</option>
+                </select>
+              </label>
+              <label class="scenario-switch-control" for="scenario-a-select">
+                <span>Scenario A</span>
+                <select class="scenario-switch-select" id="scenario-a-select" disabled>
+                  <option>Loading…</option>
+                </select>
+              </label>
+              <label class="scenario-switch-control" for="scenario-b-select">
+                <span>Scenario B</span>
+                <select class="scenario-switch-select" id="scenario-b-select" disabled>
+                  <option>Loading…</option>
+                </select>
+              </label>
+            </div>
+            <div class="scenario-switch-summary" id="scenario-switch-summary" aria-live="polite">
+              <span>Deriving within-wave comparisons…</span>
+            </div>
+            <div class="scenario-switch-changes" id="scenario-switch-changes" aria-live="polite">
+              <div class="scenario-switch-state">Loading lineup changes…</div>
+            </div>
+            <div class="scenario-switch-scroll" id="scenario-switch-scroll" tabindex="0"
+              aria-label="Shared candidate score comparison between selected hypotheses" aria-live="polite">
+              <div class="scenario-switch-state">Loading shared candidate comparison…</div>
+            </div>
+            <div class="scenario-switch-disclosure">
+              Arithmetic differences are Scenario B minus Scenario A within one reported poll wave. They do not show that lineup changes caused score changes.
+            </div>
+          </section>
+          <aside class="polling-explorer-detail" aria-label="Selected within-wave comparison detail">
+            <div class="polling-explorer-inner-head">
+              <h3 class="polling-explorer-inner-title">SELECTED COMPARISON</h3>
+              <div class="polling-explorer-inner-sub">Poll metadata and the two source-linked hypothesis labels.</div>
+            </div>
+            <div id="scenario-switch-detail" aria-live="polite">
+              <div class="scenario-switch-state">Loading selected comparison…</div>
             </div>
           </aside>
         </div>
@@ -3107,7 +3282,11 @@
       activeTab: "field",
       selectedWaveKey: "",
       selectedFieldCandidate: "",
-      fieldFormation: null
+      fieldFormation: null,
+      selectedScenarioWaveKey: "",
+      selectedScenarioAId: "",
+      selectedScenarioBId: "",
+      scenarioSwitch: null
     };
 
     function setPollingExplorerTab(tabName, focusTab = false) {
@@ -3340,6 +3519,132 @@
       return { cutoff, latestDate, waves, candidates: records };
     }
 
+    function scenarioComparison(left, right) {
+      const leftNames = new Set(left.candidateNames);
+      const rightNames = new Set(right.candidateNames);
+      const shared = [...leftNames].filter(name => rightNames.has(name));
+      const removed = [...leftNames].filter(name => !rightNames.has(name));
+      const added = [...rightNames].filter(name => !leftNames.has(name));
+      const rows = shared.map(name => {
+        const scoreA = left.scores.get(name);
+        const scoreB = right.scores.get(name);
+        return {
+          name,
+          scoreA,
+          scoreB,
+          delta: Number((scoreB - scoreA).toFixed(10))
+        };
+      }).sort((a, b) =>
+        Math.abs(b.delta) - Math.abs(a.delta) ||
+        a.name.localeCompare(b.name, "fr")
+      );
+      const smallerLineup = Math.min(left.candidateNames.length, right.candidateNames.length);
+      const sharedRatio = smallerLineup ? shared.length / smallerLineup : 0;
+      const changedCount = rows.filter(row => Math.abs(row.delta) > 1e-9).length;
+
+      return {
+        left,
+        right,
+        shared: shared.sort((a, b) => a.localeCompare(b, "fr")),
+        removed: removed.sort((a, b) => a.localeCompare(b, "fr")),
+        added: added.sort((a, b) => a.localeCompare(b, "fr")),
+        rows,
+        sharedRatio,
+        changedCount,
+        switchCount: removed.length + added.length,
+        qualifies: removed.length > 0 && added.length > 0 &&
+          shared.length >= 6 && sharedRatio >= 0.60 && changedCount > 0
+      };
+    }
+
+    function deriveScenarioSwitch(events) {
+      const allWaves = derivePollWaves(events);
+      if (!allWaves.length) {
+        return { cutoff: "", latestDate: "", waves: [], pollsters: [] };
+      }
+
+      const latestDate = allWaves.reduce((latest, wave) =>
+        wave.fieldworkEnd > latest ? wave.fieldworkEnd : latest
+      , allWaves[0].fieldworkEnd);
+      const cutoff = subtractCalendarMonthsIso(latestDate, 6);
+      const eventById = new Map(events.map(event => [String(event.event_id), event]));
+      const waves = allWaves
+        .filter(wave => wave.fieldworkEnd >= cutoff && wave.fieldworkEnd <= latestDate)
+        .map(wave => {
+          const uniqueLineups = new Map();
+
+          wave.eventIds.forEach(eventId => {
+            const event = eventById.get(String(eventId));
+            if (!event) return;
+            const candidates = event.candidates
+              .filter(candidate => candidate && typeof candidate.name === "string" && Number.isFinite(candidate.score))
+              .map(candidate => ({ name: candidate.name, score: candidate.score }))
+              .sort((a, b) => a.name.localeCompare(b.name, "fr"));
+            const candidateNames = candidates.map(candidate => candidate.name);
+            const lineupKey = JSON.stringify(candidateNames.map(normalizeComparableText));
+            if (uniqueLineups.has(lineupKey)) return;
+
+            uniqueLineups.set(lineupKey, {
+              eventId: String(event.event_id),
+              scenarioKey: String(event.scenario_key || ""),
+              hypothesis: String(event.hypothesis || "Hypothesis label unavailable"),
+              candidates,
+              candidateNames,
+              scores: new Map(candidates.map(candidate => [candidate.name, candidate.score])),
+              sampleSize: event.sample_size,
+              sourceUrl: safeSourceUrl(event.source_url),
+              commissioner: String(event.commissioner || "")
+            });
+          });
+
+          const scenarios = [...uniqueLineups.values()].sort((a, b) =>
+            a.scenarioKey.localeCompare(b.scenarioKey) ||
+            a.eventId.localeCompare(b.eventId)
+          );
+          scenarios.forEach((scenario, index) => {
+            scenario.sequence = index + 1;
+          });
+
+          const pairs = [];
+          for (let leftIndex = 0; leftIndex < scenarios.length; leftIndex += 1) {
+            for (let rightIndex = leftIndex + 1; rightIndex < scenarios.length; rightIndex += 1) {
+              pairs.push(scenarioComparison(scenarios[leftIndex], scenarios[rightIndex]));
+            }
+          }
+          const qualifyingPairs = pairs.filter(pair => pair.qualifies).sort((a, b) =>
+            a.switchCount - b.switchCount ||
+            b.sharedRatio - a.sharedRatio ||
+            b.shared.length - a.shared.length ||
+            b.changedCount - a.changedCount ||
+            a.left.sequence - b.left.sequence ||
+            a.right.sequence - b.right.sequence
+          );
+          if (!qualifyingPairs.length) return null;
+
+          return {
+            ...wave,
+            scenarios,
+            qualifyingPairs,
+            defaultPair: qualifyingPairs[0]
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) =>
+          b.fieldworkEnd.localeCompare(a.fieldworkEnd) ||
+          b.displayDate.localeCompare(a.displayDate) ||
+          a.pollster.localeCompare(b.pollster, "fr") ||
+          a.groupKey.localeCompare(b.groupKey)
+        );
+
+      return {
+        cutoff,
+        latestDate,
+        waves,
+        pollsters: [...new Set(waves.map(wave => wave.pollster))]
+          .sort((a, b) => a.localeCompare(b, "fr"))
+      };
+    }
+
     function fieldFormationCell(candidate, wave) {
       const appearance = candidate.events.find(item => item.wave.groupKey === wave.groupKey);
       if (!appearance) {
@@ -3500,6 +3805,231 @@
         ? pollingExplorerState.selectedFieldCandidate
         : model.candidates[0].name;
       selectFieldFormationCandidate(model, defaultName);
+    }
+
+    function scenarioSampleLabel(scenario) {
+      return scenario.sampleSize !== null && scenario.sampleSize !== undefined
+        ? Number(scenario.sampleSize).toLocaleString("en-GB")
+        : "Not stated";
+    }
+
+    function scenarioDeltaLabel(value) {
+      const rounded = Math.round(Number(value) * 10) / 10;
+      if (rounded > 0) return "+" + rounded.toLocaleString("en-GB", { maximumFractionDigits: 1 });
+      if (rounded < 0) return "−" + Math.abs(rounded).toLocaleString("en-GB", { maximumFractionDigits: 1 });
+      return "0";
+    }
+
+    function scenarioDeltaTone(value) {
+      if (value > 0) return "is-positive";
+      if (value < 0) return "is-negative";
+      return "is-zero";
+    }
+
+    function scenarioOptionLabel(scenario) {
+      return `Hypothesis ${scenario.sequence} · ${scenario.candidateNames.length} candidates`;
+    }
+
+    function scenarioWaveOptionLabel(wave) {
+      return `${wave.pollster} · ${fieldEventDateLabel(wave)} · ${wave.scenarios.length} hypotheses`;
+    }
+
+    function scenarioSourceLink(scenario, label) {
+      return scenario.sourceUrl
+        ? `<a class="scenario-switch-source" href="${escapeAttribute(scenario.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)} ↗</a>`
+        : '<span class="scenario-switch-empty">Source unavailable</span>';
+    }
+
+    function renderScenarioSwitchDetail(wave, comparison) {
+      const detail = $("#scenario-switch-detail");
+      if (!wave || !comparison) {
+        detail.innerHTML = '<div class="scenario-switch-state">No within-wave comparison selected.</div>';
+        return;
+      }
+
+      const publicationLabel = wave.publicationDate
+        ? "Published " + formatDate(wave.publicationDate)
+        : "Publication date not stated";
+      const scenarioCard = (scenario, label) => `
+        <section class="scenario-detail-section">
+          <h4>${escapeHtml(label)}</h4>
+          <div class="scenario-detail-card">
+            <div class="scenario-detail-card-label">${escapeHtml(scenarioOptionLabel(scenario))}</div>
+            <div class="scenario-detail-hypothesis">${escapeHtml(scenario.hypothesis)}</div>
+            <div class="scenario-detail-meta">Sample ${escapeHtml(scenarioSampleLabel(scenario))} · ${scenario.candidateNames.length} candidates</div>
+            ${scenarioSourceLink(scenario, "Open " + label.toLowerCase() + " source")}
+          </div>
+        </section>`;
+
+      detail.innerHTML = `
+        <div class="scenario-detail-body">
+          <div>
+            <div class="scenario-detail-pollster">${escapeHtml(wave.pollster)}</div>
+            <div class="scenario-detail-date">Fieldwork ${escapeHtml(fieldEventRangeLabel(wave))} · ${escapeHtml(publicationLabel)}</div>
+          </div>
+          <div class="scenario-detail-grid">
+            <div class="scenario-detail-metric">
+              <div class="scenario-detail-label">Wave hypotheses</div>
+              <div class="scenario-detail-value">${wave.scenarios.length}</div>
+            </div>
+            <div class="scenario-detail-metric">
+              <div class="scenario-detail-label">Shared candidates</div>
+              <div class="scenario-detail-value">${comparison.shared.length}</div>
+            </div>
+            <div class="scenario-detail-metric">
+              <div class="scenario-detail-label">Scenario A sample</div>
+              <div class="scenario-detail-value">${escapeHtml(scenarioSampleLabel(comparison.left))}</div>
+            </div>
+            <div class="scenario-detail-metric">
+              <div class="scenario-detail-label">Scenario B sample</div>
+              <div class="scenario-detail-value">${escapeHtml(scenarioSampleLabel(comparison.right))}</div>
+            </div>
+          </div>
+          ${scenarioCard(comparison.left, "Scenario A")}
+          ${scenarioCard(comparison.right, "Scenario B")}
+        </div>`;
+    }
+
+    function renderScenarioSwitchPair(wave) {
+      const left = wave.scenarios.find(scenario => scenario.eventId === pollingExplorerState.selectedScenarioAId);
+      const right = wave.scenarios.find(scenario => scenario.eventId === pollingExplorerState.selectedScenarioBId);
+      if (!left || !right || left.eventId === right.eventId) return;
+
+      const comparison = scenarioComparison(left, right);
+      const chips = names => names.length
+        ? names.map(name => `<span class="scenario-switch-chip">${escapeHtml(name)}</span>`).join("")
+        : '<span class="scenario-switch-empty">None</span>';
+
+      $("#scenario-switch-changes").innerHTML = `
+        <div class="scenario-switch-change-grid">
+          <section class="scenario-switch-change-card is-removed">
+            <div class="scenario-switch-change-label">Removed from A</div>
+            <div class="scenario-switch-chip-list">${chips(comparison.removed)}</div>
+          </section>
+          <section class="scenario-switch-change-card is-added">
+            <div class="scenario-switch-change-label">Added in B</div>
+            <div class="scenario-switch-chip-list">${chips(comparison.added)}</div>
+          </section>
+        </div>`;
+
+      const rows = comparison.rows.map(row => `
+        <tr>
+          <th class="scenario-switch-candidate" scope="row">${escapeHtml(row.name)}</th>
+          <td class="scenario-switch-score">${escapeHtml(formatScore(row.scoreA))}</td>
+          <td class="scenario-switch-score">${escapeHtml(formatScore(row.scoreB))}</td>
+          <td><span class="scenario-switch-delta ${scenarioDeltaTone(row.delta)}">${escapeHtml(scenarioDeltaLabel(row.delta))} pts</span></td>
+        </tr>`).join("");
+
+      $("#scenario-switch-scroll").innerHTML = comparison.rows.length
+        ? `<table class="scenario-switch-table">
+            <caption class="visually-hidden">Shared candidate scores in Scenario A and Scenario B, ordered by largest absolute arithmetic difference</caption>
+            <thead>
+              <tr>
+                <th class="scenario-switch-candidate" scope="col">Candidate</th>
+                <th scope="col">Scenario A</th>
+                <th scope="col">Scenario B</th>
+                <th scope="col">B − A</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>`
+        : '<div class="scenario-switch-state">The selected hypotheses have no shared candidates.</div>';
+
+      $("#scenario-switch-summary").innerHTML = `
+        <span><strong>${comparison.shared.length}</strong> shared candidates · <strong>${comparison.changedCount}</strong> with different reported scores</span>
+        <span>${escapeHtml(wave.pollster)} · ${escapeHtml(fieldEventRangeLabel(wave))}</span>`;
+      renderScenarioSwitchDetail(wave, comparison);
+    }
+
+    function selectScenarioWave(model, groupKey) {
+      const wave = model.waves.find(item => item.groupKey === groupKey) || model.waves[0] || null;
+      pollingExplorerState.selectedScenarioWaveKey = wave ? wave.groupKey : "";
+      const waveSelect = $("#scenario-wave-select");
+      const leftSelect = $("#scenario-a-select");
+      const rightSelect = $("#scenario-b-select");
+
+      if (!wave) {
+        leftSelect.innerHTML = '<option>No scenarios available</option>';
+        rightSelect.innerHTML = '<option>No scenarios available</option>';
+        leftSelect.disabled = true;
+        rightSelect.disabled = true;
+        renderScenarioSwitchDetail(null, null);
+        return;
+      }
+
+      waveSelect.value = wave.groupKey;
+      const retainedLeft = wave.scenarios.some(scenario => scenario.eventId === pollingExplorerState.selectedScenarioAId);
+      const retainedRight = wave.scenarios.some(scenario => scenario.eventId === pollingExplorerState.selectedScenarioBId);
+      if (!retainedLeft || !retainedRight || pollingExplorerState.selectedScenarioAId === pollingExplorerState.selectedScenarioBId) {
+        pollingExplorerState.selectedScenarioAId = wave.defaultPair.left.eventId;
+        pollingExplorerState.selectedScenarioBId = wave.defaultPair.right.eventId;
+      }
+
+      const options = wave.scenarios.map(scenario =>
+        `<option value="${escapeAttribute(scenario.eventId)}">${escapeHtml(scenarioOptionLabel(scenario))}</option>`
+      ).join("");
+      leftSelect.innerHTML = options;
+      rightSelect.innerHTML = options;
+      leftSelect.disabled = wave.scenarios.length < 2;
+      rightSelect.disabled = wave.scenarios.length < 2;
+      leftSelect.value = pollingExplorerState.selectedScenarioAId;
+      rightSelect.value = pollingExplorerState.selectedScenarioBId;
+
+      const keepSelectionsDistinct = changedSelect => {
+        const otherSelect = changedSelect === leftSelect ? rightSelect : leftSelect;
+        if (changedSelect.value !== otherSelect.value) return;
+        const alternative = wave.scenarios.find(scenario => scenario.eventId !== changedSelect.value);
+        if (alternative) otherSelect.value = alternative.eventId;
+      };
+
+      leftSelect.onchange = () => {
+        keepSelectionsDistinct(leftSelect);
+        pollingExplorerState.selectedScenarioAId = leftSelect.value;
+        pollingExplorerState.selectedScenarioBId = rightSelect.value;
+        renderScenarioSwitchPair(wave);
+      };
+      rightSelect.onchange = () => {
+        keepSelectionsDistinct(rightSelect);
+        pollingExplorerState.selectedScenarioAId = leftSelect.value;
+        pollingExplorerState.selectedScenarioBId = rightSelect.value;
+        renderScenarioSwitchPair(wave);
+      };
+
+      renderScenarioSwitchPair(wave);
+    }
+
+    function renderScenarioSwitch(events) {
+      const model = deriveScenarioSwitch(events);
+      pollingExplorerState.scenarioSwitch = model;
+      const waveSelect = $("#scenario-wave-select");
+
+      if (!model.waves.length) {
+        waveSelect.innerHTML = '<option>No qualifying waves</option>';
+        waveSelect.disabled = true;
+        $("#scenario-a-select").disabled = true;
+        $("#scenario-b-select").disabled = true;
+        $("#scenario-switch-summary").innerHTML = "<span>No qualifying six-month Scenario Switch window is available.</span>";
+        $("#scenario-switch-changes").innerHTML = '<div class="scenario-switch-state">No qualifying lineup substitutions are available.</div>';
+        $("#scenario-switch-scroll").innerHTML = '<div class="scenario-switch-state">No within-wave score comparison is available.</div>';
+        renderScenarioSwitchDetail(null, null);
+        document.documentElement.dataset.scenarioReady = "empty";
+        return;
+      }
+
+      waveSelect.innerHTML = model.waves.map(wave =>
+        `<option value="${escapeAttribute(wave.groupKey)}">${escapeHtml(scenarioWaveOptionLabel(wave))}</option>`
+      ).join("");
+      waveSelect.disabled = false;
+      waveSelect.onchange = () => selectScenarioWave(model, waveSelect.value);
+
+      const selectedStillExists = model.waves.some(wave =>
+        wave.groupKey === pollingExplorerState.selectedScenarioWaveKey
+      );
+      const defaultWaveKey = selectedStillExists
+        ? pollingExplorerState.selectedScenarioWaveKey
+        : model.waves[0].groupKey;
+      selectScenarioWave(model, defaultWaveKey);
+      document.documentElement.dataset.scenarioReady = "true";
     }
 
     function pollWaveSourceLabel(source) {
@@ -3834,6 +4364,7 @@
         showHypothesis(latestPackage[0]);
         renderTrend(complete);
         renderFieldFormation(complete);
+        renderScenarioSwitch(complete);
         renderPollWaves(complete);
         document.documentElement.dataset.ready = "true";
         markDataset(
@@ -3853,6 +4384,14 @@
         $("#field-formation-summary").innerHTML = "<span>Field Formation unavailable.</span>";
         $("#field-formation-scroll").innerHTML = '<div class="field-formation-state error">Field Formation unavailable: ' + escapeHtml(error.message) + "</div>";
         $("#field-formation-detail").innerHTML = '<div class="field-formation-state error">Selected figure unavailable.</div>';
+        $("#scenario-wave-select").disabled = true;
+        $("#scenario-a-select").disabled = true;
+        $("#scenario-b-select").disabled = true;
+        $("#scenario-switch-summary").innerHTML = "<span>Scenario Switch unavailable.</span>";
+        $("#scenario-switch-changes").innerHTML = '<div class="scenario-switch-state error">Scenario Switch unavailable: ' + escapeHtml(error.message) + "</div>";
+        $("#scenario-switch-scroll").innerHTML = '<div class="scenario-switch-state error">Within-wave comparison unavailable.</div>';
+        $("#scenario-switch-detail").innerHTML = '<div class="scenario-switch-state error">Selected comparison unavailable.</div>';
+        document.documentElement.dataset.scenarioReady = "error";
         $("#poll-wave-list").innerHTML = '<div class="error poll-wave-loading">Latest poll waves unavailable: ' + escapeHtml(error.message) + "</div>";
         $("#poll-wave-summary").textContent = "Poll-wave summary unavailable.";
         $("#poll-wave-detail").innerHTML = '<div class="error poll-wave-loading">Selected poll event unavailable.</div>';
