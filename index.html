@@ -303,33 +303,186 @@
     .news-card-chip.is-election { border-color: #24789b; color: #8ce8ff; }
     .news-wire-state { grid-column: 1 / -1; padding: 22px 6px; color: var(--muted); }
     .news-wire-state.error { padding: 22px 6px; }
-    .poll-waves { margin-top: 12px; }
+    .polling-explorer { margin-top: 16px; }
+    .polling-explorer-head { align-items: center; }
+    .polling-explorer-head h2 { font-size: 21px; letter-spacing: -.015em; }
+    .polling-explorer-tabs {
+      display: flex; min-width: 0; overflow-x: auto; padding: 0 12px; border-bottom: 1px solid var(--line);
+      background: rgba(3, 11, 20, .3); scrollbar-width: thin;
+    }
+    .polling-explorer-tab {
+      flex: 0 0 auto; min-height: 42px; padding: 7px 12px; border: 0; border-bottom: 2px solid transparent;
+      background: transparent; color: var(--muted); font: inherit; font-size: 10px; font-weight: 700;
+      letter-spacing: .055em; white-space: nowrap; cursor: pointer;
+    }
+    .polling-explorer-tab:hover { color: var(--text); }
+    .polling-explorer-tab.active { border-bottom-color: var(--cyan); color: var(--cyan); }
+    .polling-explorer-tab:focus-visible,
+    .poll-wave-select:focus-visible,
+    .poll-wave-source:focus-visible,
+    .polling-explorer-panel:focus-visible {
+      outline: 2px solid var(--cyan); outline-offset: -2px;
+    }
+    .polling-explorer-panel[hidden] { display: none; }
+    .polling-explorer-layout {
+      display: grid; grid-template-columns: minmax(0, 8fr) minmax(280px, 4fr); gap: 16px;
+      align-items: start; min-width: 0; padding: 12px; background: rgba(3, 11, 20, .2);
+    }
+    .polling-explorer-main,
+    .polling-explorer-detail {
+      min-width: 0; border: 1px solid #183a54; border-radius: 6px; background: rgba(8, 23, 37, .8);
+    }
+    .polling-explorer-inner-head {
+      padding: 11px 12px; border-bottom: 1px solid #183a54; background: rgba(10, 29, 46, .78);
+    }
+    .polling-explorer-inner-title { margin: 0; color: #dcecf6; font-size: 12px; letter-spacing: .08em; }
+    .polling-explorer-inner-sub { margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.45; }
+    .polling-explorer-placeholder {
+      min-height: 230px; display: grid; align-content: center; gap: 8px; padding: 24px;
+      color: var(--muted); text-align: center;
+    }
+    .polling-explorer-placeholder strong { color: var(--text); font-size: 13px; }
+    .polling-explorer-placeholder p { max-width: 560px; margin: 0 auto; font-size: 11px; line-height: 1.6; }
+    .field-formation-summary {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+      gap: 5px 12px; padding: 8px 10px; border-bottom: 1px solid #183a54;
+      color: var(--muted); font-size: 10px; line-height: 1.4;
+    }
+    .field-formation-summary strong { color: #cfe2ed; font-weight: 600; }
+    .field-formation-scroll {
+      max-width: 100%; overflow-x: auto; overflow-y: visible; scrollbar-width: thin;
+      overscroll-behavior-inline: contain; background: rgba(3, 11, 20, .18);
+    }
+    .field-formation-scroll:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
+    .field-formation-table {
+      width: 100%; min-width: 930px; border-collapse: separate; border-spacing: 0;
+      color: #bfd3df; font-size: 10px; font-variant-numeric: tabular-nums;
+    }
+    .field-formation-table caption { text-align: left; }
+    .field-formation-table th,
+    .field-formation-table td {
+      height: 39px; padding: 6px 7px; border-right: 1px solid #143149;
+      border-bottom: 1px solid #143149; text-align: center; vertical-align: middle;
+    }
+    .field-formation-table th:last-child,
+    .field-formation-table td:last-child { border-right: 0; }
+    .field-formation-table tbody tr:last-child td,
+    .field-formation-table tbody tr:last-child th { border-bottom: 0; }
+    .field-formation-table thead th {
+      color: #7f9caf; background: #0a1d2e; font-size: 8px; font-weight: 700;
+      letter-spacing: .06em; line-height: 1.25; text-transform: uppercase;
+    }
+    .field-formation-table tbody tr:hover td,
+    .field-formation-table tbody tr:hover th { background-color: rgba(16, 39, 61, .48); }
+    .field-formation-table tbody tr.is-selected td,
+    .field-formation-table tbody tr.is-selected th { background-color: rgba(17, 55, 78, .62); }
+    .field-candidate-column {
+      position: sticky; left: 0; z-index: 2; width: 190px; min-width: 190px;
+      text-align: left !important; background: #091a2a !important;
+      box-shadow: 1px 0 #1b405c;
+    }
+    thead .field-candidate-column { z-index: 3; background: #0a1d2e !important; }
+    .field-candidate-select {
+      width: 100%; padding: 2px 3px; border: 0; background: transparent; color: #dcecf6;
+      font: inherit; font-size: 11px; font-weight: 650; line-height: 1.3; text-align: left;
+      cursor: pointer; overflow-wrap: anywhere;
+    }
+    .field-candidate-select:hover { color: var(--cyan); }
+    .field-candidate-select:focus-visible,
+    .field-presence:focus-visible,
+    .field-detail-source:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+    .field-event-column { width: 57px; min-width: 57px; }
+    .field-event-pollster { display: block; color: #a9c1d1; }
+    .field-event-date { display: block; margin-top: 2px; color: #607f94; font-size: 7px; letter-spacing: 0; text-transform: none; }
+    .field-presence {
+      width: 18px; height: 18px; display: inline-grid; place-items: center; border: 1px solid #2b789d;
+      border-radius: 50%; background: rgba(38, 140, 255, .12); color: var(--cyan);
+      font-size: 8px; line-height: 1; text-decoration: none;
+    }
+    .field-presence:hover { border-color: var(--cyan); background: rgba(53, 213, 255, .2); text-decoration: none; }
+    .field-presence.is-multiple { box-shadow: 0 0 0 3px rgba(53, 213, 255, .09); }
+    .field-absence { color: #49697e; font-size: 13px; }
+    .field-events-column { width: 55px; min-width: 55px; }
+    .field-pollsters-column { width: 62px; min-width: 62px; }
+    .field-last-column { width: 76px; min-width: 76px; white-space: nowrap; }
+    .field-formation-legend {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px;
+      padding: 8px 10px; border-top: 1px solid #183a54; color: var(--muted); font-size: 9px;
+    }
+    .field-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+    .field-legend-marker {
+      width: 10px; height: 10px; display: inline-block; border: 1px solid #2b789d;
+      border-radius: 50%; background: rgba(38, 140, 255, .16);
+    }
+    .field-legend-marker.is-multiple { box-shadow: 0 0 0 2px rgba(53, 213, 255, .1); }
+    .field-legend-marker.is-absent { border-color: #49697e; background: transparent; }
+    .field-detail-body { display: grid; gap: 13px; padding: 12px; }
+    .field-detail-name { color: #edf7fc; font-size: 19px; font-weight: 750; line-height: 1.2; overflow-wrap: anywhere; }
+    .field-detail-status {
+      display: inline-flex; width: fit-content; margin-top: 6px; padding: 3px 7px;
+      border: 1px solid #286486; border-radius: 999px; color: #8ce8ff;
+      font-size: 8px; font-weight: 700; letter-spacing: .08em;
+    }
+    .field-detail-status.is-inactive { border-color: #4b5f6d; color: #9aafbd; }
+    .field-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .field-detail-metric { min-width: 0; padding: 8px; border: 1px solid #17384f; border-radius: 4px; background: rgba(7, 21, 34, .62); }
+    .field-detail-label { color: #6f8ea3; font-size: 8px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .field-detail-value { margin-top: 4px; color: #d3e3ec; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+    .field-detail-section h4 { margin: 0 0 7px; color: #8fb5ca; font-size: 9px; letter-spacing: .11em; text-transform: uppercase; }
+    .field-detail-events { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+    .field-detail-event {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px;
+      padding: 8px; border: 1px solid #17384f; border-radius: 4px; background: rgba(7, 21, 34, .46);
+    }
+    .field-detail-event-title { color: #cfe1ec; font-size: 10px; font-weight: 650; overflow-wrap: anywhere; }
+    .field-detail-event-meta { grid-column: 1; color: var(--muted); font-size: 9px; line-height: 1.4; }
+    .field-detail-source { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 9px; white-space: nowrap; }
+    .field-formation-state { padding: 24px 12px; color: var(--muted); font-size: 11px; }
+    .field-formation-state.error { color: #ff8b8b; }
     .poll-wave-grid {
-      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
-      padding: 10px; background: rgba(3, 11, 20, .2);
+      display: grid; gap: 8px; min-width: 0; padding: 10px;
     }
     .poll-wave-card {
-      display: grid; gap: 8px; min-width: 0; padding: 11px 12px;
-      border: 1px solid #15354e; border-radius: 6px; background: rgba(13, 31, 49, .72);
+      min-width: 0; border: 1px solid #15354e; border-radius: 6px; background: rgba(13, 31, 49, .72);
     }
     .poll-wave-card:hover, .poll-wave-card:focus-within { border-color: #2873a8; background: rgba(16, 39, 61, .84); }
+    .poll-wave-card.is-selected { border-color: #2a8fba; background: rgba(17, 55, 78, .84); box-shadow: inset 3px 0 var(--cyan); }
+    .poll-wave-select {
+      width: 100%; display: grid; gap: 8px; min-width: 0; padding: 11px 12px; border: 0;
+      background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;
+    }
     .poll-wave-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 14px; min-width: 0; }
     .poll-wave-pollster { color: var(--text); font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
     .poll-wave-date { color: var(--cyan); font-size: 10px; text-align: right; white-space: nowrap; }
     .poll-wave-details { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--muted); font-size: 10px; }
     .poll-wave-detail { min-width: 0; overflow-wrap: anywhere; }
     .poll-wave-detail b { color: #b9d3e4; font-weight: 500; }
+    .poll-wave-candidate-summary { color: #9fb9c9; font-size: 10px; line-height: 1.45; overflow-wrap: anywhere; }
     .poll-wave-sources {
       display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px;
-      min-width: 0; padding-top: 7px; border-top: 1px solid #15354e;
+      min-width: 0; padding: 8px 12px 10px; border-top: 1px solid #15354e;
     }
     .poll-wave-source-count { color: var(--muted); font-size: 9px; }
     .poll-wave-source {
       max-width: 100%; padding: 3px 6px; border: 1px solid #1b4d6c; border-radius: 999px;
       background: #081725; font-size: 9px; overflow-wrap: anywhere;
     }
-    .poll-wave-loading { grid-column: 1 / -1; padding: 18px 6px; color: var(--muted); }
-    .poll-wave-footer { padding: 8px 13px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
+    .poll-wave-loading { padding: 18px 6px; color: var(--muted); }
+    .poll-wave-footer { padding: 8px 12px; border-top: 1px solid #183a54; color: var(--muted); font-size: 10px; }
+    .poll-wave-detail-body { display: grid; gap: 14px; padding: 12px; }
+    .poll-wave-detail-pollster { color: #edf7fc; font-size: 18px; font-weight: 750; line-height: 1.2; overflow-wrap: anywhere; }
+    .poll-wave-detail-date { margin-top: 4px; color: var(--cyan); font-size: 10px; }
+    .poll-wave-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .poll-wave-detail-metric { min-width: 0; padding: 8px; border: 1px solid #17384f; border-radius: 4px; background: rgba(7, 21, 34, .62); }
+    .poll-wave-detail-label { color: #6f8ea3; font-size: 8px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
+    .poll-wave-detail-value { margin-top: 4px; color: #cfe1ec; font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+    .poll-wave-detail-section { min-width: 0; }
+    .poll-wave-detail-section h4 { margin: 0 0 7px; color: #8fb5ca; font-size: 9px; letter-spacing: .11em; text-transform: uppercase; }
+    .poll-wave-lineups { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+    .poll-wave-lineup { padding: 8px; border: 1px solid #17384f; border-radius: 4px; background: rgba(7, 21, 34, .46); }
+    .poll-wave-lineup-label { color: var(--cyan); font-size: 9px; font-weight: 700; }
+    .poll-wave-lineup-candidates { margin-top: 4px; color: #bdd1dd; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+    .poll-wave-detail-sources { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
     .closest-runoff {
       position: relative; margin-top: 12px; overflow: hidden; isolation: isolate;
       background: rgba(7, 18, 31, .97);
@@ -789,9 +942,21 @@
     }
     @media (max-width: 1119px) {
       .intelligence-grid { grid-template-columns: 1fr; }
+      .polling-explorer-layout { grid-template-columns: 1fr; align-items: start; }
     }
     @media (max-width: 719px) {
       .intelligence-grid { gap: 12px; margin-top: 12px; }
+      .polling-explorer { margin-top: 12px; }
+      .polling-explorer-head { align-items: flex-start; }
+      .polling-explorer-tabs { padding-inline: 4px; }
+      .polling-explorer-tab { flex: 1 1 0; min-width: 148px; min-height: 44px; padding-inline: 7px; white-space: normal; }
+      .polling-explorer-layout { gap: 12px; padding: 8px; }
+      .field-formation-table { min-width: 850px; }
+      .field-pollsters-column,
+      .field-last-column { display: none; }
+      .field-candidate-column { width: 170px; min-width: 170px; }
+      .field-event-column { width: 52px; min-width: 52px; }
+      .field-detail-grid { grid-template-columns: 1fr; }
       .signal-tabs { padding-inline: 4px; }
       .signal-tab { min-height: 42px; padding-inline: 9px; }
       .signal-candidate-toolbar { align-items: stretch; flex-direction: column; }
@@ -848,7 +1013,7 @@
     }
     @media (max-width: 850px) {
       .top-dashboard, .grid { grid-template-columns: 1fr; }
-      .news-wire-list, .poll-wave-grid { grid-template-columns: 1fr; }
+      .news-wire-list { grid-template-columns: 1fr; }
       .runoff-layout { grid-template-columns: 1fr; }
       .runoff-context { border-top: 1px solid var(--line); border-left: 0; }
       .claims-panels { grid-template-columns: 1fr; }
@@ -895,6 +1060,7 @@
       .freshness-change-meta { margin-top: 0; }
       .poll-wave-top { align-items: flex-start; flex-direction: column; gap: 3px; }
       .poll-wave-date { text-align: left; white-space: normal; }
+      .poll-wave-detail-grid { grid-template-columns: 1fr; }
       .closest-runoff-head { align-items: flex-start; }
       .runoff-status { max-width: 155px; line-height: 1.25; }
       .runoff-evidence { gap: 7px 13px; padding-inline: 13px; }
@@ -1197,18 +1363,82 @@
       </article>
     </section>
 
-    <section class="panel poll-waves" aria-labelledby="poll-waves-title">
-      <div class="panel-head">
+    <section class="panel polling-explorer" aria-labelledby="polling-explorer-title">
+      <div class="panel-head polling-explorer-head">
         <div>
-          <div class="eyebrow">Polling feed</div>
-          <h2 id="poll-waves-title">Latest poll waves</h2>
-          <div class="sub">Newest source-linked first-round polling, ordered by publication date where known, otherwise fieldwork end.</div>
+          <div class="eyebrow">Polling workspace</div>
+          <h2 id="polling-explorer-title">EXPLORE THE POLLING RECORD</h2>
+          <div class="sub">Inspect how the developing field is tested and review the latest accepted first-round poll events.</div>
         </div>
       </div>
-      <div class="poll-wave-grid" id="poll-wave-list" aria-live="polite">
-        <div class="poll-wave-loading">Loading latest poll waves…</div>
+      <div class="polling-explorer-tabs" role="tablist" aria-label="Polling Explorer views">
+        <button class="polling-explorer-tab active" id="polling-explorer-tab-field" type="button" role="tab"
+          aria-selected="true" aria-controls="polling-explorer-panel-field" tabindex="0" data-explorer-tab="field">
+          FIELD FORMATION
+        </button>
+        <button class="polling-explorer-tab" id="polling-explorer-tab-waves" type="button" role="tab"
+          aria-selected="false" aria-controls="polling-explorer-panel-waves" tabindex="-1" data-explorer-tab="waves">
+          LATEST POLL WAVES
+        </button>
       </div>
-      <div class="poll-wave-footer" id="poll-wave-summary">Loading poll-wave summary…</div>
+
+      <div class="polling-explorer-panel" id="polling-explorer-panel-field" role="tabpanel"
+        aria-labelledby="polling-explorer-tab-field" tabindex="0">
+        <div class="polling-explorer-layout">
+          <section class="polling-explorer-main" aria-labelledby="field-formation-title">
+            <div class="polling-explorer-inner-head">
+              <h3 class="polling-explorer-inner-title" id="field-formation-title">FIELD FORMATION</h3>
+              <div class="polling-explorer-inner-sub">Which figures are pollsters actively including in the developing presidential field?</div>
+            </div>
+            <div class="field-formation-summary" id="field-formation-summary" aria-live="polite">
+              <span>Deriving unique poll-event inclusion…</span>
+            </div>
+            <div class="field-formation-scroll" id="field-formation-scroll" tabindex="0"
+              aria-label="Candidate inclusion across recent unique poll events">
+              <div class="field-formation-state">Loading Field Formation…</div>
+            </div>
+            <div class="field-formation-legend" aria-label="Field Formation legend">
+              <span class="field-legend-item"><span class="field-legend-marker"></span> Tested in event</span>
+              <span class="field-legend-item"><span class="field-legend-marker is-multiple"></span> Tested in multiple hypotheses</span>
+              <span class="field-legend-item"><span class="field-legend-marker is-absent"></span> Not tested</span>
+            </div>
+          </section>
+          <aside class="polling-explorer-detail" aria-label="Field Formation selected detail">
+            <div class="polling-explorer-inner-head">
+              <h3 class="polling-explorer-inner-title">SELECTED FIGURE</h3>
+              <div class="polling-explorer-inner-sub">Event-level inclusion details, not a measure of support or candidacy status.</div>
+            </div>
+            <div id="field-formation-detail" aria-live="polite">
+              <div class="field-formation-state">Loading selected figure…</div>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <div class="polling-explorer-panel" id="polling-explorer-panel-waves" role="tabpanel"
+        aria-labelledby="polling-explorer-tab-waves" tabindex="0" hidden>
+        <div class="polling-explorer-layout">
+          <section class="polling-explorer-main" aria-labelledby="poll-wave-list-title">
+            <div class="polling-explorer-inner-head">
+              <h3 class="polling-explorer-inner-title" id="poll-wave-list-title">LATEST POLL WAVES</h3>
+              <div class="polling-explorer-inner-sub">Newest source-linked first-round polling, ordered by publication date where known, otherwise fieldwork end.</div>
+            </div>
+            <div class="poll-wave-grid" id="poll-wave-list" role="listbox" aria-label="Accepted poll events" aria-live="polite">
+              <div class="poll-wave-loading">Loading latest poll waves…</div>
+            </div>
+            <div class="poll-wave-footer" id="poll-wave-summary">Loading poll-wave summary…</div>
+          </section>
+          <aside class="polling-explorer-detail" aria-label="Selected poll event detail">
+            <div class="polling-explorer-inner-head">
+              <h3 class="polling-explorer-inner-title">SELECTED POLL EVENT</h3>
+              <div class="polling-explorer-inner-sub">Source-linked metadata for the selected accepted event.</div>
+            </div>
+            <div id="poll-wave-detail" aria-live="polite">
+              <div class="poll-wave-loading">Loading selected poll event…</div>
+            </div>
+          </aside>
+        </div>
+      </div>
     </section>
 
     <section class="grid history-grid">
@@ -2873,6 +3103,49 @@
       draw();
     }
 
+    const pollingExplorerState = {
+      activeTab: "field",
+      selectedWaveKey: "",
+      selectedFieldCandidate: "",
+      fieldFormation: null
+    };
+
+    function setPollingExplorerTab(tabName, focusTab = false) {
+      const tabs = [...document.querySelectorAll("[data-explorer-tab]")];
+      const requested = tabs.find(tab => tab.dataset.explorerTab === tabName) || tabs[0];
+      if (!requested) return;
+
+      pollingExplorerState.activeTab = requested.dataset.explorerTab;
+      tabs.forEach(tab => {
+        const active = tab === requested;
+        tab.classList.toggle("active", active);
+        tab.setAttribute("aria-selected", String(active));
+        tab.tabIndex = active ? 0 : -1;
+        const panel = document.getElementById(tab.getAttribute("aria-controls"));
+        if (panel) panel.hidden = !active;
+      });
+
+      if (focusTab) requested.focus();
+    }
+
+    function initializePollingExplorerTabs() {
+      const tabs = [...document.querySelectorAll("[data-explorer-tab]")];
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => setPollingExplorerTab(tab.dataset.explorerTab));
+        tab.addEventListener("keydown", event => {
+          let nextIndex = null;
+          if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+          if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+          if (event.key === "Home") nextIndex = 0;
+          if (event.key === "End") nextIndex = tabs.length - 1;
+          if (nextIndex === null) return;
+          event.preventDefault();
+          setPollingExplorerTab(tabs[nextIndex].dataset.explorerTab, true);
+        });
+      });
+      setPollingExplorerTab("field");
+    }
+
     function derivePollWaves(events) {
       const waves = new Map();
 
@@ -2894,6 +3167,8 @@
             sources: new Set(),
             commissioners: new Set(),
             sampleSizes: new Set(),
+            candidateNames: new Set(),
+            lineups: [],
             eventIds: []
           });
         }
@@ -2902,6 +3177,14 @@
         if (event.source_url) wave.sources.add(event.source_url);
         if (event.commissioner) wave.commissioners.add(event.commissioner);
         if (event.sample_size !== null && event.sample_size !== undefined) wave.sampleSizes.add(event.sample_size);
+        const lineupCandidates = [...new Set(event.candidates.map(candidate => candidate.name).filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b, "fr"));
+        lineupCandidates.forEach(name => wave.candidateNames.add(name));
+        wave.lineups.push({
+          eventId: event.event_id,
+          scenarioKey: event.scenario_key,
+          candidates: lineupCandidates
+        });
         wave.eventIds.push(event.event_id);
       });
 
@@ -2911,6 +3194,11 @@
         sources: [...wave.sources].sort((a, b) => a.localeCompare(b)),
         commissioners: [...wave.commissioners].sort((a, b) => a.localeCompare(b, "fr")),
         sampleSizes: [...wave.sampleSizes].sort((a, b) => Number(a) - Number(b)),
+        candidateNames: [...wave.candidateNames].sort((a, b) => a.localeCompare(b, "fr")),
+        lineups: wave.lineups.sort((a, b) =>
+          String(a.scenarioKey).localeCompare(String(b.scenarioKey)) ||
+          String(a.eventId).localeCompare(String(b.eventId))
+        ),
         eventIds: [...wave.eventIds].sort((a, b) => String(a).localeCompare(String(b))),
         hypothesisCount: wave.eventIds.length
       })).sort((a, b) =>
@@ -2921,6 +3209,397 @@
       );
     }
 
+    function subtractCalendarMonthsIso(isoDate, monthCount) {
+      const [year, month, day] = String(isoDate).split("-").map(Number);
+      if (![year, month, day].every(Number.isFinite)) return "";
+      const absoluteMonth = year * 12 + (month - 1) - monthCount;
+      const targetYear = Math.floor(absoluteMonth / 12);
+      const targetMonthIndex = ((absoluteMonth % 12) + 12) % 12;
+      const lastDay = new Date(Date.UTC(targetYear, targetMonthIndex + 1, 0)).getUTCDate();
+      const targetDay = Math.min(day, lastDay);
+      return [
+        String(targetYear).padStart(4, "0"),
+        String(targetMonthIndex + 1).padStart(2, "0"),
+        String(targetDay).padStart(2, "0")
+      ].join("-");
+    }
+
+    function compactPollsterLabel(pollster) {
+      const known = {
+        "Elabe": "ELA",
+        "Verian": "VER",
+        "OpinionWay": "OPW",
+        "Harris Interactive": "HAR",
+        "Ifop": "IFP",
+        "Ipsos": "IPS"
+      };
+      if (known[pollster]) return known[pollster];
+      return String(pollster || "—").replace(/[^A-Za-zÀ-ÿ0-9]/g, "").slice(0, 3).toUpperCase() || "—";
+    }
+
+    function fieldEventDateLabel(wave) {
+      return formatDate(wave.fieldworkEnd).replace(/\s+\d{4}$/, "");
+    }
+
+    function fieldEventRangeLabel(wave) {
+      return wave.fieldworkStart === wave.fieldworkEnd
+        ? formatDate(wave.fieldworkEnd)
+        : formatDate(wave.fieldworkStart) + "–" + formatDate(wave.fieldworkEnd);
+    }
+
+    function deriveFieldFormation(events) {
+      const allWaves = derivePollWaves(events);
+      if (!allWaves.length) {
+        return { cutoff: "", latestDate: "", waves: [], candidates: [] };
+      }
+
+      const latestDate = allWaves.reduce((latest, wave) =>
+        wave.fieldworkEnd > latest ? wave.fieldworkEnd : latest
+      , allWaves[0].fieldworkEnd);
+      const cutoff = subtractCalendarMonthsIso(latestDate, 6);
+      const waves = allWaves.filter(wave =>
+        wave.fieldworkEnd >= cutoff && wave.fieldworkEnd <= latestDate
+      ).sort((a, b) =>
+        b.fieldworkEnd.localeCompare(a.fieldworkEnd) ||
+        b.displayDate.localeCompare(a.displayDate) ||
+        a.pollster.localeCompare(b.pollster, "fr") ||
+        a.groupKey.localeCompare(b.groupKey)
+      );
+      const latestWave = waves[0] || null;
+      const previousWave = waves[1] || null;
+      const candidates = new Map();
+
+      waves.forEach(wave => {
+        const hypothesisAppearances = new Map();
+        wave.lineups.forEach(lineup => {
+          lineup.candidates.forEach(name => {
+            hypothesisAppearances.set(name, (hypothesisAppearances.get(name) || 0) + 1);
+          });
+        });
+
+        wave.candidateNames.forEach(name => {
+          if (!candidates.has(name)) {
+            candidates.set(name, {
+              name,
+              events: [],
+              pollsters: new Set()
+            });
+          }
+          const candidate = candidates.get(name);
+          candidate.events.push({
+            wave,
+            hypothesisAppearances: hypothesisAppearances.get(name) || 0
+          });
+          candidate.pollsters.add(wave.pollster);
+        });
+      });
+
+      const records = [...candidates.values()].map(candidate => {
+        const eventsLatestFirst = [...candidate.events].sort((a, b) =>
+          b.wave.fieldworkEnd.localeCompare(a.wave.fieldworkEnd) ||
+          b.wave.displayDate.localeCompare(a.wave.displayDate) ||
+          a.wave.pollster.localeCompare(b.wave.pollster, "fr") ||
+          a.wave.groupKey.localeCompare(b.wave.groupKey)
+        );
+        const earliest = eventsLatestFirst[eventsLatestFirst.length - 1];
+        const latest = eventsLatestFirst[0];
+        const inLatest = Boolean(latestWave && eventsLatestFirst.some(item => item.wave.groupKey === latestWave.groupKey));
+        const inPrevious = Boolean(previousWave && eventsLatestFirst.some(item => item.wave.groupKey === previousWave.groupKey));
+        const appearedEarlier = waves.slice(2).some(wave =>
+          eventsLatestFirst.some(item => item.wave.groupKey === wave.groupKey)
+        );
+        let status = "CURRENTLY TESTED";
+
+        if (inLatest && earliest && earliest.wave.groupKey === latestWave.groupKey) {
+          status = "NEW IN LATEST EVENT";
+        } else if (eventsLatestFirst.length === waves.length) {
+          status = "CONTINUOUSLY TESTED";
+        } else if (inLatest && !inPrevious && appearedEarlier) {
+          status = "RETURNED";
+        } else if (!inLatest) {
+          status = "NOT TESTED IN LATEST EVENT";
+        }
+
+        return {
+          name: candidate.name,
+          events: eventsLatestFirst,
+          eventCount: eventsLatestFirst.length,
+          pollsters: [...candidate.pollsters].sort((a, b) => a.localeCompare(b, "fr")),
+          firstInclusion: earliest ? earliest.wave.fieldworkEnd : "",
+          latestInclusion: latest ? latest.wave.fieldworkEnd : "",
+          inLatest,
+          status
+        };
+      }).sort((a, b) =>
+        Number(b.inLatest) - Number(a.inLatest) ||
+        b.eventCount - a.eventCount ||
+        b.latestInclusion.localeCompare(a.latestInclusion) ||
+        a.name.localeCompare(b.name, "fr")
+      );
+
+      return { cutoff, latestDate, waves, candidates: records };
+    }
+
+    function fieldFormationCell(candidate, wave) {
+      const appearance = candidate.events.find(item => item.wave.groupKey === wave.groupKey);
+      if (!appearance) {
+        return '<span class="field-absence" aria-label="' +
+          escapeAttribute(candidate.name + " was not tested in " + wave.pollster + ", fieldwork ending " + formatDate(wave.fieldworkEnd)) +
+          '">○</span>';
+      }
+
+      const sourceUrl = safeSourceUrl(wave.sources[0]);
+      const hypothesisText = appearance.hypothesisAppearances + " of " + wave.hypothesisCount + " " +
+        (wave.hypothesisCount === 1 ? "hypothesis" : "hypotheses");
+      const label = candidate.name + " was tested by " + wave.pollster + ", fieldwork " +
+        fieldEventRangeLabel(wave) + ", in " + hypothesisText + ".";
+      const markerClass = appearance.hypothesisAppearances > 1 ? " is-multiple" : "";
+      if (!sourceUrl) {
+        return '<span class="field-presence' + markerClass + '" title="' + escapeAttribute(label) +
+          '" aria-label="' + escapeAttribute(label) + '">●</span>';
+      }
+      return '<a class="field-presence' + markerClass + '" href="' + escapeAttribute(sourceUrl) +
+        '" target="_blank" rel="noopener noreferrer" title="' + escapeAttribute(label + " Open source.") +
+        '" aria-label="' + escapeAttribute(label + " Open source.") + '">●</a>';
+    }
+
+    function renderFieldFormationDetail(model, candidateName) {
+      const detail = $("#field-formation-detail");
+      const candidate = model.candidates.find(item => item.name === candidateName);
+      if (!candidate) {
+        detail.innerHTML = '<div class="field-formation-state">No figure selected.</div>';
+        return;
+      }
+
+      const eventRows = candidate.events.map(item => {
+        const wave = item.wave;
+        const sourceUrl = safeSourceUrl(wave.sources[0]);
+        const sourceLink = sourceUrl
+          ? '<a class="field-detail-source" href="' + escapeAttribute(sourceUrl) +
+              '" target="_blank" rel="noopener noreferrer">Source ↗</a>'
+          : '<span class="field-detail-source">No source</span>';
+        return `
+          <li class="field-detail-event">
+            <div class="field-detail-event-title">${escapeHtml(wave.pollster)} · ${escapeHtml(fieldEventDateLabel(wave))}</div>
+            <div class="field-detail-event-meta">Fieldwork ${escapeHtml(fieldEventRangeLabel(wave))} · ${item.hypothesisAppearances} of ${wave.hypothesisCount} ${wave.hypothesisCount === 1 ? "hypothesis" : "hypotheses"}</div>
+            ${sourceLink}
+          </li>`;
+      }).join("");
+
+      const inactiveStatus = candidate.status === "NOT TESTED IN LATEST EVENT" ? " is-inactive" : "";
+      detail.innerHTML = `
+        <div class="field-detail-body">
+          <div>
+            <div class="field-detail-name">${escapeHtml(candidate.name)}</div>
+            <div class="field-detail-status${inactiveStatus}">${escapeHtml(candidate.status)}</div>
+          </div>
+          <div class="field-detail-grid">
+            <div class="field-detail-metric">
+              <div class="field-detail-label">Poll events</div>
+              <div class="field-detail-value">${candidate.eventCount} of ${model.waves.length}</div>
+            </div>
+            <div class="field-detail-metric">
+              <div class="field-detail-label">Pollsters</div>
+              <div class="field-detail-value">${candidate.pollsters.length}</div>
+            </div>
+            <div class="field-detail-metric">
+              <div class="field-detail-label">First inclusion</div>
+              <div class="field-detail-value">${formatDate(candidate.firstInclusion)}</div>
+            </div>
+            <div class="field-detail-metric">
+              <div class="field-detail-label">Latest inclusion</div>
+              <div class="field-detail-value">${formatDate(candidate.latestInclusion)}</div>
+            </div>
+          </div>
+          <section class="field-detail-section">
+            <h4>Included events</h4>
+            <ol class="field-detail-events">${eventRows}</ol>
+          </section>
+        </div>`;
+    }
+
+    function selectFieldFormationCandidate(model, candidateName, focusButton = false) {
+      const candidate = model.candidates.find(item => item.name === candidateName) || model.candidates[0];
+      if (!candidate) return;
+      pollingExplorerState.selectedFieldCandidate = candidate.name;
+
+      document.querySelectorAll("[data-field-candidate]").forEach(button => {
+        const active = decodeURIComponent(button.dataset.fieldCandidate) === candidate.name;
+        button.setAttribute("aria-pressed", String(active));
+        button.closest("tr")?.classList.toggle("is-selected", active);
+        if (active && focusButton) button.focus();
+      });
+
+      renderFieldFormationDetail(model, candidate.name);
+    }
+
+    function renderFieldFormation(events) {
+      const model = deriveFieldFormation(events);
+      pollingExplorerState.fieldFormation = model;
+      const summary = $("#field-formation-summary");
+      const scroll = $("#field-formation-scroll");
+
+      if (!model.waves.length || !model.candidates.length) {
+        summary.innerHTML = "<span>No qualifying six-month Field Formation window is available.</span>";
+        scroll.innerHTML = '<div class="field-formation-state">No recent unique poll events are available.</div>';
+        renderFieldFormationDetail(model, "");
+        return;
+      }
+
+      const eventHeaders = model.waves.map(wave => `
+        <th class="field-event-column" scope="col" title="${escapeAttribute(wave.pollster + " · fieldwork " + fieldEventRangeLabel(wave) + " · " + wave.hypothesisCount + " hypotheses")}">
+          <span class="field-event-pollster">${escapeHtml(compactPollsterLabel(wave.pollster))}</span>
+          <span class="field-event-date">${escapeHtml(fieldEventDateLabel(wave))}</span>
+        </th>`).join("");
+
+      const rows = model.candidates.map(candidate => {
+        const encodedName = encodeURIComponent(candidate.name);
+        const cells = model.waves.map(wave => `<td class="field-event-column">${fieldFormationCell(candidate, wave)}</td>`).join("");
+        return `
+          <tr>
+            <th class="field-candidate-column" scope="row">
+              <button class="field-candidate-select" type="button" data-field-candidate="${escapeAttribute(encodedName)}"
+                aria-pressed="false">${escapeHtml(candidate.name)}</button>
+            </th>
+            ${cells}
+            <td class="field-events-column">${candidate.eventCount}</td>
+            <td class="field-pollsters-column">${candidate.pollsters.length}</td>
+            <td class="field-last-column">${escapeHtml(fieldEventDateLabel({ fieldworkEnd: candidate.latestInclusion }))}</td>
+          </tr>`;
+      }).join("");
+
+      summary.innerHTML = `
+        <span><strong>${model.waves.length}</strong> unique poll events · <strong>${model.candidates.length}</strong> figures</span>
+        <span>${formatDate(model.cutoff)}–${formatDate(model.latestDate)}</span>`;
+
+      scroll.innerHTML = `
+        <table class="field-formation-table">
+          <caption class="visually-hidden">Candidate inclusion across unique first-round poll events during the six-calendar-month window.</caption>
+          <thead>
+            <tr>
+              <th class="field-candidate-column" scope="col">Candidate</th>
+              ${eventHeaders}
+              <th class="field-events-column" scope="col">Events</th>
+              <th class="field-pollsters-column" scope="col">Pollsters</th>
+              <th class="field-last-column" scope="col">Last seen</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+
+      document.querySelectorAll("[data-field-candidate]").forEach(button => {
+        button.addEventListener("click", () => {
+          selectFieldFormationCandidate(model, decodeURIComponent(button.dataset.fieldCandidate));
+        });
+      });
+
+      const selectedStillExists = model.candidates.some(candidate =>
+        candidate.name === pollingExplorerState.selectedFieldCandidate
+      );
+      const defaultName = selectedStillExists
+        ? pollingExplorerState.selectedFieldCandidate
+        : model.candidates[0].name;
+      selectFieldFormationCandidate(model, defaultName);
+    }
+
+    function pollWaveSourceLabel(source) {
+      const safeUrl = safeSourceUrl(source);
+      if (!safeUrl) return "Source unavailable";
+      const hostname = new URL(safeUrl).hostname.toLowerCase();
+      return hostname === "commission-des-sondages.fr" || hostname.endsWith(".commission-des-sondages.fr")
+        ? "Commission notice"
+        : "Source-linked";
+    }
+
+    function pollWaveSourceLinks(wave) {
+      const links = wave.sources.map((source, index) => {
+        const safeUrl = safeSourceUrl(source);
+        if (!safeUrl) return '<span class="poll-wave-source-count">Source unavailable</span>';
+        const sequence = wave.sources.length > 1 ? ` ${index + 1}` : "";
+        return `<a class="poll-wave-source" href="${escapeAttribute(safeUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeAttribute(wave.pollster)} source ${index + 1}">${pollWaveSourceLabel(source)}${sequence} ↗</a>`;
+      }).join("");
+      return links || '<span class="poll-wave-source-count">Source unavailable</span>';
+    }
+
+    function pollWaveSampleLabel(wave) {
+      if (wave.sampleSizes.length === 1) return Number(wave.sampleSizes[0]).toLocaleString("en-GB");
+      if (wave.sampleSizes.length > 1) return wave.sampleSizes.map(size => Number(size).toLocaleString("en-GB")).join(" · ");
+      return "Not stated";
+    }
+
+    function renderPollWaveDetail(wave) {
+      const detail = $("#poll-wave-detail");
+      if (!wave) {
+        detail.innerHTML = '<div class="poll-wave-loading">No poll event selected.</div>';
+        return;
+      }
+
+      const publicationLabel = wave.publicationDate ? formatDate(wave.publicationDate) : "Publication date not stated";
+      const fieldworkRange = `${formatDate(wave.fieldworkStart)}–${formatDate(wave.fieldworkEnd)}`;
+      const commissionerLabel = wave.commissioners.length ? wave.commissioners.map(escapeHtml).join(" · ") : "Not stated";
+      const lineups = wave.lineups.map((lineup, index) => `
+        <li class="poll-wave-lineup">
+          <div class="poll-wave-lineup-label">Hypothesis ${index + 1}</div>
+          <div class="poll-wave-lineup-candidates">${lineup.candidates.map(escapeHtml).join(" · ") || "Candidate lineup unavailable"}</div>
+        </li>`).join("");
+
+      detail.innerHTML = `
+        <div class="poll-wave-detail-body">
+          <div>
+            <div class="poll-wave-detail-pollster">${escapeHtml(wave.pollster)}</div>
+            <div class="poll-wave-detail-date">${wave.publicationDate ? "Published " + publicationLabel : publicationLabel}</div>
+          </div>
+          <div class="poll-wave-detail-grid">
+            <div class="poll-wave-detail-metric">
+              <div class="poll-wave-detail-label">Fieldwork</div>
+              <div class="poll-wave-detail-value">${fieldworkRange}</div>
+            </div>
+            <div class="poll-wave-detail-metric">
+              <div class="poll-wave-detail-label">Sample</div>
+              <div class="poll-wave-detail-value">${pollWaveSampleLabel(wave)}</div>
+            </div>
+            <div class="poll-wave-detail-metric">
+              <div class="poll-wave-detail-label">Hypotheses</div>
+              <div class="poll-wave-detail-value">${wave.hypothesisCount}</div>
+            </div>
+            <div class="poll-wave-detail-metric">
+              <div class="poll-wave-detail-label">Candidates represented</div>
+              <div class="poll-wave-detail-value">${wave.candidateNames.length}</div>
+            </div>
+            <div class="poll-wave-detail-metric">
+              <div class="poll-wave-detail-label">Commissioner</div>
+              <div class="poll-wave-detail-value">${commissionerLabel}</div>
+            </div>
+            <div class="poll-wave-detail-metric">
+              <div class="poll-wave-detail-label">Source status</div>
+              <div class="poll-wave-detail-value">${wave.sources.length ? wave.sources.map(pollWaveSourceLabel).map(escapeHtml).join(" · ") : "Source unavailable"}</div>
+            </div>
+          </div>
+          <section class="poll-wave-detail-section">
+            <h4>Accepted candidate lineups</h4>
+            <ol class="poll-wave-lineups">${lineups}</ol>
+          </section>
+          <section class="poll-wave-detail-section">
+            <h4>Direct sources</h4>
+            <div class="poll-wave-detail-sources">${pollWaveSourceLinks(wave)}</div>
+          </section>
+        </div>`;
+    }
+
+    function selectPollWave(waves, groupKey, focusSelection = false) {
+      const selected = waves.find(wave => wave.groupKey === groupKey) || waves[0] || null;
+      pollingExplorerState.selectedWaveKey = selected ? selected.groupKey : "";
+
+      document.querySelectorAll("#poll-wave-list [data-poll-wave-key]").forEach(button => {
+        const active = selected && button.dataset.pollWaveKey === selected.groupKey;
+        button.setAttribute("aria-selected", String(Boolean(active)));
+        button.closest(".poll-wave-card")?.classList.toggle("is-selected", Boolean(active));
+        if (active && focusSelection) button.focus();
+      });
+
+      renderPollWaveDetail(selected);
+    }
+
     function renderPollWaves(events) {
       const waves = derivePollWaves(events);
       const visibleWaves = waves.slice(0, 8);
@@ -2928,51 +3607,65 @@
       if (!visibleWaves.length) {
         $("#poll-wave-list").innerHTML = '<div class="empty poll-wave-loading">No complete first-round poll waves are available.</div>';
         $("#poll-wave-summary").textContent = "Showing 0 of 0 poll waves";
+        renderPollWaveDetail(null);
         return;
       }
 
+      if (!visibleWaves.some(wave => wave.groupKey === pollingExplorerState.selectedWaveKey)) {
+        pollingExplorerState.selectedWaveKey = visibleWaves[0].groupKey;
+      }
+
       $("#poll-wave-list").innerHTML = visibleWaves.map(wave => {
+        const selected = wave.groupKey === pollingExplorerState.selectedWaveKey;
         const dateLabel = wave.publicationDate ? "Published" : "Fieldwork ended";
         const fieldworkRange = `${formatDate(wave.fieldworkStart)}–${formatDate(wave.fieldworkEnd)}`;
         const hypothesisLabel = `${wave.hypothesisCount} ${wave.hypothesisCount === 1 ? "hypothesis" : "hypotheses"}`;
-        const sampleLabel = wave.sampleSizes.length === 1
-          ? `Sample <b>${Number(wave.sampleSizes[0]).toLocaleString("en-GB")}</b>`
-          : wave.sampleSizes.length > 1
-            ? `Samples <b>${wave.sampleSizes.map(size => Number(size).toLocaleString("en-GB")).join(" · ")}</b>`
-            : "";
+        const candidateSummary = wave.candidateNames.length
+          ? `${wave.candidateNames.length} candidates · ${wave.candidateNames.slice(0, 5).map(escapeHtml).join(" · ")}${wave.candidateNames.length > 5 ? " · …" : ""}`
+          : "Candidate lineup unavailable";
         const commissionerLabel = wave.commissioners.length
           ? `Commissioned by <b>${wave.commissioners.map(escapeHtml).join(" · ")}</b>`
           : "";
-        const sourceLinks = wave.sources.map((source, index) => {
-          const safeUrl = safeSourceUrl(source);
-          if (!safeUrl) return '<span class="poll-wave-source-count">Source unavailable</span>';
-          const hostname = new URL(safeUrl).hostname.toLowerCase();
-          const sourceStatus = hostname === "commission-des-sondages.fr" || hostname.endsWith(".commission-des-sondages.fr")
-            ? "Commission notice"
-            : "Source-linked";
-          const sequence = wave.sources.length > 1 ? ` ${index + 1}` : "";
-          return `<a class="poll-wave-source" href="${escapeAttribute(safeUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeAttribute(wave.pollster)} source ${index + 1}">${sourceStatus}${sequence} ↗</a>`;
-        }).join("");
 
         return `
-          <article class="poll-wave-card" data-poll-wave-key="${escapeAttribute(wave.groupKey)}">
-            <div class="poll-wave-top">
-              <div class="poll-wave-pollster">${escapeHtml(wave.pollster)}</div>
-              <div class="poll-wave-date">${dateLabel} ${formatDate(wave.displayDate)}</div>
-            </div>
-            <div class="poll-wave-details">
-              <span class="poll-wave-detail">Fieldwork <b>${fieldworkRange}</b></span>
-              ${sampleLabel ? `<span class="poll-wave-detail">${sampleLabel}</span>` : ""}
-              <span class="poll-wave-detail"><b>${hypothesisLabel}</b></span>
-              ${commissionerLabel ? `<span class="poll-wave-detail">${commissionerLabel}</span>` : ""}
-            </div>
+          <article class="poll-wave-card${selected ? " is-selected" : ""}">
+            <button class="poll-wave-select" type="button" role="option" aria-selected="${String(selected)}"
+              data-poll-wave-key="${escapeAttribute(wave.groupKey)}">
+              <div class="poll-wave-top">
+                <div class="poll-wave-pollster">${escapeHtml(wave.pollster)}</div>
+                <div class="poll-wave-date">${dateLabel} ${formatDate(wave.displayDate)}</div>
+              </div>
+              <div class="poll-wave-details">
+                <span class="poll-wave-detail">Fieldwork <b>${fieldworkRange}</b></span>
+                <span class="poll-wave-detail">Sample <b>${pollWaveSampleLabel(wave)}</b></span>
+                <span class="poll-wave-detail"><b>${hypothesisLabel}</b></span>
+                ${commissionerLabel ? `<span class="poll-wave-detail">${commissionerLabel}</span>` : ""}
+              </div>
+              <div class="poll-wave-candidate-summary">${candidateSummary}</div>
+            </button>
             <div class="poll-wave-sources">
               ${wave.sources.length > 1 ? `<span class="poll-wave-source-count">${wave.sources.length} distinct sources</span>` : ""}
-              ${sourceLinks || '<span class="poll-wave-source-count">Source unavailable</span>'}
+              ${pollWaveSourceLinks(wave)}
             </div>
           </article>`;
       }).join("");
 
+      const buttons = [...document.querySelectorAll("#poll-wave-list [data-poll-wave-key]")];
+      buttons.forEach((button, index) => {
+        button.addEventListener("click", () => selectPollWave(visibleWaves, button.dataset.pollWaveKey));
+        button.addEventListener("keydown", event => {
+          let nextIndex = null;
+          if (event.key === "ArrowDown") nextIndex = Math.min(index + 1, buttons.length - 1);
+          if (event.key === "ArrowUp") nextIndex = Math.max(index - 1, 0);
+          if (event.key === "Home") nextIndex = 0;
+          if (event.key === "End") nextIndex = buttons.length - 1;
+          if (nextIndex === null || nextIndex === index) return;
+          event.preventDefault();
+          selectPollWave(visibleWaves, buttons[nextIndex].dataset.pollWaveKey, true);
+        });
+      });
+
+      selectPollWave(visibleWaves, pollingExplorerState.selectedWaveKey);
       $("#poll-wave-summary").textContent = `Showing ${visibleWaves.length} of ${waves.length} poll waves`;
     }
 
@@ -3079,6 +3772,7 @@
       drawRows();
     }
 
+    initializePollingExplorerTabs();
     renderMastheadMetadata();
     renderWhatChanged();
     renderContextStrip();
@@ -3139,6 +3833,7 @@
 
         showHypothesis(latestPackage[0]);
         renderTrend(complete);
+        renderFieldFormation(complete);
         renderPollWaves(complete);
         document.documentElement.dataset.ready = "true";
         markDataset(
@@ -3155,8 +3850,12 @@
         $("#bars").innerHTML = '<div class="error">' + escapeHtml(error.message) + "</div>";
         $("#meta").replaceChildren();
         $("#chart-wrap").innerHTML = '<div class="error">Could not render trendline.</div>';
+        $("#field-formation-summary").innerHTML = "<span>Field Formation unavailable.</span>";
+        $("#field-formation-scroll").innerHTML = '<div class="field-formation-state error">Field Formation unavailable: ' + escapeHtml(error.message) + "</div>";
+        $("#field-formation-detail").innerHTML = '<div class="field-formation-state error">Selected figure unavailable.</div>';
         $("#poll-wave-list").innerHTML = '<div class="error poll-wave-loading">Latest poll waves unavailable: ' + escapeHtml(error.message) + "</div>";
         $("#poll-wave-summary").textContent = "Poll-wave summary unavailable.";
+        $("#poll-wave-detail").innerHTML = '<div class="error poll-wave-loading">Selected poll event unavailable.</div>';
         document.documentElement.dataset.ready = "error";
         markDataset("polls", "error");
       });
