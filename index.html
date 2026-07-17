@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
   <title>France 2027 Signal Lab — Poll Slice</title>
   <style>
     :root {
@@ -589,6 +590,232 @@
     .archive-publisher { display: flex; justify-content: space-between; gap: 10px; color: #afc6d5; font-size: 9px; }
     .archive-publisher-count { color: var(--cyan); font-variant-numeric: tabular-nums; }
     .archive-disclosure { margin: 0; color: #718da0; font-size: 9px; line-height: 1.5; }
+    .intelligence-grid {
+      display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px;
+      align-items: stretch; margin-top: 16px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .intelligence-grid > .panel { min-width: 0; }
+    .intelligence-grid .closest-runoff {
+      display: flex; flex-direction: column; margin-top: 0; overflow: visible;
+      container: runoff-spotlight / inline-size;
+      background: rgba(7, 18, 31, .96); box-shadow: none;
+    }
+    .intelligence-grid .closest-runoff::before,
+    .intelligence-grid .closest-runoff::after { display: none; }
+    .intelligence-grid .closest-runoff-head { align-items: flex-start; padding: 15px 16px 13px; }
+    .intelligence-grid .closest-runoff-head h2,
+    .signal-desk-head h2 { margin-top: 5px; font-size: 21px; line-height: 1.12; letter-spacing: -.015em; }
+    .intelligence-grid .closest-runoff-head .sub { margin-top: 5px; font-size: 11px; }
+    .intelligence-grid .runoff-status { max-width: 160px; padding: 5px 7px; line-height: 1.25; }
+    .intelligence-grid .runoff-evidence { gap: 5px 12px; padding: 8px 16px; }
+    .intelligence-grid .runoff-layout { display: block; }
+    .intelligence-grid .runoff-hero { padding: 17px 16px 16px; }
+    .intelligence-grid .runoff-hero.has-supporting-polls { display: grid; gap: 0; padding: 0; }
+    .runoff-matchup { min-width: 0; padding: 17px 16px 16px; }
+    .runoff-supporting { min-width: 0; padding: 14px 16px 16px; border-top: 1px solid var(--line); background: rgba(8, 24, 39, .36); }
+    .runoff-supporting-title { margin: 0 0 8px; color: #82a9be; font-size: 9px; letter-spacing: .12em; }
+    .intelligence-grid .runoff-conclusion { font-size: clamp(17px, 1.55vw, 22px); line-height: 1.18; }
+    .intelligence-grid .runoff-secondary { margin-top: 5px; font-size: 10px; line-height: 1.45; }
+    .intelligence-grid .runoff-head-to-head { margin-top: 17px; }
+    .intelligence-grid .runoff-candidates {
+      grid-template-columns: minmax(0, 1fr) 38px minmax(0, 1fr); gap: 8px; margin-bottom: 13px;
+    }
+    .intelligence-grid .runoff-candidate { gap: 8px; }
+    .intelligence-grid .runoff-monogram { width: 42px; height: 42px; font-size: 10px; }
+    .intelligence-grid .runoff-candidate-name { font-size: 11px; letter-spacing: .02em; }
+    .intelligence-grid .runoff-centre { font-size: 12px; }
+    .intelligence-grid .runoff-centre::before { height: calc(100% + 16px); }
+    .intelligence-grid .runoff-results { gap: 0; border-top: 1px solid #17344a; }
+    .intelligence-grid .runoff-result {
+      grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; padding: 9px 0;
+      border: 0; border-bottom: 1px solid #17344a; border-radius: 0; background: transparent;
+    }
+    .intelligence-grid .runoff-result:last-child { border-bottom: 0; }
+    .intelligence-grid .runoff-result:hover,
+    .intelligence-grid .runoff-result:focus-within { background: rgba(18, 48, 72, .28); }
+    .intelligence-grid .runoff-pollster { grid-column: 1; grid-row: 1; font-size: 10px; }
+    .intelligence-grid .runoff-score-line { grid-column: 1 / -1; grid-row: 2; }
+    .intelligence-grid .runoff-result-meta { grid-column: 2; grid-row: 1; }
+    .intelligence-grid .runoff-score-values { font-size: 12px; }
+    .intelligence-grid .runoff-rail { height: 8px; }
+    .intelligence-grid .runoff-state-grid { gap: 8px; margin-top: 14px; }
+    .intelligence-grid .runoff-state-card { padding: 10px; border-radius: 4px; }
+    .runoff-details { border-top: 1px solid var(--line); }
+    .runoff-details summary {
+      padding: 10px 16px; color: var(--cyan); font-size: 10px; font-weight: 700;
+      letter-spacing: .06em; cursor: pointer;
+    }
+    .runoff-details summary:hover { color: #b5f2ff; }
+    .runoff-details summary:focus-visible { outline: 2px solid var(--cyan); outline-offset: -3px; }
+    .runoff-details[open] summary { border-bottom: 1px solid var(--line); }
+    .intelligence-grid .runoff-context {
+      padding: 14px 16px 16px; border: 0; background: rgba(5, 15, 25, .34);
+    }
+    .intelligence-grid .runoff-context-list { gap: 6px; }
+    .intelligence-grid .runoff-context-row { padding: 8px; border-radius: 4px; }
+    .intelligence-grid .runoff-context-result {
+      grid-template-columns: minmax(70px, 1fr) minmax(42px, .65fr) auto auto; gap: 5px;
+    }
+    .intelligence-grid .runoff-disclosure {
+      margin-top: auto; padding: 9px 16px; border-top: 1px solid var(--line); font-size: 9px; line-height: 1.45;
+    }
+    .intelligence-grid .runoff-status,
+    .intelligence-grid .runoff-evidence,
+    .intelligence-grid .runoff-score-values,
+    .intelligence-grid .runoff-gap,
+    .intelligence-grid .runoff-context-gap,
+    .signal-tab-count,
+    .signal-date {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+    .signal-desk { display: flex; flex-direction: column; container: signal-desk / inline-size; background: rgba(8, 19, 32, .96); }
+    .signal-desk-head { align-items: flex-start; padding: 15px 16px 13px; }
+    .signal-desk-head .sub { margin-top: 5px; font-size: 11px; }
+    .signal-tabs {
+      display: flex; min-width: 0; overflow-x: auto; padding: 0 10px; border-bottom: 1px solid var(--line);
+      background: rgba(3, 11, 20, .3); scrollbar-width: thin;
+    }
+    .signal-tab {
+      flex: 0 0 auto; min-height: 39px; padding: 6px 10px; border: 0; border-bottom: 2px solid transparent;
+      background: transparent; color: var(--muted); font: inherit; font-size: 10px; font-weight: 700;
+      letter-spacing: .045em; white-space: nowrap; cursor: pointer;
+    }
+    .signal-tab:hover { color: var(--text); }
+    .signal-tab.active { border-bottom-color: var(--cyan); color: var(--cyan); }
+    .signal-tab:focus-visible,
+    #candidate-coverage-select:focus-visible,
+    .signal-source:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
+    .signal-tab-count { color: #b7cfdd; font-variant-numeric: tabular-nums; }
+    .signal-candidate-toolbar {
+      display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 7px 12px;
+      border-bottom: 1px solid var(--line); background: rgba(3, 11, 20, .22); color: var(--muted);
+      font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    }
+    .signal-candidate-toolbar[hidden] { display: none; }
+    #candidate-coverage-select {
+      min-height: 31px; max-width: min(100%, 260px); padding: 4px 26px 4px 8px; border: 1px solid #23445d;
+      border-radius: 3px; background: #071522; color: var(--text); font: inherit; font-size: 10px;
+    }
+    .signal-panel { min-width: 0; min-height: 0; }
+    .signal-panel[hidden] { display: none; }
+    .signal-list { min-width: 0; padding: 2px 13px; }
+    .signal-row {
+      display: grid; gap: 6px; min-width: 0; padding: 10px 2px; border-bottom: 1px solid #143149;
+    }
+    .signal-row:last-child { border-bottom: 0; }
+    .signal-row:hover, .signal-row:focus-within { background: rgba(15, 38, 58, .3); }
+    .signal-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 7px 12px; min-width: 0; }
+    .signal-date { color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+    .signal-publisher { color: #8fbed1; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-align: right; text-transform: uppercase; overflow-wrap: anywhere; }
+    .signal-source { color: #e2eef6; font-size: 12.5px; font-weight: 650; line-height: 1.38; overflow-wrap: anywhere; }
+    .signal-arrow { color: var(--cyan); white-space: nowrap; }
+    .signal-labels, .fact-check-subjects { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; min-width: 0; }
+    .signal-chip {
+      padding: 2px 5px; border: 1px solid #24465e; border-radius: 999px; color: #9eb5c4;
+      font-size: 9.5px; line-height: 1.3;
+    }
+    .signal-chip.is-election { border-color: #24789b; color: #8ce8ff; }
+    .signal-state { padding: 24px 2px; color: var(--muted); font-size: 11px; }
+    .signal-state.error { color: #ff8b8b; }
+    .signal-desk-note { margin-top: auto; padding: 9px 13px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; line-height: 1.45; }
+    .fact-check-list .signal-row { gap: 6px; }
+    .fact-check-claim { color: #e6edf2; font-size: 12.5px; font-weight: 650; line-height: 1.38; overflow-wrap: anywhere; }
+    .fact-check-context { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px; }
+    .fact-check-subject { display: inline-flex; align-items: center; gap: 4px; color: #c1d2dc; font-size: 10px; }
+    .fact-check-relationship {
+      padding: 2px 5px; border: 1px solid #286486; border-radius: 999px; color: #8ce8ff;
+      font-size: 9px; font-weight: 700; letter-spacing: .05em;
+    }
+    .fact-check-relationship.is-about { border-color: #5e6285; color: #cbc8ee; }
+    .fact-check-claimant { color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+    .fact-check-rating {
+      align-self: flex-start; padding: 3px 6px; border: 1px solid #8b6831; border-radius: 999px;
+      color: #f0bd65; font-size: 10px; line-height: 1.25; overflow-wrap: anywhere;
+    }
+    .claims-archive-details { border-top: 1px solid var(--line); background: rgba(3, 11, 20, .24); }
+    .claims-archive-details > summary {
+      padding: 11px 13px; color: var(--cyan); font-size: 10px; font-weight: 700;
+      letter-spacing: .06em; cursor: pointer;
+    }
+    .claims-archive-details > summary:hover { color: #b5f2ff; }
+    .claims-archive-details > summary:focus-visible { outline: 2px solid var(--cyan); outline-offset: -3px; }
+    .claims-archive-details[open] > summary { border-bottom: 1px solid var(--line); }
+    .claims-archive-details .claims-controls { padding: 10px 13px; }
+    .claims-archive-details .claims-filter-button { font-size: 10px; }
+    .claims-archive-details .claims-select-label { font-size: 9px; }
+    .claims-archive-details .archive-scroll {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px;
+      padding: 0 13px; border-bottom: 1px solid var(--line);
+    }
+    .claims-archive-wire { min-width: 0; padding: 13px; }
+    .claims-archive-wire-head { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 9px; }
+    .claims-archive-wire-title { margin: 0; color: #dcecf6; font-size: 11px; letter-spacing: .12em; }
+    .claims-archive-wire-sub { margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .claims-archive-details .claims-scroll {
+      height: auto; min-height: 0; overflow: visible; border: 1px solid #183a54; border-radius: 4px;
+    }
+    .claims-archive-details .claim-rating { color: #f0bd65; border-color: #8b6831; background: rgba(139, 104, 49, .08); }
+    @media (min-width: 1120px) {
+      .signal-row { grid-template-columns: minmax(105px, .16fr) minmax(0, 1fr) minmax(105px, .18fr) auto; align-items: start; column-gap: 12px; }
+      .signal-meta { display: contents; }
+      .signal-date { grid-column: 1; grid-row: 1; }
+      .signal-publisher { grid-column: 3; grid-row: 1; }
+      .signal-source { grid-column: 2; grid-row: 1; }
+      .signal-labels { grid-column: 4; grid-row: 1; justify-content: flex-end; }
+      .fact-check-list .signal-row { grid-template-columns: minmax(105px, .16fr) minmax(0, 1fr) minmax(105px, .18fr); }
+      .fact-check-claim { grid-column: 2; grid-row: 1; }
+      .fact-check-context { grid-column: 2 / -1; grid-row: 2; }
+      .fact-check-list .signal-source { grid-column: 2; grid-row: 3; font-size: 10px; }
+    }
+    @media (min-width: 900px) {
+      @container runoff-spotlight (min-width: 520px) {
+        .runoff-hero.has-supporting-polls { grid-template-columns: minmax(0, 44fr) minmax(0, 56fr); }
+        .runoff-supporting { border-top: 0; border-left: 1px solid var(--line); }
+        .runoff-matchup { display: flex; flex-direction: column; justify-content: flex-start; }
+        .runoff-matchup .runoff-candidate { align-items: flex-start; flex-direction: column; }
+        .runoff-matchup .runoff-candidate.is-right { align-items: flex-end; flex-direction: column; }
+        .runoff-matchup .runoff-candidate-name { font-size: 9.5px; letter-spacing: 0; overflow-wrap: normal; word-break: normal; }
+      }
+    }
+    @container signal-desk (max-width: 700px) {
+      .claims-archive-details .claim-columns { display: none; }
+      .claims-archive-details .claim-row { grid-template-columns: 62px minmax(0, 1fr) auto; gap: 7px; }
+      .claims-archive-details .claim-associations { grid-column: 2 / -1; }
+      .claims-archive-details .claim-text-wrap { grid-column: 1 / -1; }
+      .claims-archive-details .claim-rating { grid-column: 1 / 3; justify-self: start; }
+      .claims-archive-details .claim-publisher { grid-column: 3; grid-row: 3; text-align: right; }
+      .claims-archive-details .claim-actions { grid-column: 1 / -1; }
+    }
+    @media (max-width: 1119px) {
+      .intelligence-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 719px) {
+      .intelligence-grid { gap: 12px; margin-top: 12px; }
+      .signal-tabs { padding-inline: 4px; }
+      .signal-tab { min-height: 42px; padding-inline: 9px; }
+      .signal-candidate-toolbar { align-items: stretch; flex-direction: column; }
+      #candidate-coverage-select { width: 100%; max-width: none; }
+      .intelligence-grid .closest-runoff-head { flex-direction: column; }
+      .intelligence-grid .runoff-status { max-width: none; }
+      .intelligence-grid .runoff-candidate { align-items: flex-start; flex-direction: column; }
+      .intelligence-grid .runoff-candidate.is-right { align-items: flex-end; flex-direction: column; }
+      .intelligence-grid .runoff-context-result { grid-template-columns: minmax(0, 1fr) auto auto; }
+      .intelligence-grid .runoff-mini-gap { display: none; }
+      .signal-meta { align-items: flex-start; flex-direction: column; gap: 2px; }
+      .signal-publisher { text-align: left; }
+      .signal-panel { min-height: 0; }
+      .claims-archive-details .archive-scroll { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 420px) {
+      .signal-tab { flex: 1 1 0; min-width: 0; padding-inline: 4px; line-height: 1.25; white-space: normal; }
+      .intelligence-grid .runoff-candidates { grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr); gap: 5px; }
+      .intelligence-grid .runoff-result { grid-template-columns: 1fr; }
+      .intelligence-grid .runoff-pollster,
+      .intelligence-grid .runoff-result-meta,
+      .intelligence-grid .runoff-score-line { grid-column: 1; grid-row: auto; }
+      .intelligence-grid .runoff-result-meta { justify-content: space-between; }
+    }
     footer { margin-top: 12px; color: var(--muted); font-size: 11px; text-align: right; }
     @media (max-width: 1119px) {
       header { flex-wrap: wrap; }
@@ -870,25 +1097,104 @@
         <div class="context-meta" id="context-status-meta">Loading local dashboard data</div>
       </article>
     </section>
-    <section class="panel news-wire" aria-labelledby="news-wire-title">
-      <div class="panel-head news-wire-head">
-        <div>
-          <div class="eyebrow">Live coverage</div>
-          <h2 id="news-wire-title">Election News Wire</h2>
-          <div class="sub">Direct publisher headlines mentioning France 2027 or figures tracked by this dashboard.</div>
+    <section class="intelligence-grid" aria-label="Election intelligence">
+      <article class="panel closest-runoff runoff-spotlight" aria-labelledby="closest-runoff-title">
+        <div class="panel-head closest-runoff-head">
+          <div>
+            <div class="eyebrow">Second-round tests</div>
+            <h2 id="closest-runoff-title">RUNOFF SPOTLIGHT</h2>
+            <div class="sub">Closest matchup in the latest comparable pollster test.</div>
+          </div>
+          <div class="runoff-status" id="closest-runoff-status">LOADING RUNOFF TEST</div>
         </div>
-        <div class="news-wire-status" id="news-wire-status">Loading news wire…</div>
-      </div>
-      <div class="news-wire-toolbar">
-        <div class="news-wire-tabs" role="group" aria-label="Choose news wire view">
-          <button class="news-wire-tab active" type="button" data-news-wire-tab="election_news" aria-pressed="true">ELECTION NEWS <span class="news-wire-tab-count" data-news-wire-count="election_news">—</span></button>
-          <button class="news-wire-tab" type="button" data-news-wire-tab="candidate_watch" aria-pressed="false">CANDIDATE WATCH <span class="news-wire-tab-count" data-news-wire-count="candidate_watch">—</span></button>
+        <div id="closest-runoff-evidence" class="runoff-evidence" aria-label="Runoff test evidence context">
+          <div class="runoff-evidence-item"><span class="runoff-evidence-label">Fieldwork</span><span class="runoff-evidence-value">Loading…</span></div>
         </div>
-        <div class="news-wire-source-note" id="news-wire-source-note">Loading publisher sources…</div>
-      </div>
-      <div class="news-wire-list" id="news-wire-list" aria-live="polite">
-        <div class="news-wire-state">Loading direct publisher headlines…</div>
-      </div>
+        <div class="runoff-layout" id="closest-runoff-result" aria-live="polite">
+          <div class="runoff-hero" id="closest-runoff-hero">
+            <div class="runoff-conclusion">Loading the latest comparable runoff test…</div>
+            <div class="runoff-secondary">Reported poll results will remain separate.</div>
+          </div>
+        </div>
+        <details class="runoff-details" id="runoff-matchups-details">
+          <summary>View all tested matchups →</summary>
+          <div class="runoff-context" id="closest-runoff-context" aria-label="Common matchup comparison">
+            <h3 class="runoff-context-title">Common matchup evidence</h3>
+            <p class="runoff-context-sub">Loading common matchup comparisons…</p>
+          </div>
+        </details>
+        <div class="runoff-disclosure" id="closest-runoff-disclosure">Second-round polling, not a forecast. Each poll is shown separately; no average or probability is calculated.</div>
+      </article>
+
+      <article class="panel signal-desk" aria-labelledby="signal-desk-title">
+        <div class="panel-head signal-desk-head">
+          <div>
+            <div class="eyebrow">Live sources</div>
+            <h2 id="signal-desk-title">SIGNAL DESK</h2>
+            <div class="sub">Latest direct publisher coverage and independent fact checks.</div>
+          </div>
+        </div>
+        <div class="signal-tabs" role="tablist" aria-label="Signal Desk views">
+          <button class="signal-tab active" id="signal-tab-election" type="button" role="tab" aria-selected="true" aria-controls="signal-panel-election" tabindex="0" data-signal-tab="election_news">ELECTION NEWS <span class="signal-tab-count" data-news-wire-count="election_news">—</span></button>
+          <button class="signal-tab" id="signal-tab-candidates" type="button" role="tab" aria-selected="false" aria-controls="signal-panel-candidates" tabindex="-1" data-signal-tab="candidate_watch">CANDIDATE COVERAGE <span class="signal-tab-count" data-news-wire-count="candidate_watch">—</span></button>
+          <button class="signal-tab" id="signal-tab-fact-checks" type="button" role="tab" aria-selected="false" aria-controls="signal-panel-fact-checks" tabindex="-1" data-signal-tab="fact_checks">FACT CHECKS <span class="signal-tab-count" data-claims-count>—</span></button>
+        </div>
+        <div class="signal-candidate-toolbar" id="signal-candidate-toolbar" hidden>
+          <label for="candidate-coverage-select">Candidate</label>
+          <select id="candidate-coverage-select" disabled>
+            <option value="">All candidates</option>
+          </select>
+        </div>
+        <section class="signal-panel" id="signal-panel-election" role="tabpanel" aria-labelledby="signal-tab-election">
+          <div class="signal-list" id="election-news-list" aria-live="polite">
+            <div class="signal-state">Loading direct publisher headlines…</div>
+          </div>
+        </section>
+        <section class="signal-panel" id="signal-panel-candidates" role="tabpanel" aria-labelledby="signal-tab-candidates" hidden>
+          <div class="signal-list" id="candidate-coverage-list" aria-live="polite">
+            <div class="signal-state">Loading candidate coverage…</div>
+          </div>
+        </section>
+        <section class="signal-panel" id="signal-panel-fact-checks" role="tabpanel" aria-labelledby="signal-tab-fact-checks" hidden>
+          <div class="signal-list fact-check-list" id="fact-check-list" aria-live="polite">
+            <div class="signal-state">Loading independent fact checks…</div>
+          </div>
+          <details class="claims-archive-details" id="claims-archive-details">
+            <summary>Open full archive →</summary>
+            <div class="claims-controls" aria-label="Filter the full claims archive">
+              <div class="claims-relationship" role="group" aria-label="Relationship to candidates">
+                <button class="claims-filter-button active" type="button" data-claims-relationship="all" aria-pressed="true">ALL CHECKS</button>
+                <button class="claims-filter-button" type="button" data-claims-relationship="by" aria-pressed="false">BY CANDIDATES</button>
+                <button class="claims-filter-button" type="button" data-claims-relationship="about" aria-pressed="false">ABOUT CANDIDATES</button>
+              </div>
+              <div class="claims-selects">
+                <label class="claims-select-label">Candidate
+                  <select class="claims-select" id="claims-candidate-filter" disabled><option value="">All candidates</option></select>
+                </label>
+                <label class="claims-select-label">Publisher
+                  <select class="claims-select" id="claims-publisher-filter" disabled><option value="">All publishers</option></select>
+                </label>
+              </div>
+            </div>
+            <div class="archive-scroll" id="archive-pulse-scroll" aria-label="Claims archive overview">
+              <div class="claims-state">Loading archive summary…</div>
+            </div>
+            <section class="claims-archive-wire" aria-labelledby="claim-wire-title">
+              <div class="claims-archive-wire-head">
+                <div>
+                  <h3 class="claims-archive-wire-title" id="claim-wire-title">CLAIM WIRE</h3>
+                  <div class="claims-archive-wire-sub">Complete validated archive, newest publisher reviews first</div>
+                </div>
+                <div class="claims-match-count" id="claims-match-count">Loading…</div>
+              </div>
+              <div class="claims-scroll" id="claim-wire-scroll" aria-labelledby="claim-wire-title">
+                <div class="claims-state">Loading publisher reviews…</div>
+              </div>
+            </section>
+          </details>
+        </section>
+        <div class="signal-desk-note" id="news-wire-source-note" aria-live="polite">Loading source metadata…</div>
+      </article>
     </section>
 
     <section class="panel poll-waves" aria-labelledby="poll-waves-title">
@@ -903,81 +1209,6 @@
         <div class="poll-wave-loading">Loading latest poll waves…</div>
       </div>
       <div class="poll-wave-footer" id="poll-wave-summary">Loading poll-wave summary…</div>
-    </section>
-
-    <section class="panel closest-runoff" aria-labelledby="closest-runoff-title">
-      <div class="panel-head closest-runoff-head">
-        <div>
-          <div class="eyebrow">Runoff test</div>
-          <h2 id="closest-runoff-title">Which runoff is closest?</h2>
-          <div class="sub">The closest second-round matchup in the latest common pollster test.</div>
-        </div>
-        <div class="runoff-status" id="closest-runoff-status">LOADING RUNOFF TEST</div>
-      </div>
-      <div id="closest-runoff-evidence" class="runoff-evidence" aria-label="Runoff test evidence context">
-        <div class="runoff-evidence-item"><span class="runoff-evidence-label">Fieldwork</span><span class="runoff-evidence-value">Loading…</span></div>
-      </div>
-      <div class="runoff-layout" id="closest-runoff-result" aria-live="polite">
-        <div class="runoff-hero" id="closest-runoff-hero">
-          <div class="runoff-conclusion">Loading the latest common runoff test…</div>
-          <div class="runoff-secondary">Reported poll results will remain separate.</div>
-        </div>
-        <aside class="runoff-context" id="closest-runoff-context" aria-label="Common matchup comparison">
-          <h3 class="runoff-context-title">Why is this the closest matchup?</h3>
-          <p class="runoff-context-sub">Loading common matchup comparisons…</p>
-        </aside>
-      </div>
-      <div class="runoff-disclosure" id="closest-runoff-disclosure">Second-round polling, not a forecast. Each poll is shown separately; no average or probability is calculated.</div>
-    </section>
-
-    <section class="panel claims-scrutiny" aria-labelledby="claims-scrutiny-title">
-      <div class="panel-head claims-scrutiny-head">
-        <div>
-          <div class="eyebrow">Independent fact checks</div>
-          <h2 id="claims-scrutiny-title">Claims Under Scrutiny</h2>
-        </div>
-        <div class="claims-scrutiny-status" id="claims-scrutiny-status" aria-live="polite">Loading claims archive…</div>
-      </div>
-      <div class="claims-controls" aria-label="Filter claims under scrutiny">
-        <div class="claims-relationship" role="group" aria-label="Relationship to candidates">
-          <button class="claims-filter-button active" type="button" data-claims-relationship="all" aria-pressed="true">ALL CHECKS</button>
-          <button class="claims-filter-button" type="button" data-claims-relationship="by" aria-pressed="false">BY CANDIDATES</button>
-          <button class="claims-filter-button" type="button" data-claims-relationship="about" aria-pressed="false">ABOUT CANDIDATES</button>
-        </div>
-        <div class="claims-selects">
-          <label class="claims-select-label">Candidate
-            <select class="claims-select" id="claims-candidate-filter" disabled><option value="">All candidates</option></select>
-          </label>
-          <label class="claims-select-label">Publisher
-            <select class="claims-select" id="claims-publisher-filter" disabled><option value="">All publishers</option></select>
-          </label>
-        </div>
-      </div>
-      <div class="claims-panels">
-        <section class="claims-inner-panel" aria-labelledby="claim-wire-title">
-          <div class="claims-inner-head">
-            <div>
-              <h3 class="claims-inner-title" id="claim-wire-title">CLAIM WIRE</h3>
-              <div class="claims-inner-sub">Newest publisher reviews first</div>
-            </div>
-            <div class="claims-match-count" id="claims-match-count">Loading…</div>
-          </div>
-          <div class="claims-scroll" id="claim-wire-scroll" role="region" aria-labelledby="claim-wire-title" tabindex="0">
-            <div class="claims-state">Loading publisher reviews…</div>
-          </div>
-        </section>
-        <aside class="claims-inner-panel" aria-labelledby="archive-pulse-title">
-          <div class="claims-inner-head">
-            <div>
-              <h3 class="claims-inner-title" id="archive-pulse-title">ARCHIVE PULSE</h3>
-              <div class="claims-inner-sub">Complete rolling archive</div>
-            </div>
-          </div>
-          <div class="claims-scroll archive-scroll" id="archive-pulse-scroll" role="region" aria-labelledby="archive-pulse-title" tabindex="0">
-            <div class="claims-state">Loading archive summary…</div>
-          </div>
-        </aside>
-      </div>
     </section>
 
     <section class="grid history-grid">
@@ -1335,42 +1566,126 @@
     }
 
     let newsWirePayload = null;
-    let activeNewsWireTab = "election_news";
+    let activeSignalTab = "election_news";
+    let selectedCoverageCandidate = "";
+
+    function renderSignalDeskNote() {
+      const parts = [];
+      if (newsWirePayload) {
+        parts.push(`${newsWirePayload.counts.successful_sources}/${newsWirePayload.sources.length} news sources`);
+        parts.push(`${newsWirePayload.counts.election_news} Election News`);
+        parts.push(`${newsWirePayload.counts.candidate_watch} Candidate Coverage`);
+      } else if (dashboardState.loadState.news === "error") {
+        parts.push("Publisher headlines unavailable");
+      }
+      if (claimsPayload) {
+        parts.push(`${claimsPayload.reviews.length} fact checks`);
+        parts.push(`archive updated ${formatDate(claimsPayload.generatedAt.slice(0, 10))}`);
+      } else if (dashboardState.loadState.claims === "error") {
+        parts.push("Fact checks unavailable");
+      }
+      $("#news-wire-source-note").textContent = parts.length ? parts.join(" · ") : "Loading source metadata…";
+    }
+
+    function signalNewsRow(item, showCandidateLabels) {
+      const labels = [
+        !showCandidateLabels && item.explicit_election ? '<span class="signal-chip is-election">FRANCE 2027</span>' : "",
+        ...(showCandidateLabels ? item.candidates.map(candidate => `<span class="signal-chip">${escapeHtml(candidate)}</span>`) : [])
+      ].join("");
+      return `
+        <article class="signal-row">
+          <div class="signal-meta">
+            <time class="signal-date" datetime="${escapeAttribute(item.published_at)}">${escapeHtml(formatNewsDateTime(item.published_at))}</time>
+            <span class="signal-publisher">${escapeHtml(item.publisher)}</span>
+          </div>
+          <a class="signal-source" href="${escapeAttribute(safeSourceUrl(item.url))}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeAttribute(item.headline)} from ${escapeAttribute(item.publisher)} in a new tab">${escapeHtml(item.headline)} <span class="signal-arrow" aria-hidden="true">↗</span></a>
+          ${labels ? `<div class="signal-labels">${labels}</div>` : ""}
+        </article>`;
+    }
+
+    function newestNewsItems(items) {
+      return [...items].sort((a, b) =>
+        new Date(b.published_at).getTime() - new Date(a.published_at).getTime() ||
+        a.id.localeCompare(b.id)
+      );
+    }
+
+    function renderElectionNews() {
+      if (!newsWirePayload) return;
+      const items = newestNewsItems(newsWirePayload.election_news).slice(0, 5);
+      $("#election-news-list").innerHTML = items.length
+        ? items.map(item => signalNewsRow(item, false)).join("")
+        : '<div class="signal-state">No election headlines in this update.</div>';
+    }
+
+    function renderCandidateCoverage() {
+      if (!newsWirePayload) return;
+      const matching = newestNewsItems(newsWirePayload.candidate_watch).filter(item =>
+        !selectedCoverageCandidate || item.candidates.includes(selectedCoverageCandidate)
+      );
+      $("#candidate-coverage-list").innerHTML = matching.length
+        ? matching.slice(0, 5).map(item => signalNewsRow(item, true)).join("")
+        : `<div class="signal-state">No publisher coverage matches ${selectedCoverageCandidate ? escapeHtml(selectedCoverageCandidate) : "the selected candidate"} in this update.</div>`;
+    }
+
+    function populateCandidateCoverageSelector() {
+      const candidates = [...new Set(newsWirePayload.candidate_watch.flatMap(item => item.candidates))]
+        .sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
+      const selector = $("#candidate-coverage-select");
+      selector.innerHTML = '<option value="">All candidates</option>' + candidates
+        .map(candidate => `<option value="${escapeAttribute(candidate)}">${escapeHtml(candidate)}</option>`).join("");
+      selector.disabled = !candidates.length;
+      selector.value = selectedCoverageCandidate;
+      selector.onchange = () => {
+        selectedCoverageCandidate = selector.value;
+        renderCandidateCoverage();
+      };
+    }
 
     function renderNewsWire() {
       if (!newsWirePayload) return;
-      const items = newsWirePayload[activeNewsWireTab];
-      document.querySelectorAll("[data-news-wire-tab]").forEach(button => {
-        const active = button.dataset.newsWireTab === activeNewsWireTab;
+      if (activeSignalTab === "election_news") renderElectionNews();
+      if (activeSignalTab === "candidate_watch") renderCandidateCoverage();
+    }
+
+    function activateSignalTab(tabName, moveFocus = false) {
+      const tab = document.querySelector(`[data-signal-tab="${tabName}"]`);
+      if (!tab) return;
+      activeSignalTab = tabName;
+      document.querySelectorAll("[data-signal-tab]").forEach(button => {
+        const active = button === tab;
         button.classList.toggle("active", active);
-        button.setAttribute("aria-pressed", String(active));
+        button.setAttribute("aria-selected", String(active));
+        button.tabIndex = active ? 0 : -1;
+        const panel = document.getElementById(button.getAttribute("aria-controls"));
+        if (panel) panel.hidden = !active;
       });
-      $("#news-wire-list").innerHTML = items.length ? items.map(item => {
-        const safeUrl = safeSourceUrl(item.url);
-        const labels = [
-          item.explicit_election ? '<span class="news-card-chip is-election">FRANCE 2027</span>' : "",
-          ...item.candidates.map(candidate => `<span class="news-card-chip">${escapeHtml(candidate)}</span>`)
-        ].join("");
-        return `
-          <article class="news-card">
-            <div class="news-card-meta">
-              <time class="news-card-date" datetime="${escapeAttribute(item.published_at)}">${escapeHtml(formatNewsDateTime(item.published_at))}</time>
-              <span class="news-card-publisher">${escapeHtml(item.publisher)}</span>
-            </div>
-            <a class="news-card-link" href="${escapeAttribute(safeUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeAttribute(item.headline)} from ${escapeAttribute(item.publisher)} in a new tab">${escapeHtml(item.headline)} <span class="news-card-arrow" aria-hidden="true">↗</span></a>
-            <div class="news-card-labels">${labels}</div>
-          </article>`;
-      }).join("") : '<div class="news-wire-state">No matching publisher headlines in this update.</div>';
+      $("#signal-candidate-toolbar").hidden = tabName !== "candidate_watch";
+      if (tabName === "election_news") renderElectionNews();
+      if (tabName === "candidate_watch") renderCandidateCoverage();
+      if (tabName === "fact_checks" && claimsPayload) renderFactChecks();
+      if (moveFocus) tab.focus();
+    }
+
+    function setupSignalTabs() {
+      const tabs = [...document.querySelectorAll("[data-signal-tab]")];
+      tabs.forEach((button, index) => {
+        button.onclick = () => activateSignalTab(button.dataset.signalTab);
+        button.onkeydown = event => {
+          let targetIndex = null;
+          if (event.key === "ArrowRight") targetIndex = (index + 1) % tabs.length;
+          if (event.key === "ArrowLeft") targetIndex = (index - 1 + tabs.length) % tabs.length;
+          if (event.key === "Home") targetIndex = 0;
+          if (event.key === "End") targetIndex = tabs.length - 1;
+          if (targetIndex === null) return;
+          event.preventDefault();
+          activateSignalTab(tabs[targetIndex].dataset.signalTab, true);
+        };
+      });
     }
 
     function loadNewsWire() {
-      document.querySelectorAll("[data-news-wire-tab]").forEach(button => {
-        button.onclick = () => {
-          activeNewsWireTab = button.dataset.newsWireTab;
-          renderNewsWire();
-        };
-      });
-
+      setupSignalTabs();
       fetch("news_wire.json", { cache: "no-store" })
         .then(response => {
           if (!response.ok) throw new Error("news_wire.json returned HTTP " + response.status);
@@ -1379,22 +1694,23 @@
         .then(validateNewsWirePayload)
         .then(payload => {
           newsWirePayload = payload;
-          const sourceTotal = payload.sources.length;
-          $("#news-wire-status").textContent = "Generated " + formatNewsDateTime(payload.generated_at) + " · " + payload.counts.successful_sources + "/" + sourceTotal + " sources";
-          $("#news-wire-source-note").textContent = payload.counts.election_news + " Election News · " + payload.counts.candidate_watch + " Candidate Watch · direct publisher links";
           document.querySelectorAll("[data-news-wire-count]").forEach(count => {
             count.textContent = "(" + payload.counts[count.dataset.newsWireCount] + ")";
           });
+          populateCandidateCoverageSelector();
+          renderElectionNews();
+          renderCandidateCoverage();
           renderNewsWire();
           document.documentElement.dataset.newsReady = "true";
           markDataset("news", "loaded", payload, payload.generated_at);
+          renderSignalDeskNote();
         })
         .catch(error => {
-          $("#news-wire-status").textContent = "News wire unavailable";
-          $("#news-wire-source-note").textContent = "Publisher headlines could not be loaded.";
-          $("#news-wire-list").innerHTML = '<div class="news-wire-state error">Election News Wire unavailable: ' + escapeHtml(error.message) + '</div>';
+          $("#election-news-list").innerHTML = '<div class="signal-state error">Election News unavailable: ' + escapeHtml(error.message) + '</div>';
+          $("#candidate-coverage-list").innerHTML = '<div class="signal-state error">Candidate Coverage unavailable: ' + escapeHtml(error.message) + '</div>';
           document.documentElement.dataset.newsReady = "error";
           markDataset("news", "error");
+          renderSignalDeskNote();
         });
     }
     const electionClockTargets = Object.freeze([
@@ -1833,13 +2149,8 @@
 
     function claimRatingBadge(sourceRating) {
       const display = claimRatingDisplay[sourceRating];
-      const visibleLabel = display?.label || sourceRating;
       const toneClass = display?.tone ? ` ${display.tone}` : "";
-      const originalRating = `Original publisher rating: ${sourceRating}`;
-      const accessibleLabel = display
-        ? `${visibleLabel}. Original publisher rating: ${sourceRating}`
-        : `${visibleLabel}. Original publisher rating: ${sourceRating}; untranslated.`;
-      return `<span class="claim-rating${toneClass}"${display ? "" : ' lang="fr"'} title="${escapeAttribute(originalRating)}" aria-label="${escapeAttribute(accessibleLabel)}">${escapeHtml(visibleLabel)}</span>`;
+      return `<span class="claim-rating${toneClass}" lang="fr" aria-label="Publisher rating: ${escapeAttribute(sourceRating)}">${escapeHtml(sourceRating)}</span>`;
     }
 
     function normalizedClaimant(value) {
@@ -1868,6 +2179,36 @@
         .format(new Date(`${value}T00:00:00Z`));
     }
 
+    function renderFactChecks() {
+      if (!claimsPayload) return;
+      const list = $("#fact-check-list");
+      if (!claimsPayload.reviews.length) {
+        list.innerHTML = '<div class="signal-state">No valid publisher reviews are available in this update.</div>';
+        return;
+      }
+      list.innerHTML = claimsPayload.reviews.slice(0, 5).map(review => {
+        const subjects = review.candidate_associations.map(association => {
+          const relationship = association.relationship.toUpperCase();
+          return `<span class="fact-check-subject" aria-label="${relationship}: candidate ${escapeAttribute(association.candidate_name)}"><span class="fact-check-relationship${association.relationship === "about" ? " is-about" : ""}">${relationship}</span><span>${escapeHtml(association.candidate_name)}</span></span>`;
+        }).join("");
+        const claimant = shouldShowClaimant(review)
+          ? `<div class="fact-check-claimant" lang="fr">Recorded claimant: ${escapeHtml(review.claimant)}</div>` : "";
+        return `
+          <article class="signal-row">
+            <div class="signal-meta">
+              <time class="signal-date" datetime="${escapeAttribute(review.review_date)}">${escapeHtml(formatDate(review.review_date))}</time>
+              <span class="signal-publisher">${escapeHtml(review.publisher_name)}</span>
+            </div>
+            <div class="fact-check-claim" lang="fr">${escapeHtml(review.claim_text)}</div>
+            <div class="fact-check-context">
+              <div><div class="fact-check-subjects">${subjects}</div>${claimant}</div>
+              <span class="fact-check-rating" lang="fr" aria-label="Publisher rating: ${escapeAttribute(review.rating)}">${escapeHtml(review.rating)}</span>
+            </div>
+            <a class="signal-source" href="${escapeAttribute(safeSourceUrl(review.review_url))}" target="_blank" rel="noopener noreferrer" aria-label="Read the review at ${escapeAttribute(review.publisher_name)} in a new tab">Read at ${escapeHtml(review.publisher_name)} <span class="signal-arrow" aria-hidden="true">↗</span></a>
+          </article>`;
+      }).join("");
+    }
+
     function renderClaimWire() {
       if (!claimsPayload) return;
       const candidateId = $("#claims-candidate-filter").value;
@@ -1885,7 +2226,7 @@
         return;
       }
       if (!claimsPayload.reviews.length) {
-        wire.innerHTML = '<div class="claims-state">No matching publisher reviews were found in the rolling 12-month archive.</div>';
+        wire.innerHTML = '<div class="claims-state">No publisher reviews were found in the validated archive.</div>';
         return;
       }
       if (!filtered.length) {
@@ -1903,7 +2244,7 @@
         const heading = `${claimsMonthLabel(monthReviews[0].review_date)} · ${monthReviews.length} ${monthReviews.length === 1 ? "REVIEW" : "REVIEWS"}`;
         return `<div class="claim-month">${escapeHtml(heading)}</div>${monthReviews.map(review => {
           const claimant = shouldShowClaimant(review)
-            ? `<div class="claim-claimant" lang="fr">Claimant: ${escapeHtml(review.claimant)}</div>` : "";
+            ? `<div class="claim-claimant" lang="fr">Recorded claimant: ${escapeHtml(review.claimant)}</div>` : "";
           const textId = claimTextId(review.id);
           const reviewDateLabel = claimReviewDateLabel(review.review_date);
           return `<article class="claim-row" data-claim-id="${escapeAttribute(review.id)}">
@@ -1996,14 +2337,14 @@
 
     function renderClaimsUnderScrutiny(payload) {
       claimsPayload = validateClaimsPayload(payload);
-      const metrics = claimsMetrics(claimsPayload.reviews);
-      const coverage = `${claimsPayload.reviews.length} reviews · ${metrics.candidates.size} candidates covered · ${metrics.publishers.size} publishers · rolling 12-month archive`;
-      $("#claims-scrutiny-status").innerHTML = `<div class="claims-coverage">${escapeHtml(coverage)}</div><div>Archive updated ${escapeHtml(formatDate(claimsPayload.generatedAt.slice(0, 10)))}${claimsPayload.skippedReviews ? ` · ${claimsPayload.skippedReviews} malformed ${claimsPayload.skippedReviews === 1 ? "review" : "reviews"} skipped` : ""}</div>`;
+      document.querySelector("[data-claims-count]").textContent = `(${claimsPayload.reviews.length})`;
       populateClaimsFilters();
+      renderFactChecks();
       renderClaimWire();
       renderArchivePulse();
       document.documentElement.dataset.claimsReady = "true";
       markDataset("claims", "loaded", claimsPayload, claimsPayload.generatedAt);
+      renderSignalDeskNote();
     }
 
     function loadClaimsUnderScrutiny() {
@@ -2025,12 +2366,13 @@
         })
         .then(renderClaimsUnderScrutiny)
         .catch(error => {
-          $("#claims-scrutiny-status").textContent = "Claims archive unavailable";
+          $("#fact-check-list").innerHTML = `<div class="signal-state error">Fact Checks unavailable: ${escapeHtml(error.message)}</div>`;
           $("#claims-match-count").textContent = "Unavailable";
-          $("#claim-wire-scroll").innerHTML = `<div class="claims-state error">Claims Under Scrutiny unavailable: ${escapeHtml(error.message)}</div>`;
-          $("#archive-pulse-scroll").innerHTML = '<div class="claims-state error">Archive summary could not be rendered. Other dashboard sections are unaffected.</div>';
+          $("#claim-wire-scroll").innerHTML = `<div class="claims-state error">Full claims archive unavailable: ${escapeHtml(error.message)}</div>`;
+          $("#archive-pulse-scroll").innerHTML = '<div class="claims-state error">Archive overview unavailable.</div>';
           document.documentElement.dataset.claimsReady = "error";
           markDataset("claims", "error");
+          renderSignalDeskNote();
         });
     }
 
@@ -2038,34 +2380,41 @@
       const selected = payload.selected_matchup;
       const [candidateA, candidateB] = selected.candidates;
       const conclusion = `${runoffShortName(candidateA)}–${runoffShortName(candidateB)} is the closest tested runoff`;
+      $("#closest-runoff-hero").className = "runoff-hero has-supporting-polls";
       $("#closest-runoff-hero").innerHTML = `
-        <div class="runoff-conclusion">${escapeHtml(conclusion)}</div>
-        ${payload.secondary_message ? `<div class="runoff-secondary">${escapeHtml(payload.secondary_message)}</div>` : ""}
-        <div class="runoff-head-to-head">
-          <div class="runoff-candidates">
-            <div class="runoff-candidate">
-              ${runoffCandidateMarker(candidateA)}
-              <div class="runoff-candidate-name">${escapeHtml(candidateA)}</div>
-            </div>
-            <div class="runoff-centre" aria-label="Fifty percent centre marker"><span>50</span></div>
-            <div class="runoff-candidate is-right">
-              ${runoffCandidateMarker(candidateB)}
-              <div class="runoff-candidate-name">${escapeHtml(candidateB)}</div>
+        <div class="runoff-matchup">
+          <div class="runoff-conclusion">${escapeHtml(conclusion)}</div>
+          <div class="runoff-head-to-head">
+            <div class="runoff-candidates">
+              <div class="runoff-candidate">
+                ${runoffCandidateMarker(candidateA)}
+                <div class="runoff-candidate-name">${escapeHtml(candidateA)}</div>
+              </div>
+              <div class="runoff-centre" aria-label="Fifty percent centre marker"><span>50</span></div>
+              <div class="runoff-candidate is-right">
+                ${runoffCandidateMarker(candidateB)}
+                <div class="runoff-candidate-name">${escapeHtml(candidateB)}</div>
+              </div>
             </div>
           </div>
-          <div class="runoff-results">${selected.results.map(result => runoffResultRow(result, selected.candidates)).join("")}</div>
-        </div>`;
+          ${payload.secondary_message ? `<div class="runoff-secondary">${escapeHtml(payload.secondary_message)}</div>` : ""}
+        </div>
+        <section class="runoff-supporting" aria-labelledby="runoff-supporting-title">
+          <h3 class="runoff-supporting-title" id="runoff-supporting-title">SUPPORTING POLLS</h3>
+          <div class="runoff-results">${selected.results.slice(0, 3).map(result => runoffResultRow(result, selected.candidates)).join("")}</div>
+        </section>`;
       renderRunoffContext(payload, selected.matchup_key);
     }
 
     function renderUnresolvedRunoff(payload) {
       const isSplit = payload.status === "split";
       const conclusion = isSplit ? "Pollsters split" : "No single closest matchup";
+      $("#closest-runoff-hero").className = "runoff-hero";
       $("#closest-runoff-hero").innerHTML = `
         <div class="runoff-conclusion">${conclusion}</div>
         <div class="runoff-secondary">${escapeHtml(payload.message)}</div>
         <div class="runoff-state-grid">
-          ${payload.pollsters.map(pollster => `
+          ${payload.pollsters.slice(0, 3).map(pollster => `
             <section class="runoff-state-card" aria-label="${escapeAttribute(pollster.pollster)} closest tested runoff evidence">
               <div class="runoff-state-pollster">${escapeHtml(pollster.pollster)}</div>
               ${pollster.closest_matchups.map(matchup => `
@@ -2103,6 +2452,7 @@
       if (payload.status === "agree") renderAgreedRunoff(payload);
       else if (payload.status === "split" || payload.status === "ambiguous") renderUnresolvedRunoff(payload);
       else {
+        $("#closest-runoff-hero").className = "runoff-hero";
         $("#closest-runoff-hero").innerHTML = `
           <div class="runoff-insufficient">
             <div class="runoff-conclusion">Not enough comparable runoff polls</div>
@@ -2125,6 +2475,7 @@
           $("#closest-runoff-status").className = "runoff-status is-insufficient";
           $("#closest-runoff-status").textContent = "RUNOFF TEST UNAVAILABLE";
           $("#closest-runoff-evidence").innerHTML = '<div class="runoff-evidence-item"><span class="runoff-evidence-label">Status</span><span class="runoff-evidence-value">Could not load runoff evidence</span></div>';
+          $("#closest-runoff-hero").className = "runoff-hero";
           $("#closest-runoff-hero").innerHTML = `<div class="runoff-insufficient"><div class="runoff-conclusion">Runoff comparison unavailable</div><div class="runoff-insufficient-copy">The closest-runoff data could not be loaded or validated: ${escapeHtml(error.message)}</div></div>`;
           $("#closest-runoff-context").innerHTML = '<h3 class="runoff-context-title">Comparable evidence unavailable</h3><p class="runoff-context-sub">Other dashboard sections are unaffected.</p>';
           document.documentElement.dataset.runoffReady = "error";
