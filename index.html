@@ -161,14 +161,76 @@
     }
     #hypothesis-select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
     .context-strip {
-      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 16px;
-      border: 1px solid var(--line); background: rgba(7, 18, 31, .86);
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 12px;
+      overflow: hidden;
+      border: 1px solid #173a53;
+      border-radius: 4px;
+      background:
+        linear-gradient(180deg, rgba(8, 25, 41, .97), rgba(5, 18, 31, .95));
+      box-shadow:
+        inset 0 1px 0 rgba(53, 213, 255, .045),
+        0 8px 28px rgba(0, 0, 0, .12);
     }
-    .context-cell { min-width: 0; padding: 10px 13px; border-right: 1px solid var(--line); }
+    .context-cell {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      align-items: center;
+      column-gap: 12px;
+      min-width: 0;
+      min-height: 64px;
+      padding: 9px 14px;
+      border-right: 1px solid #17384f;
+    }
     .context-cell:last-child { border-right: 0; }
-    .context-label { color: #6f8ea3; font-size: 8px; font-weight: 700; letter-spacing: .14em; }
-    .context-value { margin-top: 4px; color: #e1eef6; font-size: 13px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
-    .context-meta { margin-top: 3px; color: var(--muted); font-size: 9px; line-height: 1.4; overflow-wrap: anywhere; }
+    .context-icon {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      color: var(--cyan);
+      opacity: .96;
+    }
+    .context-icon svg {
+      display: block;
+      width: 26px;
+      height: 26px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.65;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      overflow: visible;
+    }
+    .context-copy { min-width: 0; }
+    .context-label {
+      color: #4e9ccd;
+      font-size: 7.5px;
+      font-weight: 750;
+      line-height: 1.1;
+      letter-spacing: .145em;
+    }
+    .context-value {
+      margin-top: 4px;
+      color: #e3f0f8;
+      font-size: 11.5px;
+      font-weight: 700;
+      line-height: 1.2;
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
+    }
+    .context-meta {
+      margin-top: 3px;
+      color: #7898ad;
+      font-size: 8.5px;
+      line-height: 1.25;
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
+    }
+    .context-cell-status.is-ready .context-meta { color: #65cfa8; }
+    .context-cell-status.is-loading .context-meta { color: #75bfe8; }
+    .context-cell-status.is-partial .context-meta { color: #e3ad63; }
     .history-grid { grid-template-columns: 1fr; gap: 16px; margin-top: 12px; }
 
     .top-dashboard {
@@ -2897,24 +2959,59 @@
 
     <section class="context-strip" aria-label="Dashboard context">
       <article class="context-cell">
-        <div class="context-label">NEXT MILESTONE</div>
-        <div class="context-value" id="context-milestone-value">Calculating…</div>
-        <div class="context-meta" id="context-milestone-meta">Europe/Paris calendar</div>
+        <span class="context-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <rect x="3.5" y="5.5" width="17" height="15" rx="2"></rect>
+            <path d="M7.5 3.5v4M16.5 3.5v4M3.5 9.5h17"></path>
+            <path d="M8 13h2M12 13h2M16 13h1M8 16.5h2M12 16.5h2"></path>
+          </svg>
+        </span>
+        <div class="context-copy">
+          <div class="context-label">NEXT MILESTONE</div>
+          <div class="context-value" id="context-milestone-value">Calculating…</div>
+          <div class="context-meta" id="context-milestone-meta">Europe/Paris calendar</div>
+        </div>
       </article>
+
       <article class="context-cell">
-        <div class="context-label">LATEST POLL</div>
-        <div class="context-value" id="context-poll-value">Loading…</div>
-        <div class="context-meta" id="context-poll-meta">Latest complete first-round event</div>
+        <span class="context-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <circle cx="12" cy="12" r="8.5"></circle>
+            <path d="M12 7.5v5l3.5 2"></path>
+          </svg>
+        </span>
+        <div class="context-copy">
+          <div class="context-label">LATEST POLL</div>
+          <div class="context-value" id="context-poll-value">Loading…</div>
+          <div class="context-meta" id="context-poll-meta">Latest complete first-round event</div>
+        </div>
       </article>
+
       <article class="context-cell">
-        <div class="context-label">POLL COVERAGE</div>
-        <div class="context-value" id="context-coverage-value">Loading…</div>
-        <div class="context-meta" id="context-coverage-meta">Target: first round</div>
+        <span class="context-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M4 20V11h4v9M10 20V5h4v15M16 20V8h4v12M3 20.5h18"></path>
+          </svg>
+        </span>
+        <div class="context-copy">
+          <div class="context-label">POLL COVERAGE</div>
+          <div class="context-value" id="context-coverage-value">Loading…</div>
+          <div class="context-meta" id="context-coverage-meta">Target: first round</div>
+        </div>
       </article>
-      <article class="context-cell">
-        <div class="context-label">DATA STATUS</div>
-        <div class="context-value" id="context-status-value">0 of 4 datasets loaded</div>
-        <div class="context-meta" id="context-status-meta">Loading local dashboard data</div>
+
+      <article class="context-cell context-cell-status" id="context-status-cell">
+        <span class="context-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M12 3.5 19 6v5.5c0 4.4-2.8 7.4-7 9-4.2-1.6-7-4.6-7-9V6l7-2.5Z"></path>
+            <path d="m8.5 12 2.2 2.2 4.8-5"></path>
+          </svg>
+        </span>
+        <div class="context-copy">
+          <div class="context-label">DASHBOARD STATUS</div>
+          <div class="context-value" id="context-status-value">0 of 4 feeds ready</div>
+          <div class="context-meta" id="context-status-meta">Loading dashboard data</div>
+        </div>
       </article>
     </section>
     <section class="intelligence-grid" aria-label="Election intelligence">
@@ -3560,42 +3657,53 @@
 
       if (dashboardState.polls) {
         const latest = dashboardState.polls.latestPackage[0];
-        $("#context-poll-value").textContent = latest.pollster;
+        const latestPublication = latest.publication_date
+          ? formatDate(latest.publication_date)
+          : "";
+        $("#context-poll-value").textContent =
+          latest.pollster + (latestPublication ? " · " + latestPublication : "");
         $("#context-poll-meta").textContent =
-          (latest.publication_date ? "Published " + formatDate(latest.publication_date) : "Publication date not stated") +
-          " · Fieldwork " + pollFieldworkLabel(latest);
+          (latest.publication_date ? "" : "Publication date not stated · ") +
+          "Fieldwork: " + pollFieldworkLabel(latest);
         const coverage = derivePollCoverage(dashboardState.polls.events);
         $("#context-coverage-value").textContent = coverage
-          ? coverage.count + " distinct " + (coverage.count === 1 ? "pollster" : "pollsters")
+          ? coverage.count + " " + (coverage.count === 1 ? "pollster" : "pollsters") + " in last 6 months"
           : "Coverage unavailable";
         $("#context-coverage-meta").textContent = coverage
-          ? "Target: first round · " + formatDate(coverage.startDate) + "–" + formatDate(coverage.latestDate)
+          ? "First round · " + formatDate(coverage.startDate) + "–" + formatDate(coverage.latestDate)
           : "Target: first round";
       } else {
         const pollError = dashboardState.loadState.polls === "error";
         $("#context-poll-value").textContent = pollError ? "Polling unavailable" : "Loading…";
         $("#context-poll-meta").textContent = "Latest complete first-round event";
         $("#context-coverage-value").textContent = pollError ? "Polling unavailable" : "Loading…";
-        $("#context-coverage-meta").textContent = "Target: first round";
+        $("#context-coverage-meta").textContent = "First-round polling coverage";
       }
 
       const states = Object.values(dashboardState.loadState);
       const loaded = states.filter(state => state === "loaded").length;
       const loading = states.filter(state => state === "loading").length;
-      if (dashboardState.loadState.polls === "error") {
-        $("#context-status-value").textContent = "Polling unavailable";
-      } else if (loaded === 4) {
-        $("#context-status-value").textContent = "4 datasets loaded";
+      const errors = states.filter(state => state === "error").length;
+      const statusCell = $("#context-status-cell");
+
+      statusCell.classList.remove("is-ready", "is-loading", "is-partial");
+
+      if (loaded === 4) {
+        statusCell.classList.add("is-ready");
+        $("#context-status-value").textContent = "All feeds ready";
+        $("#context-status-meta").textContent = "Polling · runoff · news · fact-checks";
       } else if (loading) {
-        $("#context-status-value").textContent = loaded + " of 4 datasets loaded";
+        statusCell.classList.add("is-loading");
+        $("#context-status-value").textContent = loaded + " of 4 feeds ready";
+        $("#context-status-meta").textContent =
+          loading + " " + (loading === 1 ? "feed" : "feeds") + " still loading";
       } else {
-        $("#context-status-value").textContent = "Partial data: " + loaded + " of 4 datasets loaded";
+        statusCell.classList.add("is-partial");
+        $("#context-status-value").textContent = loaded + " of 4 feeds ready";
+        $("#context-status-meta").textContent = errors
+          ? errors + " " + (errors === 1 ? "feed" : "feeds") + " unavailable · other sections remain live"
+          : "Partial data available";
       }
-      $("#context-status-meta").textContent = loading
-        ? loading + " local " + (loading === 1 ? "dataset" : "datasets") + " still loading"
-        : loaded === 4
-          ? "All required local datasets loaded and validated"
-          : "Other dashboard sections remain independent";
     }
     function validateNewsWirePayload(payload) {
       if (!payload || typeof payload !== "object" || payload.schema_version !== 1) {
