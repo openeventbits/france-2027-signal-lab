@@ -1568,6 +1568,1245 @@
       }
     }
 
+
+    /* Target-aligned compact top briefing */
+    .hero-grid {
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .hero-grid > .panel {
+      min-height: 0;
+    }
+
+    .what-changed .panel-head {
+      min-height: 42px;
+      padding: 10px 12px 8px;
+    }
+
+    .what-changed .panel-head h2,
+    .race-glance .panel-head h2 {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.15;
+      letter-spacing: .01em;
+    }
+
+    .what-changed-list {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-auto-rows: minmax(0, 1fr);
+      gap: 4px;
+      flex: 0 0 auto;
+      padding: 0 4px 4px;
+    }
+
+    .what-changed-list::before {
+      content: "";
+      position: absolute;
+      z-index: 2;
+      top: 48px;
+      bottom: 48px;
+      left: 63px;
+      width: 1px;
+      background: linear-gradient(#227798, #755db9 52%, #996d2e);
+      box-shadow: 0 0 5px rgba(53, 213, 255, .14);
+      pointer-events: none;
+    }
+
+    .what-changed-item,
+    .what-changed-item.is-lead {
+      --signal-accent: var(--cyan);
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 32px 20px minmax(0, 1fr) minmax(72px, auto);
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      min-height: 98px;
+      padding: 7px 9px;
+      border: 1px solid #183950;
+      border-left: 2px solid var(--signal-accent);
+      border-radius: 4px;
+      background:
+        linear-gradient(96deg, color-mix(in srgb, var(--signal-accent) 8%, transparent), transparent 45%),
+        linear-gradient(180deg, rgba(8, 25, 40, .95), rgba(5, 18, 31, .95));
+      box-shadow: inset 0 1px rgba(255, 255, 255, .012);
+    }
+
+    .what-changed-item[data-signal-tone="runoff"] {
+      --signal-accent: #a374ff;
+    }
+
+    .what-changed-item[data-signal-tone="fact"] {
+      --signal-accent: #ffac2f;
+    }
+
+    .what-changed-number {
+      position: relative;
+      z-index: 3;
+      align-self: start;
+      padding-top: 2px;
+      color: #bdcbd5;
+      font-size: 20px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .what-changed-node {
+      position: relative;
+      z-index: 3;
+      align-self: start;
+      justify-self: center;
+      width: 15px;
+      height: 15px;
+      margin-top: 1px;
+      border: 2px solid #061420;
+      border-radius: 50%;
+      background: var(--signal-accent);
+      box-shadow:
+        0 0 0 2px color-mix(in srgb, var(--signal-accent) 46%, #17384f),
+        0 0 9px color-mix(in srgb, var(--signal-accent) 52%, transparent);
+    }
+
+    .what-changed-copy {
+      position: relative;
+      z-index: 3;
+      min-width: 0;
+    }
+
+    .what-changed-category {
+      display: block;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      color: var(--signal-accent);
+      font-size: 8px;
+      font-weight: 780;
+      letter-spacing: .11em;
+      line-height: 1.15;
+    }
+
+    .what-changed-headline,
+    .what-changed-item.is-lead .what-changed-headline {
+      max-width: none;
+      margin: 3px 0 0;
+      color: #edf7fc;
+      font-size: 12px;
+      font-weight: 690;
+      line-height: 1.27;
+      letter-spacing: 0;
+    }
+
+    .what-changed-context,
+    .what-changed-item.is-lead .what-changed-context {
+      display: -webkit-box;
+      max-width: none;
+      margin-top: 3px;
+      overflow: hidden;
+      color: #8fa8b9;
+      font-size: 9px;
+      line-height: 1.3;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .what-changed-meta {
+      gap: 3px 8px;
+      margin-top: 4px;
+      color: #6f8da1;
+      font-size: 8px;
+      line-height: 1.2;
+    }
+
+    .what-changed-link {
+      margin-left: 0;
+      color: var(--cyan);
+      font-size: 8px;
+    }
+
+    .what-changed-visual {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-width: 72px;
+      padding-right: 2px;
+    }
+
+    .what-changed-visual .candidate-monogram {
+      flex: 0 0 auto;
+      width: 44px;
+      height: 44px;
+      border-color: #456478;
+      box-shadow: 0 0 0 2px #071522, 0 0 8px rgba(53, 213, 255, .08);
+    }
+
+    .what-changed-visual .candidate-monogram + .candidate-monogram {
+      margin-left: -9px;
+    }
+
+    .pollster-wordmark {
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      border: 1px solid #3a586c;
+      border-radius: 50%;
+      color: #d4e0e7;
+      background: rgba(7, 20, 33, .86);
+      font-size: 12px;
+      font-weight: 650;
+      letter-spacing: -.02em;
+      text-transform: lowercase;
+      box-shadow: inset 0 0 15px rgba(53, 213, 255, .025);
+    }
+
+    .race-glance {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .race-glance .panel-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(150px, 190px);
+      align-items: center;
+      gap: 10px 14px;
+      min-height: 86px;
+      padding: 8px 12px 7px;
+      border-bottom: 1px solid #183950;
+    }
+
+    .race-heading > .sub {
+      margin-top: 2px;
+      font-size: 9px;
+      line-height: 1.2;
+    }
+
+    .race-event {
+      margin-top: 4px;
+    }
+
+    .race-event-title {
+      color: #7fe7ff;
+      font-size: 10px;
+      font-weight: 720;
+      line-height: 1.2;
+    }
+
+    .race-event-detail {
+      margin-top: 2px;
+      color: #8da6b7;
+      font-size: 8px;
+      line-height: 1.2;
+    }
+
+    .race-heading .race-interpretation {
+      margin-top: 2px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: #a8bac5;
+      font-size: 8px;
+      line-height: 1.2;
+    }
+
+    .race-glance > .race-interpretation {
+      display: none;
+    }
+
+    .hypothesis-label {
+      align-self: center;
+      width: 100%;
+      font-size: 7px;
+      line-height: 1;
+      letter-spacing: .1em;
+    }
+
+    #hypothesis-select {
+      min-height: 29px;
+      margin-top: 4px;
+      padding: 4px 24px 4px 7px;
+      border-radius: 3px;
+      font-size: 8px;
+    }
+
+    .race-glance .bars {
+      display: grid;
+      flex: 0 0 auto;
+      padding: 0 12px;
+    }
+
+    .race-glance .bars::before {
+      content: "CHANGE VS PREV";
+      display: block;
+      height: 13px;
+      padding-top: 2px;
+      color: #668398;
+      font-size: 6px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: .08em;
+      text-align: right;
+    }
+
+    .race-glance .bar-row {
+      display: grid;
+      grid-template-columns:
+        minmax(145px, 1.05fr)
+        minmax(105px, 2.3fr)
+        44px
+        minmax(70px, .7fr);
+      gap: 6px;
+      align-items: center;
+      min-height: 30px;
+      margin: 0;
+      padding: 1px 0;
+      border-bottom: 1px solid rgba(20, 49, 73, .55);
+    }
+
+    .race-candidate {
+      gap: 7px;
+    }
+
+    .race-candidate .candidate-monogram {
+      width: 28px;
+      height: 28px;
+      border-color: #31566e;
+    }
+
+    .race-glance .candidate {
+      overflow: hidden;
+      color: #dceaf2;
+      font-size: 10px;
+      font-weight: 640;
+      line-height: 1.12;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .race-glance .track {
+      height: 7px;
+      border: 0;
+      border-radius: 2px;
+      background: #071522;
+      box-shadow: inset 0 0 0 1px rgba(31, 73, 99, .42);
+    }
+
+    .race-glance .fill {
+      border-radius: 1px;
+      box-shadow: 0 0 7px rgba(53, 213, 255, .18);
+    }
+
+    .race-glance .score {
+      font-size: 11px;
+      font-weight: 710;
+    }
+
+    .race-change {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .race-change strong {
+      margin: 0;
+      font-size: 9px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .race-footer {
+      display: flex;
+      align-items: center;
+      min-height: 26px;
+      margin-top: auto;
+      padding: 4px 12px;
+      border-top: 1px solid #183950;
+    }
+
+    .race-footer a {
+      color: var(--cyan);
+      font-size: 8px;
+      font-weight: 650;
+      text-decoration: none;
+    }
+
+    .race-footer a:hover {
+      text-decoration: underline;
+    }
+
+    .race-footer a:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+
+    @media (max-width: 1119px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .what-changed-list {
+        grid-auto-rows: auto;
+      }
+    }
+
+    @media (max-width: 719px) {
+      .what-changed-item,
+      .what-changed-item.is-lead {
+        grid-template-columns: 28px 18px minmax(0, 1fr) 72px;
+        gap: 6px;
+        min-height: 0;
+        padding: 9px 6px;
+      }
+
+      .what-changed-list::before {
+        top: 49px;
+        bottom: 49px;
+        left: 53px;
+      }
+
+      .what-changed-number {
+        font-size: 18px;
+      }
+
+      .what-changed-visual .candidate-monogram {
+        width: 38px;
+        height: 38px;
+      }
+
+      .pollster-wordmark {
+        width: 50px;
+        height: 50px;
+        font-size: 10px;
+      }
+
+      .race-glance .panel-head {
+        grid-template-columns: 1fr;
+        align-items: start;
+      }
+
+      .hypothesis-label {
+        max-width: 100%;
+      }
+
+      .race-glance .bar-row {
+        grid-template-columns: minmax(0, 1fr) 44px 72px;
+        gap: 5px 7px;
+        min-height: 43px;
+        padding: 3px 0;
+      }
+
+      .race-candidate {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      .race-glance .score {
+        grid-column: 2;
+        grid-row: 1;
+      }
+
+      .race-change {
+        grid-column: 3;
+        grid-row: 1;
+      }
+
+      .race-glance .track {
+        grid-column: 1 / -1;
+        grid-row: 2;
+      }
+    }
+
+    @media (max-width: 430px) {
+      .what-changed-headline,
+      .what-changed-item.is-lead .what-changed-headline {
+        font-size: 11px;
+      }
+
+      .what-changed-context,
+      .what-changed-item.is-lead .what-changed-context {
+        -webkit-line-clamp: 3;
+      }
+
+      .what-changed-meta {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 2px;
+      }
+    }
+    .what-changed-list[data-count="3"] {
+      grid-template-rows: repeat(3, minmax(0, 1fr));
+    }
+
+    .what-changed-list[data-count="2"] {
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (min-width: 720px) {
+      .what-changed-context,
+      .what-changed-item.is-lead .what-changed-context {
+        -webkit-line-clamp: 1;
+      }
+    }
+    .race-change.is-positive strong {
+      color: var(--cyan);
+    }
+
+    .race-change.is-negative strong {
+      color: #b58cff;
+    }
+
+    .race-change.is-mixed strong {
+      color: var(--warn);
+    }
+
+    .race-change.is-zero strong,
+    .race-change.is-missing strong {
+      color: #718b9d;
+    }
+    .race-candidate {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+    }
+
+    /* Fix 1: automated pollster text badge */
+    .pollster-wordmark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      min-width: 62px;
+      max-width: 94px;
+      height: 34px;
+      padding: 0 11px;
+      overflow: hidden;
+      border: 1px solid #25789d;
+      border-radius: 999px;
+      background:
+        linear-gradient(
+          105deg,
+          rgba(53, 213, 255, .12),
+          rgba(8, 27, 43, .88) 54%,
+          rgba(7, 20, 33, .94)
+        );
+      box-shadow:
+        inset 3px 0 0 rgba(53, 213, 255, .8),
+        inset 0 0 14px rgba(53, 213, 255, .035),
+        0 0 9px rgba(53, 213, 255, .06);
+      color: #63ddf7;
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1;
+      letter-spacing: .035em;
+      text-align: center;
+      text-overflow: ellipsis;
+      text-transform: none;
+      white-space: nowrap;
+    }
+
+    .pollster-wordmark[data-label-length="medium"] {
+      font-size: 10px;
+      letter-spacing: .015em;
+    }
+
+    .pollster-wordmark[data-label-length="long"] {
+      min-width: 72px;
+      max-width: 98px;
+      padding-inline: 8px;
+      font-size: 8px;
+      letter-spacing: 0;
+    }
+
+    @media (max-width: 719px) {
+      .pollster-wordmark {
+        min-width: 56px;
+        max-width: 76px;
+        height: 31px;
+        padding-inline: 8px;
+        font-size: 10px;
+      }
+
+      .pollster-wordmark[data-label-length="medium"] {
+        font-size: 8.5px;
+      }
+
+      .pollster-wordmark[data-label-length="long"] {
+        min-width: 62px;
+        max-width: 78px;
+        font-size: 7px;
+      }
+    }
+
+
+    /* Fix 2: larger race candidate typography and portraits */
+    .race-candidate {
+      gap: 8px;
+    }
+
+    .race-candidate .candidate-monogram {
+      width: 31px;
+      height: 31px;
+    }
+
+    .race-glance .candidate {
+      font-size: 11.5px;
+      font-weight: 680;
+      line-height: 1.1;
+    }
+
+    .race-glance .score {
+      color: #f3f9fd;
+      font-size: 13.5px;
+      font-weight: 760;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .race-change strong {
+      font-size: 10px;
+      font-weight: 740;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    @media (max-width: 719px) {
+      .race-candidate .candidate-monogram {
+        width: 31px;
+        height: 31px;
+      }
+
+      .race-glance .candidate {
+        font-size: 11.5px;
+      }
+
+      .race-glance .score {
+        font-size: 13px;
+      }
+
+      .race-change strong {
+        font-size: 9.5px;
+      }
+    }
+
+
+    /* Fix 3: rebalance race information columns */
+    @media (min-width: 720px) {
+      .race-glance .bar-row {
+        grid-template-columns:
+          minmax(175px, 1.25fr)
+          minmax(110px, 1.75fr)
+          58px
+          minmax(96px, .82fr);
+        gap: 8px;
+      }
+
+      .race-glance .score {
+        padding-right: 2px;
+      }
+
+      .race-change {
+        min-width: 0;
+      }
+
+      .race-change strong {
+        max-width: 100%;
+        text-align: right;
+        white-space: nowrap;
+      }
+    }
+
+    @media (min-width: 720px) and (max-width: 1250px) {
+      .race-glance .bar-row {
+        grid-template-columns:
+          minmax(160px, 1.2fr)
+          minmax(90px, 1.45fr)
+          54px
+          minmax(88px, .8fr);
+        gap: 7pxpx
+          minmax(88px, .8fr);
+        gap: 7px;
+      }
+
+      .race-glance .candidate {
+        font-size: 11px;
+      }
+
+      .race-change strong {
+        font-size: 9.5px;
+      }
+    }
+
+
+    /* Fix 4: complete scrollable race list and shorter hero panels */
+    @media (min-width: 1120px) {
+      .hero-grid > .panel {
+        height: 352px;
+        min-height: 352px;
+        max-height: 352px;
+      }
+
+      .what-changed-list {
+        flex: 1 1 auto;
+        min-height: 0;
+      }
+
+      .race-glance {
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .race-glance .bars {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-color: #275b79 #071522;
+        scrollbar-gutter: stable;
+        scrollbar-width: thin;
+      }
+
+      .race-glance .bars::-webkit-scrollbar {
+        width: 7px;
+      }
+
+      .race-glance .bars::-webkit-scrollbar-track {
+        background: #071522;
+      }
+
+      .race-glance .bars::-webkit-scrollbar-thumb {
+        border: 2px solid #071522;
+        border-radius: 999px;
+        background: #275b79;
+      }
+
+      .race-glance .bars::-webkit-scrollbar-thumb:hover {
+        background: #3384aa;
+      }
+
+      .race-glance .bars::before {
+        position: sticky;
+        z-index: 4;
+        top: 0;
+        margin: 0;
+        background: #071522;
+        box-shadow: 0 1px 0 #17384f;
+      }
+
+      .race-glance .bar-row {
+        min-height: 36px;
+      }
+
+      .race-footer {
+        flex: 0 0 auto;
+      }
+    }
+
+    @media (max-width: 1119px) {
+      .hero-grid > .panel {
+        height: auto;
+        min-height: 0;
+        max-height: none;
+      }
+
+      .race-glance {
+        overflow: visible;
+      }
+
+      .race-glance .bars {
+        max-height: none;
+        overflow: visible;
+        scrollbar-gutter: auto;
+      }
+
+      .race-glance .bars::before {
+        position: static;
+        box-shadow: none;
+      }
+    }
+
+
+    /* Mobile masthead: compact two-row briefing header */
+    @media (max-width: 520px) {
+      header.masthead {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: stretch;
+        gap: 10px;
+        min-height: 0;
+        padding: 10px 11px 11px;
+      }
+
+      .masthead .brand {
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr);
+        align-items: center;
+        gap: 9px;
+        min-width: 0;
+      }
+
+      .masthead .mark {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+      }
+
+      .masthead .mark svg {
+        width: 30px;
+        height: 30px;
+      }
+
+      .masthead-brand-copy {
+        min-width: 0;
+      }
+
+      .masthead h1 {
+        display: grid;
+        gap: 1px;
+        margin: 0;
+        font-size: 16px;
+        line-height: 1.02;
+        letter-spacing: .015em;
+        white-space: normal;
+      }
+
+      .masthead h1 span {
+        display: block;
+      }
+
+      .masthead-tagline {
+        max-width: 100%;
+        margin-top: 4px;
+        overflow: hidden;
+        color: #88a5b8;
+        font-size: 9px;
+        line-height: 1.2;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .masthead-tools {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 9px;
+        width: 100%;
+        min-width: 0;
+        color: #839fb2;
+        font-size: 8px;
+      }
+
+      .masthead-data {
+        display: grid;
+        flex: initial;
+        flex-basis: auto;
+        align-items: start;
+        justify-content: start;
+        gap: 2px;
+        min-width: 0;
+        font-size: 8px;
+        line-height: 1.25;
+        text-align: left;
+      }
+
+      .masthead-data span {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .masthead-countdown {
+        display: grid;
+        grid-template-columns: auto minmax(55px, 1fr);
+        grid-template-rows: auto auto;
+        align-items: center;
+        gap: 1px 7px;
+        width: auto;
+        min-width: 118px;
+        margin: 0;
+        padding: 6px 8px;
+        border: 1px solid #245273;
+        border-left: 1px solid #245273;
+        border-radius: 4px;
+        background: rgba(10, 31, 49, .58);
+      }
+
+      .masthead-countdown > div:first-child {
+        display: flex;
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        align-items: baseline;
+        min-width: 0;
+      }
+
+      .masthead-countdown .clock-count {
+        font-size: 25px;
+        font-weight: 740;
+        line-height: .92;
+        letter-spacing: -.035em;
+      }
+
+      .masthead-countdown .clock-count.is-word {
+        font-size: 10px;
+        letter-spacing: 0;
+      }
+
+      .masthead-countdown .clock-unit {
+        margin-left: 3px;
+        font-size: 7px;
+      }
+
+      .masthead-countdown-label {
+        grid-column: 2;
+        grid-row: 1;
+        font-size: 8px;
+        line-height: 1.1;
+        letter-spacing: .065em;
+        white-space: nowrap;
+      }
+
+      .masthead-countdown-date {
+        grid-column: 2;
+        grid-row: 2;
+        font-size: 8px;
+        line-height: 1.1;
+        white-space: nowrap;
+      }
+    }
+
+    @media (max-width: 350px) {
+      .masthead h1 {
+        font-size: 15px;
+      }
+
+      .masthead-tagline {
+        font-size: 8.5px;
+      }
+
+      .masthead-tools {
+        gap: 7px;
+      }
+
+      .masthead-countdown {
+        min-width: 108px;
+        padding-inline: 7px;
+      }
+
+      .masthead-countdown .clock-count {
+        font-size: 23px;
+      }
+
+      .masthead-countdown-label,
+      .masthead-countdown-date {
+        font-size: 7.5px;
+      }
+    }
+
+
+    /* Masthead countdown: connected status tile */
+    .masthead-countdown {
+      display: grid;
+      grid-template-columns: 23px minmax(0, 1fr);
+      align-items: center;
+      gap: 9px;
+      min-width: 218px;
+      padding: 8px 11px;
+      border: 1px solid #245273;
+      border-left: 1px solid #245273;
+      border-radius: 5px;
+      background:
+        linear-gradient(
+          105deg,
+          rgba(38, 140, 255, .09),
+          rgba(7, 22, 37, .82) 52%,
+          rgba(7, 18, 31, .92)
+        );
+      box-shadow:
+        inset 0 0 18px rgba(53, 213, 255, .025),
+        0 0 10px rgba(38, 140, 255, .035);
+    }
+
+    .masthead-countdown-icon {
+      display: grid;
+      place-items: center;
+      width: 23px;
+      height: 23px;
+      color: #8eb4c8;
+    }
+
+    .masthead-countdown-icon svg {
+      display: block;
+      width: 21px;
+      height: 21px;
+      overflow: visible;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .masthead-countdown-copy {
+      min-width: 0;
+    }
+
+    .masthead-countdown-line {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      min-width: 0;
+      white-space: nowrap;
+    }
+
+    .masthead-countdown .clock-count {
+      grid-row: auto;
+      color: var(--cyan);
+      font-size: 34px;
+      font-weight: 750;
+      line-height: .9;
+      letter-spacing: -.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .masthead-countdown .clock-count.is-word {
+      font-size: 12px;
+      letter-spacing: .01em;
+    }
+
+    .masthead-countdown .clock-unit {
+      margin: 0;
+      color: #8fa9bb;
+      font-size: 9px;
+      line-height: 1;
+      letter-spacing: .035em;
+      text-transform: lowercase;
+    }
+
+    .masthead-countdown-label {
+      grid-column: auto;
+      grid-row: auto;
+      color: #dcecf6;
+      font-size: 10px;
+      font-weight: 680;
+      line-height: 1;
+      letter-spacing: 0;
+      text-transform: lowercase;
+      white-space: nowrap;
+    }
+
+    .masthead-countdown-date {
+      grid-column: auto;
+      grid-row: auto;
+      margin-top: 3px;
+      color: #829eb1;
+      font-size: 10px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 520px) {
+      .masthead-countdown {
+        grid-template-columns: 18px minmax(0, 1fr);
+        gap: 7px;
+        width: auto;
+        min-width: 170px;
+        padding: 7px 8px;
+      }
+
+      .masthead-countdown-icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .masthead-countdown-icon svg {
+        width: 18px;
+        height: 18px;
+        stroke-width: 1.7;
+      }
+
+      .masthead-countdown-copy {
+        grid-column: 2;
+        grid-row: 1;
+      }
+
+      .masthead-countdown-line {
+        gap: 3px;
+      }
+
+      .masthead-countdown .clock-count {
+        font-size: 26px;
+      }
+
+      .masthead-countdown .clock-count.is-word {
+        font-size: 9px;
+      }
+
+      .masthead-countdown .clock-unit {
+        font-size: 7.5px;
+      }
+
+      .masthead-countdown-label {
+        font-size: 8px;
+      }
+
+      .masthead-countdown-date {
+        margin-top: 2px;
+        font-size: 8px;
+      }
+    }
+
+    @media (max-width: 350px) {
+      .masthead-countdown {
+        min-width: 152px;
+        padding-inline: 7px;
+      }
+
+      .masthead-countdown .clock-count {
+        font-size: 24px;
+      }
+
+      .masthead-countdown .clock-unit,
+      .masthead-countdown-label,
+      .masthead-countdown-date {
+        font-size: 7px;
+      }
+    }
+
+
+    /* Masthead countdown: final compact alignment */
+    .masthead-countdown {
+      width: max-content;
+      min-width: 205px;
+      padding: 7px 10px;
+    }
+
+    .masthead-countdown-copy {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .masthead-countdown-text {
+      display: grid;
+      align-content: center;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .masthead-countdown-line {
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+      min-width: 0;
+      transform: translateY(-1px);
+      white-space: nowrap;
+    }
+
+    .masthead-countdown .clock-count {
+      grid-column: 1;
+      grid-row: 1;
+      font-size: 34px;
+      line-height: .86;
+    }
+
+    .masthead-countdown .clock-unit {
+      margin: 0;
+      font-size: 8px;
+      font-weight: 600;
+      letter-spacing: .035em;
+      text-transform: lowercase;
+    }
+
+    .masthead-countdown-label {
+      font-size: 9px;
+      font-weight: 400;
+      line-height: 1;
+    }
+
+    .masthead-countdown-date {
+      margin: 0;
+      color: #89a5b7;
+      font-size: 9px;
+      line-height: 1;
+    }
+
+    @media (max-width: 520px) {
+      .masthead-countdown {
+        width: auto;
+        min-width: 166px;
+        padding: 6px 8px;
+      }
+
+      .masthead-countdown-copy {
+        grid-column: 2;
+        grid-row: 1;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 5px;
+      }
+
+      .masthead-countdown-text {
+        gap: 2px;
+      }
+
+      .masthead-countdown-line {
+        gap: 2px;
+      }
+
+      .masthead-countdown .clock-count {
+        font-size: 26px;
+      }
+
+      .masthead-countdown .clock-unit {
+        font-size: 7px;
+      }
+
+      .masthead-countdown-label {
+        font-size: 8px;
+      }
+
+      .masthead-countdown-date {
+        font-size: 8px;
+      }
+    }
+
+    @media (max-width: 350px) {
+      .masthead-countdown {
+        min-width: 150px;
+      }
+
+      .masthead-countdown .clock-count {
+        font-size: 24px;
+      }
+
+      .masthead-countdown .clock-unit,
+      .masthead-countdown-label,
+      .masthead-countdown-date {
+        font-size: 7px;
+      }
+    }
+
+
+    /* What Changed: align timeline nodes with signal eyebrows */
+    .what-changed-node {
+      margin-top: 10px;
+    }
+
+    @media (max-width: 719px) {
+      .what-changed-node {
+        margin-top: 9px;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -1593,9 +2832,23 @@
           <span id="masthead-sources">Publisher sources loading…</span>
         </div>
         <div class="masthead-countdown" data-clock-target="first" aria-label="First-round election countdown">
-          <div><span class="clock-count">—</span><span class="clock-unit"></span></div>
-          <div class="masthead-countdown-label">FIRST ROUND</div>
-          <div class="masthead-countdown-date">18 Apr 2027</div>
+          <span class="masthead-countdown-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <rect x="4" y="6" width="16" height="14" rx="2"></rect>
+              <path d="M8 3v5M16 3v5M4 10h16"></path>
+              <path d="M8 14h2M12 14h2M16 14h1M8 17h2M12 17h2"></path>
+            </svg>
+          </span>
+          <div class="masthead-countdown-copy">
+            <span class="clock-count">—</span>
+            <div class="masthead-countdown-text">
+              <div class="masthead-countdown-line">
+                <span class="clock-unit"></span>
+                <span class="masthead-countdown-label">to first round</span>
+              </div>
+              <div class="masthead-countdown-date">18 Apr 2027</div>
+            </div>
+          </div>
         </div>
       </div>
     </header>
@@ -1603,11 +2856,7 @@
     <section class="hero-grid" aria-label="Top briefing">
       <article class="panel what-changed" aria-labelledby="what-changed-title">
         <div class="panel-head">
-          <div>
-            <div class="eyebrow">Briefing</div>
-            <h2 id="what-changed-title">LATEST SIGNALS</h2>
-            <div class="sub">Newest source-linked developments across the dashboard.</div>
-          </div>
+          <h2 id="what-changed-title">WHAT CHANGED</h2>
         </div>
         <div class="what-changed-list" id="what-changed-list" aria-live="polite">
           <div class="what-changed-state">Checking for source-linked dashboard signals…</div>
@@ -1617,22 +2866,32 @@
       <article class="panel race-glance" aria-labelledby="race-glance-title">
         <div class="panel-head">
           <div class="race-heading">
-            <div class="eyebrow">Latest polling</div>
             <h2 id="race-glance-title">RACE AT A GLANCE</h2>
             <div class="sub">Latest complete first-round poll event</div>
             <div class="race-event">
               <div class="race-event-title" id="latest-title">Loading…</div>
-              <div class="sub" id="latest-sub"></div>
+              <div class="race-event-detail" id="latest-sub"></div>
             </div>
+            <div class="race-interpretation">One reported hypothesis. No average or forecast.</div>
           </div>
           <label class="hypothesis-label">
             HYPOTHESIS
             <select id="hypothesis-select" disabled aria-label="Choose a reported first-round poll hypothesis"></select>
           </label>
         </div>
-        <div class="race-interpretation">One reported hypothesis. No average or forecast.</div>
-        <div class="bars" id="bars"><div class="empty">Loading candidate scores…</div></div>
-        <div class="meta" id="meta"></div>
+        <div class="race-interpretation">One reported hypothesis · raw reported scores · no average, model or forecast.</div>
+        <div
+          class="bars"
+          id="bars"
+          aria-live="polite"
+          aria-label="Reported candidate scores for the selected hypothesis. Scroll to view all candidates."
+          tabindex="0"
+        ><div class="empty">Loading candidate scores…</div></div>
+        <div id="race-more" hidden></div>
+        <div id="meta" hidden></div>
+        <div class="race-footer">
+          <a id="race-source" target="_blank" rel="noopener noreferrer" hidden>View full results &#8599;</a>
+        </div>
       </article>
     </section>
 
@@ -2058,7 +3317,9 @@
         context: "Fieldwork " + pollFieldworkLabel(latest) + " · " + sample + ".",
         date: latest.publication_date ? "Published " + formatDate(latest.publication_date) : "Publication date not stated",
         sourceName: latest.pollster,
-        sourceUrl
+        sourceUrl,
+        visualType: "pollster",
+        visualLabel: latest.pollster
       };
     }
 
@@ -2097,7 +3358,9 @@
         context: observations + " supporting " + (observations === 1 ? "observation is" : "observations are") + " shown separately; no average is calculated.",
         date: payload.fieldwork_window ? "Fieldwork ended " + formatDate(payload.fieldwork_window.end) : "Fieldwork date unavailable",
         sourceName: closest.pollster,
-        sourceUrl
+        sourceUrl,
+        visualType: "candidates",
+        visualCandidates: matchup.candidates
       };
     }
 
@@ -2117,6 +3380,9 @@
       const byAssociation = review.candidate_associations.find(association =>
         association.relationship === "by" && payload.trackedCandidateNames.has(association.candidate_name)
       );
+      const trackedAssociation = byAssociation || review.candidate_associations.find(association =>
+        payload.trackedCandidateNames.has(association.candidate_name)
+      );
       const relationshipNote = byAssociation
         ? "Candidate relationship: BY."
         : "Candidate relationship: ABOUT, not attribution.";
@@ -2126,7 +3392,9 @@
         context: review.publisher_name + " records the claimant as “" + review.claimant + "” and the rating as “" + review.rating + "”. " + relationshipNote,
         date: "Reviewed " + formatDate(review.review_date),
         sourceName: review.publisher_name,
-        sourceUrl: safeSourceUrl(review.review_url)
+        sourceUrl: safeSourceUrl(review.review_url),
+        visualType: "candidates",
+        visualCandidates: trackedAssociation ? [trackedAssociation.candidate_name] : []
       };
     }
 
@@ -2136,6 +3404,60 @@
       element.textContent = text;
       parent.appendChild(element);
       return element;
+    }
+
+    function briefingSignalTone(category) {
+      if (category === "NEW POLL") return "poll";
+      if (category === "RUNOFF STATUS") return "runoff";
+      return "fact";
+    }
+
+    function briefingCandidateMarker(candidateName) {
+      const marker = document.createElement("span");
+      marker.className = "what-changed-portrait candidate-monogram";
+      const fallback = document.createElement("span");
+      fallback.className = "candidate-monogram-fallback";
+      fallback.setAttribute("aria-hidden", "true");
+      fallback.textContent = candidateMonogram(candidateName);
+      marker.appendChild(fallback);
+
+      const portrait = candidatePortraits[candidateName];
+      if (portrait) {
+        marker.classList.add("has-portrait");
+        const image = document.createElement("img");
+        image.src = portrait;
+        image.alt = "AI-generated portrait of " + candidateName;
+        image.loading = "lazy";
+        image.decoding = "async";
+        image.onerror = () => image.remove();
+        marker.appendChild(image);
+      } else {
+        marker.setAttribute("aria-label", candidateName);
+      }
+      return marker;
+    }
+
+    function appendBriefingVisual(article, item) {
+      const visual = document.createElement("div");
+      visual.className = "what-changed-visual";
+      if (item.visualType === "pollster") {
+        const label = String(item.visualLabel || item.sourceName || "Pollster").trim();
+        const wordmark = document.createElement("span");
+        wordmark.className = "pollster-wordmark";
+        wordmark.dataset.labelLength =
+          label.length > 18 ? "long" :
+          label.length > 10 ? "medium" :
+          "short";
+        wordmark.textContent = label;
+        wordmark.title = label;
+        wordmark.setAttribute("aria-label", label + " pollster");
+        visual.appendChild(wordmark);
+      } else {
+        (item.visualCandidates || []).slice(0, 2).forEach(candidateName => {
+          visual.appendChild(briefingCandidateMarker(candidateName));
+        });
+      }
+      article.appendChild(visual);
     }
 
     function renderWhatChanged() {
@@ -2159,25 +3481,40 @@
       items.forEach((item, index) => {
         const article = document.createElement("article");
         article.className = "what-changed-item";
+        article.dataset.signalTone = briefingSignalTone(item.category);
+
         appendBriefingText(article, "what-changed-number", String(index + 1).padStart(2, "0"));
+        const timeline = document.createElement("span");
+        timeline.className = "what-changed-node";
+        timeline.setAttribute("aria-hidden", "true");
+        article.appendChild(timeline);
+
         const body = document.createElement("div");
+        body.className = "what-changed-copy";
         appendBriefingText(body, "what-changed-category", item.category);
-        appendBriefingText(body, "what-changed-headline", item.headline);
+        appendBriefingText(body, "what-changed-headline", item.headline, "h3");
         appendBriefingText(body, "what-changed-context", item.context);
+
         const meta = document.createElement("div");
         meta.className = "what-changed-meta";
         appendBriefingText(meta, "", item.date, "time");
         appendBriefingText(meta, "", item.sourceName, "span");
+
         const source = document.createElement("a");
         source.className = "what-changed-link";
         source.href = item.sourceUrl;
         source.target = "_blank";
         source.rel = "noopener noreferrer";
-        source.textContent = "Evidence ↗";
-        source.setAttribute("aria-label", "Open " + item.category.toLowerCase() + " evidence from " + item.sourceName);
+        source.textContent = "Open source ↗";
+        source.setAttribute(
+          "aria-label",
+          "Open " + item.category.toLowerCase() + " source from " + item.sourceName
+        );
+
         meta.appendChild(source);
         body.appendChild(meta);
         article.appendChild(body);
+        appendBriefingVisual(article, item);
         container.appendChild(article);
       });
     }
@@ -2530,15 +3867,18 @@
           document.querySelectorAll('[data-clock-target="' + target.key + '"]').forEach(metric => {
             const count = metric.querySelector(".clock-count");
             const unit = metric.querySelector(".clock-unit");
+            const mastheadLabel = metric.querySelector(".masthead-countdown-label");
             if (!count || !unit) return;
             count.classList.remove("is-word");
             if (target.held || target.isTargetDay) {
               count.textContent = target.status;
               count.classList.add("is-word");
               unit.textContent = "";
+              if (mastheadLabel) mastheadLabel.textContent = "first round";
             } else {
               count.textContent = target.daysRemaining;
               unit.textContent = "DAYS";
+              if (mastheadLabel) mastheadLabel.textContent = "to first round";
             }
           });
         });
@@ -3242,12 +4582,16 @@
         .toLocaleLowerCase("fr");
     }
 
-    function deriveComparableChange(events, candidateName, latestDate) {
+    function deriveComparableChange(events, candidateName, latestDate, selectedEvent = null) {
       const dayMs = 86400000;
       const retained = [];
-      const currentEvents = events.filter(event =>
-        event.fieldwork_end === latestDate && candidateScore(event, candidateName) !== null
-      );
+      const currentEvents = selectedEvent
+        ? [selectedEvent].filter(event =>
+            event.fieldwork_end === latestDate && candidateScore(event, candidateName) !== null
+          )
+        : events.filter(event =>
+            event.fieldwork_end === latestDate && candidateScore(event, candidateName) !== null
+          );
 
       currentEvents.forEach(current => {
         const currentTime = Date.parse(`${current.fieldwork_end}T00:00:00Z`);
@@ -3328,21 +4672,95 @@
       return { value, meta, tone };
     }
 
-    function renderBars(event) {
-      const ordered = [...event.candidates].sort((a, b) => b.score - a.score);
-      const max = Math.max(...ordered.map(c => c.score), 1);
-      $("#bars").innerHTML = ordered.map(candidate => `
-        <div class="bar-row">
-          <div class="candidate" title="${candidate.name}">${candidate.name}</div>
-          <div class="track"><div class="fill" style="width:${(candidate.score / max) * 100}%"></div></div>
-          <div class="score">${formatScore(candidate.score)}</div>
-        </div>`).join("");
+    function raceCandidateMarker(candidateName) {
+      const initials = escapeHtml(candidateMonogram(candidateName));
+      const portrait = candidatePortraits[candidateName];
+
+      if (!portrait) {
+        return `
+          <span class="candidate-monogram" aria-hidden="true">
+            <span class="candidate-monogram-fallback">${initials}</span>
+          </span>`;
+      }
+
+      return `
+        <span class="candidate-monogram has-portrait">
+          <span class="candidate-monogram-fallback" aria-hidden="true">${initials}</span>
+          <img
+            src="${escapeAttribute(portrait)}"
+            alt="AI-generated portrait of ${escapeAttribute(candidateName)}"
+            loading="lazy"
+            decoding="async"
+            onerror="this.remove()"
+          >
+        </span>`;
+    }
+
+    function renderBars(event, events = []) {
+      const ordered = [...event.candidates]
+        .filter(candidate => candidate && typeof candidate.name === "string" && Number.isFinite(candidate.score))
+        .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "fr"));
+
+      const visible = ordered;
+      const maximumCandidateScore = Math.max(...visible.map(candidate => candidate.score), 1);
+      const bars = $("#bars");
+      bars.scrollTop = 0;
+
+      bars.innerHTML = visible.map(candidate => {
+        const change = deriveComparableChange(events, candidate.name, event.fieldwork_end);
+        const formattedChange = formatComparableChange(change);
+        const scoreWidth = Math.max(0, Math.min(100, candidate.score / maximumCandidateScore * 100));
+        const changeAria = formattedChange.value === "—"
+          ? "No comparable prior result"
+          : "Comparable change " + formattedChange.value;
+        const changeGlyph = formattedChange.tone === "is-positive"
+          ? "\u25B2 "
+          : formattedChange.tone === "is-negative" ? "\u25BC " : "";
+
+        return `
+          <article
+            class="bar-row"
+            aria-label="${escapeAttribute(candidate.name)}, reported score ${escapeAttribute(formatScore(candidate.score))}. ${escapeAttribute(changeAria)}."
+          >
+            <div class="race-candidate">
+              ${raceCandidateMarker(candidate.name)}
+              <div class="candidate" title="${escapeAttribute(candidate.name)}">${escapeHtml(candidate.name)}</div>
+            </div>
+            <div class="track" aria-hidden="true">
+              <div class="fill" style="width:${scoreWidth}%"></div>
+            </div>
+            <div class="score">${escapeHtml(formatScore(candidate.score))}</div>
+            <div
+              class="race-change ${formattedChange.tone}"
+              title="${escapeAttribute(formattedChange.meta)}"
+              aria-label="${escapeAttribute(changeAria + ". " + formattedChange.meta)}"
+            >
+              <strong>${escapeHtml(changeGlyph + formattedChange.value)}</strong>
+            </div>
+          </article>`;
+      }).join("");
+
+      $("#race-more").textContent =
+        `All ${ordered.length} reported ${ordered.length === 1 ? "candidate is" : "candidates are"} available in the scrollable list.`;
     }
 
     function renderMeta(event) {
       const sample = event.sample_size ? event.sample_size.toLocaleString("en-GB") : "not stated";
       const publication = event.publication_date ? formatDate(event.publication_date) : "not stated in dataset";
       const source = safeSourceUrl(event.source_url);
+      $("#latest-title").textContent =
+        event.pollster + " \u00b7 " + formatDate(event.publication_date || event.fieldwork_end);
+      $("#latest-sub").textContent =
+        "Fieldwork " + formatDate(event.fieldwork_start) + "\u2013" + formatDate(event.fieldwork_end) +
+        " \u00b7 Sample " + sample;
+      const sourceLink = $("#race-source");
+      sourceLink.hidden = !source;
+      if (source) {
+        sourceLink.href = source;
+        sourceLink.setAttribute("aria-label", "View full " + event.pollster + " poll results in a new tab");
+      } else {
+        sourceLink.removeAttribute("href");
+      }
       $("#meta").innerHTML =
         "<div>Pollster: <b>" + escapeHtml(event.pollster) + "</b></div>" +
         "<div>Sample: <b>" + escapeHtml(sample) + "</b></div>" +
@@ -4844,7 +6262,7 @@
           $("#latest-title").textContent = event.pollster;
           $("#latest-sub").textContent =
             pollFieldworkLabel(event) + " · first round";
-          renderBars(event);
+          renderBars(event, complete);
           renderMeta(event);
         }
 
