@@ -3,8 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
-  <title>France 2027 Signal Lab — Poll Slice</title>
+  <meta name="description" content="Source-linked polling, election news, candidate coverage and fact checks for France's 2027 presidential race. No averages, no forecast, no voting advice.">
+  <link rel="canonical" href="https://openeventbits.github.io/france-2027-signal-lab/">
+  <meta name="theme-color" content="#050b14">
+  <meta name="color-scheme" content="dark">
+  <meta name="application-name" content="France 2027 Signal Lab">
+  <meta property="og:title" content="France 2027 Signal Lab — Source-Linked Election Signals">
+  <meta property="og:description" content="Source-linked polling, election news, candidate coverage and fact checks for France's 2027 presidential race. No averages, no forecast, no voting advice.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://openeventbits.github.io/france-2027-signal-lab/">
+  <meta property="og:site_name" content="France 2027 Signal Lab">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="France 2027 Signal Lab — Source-Linked Election Signals">
+  <meta name="twitter:description" content="Source-linked polling, election news, candidate coverage and fact checks for France's 2027 presidential race. No averages, no forecast, no voting advice.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3QgeD0iMSIgeT0iMSIgd2lkdGg9IjMwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbD0iIzA3MTUyMiIvPjxwYXRoIGQ9Ik02IDE2QTEwIDEwIDAgMCAxIDE2IDZNMjYgMTZBMTAgMTAgMCAwIDEgMTYgMjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzI2OGNmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNMTAgMTZBNiA2IDAgMCAxIDE2IDEwTTIyIDE2QTYgNiAwIDAgMSAxNiAyMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzVkNWZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjIuNSIgZmlsbD0iIzM1ZDVmZiIvPjwvc3ZnPg==">
+  <title>France 2027 Signal Lab — Source-Linked Election Signals</title>
   <style>
     :root {
       color-scheme: dark;
@@ -43,6 +56,7 @@
       width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--blue);
       border-radius: 8px; color: var(--cyan); box-shadow: inset 0 0 16px rgba(38, 140, 255, .18);
     }
+    .mark svg { width: 24px; height: 24px; display: block; }
     h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
     .tag { color: var(--green); border: 1px solid #145b4a; padding: 4px 7px; font-size: 11px; }
     .status { color: var(--muted); font-size: 12px; text-align: right; }
@@ -1379,7 +1393,14 @@
   <main class="shell">
     <header class="masthead">
       <div class="brand">
-        <div class="mark" aria-hidden="true">⌁</div>
+        <div class="mark" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" focusable="false">
+            <rect x="1" y="1" width="30" height="30" rx="8" fill="#071522"/>
+            <path d="M6 16A10 10 0 0 1 16 6M26 16A10 10 0 0 1 16 26" fill="none" stroke="#268cff" stroke-width="2" stroke-linecap="round"/>
+            <path d="M10 16A6 6 0 0 1 16 10M22 16A6 6 0 0 1 16 22" fill="none" stroke="#35d5ff" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="16" cy="16" r="2.5" fill="#35d5ff"/>
+          </svg>
+        </div>
         <div class="masthead-brand-copy">
           <h1>FRANCE 2027 <span style="color:var(--blue)">SIGNAL LAB</span></h1>
           <div class="masthead-tagline">Live, source-linked signals from the French presidential race.</div>
@@ -1750,7 +1771,7 @@
       </div>
     </section>
     <footer id="method-disclosure">
-      <div>Descriptive polling data · no averages · no forecast · no voting advice</div>
+      <div>Descriptive polling data from public sources · no model · no averages · no forecast · no voting advice</div>
       <div class="ai-portrait-note">Candidate portraits are AI-generated illustrations for visual identification.</div>
     </footer>
   </main>
