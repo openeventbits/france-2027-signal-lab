@@ -1014,11 +1014,12 @@
     .signal-desk-head { align-items: flex-start; padding: 15px 16px 13px; }
     .signal-desk-head .sub { margin-top: 5px; font-size: 11px; }
     .signal-tabs {
-      display: flex; min-width: 0; overflow-x: auto; padding: 0 10px; border-bottom: 1px solid var(--line);
-      background: rgba(3, 11, 20, .3); scrollbar-width: thin;
+      display: flex; min-width: 0; overflow: hidden; padding: 0 10px; border-bottom: 1px solid var(--line);
+      background: rgba(3, 11, 20, .3);
     }
     .signal-tab {
-      flex: 0 0 auto; min-height: 39px; padding: 6px 10px; border: 0; border-bottom: 2px solid transparent;
+      flex: 1 1 0; min-width: 0; min-height: 39px; padding: 6px 10px; border: 0; border-bottom: 2px solid transparent;
+      text-align: center;
       background: transparent; color: var(--muted); font: inherit; font-size: 10px; font-weight: 700;
       letter-spacing: .045em; white-space: nowrap; cursor: pointer;
     }
@@ -1128,9 +1129,335 @@
       .claims-archive-details .claim-publisher { grid-column: 3; grid-row: 3; text-align: right; }
       .claims-archive-details .claim-actions { grid-column: 1 / -1; }
     }
+    /* Runoff Spotlight: featured exact observation */
+    .runoff-hero.has-featured-observation {
+      display: block;
+      grid-template-columns: 1fr;
+      align-items: stretch;
+      padding: 0;
+    }
+    .runoff-featured {
+      min-width: 0;
+      padding: 15px 16px 14px;
+      border-bottom: 1px solid var(--line);
+      background:
+        radial-gradient(circle at 18% 48%, rgba(29, 183, 230, .07), transparent 31%),
+        radial-gradient(circle at 82% 48%, rgba(157, 140, 255, .07), transparent 31%),
+        rgba(5, 18, 30, .38);
+    }
+    .runoff-featured-topline {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      min-width: 0;
+      font-size: 8px;
+      font-weight: 700;
+      line-height: 1.3;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .runoff-featured-label {
+      color: var(--cyan);
+    }
+    .runoff-featured-context {
+      color: #7999ad;
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
+    .runoff-featured-matchup {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 38px minmax(0, 1fr);
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      margin-top: 13px;
+    }
+    .runoff-featured-candidate {
+      display: grid;
+      grid-template-columns: 62px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .runoff-featured-candidate.is-right {
+      grid-template-columns: minmax(0, 1fr) 62px;
+      text-align: right;
+    }
+    .runoff-featured-candidate .runoff-monogram {
+      width: 62px;
+      height: 62px;
+      font-size: 12px;
+    }
+    .runoff-featured-copy {
+      min-width: 0;
+    }
+    .runoff-featured-name {
+      color: #dcecf6;
+      font-size: 10px;
+      font-weight: 750;
+      line-height: 1.2;
+      letter-spacing: .025em;
+      text-transform: uppercase;
+      overflow-wrap: anywhere;
+    }
+    .runoff-featured-score {
+      margin-top: 3px;
+      color: var(--cyan);
+      font-size: clamp(25px, 2.15vw, 32px);
+      font-weight: 780;
+      line-height: 1;
+      letter-spacing: -.035em;
+      font-variant-numeric: tabular-nums;
+    }
+    .runoff-featured-candidate.is-right .runoff-featured-score {
+      color: #ad8bff;
+    }
+    .runoff-featured-versus {
+      display: grid;
+      place-items: center;
+      width: 31px;
+      height: 31px;
+      margin: auto;
+      border: 1px solid #29465a;
+      border-radius: 50%;
+      background: rgba(7, 20, 32, .86);
+      color: #718ea1;
+      font-size: 9px;
+      font-weight: 750;
+      letter-spacing: .05em;
+    }
+    .runoff-featured-summary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      margin-top: 11px;
+    }
+    .runoff-featured-margin {
+      color: #d9e9f3;
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: .025em;
+      text-transform: uppercase;
+    }
+    .runoff-featured-source {
+      color: var(--cyan);
+      font-size: 9px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .runoff-featured-source:hover {
+      text-decoration: underline;
+    }
+    .runoff-featured-source:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 3px;
+    }
+
+    .runoff-hero.has-featured-observation .runoff-supporting {
+      width: 100%;
+      min-width: 0;
+      padding: 12px 16px 14px;
+      border-left: 0;
+      background: rgba(3, 13, 23, .18);
+    }
+
+    @media (max-width: 719px) {
+      .runoff-featured {
+        padding: 14px 12px 13px;
+      }
+      .runoff-featured-topline {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .runoff-featured-context {
+        text-align: left;
+      }
+      .runoff-featured-matchup {
+        grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr);
+        gap: 6px;
+      }
+      .runoff-featured-candidate,
+      .runoff-featured-candidate.is-right {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        gap: 7px;
+        text-align: center;
+      }
+      .runoff-featured-candidate.is-right {
+        flex-direction: column-reverse;
+      }
+      .runoff-featured-candidate .runoff-monogram {
+        width: 54px;
+        height: 54px;
+      }
+      .runoff-featured-name {
+        font-size: 9px;
+      }
+      .runoff-featured-score {
+        font-size: 24px;
+      }
+      .runoff-featured-versus {
+        width: 28px;
+        height: 28px;
+      }
+    }
+    /* Intelligence row: fixed chrome with internally scrollable content */
+    .signal-toolbar {
+      display: flex;
+      align-items: center;
+      min-height: 45px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(3, 11, 20, .22);
+    }
+    .signal-toolbar-copy {
+      padding: 0 13px;
+      color: #7898ad;
+      font-size: 9px;
+      font-weight: 700;
+      line-height: 1.3;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+    .signal-toolbar-copy[hidden],
+    .signal-desk-action[hidden] {
+      display: none;
+    }
+    .signal-toolbar .signal-candidate-toolbar {
+      flex: 1 1 auto;
+      min-height: 45px;
+      padding: 6px 12px;
+      border: 0;
+      background: transparent;
+    }
+    .signal-desk-action {
+      min-width: 0;
+      border-top: 1px solid var(--line);
+      background: rgba(3, 11, 20, .24);
+    }
+    .signal-desk-action .claims-archive-details {
+      border-top: 0;
+    }
+    .runoff-body-scroll,
+    .signal-content-scroll {
+      min-width: 0;
+      min-height: 0;
+      scrollbar-width: thin;
+      scrollbar-color: #2a607e #07111d;
+    }
+    .runoff-body-scroll::-webkit-scrollbar,
+    .signal-content-scroll::-webkit-scrollbar {
+      width: 8px;
+    }
+    .runoff-body-scroll::-webkit-scrollbar-track,
+    .signal-content-scroll::-webkit-scrollbar-track {
+      background: #07111d;
+    }
+    .runoff-body-scroll::-webkit-scrollbar-thumb,
+    .signal-content-scroll::-webkit-scrollbar-thumb {
+      border: 2px solid #07111d;
+      border-radius: 999px;
+      background: #2a607e;
+    }
+    .runoff-body-scroll::-webkit-scrollbar-thumb:hover,
+    .signal-content-scroll::-webkit-scrollbar-thumb:hover {
+      background: #36799c;
+    }
+
+    @media (min-width: 1120px) {
+      .signal-desk-head,
+      .signal-tabs,
+      .signal-toolbar,
+      .signal-desk-note {
+        flex: 0 0 auto;
+      }
+      .signal-tabs {
+        height: 40px;
+        min-height: 40px;
+        position: relative;
+        z-index: 2;
+      }
+      .signal-toolbar {
+        height: 45px;
+        min-height: 45px;
+        position: relative;
+        z-index: 1;
+      }
+      .intelligence-grid {
+        align-items: start;
+      }
+      .intelligence-grid > .panel {
+        height: 430px;
+      }
+      .intelligence-grid .closest-runoff,
+      .signal-desk {
+        overflow: hidden;
+      }
+      .runoff-body-scroll,
+      .signal-content-scroll {
+        flex: 1 1 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+      }
+      .runoff-body-scroll:focus-visible,
+      .signal-content-scroll:focus-visible {
+        outline: 2px solid var(--cyan);
+        outline-offset: -3px;
+      }
+      .signal-panel:not([hidden]) {
+        display: block;
+        min-height: 0;
+      }
+      .signal-list {
+        min-height: 100%;
+      }
+      .claims-archive-details .archive-scroll {
+        max-height: 190px;
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+      }
+      .claims-archive-details .claims-scroll {
+        max-height: 360px;
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+      }
+    }
+
     @media (max-width: 1119px) {
-      .intelligence-grid { grid-template-columns: 1fr; }
-      .polling-explorer-layout { grid-template-columns: 1fr; align-items: start; }
+      .intelligence-grid {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+      }
+      .intelligence-grid > .panel {
+        height: auto;
+      }
+      .intelligence-grid .closest-runoff,
+      .signal-desk,
+      .runoff-body-scroll {
+        overflow: visible;
+      }
+      .signal-content-scroll {
+        max-height: min(60vh, 480px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+      }
+      .claims-archive-details .archive-scroll {
+        max-height: 180px;
+        overflow-y: auto;
+      }
+      .claims-archive-details .claims-scroll {
+        max-height: min(55vh, 420px);
+        overflow-y: auto;
+      }
+      .polling-explorer-layout {
+        grid-template-columns: 1fr;
+        align-items: start;
+      }
     }
     @media (max-width: 719px) {
       .intelligence-grid { gap: 12px; margin-top: 12px; }
@@ -2869,7 +3196,100 @@
       }
     }
 
-  </style>
+
+    /* Runoff evidence integrated into the compact header */
+    .intelligence-grid .closest-runoff-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 22px;
+      padding: 14px 16px 13px;
+    }
+    .runoff-head-title {
+      min-width: 0;
+    }
+    .runoff-head-meta {
+      display: grid;
+      justify-items: end;
+      gap: 6px;
+      min-width: 0;
+    }
+    .intelligence-grid .runoff-head-meta .runoff-evidence {
+      display: grid;
+      grid-template-columns: repeat(3, auto);
+      align-items: stretch;
+      gap: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }
+    .intelligence-grid .runoff-head-meta .runoff-evidence-item {
+      display: grid;
+      align-content: center;
+      gap: 3px;
+      min-width: 0;
+      padding: 0 13px;
+      border-left: 1px solid var(--line);
+    }
+    .intelligence-grid .runoff-head-meta .runoff-evidence-item:first-child {
+      padding-left: 0;
+      border-left: 0;
+    }
+    .intelligence-grid .runoff-head-meta .runoff-evidence-item:last-child {
+      padding-right: 0;
+    }
+    .intelligence-grid .runoff-head-meta .runoff-evidence-label {
+      color: #66859b;
+      font-size: 7px;
+      line-height: 1.2;
+      letter-spacing: .14em;
+      white-space: nowrap;
+    }
+    .intelligence-grid .runoff-head-meta .runoff-evidence-value {
+      color: #d5e8f3;
+      font-size: 10px;
+      line-height: 1.2;
+      letter-spacing: .025em;
+      white-space: nowrap;
+    }
+    .intelligence-grid .runoff-head-meta .runoff-status {
+      justify-self: end;
+      max-width: 220px;
+    }
+
+    @media (max-width: 719px) {
+      .intelligence-grid .closest-runoff-head {
+        grid-template-columns: 1fr;
+        align-items: start;
+        gap: 11px;
+      }
+      .runoff-head-meta {
+        width: 100%;
+        justify-items: stretch;
+      }
+      .intelligence-grid .runoff-head-meta .runoff-evidence {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        width: 100%;
+      }
+      .intelligence-grid .runoff-head-meta .runoff-evidence-item {
+        padding-inline: 8px;
+      }
+      .intelligence-grid .runoff-head-meta .runoff-evidence-item:first-child {
+        padding-left: 0;
+      }
+      .intelligence-grid .runoff-head-meta .runoff-evidence-item:last-child {
+        padding-right: 0;
+      }
+      .intelligence-grid .runoff-head-meta .runoff-evidence-label,
+      .intelligence-grid .runoff-head-meta .runoff-evidence-value {
+        white-space: normal;
+      }
+      .intelligence-grid .runoff-head-meta .runoff-status {
+        justify-self: start;
+        max-width: 100%;
+      }
+    }
+</style>
 </head>
 <body>
   <main class="shell">
@@ -3017,17 +3437,19 @@
     <section class="intelligence-grid" aria-label="Election intelligence">
       <article class="panel closest-runoff runoff-spotlight" aria-labelledby="closest-runoff-title">
         <div class="panel-head closest-runoff-head">
-          <div>
+          <div class="runoff-head-title">
             <div class="eyebrow">Second-round tests</div>
             <h2 id="closest-runoff-title">RUNOFF SPOTLIGHT</h2>
-            <div class="sub">Closest matchup in the latest comparable pollster test.</div>
           </div>
-          <div class="runoff-status" id="closest-runoff-status">LOADING RUNOFF TEST</div>
+          <div class="runoff-head-meta">
+            <div id="closest-runoff-evidence" class="runoff-evidence" aria-label="Runoff test evidence context">
+              <div class="runoff-evidence-item"><span class="runoff-evidence-label">Fieldwork</span><span class="runoff-evidence-value">Loading…</span></div>
+            </div>
+            <div class="runoff-status" id="closest-runoff-status" hidden>LOADING RUNOFF TEST</div>
+          </div>
         </div>
-        <div id="closest-runoff-evidence" class="runoff-evidence" aria-label="Runoff test evidence context">
-          <div class="runoff-evidence-item"><span class="runoff-evidence-label">Fieldwork</span><span class="runoff-evidence-value">Loading…</span></div>
-        </div>
-        <div class="runoff-layout" id="closest-runoff-result" aria-live="polite">
+        <div class="runoff-body-scroll" id="runoff-body-scroll" tabindex="0" aria-label="Runoff Spotlight results and tested matchup evidence">
+          <div class="runoff-layout" id="closest-runoff-result" aria-live="polite">
           <div class="runoff-hero" id="closest-runoff-hero">
             <div class="runoff-conclusion">Loading the latest comparable runoff test…</div>
             <div class="runoff-secondary">Reported poll results will remain separate.</div>
@@ -3040,6 +3462,7 @@
             <p class="runoff-context-sub">Loading common matchup comparisons…</p>
           </div>
         </details>
+        </div>
         <div class="runoff-disclosure" id="closest-runoff-disclosure">Second-round polling, not a forecast. Each poll is shown separately; no average or probability is calculated.</div>
       </article>
 
@@ -3048,7 +3471,6 @@
           <div>
             <div class="eyebrow">Live sources</div>
             <h2 id="signal-desk-title">SIGNAL DESK</h2>
-            <div class="sub">Latest direct publisher coverage and independent fact checks.</div>
           </div>
         </div>
         <div class="signal-tabs" role="tablist" aria-label="Signal Desk views">
@@ -3056,26 +3478,32 @@
           <button class="signal-tab" id="signal-tab-candidates" type="button" role="tab" aria-selected="false" aria-controls="signal-panel-candidates" tabindex="-1" data-signal-tab="candidate_watch">CANDIDATE COVERAGE <span class="signal-tab-count" data-news-wire-count="candidate_watch">—</span></button>
           <button class="signal-tab" id="signal-tab-fact-checks" type="button" role="tab" aria-selected="false" aria-controls="signal-panel-fact-checks" tabindex="-1" data-signal-tab="fact_checks">FACT CHECKS <span class="signal-tab-count" data-claims-count>—</span></button>
         </div>
-        <div class="signal-candidate-toolbar" id="signal-candidate-toolbar" hidden>
-          <label for="candidate-coverage-select">Candidate</label>
-          <select id="candidate-coverage-select" disabled>
-            <option value="">All candidates</option>
-          </select>
+        <div class="signal-toolbar" id="signal-toolbar">
+          <div class="signal-toolbar-copy" id="signal-toolbar-copy">Latest verified publisher items</div>
+          <div class="signal-candidate-toolbar" id="signal-candidate-toolbar" hidden>
+            <label for="candidate-coverage-select">Candidate</label>
+            <select id="candidate-coverage-select" disabled>
+              <option value="">All candidates</option>
+            </select>
+          </div>
         </div>
-        <section class="signal-panel" id="signal-panel-election" role="tabpanel" aria-labelledby="signal-tab-election">
+        <div class="signal-content-scroll" id="signal-content-scroll" tabindex="0" aria-label="Signal Desk results and archive">
+          <section class="signal-panel" id="signal-panel-election" role="tabpanel" aria-labelledby="signal-tab-election">
           <div class="signal-list" id="election-news-list" aria-live="polite">
             <div class="signal-state">Loading direct publisher headlines…</div>
           </div>
         </section>
-        <section class="signal-panel" id="signal-panel-candidates" role="tabpanel" aria-labelledby="signal-tab-candidates" hidden>
+          <section class="signal-panel" id="signal-panel-candidates" role="tabpanel" aria-labelledby="signal-tab-candidates" hidden>
           <div class="signal-list" id="candidate-coverage-list" aria-live="polite">
             <div class="signal-state">Loading candidate coverage…</div>
           </div>
         </section>
-        <section class="signal-panel" id="signal-panel-fact-checks" role="tabpanel" aria-labelledby="signal-tab-fact-checks" hidden>
+          <section class="signal-panel" id="signal-panel-fact-checks" role="tabpanel" aria-labelledby="signal-tab-fact-checks" hidden>
           <div class="signal-list fact-check-list" id="fact-check-list" aria-live="polite">
             <div class="signal-state">Loading independent fact checks…</div>
           </div>
+        </section>
+        <div class="signal-desk-action" id="signal-desk-action" hidden>
           <details class="claims-archive-details" id="claims-archive-details">
             <summary>Open full archive →</summary>
             <div class="claims-controls" aria-label="Filter the full claims archive">
@@ -3109,7 +3537,8 @@
               </div>
             </section>
           </details>
-        </section>
+        </div>
+        </div>
         <div class="signal-desk-note" id="news-wire-source-note" aria-live="polite">Loading source metadata…</div>
       </article>
     </section>
@@ -3849,10 +4278,23 @@
         const panel = document.getElementById(button.getAttribute("aria-controls"));
         if (panel) panel.hidden = !active;
       });
-      $("#signal-candidate-toolbar").hidden = tabName !== "candidate_watch";
+      const candidateToolbar = $("#signal-candidate-toolbar");
+      const toolbarCopy = $("#signal-toolbar-copy");
+      const signalAction = $("#signal-desk-action");
+
+      candidateToolbar.hidden = tabName !== "candidate_watch";
+      toolbarCopy.hidden = tabName === "candidate_watch";
+      toolbarCopy.textContent = tabName === "fact_checks"
+        ? "Independent publisher reviews"
+        : "Latest verified publisher items";
+      signalAction.hidden = tabName !== "fact_checks";
+
       if (tabName === "election_news") renderElectionNews();
       if (tabName === "candidate_watch") renderCandidateCoverage();
       if (tabName === "fact_checks" && claimsPayload) renderFactChecks();
+
+      const signalScroll = $("#signal-content-scroll");
+      if (signalScroll) signalScroll.scrollTop = 0;
       if (moveFocus) tab.focus();
     }
 
@@ -4571,30 +5013,92 @@
     function renderAgreedRunoff(payload) {
       const selected = payload.selected_matchup;
       const [candidateA, candidateB] = selected.candidates;
-      const conclusion = `${runoffShortName(candidateA)}–${runoffShortName(candidateB)} is the closest tested runoff`;
-      $("#closest-runoff-hero").className = "runoff-hero has-supporting-polls";
+      const featured = [...selected.results].sort((a, b) =>
+        a.margin - b.margin ||
+        String(a.pollster).localeCompare(String(b.pollster), "fr")
+      )[0];
+
+      const featuredScores = selected.candidates.map(candidateName =>
+        featured.candidates.find(candidate => candidate.name === candidateName)?.score
+      );
+
+      if (!featuredScores.every(Number.isFinite)) {
+        throw new Error("Featured runoff result candidates do not match the selected matchup");
+      }
+
+      const leaderIndex = featuredScores[0] === featuredScores[1]
+        ? -1
+        : featuredScores[0] > featuredScores[1] ? 0 : 1;
+
+      const featuredMargin = leaderIndex < 0
+        ? "Tied"
+        : `${runoffShortName(selected.candidates[leaderIndex])} +${featured.margin}`;
+
+      const featuredFieldwork = payload.fieldwork_window
+        ? formatRunoffFieldwork(payload.fieldwork_window)
+        : "";
+
+      const featuredContext = [
+        featured.pollster,
+        featuredFieldwork
+      ].filter(Boolean).join(" · ");
+
+      $("#closest-runoff-hero").className =
+        "runoff-hero has-supporting-polls has-featured-observation";
+
       $("#closest-runoff-hero").innerHTML = `
-        <div class="runoff-matchup">
-          <div class="runoff-conclusion">${escapeHtml(conclusion)}</div>
-          <div class="runoff-head-to-head">
-            <div class="runoff-candidates">
-              <div class="runoff-candidate">
-                ${runoffCandidateMarker(candidateA)}
-                <div class="runoff-candidate-name">${escapeHtml(candidateA)}</div>
-              </div>
-              <div class="runoff-centre" aria-label="Fifty percent centre marker"><span>50</span></div>
-              <div class="runoff-candidate is-right">
-                ${runoffCandidateMarker(candidateB)}
-                <div class="runoff-candidate-name">${escapeHtml(candidateB)}</div>
+        <section
+          class="runoff-featured"
+          aria-label="Closest reported observation: ${escapeAttribute(candidateA)} ${featuredScores[0]} percent, ${escapeAttribute(candidateB)} ${featuredScores[1]} percent, reported by ${escapeAttribute(featured.pollster)}"
+        >
+          <div class="runoff-featured-topline">
+            <span class="runoff-featured-label">Closest reported observation</span>
+            <span class="runoff-featured-context">${escapeHtml(featuredContext)}</span>
+          </div>
+
+          <div class="runoff-featured-matchup">
+            <div class="runoff-featured-candidate is-left">
+              ${runoffCandidateMarker(candidateA)}
+              <div class="runoff-featured-copy">
+                <div class="runoff-featured-name">${escapeHtml(candidateA)}</div>
+                <div class="runoff-featured-score">${escapeHtml(featuredScores[0])}%</div>
               </div>
             </div>
+
+            <div class="runoff-featured-versus" aria-hidden="true">VS</div>
+
+            <div class="runoff-featured-candidate is-right">
+              <div class="runoff-featured-copy">
+                <div class="runoff-featured-name">${escapeHtml(candidateB)}</div>
+                <div class="runoff-featured-score">${escapeHtml(featuredScores[1])}%</div>
+              </div>
+              ${runoffCandidateMarker(candidateB)}
+            </div>
           </div>
-          ${payload.secondary_message ? `<div class="runoff-secondary">${escapeHtml(payload.secondary_message)}</div>` : ""}
-        </div>
+
+          <div class="runoff-featured-summary">
+            <span class="runoff-featured-margin">${escapeHtml(featuredMargin)}</span>
+            ${runoffSourceLink(
+              featured,
+              selected.candidates,
+              "runoff-featured-source"
+            )}
+          </div>
+
+        </section>
+
         <section class="runoff-supporting" aria-labelledby="runoff-supporting-title">
-          <h3 class="runoff-supporting-title" id="runoff-supporting-title">SUPPORTING POLLS</h3>
-          <div class="runoff-results">${selected.results.slice(0, 3).map(result => runoffResultRow(result, selected.candidates)).join("")}</div>
+          <h3 class="runoff-supporting-title" id="runoff-supporting-title">
+            SUPPORTING POLLS
+          </h3>
+          <div class="runoff-results">
+            ${selected.results
+              .slice(0, 3)
+              .map(result => runoffResultRow(result, selected.candidates))
+              .join("")}
+          </div>
         </section>`;
+
       renderRunoffContext(payload, selected.matchup_key);
     }
 
@@ -4635,10 +5139,11 @@
       const status = $("#closest-runoff-status");
       status.className = `runoff-status is-${payload.status}`;
       status.textContent = payload.status === "agree"
-        ? payload.pollster_count === 2 ? "BOTH POLLSTERS AGREE" : "POLLSTERS AGREE"
+        ? `SAME CLOSEST MATCHUP · ${payload.pollster_count} ${payload.pollster_count === 1 ? "POLLSTER" : "POLLSTERS"}`
         : payload.status === "split" ? "POLLSTERS SPLIT"
           : payload.status === "ambiguous" ? "NO SINGLE CLOSEST MATCHUP"
             : "NOT ENOUGH COMPARABLE RUNOFF POLLS";
+      status.hidden = payload.status === "agree";
       renderRunoffEvidence(payload);
       renderRunoffDisclosure(payload);
       if (payload.status === "agree") renderAgreedRunoff(payload);
@@ -4664,6 +5169,7 @@
         })
         .then(renderClosestRunoff)
         .catch(error => {
+          $("#closest-runoff-status").hidden = false;
           $("#closest-runoff-status").className = "runoff-status is-insufficient";
           $("#closest-runoff-status").textContent = "RUNOFF TEST UNAVAILABLE";
           $("#closest-runoff-evidence").innerHTML = '<div class="runoff-evidence-item"><span class="runoff-evidence-label">Status</span><span class="runoff-evidence-value">Could not load runoff evidence</span></div>';
@@ -6329,6 +6835,7 @@
     }
 
     initializePollingExplorerTabs();
+
     renderMastheadMetadata();
     renderWhatChanged();
     renderContextStrip();
