@@ -1213,86 +1213,152 @@
       .claim-publisher { font-size: 8px; }
     }
 
-    #legend {
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      padding: 8px 8px 12px;
-      scrollbar-width: thin;
+    .candidate-history { margin-top: 16px; }
+    .candidate-history-head { align-items: center; }
+    .candidate-history-head h2 { font-size: 21px; letter-spacing: -.015em; }
+    .candidate-history-toolbar {
+      display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap;
+      gap: 9px 14px; padding: 10px 12px; border-bottom: 1px solid var(--line);
+      background: rgba(3, 11, 20, .3);
     }
-    .candidate-chip {
-      flex: 0 0 auto;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      border: 1px solid #173650;
-      background: #081725;
-      color: #7895aa;
-      padding: 6px 9px;
-      font: inherit;
-      font-size: 11px;
-      cursor: pointer;
+    .candidate-history-selects { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px; min-width: 0; }
+    .candidate-history-select-label {
+      display: grid; gap: 4px; min-width: min(240px, 100%); color: var(--muted);
+      font-size: 8px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
     }
-    .candidate-chip:hover {
-      border-color: #2873a8;
-      color: #b9d9ef;
+    .candidate-history-select {
+      width: 100%; min-height: 36px; padding: 6px 29px 6px 9px; border: 1px solid #23445d;
+      border-radius: 4px; background: #071522; color: var(--text); font: inherit; font-size: 10px;
     }
-    .candidate-chip.active {
-      border-color: #2e9ee8;
-      color: #e8f6ff;
-      background: #0b2032;
+    .candidate-history-ranges { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+    .candidate-history-range {
+      min-height: 34px; padding: 5px 9px; border: 1px solid #23445d; border-radius: 999px;
+      background: #071522; color: var(--muted); font: inherit; font-size: 9px; font-weight: 700;
+      letter-spacing: .055em; cursor: pointer;
     }
-
-
-    .chart-wrap {
-      position: relative;
+    .candidate-history-range:hover { border-color: #2873a8; color: var(--text); }
+    .candidate-history-range.active { border-color: var(--blue); background: #0b2032; color: var(--cyan); }
+    .candidate-history-select:focus-visible,
+    .candidate-history-range:focus-visible,
+    .candidate-history-source:focus-visible,
+    .history-point-link:focus-visible {
+      outline: 2px solid var(--cyan); outline-offset: 2px;
     }
-
-    .poll-tooltip {
-      position: absolute;
-      z-index: 20;
-      min-width: 190px;
-      max-width: 260px;
-      padding: 11px 13px;
-      border: 1px solid #2e9ee8;
-      background: rgba(4, 15, 25, 0.97);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-      color: #dcecff;
-      pointer-events: none;
-      opacity: 0;
-      transform: translateY(4px);
-      transition: opacity 100ms ease, transform 100ms ease;
+    .candidate-history-workspace {
+      display: grid; grid-template-columns: minmax(0, 8fr) minmax(300px, 4fr); gap: 16px;
+      align-items: start; min-width: 0; padding: 12px; background: rgba(3, 11, 20, .2);
     }
-
-    .poll-tooltip.visible {
-      opacity: 1;
-      transform: translateY(0);
+    .candidate-history-main,
+    .candidate-history-detail {
+      min-width: 0; border: 1px solid #183a54; border-radius: 6px; background: rgba(8, 23, 37, .8);
     }
-
-    .poll-tooltip-name {
-      color: #35d5ff;
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-bottom: 5px;
+    .candidate-history-detail {
+      height: 580px; display: flex; flex-direction: column; overflow: hidden;
     }
-
-    .poll-tooltip-score {
-      color: #ffffff;
-      font-size: 25px;
-      font-weight: 700;
-      line-height: 1;
-      margin-bottom: 8px;
+    #candidate-history-detail {
+      flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-gutter: stable;
     }
-
-    .poll-tooltip-meta {
-      color: #9bbbd2;
-      font-size: 11px;
-      line-height: 1.55;
+    #candidate-history-detail:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
+    .candidate-history-inner-head {
+      padding: 11px 12px; border-bottom: 1px solid #183a54; background: rgba(10, 29, 46, .78);
     }
-
-    .poll-tooltip-meta b {
-      color: #e4f4ff;
-      font-weight: 600;
+    .candidate-history-inner-title { margin: 0; color: #dcecf6; font-size: 12px; letter-spacing: .08em; }
+    .candidate-history-inner-sub { margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.45; }
+    .candidate-history-summary {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+      gap: 5px 12px; padding: 8px 10px; border-bottom: 1px solid #183a54;
+      color: var(--muted); font-size: 10px; line-height: 1.4;
+    }
+    .candidate-history-summary strong { color: #cfe2ed; font-weight: 600; }
+    .candidate-history-chart-wrap {
+      position: relative; min-width: 0; padding: 8px 8px 2px; background: rgba(3, 11, 20, .18);
+    }
+    #history-chart { width: 100%; height: 420px; display: block; }
+    .history-series-line {
+      fill: none; stroke-width: 1.5; opacity: .32; vector-effect: non-scaling-stroke;
+    }
+    .history-point { vector-effect: non-scaling-stroke; }
+    .history-point-link { cursor: pointer; }
+    .history-point-link:hover .history-point,
+    .history-point-link:focus .history-point { stroke: #ffffff; stroke-width: 2.4; }
+    .candidate-history-legend {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 7px 16px;
+      padding: 8px 10px 10px; border-top: 1px solid #183a54; color: var(--muted); font-size: 9px;
+    }
+    .candidate-history-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .candidate-history-legend-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    .candidate-history-legend-dot.is-compare { background: transparent !important; border: 2px solid #9d8cff; }
+    .candidate-history-note {
+      padding: 8px 10px; border-top: 1px solid #183a54; color: #718da0; font-size: 9px; line-height: 1.5;
+    }
+    .candidate-history-detail-body { display: grid; gap: 13px; padding: 12px; }
+    .candidate-history-profile { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .candidate-history-profile .candidate-monogram { flex: 0 0 auto; width: 42px; height: 42px; }
+    .candidate-history-profile-copy { min-width: 0; }
+    .candidate-history-name { color: #edf7fc; font-size: 18px; font-weight: 750; line-height: 1.2; overflow-wrap: anywhere; }
+    .candidate-history-record { margin-top: 4px; color: var(--muted); font-size: 9px; line-height: 1.4; }
+    .candidate-history-series-label {
+      display: inline-flex; width: fit-content; margin-top: 5px; padding: 3px 7px;
+      border: 1px solid #286486; border-radius: 999px; color: #8ce8ff;
+      font-size: 8px; font-weight: 700; letter-spacing: .08em;
+    }
+    .candidate-history-series-label.is-compare { border-color: #5b548d; color: #cfc7ff; }
+    .candidate-history-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+    .candidate-history-metric {
+      min-width: 0; padding: 8px; border: 1px solid #17384f; border-radius: 4px;
+      background: rgba(7, 21, 34, .62);
+    }
+    .candidate-history-metric-label {
+      color: #6f8ea3; font-size: 8px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    }
+    .candidate-history-metric-value { margin-top: 4px; color: #d3e3ec; font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
+    .candidate-history-section h4 {
+      margin: 0 0 7px; color: #8fb5ca; font-size: 9px; letter-spacing: .11em; text-transform: uppercase;
+    }
+    .candidate-history-observations { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+    .candidate-history-observation {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 9px;
+      padding: 8px; border: 1px solid #17384f; border-radius: 4px; background: rgba(7, 21, 34, .46);
+    }
+    .candidate-history-observation-top { min-width: 0; color: #cfe1ec; font-size: 10px; font-weight: 650; overflow-wrap: anywhere; }
+    .candidate-history-observation-score { color: var(--cyan); font-variant-numeric: tabular-nums; }
+    .candidate-history-observation.is-compare .candidate-history-observation-score { color: #bfb4ff; }
+    .candidate-history-observation-meta { color: var(--muted); font-size: 9px; line-height: 1.4; overflow-wrap: anywhere; }
+    .candidate-history-source { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 9px; white-space: nowrap; }
+    .candidate-history-state { padding: 24px 12px; color: var(--muted); font-size: 11px; }
+    .candidate-history-state.error { color: #ff8b8b; }
+    .history-tooltip {
+      position: absolute; z-index: 20; min-width: 220px; max-width: min(330px, calc(100% - 20px));
+      padding: 11px 13px; border: 1px solid var(--cyan); background: rgba(4, 15, 25, .98);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .45); color: #dcecff; pointer-events: none;
+      opacity: 0; transform: translateY(4px); transition: opacity 100ms ease, transform 100ms ease;
+    }
+    .history-tooltip.visible { opacity: 1; transform: translateY(0); }
+    .history-tooltip-name { color: var(--cyan); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .history-tooltip-score { margin-top: 4px; color: #fff; font-size: 24px; font-weight: 750; line-height: 1; }
+    .history-tooltip-meta { margin-top: 7px; color: #9bbbd2; font-size: 10px; line-height: 1.5; }
+    .history-tooltip-meta b { color: #e4f4ff; font-weight: 600; }
+    @media (max-width: 1119px) {
+      .candidate-history-workspace { grid-template-columns: 1fr; }
+      .candidate-history-detail { height: auto; overflow: visible; }
+      #candidate-history-detail { overflow: visible; }
+    }
+    @media (max-width: 719px) {
+      .candidate-history { margin-top: 12px; }
+      .candidate-history-head { align-items: flex-start; }
+      .candidate-history-toolbar { align-items: stretch; flex-direction: column; padding: 9px; }
+      .candidate-history-selects { align-items: stretch; flex-direction: column; }
+      .candidate-history-select-label { width: 100%; min-width: 0; }
+      .candidate-history-ranges { width: 100%; }
+      .candidate-history-range { flex: 1 1 0; }
+      .candidate-history-workspace { gap: 12px; padding: 8px; }
+      #history-chart { height: 280px; }
+      .candidate-history-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 430px) {
+      .candidate-history-metrics { grid-template-columns: 1fr; }
+      .candidate-history-observation { grid-template-columns: 1fr; }
+      .candidate-history-source { grid-column: 1; grid-row: auto; justify-self: start; }
     }
 
   </style>
@@ -1616,21 +1682,60 @@
       </div>
     </section>
 
-    <section class="grid history-grid">
-      <article class="panel">
-        <div class="panel-head">
-          <div>
-            <div class="eyebrow">Candidate polling history</div>
-            <h2>All reported scores</h2>
-            <div class="sub" id="trend-sub">Every first-round observation; multiple points on one date reflect alternative hypotheses.</div>
+    <section class="panel candidate-history" aria-labelledby="candidate-history-title">
+      <div class="panel-head candidate-history-head">
+        <div>
+          <div class="eyebrow">Candidate polling history</div>
+          <h2 id="candidate-history-title">REPORTED SCORES OVER TIME</h2>
+          <div class="sub">Inspect one candidate’s recent raw record and optionally add one subdued comparison.</div>
+        </div>
+      </div>
+      <div class="candidate-history-toolbar" aria-label="Candidate history controls">
+        <div class="candidate-history-selects">
+          <label class="candidate-history-select-label" for="history-primary-select">Primary candidate
+            <select class="candidate-history-select" id="history-primary-select" disabled>
+              <option value="">Loading candidates…</option>
+            </select>
+          </label>
+          <label class="candidate-history-select-label" for="history-compare-select">Compare with
+            <select class="candidate-history-select" id="history-compare-select" disabled>
+              <option value="">No comparison</option>
+            </select>
+          </label>
+        </div>
+        <div class="candidate-history-ranges" role="group" aria-label="Candidate history date range">
+          <button class="candidate-history-range" type="button" data-history-range="3" aria-pressed="false">3 MONTHS</button>
+          <button class="candidate-history-range active" type="button" data-history-range="6" aria-pressed="true">6 MONTHS</button>
+          <button class="candidate-history-range" type="button" data-history-range="12" aria-pressed="false">12 MONTHS</button>
+          <button class="candidate-history-range" type="button" data-history-range="all" aria-pressed="false">ALL</button>
+        </div>
+      </div>
+      <div class="candidate-history-workspace">
+        <section class="candidate-history-main" aria-labelledby="candidate-history-chart-title">
+          <div class="candidate-history-inner-head">
+            <h3 class="candidate-history-inner-title" id="candidate-history-chart-title">RAW OBSERVATIONS</h3>
+            <div class="candidate-history-inner-sub">Every plotted point is a reported poll observation and opens its source. Lines connect repeated observations only when both the exact scenario key and pollster are unchanged.</div>
           </div>
-        </div>
-        <div class="chart-wrap" id="chart-wrap">
-          <svg id="trend" viewBox="0 0 640 300" role="img" aria-label="All reported candidate polling scores over time"></svg>
-          <div id="poll-tooltip" class="poll-tooltip" role="status"></div>
-          <div class="legend" id="legend"></div>
-        </div>
-      </article>
+          <div class="candidate-history-summary" id="candidate-history-summary" aria-live="polite">
+            <span>Deriving candidate histories…</span>
+          </div>
+          <div class="candidate-history-chart-wrap" id="candidate-history-chart-wrap">
+            <svg id="history-chart" role="img" aria-label="Selected candidate polling history"></svg>
+            <div class="history-tooltip" id="history-tooltip" role="status"></div>
+          </div>
+          <div class="candidate-history-legend" id="candidate-history-legend" aria-label="Candidate history legend"></div>
+          <div class="candidate-history-note">Raw reported scores only. Alternative hypotheses remain separate. No average, smoothing, forecast or causal inference is calculated.</div>
+        </section>
+        <aside class="candidate-history-detail" aria-label="Selected candidate history detail">
+          <div class="candidate-history-inner-head">
+            <h3 class="candidate-history-inner-title">SELECTED HISTORY</h3>
+            <div class="candidate-history-inner-sub">Record depth, latest reported values and direct source access.</div>
+          </div>
+          <div id="candidate-history-detail" aria-live="polite" tabindex="0" aria-label="Selected candidate history details and latest observations">
+            <div class="candidate-history-state">Loading selected history…</div>
+          </div>
+        </aside>
+      </div>
     </section>
     <footer id="method-disclosure">
       <div>Descriptive polling data · no averages · no forecast · no voting advice</div>
@@ -3014,16 +3119,27 @@
           ? '<a href="' + escapeAttribute(source) + '" target="_blank" rel="noopener noreferrer">Open source ↗</a>'
           : "Source unavailable") + "</div>";
     }
-    function renderTrend(events) {
-      const observations = new Map();
+    const candidateHistoryState = {
+      primary: "",
+      compare: "",
+      range: "6",
+      model: null,
+      resizeBound: false,
+      resizeTimer: null
+    };
+
+    function deriveCandidateHistory(events) {
+      const candidates = new Map();
+      let latestDate = "";
 
       events.forEach(event => {
+        if (event.fieldwork_end > latestDate) latestDate = event.fieldwork_end;
         event.candidates.forEach(candidate => {
-          if (!observations.has(candidate.name)) {
-            observations.set(candidate.name, []);
+          if (!candidates.has(candidate.name)) {
+            candidates.set(candidate.name, { name: candidate.name, observations: [] });
           }
-
-          observations.get(candidate.name).push({
+          candidates.get(candidate.name).observations.push({
+            candidateName: candidate.name,
             date: event.fieldwork_end,
             score: candidate.score,
             event
@@ -3031,251 +3147,401 @@
         });
       });
 
-      observations.forEach(points => {
-        points.sort((a, b) =>
+      const entries = [...candidates.values()].map(entry => {
+        entry.observations.sort((a, b) =>
           a.date.localeCompare(b.date) ||
-          a.event.event_id.localeCompare(b.event.event_id)
+          String(a.event.event_id).localeCompare(String(b.event.event_id))
         );
+        entry.firstDate = entry.observations[0]?.date || "";
+        entry.latestDate = entry.observations.at(-1)?.date || "";
+        entry.pollsters = [...new Set(entry.observations.map(item => item.event.pollster))]
+          .sort((a, b) => a.localeCompare(b, "fr"));
+        return entry;
+      }).sort((a, b) =>
+        Number(b.latestDate === latestDate) - Number(a.latestDate === latestDate) ||
+        b.observations.length - a.observations.length ||
+        b.latestDate.localeCompare(a.latestDate) ||
+        a.name.localeCompare(b.name, "fr")
+      );
+
+      return { latestDate, candidates: entries, byName: new Map(entries.map(entry => [entry.name, entry])) };
+    }
+
+    function candidateHistoryRangeLabel(range) {
+      if (range === "3") return "Last 3 months";
+      if (range === "6") return "Last 6 months";
+      if (range === "12") return "Last 12 months";
+      return "Full record";
+    }
+
+    function candidateHistoryVisibleObservations(entry) {
+      if (!entry) return [];
+      if (candidateHistoryState.range === "all") return entry.observations;
+      const cutoff = subtractCalendarMonthsIso(candidateHistoryState.model.latestDate, Number(candidateHistoryState.range));
+      return entry.observations.filter(item => item.date >= cutoff && item.date <= candidateHistoryState.model.latestDate);
+    }
+
+    function candidateHistoryMetrics(entry, observations) {
+      if (!entry || !observations.length) return null;
+      const latestDate = observations.reduce((latest, item) => item.date > latest ? item.date : latest, observations[0].date);
+      const latestScores = [...new Set(observations.filter(item => item.date === latestDate).map(item => item.score))]
+        .sort((a, b) => b - a);
+      const pollsters = [...new Set(observations.map(item => item.event.pollster))];
+      const scores = observations.map(item => item.score);
+      return {
+        firstDate: observations[0].date,
+        latestDate,
+        latestScores,
+        observations: observations.length,
+        dates: new Set(observations.map(item => item.date)).size,
+        pollsters: pollsters.length,
+        minScore: Math.min(...scores),
+        maxScore: Math.max(...scores)
+      };
+    }
+
+    function candidateHistoryOptions(selectedName = "", includeNone = false) {
+      const options = candidateHistoryState.model.candidates.map(entry =>
+        `<option value="${escapeAttribute(entry.name)}"${entry.name === selectedName ? " selected" : ""}>${escapeHtml(entry.name)} · ${entry.observations.length} observations</option>`
+      ).join("");
+      return (includeNone ? '<option value="">No comparison</option>' : "") + options;
+    }
+
+    function populateCandidateHistorySelectors() {
+      const primary = $("#history-primary-select");
+      const compare = $("#history-compare-select");
+      primary.innerHTML = candidateHistoryOptions(candidateHistoryState.primary);
+      compare.innerHTML = candidateHistoryOptions(candidateHistoryState.compare, true);
+      [...compare.options].forEach(option => {
+        option.disabled = option.value === candidateHistoryState.primary && option.value !== "";
+      });
+      primary.disabled = false;
+      compare.disabled = false;
+      primary.value = candidateHistoryState.primary;
+      compare.value = candidateHistoryState.compare;
+    }
+
+    function candidateHistoryProfile(entry, observations, tone, label) {
+      const metrics = candidateHistoryMetrics(entry, observations);
+      const latest = metrics
+        ? metrics.latestScores.map(formatScore).join(", ")
+        : "No observations in range";
+      const span = metrics
+        ? `${formatScore(metrics.minScore)}–${formatScore(metrics.maxScore)}`
+        : "—";
+      const record = `${entry.observations.length} total observations · ${formatDate(entry.firstDate)}–${formatDate(entry.latestDate)}`;
+      return `
+        <section class="candidate-history-section">
+          <div class="candidate-history-profile">
+            ${freshnessCandidateMarker(entry.name)}
+            <div class="candidate-history-profile-copy">
+              <div class="candidate-history-name">${escapeHtml(entry.name)}</div>
+              <div class="candidate-history-record">${escapeHtml(record)}</div>
+              <div class="candidate-history-series-label${tone === "compare" ? " is-compare" : ""}">${escapeHtml(label)}</div>
+            </div>
+          </div>
+          <div class="candidate-history-metrics" style="margin-top:10px">
+            <div class="candidate-history-metric"><div class="candidate-history-metric-label">Latest visible</div><div class="candidate-history-metric-value">${escapeHtml(latest)}</div></div>
+            <div class="candidate-history-metric"><div class="candidate-history-metric-label">Visible observations</div><div class="candidate-history-metric-value">${metrics ? metrics.observations : 0}</div></div>
+            <div class="candidate-history-metric"><div class="candidate-history-metric-label">Pollsters</div><div class="candidate-history-metric-value">${metrics ? metrics.pollsters : 0}</div></div>
+            <div class="candidate-history-metric"><div class="candidate-history-metric-label">Visible score span</div><div class="candidate-history-metric-value">${escapeHtml(span)}</div></div>
+          </div>
+        </section>`;
+    }
+
+    function renderCandidateHistoryDetail(primaryEntry, primaryVisible, compareEntry, compareVisible) {
+      const observations = [...primaryVisible, ...compareVisible]
+        .sort((a, b) =>
+          b.date.localeCompare(a.date) ||
+          String(a.event.pollster).localeCompare(String(b.event.pollster), "fr") ||
+          String(a.event.event_id).localeCompare(String(b.event.event_id))
+        )
+        .slice(0, 8);
+
+      const profiles = [
+        primaryEntry ? candidateHistoryProfile(primaryEntry, primaryVisible, "primary", "PRIMARY SERIES") : "",
+        compareEntry ? candidateHistoryProfile(compareEntry, compareVisible, "compare", "COMPARISON SERIES") : ""
+      ].join("");
+
+      const observationRows = observations.length ? observations.map(item => {
+        const candidateName = item.candidateName || "Selected candidate";
+        const isCompare = compareEntry && candidateName === compareEntry.name;
+        const source = safeSourceUrl(item.event.source_url);
+        const fieldwork = item.event.fieldwork_start === item.event.fieldwork_end
+          ? formatDate(item.event.fieldwork_end)
+          : `${formatDate(item.event.fieldwork_start)}–${formatDate(item.event.fieldwork_end)}`;
+        return `
+          <li class="candidate-history-observation${isCompare ? " is-compare" : ""}">
+            <div class="candidate-history-observation-top">${escapeHtml(candidateName)} · <span class="candidate-history-observation-score">${escapeHtml(formatScore(item.score))}</span></div>
+            <div class="candidate-history-observation-meta">${escapeHtml(item.event.pollster)} · ${escapeHtml(fieldwork)}<br><span title="${escapeAttribute(item.event.hypothesis)}">${escapeHtml(item.event.hypothesis)}</span></div>
+            ${source ? `<a class="candidate-history-source" href="${escapeAttribute(source)}" target="_blank" rel="noopener noreferrer">Source ↗</a>` : ""}
+          </li>`;
+      }).join("") : '<li class="candidate-history-state">No observations fall inside the selected date range.</li>';
+
+      $("#candidate-history-detail").innerHTML = `
+        <div class="candidate-history-detail-body">
+          ${profiles}
+          <section class="candidate-history-section">
+            <h4>Latest visible observations</h4>
+            <ul class="candidate-history-observations">${observationRows}</ul>
+          </section>
+        </div>`;
+    }
+
+    function historyTooltipHtml(candidateName, observation) {
+      const sample = observation.event.sample_size
+        ? Number(observation.event.sample_size).toLocaleString("en-GB")
+        : "not stated";
+      const fieldwork = observation.event.fieldwork_start === observation.event.fieldwork_end
+        ? formatDate(observation.event.fieldwork_end)
+        : `${formatDate(observation.event.fieldwork_start)}–${formatDate(observation.event.fieldwork_end)}`;
+      return `
+        <div class="history-tooltip-name">${escapeHtml(candidateName)}</div>
+        <div class="history-tooltip-score">${escapeHtml(formatScore(observation.score))}</div>
+        <div class="history-tooltip-meta"><b>${escapeHtml(observation.event.pollster)}</b><br>Fieldwork: ${escapeHtml(fieldwork)}<br>Sample: ${escapeHtml(sample)}<br>Hypothesis: ${escapeHtml(observation.event.hypothesis)}<br>Activate point to open source.</div>`;
+    }
+
+    function positionHistoryTooltip(clientX, clientY) {
+      const wrap = $("#candidate-history-chart-wrap");
+      const tooltip = $("#history-tooltip");
+      const rect = wrap.getBoundingClientRect();
+      const gap = 12;
+      const padding = 8;
+      let left = clientX - rect.left + gap;
+      let top = clientY - rect.top + gap;
+      if (left + tooltip.offsetWidth > rect.width - padding) left = clientX - rect.left - tooltip.offsetWidth - gap;
+      if (top + tooltip.offsetHeight > rect.height - padding) top = clientY - rect.top - tooltip.offsetHeight - gap;
+      tooltip.style.left = `${Math.max(padding, left)}px`;
+      tooltip.style.top = `${Math.max(padding, top)}px`;
+    }
+
+    function drawCandidateHistoryChart(series) {
+      const svg = $("#history-chart");
+      const tooltip = $("#history-tooltip");
+      const width = Math.max(320, Math.round(svg.getBoundingClientRect().width || 860));
+      const height = width < 620 ? 280 : 420;
+      const margin = { top: 20, right: 18, bottom: 42, left: 44 };
+      const plotWidth = width - margin.left - margin.right;
+      const plotHeight = height - margin.top - margin.bottom;
+      const ns = "http://www.w3.org/2000/svg";
+      const visiblePoints = series.flatMap(item => item.observations);
+
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.innerHTML = "";
+      tooltip.classList.remove("visible");
+
+      if (!visiblePoints.length) {
+        const message = document.createElementNS(ns, "text");
+        message.setAttribute("x", width / 2);
+        message.setAttribute("y", height / 2);
+        message.setAttribute("text-anchor", "middle");
+        message.setAttribute("class", "axis-label");
+        message.textContent = "No observations fall inside the selected date range.";
+        svg.appendChild(message);
+        return;
+      }
+
+      const times = visiblePoints.map(item => new Date(`${item.date}T00:00:00Z`).getTime());
+      let minTime = Math.min(...times);
+      let maxTime = Math.max(...times);
+      if (minTime === maxTime) {
+        minTime -= 86400000;
+        maxTime += 86400000;
+      }
+      const maxScore = Math.max(...visiblePoints.map(item => item.score), 1);
+      const yMax = Math.max(10, Math.ceil(maxScore / 5) * 5);
+      const x = time => margin.left + ((time - minTime) / (maxTime - minTime)) * plotWidth;
+      const y = score => margin.top + plotHeight - (score / yMax) * plotHeight;
+
+      for (let step = 0; step <= 4; step += 1) {
+        const value = yMax / 4 * step;
+        const yValue = y(value);
+        const line = document.createElementNS(ns, "line");
+        line.setAttribute("x1", margin.left);
+        line.setAttribute("x2", width - margin.right);
+        line.setAttribute("y1", yValue);
+        line.setAttribute("y2", yValue);
+        line.setAttribute("class", "gridline");
+        svg.appendChild(line);
+        const label = document.createElementNS(ns, "text");
+        label.setAttribute("x", margin.left - 8);
+        label.setAttribute("y", yValue + 3);
+        label.setAttribute("text-anchor", "end");
+        label.setAttribute("class", "axis-label");
+        label.textContent = `${value.toFixed(0)}%`;
+        svg.appendChild(label);
+      }
+
+      const tickCount = width < 520 ? 3 : 4;
+      const dateFormatter = new Intl.DateTimeFormat("en-GB", { month: "short", year: "2-digit", timeZone: "UTC" });
+      for (let step = 0; step <= tickCount; step += 1) {
+        const time = minTime + (maxTime - minTime) * step / tickCount;
+        const xValue = x(time);
+        const label = document.createElementNS(ns, "text");
+        label.setAttribute("x", xValue);
+        label.setAttribute("y", height - 13);
+        label.setAttribute("text-anchor", step === 0 ? "start" : step === tickCount ? "end" : "middle");
+        label.setAttribute("class", "axis-label");
+        label.textContent = dateFormatter.format(new Date(time));
+        svg.appendChild(label);
+      }
+
+      series.forEach(item => {
+        const scenarioGroups = new Map();
+        item.observations.forEach(observation => {
+          const key = JSON.stringify([
+            String(observation.event.scenario_key || ""),
+            normalizeComparableText(observation.event.pollster)
+          ]);
+          if (!scenarioGroups.has(key)) scenarioGroups.set(key, []);
+          scenarioGroups.get(key).push(observation);
+        });
+
+        scenarioGroups.forEach(group => {
+          if (new Set(group.map(observation => observation.date)).size < 2) return;
+          const path = document.createElementNS(ns, "path");
+          const ordered = [...group].sort((a, b) => a.date.localeCompare(b.date) || String(a.event.event_id).localeCompare(String(b.event.event_id)));
+          path.setAttribute("d", ordered.map((observation, index) => {
+            const time = new Date(`${observation.date}T00:00:00Z`).getTime();
+            return `${index ? "L" : "M"}${x(time).toFixed(2)},${y(observation.score).toFixed(2)}`;
+          }).join(" "));
+          path.setAttribute("class", "history-series-line");
+          path.setAttribute("stroke", item.color);
+          if (item.role === "compare") path.setAttribute("stroke-dasharray", "5 4");
+          svg.appendChild(path);
+        });
+
+        item.observations.forEach(observation => {
+          const time = new Date(`${observation.date}T00:00:00Z`).getTime();
+          const cx = x(time);
+          const cy = y(observation.score);
+          const source = safeSourceUrl(observation.event.source_url);
+          const link = document.createElementNS(ns, "a");
+          link.setAttribute("class", "history-point-link");
+          if (source) {
+            link.setAttribute("href", source);
+            link.setAttribute("target", "_blank");
+            link.setAttribute("rel", "noopener noreferrer");
+          }
+          link.setAttribute("aria-label", `${item.entry.name}, ${formatScore(observation.score)}, ${observation.event.pollster}, fieldwork ending ${formatDate(observation.date)}. Open source.`);
+          const circle = document.createElementNS(ns, "circle");
+          circle.setAttribute("cx", cx);
+          circle.setAttribute("cy", cy);
+          circle.setAttribute("r", 4.1);
+          circle.setAttribute("fill", item.role === "primary" ? item.color : "#071522");
+          circle.setAttribute("stroke", item.role === "primary" ? "#07101b" : item.color);
+          circle.setAttribute("stroke-width", item.role === "primary" ? "1.6" : "2.2");
+          circle.setAttribute("class", "history-point");
+          circle.setAttribute("opacity", item.role === "primary" ? ".94" : ".92");
+          link.appendChild(circle);
+
+          const showTooltip = (clientX, clientY) => {
+            tooltip.innerHTML = historyTooltipHtml(item.entry.name, observation);
+            tooltip.style.borderColor = item.color;
+            tooltip.querySelector(".history-tooltip-name").style.color = item.color;
+            tooltip.classList.add("visible");
+            positionHistoryTooltip(clientX, clientY);
+            circle.setAttribute("r", "6");
+          };
+          const hideTooltip = () => {
+            tooltip.classList.remove("visible");
+            circle.setAttribute("r", "4.1");
+          };
+          link.addEventListener("mouseenter", event => showTooltip(event.clientX, event.clientY));
+          link.addEventListener("mousemove", event => positionHistoryTooltip(event.clientX, event.clientY));
+          link.addEventListener("mouseleave", hideTooltip);
+          link.addEventListener("focus", () => {
+            const circleRect = circle.getBoundingClientRect();
+            showTooltip(circleRect.left + circleRect.width / 2, circleRect.top + circleRect.height / 2);
+          });
+          link.addEventListener("blur", hideTooltip);
+          svg.appendChild(link);
+        });
+      });
+    }
+
+    function renderCandidateHistoryView() {
+      const model = candidateHistoryState.model;
+      if (!model) return;
+      const primaryEntry = model.byName.get(candidateHistoryState.primary) || model.candidates[0];
+      const compareEntry = candidateHistoryState.compare ? model.byName.get(candidateHistoryState.compare) : null;
+      const primaryVisible = candidateHistoryVisibleObservations(primaryEntry);
+      const compareVisible = candidateHistoryVisibleObservations(compareEntry);
+      const primaryMetrics = candidateHistoryMetrics(primaryEntry, primaryVisible);
+      const compareMetrics = candidateHistoryMetrics(compareEntry, compareVisible);
+      const rangeLabel = candidateHistoryRangeLabel(candidateHistoryState.range);
+
+      const summaryParts = [
+        `<strong>${escapeHtml(primaryEntry.name)}</strong>`,
+        `${primaryVisible.length} visible observations`,
+        `${primaryMetrics ? primaryMetrics.pollsters : 0} pollsters`,
+        rangeLabel
+      ];
+      if (compareEntry) summaryParts.splice(1, 0, `<strong>vs ${escapeHtml(compareEntry.name)}</strong>`);
+      $("#candidate-history-summary").innerHTML = `<span>${summaryParts.join(" · ")}</span><span>${primaryMetrics ? `${formatDate(primaryMetrics.firstDate)}–${formatDate(primaryMetrics.latestDate)}` : "No visible dates"}${compareMetrics ? ` · comparison through ${formatDate(compareMetrics.latestDate)}` : ""}</span>`;
+
+      const series = [
+        { entry: primaryEntry, observations: primaryVisible, color: palette[0], role: "primary" },
+        ...(compareEntry ? [{ entry: compareEntry, observations: compareVisible, color: palette[3], role: "compare" }] : [])
+      ];
+      drawCandidateHistoryChart(series);
+      $("#history-chart").setAttribute("aria-label", compareEntry
+        ? `Reported polling scores over time for ${primaryEntry.name} and ${compareEntry.name}`
+        : `Reported polling scores over time for ${primaryEntry.name}`);
+      $("#candidate-history-legend").innerHTML = series.map(item =>
+        `<span class="candidate-history-legend-item"><span class="candidate-history-legend-dot${item.role === "compare" ? " is-compare" : ""}" style="background:${item.color}"></span>${escapeHtml(item.entry.name)} · ${item.observations.length} visible</span>`
+      ).join("") + '<span class="candidate-history-legend-item">Point = one reported observation · activate to open source</span>';
+      renderCandidateHistoryDetail(primaryEntry, primaryVisible, compareEntry, compareVisible);
+    }
+
+    function renderCandidateHistory(events) {
+      candidateHistoryState.model = deriveCandidateHistory(events);
+      if (!candidateHistoryState.model.candidates.length) throw new Error("No candidate histories could be derived");
+      if (!candidateHistoryState.primary || !candidateHistoryState.model.byName.has(candidateHistoryState.primary)) {
+        const latestLeader = [...(events[0]?.candidates || [])]
+          .filter(candidate => Number.isFinite(candidate.score))
+          .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "fr"))[0]?.name;
+        candidateHistoryState.primary = candidateHistoryState.model.byName.has(latestLeader)
+          ? latestLeader
+          : candidateHistoryState.model.candidates[0].name;
+      }
+      if (candidateHistoryState.compare === candidateHistoryState.primary || !candidateHistoryState.model.byName.has(candidateHistoryState.compare)) {
+        candidateHistoryState.compare = "";
+      }
+
+      populateCandidateHistorySelectors();
+      $("#history-primary-select").onchange = event => {
+        candidateHistoryState.primary = event.target.value;
+        if (candidateHistoryState.compare === candidateHistoryState.primary) candidateHistoryState.compare = "";
+        populateCandidateHistorySelectors();
+        renderCandidateHistoryView();
+      };
+      $("#history-compare-select").onchange = event => {
+        candidateHistoryState.compare = event.target.value;
+        renderCandidateHistoryView();
+      };
+      document.querySelectorAll("[data-history-range]").forEach(button => {
+        button.onclick = () => {
+          candidateHistoryState.range = button.dataset.historyRange;
+          document.querySelectorAll("[data-history-range]").forEach(rangeButton => {
+            const active = rangeButton === button;
+            rangeButton.classList.toggle("active", active);
+            rangeButton.setAttribute("aria-pressed", String(active));
+          });
+          renderCandidateHistoryView();
+        };
       });
 
-      const latestDate = events.reduce(
-        (latest, event) =>
-          event.fieldwork_end > latest ? event.fieldwork_end : latest,
-        ""
-      );
-
-      const ranked = [...observations.entries()]
-        .map(([name, points]) => {
-          const latestPoints = points.filter(point => point.date === latestDate);
-          const latestScore = latestPoints.length
-            ? Math.max(...latestPoints.map(point => point.score))
-            : points[points.length - 1].score;
-
-          return {
-            name,
-            points,
-            latestDate: points[points.length - 1].date,
-            latestScore
-          };
-        })
-        .sort((a, b) => {
-          const aCurrent = a.latestDate === latestDate ? 1 : 0;
-          const bCurrent = b.latestDate === latestDate ? 1 : 0;
-
-          return (
-            bCurrent - aCurrent ||
-            b.latestScore - a.latestScore ||
-            b.latestDate.localeCompare(a.latestDate) ||
-            a.name.localeCompare(b.name)
-          );
-        });
-
-      const active = new Set(
-        ranked
-          .filter(item => item.latestDate === latestDate)
-          .slice(0, 6)
-          .map(item => item.name)
-      );
-
-      if (!active.size) {
-        ranked.slice(0, 6).forEach(item => active.add(item.name));
+      if (!candidateHistoryState.resizeBound) {
+        window.addEventListener("resize", () => {
+          clearTimeout(candidateHistoryState.resizeTimer);
+          candidateHistoryState.resizeTimer = setTimeout(renderCandidateHistoryView, 120);
+        }, { passive: true });
+        candidateHistoryState.resizeBound = true;
       }
 
-      const colorIndex = new Map(
-        ranked.map((item, index) => [item.name, index])
-      );
-
-      const allTimes = events.map(event =>
-        new Date(`${event.fieldwork_end}T00:00:00Z`).getTime()
-      );
-      const minTime = Math.min(...allTimes);
-      const maxTime = Math.max(...allTimes);
-      const timeSpan = Math.max(maxTime - minTime, 86400000);
-
-      const allScores = ranked.flatMap(item =>
-        item.points.map(point => point.score)
-      );
-      const yMax = Math.max(
-        10,
-        Math.ceil(Math.max(...allScores) / 5) * 5
-      );
-
-      function draw() {
-        const svg = $("#trend");
-        const width = 640;
-        const height = 300;
-        const margin = { top: 18, right: 18, bottom: 42, left: 42 };
-        const plotW = width - margin.left - margin.right;
-        const plotH = height - margin.top - margin.bottom;
-        const ns = "http://www.w3.org/2000/svg";
-
-        svg.innerHTML = "";
-
-        const selected = ranked.filter(item => active.has(item.name));
-        const tooltip = $("#poll-tooltip");
-        const chartWrap = $("#chart-wrap");
-
-        function positionTooltip(mouseEvent) {
-          const rect = chartWrap.getBoundingClientRect();
-          const gap = 14;
-          const padding = 10;
-
-          let left = mouseEvent.clientX - rect.left + gap;
-          let top = mouseEvent.clientY - rect.top + gap;
-
-          if (left + tooltip.offsetWidth > rect.width - padding) {
-            left = mouseEvent.clientX - rect.left - tooltip.offsetWidth - gap;
-          }
-
-          if (top + tooltip.offsetHeight > rect.height - padding) {
-            top = mouseEvent.clientY - rect.top - tooltip.offsetHeight - gap;
-          }
-
-          tooltip.style.left = `${Math.max(padding, left)}px`;
-          tooltip.style.top = `${Math.max(padding, top)}px`;
-        }
-
-        $("#trend-sub").textContent =
-          `${events.length} poll events · ${observations.size} candidates · ` +
-          `raw observations · click candidates below · ${formatDate(events[events.length - 1].fieldwork_end)}–${formatDate(latestDate)}`;
-
-        for (let step = 0; step <= 4; step += 1) {
-          const value = (yMax / 4) * step;
-          const y = margin.top + plotH - (value / yMax) * plotH;
-
-          const line = document.createElementNS(ns, "line");
-          line.setAttribute("x1", margin.left);
-          line.setAttribute("x2", width - margin.right);
-          line.setAttribute("y1", y);
-          line.setAttribute("y2", y);
-          line.setAttribute("class", "gridline");
-          svg.appendChild(line);
-
-          const label = document.createElementNS(ns, "text");
-          label.setAttribute("x", margin.left - 8);
-          label.setAttribute("y", y + 3);
-          label.setAttribute("text-anchor", "end");
-          label.setAttribute("class", "axis-label");
-          label.textContent = `${value.toFixed(0)}%`;
-          svg.appendChild(label);
-        }
-
-        const dateFormatter = new Intl.DateTimeFormat("en-GB", {
-          month: "short",
-          year: "2-digit"
-        });
-
-        for (let step = 0; step <= 3; step += 1) {
-          const time = minTime + (timeSpan * step) / 3;
-          const x = margin.left + (plotW * step) / 3;
-
-          const label = document.createElementNS(ns, "text");
-          label.setAttribute("x", x);
-          label.setAttribute("y", height - 13);
-          label.setAttribute(
-            "text-anchor",
-            step === 0 ? "start" : step === 3 ? "end" : "middle"
-          );
-          label.setAttribute("class", "axis-label");
-          label.textContent = dateFormatter.format(new Date(time));
-          svg.appendChild(label);
-        }
-
-        selected.forEach(item => {
-          const color = palette[colorIndex.get(item.name) % palette.length];
-          const coords = item.points.map(point => {
-            const time = new Date(`${point.date}T00:00:00Z`).getTime();
-            return {
-              x: margin.left + ((time - minTime) / timeSpan) * plotW,
-              y: margin.top + plotH - (point.score / yMax) * plotH,
-              point
-            };
-          });
-
-          coords.forEach(coord => {
-            const circle = document.createElementNS(ns, "circle");
-            circle.setAttribute("cx", coord.x);
-            circle.setAttribute("cy", coord.y);
-            circle.setAttribute("r", 3.6);
-            circle.setAttribute("fill", color);
-            circle.setAttribute("class", "trend-point");
-            circle.setAttribute("opacity", "0.88");
-
-            circle.addEventListener("mouseenter", mouseEvent => {
-              const sample = coord.point.event.sample_size
-                ? coord.point.event.sample_size.toLocaleString("en-GB")
-                : "not stated";
-
-              const fieldwork =
-                coord.point.event.fieldwork_start === coord.point.event.fieldwork_end
-                  ? formatDate(coord.point.event.fieldwork_end)
-                  : `${formatDate(coord.point.event.fieldwork_start)}–${formatDate(coord.point.event.fieldwork_end)}`;
-
-              tooltip.innerHTML = `
-                <div class="poll-tooltip-name">${item.name}</div>
-                <div class="poll-tooltip-score">${formatScore(coord.point.score)}</div>
-                <div class="poll-tooltip-meta">
-                  <b>${coord.point.event.pollster}</b><br>
-                  Fieldwork: ${fieldwork}<br>
-                  Sample: ${sample}
-                </div>`;
-
-              tooltip.style.borderColor = color;
-              tooltip.querySelector(".poll-tooltip-name").style.color = color;
-              tooltip.classList.add("visible");
-              circle.setAttribute("r", "6");
-              circle.setAttribute("stroke", "#ffffff");
-              circle.setAttribute("stroke-width", "2");
-              circle.setAttribute("opacity", "1");
-              positionTooltip(mouseEvent);
-            });
-
-            circle.addEventListener("mousemove", positionTooltip);
-
-            circle.addEventListener("mouseleave", () => {
-              tooltip.classList.remove("visible");
-              circle.setAttribute("r", "3.6");
-              circle.setAttribute("stroke", "#07101b");
-              circle.setAttribute("stroke-width", "1.5");
-              circle.setAttribute("opacity", "0.88");
-            });
-
-            svg.appendChild(circle);
-          });
-        });
-
-        $("#legend").innerHTML = ranked.map(item => {
-          const color = palette[colorIndex.get(item.name) % palette.length];
-          const selectedClass = active.has(item.name) ? " active" : "";
-
-          return `
-            <button
-              type="button"
-              class="candidate-chip${selectedClass}"
-              data-candidate="${encodeURIComponent(item.name)}"
-              title="${item.points.length} reported scores"
-            >
-              <span class="dot" style="background:${color}"></span>
-              ${item.name}
-            </button>`;
-        }).join("");
-
-        document.querySelectorAll(".candidate-chip").forEach(button => {
-          button.addEventListener("click", () => {
-            const name = decodeURIComponent(button.dataset.candidate);
-
-            if (active.has(name)) {
-              if (active.size > 1) active.delete(name);
-            } else {
-              active.add(name);
-            }
-
-            draw();
-          });
-        });
-      }
-
-      draw();
+      renderCandidateHistoryView();
+      document.documentElement.dataset.historyReady = "true";
     }
 
     const pollingExplorerState = {
@@ -4362,7 +4628,7 @@
         });
 
         showHypothesis(latestPackage[0]);
-        renderTrend(complete);
+        renderCandidateHistory(complete);
         renderFieldFormation(complete);
         renderScenarioSwitch(complete);
         renderPollWaves(complete);
@@ -4380,7 +4646,12 @@
         $("#hypothesis-select").disabled = true;
         $("#bars").innerHTML = '<div class="error">' + escapeHtml(error.message) + "</div>";
         $("#meta").replaceChildren();
-        $("#chart-wrap").innerHTML = '<div class="error">Could not render trendline.</div>';
+        $("#history-primary-select").disabled = true;
+        $("#history-compare-select").disabled = true;
+        $("#candidate-history-summary").innerHTML = "<span>Candidate Polling History unavailable.</span>";
+        $("#candidate-history-chart-wrap").innerHTML = '<div class="candidate-history-state error">Candidate Polling History unavailable: ' + escapeHtml(error.message) + "</div>";
+        $("#candidate-history-detail").innerHTML = '<div class="candidate-history-state error">Selected history unavailable.</div>';
+        document.documentElement.dataset.historyReady = "error";
         $("#field-formation-summary").innerHTML = "<span>Field Formation unavailable.</span>";
         $("#field-formation-scroll").innerHTML = '<div class="field-formation-state error">Field Formation unavailable: ' + escapeHtml(error.message) + "</div>";
         $("#field-formation-detail").innerHTML = '<div class="field-formation-state error">Selected figure unavailable.</div>';
