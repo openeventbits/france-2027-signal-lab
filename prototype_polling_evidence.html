@@ -1,0 +1,1281 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Isolated Polling Evidence prototype for France 2027 Signal Lab.">
+  <title>Polling Evidence — France 2027 Signal Lab</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050b14;
+      --panel: #091523;
+      --panel-2: #0b1b2c;
+      --line: #16344d;
+      --line-strong: #245273;
+      --text: #d7e9f6;
+      --bright: #edf7fc;
+      --muted: #7895aa;
+      --cyan: #35d5ff;
+      --blue: #268cff;
+      --violet: #9d8cff;
+      --error: #ff8b8b;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-width: 0; background: var(--bg); }
+
+    body {
+      min-width: 0;
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      background: radial-gradient(circle at 75% 0%, #09203a 0, transparent 32rem), var(--bg);
+      color: var(--text);
+      font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, select { font: inherit; }
+    button, select, a { -webkit-tap-highlight-color: transparent; }
+    button { color: inherit; }
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    [hidden] { display: none !important; }
+
+    :focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1560px;
+      margin-inline: auto;
+      padding: 16px clamp(12px, 1.25vw, 24px) 24px;
+    }
+
+    .masthead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-width: 0;
+      padding: 10px 13px;
+      border-block: 1px solid var(--line);
+      background: rgba(7, 18, 31, .82);
+      box-shadow: 0 0 24px rgba(31, 147, 255, .05);
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+
+    .mark {
+      flex: 0 0 auto;
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--blue);
+      border-radius: 9px;
+      color: var(--cyan);
+      box-shadow: inset 0 0 16px rgba(38, 140, 255, .18);
+    }
+
+    .mark svg { width: 28px; height: 28px; display: block; }
+    .brand-copy { min-width: 0; }
+
+    h1 {
+      margin: 0;
+      color: var(--bright);
+      font-size: clamp(18px, 1.65vw, 25px);
+      font-weight: 720;
+      line-height: 1.1;
+      letter-spacing: .025em;
+      white-space: nowrap;
+    }
+
+    h1 span { color: var(--blue); }
+
+    .masthead-tagline {
+      margin-top: 4px;
+      color: #9ab2c2;
+      font-size: 11px;
+      line-height: 1.3;
+    }
+
+    .masthead-meta {
+      flex: 0 1 auto;
+      min-width: 0;
+      color: #8fa9bb;
+      font-size: 10px;
+      line-height: 1.45;
+      text-align: right;
+    }
+
+    .masthead-meta span { display: block; }
+
+    .panel {
+      min-width: 0;
+      border: 1px solid var(--line);
+      background: rgba(9, 21, 35, .94);
+    }
+
+    .polling-evidence { margin-top: 12px; }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(240px, 360px);
+      align-items: center;
+      gap: 16px;
+      padding: 12px 16px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow,
+    .control-label,
+    .card-kicker,
+    .mini-heading {
+      color: var(--cyan);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 3px 0 0;
+      color: var(--bright);
+      font-size: clamp(17px, 1.45vw, 22px);
+      line-height: 1.2;
+      letter-spacing: .01em;
+    }
+
+    .subtitle { margin-top: 3px; color: #9ab2c2; font-size: 11px; }
+
+    .method-callout {
+      padding: 8px 10px;
+      border: 1px solid #173a53;
+      background: rgba(7, 21, 34, .62);
+      color: #9ab2c2;
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+      gap: 12px;
+      padding: 9px 16px 10px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(3, 11, 20, .22);
+    }
+
+    .control { display: grid; min-width: 0; gap: 4px; }
+    .control-label { display: block; }
+
+    select {
+      width: 100%;
+      min-width: 0;
+      min-height: 38px;
+      padding: 7px 34px 7px 10px;
+      border: 1px solid #23445d;
+      border-radius: 4px;
+      background: #071522;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    select:hover { border-color: #2873a8; }
+    select:disabled { cursor: wait; opacity: .65; }
+
+    .control-meta {
+      min-height: 14px;
+      color: var(--muted);
+      font-size: 9px;
+      line-height: 1.35;
+    }
+
+    .evidence-body {
+      display: grid;
+      grid-template-columns: minmax(0, 2.4fr) minmax(276px, .92fr);
+      min-width: 0;
+    }
+
+    .comparison-stage { min-width: 0; padding: 10px 12px 9px 16px; }
+
+    .substitution-cards {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .figure-card {
+      min-width: 0;
+      min-height: 100px;
+      display: grid;
+      grid-template-columns: 62px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border: 1px solid;
+      background: linear-gradient(110deg, rgba(10, 31, 49, .9), rgba(7, 18, 31, .75));
+      overflow: hidden;
+    }
+
+    .figure-card.is-a { border-color: #237da2; box-shadow: inset 0 2px var(--cyan); }
+    .figure-card.is-b { border-color: #6555a5; box-shadow: inset 0 2px var(--violet); }
+    .figure-card.is-a .card-kicker, .figure-card.is-a .figure-score { color: var(--cyan); }
+    .figure-card.is-b .card-kicker, .figure-card.is-b .figure-score { color: var(--violet); }
+
+    .portrait {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid #2873a8;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #0c2236, #07111d);
+      color: #9db9cc;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+
+    .is-b .portrait { border-color: #6555a5; }
+
+    .portrait img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 18%;
+    }
+
+    .figure-copy { min-width: 0; }
+    .card-kicker { font-size: 9px; }
+
+    .figure-name {
+      margin-top: 4px;
+      color: var(--bright);
+      font-size: clamp(15px, 1.3vw, 19px);
+      font-weight: 700;
+      line-height: 1.15;
+      overflow-wrap: anywhere;
+    }
+
+    .figure-score {
+      margin-top: 3px;
+      font-size: clamp(23px, 2vw, 31px);
+      font-weight: 750;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .chart-block { margin-top: 9px; min-width: 0; }
+
+    .chart-title-row {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 2px 7px;
+      min-width: 0;
+      padding: 0 7px 5px;
+    }
+
+    .chart-title-row h3,
+    .facts-title {
+      margin: 0;
+      color: var(--bright);
+      font-size: 11px;
+      letter-spacing: .06em;
+    }
+
+    .chart-subtitle { color: #9ab2c2; font-size: 9px; }
+
+    .difference-chart {
+      --name-col: minmax(116px, .9fr);
+      --values-col: 88px;
+      --delta-col: 44px;
+      min-width: 0;
+      border-top: 1px solid #17384f;
+    }
+
+    .axis-row,
+    .difference-row {
+      display: grid;
+      grid-template-columns: var(--name-col) var(--values-col) minmax(120px, 2fr) var(--delta-col);
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .axis-row { min-height: 20px; color: var(--muted); font-size: 8px; }
+    .axis-plot { position: relative; height: 100%; }
+    .axis-plot span { position: absolute; bottom: 3px; transform: translateX(-50%); }
+    .axis-plot .axis-left { left: 0; transform: none; color: var(--cyan); }
+    .axis-plot .axis-zero { left: 50%; color: var(--text); }
+    .axis-plot .axis-right { right: 0; transform: none; color: var(--violet); }
+
+    .difference-row {
+      min-height: 28px;
+      border-top: 1px solid rgba(22, 52, 77, .78);
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .difference-name {
+      min-width: 0;
+      color: #cfe1ec;
+      font-weight: 650;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .difference-values { color: #b8ccd9; white-space: nowrap; }
+    .difference-values .arrow { color: var(--muted); padding-inline: 2px; }
+
+    .difference-plot {
+      position: relative;
+      height: 17px;
+      min-width: 0;
+      background:
+        linear-gradient(to right, transparent calc(50% - .5px), #64859a 50%, transparent calc(50% + .5px)),
+        linear-gradient(to right, rgba(7, 16, 27, .46), rgba(7, 16, 27, .46));
+    }
+
+    .difference-plot::before,
+    .difference-plot::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      width: 1px;
+      background: #17384f;
+    }
+
+    .difference-plot::before { left: 25%; }
+    .difference-plot::after { right: 25%; }
+
+    .difference-bar {
+      position: absolute;
+      top: 4px;
+      height: 9px;
+      min-width: 2px;
+      border-radius: 2px;
+    }
+
+    .difference-bar.is-negative {
+      right: 50%;
+      background: linear-gradient(90deg, #168eb9, var(--cyan));
+      box-shadow: 0 0 8px rgba(53, 213, 255, .18);
+    }
+
+    .difference-bar.is-positive {
+      left: 50%;
+      background: linear-gradient(90deg, var(--violet), #755de0);
+      box-shadow: 0 0 8px rgba(157, 140, 255, .18);
+    }
+
+    .difference-zero {
+      position: absolute;
+      left: 50%;
+      top: 5px;
+      width: 5px;
+      height: 5px;
+      border: 1px solid #8ba7b8;
+      border-radius: 50%;
+      transform: translateX(-50%);
+    }
+
+    .difference-delta { text-align: right; font-weight: 700; white-space: nowrap; }
+    .difference-delta.is-negative { color: var(--cyan); }
+    .difference-delta.is-positive { color: var(--violet); }
+    .difference-delta.is-zero { color: #9bb1c0; }
+
+    .chart-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      margin-top: 7px;
+    }
+
+    .unchanged-box {
+      flex: 1 1 380px;
+      min-width: 0;
+      padding: 6px 9px;
+      border: 1px dashed #31506a;
+      color: #9ab2c2;
+      font-size: 9px;
+      line-height: 1.4;
+    }
+
+    .unchanged-box strong { color: var(--text); font-size: 10px; }
+
+    .compact-button {
+      min-height: 30px;
+      padding: 5px 9px;
+      border: 1px solid #23445d;
+      border-radius: 4px;
+      background: #071522;
+      color: var(--cyan);
+      font-size: 9px;
+      cursor: pointer;
+    }
+
+    .compact-button:hover { border-color: var(--cyan); }
+
+    .wave-facts {
+      min-width: 0;
+      padding: 11px 14px;
+      border-left: 1px solid var(--line);
+      background: rgba(6, 18, 30, .56);
+    }
+
+    .facts-title { color: var(--cyan); font-size: 12px; letter-spacing: .08em; }
+
+    .facts-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 5px;
+      margin-top: 10px;
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 7px 3px;
+      border-block: 1px solid #17384f;
+      text-align: center;
+    }
+
+    .metric-value {
+      color: var(--cyan);
+      font-size: 20px;
+      font-weight: 750;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-label {
+      margin-top: 5px;
+      color: #9ab2c2;
+      font-size: 7px;
+      font-weight: 700;
+      line-height: 1.3;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      overflow-wrap: anywhere;
+    }
+
+    .fact-list { margin: 9px 0 0; }
+
+    .fact-row {
+      display: grid;
+      grid-template-columns: minmax(78px, auto) minmax(0, 1fr);
+      gap: 8px;
+      min-width: 0;
+      padding: 6px 7px;
+      border: 1px solid #15354e;
+      border-bottom: 0;
+      background: rgba(7, 21, 34, .46);
+      font-size: 9px;
+    }
+
+    .fact-row:last-child { border-bottom: 1px solid #15354e; }
+    .fact-row dt { color: #9ab2c2; }
+    .fact-row dd { min-width: 0; margin: 0; color: var(--text); font-weight: 650; text-align: right; overflow-wrap: anywhere; }
+
+    .source-link.is-disabled { color: var(--muted); }
+
+    .disclosure {
+      margin-top: 9px;
+      padding: 8px 9px;
+      border: 1px solid #245273;
+      background: rgba(10, 31, 49, .55);
+      color: #b7cbd9;
+      font-size: 9px;
+      line-height: 1.45;
+    }
+
+    .lineups-drawer { border-top: 1px solid var(--line); }
+
+    .drawer-toggle {
+      width: 100%;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 16px;
+      border: 0;
+      background: rgba(3, 11, 20, .26);
+      color: var(--cyan);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .drawer-toggle:hover { background: rgba(10, 31, 49, .5); }
+    .drawer-indicator { font-size: 15px; transition: transform .16s ease; }
+    .drawer-toggle[aria-expanded="true"] .drawer-indicator { transform: rotate(180deg); }
+
+    .drawer-content {
+      padding: 10px 12px 12px;
+      border-top: 1px solid #15354e;
+      background: rgba(3, 11, 20, .22);
+    }
+
+    .drawer-note { margin: 0 0 8px; color: var(--muted); font-size: 9px; }
+
+    .lineup-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .lineup-card {
+      min-width: 0;
+      padding: 8px;
+      border: 1px solid #17384f;
+      background: rgba(7, 21, 34, .62);
+    }
+
+    .lineup-card.is-a { border-color: var(--cyan); box-shadow: inset 0 2px var(--cyan); }
+    .lineup-card.is-b { border-color: var(--violet); box-shadow: inset 0 2px var(--violet); }
+
+    .lineup-card-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 6px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #17384f;
+    }
+
+    .lineup-label { color: var(--bright); font-weight: 700; }
+    .lineup-card.is-a .lineup-label { color: var(--cyan); }
+    .lineup-card.is-b .lineup-label { color: var(--violet); }
+    .lineup-count { color: var(--muted); font-size: 8px; text-align: right; }
+    .lineup-scores { margin: 5px 0 0; padding: 0; list-style: none; }
+
+    .lineup-score {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 5px;
+      padding: 2px 0;
+      color: #b8ccd9;
+      font-size: 8px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .lineup-score span:first-child { min-width: 0; overflow-wrap: anywhere; }
+    .lineup-score.is-exclusive-a { color: var(--cyan); font-weight: 700; }
+    .lineup-score.is-exclusive-b { color: var(--violet); font-weight: 700; }
+    .exclusive-note { grid-column: 1 / -1; font-size: 7px; letter-spacing: .04em; text-transform: uppercase; }
+
+    .state {
+      margin: 12px 16px;
+      padding: 24px 16px;
+      border: 1px solid #17384f;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .state.error { border-color: #713a4b; color: var(--error); }
+
+    footer {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px 28px;
+      margin-top: 14px;
+      padding: 12px 2px 0;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.55;
+    }
+
+    .portrait-note { color: #66869c; text-align: right; }
+
+    @media (max-width: 1100px) {
+      .evidence-body { grid-template-columns: minmax(0, 1.9fr) minmax(270px, .9fr); }
+      .lineup-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .difference-chart { --name-col: minmax(105px, .8fr); --values-col: 76px; }
+      .axis-row, .difference-row { gap: 6px; }
+    }
+
+    @media (max-width: 799px) {
+      .section-head { grid-template-columns: 1fr; gap: 8px; }
+      .method-callout { max-width: none; }
+      .controls { grid-template-columns: 1fr; }
+      .evidence-body { grid-template-columns: 1fr; }
+      .comparison-stage { padding: 10px 12px; }
+      .wave-facts { border-top: 1px solid var(--line); border-left: 0; }
+      .lineup-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      footer { flex-direction: column; }
+      .portrait-note { text-align: left; }
+    }
+
+    @media (max-width: 560px) {
+      .shell { padding-inline: 8px; }
+      .masthead { align-items: flex-start; flex-direction: column; gap: 8px; }
+      .masthead-meta { text-align: left; }
+      .section-head, .controls { padding-inline: 10px; }
+      .method-callout { display: none; }
+      .figure-card { grid-template-columns: 48px minmax(0, 1fr); gap: 7px; padding: 8px; }
+      .portrait { width: 46px; height: 46px; }
+      .figure-name { font-size: 13px; }
+      .figure-score { font-size: 22px; }
+      .difference-chart { --name-col: minmax(82px, .8fr); --values-col: 67px; --delta-col: 38px; }
+      .axis-row, .difference-row { gap: 4px; }
+      .difference-row { min-height: 34px; font-size: 9px; }
+      .difference-values { white-space: normal; text-align: center; line-height: 1.15; }
+      .difference-values .arrow { display: block; padding: 0; }
+      .facts-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .lineup-grid { grid-template-columns: 1fr; }
+      .drawer-toggle { padding-inline: 10px; }
+    }
+
+    @media (max-width: 390px) {
+      h1 { font-size: 16px; }
+      .masthead-tagline { font-size: 9px; }
+      .substitution-cards { grid-template-columns: 1fr 1fr; }
+      .figure-card { min-height: 112px; grid-template-columns: 1fr; justify-items: center; text-align: center; }
+      .portrait { width: 43px; height: 43px; }
+      .figure-name { font-size: 12px; }
+      .difference-chart { --name-col: minmax(70px, .9fr); --values-col: 55px; --delta-col: 34px; }
+      .difference-row { font-size: 8px; }
+      .axis-plot .axis-left, .axis-plot .axis-right { font-size: 7px; }
+      .fact-row { grid-template-columns: minmax(70px, auto) minmax(0, 1fr); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .drawer-indicator { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" focusable="false">
+            <rect x="1" y="1" width="30" height="30" rx="8" fill="#071522"/>
+            <path d="M6 16A10 10 0 0 1 16 6M26 16A10 10 0 0 1 16 26" fill="none" stroke="#268cff" stroke-width="2" stroke-linecap="round"/>
+            <path d="M10 16A6 6 0 0 1 16 10M22 16A6 6 0 0 1 16 22" fill="none" stroke="#35d5ff" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="16" cy="16" r="2.5" fill="#35d5ff"/>
+          </svg>
+        </div>
+        <div class="brand-copy">
+          <h1>FRANCE 2027 <span>SIGNAL LAB</span></h1>
+          <div class="masthead-tagline">Live, source-linked signals from the French presidential race.</div>
+        </div>
+      </div>
+      <div class="masthead-meta" aria-live="polite">
+        <span id="data-through">Polling data loading…</span>
+        <span>Isolated Polling Evidence prototype</span>
+      </div>
+    </header>
+
+    <section class="panel polling-evidence" aria-labelledby="polling-evidence-title">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">POLLING EVIDENCE</div>
+          <h2 id="polling-evidence-title">ONE NAME DIFFERENT · SAME POLL WAVE</h2>
+          <div class="subtitle">Compare two source-reported hypotheses that differ by exactly one tested figure.</div>
+        </div>
+        <div class="method-callout">Two source-reported hypotheses from the same poll wave are compared only when their tested-figure sets differ by exactly one figure each.</div>
+      </div>
+
+      <div class="controls" id="controls">
+        <label class="control" for="wave-select">
+          <span class="control-label">POLL WAVE</span>
+          <select id="wave-select" disabled></select>
+          <span class="control-meta" id="wave-select-meta"></span>
+        </label>
+        <label class="control" for="comparison-select">
+          <span class="control-label">ONE-NAME COMPARISON</span>
+          <select id="comparison-select" disabled></select>
+          <span class="control-meta" id="comparison-select-meta"></span>
+        </label>
+      </div>
+
+      <div id="loading-state" class="state" role="status">Loading source-reported polling hypotheses…</div>
+      <div id="error-state" class="state error" role="alert" hidden></div>
+
+      <div id="evidence-content" hidden>
+        <div class="evidence-body">
+          <div class="comparison-stage">
+            <div class="substitution-cards" id="substitution-cards"></div>
+
+            <section class="chart-block" aria-labelledby="difference-chart-title">
+              <div class="chart-title-row">
+                <h3 id="difference-chart-title">SHARED-FIGURE DIFFERENCES</h3>
+                <span class="chart-subtitle">Reported difference · Lineup B minus Lineup A, in percentage points</span>
+              </div>
+              <div class="difference-chart" id="difference-chart" aria-live="polite"></div>
+              <div class="chart-footer">
+                <div class="unchanged-box" id="unchanged-box"></div>
+                <button class="compact-button" id="shared-toggle" type="button" aria-expanded="false" hidden>Show all shared figures</button>
+              </div>
+            </section>
+          </div>
+
+          <aside class="wave-facts" aria-labelledby="wave-facts-title">
+            <h3 class="facts-title" id="wave-facts-title">WAVE FACTS</h3>
+            <div id="wave-facts"></div>
+          </aside>
+        </div>
+
+        <section class="lineups-drawer" aria-labelledby="lineups-toggle">
+          <button class="drawer-toggle" id="lineups-toggle" type="button" aria-expanded="false" aria-controls="lineups-content">
+            <span id="lineups-toggle-label">VIEW ALL REPORTED LINEUPS</span>
+            <span class="drawer-indicator" aria-hidden="true">⌄</span>
+          </button>
+          <div class="drawer-content" id="lineups-content" hidden>
+            <p class="drawer-note">Each card is one source-reported hypothesis. Scores are exact reported values; no averages are calculated.</p>
+            <div class="lineup-grid" id="lineup-grid"></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <footer>
+      <div>Descriptive polling data from public sources · no model · no averages · no forecast · no voting advice</div>
+      <div class="portrait-note">Portraits are AI-generated illustrations for visual identification.</div>
+    </footer>
+  </main>
+
+  <script>
+    "use strict";
+
+    const $ = selector => document.querySelector(selector);
+    const formatInteger = value => Number(value).toLocaleString("en-GB");
+    const formatScore = value => Number.isFinite(value) ? `${Number(value).toFixed(1)}%` : "—";
+    const formatDelta = value => `${value > 0 ? "+" : value < 0 ? "−" : ""}${Math.abs(value).toFixed(1)}`;
+    const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, character => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[character]);
+    const escapeAttribute = escapeHtml;
+
+    const candidatePortraits = Object.freeze({
+      "Nathalie Arthaud": "assets/candidates/arthaud.png",
+      "Gabriel Attal": "assets/candidates/attal.png",
+      "Jordan Bardella": "assets/candidates/bardella.png",
+      "Gérald Darmanin": "assets/candidates/darmanin.png",
+      "Dominique de Villepin": "assets/candidates/devillepin.png",
+      "Nicolas Dupont-Aignan": "assets/candidates/dupontaignan.png",
+      "Olivier Faure": "assets/candidates/faure.png",
+      "Raphaël Glucksmann": "assets/candidates/glucksmann.png",
+      "François Hollande": "assets/candidates/hollande.png",
+      "Sarah Knafo": "assets/candidates/knafo.png",
+      "Sébastien Lecornu": "assets/candidates/lecornu.png",
+      "Marine Le Pen": "assets/candidates/lepen.png",
+      "David Lisnard": "assets/candidates/lisnard.png",
+      "Jean-Luc Mélenchon": "assets/candidates/melenchon.png",
+      "Édouard Philippe": "assets/candidates/philippe.png",
+      "Bruno Retailleau": "assets/candidates/retailleau.png",
+      "Fabien Roussel": "assets/candidates/roussel.png",
+      "François Ruffin": "assets/candidates/ruffin.png",
+      "Marine Tondelier": "assets/candidates/tondelier.png",
+      "Éric Zemmour": "assets/candidates/zemmour.png"
+    });
+
+    const state = {
+      waves: [],
+      pairCounts: new Map(),
+      selectedWave: null,
+      selectedComparison: null,
+      showAllShared: false
+    };
+
+    function safeSourceUrl(value) {
+      try {
+        const url = new URL(String(value));
+        return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+      } catch (error) {
+        return "";
+      }
+    }
+
+    function formatDate(iso, options = { day: "numeric", month: "short", year: "numeric" }) {
+      if (typeof iso !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "Date unavailable";
+      const date = new Date(`${iso}T00:00:00Z`);
+      return Number.isFinite(date.getTime())
+        ? new Intl.DateTimeFormat("en-GB", { ...options, timeZone: "UTC" }).format(date)
+        : "Date unavailable";
+    }
+
+    function formatDateRange(start, end) {
+      if (!start || !end) return "Fieldwork unavailable";
+      const startDate = new Date(`${start}T00:00:00Z`);
+      const endDate = new Date(`${end}T00:00:00Z`);
+      if (![startDate, endDate].every(date => Number.isFinite(date.getTime()))) return "Fieldwork unavailable";
+      const sameYear = startDate.getUTCFullYear() === endDate.getUTCFullYear();
+      const sameMonth = sameYear && startDate.getUTCMonth() === endDate.getUTCMonth();
+      if (sameMonth) {
+        const monthYear = formatDate(end, { month: "short", year: "numeric" });
+        return `${startDate.getUTCDate()}–${endDate.getUTCDate()} ${monthYear}`;
+      }
+      if (sameYear) {
+        return `${formatDate(start, { day: "numeric", month: "short" })}–${formatDate(end)}`;
+      }
+      return `${formatDate(start)}–${formatDate(end)}`;
+    }
+
+    function figureMonogram(name) {
+      return String(name ?? "")
+        .split(/[\s-]+/)
+        .filter(Boolean)
+        .map(part => part[0])
+        .join("")
+        .slice(0, 3)
+        .toUpperCase();
+    }
+
+    function portraitMarkup(name) {
+      const initials = escapeHtml(figureMonogram(name));
+      const portrait = candidatePortraits[name];
+      if (!portrait) return `<div class="portrait" aria-hidden="true"><span>${initials}</span></div>`;
+      return `
+        <div class="portrait">
+          <span aria-hidden="true">${initials}</span>
+          <img src="${escapeAttribute(portrait)}" alt="Portrait of ${escapeAttribute(name)}" loading="eager" decoding="async" onerror="this.remove()">
+        </div>`;
+    }
+
+    function recordSignature(event) {
+      return JSON.stringify({
+        event_id: event?.event_id ?? null,
+        pollster: event?.pollster ?? null,
+        commissioner: event?.commissioner ?? null,
+        publication_date: event?.publication_date ?? null,
+        fieldwork_start: event?.fieldwork_start ?? null,
+        fieldwork_end: event?.fieldwork_end ?? null,
+        sample_size: event?.sample_size ?? null,
+        round: event?.round ?? null,
+        hypothesis: event?.hypothesis ?? null,
+        scenario_key: event?.scenario_key ?? null,
+        source_url: event?.source_url ?? null,
+        candidates: event?.candidates ?? null
+      });
+    }
+
+    function normalizeEvent(event, originalIndex) {
+      if (!event || event.round !== "first_round" || !Array.isArray(event.candidates) || event.candidates.length < 2) return null;
+      const names = new Set();
+      const candidates = [];
+      for (const candidate of event.candidates) {
+        const name = typeof candidate?.name === "string" ? candidate.name.trim() : "";
+        const score = Number(candidate?.score);
+        if (!name || !Number.isFinite(score) || names.has(name)) return null;
+        names.add(name);
+        candidates.push({ name, score });
+      }
+      return {
+        eventId: event.event_id ?? "",
+        pollster: typeof event.pollster === "string" && event.pollster.trim() ? event.pollster.trim() : "Pollster unavailable",
+        commissioner: event.commissioner ?? null,
+        publicationDate: event.publication_date || null,
+        fieldworkStart: event.fieldwork_start || null,
+        fieldworkEnd: event.fieldwork_end || null,
+        sampleSize: Number.isFinite(Number(event.sample_size)) ? Number(event.sample_size) : null,
+        scenarioKey: typeof event.scenario_key === "string" ? event.scenario_key : "",
+        sourceUrl: safeSourceUrl(event.source_url),
+        candidates,
+        originalIndex
+      };
+    }
+
+    function groupPollWaves(events) {
+      const seen = new Set();
+      const waves = new Map();
+
+      events.forEach((rawEvent, originalIndex) => {
+        const signature = recordSignature(rawEvent);
+        if (seen.has(signature)) return;
+        seen.add(signature);
+        const event = normalizeEvent(rawEvent, originalIndex);
+        if (!event) return;
+
+        const key = JSON.stringify([
+          event.pollster,
+          event.fieldworkStart,
+          event.fieldworkEnd,
+          event.sampleSize,
+          event.sourceUrl
+        ]);
+
+        if (!waves.has(key)) {
+          waves.set(key, {
+            key,
+            pollster: event.pollster,
+            fieldworkStart: event.fieldworkStart,
+            fieldworkEnd: event.fieldworkEnd,
+            sampleSize: event.sampleSize,
+            sourceUrl: event.sourceUrl,
+            publicationDates: [],
+            hypotheses: [],
+            firstIndex: originalIndex
+          });
+        }
+
+        const wave = waves.get(key);
+        if (event.publicationDate) wave.publicationDates.push(event.publicationDate);
+        wave.hypotheses.push(event);
+      });
+
+      return [...waves.values()].map(wave => {
+        wave.publicationDate = [...wave.publicationDates].sort().at(-1) || null;
+        wave.sortDate = wave.publicationDate || wave.fieldworkEnd || "";
+        wave.hypotheses = wave.hypotheses.map((hypothesis, index) => ({
+          ...hypothesis,
+          hIndex: index + 1,
+          hLabel: `H${index + 1}`
+        }));
+        wave.comparisons = findOneNameComparisons(wave);
+        return wave;
+      });
+    }
+
+    function compareHypotheses(a, b) {
+      if (a.scenarioKey && b.scenarioKey) {
+        const scenarioOrder = a.scenarioKey.localeCompare(b.scenarioKey);
+        if (scenarioOrder) return scenarioOrder;
+      }
+      return a.originalIndex - b.originalIndex;
+    }
+
+    function findOneNameComparisons(wave) {
+      const comparisons = [];
+      for (let leftIndex = 0; leftIndex < wave.hypotheses.length; leftIndex += 1) {
+        for (let rightIndex = leftIndex + 1; rightIndex < wave.hypotheses.length; rightIndex += 1) {
+          const left = wave.hypotheses[leftIndex];
+          const right = wave.hypotheses[rightIndex];
+          const leftNames = new Set(left.candidates.map(candidate => candidate.name));
+          const rightNames = new Set(right.candidates.map(candidate => candidate.name));
+          const leftOnly = [...leftNames].filter(name => !rightNames.has(name));
+          const rightOnly = [...rightNames].filter(name => !leftNames.has(name));
+          if (leftOnly.length !== 1 || rightOnly.length !== 1) continue;
+
+          const [a, b] = compareHypotheses(left, right) <= 0 ? [left, right] : [right, left];
+          const aMap = new Map(a.candidates.map(candidate => [candidate.name, candidate.score]));
+          const bMap = new Map(b.candidates.map(candidate => [candidate.name, candidate.score]));
+          const aOnly = a.candidates.find(candidate => !bMap.has(candidate.name));
+          const bOnly = b.candidates.find(candidate => !aMap.has(candidate.name));
+          const shared = a.candidates
+            .filter(candidate => bMap.has(candidate.name))
+            .map(candidate => ({
+              name: candidate.name,
+              aScore: candidate.score,
+              bScore: bMap.get(candidate.name),
+              difference: bMap.get(candidate.name) - candidate.score
+            }));
+          const pairKey = [aOnly.name, bOnly.name]
+            .sort((first, second) => first.localeCompare(second, "fr"))
+            .join("\u0000");
+
+          comparisons.push({
+            a,
+            b,
+            aOnly,
+            bOnly,
+            shared,
+            pairKey,
+            stableKey: `${a.scenarioKey || String(a.originalIndex).padStart(8, "0")}|${b.scenarioKey || String(b.originalIndex).padStart(8, "0")}`
+          });
+        }
+      }
+      return comparisons;
+    }
+
+    function countRecurringFigurePairs(waves) {
+      const counts = new Map();
+      waves.forEach(wave => wave.comparisons.forEach(comparison => {
+        counts.set(comparison.pairKey, (counts.get(comparison.pairKey) || 0) + 1);
+      }));
+      return counts;
+    }
+
+    function chooseDefaultWave(waves) {
+      return [...waves]
+        .filter(wave => wave.comparisons.length)
+        .sort((a, b) =>
+          String(b.sortDate).localeCompare(String(a.sortDate)) ||
+          a.firstIndex - b.firstIndex ||
+          a.key.localeCompare(b.key)
+        )[0] || null;
+    }
+
+    function chooseDefaultComparison(wave, pairCounts) {
+      return [...wave.comparisons].sort((a, b) =>
+        (pairCounts.get(b.pairKey) || 0) - (pairCounts.get(a.pairKey) || 0) ||
+        b.shared.length - a.shared.length ||
+        a.stableKey.localeCompare(b.stableKey)
+      )[0] || null;
+    }
+
+    function deriveWaveFacts(wave) {
+      const appearances = new Map();
+      wave.hypotheses.forEach(hypothesis => {
+        hypothesis.candidates.forEach(candidate => {
+          appearances.set(candidate.name, (appearances.get(candidate.name) || 0) + 1);
+        });
+      });
+      const distinctFigures = appearances.size;
+      const inEveryLineup = [...appearances.values()].filter(count => count === wave.hypotheses.length).length;
+      return {
+        testedLineups: wave.hypotheses.length,
+        distinctFigures,
+        inEveryLineup,
+        selectivelyTested: distinctFigures - inEveryLineup
+      };
+    }
+
+    function comparisonLabel(comparison) {
+      return `${comparison.aOnly.name} ↔ ${comparison.bOnly.name}`;
+    }
+
+    function renderSelectors() {
+      const waveSelect = $("#wave-select");
+      const comparisonSelect = $("#comparison-select");
+      waveSelect.replaceChildren();
+      state.waves.forEach((wave, index) => {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = `${wave.pollster} · ${formatDateRange(wave.fieldworkStart, wave.fieldworkEnd)}`;
+        option.selected = wave === state.selectedWave;
+        waveSelect.append(option);
+      });
+
+      comparisonSelect.replaceChildren();
+      state.selectedWave.comparisons.forEach((comparison, index) => {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = comparisonLabel(comparison);
+        option.selected = comparison === state.selectedComparison;
+        comparisonSelect.append(option);
+      });
+
+      waveSelect.disabled = false;
+      comparisonSelect.disabled = false;
+      $("#wave-select-meta").textContent = `n = ${state.selectedWave.sampleSize === null ? "not stated" : formatInteger(state.selectedWave.sampleSize)} · ${state.selectedWave.hypotheses.length} tested lineups`;
+      $("#comparison-select-meta").textContent = `${state.selectedComparison.shared.length} shared figures · ${state.selectedComparison.a.hLabel} versus ${state.selectedComparison.b.hLabel}`;
+    }
+
+    function renderSubstitutionCards(comparison) {
+      const card = (tone, label, figure) => `
+        <article class="figure-card is-${tone}" aria-label="Lineup ${tone.toUpperCase()} only: ${escapeAttribute(figure.name)}, ${formatScore(figure.score)}">
+          ${portraitMarkup(figure.name)}
+          <div class="figure-copy">
+            <div class="card-kicker">${label}</div>
+            <div class="figure-name">${escapeHtml(figure.name)}</div>
+            <div class="figure-score">${formatScore(figure.score)}</div>
+          </div>
+        </article>`;
+      $("#substitution-cards").innerHTML =
+        card("a", "LINEUP A ONLY", comparison.aOnly) +
+        card("b", "LINEUP B ONLY", comparison.bOnly);
+    }
+
+    function axisMaximum(shared) {
+      const largest = Math.max(...shared.map(figure => Math.abs(figure.difference)), 0.5);
+      return Math.ceil(largest * 2) / 2;
+    }
+
+    function renderDifferenceChart(comparison) {
+      const ordered = [...comparison.shared].sort((a, b) =>
+        Math.abs(b.difference) - Math.abs(a.difference) || a.name.localeCompare(b.name, "fr")
+      );
+      const changed = ordered.filter(figure => Math.abs(figure.difference) > 1e-9);
+      const unchanged = ordered.filter(figure => Math.abs(figure.difference) <= 1e-9);
+      const visible = state.showAllShared ? ordered : changed.slice(0, 6);
+      const axisMax = axisMaximum(comparison.shared);
+
+      const rows = visible.map(figure => {
+        const tone = figure.difference < 0 ? "negative" : figure.difference > 0 ? "positive" : "zero";
+        const width = Math.min(50, Math.abs(figure.difference) / axisMax * 50);
+        const bar = tone === "zero"
+          ? '<span class="difference-zero" aria-hidden="true"></span>'
+          : `<span class="difference-bar is-${tone}" style="width:${width.toFixed(3)}%" aria-hidden="true"></span>`;
+        return `
+          <div class="difference-row">
+            <div class="difference-name">${escapeHtml(figure.name)}</div>
+            <div class="difference-values"><span>${formatScore(figure.aScore)}</span><span class="arrow" aria-hidden="true">→</span><span>${formatScore(figure.bScore)}</span></div>
+            <div class="difference-plot">${bar}</div>
+            <div class="difference-delta is-${tone}">${formatDelta(figure.difference)}</div>
+          </div>`;
+      }).join("");
+
+      $("#difference-chart").innerHTML = `
+        <div class="axis-row" aria-hidden="true">
+          <div></div><div></div>
+          <div class="axis-plot">
+            <span class="axis-left">B lower −${axisMax.toFixed(1)}</span>
+            <span class="axis-zero">0</span>
+            <span class="axis-right">+${axisMax.toFixed(1)} B higher</span>
+          </div>
+          <div></div>
+        </div>${rows}`;
+
+      const unchangedLabel = `${unchanged.length} unchanged ${unchanged.length === 1 ? "figure" : "figures"}`;
+      $("#unchanged-box").innerHTML = `<strong>${unchangedLabel}</strong>${unchanged.length ? `<br>${unchanged.map(figure => escapeHtml(figure.name)).join(" · ")}` : ""}`;
+
+      const toggle = $("#shared-toggle");
+      toggle.hidden = changed.length <= 6;
+      toggle.setAttribute("aria-expanded", String(state.showAllShared));
+      toggle.textContent = state.showAllShared ? "Show fewer shared figures" : `Show all shared figures (${comparison.shared.length})`;
+    }
+
+    function renderWaveFacts(wave, comparison) {
+      const facts = deriveWaveFacts(wave);
+      const sourceUrl = safeSourceUrl(wave.sourceUrl);
+      const source = sourceUrl
+        ? `<a class="source-link" href="${escapeAttribute(sourceUrl)}" target="_blank" rel="noopener noreferrer">Open source ↗</a>`
+        : '<span class="source-link is-disabled">Source unavailable</span>';
+      const metrics = [
+        [facts.testedLineups, "tested lineups"],
+        [facts.distinctFigures, "distinct figures"],
+        [facts.inEveryLineup, "in every lineup"],
+        [facts.selectivelyTested, "selectively tested"]
+      ];
+
+      $("#wave-facts").innerHTML = `
+        <div class="facts-metrics">
+          ${metrics.map(([value, label]) => `<div class="metric"><div class="metric-value">${value}</div><div class="metric-label">${label}</div></div>`).join("")}
+        </div>
+        <dl class="fact-list">
+          <div class="fact-row"><dt>Pollster</dt><dd>${escapeHtml(wave.pollster)}</dd></div>
+          <div class="fact-row"><dt>Fieldwork</dt><dd>${escapeHtml(formatDateRange(wave.fieldworkStart, wave.fieldworkEnd))}</dd></div>
+          <div class="fact-row"><dt>Sample</dt><dd>${wave.sampleSize === null ? "Not stated" : `${formatInteger(wave.sampleSize)} respondents`}</dd></div>
+          <div class="fact-row"><dt>Comparison</dt><dd>${comparison.a.hLabel} versus ${comparison.b.hLabel}</dd></div>
+          <div class="fact-row"><dt>Shared figures</dt><dd>${comparison.shared.length}</dd></div>
+          <div class="fact-row"><dt>Direct source</dt><dd>${source}</dd></div>
+        </dl>
+        <div class="disclosure">Same poll wave, pollster, fieldwork period, declared sample and source. Differences are descriptive and do not establish that the substituted figure caused the reported score differences.</div>`;
+    }
+
+    function renderLineupDrawer(wave, comparison) {
+      $("#lineups-toggle-label").textContent = `VIEW ALL ${wave.hypotheses.length} REPORTED LINEUPS`;
+      $("#lineup-grid").innerHTML = wave.hypotheses.map(hypothesis => {
+        const isA = hypothesis === comparison.a;
+        const isB = hypothesis === comparison.b;
+        const tone = isA ? " is-a" : isB ? " is-b" : "";
+        const labelSuffix = isA ? " (A)" : isB ? " (B)" : "";
+        const scores = hypothesis.candidates.map(figure => {
+          const exclusiveA = isA && figure.name === comparison.aOnly.name;
+          const exclusiveB = isB && figure.name === comparison.bOnly.name;
+          const scoreTone = exclusiveA ? " is-exclusive-a" : exclusiveB ? " is-exclusive-b" : "";
+          const exclusiveNote = exclusiveA
+            ? '<span class="exclusive-note">Exclusive in selected A</span>'
+            : exclusiveB ? '<span class="exclusive-note">Exclusive in selected B</span>' : "";
+          return `<li class="lineup-score${scoreTone}"><span>${escapeHtml(figure.name)}</span><span>${formatScore(figure.score)}</span>${exclusiveNote}</li>`;
+        }).join("");
+        return `
+          <article class="lineup-card${tone}">
+            <div class="lineup-card-head">
+              <div class="lineup-label">${hypothesis.hLabel}${labelSuffix}</div>
+              <div class="lineup-count">${hypothesis.candidates.length} tested figures</div>
+            </div>
+            <ul class="lineup-scores">${scores}</ul>
+          </article>`;
+      }).join("");
+    }
+
+    function renderComparison() {
+      if (!state.selectedWave || !state.selectedComparison) return;
+      renderSelectors();
+      renderSubstitutionCards(state.selectedComparison);
+      renderDifferenceChart(state.selectedComparison);
+      renderWaveFacts(state.selectedWave, state.selectedComparison);
+      renderLineupDrawer(state.selectedWave, state.selectedComparison);
+    }
+
+    function showError(message) {
+      $("#loading-state").hidden = true;
+      $("#evidence-content").hidden = true;
+      const errorState = $("#error-state");
+      errorState.textContent = message;
+      errorState.hidden = false;
+      $("#wave-select").disabled = true;
+      $("#comparison-select").disabled = true;
+      document.documentElement.dataset.ready = "error";
+    }
+
+    function bindInteractions() {
+      $("#wave-select").addEventListener("change", event => {
+        const nextWave = state.waves[Number(event.target.value)];
+        if (!nextWave) return;
+        state.selectedWave = nextWave;
+        state.selectedComparison = chooseDefaultComparison(nextWave, state.pairCounts);
+        state.showAllShared = false;
+        renderComparison();
+      });
+
+      $("#comparison-select").addEventListener("change", event => {
+        const nextComparison = state.selectedWave?.comparisons[Number(event.target.value)];
+        if (!nextComparison) return;
+        state.selectedComparison = nextComparison;
+        state.showAllShared = false;
+        renderComparison();
+      });
+
+      $("#shared-toggle").addEventListener("click", () => {
+        state.showAllShared = !state.showAllShared;
+        renderDifferenceChart(state.selectedComparison);
+      });
+
+      $("#lineups-toggle").addEventListener("click", () => {
+        const button = $("#lineups-toggle");
+        const expanded = button.getAttribute("aria-expanded") === "true";
+        button.setAttribute("aria-expanded", String(!expanded));
+        $("#lineups-content").hidden = expanded;
+      });
+    }
+
+    async function initialize() {
+      bindInteractions();
+      const response = await fetch("polls.json", { cache: "no-store" });
+      if (!response.ok) throw new Error(`polls.json returned HTTP ${response.status}.`);
+      const events = await response.json();
+      if (!Array.isArray(events) || !events.length) throw new Error("polls.json contains no records.");
+
+      const allWaves = groupPollWaves(events);
+      state.pairCounts = countRecurringFigurePairs(allWaves);
+      state.waves = allWaves
+        .filter(wave => wave.comparisons.length)
+        .sort((a, b) =>
+          String(b.sortDate).localeCompare(String(a.sortDate)) ||
+          a.firstIndex - b.firstIndex ||
+          a.key.localeCompare(b.key)
+        );
+      if (!state.waves.length) throw new Error("No eligible poll waves contain an exact one-name comparison.");
+
+      state.selectedWave = chooseDefaultWave(state.waves);
+      state.selectedComparison = chooseDefaultComparison(state.selectedWave, state.pairCounts);
+      if (!state.selectedComparison) throw new Error("The selected poll wave has no valid one-name comparison.");
+
+      $("#data-through").textContent = `Polling data through ${formatDate(state.waves[0].sortDate)}`;
+      $("#loading-state").hidden = true;
+      $("#error-state").hidden = true;
+      $("#evidence-content").hidden = false;
+      renderComparison();
+      document.documentElement.dataset.ready = "true";
+    }
+
+    initialize().catch(error => {
+      console.error(error);
+      showError(`Polling Evidence unavailable: ${error instanceof Error ? error.message : String(error)}`);
+    });
+  </script>
+</body>
+</html>
