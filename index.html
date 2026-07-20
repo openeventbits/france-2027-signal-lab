@@ -379,298 +379,482 @@
     .news-card-chip.is-election { border-color: #24789b; color: #8ce8ff; }
     .news-wire-state { grid-column: 1 / -1; padding: 22px 6px; color: var(--muted); }
     .news-wire-state.error { padding: 22px 6px; }
-    .polling-explorer { margin-top: 16px; }
-    .polling-explorer-head { align-items: center; }
-    .polling-explorer-head h2 { font-size: 21px; letter-spacing: -.015em; }
-    .polling-explorer-tabs {
-      display: flex; min-width: 0; overflow-x: auto; padding: 0 12px; border-bottom: 1px solid var(--line);
-      background: rgba(3, 11, 20, .3); scrollbar-width: thin;
+    /* Polling Evidence · exact same-wave one-name comparisons */
+    .polling-evidence {
+      --pe-violet: #9d8cff;
+      margin-top: 16px;
+      overflow: hidden;
     }
-    .polling-explorer-tab {
-      flex: 0 0 auto; min-height: 42px; padding: 7px 12px; border: 0; border-bottom: 2px solid transparent;
-      background: transparent; color: var(--muted); font: inherit; font-size: 10px; font-weight: 700;
-      letter-spacing: .055em; white-space: nowrap; cursor: pointer;
+    .polling-evidence .pe-head { align-items: flex-start; }
+    .polling-evidence .pe-head h2 { font-size: 21px; letter-spacing: -.015em; }
+
+    .polling-evidence .pe-controls {
+      display: grid;
+      grid-template-columns: minmax(0, .8fr) minmax(0, .8fr) minmax(0, 1.4fr);
+      gap: 10px;
+      padding: 10px 15px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(3, 11, 20, .25);
     }
-    .polling-explorer-tab:hover { color: var(--text); }
-    .polling-explorer-tab.active { border-bottom-color: var(--cyan); color: var(--cyan); }
-    .polling-explorer-tab:focus-visible,
-    .poll-wave-select:focus-visible,
-    .poll-wave-source:focus-visible,
-    .polling-explorer-panel:focus-visible {
-      outline: 2px solid var(--cyan); outline-offset: -2px;
+    .polling-evidence .pe-control { display: grid; min-width: 0; gap: 4px; }
+    .polling-evidence .pe-control-label {
+      color: var(--cyan);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
     }
-    .polling-explorer-panel[hidden] { display: none; }
-    .polling-explorer-layout {
-      display: grid; grid-template-columns: minmax(0, 8fr) minmax(280px, 4fr); gap: 16px;
-      align-items: start; min-width: 0; padding: 12px; background: rgba(3, 11, 20, .2);
+    .polling-evidence .pe-select {
+      width: 100%;
+      min-width: 0;
+      min-height: 38px;
+      padding: 7px 32px 7px 9px;
+      border: 1px solid #23445d;
+      border-radius: 4px;
+      background: #071522;
+      color: var(--text);
+      font: inherit;
+      font-size: 11px;
+      cursor: pointer;
     }
-    .polling-explorer-main,
-    .polling-explorer-detail {
-      min-width: 0; border: 1px solid #183a54; border-radius: 6px; background: rgba(8, 23, 37, .8);
+    .polling-evidence .pe-select:hover { border-color: #2873a8; }
+    .polling-evidence .pe-select:disabled { cursor: not-allowed; opacity: .62; }
+    .polling-evidence .pe-select:focus-visible,
+    .polling-evidence .pe-compact-button:focus-visible,
+    .polling-evidence .pe-drawer-toggle:focus-visible,
+    .polling-evidence .pe-source-link:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
     }
-    .polling-explorer-inner-head {
-      padding: 11px 12px; border-bottom: 1px solid #183a54; background: rgba(10, 29, 46, .78);
+    .polling-evidence .pe-control-meta {
+      min-height: 13px;
+      color: var(--muted);
+      font-size: 9px;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
     }
-    .polling-explorer-inner-title { margin: 0; color: #dcecf6; font-size: 12px; letter-spacing: .08em; }
-    .polling-explorer-inner-sub { margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.45; }
-    .polling-explorer-placeholder {
-      min-height: 230px; display: grid; align-content: center; gap: 8px; padding: 24px;
-      color: var(--muted); text-align: center;
+    .polling-evidence .pe-state {
+      margin: 12px 15px;
+      padding: 24px 16px;
+      border: 1px solid #17384f;
+      color: var(--muted);
+      text-align: center;
     }
-    .polling-explorer-placeholder strong { color: var(--text); font-size: 13px; }
-    .polling-explorer-placeholder p { max-width: 560px; margin: 0 auto; font-size: 11px; line-height: 1.6; }
-    .field-formation-summary {
-      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
-      gap: 5px 12px; padding: 8px 10px; border-bottom: 1px solid #183a54;
-      color: var(--muted); font-size: 10px; line-height: 1.4;
+    .polling-evidence .pe-state.error { border-color: #713a4b; color: #ff8b8b; }
+    .polling-evidence .pe-no-match-title {
+      color: #dcecf6;
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: .08em;
     }
-    .field-formation-summary strong { color: #cfe2ed; font-weight: 600; }
-    .field-formation-scroll {
-      max-width: 100%; overflow-x: auto; overflow-y: visible; scrollbar-width: thin;
-      overscroll-behavior-inline: contain; background: rgba(3, 11, 20, .18);
+    .polling-evidence .pe-no-match-copy {
+      max-width: 720px;
+      margin: 8px auto 0;
+      color: #9ab2c2;
+      font-size: 11px;
+      line-height: 1.55;
     }
-    .field-formation-scroll:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
-    .field-formation-table {
-      width: 100%; min-width: 930px; border-collapse: separate; border-spacing: 0;
-      color: #bfd3df; font-size: 10px; font-variant-numeric: tabular-nums;
+    .polling-evidence .pe-no-match-meta { margin-top: 7px; color: #66869c; font-size: 9px; }
+    .polling-evidence .pe-body {
+      display: grid;
+      grid-template-columns: minmax(0, 2.4fr) minmax(276px, .92fr);
+      min-width: 0;
     }
-    .field-formation-table caption { text-align: left; }
-    .field-formation-table th,
-    .field-formation-table td {
-      height: 39px; padding: 6px 7px; border-right: 1px solid #143149;
-      border-bottom: 1px solid #143149; text-align: center; vertical-align: middle;
+    .polling-evidence .pe-comparison-stage { min-width: 0; padding: 10px 12px 9px 15px; }
+    .polling-evidence .pe-substitution-cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
     }
-    .field-formation-table th:last-child,
-    .field-formation-table td:last-child { border-right: 0; }
-    .field-formation-table tbody tr:last-child td,
-    .field-formation-table tbody tr:last-child th { border-bottom: 0; }
-    .field-formation-table thead th {
-      color: #7f9caf; background: #0a1d2e; font-size: 8px; font-weight: 700;
-      letter-spacing: .06em; line-height: 1.25; text-transform: uppercase;
+    .polling-evidence .pe-figure-card {
+      min-width: 0;
+      min-height: 100px;
+      display: grid;
+      grid-template-columns: 62px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border: 1px solid;
+      background: linear-gradient(110deg, rgba(10, 31, 49, .9), rgba(7, 18, 31, .75));
+      overflow: hidden;
     }
-    .field-formation-table tbody tr:hover td,
-    .field-formation-table tbody tr:hover th { background-color: rgba(16, 39, 61, .48); }
-    .field-formation-table tbody tr.is-selected td,
-    .field-formation-table tbody tr.is-selected th { background-color: rgba(17, 55, 78, .62); }
-    .field-candidate-column {
-      position: sticky; left: 0; z-index: 2; width: 190px; min-width: 190px;
-      text-align: left !important; background: #091a2a !important;
-      box-shadow: 1px 0 #1b405c;
+    .polling-evidence .pe-figure-card.is-a { border-color: #237da2; box-shadow: inset 0 2px var(--cyan); }
+    .polling-evidence .pe-figure-card.is-b { border-color: #6555a5; box-shadow: inset 0 2px var(--pe-violet); }
+    .polling-evidence .pe-figure-card.is-a .pe-card-kicker,
+    .polling-evidence .pe-figure-card.is-a .pe-figure-score { color: var(--cyan); }
+    .polling-evidence .pe-figure-card.is-b .pe-card-kicker,
+    .polling-evidence .pe-figure-card.is-b .pe-figure-score { color: var(--pe-violet); }
+    .polling-evidence .pe-portrait {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid #2873a8;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #0c2236, #07111d);
+      color: #9db9cc;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .02em;
     }
-    thead .field-candidate-column { z-index: 3; background: #0a1d2e !important; }
-    .field-candidate-select {
-      width: 100%; padding: 2px 3px; border: 0; background: transparent; color: #dcecf6;
-      font: inherit; font-size: 11px; font-weight: 650; line-height: 1.3; text-align: left;
-      cursor: pointer; overflow-wrap: anywhere;
+    .polling-evidence .pe-figure-card.is-b .pe-portrait { border-color: #6555a5; }
+    .polling-evidence .pe-portrait img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 18%;
     }
-    .field-candidate-select:hover { color: var(--cyan); }
-    .field-candidate-select:focus-visible,
-    .field-presence:focus-visible,
-    .field-detail-source:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
-    .field-event-column { width: 57px; min-width: 57px; }
-    .field-event-pollster { display: block; color: #a9c1d1; }
-    .field-event-date { display: block; margin-top: 2px; color: #607f94; font-size: 7px; letter-spacing: 0; text-transform: none; }
-    .field-presence {
-      width: 18px; height: 18px; display: inline-grid; place-items: center; border: 1px solid #2b789d;
-      border-radius: 50%; background: rgba(38, 140, 255, .12); color: var(--cyan);
-      font-size: 8px; line-height: 1; text-decoration: none;
+    .polling-evidence .pe-figure-copy { min-width: 0; }
+    .polling-evidence .pe-card-kicker {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
     }
-    .field-presence:hover { border-color: var(--cyan); background: rgba(53, 213, 255, .2); text-decoration: none; }
-    .field-presence.is-multiple { box-shadow: 0 0 0 3px rgba(53, 213, 255, .09); }
-    .field-absence { color: #49697e; font-size: 13px; }
-    .field-events-column { width: 55px; min-width: 55px; }
-    .field-pollsters-column { width: 62px; min-width: 62px; }
-    .field-last-column { width: 76px; min-width: 76px; white-space: nowrap; }
-    .field-formation-legend {
-      display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px;
-      padding: 8px 10px; border-top: 1px solid #183a54; color: var(--muted); font-size: 9px;
+    .polling-evidence .pe-figure-name {
+      margin-top: 4px;
+      color: #edf7fc;
+      font-size: clamp(15px, 1.3vw, 19px);
+      font-weight: 700;
+      line-height: 1.15;
+      overflow-wrap: anywhere;
     }
-    .field-legend-item { display: inline-flex; align-items: center; gap: 5px; }
-    .field-legend-marker {
-      width: 10px; height: 10px; display: inline-block; border: 1px solid #2b789d;
-      border-radius: 50%; background: rgba(38, 140, 255, .16);
+    .polling-evidence .pe-figure-score {
+      margin-top: 3px;
+      font-size: clamp(23px, 2vw, 31px);
+      font-weight: 750;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
     }
-    .field-legend-marker.is-multiple { box-shadow: 0 0 0 2px rgba(53, 213, 255, .1); }
-    .field-legend-marker.is-absent { border-color: #49697e; background: transparent; }
-    .field-detail-body { display: grid; gap: 13px; padding: 12px; }
-    .field-detail-name { color: #edf7fc; font-size: 19px; font-weight: 750; line-height: 1.2; overflow-wrap: anywhere; }
-    .field-detail-status {
-      display: inline-flex; width: fit-content; margin-top: 6px; padding: 3px 7px;
-      border: 1px solid #286486; border-radius: 999px; color: #8ce8ff;
-      font-size: 8px; font-weight: 700; letter-spacing: .08em;
+    .polling-evidence .pe-chart-block { margin-top: 9px; min-width: 0; }
+    .polling-evidence .pe-chart-title-row {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 2px 7px;
+      min-width: 0;
+      padding: 0 7px 5px;
     }
-    .field-detail-status.is-inactive { border-color: #4b5f6d; color: #9aafbd; }
-    .field-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-    .field-detail-metric { min-width: 0; padding: 8px; border: 1px solid #17384f; border-radius: 4px; background: rgba(7, 21, 34, .62); }
-    .field-detail-label { color: #6f8ea3; font-size: 8px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-    .field-detail-value { margin-top: 4px; color: #d3e3ec; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
-    .field-detail-section h4 { margin: 0 0 7px; color: #8fb5ca; font-size: 9px; letter-spacing: .11em; text-transform: uppercase; }
-    .field-detail-events { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-    .field-detail-event {
-      display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px;
-      padding: 8px; border: 1px solid #17384f; border-radius: 4px; background: rgba(7, 21, 34, .46);
+    .polling-evidence .pe-chart-title-row h3,
+    .polling-evidence .pe-facts-title {
+      margin: 0;
+      color: #edf7fc;
+      font-size: 11px;
+      letter-spacing: .06em;
     }
-    .field-detail-event-title { color: #cfe1ec; font-size: 10px; font-weight: 650; overflow-wrap: anywhere; }
-    .field-detail-event-meta { grid-column: 1; color: var(--muted); font-size: 9px; line-height: 1.4; }
-    .field-detail-source { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 9px; white-space: nowrap; }
-    .field-formation-state { padding: 24px 12px; color: var(--muted); font-size: 11px; }
-    .field-formation-state.error { color: #ff8b8b; }
-    .poll-wave-grid {
-      display: grid; gap: 8px; min-width: 0; padding: 10px;
+    .polling-evidence .pe-chart-subtitle { color: #9ab2c2; font-size: 9px; }
+    .polling-evidence .pe-difference-chart {
+      --pe-name-col: minmax(116px, .9fr);
+      --pe-values-col: 88px;
+      --pe-delta-col: 44px;
+      min-width: 0;
+      border-top: 1px solid #17384f;
     }
-    .poll-wave-card {
-      min-width: 0; border: 1px solid #15354e; border-radius: 6px; background: rgba(13, 31, 49, .72);
+    .polling-evidence .pe-axis-row,
+    .polling-evidence .pe-difference-row {
+      display: grid;
+      grid-template-columns: var(--pe-name-col) var(--pe-values-col) minmax(120px, 2fr) var(--pe-delta-col);
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
     }
-    .poll-wave-card:hover, .poll-wave-card:focus-within { border-color: #2873a8; background: rgba(16, 39, 61, .84); }
-    .poll-wave-card.is-selected { border-color: #2a8fba; background: rgba(17, 55, 78, .84); box-shadow: inset 3px 0 var(--cyan); }
-    .poll-wave-select {
-      width: 100%; display: grid; gap: 8px; min-width: 0; padding: 11px 12px; border: 0;
-      background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;
+    .polling-evidence .pe-axis-row { min-height: 20px; color: var(--muted); font-size: 8px; }
+    .polling-evidence .pe-axis-plot { position: relative; height: 100%; }
+    .polling-evidence .pe-axis-plot span { position: absolute; bottom: 3px; transform: translateX(-50%); }
+    .polling-evidence .pe-axis-plot .pe-axis-left { left: 0; transform: none; color: var(--cyan); }
+    .polling-evidence .pe-axis-plot .pe-axis-zero { left: 50%; color: var(--text); }
+    .polling-evidence .pe-axis-plot .pe-axis-right { right: 0; transform: none; color: var(--pe-violet); }
+    .polling-evidence .pe-difference-row {
+      min-height: 28px;
+      border-top: 1px solid rgba(22, 52, 77, .78);
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
     }
-    .poll-wave-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 14px; min-width: 0; }
-    .poll-wave-pollster { color: var(--text); font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
-    .poll-wave-date { color: var(--cyan); font-size: 10px; text-align: right; white-space: nowrap; }
-    .poll-wave-details { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--muted); font-size: 10px; }
-    .poll-wave-detail { min-width: 0; overflow-wrap: anywhere; }
-    .poll-wave-detail b { color: #b9d3e4; font-weight: 500; }
-    .poll-wave-candidate-summary { color: #9fb9c9; font-size: 10px; line-height: 1.45; overflow-wrap: anywhere; }
-    .poll-wave-sources {
-      display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px;
-      min-width: 0; padding: 8px 12px 10px; border-top: 1px solid #15354e;
+    .polling-evidence .pe-difference-name {
+      min-width: 0;
+      color: #cfe1ec;
+      font-weight: 650;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
     }
-    .poll-wave-source-count { color: var(--muted); font-size: 9px; }
-    .poll-wave-source {
-      max-width: 100%; padding: 3px 6px; border: 1px solid #1b4d6c; border-radius: 999px;
-      background: #081725; font-size: 9px; overflow-wrap: anywhere;
+    .polling-evidence .pe-difference-values { color: #b8ccd9; white-space: nowrap; }
+    .polling-evidence .pe-difference-values .pe-arrow { color: var(--muted); padding-inline: 2px; }
+    .polling-evidence .pe-difference-plot {
+      position: relative;
+      height: 17px;
+      min-width: 0;
+      background:
+        linear-gradient(to right, transparent calc(50% - .5px), #64859a 50%, transparent calc(50% + .5px)),
+        linear-gradient(to right, rgba(7, 16, 27, .46), rgba(7, 16, 27, .46));
     }
-    .poll-wave-loading { padding: 18px 6px; color: var(--muted); }
-    .poll-wave-footer { padding: 8px 12px; border-top: 1px solid #183a54; color: var(--muted); font-size: 10px; }
-    .poll-wave-detail-body { display: grid; gap: 14px; padding: 12px; }
-    .poll-wave-detail-pollster { color: #edf7fc; font-size: 18px; font-weight: 750; line-height: 1.2; overflow-wrap: anywhere; }
-    .poll-wave-detail-date { margin-top: 4px; color: var(--cyan); font-size: 10px; }
-    .poll-wave-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-    .poll-wave-detail-metric { min-width: 0; padding: 8px; border: 1px solid #17384f; border-radius: 4px; background: rgba(7, 21, 34, .62); }
-    .poll-wave-detail-label { color: #6f8ea3; font-size: 8px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
-    .poll-wave-detail-value { margin-top: 4px; color: #cfe1ec; font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
-    .poll-wave-detail-section { min-width: 0; }
-    .poll-wave-detail-section h4 { margin: 0 0 7px; color: #8fb5ca; font-size: 9px; letter-spacing: .11em; text-transform: uppercase; }
-    .poll-wave-lineups { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
-    .poll-wave-lineup { padding: 8px; border: 1px solid #17384f; border-radius: 4px; background: rgba(7, 21, 34, .46); }
-    .poll-wave-lineup-label { color: var(--cyan); font-size: 9px; font-weight: 700; }
-    .poll-wave-lineup-candidates { margin-top: 4px; color: #bdd1dd; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
-    .poll-wave-detail-sources { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-    .scenario-switch-controls {
-      display: grid; grid-template-columns: minmax(220px, 1.35fr) repeat(2, minmax(170px, 1fr));
-      gap: 8px; padding: 10px; border-bottom: 1px solid #183a54; background: rgba(3, 11, 20, .22);
+    .polling-evidence .pe-difference-plot::before,
+    .polling-evidence .pe-difference-plot::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      width: 1px;
+      background: #17384f;
     }
-    .scenario-switch-control { display: grid; gap: 4px; min-width: 0; }
-    .scenario-switch-control > span {
-      color: #6f8ea3; font-size: 8px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase;
+    .polling-evidence .pe-difference-plot::before { left: 25%; }
+    .polling-evidence .pe-difference-plot::after { right: 25%; }
+    .polling-evidence .pe-difference-bar {
+      position: absolute;
+      top: 4px;
+      height: 9px;
+      min-width: 2px;
+      border-radius: 2px;
     }
-    .scenario-switch-select {
-      width: 100%; min-width: 0; min-height: 36px; padding: 6px 28px 6px 8px;
-      border: 1px solid #23445d; border-radius: 4px; background: #071522; color: var(--text);
-      font: inherit; font-size: 10px; line-height: 1.35;
+    .polling-evidence .pe-difference-bar.is-negative {
+      right: 50%;
+      background: linear-gradient(90deg, #168eb9, var(--cyan));
+      box-shadow: 0 0 8px rgba(53, 213, 255, .18);
     }
-    .scenario-switch-select:disabled { color: #627e91; cursor: not-allowed; }
-    .scenario-switch-select:focus-visible,
-    .scenario-switch-scroll:focus-visible,
-    .scenario-switch-source:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
-    .scenario-switch-summary {
-      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
-      gap: 5px 12px; padding: 8px 10px; border-bottom: 1px solid #183a54;
-      color: var(--muted); font-size: 10px; line-height: 1.4;
+    .polling-evidence .pe-difference-bar.is-positive {
+      left: 50%;
+      background: linear-gradient(90deg, var(--pe-violet), #755de0);
+      box-shadow: 0 0 8px rgba(157, 140, 255, .18);
     }
-    .scenario-switch-summary strong { color: #cfe2ed; font-weight: 650; }
-    .scenario-switch-changes { padding: 10px; border-bottom: 1px solid #183a54; }
-    .scenario-switch-change-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-    .scenario-switch-change-card {
-      min-width: 0; padding: 9px; border: 1px solid #17384f; border-radius: 4px;
-      background: rgba(7, 21, 34, .56);
+    .polling-evidence .pe-difference-zero {
+      position: absolute;
+      left: 50%;
+      top: 5px;
+      width: 5px;
+      height: 5px;
+      border: 1px solid #8ba7b8;
+      border-radius: 50%;
+      transform: translateX(-50%);
     }
-    .scenario-switch-change-card.is-removed { border-color: #4e4d77; }
-    .scenario-switch-change-card.is-added { border-color: #236b83; }
-    .scenario-switch-change-label {
-      color: #7897aa; font-size: 8px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase;
+    .polling-evidence .pe-difference-delta { text-align: right; font-weight: 700; white-space: nowrap; }
+    .polling-evidence .pe-difference-delta.is-negative { color: var(--cyan); }
+    .polling-evidence .pe-difference-delta.is-positive { color: var(--pe-violet); }
+    .polling-evidence .pe-difference-delta.is-zero { color: #9bb1c0; }
+    .polling-evidence .pe-chart-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      margin-top: 7px;
     }
-    .scenario-switch-change-card.is-removed .scenario-switch-change-label { color: #b9b4e4; }
-    .scenario-switch-change-card.is-added .scenario-switch-change-label { color: #83dff5; }
-    .scenario-switch-chip-list { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
-    .scenario-switch-chip {
-      max-width: 100%; padding: 3px 6px; border: 1px solid #28516b; border-radius: 999px;
-      background: #081725; color: #c1d5e1; font-size: 9px; line-height: 1.35; overflow-wrap: anywhere;
+    .polling-evidence .pe-unchanged-box {
+      flex: 1 1 380px;
+      min-width: 0;
+      padding: 6px 9px;
+      border: 1px dashed #31506a;
+      color: #9ab2c2;
+      font-size: 9px;
+      line-height: 1.4;
     }
-    .scenario-switch-empty { color: var(--muted); font-size: 9px; line-height: 1.45; }
-    .scenario-switch-scroll {
-      max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin;
-      background: rgba(3, 11, 20, .18);
+    .polling-evidence .pe-unchanged-box strong { color: var(--text); font-size: 10px; }
+    .polling-evidence .pe-compact-button {
+      min-height: 30px;
+      padding: 5px 9px;
+      border: 1px solid #23445d;
+      border-radius: 4px;
+      background: #071522;
+      color: var(--cyan);
+      font: inherit;
+      font-size: 9px;
+      cursor: pointer;
     }
-    .scenario-switch-table {
-      width: 100%; min-width: 620px; border-collapse: separate; border-spacing: 0;
-      color: #bfd3df; font-size: 10px; font-variant-numeric: tabular-nums;
+    .polling-evidence .pe-compact-button:hover { border-color: var(--cyan); }
+    .polling-evidence .pe-wave-facts {
+      min-width: 0;
+      padding: 11px 14px;
+      border-left: 1px solid var(--line);
+      background: rgba(6, 18, 30, .56);
     }
-    .scenario-switch-table caption { text-align: left; }
-    .scenario-switch-table th,
-    .scenario-switch-table td {
-      height: 40px; padding: 7px 9px; border-right: 1px solid #143149;
-      border-bottom: 1px solid #143149; text-align: right; vertical-align: middle;
+    .polling-evidence .pe-facts-title { color: var(--cyan); font-size: 12px; letter-spacing: .08em; }
+    .polling-evidence .pe-facts-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 5px;
+      margin-top: 10px;
     }
-    .scenario-switch-table th:last-child,
-    .scenario-switch-table td:last-child { border-right: 0; }
-    .scenario-switch-table tbody tr:last-child th,
-    .scenario-switch-table tbody tr:last-child td { border-bottom: 0; }
-    .scenario-switch-table thead th {
-      color: #7f9caf; background: #0a1d2e; font-size: 8px; font-weight: 700;
-      letter-spacing: .08em; text-transform: uppercase;
+    .polling-evidence .pe-metric {
+      min-width: 0;
+      padding: 7px 3px;
+      border-block: 1px solid #17384f;
+      text-align: center;
     }
-    .scenario-switch-table tbody tr:hover th,
-    .scenario-switch-table tbody tr:hover td { background: rgba(16, 39, 61, .48); }
-    .scenario-switch-candidate {
-      position: sticky; left: 0; z-index: 1; width: 230px; min-width: 230px;
-      text-align: left !important; background: #091a2a; box-shadow: 1px 0 #1b405c;
-      color: #dcecf6; font-size: 11px; font-weight: 650; overflow-wrap: anywhere;
+    .polling-evidence .pe-metric-value {
+      color: var(--cyan);
+      font-size: 20px;
+      font-weight: 750;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
     }
-    thead .scenario-switch-candidate { z-index: 2; background: #0a1d2e; }
-    .scenario-switch-score { color: #d5e6ef; font-size: 12px; }
-    .scenario-switch-delta {
-      display: inline-flex; justify-content: center; min-width: 54px; padding: 3px 6px;
-      border: 1px solid #38566b; border-radius: 999px; color: #aabfcd; font-size: 10px; font-weight: 700;
+    .polling-evidence .pe-metric-label {
+      margin-top: 5px;
+      color: #9ab2c2;
+      font-size: 7px;
+      font-weight: 700;
+      line-height: 1.3;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      overflow-wrap: anywhere;
     }
-    .scenario-switch-delta.is-positive { border-color: #24799b; color: #79e0f8; }
-    .scenario-switch-delta.is-negative { border-color: #575383; color: #c1baff; }
-    .scenario-switch-delta.is-zero { color: #718b9d; }
-    .scenario-switch-disclosure {
-      padding: 9px 10px; border-top: 1px solid #183a54; color: #6f899b; font-size: 9px; line-height: 1.5;
+    .polling-evidence .pe-fact-list { margin: 9px 0 0; }
+    .polling-evidence .pe-fact-row {
+      display: grid;
+      grid-template-columns: minmax(78px, auto) minmax(0, 1fr);
+      gap: 8px;
+      min-width: 0;
+      padding: 6px 7px;
+      border: 1px solid #15354e;
+      border-bottom: 0;
+      background: rgba(7, 21, 34, .46);
+      font-size: 9px;
     }
-    .scenario-switch-state { padding: 24px 12px; color: var(--muted); font-size: 11px; }
-    .scenario-switch-state.error { color: #ff8b8b; }
-    .scenario-detail-body { display: grid; gap: 13px; padding: 12px; }
-    .scenario-detail-pollster { color: #edf7fc; font-size: 18px; font-weight: 750; line-height: 1.2; overflow-wrap: anywhere; }
-    .scenario-detail-date { margin-top: 4px; color: var(--cyan); font-size: 10px; line-height: 1.45; }
-    .scenario-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-    .scenario-detail-metric {
-      min-width: 0; padding: 8px; border: 1px solid #17384f; border-radius: 4px;
+    .polling-evidence .pe-fact-row:last-child { border-bottom: 1px solid #15354e; }
+    .polling-evidence .pe-fact-row dt { color: #9ab2c2; }
+    .polling-evidence .pe-fact-row dd {
+      min-width: 0;
+      margin: 0;
+      color: var(--text);
+      font-weight: 650;
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
+    .polling-evidence .pe-source-link.is-disabled { color: var(--muted); }
+    .polling-evidence .pe-disclosure {
+      margin-top: 9px;
+      padding: 8px 9px;
+      border: 1px solid #245273;
+      background: rgba(10, 31, 49, .55);
+      color: #b7cbd9;
+      font-size: 9px;
+      line-height: 1.45;
+    }
+    .polling-evidence .pe-lineups-drawer { border-top: 1px solid var(--line); }
+    .polling-evidence .pe-drawer-toggle {
+      width: 100%;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 15px;
+      border: 0;
+      background: rgba(3, 11, 20, .26);
+      color: var(--cyan);
+      font: inherit;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-align: left;
+      cursor: pointer;
+    }
+    .polling-evidence .pe-drawer-toggle:hover { background: rgba(10, 31, 49, .5); }
+    .polling-evidence .pe-drawer-indicator { font-size: 15px; transition: transform .16s ease; }
+    .polling-evidence .pe-drawer-toggle[aria-expanded="true"] .pe-drawer-indicator { transform: rotate(180deg); }
+    .polling-evidence .pe-drawer-content {
+      padding: 10px 12px 12px;
+      border-top: 1px solid #15354e;
+      background: rgba(3, 11, 20, .22);
+    }
+    .polling-evidence .pe-drawer-note { margin: 0 0 8px; color: var(--muted); font-size: 9px; }
+    .polling-evidence .pe-lineup-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 7px;
+      min-width: 0;
+    }
+    .polling-evidence .pe-lineup-card {
+      min-width: 0;
+      padding: 8px;
+      border: 1px solid #17384f;
       background: rgba(7, 21, 34, .62);
     }
-    .scenario-detail-label {
-      color: #6f8ea3; font-size: 8px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    .polling-evidence .pe-lineup-card.is-a { border-color: var(--cyan); box-shadow: inset 0 2px var(--cyan); }
+    .polling-evidence .pe-lineup-card.is-b { border-color: var(--pe-violet); box-shadow: inset 0 2px var(--pe-violet); }
+    .polling-evidence .pe-lineup-card-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 6px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #17384f;
     }
-    .scenario-detail-value { margin-top: 4px; color: #d3e3ec; font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
-    .scenario-detail-section { min-width: 0; }
-    .scenario-detail-section h4 {
-      margin: 0 0 7px; color: #8fb5ca; font-size: 9px; letter-spacing: .11em; text-transform: uppercase;
+    .polling-evidence .pe-lineup-label { color: #edf7fc; font-weight: 700; }
+    .polling-evidence .pe-lineup-card.is-a .pe-lineup-label { color: var(--cyan); }
+    .polling-evidence .pe-lineup-card.is-b .pe-lineup-label { color: var(--pe-violet); }
+    .polling-evidence .pe-lineup-count { color: var(--muted); font-size: 8px; text-align: right; }
+    .polling-evidence .pe-lineup-scores { margin: 5px 0 0; padding: 0; list-style: none; }
+    .polling-evidence .pe-lineup-score {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 5px;
+      padding: 2px 0;
+      color: #b8ccd9;
+      font-size: 8px;
+      font-variant-numeric: tabular-nums;
     }
-    .scenario-detail-card {
-      padding: 9px; border: 1px solid #17384f; border-radius: 4px; background: rgba(7, 21, 34, .46);
+    .polling-evidence .pe-lineup-score span:first-child { min-width: 0; overflow-wrap: anywhere; }
+    .polling-evidence .pe-lineup-score.is-exclusive-a { color: var(--cyan); font-weight: 700; }
+    .polling-evidence .pe-lineup-score.is-exclusive-b { color: var(--pe-violet); font-weight: 700; }
+    .polling-evidence .pe-exclusive-note {
+      grid-column: 1 / -1;
+      font-size: 7px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
     }
-    .scenario-detail-card-label { color: var(--cyan); font-size: 9px; font-weight: 700; }
-    .scenario-detail-hypothesis { margin-top: 6px; color: #bdd1dd; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
-    .scenario-detail-meta { margin-top: 6px; color: var(--muted); font-size: 9px; line-height: 1.45; }
-    .scenario-switch-source {
-      display: inline-flex; margin-top: 7px; padding: 3px 6px; border: 1px solid #1b4d6c;
-      border-radius: 999px; background: #081725; font-size: 9px;
+    @media (max-width: 1100px) {
+      .polling-evidence .pe-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .polling-evidence .pe-control.is-comparison { grid-column: 1 / -1; }
+      .polling-evidence .pe-body { grid-template-columns: minmax(0, 1.9fr) minmax(270px, .9fr); }
+      .polling-evidence .pe-lineup-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .polling-evidence .pe-difference-chart { --pe-name-col: minmax(105px, .8fr); --pe-values-col: 76px; }
+      .polling-evidence .pe-axis-row,
+      .polling-evidence .pe-difference-row { gap: 6px; }
     }
-    .scenario-switch-source:hover { border-color: var(--cyan); text-decoration: none; }
+    @media (max-width: 799px) {
+      .polling-evidence .pe-controls { grid-template-columns: 1fr; }
+      .polling-evidence .pe-control.is-comparison { grid-column: auto; }
+      .polling-evidence .pe-body { grid-template-columns: 1fr; }
+      .polling-evidence .pe-comparison-stage { padding: 10px 12px; }
+      .polling-evidence .pe-wave-facts { border-top: 1px solid var(--line); border-left: 0; }
+      .polling-evidence .pe-lineup-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 560px) {
+      .polling-evidence { margin-top: 12px; }
+      .polling-evidence .pe-head { align-items: flex-start; }
+      .polling-evidence .pe-controls { padding-inline: 10px; }
+      .polling-evidence .pe-figure-card { grid-template-columns: 48px minmax(0, 1fr); gap: 7px; padding: 8px; }
+      .polling-evidence .pe-portrait { width: 46px; height: 46px; }
+      .polling-evidence .pe-figure-name { font-size: 13px; }
+      .polling-evidence .pe-figure-score { font-size: 22px; }
+      .polling-evidence .pe-difference-chart { --pe-name-col: minmax(82px, .8fr); --pe-values-col: 67px; --pe-delta-col: 38px; }
+      .polling-evidence .pe-axis-row,
+      .polling-evidence .pe-difference-row { gap: 4px; }
+      .polling-evidence .pe-difference-row { min-height: 34px; font-size: 9px; }
+      .polling-evidence .pe-difference-values { white-space: normal; text-align: center; line-height: 1.15; }
+      .polling-evidence .pe-difference-values .pe-arrow { display: block; padding: 0; }
+      .polling-evidence .pe-facts-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .polling-evidence .pe-lineup-grid { grid-template-columns: 1fr; }
+      .polling-evidence .pe-drawer-toggle { padding-inline: 10px; }
+    }
+    @media (max-width: 390px) {
+      .polling-evidence .pe-substitution-cards { grid-template-columns: 1fr 1fr; }
+      .polling-evidence .pe-figure-card {
+        min-height: 112px;
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+      }
+      .polling-evidence .pe-portrait { width: 43px; height: 43px; }
+      .polling-evidence .pe-figure-name { font-size: 12px; }
+      .polling-evidence .pe-difference-chart { --pe-name-col: minmax(70px, .9fr); --pe-values-col: 55px; --pe-delta-col: 34px; }
+      .polling-evidence .pe-difference-row { font-size: 8px; }
+      .polling-evidence .pe-axis-plot .pe-axis-left,
+      .polling-evidence .pe-axis-plot .pe-axis-right { font-size: 7px; }
+      .polling-evidence .pe-fact-row { grid-template-columns: minmax(70px, auto) minmax(0, 1fr); }
+    }
     .closest-runoff {
       position: relative; margin-top: 12px; overflow: hidden; isolation: isolate;
       background: rgba(7, 18, 31, .97);
@@ -1454,29 +1638,9 @@
         max-height: min(55vh, 420px);
         overflow-y: auto;
       }
-      .polling-explorer-layout {
-        grid-template-columns: 1fr;
-        align-items: start;
-      }
     }
     @media (max-width: 719px) {
       .intelligence-grid { gap: 12px; margin-top: 12px; }
-      .polling-explorer { margin-top: 12px; }
-      .polling-explorer-head { align-items: flex-start; }
-      .polling-explorer-tabs { padding-inline: 4px; }
-      .polling-explorer-tab { flex: 1 1 0; min-width: 148px; min-height: 44px; padding-inline: 7px; white-space: normal; }
-      .polling-explorer-layout { gap: 12px; padding: 8px; }
-      .scenario-switch-controls { grid-template-columns: 1fr; }
-      .scenario-switch-change-grid { grid-template-columns: 1fr; }
-      .scenario-switch-table { min-width: 560px; }
-      .scenario-switch-candidate { width: 180px; min-width: 180px; }
-      .scenario-detail-grid { grid-template-columns: 1fr; }
-      .field-formation-table { min-width: 850px; }
-      .field-pollsters-column,
-      .field-last-column { display: none; }
-      .field-candidate-column { width: 170px; min-width: 170px; }
-      .field-event-column { width: 52px; min-width: 52px; }
-      .field-detail-grid { grid-template-columns: 1fr; }
       .signal-tabs { padding-inline: 4px; }
       .signal-tab { min-height: 42px; padding-inline: 9px; }
       .signal-candidate-toolbar { align-items: stretch; flex-direction: column; }
@@ -1578,9 +1742,6 @@
       .freshness-change { grid-column: 2 / -1; grid-row: auto; display: grid; grid-template-columns: auto auto; justify-content: end; column-gap: 7px; align-items: baseline; }
       .freshness-change-label { grid-column: 1 / -1; }
       .freshness-change-meta { margin-top: 0; }
-      .poll-wave-top { align-items: flex-start; flex-direction: column; gap: 3px; }
-      .poll-wave-date { text-align: left; white-space: normal; }
-      .poll-wave-detail-grid { grid-template-columns: 1fr; }
       .closest-runoff-head { align-items: flex-start; }
       .runoff-status { max-width: 155px; line-height: 1.25; }
       .runoff-evidence { gap: 7px 13px; padding-inline: 13px; }
@@ -1615,155 +1776,6 @@
       .claim-source { font-size: 9px; }
       .claim-publisher { font-size: 8px; }
     }
-
-    .candidate-history { margin-top: 16px; }
-    .candidate-history-head { align-items: center; }
-    .candidate-history-head h2 { font-size: 21px; letter-spacing: -.015em; }
-    .candidate-history-toolbar {
-      display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap;
-      gap: 9px 14px; padding: 10px 12px; border-bottom: 1px solid var(--line);
-      background: rgba(3, 11, 20, .3);
-    }
-    .candidate-history-selects { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px; min-width: 0; }
-    .candidate-history-select-label {
-      display: grid; gap: 4px; min-width: min(240px, 100%); color: var(--muted);
-      font-size: 8px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-    }
-    .candidate-history-select {
-      width: 100%; min-height: 36px; padding: 6px 29px 6px 9px; border: 1px solid #23445d;
-      border-radius: 4px; background: #071522; color: var(--text); font: inherit; font-size: 10px;
-    }
-    .candidate-history-ranges { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
-    .candidate-history-range {
-      min-height: 34px; padding: 5px 9px; border: 1px solid #23445d; border-radius: 999px;
-      background: #071522; color: var(--muted); font: inherit; font-size: 9px; font-weight: 700;
-      letter-spacing: .055em; cursor: pointer;
-    }
-    .candidate-history-range:hover { border-color: #2873a8; color: var(--text); }
-    .candidate-history-range.active { border-color: var(--blue); background: #0b2032; color: var(--cyan); }
-    .candidate-history-select:focus-visible,
-    .candidate-history-range:focus-visible,
-    .candidate-history-source:focus-visible,
-    .history-point-link:focus-visible {
-      outline: 2px solid var(--cyan); outline-offset: 2px;
-    }
-    .candidate-history-workspace {
-      display: grid; grid-template-columns: minmax(0, 8fr) minmax(300px, 4fr); gap: 16px;
-      align-items: start; min-width: 0; padding: 12px; background: rgba(3, 11, 20, .2);
-    }
-    .candidate-history-main,
-    .candidate-history-detail {
-      min-width: 0; border: 1px solid #183a54; border-radius: 6px; background: rgba(8, 23, 37, .8);
-    }
-    .candidate-history-detail {
-      height: 580px; display: flex; flex-direction: column; overflow: hidden;
-    }
-    #candidate-history-detail {
-      flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-gutter: stable;
-    }
-    #candidate-history-detail:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
-    .candidate-history-inner-head {
-      padding: 11px 12px; border-bottom: 1px solid #183a54; background: rgba(10, 29, 46, .78);
-    }
-    .candidate-history-inner-title { margin: 0; color: #dcecf6; font-size: 12px; letter-spacing: .08em; }
-    .candidate-history-inner-sub { margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.45; }
-    .candidate-history-summary {
-      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
-      gap: 5px 12px; padding: 8px 10px; border-bottom: 1px solid #183a54;
-      color: var(--muted); font-size: 10px; line-height: 1.4;
-    }
-    .candidate-history-summary strong { color: #cfe2ed; font-weight: 600; }
-    .candidate-history-chart-wrap {
-      position: relative; min-width: 0; padding: 8px 8px 2px; background: rgba(3, 11, 20, .18);
-    }
-    #history-chart { width: 100%; height: 420px; display: block; }
-    .history-series-line {
-      fill: none; stroke-width: 1.5; opacity: .32; vector-effect: non-scaling-stroke;
-    }
-    .history-point { vector-effect: non-scaling-stroke; }
-    .history-point-link { cursor: pointer; }
-    .history-point-link:hover .history-point,
-    .history-point-link:focus .history-point { stroke: #ffffff; stroke-width: 2.4; }
-    .candidate-history-legend {
-      display: flex; align-items: center; flex-wrap: wrap; gap: 7px 16px;
-      padding: 8px 10px 10px; border-top: 1px solid #183a54; color: var(--muted); font-size: 9px;
-    }
-    .candidate-history-legend-item { display: inline-flex; align-items: center; gap: 6px; }
-    .candidate-history-legend-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-    .candidate-history-legend-dot.is-compare { background: transparent !important; border: 2px solid #9d8cff; }
-    .candidate-history-note {
-      padding: 8px 10px; border-top: 1px solid #183a54; color: #718da0; font-size: 9px; line-height: 1.5;
-    }
-    .candidate-history-detail-body { display: grid; gap: 13px; padding: 12px; }
-    .candidate-history-profile { display: flex; align-items: center; gap: 10px; min-width: 0; }
-    .candidate-history-profile .candidate-monogram { flex: 0 0 auto; width: 42px; height: 42px; }
-    .candidate-history-profile-copy { min-width: 0; }
-    .candidate-history-name { color: #edf7fc; font-size: 18px; font-weight: 750; line-height: 1.2; overflow-wrap: anywhere; }
-    .candidate-history-record { margin-top: 4px; color: var(--muted); font-size: 9px; line-height: 1.4; }
-    .candidate-history-series-label {
-      display: inline-flex; width: fit-content; margin-top: 5px; padding: 3px 7px;
-      border: 1px solid #286486; border-radius: 999px; color: #8ce8ff;
-      font-size: 8px; font-weight: 700; letter-spacing: .08em;
-    }
-    .candidate-history-series-label.is-compare { border-color: #5b548d; color: #cfc7ff; }
-    .candidate-history-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
-    .candidate-history-metric {
-      min-width: 0; padding: 8px; border: 1px solid #17384f; border-radius: 4px;
-      background: rgba(7, 21, 34, .62);
-    }
-    .candidate-history-metric-label {
-      color: #6f8ea3; font-size: 8px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-    }
-    .candidate-history-metric-value { margin-top: 4px; color: #d3e3ec; font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
-    .candidate-history-section h4 {
-      margin: 0 0 7px; color: #8fb5ca; font-size: 9px; letter-spacing: .11em; text-transform: uppercase;
-    }
-    .candidate-history-observations { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-    .candidate-history-observation {
-      display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 9px;
-      padding: 8px; border: 1px solid #17384f; border-radius: 4px; background: rgba(7, 21, 34, .46);
-    }
-    .candidate-history-observation-top { min-width: 0; color: #cfe1ec; font-size: 10px; font-weight: 650; overflow-wrap: anywhere; }
-    .candidate-history-observation-score { color: var(--cyan); font-variant-numeric: tabular-nums; }
-    .candidate-history-observation.is-compare .candidate-history-observation-score { color: #bfb4ff; }
-    .candidate-history-observation-meta { color: var(--muted); font-size: 9px; line-height: 1.4; overflow-wrap: anywhere; }
-    .candidate-history-source { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 9px; white-space: nowrap; }
-    .candidate-history-state { padding: 24px 12px; color: var(--muted); font-size: 11px; }
-    .candidate-history-state.error { color: #ff8b8b; }
-    .history-tooltip {
-      position: absolute; z-index: 20; min-width: 220px; max-width: min(330px, calc(100% - 20px));
-      padding: 11px 13px; border: 1px solid var(--cyan); background: rgba(4, 15, 25, .98);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, .45); color: #dcecff; pointer-events: none;
-      opacity: 0; transform: translateY(4px); transition: opacity 100ms ease, transform 100ms ease;
-    }
-    .history-tooltip.visible { opacity: 1; transform: translateY(0); }
-    .history-tooltip-name { color: var(--cyan); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-    .history-tooltip-score { margin-top: 4px; color: #fff; font-size: 24px; font-weight: 750; line-height: 1; }
-    .history-tooltip-meta { margin-top: 7px; color: #9bbbd2; font-size: 10px; line-height: 1.5; }
-    .history-tooltip-meta b { color: #e4f4ff; font-weight: 600; }
-    @media (max-width: 1119px) {
-      .candidate-history-workspace { grid-template-columns: 1fr; }
-      .candidate-history-detail { height: auto; overflow: visible; }
-      #candidate-history-detail { overflow: visible; }
-    }
-    @media (max-width: 719px) {
-      .candidate-history { margin-top: 12px; }
-      .candidate-history-head { align-items: flex-start; }
-      .candidate-history-toolbar { align-items: stretch; flex-direction: column; padding: 9px; }
-      .candidate-history-selects { align-items: stretch; flex-direction: column; }
-      .candidate-history-select-label { width: 100%; min-width: 0; }
-      .candidate-history-ranges { width: 100%; }
-      .candidate-history-range { flex: 1 1 0; }
-      .candidate-history-workspace { gap: 12px; padding: 8px; }
-      #history-chart { height: 280px; }
-      .candidate-history-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    @media (max-width: 430px) {
-      .candidate-history-metrics { grid-template-columns: 1fr; }
-      .candidate-history-observation { grid-template-columns: 1fr; }
-      .candidate-history-source { grid-column: 1; grid-row: auto; justify-self: start; }
-    }
-
 
     @media (prefers-reduced-motion: reduce) {
       *,
@@ -3543,195 +3555,76 @@
       </article>
     </section>
 
-    <section class="panel polling-explorer" aria-labelledby="polling-explorer-title">
-      <div class="panel-head polling-explorer-head">
+    <section class="panel polling-evidence" id="polling-evidence-lab" aria-labelledby="polling-evidence-title">
+      <div class="panel-head pe-head">
         <div>
-          <div class="eyebrow">Polling workspace</div>
-          <h2 id="polling-explorer-title">EXPLORE THE POLLING RECORD</h2>
-          <div class="sub">Inspect field formation, compare reported hypotheses within the same poll wave, and review the latest accepted first-round events.</div>
+          <div class="eyebrow">POLLING EVIDENCE</div>
+          <h2 id="polling-evidence-title">ONE NAME DIFFERENT · SAME POLL WAVE</h2>
         </div>
       </div>
-      <div class="polling-explorer-tabs" role="tablist" aria-label="Polling Explorer views">
-        <button class="polling-explorer-tab active" id="polling-explorer-tab-field" type="button" role="tab"
-          aria-selected="true" aria-controls="polling-explorer-panel-field" tabindex="0" data-explorer-tab="field">
-          FIELD FORMATION
-        </button>
-        <button class="polling-explorer-tab" id="polling-explorer-tab-scenarios" type="button" role="tab"
-          aria-selected="false" aria-controls="polling-explorer-panel-scenarios" tabindex="-1" data-explorer-tab="scenarios">
-          SCENARIO SWITCH
-        </button>
-        <button class="polling-explorer-tab" id="polling-explorer-tab-waves" type="button" role="tab"
-          aria-selected="false" aria-controls="polling-explorer-panel-waves" tabindex="-1" data-explorer-tab="waves">
-          LATEST POLL WAVES
-        </button>
+
+      <div class="pe-controls" aria-label="Polling Evidence controls">
+        <label class="pe-control" for="pe-figure-a-select">
+          <span class="pe-control-label">FIGURE A</span>
+          <select class="pe-select" id="pe-figure-a-select" disabled>
+            <option>Loading tested figures…</option>
+          </select>
+          <span class="pe-control-meta" id="pe-figure-a-meta"></span>
+        </label>
+        <label class="pe-control" for="pe-figure-b-select">
+          <span class="pe-control-label">FIGURE B</span>
+          <select class="pe-select" id="pe-figure-b-select" disabled>
+            <option>Loading tested figures…</option>
+          </select>
+          <span class="pe-control-meta" id="pe-figure-b-meta"></span>
+        </label>
+        <label class="pe-control is-comparison" for="pe-comparison-select">
+          <span class="pe-control-label">EXACT SOURCE COMPARISON</span>
+          <select class="pe-select" id="pe-comparison-select" disabled>
+            <option>Loading exact comparisons…</option>
+          </select>
+          <span class="pe-control-meta" id="pe-comparison-meta"></span>
+        </label>
       </div>
 
-      <div class="polling-explorer-panel" id="polling-explorer-panel-field" role="tabpanel"
-        aria-labelledby="polling-explorer-tab-field" tabindex="0">
-        <div class="polling-explorer-layout">
-          <section class="polling-explorer-main" aria-labelledby="field-formation-title">
-            <div class="polling-explorer-inner-head">
-              <h3 class="polling-explorer-inner-title" id="field-formation-title">FIELD FORMATION</h3>
-              <div class="polling-explorer-inner-sub">Which figures are pollsters actively including in the developing presidential field?</div>
-            </div>
-            <div class="field-formation-summary" id="field-formation-summary" aria-live="polite">
-              <span>Deriving unique poll-event inclusion…</span>
-            </div>
-            <div class="field-formation-scroll" id="field-formation-scroll" tabindex="0"
-              aria-label="Candidate inclusion across recent unique poll events">
-              <div class="field-formation-state">Loading Field Formation…</div>
-            </div>
-            <div class="field-formation-legend" aria-label="Field Formation legend">
-              <span class="field-legend-item"><span class="field-legend-marker"></span> Tested in event</span>
-              <span class="field-legend-item"><span class="field-legend-marker is-multiple"></span> Tested in multiple hypotheses</span>
-              <span class="field-legend-item"><span class="field-legend-marker is-absent"></span> Not tested</span>
-            </div>
-          </section>
-          <aside class="polling-explorer-detail" aria-label="Field Formation selected detail">
-            <div class="polling-explorer-inner-head">
-              <h3 class="polling-explorer-inner-title">SELECTED FIGURE</h3>
-              <div class="polling-explorer-inner-sub">Event-level inclusion details, not a measure of support or candidacy status.</div>
-            </div>
-            <div id="field-formation-detail" aria-live="polite">
-              <div class="field-formation-state">Loading selected figure…</div>
-            </div>
+      <div id="pe-loading-state" class="pe-state" role="status">Loading source-reported polling hypotheses…</div>
+      <div id="pe-error-state" class="pe-state error" role="alert" hidden></div>
+      <div id="pe-no-match-state" class="pe-state" role="status" hidden></div>
+
+      <div id="pe-evidence-content" hidden>
+        <div class="pe-body">
+          <div class="pe-comparison-stage">
+            <div class="pe-substitution-cards" id="pe-substitution-cards"></div>
+
+            <section class="pe-chart-block" aria-labelledby="pe-difference-chart-title">
+              <div class="pe-chart-title-row">
+                <h3 id="pe-difference-chart-title">SHARED-FIGURE DIFFERENCES</h3>
+                <span class="pe-chart-subtitle">Reported difference · Lineup B minus Lineup A, in percentage points</span>
+              </div>
+              <div class="pe-difference-chart" id="pe-difference-chart" aria-live="polite"></div>
+              <div class="pe-chart-footer">
+                <div class="pe-unchanged-box" id="pe-unchanged-box"></div>
+                <button class="pe-compact-button" id="pe-shared-toggle" type="button" aria-expanded="false" hidden>Show all shared figures</button>
+              </div>
+            </section>
+          </div>
+
+          <aside class="pe-wave-facts" aria-labelledby="pe-wave-facts-title">
+            <h3 class="pe-facts-title" id="pe-wave-facts-title">WAVE FACTS</h3>
+            <div id="pe-wave-facts"></div>
           </aside>
         </div>
-      </div>
 
-      <div class="polling-explorer-panel" id="polling-explorer-panel-scenarios" role="tabpanel"
-        aria-labelledby="polling-explorer-tab-scenarios" tabindex="0" hidden>
-        <div class="polling-explorer-layout">
-          <section class="polling-explorer-main" aria-labelledby="scenario-switch-title">
-            <div class="polling-explorer-inner-head">
-              <h3 class="polling-explorer-inner-title" id="scenario-switch-title">SCENARIO SWITCH</h3>
-              <div class="polling-explorer-inner-sub">Compare two reported hypotheses from the same poll wave. Differences are descriptive, not causal estimates.</div>
-            </div>
-            <div class="scenario-switch-controls" aria-label="Scenario Switch controls">
-              <label class="scenario-switch-control" for="scenario-wave-select">
-                <span>Poll wave</span>
-                <select class="scenario-switch-select" id="scenario-wave-select" disabled>
-                  <option>Loading qualifying waves…</option>
-                </select>
-              </label>
-              <label class="scenario-switch-control" for="scenario-a-select">
-                <span>Scenario A</span>
-                <select class="scenario-switch-select" id="scenario-a-select" disabled>
-                  <option>Loading…</option>
-                </select>
-              </label>
-              <label class="scenario-switch-control" for="scenario-b-select">
-                <span>Scenario B</span>
-                <select class="scenario-switch-select" id="scenario-b-select" disabled>
-                  <option>Loading…</option>
-                </select>
-              </label>
-            </div>
-            <div class="scenario-switch-summary" id="scenario-switch-summary" aria-live="polite">
-              <span>Deriving within-wave comparisons…</span>
-            </div>
-            <div class="scenario-switch-changes" id="scenario-switch-changes" aria-live="polite">
-              <div class="scenario-switch-state">Loading lineup changes…</div>
-            </div>
-            <div class="scenario-switch-scroll" id="scenario-switch-scroll" tabindex="0"
-              aria-label="Shared candidate score comparison between selected hypotheses" aria-live="polite">
-              <div class="scenario-switch-state">Loading shared candidate comparison…</div>
-            </div>
-            <div class="scenario-switch-disclosure">
-              Arithmetic differences are Scenario B minus Scenario A within one reported poll wave. They do not show that lineup changes caused score changes.
-            </div>
-          </section>
-          <aside class="polling-explorer-detail" aria-label="Selected within-wave comparison detail">
-            <div class="polling-explorer-inner-head">
-              <h3 class="polling-explorer-inner-title">SELECTED COMPARISON</h3>
-              <div class="polling-explorer-inner-sub">Poll metadata and the two source-linked hypothesis labels.</div>
-            </div>
-            <div id="scenario-switch-detail" aria-live="polite">
-              <div class="scenario-switch-state">Loading selected comparison…</div>
-            </div>
-          </aside>
-        </div>
-      </div>
-
-      <div class="polling-explorer-panel" id="polling-explorer-panel-waves" role="tabpanel"
-        aria-labelledby="polling-explorer-tab-waves" tabindex="0" hidden>
-        <div class="polling-explorer-layout">
-          <section class="polling-explorer-main" aria-labelledby="poll-wave-list-title">
-            <div class="polling-explorer-inner-head">
-              <h3 class="polling-explorer-inner-title" id="poll-wave-list-title">LATEST POLL WAVES</h3>
-              <div class="polling-explorer-inner-sub">Newest source-linked first-round polling, ordered by publication date where known, otherwise fieldwork end.</div>
-            </div>
-            <div class="poll-wave-grid" id="poll-wave-list" role="listbox" aria-label="Accepted poll events" aria-live="polite">
-              <div class="poll-wave-loading">Loading latest poll waves…</div>
-            </div>
-            <div class="poll-wave-footer" id="poll-wave-summary">Loading poll-wave summary…</div>
-          </section>
-          <aside class="polling-explorer-detail" aria-label="Selected poll event detail">
-            <div class="polling-explorer-inner-head">
-              <h3 class="polling-explorer-inner-title">SELECTED POLL EVENT</h3>
-              <div class="polling-explorer-inner-sub">Source-linked metadata for the selected accepted event.</div>
-            </div>
-            <div id="poll-wave-detail" aria-live="polite">
-              <div class="poll-wave-loading">Loading selected poll event…</div>
-            </div>
-          </aside>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel candidate-history" aria-labelledby="candidate-history-title">
-      <div class="panel-head candidate-history-head">
-        <div>
-          <div class="eyebrow">Candidate polling history</div>
-          <h2 id="candidate-history-title">REPORTED SCORES OVER TIME</h2>
-          <div class="sub">Inspect one candidate’s recent raw record and optionally add one subdued comparison.</div>
-        </div>
-      </div>
-      <div class="candidate-history-toolbar" aria-label="Candidate history controls">
-        <div class="candidate-history-selects">
-          <label class="candidate-history-select-label" for="history-primary-select">Primary candidate
-            <select class="candidate-history-select" id="history-primary-select" disabled>
-              <option value="">Loading candidates…</option>
-            </select>
-          </label>
-          <label class="candidate-history-select-label" for="history-compare-select">Compare with
-            <select class="candidate-history-select" id="history-compare-select" disabled>
-              <option value="">No comparison</option>
-            </select>
-          </label>
-        </div>
-        <div class="candidate-history-ranges" role="group" aria-label="Candidate history date range">
-          <button class="candidate-history-range" type="button" data-history-range="3" aria-pressed="false">3 MONTHS</button>
-          <button class="candidate-history-range active" type="button" data-history-range="6" aria-pressed="true">6 MONTHS</button>
-          <button class="candidate-history-range" type="button" data-history-range="12" aria-pressed="false">12 MONTHS</button>
-          <button class="candidate-history-range" type="button" data-history-range="all" aria-pressed="false">ALL</button>
-        </div>
-      </div>
-      <div class="candidate-history-workspace">
-        <section class="candidate-history-main" aria-labelledby="candidate-history-chart-title">
-          <div class="candidate-history-inner-head">
-            <h3 class="candidate-history-inner-title" id="candidate-history-chart-title">RAW OBSERVATIONS</h3>
-            <div class="candidate-history-inner-sub">Every plotted point is a reported poll observation and opens its source. Lines connect repeated observations only when both the exact scenario key and pollster are unchanged.</div>
+        <section class="pe-lineups-drawer" aria-labelledby="pe-lineups-toggle">
+          <button class="pe-drawer-toggle" id="pe-lineups-toggle" type="button" aria-expanded="false" aria-controls="pe-lineups-content">
+            <span id="pe-lineups-toggle-label">VIEW ALL REPORTED LINEUPS</span>
+            <span class="pe-drawer-indicator" aria-hidden="true">⌄</span>
+          </button>
+          <div class="pe-drawer-content" id="pe-lineups-content" hidden>
+            <p class="pe-drawer-note">Each card is one source-reported hypothesis. Scores are exact reported values; no averages are calculated.</p>
+            <div class="pe-lineup-grid" id="pe-lineup-grid"></div>
           </div>
-          <div class="candidate-history-summary" id="candidate-history-summary" aria-live="polite">
-            <span>Deriving candidate histories…</span>
-          </div>
-          <div class="candidate-history-chart-wrap" id="candidate-history-chart-wrap">
-            <svg id="history-chart" role="img" aria-label="Selected candidate polling history"></svg>
-            <div class="history-tooltip" id="history-tooltip" role="status"></div>
-          </div>
-          <div class="candidate-history-legend" id="candidate-history-legend" aria-label="Candidate history legend"></div>
-          <div class="candidate-history-note">Raw reported scores only. Alternative hypotheses remain separate. No average, smoothing, forecast or causal inference is calculated.</div>
         </section>
-        <aside class="candidate-history-detail" aria-label="Selected candidate history detail">
-          <div class="candidate-history-inner-head">
-            <h3 class="candidate-history-inner-title">SELECTED HISTORY</h3>
-            <div class="candidate-history-inner-sub">Record depth, latest reported values and direct source access.</div>
-          </div>
-          <div id="candidate-history-detail" aria-live="polite" tabindex="0" aria-label="Selected candidate history details and latest observations">
-            <div class="candidate-history-state">Loading selected history…</div>
-          </div>
-        </aside>
       </div>
     </section>
     <footer id="method-disclosure">
@@ -5385,1351 +5278,591 @@
           ? '<a href="' + escapeAttribute(source) + '" target="_blank" rel="noopener noreferrer">Open source ↗</a>'
           : "Source unavailable") + "</div>";
     }
-    const candidateHistoryState = {
-      primary: "",
-      compare: "",
-      range: "6",
-      model: null,
-      resizeBound: false,
-      resizeTimer: null
-    };
+    const pollingEvidenceFeature = (() => {
+      "use strict";
 
-    function deriveCandidateHistory(events) {
-      const candidates = new Map();
-      let latestDate = "";
-
-      events.forEach(event => {
-        if (event.fieldwork_end > latestDate) latestDate = event.fieldwork_end;
-        event.candidates.forEach(candidate => {
-          if (!candidates.has(candidate.name)) {
-            candidates.set(candidate.name, { name: candidate.name, observations: [] });
-          }
-          candidates.get(candidate.name).observations.push({
-            candidateName: candidate.name,
-            date: event.fieldwork_end,
-            score: candidate.score,
-            event
-          });
-        });
-      });
-
-      const entries = [...candidates.values()].map(entry => {
-        entry.observations.sort((a, b) =>
-          a.date.localeCompare(b.date) ||
-          String(a.event.event_id).localeCompare(String(b.event.event_id))
-        );
-        entry.firstDate = entry.observations[0]?.date || "";
-        entry.latestDate = entry.observations.at(-1)?.date || "";
-        entry.pollsters = [...new Set(entry.observations.map(item => item.event.pollster))]
-          .sort((a, b) => a.localeCompare(b, "fr"));
-        return entry;
-      }).sort((a, b) =>
-        Number(b.latestDate === latestDate) - Number(a.latestDate === latestDate) ||
-        b.observations.length - a.observations.length ||
-        b.latestDate.localeCompare(a.latestDate) ||
-        a.name.localeCompare(b.name, "fr")
-      );
-
-      return { latestDate, candidates: entries, byName: new Map(entries.map(entry => [entry.name, entry])) };
-    }
-
-    function candidateHistoryRangeLabel(range) {
-      if (range === "3") return "Last 3 months";
-      if (range === "6") return "Last 6 months";
-      if (range === "12") return "Last 12 months";
-      return "Full record";
-    }
-
-    function candidateHistoryVisibleObservations(entry) {
-      if (!entry) return [];
-      if (candidateHistoryState.range === "all") return entry.observations;
-      const cutoff = subtractCalendarMonthsIso(candidateHistoryState.model.latestDate, Number(candidateHistoryState.range));
-      return entry.observations.filter(item => item.date >= cutoff && item.date <= candidateHistoryState.model.latestDate);
-    }
-
-    function candidateHistoryMetrics(entry, observations) {
-      if (!entry || !observations.length) return null;
-      const latestDate = observations.reduce((latest, item) => item.date > latest ? item.date : latest, observations[0].date);
-      const latestScores = [...new Set(observations.filter(item => item.date === latestDate).map(item => item.score))]
-        .sort((a, b) => b - a);
-      const pollsters = [...new Set(observations.map(item => item.event.pollster))];
-      const scores = observations.map(item => item.score);
-      return {
-        firstDate: observations[0].date,
-        latestDate,
-        latestScores,
-        observations: observations.length,
-        dates: new Set(observations.map(item => item.date)).size,
-        pollsters: pollsters.length,
-        minScore: Math.min(...scores),
-        maxScore: Math.max(...scores)
+      const collator = new Intl.Collator("fr", { sensitivity: "base" });
+      const state = {
+        allWaves: [],
+        allFigures: [],
+        pairIndex: new Map(),
+        pairInstances: [],
+        figureA: "",
+        figureB: "",
+        selectedInstance: null,
+        showAllShared: false,
+        interactionsBound: false
       };
-    }
 
-    function candidateHistoryOptions(selectedName = "", includeNone = false) {
-      const options = candidateHistoryState.model.candidates.map(entry =>
-        `<option value="${escapeAttribute(entry.name)}"${entry.name === selectedName ? " selected" : ""}>${escapeHtml(entry.name)} · ${entry.observations.length} observations</option>`
-      ).join("");
-      return (includeNone ? '<option value="">No comparison</option>' : "") + options;
-    }
+      const formatInteger = value => Number(value).toLocaleString("en-GB");
+      const formatDelta = value => `${value > 0 ? "+" : value < 0 ? "−" : ""}${Math.abs(value).toFixed(1)}`;
 
-    function populateCandidateHistorySelectors() {
-      const primary = $("#history-primary-select");
-      const compare = $("#history-compare-select");
-      primary.innerHTML = candidateHistoryOptions(candidateHistoryState.primary);
-      compare.innerHTML = candidateHistoryOptions(candidateHistoryState.compare, true);
-      [...compare.options].forEach(option => {
-        option.disabled = option.value === candidateHistoryState.primary && option.value !== "";
-      });
-      primary.disabled = false;
-      compare.disabled = false;
-      primary.value = candidateHistoryState.primary;
-      compare.value = candidateHistoryState.compare;
-    }
-
-    function candidateHistoryProfile(entry, observations, tone, label) {
-      const metrics = candidateHistoryMetrics(entry, observations);
-      const latest = metrics
-        ? metrics.latestScores.map(formatScore).join(", ")
-        : "No observations in range";
-      const span = metrics
-        ? `${formatScore(metrics.minScore)}–${formatScore(metrics.maxScore)}`
-        : "—";
-      const record = `${entry.observations.length} total observations · ${formatDate(entry.firstDate)}–${formatDate(entry.latestDate)}`;
-      return `
-        <section class="candidate-history-section">
-          <div class="candidate-history-profile">
-            ${freshnessCandidateMarker(entry.name)}
-            <div class="candidate-history-profile-copy">
-              <div class="candidate-history-name">${escapeHtml(entry.name)}</div>
-              <div class="candidate-history-record">${escapeHtml(record)}</div>
-              <div class="candidate-history-series-label${tone === "compare" ? " is-compare" : ""}">${escapeHtml(label)}</div>
-            </div>
-          </div>
-          <div class="candidate-history-metrics" style="margin-top:10px">
-            <div class="candidate-history-metric"><div class="candidate-history-metric-label">Latest visible</div><div class="candidate-history-metric-value">${escapeHtml(latest)}</div></div>
-            <div class="candidate-history-metric"><div class="candidate-history-metric-label">Visible observations</div><div class="candidate-history-metric-value">${metrics ? metrics.observations : 0}</div></div>
-            <div class="candidate-history-metric"><div class="candidate-history-metric-label">Pollsters</div><div class="candidate-history-metric-value">${metrics ? metrics.pollsters : 0}</div></div>
-            <div class="candidate-history-metric"><div class="candidate-history-metric-label">Visible score span</div><div class="candidate-history-metric-value">${escapeHtml(span)}</div></div>
-          </div>
-        </section>`;
-    }
-
-    function renderCandidateHistoryDetail(primaryEntry, primaryVisible, compareEntry, compareVisible) {
-      const observations = [...primaryVisible, ...compareVisible]
-        .sort((a, b) =>
-          b.date.localeCompare(a.date) ||
-          String(a.event.pollster).localeCompare(String(b.event.pollster), "fr") ||
-          String(a.event.event_id).localeCompare(String(b.event.event_id))
-        )
-        .slice(0, 8);
-
-      const profiles = [
-        primaryEntry ? candidateHistoryProfile(primaryEntry, primaryVisible, "primary", "PRIMARY SERIES") : "",
-        compareEntry ? candidateHistoryProfile(compareEntry, compareVisible, "compare", "COMPARISON SERIES") : ""
-      ].join("");
-
-      const observationRows = observations.length ? observations.map(item => {
-        const candidateName = item.candidateName || "Selected candidate";
-        const isCompare = compareEntry && candidateName === compareEntry.name;
-        const source = safeSourceUrl(item.event.source_url);
-        const fieldwork = item.event.fieldwork_start === item.event.fieldwork_end
-          ? formatDate(item.event.fieldwork_end)
-          : `${formatDate(item.event.fieldwork_start)}–${formatDate(item.event.fieldwork_end)}`;
-        return `
-          <li class="candidate-history-observation${isCompare ? " is-compare" : ""}">
-            <div class="candidate-history-observation-top">${escapeHtml(candidateName)} · <span class="candidate-history-observation-score">${escapeHtml(formatScore(item.score))}</span></div>
-            <div class="candidate-history-observation-meta">${escapeHtml(item.event.pollster)} · ${escapeHtml(fieldwork)}<br><span title="${escapeAttribute(item.event.hypothesis)}">${escapeHtml(item.event.hypothesis)}</span></div>
-            ${source ? `<a class="candidate-history-source" href="${escapeAttribute(source)}" target="_blank" rel="noopener noreferrer">Source ↗</a>` : ""}
-          </li>`;
-      }).join("") : '<li class="candidate-history-state">No observations fall inside the selected date range.</li>';
-
-      $("#candidate-history-detail").innerHTML = `
-        <div class="candidate-history-detail-body">
-          ${profiles}
-          <section class="candidate-history-section">
-            <h4>Latest visible observations</h4>
-            <ul class="candidate-history-observations">${observationRows}</ul>
-          </section>
-        </div>`;
-    }
-
-    function historyTooltipHtml(candidateName, observation) {
-      const sample = observation.event.sample_size
-        ? Number(observation.event.sample_size).toLocaleString("en-GB")
-        : "not stated";
-      const fieldwork = observation.event.fieldwork_start === observation.event.fieldwork_end
-        ? formatDate(observation.event.fieldwork_end)
-        : `${formatDate(observation.event.fieldwork_start)}–${formatDate(observation.event.fieldwork_end)}`;
-      return `
-        <div class="history-tooltip-name">${escapeHtml(candidateName)}</div>
-        <div class="history-tooltip-score">${escapeHtml(formatScore(observation.score))}</div>
-        <div class="history-tooltip-meta"><b>${escapeHtml(observation.event.pollster)}</b><br>Fieldwork: ${escapeHtml(fieldwork)}<br>Sample: ${escapeHtml(sample)}<br>Hypothesis: ${escapeHtml(observation.event.hypothesis)}<br>Activate point to open source.</div>`;
-    }
-
-    function positionHistoryTooltip(clientX, clientY) {
-      const wrap = $("#candidate-history-chart-wrap");
-      const tooltip = $("#history-tooltip");
-      const rect = wrap.getBoundingClientRect();
-      const gap = 12;
-      const padding = 8;
-      let left = clientX - rect.left + gap;
-      let top = clientY - rect.top + gap;
-      if (left + tooltip.offsetWidth > rect.width - padding) left = clientX - rect.left - tooltip.offsetWidth - gap;
-      if (top + tooltip.offsetHeight > rect.height - padding) top = clientY - rect.top - tooltip.offsetHeight - gap;
-      tooltip.style.left = `${Math.max(padding, left)}px`;
-      tooltip.style.top = `${Math.max(padding, top)}px`;
-    }
-
-    function drawCandidateHistoryChart(series) {
-      const svg = $("#history-chart");
-      const tooltip = $("#history-tooltip");
-      const width = Math.max(320, Math.round(svg.getBoundingClientRect().width || 860));
-      const height = width < 620 ? 280 : 420;
-      const margin = { top: 20, right: 18, bottom: 42, left: 44 };
-      const plotWidth = width - margin.left - margin.right;
-      const plotHeight = height - margin.top - margin.bottom;
-      const ns = "http://www.w3.org/2000/svg";
-      const visiblePoints = series.flatMap(item => item.observations);
-
-      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-      svg.innerHTML = "";
-      tooltip.classList.remove("visible");
-
-      if (!visiblePoints.length) {
-        const message = document.createElementNS(ns, "text");
-        message.setAttribute("x", width / 2);
-        message.setAttribute("y", height / 2);
-        message.setAttribute("text-anchor", "middle");
-        message.setAttribute("class", "axis-label");
-        message.textContent = "No observations fall inside the selected date range.";
-        svg.appendChild(message);
-        return;
+      function formatDateRange(start, end) {
+        if (!start || !end) return "Fieldwork unavailable";
+        const startDate = new Date(`${start}T00:00:00Z`);
+        const endDate = new Date(`${end}T00:00:00Z`);
+        if (![startDate, endDate].every(date => Number.isFinite(date.getTime()))) return "Fieldwork unavailable";
+        const datePart = (date, options) => new Intl.DateTimeFormat("en-GB", { ...options, timeZone: "UTC" }).format(date);
+        const sameYear = startDate.getUTCFullYear() === endDate.getUTCFullYear();
+        const sameMonth = sameYear && startDate.getUTCMonth() === endDate.getUTCMonth();
+        if (sameMonth) {
+          return `${startDate.getUTCDate()}–${endDate.getUTCDate()} ${datePart(endDate, { month: "short", year: "numeric" })}`;
+        }
+        if (sameYear) {
+          return `${datePart(startDate, { day: "numeric", month: "short" })}–${datePart(endDate, { day: "numeric", month: "short", year: "numeric" })}`;
+        }
+        return `${datePart(startDate, { day: "numeric", month: "short", year: "numeric" })}–${datePart(endDate, { day: "numeric", month: "short", year: "numeric" })}`;
       }
 
-      const times = visiblePoints.map(item => new Date(`${item.date}T00:00:00Z`).getTime());
-      let minTime = Math.min(...times);
-      let maxTime = Math.max(...times);
-      if (minTime === maxTime) {
-        minTime -= 86400000;
-        maxTime += 86400000;
-      }
-      const maxScore = Math.max(...visiblePoints.map(item => item.score), 1);
-      const yMax = Math.max(10, Math.ceil(maxScore / 5) * 5);
-      const x = time => margin.left + ((time - minTime) / (maxTime - minTime)) * plotWidth;
-      const y = score => margin.top + plotHeight - (score / yMax) * plotHeight;
-
-      for (let step = 0; step <= 4; step += 1) {
-        const value = yMax / 4 * step;
-        const yValue = y(value);
-        const line = document.createElementNS(ns, "line");
-        line.setAttribute("x1", margin.left);
-        line.setAttribute("x2", width - margin.right);
-        line.setAttribute("y1", yValue);
-        line.setAttribute("y2", yValue);
-        line.setAttribute("class", "gridline");
-        svg.appendChild(line);
-        const label = document.createElementNS(ns, "text");
-        label.setAttribute("x", margin.left - 8);
-        label.setAttribute("y", yValue + 3);
-        label.setAttribute("text-anchor", "end");
-        label.setAttribute("class", "axis-label");
-        label.textContent = `${value.toFixed(0)}%`;
-        svg.appendChild(label);
+      function normalizeSourceKey(value) {
+        const safe = safeSourceUrl(value);
+        if (!safe) return "";
+        try {
+          const url = new URL(safe);
+          url.hash = "";
+          ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(key => url.searchParams.delete(key));
+          if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/, "");
+          return url.href;
+        } catch (error) {
+          return safe;
+        }
       }
 
-      const tickCount = width < 520 ? 3 : 4;
-      const dateFormatter = new Intl.DateTimeFormat("en-GB", { month: "short", year: "2-digit", timeZone: "UTC" });
-      for (let step = 0; step <= tickCount; step += 1) {
-        const time = minTime + (maxTime - minTime) * step / tickCount;
-        const xValue = x(time);
-        const label = document.createElementNS(ns, "text");
-        label.setAttribute("x", xValue);
-        label.setAttribute("y", height - 13);
-        label.setAttribute("text-anchor", step === 0 ? "start" : step === tickCount ? "end" : "middle");
-        label.setAttribute("class", "axis-label");
-        label.textContent = dateFormatter.format(new Date(time));
-        svg.appendChild(label);
+      function recordSignature(event) {
+        return JSON.stringify({
+          pollster: event?.pollster ?? null,
+          commissioner: event?.commissioner ?? null,
+          publication_date: event?.publication_date ?? null,
+          fieldwork_start: event?.fieldwork_start ?? null,
+          fieldwork_end: event?.fieldwork_end ?? null,
+          sample_size: event?.sample_size ?? null,
+          round: event?.round ?? null,
+          hypothesis: event?.hypothesis ?? null,
+          scenario_key: event?.scenario_key ?? null,
+          source_url: normalizeSourceKey(event?.source_url),
+          candidates: event?.candidates ?? null
+        });
       }
 
-      series.forEach(item => {
-        const scenarioGroups = new Map();
-        item.observations.forEach(observation => {
+      function normalizeEvent(event, originalIndex) {
+        if (!event || event.round !== "first_round" || !Array.isArray(event.candidates) || event.candidates.length < 2) return null;
+        const names = new Set();
+        const candidates = [];
+        for (const candidate of event.candidates) {
+          const name = typeof candidate?.name === "string" ? candidate.name.trim() : "";
+          const score = Number(candidate?.score);
+          if (!name || !Number.isFinite(score) || names.has(name)) return null;
+          names.add(name);
+          candidates.push({ name, score });
+        }
+        return {
+          pollster: typeof event.pollster === "string" && event.pollster.trim() ? event.pollster.trim() : "Pollster unavailable",
+          publicationDate: event.publication_date || null,
+          fieldworkStart: event.fieldwork_start || null,
+          fieldworkEnd: event.fieldwork_end || null,
+          sampleSize: Number.isFinite(Number(event.sample_size)) ? Number(event.sample_size) : null,
+          scenarioKey: typeof event.scenario_key === "string" ? event.scenario_key : "",
+          sourceUrl: safeSourceUrl(event.source_url),
+          sourceKey: normalizeSourceKey(event.source_url),
+          candidates,
+          originalIndex
+        };
+      }
+
+      function compareHypotheses(a, b) {
+        if (a.scenarioKey && b.scenarioKey) {
+          const scenarioOrder = a.scenarioKey.localeCompare(b.scenarioKey);
+          if (scenarioOrder) return scenarioOrder;
+        }
+        return a.originalIndex - b.originalIndex;
+      }
+
+      function pairKey(first, second) {
+        return [first, second].sort((a, b) => collator.compare(a, b)).join("\u0000");
+      }
+
+      function findComparisons(wave) {
+        const comparisons = [];
+        for (let leftIndex = 0; leftIndex < wave.hypotheses.length; leftIndex += 1) {
+          for (let rightIndex = leftIndex + 1; rightIndex < wave.hypotheses.length; rightIndex += 1) {
+            const left = wave.hypotheses[leftIndex];
+            const right = wave.hypotheses[rightIndex];
+            const leftNames = new Set(left.candidates.map(candidate => candidate.name));
+            const rightNames = new Set(right.candidates.map(candidate => candidate.name));
+            const leftOnly = [...leftNames].filter(name => !rightNames.has(name));
+            const rightOnly = [...rightNames].filter(name => !leftNames.has(name));
+            if (leftOnly.length !== 1 || rightOnly.length !== 1) continue;
+
+            const [a, b] = compareHypotheses(left, right) <= 0 ? [left, right] : [right, left];
+            const aMap = new Map(a.candidates.map(candidate => [candidate.name, candidate.score]));
+            const bMap = new Map(b.candidates.map(candidate => [candidate.name, candidate.score]));
+            const aOnly = a.candidates.find(candidate => !bMap.has(candidate.name));
+            const bOnly = b.candidates.find(candidate => !aMap.has(candidate.name));
+            const shared = a.candidates
+              .filter(candidate => bMap.has(candidate.name))
+              .map(candidate => ({
+                name: candidate.name,
+                aScore: candidate.score,
+                bScore: bMap.get(candidate.name),
+                difference: bMap.get(candidate.name) - candidate.score
+              }));
+
+            comparisons.push({
+              a,
+              b,
+              aOnly,
+              bOnly,
+              shared,
+              pairKey: pairKey(aOnly.name, bOnly.name),
+              stableKey: `${a.scenarioKey || String(a.originalIndex).padStart(8, "0")}|${b.scenarioKey || String(b.originalIndex).padStart(8, "0")}`
+            });
+          }
+        }
+        return comparisons;
+      }
+
+      function groupPollWaves(events) {
+        const seen = new Set();
+        const waves = new Map();
+
+        events.forEach((rawEvent, originalIndex) => {
+          const signature = recordSignature(rawEvent);
+          if (seen.has(signature)) return;
+          seen.add(signature);
+          const event = normalizeEvent(rawEvent, originalIndex);
+          if (!event) return;
+
           const key = JSON.stringify([
-            String(observation.event.scenario_key || ""),
-            normalizeComparableText(observation.event.pollster)
+            event.pollster,
+            event.fieldworkStart,
+            event.fieldworkEnd,
+            event.sampleSize,
+            event.sourceKey
           ]);
-          if (!scenarioGroups.has(key)) scenarioGroups.set(key, []);
-          scenarioGroups.get(key).push(observation);
-        });
 
-        scenarioGroups.forEach(group => {
-          if (new Set(group.map(observation => observation.date)).size < 2) return;
-          const path = document.createElementNS(ns, "path");
-          const ordered = [...group].sort((a, b) => a.date.localeCompare(b.date) || String(a.event.event_id).localeCompare(String(b.event.event_id)));
-          path.setAttribute("d", ordered.map((observation, index) => {
-            const time = new Date(`${observation.date}T00:00:00Z`).getTime();
-            return `${index ? "L" : "M"}${x(time).toFixed(2)},${y(observation.score).toFixed(2)}`;
-          }).join(" "));
-          path.setAttribute("class", "history-series-line");
-          path.setAttribute("stroke", item.color);
-          if (item.role === "compare") path.setAttribute("stroke-dasharray", "5 4");
-          svg.appendChild(path);
-        });
-
-        item.observations.forEach(observation => {
-          const time = new Date(`${observation.date}T00:00:00Z`).getTime();
-          const cx = x(time);
-          const cy = y(observation.score);
-          const source = safeSourceUrl(observation.event.source_url);
-          const link = document.createElementNS(ns, "a");
-          link.setAttribute("class", "history-point-link");
-          if (source) {
-            link.setAttribute("href", source);
-            link.setAttribute("target", "_blank");
-            link.setAttribute("rel", "noopener noreferrer");
-          }
-          link.setAttribute("aria-label", `${item.entry.name}, ${formatScore(observation.score)}, ${observation.event.pollster}, fieldwork ending ${formatDate(observation.date)}. Open source.`);
-          const circle = document.createElementNS(ns, "circle");
-          circle.setAttribute("cx", cx);
-          circle.setAttribute("cy", cy);
-          circle.setAttribute("r", 4.1);
-          circle.setAttribute("fill", item.role === "primary" ? item.color : "#071522");
-          circle.setAttribute("stroke", item.role === "primary" ? "#07101b" : item.color);
-          circle.setAttribute("stroke-width", item.role === "primary" ? "1.6" : "2.2");
-          circle.setAttribute("class", "history-point");
-          circle.setAttribute("opacity", item.role === "primary" ? ".94" : ".92");
-          link.appendChild(circle);
-
-          const showTooltip = (clientX, clientY) => {
-            tooltip.innerHTML = historyTooltipHtml(item.entry.name, observation);
-            tooltip.style.borderColor = item.color;
-            tooltip.querySelector(".history-tooltip-name").style.color = item.color;
-            tooltip.classList.add("visible");
-            positionHistoryTooltip(clientX, clientY);
-            circle.setAttribute("r", "6");
-          };
-          const hideTooltip = () => {
-            tooltip.classList.remove("visible");
-            circle.setAttribute("r", "4.1");
-          };
-          link.addEventListener("mouseenter", event => showTooltip(event.clientX, event.clientY));
-          link.addEventListener("mousemove", event => positionHistoryTooltip(event.clientX, event.clientY));
-          link.addEventListener("mouseleave", hideTooltip);
-          link.addEventListener("focus", () => {
-            const circleRect = circle.getBoundingClientRect();
-            showTooltip(circleRect.left + circleRect.width / 2, circleRect.top + circleRect.height / 2);
-          });
-          link.addEventListener("blur", hideTooltip);
-          svg.appendChild(link);
-        });
-      });
-    }
-
-    function renderCandidateHistoryView() {
-      const model = candidateHistoryState.model;
-      if (!model) return;
-      const primaryEntry = model.byName.get(candidateHistoryState.primary) || model.candidates[0];
-      const compareEntry = candidateHistoryState.compare ? model.byName.get(candidateHistoryState.compare) : null;
-      const primaryVisible = candidateHistoryVisibleObservations(primaryEntry);
-      const compareVisible = candidateHistoryVisibleObservations(compareEntry);
-      const primaryMetrics = candidateHistoryMetrics(primaryEntry, primaryVisible);
-      const compareMetrics = candidateHistoryMetrics(compareEntry, compareVisible);
-      const rangeLabel = candidateHistoryRangeLabel(candidateHistoryState.range);
-
-      const summaryParts = [
-        `<strong>${escapeHtml(primaryEntry.name)}</strong>`,
-        `${primaryVisible.length} visible observations`,
-        `${primaryMetrics ? primaryMetrics.pollsters : 0} pollsters`,
-        rangeLabel
-      ];
-      if (compareEntry) summaryParts.splice(1, 0, `<strong>vs ${escapeHtml(compareEntry.name)}</strong>`);
-      $("#candidate-history-summary").innerHTML = `<span>${summaryParts.join(" · ")}</span><span>${primaryMetrics ? `${formatDate(primaryMetrics.firstDate)}–${formatDate(primaryMetrics.latestDate)}` : "No visible dates"}${compareMetrics ? ` · comparison through ${formatDate(compareMetrics.latestDate)}` : ""}</span>`;
-
-      const series = [
-        { entry: primaryEntry, observations: primaryVisible, color: palette[0], role: "primary" },
-        ...(compareEntry ? [{ entry: compareEntry, observations: compareVisible, color: palette[3], role: "compare" }] : [])
-      ];
-      drawCandidateHistoryChart(series);
-      $("#history-chart").setAttribute("aria-label", compareEntry
-        ? `Reported polling scores over time for ${primaryEntry.name} and ${compareEntry.name}`
-        : `Reported polling scores over time for ${primaryEntry.name}`);
-      $("#candidate-history-legend").innerHTML = series.map(item =>
-        `<span class="candidate-history-legend-item"><span class="candidate-history-legend-dot${item.role === "compare" ? " is-compare" : ""}" style="background:${item.color}"></span>${escapeHtml(item.entry.name)} · ${item.observations.length} visible</span>`
-      ).join("") + '<span class="candidate-history-legend-item">Point = one reported observation · activate to open source</span>';
-      renderCandidateHistoryDetail(primaryEntry, primaryVisible, compareEntry, compareVisible);
-    }
-
-    function renderCandidateHistory(events) {
-      candidateHistoryState.model = deriveCandidateHistory(events);
-      if (!candidateHistoryState.model.candidates.length) throw new Error("No candidate histories could be derived");
-      if (!candidateHistoryState.primary || !candidateHistoryState.model.byName.has(candidateHistoryState.primary)) {
-        const latestLeader = [...(events[0]?.candidates || [])]
-          .filter(candidate => Number.isFinite(candidate.score))
-          .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "fr"))[0]?.name;
-        candidateHistoryState.primary = candidateHistoryState.model.byName.has(latestLeader)
-          ? latestLeader
-          : candidateHistoryState.model.candidates[0].name;
-      }
-      if (candidateHistoryState.compare === candidateHistoryState.primary || !candidateHistoryState.model.byName.has(candidateHistoryState.compare)) {
-        candidateHistoryState.compare = "";
-      }
-
-      populateCandidateHistorySelectors();
-      $("#history-primary-select").onchange = event => {
-        candidateHistoryState.primary = event.target.value;
-        if (candidateHistoryState.compare === candidateHistoryState.primary) candidateHistoryState.compare = "";
-        populateCandidateHistorySelectors();
-        renderCandidateHistoryView();
-      };
-      $("#history-compare-select").onchange = event => {
-        candidateHistoryState.compare = event.target.value;
-        renderCandidateHistoryView();
-      };
-      document.querySelectorAll("[data-history-range]").forEach(button => {
-        button.onclick = () => {
-          candidateHistoryState.range = button.dataset.historyRange;
-          document.querySelectorAll("[data-history-range]").forEach(rangeButton => {
-            const active = rangeButton === button;
-            rangeButton.classList.toggle("active", active);
-            rangeButton.setAttribute("aria-pressed", String(active));
-          });
-          renderCandidateHistoryView();
-        };
-      });
-
-      if (!candidateHistoryState.resizeBound) {
-        window.addEventListener("resize", () => {
-          clearTimeout(candidateHistoryState.resizeTimer);
-          candidateHistoryState.resizeTimer = setTimeout(renderCandidateHistoryView, 120);
-        }, { passive: true });
-        candidateHistoryState.resizeBound = true;
-      }
-
-      renderCandidateHistoryView();
-      document.documentElement.dataset.historyReady = "true";
-    }
-
-    const pollingExplorerState = {
-      activeTab: "field",
-      selectedWaveKey: "",
-      selectedFieldCandidate: "",
-      fieldFormation: null,
-      selectedScenarioWaveKey: "",
-      selectedScenarioAId: "",
-      selectedScenarioBId: "",
-      scenarioSwitch: null
-    };
-
-    function setPollingExplorerTab(tabName, focusTab = false) {
-      const tabs = [...document.querySelectorAll("[data-explorer-tab]")];
-      const requested = tabs.find(tab => tab.dataset.explorerTab === tabName) || tabs[0];
-      if (!requested) return;
-
-      pollingExplorerState.activeTab = requested.dataset.explorerTab;
-      tabs.forEach(tab => {
-        const active = tab === requested;
-        tab.classList.toggle("active", active);
-        tab.setAttribute("aria-selected", String(active));
-        tab.tabIndex = active ? 0 : -1;
-        const panel = document.getElementById(tab.getAttribute("aria-controls"));
-        if (panel) panel.hidden = !active;
-      });
-
-      if (focusTab) requested.focus();
-    }
-
-    function initializePollingExplorerTabs() {
-      const tabs = [...document.querySelectorAll("[data-explorer-tab]")];
-      tabs.forEach((tab, index) => {
-        tab.addEventListener("click", () => setPollingExplorerTab(tab.dataset.explorerTab));
-        tab.addEventListener("keydown", event => {
-          let nextIndex = null;
-          if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
-          if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
-          if (event.key === "Home") nextIndex = 0;
-          if (event.key === "End") nextIndex = tabs.length - 1;
-          if (nextIndex === null) return;
-          event.preventDefault();
-          setPollingExplorerTab(tabs[nextIndex].dataset.explorerTab, true);
-        });
-      });
-      setPollingExplorerTab("field");
-    }
-
-    function derivePollWaves(events) {
-      const waves = new Map();
-
-      events.forEach(event => {
-        const groupKey = JSON.stringify([
-          event.pollster,
-          event.fieldwork_start,
-          event.fieldwork_end,
-          event.publication_date ?? null
-        ]);
-
-        if (!waves.has(groupKey)) {
-          waves.set(groupKey, {
-            groupKey,
-            pollster: event.pollster,
-            fieldworkStart: event.fieldwork_start,
-            fieldworkEnd: event.fieldwork_end,
-            publicationDate: event.publication_date ?? null,
-            sources: new Set(),
-            commissioners: new Set(),
-            sampleSizes: new Set(),
-            candidateNames: new Set(),
-            lineups: [],
-            eventIds: []
-          });
-        }
-
-        const wave = waves.get(groupKey);
-        if (event.source_url) wave.sources.add(event.source_url);
-        if (event.commissioner) wave.commissioners.add(event.commissioner);
-        if (event.sample_size !== null && event.sample_size !== undefined) wave.sampleSizes.add(event.sample_size);
-        const lineupCandidates = [...new Set(event.candidates.map(candidate => candidate.name).filter(Boolean))]
-          .sort((a, b) => a.localeCompare(b, "fr"));
-        lineupCandidates.forEach(name => wave.candidateNames.add(name));
-        wave.lineups.push({
-          eventId: event.event_id,
-          scenarioKey: event.scenario_key,
-          candidates: lineupCandidates
-        });
-        wave.eventIds.push(event.event_id);
-      });
-
-      return [...waves.values()].map(wave => ({
-        ...wave,
-        displayDate: wave.publicationDate || wave.fieldworkEnd,
-        sources: [...wave.sources].sort((a, b) => a.localeCompare(b)),
-        commissioners: [...wave.commissioners].sort((a, b) => a.localeCompare(b, "fr")),
-        sampleSizes: [...wave.sampleSizes].sort((a, b) => Number(a) - Number(b)),
-        candidateNames: [...wave.candidateNames].sort((a, b) => a.localeCompare(b, "fr")),
-        lineups: wave.lineups.sort((a, b) =>
-          String(a.scenarioKey).localeCompare(String(b.scenarioKey)) ||
-          String(a.eventId).localeCompare(String(b.eventId))
-        ),
-        eventIds: [...wave.eventIds].sort((a, b) => String(a).localeCompare(String(b))),
-        hypothesisCount: wave.eventIds.length
-      })).sort((a, b) =>
-        b.displayDate.localeCompare(a.displayDate) ||
-        b.fieldworkEnd.localeCompare(a.fieldworkEnd) ||
-        String(a.pollster).localeCompare(String(b.pollster), "fr") ||
-        a.groupKey.localeCompare(b.groupKey)
-      );
-    }
-
-    function subtractCalendarMonthsIso(isoDate, monthCount) {
-      const [year, month, day] = String(isoDate).split("-").map(Number);
-      if (![year, month, day].every(Number.isFinite)) return "";
-      const absoluteMonth = year * 12 + (month - 1) - monthCount;
-      const targetYear = Math.floor(absoluteMonth / 12);
-      const targetMonthIndex = ((absoluteMonth % 12) + 12) % 12;
-      const lastDay = new Date(Date.UTC(targetYear, targetMonthIndex + 1, 0)).getUTCDate();
-      const targetDay = Math.min(day, lastDay);
-      return [
-        String(targetYear).padStart(4, "0"),
-        String(targetMonthIndex + 1).padStart(2, "0"),
-        String(targetDay).padStart(2, "0")
-      ].join("-");
-    }
-
-    function compactPollsterLabel(pollster) {
-      const known = {
-        "Elabe": "ELA",
-        "Verian": "VER",
-        "OpinionWay": "OPW",
-        "Harris Interactive": "HAR",
-        "Ifop": "IFP",
-        "Ipsos": "IPS"
-      };
-      if (known[pollster]) return known[pollster];
-      return String(pollster || "—").replace(/[^A-Za-zÀ-ÿ0-9]/g, "").slice(0, 3).toUpperCase() || "—";
-    }
-
-    function fieldEventDateLabel(wave) {
-      return formatDate(wave.fieldworkEnd).replace(/\s+\d{4}$/, "");
-    }
-
-    function fieldEventRangeLabel(wave) {
-      return wave.fieldworkStart === wave.fieldworkEnd
-        ? formatDate(wave.fieldworkEnd)
-        : formatDate(wave.fieldworkStart) + "–" + formatDate(wave.fieldworkEnd);
-    }
-
-    function deriveFieldFormation(events) {
-      const allWaves = derivePollWaves(events);
-      if (!allWaves.length) {
-        return { cutoff: "", latestDate: "", waves: [], candidates: [] };
-      }
-
-      const latestDate = allWaves.reduce((latest, wave) =>
-        wave.fieldworkEnd > latest ? wave.fieldworkEnd : latest
-      , allWaves[0].fieldworkEnd);
-      const cutoff = subtractCalendarMonthsIso(latestDate, 6);
-      const waves = allWaves.filter(wave =>
-        wave.fieldworkEnd >= cutoff && wave.fieldworkEnd <= latestDate
-      ).sort((a, b) =>
-        b.fieldworkEnd.localeCompare(a.fieldworkEnd) ||
-        b.displayDate.localeCompare(a.displayDate) ||
-        a.pollster.localeCompare(b.pollster, "fr") ||
-        a.groupKey.localeCompare(b.groupKey)
-      );
-      const latestWave = waves[0] || null;
-      const previousWave = waves[1] || null;
-      const candidates = new Map();
-
-      waves.forEach(wave => {
-        const hypothesisAppearances = new Map();
-        wave.lineups.forEach(lineup => {
-          lineup.candidates.forEach(name => {
-            hypothesisAppearances.set(name, (hypothesisAppearances.get(name) || 0) + 1);
-          });
-        });
-
-        wave.candidateNames.forEach(name => {
-          if (!candidates.has(name)) {
-            candidates.set(name, {
-              name,
-              events: [],
-              pollsters: new Set()
+          if (!waves.has(key)) {
+            waves.set(key, {
+              key,
+              pollster: event.pollster,
+              fieldworkStart: event.fieldworkStart,
+              fieldworkEnd: event.fieldworkEnd,
+              sampleSize: event.sampleSize,
+              sourceUrl: event.sourceUrl,
+              publicationDates: [],
+              hypotheses: [],
+              firstIndex: originalIndex
             });
           }
-          const candidate = candidates.get(name);
-          candidate.events.push({
-            wave,
-            hypothesisAppearances: hypothesisAppearances.get(name) || 0
-          });
-          candidate.pollsters.add(wave.pollster);
+
+          const wave = waves.get(key);
+          if (event.publicationDate) wave.publicationDates.push(event.publicationDate);
+          wave.hypotheses.push(event);
         });
-      });
 
-      const records = [...candidates.values()].map(candidate => {
-        const eventsLatestFirst = [...candidate.events].sort((a, b) =>
-          b.wave.fieldworkEnd.localeCompare(a.wave.fieldworkEnd) ||
-          b.wave.displayDate.localeCompare(a.wave.displayDate) ||
-          a.wave.pollster.localeCompare(b.wave.pollster, "fr") ||
-          a.wave.groupKey.localeCompare(b.wave.groupKey)
-        );
-        const earliest = eventsLatestFirst[eventsLatestFirst.length - 1];
-        const latest = eventsLatestFirst[0];
-        const inLatest = Boolean(latestWave && eventsLatestFirst.some(item => item.wave.groupKey === latestWave.groupKey));
-        const inPrevious = Boolean(previousWave && eventsLatestFirst.some(item => item.wave.groupKey === previousWave.groupKey));
-        const appearedEarlier = waves.slice(2).some(wave =>
-          eventsLatestFirst.some(item => item.wave.groupKey === wave.groupKey)
-        );
-        let status = "CURRENTLY TESTED";
-
-        if (inLatest && earliest && earliest.wave.groupKey === latestWave.groupKey) {
-          status = "NEW IN LATEST EVENT";
-        } else if (eventsLatestFirst.length === waves.length) {
-          status = "CONTINUOUSLY TESTED";
-        } else if (inLatest && !inPrevious && appearedEarlier) {
-          status = "RETURNED";
-        } else if (!inLatest) {
-          status = "NOT TESTED IN LATEST EVENT";
-        }
-
-        return {
-          name: candidate.name,
-          events: eventsLatestFirst,
-          eventCount: eventsLatestFirst.length,
-          pollsters: [...candidate.pollsters].sort((a, b) => a.localeCompare(b, "fr")),
-          firstInclusion: earliest ? earliest.wave.fieldworkEnd : "",
-          latestInclusion: latest ? latest.wave.fieldworkEnd : "",
-          inLatest,
-          status
-        };
-      }).sort((a, b) =>
-        Number(b.inLatest) - Number(a.inLatest) ||
-        b.eventCount - a.eventCount ||
-        b.latestInclusion.localeCompare(a.latestInclusion) ||
-        a.name.localeCompare(b.name, "fr")
-      );
-
-      return { cutoff, latestDate, waves, candidates: records };
-    }
-
-    function scenarioComparison(left, right) {
-      const leftNames = new Set(left.candidateNames);
-      const rightNames = new Set(right.candidateNames);
-      const shared = [...leftNames].filter(name => rightNames.has(name));
-      const removed = [...leftNames].filter(name => !rightNames.has(name));
-      const added = [...rightNames].filter(name => !leftNames.has(name));
-      const rows = shared.map(name => {
-        const scoreA = left.scores.get(name);
-        const scoreB = right.scores.get(name);
-        return {
-          name,
-          scoreA,
-          scoreB,
-          delta: Number((scoreB - scoreA).toFixed(10))
-        };
-      }).sort((a, b) =>
-        Math.abs(b.delta) - Math.abs(a.delta) ||
-        a.name.localeCompare(b.name, "fr")
-      );
-      const smallerLineup = Math.min(left.candidateNames.length, right.candidateNames.length);
-      const sharedRatio = smallerLineup ? shared.length / smallerLineup : 0;
-      const changedCount = rows.filter(row => Math.abs(row.delta) > 1e-9).length;
-
-      return {
-        left,
-        right,
-        shared: shared.sort((a, b) => a.localeCompare(b, "fr")),
-        removed: removed.sort((a, b) => a.localeCompare(b, "fr")),
-        added: added.sort((a, b) => a.localeCompare(b, "fr")),
-        rows,
-        sharedRatio,
-        changedCount,
-        switchCount: removed.length + added.length,
-        qualifies: removed.length > 0 && added.length > 0 &&
-          shared.length >= 6 && sharedRatio >= 0.60 && changedCount > 0
-      };
-    }
-
-    function deriveScenarioSwitch(events) {
-      const allWaves = derivePollWaves(events);
-      if (!allWaves.length) {
-        return { cutoff: "", latestDate: "", waves: [], pollsters: [] };
+        return [...waves.values()].map(wave => {
+          wave.publicationDate = [...wave.publicationDates].sort().at(-1) || null;
+          wave.sortDate = wave.publicationDate || wave.fieldworkEnd || "";
+          wave.hypotheses = wave.hypotheses.map((hypothesis, index) => ({
+            ...hypothesis,
+            hIndex: index + 1,
+            hLabel: `H${index + 1}`
+          }));
+          wave.comparisons = findComparisons(wave);
+          return wave;
+        });
       }
 
-      const latestDate = allWaves.reduce((latest, wave) =>
-        wave.fieldworkEnd > latest ? wave.fieldworkEnd : latest
-      , allWaves[0].fieldworkEnd);
-      const cutoff = subtractCalendarMonthsIso(latestDate, 6);
-      const eventById = new Map(events.map(event => [String(event.event_id), event]));
-      const waves = allWaves
-        .filter(wave => wave.fieldworkEnd >= cutoff && wave.fieldworkEnd <= latestDate)
-        .map(wave => {
-          const uniqueLineups = new Map();
+      function buildPairIndex(waves) {
+        const index = new Map();
+        waves.forEach(wave => wave.comparisons.forEach(comparison => {
+          if (!index.has(comparison.pairKey)) index.set(comparison.pairKey, []);
+          index.get(comparison.pairKey).push({ wave, comparison });
+        }));
+        index.forEach(instances => instances.sort((a, b) =>
+          String(b.wave.sortDate).localeCompare(String(a.wave.sortDate)) ||
+          b.comparison.shared.length - a.comparison.shared.length ||
+          a.comparison.stableKey.localeCompare(b.comparison.stableKey)
+        ));
+        return index;
+      }
 
-          wave.eventIds.forEach(eventId => {
-            const event = eventById.get(String(eventId));
-            if (!event) return;
-            const candidates = event.candidates
-              .filter(candidate => candidate && typeof candidate.name === "string" && Number.isFinite(candidate.score))
-              .map(candidate => ({ name: candidate.name, score: candidate.score }))
-              .sort((a, b) => a.name.localeCompare(b.name, "fr"));
-            const candidateNames = candidates.map(candidate => candidate.name);
-            const lineupKey = JSON.stringify(candidateNames.map(normalizeComparableText));
-            if (uniqueLineups.has(lineupKey)) return;
+      function chooseDefaultPair() {
+        const pairs = [...state.pairIndex.entries()].sort((a, b) => {
+          const latestA = a[1][0];
+          const latestB = b[1][0];
+          return b[1].length - a[1].length ||
+            String(latestB.wave.sortDate).localeCompare(String(latestA.wave.sortDate)) ||
+            latestB.comparison.shared.length - latestA.comparison.shared.length ||
+            a[0].localeCompare(b[0]);
+        });
+        if (!pairs.length) return null;
+        const newest = pairs[0][1][0];
+        return {
+          figureA: newest.comparison.aOnly.name,
+          figureB: newest.comparison.bOnly.name,
+          instance: newest
+        };
+      }
 
-            uniqueLineups.set(lineupKey, {
-              eventId: String(event.event_id),
-              scenarioKey: String(event.scenario_key || ""),
-              hypothesis: String(event.hypothesis || "Hypothesis label unavailable"),
-              candidates,
-              candidateNames,
-              scores: new Map(candidates.map(candidate => [candidate.name, candidate.score])),
-              sampleSize: event.sample_size,
-              sourceUrl: safeSourceUrl(event.source_url),
-              commissioner: String(event.commissioner || "")
-            });
-          });
-
-          const scenarios = [...uniqueLineups.values()].sort((a, b) =>
-            a.scenarioKey.localeCompare(b.scenarioKey) ||
-            a.eventId.localeCompare(b.eventId)
-          );
-          scenarios.forEach((scenario, index) => {
-            scenario.sequence = index + 1;
-          });
-
-          const pairs = [];
-          for (let leftIndex = 0; leftIndex < scenarios.length; leftIndex += 1) {
-            for (let rightIndex = leftIndex + 1; rightIndex < scenarios.length; rightIndex += 1) {
-              pairs.push(scenarioComparison(scenarios[leftIndex], scenarios[rightIndex]));
-            }
-          }
-          const qualifyingPairs = pairs.filter(pair => pair.qualifies).sort((a, b) =>
-            a.switchCount - b.switchCount ||
-            b.sharedRatio - a.sharedRatio ||
-            b.shared.length - a.shared.length ||
-            b.changedCount - a.changedCount ||
-            a.left.sequence - b.left.sequence ||
-            a.right.sequence - b.right.sequence
-          );
-          if (!qualifyingPairs.length) return null;
-
+      function orientComparison(instance) {
+        const comparison = instance.comparison;
+        if (comparison.aOnly.name === state.figureA && comparison.bOnly.name === state.figureB) {
+          return { ...comparison, wave: instance.wave };
+        }
+        if (comparison.aOnly.name === state.figureB && comparison.bOnly.name === state.figureA) {
           return {
-            ...wave,
-            scenarios,
-            qualifyingPairs,
-            defaultPair: qualifyingPairs[0]
+            ...comparison,
+            wave: instance.wave,
+            a: comparison.b,
+            b: comparison.a,
+            aOnly: comparison.bOnly,
+            bOnly: comparison.aOnly,
+            shared: comparison.shared.map(item => ({
+              name: item.name,
+              aScore: item.bScore,
+              bScore: item.aScore,
+              difference: item.aScore - item.bScore
+            }))
           };
-        })
-        .filter(Boolean)
-        .sort((a, b) =>
-          b.fieldworkEnd.localeCompare(a.fieldworkEnd) ||
-          b.displayDate.localeCompare(a.displayDate) ||
-          a.pollster.localeCompare(b.pollster, "fr") ||
-          a.groupKey.localeCompare(b.groupKey)
-        );
-
-      return {
-        cutoff,
-        latestDate,
-        waves,
-        pollsters: [...new Set(waves.map(wave => wave.pollster))]
-          .sort((a, b) => a.localeCompare(b, "fr"))
-      };
-    }
-
-    function fieldFormationCell(candidate, wave) {
-      const appearance = candidate.events.find(item => item.wave.groupKey === wave.groupKey);
-      if (!appearance) {
-        return '<span class="field-absence" aria-label="' +
-          escapeAttribute(candidate.name + " was not tested in " + wave.pollster + ", fieldwork ending " + formatDate(wave.fieldworkEnd)) +
-          '">○</span>';
+        }
+        return null;
       }
 
-      const sourceUrl = safeSourceUrl(wave.sources[0]);
-      const hypothesisText = appearance.hypothesisAppearances + " of " + wave.hypothesisCount + " " +
-        (wave.hypothesisCount === 1 ? "hypothesis" : "hypotheses");
-      const label = candidate.name + " was tested by " + wave.pollster + ", fieldwork " +
-        fieldEventRangeLabel(wave) + ", in " + hypothesisText + ".";
-      const markerClass = appearance.hypothesisAppearances > 1 ? " is-multiple" : "";
-      if (!sourceUrl) {
-        return '<span class="field-presence' + markerClass + '" title="' + escapeAttribute(label) +
-          '" aria-label="' + escapeAttribute(label) + '">●</span>';
-      }
-      return '<a class="field-presence' + markerClass + '" href="' + escapeAttribute(sourceUrl) +
-        '" target="_blank" rel="noopener noreferrer" title="' + escapeAttribute(label + " Open source.") +
-        '" aria-label="' + escapeAttribute(label + " Open source.") + '">●</a>';
-    }
-
-    function renderFieldFormationDetail(model, candidateName) {
-      const detail = $("#field-formation-detail");
-      const candidate = model.candidates.find(item => item.name === candidateName);
-      if (!candidate) {
-        detail.innerHTML = '<div class="field-formation-state">No figure selected.</div>';
-        return;
+      function selectedPairKey() {
+        return state.figureA && state.figureB ? pairKey(state.figureA, state.figureB) : "";
       }
 
-      const eventRows = candidate.events.map(item => {
-        const wave = item.wave;
-        const sourceUrl = safeSourceUrl(wave.sources[0]);
-        const sourceLink = sourceUrl
-          ? '<a class="field-detail-source" href="' + escapeAttribute(sourceUrl) +
-              '" target="_blank" rel="noopener noreferrer">Source ↗</a>'
-          : '<span class="field-detail-source">No source</span>';
-        return `
-          <li class="field-detail-event">
-            <div class="field-detail-event-title">${escapeHtml(wave.pollster)} · ${escapeHtml(fieldEventDateLabel(wave))}</div>
-            <div class="field-detail-event-meta">Fieldwork ${escapeHtml(fieldEventRangeLabel(wave))} · ${item.hypothesisAppearances} of ${wave.hypothesisCount} ${wave.hypothesisCount === 1 ? "hypothesis" : "hypotheses"}</div>
-            ${sourceLink}
-          </li>`;
-      }).join("");
-
-      const inactiveStatus = candidate.status === "NOT TESTED IN LATEST EVENT" ? " is-inactive" : "";
-      detail.innerHTML = `
-        <div class="field-detail-body">
-          <div>
-            <div class="field-detail-name">${escapeHtml(candidate.name)}</div>
-            <div class="field-detail-status${inactiveStatus}">${escapeHtml(candidate.status)}</div>
-          </div>
-          <div class="field-detail-grid">
-            <div class="field-detail-metric">
-              <div class="field-detail-label">Poll events</div>
-              <div class="field-detail-value">${candidate.eventCount} of ${model.waves.length}</div>
-            </div>
-            <div class="field-detail-metric">
-              <div class="field-detail-label">Pollsters</div>
-              <div class="field-detail-value">${candidate.pollsters.length}</div>
-            </div>
-            <div class="field-detail-metric">
-              <div class="field-detail-label">First inclusion</div>
-              <div class="field-detail-value">${formatDate(candidate.firstInclusion)}</div>
-            </div>
-            <div class="field-detail-metric">
-              <div class="field-detail-label">Latest inclusion</div>
-              <div class="field-detail-value">${formatDate(candidate.latestInclusion)}</div>
-            </div>
-          </div>
-          <section class="field-detail-section">
-            <h4>Included events</h4>
-            <ol class="field-detail-events">${eventRows}</ol>
-          </section>
-        </div>`;
-    }
-
-    function selectFieldFormationCandidate(model, candidateName, focusButton = false) {
-      const candidate = model.candidates.find(item => item.name === candidateName) || model.candidates[0];
-      if (!candidate) return;
-      pollingExplorerState.selectedFieldCandidate = candidate.name;
-
-      document.querySelectorAll("[data-field-candidate]").forEach(button => {
-        const active = decodeURIComponent(button.dataset.fieldCandidate) === candidate.name;
-        button.setAttribute("aria-pressed", String(active));
-        button.closest("tr")?.classList.toggle("is-selected", active);
-        if (active && focusButton) button.focus();
-      });
-
-      renderFieldFormationDetail(model, candidate.name);
-    }
-
-    function renderFieldFormation(events) {
-      const model = deriveFieldFormation(events);
-      pollingExplorerState.fieldFormation = model;
-      const summary = $("#field-formation-summary");
-      const scroll = $("#field-formation-scroll");
-
-      if (!model.waves.length || !model.candidates.length) {
-        summary.innerHTML = "<span>No qualifying six-month Field Formation window is available.</span>";
-        scroll.innerHTML = '<div class="field-formation-state">No recent unique poll events are available.</div>';
-        renderFieldFormationDetail(model, "");
-        return;
-      }
-
-      const eventHeaders = model.waves.map(wave => `
-        <th class="field-event-column" scope="col" title="${escapeAttribute(wave.pollster + " · fieldwork " + fieldEventRangeLabel(wave) + " · " + wave.hypothesisCount + " hypotheses")}">
-          <span class="field-event-pollster">${escapeHtml(compactPollsterLabel(wave.pollster))}</span>
-          <span class="field-event-date">${escapeHtml(fieldEventDateLabel(wave))}</span>
-        </th>`).join("");
-
-      const rows = model.candidates.map(candidate => {
-        const encodedName = encodeURIComponent(candidate.name);
-        const cells = model.waves.map(wave => `<td class="field-event-column">${fieldFormationCell(candidate, wave)}</td>`).join("");
-        return `
-          <tr>
-            <th class="field-candidate-column" scope="row">
-              <button class="field-candidate-select" type="button" data-field-candidate="${escapeAttribute(encodedName)}"
-                aria-pressed="false">${escapeHtml(candidate.name)}</button>
-            </th>
-            ${cells}
-            <td class="field-events-column">${candidate.eventCount}</td>
-            <td class="field-pollsters-column">${candidate.pollsters.length}</td>
-            <td class="field-last-column">${escapeHtml(fieldEventDateLabel({ fieldworkEnd: candidate.latestInclusion }))}</td>
-          </tr>`;
-      }).join("");
-
-      summary.innerHTML = `
-        <span><strong>${model.waves.length}</strong> unique poll events · <strong>${model.candidates.length}</strong> figures</span>
-        <span>${formatDate(model.cutoff)}–${formatDate(model.latestDate)}</span>`;
-
-      scroll.innerHTML = `
-        <table class="field-formation-table">
-          <caption class="visually-hidden">Candidate inclusion across unique first-round poll events during the six-calendar-month window.</caption>
-          <thead>
-            <tr>
-              <th class="field-candidate-column" scope="col">Candidate</th>
-              ${eventHeaders}
-              <th class="field-events-column" scope="col">Events</th>
-              <th class="field-pollsters-column" scope="col">Pollsters</th>
-              <th class="field-last-column" scope="col">Last seen</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>`;
-
-      document.querySelectorAll("[data-field-candidate]").forEach(button => {
-        button.addEventListener("click", () => {
-          selectFieldFormationCandidate(model, decodeURIComponent(button.dataset.fieldCandidate));
+      function deriveWaveFacts(wave) {
+        const appearances = new Map();
+        wave.hypotheses.forEach(hypothesis => {
+          hypothesis.candidates.forEach(candidate => {
+            appearances.set(candidate.name, (appearances.get(candidate.name) || 0) + 1);
+          });
         });
-      });
-
-      const selectedStillExists = model.candidates.some(candidate =>
-        candidate.name === pollingExplorerState.selectedFieldCandidate
-      );
-      const defaultName = selectedStillExists
-        ? pollingExplorerState.selectedFieldCandidate
-        : model.candidates[0].name;
-      selectFieldFormationCandidate(model, defaultName);
-    }
-
-    function scenarioSampleLabel(scenario) {
-      return scenario.sampleSize !== null && scenario.sampleSize !== undefined
-        ? Number(scenario.sampleSize).toLocaleString("en-GB")
-        : "Not stated";
-    }
-
-    function scenarioDeltaLabel(value) {
-      const rounded = Math.round(Number(value) * 10) / 10;
-      if (rounded > 0) return "+" + rounded.toLocaleString("en-GB", { maximumFractionDigits: 1 });
-      if (rounded < 0) return "−" + Math.abs(rounded).toLocaleString("en-GB", { maximumFractionDigits: 1 });
-      return "0";
-    }
-
-    function scenarioDeltaTone(value) {
-      if (value > 0) return "is-positive";
-      if (value < 0) return "is-negative";
-      return "is-zero";
-    }
-
-    function scenarioOptionLabel(scenario) {
-      return `Hypothesis ${scenario.sequence} · ${scenario.candidateNames.length} candidates`;
-    }
-
-    function scenarioWaveOptionLabel(wave) {
-      return `${wave.pollster} · ${fieldEventDateLabel(wave)} · ${wave.scenarios.length} hypotheses`;
-    }
-
-    function scenarioSourceLink(scenario, label) {
-      return scenario.sourceUrl
-        ? `<a class="scenario-switch-source" href="${escapeAttribute(scenario.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)} ↗</a>`
-        : '<span class="scenario-switch-empty">Source unavailable</span>';
-    }
-
-    function renderScenarioSwitchDetail(wave, comparison) {
-      const detail = $("#scenario-switch-detail");
-      if (!wave || !comparison) {
-        detail.innerHTML = '<div class="scenario-switch-state">No within-wave comparison selected.</div>';
-        return;
+        const distinctFigures = appearances.size;
+        const inEveryLineup = [...appearances.values()].filter(count => count === wave.hypotheses.length).length;
+        return {
+          testedLineups: wave.hypotheses.length,
+          distinctFigures,
+          inEveryLineup,
+          selectivelyTested: distinctFigures - inEveryLineup
+        };
       }
 
-      const publicationLabel = wave.publicationDate
-        ? "Published " + formatDate(wave.publicationDate)
-        : "Publication date not stated";
-      const scenarioCard = (scenario, label) => `
-        <section class="scenario-detail-section">
-          <h4>${escapeHtml(label)}</h4>
-          <div class="scenario-detail-card">
-            <div class="scenario-detail-card-label">${escapeHtml(scenarioOptionLabel(scenario))}</div>
-            <div class="scenario-detail-hypothesis">${escapeHtml(scenario.hypothesis)}</div>
-            <div class="scenario-detail-meta">Sample ${escapeHtml(scenarioSampleLabel(scenario))} · ${scenario.candidateNames.length} candidates</div>
-            ${scenarioSourceLink(scenario, "Open " + label.toLowerCase() + " source")}
-          </div>
-        </section>`;
-
-      detail.innerHTML = `
-        <div class="scenario-detail-body">
-          <div>
-            <div class="scenario-detail-pollster">${escapeHtml(wave.pollster)}</div>
-            <div class="scenario-detail-date">Fieldwork ${escapeHtml(fieldEventRangeLabel(wave))} · ${escapeHtml(publicationLabel)}</div>
-          </div>
-          <div class="scenario-detail-grid">
-            <div class="scenario-detail-metric">
-              <div class="scenario-detail-label">Wave hypotheses</div>
-              <div class="scenario-detail-value">${wave.scenarios.length}</div>
-            </div>
-            <div class="scenario-detail-metric">
-              <div class="scenario-detail-label">Shared candidates</div>
-              <div class="scenario-detail-value">${comparison.shared.length}</div>
-            </div>
-            <div class="scenario-detail-metric">
-              <div class="scenario-detail-label">Scenario A sample</div>
-              <div class="scenario-detail-value">${escapeHtml(scenarioSampleLabel(comparison.left))}</div>
-            </div>
-            <div class="scenario-detail-metric">
-              <div class="scenario-detail-label">Scenario B sample</div>
-              <div class="scenario-detail-value">${escapeHtml(scenarioSampleLabel(comparison.right))}</div>
-            </div>
-          </div>
-          ${scenarioCard(comparison.left, "Scenario A")}
-          ${scenarioCard(comparison.right, "Scenario B")}
-        </div>`;
-    }
-
-    function renderScenarioSwitchPair(wave) {
-      const left = wave.scenarios.find(scenario => scenario.eventId === pollingExplorerState.selectedScenarioAId);
-      const right = wave.scenarios.find(scenario => scenario.eventId === pollingExplorerState.selectedScenarioBId);
-      if (!left || !right || left.eventId === right.eventId) return;
-
-      const comparison = scenarioComparison(left, right);
-      const chips = names => names.length
-        ? names.map(name => `<span class="scenario-switch-chip">${escapeHtml(name)}</span>`).join("")
-        : '<span class="scenario-switch-empty">None</span>';
-
-      $("#scenario-switch-changes").innerHTML = `
-        <div class="scenario-switch-change-grid">
-          <section class="scenario-switch-change-card is-removed">
-            <div class="scenario-switch-change-label">Removed from A</div>
-            <div class="scenario-switch-chip-list">${chips(comparison.removed)}</div>
-          </section>
-          <section class="scenario-switch-change-card is-added">
-            <div class="scenario-switch-change-label">Added in B</div>
-            <div class="scenario-switch-chip-list">${chips(comparison.added)}</div>
-          </section>
-        </div>`;
-
-      const rows = comparison.rows.map(row => `
-        <tr>
-          <th class="scenario-switch-candidate" scope="row">${escapeHtml(row.name)}</th>
-          <td class="scenario-switch-score">${escapeHtml(formatScore(row.scoreA))}</td>
-          <td class="scenario-switch-score">${escapeHtml(formatScore(row.scoreB))}</td>
-          <td><span class="scenario-switch-delta ${scenarioDeltaTone(row.delta)}">${escapeHtml(scenarioDeltaLabel(row.delta))} pts</span></td>
-        </tr>`).join("");
-
-      $("#scenario-switch-scroll").innerHTML = comparison.rows.length
-        ? `<table class="scenario-switch-table">
-            <caption class="visually-hidden">Shared candidate scores in Scenario A and Scenario B, ordered by largest absolute arithmetic difference</caption>
-            <thead>
-              <tr>
-                <th class="scenario-switch-candidate" scope="col">Candidate</th>
-                <th scope="col">Scenario A</th>
-                <th scope="col">Scenario B</th>
-                <th scope="col">B − A</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>`
-        : '<div class="scenario-switch-state">The selected hypotheses have no shared candidates.</div>';
-
-      $("#scenario-switch-summary").innerHTML = `
-        <span><strong>${comparison.shared.length}</strong> shared candidates · <strong>${comparison.changedCount}</strong> with different reported scores</span>
-        <span>${escapeHtml(wave.pollster)} · ${escapeHtml(fieldEventRangeLabel(wave))}</span>`;
-      renderScenarioSwitchDetail(wave, comparison);
-    }
-
-    function selectScenarioWave(model, groupKey) {
-      const wave = model.waves.find(item => item.groupKey === groupKey) || model.waves[0] || null;
-      pollingExplorerState.selectedScenarioWaveKey = wave ? wave.groupKey : "";
-      const waveSelect = $("#scenario-wave-select");
-      const leftSelect = $("#scenario-a-select");
-      const rightSelect = $("#scenario-b-select");
-
-      if (!wave) {
-        leftSelect.innerHTML = '<option>No scenarios available</option>';
-        rightSelect.innerHTML = '<option>No scenarios available</option>';
-        leftSelect.disabled = true;
-        rightSelect.disabled = true;
-        renderScenarioSwitchDetail(null, null);
-        return;
-      }
-
-      waveSelect.value = wave.groupKey;
-      const retainedLeft = wave.scenarios.some(scenario => scenario.eventId === pollingExplorerState.selectedScenarioAId);
-      const retainedRight = wave.scenarios.some(scenario => scenario.eventId === pollingExplorerState.selectedScenarioBId);
-      if (!retainedLeft || !retainedRight || pollingExplorerState.selectedScenarioAId === pollingExplorerState.selectedScenarioBId) {
-        pollingExplorerState.selectedScenarioAId = wave.defaultPair.left.eventId;
-        pollingExplorerState.selectedScenarioBId = wave.defaultPair.right.eventId;
-      }
-
-      const options = wave.scenarios.map(scenario =>
-        `<option value="${escapeAttribute(scenario.eventId)}">${escapeHtml(scenarioOptionLabel(scenario))}</option>`
-      ).join("");
-      leftSelect.innerHTML = options;
-      rightSelect.innerHTML = options;
-      leftSelect.disabled = wave.scenarios.length < 2;
-      rightSelect.disabled = wave.scenarios.length < 2;
-      leftSelect.value = pollingExplorerState.selectedScenarioAId;
-      rightSelect.value = pollingExplorerState.selectedScenarioBId;
-
-      const keepSelectionsDistinct = changedSelect => {
-        const otherSelect = changedSelect === leftSelect ? rightSelect : leftSelect;
-        if (changedSelect.value !== otherSelect.value) return;
-        const alternative = wave.scenarios.find(scenario => scenario.eventId !== changedSelect.value);
-        if (alternative) otherSelect.value = alternative.eventId;
-      };
-
-      leftSelect.onchange = () => {
-        keepSelectionsDistinct(leftSelect);
-        pollingExplorerState.selectedScenarioAId = leftSelect.value;
-        pollingExplorerState.selectedScenarioBId = rightSelect.value;
-        renderScenarioSwitchPair(wave);
-      };
-      rightSelect.onchange = () => {
-        keepSelectionsDistinct(rightSelect);
-        pollingExplorerState.selectedScenarioAId = leftSelect.value;
-        pollingExplorerState.selectedScenarioBId = rightSelect.value;
-        renderScenarioSwitchPair(wave);
-      };
-
-      renderScenarioSwitchPair(wave);
-    }
-
-    function renderScenarioSwitch(events) {
-      const model = deriveScenarioSwitch(events);
-      pollingExplorerState.scenarioSwitch = model;
-      const waveSelect = $("#scenario-wave-select");
-
-      if (!model.waves.length) {
-        waveSelect.innerHTML = '<option>No qualifying waves</option>';
-        waveSelect.disabled = true;
-        $("#scenario-a-select").disabled = true;
-        $("#scenario-b-select").disabled = true;
-        $("#scenario-switch-summary").innerHTML = "<span>No qualifying six-month Scenario Switch window is available.</span>";
-        $("#scenario-switch-changes").innerHTML = '<div class="scenario-switch-state">No qualifying lineup substitutions are available.</div>';
-        $("#scenario-switch-scroll").innerHTML = '<div class="scenario-switch-state">No within-wave score comparison is available.</div>';
-        renderScenarioSwitchDetail(null, null);
-        document.documentElement.dataset.scenarioReady = "empty";
-        return;
-      }
-
-      waveSelect.innerHTML = model.waves.map(wave =>
-        `<option value="${escapeAttribute(wave.groupKey)}">${escapeHtml(scenarioWaveOptionLabel(wave))}</option>`
-      ).join("");
-      waveSelect.disabled = false;
-      waveSelect.onchange = () => selectScenarioWave(model, waveSelect.value);
-
-      const selectedStillExists = model.waves.some(wave =>
-        wave.groupKey === pollingExplorerState.selectedScenarioWaveKey
-      );
-      const defaultWaveKey = selectedStillExists
-        ? pollingExplorerState.selectedScenarioWaveKey
-        : model.waves[0].groupKey;
-      selectScenarioWave(model, defaultWaveKey);
-      document.documentElement.dataset.scenarioReady = "true";
-    }
-
-    function pollWaveSourceLabel(source) {
-      const safeUrl = safeSourceUrl(source);
-      if (!safeUrl) return "Source unavailable";
-      const hostname = new URL(safeUrl).hostname.toLowerCase();
-      return hostname === "commission-des-sondages.fr" || hostname.endsWith(".commission-des-sondages.fr")
-        ? "Commission notice"
-        : "Source-linked";
-    }
-
-    function pollWaveSourceLinks(wave) {
-      const links = wave.sources.map((source, index) => {
-        const safeUrl = safeSourceUrl(source);
-        if (!safeUrl) return '<span class="poll-wave-source-count">Source unavailable</span>';
-        const sequence = wave.sources.length > 1 ? ` ${index + 1}` : "";
-        return `<a class="poll-wave-source" href="${escapeAttribute(safeUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeAttribute(wave.pollster)} source ${index + 1}">${pollWaveSourceLabel(source)}${sequence} ↗</a>`;
-      }).join("");
-      return links || '<span class="poll-wave-source-count">Source unavailable</span>';
-    }
-
-    function pollWaveSampleLabel(wave) {
-      if (wave.sampleSizes.length === 1) return Number(wave.sampleSizes[0]).toLocaleString("en-GB");
-      if (wave.sampleSizes.length > 1) return wave.sampleSizes.map(size => Number(size).toLocaleString("en-GB")).join(" · ");
-      return "Not stated";
-    }
-
-    function renderPollWaveDetail(wave) {
-      const detail = $("#poll-wave-detail");
-      if (!wave) {
-        detail.innerHTML = '<div class="poll-wave-loading">No poll event selected.</div>';
-        return;
-      }
-
-      const publicationLabel = wave.publicationDate ? formatDate(wave.publicationDate) : "Publication date not stated";
-      const fieldworkRange = `${formatDate(wave.fieldworkStart)}–${formatDate(wave.fieldworkEnd)}`;
-      const commissionerLabel = wave.commissioners.length ? wave.commissioners.map(escapeHtml).join(" · ") : "Not stated";
-      const lineups = wave.lineups.map((lineup, index) => `
-        <li class="poll-wave-lineup">
-          <div class="poll-wave-lineup-label">Hypothesis ${index + 1}</div>
-          <div class="poll-wave-lineup-candidates">${lineup.candidates.map(escapeHtml).join(" · ") || "Candidate lineup unavailable"}</div>
-        </li>`).join("");
-
-      detail.innerHTML = `
-        <div class="poll-wave-detail-body">
-          <div>
-            <div class="poll-wave-detail-pollster">${escapeHtml(wave.pollster)}</div>
-            <div class="poll-wave-detail-date">${wave.publicationDate ? "Published " + publicationLabel : publicationLabel}</div>
-          </div>
-          <div class="poll-wave-detail-grid">
-            <div class="poll-wave-detail-metric">
-              <div class="poll-wave-detail-label">Fieldwork</div>
-              <div class="poll-wave-detail-value">${fieldworkRange}</div>
-            </div>
-            <div class="poll-wave-detail-metric">
-              <div class="poll-wave-detail-label">Sample</div>
-              <div class="poll-wave-detail-value">${pollWaveSampleLabel(wave)}</div>
-            </div>
-            <div class="poll-wave-detail-metric">
-              <div class="poll-wave-detail-label">Hypotheses</div>
-              <div class="poll-wave-detail-value">${wave.hypothesisCount}</div>
-            </div>
-            <div class="poll-wave-detail-metric">
-              <div class="poll-wave-detail-label">Candidates represented</div>
-              <div class="poll-wave-detail-value">${wave.candidateNames.length}</div>
-            </div>
-            <div class="poll-wave-detail-metric">
-              <div class="poll-wave-detail-label">Commissioner</div>
-              <div class="poll-wave-detail-value">${commissionerLabel}</div>
-            </div>
-            <div class="poll-wave-detail-metric">
-              <div class="poll-wave-detail-label">Source status</div>
-              <div class="poll-wave-detail-value">${wave.sources.length ? wave.sources.map(pollWaveSourceLabel).map(escapeHtml).join(" · ") : "Source unavailable"}</div>
-            </div>
-          </div>
-          <section class="poll-wave-detail-section">
-            <h4>Accepted candidate lineups</h4>
-            <ol class="poll-wave-lineups">${lineups}</ol>
-          </section>
-          <section class="poll-wave-detail-section">
-            <h4>Direct sources</h4>
-            <div class="poll-wave-detail-sources">${pollWaveSourceLinks(wave)}</div>
-          </section>
-        </div>`;
-    }
-
-    function selectPollWave(waves, groupKey, focusSelection = false) {
-      const selected = waves.find(wave => wave.groupKey === groupKey) || waves[0] || null;
-      pollingExplorerState.selectedWaveKey = selected ? selected.groupKey : "";
-
-      document.querySelectorAll("#poll-wave-list [data-poll-wave-key]").forEach(button => {
-        const active = selected && button.dataset.pollWaveKey === selected.groupKey;
-        button.setAttribute("aria-selected", String(Boolean(active)));
-        button.closest(".poll-wave-card")?.classList.toggle("is-selected", Boolean(active));
-        if (active && focusSelection) button.focus();
-      });
-
-      renderPollWaveDetail(selected);
-    }
-
-    function renderPollWaves(events) {
-      const waves = derivePollWaves(events);
-      const visibleWaves = waves.slice(0, 8);
-
-      if (!visibleWaves.length) {
-        $("#poll-wave-list").innerHTML = '<div class="empty poll-wave-loading">No complete first-round poll waves are available.</div>';
-        $("#poll-wave-summary").textContent = "Showing 0 of 0 poll waves";
-        renderPollWaveDetail(null);
-        return;
-      }
-
-      if (!visibleWaves.some(wave => wave.groupKey === pollingExplorerState.selectedWaveKey)) {
-        pollingExplorerState.selectedWaveKey = visibleWaves[0].groupKey;
-      }
-
-      $("#poll-wave-list").innerHTML = visibleWaves.map(wave => {
-        const selected = wave.groupKey === pollingExplorerState.selectedWaveKey;
-        const dateLabel = wave.publicationDate ? "Published" : "Fieldwork ended";
-        const fieldworkRange = `${formatDate(wave.fieldworkStart)}–${formatDate(wave.fieldworkEnd)}`;
-        const hypothesisLabel = `${wave.hypothesisCount} ${wave.hypothesisCount === 1 ? "hypothesis" : "hypotheses"}`;
-        const candidateSummary = wave.candidateNames.length
-          ? `${wave.candidateNames.length} candidates · ${wave.candidateNames.slice(0, 5).map(escapeHtml).join(" · ")}${wave.candidateNames.length > 5 ? " · …" : ""}`
-          : "Candidate lineup unavailable";
-        const commissionerLabel = wave.commissioners.length
-          ? `Commissioned by <b>${wave.commissioners.map(escapeHtml).join(" · ")}</b>`
-          : "";
-
+      function portraitMarkup(name) {
+        const initials = escapeHtml(candidateMonogram(name));
+        const portrait = candidatePortraits[name];
+        if (!portrait) return `<div class="pe-portrait" aria-hidden="true"><span>${initials}</span></div>`;
         return `
-          <article class="poll-wave-card${selected ? " is-selected" : ""}">
-            <button class="poll-wave-select" type="button" role="option" aria-selected="${String(selected)}"
-              data-poll-wave-key="${escapeAttribute(wave.groupKey)}">
-              <div class="poll-wave-top">
-                <div class="poll-wave-pollster">${escapeHtml(wave.pollster)}</div>
-                <div class="poll-wave-date">${dateLabel} ${formatDate(wave.displayDate)}</div>
-              </div>
-              <div class="poll-wave-details">
-                <span class="poll-wave-detail">Fieldwork <b>${fieldworkRange}</b></span>
-                <span class="poll-wave-detail">Sample <b>${pollWaveSampleLabel(wave)}</b></span>
-                <span class="poll-wave-detail"><b>${hypothesisLabel}</b></span>
-                ${commissionerLabel ? `<span class="poll-wave-detail">${commissionerLabel}</span>` : ""}
-              </div>
-              <div class="poll-wave-candidate-summary">${candidateSummary}</div>
-            </button>
-            <div class="poll-wave-sources">
-              ${wave.sources.length > 1 ? `<span class="poll-wave-source-count">${wave.sources.length} distinct sources</span>` : ""}
-              ${pollWaveSourceLinks(wave)}
+          <div class="pe-portrait">
+            <span aria-hidden="true">${initials}</span>
+            <img src="${escapeAttribute(portrait)}" alt="AI-generated portrait of ${escapeAttribute(name)}" loading="lazy" decoding="async" onerror="this.remove()">
+          </div>`;
+      }
+
+      function collapseDrawer() {
+        const button = $("#pe-lineups-toggle");
+        if (!button) return;
+        button.setAttribute("aria-expanded", "false");
+        $("#pe-lineups-content").hidden = true;
+      }
+
+      function setPairSelection(figureA, figureB) {
+        state.figureA = figureA;
+        state.figureB = figureB;
+        state.pairInstances = state.pairIndex.get(selectedPairKey()) || [];
+        state.selectedInstance = state.pairInstances[0] || null;
+        state.showAllShared = false;
+        collapseDrawer();
+        renderView();
+      }
+
+      function renderFigureSelect(select, selected, counterpart) {
+        select.replaceChildren();
+        state.allFigures.forEach(name => {
+          const option = document.createElement("option");
+          option.value = name;
+          option.textContent = name;
+          option.selected = name === selected;
+          option.disabled = name === counterpart;
+          select.append(option);
+        });
+        select.disabled = false;
+      }
+
+      function comparisonOptionLabel(instance) {
+        const comparison = orientComparison(instance);
+        return `${instance.wave.pollster} · ${formatDateRange(instance.wave.fieldworkStart, instance.wave.fieldworkEnd)} · ${comparison.a.hLabel} versus ${comparison.b.hLabel}`;
+      }
+
+      function renderSelectors() {
+        const figureASelect = $("#pe-figure-a-select");
+        const figureBSelect = $("#pe-figure-b-select");
+        const comparisonSelect = $("#pe-comparison-select");
+        renderFigureSelect(figureASelect, state.figureA, state.figureB);
+        renderFigureSelect(figureBSelect, state.figureB, state.figureA);
+        $("#pe-figure-a-meta").textContent = `${state.allFigures.length} source-tested figures available`;
+        $("#pe-figure-b-meta").textContent = "Choose a different tested figure";
+
+        comparisonSelect.replaceChildren();
+        if (!state.pairInstances.length) {
+          const option = document.createElement("option");
+          option.textContent = "No exact same-wave comparison found";
+          comparisonSelect.append(option);
+          comparisonSelect.disabled = true;
+          $("#pe-comparison-meta").textContent = "No source-reported one-name substitution for this pair";
+          return;
+        }
+
+        state.pairInstances.forEach((instance, index) => {
+          const option = document.createElement("option");
+          option.value = String(index);
+          option.textContent = comparisonOptionLabel(instance);
+          option.selected = instance === state.selectedInstance;
+          comparisonSelect.append(option);
+        });
+        comparisonSelect.disabled = false;
+        const waveCount = new Set(state.pairInstances.map(instance => instance.wave.key)).size;
+        $("#pe-comparison-meta").textContent = `${state.pairInstances.length} exact ${state.pairInstances.length === 1 ? "comparison" : "comparisons"} across ${waveCount} poll ${waveCount === 1 ? "wave" : "waves"}`;
+      }
+
+      function renderNoMatch() {
+        const broaderWaveCount = state.allWaves.filter(wave => {
+          const names = new Set(wave.hypotheses.flatMap(hypothesis => hypothesis.candidates.map(candidate => candidate.name)));
+          return names.has(state.figureA) && names.has(state.figureB);
+        }).length;
+        $("#pe-evidence-content").hidden = true;
+        const noMatch = $("#pe-no-match-state");
+        noMatch.innerHTML = `
+          <div class="pe-no-match-title">NO EXACT ONE-NAME COMPARISON</div>
+          <div class="pe-no-match-copy"><strong>${escapeHtml(state.figureA)}</strong> and <strong>${escapeHtml(state.figureB)}</strong> have not been tested as a direct substitution within the same poll wave while every other tested figure remained unchanged.</div>
+          <div class="pe-no-match-meta">${broaderWaveCount ? `Both figures appear somewhere in ${broaderWaveCount} broader poll ${broaderWaveCount === 1 ? "wave" : "waves"}, but no hypothesis pair isolates this substitution.` : "The two figures do not appear together within the currently loaded poll waves."}</div>`;
+        noMatch.hidden = false;
+      }
+
+      function renderSubstitutionCards(comparison) {
+        const card = (tone, label, figure) => `
+          <article class="pe-figure-card is-${tone}" aria-label="Lineup ${tone.toUpperCase()} only: ${escapeAttribute(figure.name)}, ${formatScore(figure.score)}">
+            ${portraitMarkup(figure.name)}
+            <div class="pe-figure-copy">
+              <div class="pe-card-kicker">${label}</div>
+              <div class="pe-figure-name">${escapeHtml(figure.name)}</div>
+              <div class="pe-figure-score">${formatScore(figure.score)}</div>
             </div>
           </article>`;
-      }).join("");
+        $("#pe-substitution-cards").innerHTML =
+          card("a", "LINEUP A ONLY", comparison.aOnly) +
+          card("b", "LINEUP B ONLY", comparison.bOnly);
+      }
 
-      const buttons = [...document.querySelectorAll("#poll-wave-list [data-poll-wave-key]")];
-      buttons.forEach((button, index) => {
-        button.addEventListener("click", () => selectPollWave(visibleWaves, button.dataset.pollWaveKey));
-        button.addEventListener("keydown", event => {
-          let nextIndex = null;
-          if (event.key === "ArrowDown") nextIndex = Math.min(index + 1, buttons.length - 1);
-          if (event.key === "ArrowUp") nextIndex = Math.max(index - 1, 0);
-          if (event.key === "Home") nextIndex = 0;
-          if (event.key === "End") nextIndex = buttons.length - 1;
-          if (nextIndex === null || nextIndex === index) return;
-          event.preventDefault();
-          selectPollWave(visibleWaves, buttons[nextIndex].dataset.pollWaveKey, true);
+      function axisMaximum(shared) {
+        const largest = Math.max(...shared.map(figure => Math.abs(figure.difference)), 0.5);
+        return Math.ceil(largest * 2) / 2;
+      }
+
+      function renderDifferenceChart(comparison) {
+        const ordered = [...comparison.shared].sort((a, b) =>
+          Math.abs(b.difference) - Math.abs(a.difference) || collator.compare(a.name, b.name)
+        );
+        const changed = ordered.filter(figure => Math.abs(figure.difference) > 1e-9);
+        const unchanged = ordered.filter(figure => Math.abs(figure.difference) <= 1e-9);
+        const visible = state.showAllShared
+          ? ordered
+          : (changed.length ? changed.slice(0, 6) : unchanged.slice(0, 6));
+        const axisMax = axisMaximum(comparison.shared);
+
+        const rows = visible.map(figure => {
+          const tone = figure.difference < 0 ? "negative" : figure.difference > 0 ? "positive" : "zero";
+          const width = Math.min(50, Math.abs(figure.difference) / axisMax * 50);
+          const bar = tone === "zero"
+            ? '<span class="pe-difference-zero" aria-hidden="true"></span>'
+            : `<span class="pe-difference-bar is-${tone}" style="width:${width.toFixed(3)}%" aria-hidden="true"></span>`;
+          return `
+            <div class="pe-difference-row">
+              <div class="pe-difference-name">${escapeHtml(figure.name)}</div>
+              <div class="pe-difference-values"><span>${formatScore(figure.aScore)}</span><span class="pe-arrow" aria-hidden="true">→</span><span>${formatScore(figure.bScore)}</span></div>
+              <div class="pe-difference-plot">${bar}</div>
+              <div class="pe-difference-delta is-${tone}">${formatDelta(figure.difference)}</div>
+            </div>`;
+        }).join("");
+
+        $("#pe-difference-chart").innerHTML = `
+          <div class="pe-axis-row" aria-hidden="true">
+            <div></div><div></div>
+            <div class="pe-axis-plot">
+              <span class="pe-axis-left">B lower −${axisMax.toFixed(1)}</span>
+              <span class="pe-axis-zero">0</span>
+              <span class="pe-axis-right">+${axisMax.toFixed(1)} B higher</span>
+            </div>
+            <div></div>
+          </div>${rows}`;
+
+        const unchangedLabel = `${unchanged.length} unchanged ${unchanged.length === 1 ? "figure" : "figures"}`;
+        $("#pe-unchanged-box").innerHTML = `<strong>${unchangedLabel}</strong>${unchanged.length ? `<br>${unchanged.map(figure => escapeHtml(figure.name)).join(" · ")}` : ""}`;
+
+        const toggle = $("#pe-shared-toggle");
+        toggle.hidden = comparison.shared.length <= 6;
+        toggle.setAttribute("aria-expanded", String(state.showAllShared));
+        toggle.textContent = state.showAllShared ? "Show fewer shared figures" : `Show all shared figures (${comparison.shared.length})`;
+      }
+
+      function renderWaveFacts(comparison) {
+        const wave = comparison.wave;
+        const facts = deriveWaveFacts(wave);
+        const sourceUrl = safeSourceUrl(wave.sourceUrl);
+        const source = sourceUrl
+          ? `<a class="pe-source-link" href="${escapeAttribute(sourceUrl)}" target="_blank" rel="noopener noreferrer">Open source ↗</a>`
+          : '<span class="pe-source-link is-disabled">Source unavailable</span>';
+        const metrics = [
+          [facts.testedLineups, "tested lineups"],
+          [facts.distinctFigures, "distinct figures"],
+          [facts.inEveryLineup, "in every lineup"],
+          [facts.selectivelyTested, "selectively tested"]
+        ];
+
+        $("#pe-wave-facts").innerHTML = `
+          <div class="pe-facts-metrics">
+            ${metrics.map(([value, label]) => `<div class="pe-metric"><div class="pe-metric-value">${value}</div><div class="pe-metric-label">${label}</div></div>`).join("")}
+          </div>
+          <dl class="pe-fact-list">
+            <div class="pe-fact-row"><dt>Pollster</dt><dd>${escapeHtml(wave.pollster)}</dd></div>
+            <div class="pe-fact-row"><dt>Fieldwork</dt><dd>${escapeHtml(formatDateRange(wave.fieldworkStart, wave.fieldworkEnd))}</dd></div>
+            <div class="pe-fact-row"><dt>Sample</dt><dd>${wave.sampleSize === null ? "Not stated" : `${formatInteger(wave.sampleSize)} respondents`}</dd></div>
+            <div class="pe-fact-row"><dt>Comparison</dt><dd>${comparison.a.hLabel} versus ${comparison.b.hLabel}</dd></div>
+            <div class="pe-fact-row"><dt>Shared figures</dt><dd>${comparison.shared.length}</dd></div>
+            <div class="pe-fact-row"><dt>Direct source</dt><dd>${source}</dd></div>
+          </dl>
+          <div class="pe-disclosure">Same poll wave, pollster, fieldwork period, declared sample and source. Differences are descriptive and do not establish that the substituted figure caused the reported score differences.</div>`;
+      }
+
+      function renderLineupDrawer(comparison) {
+        const wave = comparison.wave;
+        $("#pe-lineups-toggle-label").textContent = `VIEW ALL ${wave.hypotheses.length} REPORTED LINEUPS`;
+        $("#pe-lineup-grid").innerHTML = wave.hypotheses.map(hypothesis => {
+          const isA = hypothesis === comparison.a;
+          const isB = hypothesis === comparison.b;
+          const tone = isA ? " is-a" : isB ? " is-b" : "";
+          const labelSuffix = isA ? " (A)" : isB ? " (B)" : "";
+          const scores = hypothesis.candidates.map(figure => {
+            const exclusiveA = isA && figure.name === comparison.aOnly.name;
+            const exclusiveB = isB && figure.name === comparison.bOnly.name;
+            const scoreTone = exclusiveA ? " is-exclusive-a" : exclusiveB ? " is-exclusive-b" : "";
+            const exclusiveNote = exclusiveA
+              ? '<span class="pe-exclusive-note">Exclusive in selected A</span>'
+              : exclusiveB ? '<span class="pe-exclusive-note">Exclusive in selected B</span>' : "";
+            return `<li class="pe-lineup-score${scoreTone}"><span>${escapeHtml(figure.name)}</span><span>${formatScore(figure.score)}</span>${exclusiveNote}</li>`;
+          }).join("");
+          return `
+            <article class="pe-lineup-card${tone}">
+              <div class="pe-lineup-card-head">
+                <div class="pe-lineup-label">${hypothesis.hLabel}${labelSuffix}</div>
+                <div class="pe-lineup-count">${hypothesis.candidates.length} tested figures</div>
+              </div>
+              <ul class="pe-lineup-scores">${scores}</ul>
+            </article>`;
+        }).join("");
+      }
+
+      function renderView() {
+        renderSelectors();
+        $("#pe-error-state").hidden = true;
+        if (!state.selectedInstance) {
+          renderNoMatch();
+          document.documentElement.dataset.pollingEvidenceReady = "true";
+          return;
+        }
+
+        const comparison = orientComparison(state.selectedInstance);
+        if (!comparison) {
+          showError(new Error("The selected comparison could not be oriented to Figure A and Figure B."));
+          return;
+        }
+
+        $("#pe-no-match-state").hidden = true;
+        $("#pe-evidence-content").hidden = false;
+        renderSubstitutionCards(comparison);
+        renderDifferenceChart(comparison);
+        renderWaveFacts(comparison);
+        renderLineupDrawer(comparison);
+        document.documentElement.dataset.pollingEvidenceReady = "true";
+      }
+
+      function bindInteractions() {
+        if (state.interactionsBound) return;
+        $("#pe-figure-a-select").addEventListener("change", event => {
+          const previousA = state.figureA;
+          const nextA = event.target.value;
+          const nextB = nextA === state.figureB ? previousA : state.figureB;
+          setPairSelection(nextA, nextB);
         });
-      });
+        $("#pe-figure-b-select").addEventListener("change", event => {
+          const previousB = state.figureB;
+          const nextB = event.target.value;
+          const nextA = nextB === state.figureA ? previousB : state.figureA;
+          setPairSelection(nextA, nextB);
+        });
+        $("#pe-comparison-select").addEventListener("change", event => {
+          const nextInstance = state.pairInstances[Number(event.target.value)];
+          if (!nextInstance) return;
+          state.selectedInstance = nextInstance;
+          state.showAllShared = false;
+          collapseDrawer();
+          renderView();
+        });
+        $("#pe-shared-toggle").addEventListener("click", () => {
+          if (!state.selectedInstance) return;
+          state.showAllShared = !state.showAllShared;
+          renderDifferenceChart(orientComparison(state.selectedInstance));
+        });
+        $("#pe-lineups-toggle").addEventListener("click", () => {
+          const button = $("#pe-lineups-toggle");
+          const expanded = button.getAttribute("aria-expanded") === "true";
+          button.setAttribute("aria-expanded", String(!expanded));
+          $("#pe-lineups-content").hidden = expanded;
+        });
+        state.interactionsBound = true;
+      }
 
-      selectPollWave(visibleWaves, pollingExplorerState.selectedWaveKey);
-      $("#poll-wave-summary").textContent = `Showing ${visibleWaves.length} of ${waves.length} poll waves`;
-    }
+      function render(events) {
+        bindInteractions();
+        const waves = groupPollWaves(events);
+        state.allWaves = waves;
+        state.pairIndex = buildPairIndex(waves);
+        state.allFigures = [...new Set(waves.flatMap(wave =>
+          wave.hypotheses.flatMap(hypothesis => hypothesis.candidates.map(candidate => candidate.name))
+        ))].sort((a, b) => collator.compare(a, b));
+
+        const defaultPair = chooseDefaultPair();
+        if (!defaultPair || state.allFigures.length < 2) {
+          throw new Error("No eligible poll waves contain an exact one-name comparison.");
+        }
+
+        state.figureA = defaultPair.figureA;
+        state.figureB = defaultPair.figureB;
+        state.pairInstances = state.pairIndex.get(selectedPairKey()) || [];
+        state.selectedInstance = defaultPair.instance;
+        state.showAllShared = false;
+        $("#pe-loading-state").hidden = true;
+        $("#pe-error-state").hidden = true;
+        renderView();
+      }
+
+      function showError(error) {
+        const message = error instanceof Error ? error.message : String(error);
+        $("#pe-loading-state").hidden = true;
+        $("#pe-evidence-content").hidden = true;
+        $("#pe-no-match-state").hidden = true;
+        const errorState = $("#pe-error-state");
+        errorState.textContent = `Polling Evidence unavailable: ${message}`;
+        errorState.hidden = false;
+        $("#pe-figure-a-select").disabled = true;
+        $("#pe-figure-b-select").disabled = true;
+        $("#pe-comparison-select").disabled = true;
+        document.documentElement.dataset.pollingEvidenceReady = "error";
+      }
+
+      return { render, showError };
+    })();
 
     function renderFreshness(events) {
       const candidates = new Map();
@@ -6834,8 +5967,6 @@
       drawRows();
     }
 
-    initializePollingExplorerTabs();
-
     renderMastheadMetadata();
     renderWhatChanged();
     renderContextStrip();
@@ -6895,10 +6026,7 @@
         });
 
         showHypothesis(latestPackage[0]);
-        renderCandidateHistory(complete);
-        renderFieldFormation(complete);
-        renderScenarioSwitch(complete);
-        renderPollWaves(complete);
+        pollingEvidenceFeature.render(complete);
         document.documentElement.dataset.ready = "true";
         markDataset(
           "polls",
@@ -6913,26 +6041,7 @@
         $("#hypothesis-select").disabled = true;
         $("#bars").innerHTML = '<div class="error">' + escapeHtml(error.message) + "</div>";
         $("#meta").replaceChildren();
-        $("#history-primary-select").disabled = true;
-        $("#history-compare-select").disabled = true;
-        $("#candidate-history-summary").innerHTML = "<span>Candidate Polling History unavailable.</span>";
-        $("#candidate-history-chart-wrap").innerHTML = '<div class="candidate-history-state error">Candidate Polling History unavailable: ' + escapeHtml(error.message) + "</div>";
-        $("#candidate-history-detail").innerHTML = '<div class="candidate-history-state error">Selected history unavailable.</div>';
-        document.documentElement.dataset.historyReady = "error";
-        $("#field-formation-summary").innerHTML = "<span>Field Formation unavailable.</span>";
-        $("#field-formation-scroll").innerHTML = '<div class="field-formation-state error">Field Formation unavailable: ' + escapeHtml(error.message) + "</div>";
-        $("#field-formation-detail").innerHTML = '<div class="field-formation-state error">Selected figure unavailable.</div>';
-        $("#scenario-wave-select").disabled = true;
-        $("#scenario-a-select").disabled = true;
-        $("#scenario-b-select").disabled = true;
-        $("#scenario-switch-summary").innerHTML = "<span>Scenario Switch unavailable.</span>";
-        $("#scenario-switch-changes").innerHTML = '<div class="scenario-switch-state error">Scenario Switch unavailable: ' + escapeHtml(error.message) + "</div>";
-        $("#scenario-switch-scroll").innerHTML = '<div class="scenario-switch-state error">Within-wave comparison unavailable.</div>';
-        $("#scenario-switch-detail").innerHTML = '<div class="scenario-switch-state error">Selected comparison unavailable.</div>';
-        document.documentElement.dataset.scenarioReady = "error";
-        $("#poll-wave-list").innerHTML = '<div class="error poll-wave-loading">Latest poll waves unavailable: ' + escapeHtml(error.message) + "</div>";
-        $("#poll-wave-summary").textContent = "Poll-wave summary unavailable.";
-        $("#poll-wave-detail").innerHTML = '<div class="error poll-wave-loading">Selected poll event unavailable.</div>';
+        pollingEvidenceFeature.showError(error);
         document.documentElement.dataset.ready = "error";
         markDataset("polls", "error");
       });
