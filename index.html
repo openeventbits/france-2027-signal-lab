@@ -1245,6 +1245,71 @@
     .signal-state { padding: 24px 2px; color: var(--muted); font-size: 11px; }
     .signal-state.error { color: #ff8b8b; }
     .signal-desk-note { margin-top: auto; padding: 9px 13px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; line-height: 1.45; }
+    .campaign-agenda-layout {
+      display: grid; grid-template-columns: minmax(210px, .9fr) minmax(0, 1.25fr);
+      min-height: 0; background: rgba(3, 11, 20, .18);
+    }
+    .campaign-agenda-topics {
+      display: grid; align-content: start; gap: 4px; min-width: 0; padding: 8px;
+      border-right: 1px solid var(--line);
+    }
+    .campaign-agenda-topic {
+      display: grid; gap: 3px; width: 100%; min-width: 0; padding: 7px 8px;
+      border: 1px solid #17364f; border-radius: 5px; background: rgba(10, 27, 43, .68);
+      color: inherit; font: inherit; text-align: left; cursor: pointer;
+    }
+    .campaign-agenda-topic:hover { border-color: #2873a8; background: rgba(14, 36, 56, .82); }
+    .campaign-agenda-topic.active { border-color: var(--cyan); background: rgba(11, 40, 60, .88); }
+    .campaign-agenda-topic:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+    .campaign-agenda-topic-head {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+    }
+    .campaign-agenda-topic-label {
+      color: #dcebf4; font-size: 11px; font-weight: 750; line-height: 1.25;
+    }
+    .campaign-agenda-topic-count {
+      color: var(--cyan); font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .campaign-agenda-topic-meta { color: var(--muted); font-size: 9px; }
+    .campaign-agenda-track { height: 3px; overflow: hidden; border-radius: 999px; background: #102a3e; }
+    .campaign-agenda-fill { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+    .campaign-agenda-detail {
+      display: grid; align-content: start; gap: 8px; min-width: 0; padding: 11px;
+    }
+    .campaign-agenda-detail-kicker {
+      color: var(--cyan); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    }
+    .campaign-agenda-detail h3 {
+      margin: 0; color: #eef7fb; font-size: 17px; line-height: 1.18;
+    }
+    .campaign-agenda-metrics { display: flex; flex-wrap: wrap; gap: 6px; }
+    .campaign-agenda-metric {
+      padding: 4px 7px; border: 1px solid #23445d; border-radius: 999px;
+      color: #a9c2d1; font-size: 9px; font-variant-numeric: tabular-nums;
+    }
+    .campaign-agenda-evidence { display: grid; gap: 0; border-top: 1px solid var(--line); }
+    .campaign-agenda-link {
+      display: grid; grid-template-columns: minmax(74px, .25fr) minmax(0, 1fr); gap: 10px;
+      padding: 7px 0; border-bottom: 1px solid rgba(22, 52, 77, .72);
+      color: inherit; text-decoration: none;
+    }
+    .campaign-agenda-link:hover .campaign-agenda-headline { color: var(--cyan); }
+    .campaign-agenda-link:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+    .campaign-agenda-source {
+      color: #86afc3; font-size: 9px; font-weight: 750; line-height: 1.3; text-transform: uppercase;
+    }
+    .campaign-agenda-headline {
+      color: #dce8ef; font-size: 11px; font-weight: 650; line-height: 1.35; overflow-wrap: anywhere;
+    }
+    .campaign-agenda-disclosure {
+      padding-top: 2px; color: var(--muted); font-size: 9px; line-height: 1.4;
+    }
+    @media (max-width: 800px) {
+      .campaign-agenda-layout { grid-template-columns: 1fr; }
+      .campaign-agenda-topics { border-right: 0; border-bottom: 1px solid var(--line); }
+      .campaign-agenda-link { grid-template-columns: 1fr; gap: 3px; }
+    }
     .fact-check-list .signal-row { gap: 6px; }
     .fact-check-claim { color: #e6edf2; font-size: 12.5px; font-weight: 650; line-height: 1.38; overflow-wrap: anywhere; }
     .fact-check-context { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px; }
@@ -3487,6 +3552,7 @@
         </div>
         <div class="signal-tabs" role="tablist" aria-label="Signal Desk views">
           <button class="signal-tab active" id="signal-tab-election" type="button" role="tab" aria-selected="true" aria-controls="signal-panel-election" tabindex="0" data-signal-tab="election_news">ELECTION NEWS <span class="signal-tab-count" data-news-wire-count="election_news">—</span></button>
+          <button class="signal-tab" id="signal-tab-agenda" type="button" role="tab" aria-selected="false" aria-controls="signal-panel-agenda" tabindex="-1" data-signal-tab="campaign_agenda">CAMPAIGN AGENDA <span class="signal-tab-count" data-campaign-agenda-count>—</span></button>
           <button class="signal-tab" id="signal-tab-candidates" type="button" role="tab" aria-selected="false" aria-controls="signal-panel-candidates" tabindex="-1" data-signal-tab="candidate_watch">CANDIDATE COVERAGE <span class="signal-tab-count" data-news-wire-count="candidate_watch">—</span></button>
           <button class="signal-tab" id="signal-tab-fact-checks" type="button" role="tab" aria-selected="false" aria-controls="signal-panel-fact-checks" tabindex="-1" data-signal-tab="fact_checks">FACT CHECKS <span class="signal-tab-count" data-claims-count>—</span></button>
         </div>
@@ -3505,6 +3571,11 @@
             <div class="signal-state">Loading direct publisher headlines…</div>
           </div>
         </section>
+          <section class="signal-panel" id="signal-panel-agenda" role="tabpanel" aria-labelledby="signal-tab-agenda" hidden>
+            <div id="campaign-agenda-view" aria-live="polite">
+              <div class="signal-state">Loading campaign themes…</div>
+            </div>
+          </section>
           <section class="signal-panel" id="signal-panel-candidates" role="tabpanel" aria-labelledby="signal-tab-candidates" hidden>
           <div class="signal-list" id="candidate-coverage-list" aria-live="polite">
             <div class="signal-state">Loading candidate coverage…</div>
@@ -4031,6 +4102,10 @@
       if (!payload || typeof payload !== "object" || payload.schema_version !== 1) {
         throw new Error("Unsupported or missing news-wire schema");
       }
+      if (!payload.campaign_agenda || typeof payload.campaign_agenda !== "object" ||
+          !Array.isArray(payload.campaign_agenda.topics)) {
+        throw new Error("Campaign Agenda data is malformed");
+      }
       if (!Array.isArray(payload.election_news) || !Array.isArray(payload.candidate_watch)) {
         throw new Error("News-wire item lists are malformed");
       }
@@ -4049,6 +4124,27 @@
         typeof item.explicit_election === "boolean";
       if (lists.some(items => items.some(item => !validItem(item)))) {
         throw new Error("News-wire items are malformed");
+      }
+
+      const agenda = payload.campaign_agenda;
+      const validAgendaSupport = item => item && typeof item === "object" &&
+        [item.id, item.publisher, item.headline, item.published_at].every(value => typeof value === "string" && value.trim()) &&
+        Number.isFinite(new Date(item.published_at).getTime()) && safeSourceUrl(item.url) !== "" &&
+        Array.isArray(item.candidates) && Array.isArray(item.matched_terms);
+      const validAgendaTopic = topic => topic && typeof topic === "object" &&
+        [topic.id, topic.label].every(value => typeof value === "string" && value.trim()) &&
+        ["item_count", "publisher_count", "source_day_count", "active_day_count"].every(
+          field => Number.isInteger(topic[field]) && topic[field] >= 0
+        ) &&
+        typeof topic.display_eligible === "boolean" &&
+        Array.isArray(topic.publisher_names) &&
+        Array.isArray(topic.supporting_items) &&
+        topic.supporting_items.every(validAgendaSupport);
+      if (agenda.method !== "accepted_election_news_by_campaign_theme" ||
+          !Number.isInteger(agenda.display_min_source_days) || agenda.display_min_source_days < 1 ||
+          !Number.isInteger(agenda.input_item_count) || agenda.input_item_count < payload.election_news.length ||
+          agenda.topics.some(topic => !validAgendaTopic(topic))) {
+        throw new Error("Campaign Agenda data is malformed");
       }
 
       const expectedCounts = {
@@ -4079,12 +4175,15 @@
     let newsWirePayload = null;
     let activeSignalTab = "election_news";
     let selectedCoverageCandidate = "";
+    let selectedAgendaTopicId = "";
 
     function renderSignalDeskNote() {
       const parts = [];
       if (newsWirePayload) {
         parts.push(`${newsWirePayload.counts.successful_sources}/${newsWirePayload.sources.length} news sources`);
         parts.push(`${newsWirePayload.counts.election_news} Election News`);
+        const agendaThemeCount = newsWirePayload.campaign_agenda.topics.filter(topic => topic.display_eligible).length;
+        parts.push(`${agendaThemeCount} Campaign Agenda themes`);
         parts.push(`${newsWirePayload.counts.candidate_watch} Candidate Coverage`);
       } else if (dashboardState.loadState.news === "error") {
         parts.push("Publisher headlines unavailable");
@@ -4129,6 +4228,69 @@
         : '<div class="signal-state">No election headlines in this update.</div>';
     }
 
+    function renderCampaignAgenda() {
+      if (!newsWirePayload) return;
+      const container = $("#campaign-agenda-view");
+      const visibleTopics = newsWirePayload.campaign_agenda.topics.filter(topic => topic.display_eligible);
+
+      if (!visibleTopics.length) {
+        container.innerHTML = '<div class="signal-state">No campaign theme meets the display threshold in this update.</div>';
+        return;
+      }
+
+      if (!visibleTopics.some(topic => topic.id === selectedAgendaTopicId)) {
+        selectedAgendaTopicId = visibleTopics[0].id;
+      }
+
+      const selected = visibleTopics.find(topic => topic.id === selectedAgendaTopicId) || visibleTopics[0];
+      const maxSourceDays = Math.max(...visibleTopics.map(topic => topic.source_day_count), 1);
+      const topicButtons = visibleTopics.map(topic => {
+        const active = topic.id === selected.id;
+        const width = Math.max(8, Math.round(topic.source_day_count / maxSourceDays * 100));
+        return `
+          <button class="campaign-agenda-topic${active ? " active" : ""}" type="button"
+                  data-agenda-topic="${escapeAttribute(topic.id)}"
+                  aria-pressed="${String(active)}">
+            <span class="campaign-agenda-topic-head">
+              <span class="campaign-agenda-topic-label">${escapeHtml(topic.label)}</span>
+            </span>
+            <span class="campaign-agenda-topic-meta">${topic.source_day_count} source-days · ${topic.publisher_count} ${topic.publisher_count === 1 ? "publisher" : "publishers"}</span>
+            <span class="campaign-agenda-track" aria-hidden="true"><span class="campaign-agenda-fill" style="width:${width}%"></span></span>
+          </button>`;
+      }).join("");
+
+      const supporting = selected.supporting_items.slice(0, 3).map(item => `
+        <a class="campaign-agenda-link" href="${escapeAttribute(safeSourceUrl(item.url))}" target="_blank" rel="noopener noreferrer">
+          <span class="campaign-agenda-source">${escapeHtml(item.publisher)} · ${escapeHtml(formatDate(item.published_at.slice(0, 10)))}</span>
+          <span class="campaign-agenda-headline" lang="fr">${escapeHtml(item.headline)} <span class="signal-arrow" aria-hidden="true">↗</span></span>
+        </a>`).join("");
+
+      container.innerHTML = `
+        <div class="campaign-agenda-layout">
+          <div class="campaign-agenda-topics" role="group" aria-label="Campaign coverage themes">
+            ${topicButtons}
+          </div>
+          <div class="campaign-agenda-detail">
+            <div class="campaign-agenda-detail-kicker">Selected coverage theme</div>
+            <h3>${escapeHtml(selected.label)}</h3>
+            <div class="campaign-agenda-metrics">
+              <span class="campaign-agenda-metric">${selected.item_count} accepted ${selected.item_count === 1 ? "item" : "items"}</span>
+              <span class="campaign-agenda-metric">${selected.source_day_count} source-days</span>
+              <span class="campaign-agenda-metric">${selected.publisher_count} ${selected.publisher_count === 1 ? "publisher" : "publishers"}</span>
+            </div>
+            <div class="campaign-agenda-evidence">${supporting}</div>
+            <div class="campaign-agenda-disclosure">Themes classify accepted presidential-election coverage from monitored publishers. Source-days reduce repeat-volume effects. This is not public opinion or a representative measure of all French media.</div>
+          </div>
+        </div>`;
+
+      container.querySelectorAll("[data-agenda-topic]").forEach(button => {
+        button.onclick = () => {
+          selectedAgendaTopicId = button.dataset.agendaTopic;
+          renderCampaignAgenda();
+        };
+      });
+    }
+
     function renderCandidateCoverage() {
       if (!newsWirePayload) return;
       const matching = newestNewsItems(newsWirePayload.candidate_watch).filter(item =>
@@ -4156,6 +4318,7 @@
     function renderNewsWire() {
       if (!newsWirePayload) return;
       if (activeSignalTab === "election_news") renderElectionNews();
+      if (activeSignalTab === "campaign_agenda") renderCampaignAgenda();
       if (activeSignalTab === "candidate_watch") renderCandidateCoverage();
     }
 
@@ -4179,10 +4342,13 @@
       toolbarCopy.hidden = tabName === "candidate_watch";
       toolbarCopy.textContent = tabName === "fact_checks"
         ? "Independent publisher reviews"
-        : "Latest verified publisher items";
+        : tabName === "campaign_agenda"
+          ? "What accepted presidential coverage is about"
+          : "Latest verified publisher items";
       signalAction.hidden = tabName !== "fact_checks";
 
       if (tabName === "election_news") renderElectionNews();
+      if (tabName === "campaign_agenda") renderCampaignAgenda();
       if (tabName === "candidate_watch") renderCandidateCoverage();
       if (tabName === "fact_checks" && claimsPayload) renderFactChecks();
 
@@ -4221,8 +4387,11 @@
           document.querySelectorAll("[data-news-wire-count]").forEach(count => {
             count.textContent = "(" + payload.counts[count.dataset.newsWireCount] + ")";
           });
+          const visibleAgendaThemes = payload.campaign_agenda.topics.filter(topic => topic.display_eligible).length;
+          document.querySelector("[data-campaign-agenda-count]").textContent = "(" + visibleAgendaThemes + ")";
           populateCandidateCoverageSelector();
           renderElectionNews();
+          renderCampaignAgenda();
           renderCandidateCoverage();
           renderNewsWire();
           document.documentElement.dataset.newsReady = "true";
@@ -4231,6 +4400,7 @@
         })
         .catch(error => {
           $("#election-news-list").innerHTML = '<div class="signal-state error">Election News unavailable: ' + escapeHtml(error.message) + '</div>';
+          $("#campaign-agenda-view").innerHTML = '<div class="signal-state error">Campaign Agenda unavailable: ' + escapeHtml(error.message) + '</div>';
           $("#candidate-coverage-list").innerHTML = '<div class="signal-state error">Candidate Coverage unavailable: ' + escapeHtml(error.message) + '</div>';
           document.documentElement.dataset.newsReady = "error";
           markDataset("news", "error");
