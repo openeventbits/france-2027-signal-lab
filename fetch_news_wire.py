@@ -62,6 +62,83 @@ ELECTION_PATTERNS = (
     re.compile(r"\bcandidat(?:e|ure)?\s+a\s+l\s+election\s+presidentielle\b"),
 )
 
+CAMPAIGN_AGENDA_TOPICS = (
+    {
+        "id": "legal_eligibility",
+        "label": "Legal status & eligibility",
+        "terms": (
+            "parquet national financier",
+            "cour de cassation",
+            "ineligibilite",
+            "condamnation",
+            "proces",
+            "bracelet electronique",
+            "delinquante",
+            "relaxe",
+        ),
+    },
+    {
+        "id": "selection_strategy",
+        "label": "Primaries & party strategy",
+        "terms": (
+            "primaire",
+            "vote du 9 juillet",
+            "vote organise",
+            "strategie de designation",
+            "designation d un candidat",
+            "designer un candidat",
+            "fragilise",
+        ),
+    },
+    {
+        "id": "candidacies_endorsements",
+        "label": "Candidacies & endorsements",
+        "terms": (
+            "annonce sa candidature",
+            "je suis candidate",
+            "candidature",
+            "se lancer dans la course",
+            "soutient",
+            "soutien",
+        ),
+    },
+    {
+        "id": "rules_calendar",
+        "label": "Rules, calendar & campaign mechanics",
+        "terms": (
+            "500 signatures",
+            "parrainage",
+            "dates du premier et du second tour",
+            "premier et du second tour fixes",
+            "niches parlementaires",
+        ),
+    },
+    {
+        "id": "positioning_integrity",
+        "label": "Positioning & political image",
+        "terms": (
+            "probite",
+            "ordre et le serieux",
+            "redresser la france",
+            "incarner",
+            "renouveler",
+        ),
+    },
+    {
+        "id": "polls_race",
+        "label": "Polling & race narratives",
+        "terms": (
+            "sondage",
+            "sondages",
+            "predisant la victoire",
+            "victoire de",
+        ),
+    },
+)
+
+CAMPAIGN_AGENDA_SUPPORT_LIMIT = 5
+CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS = 2
+
 
 def normalize(value: Any) -> str:
     text = html.unescape(str(value or ""))
@@ -339,6 +416,138 @@ def explicit_election_match(normalized_headline: str) -> bool:
     )
 
 
+def campaign_agenda_term_matches(
+    normalized_headline: str,
+    terms: tuple[str, ...],
+) -> list[str]:
+    padded = f" {normalized_headline} "
+    return [
+        term
+        for term in terms
+        if f" {term} " in padded
+    ]
+
+
+def classify_campaign_agenda(
+    normalized_headline: str,
+) -> dict[str, Any]:
+    scored_topics: list[
+        tuple[int, int, dict[str, Any], list[str]]
+    ] = []
+
+    for position, topic in enumerate(CAMPAIGN_AGENDA_TOPICS):
+        matches = campaign_agenda_term_matches(
+            normalized_headline,
+            topic["terms"],
+        )
+
+        if matches:
+            scored_topics.append(
+                (len(matches), -position, topic, matches)
+            )
+
+    if not scored_topics:
+        return {
+            "id": "other_campaign",
+            "label": "Other campaign coverage",
+            "matched_terms": [],
+        }
+
+    _score, _position, topic, matches = max(
+        scored_topics,
+        key=lambda item: (item[0], item[1]),
+    )
+
+    return {
+        "id": topic["id"],
+        "label": topic["label"],
+        "matched_terms": matches,
+    }
+
+
+def build_campaign_agenda(
+    election_news: list[dict[str, Any]],
+    window_days: int,
+) -> dict[str, Any]:
+    topic_items: dict[str, list[dict[str, Any]]] = {}
+    topic_labels: dict[str, str] = {}
+
+    for item in election_news:
+        classification = classify_campaign_agenda(
+            normalize(item["headline"])
+        )
+        topic_id = classification["id"]
+        topic_labels[topic_id] = classification["label"]
+
+        topic_items.setdefault(topic_id, []).append(
+            {
+                "id": item["id"],
+                "publisher": item["publisher"],
+                "published_at": item["published_at"],
+                "headline": item["headline"],
+                "url": item["url"],
+                "candidates": item["candidates"],
+                "matched_terms": classification["matched_terms"],
+            }
+        )
+
+    topics: list[dict[str, Any]] = []
+
+    for topic_id, items in topic_items.items():
+        items.sort(
+            key=lambda item: item["published_at"],
+            reverse=True,
+        )
+        publishers = sorted(
+            {item["publisher"] for item in items}
+        )
+        active_days = sorted(
+            {item["published_at"][:10] for item in items}
+        )
+        source_days = {
+            (item["publisher"], item["published_at"][:10])
+            for item in items
+        }
+
+        topics.append(
+            {
+                "id": topic_id,
+                "label": topic_labels[topic_id],
+                "item_count": len(items),
+                "publisher_count": len(publishers),
+                "publisher_names": publishers,
+                "source_day_count": len(source_days),
+                "active_day_count": len(active_days),
+                "display_eligible": (
+                    len(source_days)
+                    >= CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS
+                ),
+                "supporting_items": items[
+                    :CAMPAIGN_AGENDA_SUPPORT_LIMIT
+                ],
+            }
+        )
+
+    topics.sort(
+        key=lambda topic: (
+            -topic["display_eligible"],
+            -topic["source_day_count"],
+            -topic["item_count"],
+            topic["label"],
+        )
+    )
+
+    return {
+        "window_days": window_days,
+        "input_item_count": len(election_news),
+        "method": "accepted_election_news_by_campaign_theme",
+        "display_min_source_days": (
+            CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS
+        ),
+        "topics": topics,
+    }
+
+
 def make_item_id(canonical: str, publisher: str, headline: str) -> str:
     identity = canonical or f"{publisher}|{headline}"
 
@@ -376,6 +585,48 @@ def validate_output(payload: dict[str, Any]) -> None:
     sources = payload.get("sources")
     election_news = payload.get("election_news")
     candidate_watch = payload.get("candidate_watch")
+
+    campaign_agenda = payload.get("campaign_agenda")
+
+    if not isinstance(campaign_agenda, dict):
+        raise RuntimeError("campaign_agenda is not an object")
+
+    agenda_topics = campaign_agenda.get("topics")
+
+    if not isinstance(agenda_topics, list):
+        raise RuntimeError("campaign_agenda topics is not a list")
+
+    agenda_ids: set[str] = set()
+
+    for topic in agenda_topics:
+        required = {
+            "id",
+            "label",
+            "item_count",
+            "publisher_count",
+            "publisher_names",
+            "source_day_count",
+            "active_day_count",
+            "display_eligible",
+            "supporting_items",
+        }
+
+        if set(topic) != required:
+            raise RuntimeError(
+                "campaign_agenda topic has unexpected fields"
+            )
+
+        if topic["id"] in agenda_ids:
+            raise RuntimeError(
+                "campaign_agenda contains duplicate topic ids"
+            )
+
+        if topic["item_count"] < len(topic["supporting_items"]):
+            raise RuntimeError(
+                "campaign_agenda supporting item count is invalid"
+            )
+
+        agenda_ids.add(topic["id"])
 
     if not isinstance(sources, list) or len(sources) != len(SOURCES):
         raise RuntimeError("Unexpected source-status structure")
@@ -566,6 +817,11 @@ def build_wire(
         reverse=True,
     )
 
+    campaign_agenda = build_campaign_agenda(
+        election_news,
+        window_days,
+    )
+
     election_news = election_news[:max_items]
     candidate_watch = candidate_watch[:max_items]
 
@@ -594,6 +850,7 @@ def build_wire(
             "election_news": len(election_news),
             "candidate_watch": len(candidate_watch),
         },
+        "campaign_agenda": campaign_agenda,
         "election_news": election_news,
         "candidate_watch": candidate_watch,
     }
