@@ -1073,6 +1073,7 @@
     .claim-rating.is-mostly-false { border-color: #9a622d; background: rgba(194, 112, 37, .1); color: #f6b56f; }
     .claim-rating.is-misleading { border-color: #7654a8; background: rgba(126, 82, 180, .11); color: #c9a7f5; }
     .claim-rating.is-missing-context { border-color: #5962a8; background: rgba(86, 95, 175, .11); color: #adb8ff; }
+    .claim-rating.is-nuanced { border-color: #8b6831; background: rgba(139, 104, 49, .08); color: #f0bd65; }
     .claim-rating.is-partly-true { border-color: #287f79; background: rgba(35, 139, 126, .1); color: #7ddbd0; }
     .claim-rating.is-mostly-true { border-color: #25867f; background: rgba(31, 150, 137, .1); color: #78e2d4; }
     .claim-rating.is-true { border-color: #3b8757; background: rgba(48, 147, 82, .1); color: #89dfa4; }
@@ -1310,6 +1311,8 @@
       .campaign-agenda-topics { border-right: 0; border-bottom: 1px solid var(--line); }
       .campaign-agenda-link { grid-template-columns: 1fr; gap: 3px; }
     }
+    .fact-check-list { padding: 0; }
+    .fact-check-list .claim-columns { top: 0; }
     .fact-check-list .signal-row { gap: 6px; }
     .fact-check-claim { color: #e6edf2; font-size: 12.5px; font-weight: 650; line-height: 1.38; overflow-wrap: anywhere; }
     .fact-check-context { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px; }
@@ -1378,6 +1381,27 @@
       .claims-archive-details .claim-publisher { grid-column: 3; grid-row: 3; text-align: right; }
       .claims-archive-details .claim-actions { grid-column: 1 / -1; }
     }
+
+    @container signal-desk (max-width: 700px) {
+      .fact-check-list .claim-columns { display: none; }
+      .fact-check-list .claim-row {
+        grid-template-columns: 62px minmax(0, 1fr) auto;
+        gap: 7px;
+      }
+      .fact-check-list .claim-associations { grid-column: 2 / -1; }
+      .fact-check-list .claim-text-wrap { grid-column: 1 / -1; }
+      .fact-check-list .claim-rating {
+        grid-column: 1 / 3;
+        justify-self: start;
+      }
+      .fact-check-list .claim-publisher {
+        grid-column: 3;
+        grid-row: 3;
+        text-align: right;
+      }
+      .fact-check-list .claim-actions { grid-column: 1 / -1; }
+    }
+
     /* Runoff Spotlight: featured exact observation */
     .runoff-hero.has-featured-observation {
       display: block;
@@ -4766,6 +4790,7 @@
       "Plutôt faux": { label: "Mostly false", tone: "is-mostly-false" },
       "Trompeur": { label: "Misleading", tone: "is-misleading" },
       "Manque de contexte": { label: "Missing context", tone: "is-missing-context" },
+      "C’est plus compliqué": { label: "More complicated", tone: "is-nuanced" },
       "En partie vrai": { label: "Partly true", tone: "is-partly-true" },
       "Plutôt vrai": { label: "Mostly true", tone: "is-mostly-true" },
       "Vrai": { label: "True", tone: "is-true" },
@@ -4845,9 +4870,9 @@
     }
 
     function claimRatingBadge(sourceRating) {
-      const display = claimRatingDisplay[sourceRating];
-      const toneClass = display?.tone ? ` ${display.tone}` : "";
-      return `<span class="claim-rating${toneClass}" lang="fr" aria-label="Publisher rating: ${escapeAttribute(sourceRating)}">${escapeHtml(sourceRating)}</span>`;
+      const display = claimRatingDisplay[sourceRating] ?? { label: "Unclassified", tone: "" };
+      const toneClass = display.tone ? ` ${display.tone}` : "";
+      return `<span class="claim-rating${toneClass}" lang="en" data-source-rating="${escapeAttribute(sourceRating)}" aria-label="Publisher rating: ${escapeAttribute(display.label)}">${escapeHtml(display.label)}</span>`;
     }
 
     function normalizedClaimant(value) {
@@ -4876,38 +4901,98 @@
         .format(new Date(`${value}T00:00:00Z`));
     }
 
+    function claimReviewRow(review, idPrefix) {
+      const claimant = shouldShowClaimant(review)
+        ? `<div class="claim-claimant" lang="fr">Recorded claimant: ${escapeHtml(review.claimant)}</div>`
+        : "";
+      const textId = `${idPrefix}-${claimTextId(review.id)}`;
+      const reviewDateLabel = claimReviewDateLabel(review.review_date);
+
+      return `<article class="claim-row" data-claim-id="${escapeAttribute(review.id)}">
+        <time class="claim-date" datetime="${escapeAttribute(review.review_date)}">${escapeHtml(formatDate(review.review_date))}</time>
+        <div class="claim-associations">${review.candidate_associations.map(claimAssociation).join("")}</div>
+        <div class="claim-text-wrap">
+          <div class="claim-text" id="${escapeAttribute(textId)}" lang="fr">${escapeHtml(review.claim_text)}</div>
+          ${claimant}
+        </div>
+        <div>${claimRatingBadge(review.rating)}</div>
+        <div class="claim-publisher">${escapeHtml(review.publisher_name)}</div>
+        <div class="claim-actions">
+          <a class="claim-source" href="${escapeAttribute(safeSourceUrl(review.review_url))}" target="_blank" rel="noopener noreferrer" aria-label="Read at ${escapeAttribute(review.publisher_name)} in a new tab">Read at ${escapeHtml(review.publisher_name)} <span aria-hidden="true">↗</span></a>
+          <button class="claim-expand" type="button" aria-controls="${escapeAttribute(textId)}" aria-expanded="false" aria-label="Expand full reviewed claim from ${escapeAttribute(reviewDateLabel)}" data-claim-date-label="${escapeAttribute(reviewDateLabel)}"><span aria-hidden="true">+</span></button>
+        </div>
+      </article>`;
+    }
+
+    function claimRowsMarkup(reviews, idPrefix) {
+      const grouped = new Map();
+
+      reviews.forEach(review => {
+        const key = review.review_date.slice(0, 7);
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key).push(review);
+      });
+
+      return [...grouped.values()].map(monthReviews => {
+        const heading = `${claimsMonthLabel(monthReviews[0].review_date)} · ${monthReviews.length} ${monthReviews.length === 1 ? "REVIEW" : "REVIEWS"}`;
+        return `<div class="claim-month">${escapeHtml(heading)}</div>${monthReviews.map(review => claimReviewRow(review, idPrefix)).join("")}`;
+      }).join("");
+    }
+
+    function bindClaimRowInteractions(container) {
+      const interactiveSelector = "a, button, input, select, textarea, summary, [role='button'], [role='link'], [contenteditable='true'], [tabindex]:not([tabindex='-1'])";
+
+      container.querySelectorAll(".claim-row").forEach(row => {
+        const button = row.querySelector(".claim-expand");
+        const indicator = button.querySelector("[aria-hidden='true']");
+
+        const toggle = () => {
+          const expanded = button.getAttribute("aria-expanded") === "true";
+          const nextExpanded = !expanded;
+          row.classList.toggle("is-expanded", nextExpanded);
+          button.setAttribute("aria-expanded", String(nextExpanded));
+          button.setAttribute(
+            "aria-label",
+            `${nextExpanded ? "Collapse" : "Expand"} full reviewed claim from ${button.dataset.claimDateLabel}`
+          );
+          indicator.textContent = nextExpanded ? "−" : "+";
+        };
+
+        button.addEventListener("click", toggle);
+        row.addEventListener("click", event => {
+          const interactive = event.target.closest(interactiveSelector);
+          if (!interactive || !row.contains(interactive)) toggle();
+        });
+      });
+    }
+
     function renderFactChecks() {
       if (!claimsPayload) return;
+
       const list = $("#fact-check-list");
       if (!claimsPayload.reviews.length) {
         list.innerHTML = '<div class="signal-state">No valid publisher reviews are available in this update.</div>';
         return;
       }
-      list.innerHTML = claimsPayload.reviews.slice(0, 5).map(review => {
-        const subjects = review.candidate_associations.map(association => {
-          const relationship = association.relationship.toUpperCase();
-          return `<span class="fact-check-subject" aria-label="${relationship}: candidate ${escapeAttribute(association.candidate_name)}"><span class="fact-check-relationship${association.relationship === "about" ? " is-about" : ""}">${relationship}</span><span>${escapeHtml(association.candidate_name)}</span></span>`;
-        }).join("");
-        const claimant = shouldShowClaimant(review)
-          ? `<div class="fact-check-claimant" lang="fr">Recorded claimant: ${escapeHtml(review.claimant)}</div>` : "";
-        return `
-          <article class="signal-row">
-            <div class="signal-meta">
-              <time class="signal-date" datetime="${escapeAttribute(review.review_date)}">${escapeHtml(formatDate(review.review_date))}</time>
-              <span class="signal-publisher">${escapeHtml(review.publisher_name)}</span>
-            </div>
-            <div class="fact-check-claim" lang="fr">${escapeHtml(review.claim_text)}</div>
-            <div class="fact-check-context">
-              <div><div class="fact-check-subjects">${subjects}</div>${claimant}</div>
-              <span class="fact-check-rating" lang="fr" aria-label="Publisher rating: ${escapeAttribute(review.rating)}">${escapeHtml(review.rating)}</span>
-            </div>
-            <a class="signal-source" href="${escapeAttribute(safeSourceUrl(review.review_url))}" target="_blank" rel="noopener noreferrer" aria-label="Read the review at ${escapeAttribute(review.publisher_name)} in a new tab">Read at ${escapeHtml(review.publisher_name)} <span class="signal-arrow" aria-hidden="true">↗</span></a>
-          </article>`;
-      }).join("");
+
+      const newestReviews = claimsPayload.reviews.slice(0, 5);
+      list.innerHTML = `
+        <div class="claim-columns" aria-hidden="true">
+          <span>DATE</span>
+          <span>CANDIDATE RELATIONSHIP(S)</span>
+          <span>CLAIM REVIEWED</span>
+          <span>RATING</span>
+          <span>PUBLISHER</span>
+          <span>SOURCE</span>
+        </div>
+        ${claimRowsMarkup(newestReviews, "signal")}
+      `;
+      bindClaimRowInteractions(list);
     }
 
     function renderClaimWire() {
       if (!claimsPayload) return;
+
       const candidateId = $("#claims-candidate-filter").value;
       const publisher = $("#claims-publisher-filter").value;
       const filtered = claimsPayload.reviews.filter(review =>
@@ -4918,6 +5003,7 @@
 
       $("#claims-match-count").textContent = `${filtered.length} matching ${filtered.length === 1 ? "review" : "reviews"}`;
       const wire = $("#claim-wire-scroll");
+
       if (!claimsPayload.rosterCount) {
         wire.innerHTML = '<div class="claims-state">No political figures currently meet the rolling 45-day polling eligibility rule.</div>';
         return;
@@ -4931,49 +5017,18 @@
         return;
       }
 
-      const grouped = new Map();
-      filtered.forEach(review => {
-        const key = review.review_date.slice(0, 7);
-        if (!grouped.has(key)) grouped.set(key, []);
-        grouped.get(key).push(review);
-      });
-      const rows = [...grouped.values()].map(monthReviews => {
-        const heading = `${claimsMonthLabel(monthReviews[0].review_date)} · ${monthReviews.length} ${monthReviews.length === 1 ? "REVIEW" : "REVIEWS"}`;
-        return `<div class="claim-month">${escapeHtml(heading)}</div>${monthReviews.map(review => {
-          const claimant = shouldShowClaimant(review)
-            ? `<div class="claim-claimant" lang="fr">Recorded claimant: ${escapeHtml(review.claimant)}</div>` : "";
-          const textId = claimTextId(review.id);
-          const reviewDateLabel = claimReviewDateLabel(review.review_date);
-          return `<article class="claim-row" data-claim-id="${escapeAttribute(review.id)}">
-            <time class="claim-date" datetime="${escapeAttribute(review.review_date)}">${escapeHtml(formatDate(review.review_date))}</time>
-            <div class="claim-associations">${review.candidate_associations.map(claimAssociation).join("")}</div>
-            <div class="claim-text-wrap"><div class="claim-text" id="${escapeAttribute(textId)}" lang="fr">${escapeHtml(review.claim_text)}</div>${claimant}</div>
-            <div>${claimRatingBadge(review.rating)}</div>
-            <div class="claim-publisher">${escapeHtml(review.publisher_name)}</div>
-            <div class="claim-actions"><a class="claim-source" href="${escapeAttribute(safeSourceUrl(review.review_url))}" target="_blank" rel="noopener noreferrer" aria-label="Read at ${escapeAttribute(review.publisher_name)} in a new tab">Read at ${escapeHtml(review.publisher_name)} <span aria-hidden="true">↗</span></a><button class="claim-expand" type="button" aria-controls="${escapeAttribute(textId)}" aria-expanded="false" aria-label="Expand full reviewed claim from ${escapeAttribute(reviewDateLabel)}" data-claim-date-label="${escapeAttribute(reviewDateLabel)}"><span aria-hidden="true">+</span></button></div>
-          </article>`;
-        }).join("")}`;
-      }).join("");
-
-      wire.innerHTML = `<div class="claim-columns" aria-hidden="true"><span>DATE</span><span>CANDIDATE RELATIONSHIP(S)</span><span>CLAIM REVIEWED</span><span>RATING</span><span>PUBLISHER</span><span>SOURCE</span></div>${rows}`;
-      const interactiveSelector = "a, button, input, select, textarea, summary, [role='button'], [role='link'], [contenteditable='true'], [tabindex]:not([tabindex='-1'])";
-      wire.querySelectorAll(".claim-row").forEach(row => {
-        const button = row.querySelector(".claim-expand");
-        const indicator = button.querySelector("[aria-hidden='true']");
-        const toggle = () => {
-          const expanded = button.getAttribute("aria-expanded") === "true";
-          const nextExpanded = !expanded;
-          row.classList.toggle("is-expanded", nextExpanded);
-          button.setAttribute("aria-expanded", String(nextExpanded));
-          button.setAttribute("aria-label", `${nextExpanded ? "Collapse" : "Expand"} full reviewed claim from ${button.dataset.claimDateLabel}`);
-          indicator.textContent = nextExpanded ? "−" : "+";
-        };
-        button.addEventListener("click", toggle);
-        row.addEventListener("click", event => {
-          const interactive = event.target.closest(interactiveSelector);
-          if (!interactive || !row.contains(interactive)) toggle();
-        });
-      });
+      wire.innerHTML = `
+        <div class="claim-columns" aria-hidden="true">
+          <span>DATE</span>
+          <span>CANDIDATE RELATIONSHIP(S)</span>
+          <span>CLAIM REVIEWED</span>
+          <span>RATING</span>
+          <span>PUBLISHER</span>
+          <span>SOURCE</span>
+        </div>
+        ${claimRowsMarkup(filtered, "archive")}
+      `;
+      bindClaimRowInteractions(wire);
     }
 
     function archiveMonthSeries(reviews, generatedAt) {
