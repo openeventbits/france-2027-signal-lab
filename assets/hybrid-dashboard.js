@@ -819,4 +819,3 @@
     handleSignalHashChange
   });
 })();
-
