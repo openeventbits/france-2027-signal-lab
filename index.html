@@ -18,6 +18,7 @@
   <meta name="twitter:description" content="Source-linked polling, election news, candidate coverage and fact checks for France's 2027 presidential race. No averages, no forecast, no voting advice.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3QgeD0iMSIgeT0iMSIgd2lkdGg9IjMwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbD0iIzA3MTUyMiIvPjxwYXRoIGQ9Ik02IDE2QTEwIDEwIDAgMCAxIDE2IDZNMjYgMTZBMTAgMTAgMCAwIDEgMTYgMjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzI2OGNmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNMTAgMTZBNiA2IDAgMCAxIDE2IDEwTTIyIDE2QTYgNiAwIDAgMSAxNiAyMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzVkNWZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjIuNSIgZmlsbD0iIzM1ZDVmZiIvPjwvc3ZnPg==">
   <title>France 2027 Signal Lab — Source-Linked Election Signals</title>
+  <link rel="stylesheet" href="assets/hybrid-dashboard.css">
   <style>
     :root {
       color-scheme: dark;
@@ -3535,6 +3536,9 @@
         </div>
       </article>
     </section>
+    <section id="hybrid-signal-board" class="hybrid-root" aria-label="Hybrid Signal Board">
+      <div class="hybrid-state" role="status">Preparing the Signal Board…</div>
+    </section>
     <section class="intelligence-grid" aria-label="Election intelligence">
       <article class="panel closest-runoff runoff-spotlight" aria-labelledby="closest-runoff-title">
         <div class="panel-head closest-runoff-head">
@@ -3764,6 +3768,7 @@
       renderMastheadMetadata();
       renderContextStrip();
       renderWhatChanged();
+      document.dispatchEvent(new CustomEvent("hybrid:dataset", { detail: { name, status } }));
     }
 
     function dashboardTimestamp(value) {
@@ -6272,5 +6277,6 @@
       });
   </script>
 
+  <script src="assets/hybrid-dashboard.js"></script>
 </body>
 </html>
