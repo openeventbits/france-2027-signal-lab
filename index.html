@@ -3875,6 +3875,80 @@
       }
     }
 
+
+    /* Recent Changes Ledger: cached publisher icons */
+    .changes-ledger-source-icon {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      padding: 4px;
+      overflow: hidden;
+      border: 1px solid color-mix(
+        in srgb,
+        var(--ledger-accent) 50%,
+        #29495d
+      );
+      border-radius: 9px;
+      background:
+        radial-gradient(
+          circle at 50% 35%,
+          rgba(255, 255, 255, .035),
+          transparent 68%
+        ),
+        rgba(7, 20, 33, .94);
+      box-shadow:
+        inset 0 1px rgba(255, 255, 255, .025),
+        0 0 7px color-mix(
+          in srgb,
+          var(--ledger-accent) 13%,
+          transparent
+        );
+    }
+
+    .changes-ledger-source-icon img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    @media (max-width: 719px) {
+      .changes-ledger-source-icon {
+        width: 32px;
+        height: 32px;
+        padding: 3px;
+        border-radius: 8px;
+      }
+    }
+
+
+    /* Recent Changes Ledger: cleaner publisher icons */
+    .changes-ledger-source-icon {
+      width: 32px;
+      height: 32px;
+      padding: 1px;
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .changes-ledger-source-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    @media (max-width: 719px) {
+      .changes-ledger-source-icon {
+        width: 29px;
+        height: 29px;
+        padding: 1px;
+        border-radius: 4px;
+      }
+    }
+
     /* Runoff evidence integrated into the compact header */
     .intelligence-grid .closest-runoff-head {
       display: grid;
@@ -4565,6 +4639,68 @@
 
     let whatChangedLedgerFilter = "all";
 
+    const ledgerSourceIconState = {
+      status: "idle",
+      records: new Map()
+    };
+
+    function ledgerSourceIconKey(value) {
+      return ledgerNormalizeText(value);
+    }
+
+    function ensureLedgerSourceIcons() {
+      if (ledgerSourceIconState.status !== "idle") return;
+
+      ledgerSourceIconState.status = "loading";
+
+      fetch("source_icons.json", {
+        cache: "no-cache"
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(
+              "source_icons.json returned HTTP " + response.status
+            );
+          }
+
+          return response.json();
+        })
+        .then(payload => {
+          const records = Array.isArray(payload?.sources)
+            ? payload.sources
+            : [];
+
+          ledgerSourceIconState.records.clear();
+
+          records.forEach(record => {
+            if (
+              !record ||
+              record.status !== "ok" ||
+              typeof record.publisher !== "string" ||
+              typeof record.path !== "string" ||
+              !record.path
+            ) {
+              return;
+            }
+
+            ledgerSourceIconState.records.set(
+              ledgerSourceIconKey(record.publisher),
+              record
+            );
+          });
+
+          ledgerSourceIconState.status = "ready";
+          renderWhatChanged();
+        })
+        .catch(error => {
+          ledgerSourceIconState.status = "error";
+          console.warn(
+            "Publisher icons unavailable; using text fallbacks.",
+            error
+          );
+        });
+    }
+
     function ledgerNormalizeText(value) {
       return String(value || "")
         .normalize("NFD")
@@ -4760,16 +4896,79 @@
       return beacon;
     }
 
+
+
+    /* Recent Changes Ledger: pollster cached icons */
+    function appendLedgerWordmark(visual, entry) {
+      const badge = document.createElement("span");
+      badge.className = "changes-ledger-wordmark";
+      badge.textContent =
+        entry.visualLabel || entry.sourceName || "Source";
+      badge.title =
+        entry.visualLabel || entry.sourceName || "Source";
+      visual.appendChild(badge);
+    }
+
+    function appendLedgerCachedIcon(visual, entry) {
+      ensureLedgerSourceIcons();
+
+      const sourceKey = ledgerSourceIconKey(
+        entry.sourceName
+      );
+
+      const iconRecord =
+        ledgerSourceIconState.records.get(sourceKey);
+
+      if (
+        !iconRecord ||
+        typeof iconRecord.path !== "string" ||
+        !iconRecord.path
+      ) {
+        return false;
+      }
+
+      const icon = document.createElement("span");
+      icon.className = "changes-ledger-source-icon";
+      icon.title =
+        entry.visualLabel ||
+        entry.sourceName ||
+        "Source";
+
+      const image = document.createElement("img");
+      image.src = iconRecord.path;
+      image.alt = "";
+      image.setAttribute("aria-hidden", "true");
+      image.decoding = "async";
+
+      image.addEventListener(
+        "error",
+        () => {
+          ledgerSourceIconState.records.delete(sourceKey);
+          visual.replaceChildren();
+          appendLedgerWordmark(visual, entry);
+        },
+        { once: true }
+      );
+
+      icon.appendChild(image);
+      visual.appendChild(icon);
+
+      return true;
+    }
+
     function ledgerSourceVisual(entry) {
       const visual = document.createElement("div");
       visual.className = "changes-ledger-visual";
 
+      /*
+       * Polling institutes now prefer their automatically cached
+       * site icon and fall back to the existing text wordmark.
+       */
       if (entry.visualType === "pollster") {
-        const wordmark = document.createElement("span");
-        wordmark.className = "changes-ledger-wordmark";
-        wordmark.textContent = entry.visualLabel || entry.sourceName;
-        wordmark.title = entry.visualLabel || entry.sourceName;
-        visual.appendChild(wordmark);
+        if (!appendLedgerCachedIcon(visual, entry)) {
+          appendLedgerWordmark(visual, entry);
+        }
+
         return visual;
       }
 
@@ -4777,18 +4976,23 @@
         ? entry.candidates.filter(Boolean).slice(0, 2)
         : [];
 
+      /*
+       * Candidate-specific political and fact-check entries retain
+       * portraits because the person is the main visual subject.
+       */
       if (candidates.length) {
         candidates.forEach(candidate => {
-          visual.appendChild(briefingCandidateMarker(candidate));
+          visual.appendChild(
+            briefingCandidateMarker(candidate)
+          );
         });
+
         return visual;
       }
 
-      const badge = document.createElement("span");
-      badge.className = "changes-ledger-wordmark";
-      badge.textContent = entry.sourceName || "Source";
-      badge.title = entry.sourceName || "Source";
-      visual.appendChild(badge);
+      if (!appendLedgerCachedIcon(visual, entry)) {
+        appendLedgerWordmark(visual, entry);
+      }
 
       return visual;
     }
