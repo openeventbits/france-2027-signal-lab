@@ -15,12 +15,12 @@ from typing import Any, Iterable
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
-from fetch_news_wire import SOURCES, canonical_url, classify_campaign_agenda, normalize
+from fetch_news_wire import SOURCES, canonical_url, normalize
 
 
 SCHEMA_VERSION = 1
 WINDOW_DAYS = 14
-MAX_ITEMS = 12
+MAX_ITEMS = 0  # zero means retain every qualifying change in the window
 PARIS = ZoneInfo("Europe/Paris")
 MONTH_ABBREVIATIONS = (
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -35,12 +35,105 @@ TRUSTED_CHANGE_DATE_KINDS = {
     "review_published",
     "ruling_or_decision",
 }
-CAMPAIGN_TOPIC_IDS = {
-    "candidacies_endorsements",
-    "positioning_integrity",
-    "rules_calendar",
-    "selection_strategy",
-}
+STRONG_CAMPAIGN_ACTION_PHRASES = (
+    "annonce sa candidature",
+    "annonce etre candidat",
+    "annonce etre candidate",
+    "officialise sa candidature",
+    "se declare candidat",
+    "se declare candidate",
+    "je suis candidat",
+    "je suis candidate",
+    "se lance dans la course",
+    "se lancer dans la course",
+    "se retire de la course",
+    "renonce a se presenter",
+    "decline la primaire",
+    "entree en campagne",
+    "lance sa campagne",
+    "est investi",
+    "est investie",
+    "est designe",
+    "est designee",
+    "rallie",
+    "ralliement",
+    "soutient la candidature",
+    "soutien a la candidature",
+    "apporte son soutien",
+    "soutien d",
+    "soutenus par",
+    "appelle a voter pour",
+)
+CONTEXTUAL_CAMPAIGN_ACTION_PHRASES = (
+    "se prepare",
+    "acte la rupture",
+    "decide d enterrer la primaire",
+    "enterre la primaire",
+    "se prononce pour une primaire",
+    "modifie le processus de primaire",
+    "change le processus de primaire",
+    "vote organise",
+    "organise un meeting",
+    "annonce un meeting",
+    "reunit ses soutiens",
+    "presente son programme",
+    "devoile son programme",
+    "s engage a",
+)
+MATERIAL_LEGAL_ACTION_PHRASES = (
+    "assigne",
+    "porte plainte",
+    "depose plainte",
+    "echoue a faire annuler",
+    "rejette le recours",
+    "rejette sa demande",
+    "confirme la condamnation",
+    "annule la condamnation",
+    "est condamne",
+    "est condamnee",
+    "est relaxe",
+    "est relaxee",
+    "reste eligible",
+    "devient ineligible",
+    "est mis en examen",
+    "est mise en examen",
+    "ouvre une enquete",
+    "ouvre une investigation",
+    "statue sur l eligibilite",
+    "decision sur l eligibilite",
+)
+PRESIDENTIAL_RULE_ACTION_PHRASES = (
+    "parquet national financier",
+    "investigations visant des candidats",
+    "regles de parrainage",
+    "parrainage presidentiel",
+    "500 signatures",
+    "calendrier de l election presidentielle",
+    "dates du premier tour",
+    "dates du second tour",
+    "financement de la campagne presidentielle",
+    "comptes de campagne",
+    "temps de parole",
+    "pluralisme",
+    "regles audiovisuelles",
+)
+PRESIDENTIAL_CONTEXT_PHRASES = (
+    "presidentielle",
+    "election presidentielle",
+    "course a l elysee",
+    "elysee",
+    "campagne presidentielle",
+    "primaire presidentielle",
+)
+NON_PRESIDENTIAL_ELECTION_PHRASES = (
+    "senatoriales",
+    "legislatives",
+    "municipales",
+    "europeennes",
+    "regionales",
+    "departementales",
+)
+
 REQUIRED_ITEM_FIELDS = {
     "id",
     "category",
@@ -81,6 +174,9 @@ ACTION_GROUPS = {
 }
 ICON_KEY_ALIASES = {
     "franceinfo": "Franceinfo Politique",
+    "LCP — Actualités": "LCP",
+    "LCP Actualités": "LCP",
+    "France 24 — France": "France 24 Français",
 }
 
 
@@ -188,6 +284,112 @@ def normalized_title(value: Any) -> str:
     return normalize(value)
 
 
+def first_matching_phrase(text: str, phrases: Iterable[str]) -> str | None:
+    return next((phrase for phrase in phrases if phrase in text), None)
+
+
+def classify_news_change(
+    item: dict[str, Any],
+) -> tuple[str, str] | None:
+    """Classify only concrete headline-level presidential-race changes.
+
+    The headline must contain the material action or outcome. The RSS summary
+    and the upstream ``explicit_election`` flag may confirm presidential
+    context, but neither may manufacture an action absent from the headline.
+    """
+
+    headline = str(item.get("headline") or "").strip()
+    headline_text = normalized_title(headline)
+    summary_text = normalized_title(item.get("summary") or "")
+    candidate_names = {
+        str(name).strip()
+        for name in item.get("candidates", [])
+        if isinstance(name, str) and name.strip()
+    }
+    if not headline_text:
+        return None
+
+    has_candidate_in_headline = any(
+        normalized_title(name) in headline_text
+        for name in candidate_names
+        if normalized_title(name)
+    )
+    has_presidential_context_in_headline = any(
+        phrase in headline_text
+        for phrase in PRESIDENTIAL_CONTEXT_PHRASES
+    )
+    has_presidential_context = (
+        has_presidential_context_in_headline
+        or bool(item.get("explicit_election"))
+        or any(
+            phrase in summary_text
+            for phrase in PRESIDENTIAL_CONTEXT_PHRASES
+        )
+    )
+    has_other_election_context = any(
+        phrase in headline_text
+        for phrase in NON_PRESIDENTIAL_ELECTION_PHRASES
+    )
+
+    # Legal action must be visible in the headline and must concern a
+    # monitored candidate. A legal word found only in the summary is ignored.
+    legal_phrase = first_matching_phrase(
+        headline_text,
+        MATERIAL_LEGAL_ACTION_PHRASES,
+    )
+    if legal_phrase and has_candidate_in_headline:
+        return (
+            "legal",
+            "Concrete legal action or outcome involving a monitored candidate.",
+        )
+
+    # Race-wide rules and procedures need explicit presidential context in
+    # the headline as well as a concrete institutional or procedural phrase.
+    rule_phrase = first_matching_phrase(
+        headline_text,
+        PRESIDENTIAL_RULE_ACTION_PHRASES,
+    )
+    if rule_phrase and has_presidential_context_in_headline:
+        return (
+            "legal",
+            "Concrete presidential-election legal or procedural development.",
+        )
+
+    if has_other_election_context and not has_presidential_context_in_headline:
+        return None
+
+    strong_campaign_phrase = first_matching_phrase(
+        headline_text,
+        STRONG_CAMPAIGN_ACTION_PHRASES,
+    )
+    if strong_campaign_phrase and (
+        has_candidate_in_headline or has_presidential_context
+    ):
+        return (
+            "campaign",
+            "Concrete candidate, endorsement, selection or campaign-status change.",
+        )
+
+    contextual_campaign_phrase = first_matching_phrase(
+        headline_text,
+        CONTEXTUAL_CAMPAIGN_ACTION_PHRASES,
+    )
+    if contextual_campaign_phrase and has_presidential_context_in_headline:
+        return (
+            "campaign",
+            "Concrete presidential campaign or selection-process development.",
+        )
+
+    return None
+
+
+# Backward-compatible name for existing callers and tests.
+def classify_candidate_watch_change(
+    item: dict[str, Any],
+) -> tuple[str, str] | None:
+    return classify_news_change(item)
+
+
 def title_tokens(value: Any) -> set[str]:
     return {
         token
@@ -289,14 +491,26 @@ def news_entries(
     diagnostics: Counter[str],
 ) -> list[dict[str, Any]]:
     generated = parse_datetime(payload.get("generated_at")) or checked_at
-    items = payload.get("election_news")
-    if not isinstance(items, list):
+    election_items = payload.get("election_news")
+    if not isinstance(election_items, list):
         raise LedgerError("news_wire election_news must be a list")
+    notable_items = payload.get("notable_developments", [])
+    if not isinstance(notable_items, list):
+        raise LedgerError("news_wire notable_developments must be a list")
+    candidate_items = payload.get("candidate_watch", [])
+    if not isinstance(candidate_items, list):
+        raise LedgerError("news_wire candidate_watch must be a list")
 
     entries: list[dict[str, Any]] = []
-    for item in items:
-        if not isinstance(item, dict):
-            continue
+    seen_source_ids: set[str] = set()
+    seen_urls: set[str] = set()
+
+    def append_entry(
+        item: dict[str, Any],
+        *,
+        category: str,
+        summary: str,
+    ) -> bool:
         published = parse_datetime(item.get("published_at"))
         url = canonical_url(item.get("url"))
         headline = str(item.get("headline") or "").strip()
@@ -304,25 +518,18 @@ def news_entries(
         if not published:
             diagnostics["omitted_missing_trusted_date"] += 1
             diagnostics["omitted_news_missing_publication_date"] += 1
-            continue
+            return False
         if not headline or not publisher or not valid_url(url):
             diagnostics["omitted_invalid_record"] += 1
-            continue
-
-        topic = classify_campaign_agenda(normalized_title(headline))["id"]
-        if topic == "legal_eligibility":
-            category = "legal"
-            destination = "#signal-panel-agenda"
-            summary = "Validated election-news item classified under legal status and eligibility."
-        elif topic in CAMPAIGN_TOPIC_IDS:
-            category = "campaign"
-            destination = "#signal-panel-agenda"
-            summary = "Accepted election-news item in the current Campaign Agenda."
-        else:
-            continue
+            return False
 
         source_id = str(item.get("id") or stable_hash(url, publisher, headline))
-        item_id = f"{category}-{source_id}"
+        if source_id in seen_source_ids or url in seen_urls:
+            diagnostics["omitted_candidate_watch_duplicate"] += 1
+            return False
+        seen_source_ids.add(source_id)
+        seen_urls.add(url)
+
         candidate_names = sorted(
             {
                 str(name).strip()
@@ -330,6 +537,7 @@ def news_entries(
                 if isinstance(name, str) and name.strip()
             }
         )
+        item_id = f"{category}-{source_id}"
         published_text = utc_text(published)
         entries.append(
             {
@@ -349,11 +557,76 @@ def news_entries(
                 "candidate_names": candidate_names,
                 "supporting_source_count": 0,
                 "supporting_sources": [],
-                "related_destination": destination,
-                "_entities": person_entities(headline) | {normalized_title(name) for name in candidate_names},
+                "related_destination": "#signal-panel-agenda",
+                "_entities": person_entities(headline)
+                | {normalized_title(name) for name in candidate_names},
                 "_source_id": source_id,
             }
         )
+        return True
+
+    # A single article can appear in several broad upstream lanes. Merge those
+    # copies first, preserve candidate provenance, and classify the article only
+    # once with the strict headline-first change gate below.
+    unique_items: dict[str, dict[str, Any]] = {}
+    for lane_name, lane_items in (
+        ("election_news", election_items),
+        ("notable_developments", notable_items),
+        ("candidate_watch", candidate_items),
+    ):
+        for raw_item in lane_items:
+            if not isinstance(raw_item, dict):
+                continue
+            url = canonical_url(raw_item.get("url"))
+            source_id = str(
+                raw_item.get("id")
+                or stable_hash(
+                    url,
+                    raw_item.get("publisher"),
+                    raw_item.get("headline"),
+                )
+            )
+            key = source_id or url
+            if key in unique_items:
+                existing = unique_items[key]
+                existing["candidates"] = sorted(
+                    {
+                        *[
+                            str(name).strip()
+                            for name in existing.get("candidates", [])
+                            if isinstance(name, str) and name.strip()
+                        ],
+                        *[
+                            str(name).strip()
+                            for name in raw_item.get("candidates", [])
+                            if isinstance(name, str) and name.strip()
+                        ],
+                    }
+                )
+                existing["explicit_election"] = bool(
+                    existing.get("explicit_election")
+                    or raw_item.get("explicit_election")
+                )
+                if not existing.get("summary") and raw_item.get("summary"):
+                    existing["summary"] = raw_item.get("summary")
+                existing["_lanes"].add(lane_name)
+                diagnostics["omitted_candidate_watch_duplicate"] += 1
+                continue
+
+            item = dict(raw_item)
+            item["_lanes"] = {lane_name}
+            unique_items[key] = item
+
+    for item in unique_items.values():
+        classification = classify_news_change(item)
+        if classification is None:
+            diagnostics["omitted_news_non_material"] += 1
+            if "candidate_watch" in item.get("_lanes", set()):
+                diagnostics["omitted_candidate_watch_non_material"] += 1
+            continue
+        category, summary = classification
+        append_entry(item, category=category, summary=summary)
+
     return cluster_news_entries(entries)
 
 
@@ -735,7 +1008,7 @@ def compose_recent_changes(
             item["id"],
         )
     )
-    if len(entries) > MAX_ITEMS:
+    if MAX_ITEMS > 0 and len(entries) > MAX_ITEMS:
         diagnostics["omitted_over_output_limit"] += len(entries) - MAX_ITEMS
         entries = entries[:MAX_ITEMS]
     counts = Counter(item["category"] for item in entries)
@@ -762,6 +1035,9 @@ def compose_recent_changes(
             for key in (
                 "omitted_missing_trusted_date",
                 "omitted_news_missing_publication_date",
+                "omitted_news_non_material",
+                "omitted_candidate_watch_non_material",
+                "omitted_candidate_watch_duplicate",
                 "omitted_polling_missing_trusted_date",
                 "omitted_runoff_missing_evidence_date",
                 "omitted_fact_check_missing_review_date",
@@ -794,10 +1070,12 @@ def validate_recent_changes(payload: Any) -> None:
         raise LedgerError("window dates do not describe 14 inclusive days")
     expected_sources = [source["name"] for source in SOURCES]
     if payload.get("source_universe") != expected_sources:
-        raise LedgerError("source_universe must equal the configured five publisher feeds")
+        raise LedgerError("source_universe must equal the configured publisher feeds")
     items = payload.get("items")
-    if not isinstance(items, list) or len(items) > MAX_ITEMS:
-        raise LedgerError("items must be a list with at most 12 entries")
+    if not isinstance(items, list):
+        raise LedgerError("items must be a list")
+    if MAX_ITEMS > 0 and len(items) > MAX_ITEMS:
+        raise LedgerError(f"items must contain at most {MAX_ITEMS} entries")
 
     seen_ids: set[str] = set()
     seen_urls: set[str] = set()

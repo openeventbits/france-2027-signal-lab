@@ -35,7 +35,7 @@ jobs:
             --polls polls.json \
             --output /tmp/news_wire.json \
             --window-days 30 \
-            --max-items 60
+            --max-items 0
 
       - name: Validate and stage fetched News Wire
         id: validate
@@ -169,16 +169,23 @@ jobs:
               fail("candidate_roster must contain at least 15 names")
 
           sources = fetched.get("sources")
-          if not isinstance(sources, list) or len(sources) != 5:
-              fail("exactly five configured source records are required")
-          if any(not isinstance(source, dict) or source.get("status") != "ok" for source in sources):
-              fail("all five configured sources must have status ok")
+          if not isinstance(sources, list) or len(sources) != 19:
+              fail("exactly 19 configured source records are required")
+          if any(
+              not isinstance(source, dict)
+              or source.get("status") not in {"ok", "error"}
+              for source in sources
+          ):
+              fail("configured sources must have status ok or error")
 
           counts = fetched.get("counts")
           if not isinstance(counts, dict):
               fail("counts must be an object")
-          if counts.get("successful_sources") != 5:
-              fail("counts.successful_sources must equal 5")
+          successful_sources = sum(source["status"] == "ok" for source in sources)
+          if counts.get("successful_sources") != successful_sources:
+              fail("counts.successful_sources does not match source statuses")
+          if successful_sources < 4:
+              fail("at least four configured sources must succeed")
 
           election_news = fetched.get("election_news")
           candidate_watch = fetched.get("candidate_watch")

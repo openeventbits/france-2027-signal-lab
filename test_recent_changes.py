@@ -5,9 +5,14 @@ from collections import Counter
 from datetime import timedelta
 from pathlib import Path
 
+from fetch_news_wire import SOURCES
 from generate_recent_changes import (
     LedgerError,
+    classify_candidate_watch_change,
+    classify_news_change,
+    icon_key,
     compose_recent_changes,
+    news_entries,
     parse_datetime,
     poll_entries,
     runoff_entry,
@@ -46,39 +51,55 @@ class RecentChangesTests(unittest.TestCase):
     def test_repository_data_generates_a_valid_ledger(self):
         payload = self.compose()
         validate_recent_changes(payload)
-        self.assertLessEqual(len(payload["items"]), 12)
-        self.assertEqual(payload["source_universe"], [
-            "Public Sénat",
-            "LCP",
-            "Franceinfo Politique",
-            "France 24 Français",
-            "RFI France",
-        ])
+        self.assertGreaterEqual(len(payload["items"]), 1)
+        self.assertEqual(payload["window"]["max_items"], 0)
+        self.assertEqual(len(SOURCES), 19)
+        self.assertEqual(
+            payload["source_universe"],
+            [source["name"] for source in SOURCES],
+        )
 
     def test_historical_polls_use_fieldwork_end_not_generator_date(self):
-        payload = self.compose()
-        polling = {
-            item["primary_source"]["name"]: item
-            for item in payload["items"]
-            if item["category"] == "polling"
+        diagnostics = Counter()
+        entries = poll_entries(
+            self.polls,
+            {},
+            FIXED_CLOCK,
+            diagnostics,
+        )
+
+        expected = {
+            "Elabe": "2026-07-10",
+            "Verian": "2026-07-10",
+            "OpinionWay": "2026-07-09",
         }
-        self.assertEqual(polling["Elabe"]["trusted_change_at"], "2026-07-10")
-        self.assertEqual(polling["Verian"]["trusted_change_at"], "2026-07-10")
-        self.assertEqual(polling["OpinionWay"]["trusted_change_at"], "2026-07-09")
-        self.assertTrue(all(
-            item["trusted_change_date_kind"] == "fieldwork_ended"
-            for item in polling.values()
-        ))
-        self.assertNotIn("2026-07-22", {
-            item["trusted_change_at"] for item in polling.values()
-        })
+        for pollster, trusted_date in expected.items():
+            matches = [
+                item for item in entries
+                if item["primary_source"]["name"] == pollster
+                and item["trusted_change_at"] == trusted_date
+            ]
+            self.assertEqual(
+                len(matches),
+                1,
+                f"expected one {pollster} wave dated {trusted_date}",
+            )
+            self.assertEqual(
+                matches[0]["trusted_change_date_kind"],
+                "fieldwork_ended",
+            )
+            self.assertNotEqual(
+                matches[0]["trusted_change_at"],
+                FIXED_CLOCK.date().isoformat(),
+            )
 
     def test_six_hypotheses_create_one_poll_wave_item(self):
-        payload = self.compose()
+        diagnostics = Counter()
+        entries = poll_entries(self.polls, {}, FIXED_CLOCK, diagnostics)
         elabe = [
-            item for item in payload["items"]
-            if item["category"] == "polling"
-            and item["primary_source"]["name"] == "Elabe"
+            item for item in entries
+            if item["primary_source"]["name"] == "Elabe"
+            and item["trusted_change_at"] == "2026-07-10"
         ]
         self.assertEqual(len(elabe), 1)
         self.assertIn("contains 6 published hypotheses", elabe[0]["headline"])
@@ -94,7 +115,10 @@ class RecentChangesTests(unittest.TestCase):
             [(item["id"], item["trusted_change_at"]) for item in first["items"]],
             [(item["id"], item["trusted_change_at"]) for item in second["items"]],
         )
-        self.assertEqual(second["items"][0]["trusted_change_at"], "2026-07-17T08:30:04Z")
+        self.assertEqual(
+            second["items"][0]["trusted_change_at"],
+            first["items"][0]["trusted_change_at"],
+        )
 
     def test_runoff_inherits_underlying_poll_evidence_date(self):
         diagnostics = Counter()
@@ -136,6 +160,13 @@ class RecentChangesTests(unittest.TestCase):
         self.assertNotIn("item.detected_at", renderer)
         self.assertNotIn("item.date_value", renderer)
 
+    def test_frontend_reports_partial_news_feeds_and_aliases_lcp_icon(self):
+        index = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn('"lcp actualites", "lcp"', index)
+        self.assertIn('unavailableNewsSources', index)
+        self.assertIn('" news feeds ready"', index)
+        self.assertIn('image.style.visibility = "hidden"', index)
+
     def test_newest_and_oldest_metadata_match_displayed_records(self):
         payload = self.compose()
         self.assertEqual(
@@ -155,15 +186,491 @@ class RecentChangesTests(unittest.TestCase):
             [(item["id"], item["trusted_change_at"]) for item in second["items"]],
         )
 
-    def test_campaign_event_deduplication_preserves_support(self):
-        payload = self.compose()
+    def test_campaign_deduplication_preserves_only_genuine_support(self):
+        primary = {
+            "id": "cazeneuve-lcp",
+            "publisher": "LCP — Actualités",
+            "published_at": "2026-07-16T19:23:28Z",
+            "headline": (
+                "Présidentielle 2027 : Bernard Cazeneuve décline "
+                "la primaire socialiste"
+            ),
+            "summary": "",
+            "url": "https://lcp.fr/example-cazeneuve-primary",
+            "explicit_election": True,
+            "candidates": ["Bernard Cazeneuve"],
+        }
+
+        supporting = {
+            "id": "cazeneuve-public-senat",
+            "publisher": "Public Sénat",
+            "published_at": "2026-07-17T10:00:00Z",
+            "headline": (
+                "Présidentielle 2027 : Bernard Cazeneuve décline "
+                "la primaire du Parti socialiste"
+            ),
+            "summary": "",
+            "url": "https://publicsenat.fr/example-cazeneuve-primary",
+            "explicit_election": True,
+            "candidates": ["Bernard Cazeneuve"],
+        }
+
+        commentary = {
+            "id": "cazeneuve-commentary",
+            "publisher": "Le Nouvel Obs",
+            "published_at": "2026-07-17T14:00:00Z",
+            "headline": (
+                "Présidentielle 2027 : la candidature de Bernard Cazeneuve "
+                "traduit les difficultés de la gauche"
+            ),
+            "summary": (
+                "Une analyse de la stratégie et du renouvellement "
+                "du personnel politique."
+            ),
+            "url": "https://nouvelobs.com/example-cazeneuve-commentary",
+            "explicit_election": True,
+            "candidates": ["Bernard Cazeneuve"],
+        }
+
+        payload = {
+            "generated_at": "2026-07-22T09:00:00Z",
+            "election_news": [
+                primary,
+                supporting,
+                commentary,
+            ],
+            "notable_developments": [],
+            # Repeated upstream-lane copies must not become support.
+            "candidate_watch": [
+                copy.deepcopy(primary),
+                copy.deepcopy(commentary),
+            ],
+        }
+
+        entries = news_entries(
+            payload,
+            {},
+            FIXED_CLOCK,
+            Counter(),
+        )
+
         cazeneuve = [
-            item for item in payload["items"]
+            item for item in entries
             if item["category"] == "campaign"
             and "cazeneuve" in item["headline"].lower()
         ]
+
         self.assertEqual(len(cazeneuve), 1)
-        self.assertGreaterEqual(cazeneuve[0]["supporting_source_count"], 1)
+        self.assertEqual(cazeneuve[0]["supporting_source_count"], 1)
+        self.assertEqual(
+            [
+                source["name"]
+                for source in cazeneuve[0]["supporting_sources"]
+            ],
+            ["Public Sénat"],
+        )
+        self.assertNotIn(
+            "Le Nouvel Obs",
+            {
+                source["name"]
+                for source in cazeneuve[0]["supporting_sources"]
+            },
+        )
+
+    def test_candidate_watch_filter_admits_only_material_changes(self):
+        accepted = [
+            (
+                {
+                    "headline": (
+                        "Présidentielle : François Hollande se prépare et met "
+                        "en garde contre les candidatures de témoignage"
+                    ),
+                    "candidates": ["François Hollande"],
+                    "explicit_election": False,
+                },
+                "campaign",
+            ),
+            (
+                {
+                    "headline": (
+                        "Visé par une enquête, Edouard Philippe échoue à faire "
+                        "annuler le statut de la lanceuse d’alerte"
+                    ),
+                    "candidates": ["Édouard Philippe"],
+                    "explicit_election": False,
+                },
+                "legal",
+            ),
+            (
+                {
+                    "headline": (
+                        "Pourquoi Gabriel Attal assigne Marine Le Pen et le RN "
+                        "en justice"
+                    ),
+                    "candidates": ["Gabriel Attal", "Marine Le Pen"],
+                    "explicit_election": False,
+                },
+                "legal",
+            ),
+        ]
+        for item, expected_category in accepted:
+            classification = classify_candidate_watch_change(item)
+            self.assertIsNotNone(classification)
+            self.assertEqual(classification[0], expected_category)
+
+        rejected = [
+            {
+                "headline": "Marine Le Pen joue au golf avec Jordan Bardella",
+                "candidates": ["Marine Le Pen", "Jordan Bardella"],
+                "explicit_election": False,
+            },
+            {
+                "headline": (
+                    "Sébastien Lecornu révèle que des personnes ont été "
+                    "écartées après des tests positifs dans les ministères"
+                ),
+                "candidates": ["Sébastien Lecornu"],
+                "explicit_election": False,
+            },
+            {
+                "headline": "Marine Le Pen ou le trumpisme à la française",
+                "candidates": ["Marine Le Pen"],
+                "explicit_election": False,
+            },
+            {
+                "headline": (
+                    "Protoxyde d'azote, rodéos urbains, free parties : le "
+                    "Parlement adopte définitivement le projet de loi Ripost "
+                    "de Laurent Nuñez"
+                ),
+                "candidates": ["Laurent Nuñez"],
+                "explicit_election": False,
+            },
+            {
+                "headline": (
+                    "Sénatoriales dans les Bouches-du-Rhône : Valérie Boyer "
+                    "se lance de son côté"
+                ),
+                "candidates": ["Valérie Boyer"],
+                "explicit_election": False,
+            },
+            {
+                "headline": (
+                    "Finalement, la ministre Monique Barbut décide de rester "
+                    "au gouvernement après avoir vu Emmanuel Macron"
+                ),
+                "candidates": ["Emmanuel Macron"],
+                "explicit_election": False,
+            },
+        ]
+        self.assertTrue(all(
+            classify_candidate_watch_change(item) is None
+            for item in rejected
+        ))
+
+    def test_headline_first_change_classifier_accepts_required_events(self):
+        accepted = [
+            (
+                {
+                    "headline": "Présidentielle : François Hollande se prépare",
+                    "candidates": ["François Hollande"],
+                    "explicit_election": True,
+                },
+                "campaign",
+            ),
+            (
+                {
+                    "headline": (
+                        "Présidentielle 2027: Bernard Cazeneuve décline "
+                        "la primaire socialiste"
+                    ),
+                    "candidates": ["Bernard Cazeneuve"],
+                    "explicit_election": True,
+                },
+                "campaign",
+            ),
+            (
+                {
+                    "headline": "Ségolène Royal annonce sa candidature",
+                    "candidates": ["Ségolène Royal"],
+                    "explicit_election": True,
+                },
+                "campaign",
+            ),
+            (
+                {
+                    "headline": (
+                        "Présidentielle: le parti modifie le processus "
+                        "de primaire"
+                    ),
+                    "candidates": [],
+                    "explicit_election": True,
+                },
+                "campaign",
+            ),
+            (
+                {
+                    "headline": (
+                        "Edouard Philippe échoue à faire annuler une "
+                        "décision de justice"
+                    ),
+                    "candidates": ["Édouard Philippe"],
+                    "explicit_election": False,
+                },
+                "legal",
+            ),
+            (
+                {
+                    "headline": (
+                        "Gabriel Attal assigne Marine Le Pen et le RN "
+                        "en justice"
+                    ),
+                    "candidates": ["Gabriel Attal", "Marine Le Pen"],
+                    "explicit_election": False,
+                },
+                "legal",
+            ),
+            (
+                {
+                    "headline": (
+                        "La cour statue sur l’éligibilité de Marine Le Pen"
+                    ),
+                    "candidates": ["Marine Le Pen"],
+                    "explicit_election": False,
+                },
+                "legal",
+            ),
+            (
+                {
+                    "headline": (
+                        "Présidentielle 2027: les règles de parrainage "
+                        "sont modifiées"
+                    ),
+                    "candidates": [],
+                    "explicit_election": True,
+                },
+                "legal",
+            ),
+        ]
+        for item, expected_category in accepted:
+            classification = classify_news_change(item)
+            self.assertIsNotNone(classification, item["headline"])
+            self.assertEqual(classification[0], expected_category)
+
+    def test_headline_first_change_classifier_rejects_commentary_and_routine_news(self):
+        rejected = [
+            {
+                "headline": "Marine Le Pen ou le trumpisme à la française",
+                "summary": (
+                    "L’éditorial rappelle sa condamnation et sa candidature "
+                    "à la présidentielle."
+                ),
+                "candidates": ["Marine Le Pen"],
+                "explicit_election": True,
+                "development_category": "legal_eligibility",
+            },
+            {
+                "headline": "Marine Le Pen joue au golf avec Jordan Bardella",
+                "candidates": ["Marine Le Pen", "Jordan Bardella"],
+                "explicit_election": False,
+            },
+            {
+                "headline": "L’Assemblée adopte définitivement la loi sur l’aide à mourir",
+                "candidates": [],
+                "explicit_election": False,
+            },
+            {
+                "headline": "Le Parlement adopte une loi sur les réseaux sociaux",
+                "candidates": [],
+                "explicit_election": False,
+            },
+            {
+                "headline": "La ministre décide de rester au gouvernement",
+                "candidates": [],
+                "explicit_election": False,
+            },
+            {
+                "headline": "François-Noël Buffet nommé Défenseur des droits",
+                "candidates": ["François-Noël Buffet"],
+                "explicit_election": False,
+            },
+            {
+                "headline": "Sénatoriales: Valérie Boyer annonce sa candidature",
+                "candidates": ["Valérie Boyer"],
+                "explicit_election": False,
+            },
+            {
+                "headline": "Marine Le Pen commente la stratégie de son parti",
+                "candidates": ["Marine Le Pen"],
+                "explicit_election": True,
+            },
+            {
+                "headline": "Marine Le Pen présente sa stratégie politique",
+                "summary": "Le texte rappelle sa condamnation et son appel.",
+                "candidates": ["Marine Le Pen"],
+                "explicit_election": True,
+            },
+            {
+                "headline": (
+                    "Interdiction du voile: Marine Le Pen envisage la piste "
+                    "d’un référendum"
+                ),
+                "candidates": ["Marine Le Pen"],
+                "explicit_election": True,
+            },
+        ]
+        for item in rejected:
+            self.assertIsNone(
+                classify_news_change(item),
+                item["headline"],
+            )
+
+    def test_upstream_legal_label_cannot_force_commentary_into_ledger(self):
+        commentary = {
+            "id": "le-pen-commentary",
+            "published_at": "2026-07-15T16:30:13Z",
+            "publisher": "Le Nouvel Obs — Politique",
+            "url": "https://example.test/le-pen-commentary",
+            "headline": "Marine Le Pen ou le trumpisme à la française",
+            "summary": (
+                "L’éditorial rappelle sa condamnation et sa candidature "
+                "à la présidentielle."
+            ),
+            "candidates": ["Marine Le Pen"],
+            "explicit_election": False,
+            "development_category": "legal_eligibility",
+            "development_label": "Legal status & eligibility",
+            "matched_terms": ["condamnation"],
+        }
+        diagnostics = Counter()
+        entries = news_entries(
+            {
+                "generated_at": "2026-07-22T09:00:00Z",
+                "election_news": [],
+                "notable_developments": [copy.deepcopy(commentary)],
+                "candidate_watch": [copy.deepcopy(commentary)],
+            },
+            {},
+            FIXED_CLOCK,
+            diagnostics,
+        )
+        self.assertEqual(entries, [])
+        self.assertEqual(diagnostics["omitted_news_non_material"], 1)
+
+    def test_material_candidate_watch_items_enter_news_entries(self):
+        payload = {
+            "generated_at": "2026-07-22T09:00:00Z",
+            "election_news": [],
+            "candidate_watch": [
+                {
+                    "id": "hollande-prepares",
+                    "published_at": "2026-07-16T18:20:55Z",
+                    "publisher": "Public Sénat",
+                    "url": "https://example.test/hollande-prepares",
+                    "headline": (
+                        "Présidentielle : François Hollande se prépare et met "
+                        "en garde contre les candidatures de témoignage"
+                    ),
+                    "candidates": ["François Hollande"],
+                    "explicit_election": False,
+                },
+                {
+                    "id": "philippe-legal",
+                    "published_at": "2026-07-18T12:36:49Z",
+                    "publisher": "Le Nouvel Obs — Politique",
+                    "url": "https://example.test/philippe-legal",
+                    "headline": (
+                        "Visé par une enquête, Edouard Philippe échoue à faire "
+                        "annuler le statut de la lanceuse d’alerte"
+                    ),
+                    "candidates": ["Édouard Philippe"],
+                    "explicit_election": False,
+                },
+                {
+                    "id": "golf",
+                    "published_at": "2026-07-18T09:30:14Z",
+                    "publisher": "Le Nouvel Obs — Politique",
+                    "url": "https://example.test/golf",
+                    "headline": "Marine Le Pen joue au golf avec Jordan Bardella",
+                    "candidates": ["Marine Le Pen", "Jordan Bardella"],
+                    "explicit_election": False,
+                },
+            ],
+        }
+        diagnostics = Counter()
+        entries = news_entries(payload, {}, FIXED_CLOCK, diagnostics)
+        self.assertEqual(
+            {item["id"] for item in entries},
+            {"campaign-hollande-prepares", "legal-philippe-legal"},
+        )
+        self.assertEqual(diagnostics["omitted_candidate_watch_non_material"], 1)
+
+    def test_duplicate_item_across_news_lanes_is_not_repeated(self):
+        item = {
+            "id": "royal-candidacy",
+            "published_at": "2026-07-10T12:04:12Z",
+            "publisher": "LCP — Actualités",
+            "url": "https://example.test/royal-candidacy",
+            "headline": (
+                "Présidentielle 2027: Ségolène Royal annonce sa candidature "
+                "à la primaire socialiste"
+            ),
+            "candidates": ["Ségolène Royal"],
+            "explicit_election": True,
+        }
+        diagnostics = Counter()
+        entries = news_entries(
+            {
+                "generated_at": "2026-07-22T09:00:00Z",
+                "election_news": [copy.deepcopy(item)],
+                "candidate_watch": [copy.deepcopy(item)],
+            },
+            {},
+            FIXED_CLOCK,
+            diagnostics,
+        )
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["id"], "campaign-royal-candidacy")
+        self.assertEqual(diagnostics["omitted_candidate_watch_duplicate"], 1)
+
+    def test_ledger_retains_all_qualifying_changes_in_window(self):
+        election_news = []
+        for index in range(15):
+            candidate_name = f"Personne{index} Unique{index}"
+            election_news.append(
+                {
+                    "id": f"candidate-{index}",
+                    "published_at": "2026-07-20T12:00:00Z",
+                    "publisher": f"Publisher {index}",
+                    "url": f"https://example.test/candidate-{index}",
+                    "headline": (
+                        f"Présidentielle 2027: {candidate_name} annonce sa "
+                        f"candidature et présente le projet distinct {index}"
+                    ),
+                    "candidates": [candidate_name],
+                    "explicit_election": True,
+                }
+            )
+        payload = compose_recent_changes(
+            news={
+                "generated_at": "2026-07-22T09:00:00Z",
+                "election_news": election_news,
+                "notable_developments": [],
+                "candidate_watch": [],
+            },
+            polls=[],
+            runoff={"status": "insufficient"},
+            second_round={"events": []},
+            claims={"reviews": []},
+            previous={},
+            checked_at=FIXED_CLOCK,
+        )
+        self.assertEqual(len(payload["items"]), 15)
+        self.assertEqual(payload["diagnostics"]["omitted_over_output_limit"], 0)
+
+    def test_lcp_actualites_uses_cached_lcp_icon_key(self):
+        self.assertEqual(icon_key("LCP — Actualités"), "LCP")
+        self.assertEqual(icon_key("France 24 — France"), "France 24 Français")
 
     def test_validator_rejects_duplicate_primary_urls(self):
         payload = self.compose()

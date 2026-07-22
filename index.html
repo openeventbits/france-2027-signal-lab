@@ -4249,7 +4249,7 @@
           </div>
         </div>
         <div class="signal-tabs" role="tablist" aria-label="Signal Desk views">
-          <button class="signal-tab active" id="signal-tab-election" type="button" role="tab" aria-selected="true" aria-controls="signal-panel-election" tabindex="0" data-signal-tab="election_news">ELECTION NEWS <span class="signal-tab-count" data-news-wire-count="election_news">—</span></button>
+          <button class="signal-tab active" id="signal-tab-election" type="button" role="tab" aria-selected="true" aria-controls="signal-panel-election" tabindex="0" data-signal-tab="election_news">RELEVANT NEWS <span class="signal-tab-count" data-news-wire-count="relevant_news">—</span></button>
           <button class="signal-tab" id="signal-tab-agenda" type="button" role="tab" aria-selected="false" aria-controls="signal-panel-agenda" tabindex="-1" data-signal-tab="campaign_agenda">CAMPAIGN AGENDA <span class="signal-tab-count" data-campaign-agenda-count>—</span></button>
           <button class="signal-tab" id="signal-tab-candidates" type="button" role="tab" aria-selected="false" aria-controls="signal-panel-candidates" tabindex="-1" data-signal-tab="candidate_watch">CANDIDATE COVERAGE <span class="signal-tab-count" data-news-wire-count="candidate_watch">—</span></button>
           <button class="signal-tab" id="signal-tab-fact-checks" type="button" role="tab" aria-selected="false" aria-controls="signal-panel-fact-checks" tabindex="-1" data-signal-tab="fact_checks">FACT CHECKS <span class="signal-tab-count" data-claims-count>—</span></button>
@@ -4658,8 +4658,15 @@
       records: new Map()
     };
 
+    const ledgerSourceIconAliases = new Map([
+      ["lcp actualites", "lcp"],
+      ["franceinfo", "franceinfo politique"],
+      ["france 24 france", "france 24 francais"]
+    ]);
+
     function ledgerSourceIconKey(value) {
-      return ledgerNormalizeText(value);
+      const normalized = ledgerNormalizeText(value);
+      return ledgerSourceIconAliases.get(normalized) || normalized;
     }
 
     function ensureLedgerSourceIcons() {
@@ -4953,6 +4960,15 @@
       image.alt = "";
       image.setAttribute("aria-hidden", "true");
       image.decoding = "async";
+      image.style.visibility = "hidden";
+
+      image.addEventListener(
+        "load",
+        () => {
+          image.style.visibility = "visible";
+        },
+        { once: true }
+      );
 
       image.addEventListener(
         "error",
@@ -5370,9 +5386,33 @@
       statusCell.classList.remove("is-ready", "is-loading", "is-partial");
 
       if (loaded === 4) {
-        statusCell.classList.add("is-ready");
-        $("#context-status-value").textContent = "All feeds ready";
-        $("#context-status-meta").textContent = "Polling · runoff · news · fact-checks";
+        const newsSourceCount = Array.isArray(dashboardState.news?.sources)
+          ? dashboardState.news.sources.length
+          : 0;
+        const readyNewsSources = Number.isInteger(
+          dashboardState.news?.counts?.successful_sources
+        )
+          ? dashboardState.news.counts.successful_sources
+          : newsSourceCount;
+        const unavailableNewsSources = Math.max(
+          0,
+          newsSourceCount - readyNewsSources
+        );
+
+        if (newsSourceCount && unavailableNewsSources > 0) {
+          statusCell.classList.add("is-partial");
+          $("#context-status-value").textContent =
+            readyNewsSources + " of " + newsSourceCount + " news feeds ready";
+          $("#context-status-meta").textContent =
+            unavailableNewsSources + " " +
+            (unavailableNewsSources === 1 ? "news feed" : "news feeds") +
+            " unavailable · polling · runoff · fact-checks live";
+        } else {
+          statusCell.classList.add("is-ready");
+          $("#context-status-value").textContent = "All feeds ready";
+          $("#context-status-meta").textContent =
+            "Polling · runoff · news · fact-checks";
+        }
       } else if (loading) {
         statusCell.classList.add("is-loading");
         $("#context-status-value").textContent = loaded + " of 4 feeds ready";
@@ -5394,7 +5434,9 @@
           !Array.isArray(payload.campaign_agenda.topics)) {
         throw new Error("Campaign Agenda data is malformed");
       }
-      if (!Array.isArray(payload.election_news) || !Array.isArray(payload.candidate_watch)) {
+      if (!Array.isArray(payload.election_news) ||
+          !Array.isArray(payload.notable_developments) ||
+          !Array.isArray(payload.candidate_watch)) {
         throw new Error("News-wire item lists are malformed");
       }
       if (!payload.generated_at || !Number.isFinite(new Date(payload.generated_at).getTime())) {
@@ -5413,6 +5455,15 @@
       if (lists.some(items => items.some(item => !validItem(item)))) {
         throw new Error("News-wire items are malformed");
       }
+      const notableValid = payload.notable_developments.every(item =>
+        validItem(item) &&
+        typeof item.development_category === "string" && item.development_category.trim() &&
+        typeof item.development_label === "string" && item.development_label.trim() &&
+        Array.isArray(item.matched_terms) && item.matched_terms.length > 0
+      );
+      if (!notableValid) {
+        throw new Error("Notable-development items are malformed");
+      }
 
       const agenda = payload.campaign_agenda;
       const validAgendaSupport = item => item && typeof item === "object" &&
@@ -5428,19 +5479,25 @@
         Array.isArray(topic.publisher_names) &&
         Array.isArray(topic.supporting_items) &&
         topic.supporting_items.every(validAgendaSupport);
-      if (agenda.method !== "accepted_election_news_by_campaign_theme" ||
+      if (agenda.method !== "accepted_relevant_news_by_campaign_theme" ||
           !Number.isInteger(agenda.display_min_source_days) || agenda.display_min_source_days < 1 ||
-          !Number.isInteger(agenda.input_item_count) || agenda.input_item_count < payload.election_news.length ||
+          !Number.isInteger(agenda.input_item_count) ||
+          agenda.input_item_count < payload.election_news.length + payload.notable_developments.length ||
           agenda.topics.some(topic => !validAgendaTopic(topic))) {
         throw new Error("Campaign Agenda data is malformed");
       }
 
       const expectedCounts = {
         election_news: payload.election_news.length,
+        notable_developments: payload.notable_developments.length,
+        relevant_news: payload.election_news.length + payload.notable_developments.length,
         candidate_watch: payload.candidate_watch.length
       };
       if (!Number.isInteger(payload.counts.successful_sources) || payload.counts.successful_sources < 0 ||
           !Number.isInteger(payload.counts.election_news) || payload.counts.election_news !== expectedCounts.election_news ||
+          !Number.isInteger(payload.counts.notable_developments) ||
+          payload.counts.notable_developments !== expectedCounts.notable_developments ||
+          !Number.isInteger(payload.counts.relevant_news) || payload.counts.relevant_news !== expectedCounts.relevant_news ||
           !Number.isInteger(payload.counts.candidate_watch) || payload.counts.candidate_watch !== expectedCounts.candidate_watch) {
         throw new Error("News-wire counts are malformed");
       }
@@ -5469,7 +5526,7 @@
       const parts = [];
       if (newsWirePayload) {
         parts.push(`${newsWirePayload.counts.successful_sources}/${newsWirePayload.sources.length} news sources`);
-        parts.push(`${newsWirePayload.counts.election_news} Election News`);
+        parts.push(`${newsWirePayload.counts.relevant_news} Relevant News`);
         const agendaThemeCount = newsWirePayload.campaign_agenda.topics.filter(topic => topic.display_eligible).length;
         parts.push(`${agendaThemeCount} Campaign Agenda themes`);
         parts.push(`${newsWirePayload.counts.candidate_watch} Candidate Coverage`);
@@ -5510,10 +5567,13 @@
 
     function renderElectionNews() {
       if (!newsWirePayload) return;
-      const items = newestNewsItems(newsWirePayload.election_news).slice(0, 5);
+      const items = newestNewsItems([
+        ...newsWirePayload.election_news,
+        ...newsWirePayload.notable_developments
+      ]);
       $("#election-news-list").innerHTML = items.length
         ? items.map(item => signalNewsRow(item, false)).join("")
-        : '<div class="signal-state">No election headlines in this update.</div>';
+        : '<div class="signal-state">No relevant election developments in this update.</div>';
     }
 
     function renderCampaignAgenda() {
@@ -5585,7 +5645,7 @@
         !selectedCoverageCandidate || item.candidates.includes(selectedCoverageCandidate)
       );
       $("#candidate-coverage-list").innerHTML = matching.length
-        ? matching.slice(0, 5).map(item => signalNewsRow(item, true)).join("")
+        ? matching.map(item => signalNewsRow(item, true)).join("")
         : `<div class="signal-state">No publisher coverage matches ${selectedCoverageCandidate ? escapeHtml(selectedCoverageCandidate) : "the selected candidate"} in this update.</div>`;
     }
 
@@ -5632,7 +5692,7 @@
         ? "Independent publisher reviews"
         : tabName === "campaign_agenda"
           ? "What accepted presidential coverage is about"
-          : "Latest verified publisher items";
+          : "All relevant publisher items in the current window";
       signalAction.hidden = tabName !== "fact_checks";
 
       if (tabName === "election_news") renderElectionNews();
@@ -5666,14 +5726,14 @@
       if (!payload || payload.schema_version !== 1) {
         throw new Error("recent_changes.json has an unsupported schema");
       }
-      if (!payload.window || payload.window.days !== 14 || payload.window.max_items !== 12) {
-        throw new Error("recent_changes.json has an invalid window contract");
+      if (!payload.window || payload.window.days !== 14 || payload.window.max_items !== 0) {
+        throw new Error("recent_changes.json has an invalid unlimited-window contract");
       }
-      if (!Array.isArray(payload.source_universe) || payload.source_universe.length !== 5) {
-        throw new Error("recent_changes.json must retain the five-feed source universe");
+      if (!Array.isArray(payload.source_universe) || payload.source_universe.length !== 19) {
+        throw new Error("recent_changes.json must retain the 19-feed source universe");
       }
-      if (!Array.isArray(payload.items) || payload.items.length > 12) {
-        throw new Error("recent_changes.json items must contain at most 12 changes");
+      if (!Array.isArray(payload.items)) {
+        throw new Error("recent_changes.json items must be a list");
       }
       const categories = new Set(["campaign", "polling", "runoff", "fact_check", "legal"]);
       const trustedKinds = new Set([
@@ -5772,7 +5832,7 @@
           renderSignalDeskNote();
         })
         .catch(error => {
-          $("#election-news-list").innerHTML = '<div class="signal-state error">Election News unavailable: ' + escapeHtml(error.message) + '</div>';
+          $("#election-news-list").innerHTML = '<div class="signal-state error">Relevant News unavailable: ' + escapeHtml(error.message) + '</div>';
           $("#campaign-agenda-view").innerHTML = '<div class="signal-state error">Campaign Agenda unavailable: ' + escapeHtml(error.message) + '</div>';
           $("#candidate-coverage-list").innerHTML = '<div class="signal-state error">Candidate Coverage unavailable: ' + escapeHtml(error.message) + '</div>';
           document.documentElement.dataset.newsReady = "error";
