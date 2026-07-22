@@ -3299,6 +3299,582 @@
     }
 
 
+
+    /* What Changed: recent changes ledger */
+    .what-changed {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .what-changed .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex: 0 0 auto;
+    }
+
+    .changes-ledger-summary {
+      color: #7897a9;
+      font-size: 8px;
+      font-weight: 760;
+      letter-spacing: .09em;
+      line-height: 1;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .what-changed-list {
+      position: relative;
+      display: flex !important;
+      flex: 1 1 auto !important;
+      flex-direction: column;
+      min-height: 0;
+      padding: 0 !important;
+      overflow: hidden;
+    }
+
+    .what-changed-list::before {
+      display: none !important;
+      content: none !important;
+    }
+
+    .changes-ledger-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 0 0 auto;
+      min-height: 35px;
+      padding: 5px 7px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      border-bottom: 1px solid #183950;
+      background: rgba(5, 17, 28, .72);
+      scrollbar-width: none;
+    }
+
+    .changes-ledger-toolbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .changes-ledger-filter {
+      appearance: none;
+      flex: 0 0 auto;
+      min-height: 24px;
+      padding: 4px 8px;
+      border: 1px solid #24465e;
+      border-radius: 999px;
+      background: #071522;
+      color: #829dad;
+      font: inherit;
+      font-size: 8px;
+      font-weight: 720;
+      letter-spacing: .055em;
+      line-height: 1;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .changes-ledger-filter:hover {
+      border-color: #3980a3;
+      color: #d8e9f3;
+    }
+
+    .changes-ledger-filter[aria-pressed="true"] {
+      border-color: var(--cyan);
+      background: rgba(53, 213, 255, .1);
+      color: var(--cyan);
+      box-shadow: inset 0 0 11px rgba(53, 213, 255, .04);
+    }
+
+    .changes-ledger-filter:focus-visible,
+    .changes-ledger-source:focus-visible,
+    .changes-ledger-scroll:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+
+    .changes-ledger-scroll {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-color: #275b79 #071522;
+      scrollbar-gutter: stable;
+      scrollbar-width: thin;
+    }
+
+    .changes-ledger-scroll::before {
+      content: "";
+      position: absolute;
+      z-index: 1;
+      top: 24px;
+      bottom: 12px;
+      left: 67px;
+      width: 1px;
+      background: #29495d;
+      pointer-events: none;
+    }
+
+    .changes-ledger-scroll::-webkit-scrollbar {
+      width: 7px;
+    }
+
+    .changes-ledger-scroll::-webkit-scrollbar-track {
+      background: #071522;
+    }
+
+    .changes-ledger-scroll::-webkit-scrollbar-thumb {
+      border: 2px solid #071522;
+      border-radius: 999px;
+      background: #275b79;
+    }
+
+    .changes-ledger-date {
+      position: sticky;
+      z-index: 6;
+      top: 0;
+      min-height: 21px;
+      padding: 5px 9px 4px 78px;
+      border-bottom: 1px solid rgba(24, 57, 80, .78);
+      background: rgba(6, 19, 31, .97);
+      color: #7696a9;
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: .11em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .changes-ledger-entry {
+      --ledger-accent: var(--cyan);
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 45px 34px minmax(0, 1fr) minmax(50px, auto);
+      align-items: center;
+      gap: 5px 7px;
+      min-width: 0;
+      min-height: 57px;
+      padding: 5px 8px 5px 9px;
+      border-bottom: 1px solid #143149;
+      background:
+        linear-gradient(
+          90deg,
+          color-mix(in srgb, var(--ledger-accent) 3%, transparent),
+          transparent 32%
+        );
+    }
+
+    .changes-ledger-entry[data-category="campaign"] {
+      --ledger-accent: #57c9bd;
+    }
+
+    .changes-ledger-entry[data-category="polls"] {
+      --ledger-accent: var(--cyan);
+    }
+
+    .changes-ledger-entry[data-category="runoffs"] {
+      --ledger-accent: #a374ff;
+    }
+
+    .changes-ledger-entry[data-category="checks"] {
+      --ledger-accent: #ffac2f;
+    }
+
+    .changes-ledger-entry:hover {
+      background:
+        linear-gradient(
+          90deg,
+          color-mix(in srgb, var(--ledger-accent) 7%, transparent),
+          transparent 40%
+        ),
+        rgba(8, 25, 40, .24);
+    }
+
+    .changes-ledger-time {
+      align-self: start;
+      padding-top: 8px;
+      color: #6f8da1;
+      font-size: 8px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .changes-ledger-beacon {
+      position: relative;
+      z-index: 3;
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      color: var(--ledger-accent);
+      filter:
+        drop-shadow(
+          0 0 4px
+          color-mix(in srgb, var(--ledger-accent) 35%, transparent)
+        );
+    }
+
+    .changes-ledger-beacon svg {
+      display: block;
+      width: 28px;
+      height: 28px;
+      overflow: visible;
+    }
+
+    .changes-ledger-shape {
+      fill: color-mix(in srgb, var(--ledger-accent) 10%, #071522);
+      stroke: currentColor;
+      stroke-width: 1.35;
+    }
+
+    .changes-ledger-glyph {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.55;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .changes-ledger-fill {
+      fill: currentColor;
+      stroke: none;
+    }
+
+    .changes-ledger-copy {
+      min-width: 0;
+    }
+
+    .changes-ledger-category {
+      color: var(--ledger-accent);
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .changes-ledger-headline {
+      display: -webkit-box;
+      margin: 3px 0 0;
+      overflow: hidden;
+      color: #edf7fc;
+      font-size: 10px;
+      font-weight: 680;
+      line-height: 1.23;
+      overflow-wrap: anywhere;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .changes-ledger-meta {
+      display: flex;
+      align-items: baseline;
+      gap: 3px 7px;
+      min-width: 0;
+      margin-top: 3px;
+      overflow: hidden;
+      color: #6e8b9d;
+      font-size: 7px;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+
+    .changes-ledger-meta-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .changes-ledger-source {
+      flex: 0 0 auto;
+      color: var(--cyan);
+      white-space: nowrap;
+    }
+
+    .changes-ledger-visual {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-width: 50px;
+    }
+
+    .changes-ledger-visual .candidate-monogram {
+      width: 31px;
+      height: 31px;
+      border-color: #456478;
+    }
+
+    .changes-ledger-visual .candidate-monogram + .candidate-monogram {
+      margin-left: -7px;
+    }
+
+    .changes-ledger-wordmark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 48px;
+      max-width: 74px;
+      height: 25px;
+      padding: 0 8px;
+      overflow: hidden;
+      border: 1px solid color-mix(
+        in srgb,
+        var(--ledger-accent) 58%,
+        #29495d
+      );
+      border-radius: 999px;
+      background: rgba(7, 20, 33, .9);
+      color: var(--ledger-accent);
+      font-size: 8px;
+      font-weight: 760;
+      line-height: 1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .changes-ledger-empty {
+      display: grid;
+      place-items: center;
+      min-height: 100%;
+      padding: 24px;
+      color: #819dad;
+      font-size: 10px;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    .changes-ledger-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex: 0 0 auto;
+      min-height: 25px;
+      padding: 5px 8px;
+      border-top: 1px solid #183950;
+      background: rgba(5, 17, 28, .72);
+      color: #6f8da1;
+      font-size: 7px;
+      letter-spacing: .055em;
+      line-height: 1;
+    }
+
+    .changes-ledger-footer strong {
+      color: #98afbd;
+      font-weight: 700;
+    }
+
+    @media (max-width: 1119px) {
+      .changes-ledger-scroll {
+        max-height: none;
+        overflow: visible;
+      }
+
+      .changes-ledger-scroll::before {
+        bottom: 20px;
+      }
+
+      .changes-ledger-date {
+        position: static;
+      }
+
+      .changes-ledger-entry {
+        min-height: 62px;
+      }
+    }
+
+    @media (max-width: 719px) {
+      .changes-ledger-summary {
+        font-size: 7px;
+      }
+
+      .changes-ledger-toolbar {
+        padding-inline: 6px;
+      }
+
+      .changes-ledger-scroll::before {
+        left: 57px;
+      }
+
+      .changes-ledger-date {
+        padding-left: 68px;
+      }
+
+      .changes-ledger-entry {
+        grid-template-columns: 35px 30px minmax(0, 1fr) minmax(42px, auto);
+        gap: 5px;
+        padding-inline: 5px;
+      }
+
+      .changes-ledger-time {
+        font-size: 7px;
+      }
+
+      .changes-ledger-beacon {
+        width: 28px;
+        height: 28px;
+      }
+
+      .changes-ledger-beacon svg {
+        width: 26px;
+        height: 26px;
+      }
+
+      .changes-ledger-headline {
+        font-size: 9px;
+      }
+
+      .changes-ledger-visual .candidate-monogram {
+        width: 28px;
+        height: 28px;
+      }
+    }
+
+
+    /* Recent Changes Ledger: signal-row visual treatment */
+
+    .changes-ledger-toolbar {
+      min-height: 32px;
+      padding-block: 4px;
+    }
+
+    .changes-ledger-scroll::before {
+      top: 22px;
+      bottom: 12px;
+      left: 25px;
+      background: #29495d;
+    }
+
+    .changes-ledger-date {
+      min-height: 22px;
+      padding: 5px 9px 4px 51px;
+      border-bottom: 1px solid #183950;
+      background: rgba(6, 19, 31, .98);
+      color: #819dad;
+      font-size: 8px;
+      letter-spacing: .1em;
+    }
+
+    .changes-ledger-entry {
+      grid-template-columns: 42px minmax(0, 1fr) minmax(58px, auto);
+      gap: 7px;
+      min-height: 58px;
+      padding: 6px 8px 6px 3px;
+      border-left: 2px solid var(--ledger-accent);
+    }
+
+    .changes-ledger-time {
+      display: none;
+    }
+
+    .changes-ledger-beacon {
+      justify-self: center;
+      width: 38px;
+      height: 38px;
+      filter:
+        drop-shadow(
+          0 0 6px
+          color-mix(in srgb, var(--ledger-accent) 42%, transparent)
+        );
+    }
+
+    .changes-ledger-beacon svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    .changes-ledger-category {
+      font-size: 8px;
+      letter-spacing: .105em;
+    }
+
+    .changes-ledger-headline {
+      margin-top: 4px;
+      font-size: 11px;
+      font-weight: 690;
+      line-height: 1.25;
+    }
+
+    .changes-ledger-meta {
+      margin-top: 4px;
+      font-size: 8px;
+      line-height: 1.18;
+    }
+
+    .changes-ledger-visual {
+      min-width: 58px;
+    }
+
+    .changes-ledger-visual .candidate-monogram {
+      width: 34px;
+      height: 34px;
+    }
+
+    .changes-ledger-visual .candidate-monogram + .candidate-monogram {
+      margin-left: -8px;
+    }
+
+    .changes-ledger-wordmark {
+      min-width: 54px;
+      max-width: 78px;
+      height: 28px;
+      padding-inline: 9px;
+      font-size: 9px;
+    }
+
+    .changes-ledger-footer {
+      min-height: 23px;
+      padding-block: 4px;
+    }
+
+    @media (max-width: 719px) {
+      .changes-ledger-scroll::before {
+        left: 22px;
+      }
+
+      .changes-ledger-date {
+        padding-left: 47px;
+      }
+
+      .changes-ledger-entry {
+        grid-template-columns: 37px minmax(0, 1fr) minmax(46px, auto);
+        gap: 6px;
+        min-height: 62px;
+        padding-inline: 2px 6px;
+      }
+
+      .changes-ledger-beacon {
+        width: 34px;
+        height: 34px;
+      }
+
+      .changes-ledger-beacon svg {
+        width: 32px;
+        height: 32px;
+      }
+
+      .changes-ledger-headline {
+        font-size: 10.5px;
+      }
+
+      .changes-ledger-meta {
+        font-size: 7.5px;
+      }
+
+      .changes-ledger-visual .candidate-monogram {
+        width: 30px;
+        height: 30px;
+      }
+    }
+
     /* Runoff evidence integrated into the compact header */
     .intelligence-grid .closest-runoff-head {
       display: grid;
@@ -3439,10 +4015,17 @@
 
     <section class="hero-grid" aria-label="Top briefing">
       <article class="panel what-changed" aria-labelledby="what-changed-title">
-        <div class="panel-head">
+
+<div class="panel-head">
           <h2 id="what-changed-title">WHAT CHANGED</h2>
+          <div
+            class="changes-ledger-summary"
+            id="changes-ledger-summary"
+            aria-live="polite"
+          >SOURCE-LINKED UPDATES LOADING</div>
         </div>
-        <div class="what-changed-list" id="what-changed-list" aria-live="polite">
+
+<div class="what-changed-list" id="what-changed-list" aria-live="polite">
           <div class="what-changed-state">Checking for source-linked dashboard signals…</div>
         </div>
       </article>
@@ -3979,63 +4562,739 @@
       article.appendChild(visual);
     }
 
+
+    let whatChangedLedgerFilter = "all";
+
+    function ledgerNormalizeText(value) {
+      return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/https?:\/\/\S+/g, " ")
+        .replace(/[^a-z0-9]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function ledgerParseDate(value) {
+      if (typeof value !== "string" || !value) return null;
+
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(value)
+        ? new Date(value + "T12:00:00Z")
+        : new Date(value);
+
+      return Number.isFinite(date.getTime()) ? date : null;
+    }
+
+    function ledgerParisDateKey(date) {
+      if (!(date instanceof Date) || !Number.isFinite(date.getTime())) {
+        return "";
+      }
+
+      const parts = Object.fromEntries(
+        new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Europe/Paris",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit"
+        })
+          .formatToParts(date)
+          .filter(part => part.type !== "literal")
+          .map(part => [part.type, part.value])
+      );
+
+      return parts.year + "-" + parts.month + "-" + parts.day;
+    }
+
+    function ledgerDateDifference(anchorKey, itemKey) {
+      const anchor = anchorKey.split("-").map(Number);
+      const item = itemKey.split("-").map(Number);
+
+      if (anchor.length !== 3 || item.length !== 3) return NaN;
+
+      return Math.round(
+        (
+          Date.UTC(anchor[0], anchor[1] - 1, anchor[2]) -
+          Date.UTC(item[0], item[1] - 1, item[2])
+        ) /
+        86400000
+      );
+    }
+
+    function ledgerDateHeading(dateKey, anchorKey) {
+      const difference = ledgerDateDifference(anchorKey, dateKey);
+      const date = ledgerParseDate(dateKey);
+
+      const shortDate = date
+        ? new Intl.DateTimeFormat("en-GB", {
+            timeZone: "Europe/Paris",
+            day: "numeric",
+            month: "short"
+          }).format(date).toUpperCase()
+        : dateKey;
+
+      if (difference === 0) return "TODAY · " + shortDate;
+      if (difference === 1) return "YESTERDAY · " + shortDate;
+
+      return shortDate;
+    }
+
+    function ledgerTimeLabel(entry) {
+      if (entry.datePrecision !== "datetime") return "—";
+
+      return new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/Paris",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23"
+      }).format(entry.date);
+    }
+
+    function ledgerSvgElement(tagName, attributes = {}, className = "") {
+      const element = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        tagName
+      );
+
+      Object.entries(attributes).forEach(([name, value]) => {
+        element.setAttribute(name, value);
+      });
+
+      if (className) element.setAttribute("class", className);
+      return element;
+    }
+
+    function createLedgerBeacon(category) {
+      const beacon = document.createElement("span");
+      beacon.className = "changes-ledger-beacon";
+      beacon.setAttribute("aria-hidden", "true");
+
+      const svg = ledgerSvgElement("svg", {
+        viewBox: "0 0 32 32",
+        focusable: "false"
+      });
+
+      if (category === "polls") {
+        svg.appendChild(ledgerSvgElement(
+          "circle",
+          { cx: "16", cy: "16", r: "12" },
+          "changes-ledger-shape"
+        ));
+
+        [
+          { x: "9", y: "18", width: "3", height: "5" },
+          { x: "14.5", y: "14", width: "3", height: "9" },
+          { x: "20", y: "10", width: "3", height: "13" }
+        ].forEach(attributes => {
+          svg.appendChild(ledgerSvgElement(
+            "rect",
+            { ...attributes, rx: ".7" },
+            "changes-ledger-fill"
+          ));
+        });
+      }
+
+      if (category === "campaign") {
+        svg.appendChild(ledgerSvgElement(
+          "polygon",
+          { points: "16,3 29,16 16,29 3,16" },
+          "changes-ledger-shape"
+        ));
+
+        svg.appendChild(ledgerSvgElement(
+          "path",
+          { d: "M12 22V9M12 10H21L18.5 14L21 18H12" },
+          "changes-ledger-glyph"
+        ));
+      }
+
+      if (category === "runoffs") {
+        svg.appendChild(ledgerSvgElement(
+          "circle",
+          { cx: "16", cy: "16", r: "12" },
+          "changes-ledger-shape"
+        ));
+
+        svg.appendChild(ledgerSvgElement(
+          "path",
+          {
+            d: [
+              "M16 4V28",
+              "M7 16H14",
+              "M11 13L14 16L11 19",
+              "M25 16H18",
+              "M21 13L18 16L21 19"
+            ].join(" ")
+          },
+          "changes-ledger-glyph"
+        ));
+
+        svg.appendChild(ledgerSvgElement(
+          "circle",
+          { cx: "7", cy: "16", r: "1.5" },
+          "changes-ledger-fill"
+        ));
+
+        svg.appendChild(ledgerSvgElement(
+          "circle",
+          { cx: "25", cy: "16", r: "1.5" },
+          "changes-ledger-fill"
+        ));
+      }
+
+      if (category === "checks") {
+        svg.appendChild(ledgerSvgElement(
+          "polygon",
+          { points: "16,3 27,9.5 27,22.5 16,29 5,22.5 5,9.5" },
+          "changes-ledger-shape"
+        ));
+
+        svg.appendChild(ledgerSvgElement(
+          "path",
+          { d: "M10.5 16.5L14.5 20.5L22 11.5" },
+          "changes-ledger-glyph"
+        ));
+      }
+
+      beacon.appendChild(svg);
+      return beacon;
+    }
+
+    function ledgerSourceVisual(entry) {
+      const visual = document.createElement("div");
+      visual.className = "changes-ledger-visual";
+
+      if (entry.visualType === "pollster") {
+        const wordmark = document.createElement("span");
+        wordmark.className = "changes-ledger-wordmark";
+        wordmark.textContent = entry.visualLabel || entry.sourceName;
+        wordmark.title = entry.visualLabel || entry.sourceName;
+        visual.appendChild(wordmark);
+        return visual;
+      }
+
+      const candidates = Array.isArray(entry.candidates)
+        ? entry.candidates.filter(Boolean).slice(0, 2)
+        : [];
+
+      if (candidates.length) {
+        candidates.forEach(candidate => {
+          visual.appendChild(briefingCandidateMarker(candidate));
+        });
+        return visual;
+      }
+
+      const badge = document.createElement("span");
+      badge.className = "changes-ledger-wordmark";
+      badge.textContent = entry.sourceName || "Source";
+      badge.title = entry.sourceName || "Source";
+      visual.appendChild(badge);
+
+      return visual;
+    }
+
+    function deriveCampaignLedgerEntries() {
+      const payload = dashboardState.news;
+      if (!payload || !Array.isArray(payload.election_news)) return [];
+
+      const seen = new Set();
+      const entries = [];
+
+      payload.election_news.forEach(item => {
+        const normalized = ledgerNormalizeText(item.headline);
+        const date = ledgerParseDate(item.published_at);
+        const sourceUrl = safeSourceUrl(item.url);
+
+        if (!normalized || seen.has(normalized) || !date || !sourceUrl) {
+          return;
+        }
+
+        seen.add(normalized);
+
+        entries.push({
+          id: "campaign-" + (item.id || normalized),
+          category: "campaign",
+          categoryLabel: "CAMPAIGN",
+          headline: item.headline,
+          date,
+          datePrecision: "datetime",
+          sourceName: item.publisher,
+          sourceUrl,
+          meta: item.publisher,
+          candidates: Array.isArray(item.candidates)
+            ? item.candidates
+            : []
+        });
+      });
+
+      return entries;
+    }
+
+    function derivePollingLedgerEntries() {
+      const payload = dashboardState.polls;
+      if (!payload || !Array.isArray(payload.events)) return [];
+
+      const waves = new Map();
+
+      payload.events
+        .filter(event => event.round === "first_round")
+        .forEach(event => {
+          const dateValue = event.publication_date || event.fieldwork_end;
+          const date = ledgerParseDate(dateValue);
+          const sourceUrl = safeSourceUrl(event.source_url);
+
+          if (!date || !sourceUrl) return;
+
+          const key = [
+            event.pollster,
+            event.fieldwork_start,
+            event.fieldwork_end,
+            event.sample_size || "",
+            event.publication_date || ""
+          ].join("|");
+
+          if (!waves.has(key)) {
+            waves.set(key, {
+              pollster: event.pollster,
+              fieldworkStart: event.fieldwork_start,
+              fieldworkEnd: event.fieldwork_end,
+              publicationDate: event.publication_date || "",
+              sampleSize: event.sample_size,
+              sourceUrl,
+              date,
+              hypotheses: []
+            });
+          }
+
+          waves.get(key).hypotheses.push(event);
+        });
+
+      return [...waves.values()].map(wave => {
+        const hypothesisCount = wave.hypotheses.length;
+        const sample = wave.sampleSize
+          ? Number(wave.sampleSize).toLocaleString("en-GB") +
+            " respondents"
+          : "sample not stated";
+
+        return {
+          id: [
+            "poll",
+            wave.pollster,
+            wave.fieldworkStart,
+            wave.fieldworkEnd,
+            wave.sampleSize || ""
+          ].join("-"),
+          category: "polls",
+          categoryLabel: "POLLING",
+          headline:
+            wave.pollster + " publishes " +
+            hypothesisCount + " first-round " +
+            (hypothesisCount === 1 ? "hypothesis." : "hypotheses."),
+          date: wave.date,
+          datePrecision: wave.publicationDate ? "date" : "date",
+          sourceName: wave.pollster,
+          sourceUrl: wave.sourceUrl,
+          meta:
+            "Fieldwork " +
+            formatDate(wave.fieldworkStart) + "–" +
+            formatDate(wave.fieldworkEnd) + " · " +
+            sample,
+          candidates: [],
+          visualType: "pollster",
+          visualLabel: wave.pollster
+        };
+      });
+    }
+
+    function deriveRunoffLedgerEntries() {
+      const payload = dashboardState.runoff;
+      const signal = runoffSignal();
+
+      if (!payload || !signal) return [];
+
+      let candidates = [];
+
+      if (
+        payload.selected_matchup &&
+        Array.isArray(payload.selected_matchup.candidates)
+      ) {
+        candidates = payload.selected_matchup.candidates;
+      } else if (
+        Array.isArray(payload.pollsters) &&
+        payload.pollsters.length
+      ) {
+        const choices = payload.pollsters.flatMap(pollster =>
+          Array.isArray(pollster.closest_matchups)
+            ? pollster.closest_matchups
+            : []
+        );
+
+        choices.sort((a, b) =>
+          Number(a.result?.margin ?? Infinity) -
+          Number(b.result?.margin ?? Infinity)
+        );
+
+        candidates = Array.isArray(choices[0]?.candidates)
+          ? choices[0].candidates
+          : [];
+      }
+
+      const dateValue =
+        payload.fieldwork_window?.end ||
+        payload.generated_at ||
+        dashboardState.updatedAt.runoff;
+
+      const date = ledgerParseDate(dateValue);
+
+      if (!date || !signal.sourceUrl) return [];
+
+      return [{
+        id: "runoff-" + ledgerNormalizeText(signal.headline),
+        category: "runoffs",
+        categoryLabel: "RUNOFF",
+        headline: signal.headline,
+        date,
+        datePrecision:
+          typeof dateValue === "string" && dateValue.includes("T")
+            ? "datetime"
+            : "date",
+        sourceName: signal.sourceName,
+        sourceUrl: signal.sourceUrl,
+        meta: signal.context,
+        candidates
+      }];
+    }
+
+    function deriveChecksLedgerEntries() {
+      const payload = dashboardState.claims;
+      if (!payload || !Array.isArray(payload.reviews)) return [];
+
+      const seen = new Set();
+
+      return payload.reviews.flatMap(review => {
+        const date = ledgerParseDate(review.review_date);
+        const sourceUrl = safeSourceUrl(review.review_url);
+
+        const key =
+          review.id ||
+          ledgerNormalizeText(review.claim_text) +
+          "|" +
+          review.review_date;
+
+        if (!date || !sourceUrl || seen.has(key)) return [];
+
+        seen.add(key);
+
+        const candidates = Array.isArray(review.candidate_associations)
+          ? review.candidate_associations
+              .map(association => association.candidate_name)
+              .filter(Boolean)
+          : [];
+
+        return [{
+          id: "check-" + key,
+          category: "checks",
+          categoryLabel: "CHECK",
+          headline: review.claim_text,
+          date,
+          datePrecision: "date",
+          sourceName: review.publisher_name,
+          sourceUrl,
+          meta: [
+            review.publisher_name,
+            review.rating
+          ].filter(Boolean).join(" · "),
+          candidates
+        }];
+      });
+    }
+
+    function deriveRecentChangeLedger() {
+      const entries = [
+        ...deriveCampaignLedgerEntries(),
+        ...derivePollingLedgerEntries(),
+        ...deriveRunoffLedgerEntries(),
+        ...deriveChecksLedgerEntries()
+      ].filter(entry =>
+        entry.date instanceof Date &&
+        Number.isFinite(entry.date.getTime())
+      );
+
+      const updateDates = Object.values(dashboardState.updatedAt)
+        .map(ledgerParseDate)
+        .filter(date => date && Number.isFinite(date.getTime()));
+
+      const allDates = [
+        ...entries.map(entry => entry.date),
+        ...updateDates
+      ];
+
+      if (!allDates.length) {
+        return {
+          entries: [],
+          anchorDate: null,
+          anchorKey: "",
+          loading: Object.values(
+            dashboardState.loadState
+          ).includes("loading")
+        };
+      }
+
+      const anchorDate = new Date(
+        Math.max(...allDates.map(date => date.getTime()))
+      );
+
+      const windowStart = new Date(anchorDate);
+      windowStart.setUTCDate(windowStart.getUTCDate() - 13);
+      windowStart.setUTCHours(0, 0, 0, 0);
+
+      const windowEnd = new Date(anchorDate);
+      windowEnd.setUTCDate(windowEnd.getUTCDate() + 1);
+      windowEnd.setUTCHours(23, 59, 59, 999);
+
+      const windowEntries = entries
+        .filter(entry =>
+          entry.date >= windowStart &&
+          entry.date <= windowEnd
+        )
+        .sort((a, b) =>
+          b.date.getTime() - a.date.getTime() ||
+          a.category.localeCompare(b.category) ||
+          a.headline.localeCompare(b.headline, "fr")
+        );
+
+      return {
+        entries: windowEntries,
+        anchorDate,
+        anchorKey: ledgerParisDateKey(anchorDate),
+        loading: Object.values(
+          dashboardState.loadState
+        ).includes("loading")
+      };
+    }
+
+    function renderLedgerEntry(entry) {
+      const article = document.createElement("article");
+      article.className = "changes-ledger-entry";
+      article.dataset.category = entry.category;
+
+      appendBriefingText(
+        article,
+        "changes-ledger-time",
+        ledgerTimeLabel(entry),
+        "time"
+      );
+
+      article.appendChild(createLedgerBeacon(entry.category));
+
+      const copy = document.createElement("div");
+      copy.className = "changes-ledger-copy";
+
+      appendBriefingText(
+        copy,
+        "changes-ledger-category",
+        entry.categoryLabel
+      );
+
+      appendBriefingText(
+        copy,
+        "changes-ledger-headline",
+        entry.headline,
+        "h3"
+      );
+
+      const meta = document.createElement("div");
+      meta.className = "changes-ledger-meta";
+
+      appendBriefingText(
+        meta,
+        "changes-ledger-meta-text",
+        entry.meta || entry.sourceName,
+        "span"
+      );
+
+      const source = document.createElement("a");
+      source.className = "changes-ledger-source";
+      source.href = entry.sourceUrl;
+      source.target = "_blank";
+      source.rel = "noopener noreferrer";
+      source.textContent = "Source ↗";
+      source.setAttribute(
+        "aria-label",
+        "Open " + entry.categoryLabel.toLowerCase() +
+        " source from " + entry.sourceName
+      );
+
+      meta.appendChild(source);
+      copy.appendChild(meta);
+      article.appendChild(copy);
+      article.appendChild(ledgerSourceVisual(entry));
+
+      return article;
+    }
+
     function renderWhatChanged() {
       const container = $("#what-changed-list");
       if (!container) return;
-      const items = [newPollSignal(), runoffSignal(), factCheckSignal()].filter(Boolean).slice(0, 3);
-      delete container.dataset.count;
-      container.replaceChildren();
 
-      if (!items.length) {
-        const loading = Object.values(dashboardState.loadState).includes("loading");
-        appendBriefingText(
-          container,
-          "what-changed-state",
-          loading ? "Checking for source-linked dashboard signals…" : "No qualifying source-linked signals are available."
-        );
-        return;
+      const ledger = deriveRecentChangeLedger();
+
+      const categories = [
+        { key: "all", label: "ALL" },
+        { key: "campaign", label: "CAMPAIGN" },
+        { key: "polls", label: "POLLS" },
+        { key: "runoffs", label: "RUNOFFS" },
+        { key: "checks", label: "CHECKS" }
+      ];
+
+      const counts = Object.fromEntries(
+        categories.map(category => [
+          category.key,
+          category.key === "all"
+            ? ledger.entries.length
+            : ledger.entries.filter(
+                entry => entry.category === category.key
+              ).length
+        ])
+      );
+
+      if (
+        whatChangedLedgerFilter !== "all" &&
+        !categories.some(
+          category => category.key === whatChangedLedgerFilter
+        )
+      ) {
+        whatChangedLedgerFilter = "all";
       }
 
-      container.dataset.count = String(items.length);
-      items.forEach((item, index) => {
-        const article = document.createElement("article");
-        article.className = "what-changed-item";
-        article.dataset.signalTone = briefingSignalTone(item.category);
+      const filteredEntries =
+        whatChangedLedgerFilter === "all"
+          ? ledger.entries
+          : ledger.entries.filter(
+              entry => entry.category === whatChangedLedgerFilter
+            );
 
-        appendBriefingText(article, "what-changed-number", String(index + 1).padStart(2, "0"));
-        const timeline = document.createElement("span");
-        timeline.className = "what-changed-node";
-        timeline.setAttribute("aria-hidden", "true");
-        article.appendChild(timeline);
+      const summary = $("#changes-ledger-summary");
 
-        const body = document.createElement("div");
-        body.className = "what-changed-copy";
-        appendBriefingText(body, "what-changed-category", item.category);
-        appendBriefingText(body, "what-changed-headline", item.headline, "h3");
-        appendBriefingText(body, "what-changed-context", item.context);
+      if (summary) {
+        if (ledger.loading) {
+          summary.textContent =
+            counts.all +
+            (counts.all === 1 ? " UPDATE" : " UPDATES") +
+            " · LOADING";
+        } else {
+          summary.textContent =
+            counts.all +
+            " SOURCE-LINKED " +
+            (counts.all === 1 ? "UPDATE" : "UPDATES") +
+            " · 14 DAYS";
+        }
+      }
 
-        const meta = document.createElement("div");
-        meta.className = "what-changed-meta";
-        appendBriefingText(meta, "", item.date, "time");
-        appendBriefingText(meta, "", item.sourceName, "span");
+      container.removeAttribute("data-count");
+      container.replaceChildren();
 
-        const source = document.createElement("a");
-        source.className = "what-changed-link";
-        source.href = item.sourceUrl;
-        source.target = "_blank";
-        source.rel = "noopener noreferrer";
-        source.textContent = "Open source ↗";
-        source.setAttribute(
-          "aria-label",
-          "Open " + item.category.toLowerCase() + " source from " + item.sourceName
+      const toolbar = document.createElement("div");
+      toolbar.className = "changes-ledger-toolbar";
+      toolbar.setAttribute("aria-label", "Filter recent updates");
+
+      categories.forEach(category => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "changes-ledger-filter";
+        button.dataset.ledgerFilter = category.key;
+        button.setAttribute(
+          "aria-pressed",
+          String(whatChangedLedgerFilter === category.key)
         );
+        button.textContent =
+          category.label + " " + counts[category.key];
 
-        meta.appendChild(source);
-        body.appendChild(meta);
-        article.appendChild(body);
-        appendBriefingVisual(article, item);
-        container.appendChild(article);
+        button.addEventListener("click", () => {
+          whatChangedLedgerFilter = category.key;
+          renderWhatChanged();
+
+          requestAnimationFrame(() => {
+            const replacement = document.querySelector(
+              '[data-ledger-filter="' + category.key + '"]'
+            );
+            if (replacement) replacement.focus();
+          });
+        });
+
+        toolbar.appendChild(button);
       });
+
+      container.appendChild(toolbar);
+
+      const scroll = document.createElement("div");
+      scroll.className = "changes-ledger-scroll";
+      scroll.tabIndex = 0;
+      scroll.setAttribute(
+        "aria-label",
+        "Chronological source-linked updates"
+      );
+
+      if (!filteredEntries.length) {
+        appendBriefingText(
+          scroll,
+          "changes-ledger-empty",
+          ledger.loading
+            ? "Source-linked updates are still loading."
+            : "No " +
+              (
+                whatChangedLedgerFilter === "all"
+                  ? ""
+                  : categories.find(
+                      category =>
+                        category.key === whatChangedLedgerFilter
+                    ).label.toLowerCase() + " "
+              ) +
+              "update was identified in the last 14 days."
+        );
+      } else {
+        let previousDateKey = "";
+
+        filteredEntries.forEach(entry => {
+          const dateKey = ledgerParisDateKey(entry.date);
+
+          if (dateKey !== previousDateKey) {
+            appendBriefingText(
+              scroll,
+              "changes-ledger-date",
+              ledgerDateHeading(dateKey, ledger.anchorKey)
+            );
+
+            previousDateKey = dateKey;
+          }
+
+          scroll.appendChild(renderLedgerEntry(entry));
+        });
+      }
+
+      container.appendChild(scroll);
+
+      const footer = document.createElement("div");
+      footer.className = "changes-ledger-footer";
+
+      appendBriefingText(
+        footer,
+        "",
+        filteredEntries.length +
+        (filteredEntries.length === 1 ? " update shown" : " updates shown"),
+        "strong"
+      );
+
+      appendBriefingText(
+        footer,
+        "",
+        filteredEntries.length > 4
+          ? "SCROLL FOR OLDER UPDATES"
+          : "LATEST 14-DAY WINDOW",
+        "span"
+      );
+
+      container.appendChild(footer);
     }
 
     function subtractCalendarMonths(iso, months) {
