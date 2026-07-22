@@ -39,6 +39,26 @@
 8. No polling averages. No forecasts. No voting advice. No sentiment/ideological
    scoring. Descriptive only — the dashboard reports what was published, nothing more.
 
+## Recent Changes Ledger (`recent_changes.json`)
+
+The Phase 1 ledger is a generated view over the existing public datasets. It does not
+expand the five-feed election-news source universe. `items` contains at most 12 unique
+changes from a 14-day inclusive Paris-date window, newest first.
+
+Each item has a stable `id`, one of `campaign`, `polling`, `runoff`, `fact_check`, or
+`legal`, a source-linked headline and summary, explicit `published_at`, `event_date`,
+`detected_at`, and `generated_at` provenance, plus `trusted_change_at` and
+`trusted_change_date_kind`. Only `trusted_change_at` controls public ordering and date
+groups. Allowed trusted kinds are source publication, official event, first seen,
+fieldwork ended, review publication, and ruling/decision. Detection and generation time
+never become a political-change date. Primary and supporting sources, icon key,
+candidate identifiers, and an existing dashboard destination are retained where
+available.
+
+`last_successful_check_at` is the check that produced the published ledger artifact.
+No-change workflow runs do not alter it because GitHub Pages has no independent channel
+for publishing a check timestamp without changing repository content.
+
 ---
 
 ## Build stages

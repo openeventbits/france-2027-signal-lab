@@ -3317,13 +3317,22 @@
     }
 
     .changes-ledger-summary {
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
       color: #7897a9;
       font-size: 8px;
       font-weight: 760;
       letter-spacing: .09em;
       line-height: 1;
       text-align: right;
+      text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    .what-changed .panel-head h2 {
+      flex: 0 0 auto;
+      min-width: max-content;
     }
 
     .what-changed-list {
@@ -3474,15 +3483,19 @@
       --ledger-accent: #57c9bd;
     }
 
-    .changes-ledger-entry[data-category="polls"] {
+    .changes-ledger-entry[data-category="polls"],
+    .changes-ledger-entry[data-category="polling"] {
       --ledger-accent: var(--cyan);
     }
 
-    .changes-ledger-entry[data-category="runoffs"] {
+    .changes-ledger-entry[data-category="runoffs"],
+    .changes-ledger-entry[data-category="runoff"] {
       --ledger-accent: #a374ff;
     }
 
-    .changes-ledger-entry[data-category="checks"] {
+    .changes-ledger-entry[data-category="checks"],
+    .changes-ledger-entry[data-category="fact_check"],
+    .changes-ledger-entry[data-category="legal"] {
       --ledger-accent: #ffac2f;
     }
 
@@ -4413,7 +4426,8 @@
       runoff: null,
       news: null,
       claims: null,
-      loadState: { polls: "loading", runoff: "loading", news: "loading", claims: "loading" },
+      recentChanges: null,
+      loadState: { polls: "loading", runoff: "loading", news: "loading", claims: "loading", recentChanges: "loading" },
       updatedAt: {}
     };
 
@@ -4456,12 +4470,12 @@
     }
 
     function renderMastheadMetadata() {
-      const updated = Object.values(dashboardState.updatedAt)
-        .filter(value => Number.isFinite(dashboardTimestamp(value)))
-        .sort((a, b) => dashboardTimestamp(b) - dashboardTimestamp(a))[0];
-      $("#masthead-updated").textContent = updated
-        ? "Updated " + (updated.includes("T") ? formatMastheadParisDateTime(updated) : formatDate(updated) + " · Paris")
-        : "Updated time unavailable";
+      const publishedCheck = dashboardState.recentChanges?.last_successful_check_at;
+      $("#masthead-updated").textContent = Number.isFinite(dashboardTimestamp(publishedCheck))
+        ? "Published data checked " + formatMastheadParisDateTime(publishedCheck)
+        : dashboardState.loadState.recentChanges === "loading"
+          ? "Published data check loading…"
+          : "Published data check unavailable";
 
       if (dashboardState.news) {
         const count = dashboardState.news.sources.length;
@@ -4810,7 +4824,7 @@
         focusable: "false"
       });
 
-      if (category === "polls") {
+      if (category === "polls" || category === "polling") {
         svg.appendChild(ledgerSvgElement(
           "circle",
           { cx: "16", cy: "16", r: "12" },
@@ -4844,7 +4858,7 @@
         ));
       }
 
-      if (category === "runoffs") {
+      if (category === "runoffs" || category === "runoff") {
         svg.appendChild(ledgerSvgElement(
           "circle",
           { cx: "16", cy: "16", r: "12" },
@@ -4878,7 +4892,7 @@
         ));
       }
 
-      if (category === "checks") {
+      if (["checks", "fact_check", "legal"].includes(category)) {
         svg.appendChild(ledgerSvgElement(
           "polygon",
           { points: "16,3 27,9.5 27,22.5 16,29 5,22.5 5,9.5" },
@@ -4913,7 +4927,7 @@
       ensureLedgerSourceIcons();
 
       const sourceKey = ledgerSourceIconKey(
-        entry.sourceName
+        entry.sourceIconKey || entry.sourceName
       );
 
       const iconRecord =
@@ -4964,7 +4978,7 @@
        * Polling institutes now prefer their automatically cached
        * site icon and fall back to the existing text wordmark.
        */
-      if (entry.visualType === "pollster") {
+      if (entry.category === "polling") {
         if (!appendLedgerCachedIcon(visual, entry)) {
           appendLedgerWordmark(visual, entry);
         }
@@ -4997,283 +5011,67 @@
       return visual;
     }
 
-    function deriveCampaignLedgerEntries() {
-      const payload = dashboardState.news;
-      if (!payload || !Array.isArray(payload.election_news)) return [];
-
-      const seen = new Set();
-      const entries = [];
-
-      payload.election_news.forEach(item => {
-        const normalized = ledgerNormalizeText(item.headline);
-        const date = ledgerParseDate(item.published_at);
-        const sourceUrl = safeSourceUrl(item.url);
-
-        if (!normalized || seen.has(normalized) || !date || !sourceUrl) {
-          return;
-        }
-
-        seen.add(normalized);
-
-        entries.push({
-          id: "campaign-" + (item.id || normalized),
-          category: "campaign",
-          categoryLabel: "CAMPAIGN",
-          headline: item.headline,
-          date,
-          datePrecision: "datetime",
-          sourceName: item.publisher,
-          sourceUrl,
-          meta: item.publisher,
-          candidates: Array.isArray(item.candidates)
-            ? item.candidates
-            : []
-        });
-      });
-
-      return entries;
-    }
-
-    function derivePollingLedgerEntries() {
-      const payload = dashboardState.polls;
-      if (!payload || !Array.isArray(payload.events)) return [];
-
-      const waves = new Map();
-
-      payload.events
-        .filter(event => event.round === "first_round")
-        .forEach(event => {
-          const dateValue = event.publication_date || event.fieldwork_end;
-          const date = ledgerParseDate(dateValue);
-          const sourceUrl = safeSourceUrl(event.source_url);
-
-          if (!date || !sourceUrl) return;
-
-          const key = [
-            event.pollster,
-            event.fieldwork_start,
-            event.fieldwork_end,
-            event.sample_size || "",
-            event.publication_date || ""
-          ].join("|");
-
-          if (!waves.has(key)) {
-            waves.set(key, {
-              pollster: event.pollster,
-              fieldworkStart: event.fieldwork_start,
-              fieldworkEnd: event.fieldwork_end,
-              publicationDate: event.publication_date || "",
-              sampleSize: event.sample_size,
-              sourceUrl,
-              date,
-              hypotheses: []
-            });
-          }
-
-          waves.get(key).hypotheses.push(event);
-        });
-
-      return [...waves.values()].map(wave => {
-        const hypothesisCount = wave.hypotheses.length;
-        const sample = wave.sampleSize
-          ? Number(wave.sampleSize).toLocaleString("en-GB") +
-            " respondents"
-          : "sample not stated";
-
-        return {
-          id: [
-            "poll",
-            wave.pollster,
-            wave.fieldworkStart,
-            wave.fieldworkEnd,
-            wave.sampleSize || ""
-          ].join("-"),
-          category: "polls",
-          categoryLabel: "POLLING",
-          headline:
-            wave.pollster + " publishes " +
-            hypothesisCount + " first-round " +
-            (hypothesisCount === 1 ? "hypothesis." : "hypotheses."),
-          date: wave.date,
-          datePrecision: wave.publicationDate ? "date" : "date",
-          sourceName: wave.pollster,
-          sourceUrl: wave.sourceUrl,
-          meta:
-            "Fieldwork " +
-            formatDate(wave.fieldworkStart) + "–" +
-            formatDate(wave.fieldworkEnd) + " · " +
-            sample,
-          candidates: [],
-          visualType: "pollster",
-          visualLabel: wave.pollster
-        };
-      });
-    }
-
-    function deriveRunoffLedgerEntries() {
-      const payload = dashboardState.runoff;
-      const signal = runoffSignal();
-
-      if (!payload || !signal) return [];
-
-      let candidates = [];
-
-      if (
-        payload.selected_matchup &&
-        Array.isArray(payload.selected_matchup.candidates)
-      ) {
-        candidates = payload.selected_matchup.candidates;
-      } else if (
-        Array.isArray(payload.pollsters) &&
-        payload.pollsters.length
-      ) {
-        const choices = payload.pollsters.flatMap(pollster =>
-          Array.isArray(pollster.closest_matchups)
-            ? pollster.closest_matchups
-            : []
-        );
-
-        choices.sort((a, b) =>
-          Number(a.result?.margin ?? Infinity) -
-          Number(b.result?.margin ?? Infinity)
-        );
-
-        candidates = Array.isArray(choices[0]?.candidates)
-          ? choices[0].candidates
-          : [];
-      }
-
-      const dateValue =
-        payload.fieldwork_window?.end ||
-        payload.generated_at ||
-        dashboardState.updatedAt.runoff;
-
-      const date = ledgerParseDate(dateValue);
-
-      if (!date || !signal.sourceUrl) return [];
-
-      return [{
-        id: "runoff-" + ledgerNormalizeText(signal.headline),
-        category: "runoffs",
-        categoryLabel: "RUNOFF",
-        headline: signal.headline,
-        date,
-        datePrecision:
-          typeof dateValue === "string" && dateValue.includes("T")
-            ? "datetime"
-            : "date",
-        sourceName: signal.sourceName,
-        sourceUrl: signal.sourceUrl,
-        meta: signal.context,
-        candidates
-      }];
-    }
-
-    function deriveChecksLedgerEntries() {
-      const payload = dashboardState.claims;
-      if (!payload || !Array.isArray(payload.reviews)) return [];
-
-      const seen = new Set();
-
-      return payload.reviews.flatMap(review => {
-        const date = ledgerParseDate(review.review_date);
-        const sourceUrl = safeSourceUrl(review.review_url);
-
-        const key =
-          review.id ||
-          ledgerNormalizeText(review.claim_text) +
-          "|" +
-          review.review_date;
-
-        if (!date || !sourceUrl || seen.has(key)) return [];
-
-        seen.add(key);
-
-        const candidates = Array.isArray(review.candidate_associations)
-          ? review.candidate_associations
-              .map(association => association.candidate_name)
-              .filter(Boolean)
-          : [];
-
-        return [{
-          id: "check-" + key,
-          category: "checks",
-          categoryLabel: "CHECK",
-          headline: review.claim_text,
-          date,
-          datePrecision: "date",
-          sourceName: review.publisher_name,
-          sourceUrl,
-          meta: [
-            review.publisher_name,
-            review.rating
-          ].filter(Boolean).join(" · "),
-          candidates
-        }];
-      });
-    }
-
     function deriveRecentChangeLedger() {
-      const entries = [
-        ...deriveCampaignLedgerEntries(),
-        ...derivePollingLedgerEntries(),
-        ...deriveRunoffLedgerEntries(),
-        ...deriveChecksLedgerEntries()
-      ].filter(entry =>
-        entry.date instanceof Date &&
-        Number.isFinite(entry.date.getTime())
-      );
-
-      const updateDates = Object.values(dashboardState.updatedAt)
-        .map(ledgerParseDate)
-        .filter(date => date && Number.isFinite(date.getTime()));
-
-      const allDates = [
-        ...entries.map(entry => entry.date),
-        ...updateDates
-      ];
-
-      if (!allDates.length) {
+      const payload = dashboardState.recentChanges;
+      if (!payload || !Array.isArray(payload.items)) {
         return {
           entries: [],
           anchorDate: null,
           anchorKey: "",
-          loading: Object.values(
-            dashboardState.loadState
-          ).includes("loading")
+          loading: dashboardState.loadState.recentChanges === "loading"
         };
       }
-
-      const anchorDate = new Date(
-        Math.max(...allDates.map(date => date.getTime()))
-      );
-
-      const windowStart = new Date(anchorDate);
-      windowStart.setUTCDate(windowStart.getUTCDate() - 13);
-      windowStart.setUTCHours(0, 0, 0, 0);
-
-      const windowEnd = new Date(anchorDate);
-      windowEnd.setUTCDate(windowEnd.getUTCDate() + 1);
-      windowEnd.setUTCHours(23, 59, 59, 999);
-
-      const windowEntries = entries
-        .filter(entry =>
-          entry.date >= windowStart &&
-          entry.date <= windowEnd
-        )
-        .sort((a, b) =>
-          b.date.getTime() - a.date.getTime() ||
-          a.category.localeCompare(b.category) ||
-          a.headline.localeCompare(b.headline, "fr")
-        );
+      const labels = {
+        campaign: "CAMPAIGN",
+        polling: "POLLING",
+        runoff: "RUNOFF",
+        fact_check: "FACT CHECK",
+        legal: "LEGAL"
+      };
+      const entries = payload.items.flatMap(item => {
+        const date = ledgerParseDate(item.trusted_change_at);
+        const sourceUrl = safeSourceUrl(item.primary_source?.url);
+        if (!date || !sourceUrl || !labels[item.category]) return [];
+        const dateNote = {
+          source_published: "Published",
+          official_event: "Official event",
+          first_seen: "First seen",
+          fieldwork_ended: "Fieldwork ended",
+          review_published: "Review published",
+          ruling_or_decision: "Ruling / decision"
+        }[item.trusted_change_date_kind] || "Dated";
+        const supportNote = item.supporting_source_count
+          ? " · +" + item.supporting_source_count + " supporting " +
+            (item.supporting_source_count === 1 ? "source" : "sources")
+          : "";
+        return [{
+          id: item.id,
+          category: item.category,
+          categoryLabel: labels[item.category],
+          headline: item.headline,
+          date,
+          datePrecision:
+            item.trusted_change_date_kind === "source_published" &&
+            typeof item.published_at === "string" &&
+            item.published_at.includes("T") ? "datetime" : "date",
+          sourceName: item.primary_source.name,
+          sourceUrl,
+          sourceIconKey: item.source_icon_key,
+          meta: (["polling", "runoff"].includes(item.category)
+            ? item.summary
+            : dateNote + " · " + item.summary) + supportNote,
+          candidates: Array.isArray(item.candidate_names)
+            ? item.candidate_names : [],
+          relatedDestination: item.related_destination
+        }];
+      });
+      const anchorDate = ledgerParseDate(payload.window?.end_date);
 
       return {
-        entries: windowEntries,
+        entries,
         anchorDate,
-        anchorKey: ledgerParisDateKey(anchorDate),
-        loading: Object.values(
-          dashboardState.loadState
-        ).includes("loading")
+        anchorKey: anchorDate ? ledgerParisDateKey(anchorDate) : "",
+        loading: false
       };
     }
 
@@ -5322,7 +5120,7 @@
       source.href = entry.sourceUrl;
       source.target = "_blank";
       source.rel = "noopener noreferrer";
-      source.textContent = "Source ↗";
+      source.textContent = "Open source ↗";
       source.setAttribute(
         "aria-label",
         "Open " + entry.categoryLabel.toLowerCase() +
@@ -5344,11 +5142,11 @@
       const ledger = deriveRecentChangeLedger();
 
       const categories = [
-        { key: "all", label: "ALL" },
-        { key: "campaign", label: "CAMPAIGN" },
-        { key: "polls", label: "POLLS" },
-        { key: "runoffs", label: "RUNOFFS" },
-        { key: "checks", label: "CHECKS" }
+        { key: "all", label: "ALL", matches: () => true },
+        { key: "campaign", label: "CAMPAIGN", matches: entry => entry.category === "campaign" },
+        { key: "polling", label: "POLLS", matches: entry => entry.category === "polling" },
+        { key: "runoff", label: "RUNOFFS", matches: entry => entry.category === "runoff" },
+        { key: "checks", label: "CHECKS + LEGAL", matches: entry => ["fact_check", "legal"].includes(entry.category) }
       ];
 
       const counts = Object.fromEntries(
@@ -5356,9 +5154,7 @@
           category.key,
           category.key === "all"
             ? ledger.entries.length
-            : ledger.entries.filter(
-                entry => entry.category === category.key
-              ).length
+            : ledger.entries.filter(category.matches).length
         ])
       );
 
@@ -5375,7 +5171,7 @@
         whatChangedLedgerFilter === "all"
           ? ledger.entries
           : ledger.entries.filter(
-              entry => entry.category === whatChangedLedgerFilter
+              categories.find(category => category.key === whatChangedLedgerFilter).matches
             );
 
       const summary = $("#changes-ledger-summary");
@@ -5384,14 +5180,13 @@
         if (ledger.loading) {
           summary.textContent =
             counts.all +
-            (counts.all === 1 ? " UPDATE" : " UPDATES") +
+            (counts.all === 1 ? " CHANGE" : " CHANGES") +
             " · LOADING";
         } else {
           summary.textContent =
             counts.all +
-            " SOURCE-LINKED " +
-            (counts.all === 1 ? "UPDATE" : "UPDATES") +
-            " · 14 DAYS";
+            (counts.all === 1 ? " CHANGE" : " CHANGES") +
+            " · LAST 14 DAYS";
         }
       }
 
@@ -5565,7 +5360,8 @@
         $("#context-coverage-meta").textContent = "First-round polling coverage";
       }
 
-      const states = Object.values(dashboardState.loadState);
+      const states = ["polls", "runoff", "news", "claims"]
+        .map(name => dashboardState.loadState[name]);
       const loaded = states.filter(state => state === "loaded").length;
       const loading = states.filter(state => state === "loading").length;
       const errors = states.filter(state => state === "error").length;
@@ -5864,6 +5660,91 @@
           activateSignalTab(tabs[targetIndex].dataset.signalTab, true);
         };
       });
+    }
+
+    function validateRecentChangesPayload(payload) {
+      if (!payload || payload.schema_version !== 1) {
+        throw new Error("recent_changes.json has an unsupported schema");
+      }
+      if (!payload.window || payload.window.days !== 14 || payload.window.max_items !== 12) {
+        throw new Error("recent_changes.json has an invalid window contract");
+      }
+      if (!Array.isArray(payload.source_universe) || payload.source_universe.length !== 5) {
+        throw new Error("recent_changes.json must retain the five-feed source universe");
+      }
+      if (!Array.isArray(payload.items) || payload.items.length > 12) {
+        throw new Error("recent_changes.json items must contain at most 12 changes");
+      }
+      const categories = new Set(["campaign", "polling", "runoff", "fact_check", "legal"]);
+      const trustedKinds = new Set([
+        "source_published", "official_event", "first_seen",
+        "fieldwork_ended", "review_published", "ruling_or_decision"
+      ]);
+      const ids = new Set();
+      const urls = new Set();
+      const titles = new Set();
+      let previousDateKey = "9999-12-31";
+      payload.items.forEach((item, index) => {
+        const normalizedTitle = ledgerNormalizeText(item?.headline);
+        const sourceUrl = safeSourceUrl(item?.primary_source?.url);
+        const date = ledgerParseDate(item?.trusted_change_at);
+        if (!item?.id || ids.has(item.id)) throw new Error("Duplicate or missing recent-change id at item " + index);
+        if (!categories.has(item.category)) throw new Error("Invalid recent-change category at item " + index);
+        if (!normalizedTitle || titles.has(normalizedTitle)) throw new Error("Duplicate or missing recent-change headline at item " + index);
+        if (!sourceUrl || urls.has(sourceUrl)) throw new Error("Duplicate or invalid recent-change source URL at item " + index);
+        const itemDateKey = date ? ledgerParisDateKey(date) : "";
+        if (!itemDateKey || itemDateKey > previousDateKey) throw new Error("Recent changes are not reverse chronological");
+        if (!ledgerParseDate(item.detected_at)) throw new Error("Invalid detection timestamp at item " + index);
+        if (!ledgerParseDate(item.generated_at)) throw new Error("Invalid item generation timestamp at item " + index);
+        if (!trustedKinds.has(item.trusted_change_date_kind)) {
+          throw new Error("Invalid trusted change date kind at item " + index);
+        }
+        if (["source_published", "review_published"].includes(item.trusted_change_date_kind) &&
+            item.trusted_change_at !== item.published_at) {
+          throw new Error("Trusted publication date is inconsistent at item " + index);
+        }
+        if (["official_event", "ruling_or_decision"].includes(item.trusted_change_date_kind) &&
+            item.trusted_change_at !== item.event_date) {
+          throw new Error("Trusted official-event date is inconsistent at item " + index);
+        }
+        if (itemDateKey < payload.window.start_date || itemDateKey > payload.window.end_date) {
+          throw new Error("Recent change falls outside the public window at item " + index);
+        }
+        if (!Array.isArray(item.supporting_sources) || item.supporting_source_count !== item.supporting_sources.length) {
+          throw new Error("Supporting-source metadata is inconsistent at item " + index);
+        }
+        ids.add(item.id);
+        urls.add(sourceUrl);
+        titles.add(normalizedTitle);
+        previousDateKey = itemDateKey;
+      });
+      const expectedNewest = payload.items.length ? payload.items[0].trusted_change_at : null;
+      const expectedOldest = payload.items.length ? payload.items[payload.items.length - 1].trusted_change_at : null;
+      if (payload.newest_trusted_change_at !== expectedNewest || payload.oldest_trusted_change_at !== expectedOldest) {
+        throw new Error("Trusted newest/oldest metadata is inconsistent");
+      }
+      return payload;
+    }
+
+    function loadRecentChanges() {
+      fetch("recent_changes.json", { cache: "no-store" })
+        .then(response => {
+          if (!response.ok) throw new Error("recent_changes.json returned HTTP " + response.status);
+          return response.json();
+        })
+        .then(validateRecentChangesPayload)
+        .then(payload => {
+          markDataset(
+            "recentChanges",
+            "loaded",
+            payload,
+            payload.last_successful_check_at
+          );
+        })
+        .catch(error => {
+          console.warn("Recent Changes Ledger unavailable.", error);
+          markDataset("recentChanges", "error");
+        });
     }
 
     function loadNewsWire() {
@@ -7665,6 +7546,7 @@
     renderContextStrip();
     renderElectionClock();
     setInterval(renderElectionClock, 60 * 60 * 1000);
+    loadRecentChanges();
     loadClosestRunoff();
     loadNewsWire();
     loadClaimsUnderScrutiny();
