@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the FR27 Signal Lab election news wire from direct publisher RSS feeds."""
+"""Build the FR27 Signal Lab election news wire from direct and discovery feeds."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ import html
 import json
 import re
 import ssl
+from threading import BoundedSemaphore
 import unicodedata
 from datetime import date, datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
@@ -42,8 +43,11 @@ GOOGLE_NEWS_PARAMETERS = {
 }
 DIRECT_ENTRY_LIMIT = 20
 DISCOVERY_ENTRY_LIMIT = 10
+PUBLISHER_SITE_ENTRY_LIMIT = 5
 FETCH_TIMEOUT_SECONDS = 12
-FETCH_WORKERS = 10
+FETCH_WORKERS = 12
+GOOGLE_NEWS_WORKERS = 4
+GOOGLE_NEWS_SEMAPHORE = BoundedSemaphore(GOOGLE_NEWS_WORKERS)
 
 TRACKING_PARAMETERS = {
     "fbclid",
@@ -649,6 +653,83 @@ def generate_discovery_queries(
     return queries
 
 
+def stable_slot(feed_id: str, interval_hours: int) -> int:
+    if not isinstance(feed_id, str) or not feed_id.strip():
+        raise ValueError("feed_id must be non-empty")
+    if type(interval_hours) is not int or interval_hours < 1:
+        raise ValueError("interval_hours must be positive")
+
+    digest = hashlib.sha256(feed_id.encode("utf-8")).digest()
+    return int.from_bytes(digest[:8], "big") % interval_hours
+
+
+def publisher_site_interval(tier: str) -> int:
+    if tier == "core":
+        return 3
+    if tier == "extended":
+        return 12
+    raise ValueError(f"Unsupported publisher tier: {tier}")
+
+
+def generate_publisher_site_feeds(
+    policy: dict[str, dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    publisher_policy = PUBLISHER_POLICY if policy is None else policy
+    feeds: list[dict[str, Any]] = []
+
+    for domain in sorted(publisher_policy):
+        record = publisher_policy[domain]
+        if not bool(record.get("enabled", True)):
+            continue
+        if record.get("source_type") != "media":
+            continue
+
+        tier = str(record.get("tier") or "")
+        interval_hours = publisher_site_interval(tier)
+        feed_id = f"publisher-site:{domain}"
+        query = (
+            f"site:{domain} "
+            "(\"présidentielle 2027\" OR \"élection présidentielle\" "
+            "OR candidature OR primaire OR investiture OR sondage) "
+            "when:7d"
+        )
+        feeds.append(
+            {
+                "id": feed_id,
+                "label": f"{record['name']} — publisher site",
+                "publisher": str(record["name"]),
+                "domain": domain,
+                "tier": tier,
+                "query": query,
+                "feed_url": build_google_news_url(query),
+                "interval_hours": interval_hours,
+                "slot": stable_slot(feed_id, interval_hours),
+            }
+        )
+
+    feed_ids = [feed["id"] for feed in feeds]
+    if len(feed_ids) != len(set(feed_ids)):
+        raise RuntimeError("Publisher-site feed ids must be unique")
+
+    return feeds
+
+
+def publisher_site_feed_due(
+    feed: dict[str, Any],
+    now: datetime,
+) -> bool:
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise ValueError("now must be timezone-aware")
+
+    interval_hours = int(feed["interval_hours"])
+    expected_slot = stable_slot(str(feed["id"]), interval_hours)
+    if int(feed["slot"]) != expected_slot:
+        raise ValueError("publisher-site feed slot is inconsistent")
+
+    utc_now = now.astimezone(timezone.utc)
+    return utc_now.hour % interval_hours == expected_slot
+
+
 def google_news_source(element: ET.Element) -> tuple[str, str]:
     for child in element:
         if local_name(child.tag) != "source":
@@ -742,6 +823,7 @@ def parse_feed(
     *,
     google_news: bool = False,
     max_entries: int | None = None,
+    allow_empty: bool = False,
 ) -> list[dict[str, Any]]:
     root = ET.fromstring(raw)
     entries: list[dict[str, Any]] = []
@@ -791,7 +873,7 @@ def parse_feed(
             }
         )
 
-    if not entries:
+    if not entries and not allow_empty:
         raise RuntimeError(
             f"{publisher} feed contained no usable dated entries"
         )
@@ -908,9 +990,24 @@ def discovery_rejection_reason(
 def accept_discovery_entries(
     entries: list[dict[str, Any]],
     query_id: str,
+    *,
+    source_id_prefix: str = "discovery",
+    expected_policy_domain: str | None = None,
+    transport: str | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     accepted: list[dict[str, Any]] = []
     rejected: list[dict[str, Any]] = []
+    resolved_transport = transport or (
+        "publisher_site"
+        if source_id_prefix == "publisher-site"
+        else "shared_discovery"
+    )
+    if resolved_transport not in {"shared_discovery", "publisher_site"}:
+        raise ValueError("Unsupported discovery transport")
+
+    expected_domain = normalize_domain(expected_policy_domain)
+    if expected_policy_domain is not None and not expected_domain:
+        raise ValueError("expected_policy_domain must resolve to a domain")
 
     for entry in entries:
         domain = normalize_domain(entry.get("publisher_domain"))
@@ -919,6 +1016,14 @@ def accept_discovery_entries(
             domain,
             policy_match,
         )
+
+        if (
+            rejection_reason is None
+            and expected_domain
+            and policy_match is not None
+            and policy_match[0] != expected_domain
+        ):
+            rejection_reason = "publisher_site_domain_mismatch"
 
         if rejection_reason is not None:
             rejected.append(
@@ -930,6 +1035,7 @@ def accept_discovery_entries(
                     "query_id": query_id,
                     "headline": clean_text(entry.get("headline")),
                     "rejection_reason": rejection_reason,
+                    "transport": resolved_transport,
                 }
             )
             continue
@@ -938,7 +1044,11 @@ def accept_discovery_entries(
         normalized_entry = dict(entry)
         normalized_entry["publisher"] = str(policy["name"])
         normalized_entry["publisher_domain"] = policy_domain
-        normalized_entry["source_id"] = f"discovery:{query_id}"
+        normalized_entry["source_id"] = (
+            f"{source_id_prefix}:{query_id}"
+            if source_id_prefix != "publisher-site"
+            else query_id
+        )
         normalized_entry["politics_specific"] = True
         accepted.append(normalized_entry)
 
@@ -961,6 +1071,7 @@ def aggregate_discovered_publishers(
                 "discovery_query_ids": set(),
                 "sample_headlines": [],
                 "rejection_reasons": set(),
+                "transports": set(),
             },
         )
         reported = item.get("reported_publisher")
@@ -969,6 +1080,9 @@ def aggregate_discovered_publishers(
         bucket["item_count"] += 1
         bucket["discovery_query_ids"].add(item["query_id"])
         bucket["rejection_reasons"].add(item["rejection_reason"])
+        bucket["transports"].add(
+            item.get("transport") or "shared_discovery"
+        )
         headline = item.get("headline")
         if (
             headline
@@ -994,6 +1108,7 @@ def aggregate_discovered_publishers(
                 "rejection_reasons": sorted(
                     bucket["rejection_reasons"]
                 ),
+                "transports": sorted(bucket["transports"]),
             }
         )
 
@@ -1008,6 +1123,27 @@ def aggregate_discovered_publishers(
     }
 
 
+def count_contributing_media_publishers(
+    entries: list[dict[str, Any]],
+    policy: dict[str, dict[str, Any]] | None = None,
+) -> int:
+    publisher_policy = PUBLISHER_POLICY if policy is None else policy
+    enabled_media_names = {
+        str(record["name"])
+        for record in publisher_policy.values()
+        if bool(record.get("enabled", True))
+        and record.get("source_type") == "media"
+    }
+    return len(
+        {
+            str(entry.get("publisher") or "").strip()
+            for entry in entries
+            if str(entry.get("publisher") or "").strip()
+            in enabled_media_names
+        }
+    )
+
+
 DIRECT_SOURCE_IDS = frozenset(
     source["source_id"] for source in SOURCES
 )
@@ -1015,6 +1151,29 @@ DIRECT_SOURCE_IDS = frozenset(
 
 def is_direct_entry(entry: dict[str, Any]) -> bool:
     return str(entry.get("source_id") or "") in DIRECT_SOURCE_IDS
+
+
+def entry_transport(entry: dict[str, Any]) -> str:
+    source_id = str(entry.get("source_id") or "")
+    if source_id in DIRECT_SOURCE_IDS:
+        return "direct"
+    if source_id.startswith("publisher-site:"):
+        return "publisher_site"
+    if source_id.startswith("discovery:"):
+        return "shared_discovery"
+    return "unknown"
+
+
+TRANSPORT_PRIORITY = {
+    "unknown": 0,
+    "shared_discovery": 1,
+    "publisher_site": 2,
+    "direct": 3,
+}
+
+
+def transport_priority(entry: dict[str, Any]) -> int:
+    return TRANSPORT_PRIORITY[entry_transport(entry)]
 
 
 def article_signature(entry: dict[str, Any]) -> str:
@@ -1040,12 +1199,20 @@ def article_signature(entry: dict[str, Any]) -> str:
 
 def deduplicate_entries(
     entries: list[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], dict[str, int]]:
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     retained: list[dict[str, Any]] = []
     by_url: dict[str, int] = {}
     by_signature: dict[str, int] = {}
     duplicates_removed = 0
     direct_precedence_replacements = 0
+    publisher_site_precedence_replacements = 0
+    direct_over_publisher_site_replacements = 0
+    removed_by_transport = {
+        "direct": 0,
+        "publisher_site": 0,
+        "shared_discovery": 0,
+        "unknown": 0,
+    }
 
     for entry in entries:
         url_key = inventory_identity(entry)
@@ -1062,18 +1229,44 @@ def deduplicate_entries(
             continue
 
         existing = retained[existing_index]
-        if is_direct_entry(entry) and not is_direct_entry(existing):
+        existing_transport = entry_transport(existing)
+        incoming_transport = entry_transport(entry)
+        if transport_priority(entry) > transport_priority(existing):
             retained[existing_index] = entry
             by_url[inventory_identity(existing)] = existing_index
             by_url[url_key] = existing_index
             by_signature[signature] = existing_index
-            direct_precedence_replacements += 1
+            removed_by_transport[existing_transport] += 1
+            if (
+                incoming_transport == "direct"
+                and existing_transport == "shared_discovery"
+            ):
+                direct_precedence_replacements += 1
+            elif (
+                incoming_transport == "direct"
+                and existing_transport == "publisher_site"
+            ):
+                direct_over_publisher_site_replacements += 1
+            elif (
+                incoming_transport == "publisher_site"
+                and existing_transport == "shared_discovery"
+            ):
+                publisher_site_precedence_replacements += 1
+        else:
+            removed_by_transport[incoming_transport] += 1
 
         duplicates_removed += 1
 
     return retained, {
         "duplicates_removed": duplicates_removed,
         "direct_precedence_replacements": direct_precedence_replacements,
+        "publisher_site_precedence_replacements": (
+            publisher_site_precedence_replacements
+        ),
+        "direct_over_publisher_site_replacements": (
+            direct_over_publisher_site_replacements
+        ),
+        "removed_by_transport": removed_by_transport,
     }
 
 
@@ -1755,7 +1948,7 @@ def merge_inventory(
 
         if previous_key is not None:
             previous = retained[previous_key]
-            if is_direct_entry(item) and not is_direct_entry(previous):
+            if transport_priority(item) > transport_priority(previous):
                 del retained[previous_key]
                 retained[key] = dict(item)
                 retained_by_signature[signature] = key
@@ -1787,7 +1980,10 @@ def merge_inventory(
         if previous is None and signature_key is not None:
             signature_previous = retained[signature_key]
 
-            if is_direct_entry(entry) and not is_direct_entry(signature_previous):
+            if (
+                transport_priority(entry)
+                > transport_priority(signature_previous)
+            ):
                 previous = signature_previous
                 del retained[signature_key]
             else:
@@ -2006,6 +2202,8 @@ def validate_output(payload: dict[str, Any]) -> None:
 
     discovery_query_ids: set[str] = set()
     successful_query_records = 0
+    accepted_query_items = 0
+    quarantined_query_items = 0
     for query in discovery_queries:
         if not isinstance(query, dict):
             raise RuntimeError("discovery query is not an object")
@@ -2030,10 +2228,232 @@ def validate_output(payload: dict[str, Any]) -> None:
                 raise RuntimeError(
                     f"discovery query {field} is invalid"
                 )
+        accepted_query_items += query["accepted_items"]
+        quarantined_query_items += query["quarantined_items"]
 
+    if accepted_before != accepted_query_items:
+        raise RuntimeError(
+            "discovery accepted item count does not match queries"
+        )
+    if discovery["quarantined_items"] != quarantined_query_items:
+        raise RuntimeError(
+            "discovery quarantined item count does not match queries"
+        )
     if successful_queries != successful_query_records:
         raise RuntimeError(
             "discovery successful_queries does not match statuses"
+        )
+
+    feed_coverage = payload.get("feed_coverage")
+    if not isinstance(feed_coverage, dict):
+        raise RuntimeError("feed_coverage is not an object")
+
+    required_coverage_fields = {
+        "configured_feeds",
+        "direct_feeds",
+        "shared_discovery_feeds",
+        "publisher_site_feeds",
+        "feeds_due_this_run",
+        "feeds_successful_this_run",
+        "publisher_site_feeds_due",
+        "publisher_site_feeds_successful",
+        "publisher_site_items_quarantined",
+        "configured_media_publishers",
+        "contributing_publishers_30d",
+        "accepted_items_by_transport",
+        "priority_replacements",
+        "duplicates_removed_by_transport",
+    }
+    if set(feed_coverage) != required_coverage_fields:
+        raise RuntimeError("feed_coverage has unexpected fields")
+
+    for field in (
+        "configured_feeds",
+        "direct_feeds",
+        "shared_discovery_feeds",
+        "publisher_site_feeds",
+        "feeds_due_this_run",
+        "feeds_successful_this_run",
+        "publisher_site_feeds_due",
+        "publisher_site_feeds_successful",
+        "publisher_site_items_quarantined",
+        "configured_media_publishers",
+        "contributing_publishers_30d",
+    ):
+        value = feed_coverage.get(field)
+        if type(value) is not int or value < 0:
+            raise RuntimeError(f"feed_coverage {field} is invalid")
+
+    if feed_coverage["direct_feeds"] != len(SOURCES):
+        raise RuntimeError("feed_coverage direct_feeds is invalid")
+    if feed_coverage["shared_discovery_feeds"] != configured_queries:
+        raise RuntimeError(
+            "feed_coverage shared_discovery_feeds is invalid"
+        )
+    if (
+        feed_coverage["publisher_site_feeds"]
+        != feed_coverage["configured_media_publishers"]
+    ):
+        raise RuntimeError(
+            "feed_coverage publisher-site publisher count is invalid"
+        )
+    if (
+        feed_coverage["configured_media_publishers"]
+        != approved_media_domains
+    ):
+        raise RuntimeError(
+            "feed_coverage configured media publisher count is invalid"
+        )
+    configured_site_feeds = generate_publisher_site_feeds()
+    if (
+        feed_coverage["publisher_site_feeds"]
+        != len(configured_site_feeds)
+    ):
+        raise RuntimeError(
+            "feed_coverage publisher_site_feeds does not match policy"
+        )
+    generated_at = parse_feed_datetime(payload.get("generated_at"))
+    if generated_at is None:
+        raise RuntimeError("feed_coverage requires a valid generated_at")
+    expected_site_feeds_due = sum(
+        publisher_site_feed_due(feed, generated_at)
+        for feed in configured_site_feeds
+    )
+    if (
+        feed_coverage["publisher_site_feeds_due"]
+        != expected_site_feeds_due
+    ):
+        raise RuntimeError(
+            "feed_coverage publisher-site schedule count is invalid"
+        )
+    if feed_coverage["configured_feeds"] != sum(
+        (
+            feed_coverage["direct_feeds"],
+            feed_coverage["shared_discovery_feeds"],
+            feed_coverage["publisher_site_feeds"],
+        )
+    ):
+        raise RuntimeError("feed_coverage configured feed count is invalid")
+
+    hourly_feeds = (
+        feed_coverage["direct_feeds"]
+        + feed_coverage["shared_discovery_feeds"]
+    )
+    if not (
+        hourly_feeds
+        <= feed_coverage["feeds_due_this_run"]
+        <= feed_coverage["configured_feeds"]
+    ):
+        raise RuntimeError("feed_coverage feeds_due_this_run is invalid")
+    if (
+        feed_coverage["feeds_due_this_run"]
+        != hourly_feeds + feed_coverage["publisher_site_feeds_due"]
+    ):
+        raise RuntimeError("feed_coverage due feed counts are inconsistent")
+    if (
+        feed_coverage["feeds_successful_this_run"]
+        > feed_coverage["feeds_due_this_run"]
+    ):
+        raise RuntimeError(
+            "feed_coverage successful feed count is invalid"
+        )
+    if (
+        feed_coverage["publisher_site_feeds_due"]
+        > feed_coverage["publisher_site_feeds"]
+        or feed_coverage["publisher_site_feeds_successful"]
+        > feed_coverage["publisher_site_feeds_due"]
+    ):
+        raise RuntimeError(
+            "feed_coverage publisher-site run counts are invalid"
+        )
+    if (
+        feed_coverage["contributing_publishers_30d"]
+        > feed_coverage["configured_media_publishers"]
+    ):
+        raise RuntimeError(
+            "feed_coverage contributing publisher count is invalid"
+        )
+
+    accepted_by_transport = feed_coverage.get(
+        "accepted_items_by_transport"
+    )
+    if (
+        not isinstance(accepted_by_transport, dict)
+        or set(accepted_by_transport)
+        != {"direct", "publisher_site", "shared_discovery"}
+        or any(
+            type(value) is not int or value < 0
+            for value in accepted_by_transport.values()
+        )
+    ):
+        raise RuntimeError(
+            "feed_coverage accepted_items_by_transport is invalid"
+        )
+
+    priority_replacements = feed_coverage.get("priority_replacements")
+    if (
+        not isinstance(priority_replacements, dict)
+        or set(priority_replacements)
+        != {
+            "direct_over_shared_discovery",
+            "direct_over_publisher_site",
+            "publisher_site_over_shared_discovery",
+        }
+        or any(
+            type(value) is not int or value < 0
+            for value in priority_replacements.values()
+        )
+    ):
+        raise RuntimeError(
+            "feed_coverage priority_replacements is invalid"
+        )
+    if (
+        priority_replacements["direct_over_shared_discovery"]
+        != discovery["direct_precedence_replacements"]
+    ):
+        raise RuntimeError(
+            "feed_coverage direct replacement count is inconsistent"
+        )
+    if (
+        priority_replacements["direct_over_shared_discovery"]
+        + priority_replacements[
+            "publisher_site_over_shared_discovery"
+        ]
+        > discovery["duplicates_removed"]
+    ):
+        raise RuntimeError(
+            "feed_coverage shared discovery replacement count is invalid"
+        )
+
+    removed_by_transport = feed_coverage.get(
+        "duplicates_removed_by_transport"
+    )
+    if (
+        not isinstance(removed_by_transport, dict)
+        or set(removed_by_transport)
+        != {"direct", "publisher_site", "shared_discovery", "unknown"}
+        or any(
+            type(value) is not int or value < 0
+            for value in removed_by_transport.values()
+        )
+        or sum(removed_by_transport.values())
+        < discovery["duplicates_removed"]
+    ):
+        raise RuntimeError(
+            "feed_coverage duplicates_removed_by_transport is invalid"
+        )
+    if (
+        removed_by_transport["shared_discovery"]
+        != discovery["duplicates_removed"]
+    ):
+        raise RuntimeError(
+            "feed_coverage shared discovery duplicate count is inconsistent"
+        )
+    if sum(priority_replacements.values()) > sum(
+        removed_by_transport.values()
+    ):
+        raise RuntimeError(
+            "feed_coverage priority replacement counts are invalid"
         )
 
     campaign_agenda = payload.get("campaign_agenda")
@@ -2090,6 +2510,17 @@ def validate_output(payload: dict[str, Any]) -> None:
     if len(successful_sources) < 4:
         raise RuntimeError(
             f"Only {len(successful_sources)} publisher feeds succeeded"
+        )
+
+    if feed_coverage["feeds_successful_this_run"] != sum(
+        (
+            len(successful_sources),
+            successful_queries,
+            feed_coverage["publisher_site_feeds_successful"],
+        )
+    ):
+        raise RuntimeError(
+            "feed_coverage successful feed counts are inconsistent"
         )
 
     for list_name, items in (
@@ -2234,8 +2665,15 @@ def build_wire(
     max_items: int,
     inventory_path: Path | None = None,
     discovered_publishers_path: Path | None = None,
+    generated_at: datetime | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    generated_at = datetime.now(timezone.utc)
+    if generated_at is None:
+        generated_at = datetime.now(timezone.utc)
+    elif generated_at.tzinfo is None or generated_at.utcoffset() is None:
+        raise ValueError("generated_at must be timezone-aware")
+    else:
+        generated_at = generated_at.astimezone(timezone.utc)
+
     window_start = generated_at - timedelta(days=window_days)
     candidates, candidate_cutoff = recent_candidate_roster(
         polls_path,
@@ -2246,6 +2684,12 @@ def build_wire(
         for candidate in candidates
     }
     discovery_queries = generate_discovery_queries(candidates)
+    publisher_site_feeds = generate_publisher_site_feeds()
+    due_publisher_site_feeds = [
+        feed
+        for feed in publisher_site_feeds
+        if publisher_site_feed_due(feed, generated_at)
+    ]
 
     endpoints: list[dict[str, Any]] = []
     for order, source in enumerate(SOURCES):
@@ -2270,21 +2714,52 @@ def build_wire(
                 "query": query,
             }
         )
+    site_offset = len(SOURCES) + len(discovery_queries)
+    for offset, feed in enumerate(
+        due_publisher_site_feeds,
+        start=site_offset,
+    ):
+        endpoints.append(
+            {
+                "order": offset,
+                "kind": "publisher_site",
+                "id": feed["id"],
+                "name": feed["label"],
+                "feed_url": feed["feed_url"],
+                "publisher_site": feed,
+            }
+        )
 
     def fetch_endpoint(endpoint: dict[str, Any]) -> dict[str, Any]:
         started_at = datetime.now(timezone.utc)
         try:
-            raw, final_feed_url = request_bytes(endpoint["feed_url"])
+            is_google_news = endpoint["kind"] in {
+                "discovery",
+                "publisher_site",
+            }
+            if is_google_news:
+                with GOOGLE_NEWS_SEMAPHORE:
+                    raw, final_feed_url = request_bytes(
+                        endpoint["feed_url"]
+                    )
+            else:
+                raw, final_feed_url = request_bytes(
+                    endpoint["feed_url"]
+                )
+
+            entry_limit = DIRECT_ENTRY_LIMIT
+            if endpoint["kind"] == "discovery":
+                entry_limit = DISCOVERY_ENTRY_LIMIT
+            elif endpoint["kind"] == "publisher_site":
+                entry_limit = PUBLISHER_SITE_ENTRY_LIMIT
+
             entries = parse_feed(
                 raw,
                 endpoint["name"],
                 final_feed_url,
-                google_news=endpoint["kind"] == "discovery",
-                max_entries=(
-                    DISCOVERY_ENTRY_LIMIT
-                    if endpoint["kind"] == "discovery"
-                    else DIRECT_ENTRY_LIMIT
-                ),
+                google_news=is_google_news,
+                max_entries=entry_limit,
+                allow_empty=endpoint["kind"] == "publisher_site",
             )
             return {
                 "endpoint": endpoint,
@@ -2321,8 +2796,10 @@ def build_wire(
 
     source_status: list[dict[str, Any]] = []
     discovery_status: list[dict[str, Any]] = []
+    publisher_site_status: list[dict[str, Any]] = []
     all_entries: list[dict[str, Any]] = []
-    rejected_discovery_entries: list[dict[str, Any]] = []
+    rejected_shared_discovery_entries: list[dict[str, Any]] = []
+    rejected_publisher_site_entries: list[dict[str, Any]] = []
     accepted_discovery_items = 0
 
     for order in sorted(fetched_by_order):
@@ -2368,34 +2845,55 @@ def build_wire(
         accepted: list[dict[str, Any]] = []
         rejected: list[dict[str, Any]] = []
         if result["status"] == "ok":
+            is_publisher_site = endpoint["kind"] == "publisher_site"
             accepted, rejected = accept_discovery_entries(
                 recent_entries,
                 endpoint["id"],
-            )
-            accepted_discovery_items += len(accepted)
-            all_entries.extend(accepted)
-            rejected_discovery_entries.extend(rejected)
-
-        discovery_status.append(
-            {
-                "id": endpoint["id"],
-                "label": endpoint["name"],
-                "kind": endpoint["query"]["kind"],
-                "feed_url": result["final_feed_url"],
-                "status": result["status"],
-                "items_seen": len(entries),
-                "recent_items": len(recent_entries),
-                "accepted_items": len(accepted),
-                "quarantined_items": len(rejected),
-                "latest_published_at": (
-                    latest.isoformat().replace("+00:00", "Z")
-                    if latest is not None
+                source_id_prefix=(
+                    "publisher-site"
+                    if is_publisher_site
+                    else "discovery"
+                ),
+                expected_policy_domain=(
+                    endpoint["publisher_site"]["domain"]
+                    if is_publisher_site
                     else None
                 ),
-                "error": result["error"],
-                "response_seconds": result["response_seconds"],
-            }
-        )
+                transport=(
+                    "publisher_site"
+                    if is_publisher_site
+                    else "shared_discovery"
+                ),
+            )
+            if is_publisher_site:
+                rejected_publisher_site_entries.extend(rejected)
+            else:
+                accepted_discovery_items += len(accepted)
+                rejected_shared_discovery_entries.extend(rejected)
+            all_entries.extend(accepted)
+
+        status_record = {
+            "id": endpoint["id"],
+            "label": endpoint["name"],
+            "feed_url": result["final_feed_url"],
+            "status": result["status"],
+            "items_seen": len(entries),
+            "recent_items": len(recent_entries),
+            "accepted_items": len(accepted),
+            "quarantined_items": len(rejected),
+            "latest_published_at": (
+                latest.isoformat().replace("+00:00", "Z")
+                if latest is not None
+                else None
+            ),
+            "error": result["error"],
+            "response_seconds": result["response_seconds"],
+        }
+        if endpoint["kind"] == "publisher_site":
+            publisher_site_status.append(status_record)
+        else:
+            status_record["kind"] = endpoint["query"]["kind"]
+            discovery_status.append(status_record)
 
     all_entries, deduplication_stats = deduplicate_entries(all_entries)
 
@@ -2453,6 +2951,12 @@ def build_wire(
         {
             f"discovery:{query['id']}": {"politics_specific": True}
             for query in discovery_queries
+        }
+    )
+    source_by_id.update(
+        {
+            feed["id"]: {"politics_specific": True}
+            for feed in publisher_site_feeds
         }
     )
 
@@ -2566,15 +3070,46 @@ def build_wire(
     )
 
     discovered_publishers_payload = aggregate_discovered_publishers(
-        rejected_discovery_entries
+        rejected_shared_discovery_entries
+        + rejected_publisher_site_entries
     )
     discovered_publishers_payload["generated_at"] = (
         generated_at.isoformat().replace("+00:00", "Z")
     )
 
-    retained_discovery_entries = [
-        entry for entry in all_entries if not is_direct_entry(entry)
+    retained_shared_discovery_entries = [
+        entry
+        for entry in all_entries
+        if entry_transport(entry) == "shared_discovery"
     ]
+    retained_publisher_site_entries = [
+        entry
+        for entry in all_entries
+        if entry_transport(entry) == "publisher_site"
+    ]
+    retained_direct_entries = [
+        entry
+        for entry in all_entries
+        if entry_transport(entry) == "direct"
+    ]
+    contributing_media_publishers = (
+        count_contributing_media_publishers(inventory_entries)
+    )
+
+    configured_feeds = (
+        len(SOURCES)
+        + len(discovery_queries)
+        + len(publisher_site_feeds)
+    )
+    feeds_due_this_run = len(endpoints)
+    feeds_successful_this_run = (
+        sum(source["status"] == "ok" for source in source_status)
+        + sum(query["status"] == "ok" for query in discovery_status)
+        + sum(
+            feed["status"] == "ok"
+            for feed in publisher_site_status
+        )
+    )
 
     payload = {
         "schema_version": 1,
@@ -2602,13 +3137,15 @@ def build_wire(
                 accepted_discovery_items
             ),
             "accepted_items_after_deduplication": len(
-                retained_discovery_entries
+                retained_shared_discovery_entries
             ),
-            "quarantined_items": len(rejected_discovery_entries),
+            "quarantined_items": len(
+                rejected_shared_discovery_entries
+            ),
             "distinct_accepted_publishers": len(
                 {
                     entry["publisher"]
-                    for entry in retained_discovery_entries
+                    for entry in retained_shared_discovery_entries
                 }
             ),
             "approved_publisher_domains": len(PUBLISHER_POLICY),
@@ -2618,12 +3155,61 @@ def build_wire(
                 for policy in PUBLISHER_POLICY.values()
             ),
             "duplicates_removed": deduplication_stats[
-                "duplicates_removed"
-            ],
+                "removed_by_transport"
+            ]["shared_discovery"],
             "direct_precedence_replacements": deduplication_stats[
                 "direct_precedence_replacements"
             ],
             "queries": discovery_status,
+        },
+        "feed_coverage": {
+            "configured_feeds": configured_feeds,
+            "direct_feeds": len(SOURCES),
+            "shared_discovery_feeds": len(discovery_queries),
+            "publisher_site_feeds": len(publisher_site_feeds),
+            # The due/success counters below describe only this payload's
+            # generated_at run, not persistent rolling-health statistics.
+            "feeds_due_this_run": feeds_due_this_run,
+            "feeds_successful_this_run": feeds_successful_this_run,
+            "publisher_site_feeds_due": len(
+                due_publisher_site_feeds
+            ),
+            "publisher_site_feeds_successful": sum(
+                feed["status"] == "ok"
+                for feed in publisher_site_status
+            ),
+            "publisher_site_items_quarantined": len(
+                rejected_publisher_site_entries
+            ),
+            "configured_media_publishers": len(
+                publisher_site_feeds
+            ),
+            "contributing_publishers_30d": (
+                contributing_media_publishers
+            ),
+            "accepted_items_by_transport": {
+                "direct": len(retained_direct_entries),
+                "publisher_site": len(
+                    retained_publisher_site_entries
+                ),
+                "shared_discovery": len(
+                    retained_shared_discovery_entries
+                ),
+            },
+            "priority_replacements": {
+                "direct_over_shared_discovery": deduplication_stats[
+                    "direct_precedence_replacements"
+                ],
+                "direct_over_publisher_site": deduplication_stats[
+                    "direct_over_publisher_site_replacements"
+                ],
+                "publisher_site_over_shared_discovery": deduplication_stats[
+                    "publisher_site_precedence_replacements"
+                ],
+            },
+            "duplicates_removed_by_transport": (
+                deduplication_stats["removed_by_transport"]
+            ),
         },
         "counts": {
             "successful_sources": sum(
@@ -2752,6 +3338,20 @@ def main() -> int:
     print(
         f"Distinct discovery publishers: "
         f"{discovery['distinct_accepted_publishers']}"
+    )
+    feed_coverage = payload["feed_coverage"]
+    print(
+        f"Configured feeds: "
+        f"{feed_coverage['configured_feeds']}"
+    )
+    print(
+        f"Feeds due this run: "
+        f"{feed_coverage['feeds_due_this_run']}"
+    )
+    print(
+        f"Publisher-site feeds: "
+        f"{feed_coverage['publisher_site_feeds_successful']}/"
+        f"{feed_coverage['publisher_site_feeds_due']} successful this run"
     )
     print(
         f"Current feed snapshot items: "

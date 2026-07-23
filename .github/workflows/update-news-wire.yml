@@ -69,6 +69,8 @@ jobs:
           from pathlib import Path
           from typing import Any
 
+          from fetch_news_wire import validate_output
+
 
           CURRENT_INVENTORY = Path("news_inventory.json")
           CURRENT_WIRE = Path("news_wire.json")
@@ -106,6 +108,8 @@ jobs:
           inventory = load_json(TEMP_INVENTORY)
           wire = load_json(TEMP_WIRE)
           ledger = load_json(TEMP_LEDGER)
+
+          validate_output(wire)
 
 
           # Rolling inventory contract.
@@ -276,6 +280,7 @@ jobs:
               payload: dict[str, Any],
           ) -> dict[str, Any]:
               payload_counts = payload.get("counts", {})
+              feed_coverage = payload.get("feed_coverage", {})
 
               return {
                   "candidate_roster": payload.get(
@@ -304,6 +309,18 @@ jobs:
                   "campaign_agenda": payload.get(
                       "campaign_agenda"
                   ),
+                  # Persist semantic feed-registry changes without
+                  # committing hourly due/success timing fluctuations.
+                  "feed_coverage_configuration": {
+                      key: feed_coverage.get(key)
+                      for key in (
+                          "configured_feeds",
+                          "direct_feeds",
+                          "shared_discovery_feeds",
+                          "publisher_site_feeds",
+                          "configured_media_publishers",
+                      )
+                  },
                   "relevant_news": payload.get(
                       "relevant_news"
                   ),

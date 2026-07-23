@@ -1,5 +1,7 @@
 import json
 import tempfile
+import threading
+import time
 import unittest
 from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime
@@ -8,7 +10,12 @@ from unittest.mock import patch
 
 from fetch_news_wire import (
     DISCOVERY_QUERIES,
+    DIRECT_ENTRY_LIMIT,
+    DISCOVERY_ENTRY_LIMIT,
+    FETCH_WORKERS,
+    GOOGLE_NEWS_WORKERS,
     PUBLISHER_POLICY,
+    PUBLISHER_SITE_ENTRY_LIMIT,
     SOURCES,
     accept_discovery_entries,
     aggregate_discovered_publishers,
@@ -16,10 +23,13 @@ from fetch_news_wire import (
     build_google_news_url,
     classify_notable_development,
     classify_relevant_news,
+    count_contributing_media_publishers,
     current_presidential_matches,
     deduplicate_entries,
+    entry_transport,
     explicit_election_match,
     generate_discovery_queries,
+    generate_publisher_site_feeds,
     is_static_entity_page,
     limit_items,
     merge_inventory,
@@ -27,12 +37,22 @@ from fetch_news_wire import (
     normalize_domain,
     parse_feed,
     publisher_policy_match,
+    publisher_site_feed_due,
     remove_publisher_suffix,
+    stable_slot,
+    transport_priority,
     validate_output,
 )
 
 
 class NewsWireRelevanceTests(unittest.TestCase):
+    def test_feed_entry_and_concurrency_limits(self):
+        self.assertEqual(DIRECT_ENTRY_LIMIT, 20)
+        self.assertEqual(DISCOVERY_ENTRY_LIMIT, 10)
+        self.assertEqual(PUBLISHER_SITE_ENTRY_LIMIT, 5)
+        self.assertLessEqual(FETCH_WORKERS, 12)
+        self.assertEqual(GOOGLE_NEWS_WORKERS, 4)
+
     def test_registry_declares_source_specificity(self):
         self.assertEqual(len(SOURCES), 19)
         self.assertTrue(all(
@@ -91,6 +111,14 @@ class NewsWireRelevanceTests(unittest.TestCase):
             source_types,
             {"media", "official", "fact_check"},
         )
+        self.assertGreaterEqual(
+            sum(
+                record["enabled"]
+                and record["source_type"] == "media"
+                for record in PUBLISHER_POLICY.values()
+            ),
+            180,
+        )
 
         for source in SOURCES:
             match = publisher_policy_match(
@@ -101,6 +129,113 @@ class NewsWireRelevanceTests(unittest.TestCase):
             _domain, policy = match
             if policy["source_type"] == "media":
                 self.assertEqual(policy["name"], source["name"])
+
+    def test_publisher_site_feed_registry_matches_enabled_media_policy(self):
+        feeds = generate_publisher_site_feeds()
+        expected_domains = {
+            domain
+            for domain, record in PUBLISHER_POLICY.items()
+            if record["enabled"] and record["source_type"] == "media"
+        }
+
+        self.assertEqual(
+            {feed["domain"] for feed in feeds},
+            expected_domains,
+        )
+        self.assertTrue(all(
+            PUBLISHER_POLICY[feed["domain"]]["source_type"] == "media"
+            for feed in feeds
+        ))
+        self.assertFalse(any(
+            record["source_type"] in {"official", "fact_check"}
+            and domain in {feed["domain"] for feed in feeds}
+            for domain, record in PUBLISHER_POLICY.items()
+        ))
+
+    def test_publisher_site_feed_ids_and_queries_are_stable(self):
+        first = generate_publisher_site_feeds()
+        second = generate_publisher_site_feeds()
+        ids = [feed["id"] for feed in first]
+        configured_ids = (
+            [source["source_id"] for source in SOURCES]
+            + [
+                f"discovery:{query['id']}"
+                for query in generate_discovery_queries(
+                    ["Alpha", "Bravo", "Charlie", "Delta"]
+                )
+            ]
+            + ids
+        )
+
+        self.assertEqual(first, second)
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertEqual(len(configured_ids), len(set(configured_ids)))
+        self.assertGreaterEqual(len(first), 180)
+        self.assertGreater(
+            len(SOURCES) + len(DISCOVERY_QUERIES) + 5 + len(first),
+            200,
+        )
+
+        for feed in first:
+            self.assertEqual(
+                feed["id"],
+                f"publisher-site:{feed['domain']}",
+            )
+            self.assertIn(f"site:{feed['domain']}", feed["query"])
+            self.assertIn("when:7d", feed["query"])
+            self.assertNotIn("Candidate", feed["query"])
+            self.assertIn("hl=fr", feed["feed_url"])
+            self.assertIn("gl=FR", feed["feed_url"])
+            self.assertIn("ceid=FR%3Afr", feed["feed_url"])
+
+    def test_publisher_site_schedule_covers_every_feed_in_twelve_hours(self):
+        feeds = generate_publisher_site_feeds()
+        start = datetime(2026, 7, 23, 0, tzinfo=timezone.utc)
+        hours = [start + timedelta(hours=hour) for hour in range(12)]
+
+        for feed in feeds:
+            due_hours = [
+                hour.hour
+                for hour in hours
+                if publisher_site_feed_due(feed, hour)
+            ]
+            expected_count = 4 if feed["tier"] == "core" else 1
+            self.assertEqual(len(due_hours), expected_count)
+
+            minimum_gap = 3 if feed["tier"] == "core" else 12
+            if len(due_hours) > 1:
+                self.assertTrue(all(
+                    later - earlier >= minimum_gap
+                    for earlier, later in zip(due_hours, due_hours[1:])
+                ))
+
+        covered = {
+            feed["id"]
+            for hour in hours
+            for feed in feeds
+            if publisher_site_feed_due(feed, hour)
+        }
+        self.assertEqual(covered, {feed["id"] for feed in feeds})
+
+    def test_core_and_extended_slots_have_exact_cycle_frequency(self):
+        feeds = generate_publisher_site_feeds()
+        start = datetime(2026, 7, 23, 0, tzinfo=timezone.utc)
+
+        for feed in feeds:
+            interval = feed["interval_hours"]
+            self.assertEqual(
+                feed["slot"],
+                stable_slot(feed["id"], interval),
+            )
+            for cycle_start in range(0, 12, interval):
+                cycle = [
+                    start + timedelta(hours=hour)
+                    for hour in range(cycle_start, cycle_start + interval)
+                ]
+                self.assertEqual(
+                    sum(publisher_site_feed_due(feed, hour) for hour in cycle),
+                    1,
+                )
 
     def test_discovery_source_files_are_utf8_without_mojibake(self):
         for filename in (
@@ -182,6 +317,21 @@ class NewsWireRelevanceTests(unittest.TestCase):
             "Présidentielle 2027 : un nouvel accord",
         )
 
+    def test_publisher_site_feed_may_return_no_matching_items(self):
+        raw = (
+            "<?xml version='1.0' encoding='UTF-8'?>"
+            "<rss version='2.0'><channel></channel></rss>"
+        ).encode("utf-8")
+        entries = parse_feed(
+            raw,
+            "Publisher site",
+            "https://news.google.com/rss/search?q=site%3Aexample.fr",
+            google_news=True,
+            max_entries=5,
+            allow_empty=True,
+        )
+        self.assertEqual(entries, [])
+
     def test_approved_media_discovery_is_accepted(self):
         entry = {
             "reported_publisher": "Le Figaro",
@@ -199,6 +349,134 @@ class NewsWireRelevanceTests(unittest.TestCase):
         self.assertEqual(len(accepted), 1)
         self.assertEqual(accepted[0]["publisher"], "Le Figaro")
         self.assertEqual(accepted[0]["source_id"], "discovery:test-query")
+
+    def test_publisher_site_acceptance_enforces_configured_domain(self):
+        base_entry = {
+            "reported_publisher": "Le Figaro",
+            "publisher": "Le Figaro",
+            "headline": "Présidentielle 2027 : une candidature",
+            "summary": "",
+            "url": "https://news.google.com/rss/articles/site-domain",
+            "canonical_url": (
+                "https://news.google.com/rss/articles/site-domain"
+            ),
+            "feed_url": "https://news.google.com/rss/search?q=test",
+            "published_at": datetime(2026, 7, 22, tzinfo=timezone.utc),
+        }
+
+        for domain in ("lefigaro.fr", "politique.lefigaro.fr"):
+            with self.subTest(domain=domain):
+                entry = dict(base_entry, publisher_domain=domain)
+                accepted, rejected = accept_discovery_entries(
+                    [entry],
+                    "publisher-site:lefigaro.fr",
+                    source_id_prefix="publisher-site",
+                    expected_policy_domain="lefigaro.fr",
+                    transport="publisher_site",
+                )
+                self.assertEqual(rejected, [])
+                self.assertEqual(len(accepted), 1)
+                self.assertEqual(accepted[0]["publisher"], "Le Figaro")
+                self.assertEqual(
+                    accepted[0]["publisher_domain"],
+                    "lefigaro.fr",
+                )
+
+    def test_publisher_site_rejects_different_approved_domain(self):
+        entry = {
+            "reported_publisher": "Le Monde",
+            "publisher_domain": "www.lemonde.fr",
+            "publisher": "Le Monde",
+            "headline": "Présidentielle 2027 : une candidature",
+            "summary": "",
+            "url": "https://news.google.com/rss/articles/site-mismatch",
+            "canonical_url": (
+                "https://news.google.com/rss/articles/site-mismatch"
+            ),
+            "feed_url": "https://news.google.com/rss/search?q=test",
+            "published_at": datetime(2026, 7, 22, tzinfo=timezone.utc),
+        }
+        accepted, rejected = accept_discovery_entries(
+            [entry],
+            "publisher-site:lefigaro.fr",
+            source_id_prefix="publisher-site",
+            expected_policy_domain="lefigaro.fr",
+            transport="publisher_site",
+        )
+        self.assertEqual(accepted, [])
+        self.assertEqual(
+            rejected[0]["rejection_reason"],
+            "publisher_site_domain_mismatch",
+        )
+        self.assertEqual(rejected[0]["transport"], "publisher_site")
+
+    def test_publisher_site_unresolved_and_unapproved_remain_rejected(self):
+        base_entry = {
+            "reported_publisher": "Unknown Outlet",
+            "publisher": "Unknown Outlet",
+            "headline": "Présidentielle 2027 : une actualité",
+            "summary": "",
+            "url": "https://news.google.com/rss/articles/site-unknown",
+            "canonical_url": (
+                "https://news.google.com/rss/articles/site-unknown"
+            ),
+            "feed_url": "https://news.google.com/rss/search?q=test",
+            "published_at": datetime(2026, 7, 22, tzinfo=timezone.utc),
+        }
+        entries = [
+            dict(base_entry, publisher_domain=""),
+            dict(base_entry, publisher_domain="news.unknown.example"),
+        ]
+        accepted, rejected = accept_discovery_entries(
+            entries,
+            "publisher-site:lefigaro.fr",
+            source_id_prefix="publisher-site",
+            expected_policy_domain="lefigaro.fr",
+            transport="publisher_site",
+        )
+        self.assertEqual(accepted, [])
+        self.assertEqual(
+            [item["rejection_reason"] for item in rejected],
+            ["unresolved_publisher_domain", "publisher_not_approved"],
+        )
+        self.assertTrue(all(
+            item["transport"] == "publisher_site"
+            for item in rejected
+        ))
+
+    def test_shared_discovery_accepts_any_approved_media_domain(self):
+        entries = []
+        for publisher, domain in (
+            ("Le Figaro", "politique.lefigaro.fr"),
+            ("Le Monde", "www.lemonde.fr"),
+        ):
+            entries.append(
+                {
+                    "reported_publisher": publisher,
+                    "publisher_domain": domain,
+                    "publisher": publisher,
+                    "headline": "Présidentielle 2027 : une candidature",
+                    "summary": "",
+                    "url": f"https://news.google.com/rss/articles/{domain}",
+                    "canonical_url": (
+                        f"https://news.google.com/rss/articles/{domain}"
+                    ),
+                    "feed_url": "https://news.google.com/rss/search?q=test",
+                    "published_at": datetime(
+                        2026, 7, 22, tzinfo=timezone.utc
+                    ),
+                }
+            )
+
+        accepted, rejected = accept_discovery_entries(
+            entries,
+            "shared-query",
+        )
+        self.assertEqual(rejected, [])
+        self.assertEqual(
+            {entry["publisher"] for entry in accepted},
+            {"Le Figaro", "Le Monde"},
+        )
 
     def test_unknown_discovery_publisher_is_quarantined(self):
         entry = {
@@ -218,6 +496,10 @@ class NewsWireRelevanceTests(unittest.TestCase):
         review = aggregate_discovered_publishers(rejected)
         self.assertEqual(review["publisher_count"], 1)
         self.assertEqual(review["item_count"], 1)
+        self.assertEqual(
+            review["publishers"][0]["transports"],
+            ["shared_discovery"],
+        )
 
     def test_non_media_discovery_publisher_is_rejected(self):
         self.assertEqual(PUBLISHER_POLICY["arcom.fr"]["source_type"], "official")
@@ -235,6 +517,50 @@ class NewsWireRelevanceTests(unittest.TestCase):
         accepted, rejected = accept_discovery_entries([entry], "test-query")
         self.assertEqual(accepted, [])
         self.assertEqual(rejected[0]["rejection_reason"], "non_media_publisher")
+
+    def test_contributing_publishers_count_is_media_only(self):
+        policy = {
+            "media.example": {
+                "name": "Media Example",
+                "source_type": "media",
+                "tier": "core",
+                "enabled": True,
+            },
+            "official.example": {
+                "name": "Official Example",
+                "source_type": "official",
+                "tier": "core",
+                "enabled": True,
+            },
+            "fact.example": {
+                "name": "Fact Example",
+                "source_type": "fact_check",
+                "tier": "extended",
+                "enabled": True,
+            },
+        }
+        entries = [
+            {
+                "publisher": "Media Example",
+                "source_id": "discovery:media",
+            },
+            {
+                "publisher": "Official Example",
+                "source_id": SOURCES[0]["source_id"],
+            },
+            {
+                "publisher": "Fact Example",
+                "source_id": "discovery:fact-check",
+            },
+            {
+                "publisher": "Unknown Example",
+                "source_id": "discovery:unknown",
+            },
+        ]
+        self.assertEqual(
+            count_contributing_media_publishers(entries, policy),
+            1,
+        )
 
     def test_publisher_suffix_removal_is_exact(self):
         for separator in ("-", "–", "—"):
@@ -258,7 +584,7 @@ class NewsWireRelevanceTests(unittest.TestCase):
 
     def test_direct_feed_precedence_and_deterministic_order(self):
         published_at = datetime(2026, 7, 22, 8, tzinfo=timezone.utc)
-        discovery = {
+        shared_discovery = {
             "source_id": "discovery:test-query",
             "publisher": "BFMTV — Politique",
             "headline": "Présidentielle 2027 : une annonce",
@@ -266,6 +592,16 @@ class NewsWireRelevanceTests(unittest.TestCase):
             "canonical_url": "https://news.google.com/rss/articles/example",
             "published_at": published_at,
         }
+        publisher_site = dict(shared_discovery)
+        publisher_site.update(
+            {
+                "source_id": "publisher-site:bfmtv.com",
+                "url": "https://news.google.com/rss/articles/site-example",
+                "canonical_url": (
+                    "https://news.google.com/rss/articles/site-example"
+                ),
+            }
+        )
         direct = {
             "source_id": "bfmtv-politique",
             "publisher": "BFMTV — Politique",
@@ -274,13 +610,51 @@ class NewsWireRelevanceTests(unittest.TestCase):
             "canonical_url": "https://bfmtv.com/politique/example.html",
             "published_at": published_at,
         }
-        first, first_stats = deduplicate_entries([discovery, direct])
-        second, second_stats = deduplicate_entries([discovery, direct])
+        first, first_stats = deduplicate_entries(
+            [shared_discovery, publisher_site, direct]
+        )
+        second, second_stats = deduplicate_entries(
+            [shared_discovery, publisher_site, direct]
+        )
         self.assertEqual(first, second)
         self.assertEqual(first_stats, second_stats)
         self.assertEqual(len(first), 1)
         self.assertEqual(first[0]["source_id"], "bfmtv-politique")
-        self.assertEqual(first_stats["direct_precedence_replacements"], 1)
+        self.assertEqual(first_stats["direct_precedence_replacements"], 0)
+        self.assertEqual(
+            first_stats["publisher_site_precedence_replacements"],
+            1,
+        )
+        self.assertEqual(
+            first_stats["direct_over_publisher_site_replacements"],
+            1,
+        )
+        self.assertEqual(first_stats["duplicates_removed"], 2)
+        self.assertEqual(
+            first_stats["removed_by_transport"]["shared_discovery"],
+            1,
+        )
+        self.assertEqual(
+            first_stats["removed_by_transport"]["publisher_site"],
+            1,
+        )
+
+    def test_transport_priority_is_direct_then_site_then_shared(self):
+        direct = {"source_id": "bfmtv-politique"}
+        publisher_site = {"source_id": "publisher-site:bfmtv.com"}
+        shared = {"source_id": "discovery:test-query"}
+
+        self.assertEqual(entry_transport(direct), "direct")
+        self.assertEqual(entry_transport(publisher_site), "publisher_site")
+        self.assertEqual(entry_transport(shared), "shared_discovery")
+        self.assertGreater(
+            transport_priority(direct),
+            transport_priority(publisher_site),
+        )
+        self.assertGreater(
+            transport_priority(publisher_site),
+            transport_priority(shared),
+        )
 
     def test_direct_feed_replaces_retained_discovery_copy(self):
         generated_at = datetime(2026, 7, 22, 10, tzinfo=timezone.utc)
@@ -361,6 +735,9 @@ class NewsWireRelevanceTests(unittest.TestCase):
                     inventory_path,
                     review_path,
                 )
+                review = json.loads(
+                    review_path.read_text(encoding="utf-8")
+                )
 
         self.assertEqual(len(payload["sources"]), 19)
         self.assertEqual(payload["counts"]["successful_sources"], 19)
@@ -369,6 +746,39 @@ class NewsWireRelevanceTests(unittest.TestCase):
             len(DISCOVERY_QUERIES) + 5,
         )
         self.assertEqual(payload["discovery"]["successful_queries"], 10)
+        self.assertEqual(
+            payload["discovery"]["quarantined_items"],
+            sum(
+                query["quarantined_items"]
+                for query in payload["discovery"]["queries"]
+            ),
+        )
+        coverage = payload["feed_coverage"]
+        self.assertEqual(coverage["direct_feeds"], 19)
+        self.assertEqual(coverage["shared_discovery_feeds"], 10)
+        self.assertEqual(coverage["publisher_site_feeds"], 180)
+        self.assertEqual(coverage["configured_feeds"], 209)
+        self.assertEqual(payload["discovery"]["quarantined_items"], 0)
+        self.assertGreater(
+            coverage["publisher_site_items_quarantined"],
+            0,
+        )
+        self.assertTrue(all(
+            "transports" in publisher
+            for publisher in review["publishers"]
+        ))
+        self.assertTrue(any(
+            "publisher_site" in publisher["transports"]
+            for publisher in review["publishers"]
+        ))
+        self.assertEqual(
+            coverage["feeds_due_this_run"],
+            29 + coverage["publisher_site_feeds_due"],
+        )
+        self.assertEqual(
+            coverage["feeds_successful_this_run"],
+            29 + coverage["publisher_site_feeds_successful"],
+        )
         self.assertTrue(inventory["items"])
         visible_publishers = {
             item["publisher"] for item in payload["relevant_news"]
@@ -397,6 +807,127 @@ class NewsWireRelevanceTests(unittest.TestCase):
             "accepted item counts are inconsistent",
         ):
             validate_output(invalid)
+
+        invalid = json.loads(json.dumps(payload))
+        invalid["feed_coverage"]["configured_feeds"] -= 1
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "configured feed count is invalid",
+        ):
+            validate_output(invalid)
+
+        invalid = json.loads(json.dumps(payload))
+        invalid["discovery"]["quarantined_items"] += 1
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "quarantined item count does not match queries",
+        ):
+            validate_output(invalid)
+
+        reduced = json.loads(json.dumps(payload))
+        reduced_site_feed = generate_publisher_site_feeds()[0]
+        reduced_generated_at = datetime.fromisoformat(
+            reduced["generated_at"].replace("Z", "+00:00")
+        )
+        reduced_due = int(
+            publisher_site_feed_due(
+                reduced_site_feed,
+                reduced_generated_at,
+            )
+        )
+        reduced["discovery"]["approved_media_domains"] = 1
+        reduced["feed_coverage"].update(
+            {
+                "configured_feeds": 30,
+                "publisher_site_feeds": 1,
+                "publisher_site_feeds_due": reduced_due,
+                "publisher_site_feeds_successful": 0,
+                "configured_media_publishers": 1,
+                "contributing_publishers_30d": 0,
+                "feeds_due_this_run": 29 + reduced_due,
+                "feeds_successful_this_run": 29,
+            }
+        )
+        with patch(
+            "fetch_news_wire.generate_publisher_site_feeds",
+            return_value=[reduced_site_feed],
+        ):
+            validate_output(reduced)
+
+        invalid = json.loads(json.dumps(payload))
+        invalid["feed_coverage"]["publisher_site_feeds_due"] += 1
+        invalid["feed_coverage"]["feeds_due_this_run"] += 1
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "publisher-site schedule count is invalid",
+        ):
+            validate_output(invalid)
+
+    def test_google_news_semaphore_preserves_deterministic_order(self):
+        generated_at = datetime(2026, 7, 23, 8, tzinfo=timezone.utc)
+        published = format_datetime(generated_at)
+        lock = threading.Lock()
+        active_google = 0
+        max_active_google = 0
+
+        def feed_bytes(url):
+            token = str(abs(hash(url)) % 100000)
+            if url.startswith("https://news.google.com/"):
+                return f"""<?xml version='1.0' encoding='UTF-8'?>
+                <rss version='2.0'><channel><item>
+                  <title>Présidentielle 2027 : article {token} - Le Monde</title>
+                  <link>https://news.google.com/rss/articles/{token}</link>
+                  <pubDate>{published}</pubDate>
+                  <description>Une proposition de campagne.</description>
+                  <source url='https://www.lemonde.fr'>Le Monde</source>
+                </item></channel></rss>""".encode("utf-8")
+            return f"""<?xml version='1.0' encoding='UTF-8'?>
+            <rss version='2.0'><channel><item>
+              <title>Présidentielle 2027 : direct {token}</title>
+              <link>https://example.test/direct-{token}</link>
+              <pubDate>{published}</pubDate>
+              <description>Une proposition de campagne.</description>
+            </item></channel></rss>""".encode("utf-8")
+
+        def fake_request(url, timeout=12):
+            nonlocal active_google, max_active_google
+            is_google = url.startswith("https://news.google.com/")
+            if is_google:
+                with lock:
+                    active_google += 1
+                    max_active_google = max(max_active_google, active_google)
+                time.sleep((abs(hash(url)) % 3 + 1) / 1000)
+            try:
+                return feed_bytes(url), url
+            finally:
+                if is_google:
+                    with lock:
+                        active_google -= 1
+
+        results = []
+        with patch("fetch_news_wire.request_bytes", side_effect=fake_request):
+            for _run in range(2):
+                with tempfile.TemporaryDirectory() as directory:
+                    payload, inventory = build_wire(
+                        Path("polls.json"),
+                        30,
+                        0,
+                        Path(directory) / "inventory.json",
+                        Path(directory) / "publishers.json",
+                        generated_at=generated_at,
+                    )
+                    results.append(
+                        (
+                            [item["id"] for item in payload["relevant_news"]],
+                            [item["id"] for item in inventory["items"]],
+                            payload["feed_coverage"],
+                        )
+                    )
+
+        self.assertEqual(FETCH_WORKERS, 12)
+        self.assertEqual(GOOGLE_NEWS_WORKERS, 4)
+        self.assertLessEqual(max_active_google, GOOGLE_NEWS_WORKERS)
+        self.assertEqual(results[0], results[1])
 
     def test_rss_summary_is_parsed_and_can_supply_election_context(self):
         raw = """<?xml version='1.0' encoding='UTF-8'?>
