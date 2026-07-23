@@ -630,12 +630,36 @@ def main() -> int:
             print(f"CACHED  {publisher}: {cached_record['path']}")
             continue
 
-        record = retrieve_source_icon(
-            publisher=publisher,
-            feed_url=source["feed_url"],
-            icons_dir=icons_dir,
-            repository_root=repository_root,
-        )
+                # Per-source icon retrieval failures are isolated.
+        # A broken homepage, certificate, or icon response must not
+        # prevent the remaining sources or the manifest from completing.
+        try:
+            record = retrieve_source_icon(
+                publisher=publisher,
+                feed_url=source["feed_url"],
+                icons_dir=icons_dir,
+                repository_root=repository_root,
+            )
+        except Exception as error:
+            try:
+                homepage_url = homepage_from_feed(
+                    source["feed_url"]
+                )
+            except Exception:
+                homepage_url = None
+
+            record = {
+                "publisher": publisher,
+                "status": "error",
+                "homepage_url": homepage_url,
+                "icon_url": None,
+                "path": None,
+                "mime_type": None,
+                "retrieved_at": utc_now_text(),
+                "error": (
+                    f"{type(error).__name__}: {error}"
+                ),
+            }
 
         record["entity_type"] = entity_type
         records.append(record)

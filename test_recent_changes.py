@@ -12,7 +12,9 @@ from generate_recent_changes import (
     classify_news_change,
     icon_key,
     compose_recent_changes,
+    fact_check_entries,
     news_entries,
+    normalized_title,
     parse_datetime,
     poll_entries,
     runoff_entry,
@@ -277,6 +279,127 @@ class RecentChangesTests(unittest.TestCase):
             },
         )
 
+    def test_distinct_ps_events_are_not_clustered_as_support(self):
+        shared_candidates = [
+            "François Hollande",
+            "Jean-Luc Mélenchon",
+            "Marine Le Pen",
+            "Marine Tondelier",
+            "Olivier Faure",
+            "Raphaël Glucksmann",
+        ]
+        headlines = [
+            (
+                "ps-vote-preview",
+                "Présidentielle 2027: pourquoi le vote organisé ce jeudi "
+                "au PS s’avère si crucial pour la gauche",
+            ),
+            (
+                "ps-primary-result",
+                "Présidentielle: le PS se prononce pour une primaire "
+                "fermée, un désaveu pour Olivier Faure",
+            ),
+            (
+                "tondelier-rupture",
+                "Les adhérents du PS ont décidé d’enterrer la primaire: "
+                "Marine Tondelier acte la rupture avant la présidentielle",
+            ),
+            (
+                "royal-candidacy",
+                "Présidentielle 2027: Ségolène Royal annonce sa "
+                "candidature à la primaire socialiste",
+            ),
+        ]
+        items = [
+            {
+                "id": item_id,
+                "publisher": "LCP — Actualités",
+                "published_at": f"2026-07-{9 + index:02d}T10:00:00Z",
+                "headline": headline,
+                "summary": "",
+                "url": f"https://lcp.fr/{item_id}",
+                "explicit_election": True,
+                # Simulate broad summary-derived candidate associations.
+                "candidates": shared_candidates,
+            }
+            for index, (item_id, headline) in enumerate(headlines)
+        ]
+        entries = news_entries(
+            {
+                "generated_at": "2026-07-22T09:00:00Z",
+                "election_news": items,
+                "notable_developments": [],
+                "candidate_watch": copy.deepcopy(items),
+            },
+            {},
+            FIXED_CLOCK,
+            Counter(),
+        )
+        self.assertEqual(len(entries), 3)
+        self.assertTrue(all(
+            item["supporting_source_count"] == 0
+            for item in entries
+        ))
+        self.assertNotIn(
+            "pourquoi le vote organisé",
+            " ".join(item["headline"].lower() for item in entries),
+        )
+
+    def test_fact_checks_of_the_same_claim_cluster_across_publishers(self):
+        claims = {
+            "generated_at": "2026-07-17T12:00:19Z",
+            "reviews": [
+                {
+                    "id": "tf1-melenchon",
+                    "review_url": "https://tf1info.fr/melenchon-claim",
+                    "publisher_name": "TF1 Info",
+                    "review_date": "2026-07-15",
+                    "claim_text": (
+                        "Jean-Luc Mélenchon déclaré dans une interview en "
+                        "1991 que le Front national réhabilite la politique"
+                    ),
+                    "rating": "Plutôt faux",
+                    "candidate_associations": [
+                        {
+                            "candidate_id": "jean-luc-melenchon",
+                            "candidate_name": "Jean-Luc Mélenchon",
+                        }
+                    ],
+                },
+                {
+                    "id": "franceinfo-melenchon",
+                    "review_url": "https://franceinfo.fr/melenchon-claim",
+                    "publisher_name": "franceinfo",
+                    "review_date": "2026-07-17",
+                    "claim_text": (
+                        "Jean-Luc Mélenchon a déclaré que le seul parti qui "
+                        "réhabilite la politique est le Front national"
+                    ),
+                    "rating": "C’est plus compliqué",
+                    "candidate_associations": [
+                        {
+                            "candidate_id": "jean-luc-melenchon",
+                            "candidate_name": "Jean-Luc Mélenchon",
+                        }
+                    ],
+                },
+            ],
+        }
+        entries = fact_check_entries(
+            claims,
+            {},
+            FIXED_CLOCK,
+            Counter(),
+        )
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["primary_source"]["name"], "franceinfo")
+        self.assertEqual(entries[0]["trusted_change_at"], "2026-07-17")
+        self.assertEqual(entries[0]["supporting_source_count"], 1)
+        self.assertEqual(
+            entries[0]["supporting_sources"][0]["name"],
+            "TF1 Info",
+        )
+
     def test_candidate_watch_filter_admits_only_material_changes(self):
         accepted = [
             (
@@ -470,6 +593,23 @@ class RecentChangesTests(unittest.TestCase):
                 "development_category": "legal_eligibility",
             },
             {
+                "headline": (
+                    "Présidentielle 2027: pourquoi le vote organisé ce jeudi "
+                    "au PS s’avère si crucial pour la gauche"
+                ),
+                "candidates": [],
+                "explicit_election": True,
+            },
+            {
+                "headline": (
+                    "Marine Le Pen, Xavier Milei, Jair Bolsonaro… La longue "
+                    "liste des dirigeants d’extrême droite soutenus par "
+                    "Elon Musk"
+                ),
+                "candidates": ["Marine Le Pen"],
+                "explicit_election": True,
+            },
+            {
                 "headline": "Marine Le Pen joue au golf avec Jordan Bardella",
                 "candidates": ["Marine Le Pen", "Jordan Bardella"],
                 "explicit_election": False,
@@ -556,6 +696,67 @@ class RecentChangesTests(unittest.TestCase):
         )
         self.assertEqual(entries, [])
         self.assertEqual(diagnostics["omitted_news_non_material"], 1)
+
+    def test_presidential_alliance_proposal_is_a_campaign_change(self):
+        item = {
+            "headline": (
+                "Présidentielle 2027: Jean-Luc Mélenchon tend la main aux "
+                "Écologistes et leur propose un accord global et carré"
+            ),
+            "candidates": ["Jean-Luc Mélenchon", "Marine Tondelier"],
+            "explicit_election": True,
+        }
+        classification = classify_candidate_watch_change(item)
+        self.assertIsNotNone(classification)
+        self.assertEqual(classification[0], "campaign")
+
+    def test_alliance_reports_cluster_as_one_event_with_support(self):
+        bfmtv = {
+            "id": "melenchon-agreement-bfmtv",
+            "published_at": "2026-07-22T11:38:32Z",
+            "publisher": "BFMTV — Politique",
+            "url": "https://example.test/melenchon-agreement-bfmtv",
+            "headline": (
+                "Présidentielle 2027: Jean-Luc Mélenchon tend la main aux "
+                "Écologistes et leur propose un accord global et carré"
+            ),
+            "candidates": ["Jean-Luc Mélenchon", "Marine Tondelier"],
+            "explicit_election": True,
+        }
+        huffpost = {
+            "id": "melenchon-agreement-huffpost",
+            "published_at": "2026-07-22T16:59:06Z",
+            "publisher": "HuffPost France — Headlines",
+            "url": "https://example.test/melenchon-agreement-huffpost",
+            "headline": (
+                "Pour 2027, Mélenchon tend toujours la main aux Écologistes "
+                "mais avec un ultimatum"
+            ),
+            "candidates": ["Jean-Luc Mélenchon", "Marine Tondelier"],
+            "explicit_election": False,
+        }
+        diagnostics = Counter()
+        entries = news_entries(
+            {
+                "generated_at": "2026-07-22T18:00:00Z",
+                "election_news": [copy.deepcopy(bfmtv)],
+                "notable_developments": [],
+                "candidate_watch": [copy.deepcopy(huffpost)],
+            },
+            {},
+            FIXED_CLOCK,
+            diagnostics,
+        )
+        matches = [
+            item for item in entries
+            if "melenchon" in normalized_title(item["headline"])
+        ]
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches[0]["supporting_source_count"], 1)
+        self.assertEqual(
+            matches[0]["supporting_sources"][0]["name"],
+            "HuffPost France — Headlines",
+        )
 
     def test_material_candidate_watch_items_enter_news_entries(self):
         payload = {
@@ -679,6 +880,69 @@ class RecentChangesTests(unittest.TestCase):
         with self.assertRaises(LedgerError):
             validate_recent_changes(broken)
 
+
+    def test_same_day_melenchon_ecologists_reports_cluster(self):
+        bfmtv = {
+            "id": "melenchon-alliance-bfmtv",
+            "publisher": "BFMTV — Politique",
+            "published_at": "2026-07-22T07:00:00Z",
+            "headline": (
+                "Présidentielle 2027: Jean-Luc Mélenchon tend "
+                "une nouvelle fois la main aux Écologistes et leur "
+                "propose un accord global et carré"
+            ),
+            "summary": "",
+            "url": "https://example.test/bfmtv-alliance",
+            "explicit_election": True,
+            "candidates": [
+                "Jean-Luc Mélenchon",
+                "Marine Tondelier",
+            ],
+        }
+
+        huffpost = {
+            "id": "melenchon-alliance-huffpost",
+            "publisher": "HuffPost France — Headlines",
+            "published_at": "2026-07-22T08:00:00Z",
+            "headline": (
+                "Pour 2027, Mélenchon tend toujours la main aux "
+                "Écologistes mais avec un ultimatum"
+            ),
+            "summary": "",
+            "url": "https://example.test/huffpost-alliance",
+            "explicit_election": True,
+            "candidates": ["Marine Tondelier"],
+        }
+
+        entries = news_entries(
+            {
+                "generated_at": "2026-07-22T09:00:00Z",
+                "election_news": [bfmtv, huffpost],
+                "notable_developments": [],
+                "candidate_watch": [],
+            },
+            {},
+            FIXED_CLOCK,
+            Counter(),
+        )
+
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(
+            entries[0]["primary_source"]["name"],
+            "BFMTV — Politique",
+        )
+        self.assertEqual(
+            entries[0]["supporting_source_count"],
+            1,
+        )
+        self.assertEqual(
+            entries[0]["supporting_sources"][0]["name"],
+            "HuffPost France — Headlines",
+        )
+        self.assertIn(
+            "global et carré",
+            entries[0]["headline"],
+        )
 
 if __name__ == "__main__":
     unittest.main()

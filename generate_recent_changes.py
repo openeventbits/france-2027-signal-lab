@@ -64,6 +64,12 @@ STRONG_CAMPAIGN_ACTION_PHRASES = (
     "soutenus par",
     "appelle a voter pour",
 )
+RETROSPECTIVE_CAMPAIGN_HEADLINE_PHRASES = (
+    "longue liste des",
+    "liste des dirigeants",
+    "retour sur les soutiens",
+    "histoire des soutiens",
+)
 CONTEXTUAL_CAMPAIGN_ACTION_PHRASES = (
     "se prepare",
     "acte la rupture",
@@ -72,13 +78,24 @@ CONTEXTUAL_CAMPAIGN_ACTION_PHRASES = (
     "se prononce pour une primaire",
     "modifie le processus de primaire",
     "change le processus de primaire",
-    "vote organise",
+    "annonce un vote",
+    "fixe la date du vote",
+    "convoque un vote",
     "organise un meeting",
     "annonce un meeting",
     "reunit ses soutiens",
     "presente son programme",
     "devoile son programme",
     "s engage a",
+    "propose un accord",
+    "propose une alliance",
+    "propose une coalition",
+    "conclut un accord",
+    "rejoint une alliance",
+    "quitte une coalition",
+    "pose ses conditions",
+    "fixe un ultimatum",
+    "ultimatum",
 )
 MATERIAL_LEGAL_ACTION_PHRASES = (
     "assigne",
@@ -124,6 +141,7 @@ PRESIDENTIAL_CONTEXT_PHRASES = (
     "elysee",
     "campagne presidentielle",
     "primaire presidentielle",
+    "pour 2027",
 )
 NON_PRESIDENTIAL_ELECTION_PHRASES = (
     "senatoriales",
@@ -164,7 +182,22 @@ ACTION_GROUPS = {
         "annonce sa candidature", "candidature", "candidate", "candidat",
         "se lancer dans la course", "course a l elysee", "primaire",
     ),
-    "endorsement": ("soutien", "soutient", "ralliement", "alliance"),
+    "endorsement": (
+        "soutien",
+        "soutient",
+        "ralliement",
+        "alliance",
+        "propose un accord",
+        "propose une alliance",
+        "propose une coalition",
+        "conclut un accord",
+        "rejoint une alliance",
+        "quitte une coalition",
+        "pose ses conditions",
+        "fixe un ultimatum",
+        "ultimatum",
+        "tend la main",
+    ),
     "selection": ("designation", "vote organise", "nomination", "primaire"),
     "procedure": ("parrainage", "500 signatures", "dates du premier", "calendrier"),
     "legal": (
@@ -358,6 +391,14 @@ def classify_news_change(
     if has_other_election_context and not has_presidential_context_in_headline:
         return None
 
+    # Roundups and retrospective lists may contain an endorsement verb while
+    # reporting no new endorsement. They remain relevant news, not changes.
+    if first_matching_phrase(
+        headline_text,
+        RETROSPECTIVE_CAMPAIGN_HEADLINE_PHRASES,
+    ):
+        return None
+
     strong_campaign_phrase = first_matching_phrase(
         headline_text,
         STRONG_CAMPAIGN_ACTION_PHRASES,
@@ -537,6 +578,19 @@ def news_entries(
                 if isinstance(name, str) and name.strip()
             }
         )
+        headline_text = normalized_title(headline)
+        padded_headline = f" {headline_text} "
+        headline_candidate_entities = set()
+        for name in candidate_names:
+            normalized_name = normalized_title(name)
+            if not normalized_name:
+                continue
+            surname = normalized_name.split()[-1]
+            if (
+                normalized_name in headline_text
+                or f" {surname} " in padded_headline
+            ):
+                headline_candidate_entities.add(normalized_name)
         item_id = f"{category}-{source_id}"
         published_text = utc_text(published)
         entries.append(
@@ -558,8 +612,10 @@ def news_entries(
                 "supporting_source_count": 0,
                 "supporting_sources": [],
                 "related_destination": "#signal-panel-agenda",
-                "_entities": person_entities(headline)
-                | {normalized_title(name) for name in candidate_names},
+                "_entities": (
+                    person_entities(headline)
+                    | headline_candidate_entities
+                ),
                 "_source_id": source_id,
             }
         )
@@ -643,15 +699,59 @@ def news_entries_match(left: dict[str, Any], right: dict[str, Any]) -> bool:
     if not left_date or not right_date or abs((left_date - right_date).days) > 1:
         return False
 
+    # Same-day alliance proposal deduplication.
+    # Merge reports only when they:
+    # - are campaign items published on the same date;
+    # - share a monitored political actor;
+    # - both describe the same explicit outreach/negotiation action.
+    left_text = normalized_title(left["headline"])
+    right_text = normalized_title(right["headline"])
+    shared_candidate_ids = (
+        set(left.get("candidate_ids", []))
+        & set(right.get("candidate_ids", []))
+    )
+
+    alliance_terms = (
+        "accord",
+        "alliance",
+        "coalition",
+        "ultimatum",
+        "negociation",
+    )
+
+    same_day_alliance_proposal = (
+        left["category"] == "campaign"
+        and left_date == right_date
+        and bool(shared_candidate_ids)
+        and all(
+            "tend" in text
+            and "main" in text
+            and "ecologistes" in text
+            and any(term in text for term in alliance_terms)
+            for text in (left_text, right_text)
+        )
+    )
+
+    if same_day_alliance_proposal:
+        return True
+
     left_tokens = title_tokens(left["headline"])
     right_tokens = title_tokens(right["headline"])
     union = left_tokens | right_tokens
     similarity = len(left_tokens & right_tokens) / len(union) if union else 0.0
-    shared_entities = set(left.get("_entities", set())) & set(right.get("_entities", set()))
-    shared_actions = action_groups(left["headline"]) & action_groups(right["headline"])
-    if left["category"] == "campaign" and shared_entities and shared_actions:
-        return True
-    return similarity >= 0.68 or bool(shared_entities and shared_actions and similarity >= 0.18)
+    shared_entities = (
+        set(left.get("_entities", set()))
+        & set(right.get("_entities", set()))
+    )
+    shared_actions = (
+        action_groups(left["headline"])
+        & action_groups(right["headline"])
+    )
+    return similarity >= 0.68 or bool(
+        shared_entities
+        and shared_actions
+        and similarity >= 0.30
+    )
 
 
 def cluster_news_entries(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -879,6 +979,120 @@ def runoff_entry(
     ]
 
 
+def fact_check_entries_match(
+    left: dict[str, Any],
+    right: dict[str, Any],
+) -> bool:
+    if left["primary_source"]["url"] == right["primary_source"]["url"]:
+        return True
+    if normalized_title(left["headline"]) == normalized_title(right["headline"]):
+        return True
+    if normalized_title(left["primary_source"]["name"]) == normalized_title(
+        right["primary_source"]["name"]
+    ):
+        return False
+
+    left_date = date_key(left["trusted_change_at"])
+    right_date = date_key(right["trusted_change_at"])
+    if (
+        not left_date
+        or not right_date
+        or abs((left_date - right_date).days) > 7
+    ):
+        return False
+
+    shared_candidates = (
+        set(left.get("candidate_ids", []))
+        & set(right.get("candidate_ids", []))
+    )
+    if not shared_candidates:
+        return False
+
+    left_tokens = title_tokens(left["headline"])
+    right_tokens = title_tokens(right["headline"])
+    union = left_tokens | right_tokens
+    similarity = (
+        len(left_tokens & right_tokens) / len(union)
+        if union
+        else 0.0
+    )
+    return similarity >= 0.55
+
+
+def cluster_fact_check_entries(
+    entries: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    clusters: list[list[dict[str, Any]]] = []
+    for entry in sorted(
+        entries,
+        key=lambda item: (
+            date_sort_value(item["trusted_change_at"]),
+            item["id"],
+        ),
+    ):
+        for cluster in clusters:
+            if any(
+                fact_check_entries_match(entry, member)
+                for member in cluster
+            ):
+                cluster.append(entry)
+                break
+        else:
+            clusters.append([entry])
+
+    merged: list[dict[str, Any]] = []
+    for cluster in clusters:
+        primary = max(
+            cluster,
+            key=lambda item: (
+                date_sort_value(item["trusted_change_at"]),
+                item["primary_source"]["name"],
+                item["id"],
+            ),
+        )
+        supporters = sorted(
+            (item for item in cluster if item is not primary),
+            key=lambda item: (
+                date_sort_value(item["trusted_change_at"]),
+                item["primary_source"]["name"],
+                item["id"],
+            ),
+            reverse=True,
+        )
+        result = dict(primary)
+        result["candidate_ids"] = sorted({
+            candidate
+            for item in cluster
+            for candidate in item["candidate_ids"]
+        })
+        result["candidate_names"] = sorted({
+            candidate
+            for item in cluster
+            for candidate in item["candidate_names"]
+        })
+        result["supporting_sources"] = [
+            source_metadata(
+                item["primary_source"]["name"],
+                item["primary_source"]["url"],
+                item["published_at"],
+            )
+            for item in supporters
+        ]
+        result["supporting_source_count"] = len(
+            result["supporting_sources"]
+        )
+        if supporters:
+            result["summary"] = (
+                primary["summary"]
+                + " "
+                + f"{len(supporters)} additional publisher"
+                + (" reviewed" if len(supporters) == 1 else "s reviewed")
+                + " the same claim."
+            )
+        merged.append(result)
+    return merged
+
+
 def fact_check_entries(
     payload: dict[str, Any],
     prior: dict[str, dict[str, Any]],
@@ -943,7 +1157,7 @@ def fact_check_entries(
                 "related_destination": "#signal-panel-fact-checks",
             }
         )
-    return entries
+    return cluster_fact_check_entries(entries)
 
 
 def valid_url(value: Any) -> bool:

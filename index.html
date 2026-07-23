@@ -3664,26 +3664,7 @@
       text-align: center;
     }
 
-    .changes-ledger-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      flex: 0 0 auto;
-      min-height: 25px;
-      padding: 5px 8px;
-      border-top: 1px solid #183950;
-      background: rgba(5, 17, 28, .72);
-      color: #6f8da1;
-      font-size: 7px;
-      letter-spacing: .055em;
-      line-height: 1;
-    }
 
-    .changes-ledger-footer strong {
-      color: #98afbd;
-      font-weight: 700;
-    }
 
     @media (max-width: 1119px) {
       .changes-ledger-scroll {
@@ -3843,10 +3824,6 @@
       font-size: 9px;
     }
 
-    .changes-ledger-footer {
-      min-height: 23px;
-      padding-block: 4px;
-    }
 
     @media (max-width: 719px) {
       .changes-ledger-scroll::before {
@@ -4986,40 +4963,17 @@
       return true;
     }
 
+
+    /* Recent Changes Ledger: source identity only */
     function ledgerSourceVisual(entry) {
       const visual = document.createElement("div");
       visual.className = "changes-ledger-visual";
 
       /*
-       * Polling institutes now prefer their automatically cached
-       * site icon and fall back to the existing text wordmark.
+       * What Changed presents source-linked evidence.
+       * Use the publisher or polling institute identity instead
+       * of portraits of people mentioned in the article.
        */
-      if (entry.category === "polling") {
-        if (!appendLedgerCachedIcon(visual, entry)) {
-          appendLedgerWordmark(visual, entry);
-        }
-
-        return visual;
-      }
-
-      const candidates = Array.isArray(entry.candidates)
-        ? entry.candidates.filter(Boolean).slice(0, 2)
-        : [];
-
-      /*
-       * Candidate-specific political and fact-check entries retain
-       * portraits because the person is the main visual subject.
-       */
-      if (candidates.length) {
-        candidates.forEach(candidate => {
-          visual.appendChild(
-            briefingCandidateMarker(candidate)
-          );
-        });
-
-        return visual;
-      }
-
       if (!appendLedgerCachedIcon(visual, entry)) {
         appendLedgerWordmark(visual, entry);
       }
@@ -5289,27 +5243,7 @@
 
       container.appendChild(scroll);
 
-      const footer = document.createElement("div");
-      footer.className = "changes-ledger-footer";
-
-      appendBriefingText(
-        footer,
-        "",
-        filteredEntries.length +
-        (filteredEntries.length === 1 ? " update shown" : " updates shown"),
-        "strong"
-      );
-
-      appendBriefingText(
-        footer,
-        "",
-        filteredEntries.length > 4
-          ? "SCROLL FOR OLDER UPDATES"
-          : "LATEST 14-DAY WINDOW",
-        "span"
-      );
-
-      container.appendChild(footer);
+      /* Recent Changes Ledger footer removed */
     }
 
     function subtractCalendarMonths(iso, months) {
@@ -5434,11 +5368,15 @@
           !Array.isArray(payload.campaign_agenda.topics)) {
         throw new Error("Campaign Agenda data is malformed");
       }
-      if (!Array.isArray(payload.election_news) ||
+      if (!Array.isArray(payload.relevant_news) ||
+          !Array.isArray(payload.election_news) ||
           !Array.isArray(payload.notable_developments) ||
           !Array.isArray(payload.candidate_watch)) {
         throw new Error("News-wire item lists are malformed");
       }
+
+      /* Broad Relevant News frontend contract */
+      const relevantItems = payload.relevant_news;
       if (!payload.generated_at || !Number.isFinite(new Date(payload.generated_at).getTime())) {
         throw new Error("News-wire update time is malformed");
       }
@@ -5446,7 +5384,11 @@
         throw new Error("News-wire status metadata is malformed");
       }
 
-      const lists = [payload.election_news, payload.candidate_watch];
+      const lists = [
+        relevantItems,
+        payload.election_news,
+        payload.candidate_watch
+      ];
       const validItem = item => item && typeof item === "object" &&
         [item.publisher, item.headline, item.published_at].every(value => typeof value === "string" && value.trim()) &&
         Number.isFinite(new Date(item.published_at).getTime()) && safeSourceUrl(item.url) !== "" &&
@@ -5482,7 +5424,7 @@
       if (agenda.method !== "accepted_relevant_news_by_campaign_theme" ||
           !Number.isInteger(agenda.display_min_source_days) || agenda.display_min_source_days < 1 ||
           !Number.isInteger(agenda.input_item_count) ||
-          agenda.input_item_count < payload.election_news.length + payload.notable_developments.length ||
+          agenda.input_item_count !== relevantItems.length ||
           agenda.topics.some(topic => !validAgendaTopic(topic))) {
         throw new Error("Campaign Agenda data is malformed");
       }
@@ -5490,7 +5432,7 @@
       const expectedCounts = {
         election_news: payload.election_news.length,
         notable_developments: payload.notable_developments.length,
-        relevant_news: payload.election_news.length + payload.notable_developments.length,
+        relevant_news: relevantItems.length,
         candidate_watch: payload.candidate_watch.length
       };
       if (!Number.isInteger(payload.counts.successful_sources) || payload.counts.successful_sources < 0 ||
@@ -5567,10 +5509,9 @@
 
     function renderElectionNews() {
       if (!newsWirePayload) return;
-      const items = newestNewsItems([
-        ...newsWirePayload.election_news,
-        ...newsWirePayload.notable_developments
-      ]);
+      const items = newestNewsItems(
+        newsWirePayload.relevant_news
+      );
       $("#election-news-list").innerHTML = items.length
         ? items.map(item => signalNewsRow(item, false)).join("")
         : '<div class="signal-state">No relevant election developments in this update.</div>';
