@@ -162,12 +162,44 @@ class RecentChangesTests(unittest.TestCase):
         self.assertNotIn("item.detected_at", renderer)
         self.assertNotIn("item.date_value", renderer)
 
-    def test_frontend_reports_partial_news_feeds_and_aliases_lcp_icon(self):
+    def test_frontend_reports_source_network_and_aliases_lcp_icon(self):
         index = (ROOT / "index.html").read_text(encoding="utf-8")
+
         self.assertIn('"lcp actualites", "lcp"', index)
-        self.assertIn('unavailableNewsSources', index)
-        self.assertIn('" news feeds ready"', index)
         self.assertIn('image.style.visibility = "hidden"', index)
+
+        required_source_network_contract = (
+            "SOURCE NETWORK",
+            "deriveSourceNetworkStatus",
+            "renderSourceNetworkStatus",
+            "approved_publisher_domains",
+            "configured_media_publishers",
+            "approved_media_domains",
+            "configured_feeds",
+            "FEED ROUTES",
+            "feeds_due_this_run",
+            "feeds_successful_this_run",
+            "Automatically updated from the source registry",
+        )
+
+        for literal in required_source_network_contract:
+            with self.subTest(required_literal=literal):
+                self.assertIn(literal, index)
+
+        obsolete_status_contract = (
+            "DASHBOARD STATUS",
+            "newsSourceCount",
+            "readyNewsSources",
+            "unavailableNewsSources",
+            '" news feeds ready"',
+            "0 of 4 feeds ready",
+            "All feeds ready",
+            "Loading dashboard data",
+        )
+
+        for literal in obsolete_status_contract:
+            with self.subTest(obsolete_literal=literal):
+                self.assertNotIn(literal, index)
 
     def test_newest_and_oldest_metadata_match_displayed_records(self):
         payload = self.compose()
