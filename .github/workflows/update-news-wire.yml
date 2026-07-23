@@ -21,7 +21,6 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
         with:
-          ref: main
           fetch-depth: 0
 
       - name: Set up Python
@@ -29,368 +28,409 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Fetch News Wire into a temporary file
+      - name: Run news pipeline tests
+        run: python -m unittest
+
+      - name: Build temporary rolling news outputs
+        shell: bash
         run: |
+          set -euo pipefail
+
+          cp news_inventory.json /tmp/news_inventory.json
+
           python fetch_news_wire.py \
             --polls polls.json \
+            --inventory /tmp/news_inventory.json \
             --output /tmp/news_wire.json \
             --window-days 30 \
             --max-items 0
 
-      - name: Validate and stage fetched News Wire
-        id: validate
-        shell: bash
-        run: |
-          python - <<'PY'
-          import json
-          import os
-          import tempfile
-          from datetime import datetime
-          from pathlib import Path
-          from urllib.parse import urlparse
-
-          current_path = Path("news_wire.json")
-          fetched_path = Path("/tmp/news_wire.json")
-
-          expected_item_fields = {
-              "id",
-              "publisher",
-              "published_at",
-              "headline",
-              "url",
-              "explicit_election",
-              "candidates",
-          }
-          forbidden_item_fields = {
-              "summary",
-              "description",
-              "article_body",
-              "body",
-              "image",
-              "sentiment",
-              "rank",
-              "score",
-          }
-
-          expected_agenda_topic_fields = {
-              "id",
-              "label",
-              "item_count",
-              "publisher_count",
-              "publisher_names",
-              "source_day_count",
-              "active_day_count",
-              "display_eligible",
-              "supporting_items",
-          }
-          expected_agenda_item_fields = {
-              "id",
-              "publisher",
-              "published_at",
-              "headline",
-              "url",
-              "candidates",
-              "matched_terms",
-          }
-
-          def fail(message):
-              raise SystemExit(f"News Wire validation failed: {message}")
-
-          def load_json(path):
-              try:
-                  return json.loads(path.read_text(encoding="utf-8"))
-              except (OSError, json.JSONDecodeError) as error:
-                  fail(f"could not read {path}: {error}")
-
-          def valid_datetime(value):
-              if not isinstance(value, str) or not value.strip():
-                  return False
-              try:
-                  datetime.fromisoformat(value.replace("Z", "+00:00"))
-              except ValueError:
-                  return False
-              return True
-
-          def valid_http_url(value):
-              if not isinstance(value, str):
-                  return False
-              parsed = urlparse(value)
-              return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
-
-          def validate_items(view_name, items):
-              seen_ids = set()
-              for index, item in enumerate(items):
-                  if not isinstance(item, dict):
-                      fail(f"{view_name}[{index}] is not an object")
-                  fields = set(item)
-                  if fields != expected_item_fields:
-                      missing = sorted(expected_item_fields - fields)
-                      extra = sorted(fields - expected_item_fields)
-                      fail(
-                          f"{view_name}[{index}] has unexpected public fields; "
-                          f"missing={missing}, extra={extra}"
-                      )
-                  forbidden = sorted(fields & forbidden_item_fields)
-                  if forbidden:
-                      fail(f"{view_name}[{index}] contains forbidden fields: {forbidden}")
-
-                  item_id = item["id"]
-                  if not isinstance(item_id, str) or not item_id.strip():
-                      fail(f"{view_name}[{index}] has an empty id")
-                  if item_id in seen_ids:
-                      fail(f"duplicate id in {view_name}: {item_id}")
-                  seen_ids.add(item_id)
-
-                  if not isinstance(item["publisher"], str) or not item["publisher"].strip():
-                      fail(f"{view_name}[{index}] has an empty publisher")
-                  if not isinstance(item["headline"], str) or not item["headline"].strip():
-                      fail(f"{view_name}[{index}] has an empty headline")
-                  if not valid_datetime(item["published_at"]):
-                      fail(f"{view_name}[{index}] has an invalid published_at")
-                  if not valid_http_url(item["url"]):
-                      fail(f"{view_name}[{index}] has a non-HTTP(S) URL")
-                  if not isinstance(item["explicit_election"], bool):
-                      fail(f"{view_name}[{index}] has a non-boolean explicit_election")
-                  if not isinstance(item["candidates"], list):
-                      fail(f"{view_name}[{index}] candidates is not an array")
-
-          fetched = load_json(fetched_path)
-          if not isinstance(fetched, dict):
-              fail("top-level value is not an object")
-          if fetched.get("schema_version") != 1:
-              fail("schema_version must equal 1")
-
-          roster = fetched.get("candidate_roster")
-          if not isinstance(roster, dict) or not isinstance(roster.get("names"), list):
-              fail("candidate_roster.names must be an array")
-          if roster.get("count") != len(roster["names"]):
-              fail("candidate_roster count does not match names")
-          if len(roster["names"]) < 15:
-              fail("candidate_roster must contain at least 15 names")
-
-          sources = fetched.get("sources")
-          if not isinstance(sources, list) or len(sources) != 19:
-              fail("exactly 19 configured source records are required")
-          if any(
-              not isinstance(source, dict)
-              or source.get("status") not in {"ok", "error"}
-              for source in sources
-          ):
-              fail("configured sources must have status ok or error")
-
-          counts = fetched.get("counts")
-          if not isinstance(counts, dict):
-              fail("counts must be an object")
-          successful_sources = sum(source["status"] == "ok" for source in sources)
-          if counts.get("successful_sources") != successful_sources:
-              fail("counts.successful_sources does not match source statuses")
-          if successful_sources < 4:
-              fail("at least four configured sources must succeed")
-
-          election_news = fetched.get("election_news")
-          candidate_watch = fetched.get("candidate_watch")
-          if not isinstance(election_news, list) or not isinstance(candidate_watch, list):
-              fail("election_news and candidate_watch must be arrays")
-          if counts.get("election_news") != len(election_news):
-              fail("counts.election_news does not match its array length")
-          if counts.get("candidate_watch") != len(candidate_watch):
-              fail("counts.candidate_watch does not match its array length")
-          if not election_news and not candidate_watch:
-              fail("both public views are empty")
-
-          validate_items("election_news", election_news)
-          validate_items("candidate_watch", candidate_watch)
-
-          campaign_agenda = fetched.get("campaign_agenda")
-          if not isinstance(campaign_agenda, dict):
-              fail("campaign_agenda must be an object")
-          if campaign_agenda.get("method") != "accepted_election_news_by_campaign_theme":
-              fail("campaign_agenda method is unsupported")
-          if campaign_agenda.get("window_days") != fetched.get("window_days"):
-              fail("campaign_agenda window_days does not match the wire")
-          if (
-              not isinstance(campaign_agenda.get("input_item_count"), int)
-              or campaign_agenda["input_item_count"] < len(election_news)
-          ):
-              fail("campaign_agenda input_item_count is invalid")
-          display_min = campaign_agenda.get("display_min_source_days")
-          if not isinstance(display_min, int) or display_min < 1:
-              fail("campaign_agenda display threshold is invalid")
-
-          agenda_topics = campaign_agenda.get("topics")
-          if not isinstance(agenda_topics, list):
-              fail("campaign_agenda topics must be an array")
-
-          agenda_ids = set()
-          agenda_item_total = 0
-
-          for topic_index, topic in enumerate(agenda_topics):
-              if not isinstance(topic, dict) or set(topic) != expected_agenda_topic_fields:
-                  fail(f"campaign_agenda topic {topic_index} has unexpected fields")
-              topic_id = topic["id"]
-              if not isinstance(topic_id, str) or not topic_id.strip():
-                  fail(f"campaign_agenda topic {topic_index} has an invalid id")
-              if topic_id in agenda_ids:
-                  fail(f"duplicate campaign_agenda topic id: {topic_id}")
-              agenda_ids.add(topic_id)
-
-              if not isinstance(topic["label"], str) or not topic["label"].strip():
-                  fail(f"campaign_agenda topic {topic_id} has an empty label")
-
-              integer_fields = (
-                  "item_count",
-                  "publisher_count",
-                  "source_day_count",
-                  "active_day_count",
-              )
-              if any(
-                  not isinstance(topic[field], int) or topic[field] < 0
-                  for field in integer_fields
-              ):
-                  fail(f"campaign_agenda topic {topic_id} has invalid counts")
-
-              if (
-                  not isinstance(topic["publisher_names"], list)
-                  or len(topic["publisher_names"]) != topic["publisher_count"]
-                  or any(
-                      not isinstance(name, str) or not name.strip()
-                      for name in topic["publisher_names"]
-                  )
-              ):
-                  fail(f"campaign_agenda topic {topic_id} has invalid publishers")
-
-              if not isinstance(topic["display_eligible"], bool):
-                  fail(f"campaign_agenda topic {topic_id} has invalid display_eligible")
-              if topic["display_eligible"] != (
-                  topic["source_day_count"] >= display_min
-              ):
-                  fail(f"campaign_agenda topic {topic_id} has inconsistent display eligibility")
-
-              supporting_items = topic["supporting_items"]
-              if not isinstance(supporting_items, list):
-                  fail(f"campaign_agenda topic {topic_id} supporting_items must be an array")
-              if len(supporting_items) > topic["item_count"]:
-                  fail(f"campaign_agenda topic {topic_id} has too many supporting items")
-
-              support_ids = set()
-              for item_index, item in enumerate(supporting_items):
-                  if not isinstance(item, dict) or set(item) != expected_agenda_item_fields:
-                      fail(
-                          f"campaign_agenda topic {topic_id} item {item_index} "
-                          "has unexpected fields"
-                      )
-                  if item["id"] in support_ids:
-                      fail(f"campaign_agenda topic {topic_id} has duplicate supporting ids")
-                  support_ids.add(item["id"])
-                  if not isinstance(item["publisher"], str) or not item["publisher"].strip():
-                      fail(f"campaign_agenda topic {topic_id} has an empty publisher")
-                  if not isinstance(item["headline"], str) or not item["headline"].strip():
-                      fail(f"campaign_agenda topic {topic_id} has an empty headline")
-                  if not valid_datetime(item["published_at"]):
-                      fail(f"campaign_agenda topic {topic_id} has an invalid published_at")
-                  if not valid_http_url(item["url"]):
-                      fail(f"campaign_agenda topic {topic_id} has a non-HTTP(S) URL")
-                  if not isinstance(item["candidates"], list):
-                      fail(f"campaign_agenda topic {topic_id} candidates is not an array")
-                  if not isinstance(item["matched_terms"], list):
-                      fail(f"campaign_agenda topic {topic_id} matched_terms is not an array")
-
-              agenda_item_total += topic["item_count"]
-
-          if agenda_item_total != campaign_agenda["input_item_count"]:
-              fail("campaign_agenda topic counts do not match input_item_count")
-
-          def public_projection(payload):
-              payload_counts = payload["counts"]
-              return {
-                  "candidate_roster": payload["candidate_roster"],
-                  "counts": {
-                      "successful_sources": payload_counts["successful_sources"],
-                      "election_news": payload_counts["election_news"],
-                      "candidate_watch": payload_counts["candidate_watch"],
-                  },
-                  "campaign_agenda": payload["campaign_agenda"],
-                  "election_news": payload["election_news"],
-                  "candidate_watch": payload["candidate_watch"],
-              }
-
-          current = load_json(current_path)
-          changed = public_projection(current) != public_projection(fetched)
-          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
-              output.write(f"changed={str(changed).lower()}\n")
-
-          if not changed:
-              print("No public News Wire change was detected.")
-              raise SystemExit(0)
-
-          fetched_bytes = fetched_path.read_bytes()
-          descriptor, staged_name = tempfile.mkstemp(
-              prefix=".news_wire.",
-              suffix=".tmp",
-              dir=current_path.parent,
-          )
-          try:
-              with os.fdopen(descriptor, "wb") as staged:
-                  staged.write(fetched_bytes)
-                  staged.flush()
-                  os.fsync(staged.fileno())
-              os.replace(staged_name, current_path)
-          finally:
-              staged_path = Path(staged_name)
-              if staged_path.exists():
-                  staged_path.unlink()
-
-          print(
-              "Validated and staged "
-              f"{len(election_news)} Election News, "
-              f"{len(candidate_watch)} Candidate Watch items, and "
-              f"{len(agenda_topics)} Campaign Agenda themes."
-          )
-          PY
-
-      - name: Regenerate Recent Changes Ledger
-        if: steps.validate.outputs.changed == 'true'
-        run: |
           python generate_recent_changes.py \
-            --news news_wire.json \
+            --news /tmp/news_wire.json \
             --polls polls.json \
             --runoff closest_tested_runoff.json \
             --second-round second_round_polls.json \
             --claims claims_under_scrutiny.json \
-            --output recent_changes.json
+            --output /tmp/recent_changes.json \
+            --previous recent_changes.json
 
-      - name: Commit changed News Wire data
-        id: commit
-        env:
-          NEWS_WIRE_CHANGED: ${{ steps.validate.outputs.changed }}
+      - name: Validate and promote generated data
+        id: promote
         shell: bash
         run: |
-          if [ "$NEWS_WIRE_CHANGED" != "true" ]; then
-            echo "No public News Wire change was detected."
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          set -euo pipefail
+
+          python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
+          import shutil
+          from pathlib import Path
+          from typing import Any
+
+
+          CURRENT_INVENTORY = Path("news_inventory.json")
+          CURRENT_WIRE = Path("news_wire.json")
+          CURRENT_LEDGER = Path("recent_changes.json")
+
+          TEMP_INVENTORY = Path("/tmp/news_inventory.json")
+          TEMP_WIRE = Path("/tmp/news_wire.json")
+          TEMP_LEDGER = Path("/tmp/recent_changes.json")
+
+
+          def fail(message: str) -> None:
+              raise SystemExit(
+                  f"Rolling News validation failed: {message}"
+              )
+
+
+          def load_json(path: Path) -> dict[str, Any]:
+              try:
+                  payload = json.loads(
+                      path.read_text(encoding="utf-8")
+                  )
+              except (OSError, json.JSONDecodeError) as error:
+                  fail(f"could not read {path}: {error}")
+
+              if not isinstance(payload, dict):
+                  fail(f"{path} is not a JSON object")
+
+              return payload
+
+
+          current_inventory = load_json(CURRENT_INVENTORY)
+          current_wire = load_json(CURRENT_WIRE)
+          current_ledger = load_json(CURRENT_LEDGER)
+
+          inventory = load_json(TEMP_INVENTORY)
+          wire = load_json(TEMP_WIRE)
+          ledger = load_json(TEMP_LEDGER)
+
+
+          # Rolling inventory contract.
+          if inventory.get("schema_version") != 3:
+              fail("inventory schema_version must equal 3")
+
+          inventory_items = inventory.get("items")
+
+          if not isinstance(inventory_items, list):
+              fail("inventory items must be an array")
+
+          inventory_ids = [
+              item.get("id")
+              for item in inventory_items
+              if isinstance(item, dict)
+          ]
+
+          if len(inventory_ids) != len(inventory_items):
+              fail("inventory contains a malformed item")
+
+          if (
+              any(
+                  not isinstance(item_id, str)
+                  or not item_id.strip()
+                  for item_id in inventory_ids
+              )
+              or len(inventory_ids) != len(set(inventory_ids))
+          ):
+              fail("inventory contains invalid or duplicate ids")
+
+
+          # News Wire contract.
+          required_wire_lists = (
+              "relevant_news",
+              "election_news",
+              "notable_developments",
+              "candidate_watch",
+          )
+
+          for list_name in required_wire_lists:
+              if not isinstance(wire.get(list_name), list):
+                  fail(f"{list_name} must be an array")
+
+          counts = wire.get("counts")
+
+          if not isinstance(counts, dict):
+              fail("news-wire counts must be an object")
+
+          for list_name in required_wire_lists:
+              if counts.get(list_name) != len(wire[list_name]):
+                  fail(
+                      f"counts.{list_name} does not match "
+                      f"the {list_name} array"
+                  )
+
+          sources = wire.get("sources")
+
+          if not isinstance(sources, list) or len(sources) != 19:
+              fail("exactly 19 news source records are required")
+
+          successful_sources = sum(
+              isinstance(source, dict)
+              and source.get("status") == "ok"
+              for source in sources
+          )
+
+          if successful_sources < 4:
+              fail(
+                  "fewer than four publisher feeds succeeded"
+              )
+
+          if counts.get("successful_sources") != successful_sources:
+              fail(
+                  "successful source count does not match statuses"
+              )
+
+          relevant_ids = {
+              item.get("id")
+              for item in wire["relevant_news"]
+              if isinstance(item, dict)
+          }
+          election_ids = {
+              item.get("id")
+              for item in wire["election_news"]
+              if isinstance(item, dict)
+          }
+          notable_ids = {
+              item.get("id")
+              for item in wire["notable_developments"]
+              if isinstance(item, dict)
+          }
+
+          if not election_ids.issubset(relevant_ids):
+              fail(
+                  "election_news is not a subset of relevant_news"
+              )
+
+          if not notable_ids.issubset(relevant_ids):
+              fail(
+                  "notable_developments is not a subset "
+                  "of relevant_news"
+              )
+
+          agenda = wire.get("campaign_agenda")
+
+          if not isinstance(agenda, dict):
+              fail("campaign_agenda must be an object")
+
+          if (
+              agenda.get("method")
+              != "accepted_relevant_news_by_campaign_theme"
+          ):
+              fail("campaign_agenda method is unsupported")
+
+          if (
+              agenda.get("input_item_count")
+              != len(wire["relevant_news"])
+          ):
+              fail(
+                  "campaign_agenda input count does not match "
+                  "relevant_news"
+              )
+
+          if not isinstance(agenda.get("topics"), list):
+              fail("campaign_agenda topics must be an array")
+
+
+          # Recent Changes contract.
+          ledger_items = ledger.get("items")
+          ledger_counts = ledger.get("counts")
+
+          if not isinstance(ledger_items, list):
+              fail("recent changes items must be an array")
+
+          if not isinstance(ledger_counts, dict):
+              fail("recent changes counts must be an object")
+
+          if ledger_counts.get("total") != len(ledger_items):
+              fail(
+                  "recent changes total does not match its items"
+              )
+
+
+          # Ignore timestamps and fetch timing when deciding whether
+          # the public outputs have changed.
+          volatile_keys = {
+              "generated_at",
+              "detected_at",
+              "response_seconds",
+          }
+
+
+          def scrub(value: Any) -> Any:
+              if isinstance(value, dict):
+                  return {
+                      key: scrub(item)
+                      for key, item in value.items()
+                      if key not in volatile_keys
+                  }
+
+              if isinstance(value, list):
+                  return [scrub(item) for item in value]
+
+              return value
+
+
+          def wire_projection(
+              payload: dict[str, Any],
+          ) -> dict[str, Any]:
+              payload_counts = payload.get("counts", {})
+
+              return {
+                  "candidate_roster": payload.get(
+                      "candidate_roster"
+                  ),
+                  "window_days": payload.get("window_days"),
+                  "source_status": [
+                      {
+                          "name": source.get("name"),
+                          "status": source.get("status"),
+                      }
+                      for source in payload.get("sources", [])
+                      if isinstance(source, dict)
+                  ],
+                  "counts": {
+                      key: payload_counts.get(key)
+                      for key in (
+                          "successful_sources",
+                          "retained_inventory_items",
+                          "election_news",
+                          "notable_developments",
+                          "relevant_news",
+                          "candidate_watch",
+                      )
+                  },
+                  "campaign_agenda": payload.get(
+                      "campaign_agenda"
+                  ),
+                  "relevant_news": payload.get(
+                      "relevant_news"
+                  ),
+                  "election_news": payload.get(
+                      "election_news"
+                  ),
+                  "notable_developments": payload.get(
+                      "notable_developments"
+                  ),
+                  "candidate_watch": payload.get(
+                      "candidate_watch"
+                  ),
+              }
+
+
+          inventory_changed = (
+              current_inventory != inventory
+          )
+          wire_changed = (
+              scrub(wire_projection(current_wire))
+              != scrub(wire_projection(wire))
+          )
+          ledger_changed = (
+              scrub(current_ledger) != scrub(ledger)
+          )
+
+          changed = (
+              inventory_changed
+              or wire_changed
+              or ledger_changed
+          )
+
+          if changed:
+              shutil.copyfile(
+                  TEMP_INVENTORY,
+                  CURRENT_INVENTORY,
+              )
+              shutil.copyfile(
+                  TEMP_WIRE,
+                  CURRENT_WIRE,
+              )
+              shutil.copyfile(
+                  TEMP_LEDGER,
+                  CURRENT_LEDGER,
+              )
+
+          output_path = Path(os.environ["GITHUB_OUTPUT"])
+
+          with output_path.open("a", encoding="utf-8") as output:
+              output.write(
+                  f"changed={str(changed).lower()}\n"
+              )
+
+          print(
+              "Rolling inventory: "
+              f"{len(inventory_items)} items"
+          )
+          print(
+              "Relevant News: "
+              f"{len(wire['relevant_news'])}"
+          )
+          print(
+              "Election News: "
+              f"{len(wire['election_news'])}"
+          )
+          print(
+              "Candidate Watch: "
+              f"{len(wire['candidate_watch'])}"
+          )
+          print(
+              "Recent Changes: "
+              f"{len(ledger_items)}"
+          )
+          print(
+              "Feeds ready: "
+              f"{successful_sources}/{len(sources)}"
+          )
+          print(
+              "Changes detected: "
+              f"inventory={inventory_changed}, "
+              f"wire={wire_changed}, "
+              f"ledger={ledger_changed}"
+          )
+          PY
+
+      - name: Commit changed rolling news data
+        id: commit
+        if: steps.promote.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
 
           git config user.name "github-actions[bot]"
           git config user.email \
             "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add -- news_wire.json recent_changes.json
-          git commit -m "Update Election News Wire" -- \
-            news_wire.json recent_changes.json
-          git fetch origin main
-          git rebase origin/main
-          git push origin HEAD:main
+          git add -- \
+            news_inventory.json \
+            news_wire.json \
+            recent_changes.json
+
+          if git diff --cached --quiet; then
+            echo "No staged data change was detected."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git commit -m "Update rolling election news data"
+
+          target_branch="${GITHUB_REF_NAME:-main}"
+
+          git fetch origin "$target_branch"
+          git rebase "origin/$target_branch"
+          git push origin "HEAD:$target_branch"
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
       - name: Request GitHub Pages rebuild
-        if: steps.commit.outputs.changed == 'true'
+        if: steps.commit.outputs.changed == 'true' && github.ref_name == 'main'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          curl --fail-with-body --location --request POST \
+          curl \
+            --fail-with-body \
+            --location \
+            --request POST \
             --header "Accept: application/vnd.github+json" \
             --header "Authorization: Bearer $GITHUB_TOKEN" \
             --header "X-GitHub-Api-Version: 2026-03-10" \
