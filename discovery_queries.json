@@ -1,0 +1,32 @@
+[
+  {
+    "id": "france-2027-general",
+    "label": "France 2027 presidential coverage",
+    "query": "(\"présidentielle 2027\" OR \"élection présidentielle 2027\" OR \"Élysée 2027\") when:3d",
+    "enabled": true
+  },
+  {
+    "id": "polls-voting-intentions",
+    "label": "Polls and voting intentions",
+    "query": "(\"présidentielle 2027\" OR \"élection présidentielle 2027\") (sondage OR intentions de vote OR enquête d'opinion) when:3d",
+    "enabled": true
+  },
+  {
+    "id": "candidacies-alliances-selection",
+    "label": "Candidacies, alliances and selection",
+    "query": "(\"présidentielle 2027\" OR 2027) (candidature OR candidat OR alliance OR coalition OR primaire OR investiture) when:3d",
+    "enabled": true
+  },
+  {
+    "id": "eligibility-investigations-finance",
+    "label": "Eligibility, investigations and campaign finance",
+    "query": "(\"présidentielle 2027\" OR candidat) (inéligibilité OR éligibilité OR enquête OR justice OR financement OR comptes de campagne) when:3d",
+    "enabled": true
+  },
+  {
+    "id": "programmes-fact-checking",
+    "label": "Programmes, proposals and verification",
+    "query": "(\"présidentielle 2027\" OR candidat) (programme OR proposition OR promesse OR fact-checking OR désinformation) when:3d",
+    "enabled": true
+  }
+]
