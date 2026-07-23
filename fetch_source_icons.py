@@ -34,6 +34,13 @@ POLLSTER_HOMEPAGES = {
     "Harris Interactive": "https://harris-interactive.fr/",
 }
 
+# Selected discovery publishers whose icons are required on prominent
+# dashboard surfaces but which are not direct news-wire feed targets.
+PRIORITY_DISCOVERY_PUBLISHER_HOMEPAGES = {
+    "Le Figaro": "https://www.lefigaro.fr/",
+}
+
+
 MIME_EXTENSIONS = {
     "image/png": ".png",
     "image/x-icon": ".ico",
@@ -367,7 +374,7 @@ def discover_icon_candidates(
 
 
 def configured_icon_targets() -> list[dict[str, str]]:
-    """Return monitored news publishers and supported polling institutes."""
+    """Return direct, priority discovery, and pollster icon targets."""
 
     targets = [
         {
@@ -380,6 +387,16 @@ def configured_icon_targets() -> list[dict[str, str]]:
 
     targets.extend(
         {
+            "name": publisher,
+            "feed_url": homepage,
+            "entity_type": "publisher",
+        }
+        for publisher, homepage
+        in PRIORITY_DISCOVERY_PUBLISHER_HOMEPAGES.items()
+    )
+
+    targets.extend(
+        {
             "name": pollster,
             "feed_url": homepage,
             "entity_type": "pollster",
@@ -387,8 +404,19 @@ def configured_icon_targets() -> list[dict[str, str]]:
         for pollster, homepage in POLLSTER_HOMEPAGES.items()
     )
 
-    return targets
+    seen_names: set[str] = set()
 
+    for target in targets:
+        name = target["name"]
+
+        if name in seen_names:
+            raise RuntimeError(
+                f"duplicate configured source-icon target: {name}"
+            )
+
+        seen_names.add(name)
+
+    return targets
 
 def load_existing_manifest(
     output_path: Path,
