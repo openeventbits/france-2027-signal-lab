@@ -233,6 +233,76 @@ def make_event_id(
     return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
 
+OFFICIAL_POLL_SOURCE_OVERRIDES: dict[
+    tuple[str, str, str, int | None],
+    str,
+] = {
+    (
+        "elabe",
+        "2026-07-09",
+        "2026-07-10",
+        1503,
+    ): (
+        "https://elabe.fr/presidentielle-2027-iv3/"
+    ),
+    (
+        "opinionway",
+        "2026-07-08",
+        "2026-07-09",
+        963,
+    ): (
+        "https://www.opinion-way.com/wp-content/uploads/"
+        "2026/07/"
+        "OpinionWay-pour-Les-Echos-et-Radio-Classique-"
+        "Barometre-Presitrack-2027-Vague-1-Juillet-2026.pdf"
+    ),
+}
+
+
+def official_poll_source_key(
+    event: dict,
+) -> tuple[str, str, str, int | None]:
+    return (
+        normalize(str(event.get("pollster", ""))),
+        str(event.get("fieldwork_start", "")),
+        str(event.get("fieldwork_end", "")),
+        event.get("sample_size"),
+    )
+
+
+def apply_official_poll_sources(events: list[dict]) -> int:
+    applied = 0
+
+    for event in events:
+        official_url = OFFICIAL_POLL_SOURCE_OVERRIDES.get(
+            official_poll_source_key(event)
+        )
+
+        if official_url is None:
+            existing = str(
+                event.get("official_source_url", "")
+            ).strip()
+
+            if existing and not valid_http_url(existing):
+                raise ValueError(
+                    "invalid existing official_source_url: "
+                    f"{existing!r}"
+                )
+
+            continue
+
+        if not valid_http_url(official_url):
+            raise ValueError(
+                "invalid configured official poll source: "
+                f"{official_url!r}"
+            )
+
+        event["official_source_url"] = official_url
+        applied += 1
+
+    return applied
+
+
 def logical_key(event: dict) -> tuple[str, str, str, str]:
     return (
         normalize(event["pollster"]),
@@ -1385,6 +1455,7 @@ def main() -> None:
     events, exact_overlaps, suppressed_wikipedia_events, new_events = merge_events(
         wikipedia_events, official_events
     )
+    apply_official_poll_sources(events)
     validate_merged_official_waves(events)
     second_round_events, second_round_audit = fetch_second_round_events()
     closest_derivation = derive_closest_tested_runoff(second_round_events)
