@@ -2719,8 +2719,6 @@
           minmax(90px, 1.45fr)
           54px
           minmax(88px, .8fr);
-        gap: 7pxpx
-          minmax(88px, .8fr);
         gap: 7px;
       }
 
@@ -4031,7 +4029,661 @@
         max-width: 100%;
       }
     }
-</style>
+
+    /* Race at a Glance tabs redesign */
+    .race-glance {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .race-glance .race-glance-head {
+      display: grid;
+      grid-template-columns: minmax(150px, .8fr) minmax(360px, 1.5fr);
+      align-items: center;
+      gap: 10px 14px;
+      min-height: 52px;
+      padding: 6px 12px;
+      border-bottom: 1px solid #183950;
+    }
+
+    .race-glance .race-glance-head .race-heading {
+      min-width: 0;
+    }
+
+    .race-poll-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .race-poll-tab {
+      position: relative;
+      min-width: 0;
+      min-height: 32px;
+      padding: 6px 8px;
+      overflow: hidden;
+      border: 1px solid #1b405c;
+      border-radius: 3px;
+      background: rgba(7, 21, 34, .82);
+      color: #809bad;
+      font: inherit;
+      font-size: 8px;
+      font-weight: 720;
+      line-height: 1;
+      letter-spacing: .055em;
+      text-align: center;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .race-poll-tab:hover {
+      border-color: #286486;
+      color: #c9e2ef;
+    }
+
+    .race-poll-tab[aria-selected="true"] {
+      border-color: #2a6688;
+      border-bottom-color: var(--cyan);
+      background: #0b2032;
+      color: #e2f7ff;
+      box-shadow: inset 0 -2px 0 var(--cyan);
+    }
+
+    .race-poll-tab:focus-visible {
+      z-index: 2;
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+
+    .race-tab-label-short {
+      display: none;
+    }
+
+    .race-poll-panel {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .race-poll-panel:focus {
+      outline: none;
+    }
+
+    .race-poll-panel:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: -2px;
+    }
+
+    .race-event-controls {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(170px, 210px);
+      align-items: start;
+      gap: 10px 14px;
+      min-height: 40px;
+      padding: 4px 12px;
+      border-bottom: 1px solid #183950;
+      background: rgba(4, 13, 23, .22);
+    }
+
+    .race-event,
+    .race-scenario-control {
+      align-self: start;
+    }
+
+    .race-event {
+      min-width: 0;
+      margin: 0;
+    }
+
+    .race-event-title {
+      overflow: hidden;
+      color: #dcecf6;
+      font-size: 10px;
+      font-weight: 720;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .race-event-detail {
+      margin-top: 3px;
+      overflow: hidden;
+      color: #809bad;
+      font-size: 8px;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .race-scenario-control {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .race-scenario-control .hypothesis-label {
+      width: auto;
+      color: #668398;
+      font-size: 7px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: .1em;
+      text-align: left;
+    }
+
+    .race-scenario-control #hypothesis-select,
+    .race-scenario-static {
+      width: 100%;
+      min-width: 0;
+      max-width: none;
+      min-height: 29px;
+      margin: 0;
+      padding: 5px 25px 5px 8px;
+      border: 1px solid #1b405c;
+      border-radius: 3px;
+      background: #071522;
+      color: #dcecff;
+      font: inherit;
+      font-size: 8px;
+      line-height: 1.2;
+    }
+
+    .race-scenario-static {
+      display: flex;
+      align-items: center;
+      padding-right: 8px;
+      color: #a9bdca;
+    }
+
+    .race-scenario-static[hidden] {
+      display: none;
+    }
+
+    .race-scenario-control #hypothesis-select:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+
+    .race-scroll-shell {
+      position: relative;
+      flex: 1 1 auto;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      background: rgba(3, 11, 20, .12);
+    }
+
+    .race-glance .bars {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      padding: 0 12px 4px;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior-y: auto;
+      scrollbar-color: #2d6d90 #071522;
+      scrollbar-gutter: stable;
+      scrollbar-width: thin;
+    }
+
+    .race-glance .bars::before {
+      display: none;
+      content: none;
+    }
+
+    .race-glance .bars:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: -2px;
+    }
+
+    .race-glance .bars::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .race-glance .bars::-webkit-scrollbar-track {
+      background: #071522;
+    }
+
+    .race-glance .bars::-webkit-scrollbar-thumb {
+      border: 2px solid #071522;
+      border-radius: 999px;
+      background: #2d6d90;
+    }
+
+    .race-glance .bars::-webkit-scrollbar-thumb:hover {
+      background: #3a8db5;
+    }
+
+    .race-column-head,
+    .race-glance .bar-row {
+      display: grid;
+      grid-template-columns:
+        minmax(175px, 1.25fr)
+        minmax(110px, 1.75fr)
+        58px
+        minmax(96px, .82fr);
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .race-column-head {
+      position: sticky;
+      z-index: 4;
+      top: 0;
+      align-items: center;
+      min-height: 19px;
+      padding: 4px 0 3px;
+      border-bottom: 1px solid #17384f;
+      background: #071522;
+      box-shadow: 0 1px 0 rgba(23, 56, 79, .75);
+      color: #668398;
+      font-size: 6.5px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .race-column-head-result,
+    .race-column-head-change {
+      text-align: right;
+    }
+
+    .race-glance .bar-row {
+      align-items: center;
+      min-height: 36px;
+      margin: 0;
+      padding: 1px 0;
+      border-bottom: 1px solid rgba(20, 49, 73, .55);
+    }
+
+    .race-glance .bar-row:last-child {
+      border-bottom: 0;
+    }
+
+    .race-candidate {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .race-candidate .candidate-monogram {
+      flex: 0 0 auto;
+      width: 36px;
+      height: 36px;
+      border-color: #31566e;
+      box-shadow: inset 0 0 10px rgba(53, 213, 255, .035);
+    }
+
+    .race-glance .candidate {
+      min-width: 0;
+      overflow: hidden;
+      color: #dceaf2;
+      font-size: 10.5px;
+      font-weight: 650;
+      line-height: 1.15;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .race-glance .track {
+      position: relative;
+      height: 8px;
+      overflow: hidden;
+      border: 0;
+      border-radius: 2px;
+      background: #071522;
+      box-shadow: inset 0 0 0 1px rgba(31, 73, 99, .42);
+    }
+
+    .race-glance .fill {
+      height: 100%;
+      border-radius: 1px;
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+      box-shadow: 0 0 5px rgba(53, 213, 255, .13);
+    }
+
+    .race-glance .score,
+    .race-change {
+      min-width: 0;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .race-glance .score {
+      color: #eef8ff;
+      font-size: 11px;
+      font-weight: 710;
+    }
+
+    .race-change {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .race-change strong {
+      max-width: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-size: 9px;
+      font-weight: 720;
+      line-height: 1.1;
+      text-align: right;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .race-scroll-fade {
+      position: absolute;
+      z-index: 5;
+      right: 8px;
+      bottom: 0;
+      left: 0;
+      height: 16px;
+      pointer-events: none;
+      background: linear-gradient(
+        180deg,
+        rgba(7, 21, 34, 0),
+        rgba(7, 21, 34, .72)
+      );
+    }
+
+    .race-scroll-fade[hidden] {
+      display: none;
+    }
+
+    .race-footer {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      min-height: 27px;
+      margin: 0;
+      padding: 4px 12px;
+      border-top: 1px solid #183950;
+      background: rgba(4, 13, 23, .2);
+    }
+
+    .race-footer a {
+      color: var(--cyan);
+      font-size: 8px;
+      font-weight: 650;
+      text-decoration: none;
+    }
+
+    .race-footer a:hover {
+      text-decoration: underline;
+    }
+
+    .race-footer a:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+
+    @media (min-width: 720px) {
+      .hero-grid > .race-glance {
+        height: 352px;
+        min-height: 352px;
+        max-height: 352px;
+        overflow: hidden;
+      }
+    }
+
+    @media (min-width: 720px) and (max-width: 1250px) {
+      .race-glance .race-glance-head {
+        grid-template-columns: minmax(145px, .65fr) minmax(315px, 1.45fr);
+      }
+
+      .race-poll-tab {
+        padding-inline: 6px;
+      }
+
+      .race-column-head,
+      .race-glance .bar-row {
+        grid-template-columns:
+          minmax(160px, 1.2fr)
+          minmax(90px, 1.45fr)
+          54px
+          minmax(88px, .8fr);
+        gap: 7px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .race-tab-label-full {
+        display: none;
+      }
+
+      .race-tab-label-short {
+        display: inline;
+      }
+    }
+
+    @media (max-width: 719px) {
+      .race-glance {
+        height: auto;
+        min-height: 0;
+        max-height: none;
+        overflow: hidden;
+      }
+
+      .race-glance .race-glance-head {
+        grid-template-columns: 1fr;
+        align-items: start;
+        min-height: 0;
+        padding: 10px 11px 8px;
+      }
+
+      .race-poll-tabs {
+        width: 100%;
+      }
+
+      .race-poll-tab {
+        min-height: 34px;
+      }
+
+      .race-event-controls {
+        grid-template-columns: 1fr;
+        gap: 7px;
+        padding: 7px 11px;
+      }
+
+      .race-scenario-control {
+        grid-template-columns: 58px minmax(0, 1fr);
+      }
+
+      .race-scroll-shell {
+        flex: 0 0 auto;
+        height: 292px;
+      }
+
+      .race-glance .bars {
+        padding-inline: 10px;
+      }
+
+      .race-column-head,
+      .race-glance .bar-row {
+        grid-template-columns: minmax(0, 1fr) 48px 82px;
+        gap: 5px 7px;
+      }
+
+      .race-column-head {
+        min-height: 21px;
+      }
+
+      .race-column-head-bar {
+        display: none;
+      }
+
+      .race-column-head-candidate {
+        grid-column: 1;
+      }
+
+      .race-column-head-result {
+        grid-column: 2;
+      }
+
+      .race-column-head-change {
+        grid-column: 3;
+      }
+
+      .race-glance .bar-row {
+        min-height: 52px;
+        padding: 4px 0;
+      }
+
+      .race-candidate {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      .race-glance .score {
+        grid-column: 2;
+        grid-row: 1;
+        font-size: 12px;
+      }
+
+      .race-change {
+        grid-column: 3;
+        grid-row: 1;
+      }
+
+      .race-glance .track {
+        grid-column: 1 / -1;
+        grid-row: 2;
+      }
+
+      .race-candidate .candidate-monogram {
+        width: 36px;
+        height: 36px;
+      }
+
+      .race-glance .candidate {
+        overflow: visible;
+        font-size: 11px;
+        line-height: 1.2;
+        text-overflow: clip;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+    }
+
+    @media (max-width: 430px) {
+      .race-glance .race-glance-head {
+        padding-inline: 9px;
+      }
+
+      .race-poll-tabs {
+        gap: 3px;
+      }
+
+      .race-poll-tab {
+        min-height: 33px;
+        padding: 5px 4px;
+      }
+
+      .race-event-controls {
+        padding-inline: 9px;
+      }
+
+      .race-glance .bars {
+        padding-inline: 8px;
+      }
+
+      .race-column-head,
+      .race-glance .bar-row {
+        grid-template-columns: minmax(0, 1fr) 45px 76px;
+        gap: 5px;
+      }
+
+      .race-glance .candidate {
+        font-size: 10.5px;
+      }
+
+      .race-change strong {
+        font-size: 8.5px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .race-poll-tab,
+      .race-glance .fill {
+        transition: none;
+      }
+    }
+
+
+    /* Race at a Glance: no comparable prior state */
+    .race-poll-panel.is-no-comparison .race-column-head-change,
+    .race-poll-panel.is-no-comparison .race-change {
+      display: none;
+    }
+
+    @media (min-width: 720px) {
+      .race-glance
+        .race-poll-panel.is-no-comparison
+        .race-column-head,
+      .race-glance
+        .race-poll-panel.is-no-comparison
+        .bar-row {
+        grid-template-columns:
+          minmax(175px, 1.25fr)
+          minmax(160px, 2.55fr)
+          58px;
+      }
+    }
+
+    @media (min-width: 720px) and (max-width: 1250px) {
+      .race-glance
+        .race-poll-panel.is-no-comparison
+        .race-column-head,
+      .race-glance
+        .race-poll-panel.is-no-comparison
+        .bar-row {
+        grid-template-columns:
+          minmax(160px, 1.2fr)
+          minmax(120px, 2.25fr)
+          54px;
+      }
+    }
+
+    @media (max-width: 719px) {
+      .race-glance
+        .race-poll-panel.is-no-comparison
+        .race-column-head,
+      .race-glance
+        .race-poll-panel.is-no-comparison
+        .bar-row {
+        grid-template-columns: minmax(0, 1fr) 48px;
+      }
+
+      .race-poll-panel.is-no-comparison
+        .race-column-head-result {
+        grid-column: 2;
+      }
+    }
+
+    @media (max-width: 430px) {
+      .race-glance
+        .race-poll-panel.is-no-comparison
+        .race-column-head,
+      .race-glance
+        .race-poll-panel.is-no-comparison
+        .bar-row {
+        grid-template-columns: minmax(0, 1fr) 45px;
+      }
+    }
+
+  </style>
 </head>
 <body>
   <main class="shell">
@@ -4095,33 +4747,74 @@
       </article>
 
       <article class="panel race-glance" aria-labelledby="race-glance-title">
-        <div class="panel-head">
+        <div class="panel-head race-glance-head">
           <div class="race-heading">
             <h2 id="race-glance-title">RACE AT A GLANCE</h2>
-            <div class="sub">Latest complete first-round poll event</div>
-            <div class="race-event">
+          </div>
+          <div
+            class="race-poll-tabs"
+            id="race-poll-tabs"
+            role="tablist"
+            aria-label="Latest complete first-round poll events"
+            aria-busy="true"
+          ></div>
+        </div>
+
+        <div
+          class="race-poll-panel"
+          id="race-poll-panel"
+          role="tabpanel"
+          tabindex="0"
+        >
+          <div class="race-event-controls">
+            <div class="race-event" aria-live="polite">
               <div class="race-event-title" id="latest-title">Loading…</div>
               <div class="race-event-detail" id="latest-sub"></div>
             </div>
-            <div class="race-interpretation">One reported hypothesis. No average or forecast.</div>
+
+            <div class="race-scenario-control">
+              <label class="hypothesis-label" for="hypothesis-select">SCENARIO</label>
+              <select
+                id="hypothesis-select"
+                disabled
+                aria-label="Choose a reported first-round poll scenario"
+              ></select>
+              <div
+                class="race-scenario-static"
+                id="race-scenario-static"
+                aria-live="polite"
+                hidden
+              ></div>
+            </div>
           </div>
-          <label class="hypothesis-label">
-            HYPOTHESIS
-            <select id="hypothesis-select" disabled aria-label="Choose a reported first-round poll hypothesis"></select>
-          </label>
-        </div>
-        <div class="race-interpretation">One reported hypothesis · raw reported scores · no average, model or forecast.</div>
-        <div
-          class="bars"
-          id="bars"
-          aria-live="polite"
-          aria-label="Reported candidate scores for the selected hypothesis. Scroll to view all candidates."
-          tabindex="0"
-        ><div class="empty">Loading candidate scores…</div></div>
-        <div id="race-more" hidden></div>
-        <div id="meta" hidden></div>
-        <div class="race-footer">
-          <a id="race-source" target="_blank" rel="noopener noreferrer" hidden>View full results &#8599;</a>
+
+          <div class="race-scroll-shell">
+            <div
+              class="bars"
+              id="bars"
+              aria-live="polite"
+              aria-label="Reported candidate scores for the selected scenario. Scroll to view all candidates."
+              tabindex="0"
+            ><div class="empty">Loading candidate scores…</div></div>
+            <div
+              class="race-scroll-fade"
+              id="race-scroll-fade"
+              aria-hidden="true"
+              hidden
+            ></div>
+          </div>
+
+          <div id="race-more" hidden></div>
+          <div id="meta" hidden></div>
+
+          <div class="race-footer">
+            <a
+              id="race-source"
+              target="_blank"
+              rel="noopener noreferrer"
+              hidden
+            >View full results &#8599;</a>
+          </div>
         </div>
       </article>
     </section>
@@ -6778,26 +7471,430 @@
         </span>`;
     }
 
-    function renderBars(event, events = []) {
-      const ordered = [...event.candidates]
-        .filter(candidate => candidate && typeof candidate.name === "string" && Number.isFinite(candidate.score))
-        .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "fr"));
+    const raceGlanceState = {
+      events: [],
+      pollPackages: [],
+      selectedPollKey: "",
+      selectedHypothesisByPoll: Object.create(null),
+      scaleMax: 40
+    };
 
-      const visible = ordered;
-      const maximumCandidateScore = Math.max(...visible.map(candidate => candidate.score), 1);
+    function racePollEventKey(event) {
+      return JSON.stringify([
+        event.pollster ?? "",
+        event.fieldwork_start ?? "",
+        event.fieldwork_end ?? "",
+        event.sample_size ?? null
+      ]);
+    }
+
+    function buildRacePollPackages(events) {
+      const packages = [];
+      const packageByKey = new Map();
+
+      events.forEach(event => {
+        const key = racePollEventKey(event);
+        let pollPackage = packageByKey.get(key);
+
+        if (!pollPackage) {
+          pollPackage = {
+            key,
+            pollster: String(event.pollster ?? "Poll"),
+            fieldwork_start: event.fieldwork_start ?? "",
+            fieldwork_end: event.fieldwork_end ?? "",
+            sample_size: event.sample_size ?? null,
+            events: []
+          };
+
+          packageByKey.set(key, pollPackage);
+          packages.push(pollPackage);
+        }
+
+        pollPackage.events.push(event);
+      });
+
+      return packages.slice(0, 3);
+    }
+
+    function calculateRaceScaleMaximum(packages) {
+      let highestValue = 0;
+
+      packages.forEach(pollPackage => {
+        pollPackage.events.forEach(event => {
+          event.candidates.forEach(candidate => {
+            if (
+              candidate &&
+              typeof candidate.score === "number" &&
+              Number.isFinite(candidate.score)
+            ) {
+              highestValue = Math.max(highestValue, candidate.score);
+            }
+          });
+        });
+      });
+
+      return Math.max(40, Math.ceil(highestValue / 5) * 5);
+    }
+
+    function compactRacePollDate(value) {
+      const timestamp = Date.parse(`${value}T00:00:00Z`);
+
+      if (!Number.isFinite(timestamp)) {
+        return String(value ?? "");
+      }
+
+      return new Intl.DateTimeFormat("en-GB", {
+        day: "numeric",
+        month: "short",
+        timeZone: "UTC"
+      }).format(new Date(timestamp));
+    }
+
+    function racePollTabLabel(pollPackage) {
+      return (
+        pollPackage.pollster +
+        " · " +
+        compactRacePollDate(pollPackage.fieldwork_end)
+      );
+    }
+
+    function raceScenarioLabel(event, index) {
+      const alphabetIndex = index % 26;
+      const letter = String.fromCharCode(65 + alphabetIndex);
+      const candidateCount = event.candidates.length;
+
+      return (
+        "Scenario " +
+        letter +
+        " · " +
+        candidateCount +
+        " " +
+        (candidateCount === 1 ? "candidate" : "candidates")
+      );
+    }
+
+    function activeRacePollPackage() {
+      return raceGlanceState.pollPackages.find(
+        pollPackage => pollPackage.key === raceGlanceState.selectedPollKey
+      ) || raceGlanceState.pollPackages[0] || null;
+    }
+
+    function selectedRaceHypothesisIndex(pollPackage) {
+      if (!pollPackage) return 0;
+
+      const stored = Number(
+        raceGlanceState.selectedHypothesisByPoll[pollPackage.key]
+      );
+
+      if (
+        Number.isInteger(stored) &&
+        stored >= 0 &&
+        stored < pollPackage.events.length
+      ) {
+        return stored;
+      }
+
+      return 0;
+    }
+
+    function activeRaceEvent(pollPackage = activeRacePollPackage()) {
+      if (!pollPackage) return null;
+
+      return (
+        pollPackage.events[selectedRaceHypothesisIndex(pollPackage)] ||
+        pollPackage.events[0] ||
+        null
+      );
+    }
+
+    function updateRaceScrollFade() {
+      const bars = $("#bars");
+      const fade = $("#race-scroll-fade");
+
+      if (!bars || !fade) return;
+
+      const remaining =
+        bars.scrollHeight - bars.clientHeight - bars.scrollTop;
+
+      fade.hidden = remaining <= 2;
+    }
+
+    function updateRacePollTabState() {
+      const pollPackage = activeRacePollPackage();
+      const panel = $("#race-poll-panel");
+      const buttons = Array.from(
+        $("#race-poll-tabs").querySelectorAll('[role="tab"]')
+      );
+
+      buttons.forEach(button => {
+        const selected =
+          pollPackage &&
+          button.dataset.racePollKey === pollPackage.key;
+
+        button.setAttribute("aria-selected", String(Boolean(selected)));
+        button.tabIndex = selected ? 0 : -1;
+
+        if (selected) {
+          panel.setAttribute("aria-labelledby", button.id);
+        }
+      });
+    }
+
+    function selectRacePoll(pollKey, options = {}) {
+      const pollPackage = raceGlanceState.pollPackages.find(
+        item => item.key === pollKey
+      );
+
+      if (!pollPackage) return;
+
+      raceGlanceState.selectedPollKey = pollPackage.key;
+      renderRaceSelection();
+
+      if (options.focusTab) {
+        requestAnimationFrame(() => {
+          const button = Array.from(
+            $("#race-poll-tabs").querySelectorAll('[role="tab"]')
+          ).find(item => item.dataset.racePollKey === pollPackage.key);
+
+          button?.focus();
+        });
+      }
+    }
+
+    function handleRacePollTabKeydown(event) {
+      const buttons = Array.from(
+        $("#race-poll-tabs").querySelectorAll('[role="tab"]')
+      );
+
+      const currentIndex = buttons.indexOf(event.currentTarget);
+      if (currentIndex === -1) return;
+
+      let nextIndex = currentIndex;
+
+      if (event.key === "ArrowRight") {
+        nextIndex = (currentIndex + 1) % buttons.length;
+      } else if (event.key === "ArrowLeft") {
+        nextIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+      } else if (event.key === "Home") {
+        nextIndex = 0;
+      } else if (event.key === "End") {
+        nextIndex = buttons.length - 1;
+      } else {
+        return;
+      }
+
+      event.preventDefault();
+
+      const nextButton = buttons[nextIndex];
+      selectRacePoll(nextButton.dataset.racePollKey, {
+        focusTab: true
+      });
+    }
+
+    function renderRacePollTabs() {
+      const tablist = $("#race-poll-tabs");
+      tablist.replaceChildren();
+      tablist.setAttribute("aria-orientation", "horizontal");
+
+      raceGlanceState.pollPackages.forEach((pollPackage, index) => {
+        const fullLabel = racePollTabLabel(pollPackage);
+        const button = document.createElement("button");
+        const full = document.createElement("span");
+        const short = document.createElement("span");
+
+        button.type = "button";
+        button.id = `race-poll-tab-${index}`;
+        button.className = "race-poll-tab";
+        button.setAttribute("role", "tab");
+        button.setAttribute("aria-controls", "race-poll-panel");
+        button.setAttribute("aria-label", fullLabel);
+        button.setAttribute("aria-selected", "false");
+        button.tabIndex = -1;
+        button.dataset.racePollKey = pollPackage.key;
+        button.title = fullLabel;
+
+        full.className = "race-tab-label-full";
+        full.textContent = fullLabel;
+
+        short.className = "race-tab-label-short";
+        short.setAttribute("aria-hidden", "true");
+        short.textContent = pollPackage.pollster;
+
+        button.append(full, short);
+        button.addEventListener("click", () => {
+          selectRacePoll(pollPackage.key);
+        });
+        button.addEventListener(
+          "keydown",
+          handleRacePollTabKeydown
+        );
+
+        tablist.appendChild(button);
+      });
+
+      tablist.setAttribute("aria-busy", "false");
+      updateRacePollTabState();
+    }
+
+    function renderRaceScenarioControl(pollPackage) {
+      const selector = $("#hypothesis-select");
+      const staticLabel = $("#race-scenario-static");
+      const selectedIndex = selectedRaceHypothesisIndex(pollPackage);
+
+      raceGlanceState.selectedHypothesisByPoll[pollPackage.key] =
+        selectedIndex;
+
+      selector.replaceChildren();
+
+      pollPackage.events.forEach((event, index) => {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = raceScenarioLabel(event, index);
+        selector.appendChild(option);
+      });
+
+      selector.value = String(selectedIndex);
+
+      const hasMultipleScenarios = pollPackage.events.length > 1;
+
+      selector.hidden = false;
+      selector.disabled = !hasMultipleScenarios;
+      selector.setAttribute(
+        "aria-disabled",
+        String(!hasMultipleScenarios)
+      );
+
+      if (hasMultipleScenarios) {
+        selector.removeAttribute("title");
+      } else {
+        selector.title = "Only reported scenario in this poll event";
+      }
+
+      staticLabel.hidden = true;
+      staticLabel.textContent = "";
+    }
+
+    function renderRaceSelection() {
+      const pollPackage = activeRacePollPackage();
+      const event = activeRaceEvent(pollPackage);
+
+      if (!pollPackage || !event) return;
+
+      updateRacePollTabState();
+      renderRaceScenarioControl(pollPackage);
+
+      const comparisonEvents = raceGlanceState.events.filter(
+        candidateEvent =>
+          candidateEvent.fieldwork_end !== pollPackage.fieldwork_end ||
+          racePollEventKey(candidateEvent) === pollPackage.key
+      );
+
+      renderBars(
+        event,
+        comparisonEvents,
+        raceGlanceState.scaleMax
+      );
+      renderMeta(event);
+    }
+
+    function formatRaceComparableMagnitude(value) {
+      const rounded = Math.round(Math.abs(value) * 10) / 10;
+      return String(rounded);
+    }
+
+    function formatRaceComparableChange(change) {
+      const formatted = formatComparableChange(change);
+
+      if (change.classification === "MIXED") {
+        return {
+          ...formatted,
+          value: "VARIES",
+          meta:
+            "Direction varies across retained comparable scenarios " +
+            "from earlier poll events. " +
+            formatted.meta
+        };
+      }
+
+      if (change.classification !== "SAME-DIRECTION RANGE") {
+        return formatted;
+      }
+
+      const magnitudes = change.deltas
+        .map(delta => Math.round(Math.abs(delta) * 10) / 10)
+        .sort((a, b) => a - b);
+
+      return {
+        ...formatted,
+        value:
+          formatRaceComparableMagnitude(magnitudes[0]) +
+          "–" +
+          formatRaceComparableMagnitude(magnitudes.at(-1)) +
+          " pts",
+        meta:
+          "Range across retained comparable scenarios from earlier " +
+          "poll events. " +
+          formatted.meta
+      };
+    }
+
+    function renderBars(event, events = [], scaleMaximum = 40) {
+      const ordered = [...event.candidates]
+        .filter(candidate =>
+          candidate &&
+          typeof candidate.name === "string" &&
+          Number.isFinite(candidate.score)
+        )
+        .sort((a, b) =>
+          b.score - a.score ||
+          a.name.localeCompare(b.name, "fr")
+        );
+
+      const safeScaleMaximum =
+        Number.isFinite(scaleMaximum) && scaleMaximum > 0
+          ? scaleMaximum
+          : 40;
+
       const bars = $("#bars");
       bars.scrollTop = 0;
 
-      bars.innerHTML = visible.map(candidate => {
-        const change = deriveComparableChange(events, candidate.name, event.fieldwork_end);
-        const formattedChange = formatComparableChange(change);
-        const scoreWidth = Math.max(0, Math.min(100, candidate.score / maximumCandidateScore * 100));
+      let hasComparableChange = false;
+
+      const rows = ordered.map(candidate => {
+        const change = deriveComparableChange(
+          events,
+          candidate.name,
+          event.fieldwork_end
+        );
+
+        const formattedChange =
+          formatRaceComparableChange(change);
+
+        if (formattedChange.value !== "—") {
+          hasComparableChange = true;
+        }
+
+        const scoreWidth = Math.max(
+          0,
+          Math.min(
+            100,
+            candidate.score / safeScaleMaximum * 100
+          )
+        );
+
         const changeAria = formattedChange.value === "—"
           ? "No comparable prior result"
           : "Comparable change " + formattedChange.value;
-        const changeGlyph = formattedChange.tone === "is-positive"
-          ? "\u25B2 "
-          : formattedChange.tone === "is-negative" ? "\u25BC " : "";
+
+        const changeGlyph =
+          formattedChange.tone === "is-positive"
+            ? "\u25B2 "
+            : formattedChange.tone === "is-negative"
+              ? "\u25BC "
+              : formattedChange.tone === "is-zero" &&
+                  formattedChange.value !== "—"
+                ? "\u2248 "
+                : "";
 
         return `
           <article
@@ -6806,10 +7903,20 @@
           >
             <div class="race-candidate">
               ${raceCandidateMarker(candidate.name)}
-              <div class="candidate" title="${escapeAttribute(candidate.name)}">${escapeHtml(candidate.name)}</div>
+              <div
+                class="candidate"
+                title="${escapeAttribute(candidate.name)}"
+              >${escapeHtml(candidate.name)}</div>
             </div>
-            <div class="track" aria-hidden="true">
-              <div class="fill" style="width:${scoreWidth}%"></div>
+            <div
+              class="track"
+              aria-hidden="true"
+              title="Shared scale: 0 to ${escapeAttribute(String(safeScaleMaximum))} percent"
+            >
+              <div
+                class="fill"
+                style="width:${scoreWidth}%"
+              ></div>
             </div>
             <div class="score">${escapeHtml(formatScore(candidate.score))}</div>
             <div
@@ -6822,37 +7929,126 @@
           </article>`;
       }).join("");
 
+      $("#race-poll-panel").classList.toggle(
+        "is-no-comparison",
+        !hasComparableChange
+      );
+
+      bars.innerHTML = `
+        <div class="race-column-head" aria-hidden="true">
+          <span class="race-column-head-candidate">Candidate</span>
+          <span class="race-column-head-bar">Reported score</span>
+          <span class="race-column-head-result">Result</span>
+          <span class="race-column-head-change">Change vs prev.</span>
+        </div>
+        ${rows}
+      `;
+
       $("#race-more").textContent =
-        `All ${ordered.length} reported ${ordered.length === 1 ? "candidate is" : "candidates are"} available in the scrollable list.`;
+        `All ${ordered.length} reported ${
+          ordered.length === 1 ? "candidate is" : "candidates are"
+        } available in the scrollable list.`;
+
+      requestAnimationFrame(updateRaceScrollFade);
     }
 
     function renderMeta(event) {
-      const sample = event.sample_size ? event.sample_size.toLocaleString("en-GB") : "not stated";
-      const publication = event.publication_date ? formatDate(event.publication_date) : "not stated in dataset";
-      const source = safeSourceUrl(event.source_url);
+      const sample = event.sample_size
+        ? event.sample_size.toLocaleString("en-GB")
+        : "not stated";
+
+      const publication = event.publication_date
+        ? formatDate(event.publication_date)
+        : "not stated in dataset";
+
+      const fieldwork =
+        formatDate(event.fieldwork_start) +
+        "–" +
+        formatDate(event.fieldwork_end);
+
+      const officialSource = safeSourceUrl(
+        event.official_source_url
+      );
+
+      const source =
+        officialSource ||
+        safeSourceUrl(event.source_url);
+
       $("#latest-title").textContent =
-        event.pollster + " \u00b7 " + formatDate(event.publication_date || event.fieldwork_end);
+        event.pollster + " · Fieldwork " + fieldwork;
+
+      const comparisonUnavailable =
+        $("#race-poll-panel").classList.contains(
+          "is-no-comparison"
+        );
+
       $("#latest-sub").textContent =
-        "Fieldwork " + formatDate(event.fieldwork_start) + "\u2013" + formatDate(event.fieldwork_end) +
-        " \u00b7 Sample " + sample;
+        "Sample " +
+        sample +
+        (
+          event.publication_date
+            ? " · Published " + publication
+            : ""
+        ) +
+        (
+          comparisonUnavailable
+            ? " · No comparable prior event"
+            : ""
+        );
+
       const sourceLink = $("#race-source");
+
       sourceLink.hidden = !source;
+      sourceLink.textContent = officialSource
+        ? "View official poll ↗"
+        : "View full results ↗";
+
       if (source) {
         sourceLink.href = source;
-        sourceLink.setAttribute("aria-label", "View full " + event.pollster + " poll results in a new tab");
+        sourceLink.setAttribute(
+          "aria-label",
+          (
+            officialSource
+              ? "View official "
+              : "View full "
+          ) +
+            event.pollster +
+            " poll results in a new tab"
+        );
       } else {
         sourceLink.removeAttribute("href");
+        sourceLink.removeAttribute("aria-label");
       }
+
       $("#meta").innerHTML =
-        "<div>Pollster: <b>" + escapeHtml(event.pollster) + "</b></div>" +
-        "<div>Sample: <b>" + escapeHtml(sample) + "</b></div>" +
-        "<div>Fieldwork: <b>" + escapeHtml(formatDate(event.fieldwork_start) + "–" + formatDate(event.fieldwork_end)) + "</b></div>" +
-        "<div>Published: <b>" + escapeHtml(publication) + "</b></div>" +
-        '<div class="wide" title="' + escapeAttribute(event.hypothesis) + '">Hypothesis: <b>' + escapeHtml(event.hypothesis) + "</b></div>" +
-        '<div class="wide">' + (source
-          ? '<a href="' + escapeAttribute(source) + '" target="_blank" rel="noopener noreferrer">Open source ↗</a>'
-          : "Source unavailable") + "</div>";
+        "<div>Pollster: <b>" +
+        escapeHtml(event.pollster) +
+        "</b></div>" +
+        "<div>Sample: <b>" +
+        escapeHtml(sample) +
+        "</b></div>" +
+        "<div>Fieldwork: <b>" +
+        escapeHtml(fieldwork) +
+        "</b></div>" +
+        "<div>Published: <b>" +
+        escapeHtml(publication) +
+        "</b></div>" +
+        '<div class="wide" title="' +
+        escapeAttribute(event.hypothesis) +
+        '">Hypothesis: <b>' +
+        escapeHtml(event.hypothesis) +
+        "</b></div>" +
+        '<div class="wide">' +
+        (
+          source
+            ? '<a href="' +
+              escapeAttribute(source) +
+              '" target="_blank" rel="noopener noreferrer">Open source ↗</a>'
+            : "Source unavailable"
+        ) +
+        "</div>";
     }
+
     const pollingEvidenceFeature = (() => {
       "use strict";
 
@@ -7554,11 +8750,19 @@
 
     fetch("polls.json", { cache: "no-store" })
       .then(response => {
-        if (!response.ok) throw new Error("polls.json returned HTTP " + response.status);
+        if (!response.ok) {
+          throw new Error(
+            "polls.json returned HTTP " + response.status
+          );
+        }
+
         return response.json();
       })
       .then(events => {
-        if (!Array.isArray(events) || events.length === 0) throw new Error("polls.json contains no events");
+        if (!Array.isArray(events) || events.length === 0) {
+          throw new Error("polls.json contains no events");
+        }
+
         const complete = events.filter(event =>
           event.round === "first_round" &&
           event.event_id &&
@@ -7566,58 +8770,117 @@
           Array.isArray(event.candidates) &&
           event.candidates.length >= 2
         );
-        if (!complete.length) throw new Error("No complete first-round events found");
+
+        if (!complete.length) {
+          throw new Error("No complete first-round events found");
+        }
+
         complete.sort((a, b) =>
           b.fieldwork_end.localeCompare(a.fieldwork_end) ||
           a.pollster.localeCompare(b.pollster)
         );
 
-        const latest = complete[0];
-        const latestPackage = complete.filter(event =>
-          event.pollster === latest.pollster &&
-          event.fieldwork_start === latest.fieldwork_start &&
-          event.fieldwork_end === latest.fieldwork_end &&
-          event.sample_size === latest.sample_size
-        );
+        const pollPackages = buildRacePollPackages(complete);
 
-        function showHypothesis(event) {
-          $("#latest-title").textContent = event.pollster;
-          $("#latest-sub").textContent =
-            pollFieldworkLabel(event) + " · first round";
-          renderBars(event, complete);
-          renderMeta(event);
+        if (!pollPackages.length) {
+          throw new Error(
+            "No complete first-round poll packages found"
+          );
         }
 
-        const selector = $("#hypothesis-select");
-        selector.replaceChildren();
-        latestPackage.forEach((event, index) => {
-          const option = document.createElement("option");
-          option.value = String(index);
-          option.textContent = "Hypothesis " + (index + 1) + " · " + event.candidates.length + " candidates";
-          selector.appendChild(option);
-        });
-        selector.disabled = false;
-        selector.addEventListener("change", () => {
-          showHypothesis(latestPackage[Number(selector.value)]);
+        raceGlanceState.events = complete;
+        raceGlanceState.pollPackages = pollPackages;
+        raceGlanceState.selectedPollKey = pollPackages[0].key;
+        raceGlanceState.scaleMax =
+          calculateRaceScaleMaximum(pollPackages);
+
+        pollPackages.forEach(pollPackage => {
+          raceGlanceState.selectedHypothesisByPoll[pollPackage.key] = 0;
         });
 
-        showHypothesis(latestPackage[0]);
+        const selector = $("#hypothesis-select");
+        selector.addEventListener("change", () => {
+          const pollPackage = activeRacePollPackage();
+          if (!pollPackage) return;
+
+          const selectedIndex = Number(selector.value);
+
+          if (
+            Number.isInteger(selectedIndex) &&
+            selectedIndex >= 0 &&
+            selectedIndex < pollPackage.events.length
+          ) {
+            raceGlanceState.selectedHypothesisByPoll[
+              pollPackage.key
+            ] = selectedIndex;
+
+            renderRaceSelection();
+          }
+        });
+
+        const bars = $("#bars");
+        bars.addEventListener(
+          "scroll",
+          updateRaceScrollFade,
+          { passive: true }
+        );
+
+        window.addEventListener(
+          "resize",
+          updateRaceScrollFade,
+          { passive: true }
+        );
+
+        renderRacePollTabs();
+        renderRaceSelection();
+
         pollingEvidenceFeature.render(complete);
+
         document.documentElement.dataset.ready = "true";
+        document.documentElement.dataset.raceScaleMax =
+          String(raceGlanceState.scaleMax);
+
+        const latest = pollPackages[0].events[0];
+
         markDataset(
           "polls",
           "loaded",
-          { events: complete, latestPackage },
+          {
+            events: complete,
+            latestPackage: pollPackages[0].events,
+            latestPackages: pollPackages,
+            raceScaleMaximum: raceGlanceState.scaleMax
+          },
           latest.publication_date || latest.fieldwork_end
         );
       })
       .catch(error => {
+        const tablist = $("#race-poll-tabs");
+        tablist.replaceChildren();
+        tablist.setAttribute("aria-busy", "false");
+
         $("#latest-title").textContent = "Polling unavailable";
-        $("#latest-sub").textContent = "Latest complete first-round event could not be loaded.";
-        $("#hypothesis-select").disabled = true;
-        $("#bars").innerHTML = '<div class="error">' + escapeHtml(error.message) + "</div>";
+        $("#latest-sub").textContent =
+          "Latest complete first-round events could not be loaded.";
+
+        const selector = $("#hypothesis-select");
+        selector.disabled = true;
+        selector.hidden = false;
+        selector.replaceChildren();
+
+        $("#race-scenario-static").hidden = true;
+        $("#race-scroll-fade").hidden = true;
+
+        $("#bars").innerHTML =
+          '<div class="error">' +
+          escapeHtml(error.message) +
+          "</div>";
+
         $("#meta").replaceChildren();
+        $("#race-source").hidden = true;
+
         pollingEvidenceFeature.showError(error);
+
         document.documentElement.dataset.ready = "error";
         markDataset("polls", "error");
       });
