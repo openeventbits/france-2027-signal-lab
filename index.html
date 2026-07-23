@@ -229,9 +229,37 @@
       font-variant-numeric: tabular-nums;
       overflow-wrap: anywhere;
     }
-    .context-cell-status.is-ready .context-meta { color: #65cfa8; }
-    .context-cell-status.is-loading .context-meta { color: #75bfe8; }
-    .context-cell-status.is-partial .context-meta { color: #e3ad63; }
+    .context-source-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-width: 0;
+    }
+    .context-source-state {
+      flex: 0 0 auto;
+      padding: 1px 4px;
+      border: 1px solid currentColor;
+      border-radius: 2px;
+      color: #7898ad;
+      font-size: 6.5px;
+      font-weight: 750;
+      line-height: 1.15;
+      letter-spacing: .12em;
+    }
+    .context-cell-status.is-operational .context-icon,
+    .context-cell-status.is-operational .context-source-state {
+      color: var(--cyan);
+    }
+    .context-cell-status.is-degraded .context-icon,
+    .context-cell-status.is-degraded .context-source-state,
+    .context-cell-status.is-degraded .context-meta {
+      color: #e3ad63;
+    }
+    .context-cell-status.is-unknown .context-icon,
+    .context-cell-status.is-unknown .context-source-state {
+      color: #7898ad;
+    }
     .history-grid { grid-template-columns: 1fr; gap: 16px; margin-top: 12px; }
 
     .top-dashboard {
@@ -4862,17 +4890,22 @@
         </div>
       </article>
 
-      <article class="context-cell context-cell-status" id="context-status-cell">
+      <article class="context-cell context-cell-status is-unknown" id="context-status-cell">
         <span class="context-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" focusable="false">
-            <path d="M12 3.5 19 6v5.5c0 4.4-2.8 7.4-7 9-4.2-1.6-7-4.6-7-9V6l7-2.5Z"></path>
-            <path d="m8.5 12 2.2 2.2 4.8-5"></path>
+            <circle cx="12" cy="5" r="2"></circle>
+            <circle cx="5" cy="17" r="2"></circle>
+            <circle cx="19" cy="17" r="2"></circle>
+            <path d="M10.9 6.7 6.1 15.3M13.1 6.7l4.8 8.6M7 17h10"></path>
           </svg>
         </span>
         <div class="context-copy">
-          <div class="context-label">DASHBOARD STATUS</div>
-          <div class="context-value" id="context-status-value">0 of 4 feeds ready</div>
-          <div class="context-meta" id="context-status-meta">Loading dashboard data</div>
+          <div class="context-source-label-row">
+            <div class="context-label">SOURCE NETWORK</div>
+            <span class="context-source-state" id="context-status-badge">UNKNOWN</span>
+          </div>
+          <div class="context-value" id="context-status-value">—</div>
+          <div class="context-meta" id="context-status-meta">Automatically updated from the source registry</div>
         </div>
       </article>
     </section>
@@ -5967,6 +6000,122 @@
       return { count: pollsters.size, startDate, latestDate };
     }
 
+    function deriveSourceNetworkStatus(newsWire) {
+      const isRecord = value =>
+        Boolean(value) &&
+        typeof value === "object" &&
+        !Array.isArray(value);
+
+      const isPositiveInteger = value =>
+        Number.isInteger(value) && value > 0;
+
+      const isNonNegativeInteger = value =>
+        Number.isInteger(value) && value >= 0;
+
+      const discovery = isRecord(newsWire?.discovery)
+        ? newsWire.discovery
+        : {};
+
+      const coverage = isRecord(newsWire?.feed_coverage)
+        ? newsWire.feed_coverage
+        : {};
+
+      const sourceCandidates = [
+        {
+          value: discovery.approved_publisher_domains,
+          label: "SOURCES"
+        },
+        {
+          value: coverage.configured_media_publishers,
+          label: "SOURCES"
+        },
+        {
+          value: discovery.approved_media_domains,
+          label: "SOURCES"
+        },
+        {
+          value: coverage.configured_feeds,
+          label: "FEED ROUTES"
+        }
+      ];
+
+      const sourceMetric = sourceCandidates.find(candidate =>
+        isPositiveInteger(candidate.value)
+      );
+
+      const valueText = sourceMetric
+        ? sourceMetric.value + " " + sourceMetric.label
+        : "—";
+
+      const due = coverage.feeds_due_this_run;
+      const successful = coverage.feeds_successful_this_run;
+
+      if (
+        isNonNegativeInteger(due) &&
+        due > 0 &&
+        isNonNegativeInteger(successful) &&
+        successful <= due
+      ) {
+        const failed = due - successful;
+
+        if (failed === 0) {
+          return {
+            valueText,
+            status: "OPERATIONAL",
+            secondaryText:
+              Math.round((successful / due) * 100) +
+              "% scheduled checks passed this run",
+            visualState: "operational"
+          };
+        }
+
+        return {
+          valueText,
+          status: "DEGRADED",
+          secondaryText:
+            failed +
+            " scheduled " +
+            (failed === 1 ? "check" : "checks") +
+            " unavailable this run",
+          visualState: "degraded"
+        };
+      }
+
+      return {
+        valueText,
+        status: "UNKNOWN",
+        secondaryText:
+          "Automatically updated from the source registry",
+        visualState: "unknown"
+      };
+    }
+
+    function renderSourceNetworkStatus(newsWire) {
+      const presentation = deriveSourceNetworkStatus(newsWire);
+      const statusCell = $("#context-status-cell");
+
+      if (!statusCell) return;
+
+      statusCell.classList.remove(
+        "is-operational",
+        "is-degraded",
+        "is-unknown"
+      );
+
+      statusCell.classList.add(
+        "is-" + presentation.visualState
+      );
+
+      $("#context-status-badge").textContent =
+        presentation.status;
+
+      $("#context-status-value").textContent =
+        presentation.valueText;
+
+      $("#context-status-meta").textContent =
+        presentation.secondaryText;
+    }
+
     function renderContextStrip() {
       try {
         const snapshot = getElectionClockSnapshot();
@@ -6003,56 +6152,9 @@
         $("#context-coverage-meta").textContent = "First-round polling coverage";
       }
 
-      const states = ["polls", "runoff", "news", "claims"]
-        .map(name => dashboardState.loadState[name]);
-      const loaded = states.filter(state => state === "loaded").length;
-      const loading = states.filter(state => state === "loading").length;
-      const errors = states.filter(state => state === "error").length;
-      const statusCell = $("#context-status-cell");
-
-      statusCell.classList.remove("is-ready", "is-loading", "is-partial");
-
-      if (loaded === 4) {
-        const newsSourceCount = Array.isArray(dashboardState.news?.sources)
-          ? dashboardState.news.sources.length
-          : 0;
-        const readyNewsSources = Number.isInteger(
-          dashboardState.news?.counts?.successful_sources
-        )
-          ? dashboardState.news.counts.successful_sources
-          : newsSourceCount;
-        const unavailableNewsSources = Math.max(
-          0,
-          newsSourceCount - readyNewsSources
-        );
-
-        if (newsSourceCount && unavailableNewsSources > 0) {
-          statusCell.classList.add("is-partial");
-          $("#context-status-value").textContent =
-            readyNewsSources + " of " + newsSourceCount + " news feeds ready";
-          $("#context-status-meta").textContent =
-            unavailableNewsSources + " " +
-            (unavailableNewsSources === 1 ? "news feed" : "news feeds") +
-            " unavailable · polling · runoff · fact-checks live";
-        } else {
-          statusCell.classList.add("is-ready");
-          $("#context-status-value").textContent = "All feeds ready";
-          $("#context-status-meta").textContent =
-            "Polling · runoff · news · fact-checks";
-        }
-      } else if (loading) {
-        statusCell.classList.add("is-loading");
-        $("#context-status-value").textContent = loaded + " of 4 feeds ready";
-        $("#context-status-meta").textContent =
-          loading + " " + (loading === 1 ? "feed" : "feeds") + " still loading";
-      } else {
-        statusCell.classList.add("is-partial");
-        $("#context-status-value").textContent = loaded + " of 4 feeds ready";
-        $("#context-status-meta").textContent = errors
-          ? errors + " " + (errors === 1 ? "feed" : "feeds") + " unavailable · other sections remain live"
-          : "Partial data available";
-      }
+      renderSourceNetworkStatus(dashboardState.news);
     }
+
     function validateNewsWirePayload(payload) {
       if (!payload || typeof payload !== "object" || payload.schema_version !== 1) {
         throw new Error("Unsupported or missing news-wire schema");
