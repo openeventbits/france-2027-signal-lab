@@ -10,7 +10,7 @@ permissions:
   pages: write
 
 concurrency:
-  group: update-claims-under-scrutiny
+  group: production-data-update
   cancel-in-progress: false
 
 jobs:
@@ -110,6 +110,17 @@ jobs:
           )
           PY
 
+      - name: Regenerate Recent Changes Ledger
+        if: steps.validate.outputs.changed == 'true'
+        run: |
+          python generate_recent_changes.py \
+            --news news_wire.json \
+            --polls polls.json \
+            --runoff closest_tested_runoff.json \
+            --second-round second_round_polls.json \
+            --claims claims_under_scrutiny.json \
+            --output recent_changes.json
+
       - name: Commit changed Claims Under Scrutiny data
         id: commit
         env:
@@ -126,12 +137,14 @@ jobs:
           git config user.email \
             "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add -- claims_under_scrutiny.json
-          git commit -m "Update Claims Under Scrutiny" -- claims_under_scrutiny.json
+          git add -- claims_under_scrutiny.json recent_changes.json
+          git commit -m "Update Claims Under Scrutiny" -- \
+            claims_under_scrutiny.json recent_changes.json
           git fetch origin main
           git rebase origin/main
 
-          if git diff --quiet origin/main..HEAD -- claims_under_scrutiny.json; then
+          if git diff --quiet origin/main..HEAD -- \
+            claims_under_scrutiny.json recent_changes.json; then
             echo "The semantic data change is already present on main."
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0

@@ -10,7 +10,7 @@ permissions:
   pages: write
 
 concurrency:
-  group: update-polls
+  group: production-data-update
   cancel-in-progress: false
 
 jobs:
@@ -37,10 +37,12 @@ jobs:
             --closest-runoff-output /tmp/closest_tested_runoff.json
 
       - name: Validate and stage fetched data
+        id: validate
         shell: bash
         run: |
           python - <<'PY'
           import json
+          import os
           from pathlib import Path
 
           current_path = Path("polls.json")
@@ -51,6 +53,12 @@ jobs:
           fetched_closest_path = Path("/tmp/closest_tested_runoff.json")
 
           current = json.loads(current_path.read_text(encoding="utf-8"))
+          current_second_round = json.loads(
+              second_round_path.read_text(encoding="utf-8")
+          )
+          current_closest = json.loads(
+              closest_path.read_text(encoding="utf-8")
+          )
           fetched = json.loads(fetched_path.read_text(encoding="utf-8"))
           second_round = json.loads(
               fetched_second_round_path.read_text(encoding="utf-8")
@@ -226,6 +234,35 @@ jobs:
           ):
               raise SystemExit("agree status lacks selected matchup")
 
+          def semantic_payload(value):
+              if not isinstance(value, dict):
+                  return value
+              return {
+                  key: item
+                  for key, item in value.items()
+                  if key != "generated_at"
+              }
+
+          changed = (
+              fetched != current
+              or semantic_payload(second_round)
+              != semantic_payload(current_second_round)
+              or semantic_payload(closest)
+              != semantic_payload(current_closest)
+          )
+
+          with Path(os.environ["GITHUB_OUTPUT"]).open(
+              "a", encoding="utf-8"
+          ) as output:
+              output.write(f"changed={str(changed).lower()}\n")
+
+          if not changed:
+              print(
+                  "No semantic poll or runoff change was detected; "
+                  "generated_at is ignored."
+              )
+              raise SystemExit(0)
+
           current_path.write_bytes(fetched_path.read_bytes())
           second_round_path.write_bytes(fetched_second_round_path.read_bytes())
           closest_path.write_bytes(fetched_closest_path.read_bytes())
@@ -238,12 +275,24 @@ jobs:
           )
           PY
 
+      - name: Regenerate Recent Changes Ledger
+        if: steps.validate.outputs.changed == 'true'
+        run: |
+          python generate_recent_changes.py \
+            --news news_wire.json \
+            --polls polls.json \
+            --runoff closest_tested_runoff.json \
+            --second-round second_round_polls.json \
+            --claims claims_under_scrutiny.json \
+            --output recent_changes.json
+
       - name: Commit changed poll data
         id: commit
+        env:
+          POLL_DATA_CHANGED: ${{ steps.validate.outputs.changed }}
         shell: bash
         run: |
-          if git diff --quiet -- \
-            polls.json second_round_polls.json closest_tested_runoff.json; then
+          if [ "$POLL_DATA_CHANGED" != "true" ]; then
             echo "No poll changes detected."
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -254,7 +303,8 @@ jobs:
             "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add -- \
-            polls.json second_round_polls.json closest_tested_runoff.json
+            polls.json second_round_polls.json closest_tested_runoff.json \
+            recent_changes.json
           git commit -m "Update polls data"
           git push origin HEAD:main
 
