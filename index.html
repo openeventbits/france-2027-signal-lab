@@ -4733,7 +4733,7 @@
       <div class="masthead-tools">
         <div class="masthead-data" aria-live="polite">
           <span id="masthead-updated">Updated time loading…</span>
-          <span id="masthead-sources">Publisher sources loading…</span>
+          <span id="masthead-sources">Source network updating</span>
         </div>
         <div class="masthead-countdown" data-clock-target="first" aria-label="First-round election countdown">
           <span class="masthead-countdown-icon" aria-hidden="true">
@@ -5180,14 +5180,10 @@
           ? "Published data check loading…"
           : "Published data check unavailable";
 
-      if (dashboardState.news) {
-        const count = dashboardState.news.sources.length;
-        $("#masthead-sources").textContent = count + " publisher " + (count === 1 ? "feed" : "feeds") + " monitored";
-      } else {
-        $("#masthead-sources").textContent = dashboardState.loadState.news === "error"
-          ? "Publisher sources unavailable"
-          : "Publisher sources loading…";
-      }
+      const sourceMetric = deriveSourceMetric(dashboardState.news);
+      $("#masthead-sources").textContent = sourceMetric
+        ? sourceMetric.value + " " + sourceMetric.mastheadUnit + " monitored"
+        : "Source network updating";
     }
 
     function pollFieldworkLabel(event) {
@@ -6000,7 +5996,7 @@
       return { count: pollsters.size, startDate, latestDate };
     }
 
-    function deriveSourceNetworkStatus(newsWire) {
+    function deriveSourceMetric(newsWire) {
       const isRecord = value =>
         Boolean(value) &&
         typeof value === "object" &&
@@ -6008,9 +6004,6 @@
 
       const isPositiveInteger = value =>
         Number.isInteger(value) && value > 0;
-
-      const isNonNegativeInteger = value =>
-        Number.isInteger(value) && value >= 0;
 
       const discovery = isRecord(newsWire?.discovery)
         ? newsWire.discovery
@@ -6023,25 +6016,45 @@
       const sourceCandidates = [
         {
           value: discovery.approved_publisher_domains,
-          label: "SOURCES"
+          label: "SOURCES",
+          mastheadUnit: "approved sources"
         },
         {
           value: coverage.configured_media_publishers,
-          label: "SOURCES"
+          label: "SOURCES",
+          mastheadUnit: "approved sources"
         },
         {
           value: discovery.approved_media_domains,
-          label: "SOURCES"
+          label: "SOURCES",
+          mastheadUnit: "approved sources"
         },
         {
           value: coverage.configured_feeds,
-          label: "FEED ROUTES"
+          label: "FEED ROUTES",
+          mastheadUnit: "feed routes"
         }
       ];
 
-      const sourceMetric = sourceCandidates.find(candidate =>
+      return sourceCandidates.find(candidate =>
         isPositiveInteger(candidate.value)
-      );
+      ) || null;
+    }
+
+    function deriveSourceNetworkStatus(newsWire) {
+      const isRecord = value =>
+        Boolean(value) &&
+        typeof value === "object" &&
+        !Array.isArray(value);
+
+      const isNonNegativeInteger = value =>
+        Number.isInteger(value) && value >= 0;
+
+      const coverage = isRecord(newsWire?.feed_coverage)
+        ? newsWire.feed_coverage
+        : {};
+
+      const sourceMetric = deriveSourceMetric(newsWire);
 
       const valueText = sourceMetric
         ? sourceMetric.value + " " + sourceMetric.label
@@ -6262,7 +6275,13 @@
     function renderSignalDeskNote() {
       const parts = [];
       if (newsWirePayload) {
-        parts.push(`${newsWirePayload.counts.successful_sources}/${newsWirePayload.sources.length} news sources`);
+        const sourceMetric = deriveSourceMetric(newsWirePayload);
+        if (sourceMetric) {
+          parts.push(
+            sourceMetric.value + " " +
+            sourceMetric.mastheadUnit + " monitored"
+          );
+        }
         parts.push(`${newsWirePayload.counts.relevant_news} Relevant News`);
         const agendaThemeCount = newsWirePayload.campaign_agenda.topics.filter(topic => topic.display_eligible).length;
         parts.push(`${agendaThemeCount} Campaign Agenda themes`);
