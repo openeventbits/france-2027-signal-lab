@@ -406,6 +406,17 @@ jobs:
           )
           PY
 
+      - name: Rebuild and validate publication manifest
+        if: steps.promote.outputs.changed == 'true'
+        shell: bash
+        run: |
+          published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          python -B build_publication_manifest.py \
+            --published-at "$published_at"
+          python -B build_publication_manifest.py \
+            --check \
+            --published-at "$published_at"
+
       - name: Commit changed rolling news data
         id: commit
         if: steps.promote.outputs.changed == 'true'
@@ -420,7 +431,8 @@ jobs:
           git add -- \
             news_inventory.json \
             news_wire.json \
-            recent_changes.json
+            recent_changes.json \
+            publication_manifest.json
 
           if git diff --cached --quiet; then
             echo "No staged data change was detected."

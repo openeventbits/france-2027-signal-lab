@@ -4732,8 +4732,8 @@
       </div>
       <div class="masthead-tools">
         <div class="masthead-data" aria-live="polite">
-          <span id="masthead-updated">Updated time loading…</span>
-          <span id="masthead-sources">Source network updating</span>
+          <span id="masthead-updated">Snapshot publication loading…</span>
+          <span id="masthead-lanes">Lane metadata loading…</span>
         </div>
         <div class="masthead-countdown" data-clock-target="first" aria-label="First-round election countdown">
           <span class="masthead-countdown-icon" aria-hidden="true">
@@ -5125,12 +5125,13 @@
     }
 
     const dashboardState = {
+      manifest: null,
       polls: null,
       runoff: null,
       news: null,
       claims: null,
       recentChanges: null,
-      loadState: { polls: "loading", runoff: "loading", news: "loading", claims: "loading", recentChanges: "loading" },
+      loadState: { manifest: "loading", polls: "loading", runoff: "loading", news: "loading", claims: "loading", recentChanges: "loading" },
       updatedAt: {}
     };
 
@@ -5172,18 +5173,99 @@
       return `${parts.day} ${parts.month} ${parts.year} · ${parts.hour}:${parts.minute} Paris`;
     }
 
-    function renderMastheadMetadata() {
-      const publishedCheck = dashboardState.recentChanges?.last_successful_check_at;
-      $("#masthead-updated").textContent = Number.isFinite(dashboardTimestamp(publishedCheck))
-        ? "Published data checked " + formatMastheadParisDateTime(publishedCheck)
-        : dashboardState.loadState.recentChanges === "loading"
-          ? "Published data check loading…"
-          : "Published data check unavailable";
+    function formatMastheadParisClock(value) {
+      const date = new Date(value);
+      if (!Number.isFinite(date.getTime())) return "time unknown";
+      return new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/Paris",
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23"
+      }).format(date).replace(",", " ·");
+    }
 
-      const sourceMetric = deriveSourceMetric(dashboardState.news);
-      $("#masthead-sources").textContent = sourceMetric
-        ? sourceMetric.value + " " + sourceMetric.mastheadUnit + " monitored"
-        : "Source network updating";
+    function formatManifestEvidenceDate(value) {
+      if (typeof value !== "string" || !value) return "";
+      if (value.includes("T")) return formatMastheadParisClock(value);
+      return /^\d{4}-\d{2}-\d{2}$/.test(value)
+        ? new Intl.DateTimeFormat("en-GB", {
+            day: "numeric",
+            month: "short",
+            timeZone: "UTC"
+          }).format(new Date(value + "T00:00:00Z"))
+        : "";
+    }
+
+    function unavailableLaneLabel(label, lane) {
+      if (!lane || lane.timestamp_status === "missing") return label + " unavailable";
+      if (!lane.valid || lane.timestamp_status === "invalid") return label + " invalid";
+      return label + " time unknown";
+    }
+
+    function mastheadLaneSummaries(manifest) {
+      const lanes = manifest?.lanes;
+      if (!lanes || typeof lanes !== "object") return [];
+      const summaries = [];
+
+      const polls = lanes.polls;
+      if (polls?.available && polls.valid) {
+        const pollTime = polls.last_success_at || polls.generated_at;
+        summaries.push(
+          polls.timestamp_status === "known" && pollTime
+            ? "Polls updated " + formatMastheadParisClock(pollTime)
+            : "Poll check unknown"
+        );
+      } else {
+        summaries.push(unavailableLaneLabel("Polls", polls));
+      }
+
+      const runoff = lanes.runoff;
+      if (runoff?.available && runoff.valid && runoff.data_as_of) {
+        summaries.push("Runoff through " + formatManifestEvidenceDate(runoff.data_as_of));
+      } else {
+        summaries.push(unavailableLaneLabel("Runoff", runoff));
+      }
+
+      const news = lanes.news;
+      if (news?.available && news.valid && news.timestamp_status === "known" && news.generated_at) {
+        summaries.push("News updated " + formatMastheadParisClock(news.generated_at));
+      } else {
+        summaries.push(unavailableLaneLabel("News", news));
+      }
+
+      const claims = lanes.claims;
+      if (claims?.available && claims.valid && claims.data_as_of) {
+        summaries.push("Claims through " + formatManifestEvidenceDate(claims.data_as_of));
+      } else {
+        summaries.push(unavailableLaneLabel("Claims", claims));
+      }
+
+      const changes = lanes.recent_changes;
+      if (changes?.available && changes.valid && changes.timestamp_status === "known" && changes.last_success_at) {
+        summaries.push("Changes checked " + formatMastheadParisClock(changes.last_success_at));
+      } else {
+        summaries.push(unavailableLaneLabel("Changes", changes));
+      }
+      return summaries;
+    }
+
+    function renderMastheadMetadata() {
+      const manifest = dashboardState.manifest;
+      $("#masthead-updated").textContent =
+        manifest && Number.isFinite(dashboardTimestamp(manifest.published_at))
+          ? "Snapshot published " + formatMastheadParisDateTime(manifest.published_at)
+          : dashboardState.loadState.manifest === "loading"
+            ? "Snapshot publication loading…"
+            : "Snapshot publication unavailable";
+
+      const summaries = mastheadLaneSummaries(manifest);
+      $("#masthead-lanes").textContent = summaries.length
+        ? summaries.join(" · ")
+        : dashboardState.loadState.manifest === "loading"
+          ? "Lane metadata loading…"
+          : "Lane metadata unavailable";
     }
 
     function pollFieldworkLabel(event) {
@@ -5996,14 +6078,15 @@
       return { count: pollsters.size, startDate, latestDate };
     }
 
-    function deriveSourceMetric(newsWire) {
+    function sourceNetworkMetrics(newsWire, manifest = dashboardState.manifest) {
       const isRecord = value =>
         Boolean(value) &&
         typeof value === "object" &&
         !Array.isArray(value);
 
-      const isPositiveInteger = value =>
-        Number.isInteger(value) && value > 0;
+      if (isRecord(manifest?.source_network)) {
+        return manifest.source_network;
+      }
 
       const discovery = isRecord(newsWire?.discovery)
         ? newsWire.discovery
@@ -6013,32 +6096,36 @@
         ? newsWire.feed_coverage
         : {};
 
-      const sourceCandidates = [
-        {
-          value: discovery.approved_publisher_domains,
-          label: "SOURCES",
-          mastheadUnit: "approved sources"
-        },
-        {
-          value: coverage.configured_media_publishers,
-          label: "SOURCES",
-          mastheadUnit: "approved sources"
-        },
-        {
-          value: discovery.approved_media_domains,
-          label: "SOURCES",
-          mastheadUnit: "approved sources"
-        },
-        {
-          value: coverage.configured_feeds,
-          label: "FEED ROUTES",
-          mastheadUnit: "feed routes"
-        }
-      ];
+      const acceptedPublishers = Array.isArray(newsWire?.election_news)
+        ? new Set(newsWire.election_news
+            .map(item => typeof item?.publisher === "string" ? item.publisher.trim() : "")
+            .filter(Boolean)).size
+        : null;
 
-      return sourceCandidates.find(candidate =>
-        isPositiveInteger(candidate.value)
-      ) || null;
+      return {
+        approved_publisher_domains: discovery.approved_publisher_domains ?? null,
+        configured_media_publishers: coverage.configured_media_publishers ?? null,
+        configured_routes_or_feeds: coverage.configured_feeds ?? null,
+        routes_due_in_run: coverage.feeds_due_this_run ?? null,
+        successful_due_routes: coverage.feeds_successful_this_run ?? null,
+        contributing_publishers_in_retained_period: coverage.contributing_publishers_30d ?? null,
+        publishers_represented_in_accepted_election_news: acceptedPublishers,
+        // Retained only as a distinct legacy input; never relabelled as another metric.
+        approved_media_domains: discovery.approved_media_domains ?? null
+      };
+    }
+
+    function deriveSourceMetric(newsWire) {
+      const metrics = sourceNetworkMetrics(newsWire);
+      const value = metrics.approved_publisher_domains;
+
+      return Number.isInteger(value) && value >= 0
+        ? {
+            value,
+            label: "APPROVED PUBLISHER DOMAINS",
+            mastheadUnit: "approved publisher domains"
+          }
+        : null;
     }
 
     function deriveSourceNetworkStatus(newsWire) {
@@ -6050,18 +6137,19 @@
       const isNonNegativeInteger = value =>
         Number.isInteger(value) && value >= 0;
 
-      const coverage = isRecord(newsWire?.feed_coverage)
-        ? newsWire.feed_coverage
-        : {};
-
+      const metrics = sourceNetworkMetrics(newsWire);
       const sourceMetric = deriveSourceMetric(newsWire);
 
       const valueText = sourceMetric
         ? sourceMetric.value + " " + sourceMetric.label
         : "—";
 
-      const due = coverage.feeds_due_this_run;
-      const successful = coverage.feeds_successful_this_run;
+      const due = metrics.routes_due_in_run;
+      const successful = metrics.successful_due_routes;
+      const configured = metrics.configured_routes_or_feeds;
+      const configuredText = isNonNegativeInteger(configured)
+        ? " · " + configured + " CONFIGURED FEED ROUTES"
+        : "";
 
       if (
         isNonNegativeInteger(due) &&
@@ -6076,8 +6164,8 @@
             valueText,
             status: "OPERATIONAL",
             secondaryText:
-              Math.round((successful / due) * 100) +
-              "% scheduled checks passed this run",
+              successful + "/" + due +
+              " due routes succeeded this run" + configuredText,
             visualState: "operational"
           };
         }
@@ -6087,9 +6175,9 @@
           status: "DEGRADED",
           secondaryText:
             failed +
-            " scheduled " +
-            (failed === 1 ? "check" : "checks") +
-            " unavailable this run",
+            " due " +
+            (failed === 1 ? "route" : "routes") +
+            " unavailable this run" + configuredText,
           visualState: "degraded"
         };
       }
@@ -6098,7 +6186,7 @@
         valueText,
         status: "UNKNOWN",
         secondaryText:
-          "Automatically updated from the source registry",
+          "Due-route success unavailable",
         visualState: "unknown"
       };
     }
@@ -6272,16 +6360,26 @@
     let selectedCoverageCandidate = "";
     let selectedAgendaTopicId = "";
 
+    function sourceNetworkSummaryParts(newsWire) {
+      const metrics = sourceNetworkMetrics(newsWire);
+      const definitions = [
+        ["approved_publisher_domains", "approved publisher domains"],
+        ["configured_media_publishers", "configured media publishers"],
+        ["configured_routes_or_feeds", "configured routes or feeds"],
+        ["routes_due_in_run", "routes due this run"],
+        ["successful_due_routes", "successful due routes"],
+        ["contributing_publishers_in_retained_period", "contributing publishers in retained period"],
+        ["publishers_represented_in_accepted_election_news", "publishers in accepted election news"]
+      ];
+      return definitions
+        .filter(([field]) => Number.isInteger(metrics[field]) && metrics[field] >= 0)
+        .map(([field, label]) => metrics[field] + " " + label);
+    }
+
     function renderSignalDeskNote() {
       const parts = [];
       if (newsWirePayload) {
-        const sourceMetric = deriveSourceMetric(newsWirePayload);
-        if (sourceMetric) {
-          parts.push(
-            sourceMetric.value + " " +
-            sourceMetric.mastheadUnit + " monitored"
-          );
-        }
+        parts.push(...sourceNetworkSummaryParts(newsWirePayload));
         parts.push(`${newsWirePayload.counts.relevant_news} Relevant News`);
         const agendaThemeCount = newsWirePayload.campaign_agenda.topics.filter(topic => topic.display_eligible).length;
         parts.push(`${agendaThemeCount} Campaign Agenda themes`);
@@ -6475,6 +6573,57 @@
           activateSignalTab(tabs[targetIndex].dataset.signalTab, true);
         };
       });
+    }
+
+    function validatePublicationManifestPayload(payload) {
+      if (!payload || payload.schema_version !== "1.0") {
+        throw new Error("publication_manifest.json has an unsupported schema");
+      }
+      if (!/^[0-9a-f]{64}$/.test(payload.snapshot_id || "")) {
+        throw new Error("publication_manifest.json has an invalid snapshot id");
+      }
+      if (!Number.isFinite(dashboardTimestamp(payload.published_at))) {
+        throw new Error("publication_manifest.json has an invalid publication time");
+      }
+      const laneNames = ["polls", "runoff", "news", "claims", "recent_changes"];
+      const timestampStatuses = new Set(["known", "unknown", "missing", "invalid"]);
+      if (!payload.lanes || typeof payload.lanes !== "object" ||
+          laneNames.some(name => {
+            const lane = payload.lanes[name];
+            return !lane || typeof lane !== "object" ||
+              typeof lane.file !== "string" ||
+              typeof lane.available !== "boolean" ||
+              typeof lane.valid !== "boolean" ||
+              !timestampStatuses.has(lane.timestamp_status) ||
+              !Array.isArray(lane.warnings);
+          })) {
+        throw new Error("publication_manifest.json has invalid lane metadata");
+      }
+      if (!payload.source_network || typeof payload.source_network !== "object" ||
+          !Array.isArray(payload.warnings)) {
+        throw new Error("publication_manifest.json has invalid network metadata");
+      }
+      return payload;
+    }
+
+    function loadPublicationManifest() {
+      fetch("publication_manifest.json", { cache: "no-store" })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("publication_manifest.json returned HTTP " + response.status);
+          }
+          return response.json();
+        })
+        .then(validatePublicationManifestPayload)
+        .then(payload => {
+          markDataset("manifest", "loaded", payload, payload.published_at);
+          renderSignalDeskNote();
+        })
+        .catch(error => {
+          console.warn("Publication manifest unavailable.", error);
+          markDataset("manifest", "error");
+          renderSignalDeskNote();
+        });
     }
 
     function validateRecentChangesPayload(payload) {
@@ -8864,6 +9013,7 @@
     renderContextStrip();
     renderElectionClock();
     setInterval(renderElectionClock, 60 * 60 * 1000);
+    loadPublicationManifest();
     loadRecentChanges();
     loadClosestRunoff();
     loadNewsWire();
