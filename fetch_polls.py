@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import io
 import json
 import math
 import re
-import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlencode, urljoin, urlparse
@@ -17,6 +15,15 @@ from urllib.request import Request, urlopen
 import pandas as pd
 from lxml import html as lxml_html
 from pypdf import PdfReader
+
+from poll_contract import (
+    FIRST_ROUND,
+    apply_completeness_contract,
+    make_event_id,
+    make_scenario_key,
+    normalize_identity,
+    validate_poll_events,
+)
 
 
 SOURCE_URL = (
@@ -27,8 +34,7 @@ USER_AGENT = "France2027SignalLab/1.0 (contact: malatazen@gmail.com)"
 MEDIAWIKI_API_URL = "https://en.wikipedia.org/w/api.php"
 SOURCE_PAGE = "Opinion_polling_for_the_2027_French_presidential_election"
 WIKIPEDIA_LICENSE = "CC BY-SA 4.0"
-FIRST_ROUND_TABLES = range(4, 8)
-ROUND = "first_round"
+ROUND = FIRST_ROUND
 SECOND_ROUND = "second_round"
 DASHES = {"", "-", "–", "—", "−", "nan", "none"}
 OFFICIAL_NOTICES = {
@@ -114,12 +120,7 @@ def cell_link(cell: object) -> str | None:
     return None
 
 
-def normalize(value: str) -> str:
-    """Normalize text for deterministic hashes."""
-    value = unicodedata.normalize("NFKD", value)
-    value = "".join(ch for ch in value if not unicodedata.combining(ch))
-    value = value.casefold()
-    return " ".join(re.sub(r"[^a-z0-9]+", " ", value).split())
+normalize = normalize_identity
 
 
 CANDIDATE_ALIASES = {
@@ -154,6 +155,36 @@ def canonical_candidate_name(value: str, *, strict: bool = False) -> str:
     if strict:
         raise ValueError(f"unknown official candidate name: {value!r}")
     return name
+
+
+CANONICAL_POLLSTERS = (
+    "Cluster17",
+    "Elabe",
+    "Harris Interactive",
+    "Ifop",
+    "Ifop/Hexagone",
+    "Ipsos",
+    "Odoxa",
+    "OpinionWay",
+    "Verian",
+)
+POLLSTER_ALIASES = {
+    normalize(name): name for name in CANONICAL_POLLSTERS
+}
+POLLSTER_ALIASES.update(
+    {
+        normalize("Harris Interactive / Toluna"): "Harris Interactive",
+        normalize("Harris Interactive-Toluna"): "Harris Interactive",
+        normalize("Ifop / Hexagone"): "Ifop/Hexagone",
+        normalize("Opinion Way"): "OpinionWay",
+    }
+)
+
+
+def canonical_pollster_name(value: str) -> str:
+    """Return a stable known pollster label while preserving unknown firms."""
+    name = re.sub(r"\s+", " ", value).strip()
+    return POLLSTER_ALIASES.get(normalize(name), name)
 
 
 def parse_date(value: str) -> datetime:
@@ -203,34 +234,6 @@ def candidate_name(value: object) -> str:
     name = str(value).strip()
     name = re.sub(r"\s*\([^)]*\)\s*$", "", name)
     return re.sub(r"\s+", " ", name).strip()
-
-
-def make_scenario_key(
-    names: list[str], *, round_name: str = ROUND
-) -> str:
-    normalized_names = sorted(normalize(name) for name in names)
-    material = round_name + "|" + "|".join(normalized_names)
-    return hashlib.sha256(material.encode("utf-8")).hexdigest()
-
-
-def make_event_id(
-    pollster: str,
-    fieldwork_start: str,
-    fieldwork_end: str,
-    hypothesis: str,
-    source_url: str,
-    *,
-    round_name: str = ROUND,
-) -> str:
-    material = (
-        normalize(pollster)
-        + fieldwork_start
-        + fieldwork_end
-        + round_name
-        + normalize(hypothesis)
-        + source_url
-    )
-    return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
 
 OFFICIAL_POLL_SOURCE_OVERRIDES: dict[
@@ -320,77 +323,201 @@ def poll_wave_key(event: dict) -> tuple[str, str, str]:
     )
 
 
-def fetch_wikipedia_events() -> tuple[list[dict], list[str]]:
-    tables = pd.read_html(
-        SOURCE_URL,
-        storage_options={"User-Agent": USER_AGENT},
-        extract_links="body",
+POLLSTER_HEADERS = {
+    "polling firm",
+    "polling firm client",
+    "pollster",
+}
+FIELDWORK_HEADERS = {
+    "date s conducted",
+    "date conducted",
+    "dates conducted",
+    "fieldwork",
+    "fieldwork date",
+    "fieldwork dates",
+}
+SAMPLE_HEADERS = {
+    "sample",
+    "sample size",
+}
+EXCLUDED_ROUND_CONTEXT = {
+    "second round",
+    "runoff",
+    "head to head",
+    "head-to-head",
+}
+
+
+def column_header_text(column: object) -> str:
+    values = column if isinstance(column, tuple) else (column,)
+    for value in values:
+        text = cell_text(value)
+        if text and not text.startswith("Unnamed:"):
+            # pandas disambiguates duplicate HTML headers with ".1", ".2", …
+            # suffixes; remove only that parser-added suffix for validation.
+            return re.sub(r"\.\d+$", "", text)
+    return ""
+
+
+def table_column_contract(
+    frame: pd.DataFrame,
+) -> tuple[dict[str, int], list[tuple[int, str]]] | None:
+    """Return semantic metadata and candidate columns for an eligible table."""
+    roles: dict[str, int] = {}
+    candidate_columns: list[tuple[int, str]] = []
+
+    for column_index, column in enumerate(frame.columns):
+        header = column_header_text(column)
+        normalized = normalize(header)
+        if (
+            normalized in {normalize(value) for value in POLLSTER_HEADERS}
+            or normalized.startswith(("polling firm ", "pollster "))
+        ):
+            roles.setdefault("pollster", column_index)
+        elif (
+            normalized in {normalize(value) for value in FIELDWORK_HEADERS}
+            or normalized.startswith(("fieldwork ", "date conducted "))
+            or normalized.startswith("dates conducted ")
+        ):
+            roles.setdefault("fieldwork", column_index)
+        elif (
+            normalized in {normalize(value) for value in SAMPLE_HEADERS}
+            or normalized.startswith("sample size ")
+        ):
+            roles.setdefault("sample_size", column_index)
+        else:
+            name = canonical_candidate_name(candidate_name(header))
+            if name and not name.startswith("Unnamed:"):
+                candidate_columns.append((column_index, name))
+
+    if set(roles) != {"pollster", "fieldwork", "sample_size"}:
+        return None
+    if len(candidate_columns) < 3:
+        return None
+
+    normalized_names = [normalize(name) for _, name in candidate_columns]
+    if len(normalized_names) != len(set(normalized_names)):
+        raise ValueError("eligible first-round table has duplicate candidates")
+    return roles, candidate_columns
+
+
+def _table_heading_context(table: object) -> tuple[str, str | None]:
+    headings = table.xpath(
+        "preceding::*[self::h2 or self::h3 or self::h4 or self::h5]"
     )
+    recent = [
+        re.sub(r"\s+", " ", heading.text_content()).strip()
+        for heading in headings[-4:]
+    ]
+    round_heading: str | None = None
+    for heading in reversed(recent):
+        normalized = normalize(heading)
+        if "first round" in normalized or any(
+            normalize(marker) in normalized
+            for marker in EXCLUDED_ROUND_CONTEXT
+        ):
+            round_heading = normalized
+            break
+    return " / ".join(recent), round_heading
+
+
+def discover_first_round_tables(
+    page_html: str,
+) -> list[tuple[int, pd.DataFrame, dict[str, int], list[tuple[int, str]]]]:
+    """Discover first-round polling tables in deterministic document order."""
+    document = lxml_html.fromstring(page_html)
+    discovered = []
+
+    for table_order, table in enumerate(document.xpath("//table")):
+        context, round_heading = _table_heading_context(table)
+        normalized_context = normalize(context)
+        if round_heading and (
+            "first round" not in round_heading
+            or any(
+                normalize(marker) in round_heading
+                for marker in EXCLUDED_ROUND_CONTEXT
+            )
+        ):
+            continue
+        if any(
+            normalize(marker) in normalized_context
+            for marker in EXCLUDED_ROUND_CONTEXT
+        ) and "first round" not in normalize(round_heading or ""):
+            continue
+
+        frames = pd.read_html(
+            io.StringIO(lxml_html.tostring(table, encoding="unicode")),
+            extract_links="body",
+        )
+        if len(frames) != 1:
+            raise ValueError(
+                f"table {table_order}: expected one parsed frame"
+            )
+        frame = frames[0]
+        contract = table_column_contract(frame)
+        if contract is None:
+            continue
+        roles, candidate_columns = contract
+        discovered.append(
+            (table_order, frame, roles, candidate_columns)
+        )
+
+    return discovered
+
+
+def parse_wikipedia_first_round_html(
+    page_html: str,
+) -> tuple[list[dict], list[str]]:
+    tables = discover_first_round_tables(page_html)
+    if not tables:
+        raise ValueError("no eligible first-round polling tables discovered")
 
     events: list[dict] = []
     skipped: list[str] = []
 
-    for table_index in FIRST_ROUND_TABLES:
-        frame = tables[table_index]
-
-        if isinstance(frame.columns, pd.MultiIndex):
-            headers = list(frame.columns.get_level_values(0))
-        else:
-            headers = list(frame.columns)
-
-        candidate_columns: list[tuple[int, str]] = []
-        for column_index, header in enumerate(headers[3:], start=3):
-            name = canonical_candidate_name(candidate_name(header))
-            if not name or name.startswith("Unnamed:"):
-                continue
-            candidate_columns.append((column_index, name))
-
+    for table_order, frame, roles, candidate_columns in tables:
         for row_index, row in frame.iterrows():
-            pollster = cell_text(row.iloc[0])
-            fieldwork_raw = cell_text(row.iloc[1])
+            pollster = canonical_pollster_name(
+                cell_text(row.iloc[roles["pollster"]])
+            )
+            fieldwork_raw = cell_text(row.iloc[roles["fieldwork"]])
 
             if not pollster or normalize(pollster) in {"2022 election", "election"}:
                 continue
 
             try:
                 fieldwork_start, fieldwork_end = parse_fieldwork(fieldwork_raw)
-            except ValueError:
-                skipped.append(
-                    f"table {table_index} row {row_index}: "
+            except ValueError as error:
+                raise ValueError(
+                    f"table {table_order} row {row_index}: "
                     f"unparsed fieldwork date {fieldwork_raw!r}"
-                )
-                continue
+                ) from error
 
             candidates: list[dict] = []
-            ambiguous_reason: str | None = None
 
             for column_index, name in candidate_columns:
                 raw_score = cell_text(row.iloc[column_index])
-
                 try:
                     score = parse_score(raw_score)
-                except ValueError as exc:
-                    ambiguous_reason = f"{name}: {exc}"
-                    break
+                except ValueError as error:
+                    raise ValueError(
+                        f"{pollster} {fieldwork_raw} table {table_order} "
+                        f"row {row_index}: {name}: {error}"
+                    ) from error
 
                 if score is not None:
                     candidates.append({"name": name, "score": score})
 
-            if ambiguous_reason:
-                skipped.append(
-                    f"{pollster} {fieldwork_raw} row {row_index}: "
-                    f"{ambiguous_reason}; event skipped"
-                )
-                continue
-
             if len(candidates) < 2:
                 continue
 
-            source_url = cell_link(row.iloc[0]) or SOURCE_URL
+            source_url = (
+                cell_link(row.iloc[roles["pollster"]]) or SOURCE_URL
+            )
             names = [candidate["name"] for candidate in candidates]
             hypothesis = "First round — " + ", ".join(names)
 
-            event = {
+            event = apply_completeness_contract({
                 "event_id": make_event_id(
                     pollster,
                     fieldwork_start,
@@ -403,18 +530,27 @@ def fetch_wikipedia_events() -> tuple[list[dict], list[str]]:
                 "publication_date": None,
                 "fieldwork_start": fieldwork_start,
                 "fieldwork_end": fieldwork_end,
-                "sample_size": parse_sample_size(cell_text(row.iloc[2])),
+                "sample_size": parse_sample_size(
+                    cell_text(row.iloc[roles["sample_size"]])
+                ),
                 "round": ROUND,
                 "hypothesis": hypothesis,
                 "scenario_key": make_scenario_key(names),
                 "source_url": source_url,
                 "candidates": candidates,
-            }
+            })
 
             events.append(event)
 
-    # Wikipedia tables are already ordered newest first.
+    validate_poll_events(events)
     return events, skipped
+
+
+def fetch_wikipedia_events() -> tuple[list[dict], list[str]]:
+    request = Request(SOURCE_URL, headers={"User-Agent": USER_AGENT})
+    with urlopen(request, timeout=60) as response:
+        page_html = response.read().decode("utf-8")
+    return parse_wikipedia_first_round_html(page_html)
 
 
 def fetch_mediawiki_parse(parameters: dict[str, str]) -> dict:
@@ -1167,7 +1303,7 @@ def make_official_event(institute: str, candidates: list[dict]) -> dict:
     names = [candidate["name"] for candidate in candidates]
     hypothesis = "First round — " + ", ".join(names)
     source_url = notice["url"]
-    return {
+    return apply_completeness_contract({
         "event_id": make_event_id(
             institute,
             notice["fieldwork_start"],
@@ -1186,7 +1322,7 @@ def make_official_event(institute: str, candidates: list[dict]) -> dict:
         "scenario_key": make_scenario_key(names),
         "source_url": source_url,
         "candidates": candidates,
-    }
+    })
 
 
 def parse_elabe(reader: PdfReader) -> list[dict]:
@@ -1457,6 +1593,7 @@ def main() -> None:
     )
     apply_official_poll_sources(events)
     validate_merged_official_waves(events)
+    validate_poll_events(events)
     second_round_events, second_round_audit = fetch_second_round_events()
     closest_derivation = derive_closest_tested_runoff(second_round_events)
 

@@ -4783,7 +4783,7 @@
             class="race-poll-tabs"
             id="race-poll-tabs"
             role="tablist"
-            aria-label="Latest complete first-round poll events"
+            aria-label="Latest first-round poll events"
             aria-busy="true"
           ></div>
         </div>
@@ -4873,7 +4873,7 @@
         <div class="context-copy">
           <div class="context-label">LATEST POLL</div>
           <div class="context-value" id="context-poll-value">Loading…</div>
-          <div class="context-meta" id="context-poll-meta">Latest complete first-round event</div>
+          <div class="context-meta" id="context-poll-meta">Latest first-round event</div>
         </div>
       </article>
 
@@ -6248,7 +6248,7 @@
       } else {
         const pollError = dashboardState.loadState.polls === "error";
         $("#context-poll-value").textContent = pollError ? "Polling unavailable" : "Loading…";
-        $("#context-poll-meta").textContent = "Latest complete first-round event";
+        $("#context-poll-meta").textContent = "Latest first-round event";
         $("#context-coverage-value").textContent = pollError ? "Polling unavailable" : "Loading…";
         $("#context-coverage-meta").textContent = "First-round polling coverage";
       }
@@ -7619,6 +7619,55 @@
       return typeof score === "number" && Number.isFinite(score) ? score : null;
     }
 
+    function isValidFirstRoundPollEvent(event) {
+      if (
+        !event ||
+        event.round !== "first_round" ||
+        typeof event.event_id !== "string" ||
+        typeof event.scenario_key !== "string" ||
+        !Array.isArray(event.candidates) ||
+        event.candidates.length < 2 ||
+        !Number.isFinite(event.reported_total)
+      ) return false;
+
+      const names = new Set();
+      let reportedTotal = 0;
+      for (const candidate of event.candidates) {
+        if (
+          !candidate ||
+          typeof candidate.name !== "string" ||
+          !candidate.name.trim() ||
+          names.has(candidate.name) ||
+          !Number.isFinite(candidate.score) ||
+          candidate.score < 0
+        ) return false;
+        names.add(candidate.name);
+        reportedTotal += candidate.score;
+      }
+      if (Math.abs(reportedTotal - event.reported_total) > 1e-9) return false;
+
+      if (event.completeness_status === "complete") {
+        return (
+          event.partial_scenario === false &&
+          event.reported_total >= 99 &&
+          event.reported_total <= 101 &&
+          event.unreported_share === null
+        );
+      }
+      if (event.completeness_status === "partial") {
+        return (
+          event.partial_scenario === true &&
+          event.reported_total > 0 &&
+          event.reported_total < 99 &&
+          Number.isFinite(event.unreported_share) &&
+          Math.abs(
+            event.unreported_share - (100 - event.reported_total)
+          ) <= 1e-9
+        );
+      }
+      return false;
+    }
+
     function normalizeComparableText(value) {
       return String(value ?? "")
         .normalize("NFKC")
@@ -7631,9 +7680,7 @@
       const dayMs = 86400000;
       const retained = [];
       const currentEvents = selectedEvent
-        ? [selectedEvent].filter(event =>
-            event.fieldwork_end === latestDate && candidateScore(event, candidateName) !== null
-          )
+        ? [selectedEvent].filter(event => candidateScore(event, candidateName) !== null)
         : events.filter(event =>
             event.fieldwork_end === latestDate && candidateScore(event, candidateName) !== null
           );
@@ -7641,18 +7688,23 @@
       currentEvents.forEach(current => {
         const currentTime = Date.parse(`${current.fieldwork_end}T00:00:00Z`);
         const currentScore = candidateScore(current, candidateName);
-        if (!Number.isFinite(currentTime) || typeof current.scenario_key !== "string") return;
+        if (!Number.isFinite(currentTime) || typeof current.scenario_key !== "string" || typeof current.round !== "string") return;
 
         const currentPollster = normalizeComparableText(current.pollster);
+        if (!currentPollster) return;
         const priorPool = [];
         events.forEach(previous => {
-          if (previous.scenario_key !== current.scenario_key || previous.fieldwork_end >= current.fieldwork_end) return;
+          if (
+            previous.round !== current.round ||
+            previous.scenario_key !== current.scenario_key ||
+            previous.fieldwork_end >= current.fieldwork_end ||
+            normalizeComparableText(previous.pollster) !== currentPollster
+          ) return;
           const previousScore = candidateScore(previous, candidateName);
           const previousTime = Date.parse(`${previous.fieldwork_end}T00:00:00Z`);
           const gap = (currentTime - previousTime) / dayMs;
           if (currentScore === null || previousScore === null || !Number.isInteger(gap) || gap <= 0) return;
 
-          const previousPollster = normalizeComparableText(previous.pollster);
           priorPool.push({
             current,
             previous,
@@ -7660,15 +7712,13 @@
             previousScore,
             gap,
             delta: Number((currentScore - previousScore).toFixed(10)),
-            samePollster: currentPollster !== "" && currentPollster === previousPollster
+            samePollster: true
           });
         });
 
         if (!priorPool.length) return;
-        const samePollster = priorPool.filter(comparison => comparison.samePollster);
-        const preferredPool = samePollster.length ? samePollster : priorPool;
-        const shortestGap = Math.min(...preferredPool.map(comparison => comparison.gap));
-        retained.push(...preferredPool.filter(comparison => comparison.gap === shortestGap));
+        const shortestGap = Math.min(...priorPool.map(comparison => comparison.gap));
+        retained.push(...priorPool.filter(comparison => comparison.gap === shortestGap));
       });
 
       if (!retained.length) return { classification: "NO COMPARABLE PRIOR", retained: [] };
@@ -7702,7 +7752,7 @@
       }
 
       const meta = change.retained.length === 1
-        ? `${change.retained[0].gap}d · ${change.retained[0].samePollster ? change.retained[0].current.pollster : "cross-pollster"}`
+        ? `${change.retained[0].gap}d · ${change.retained[0].current.pollster}`
         : `${[...new Set(change.retained.map(comparison => comparison.gap))].sort((a, b) => a - b).map(gap => `${gap}d`).join(", ")} · ${change.retained.length} comparisons`;
       if (change.classification === "MIXED") {
         return { value: "MIXED", meta, tone: "is-mixed" };
@@ -8134,7 +8184,8 @@
         const change = deriveComparableChange(
           events,
           candidate.name,
-          event.fieldwork_end
+          event.fieldwork_end,
+          event
         );
 
         const formattedChange =
@@ -8222,6 +8273,22 @@
       requestAnimationFrame(updateRaceScrollFade);
     }
 
+    function pollPartialDisclosure(event) {
+      if (
+        event.completeness_status !== "partial" ||
+        event.partial_scenario !== true ||
+        !Number.isFinite(event.reported_total) ||
+        !Number.isFinite(event.unreported_share)
+      ) return "";
+
+      return (
+        "Partial reported field · Reported total " +
+        formatScore(event.reported_total) +
+        " · Unreported share " +
+        formatScore(event.unreported_share)
+      );
+    }
+
     function renderMeta(event) {
       const sample = event.sample_size
         ? event.sample_size.toLocaleString("en-GB")
@@ -8252,6 +8319,8 @@
           "is-no-comparison"
         );
 
+      const partialDisclosure = pollPartialDisclosure(event);
+
       $("#latest-sub").textContent =
         "Sample " +
         sample +
@@ -8264,7 +8333,8 @@
           comparisonUnavailable
             ? " · No comparable prior event"
             : ""
-        );
+        ) +
+        (partialDisclosure ? " · " + partialDisclosure : "");
 
       const sourceLink = $("#race-source");
 
@@ -8303,6 +8373,13 @@
         "<div>Published: <b>" +
         escapeHtml(publication) +
         "</b></div>" +
+        (
+          partialDisclosure
+            ? '<div class="wide">Coverage: <b>' +
+              escapeHtml(partialDisclosure) +
+              "</b></div>"
+            : ""
+        ) +
         '<div class="wide" title="' +
         escapeAttribute(event.hypothesis) +
         '">Hypothesis: <b>' +
@@ -8966,7 +9043,7 @@
             ? `${candidate.name}: MIXED with unique deltas ${change.deltas.map(formatComparableDelta).join(", ")} points.`
             : `${candidate.name}: ${change.classification}, ${formattedChange.value}.`;
           const comparisonDetails = change.retained.map((comparison, index) =>
-            `Comparison ${index + 1} of ${change.retained.length}: current pollster ${comparison.current.pollster}, fieldwork end ${comparison.current.fieldwork_end}, score ${formatScore(comparison.currentScore)}; previous pollster ${comparison.previous.pollster}, fieldwork end ${comparison.previous.fieldwork_end}, score ${formatScore(comparison.previousScore)}; exact gap ${comparison.gap} days; ${comparison.samePollster ? "same-pollster" : "cross-pollster"}; delta ${formatComparableDelta(comparison.delta)} points.`
+            `Comparison ${index + 1} of ${change.retained.length}: current pollster ${comparison.current.pollster}, fieldwork end ${comparison.current.fieldwork_end}, score ${formatScore(comparison.currentScore)}; previous pollster ${comparison.previous.pollster}, fieldwork end ${comparison.previous.fieldwork_end}, score ${formatScore(comparison.previousScore)}; exact gap ${comparison.gap} days; same-pollster; delta ${formatComparableDelta(comparison.delta)} points.`
           ).join(" ");
           const changeDetail = change.retained.length
             ? `${changeSummary} ${change.retained.length} retained ${change.retained.length === 1 ? "comparison" : "comparisons"}. ${comparisonDetails}`
@@ -9034,32 +9111,26 @@
           throw new Error("polls.json contains no events");
         }
 
-        const complete = events.filter(event =>
-          event.round === "first_round" &&
-          event.event_id &&
-          event.scenario_key &&
-          Array.isArray(event.candidates) &&
-          event.candidates.length >= 2
-        );
+        const validEvents = events.filter(isValidFirstRoundPollEvent);
 
-        if (!complete.length) {
-          throw new Error("No complete first-round events found");
+        if (!validEvents.length) {
+          throw new Error("No valid first-round events found");
         }
 
-        complete.sort((a, b) =>
+        validEvents.sort((a, b) =>
           b.fieldwork_end.localeCompare(a.fieldwork_end) ||
           a.pollster.localeCompare(b.pollster)
         );
 
-        const pollPackages = buildRacePollPackages(complete);
+        const pollPackages = buildRacePollPackages(validEvents);
 
         if (!pollPackages.length) {
           throw new Error(
-            "No complete first-round poll packages found"
+            "No valid first-round poll packages found"
           );
         }
 
-        raceGlanceState.events = complete;
+        raceGlanceState.events = validEvents;
         raceGlanceState.pollPackages = pollPackages;
         raceGlanceState.selectedPollKey = pollPackages[0].key;
         raceGlanceState.scaleMax =
@@ -9105,7 +9176,7 @@
         renderRacePollTabs();
         renderRaceSelection();
 
-        pollingEvidenceFeature.render(complete);
+        pollingEvidenceFeature.render(validEvents);
 
         document.documentElement.dataset.ready = "true";
         document.documentElement.dataset.raceScaleMax =
@@ -9117,7 +9188,7 @@
           "polls",
           "loaded",
           {
-            events: complete,
+            events: validEvents,
             latestPackage: pollPackages[0].events,
             latestPackages: pollPackages,
             raceScaleMaximum: raceGlanceState.scaleMax
@@ -9132,7 +9203,7 @@
 
         $("#latest-title").textContent = "Polling unavailable";
         $("#latest-sub").textContent =
-          "Latest complete first-round events could not be loaded.";
+          "Latest first-round events could not be loaded.";
 
         const selector = $("#hypothesis-select");
         selector.disabled = true;
