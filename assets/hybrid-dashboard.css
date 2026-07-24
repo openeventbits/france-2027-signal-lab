@@ -1127,7 +1127,7 @@
   .hybrid-agenda-topic { scroll-behavior: auto; transition: none; }
 }
 
-/* Media Pulse terminal feed, coverage shift and topic coverage */
+/* Media Pulse terminal feed, coverage shift and sustained-topic matrix */
 .hybrid-media-terminal-layout {
   display: grid;
   grid-template-columns:
@@ -1276,6 +1276,92 @@
   display: grid;
 }
 
+.hybrid-coverage-period-legend {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 4px;
+  padding: 0 0 7px;
+  border-bottom: 1px solid #132f45;
+}
+
+.hybrid-coverage-period {
+  display: grid;
+  grid-template-columns:
+    20px
+    minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hybrid-coverage-period > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hybrid-coverage-period strong,
+.hybrid-coverage-period small {
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.hybrid-coverage-period strong {
+  letter-spacing: .07em;
+}
+
+.hybrid-coverage-period small {
+  color: #9eb9c8;
+  letter-spacing: .02em;
+}
+
+.hybrid-coverage-period:first-child strong {
+  color: var(--cyan);
+}
+
+.hybrid-coverage-period:last-child strong {
+  color: #c6b7ff;
+}
+
+.hybrid-coverage-period-swatch {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 11px;
+}
+
+.hybrid-coverage-period-swatch.is-current::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 0;
+  left: 0;
+  height: 5px;
+  background:
+    linear-gradient(
+      90deg,
+      #258df2,
+      var(--cyan)
+    );
+}
+
+.hybrid-coverage-period-swatch.is-prior::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 8px;
+  width: 2px;
+  background: #b29cff;
+  box-shadow:
+    0 0 5px rgba(178, 156, 255, .55);
+}
+
 .hybrid-candidate-share-row {
   display: grid;
   grid-template-columns:
@@ -1367,105 +1453,117 @@
   color: var(--muted);
 }
 
-.hybrid-topic-column-chart {
+.hybrid-topic-matrix {
   display: grid;
-  grid-template-columns:
-    repeat(5, minmax(0, 1fr));
-  align-items: end;
-  gap: 8px;
-  min-height: 191px;
-  padding-top: 3px;
+  min-width: 0;
+  border-top: 1px solid #17364e;
 }
 
-.hybrid-topic-column {
+.hybrid-topic-matrix-head,
+.hybrid-topic-matrix-row {
   display: grid;
-  grid-template-rows:
-    18px
-    92px
-    minmax(39px, auto)
-    16px;
-  align-items: end;
-  gap: 5px;
+  grid-template-columns:
+    26px
+    minmax(0, 1fr)
+    38px
+    38px;
+  align-items: center;
+  gap: 7px;
   min-width: 0;
-  height: 100%;
-  padding: 0 3px;
+}
+
+.hybrid-topic-matrix-head {
+  min-height: 24px;
+  padding: 4px 6px;
+  color: #789aab;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: .075em;
+  line-height: 1;
+  text-align: right;
+}
+
+.hybrid-topic-matrix-head strong:nth-child(3) {
+  color: #c6b7ff;
+}
+
+.hybrid-topic-matrix-head strong:nth-child(4) {
+  color: var(--cyan);
+}
+
+.hybrid-topic-matrix-row {
+  width: 100%;
+  min-height: 36px;
+  padding: 5px 6px;
   border: 0;
+  border-bottom: 1px solid #132f45;
   background: transparent;
   color: inherit;
   font: inherit;
-  text-align: center;
+  text-align: left;
   cursor: pointer;
 }
 
-.hybrid-topic-column:hover,
-.hybrid-topic-column:focus-visible {
+.hybrid-topic-matrix-row:last-child {
+  border-bottom: 0;
+}
+
+.hybrid-topic-matrix-row:hover {
   background:
     linear-gradient(
-      180deg,
-      rgba(161, 119, 255, .08),
-      transparent
+      90deg,
+      rgba(161, 119, 255, .09),
+      rgba(20, 51, 75, .04)
     );
 }
 
-.hybrid-topic-column > strong {
-  color: #d5c6ff;
+.hybrid-topic-matrix-row:focus-visible {
+  outline: 1px solid #a88df7;
+  outline-offset: -1px;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(161, 119, 255, .14),
+      rgba(20, 51, 75, .05)
+    );
+}
+
+.hybrid-topic-matrix-rank {
+  color: #617f91;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.hybrid-topic-matrix-label {
+  min-width: 0;
+  color: #edf7fc;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.28;
+  overflow-wrap: anywhere;
+}
+
+.hybrid-topic-matrix-days,
+.hybrid-topic-matrix-pubs {
+  min-width: 0;
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   line-height: 1;
+  text-align: right;
 }
 
-.hybrid-topic-column-stage {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  width: 100%;
-  height: 92px;
-  border-bottom: 1px solid #29415a;
-  background:
-    repeating-linear-gradient(
-      to top,
-      transparent 0,
-      transparent 22px,
-      rgba(72, 100, 126, .12) 22px,
-      rgba(72, 100, 126, .12) 23px
-    );
+.hybrid-topic-matrix-days {
+  padding: 6px 5px;
+  border-left: 2px solid #9d77ed;
+  background: rgba(157, 119, 237, .09);
+  color: #d8caff;
 }
 
-.hybrid-topic-column-bar {
-  width: min(31px, 62%);
-  height: var(--hybrid-topic-height);
-  min-height: 8px;
-  background:
-    linear-gradient(
-      180deg,
-      #d1b4ff 0%,
-      #a77bff 45%,
-      #7452d4 100%
-    );
-  box-shadow:
-    0 0 10px rgba(168, 122, 255, .28);
-}
-
-.hybrid-topic-column-label {
-  display: -webkit-box;
-  min-width: 0;
-  color: #edf7fc;
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1.25;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}
-
-.hybrid-topic-column > small {
-  color: #9ebdcd;
-  font-size: 8px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  line-height: 1.2;
-  white-space: nowrap;
+.hybrid-topic-matrix-pubs {
+  color: var(--cyan);
 }
 
 @media (max-width: 1100px) {
@@ -1549,19 +1647,22 @@
     font-size: 10px;
   }
 
-  .hybrid-topic-column-chart {
+  .hybrid-coverage-period-legend {
+    grid-template-columns:
+      minmax(0, 1fr);
     gap: 5px;
   }
 
-  .hybrid-topic-column {
-    padding: 0 1px;
+  .hybrid-topic-matrix-head,
+  .hybrid-topic-matrix-row {
+    grid-template-columns:
+      23px
+      minmax(0, 1fr)
+      35px
+      35px;
+    gap: 5px;
+    padding-right: 5px;
+    padding-left: 5px;
   }
 
-  .hybrid-topic-column-label {
-    font-size: 8px;
-  }
-
-  .hybrid-topic-column > small {
-    font-size: 7px;
-  }
 }

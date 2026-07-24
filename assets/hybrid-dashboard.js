@@ -150,6 +150,61 @@
       .replace(/\.0$/, "");
   }
 
+  function formatMediaPeriodRange(startKey, endKey) {
+    const parseKey = value => {
+      const text = String(value || "");
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+      if (!match) return null;
+
+      const date = new Date(Date.UTC(
+        Number(match[1]),
+        Number(match[2]) - 1,
+        Number(match[3])
+      ));
+
+      return utcDateKey(date) === text
+        ? date
+        : null;
+    };
+
+    const start = parseKey(startKey);
+    const end = parseKey(endKey);
+
+    if (!start || !end || start > end) {
+      return "DATE UNAVAILABLE";
+    }
+
+    const months = [
+      "JAN", "FEB", "MAR", "APR",
+      "MAY", "JUN", "JUL", "AUG",
+      "SEP", "OCT", "NOV", "DEC"
+    ];
+
+    const startDay = start.getUTCDate();
+    const endDay = end.getUTCDate();
+    const startMonth = months[start.getUTCMonth()];
+    const endMonth = months[end.getUTCMonth()];
+    const startYear = start.getUTCFullYear();
+    const endYear = end.getUTCFullYear();
+
+    if (start.getTime() === end.getTime()) {
+      return `${startDay} ${startMonth}`;
+    }
+
+    if (
+      startYear === endYear &&
+      start.getUTCMonth() === end.getUTCMonth()
+    ) {
+      return `${startDay}–${endDay} ${endMonth}`;
+    }
+
+    if (startYear === endYear) {
+      return `${startDay} ${startMonth}–${endDay} ${endMonth}`;
+    }
+
+    return `${startDay} ${startMonth} ${startYear}–${endDay} ${endMonth} ${endYear}`;
+  }
+
   function isGeneralAgendaTopic(topic) {
     const identity = String(
       topic?.id || topic?.label || ""
@@ -406,15 +461,6 @@
         item => item.latestShare
       );
 
-    const maxCandidateShift =
-      Math.max(
-        1,
-        ...candidateCoverageLeaders.map(
-          item =>
-            Math.abs(item.changePp)
-        )
-      );
-
     const publisherCount = new Set(
       electionItems
         .map(item =>
@@ -470,48 +516,45 @@
             )
         );
 
-    const topicMaxSourceDays =
-      Math.max(
-        1,
-        ...specificAgendaTopics.map(
-          topic =>
-            number(
-              topic.source_day_count
-            )
-        )
-      );
+    const mediaMetricOrNull = value => {
+      if (
+        value === null ||
+        value === undefined ||
+        String(value).trim() === ""
+      ) {
+        return null;
+      }
+
+      const metric = Number(value);
+
+      return Number.isFinite(metric)
+        ? metric
+        : null;
+    };
 
     const topicCoverage =
-      specificAgendaTopics.map(
-        topic => {
-          const sourceDays =
-            number(
+      specificAgendaTopics
+        .slice(0, 5)
+        .map(topic => ({
+          id: String(
+            topic.id || ""
+          ),
+          label: String(
+            topic.label || ""
+          ),
+          sourceDays:
+            mediaMetricOrNull(
               topic.source_day_count
-            );
-
-          return {
-            id: String(
-              topic.id || ""
             ),
-            label: String(
-              topic.label || ""
+          itemCount:
+            mediaMetricOrNull(
+              topic.item_count
             ),
-            sourceDays,
-            itemCount:
-              number(
-                topic.item_count
-              ),
-            publishers:
-              number(
-                topic.publisher_count
-              ),
-            widthPercent:
-              sourceDays /
-              topicMaxSourceDays *
-              100
-          };
-        }
-      );
+          publishers:
+            mediaMetricOrNull(
+              topic.publisher_count
+            )
+        }));
 
     const windowDays = number(
       payload.window_days
@@ -562,7 +605,6 @@
       latestEndKey,
       previousStartKey,
       previousEndKey,
-      maxCandidateShift,
       topicCoverage,
       latestAcceptedAt:
         feedItems[0]
@@ -1024,43 +1066,100 @@
         })
         .join("");
 
-    const topicColumns =
+    const currentPeriodLabel =
+      formatMediaPeriodRange(
+        model.latestStartKey,
+        model.latestEndKey
+      );
+
+    const priorPeriodLabel =
+      formatMediaPeriodRange(
+        model.previousStartKey,
+        model.previousEndKey
+      );
+
+    const topicRows =
       model.topicCoverage.length
         ? model.topicCoverage
-            .map(topic => `
-              <button
-                class="hybrid-topic-column"
-                type="button"
-                data-hybrid-media-topic="${escapeAttribute(topic.id)}"
-                aria-label="${escapeAttribute(
-                  `${topic.label}: ${topic.sourceDays} source-days and ${topic.publishers} publishers. Open Campaign Agenda detail.`
-                )}"
-              >
-                <strong>${topic.sourceDays}d</strong>
+            .map((topic, index) => {
+              const sourceDaysAvailable =
+                Number.isFinite(
+                  topic.sourceDays
+                );
 
-                <span
-                  class="hybrid-topic-column-stage"
-                  aria-hidden="true"
+              const publishersAvailable =
+                Number.isFinite(
+                  topic.publishers
+                );
+
+              const itemCountAvailable =
+                Number.isFinite(
+                  topic.itemCount
+                );
+
+              const sourceDaysText =
+                sourceDaysAvailable
+                  ? String(topic.sourceDays)
+                  : "—";
+
+              const publishersText =
+                publishersAvailable
+                  ? String(topic.publishers)
+                  : "—";
+
+              const sourceDaysAccessible =
+                sourceDaysAvailable
+                  ? countLabel(
+                      topic.sourceDays,
+                      "source-day"
+                    )
+                  : "source-day count unavailable";
+
+              const publishersAccessible =
+                publishersAvailable
+                  ? countLabel(
+                      topic.publishers,
+                      "publisher"
+                    )
+                  : "publisher count unavailable";
+
+              const itemContext =
+                itemCountAvailable
+                  ? `; ${countLabel(
+                      topic.itemCount,
+                      "item"
+                    )}`
+                  : "";
+
+              return `
+                <button
+                  class="hybrid-topic-matrix-row"
+                  type="button"
+                  data-hybrid-media-topic="${escapeAttribute(topic.id)}"
+                  aria-label="${escapeAttribute(
+                    `${topic.label}: rank ${index + 1}; ${sourceDaysAccessible}; ${publishersAccessible}${itemContext}. Open Campaign Agenda detail.`
+                  )}"
                 >
                   <span
-                    class="hybrid-topic-column-bar"
-                    style="--hybrid-topic-height:${Math.max(
-                      8,
-                      topic.widthPercent
-                    ).toFixed(2)}%"
-                  ></span>
-                </span>
+                    class="hybrid-topic-matrix-rank"
+                    aria-hidden="true"
+                  >${String(index + 1).padStart(2, "0")}</span>
 
-                <span class="hybrid-topic-column-label">
-                  ${escapeHtml(topic.label)}
-                </span>
+                  <span class="hybrid-topic-matrix-label">
+                    ${escapeHtml(topic.label)}
+                  </span>
 
-                <small>
-                  ${countLabel(topic.publishers, "publisher")}
-                </small>
-              </button>`)
+                  <strong class="hybrid-topic-matrix-days">
+                    ${sourceDaysText}
+                  </strong>
+
+                  <strong class="hybrid-topic-matrix-pubs">
+                    ${publishersText}
+                  </strong>
+                </button>`;
+            })
             .join("")
-        : `<div class="hybrid-state is-compact">No topic coverage available.</div>`;
+        : `<div class="hybrid-state is-compact">No specific sustained topics available.</div>`;
 
     return `
       <div class="hybrid-media-terminal-layout">
@@ -1091,6 +1190,36 @@
               Coverage shift
             </h3>
 
+            <div
+              class="hybrid-coverage-period-legend"
+              role="group"
+              aria-label="${escapeAttribute(
+                `Coverage comparison. Cyan bars show the current period ${currentPeriodLabel}. Violet markers show the prior period ${priorPeriodLabel}.`
+              )}"
+            >
+              <span class="hybrid-coverage-period">
+                <i
+                  class="hybrid-coverage-period-swatch is-current"
+                  aria-hidden="true"
+                ></i>
+                <span>
+                  <strong>CURRENT</strong>
+                  <small>${escapeHtml(currentPeriodLabel)}</small>
+                </span>
+              </span>
+
+              <span class="hybrid-coverage-period">
+                <i
+                  class="hybrid-coverage-period-swatch is-prior"
+                  aria-hidden="true"
+                ></i>
+                <span>
+                  <strong>PRIOR</strong>
+                  <small>${escapeHtml(priorPeriodLabel)}</small>
+                </span>
+              </span>
+            </div>
+
             <div class="hybrid-candidate-share-list">
               ${candidateRows}
             </div>
@@ -1098,15 +1227,31 @@
 
           <section class="hybrid-media-terminal-module">
             <h3 class="hybrid-section-title">
-              Topic coverage
+              Sustained topics
             </h3>
 
-            <div
-              class="hybrid-topic-column-chart"
-              role="list"
-              aria-label="Recurring campaign-topic coverage"
+            <span
+              class="visually-hidden"
+              id="hybrid-topic-matrix-description"
             >
-              ${topicColumns}
+              Topics ranked by the number of source-days on which they appeared. Publisher count indicates reporting breadth.
+            </span>
+
+            <div
+              class="hybrid-topic-matrix"
+              aria-describedby="hybrid-topic-matrix-description"
+            >
+              <div
+                class="hybrid-topic-matrix-head"
+                aria-hidden="true"
+              >
+                <span></span>
+                <span></span>
+                <strong>DAYS</strong>
+                <strong>PUBS</strong>
+              </div>
+
+              ${topicRows}
             </div>
           </section>
         </aside>
