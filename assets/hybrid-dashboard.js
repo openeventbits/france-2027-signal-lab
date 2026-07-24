@@ -113,80 +113,506 @@
     return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
   }
 
+  function dateKeyWithOffset(anchor, offset) {
+    const date = new Date(anchor);
+    date.setUTCDate(date.getUTCDate() + offset);
+    return utcDateKey(date);
+  }
+
+  function takeMediaLeadersWithTies(
+    items,
+    nominalLimit,
+    valueSelector
+  ) {
+    if (!items.length || nominalLimit < 1) return [];
+
+    const limit = Math.min(
+      nominalLimit,
+      items.length
+    );
+
+    const cutoff = valueSelector(
+      items[limit - 1]
+    );
+
+    return items.filter(
+      (item, index) =>
+        index < limit ||
+        Math.abs(
+          valueSelector(item) - cutoff
+        ) < 0.000001
+    );
+  }
+
+  function formatMediaShare(value) {
+    return Number(value)
+      .toFixed(1)
+      .replace(/\.0$/, "");
+  }
+
+  function formatMediaPeriodRange(startKey, endKey) {
+    const parseKey = value => {
+      const text = String(value || "");
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+      if (!match) return null;
+
+      const date = new Date(Date.UTC(
+        Number(match[1]),
+        Number(match[2]) - 1,
+        Number(match[3])
+      ));
+
+      return utcDateKey(date) === text
+        ? date
+        : null;
+    };
+
+    const start = parseKey(startKey);
+    const end = parseKey(endKey);
+
+    if (!start || !end || start > end) {
+      return "DATE UNAVAILABLE";
+    }
+
+    const months = [
+      "JAN", "FEB", "MAR", "APR",
+      "MAY", "JUN", "JUL", "AUG",
+      "SEP", "OCT", "NOV", "DEC"
+    ];
+
+    const startDay = start.getUTCDate();
+    const endDay = end.getUTCDate();
+    const startMonth = months[start.getUTCMonth()];
+    const endMonth = months[end.getUTCMonth()];
+    const startYear = start.getUTCFullYear();
+    const endYear = end.getUTCFullYear();
+
+    if (start.getTime() === end.getTime()) {
+      return `${startDay} ${startMonth}`;
+    }
+
+    if (
+      startYear === endYear &&
+      start.getUTCMonth() === end.getUTCMonth()
+    ) {
+      return `${startDay}–${endDay} ${endMonth}`;
+    }
+
+    if (startYear === endYear) {
+      return `${startDay} ${startMonth}–${endDay} ${endMonth}`;
+    }
+
+    return `${startDay} ${startMonth} ${startYear}–${endDay} ${endMonth} ${endYear}`;
+  }
+
+  function isGeneralAgendaTopic(topic) {
+    const identity = String(
+      topic?.id || topic?.label || ""
+    )
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+    return (
+      identity.startsWith("other ") ||
+      identity.startsWith("other_") ||
+      identity.includes("other campaign coverage")
+    );
+  }
+
   function buildMediaViewModel() {
     const unavailable = viewModelState("news");
-    if (unavailable) return { domain: "media", ...unavailable };
+    if (unavailable) {
+      return {
+        domain: "media",
+        ...unavailable
+      };
+    }
 
     const payload = dashboardState.news;
-    const electionItems = Array.isArray(payload.election_news) ? payload.election_news : [];
-    const coverageItems = Array.isArray(payload.candidate_watch) ? payload.candidate_watch : [];
-    const generatedKey = String(payload.generated_at || "").slice(0, 10);
-    const anchor = /^\d{4}-\d{2}-\d{2}$/.test(generatedKey)
-      ? new Date(`${generatedKey}T00:00:00Z`)
-      : new Date(Math.max(...electionItems.map(item => new Date(item.published_at).getTime())));
-    const safeAnchor = Number.isFinite(anchor.getTime()) ? anchor : new Date();
+
+    const electionItems = Array.isArray(
+      payload.election_news
+    )
+      ? payload.election_news
+      : [];
+
+    const coverageItems = Array.isArray(
+      payload.candidate_watch
+    )
+      ? payload.candidate_watch
+      : [];
+
+    const feedItems = newestNewsItems(
+      electionItems
+    ).slice(0, 50);
+
+    const generatedKey = String(
+      payload.generated_at || ""
+    ).slice(0, 10);
+
+    const anchor =
+      /^\d{4}-\d{2}-\d{2}$/.test(
+        generatedKey
+      )
+        ? new Date(
+            `${generatedKey}T00:00:00Z`
+          )
+        : new Date(
+            Math.max(
+              ...electionItems.map(
+                item =>
+                  new Date(
+                    item.published_at
+                  ).getTime()
+              )
+            )
+          );
+
+    const safeAnchor = Number.isFinite(
+      anchor.getTime()
+    )
+      ? anchor
+      : new Date();
+
     const activityCounts = new Map();
 
     electionItems.forEach(item => {
-      const key = String(item.published_at).slice(0, 10);
-      activityCounts.set(key, (activityCounts.get(key) || 0) + 1);
+      const key = String(
+        item.published_at || ""
+      ).slice(0, 10);
+
+      activityCounts.set(
+        key,
+        (activityCounts.get(key) || 0) + 1
+      );
     });
 
     const dailyActivity = [];
-    for (let offset = 13; offset >= 0; offset -= 1) {
+
+    for (
+      let offset = 13;
+      offset >= 0;
+      offset -= 1
+    ) {
       const date = new Date(safeAnchor);
-      date.setUTCDate(date.getUTCDate() - offset);
+      date.setUTCDate(
+        date.getUTCDate() - offset
+      );
+
       const key = utcDateKey(date);
-      dailyActivity.push({ key, date, count: activityCounts.get(key) || 0 });
+
+      dailyActivity.push({
+        key,
+        date,
+        count:
+          activityCounts.get(key) || 0
+      });
     }
 
-    const publisherCounts = new Map();
-    electionItems.forEach(item => publisherCounts.set(item.publisher, (publisherCounts.get(item.publisher) || 0) + 1));
-    const publisherContribution = [...publisherCounts.entries()]
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "fr"))
-      .slice(0, 5);
+    const latestStartKey =
+      dateKeyWithOffset(
+        safeAnchor,
+        -6
+      );
 
-    const candidateArticles = new Map();
-    coverageItems.forEach((item, itemIndex) => {
-      const articleKey = String(item.id || safeSourceUrl(item.url) || itemIndex);
-      new Set(item.candidates).forEach(candidate => {
-        if (!candidateArticles.has(candidate)) candidateArticles.set(candidate, new Set());
-        candidateArticles.get(candidate).add(articleKey);
-      });
-    });
-    const candidateCoverage = [...candidateArticles.entries()]
-      .map(([name, items]) => ({ name, count: items.size }))
-      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "fr"));
+    const latestEndKey =
+      utcDateKey(safeAnchor);
 
-    const headlines = newestNewsItems(electionItems).slice(0, 5);
-    const windowDays = number(payload.window_days);
-    const activityWindowDays = dailyActivity.length;
-    const activityItemCount = dailyActivity.reduce((sum, day) => sum + day.count, 0);
+    const previousStartKey =
+      dateKeyWithOffset(
+        safeAnchor,
+        -13
+      );
+
+    const previousEndKey =
+      dateKeyWithOffset(
+        safeAnchor,
+        -7
+      );
+
+    const periodArticleKeys = {
+      latest: new Set(),
+      previous: new Set()
+    };
+
+    const candidatePeriods =
+      new Map();
+
+    coverageItems.forEach(
+      (item, itemIndex) => {
+        const publishedKey = String(
+          item.published_at || ""
+        ).slice(0, 10);
+
+        let period = "";
+
+        if (
+          publishedKey >= latestStartKey &&
+          publishedKey <= latestEndKey
+        ) {
+          period = "latest";
+        } else if (
+          publishedKey >=
+            previousStartKey &&
+          publishedKey <=
+            previousEndKey
+        ) {
+          period = "previous";
+        }
+
+        if (!period) return;
+
+        const articleKey = String(
+          item.id ||
+          safeSourceUrl(item.url) ||
+          itemIndex
+        );
+
+        periodArticleKeys[
+          period
+        ].add(articleKey);
+
+        new Set(
+          Array.isArray(item.candidates)
+            ? item.candidates
+            : []
+        ).forEach(candidate => {
+          if (
+            !candidatePeriods.has(
+              candidate
+            )
+          ) {
+            candidatePeriods.set(
+              candidate,
+              {
+                latest: new Set(),
+                previous: new Set()
+              }
+            );
+          }
+
+          candidatePeriods
+            .get(candidate)[period]
+            .add(articleKey);
+        });
+      }
+    );
+
+    const latestDenominator =
+      periodArticleKeys.latest.size;
+
+    const previousDenominator =
+      periodArticleKeys.previous.size;
+
+    const candidateCoverageShares = [
+      ...candidatePeriods.entries()
+    ]
+      .map(([name, periods]) => {
+        const latestCount =
+          periods.latest.size;
+
+        const previousCount =
+          periods.previous.size;
+
+        const latestShare =
+          latestDenominator
+            ? latestCount /
+              latestDenominator *
+              100
+            : 0;
+
+        const previousShare =
+          previousDenominator
+            ? previousCount /
+              previousDenominator *
+              100
+            : 0;
+
+        return {
+          name,
+          latestCount,
+          previousCount,
+          latestShare,
+          previousShare,
+          changePp:
+            latestShare -
+            previousShare
+        };
+      })
+      .sort(
+        (a, b) =>
+          b.latestShare -
+            a.latestShare ||
+          b.changePp -
+            a.changePp ||
+          b.latestCount -
+            a.latestCount ||
+          a.name.localeCompare(
+            b.name,
+            "fr"
+          )
+      );
+
+    const candidateCoverageLeaders =
+      takeMediaLeadersWithTies(
+        candidateCoverageShares,
+        6,
+        item => item.latestShare
+      );
+
+    const publisherCount = new Set(
+      electionItems
+        .map(item =>
+          String(
+            item.publisher || ""
+          ).trim()
+        )
+        .filter(Boolean)
+    ).size;
+
+    const agendaTopics =
+      Array.isArray(
+        payload.campaign_agenda
+          ?.topics
+      )
+        ? payload.campaign_agenda
+            .topics
+            .filter(
+              topic =>
+                topic.display_eligible
+            )
+        : [];
+
+    const specificAgendaTopics =
+      agendaTopics
+        .filter(
+          topic =>
+            !isGeneralAgendaTopic(
+              topic
+            )
+        )
+        .sort(
+          (a, b) =>
+            number(
+              b.source_day_count
+            ) -
+              number(
+                a.source_day_count
+              ) ||
+            number(
+              b.publisher_count
+            ) -
+              number(
+                a.publisher_count
+              ) ||
+            String(
+              a.label
+            ).localeCompare(
+              String(
+                b.label
+              ),
+              "en"
+            )
+        );
+
+    const mediaMetricOrNull = value => {
+      if (
+        value === null ||
+        value === undefined ||
+        String(value).trim() === ""
+      ) {
+        return null;
+      }
+
+      const metric = Number(value);
+
+      return Number.isFinite(metric)
+        ? metric
+        : null;
+    };
+
+    const topicCoverage =
+      specificAgendaTopics
+        .slice(0, 5)
+        .map(topic => ({
+          id: String(
+            topic.id || ""
+          ),
+          label: String(
+            topic.label || ""
+          ),
+          sourceDays:
+            mediaMetricOrNull(
+              topic.source_day_count
+            ),
+          itemCount:
+            mediaMetricOrNull(
+              topic.item_count
+            ),
+          publishers:
+            mediaMetricOrNull(
+              topic.publisher_count
+            )
+        }));
+
+    const windowDays = number(
+      payload.window_days
+    );
+
+    const activityWindowDays =
+      dailyActivity.length;
+
+    const activityItemCount =
+      dailyActivity.reduce(
+        (sum, day) =>
+          sum + day.count,
+        0
+      );
+
     return {
       domain: "media",
-      state: electionItems.length ? "ready" : "empty",
+      state:
+        feedItems.length
+          ? "ready"
+          : "empty",
       windowDays,
       activityWindowDays,
       activityItemCount,
-      electionNewsCount: number(payload.counts?.election_news),
-      candidateWatchCount: coverageItems.length,
-      healthyFeedCount: Array.isArray(payload.sources)
-        ? payload.sources.filter(source => source.status === "ok").length
-        : number(payload.counts?.successful_sources),
-      configuredPublisherCount: Array.isArray(payload.sources) ? payload.sources.length : 0,
+      electionNewsCount:
+        number(
+          payload.counts
+            ?.election_news
+        ),
+      candidateWatchCount:
+        coverageItems.length,
+      acceptedNewsPublisherCount:
+        publisherCount,
       dailyActivity,
-      activityMax: Math.max(1, ...dailyActivity.map(day => day.count)),
-      publisherContribution,
-      publisherMax: Math.max(1, ...publisherContribution.map(item => item.count)),
-      candidateCoverage,
-      candidateMax: Math.max(1, ...candidateCoverage.map(item => item.count)),
-      headlines,
-      latestAcceptedAt: headlines[0]?.published_at || "",
-      generatedAt: payload.generated_at
+      activityMax: Math.max(
+        1,
+        ...dailyActivity.map(
+          day => day.count
+        )
+      ),
+      feedItems,
+      candidateCoverageLeaders,
+      latestCandidateArticleCount:
+        latestDenominator,
+      previousCandidateArticleCount:
+        previousDenominator,
+      latestStartKey,
+      latestEndKey,
+      previousStartKey,
+      previousEndKey,
+      topicCoverage,
+      latestAcceptedAt:
+        feedItems[0]
+          ?.published_at || "",
+      generatedAt:
+        payload.generated_at
     };
   }
-
   function buildAgendaViewModel() {
     const unavailable = viewModelState("news");
     if (unavailable) return { domain: "agenda", ...unavailable };
@@ -361,8 +787,47 @@
     }).join("");
   }
 
+  function deriveAcceptedNewsPublisherMetric(value, windowDays) {
+    const available =
+      Number.isInteger(value) &&
+      value >= 0 &&
+      Number.isInteger(windowDays) &&
+      windowDays > 0;
+
+    if (!available) {
+      return {
+        valueText: "—",
+        secondaryText: "publisher count unavailable",
+        accessibleText:
+          "Accepted election-news publisher count unavailable"
+      };
+    }
+
+    return {
+      valueText: String(value),
+      secondaryText: windowDays + "-day publishers",
+      accessibleText:
+        value + " distinct " +
+        (value === 1 ? "publisher" : "publishers") +
+        " represented in accepted election news during the " +
+        windowDays + "-day source window"
+    };
+  }
+
   function renderMediaSummary(model) {
-    if (model.state !== "ready") return cardShell("media", "Latest 14 calendar days", summaryState(model));
+    if (model.state !== "ready") {
+      return cardShell(
+        "media",
+        "Latest 14 calendar days",
+        summaryState(model)
+      );
+    }
+
+    const contribution = deriveAcceptedNewsPublisherMetric(
+      model.acceptedNewsPublisherCount,
+      model.windowDays
+    );
+
     return cardShell("media", `14-day activity · ${model.windowDays}-day source scope`, `
       <span class="hybrid-mini-bars" role="img" aria-label="Accepted election-news items by day for the latest 14 calendar days">
         ${activityBars(model.dailyActivity, model.activityMax, true)}
@@ -372,10 +837,10 @@
         <span class="hybrid-mini-stat"><strong>${model.activityItemCount}</strong>${model.activityWindowDays}-day activity</span>
         <span class="hybrid-mini-stat"><strong>${model.electionNewsCount}</strong>${model.windowDays}-day news</span>
         <span class="hybrid-mini-stat"><strong>${model.candidateWatchCount}</strong>${model.windowDays}-day watch</span>
-        <span class="hybrid-mini-stat"><strong>${model.healthyFeedCount}/${model.configuredPublisherCount}</strong>feeds ready</span>
+        <span class="hybrid-mini-stat"><strong>${escapeHtml(contribution.valueText)}</strong>${escapeHtml(contribution.secondaryText)}</span>
       </span>
-      <span class="hybrid-summary-meta">Election-news and candidate-watch totals are separate datasets. Latest accepted item: <strong>${model.latestAcceptedAt ? escapeHtml(formatNewsDateTime(model.latestAcceptedAt)) : "Unavailable"}</strong></span>`,
-      `${model.activityItemCount} accepted election-news items in the displayed ${model.activityWindowDays}-day activity window; ${model.electionNewsCount} accepted election-news items and ${model.candidateWatchCount} candidate-watch records in the ${model.windowDays}-day source window; ${model.healthyFeedCount} of ${model.configuredPublisherCount} publisher feeds ready.`);
+      <span class="hybrid-summary-meta" style="margin-top:8px">Latest accepted item: <strong>${model.latestAcceptedAt ? escapeHtml(formatNewsDateTime(model.latestAcceptedAt)) : "Unavailable"}</strong></span>`,
+      `${model.activityItemCount} accepted election-news items in the displayed ${model.activityWindowDays}-day activity window; ${model.electionNewsCount} accepted election-news items and ${model.candidateWatchCount} candidate-watch records in the ${model.windowDays}-day source window; ${contribution.accessibleText}.`);
   }
 
   function renderAgendaSummary(model) {
@@ -474,48 +939,323 @@
     <p class="hybrid-disclosure">Second-round polling, not a forecast. Individual source-reported results and margins are shown separately; no average or probability is calculated. The featured result is the smallest absolute margin in the backend-selected matchup.</p>`;
   }
 
-  function comparisonRows(items, max, label) {
-    if (!items.length) return '<div class="hybrid-state is-compact">No supported rows in this update.</div>';
-    return `<div class="hybrid-comparison-list">${items.map(item => `
-      <div class="hybrid-comparison-row">
-        <span>${escapeHtml(item.name)}</span>
-        <span class="hybrid-track" aria-hidden="true"><span class="hybrid-fill" style="--hybrid-width:${(item.count / max * 100).toFixed(1)}%"></span></span>
-        <span class="hybrid-comparison-value">${item.count} ${escapeHtml(label)}</span>
-      </div>`).join("")}</div>`;
-  }
-
   function renderMediaPanel(model) {
-    if (model.state !== "ready") return summaryState(model);
-    return `<div class="hybrid-media-layout">
-      <section class="hybrid-media-block">
-        <h3 class="hybrid-section-title">Accepted election-news activity · latest ${model.activityWindowDays} calendar days</h3>
-        <p class="hybrid-section-sub">${countLabel(model.activityItemCount, "item")} in displayed ${model.activityWindowDays}-day activity window; zero-count calendar days remain visible.</p>
-        <div class="hybrid-activity-chart" role="img" aria-label="Accepted election-news items for each of the latest 14 calendar days">
-          ${activityBars(model.dailyActivity, model.activityMax)}
-        </div>
-        <div class="hybrid-axis-labels"><span>${formatDay(model.dailyActivity[0].key)}</span><span>${formatDay(model.dailyActivity.at(-1).key)}</span></div>
-        <div class="visually-hidden">${model.dailyActivity.map(day => `${formatDay(day.key)}: ${day.count} accepted items`).join("; ")}</div>
-      </section>
-      <section class="hybrid-media-block">
-        <h3 class="hybrid-section-title">Publisher contribution · accepted election news · ${model.windowDays}-day source window</h3>
-        <p class="hybrid-section-sub">Contribution to accepted election-news items within monitored publisher sources.</p>
-        ${comparisonRows(model.publisherContribution, model.publisherMax, "items")}
-      </section>
-      <section class="hybrid-media-block">
-        <h3 class="hybrid-section-title">Latest source-linked headlines</h3>
-        <div class="hybrid-headlines">${model.headlines.map(item => `
-          <article class="hybrid-headline">
-            <div class="hybrid-headline-meta"><time datetime="${escapeAttribute(item.published_at)}">${escapeHtml(formatNewsDateTime(item.published_at))}</time><span class="hybrid-headline-publisher">${escapeHtml(item.publisher)}</span></div>
-            <a href="${escapeAttribute(safeSourceUrl(item.url))}" target="_blank" rel="noopener noreferrer" lang="fr">${escapeHtml(item.headline)} <span aria-hidden="true">↗</span></a>
-          </article>`).join("")}</div>
-      </section>
-      <section class="hybrid-media-block">
-        <h3 class="hybrid-section-title">Top six candidate-watch associations · ${model.windowDays}-day source window</h3>
-        <p class="hybrid-section-sub">Based on candidate_watch records, a separate dataset from accepted election news; a candidate counts at most once per underlying article.</p>
-        ${comparisonRows(model.candidateCoverage.slice(0, 6), model.candidateMax, "items")}
-      </section>
-    </div>
-    <p class="hybrid-disclosure">${model.electionNewsCount} accepted election-news items · ${model.windowDays}-day source window. ${model.candidateWatchCount} candidate-watch records · ${model.windowDays}-day source window. ${model.healthyFeedCount}/${model.configuredPublisherCount} publisher feeds ready. Candidate figures are publisher-item associations, not popularity, support, momentum or public attention.</p>`;
+    if (model.state !== "ready") {
+      return summaryState(model);
+    }
+
+    const feedRows = model.feedItems
+      .map((item, index) => {
+        const rowNumber = String(index + 1).padStart(2, "0");
+
+        return `
+          <a
+            class="hybrid-media-terminal-row"
+            href="${escapeAttribute(safeSourceUrl(item.url))}"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="${escapeAttribute(
+              `Open ${item.publisher} article: ${item.headline}`
+            )}"
+          >
+            <span
+              class="hybrid-media-terminal-index"
+              aria-hidden="true"
+            >${rowNumber}</span>
+
+            <time
+              datetime="${escapeAttribute(item.published_at)}"
+            >${escapeHtml(
+              formatNewsDateTime(item.published_at)
+            )}</time>
+
+            <span
+              class="hybrid-media-terminal-publisher"
+            >${escapeHtml(item.publisher)}</span>
+
+            <span class="hybrid-media-terminal-copy">
+              <span
+                class="hybrid-media-terminal-headline"
+                lang="fr"
+              >${escapeHtml(item.headline)} <span aria-hidden="true">↗</span></span>
+            </span>
+          </a>`;
+      })
+      .join("");
+
+    const maxCandidateShare = Math.max(
+      1,
+      ...model.candidateCoverageLeaders.flatMap(
+        item => [
+          item.latestShare,
+          item.previousShare
+        ]
+      )
+    );
+
+    const candidateRows =
+      model.candidateCoverageLeaders
+        .map(item => {
+          const delta = item.changePp;
+
+          const directionClass =
+            delta > 0.05
+              ? "is-up"
+              : delta < -0.05
+                ? "is-down"
+                : "is-flat";
+
+          const direction =
+            delta > 0.05
+              ? "▲"
+              : delta < -0.05
+                ? "▼"
+                : "—";
+
+          const deltaText =
+            `${delta > 0 ? "+" : ""}${formatMediaShare(delta)}pp`;
+
+          const latestShareText =
+            formatMediaShare(item.latestShare);
+
+          const previousShareText =
+            formatMediaShare(item.previousShare);
+
+          const currentWidth = Math.min(
+            100,
+            item.latestShare / maxCandidateShare * 100
+          );
+
+          const previousPosition = Math.min(
+            100,
+            item.previousShare / maxCandidateShare * 100
+          );
+
+          return `
+            <div
+              class="hybrid-candidate-share-row"
+              aria-label="${escapeAttribute(
+                `${item.name}: ${latestShareText} percent of candidate-linked articles in the latest seven days, ${previousShareText} percent in the previous seven days, ${deltaText}; ${item.latestCount} latest raw articles and ${item.previousCount} previous raw articles`
+              )}"
+            >
+              <span class="hybrid-candidate-share-name">
+                ${escapeHtml(item.name)}
+              </span>
+
+              <strong>${latestShareText}%</strong>
+
+              <span
+                class="hybrid-candidate-share-track"
+                aria-hidden="true"
+              >
+                <span
+                  class="hybrid-candidate-share-current"
+                  style="--hybrid-current-share:${currentWidth.toFixed(2)}%"
+                ></span>
+
+                <i
+                  class="hybrid-candidate-share-previous"
+                  style="--hybrid-previous-share:${previousPosition.toFixed(2)}%"
+                ></i>
+              </span>
+
+              <b class="${directionClass}">
+                ${direction} ${escapeHtml(deltaText)}
+              </b>
+            </div>`;
+        })
+        .join("");
+
+    const currentPeriodLabel =
+      formatMediaPeriodRange(
+        model.latestStartKey,
+        model.latestEndKey
+      );
+
+    const priorPeriodLabel =
+      formatMediaPeriodRange(
+        model.previousStartKey,
+        model.previousEndKey
+      );
+
+    const topicRows =
+      model.topicCoverage.length
+        ? model.topicCoverage
+            .map((topic, index) => {
+              const sourceDaysAvailable =
+                Number.isFinite(
+                  topic.sourceDays
+                );
+
+              const publishersAvailable =
+                Number.isFinite(
+                  topic.publishers
+                );
+
+              const itemCountAvailable =
+                Number.isFinite(
+                  topic.itemCount
+                );
+
+              const sourceDaysText =
+                sourceDaysAvailable
+                  ? String(topic.sourceDays)
+                  : "—";
+
+              const publishersText =
+                publishersAvailable
+                  ? String(topic.publishers)
+                  : "—";
+
+              const sourceDaysAccessible =
+                sourceDaysAvailable
+                  ? countLabel(
+                      topic.sourceDays,
+                      "source-day"
+                    )
+                  : "source-day count unavailable";
+
+              const publishersAccessible =
+                publishersAvailable
+                  ? countLabel(
+                      topic.publishers,
+                      "publisher"
+                    )
+                  : "publisher count unavailable";
+
+              const itemContext =
+                itemCountAvailable
+                  ? `; ${countLabel(
+                      topic.itemCount,
+                      "item"
+                    )}`
+                  : "";
+
+              return `
+                <button
+                  class="hybrid-topic-matrix-row"
+                  type="button"
+                  data-hybrid-media-topic="${escapeAttribute(topic.id)}"
+                  aria-label="${escapeAttribute(
+                    `${topic.label}: rank ${index + 1}; ${sourceDaysAccessible}; ${publishersAccessible}${itemContext}. Open Campaign Agenda detail.`
+                  )}"
+                >
+                  <span
+                    class="hybrid-topic-matrix-rank"
+                    aria-hidden="true"
+                  >${String(index + 1).padStart(2, "0")}</span>
+
+                  <span class="hybrid-topic-matrix-label">
+                    ${escapeHtml(topic.label)}
+                  </span>
+
+                  <strong class="hybrid-topic-matrix-days">
+                    ${sourceDaysText}
+                  </strong>
+
+                  <strong class="hybrid-topic-matrix-pubs">
+                    ${publishersText}
+                  </strong>
+                </button>`;
+            })
+            .join("")
+        : `<div class="hybrid-state is-compact">No specific sustained topics available.</div>`;
+
+    return `
+      <div class="hybrid-media-terminal-layout">
+        <section class="hybrid-media-terminal-feed">
+          <div class="hybrid-media-terminal-heading">
+            <h3 class="hybrid-section-title">
+              Recent election coverage
+            </h3>
+
+            <span class="hybrid-media-terminal-status">
+              ${model.feedItems.length} items ·
+              ${model.acceptedNewsPublisherCount} publishers
+            </span>
+          </div>
+
+          <div
+            class="hybrid-media-terminal-list"
+            role="feed"
+            aria-label="Recent accepted election coverage"
+          >
+            ${feedRows}
+          </div>
+        </section>
+
+        <aside class="hybrid-media-terminal-rail">
+          <section class="hybrid-media-terminal-module">
+            <h3 class="hybrid-section-title">
+              Coverage shift
+            </h3>
+
+            <div
+              class="hybrid-coverage-period-legend"
+              role="group"
+              aria-label="${escapeAttribute(
+                `Coverage comparison. Cyan bars show the current period ${currentPeriodLabel}. Violet markers show the prior period ${priorPeriodLabel}.`
+              )}"
+            >
+              <span class="hybrid-coverage-period">
+                <i
+                  class="hybrid-coverage-period-swatch is-current"
+                  aria-hidden="true"
+                ></i>
+                <span>
+                  <strong>CURRENT</strong>
+                  <small>${escapeHtml(currentPeriodLabel)}</small>
+                </span>
+              </span>
+
+              <span class="hybrid-coverage-period">
+                <i
+                  class="hybrid-coverage-period-swatch is-prior"
+                  aria-hidden="true"
+                ></i>
+                <span>
+                  <strong>PRIOR</strong>
+                  <small>${escapeHtml(priorPeriodLabel)}</small>
+                </span>
+              </span>
+            </div>
+
+            <div class="hybrid-candidate-share-list">
+              ${candidateRows}
+            </div>
+          </section>
+
+          <section class="hybrid-media-terminal-module">
+            <h3 class="hybrid-section-title">
+              Sustained topics
+            </h3>
+
+            <span
+              class="visually-hidden"
+              id="hybrid-topic-matrix-description"
+            >
+              Topics ranked by the number of source-days on which they appeared. Publisher count indicates reporting breadth.
+            </span>
+
+            <div
+              class="hybrid-topic-matrix"
+              aria-describedby="hybrid-topic-matrix-description"
+            >
+              <div
+                class="hybrid-topic-matrix-head"
+                aria-hidden="true"
+              >
+                <span></span>
+                <span></span>
+                <strong>DAYS</strong>
+                <strong>PUBS</strong>
+              </div>
+
+              ${topicRows}
+            </div>
+          </section>
+        </aside>
+      </div>`;
   }
 
   function renderAgendaPanel(model) {
@@ -709,7 +1449,38 @@
     workspace.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
   }
 
+  function bindMediaTopicLinks() {
+    mount
+      .querySelectorAll(
+        "[data-hybrid-media-topic]"
+      )
+      .forEach(button => {
+        button.addEventListener(
+          "click",
+          () => {
+            state.selectedAgendaTopicId =
+              button.dataset
+                .hybridMediaTopic;
+
+            state.activeView =
+              "agenda";
+
+            if (
+              window.location.hash !==
+              views.agenda.hash
+            ) {
+              window.location.hash =
+                views.agenda.hash;
+            }
+
+            renderAll();
+          }
+        );
+      });
+  }
   function bindInteractions() {
+    bindMediaTopicLinks();
+
     mount.querySelectorAll("[data-hybrid-card]").forEach(card => {
       card.addEventListener("click", () => setViewHash(card.dataset.hybridCard, "card"));
     });
@@ -801,6 +1572,7 @@
   document.addEventListener("hybrid:dataset", renderAll);
 
   window.hybridDashboard = Object.freeze({
+    deriveAcceptedNewsPublisherMetric,
     buildRunoffViewModel,
     buildMediaViewModel,
     buildAgendaViewModel,
