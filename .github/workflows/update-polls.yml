@@ -286,6 +286,17 @@ jobs:
             --claims claims_under_scrutiny.json \
             --output recent_changes.json
 
+      - name: Rebuild and validate publication manifest
+        if: steps.validate.outputs.changed == 'true'
+        shell: bash
+        run: |
+          published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          python -B build_publication_manifest.py \
+            --published-at "$published_at"
+          python -B build_publication_manifest.py \
+            --check \
+            --published-at "$published_at"
+
       - name: Commit changed poll data
         id: commit
         env:
@@ -304,7 +315,7 @@ jobs:
 
           git add -- \
             polls.json second_round_polls.json closest_tested_runoff.json \
-            recent_changes.json
+            recent_changes.json publication_manifest.json
           git commit -m "Update polls data"
           git push origin HEAD:main
 
