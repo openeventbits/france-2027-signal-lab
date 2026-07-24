@@ -1,4 +1,7 @@
+import json
 import re
+import shutil
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -12,6 +15,24 @@ def function_body(source, function_name, next_function_name):
     start = source.index(f"function {function_name}(")
     end = source.index(f"function {next_function_name}(", start)
     return source[start:end]
+
+
+def run_comparison_script(index_source, expression):
+    node = shutil.which("node")
+    if node is None:
+        raise unittest.SkipTest("Node.js is required for frontend fact tests")
+    functions = function_body(
+        index_source,
+        "candidateScore",
+        "formatComparableDelta",
+    )
+    result = subprocess.run(
+        [node, "-e", functions + "\nconsole.log(JSON.stringify(" + expression + "));"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return json.loads(result.stdout)
 
 
 class FrontendPublicationFactsTests(unittest.TestCase):
@@ -83,6 +104,151 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             ),
         )
         self.assertNotIn('mastheadUnit: "approved sources"', self.index)
+
+    def test_render_bars_passes_selected_event_to_comparison(self):
+        renderer = function_body(
+            self.index,
+            "renderBars",
+            "renderMeta",
+        )
+        self.assertRegex(
+            renderer,
+            re.compile(
+                r"deriveComparableChange\(\s*events,\s*"
+                r"candidate\.name,\s*event\.fieldwork_end,\s*event\s*\)",
+                re.DOTALL,
+            ),
+        )
+
+    def test_selected_event_is_anchor_and_cross_pollster_is_unavailable(self):
+        fixtures = """
+          (() => {
+            const currentA = {
+              event_id: "current-a", pollster: "A", round: "first_round",
+              fieldwork_end: "2026-07-10", scenario_key: "same",
+              candidates: [{name: "Candidate", score: 20}]
+            };
+            const currentB = {
+              event_id: "current-b", pollster: "B", round: "first_round",
+              fieldwork_end: "2026-07-10", scenario_key: "same",
+              candidates: [{name: "Candidate", score: 30}]
+            };
+            const priorA = {
+              event_id: "prior-a", pollster: "A", round: "first_round",
+              fieldwork_end: "2026-07-01", scenario_key: "same",
+              candidates: [{name: "Candidate", score: 15}]
+            };
+            const priorB = {
+              event_id: "prior-b", pollster: "B", round: "first_round",
+              fieldwork_end: "2026-07-01", scenario_key: "same",
+              candidates: [{name: "Candidate", score: 10}]
+            };
+            const anchored = deriveComparableChange(
+              [currentA, currentB, priorA, priorB],
+              "Candidate",
+              "2026-07-10",
+              currentA
+            );
+            const unavailable = deriveComparableChange(
+              [currentA, priorB],
+              "Candidate",
+              "2026-07-10",
+              currentA
+            );
+            return {
+              current: anchored.retained[0].current.event_id,
+              previous: anchored.retained[0].previous.event_id,
+              delta: anchored.deltas[0],
+              unavailable: unavailable.classification
+            };
+          })()
+        """
+        result = run_comparison_script(self.index, fixtures)
+        self.assertEqual(
+            result,
+            {
+                "current": "current-a",
+                "previous": "prior-a",
+                "delta": 5,
+                "unavailable": "NO COMPARABLE PRIOR",
+            },
+        )
+
+    def test_comparison_requires_same_round_and_scenario(self):
+        comparison = function_body(
+            self.index,
+            "deriveComparableChange",
+            "formatComparableDelta",
+        )
+        self.assertIn("previous.round !== current.round", comparison)
+        self.assertIn(
+            "previous.scenario_key !== current.scenario_key",
+            comparison,
+        )
+        self.assertIn(
+            "normalizeComparableText(previous.pollster) !== currentPollster",
+            comparison,
+        )
+        self.assertNotIn("preferredPool", comparison)
+
+    def test_partial_disclosure_is_gated_to_valid_partial_events(self):
+        renderer = function_body(
+            self.index,
+            "pollPartialDisclosure",
+            "renderMeta",
+        )
+        self.assertIn(
+            'event.completeness_status !== "partial"',
+            renderer,
+        )
+        self.assertIn("event.partial_scenario !== true", renderer)
+        self.assertIn("Partial reported field", renderer)
+        self.assertIn("Reported total", renderer)
+        self.assertIn("Unreported share", renderer)
+
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("Node.js is required for frontend fact tests")
+        format_score = re.search(
+            r"const formatScore = .*?;",
+            self.index,
+        ).group(0)
+        expression = """
+          [
+            pollPartialDisclosure({
+              completeness_status: "partial",
+              partial_scenario: true,
+              reported_total: 97,
+              unreported_share: 3
+            }),
+            pollPartialDisclosure({
+              completeness_status: "complete",
+              partial_scenario: false,
+              reported_total: 100,
+              unreported_share: null
+            })
+          ]
+        """
+        result = subprocess.run(
+            [
+                node,
+                "-e",
+                format_score
+                + "\n"
+                + renderer
+                + "\nconsole.log(JSON.stringify("
+                + expression
+                + "));",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        partial, complete = json.loads(result.stdout)
+        self.assertIn("Partial reported field", partial)
+        self.assertIn("Reported total 97%", partial)
+        self.assertIn("Unreported share 3%", partial)
+        self.assertEqual(complete, "")
 
 
 if __name__ == "__main__":

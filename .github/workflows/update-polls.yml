@@ -29,6 +29,11 @@ jobs:
       - name: Install dependencies
         run: python -m pip install --disable-pip-version-check pandas lxml pypdf
 
+      - name: Test first-round polling contract
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python -B -m unittest -v test_fetch_polls.py test_frontend_facts.py
+
       - name: Fetch polls into temporary files
         run: |
           python fetch_polls.py \
@@ -44,6 +49,8 @@ jobs:
           import json
           import os
           from pathlib import Path
+
+          from poll_contract import PollContractError, validate_poll_events
 
           current_path = Path("polls.json")
           fetched_path = Path("/tmp/polls.json")
@@ -72,6 +79,11 @@ jobs:
 
           if not fetched:
               raise SystemExit("refusing to replace polls.json with an empty dataset")
+
+          try:
+              contract_counts = validate_poll_events(fetched)
+          except PollContractError as error:
+              raise SystemExit(f"invalid first-round poll contract: {error}")
 
           if len(fetched) < len(current):
               raise SystemExit(
@@ -270,6 +282,8 @@ jobs:
           print(
               f"Validated {len(fetched)} first-round and "
               f"{len(second_events)} second-round events; "
+              f"{contract_counts['complete']} complete and "
+              f"{contract_counts['partial']} partial first-round events; "
               f"closest-runoff status {closest['status']}; "
               f"latest first-round fieldwork end {fetched_latest}"
           )
