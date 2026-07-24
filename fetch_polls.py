@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import io
 import json
 import math
@@ -16,6 +17,14 @@ import pandas as pd
 from lxml import html as lxml_html
 from pypdf import PdfReader
 
+from commission_notice_discovery import (
+    CommissionNoticeError,
+    atomic_write_registry,
+    discover_registry,
+    fetch_official_url,
+    load_registry,
+    registry_event_notices,
+)
 from poll_contract import (
     FIRST_ROUND,
     apply_completeness_contract,
@@ -37,36 +46,6 @@ WIKIPEDIA_LICENSE = "CC BY-SA 4.0"
 ROUND = FIRST_ROUND
 SECOND_ROUND = "second_round"
 DASHES = {"", "-", "–", "—", "−", "nan", "none"}
-OFFICIAL_NOTICES = {
-    "Elabe": {
-        "url": "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2166",
-        "commissioner": "BFMTV; La Tribune Dimanche",
-        "publication_date": "2026-03-28",
-        "fieldwork_start": "2026-03-25",
-        "fieldwork_end": "2026-03-27",
-        "sample_size": 1504,
-        "expected_events": 6,
-    },
-    "Ipsos": {
-        "url": "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2197",
-        "commissioner": "Le Parisien",
-        "publication_date": "2026-06-01",
-        "fieldwork_start": "2026-05-27",
-        "fieldwork_end": "2026-05-28",
-        "sample_size": 1500,
-        "expected_events": 8,
-    },
-    "Ifop": {
-        "url": "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2216",
-        "commissioner": "LCI; Le Figaro; Sud Radio",
-        "publication_date": "2026-06-25",
-        "fieldwork_start": "2026-06-22",
-        "fieldwork_end": "2026-06-24",
-        "sample_size": 1415,
-        "expected_events": 8,
-    },
-}
-
 CANONICAL_CANDIDATES = (
     "Bernard Cazeneuve",
     "Bruno Le Maire",
@@ -1270,12 +1249,17 @@ def derive_closest_tested_runoff(events: list[dict]) -> dict:
     }
 
 
-def fetch_pdf(url: str) -> PdfReader:
-    request = Request(url, headers={"User-Agent": USER_AGENT})
-    with urlopen(request, timeout=60) as response:
-        data = response.read()
+def fetch_pdf(notice: dict) -> PdfReader:
+    """Fetch a registry notice and retain its resolved URL and digest."""
+    document = fetch_official_url(notice["listed_url"], "GET")
+    data = document.content
     if not data.startswith(b"%PDF"):
-        raise ValueError(f"configured notice did not return a PDF: {url}")
+        raise ValueError(
+            "configured notice did not return a PDF: "
+            f"{notice['notice_id']} ({document.final_url})"
+        )
+    notice["resolved_url"] = document.final_url
+    notice["content_sha256"] = hashlib.sha256(data).hexdigest()
     return PdfReader(io.BytesIO(data))
 
 
@@ -1298,11 +1282,11 @@ def parse_decimal(value: str) -> float:
     return float(value.replace(",", "."))
 
 
-def make_official_event(institute: str, candidates: list[dict]) -> dict:
-    notice = OFFICIAL_NOTICES[institute]
+def make_official_event(notice: dict, candidates: list[dict]) -> dict:
+    institute = notice["pollster"]
     names = [candidate["name"] for candidate in candidates]
     hypothesis = "First round — " + ", ".join(names)
-    source_url = notice["url"]
+    source_url = notice["event_source_url"]
     return apply_completeness_contract({
         "event_id": make_event_id(
             institute,
@@ -1312,7 +1296,7 @@ def make_official_event(institute: str, candidates: list[dict]) -> dict:
             source_url,
         ),
         "pollster": institute,
-        "commissioner": notice["commissioner"],
+        "commissioner": notice.get("poll_commissioner"),
         "publication_date": notice["publication_date"],
         "fieldwork_start": notice["fieldwork_start"],
         "fieldwork_end": notice["fieldwork_end"],
@@ -1321,11 +1305,13 @@ def make_official_event(institute: str, candidates: list[dict]) -> dict:
         "hypothesis": hypothesis,
         "scenario_key": make_scenario_key(names),
         "source_url": source_url,
+        "official_notice_id": notice["notice_id"],
+        "official_notice_url": notice["resolved_url"],
         "candidates": candidates,
     })
 
 
-def parse_elabe(reader: PdfReader) -> list[dict]:
+def parse_elabe(reader: PdfReader, notice: dict) -> list[dict]:
     lines = [line.strip() for line in page_text(reader, 6, "Elabe").splitlines()]
     blocks: list[list[dict]] = []
     current: list[dict] | None = None
@@ -1358,10 +1344,10 @@ def parse_elabe(reader: PdfReader) -> list[dict]:
 
     if current is not None:
         blocks.append(current)
-    return [make_official_event("Elabe", candidates) for candidates in blocks]
+    return [make_official_event(notice, candidates) for candidates in blocks]
 
 
-def parse_ipsos(reader: PdfReader) -> list[dict]:
+def parse_ipsos(reader: PdfReader, notice: dict) -> list[dict]:
     events: list[dict] = []
     percentage_line = re.compile(r"^(\d+(?:[,.]\d+)?)%$")
 
@@ -1389,7 +1375,7 @@ def parse_ipsos(reader: PdfReader) -> list[dict]:
             {"name": name, "score": score}
             for name, score in zip(names, scores, strict=True)
         ]
-        events.append(make_official_event("Ipsos", candidates))
+        events.append(make_official_event(notice, candidates))
     return events
 
 
@@ -1424,7 +1410,7 @@ def ifop_result_area(text: str, page_number: int) -> list[str]:
     raise ValueError(f"Ifop PDF page {page_number}: missing 'TOTAL 100' marker")
 
 
-def parse_ifop(reader: PdfReader) -> list[dict]:
+def parse_ifop(reader: PdfReader, notice: dict) -> list[dict]:
     events: list[dict] = []
     result_line = re.compile(r"^(.+?)\s+(\d+(?:[,.]\d+)?)$")
 
@@ -1455,12 +1441,13 @@ def parse_ifop(reader: PdfReader) -> list[dict]:
                 f"Ifop PDF page {page_index + 1}: "
                 f"unmatched result text {pending!r}"
             )
-        events.append(make_official_event("Ifop", candidates))
+        events.append(make_official_event(notice, candidates))
     return events
 
 
-def validate_official_events(institute: str, events: list[dict]) -> None:
-    expected = OFFICIAL_NOTICES[institute]["expected_events"]
+def validate_official_events(notice: dict, events: list[dict]) -> None:
+    institute = notice["pollster"]
+    expected = notice["expected_first_round_events"]
     if len(events) != expected:
         raise ValueError(
             f"{institute}: expected {expected} events, parsed {len(events)}"
@@ -1479,24 +1466,44 @@ def validate_official_events(institute: str, events: list[dict]) -> None:
             )
 
 
-def fetch_official_events() -> tuple[list[dict], dict[str, int]]:
+def fetch_official_events(
+    registry: dict,
+) -> tuple[list[dict], dict[str, int], list[dict]]:
     parsers = {
-        "Elabe": parse_elabe,
-        "Ipsos": parse_ipsos,
-        "Ifop": parse_ifop,
+        "elabe": parse_elabe,
+        "ipsos": parse_ipsos,
+        "ifop": parse_ifop,
     }
     all_events: list[dict] = []
     counts: dict[str, int] = {}
-    for institute, parser in parsers.items():
-        events = parser(fetch_pdf(OFFICIAL_NOTICES[institute]["url"]))
-        validate_official_events(institute, events)
-        counts[institute] = len(events)
+    parsed_notices: list[dict] = []
+
+    for notice in registry["notices"]:
+        if notice["classification"] != "eligible" or notice.get("parser"):
+            continue
+        notice["classification"] = "unsupported"
+        notice["classification_reason"] = (
+            "document confirms 2027 presidential voting intentions, but no "
+            "existing notice parser supports this listing"
+        )
+
+    for notice in registry_event_notices(registry):
+        parser_name = notice["parser"]
+        parser = parsers.get(parser_name)
+        if parser is None:
+            raise ValueError(
+                f"{notice['notice_id']}: unknown official parser {parser_name!r}"
+            )
+        events = parser(fetch_pdf(notice), notice)
+        validate_official_events(notice, events)
+        counts[notice["notice_id"]] = len(events)
         all_events.extend(events)
+        parsed_notices.append(notice)
 
     keys = [logical_key(event) for event in all_events]
     if len(keys) != len(set(keys)):
         raise ValueError("official notices contain duplicate logical poll identities")
-    return all_events, counts
+    return all_events, counts, parsed_notices
 
 
 def merge_events(
@@ -1547,8 +1554,12 @@ def merge_events(
     )
 
 
-def validate_merged_official_waves(events: list[dict]) -> None:
-    for institute, notice in OFFICIAL_NOTICES.items():
+def validate_merged_official_waves(
+    events: list[dict],
+    notices: list[dict],
+) -> None:
+    for notice in notices:
+        institute = notice["pollster"]
         expected_wave = (
             normalize(institute),
             notice["fieldwork_start"],
@@ -1557,7 +1568,7 @@ def validate_merged_official_waves(events: list[dict]) -> None:
         wave_events = [
             event for event in events if poll_wave_key(event) == expected_wave
         ]
-        expected_count = notice["expected_events"]
+        expected_count = notice["expected_first_round_events"]
         if len(wave_events) != expected_count:
             raise ValueError(
                 f"{institute} official wave: expected {expected_count} merged "
@@ -1566,7 +1577,7 @@ def validate_merged_official_waves(events: list[dict]) -> None:
         unexpected_sources = [
             event["source_url"]
             for event in wave_events
-            if event["source_url"] != notice["url"]
+            if event["source_url"] != notice["event_source_url"]
         ]
         if unexpected_sources:
             raise ValueError(
@@ -1584,15 +1595,83 @@ def main() -> None:
     parser.add_argument(
         "--closest-runoff-output", default="closest_tested_runoff.json"
     )
+    parser.add_argument(
+        "--commission-registry",
+        default="commission_notice_registry.json",
+        help="last-good tracked Commission notice registry",
+    )
+    parser.add_argument(
+        "--commission-registry-output",
+        help="registry destination after a successful collection",
+    )
+    parser.add_argument(
+        "--discover-commission-notices",
+        action="store_true",
+        help="run only official notice discovery and registry validation",
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="validate discovery without writing any files",
+    )
     args = parser.parse_args()
 
+    registry_path = Path(args.commission_registry)
+    registry_output = Path(
+        args.commission_registry_output or args.commission_registry
+    )
+    try:
+        discovery = discover_registry(load_registry(registry_path))
+    except (OSError, CommissionNoticeError) as error:
+        parser.error(f"Commission notice discovery failed: {error}")
+
+    if args.discover_commission_notices:
+        notices = discovery.registry["notices"]
+        counts = {
+            classification: sum(
+                notice["classification"] == classification
+                for notice in notices
+            )
+            for classification in (
+                "eligible",
+                "excluded_non_voting",
+                "ambiguous",
+                "unsupported",
+            )
+        }
+        action = "Validated" if args.check else "Discovered"
+        print(
+            f"{action} {len(notices)} retained Commission notices "
+            f"({counts['eligible']} eligible, "
+            f"{counts['excluded_non_voting']} excluded, "
+            f"{counts['ambiguous']} ambiguous, "
+            f"{counts['unsupported']} unsupported)"
+        )
+        for diagnostic in discovery.diagnostics:
+            print(f"  - {diagnostic}")
+        if not args.check:
+            changed = atomic_write_registry(
+                registry_output,
+                discovery.registry,
+            )
+            print(
+                f"{'Wrote' if changed else 'Registry unchanged at'} "
+                f"{registry_output}"
+            )
+        return
+
+    if args.check:
+        parser.error("--check requires --discover-commission-notices")
+
     wikipedia_events, skipped = fetch_wikipedia_events()
-    official_events, official_counts = fetch_official_events()
+    official_events, official_counts, parsed_notices = fetch_official_events(
+        discovery.registry
+    )
     events, exact_overlaps, suppressed_wikipedia_events, new_events = merge_events(
         wikipedia_events, official_events
     )
     apply_official_poll_sources(events)
-    validate_merged_official_waves(events)
+    validate_merged_official_waves(events, parsed_notices)
     validate_poll_events(events)
     second_round_events, second_round_audit = fetch_second_round_events()
     closest_derivation = derive_closest_tested_runoff(second_round_events)
@@ -1639,10 +1718,16 @@ def main() -> None:
         json.dumps(closest_output_data, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    atomic_write_registry(registry_output, discovery.registry)
 
     print(f"Wikipedia events: {len(wikipedia_events)}")
-    for institute in OFFICIAL_NOTICES:
-        print(f"Official {institute} events: {official_counts[institute]}")
+    for notice in parsed_notices:
+        print(
+            f"Official {notice['pollster']} {notice['notice_id']} events: "
+            f"{official_counts[notice['notice_id']]}"
+        )
+    for diagnostic in discovery.diagnostics:
+        print(f"Commission discovery: {diagnostic}")
     print(f"Exact official logical overlaps with Wikipedia: {exact_overlaps}")
     print(
         "Wikipedia events suppressed in official waves: "
