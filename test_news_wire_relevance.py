@@ -8,6 +8,7 @@ from email.utils import format_datetime
 from pathlib import Path
 from unittest.mock import patch
 
+from http_fetch import HttpFetchResult
 from fetch_news_wire import (
     DISCOVERY_QUERIES,
     DIRECT_ENTRY_LIMIT,
@@ -43,6 +44,42 @@ from fetch_news_wire import (
     transport_priority,
     validate_output,
 )
+
+
+def successful_fetch(body, url):
+    return HttpFetchResult(
+        success=True,
+        not_modified=False,
+        status_code=200,
+        response_body=body,
+        final_url=url,
+        attempts=1,
+        elapsed_ms=0,
+        etag=None,
+        last_modified=None,
+        failure_category=None,
+        failure_message=None,
+        response_bytes=len(body),
+        retry_after_used=False,
+    )
+
+
+def not_modified_fetch(url):
+    return HttpFetchResult(
+        success=True,
+        not_modified=True,
+        status_code=304,
+        response_body=None,
+        final_url=url,
+        attempts=1,
+        elapsed_ms=0,
+        etag=None,
+        last_modified=None,
+        failure_category=None,
+        failure_message=None,
+        response_bytes=0,
+        retry_after_used=False,
+    )
 
 
 class NewsWireRelevanceTests(unittest.TestCase):
@@ -721,20 +758,23 @@ class NewsWireRelevanceTests(unittest.TestCase):
           <source url='https://www.lemonde.fr'>Le Monde</source>
         </item></channel></rss>""".encode("utf-8")
 
-        def fake_request(url, timeout=12):
+        def fake_request(url, **_kwargs):
             nonlocal request_count
             with request_count_lock:
                 request_count += 1
             if url.startswith("https://news.google.com/"):
-                return discovery_feed, url
-            return direct_feed, url
+                return successful_fetch(discovery_feed, url)
+            return successful_fetch(direct_feed, url)
 
         with tempfile.TemporaryDirectory() as directory:
             inventory_path = Path(directory) / "inventory.json"
             review_path = Path(directory) / "publishers.json"
             health_routes = []
             health_attempts = []
-            with patch("fetch_news_wire.request_bytes", side_effect=fake_request):
+            with patch(
+                "fetch_news_wire.fetch_news_route",
+                side_effect=fake_request,
+            ):
                 payload, inventory = build_wire(
                     Path("polls.json"),
                     30,
@@ -884,6 +924,8 @@ class NewsWireRelevanceTests(unittest.TestCase):
     def test_build_wire_reports_empty_parses_as_successful_attempts(self):
         generated_at = datetime(2026, 7, 24, 8, tzinfo=timezone.utc)
         published = format_datetime(generated_at)
+        first_source_url = SOURCES[0]["feed_url"]
+        seen_fetch_options = {}
         populated_feed = f"""<?xml version='1.0' encoding='UTF-8'?>
         <rss version='2.0'><channel><item>
           <title>Présidentielle 2027 : une alliance est annoncée</title>
@@ -896,15 +938,16 @@ class NewsWireRelevanceTests(unittest.TestCase):
             "<rss version='2.0'><channel></channel></rss>"
         ).encode("utf-8")
 
-        def fake_request(url, timeout=12):
-            if url == SOURCES[0]["feed_url"]:
-                return populated_feed, url
-            return empty_feed, url
+        def fake_request(url, **kwargs):
+            if url == first_source_url:
+                seen_fetch_options.update(kwargs)
+                return successful_fetch(populated_feed, url)
+            return successful_fetch(empty_feed, url)
 
         health_routes = []
         health_attempts = []
         with patch(
-            "fetch_news_wire.request_bytes",
+            "fetch_news_wire.fetch_news_route",
             side_effect=fake_request,
         ):
             payload, _inventory = build_wire(
@@ -914,6 +957,20 @@ class NewsWireRelevanceTests(unittest.TestCase):
                 generated_at=generated_at,
                 health_route_configurations=health_routes,
                 health_attempts=health_attempts,
+                previous_source_health={
+                    "routes": [
+                        {
+                            "route_id": (
+                                f"direct:{SOURCES[0]['source_id']}"
+                            ),
+                            "validator_url": first_source_url,
+                            "etag": '"v1"',
+                            "last_modified": (
+                                "Wed, 22 Jul 2026 08:00:00 GMT"
+                            ),
+                        }
+                    ]
+                },
             )
 
         empty_attempts = [
@@ -930,6 +987,93 @@ class NewsWireRelevanceTests(unittest.TestCase):
             attempt["failure_category"] is None
             for attempt in empty_attempts
         ))
+        self.assertEqual(seen_fetch_options["etag"], '"v1"')
+        self.assertEqual(
+            seen_fetch_options["last_modified"],
+            "Wed, 22 Jul 2026 08:00:00 GMT",
+        )
+
+    def test_not_modified_routes_skip_parsing_and_retain_inventory(self):
+        generated_at = datetime(2026, 7, 24, 8, tzinfo=timezone.utc)
+        source = SOURCES[0]
+        retained_entry = self.inventory_entry(
+            generated_at - timedelta(hours=2),
+        )
+        retained_entry.update(
+            {
+                "source_id": source["source_id"],
+                "publisher": source["name"],
+                "feed_url": source["feed_url"],
+                "politics_specific": bool(
+                    source.get("politics_specific")
+                ),
+            }
+        )
+        previous_inventory, _entries, _stats = merge_inventory(
+            {
+                "schema_version": 3,
+                "generated_at": None,
+                "window_days": 30,
+                "items": [],
+            },
+            [retained_entry],
+            generated_at - timedelta(hours=1),
+            30,
+        )
+        request_count = 0
+
+        def fake_fetch(url, **_kwargs):
+            nonlocal request_count
+            request_count += 1
+            return not_modified_fetch(url)
+
+        with tempfile.TemporaryDirectory() as directory:
+            inventory_path = Path(directory) / "inventory.json"
+            inventory_path.write_text(
+                json.dumps(previous_inventory),
+                encoding="utf-8",
+            )
+            health_routes = []
+            health_attempts = []
+            with (
+                patch(
+                    "fetch_news_wire.fetch_news_route",
+                    side_effect=fake_fetch,
+                ),
+                patch(
+                    "fetch_news_wire.parse_feed",
+                    side_effect=AssertionError(
+                        "304 response must not be parsed"
+                    ),
+                ),
+            ):
+                payload, inventory = build_wire(
+                    Path("polls.json"),
+                    30,
+                    0,
+                    inventory_path,
+                    generated_at=generated_at,
+                    health_route_configurations=health_routes,
+                    health_attempts=health_attempts,
+                )
+
+        self.assertEqual(request_count, len(health_attempts))
+        self.assertTrue(health_attempts)
+        self.assertTrue(all(
+            attempt["success"] and attempt["not_modified"]
+            for attempt in health_attempts
+        ))
+        self.assertTrue(all(
+            attempt["http_status"] == 304
+            and attempt["parsed_item_count"] == 0
+            for attempt in health_attempts
+        ))
+        self.assertEqual(len(inventory["items"]), 1)
+        self.assertEqual(
+            inventory["items"][0]["canonical_url"],
+            retained_entry["canonical_url"],
+        )
+        self.assertEqual(len(payload["relevant_news"]), 1)
 
     def test_google_news_semaphore_preserves_deterministic_order(self):
         generated_at = datetime(2026, 7, 23, 8, tzinfo=timezone.utc)
@@ -957,7 +1101,7 @@ class NewsWireRelevanceTests(unittest.TestCase):
               <description>Une proposition de campagne.</description>
             </item></channel></rss>""".encode("utf-8")
 
-        def fake_request(url, timeout=12):
+        def fake_request(url, **_kwargs):
             nonlocal active_google, max_active_google
             is_google = url.startswith("https://news.google.com/")
             if is_google:
@@ -966,14 +1110,18 @@ class NewsWireRelevanceTests(unittest.TestCase):
                     max_active_google = max(max_active_google, active_google)
                 time.sleep((abs(hash(url)) % 3 + 1) / 1000)
             try:
-                return feed_bytes(url), url
+                body = feed_bytes(url)
+                return successful_fetch(body, url)
             finally:
                 if is_google:
                     with lock:
                         active_google -= 1
 
         results = []
-        with patch("fetch_news_wire.request_bytes", side_effect=fake_request):
+        with patch(
+            "fetch_news_wire.fetch_news_route",
+            side_effect=fake_request,
+        ):
             for _run in range(2):
                 with tempfile.TemporaryDirectory() as directory:
                     payload, inventory = build_wire(

@@ -55,6 +55,14 @@ ROUTE_FIELDS = {
     "updated_at",
     "attempt_history",
 }
+OPTIONAL_ROUTE_FIELDS = {
+    "etag",
+    "last_modified",
+    "validator_url",
+    "latest_attempt_count",
+    "latest_not_modified",
+    "response_bytes",
+}
 
 ATTEMPT_HISTORY_FIELDS = {
     "attempted_at",
@@ -158,7 +166,11 @@ def validate_source_health(payload: Any) -> None:
         raise SourceHealthError("source health routes must be an array")
     route_ids: list[str] = []
     for route in routes:
-        if not isinstance(route, dict) or set(route) != ROUTE_FIELDS:
+        if (
+            not isinstance(route, dict)
+            or not ROUTE_FIELDS.issubset(route)
+            or not set(route).issubset(ROUTE_FIELDS | OPTIONAL_ROUTE_FIELDS)
+        ):
             raise SourceHealthError(
                 "source health route has unexpected fields"
             )
@@ -230,6 +242,36 @@ def validate_source_health(payload: Any) -> None:
             raise SourceHealthError(
                 f"{route_id}: latest_failure_category is invalid"
             )
+        for field in ("etag", "last_modified", "validator_url"):
+            if field not in route:
+                continue
+            value = route[field]
+            if value is not None and (
+                not isinstance(value, str) or not value.strip()
+            ):
+                raise SourceHealthError(f"{route_id}: {field} is invalid")
+        for field in ("latest_attempt_count", "response_bytes"):
+            if field in route and not _optional_non_negative_integer(
+                route[field]
+            ):
+                raise SourceHealthError(f"{route_id}: {field} is invalid")
+        if (
+            "latest_not_modified" in route
+            and type(route["latest_not_modified"]) is not bool
+        ):
+            raise SourceHealthError(
+                f"{route_id}: latest_not_modified is invalid"
+            )
+        if route.get("latest_not_modified"):
+            if (
+                route["latest_http_status"] != 304
+                or route["consecutive_failures"] != 0
+                or route["parsed_item_count"] != 0
+                or route.get("response_bytes") != 0
+            ):
+                raise SourceHealthError(
+                    f"{route_id}: not-modified diagnostics are inconsistent"
+                )
 
         history = route["attempt_history"]
         if (
@@ -417,9 +459,15 @@ def _validate_attempt(attempt: Any) -> None:
     required = {
         "route_id",
         "success",
+        "not_modified",
         "http_status",
         "failure_category",
         "latency_ms",
+        "attempts",
+        "response_bytes",
+        "etag",
+        "last_modified",
+        "request_url",
         "parsed_item_count",
         "accepted_inventory_count",
         "accepted_election_news_count",
@@ -431,6 +479,10 @@ def _validate_attempt(attempt: Any) -> None:
         raise SourceHealthError("route attempt route_id is invalid")
     if type(attempt["success"]) is not bool:
         raise SourceHealthError(f"{route_id}: attempt success is invalid")
+    if type(attempt["not_modified"]) is not bool:
+        raise SourceHealthError(
+            f"{route_id}: attempt not_modified is invalid"
+        )
     for field in ("http_status", "latency_ms"):
         if not _optional_non_negative_integer(attempt[field]):
             raise SourceHealthError(f"{route_id}: attempt {field} is invalid")
@@ -459,6 +511,55 @@ def _validate_attempt(attempt: Any) -> None:
         raise SourceHealthError(
             f"{route_id}: failed attempt requires failure category"
         )
+    if (
+        not _is_non_negative_integer(attempt["attempts"])
+        or not 1 <= attempt["attempts"] <= 3
+    ):
+        raise SourceHealthError(f"{route_id}: attempt count is invalid")
+    if not _is_non_negative_integer(attempt["response_bytes"]):
+        raise SourceHealthError(
+            f"{route_id}: attempt response_bytes is invalid"
+        )
+    for field in ("etag", "last_modified"):
+        value = attempt[field]
+        if value is not None and (
+            not isinstance(value, str) or not value.strip()
+        ):
+            raise SourceHealthError(
+                f"{route_id}: attempt {field} is invalid"
+            )
+    if (
+        attempt["request_url"] is not None
+        and (
+            not isinstance(attempt["request_url"], str)
+            or not attempt["request_url"].strip()
+        )
+    ):
+        raise SourceHealthError(
+            f"{route_id}: attempt request_url is invalid"
+        )
+    if attempt["not_modified"] and (
+        not attempt["success"]
+        or attempt["http_status"] != 304
+        or attempt["response_bytes"] != 0
+        or attempt["parsed_item_count"] != 0
+    ):
+        raise SourceHealthError(
+            f"{route_id}: attempt not_modified is inconsistent"
+        )
+
+
+def _normalized_attempt(attempt: Any) -> dict[str, Any]:
+    if not isinstance(attempt, dict):
+        raise SourceHealthError("route attempt has unexpected fields")
+    normalized = deepcopy(attempt)
+    normalized.setdefault("not_modified", False)
+    normalized.setdefault("attempts", 1)
+    normalized.setdefault("response_bytes", 0)
+    normalized.setdefault("etag", None)
+    normalized.setdefault("last_modified", None)
+    normalized.setdefault("request_url", None)
+    return normalized
 
 
 def _new_route(
@@ -484,6 +585,12 @@ def _new_route(
         "latest_http_status": None,
         "latest_failure_category": None,
         "latest_latency_ms": None,
+        "latest_attempt_count": None,
+        "latest_not_modified": False,
+        "response_bytes": None,
+        "etag": None,
+        "last_modified": None,
+        "validator_url": None,
         "parsed_item_count": 0,
         "accepted_inventory_count": 0,
         "accepted_election_news_count": 0,
@@ -536,11 +643,12 @@ def update_source_health(
 
     attempts_by_id: dict[str, dict[str, Any]] = {}
     for attempt in attempts:
-        _validate_attempt(attempt)
-        route_id = attempt["route_id"]
+        normalized_attempt = _normalized_attempt(attempt)
+        _validate_attempt(normalized_attempt)
+        route_id = normalized_attempt["route_id"]
         if route_id in attempts_by_id:
             raise SourceHealthError(f"duplicate route attempt: {route_id}")
-        attempts_by_id[route_id] = deepcopy(attempt)
+        attempts_by_id[route_id] = normalized_attempt
 
     expected_attempt_ids = {
         route_id
@@ -607,6 +715,9 @@ def update_source_health(
                 "latest_http_status": attempt["http_status"],
                 "latest_failure_category": attempt["failure_category"],
                 "latest_latency_ms": attempt["latency_ms"],
+                "latest_attempt_count": attempt["attempts"],
+                "latest_not_modified": attempt["not_modified"],
+                "response_bytes": attempt["response_bytes"],
                 "parsed_item_count": attempt["parsed_item_count"],
                 "accepted_inventory_count": attempt[
                     "accepted_inventory_count"
@@ -628,6 +739,27 @@ def update_source_health(
         _apply_rolling_counts(route)
 
         if attempt["success"]:
+            if attempt["request_url"] is not None:
+                same_validator_url = (
+                    route.get("validator_url") == attempt["request_url"]
+                )
+                preserve_omitted = (
+                    attempt["not_modified"] and same_validator_url
+                )
+                if preserve_omitted:
+                    if attempt["etag"] is not None:
+                        route["etag"] = attempt["etag"]
+                    if attempt["last_modified"] is not None:
+                        route["last_modified"] = attempt["last_modified"]
+                else:
+                    route["etag"] = attempt["etag"]
+                    route["last_modified"] = attempt["last_modified"]
+                route["validator_url"] = (
+                    attempt["request_url"]
+                    if route.get("etag") is not None
+                    or route.get("last_modified") is not None
+                    else None
+                )
             route["last_success_at"] = normalized_run_at
             route["consecutive_failures"] = 0
             route["status"] = (
@@ -757,13 +889,19 @@ def substantive_projection(payload: dict[str, Any]) -> dict[str, Any]:
         "rolling_parsed_items",
         "rolling_accepted_items",
         "rolling_election_news_items",
+        "etag",
+        "last_modified",
+        "validator_url",
+        "latest_attempt_count",
+        "latest_not_modified",
+        "response_bytes",
     )
     return {
         "schema_version": payload["schema_version"],
         "failure_threshold": payload["failure_threshold"],
         "rolling_attempt_limit": payload["rolling_attempt_limit"],
         "routes": [
-            {field: route[field] for field in route_fields}
+            {field: route.get(field) for field in route_fields}
             for route in payload["routes"]
         ],
         "current_run": {
