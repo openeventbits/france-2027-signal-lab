@@ -16,6 +16,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
+from source_health import (
+    SourceHealthError,
+    source_health_aggregate,
+    validate_source_health,
+)
+
 
 SCHEMA_VERSION = "1.0"
 OUTPUT_NAME = "publication_manifest.json"
@@ -29,6 +35,7 @@ LANE_FILES = {
         "second_round_polls.json",
         "closest_tested_runoff.json",
     ),
+    "source_health": ("source_health.json",),
 }
 SOURCE_NETWORK_FIELDS = (
     "approved_publisher_domains",
@@ -38,6 +45,15 @@ SOURCE_NETWORK_FIELDS = (
     "successful_due_routes",
     "contributing_publishers_in_retained_period",
     "publishers_represented_in_accepted_election_news",
+)
+SOURCE_HEALTH_FIELDS = (
+    "configured_routes",
+    "attempted_routes",
+    "successful_routes",
+    "failed_routes",
+    "repeated_failure_routes",
+    "healthy_zero_yield_routes",
+    "recovered_routes",
 )
 
 
@@ -199,6 +215,12 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
         )
     if not isinstance(payload, dict):
         return False
+    if lane_name == "source_health":
+        try:
+            validate_source_health(payload)
+        except SourceHealthError:
+            return False
+        return True
     if lane_name == "runoff":
         related = sources[1]["payload"]
         return (
@@ -250,6 +272,9 @@ def _evidence_values(lane_name: str, payload: Any) -> list[Any]:
                     if isinstance(item, dict)
                 )
         return values
+    if lane_name == "source_health":
+        current_run = payload.get("current_run", {})
+        return [current_run.get("run_at")]
     raise AssertionError(f"unsupported lane: {lane_name}")
 
 
@@ -377,6 +402,17 @@ def _source_network(news_payload: Any) -> dict[str, int | None]:
     return metrics
 
 
+def _source_health_metrics(
+    source_health_payload: Any,
+) -> dict[str, int | None]:
+    if not isinstance(source_health_payload, dict):
+        return {field: None for field in SOURCE_HEALTH_FIELDS}
+    try:
+        return source_health_aggregate(source_health_payload)
+    except SourceHealthError:
+        return {field: None for field in SOURCE_HEALTH_FIELDS}
+
+
 def _snapshot_id(
     lane_sources: dict[str, list[dict[str, Any]]],
 ) -> str:
@@ -429,12 +465,18 @@ def build_manifest(
         if lanes["news"]["valid"]
         else None
     )
+    source_health_payload = (
+        lane_sources["source_health"][0]["payload"]
+        if lanes["source_health"]["valid"]
+        else None
+    )
     manifest = {
         "schema_version": SCHEMA_VERSION,
         "snapshot_id": _snapshot_id(lane_sources),
         "published_at": normalized_published_at,
         "lanes": lanes,
         "source_network": _source_network(news_payload),
+        "source_health": _source_health_metrics(source_health_payload),
         "warnings": warnings,
     }
     validate_manifest(manifest)
@@ -496,6 +538,25 @@ def validate_manifest(manifest: Any) -> None:
     ):
         raise ManifestError(
             "source_network metrics must be non-negative integers or null"
+        )
+    health = manifest.get("source_health")
+    if not isinstance(health, dict) or set(health) != set(
+        SOURCE_HEALTH_FIELDS
+    ):
+        raise ManifestError(
+            "source_health does not match the version 1 contract"
+        )
+    if any(
+        value is not None
+        and (
+            not isinstance(value, int)
+            or isinstance(value, bool)
+            or value < 0
+        )
+        for value in health.values()
+    ):
+        raise ManifestError(
+            "source_health metrics must be non-negative integers or null"
         )
     if not isinstance(manifest.get("warnings"), list):
         raise ManifestError("warnings must be an array")

@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import build_publication_manifest as manifest_builder
+import source_health
 
 
 ROOT = Path(__file__).resolve().parent
@@ -105,6 +106,53 @@ def complete_inputs(root):
             ],
         },
     )
+    health_routes = [
+        {
+            "route_id": f"direct:route-{index}",
+            "route_type": "direct",
+            "publisher": f"Publisher {index}",
+            "domain": f"publisher-{index}.test",
+            "enabled": True,
+            "schedule_class": "hourly",
+            "schedule_slot": None,
+            "due_this_run": True,
+        }
+        for index in range(1, 5)
+    ]
+
+    def health_attempt(route_id, success, parsed=1):
+        return {
+            "route_id": route_id,
+            "success": success,
+            "http_status": 200 if success else 503,
+            "failure_category": None if success else "http_error",
+            "latency_ms": 100,
+            "parsed_item_count": parsed if success else 0,
+            "accepted_inventory_count": parsed if success else 0,
+            "accepted_election_news_count": 0,
+        }
+
+    health_payload = None
+    for run_at, route_four_success in (
+        ("2026-07-24T08:00:00Z", False),
+        ("2026-07-24T09:00:00Z", False),
+        ("2026-07-24T10:00:00Z", True),
+    ):
+        health_payload = source_health.update_source_health(
+            health_payload,
+            health_routes,
+            [
+                health_attempt("direct:route-1", True),
+                health_attempt("direct:route-2", False),
+                health_attempt("direct:route-3", True, parsed=0),
+                health_attempt(
+                    "direct:route-4",
+                    route_four_success,
+                ),
+            ],
+            run_at,
+        )
+    write_json(root, "source_health.json", health_payload)
 
 
 class PublicationManifestTests(unittest.TestCase):
@@ -138,7 +186,14 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertEqual(manifest["published_at"], PUBLISHED_AT)
         self.assertEqual(
             set(manifest["lanes"]),
-            {"polls", "runoff", "news", "claims", "recent_changes"},
+            {
+                "polls",
+                "runoff",
+                "news",
+                "claims",
+                "recent_changes",
+                "source_health",
+            },
         )
         self.assertEqual(manifest["warnings"], [])
         for lane in manifest["lanes"].values():
@@ -219,6 +274,29 @@ class PublicationManifestTests(unittest.TestCase):
                 "contributing_publishers_in_retained_period": 86,
                 "publishers_represented_in_accepted_election_news": 2,
             },
+        )
+
+    def test_source_health_aggregate_remains_operationally_distinct(self):
+        manifest = self.build()
+        self.assertEqual(
+            manifest["source_health"],
+            {
+                "configured_routes": 4,
+                "attempted_routes": 4,
+                "successful_routes": 3,
+                "failed_routes": 1,
+                "repeated_failure_routes": 1,
+                "healthy_zero_yield_routes": 1,
+                "recovered_routes": 1,
+            },
+        )
+        self.assertEqual(
+            manifest["source_network"]["approved_publisher_domains"],
+            202,
+        )
+        self.assertNotIn(
+            "approved_publisher_domains",
+            manifest["source_health"],
         )
 
     def test_atomic_output_replaces_the_target_only_at_the_end(self):

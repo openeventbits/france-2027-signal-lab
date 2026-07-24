@@ -37,10 +37,12 @@ jobs:
           set -euo pipefail
 
           cp news_inventory.json /tmp/news_inventory.json
+          cp source_health.json /tmp/source_health.json
 
           python fetch_news_wire.py \
             --polls polls.json \
             --inventory /tmp/news_inventory.json \
+            --source-health /tmp/source_health.json \
             --output /tmp/news_wire.json \
             --window-days 30 \
             --max-items 0
@@ -70,15 +72,21 @@ jobs:
           from typing import Any
 
           from fetch_news_wire import validate_output
+          from source_health import (
+              has_substantive_change,
+              validate_source_health,
+          )
 
 
           CURRENT_INVENTORY = Path("news_inventory.json")
           CURRENT_WIRE = Path("news_wire.json")
           CURRENT_LEDGER = Path("recent_changes.json")
+          CURRENT_HEALTH = Path("source_health.json")
 
           TEMP_INVENTORY = Path("/tmp/news_inventory.json")
           TEMP_WIRE = Path("/tmp/news_wire.json")
           TEMP_LEDGER = Path("/tmp/recent_changes.json")
+          TEMP_HEALTH = Path("/tmp/source_health.json")
 
 
           def fail(message: str) -> None:
@@ -104,12 +112,16 @@ jobs:
           current_inventory = load_json(CURRENT_INVENTORY)
           current_wire = load_json(CURRENT_WIRE)
           current_ledger = load_json(CURRENT_LEDGER)
+          current_health = load_json(CURRENT_HEALTH)
 
           inventory = load_json(TEMP_INVENTORY)
           wire = load_json(TEMP_WIRE)
           ledger = load_json(TEMP_LEDGER)
+          health = load_json(TEMP_HEALTH)
 
           validate_output(wire)
+          validate_source_health(current_health)
+          validate_source_health(health)
 
 
           # Rolling inventory contract.
@@ -346,11 +358,16 @@ jobs:
           ledger_changed = (
               scrub(current_ledger) != scrub(ledger)
           )
+          health_changed = has_substantive_change(
+              current_health,
+              health,
+          )
 
           changed = (
               inventory_changed
               or wire_changed
               or ledger_changed
+              or health_changed
           )
 
           if changed:
@@ -365,6 +382,10 @@ jobs:
               shutil.copyfile(
                   TEMP_LEDGER,
                   CURRENT_LEDGER,
+              )
+              shutil.copyfile(
+                  TEMP_HEALTH,
+                  CURRENT_HEALTH,
               )
 
           output_path = Path(os.environ["GITHUB_OUTPUT"])
@@ -402,7 +423,8 @@ jobs:
               "Changes detected: "
               f"inventory={inventory_changed}, "
               f"wire={wire_changed}, "
-              f"ledger={ledger_changed}"
+              f"ledger={ledger_changed}, "
+              f"source_health={health_changed}"
           )
           PY
 
@@ -432,6 +454,7 @@ jobs:
             news_inventory.json \
             news_wire.json \
             recent_changes.json \
+            source_health.json \
             publication_manifest.json
 
           if git diff --cached --quiet; then

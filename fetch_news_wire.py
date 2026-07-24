@@ -18,8 +18,15 @@ from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from xml.etree import ElementTree as ET
+
+from source_health import (
+    load_source_health,
+    update_source_health,
+    write_source_health_atomic,
+)
 
 
 SOURCE_CONFIG_PATH = Path(__file__).with_name("news_sources.json")
@@ -728,6 +735,148 @@ def publisher_site_feed_due(
 
     utc_now = now.astimezone(timezone.utc)
     return utc_now.hour % interval_hours == expected_slot
+
+
+def build_source_health_routes(
+    discovery_queries: list[dict[str, str]],
+    publisher_site_feeds: list[dict[str, Any]],
+    generated_at: datetime,
+) -> list[dict[str, Any]]:
+    """Describe every configured route without changing fetch scheduling."""
+    routes: list[dict[str, Any]] = []
+    for source in SOURCES:
+        routes.append(
+            {
+                "route_id": f"direct:{source['source_id']}",
+                "route_type": "direct",
+                "publisher": str(source["name"]),
+                "domain": normalize_domain(source["feed_url"]),
+                "enabled": True,
+                "schedule_class": "hourly",
+                "schedule_slot": None,
+                "due_this_run": True,
+            }
+        )
+
+    active_discovery_ids = {
+        str(query["id"]) for query in discovery_queries
+    }
+    configured_static_ids: set[str] = set()
+    for query in DISCOVERY_QUERIES:
+        query_id = str(query["id"])
+        configured_static_ids.add(query_id)
+        enabled = bool(query.get("enabled", True))
+        routes.append(
+            {
+                "route_id": f"discovery:{query_id}",
+                "route_type": "shared_discovery",
+                "publisher": None,
+                "domain": None,
+                "enabled": enabled,
+                "schedule_class": "hourly",
+                "schedule_slot": None,
+                "due_this_run": enabled and query_id in active_discovery_ids,
+            }
+        )
+    for query in discovery_queries:
+        query_id = str(query["id"])
+        if query_id in configured_static_ids:
+            continue
+        routes.append(
+            {
+                "route_id": f"discovery:{query_id}",
+                "route_type": "shared_discovery",
+                "publisher": None,
+                "domain": None,
+                "enabled": True,
+                "schedule_class": "hourly",
+                "schedule_slot": None,
+                "due_this_run": True,
+            }
+        )
+
+    active_site_feeds = {
+        str(feed["id"]): feed for feed in publisher_site_feeds
+    }
+    for domain in sorted(PUBLISHER_POLICY):
+        policy = PUBLISHER_POLICY[domain]
+        if policy.get("source_type") != "media":
+            continue
+        tier = str(policy.get("tier") or "")
+        interval_hours = publisher_site_interval(tier)
+        route_id = f"publisher-site:{domain}"
+        enabled = bool(policy.get("enabled", True))
+        feed = active_site_feeds.get(route_id)
+        slot = (
+            int(feed["slot"])
+            if feed is not None
+            else stable_slot(route_id, interval_hours)
+        )
+        routes.append(
+            {
+                "route_id": route_id,
+                "route_type": "publisher_site",
+                "publisher": str(policy["name"]),
+                "domain": domain,
+                "enabled": enabled,
+                "schedule_class": f"every_{interval_hours}_hours",
+                "schedule_slot": slot,
+                "due_this_run": (
+                    enabled
+                    and feed is not None
+                    and publisher_site_feed_due(feed, generated_at)
+                ),
+            }
+        )
+
+    route_ids = [route["route_id"] for route in routes]
+    if len(route_ids) != len(set(route_ids)):
+        raise RuntimeError("Source-health route ids must be unique")
+    return sorted(routes, key=lambda route: route["route_id"])
+
+
+def endpoint_source_health_id(endpoint: dict[str, Any]) -> str:
+    if endpoint["kind"] == "direct":
+        return f"direct:{endpoint['id']}"
+    if endpoint["kind"] == "discovery":
+        return f"discovery:{endpoint['id']}"
+    if endpoint["kind"] == "publisher_site":
+        return str(endpoint["id"])
+    raise ValueError(f"Unsupported endpoint kind: {endpoint['kind']}")
+
+
+def source_entry_health_id(source_id: Any) -> str:
+    value = str(source_id or "")
+    if value in DIRECT_SOURCE_IDS:
+        return f"direct:{value}"
+    return value
+
+
+def fetch_failure_category(error: Exception) -> str:
+    if isinstance(error, HTTPError):
+        return "http_error"
+    if isinstance(error, TimeoutError):
+        return "timeout"
+    if isinstance(error, URLError):
+        return "network_error"
+    if isinstance(error, ET.ParseError):
+        return "parse_error"
+    if (
+        isinstance(error, RuntimeError)
+        and "returned http" in str(error).lower()
+    ):
+        return "http_error"
+    if isinstance(error, RuntimeError) and "feed" in str(error).lower():
+        return "parse_error"
+    return type(error).__name__.lower()
+
+
+def fetch_http_status(error: Exception) -> int | None:
+    code = getattr(error, "code", None)
+    if isinstance(code, int) and not isinstance(code, bool) and code >= 0:
+        return code
+    match = re.search(r"\breturned HTTP (\d{3})\b", str(error))
+    return int(match.group(1)) if match is not None else None
 
 
 def google_news_source(element: ET.Element) -> tuple[str, str]:
@@ -2666,6 +2815,8 @@ def build_wire(
     inventory_path: Path | None = None,
     discovered_publishers_path: Path | None = None,
     generated_at: datetime | None = None,
+    health_route_configurations: list[dict[str, Any]] | None = None,
+    health_attempts: list[dict[str, Any]] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     if generated_at is None:
         generated_at = datetime.now(timezone.utc)
@@ -2685,6 +2836,14 @@ def build_wire(
     }
     discovery_queries = generate_discovery_queries(candidates)
     publisher_site_feeds = generate_publisher_site_feeds()
+    if health_route_configurations is not None:
+        health_route_configurations.extend(
+            build_source_health_routes(
+                discovery_queries,
+                publisher_site_feeds,
+                generated_at,
+            )
+        )
     due_publisher_site_feeds = [
         feed
         for feed in publisher_site_feeds
@@ -2759,7 +2918,7 @@ def build_wire(
                 final_feed_url,
                 google_news=is_google_news,
                 max_entries=entry_limit,
-                allow_empty=endpoint["kind"] == "publisher_site",
+                allow_empty=True,
             )
             return {
                 "endpoint": endpoint,
@@ -2767,6 +2926,8 @@ def build_wire(
                 "final_feed_url": final_feed_url,
                 "entries": entries,
                 "error": None,
+                "http_status": 200,
+                "failure_category": None,
                 "response_seconds": round(
                     (datetime.now(timezone.utc) - started_at).total_seconds(),
                     2,
@@ -2779,6 +2940,8 @@ def build_wire(
                 "final_feed_url": endpoint["feed_url"],
                 "entries": [],
                 "error": f"{type(error).__name__}: {error}",
+                "http_status": fetch_http_status(error),
+                "failure_category": fetch_failure_category(error),
                 "response_seconds": round(
                     (datetime.now(timezone.utc) - started_at).total_seconds(),
                     2,
@@ -2945,6 +3108,10 @@ def build_wire(
     notable_developments: list[dict[str, Any]] = []
     relevant_news: list[dict[str, Any]] = []
     candidate_watch: list[dict[str, Any]] = []
+    current_inventory_identities = {
+        inventory_identity(entry) for entry in all_entries
+    }
+    current_election_identities: set[str] = set()
 
     source_by_id = {source["source_id"]: source for source in SOURCES}
     source_by_id.update(
@@ -3018,6 +3185,9 @@ def build_wire(
 
         if is_election_news:
             election_news.append(base_item)
+            identity = inventory_identity(entry)
+            if identity in current_inventory_identities:
+                current_election_identities.add(identity)
         elif development is not None:
             notable_developments.append(
                 public_notable_item(
@@ -3095,6 +3265,49 @@ def build_wire(
     contributing_media_publishers = (
         count_contributing_media_publishers(inventory_entries)
     )
+
+    if health_attempts is not None:
+        accepted_inventory_by_route: dict[str, int] = {}
+        accepted_election_by_route: dict[str, int] = {}
+        for entry in all_entries:
+            route_id = source_entry_health_id(entry.get("source_id"))
+            identity = inventory_identity(entry)
+            retained_entry = deduplicated.get(identity)
+            if (
+                retained_entry is None
+                or source_entry_health_id(retained_entry.get("source_id"))
+                != route_id
+            ):
+                continue
+            accepted_inventory_by_route[route_id] = (
+                accepted_inventory_by_route.get(route_id, 0) + 1
+            )
+            if identity in current_election_identities:
+                accepted_election_by_route[route_id] = (
+                    accepted_election_by_route.get(route_id, 0) + 1
+                )
+        for order in sorted(fetched_by_order):
+            result = fetched_by_order[order]
+            route_id = endpoint_source_health_id(result["endpoint"])
+            health_attempts.append(
+                {
+                    "route_id": route_id,
+                    "success": result["status"] == "ok",
+                    "http_status": result["http_status"],
+                    "failure_category": result["failure_category"],
+                    "latency_ms": max(
+                        0,
+                        round(result["response_seconds"] * 1000),
+                    ),
+                    "parsed_item_count": len(result["entries"]),
+                    "accepted_inventory_count": (
+                        accepted_inventory_by_route.get(route_id, 0)
+                    ),
+                    "accepted_election_news_count": (
+                        accepted_election_by_route.get(route_id, 0)
+                    ),
+                }
+            )
 
     configured_feeds = (
         len(SOURCES)
@@ -3277,6 +3490,11 @@ def main() -> int:
         default=Path("news_inventory.json"),
     )
     parser.add_argument(
+        "--source-health",
+        type=Path,
+        default=Path("source_health.json"),
+    )
+    parser.add_argument(
         "--discovered-publishers",
         type=Path,
         default=None,
@@ -3299,16 +3517,33 @@ def main() -> int:
     if arguments.max_items < 0:
         raise RuntimeError("--max-items must be zero (unlimited) or positive")
 
+    previous_source_health = load_source_health(arguments.source_health)
+    source_health_routes: list[dict[str, Any]] = []
+    source_health_attempts: list[dict[str, Any]] = []
+    generated_at = datetime.now(timezone.utc)
     payload, inventory_payload = build_wire(
         arguments.polls,
         arguments.window_days,
         arguments.max_items,
         arguments.inventory,
         arguments.discovered_publishers,
+        generated_at,
+        source_health_routes,
+        source_health_attempts,
+    )
+    source_health_payload = update_source_health(
+        previous_source_health,
+        source_health_routes,
+        source_health_attempts,
+        generated_at,
     )
 
     write_json_atomic(arguments.inventory, inventory_payload)
     write_json_atomic(arguments.output, payload)
+    write_source_health_atomic(
+        arguments.source_health,
+        source_health_payload,
+    )
 
     counts = payload["counts"]
 
@@ -3383,6 +3618,7 @@ def main() -> int:
     )
     print(f"Inventory: {arguments.inventory}")
     print(f"Output: {arguments.output}")
+    print(f"Source health: {arguments.source_health}")
     if arguments.discovered_publishers is not None:
         print(
             f"Discovered publishers: "
