@@ -703,6 +703,8 @@ class NewsWireRelevanceTests(unittest.TestCase):
 
     def test_build_wire_keeps_direct_source_contract_with_discovery(self):
         published = format_datetime(datetime.now(timezone.utc))
+        request_count = 0
+        request_count_lock = threading.Lock()
         direct_feed = f"""<?xml version='1.0' encoding='UTF-8'?>
         <rss version='2.0'><channel><item>
           <title>Présidentielle 2027 : une alliance est annoncée</title>
@@ -720,6 +722,9 @@ class NewsWireRelevanceTests(unittest.TestCase):
         </item></channel></rss>""".encode("utf-8")
 
         def fake_request(url, timeout=12):
+            nonlocal request_count
+            with request_count_lock:
+                request_count += 1
             if url.startswith("https://news.google.com/"):
                 return discovery_feed, url
             return direct_feed, url
@@ -727,6 +732,8 @@ class NewsWireRelevanceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             inventory_path = Path(directory) / "inventory.json"
             review_path = Path(directory) / "publishers.json"
+            health_routes = []
+            health_attempts = []
             with patch("fetch_news_wire.request_bytes", side_effect=fake_request):
                 payload, inventory = build_wire(
                     Path("polls.json"),
@@ -734,6 +741,8 @@ class NewsWireRelevanceTests(unittest.TestCase):
                     0,
                     inventory_path,
                     review_path,
+                    health_route_configurations=health_routes,
+                    health_attempts=health_attempts,
                 )
                 review = json.loads(
                     review_path.read_text(encoding="utf-8")
@@ -778,6 +787,15 @@ class NewsWireRelevanceTests(unittest.TestCase):
         self.assertEqual(
             coverage["feeds_successful_this_run"],
             29 + coverage["publisher_site_feeds_successful"],
+        )
+        due_health_routes = [
+            route for route in health_routes if route["due_this_run"]
+        ]
+        self.assertEqual(len(health_attempts), len(due_health_routes))
+        self.assertEqual(request_count, len(health_attempts))
+        self.assertEqual(
+            {attempt["route_id"] for attempt in health_attempts},
+            {route["route_id"] for route in due_health_routes},
         )
         self.assertTrue(inventory["items"])
         visible_publishers = {
@@ -862,6 +880,56 @@ class NewsWireRelevanceTests(unittest.TestCase):
             "publisher-site schedule count is invalid",
         ):
             validate_output(invalid)
+
+    def test_build_wire_reports_empty_parses_as_successful_attempts(self):
+        generated_at = datetime(2026, 7, 24, 8, tzinfo=timezone.utc)
+        published = format_datetime(generated_at)
+        populated_feed = f"""<?xml version='1.0' encoding='UTF-8'?>
+        <rss version='2.0'><channel><item>
+          <title>Présidentielle 2027 : une alliance est annoncée</title>
+          <link>https://example.test/one-current-item</link>
+          <pubDate>{published}</pubDate>
+          <description>Une actualité sur la campagne présidentielle.</description>
+        </item></channel></rss>""".encode("utf-8")
+        empty_feed = (
+            "<?xml version='1.0' encoding='UTF-8'?>"
+            "<rss version='2.0'><channel></channel></rss>"
+        ).encode("utf-8")
+
+        def fake_request(url, timeout=12):
+            if url == SOURCES[0]["feed_url"]:
+                return populated_feed, url
+            return empty_feed, url
+
+        health_routes = []
+        health_attempts = []
+        with patch(
+            "fetch_news_wire.request_bytes",
+            side_effect=fake_request,
+        ):
+            payload, _inventory = build_wire(
+                Path("polls.json"),
+                30,
+                0,
+                generated_at=generated_at,
+                health_route_configurations=health_routes,
+                health_attempts=health_attempts,
+            )
+
+        empty_attempts = [
+            attempt
+            for attempt in health_attempts
+            if attempt["parsed_item_count"] == 0
+        ]
+        self.assertTrue(payload["relevant_news"])
+        self.assertTrue(empty_attempts)
+        self.assertTrue(all(
+            attempt["success"] for attempt in empty_attempts
+        ))
+        self.assertTrue(all(
+            attempt["failure_category"] is None
+            for attempt in empty_attempts
+        ))
 
     def test_google_news_semaphore_preserves_deterministic_order(self):
         generated_at = datetime(2026, 7, 23, 8, tzinfo=timezone.utc)
