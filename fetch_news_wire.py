@@ -5,12 +5,10 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import gzip
 import hashlib
 import html
 import json
 import re
-import ssl
 from threading import BoundedSemaphore
 import unicodedata
 from datetime import date, datetime, timedelta, timezone
@@ -18,10 +16,13 @@ from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 from xml.etree import ElementTree as ET
 
+from http_fetch import (
+    DEFAULT_MAX_RESPONSE_BYTES,
+    HttpFetchResult,
+    fetch_news_route,
+)
 from source_health import (
     load_source_health,
     update_source_health,
@@ -52,6 +53,7 @@ DIRECT_ENTRY_LIMIT = 20
 DISCOVERY_ENTRY_LIMIT = 10
 PUBLISHER_SITE_ENTRY_LIMIT = 5
 FETCH_TIMEOUT_SECONDS = 12
+MAX_NEWS_RESPONSE_BYTES = DEFAULT_MAX_RESPONSE_BYTES
 FETCH_WORKERS = 12
 GOOGLE_NEWS_WORKERS = 4
 GOOGLE_NEWS_SEMAPHORE = BoundedSemaphore(GOOGLE_NEWS_WORKERS)
@@ -852,31 +854,26 @@ def source_entry_health_id(source_id: Any) -> str:
     return value
 
 
-def fetch_failure_category(error: Exception) -> str:
-    if isinstance(error, HTTPError):
-        return "http_error"
-    if isinstance(error, TimeoutError):
-        return "timeout"
-    if isinstance(error, URLError):
-        return "network_error"
-    if isinstance(error, ET.ParseError):
-        return "parse_error"
-    if (
-        isinstance(error, RuntimeError)
-        and "returned http" in str(error).lower()
-    ):
-        return "http_error"
-    if isinstance(error, RuntimeError) and "feed" in str(error).lower():
-        return "parse_error"
-    return type(error).__name__.lower()
-
-
-def fetch_http_status(error: Exception) -> int | None:
-    code = getattr(error, "code", None)
-    if isinstance(code, int) and not isinstance(code, bool) and code >= 0:
-        return code
-    match = re.search(r"\breturned HTTP (\d{3})\b", str(error))
-    return int(match.group(1)) if match is not None else None
+def route_request_validators(
+    previous_source_health: dict[str, Any] | None,
+    route_id: str,
+    request_url: str,
+) -> tuple[str | None, str | None]:
+    """Return validators only when they belong to this route and URL."""
+    if previous_source_health is None:
+        return None, None
+    for route in previous_source_health.get("routes", []):
+        if route.get("route_id") != route_id:
+            continue
+        if route.get("validator_url") != request_url:
+            return None, None
+        etag = route.get("etag")
+        last_modified = route.get("last_modified")
+        return (
+            etag if isinstance(etag, str) else None,
+            last_modified if isinstance(last_modified, str) else None,
+        )
+    return None, None
 
 
 def google_news_source(element: ET.Element) -> tuple[str, str]:
@@ -900,39 +897,6 @@ def remove_publisher_suffix(headline: str, publisher: str) -> str:
         flags=re.IGNORECASE,
     )
     return suffix.sub("", cleaned_headline).strip()
-
-
-def request_bytes(
-    url: str,
-    timeout: int = FETCH_TIMEOUT_SECONDS,
-) -> tuple[bytes, str]:
-    request = Request(
-        url,
-        headers={
-            "Accept": (
-                "application/rss+xml, application/atom+xml, "
-                "application/xml, text/xml, */*;q=0.5"
-            ),
-            "User-Agent": "Mozilla/5.0 FR27SignalLab-news-wire/1.0",
-        },
-    )
-
-    with urlopen(
-        request,
-        timeout=timeout,
-        context=ssl.create_default_context(),
-    ) as response:
-        if response.status != 200:
-            raise RuntimeError(
-                f"{url} returned HTTP {response.status}"
-            )
-
-        content = response.read()
-
-        if response.headers.get("Content-Encoding", "").lower() == "gzip":
-            content = gzip.decompress(content)
-
-        return content, response.geturl()
 
 
 def first_child_text(element: ET.Element, names: set[str]) -> str:
@@ -2817,6 +2781,7 @@ def build_wire(
     generated_at: datetime | None = None,
     health_route_configurations: list[dict[str, Any]] | None = None,
     health_attempts: list[dict[str, Any]] | None = None,
+    previous_source_health: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     if generated_at is None:
         generated_at = datetime.now(timezone.utc)
@@ -2890,7 +2855,14 @@ def build_wire(
         )
 
     def fetch_endpoint(endpoint: dict[str, Any]) -> dict[str, Any]:
-        started_at = datetime.now(timezone.utc)
+        route_id = endpoint_source_health_id(endpoint)
+        request_url = endpoint["feed_url"]
+        etag, last_modified = route_request_validators(
+            previous_source_health,
+            route_id,
+            request_url,
+        )
+        fetch_result: HttpFetchResult | None = None
         try:
             is_google_news = endpoint["kind"] in {
                 "discovery",
@@ -2898,13 +2870,46 @@ def build_wire(
             }
             if is_google_news:
                 with GOOGLE_NEWS_SEMAPHORE:
-                    raw, final_feed_url = request_bytes(
-                        endpoint["feed_url"]
+                    fetch_result = fetch_news_route(
+                        request_url,
+                        etag=etag,
+                        last_modified=last_modified,
+                        timeout=FETCH_TIMEOUT_SECONDS,
+                        max_response_bytes=MAX_NEWS_RESPONSE_BYTES,
                     )
             else:
-                raw, final_feed_url = request_bytes(
-                    endpoint["feed_url"]
+                fetch_result = fetch_news_route(
+                    request_url,
+                    etag=etag,
+                    last_modified=last_modified,
+                    timeout=FETCH_TIMEOUT_SECONDS,
+                    max_response_bytes=MAX_NEWS_RESPONSE_BYTES,
                 )
+
+            if not fetch_result.success:
+                return {
+                    "endpoint": endpoint,
+                    "status": "error",
+                    "not_modified": False,
+                    "final_feed_url": fetch_result.final_url,
+                    "entries": [],
+                    "error": (
+                        f"{fetch_result.failure_category}: "
+                        f"{fetch_result.failure_message}"
+                    ),
+                    "http_status": fetch_result.status_code,
+                    "failure_category": fetch_result.failure_category,
+                    "response_seconds": round(
+                        fetch_result.elapsed_ms / 1000,
+                        3,
+                    ),
+                    "attempts": fetch_result.attempts,
+                    "etag": fetch_result.etag,
+                    "last_modified": fetch_result.last_modified,
+                    "request_url": request_url,
+                    "response_bytes": fetch_result.response_bytes,
+                    "retry_after_used": fetch_result.retry_after_used,
+                }
 
             entry_limit = DIRECT_ENTRY_LIMIT
             if endpoint["kind"] == "discovery":
@@ -2912,39 +2917,96 @@ def build_wire(
             elif endpoint["kind"] == "publisher_site":
                 entry_limit = PUBLISHER_SITE_ENTRY_LIMIT
 
-            entries = parse_feed(
-                raw,
-                endpoint["name"],
-                final_feed_url,
-                google_news=is_google_news,
-                max_entries=entry_limit,
-                allow_empty=True,
-            )
+            entries: list[dict[str, Any]] = []
+            if not fetch_result.not_modified:
+                if fetch_result.response_body is None:
+                    raise RuntimeError(
+                        "successful HTTP response is missing its body"
+                    )
+                entries = parse_feed(
+                    fetch_result.response_body,
+                    endpoint["name"],
+                    fetch_result.final_url,
+                    google_news=is_google_news,
+                    max_entries=entry_limit,
+                    allow_empty=True,
+                )
             return {
                 "endpoint": endpoint,
                 "status": "ok",
-                "final_feed_url": final_feed_url,
+                "not_modified": fetch_result.not_modified,
+                "final_feed_url": fetch_result.final_url,
                 "entries": entries,
                 "error": None,
-                "http_status": 200,
+                "http_status": fetch_result.status_code,
                 "failure_category": None,
                 "response_seconds": round(
-                    (datetime.now(timezone.utc) - started_at).total_seconds(),
-                    2,
+                    fetch_result.elapsed_ms / 1000,
+                    3,
                 ),
+                "attempts": fetch_result.attempts,
+                "etag": fetch_result.etag,
+                "last_modified": fetch_result.last_modified,
+                "request_url": request_url,
+                "response_bytes": fetch_result.response_bytes,
+                "retry_after_used": fetch_result.retry_after_used,
             }
         except Exception as error:
+            failure_category = (
+                "invalid_response"
+                if fetch_result is not None
+                else "unknown_error"
+            )
             return {
                 "endpoint": endpoint,
                 "status": "error",
-                "final_feed_url": endpoint["feed_url"],
+                "not_modified": False,
+                "final_feed_url": (
+                    fetch_result.final_url
+                    if fetch_result is not None
+                    else request_url
+                ),
                 "entries": [],
-                "error": f"{type(error).__name__}: {error}",
-                "http_status": fetch_http_status(error),
-                "failure_category": fetch_failure_category(error),
-                "response_seconds": round(
-                    (datetime.now(timezone.utc) - started_at).total_seconds(),
-                    2,
+                "error": (
+                    f"{failure_category}: "
+                    f"{type(error).__name__}: {str(error)[:300]}"
+                ),
+                "http_status": (
+                    fetch_result.status_code
+                    if fetch_result is not None
+                    else None
+                ),
+                "failure_category": failure_category,
+                "response_seconds": (
+                    round(fetch_result.elapsed_ms / 1000, 3)
+                    if fetch_result is not None
+                    else 0
+                ),
+                "attempts": (
+                    fetch_result.attempts
+                    if fetch_result is not None
+                    else 1
+                ),
+                "etag": (
+                    fetch_result.etag
+                    if fetch_result is not None
+                    else None
+                ),
+                "last_modified": (
+                    fetch_result.last_modified
+                    if fetch_result is not None
+                    else None
+                ),
+                "request_url": request_url,
+                "response_bytes": (
+                    fetch_result.response_bytes
+                    if fetch_result is not None
+                    else 0
+                ),
+                "retry_after_used": (
+                    fetch_result.retry_after_used
+                    if fetch_result is not None
+                    else False
                 ),
             }
 
@@ -3293,12 +3355,18 @@ def build_wire(
                 {
                     "route_id": route_id,
                     "success": result["status"] == "ok",
+                    "not_modified": result["not_modified"],
                     "http_status": result["http_status"],
                     "failure_category": result["failure_category"],
                     "latency_ms": max(
                         0,
                         round(result["response_seconds"] * 1000),
                     ),
+                    "attempts": result["attempts"],
+                    "response_bytes": result["response_bytes"],
+                    "etag": result["etag"],
+                    "last_modified": result["last_modified"],
+                    "request_url": result["request_url"],
                     "parsed_item_count": len(result["entries"]),
                     "accepted_inventory_count": (
                         accepted_inventory_by_route.get(route_id, 0)
@@ -3530,6 +3598,7 @@ def main() -> int:
         generated_at,
         source_health_routes,
         source_health_attempts,
+        previous_source_health,
     )
     source_health_payload = update_source_health(
         previous_source_health,
