@@ -27,6 +27,7 @@ from commission_notice_discovery import (
 )
 from poll_contract import (
     FIRST_ROUND,
+    PollContractError,
     apply_completeness_contract,
     make_event_id,
     make_scenario_key,
@@ -481,9 +482,32 @@ def parse_wikipedia_first_round_html(
                 ) from error
 
             candidates: list[dict] = []
+            censored_scores: list[tuple[str, str]] = []
 
             for column_index, name in candidate_columns:
                 raw_score = cell_text(row.iloc[column_index])
+
+                normalized_score = re.sub(
+                    r"\[[^\]]*]",
+                    "",
+                    raw_score,
+                )
+                normalized_score = (
+                    normalized_score
+                    .replace(",", ".")
+                    .replace("%", "")
+                    .strip()
+                )
+
+                if re.fullmatch(
+                    r"<\s*\d+(?:\.\d+)?",
+                    normalized_score,
+                ):
+                    censored_scores.append(
+                        (name, normalized_score)
+                    )
+                    continue
+
                 try:
                     score = parse_score(raw_score)
                 except ValueError as error:
@@ -495,6 +519,19 @@ def parse_wikipedia_first_round_html(
                 if score is not None:
                     candidates.append({"name": name, "score": score})
 
+            if censored_scores:
+                details = ", ".join(
+                    f"{name} {value!r}"
+                    for name, value in censored_scores
+                )
+                skipped.append(
+                    f"{pollster} {fieldwork_raw} "
+                    f"table {table_order} row {row_index} "
+                    f"skipped because the source reports "
+                    f"censored score(s): {details}"
+                )
+                continue
+
             if len(candidates) < 2:
                 continue
 
@@ -504,28 +541,42 @@ def parse_wikipedia_first_round_html(
             names = [candidate["name"] for candidate in candidates]
             hypothesis = "First round — " + ", ".join(names)
 
-            event = apply_completeness_contract({
-                "event_id": make_event_id(
-                    pollster,
-                    fieldwork_start,
-                    fieldwork_end,
-                    hypothesis,
-                    source_url,
-                ),
-                "pollster": pollster,
-                "commissioner": None,
-                "publication_date": None,
-                "fieldwork_start": fieldwork_start,
-                "fieldwork_end": fieldwork_end,
-                "sample_size": parse_sample_size(
-                    cell_text(row.iloc[roles["sample_size"]])
-                ),
-                "round": ROUND,
-                "hypothesis": hypothesis,
-                "scenario_key": make_scenario_key(names),
-                "source_url": source_url,
-                "candidates": candidates,
-            })
+            try:
+                event = apply_completeness_contract({
+                    "event_id": make_event_id(
+                        pollster,
+                        fieldwork_start,
+                        fieldwork_end,
+                        hypothesis,
+                        source_url,
+                    ),
+                    "pollster": pollster,
+                    "commissioner": None,
+                    "publication_date": None,
+                    "fieldwork_start": fieldwork_start,
+                    "fieldwork_end": fieldwork_end,
+                    "sample_size": parse_sample_size(
+                        cell_text(row.iloc[roles["sample_size"]])
+                    ),
+                    "round": ROUND,
+                    "hypothesis": hypothesis,
+                    "scenario_key": make_scenario_key(names),
+                    "source_url": source_url,
+                    "candidates": candidates,
+                })
+            except PollContractError as error:
+                if not str(error).startswith(
+                    "reported total is impossible:"
+                ):
+                    raise
+
+                skipped.append(
+                    f"{pollster} {fieldwork_raw} "
+                    f"table {table_order} row {row_index}: "
+                    f"Wikipedia row rejected by poll contract: "
+                    f"{error}"
+                )
+                continue
 
             events.append(event)
 
