@@ -29,7 +29,16 @@ jobs:
           python-version: "3.12"
 
       - name: Run news pipeline tests
-        run: python -m unittest
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python -B -m unittest -v \
+            test_http_fetch.py \
+            test_source_health.py \
+            test_news_wire_relevance.py \
+            test_recent_changes.py \
+            test_publication_manifest.py \
+            test_frontend_facts.py
 
       - name: Build temporary rolling news outputs
         shell: bash

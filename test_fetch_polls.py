@@ -72,6 +72,26 @@ class SemanticFirstRoundDiscoveryTests(unittest.TestCase):
             ["Ipsos", "Ifop"],
         )
 
+    def test_nested_container_table_is_skipped_without_duplicates(self):
+        wrapped = (
+            '<table class="layout"><tbody><tr><td>'
+            + polling_table(
+                pollster="Ifop",
+                dates="1–2 Jul 2026",
+            )
+            + "</td></tr></tbody></table>"
+        )
+
+        page = first_round_page(wrapped)
+        discovered = discover_first_round_tables(page)
+
+        # Table 0 is the structural wrapper; table 1 is the poll table.
+        self.assertEqual([item[0] for item in discovered], [1])
+
+        events, _ = parse_wikipedia_first_round_html(page)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["pollster"], "Ifop")
+
     def test_runoff_table_is_excluded(self):
         runoff = """
           <h2>Second round</h2>
