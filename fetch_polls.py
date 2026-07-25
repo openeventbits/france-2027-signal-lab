@@ -408,6 +408,14 @@ def discover_first_round_tables(
     discovered = []
 
     for table_order, table in enumerate(document.xpath("//table")):
+        # A structural wrapper may contain several real data tables.
+        # Passing the wrapper to pandas.read_html() returns one frame for
+        # each nested table and can duplicate or reject valid poll tables.
+        # Process only leaf tables; nested tables are visited separately
+        # in their original deterministic document order.
+        if table.xpath(".//table"):
+            continue
+
         context, round_heading = _table_heading_context(table)
         normalized_context = normalize(context)
         if round_heading and (
