@@ -301,12 +301,72 @@ class SourceHealthTests(unittest.TestCase):
         self.assertIsNone(record["validator_url"])
 
     def test_published_bootstrap_without_optional_fields_remains_valid(self):
-        payload = source_health.load_source_health(
-            Path("source_health.json")
+        import json
+        from tempfile import TemporaryDirectory
+
+        published = json.loads(
+            Path("source_health.json").read_text(
+                encoding="utf-8"
+            )
         )
+        published_routes = published["routes"]
+
+        self.assertGreater(
+            len(published_routes),
+            0,
+        )
+
+        for route in published_routes:
+            route.pop("etag", None)
+            route.pop("last_modified", None)
+            route.pop("validator_url", None)
+
+        with TemporaryDirectory() as directory:
+            bootstrap_path = (
+                Path(directory) / "source_health.json"
+            )
+
+            bootstrap_path.write_text(
+                json.dumps(
+                    published,
+                    ensure_ascii=False,
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            payload = source_health.load_source_health(
+                bootstrap_path
+            )
+
         self.assertIsNotNone(payload)
-        self.assertEqual(len(payload["routes"]), 209)
-        self.assertNotIn("etag", payload["routes"][0])
+
+        bootstrap_routes = payload["routes"]
+
+        self.assertEqual(
+            len(bootstrap_routes),
+            len(published_routes),
+        )
+        self.assertEqual(
+            len(
+                {
+                    route["route_id"]
+                    for route in bootstrap_routes
+                }
+            ),
+            len(bootstrap_routes),
+        )
+
+        for optional_field in (
+            "etag",
+            "last_modified",
+            "validator_url",
+        ):
+            self.assertNotIn(
+                optional_field,
+                bootstrap_routes[0],
+            )
 
     def test_one_failure_is_transient(self):
         payload = update(

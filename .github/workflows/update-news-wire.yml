@@ -35,6 +35,7 @@ jobs:
           python -B -m unittest -v \
             test_http_fetch.py \
             test_source_health.py \
+            test_fetch_source_icons.py \
             test_news_wire_relevance.py \
             test_recent_changes.py \
             test_publication_manifest.py \
@@ -64,6 +65,35 @@ jobs:
             --claims claims_under_scrutiny.json \
             --output /tmp/recent_changes.json \
             --previous recent_changes.json
+
+      - name: Update dynamic source icons
+        id: icons
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          retry_args=()
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" || "$(date -u +'%H')" == "02" ]]; then
+            retry_args+=(--retry-errors)
+          fi
+
+          python -B fetch_source_icons.py \
+            --publisher-policy publisher_policy.json \
+            --surface-data /tmp/recent_changes.json \
+            --surface-data /tmp/news_wire.json \
+            "${retry_args[@]}"
+
+          if \
+            git diff --quiet -- \
+              source_icons.json \
+              assets/source-icons \
+            && [[ -z "$(git ls-files --others --exclude-standard -- assets/source-icons)" ]]
+          then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Validate and promote generated data
         id: promote
@@ -450,7 +480,7 @@ jobs:
 
       - name: Commit changed rolling news data
         id: commit
-        if: steps.promote.outputs.changed == 'true'
+        if: steps.promote.outputs.changed == 'true' || steps.icons.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -464,7 +494,9 @@ jobs:
             news_wire.json \
             recent_changes.json \
             source_health.json \
-            publication_manifest.json
+            publication_manifest.json \
+            source_icons.json \
+            assets/source-icons
 
           if git diff --cached --quiet; then
             echo "No staged data change was detected."
@@ -472,7 +504,15 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Update rolling election news data"
+          if [[ "${{ steps.promote.outputs.changed }}" == "true" && "${{ steps.icons.outputs.changed }}" == "true" ]]; then
+            commit_message="Update rolling election news data and source icons"
+          elif [[ "${{ steps.icons.outputs.changed }}" == "true" ]]; then
+            commit_message="Update source icons"
+          else
+            commit_message="Update rolling election news data"
+          fi
+
+          git commit -m "$commit_message"
 
           target_branch="${GITHUB_REF_NAME:-main}"
 
