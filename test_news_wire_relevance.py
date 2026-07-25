@@ -739,7 +739,8 @@ class NewsWireRelevanceTests(unittest.TestCase):
         self.assertEqual(second["items"][0]["source_id"], "bfmtv-politique")
 
     def test_build_wire_keeps_direct_source_contract_with_discovery(self):
-        published = format_datetime(datetime.now(timezone.utc))
+        generated_at = datetime(2026, 7, 25, 13, tzinfo=timezone.utc)
+        published = format_datetime(generated_at)
         request_count = 0
         request_count_lock = threading.Lock()
         direct_feed = f"""<?xml version='1.0' encoding='UTF-8'?>
@@ -767,6 +768,28 @@ class NewsWireRelevanceTests(unittest.TestCase):
             return successful_fetch(direct_feed, url)
 
         with tempfile.TemporaryDirectory() as directory:
+            polls_path = Path(directory) / "polls.json"
+            polls_path.write_text(
+                json.dumps(
+                    {
+                        "events": [
+                            {
+                                "round": "first_round",
+                                "fieldwork_end": "2026-07-25",
+                                "candidates": [
+                                    {
+                                        "name": (
+                                            f"Candidate {index:02d}"
+                                        )
+                                    }
+                                    for index in range(1, 21)
+                                ],
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
             inventory_path = Path(directory) / "inventory.json"
             review_path = Path(directory) / "publishers.json"
             health_routes = []
@@ -776,11 +799,12 @@ class NewsWireRelevanceTests(unittest.TestCase):
                 side_effect=fake_request,
             ):
                 payload, inventory = build_wire(
-                    Path("polls.json"),
+                    polls_path,
                     30,
                     0,
                     inventory_path,
                     review_path,
+                    generated_at=generated_at,
                     health_route_configurations=health_routes,
                     health_attempts=health_attempts,
                 )
