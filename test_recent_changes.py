@@ -555,7 +555,7 @@ class RecentChangesTests(unittest.TestCase):
             (
                 {
                     "headline": (
-                        "Présidentielle: le parti modifie le processus "
+                        "Présidentielle 2027: le parti modifie le processus "
                         "de primaire"
                     ),
                     "candidates": [],
@@ -974,6 +974,25 @@ class RecentChangesTests(unittest.TestCase):
         self.assertIn(
             "global et carré",
             entries[0]["headline"],
+        )
+
+
+    def test_foreign_presidential_article_is_defensively_rejected(self):
+        item = {
+            "headline": (
+                "Brésil : en difficulté, Flavio Bolsonaro se lance "
+                "dans la course présidentielle"
+            ),
+            "summary": (
+                "Concrete candidate, endorsement, selection or "
+                "campaign-status change."
+            ),
+            "candidates": [],
+            "explicit_election": True,
+        }
+
+        self.assertIsNone(
+            classify_news_change(item)
         )
 
 if __name__ == "__main__":

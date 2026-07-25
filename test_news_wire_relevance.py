@@ -1607,5 +1607,71 @@ class NewsWireRelevanceTests(unittest.TestCase):
         )
 
 
+    def test_foreign_presidential_races_require_a_french_anchor(self):
+        rejected = [
+            (
+                "Brésil : en difficulté, Flavio Bolsonaro se lance "
+                "dans la course présidentielle",
+                "",
+                [],
+            ),
+            (
+                "Donald Trump relance sa campagne présidentielle",
+                "",
+                [],
+            ),
+            (
+                "Roumanie : les candidats se préparent à "
+                "l'élection présidentielle",
+                "",
+                [],
+            ),
+        ]
+
+        for headline, summary, candidates in rejected:
+            with self.subTest(headline=headline):
+                self.assertIsNone(
+                    classify_relevant_news(
+                        normalize(headline),
+                        normalize(summary),
+                        candidates,
+                    )
+                )
+
+        accepted = [
+            (
+                "Présidentielle 2027 : Jean-Luc Mélenchon "
+                "propose un accord aux Écologistes",
+                "",
+                ["Jean-Luc Mélenchon"],
+            ),
+            (
+                "Marine Le Pen prépare sa candidature à l'Élysée",
+                "",
+                ["Marine Le Pen"],
+            ),
+            (
+                "Ce que la victoire de Trump pourrait changer "
+                "pour la présidentielle française de 2027",
+                "",
+                [],
+            ),
+            (
+                "Le Parti socialiste prépare la présidentielle",
+                "",
+                [],
+            ),
+        ]
+
+        for headline, summary, candidates in accepted:
+            with self.subTest(headline=headline):
+                self.assertIsNotNone(
+                    classify_relevant_news(
+                        normalize(headline),
+                        normalize(summary),
+                        candidates,
+                    )
+                )
+
 if __name__ == "__main__":
     unittest.main()
