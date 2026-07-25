@@ -7833,7 +7833,7 @@
         pollPackage.events.push(event);
       });
 
-      return packages.slice(0, 3);
+      return packages;
     }
 
     function calculateRaceScaleMaximum(packages) {
@@ -7958,6 +7958,60 @@
           panel.setAttribute("aria-labelledby", button.id);
         }
       });
+    }
+
+    function raceComparableCandidateCount(event, events) {
+      if (!event || !Array.isArray(event.candidates)) return 0;
+
+      return event.candidates.reduce((count, candidate) => {
+        const change = deriveComparableChange(
+          events,
+          candidate.name,
+          event.fieldwork_end,
+          event
+        );
+
+        return count + (
+          change.classification === "NO COMPARABLE PRIOR"
+            ? 0
+            : 1
+        );
+      }, 0);
+    }
+
+    function rankRacePollPackages(pollPackages, events) {
+      const comparisonCountByPackage = new Map();
+
+      pollPackages.forEach(pollPackage => {
+        let selectedIndex = 0;
+        let selectedComparableCount = -1;
+
+        pollPackage.events.forEach((event, index) => {
+          const comparableCount =
+            raceComparableCandidateCount(event, events);
+
+          if (comparableCount > selectedComparableCount) {
+            selectedIndex = index;
+            selectedComparableCount = comparableCount;
+          }
+        });
+
+        raceGlanceState.selectedHypothesisByPoll[
+          pollPackage.key
+        ] = selectedIndex;
+
+        comparisonCountByPackage.set(
+          pollPackage.key,
+          Math.max(0, selectedComparableCount)
+        );
+      });
+
+      return [...pollPackages].sort((a, b) =>
+        b.fieldwork_end.localeCompare(a.fieldwork_end) ||
+        comparisonCountByPackage.get(b.key) -
+          comparisonCountByPackage.get(a.key) ||
+        a.pollster.localeCompare(b.pollster, "fr")
+      );
     }
 
     function selectRacePoll(pollKey, options = {}) {
@@ -8250,10 +8304,11 @@
           </article>`;
       }).join("");
 
-      $("#race-poll-panel").classList.toggle(
-        "is-no-comparison",
-        !hasComparableChange
-      );
+      const racePollPanel = $("#race-poll-panel");
+
+      racePollPanel.classList.remove("is-no-comparison");
+      racePollPanel.dataset.comparisonState =
+        hasComparableChange ? "available" : "unavailable";
 
       bars.innerHTML = `
         <div class="race-column-head" aria-hidden="true">
@@ -9122,7 +9177,10 @@
           a.pollster.localeCompare(b.pollster)
         );
 
-        const pollPackages = buildRacePollPackages(validEvents);
+        const pollPackages = rankRacePollPackages(
+          buildRacePollPackages(validEvents),
+          validEvents
+        ).slice(0, 3);
 
         if (!pollPackages.length) {
           throw new Error(
