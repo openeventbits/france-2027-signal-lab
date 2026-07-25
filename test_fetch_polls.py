@@ -213,6 +213,82 @@ class PollEventContractTests(unittest.TestCase):
         self.assertEqual(event["reported_total"], 98.5)
         self.assertEqual(event["unreported_share"], 1.5)
 
+    def test_censored_score_skips_ambiguous_row(self):
+        valid_table = polling_table(
+            pollster="Ifop",
+            dates="1–2 Jul 2026",
+        )
+        censored_table = polling_table(
+            pollster="OpinionWay",
+            dates="8–9 Jul 2026",
+            candidates=(
+                ("Edouard Philippe", "30"),
+                ("Marine Le Pen", "69"),
+                ("Nathalie Arthaud", "<1"),
+            ),
+        )
+
+        events, skipped = parse_wikipedia_first_round_html(
+            first_round_page(
+                valid_table,
+                censored_table,
+            )
+        )
+
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["pollster"], "Ifop")
+        self.assertEqual(len(skipped), 1)
+        self.assertIn(
+            "OpinionWay 8–9 Jul 2026",
+            skipped[0],
+        )
+        self.assertIn(
+            "Nathalie Arthaud '<1'",
+            skipped[0],
+        )
+        self.assertIn(
+            "censored score",
+            skipped[0],
+        )
+
+    def test_impossible_total_skips_wikipedia_row(self):
+        valid_table = polling_table(
+            pollster="Ifop",
+            dates="1–2 Jul 2026",
+        )
+        impossible_table = polling_table(
+            pollster="Harris Interactive",
+            dates="22 Mar 2026",
+            candidates=(
+                ("Edouard Philippe", "30"),
+                ("Eric Zemmour", "30"),
+                ("Glucksmann", "42"),
+            ),
+        )
+
+        events, skipped = parse_wikipedia_first_round_html(
+            first_round_page(
+                valid_table,
+                impossible_table,
+            )
+        )
+
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["pollster"], "Ifop")
+        self.assertEqual(len(skipped), 1)
+        self.assertIn(
+            "Harris Interactive 22 Mar 2026",
+            skipped[0],
+        )
+        self.assertIn(
+            "reported total is impossible: 102",
+            skipped[0],
+        )
+        self.assertIn(
+            "Wikipedia row rejected",
+            skipped[0],
+        )
+
     def test_malformed_numeric_score_fails(self):
         with self.assertRaisesRegex(ValueError, "ambiguous score"):
             self.parse_one(
