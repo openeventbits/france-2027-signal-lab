@@ -304,6 +304,74 @@ class CacheAndFailureTests(unittest.TestCase):
             self.assertEqual(records, [record])
 
 
+    def test_blocked_homepage_uses_same_origin_icon_fallback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            icon_dir = root / "assets" / "source-icons"
+            icon_dir.mkdir(parents=True)
+
+            requested_urls = []
+
+            def request_bytes(
+                url,
+                *,
+                accept,
+                maximum_bytes,
+                timeout=25,
+            ):
+                requested_urls.append(url)
+
+                if url.endswith("/apple-touch-icon.png"):
+                    return (
+                        b"\x89PNG\r\n\x1a\n" + b"x" * 64,
+                        (
+                            "https://www.liberation.fr/"
+                            "apple-touch-icon.png"
+                        ),
+                        "image/png",
+                    )
+
+                raise RuntimeError("unexpected fallback URL")
+
+            with (
+                patch.object(
+                    icons,
+                    "discover_icon_candidates",
+                    side_effect=RuntimeError(
+                        "HTTP Error 403: Forbidden"
+                    ),
+                ),
+                patch.object(
+                    icons,
+                    "request_bytes",
+                    side_effect=request_bytes,
+                ),
+            ):
+                record = icons.retrieve_source_icon(
+                    publisher="Libération",
+                    feed_url="https://liberation.fr/",
+                    icons_dir=icon_dir,
+                    repository_root=root,
+                )
+
+            self.assertEqual(record["status"], "ok")
+            self.assertEqual(
+                record["path"],
+                "assets/source-icons/liberation.png",
+            )
+            self.assertTrue(
+                (root / record["path"]).is_file()
+            )
+            self.assertEqual(
+                requested_urls,
+                [
+                    (
+                        "https://liberation.fr/"
+                        "apple-touch-icon.png"
+                    )
+                ],
+            )
+
 class ManifestTests(unittest.TestCase):
     def test_timestamp_only_change_does_not_rewrite_manifest(self):
         with tempfile.TemporaryDirectory() as directory:

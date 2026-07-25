@@ -309,6 +309,42 @@ def manifest_icon_candidates(
     return candidates
 
 
+def common_origin_icon_candidates(
+    homepage_url: str,
+) -> list[dict[str, str]]:
+    """Return standard same-origin icon locations."""
+
+    parsed = urlsplit(homepage_url)
+
+    if parsed.scheme != "https" or not parsed.netloc:
+        raise RuntimeError(
+            f"Invalid HTTPS homepage for icon fallback: {homepage_url}"
+        )
+
+    origin = f"https://{parsed.netloc}/"
+
+    return [
+        {
+            "href": urljoin(
+                origin,
+                "/apple-touch-icon.png",
+            ),
+            "rel": "fallback apple-touch-icon",
+            "sizes": "180x180",
+            "type": "image/png",
+        },
+        {
+            "href": urljoin(
+                origin,
+                "/favicon.ico",
+            ),
+            "rel": "fallback icon",
+            "sizes": "",
+            "type": "image/x-icon",
+        },
+    ]
+
+
 def discover_icon_candidates(
     homepage_url: str,
 ) -> list[dict[str, str]]:
@@ -347,13 +383,8 @@ def discover_icon_candidates(
             manifest_icon_candidates(manifest_url)
         )
 
-    candidates.append(
-        {
-            "href": urljoin(final_homepage, "/favicon.ico"),
-            "rel": "fallback icon",
-            "sizes": "",
-            "type": "image/x-icon",
-        }
+    candidates.extend(
+        common_origin_icon_candidates(final_homepage)
     )
 
     deduplicated: dict[str, dict[str, str]] = {}
@@ -823,9 +854,18 @@ def retrieve_source_icon(
     repository_root: Path,
 ) -> dict[str, Any]:
     homepage_url = homepage_from_feed(feed_url)
-    candidates = discover_icon_candidates(homepage_url)
-
     errors: list[str] = []
+
+    try:
+        candidates = discover_icon_candidates(homepage_url)
+    except Exception as error:
+        errors.append(
+            f"{homepage_url}: "
+            f"{type(error).__name__}: {error}"
+        )
+        candidates = common_origin_icon_candidates(
+            homepage_url
+        )
 
     for candidate in candidates:
         icon_url = candidate["href"]
