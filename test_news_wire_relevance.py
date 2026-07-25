@@ -1673,5 +1673,149 @@ class NewsWireRelevanceTests(unittest.TestCase):
                     )
                 )
 
+
+    def test_retained_foreign_presidential_provenance_is_revalidated(self):
+        generated_at = datetime(
+            2026,
+            7,
+            25,
+            16,
+            tzinfo=timezone.utc,
+        )
+        source = SOURCES[0]
+
+        retained_entry = self.inventory_entry(
+            generated_at - timedelta(hours=2),
+            headline=(
+                "Présidentielle 2027 : une alliance est annoncée"
+            ),
+        )
+        retained_entry.update(
+            {
+                "source_id": source["source_id"],
+                "publisher": source["name"],
+                "feed_url": source["feed_url"],
+                "politics_specific": bool(
+                    source.get("politics_specific")
+                ),
+                "url": "https://example.test/french-alliance",
+                "canonical_url": (
+                    "https://example.test/french-alliance"
+                ),
+            }
+        )
+
+        foreign_entry = self.inventory_entry(
+            generated_at - timedelta(hours=3),
+            headline=(
+                "Brésil : en difficulté, Flavio Bolsonaro "
+                "se lance dans la course présidentielle"
+            ),
+        )
+        foreign_entry.update(
+            {
+                "source_id": source["source_id"],
+                "publisher": source["name"],
+                "feed_url": source["feed_url"],
+                "politics_specific": bool(
+                    source.get("politics_specific")
+                ),
+                "url": "https://example.test/bolsonaro",
+                "canonical_url": "https://example.test/bolsonaro",
+                # Simulate provenance stored by the previous rules.
+                "relevance_reason": "presidential_context",
+                "relevance_terms": ["presidentielle"],
+            }
+        )
+
+        previous_inventory, _entries, _stats = merge_inventory(
+            {
+                "schema_version": 3,
+                "generated_at": None,
+                "window_days": 30,
+                "items": [],
+            },
+            [
+                retained_entry,
+                foreign_entry,
+            ],
+            generated_at - timedelta(hours=1),
+            30,
+        )
+
+        def fake_fetch(url, **_kwargs):
+            return not_modified_fetch(url)
+
+        with tempfile.TemporaryDirectory() as directory:
+            inventory_path = Path(directory) / "inventory.json"
+            inventory_path.write_text(
+                json.dumps(previous_inventory),
+                encoding="utf-8",
+            )
+
+            with (
+                patch(
+                    "fetch_news_wire.fetch_news_route",
+                    side_effect=fake_fetch,
+                ),
+                patch(
+                    "fetch_news_wire.parse_feed",
+                    side_effect=AssertionError(
+                        "304 response must not be parsed"
+                    ),
+                ),
+            ):
+                payload, inventory = build_wire(
+                    Path("polls.json"),
+                    30,
+                    0,
+                    inventory_path,
+                    generated_at=generated_at,
+                )
+
+        foreign_records = [
+            item
+            for item in inventory["items"]
+            if "bolsonaro" in item["headline"].casefold()
+        ]
+
+        self.assertEqual(len(foreign_records), 1)
+        self.assertIsNone(
+            foreign_records[0]["relevance_reason"]
+        )
+        self.assertEqual(
+            foreign_records[0]["relevance_terms"],
+            [],
+        )
+
+        public_projection = {
+            "election_news": payload["election_news"],
+            "notable_developments": payload[
+                "notable_developments"
+            ],
+            "relevant_news": payload["relevant_news"],
+            "candidate_watch": payload["candidate_watch"],
+            "campaign_agenda": payload["campaign_agenda"],
+        }
+
+        public_text = json.dumps(
+            public_projection,
+            ensure_ascii=False,
+        ).casefold()
+
+        self.assertNotIn(
+            foreign_records[0]["id"].casefold(),
+            public_text,
+        )
+        self.assertNotIn(
+            "flavio bolsonaro",
+            public_text,
+        )
+        self.assertNotIn(
+            "https://example.test/bolsonaro",
+            public_text,
+        )
+        self.assertEqual(len(payload["relevant_news"]), 1)
+
 if __name__ == "__main__":
     unittest.main()

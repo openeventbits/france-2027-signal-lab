@@ -2046,6 +2046,23 @@ def inventory_entry(item: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def revalidate_retained_inventory_scope(
+    item: dict[str, Any],
+) -> dict[str, Any]:
+    """Apply current scope exclusions to retained inventory provenance."""
+
+    refreshed = dict(item)
+
+    if unanchored_presidential_context(
+        refreshed.get("headline"),
+        refreshed.get("summary"),
+        refreshed.get("candidate_names"),
+    ):
+        refreshed["relevance_reason"] = None
+        refreshed["relevance_terms"] = []
+
+    return refreshed
+
 def merge_inventory(
     existing: dict[str, Any],
     current_entries: list[dict[str, Any]],
@@ -2060,7 +2077,8 @@ def merge_inventory(
     retained_by_signature: dict[str, str] = {}
     expired_items = 0
 
-    for item in existing.get("items", []):
+    for stored_item in existing.get("items", []):
+        item = revalidate_retained_inventory_scope(stored_item)
         published_at = parse_feed_datetime(item.get("published_at"))
         if published_at is None or published_at < window_start:
             expired_items += 1
@@ -3210,6 +3228,16 @@ def build_wire(
         ]
         normalized_headline = normalize(entry["headline"])
         normalized_summary = normalize(entry.get("summary") or "")
+
+        # Retained inventory provenance cannot bypass current scope rules.
+        # The record remains in the raw rolling inventory for continuity,
+        # but an unanchored foreign presidential story enters no public lane.
+        if unanchored_presidential_context(
+            normalized_headline,
+            normalized_summary,
+            matched_candidates,
+        ):
+            continue
 
         # Topic/profile directory pages remain in the raw inventory but do not
         # enter Candidate Watch, Relevant News, Election News, or the ledger.
