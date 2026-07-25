@@ -9195,7 +9195,21 @@
           calculateRaceScaleMaximum(pollPackages);
 
         pollPackages.forEach(pollPackage => {
-          raceGlanceState.selectedHypothesisByPoll[pollPackage.key] = 0;
+          const selectedIndex = Number(
+            raceGlanceState.selectedHypothesisByPoll[
+              pollPackage.key
+            ]
+          );
+
+          if (
+            !Number.isInteger(selectedIndex) ||
+            selectedIndex < 0 ||
+            selectedIndex >= pollPackage.events.length
+          ) {
+            raceGlanceState.selectedHypothesisByPoll[
+              pollPackage.key
+            ] = 0;
+          }
         });
 
         const selector = $("#hypothesis-select");

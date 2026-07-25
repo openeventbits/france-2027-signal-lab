@@ -92,5 +92,45 @@ class RaceGlanceDefaultTests(unittest.TestCase):
         )
 
 
+    def test_ranked_scenario_survives_dashboard_initialization(self):
+        state_start = self.source.index(
+            "raceGlanceState.scaleMax ="
+        )
+        loop_start = self.source.index(
+            "pollPackages.forEach(pollPackage => {",
+            state_start,
+        )
+        loop_end = self.source.index(
+            "const selector =",
+            loop_start,
+        )
+        initialization = self.source[
+            loop_start:loop_end
+        ]
+
+        self.assertIn(
+            "const selectedIndex = Number(",
+            initialization,
+        )
+        self.assertIn(
+            "raceGlanceState.selectedHypothesisByPoll[",
+            initialization,
+        )
+        self.assertIn(
+            "!Number.isInteger(selectedIndex)",
+            initialization,
+        )
+        self.assertIn(
+            "selectedIndex >= pollPackage.events.length",
+            initialization,
+        )
+        self.assertNotIn(
+            """pollPackages.forEach(pollPackage => {
+          raceGlanceState.selectedHypothesisByPoll[pollPackage.key] = 0;
+        });""",
+            initialization,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
