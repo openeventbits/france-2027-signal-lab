@@ -2,6 +2,7 @@
 """Build the FR27 Signal Lab election news wire from direct and discovery feeds."""
 
 from __future__ import annotations
+from news_scope import unanchored_presidential_context
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -1454,6 +1455,15 @@ def classify_relevant_news(
     ordinary legislation, lifestyle coverage, or a historical election
     into current-race news.
     """
+    # Generic presidential language is not sufficient: the
+    # article must also contain a deterministic French-race anchor.
+    if unanchored_presidential_context(
+        normalized_headline,
+        normalized_summary,
+        matched_candidates,
+    ):
+        return None
+
 
     headline = normalize(normalized_headline)
     summary = normalize(normalized_summary)

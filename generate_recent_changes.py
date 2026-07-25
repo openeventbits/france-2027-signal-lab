@@ -2,6 +2,7 @@
 """Compose the compact Recent Changes Ledger from existing public data."""
 
 from __future__ import annotations
+from news_scope import unanchored_presidential_context
 
 import argparse
 import hashlib
@@ -330,6 +331,15 @@ def classify_news_change(
     and the upstream ``explicit_election`` flag may confirm presidential
     context, but neither may manufacture an action absent from the headline.
     """
+    # Defensive boundary: stale or externally supplied news-wire
+    # data cannot turn a foreign presidential race into a change.
+    if unanchored_presidential_context(
+        item.get("headline"),
+        item.get("summary"),
+        item.get("candidates"),
+    ):
+        return None
+
 
     headline = str(item.get("headline") or "").strip()
     headline_text = normalized_title(headline)
