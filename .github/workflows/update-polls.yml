@@ -32,14 +32,16 @@ jobs:
       - name: Test first-round polling contract
         env:
           PYTHONDONTWRITEBYTECODE: "1"
-        run: python -B -m unittest -v test_fetch_polls.py test_frontend_facts.py
+        run: python -B -m unittest -v test_commission_notice_discovery.py test_fetch_polls.py test_frontend_facts.py
 
       - name: Fetch polls into temporary files
         run: |
           python fetch_polls.py \
             --output /tmp/polls.json \
             --second-round-output /tmp/second_round_polls.json \
-            --closest-runoff-output /tmp/closest_tested_runoff.json
+            --closest-runoff-output /tmp/closest_tested_runoff.json \
+            --commission-registry commission_notice_registry.json \
+            --commission-registry-output /tmp/commission_notice_registry.json
 
       - name: Validate and stage fetched data
         id: validate
@@ -50,6 +52,7 @@ jobs:
           import os
           from pathlib import Path
 
+          from commission_notice_discovery import validate_registry
           from poll_contract import PollContractError, validate_poll_events
 
           current_path = Path("polls.json")
@@ -58,6 +61,8 @@ jobs:
           fetched_second_round_path = Path("/tmp/second_round_polls.json")
           closest_path = Path("closest_tested_runoff.json")
           fetched_closest_path = Path("/tmp/closest_tested_runoff.json")
+          registry_path = Path("commission_notice_registry.json")
+          fetched_registry_path = Path("/tmp/commission_notice_registry.json")
 
           current = json.loads(current_path.read_text(encoding="utf-8"))
           current_second_round = json.loads(
@@ -73,6 +78,15 @@ jobs:
           closest = json.loads(
               fetched_closest_path.read_text(encoding="utf-8")
           )
+          current_registry = json.loads(
+              registry_path.read_text(encoding="utf-8")
+          )
+          fetched_registry = json.loads(
+              fetched_registry_path.read_text(encoding="utf-8")
+          )
+
+          validate_registry(current_registry)
+          validate_registry(fetched_registry)
 
           if not isinstance(current, list) or not isinstance(fetched, list):
               raise SystemExit("polls data must be a JSON list")
@@ -263,6 +277,9 @@ jobs:
               != semantic_payload(current_closest)
           )
 
+          registry_changed = current_registry != fetched_registry
+          changed = changed or registry_changed
+
           with Path(os.environ["GITHUB_OUTPUT"]).open(
               "a", encoding="utf-8"
           ) as output:
@@ -270,14 +287,15 @@ jobs:
 
           if not changed:
               print(
-                  "No semantic poll or runoff change was detected; "
-                  "generated_at is ignored."
+                  "No semantic poll, runoff, or Commission registry "
+                  "change was detected; generated_at is ignored."
               )
               raise SystemExit(0)
 
           current_path.write_bytes(fetched_path.read_bytes())
           second_round_path.write_bytes(fetched_second_round_path.read_bytes())
           closest_path.write_bytes(fetched_closest_path.read_bytes())
+          registry_path.write_bytes(fetched_registry_path.read_bytes())
 
           print(
               f"Validated {len(fetched)} first-round and "
@@ -329,6 +347,7 @@ jobs:
 
           git add -- \
             polls.json second_round_polls.json closest_tested_runoff.json \
+            commission_notice_registry.json \
             recent_changes.json publication_manifest.json
           git commit -m "Update polls data"
           git push origin HEAD:main
