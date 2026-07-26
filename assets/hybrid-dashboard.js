@@ -2,6 +2,13 @@
   "use strict";
 
   const mount = document.getElementById("hybrid-signal-board");
+  const topMediaMount = document.getElementById(
+    "top-media-pulse-content"
+  );
+  const topMediaMetrics = document.getElementById(
+    "top-media-pulse-metrics"
+  );
+
   if (!mount) return;
 
   const views = Object.freeze({
@@ -461,15 +468,44 @@
         item => item.latestShare
       );
 
-    const publisherCount = new Set(
-      electionItems
-        .map(item =>
-          String(
+    const publisherCounts =
+      electionItems.reduce(
+        (counts, item) => {
+          const publisher = String(
             item.publisher || ""
-          ).trim()
-        )
-        .filter(Boolean)
-    ).size;
+          ).trim();
+
+          if (!publisher) return counts;
+
+          counts.set(
+            publisher,
+            (counts.get(publisher) || 0) + 1
+          );
+
+          return counts;
+        },
+        new Map()
+      );
+
+    const publisherCount =
+      publisherCounts.size;
+
+    const topPublishers = [
+      ...publisherCounts.entries()
+    ]
+      .map(([name, count]) => ({
+        name,
+        count
+      }))
+      .sort(
+        (a, b) =>
+          b.count - a.count ||
+          a.name.localeCompare(
+            b.name,
+            "fr"
+          )
+      )
+      .slice(0, 5);
 
     const agendaTopics =
       Array.isArray(
@@ -588,6 +624,7 @@
         coverageItems.length,
       acceptedNewsPublisherCount:
         publisherCount,
+      topPublishers,
       dailyActivity,
       activityMax: Math.max(
         1,
@@ -1385,6 +1422,12 @@
       <div class="hybrid-tabs" role="tablist" aria-label="Signal Board detail views">
         ${viewOrder.map(key => `<button class="hybrid-tab" id="hybrid-tab-${key}" type="button" role="tab"
           data-hybrid-view="${key}" aria-controls="hybrid-panel-${key}" aria-selected="false" tabindex="-1">${views[key].label}</button>`).join("")}
+        <button
+          class="hybrid-tab hybrid-poll-compare-tab"
+          type="button"
+          data-hybrid-poll-compare
+          aria-controls="polling-evidence-lab"
+        >POLL COMPARE</button>
       </div>
       <section class="hybrid-panel" id="hybrid-panel-runoff" role="tabpanel" aria-labelledby="hybrid-tab-runoff">${renderRunoffPanel(models.runoff)}</section>
       <section class="hybrid-panel" id="hybrid-panel-media" role="tabpanel" aria-labelledby="hybrid-tab-media">${renderMediaPanel(models.media)}</section>
@@ -1449,8 +1492,8 @@
     workspace.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
   }
 
-  function bindMediaTopicLinks() {
-    mount
+  function bindMediaTopicLinks(root = mount) {
+    root
       .querySelectorAll(
         "[data-hybrid-media-topic]"
       )
@@ -1533,17 +1576,510 @@
     });
   }
 
+  function renderTopMediaPulsePanel(model) {
+    if (model.state !== "ready") {
+      return summaryState(model);
+    }
+
+    const compactTimestamp = value => {
+      const parsed = new Date(value);
+
+      if (!Number.isFinite(parsed.getTime())) {
+        return "Date unavailable";
+      }
+
+      return new Intl.DateTimeFormat(
+        "en-GB",
+        {
+          day: "2-digit",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+          timeZone: "Europe/Paris"
+        }
+      )
+        .format(parsed)
+        .replace(",", "");
+    };
+
+    const coverageRows = model.feedItems
+      .slice(0, 5)
+      .map(item => `
+        <a
+          class="top-media-coverage-row"
+          href="${escapeAttribute(
+            safeSourceUrl(item.url)
+          )}"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="${escapeAttribute(
+            `Open ${item.publisher} article: ${item.headline}`
+          )}"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="${escapeAttribute(
+                item.published_at
+              )}"
+            >${escapeHtml(
+              compactTimestamp(
+                item.published_at
+              )
+            )}</time>
+
+            <strong>
+              ${escapeHtml(item.publisher)}
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >${escapeHtml(item.headline)}</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+      `)
+      .join("");
+
+    const maxCombinedShare = Math.max(
+      1,
+      ...model.candidateCoverageLeaders.map(
+        item =>
+          item.latestShare +
+          item.previousShare
+      )
+    );
+
+    const shiftRows =
+      model.candidateCoverageLeaders
+        .slice(0, 6)
+        .map(item => {
+          const delta = item.changePp;
+
+          const directionClass =
+            delta > 0.05
+              ? "is-up"
+              : delta < -0.05
+                ? "is-down"
+                : "is-flat";
+
+          const direction =
+            delta > 0.05
+              ? "▲"
+              : delta < -0.05
+                ? "▼"
+                : "—";
+
+          const latestShareText =
+            formatMediaShare(
+              item.latestShare
+            );
+
+          const previousShareText =
+            formatMediaShare(
+              item.previousShare
+            );
+
+          const deltaText =
+            `${delta > 0 ? "+" : ""}` +
+            `${formatMediaShare(delta)}pp`;
+
+          const currentWidth = Math.min(
+            100,
+            item.latestShare /
+              maxCombinedShare *
+              100
+          );
+
+          const previousWidth = Math.min(
+            100,
+            item.previousShare /
+              maxCombinedShare *
+              100
+          );
+
+          return `
+            <div
+              class="top-media-shift-row"
+              aria-label="${escapeAttribute(
+                `${item.name}: ${latestShareText} percent current, ${previousShareText} percent prior, ${deltaText}`
+              )}"
+            >
+              <span class="top-media-shift-name">
+                ${escapeHtml(item.name)}
+              </span>
+
+              <strong>
+                ${latestShareText}%
+              </strong>
+
+              <span
+                class="top-media-shift-track"
+                aria-hidden="true"
+              >
+                <span
+                  class="top-media-shift-current"
+                  style="--top-current-share:${currentWidth.toFixed(2)}%"
+                ></span>
+
+                <i
+                  class="top-media-shift-prior"
+                  style="--top-prior-share:${previousWidth.toFixed(2)}%"
+                ></i>
+              </span>
+
+              <em class="top-media-shift-prior-value">
+                ${previousShareText}%
+              </em>
+
+              <b class="${directionClass}">
+                ${direction} ${escapeHtml(deltaText)}
+              </b>
+            </div>
+          `;
+        })
+        .join("");
+
+    const maxTopicDays = Math.max(
+      1,
+      ...model.topicCoverage.map(
+        topic =>
+          Number.isFinite(topic.sourceDays)
+            ? topic.sourceDays
+            : 0
+      )
+    );
+
+    const topicRows = model.topicCoverage
+      .slice(0, 4)
+      .map(topic => {
+        const sourceDays =
+          Number.isFinite(topic.sourceDays)
+            ? topic.sourceDays
+            : 0;
+
+        const topicWidth = Math.min(
+          100,
+          sourceDays /
+            maxTopicDays *
+            100
+        );
+
+        return `
+          <button
+            class="top-media-topic-row"
+            type="button"
+            data-hybrid-media-topic="${escapeAttribute(
+              topic.id
+            )}"
+            aria-label="${escapeAttribute(
+              `${topic.label}: ${sourceDays} source-days. Open Campaign Agenda detail.`
+            )}"
+          >
+            <span>
+              ${escapeHtml(topic.label)}
+            </span>
+
+            <i aria-hidden="true">
+              <b
+                style="--top-topic-width:${topicWidth.toFixed(2)}%"
+              ></b>
+            </i>
+
+            <strong>${sourceDays || "—"}</strong>
+          </button>
+        `;
+      })
+      .join("");
+
+    const publisherRows =
+      model.topPublishers
+        .slice(0, 5)
+        .map(
+          (publisher, index) => `
+            <div class="top-media-publisher-row">
+              <span aria-hidden="true">
+                ${String(index + 1).padStart(2, "0")}
+              </span>
+
+              <strong>
+                ${escapeHtml(publisher.name)}
+              </strong>
+
+              <b>${publisher.count}</b>
+            </div>
+          `
+        )
+        .join("");
+
+    const currentPeriodLabel =
+      formatMediaPeriodRange(
+        model.latestStartKey,
+        model.latestEndKey
+      );
+
+    const priorPeriodLabel =
+      formatMediaPeriodRange(
+        model.previousStartKey,
+        model.previousEndKey
+      );
+
+    return `
+      <div class="top-media-dashboard">
+        <section class="top-media-latest">
+          <div class="top-media-section-heading">
+            <h3>Latest election coverage</h3>
+
+            <span>
+              ${Math.min(
+                5,
+                model.feedItems.length
+              )} latest
+            </span>
+          </div>
+
+          <div
+            class="top-media-coverage-list"
+            role="feed"
+            aria-label="Latest accepted election coverage"
+          >
+            ${coverageRows}
+          </div>
+
+
+          <button
+            class="top-media-panel-link ecm-open"
+            type="button"
+            data-election-coverage-open
+            aria-haspopup="dialog"
+            aria-controls="election-coverage-modal"
+            aria-expanded="false"
+          >
+            Browse recent coverage →
+          </button>
+        </section>
+
+        <aside class="top-media-analysis">
+          <section class="top-media-shift">
+            <div class="top-media-section-heading">
+              <h3>Coverage shift</h3>
+            </div>
+
+            <div
+              class="top-media-period-legend"
+              aria-label="${escapeAttribute(
+                `Current period ${currentPeriodLabel}; prior period ${priorPeriodLabel}.`
+              )}"
+            >
+              <span class="is-current">
+                <i aria-hidden="true"></i>
+                <strong>CURRENT</strong>
+                <small>
+                  ${escapeHtml(
+                    currentPeriodLabel
+                  )}
+                </small>
+              </span>
+
+              <span class="is-prior">
+                <i aria-hidden="true"></i>
+                <strong>PRIOR</strong>
+                <small>
+                  ${escapeHtml(
+                    priorPeriodLabel
+                  )}
+                </small>
+              </span>
+            </div>
+
+            <div class="top-media-shift-list">
+              ${shiftRows}
+            </div>
+          </section>
+
+          <div class="top-media-support-grid">
+            <section>
+              <div class="top-media-section-heading">
+                <h3>Topic coverage</h3>
+              </div>
+
+              <div class="top-media-topic-list">
+                ${topicRows}
+              </div>
+
+              <a
+                class="top-media-panel-link"
+                href="${escapeAttribute(
+                  views.agenda.hash
+                )}"
+              >
+                View all topics →
+              </a>
+            </section>
+
+            <section>
+              <div class="top-media-section-heading">
+                <h3>Top publishers</h3>
+              </div>
+
+              <div class="top-media-publisher-list">
+                ${publisherRows}
+              </div>
+            </section>
+          </div>
+        </aside>
+      </div>
+    `;
+  }
+
+  function bindElectionCoverageModal(
+    model
+  ) {
+    const button = topMediaMount
+      ?.querySelector(
+        "[data-election-coverage-open]"
+      );
+
+    if (!button) return;
+
+    button.addEventListener(
+      "click",
+      event => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        window
+          .France2027ElectionCoverageModal
+          ?.open(model, button);
+      }
+    );
+  }
+
+  function renderTopMediaPulse(model) {
+    if (!topMediaMount) return;
+
+    topMediaMount.innerHTML =
+      renderTopMediaPulsePanel(model);
+
+    if (topMediaMetrics) {
+      if (model.state === "ready") {
+        const metrics = [
+          {
+            value: model.electionNewsCount,
+            label: "accepted news"
+          },
+          {
+            value:
+              model.acceptedNewsPublisherCount,
+            label: "publishers"
+          },
+          {
+            value: model.activityItemCount,
+            label: "recent (14d)"
+          },
+          {
+            value: model.candidateWatchCount,
+            label: "candidate-watch"
+          }
+        ];
+
+        topMediaMetrics.innerHTML =
+          metrics
+            .map(metric => `
+              <span class="top-media-header-metric">
+                <strong>
+                  ${escapeHtml(
+                    String(metric.value)
+                  )}
+                </strong>
+                <small>
+                  ${escapeHtml(metric.label)}
+                </small>
+              </span>
+            `)
+            .join("");
+
+        topMediaMetrics.setAttribute(
+          "aria-label",
+          metrics
+            .map(
+              metric =>
+                `${metric.value} ${metric.label}`
+            )
+            .join("; ")
+        );
+      } else {
+        topMediaMetrics.textContent =
+          model.message ||
+          "Media data unavailable";
+      }
+    }
+
+    bindMediaTopicLinks(topMediaMount);
+    bindElectionCoverageModal(model);
+  }
+
+  function bindPollCompareShortcut() {
+    const button = mount.querySelector(
+      "[data-hybrid-poll-compare]"
+    );
+
+    if (!button) return;
+
+    button.addEventListener("click", () => {
+      const target = document.getElementById(
+        "polling-evidence-lab"
+      );
+
+      if (!target) return;
+
+      const reduced = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+
+      target.scrollIntoView({
+        block: "start",
+        behavior: reduced ? "auto" : "smooth"
+      });
+    });
+  }
+
   function renderAll() {
     try {
       const models = buildAllViewModels();
-      mount.innerHTML = `<div class="hybrid-board-head"><h2 class="hybrid-board-title">Signal Board</h2><div class="hybrid-board-note">Four summaries · one shared focus workspace</div></div>
-        ${renderSummaryGrid(models)}
-        ${renderFocusWorkspace(models)}`;
+
+      renderTopMediaPulse(models.media);
+
+      mount.innerHTML =
+        renderFocusWorkspace(models);
+
       bindInteractions();
+      bindPollCompareShortcut();
       setActiveSignalView(state.activeView);
     } catch (error) {
-      console.error("Hybrid Signal Board render failed", error);
-      mount.innerHTML = `<div class="hybrid-state is-error" role="alert">The Signal Board could not render. Existing dashboard evidence remains available below.</div>`;
+      console.error(
+        "Hybrid Signal Board render failed",
+        error
+      );
+
+      mount.innerHTML =
+        `<div class="hybrid-state is-error" role="alert">The analytical workspace could not render. Existing dashboard evidence remains available below.</div>`;
+
+      if (topMediaMount) {
+        topMediaMount.innerHTML =
+          `<div class="hybrid-state is-error" role="alert">Media Pulse could not render.</div>`;
+      }
+
+      if (topMediaMetrics) {
+        topMediaMetrics.textContent =
+          "Media Pulse unavailable";
+      }
     }
   }
 
