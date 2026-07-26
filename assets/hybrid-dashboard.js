@@ -1852,14 +1852,17 @@
             ${coverageRows}
           </div>
 
-          <a
-            class="top-media-panel-link"
-            href="${escapeAttribute(
-              views.media.hash
-            )}"
+
+          <button
+            class="top-media-panel-link ecm-open"
+            type="button"
+            data-election-coverage-open
+            aria-haspopup="dialog"
+            aria-controls="election-coverage-modal"
+            aria-expanded="false"
           >
-            View all coverage →
-          </a>
+            Browse recent coverage →
+          </button>
         </section>
 
         <aside class="top-media-analysis">
@@ -1935,6 +1938,29 @@
     `;
   }
 
+  function bindElectionCoverageModal(
+    model
+  ) {
+    const button = topMediaMount
+      ?.querySelector(
+        "[data-election-coverage-open]"
+      );
+
+    if (!button) return;
+
+    button.addEventListener(
+      "click",
+      event => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        window
+          .France2027ElectionCoverageModal
+          ?.open(model, button);
+      }
+    );
+  }
+
   function renderTopMediaPulse(model) {
     if (!topMediaMount) return;
 
@@ -1996,6 +2022,7 @@
     }
 
     bindMediaTopicLinks(topMediaMount);
+    bindElectionCoverageModal(model);
   }
 
   function bindPollCompareShortcut() {
