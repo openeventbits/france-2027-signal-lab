@@ -123,5 +123,53 @@ class FinalDashboardShellTests(unittest.TestCase):
         )
 
 
+    def test_top_media_typography_is_one_step_below_neighbors(self):
+        self.assertIn(
+            """.top-media-pulse
+      .hybrid-media-terminal-headline {
+      display: -webkit-box;
+      overflow: hidden;
+      font-size: 10px;""",
+            self.html,
+        )
+        self.assertIn(
+            """.top-media-pulse
+      .hybrid-candidate-share-name {
+      font-size: 9.5px;""",
+            self.html,
+        )
+        self.assertIn(
+            """.top-media-pulse
+      .hybrid-section-title {
+      margin-bottom: 5px;
+      font-size: 9px;""",
+            self.html,
+        )
+        self.assertIn(
+            """.top-media-pulse
+      .hybrid-media-terminal-row time,
+    .top-media-pulse
+      .hybrid-media-terminal-publisher {
+      font-size: 8px;""",
+            self.html,
+        )
+        self.assertIn(
+            """.top-media-pulse
+      .hybrid-coverage-period strong,
+    .top-media-pulse
+      .hybrid-coverage-period small {
+      font-size: 8px;""",
+            self.html,
+        )
+        self.assertNotIn(
+            """.top-media-pulse
+      .hybrid-coverage-period strong,
+    .top-media-pulse
+      .hybrid-coverage-period small {
+      font-size: 6px;""",
+            self.html,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
