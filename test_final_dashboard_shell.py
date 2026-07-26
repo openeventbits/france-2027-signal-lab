@@ -37,11 +37,11 @@ class FinalDashboardShellTests(unittest.TestCase):
             self.html,
         )
         self.assertIn(
-            "function renderTopMediaPulse(model)",
+            "function renderTopMediaPulsePanel(model)",
             self.js,
         )
         self.assertIn(
-            "renderMediaPanel(model)",
+            "renderTopMediaPulsePanel(model)",
             self.js,
         )
         self.assertIn(
@@ -124,51 +124,161 @@ class FinalDashboardShellTests(unittest.TestCase):
 
 
     def test_top_media_typography_is_one_step_below_neighbors(self):
+        headline_start = self.html.index(
+            ".top-media-coverage-headline"
+        )
+        headline_end = self.html.index(
+            ".top-media-source-link",
+            headline_start,
+        )
+        headline_css = self.html[
+            headline_start:headline_end
+        ]
+
+        shift_start = self.html.index(
+            ".top-media-shift-name"
+        )
+        shift_end = self.html.index(
+            ".top-media-shift-row > strong",
+            shift_start,
+        )
+        shift_css = self.html[
+            shift_start:shift_end
+        ]
+
+        metadata_start = self.html.index(
+            ".top-media-coverage-meta time"
+        )
+        metadata_end = self.html.index(
+            ".top-media-coverage-meta strong",
+            metadata_start,
+        )
+        metadata_css = self.html[
+            metadata_start:metadata_end
+        ]
+
         self.assertIn(
-            """.top-media-pulse
-      .hybrid-media-terminal-headline {
-      display: -webkit-box;
-      overflow: hidden;
-      font-size: 10px;""",
-            self.html,
+            "font-size: 10px;",
+            headline_css,
         )
         self.assertIn(
-            """.top-media-pulse
-      .hybrid-candidate-share-name {
-      font-size: 9.5px;""",
-            self.html,
+            "font-size: 9px;",
+            shift_css,
         )
         self.assertIn(
-            """.top-media-pulse
-      .hybrid-section-title {
-      margin-bottom: 5px;
-      font-size: 9px;""",
-            self.html,
+            "font-size: 8px;",
+            metadata_css,
+        )
+
+
+    def test_top_media_renderer_limits_coverage_and_forbids_images(self):
+        start = self.js.index(
+            "function renderTopMediaPulsePanel("
+        )
+        end = self.js.index(
+            "function renderTopMediaPulse(",
+            start,
+        )
+        renderer = self.js[start:end]
+
+        self.assertIn(
+            ".slice(0, 5)",
+            renderer,
         )
         self.assertIn(
-            """.top-media-pulse
-      .hybrid-media-terminal-row time,
-    .top-media-pulse
-      .hybrid-media-terminal-publisher {
-      font-size: 8px;""",
-            self.html,
+            'class="top-media-coverage-row"',
+            renderer,
         )
         self.assertIn(
-            """.top-media-pulse
-      .hybrid-coverage-period strong,
-    .top-media-pulse
-      .hybrid-coverage-period small {
-      font-size: 8px;""",
-            self.html,
+            "Open source",
+            renderer,
         )
         self.assertNotIn(
-            """.top-media-pulse
-      .hybrid-coverage-period strong,
-    .top-media-pulse
-      .hybrid-coverage-period small {
-      font-size: 6px;""",
-            self.html,
+            "<img",
+            renderer,
         )
+        self.assertNotIn(
+            "thumbnail",
+            renderer.lower(),
+        )
+        self.assertNotIn(
+            "portrait",
+            renderer.lower(),
+        )
+
+    def test_top_media_header_contains_four_prominent_metrics(self):
+        start = self.js.index(
+            "function renderTopMediaPulse(model)"
+        )
+        end = self.js.index(
+            "function bindPollCompareShortcut",
+            start,
+        )
+        renderer = self.js[start:end]
+
+        for label in (
+            'label: "accepted news"',
+            'label: "publishers"',
+            'label: "recent (14d)"',
+            'label: "candidate-watch"',
+        ):
+            self.assertIn(
+                label,
+                renderer,
+            )
+
+        self.assertIn(
+            'class="top-media-header-metric"',
+            renderer,
+        )
+
+    def test_media_model_derives_ranked_top_publishers(self):
+        start = self.js.index(
+            "function buildMediaViewModel()"
+        )
+        end = self.js.index(
+            "function buildAgendaViewModel()",
+            start,
+        )
+        model = self.js[start:end]
+
+        self.assertIn(
+            "const publisherCounts =",
+            model,
+        )
+        self.assertIn(
+            "const topPublishers =",
+            model,
+        )
+        self.assertIn(
+            ".slice(0, 5);",
+            model,
+        )
+        self.assertIn(
+            "topPublishers,",
+            model,
+        )
+
+    def test_top_media_contains_mockup_sections(self):
+        start = self.js.index(
+            "function renderTopMediaPulsePanel("
+        )
+        end = self.js.index(
+            "function renderTopMediaPulse(",
+            start,
+        )
+        renderer = self.js[start:end]
+
+        for label in (
+            "Latest election coverage",
+            "Coverage shift",
+            "Topic coverage",
+            "Top publishers",
+        ):
+            self.assertIn(
+                label,
+                renderer,
+            )
 
 
 if __name__ == "__main__":
