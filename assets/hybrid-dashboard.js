@@ -2,6 +2,13 @@
   "use strict";
 
   const mount = document.getElementById("hybrid-signal-board");
+  const topMediaMount = document.getElementById(
+    "top-media-pulse-content"
+  );
+  const topMediaMetrics = document.getElementById(
+    "top-media-pulse-metrics"
+  );
+
   if (!mount) return;
 
   const views = Object.freeze({
@@ -1385,6 +1392,12 @@
       <div class="hybrid-tabs" role="tablist" aria-label="Signal Board detail views">
         ${viewOrder.map(key => `<button class="hybrid-tab" id="hybrid-tab-${key}" type="button" role="tab"
           data-hybrid-view="${key}" aria-controls="hybrid-panel-${key}" aria-selected="false" tabindex="-1">${views[key].label}</button>`).join("")}
+        <button
+          class="hybrid-tab hybrid-poll-compare-tab"
+          type="button"
+          data-hybrid-poll-compare
+          aria-controls="polling-evidence-lab"
+        >POLL COMPARE</button>
       </div>
       <section class="hybrid-panel" id="hybrid-panel-runoff" role="tabpanel" aria-labelledby="hybrid-tab-runoff">${renderRunoffPanel(models.runoff)}</section>
       <section class="hybrid-panel" id="hybrid-panel-media" role="tabpanel" aria-labelledby="hybrid-tab-media">${renderMediaPanel(models.media)}</section>
@@ -1449,8 +1462,8 @@
     workspace.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
   }
 
-  function bindMediaTopicLinks() {
-    mount
+  function bindMediaTopicLinks(root = mount) {
+    root
       .querySelectorAll(
         "[data-hybrid-media-topic]"
       )
@@ -1533,17 +1546,82 @@
     });
   }
 
+  function renderTopMediaPulse(model) {
+    if (!topMediaMount) return;
+
+    topMediaMount.innerHTML =
+      renderMediaPanel(model);
+
+    if (topMediaMetrics) {
+      topMediaMetrics.textContent =
+        model.state === "ready"
+          ? [
+              `${model.activityItemCount} recent`,
+              `${model.acceptedNewsPublisherCount} publishers`,
+              `${model.electionNewsCount} accepted`
+            ].join(" · ")
+          : model.message ||
+            "Media data unavailable";
+    }
+
+    bindMediaTopicLinks(topMediaMount);
+  }
+
+  function bindPollCompareShortcut() {
+    const button = mount.querySelector(
+      "[data-hybrid-poll-compare]"
+    );
+
+    if (!button) return;
+
+    button.addEventListener("click", () => {
+      const target = document.getElementById(
+        "polling-evidence-lab"
+      );
+
+      if (!target) return;
+
+      const reduced = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+
+      target.scrollIntoView({
+        block: "start",
+        behavior: reduced ? "auto" : "smooth"
+      });
+    });
+  }
+
   function renderAll() {
     try {
       const models = buildAllViewModels();
-      mount.innerHTML = `<div class="hybrid-board-head"><h2 class="hybrid-board-title">Signal Board</h2><div class="hybrid-board-note">Four summaries · one shared focus workspace</div></div>
-        ${renderSummaryGrid(models)}
-        ${renderFocusWorkspace(models)}`;
+
+      renderTopMediaPulse(models.media);
+
+      mount.innerHTML =
+        renderFocusWorkspace(models);
+
       bindInteractions();
+      bindPollCompareShortcut();
       setActiveSignalView(state.activeView);
     } catch (error) {
-      console.error("Hybrid Signal Board render failed", error);
-      mount.innerHTML = `<div class="hybrid-state is-error" role="alert">The Signal Board could not render. Existing dashboard evidence remains available below.</div>`;
+      console.error(
+        "Hybrid Signal Board render failed",
+        error
+      );
+
+      mount.innerHTML =
+        `<div class="hybrid-state is-error" role="alert">The analytical workspace could not render. Existing dashboard evidence remains available below.</div>`;
+
+      if (topMediaMount) {
+        topMediaMount.innerHTML =
+          `<div class="hybrid-state is-error" role="alert">Media Pulse could not render.</div>`;
+      }
+
+      if (topMediaMetrics) {
+        topMediaMetrics.textContent =
+          "Media Pulse unavailable";
+      }
     }
   }
 
