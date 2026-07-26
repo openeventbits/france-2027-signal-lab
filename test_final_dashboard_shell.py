@@ -281,5 +281,184 @@ class FinalDashboardShellTests(unittest.TestCase):
             )
 
 
+    def test_top_media_uses_mockup_visual_cues(self):
+        self.assertIn(
+            "30-day activity · 14-day recent",
+            self.html,
+        )
+        self.assertIn(
+            "/* MOCKUP VISUAL CUES — TOP MEDIA PULSE */",
+            self.html,
+        )
+        self.assertIn(
+            "height: 455px;",
+            self.html,
+        )
+        self.assertIn(
+            'content: "Δ pp";',
+            self.html,
+        )
+        self.assertIn(
+            ".top-media-publisher-row:nth-child(2)",
+            self.html,
+        )
+        self.assertIn(
+            "grid-template-columns: minmax(0, 1fr);",
+            self.html[
+                self.html.index(
+                    ".top-media-coverage-row {"
+                ):
+                self.html.index(
+                    ".top-media-coverage-row::before"
+                )
+            ],
+        )
+
+        renderer_start = self.js.index(
+            "function renderTopMediaPulsePanel("
+        )
+        renderer_end = self.js.index(
+            "function renderTopMediaPulse(",
+            renderer_start,
+        )
+        renderer = self.js[
+            renderer_start:renderer_end
+        ]
+
+        self.assertNotIn("<img", renderer)
+        self.assertNotIn(
+            "thumbnail",
+            renderer.lower(),
+        )
+
+
+    def test_coverage_shift_uses_adjacent_period_segments(self):
+        renderer_start = self.js.index(
+            "function renderTopMediaPulsePanel("
+        )
+        renderer_end = self.js.index(
+            "function renderTopMediaPulse(",
+            renderer_start,
+        )
+        renderer = self.js[
+            renderer_start:renderer_end
+        ]
+
+        self.assertIn(
+            "const maxCombinedShare = Math.max(",
+            renderer,
+        )
+        self.assertIn(
+            "item.latestShare +",
+            renderer,
+        )
+        self.assertIn(
+            "item.previousShare",
+            renderer,
+        )
+        self.assertIn(
+            "--top-prior-share:${previousWidth.toFixed(2)}%",
+            renderer,
+        )
+        self.assertIn(
+            'class="top-media-shift-prior-value"',
+            renderer,
+        )
+        self.assertIn(
+            "${previousShareText}%",
+            renderer,
+        )
+        self.assertNotIn(
+            "previousPosition",
+            renderer,
+        )
+        self.assertNotIn(
+            "maxCandidateShare",
+            renderer,
+        )
+        self.assertNotIn(
+            "Candidate-linked articles",
+            renderer,
+        )
+
+        css_start = self.html.index(
+            "/* MOCKUP COVERAGE SHIFT — "
+            "ADJACENT PERIOD SEGMENTS */"
+        )
+        css = self.html[css_start:]
+
+        self.assertIn(
+            "display: flex;",
+            css,
+        )
+        self.assertIn(
+            "flex: 0 0 var(--top-current-share);",
+            css,
+        )
+        self.assertIn(
+            "flex: 0 0 var(--top-prior-share);",
+            css,
+        )
+        self.assertIn(
+            ".top-media-shift-prior-value",
+            css,
+        )
+        self.assertIn(
+            "content: none;",
+            css,
+        )
+        self.assertIn(
+            ".is-prior i::before",
+            css,
+        )
+
+
+    def test_top_media_reserves_visible_topic_and_publisher_space(self):
+        marker = (
+            "/* TOP MEDIA SUPPORT VISIBILITY */"
+        )
+        start = self.html.index(marker)
+        css = self.html[start:]
+
+        self.assertIn(
+            """.top-media-analysis {
+      grid-template-rows:
+        minmax(0, 1fr)
+        142px;""",
+            css,
+        )
+        self.assertIn(
+            """.top-media-support-grid {
+      height: 142px;
+      min-height: 142px;
+      max-height: 142px;""",
+            css,
+        )
+        self.assertIn(
+            """.top-media-topic-list,
+    .top-media-publisher-list {
+      max-height: 112px;""",
+            css,
+        )
+        self.assertIn(
+            "overflow-y: auto;",
+            css,
+        )
+        self.assertIn(
+            "scrollbar-width: thin;",
+            css,
+        )
+        self.assertIn(
+            ".top-media-topic-list::-webkit-scrollbar",
+            css,
+        )
+        self.assertIn(
+            """.top-media-topic-row,
+    .top-media-publisher-row {
+      min-height: 21px;""",
+            css,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

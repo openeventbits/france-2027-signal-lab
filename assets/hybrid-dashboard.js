@@ -1647,13 +1647,12 @@
       `)
       .join("");
 
-    const maxCandidateShare = Math.max(
+    const maxCombinedShare = Math.max(
       1,
-      ...model.candidateCoverageLeaders.flatMap(
-        item => [
-          item.latestShare,
+      ...model.candidateCoverageLeaders.map(
+        item =>
+          item.latestShare +
           item.previousShare
-        ]
       )
     );
 
@@ -1694,14 +1693,14 @@
           const currentWidth = Math.min(
             100,
             item.latestShare /
-              maxCandidateShare *
+              maxCombinedShare *
               100
           );
 
-          const previousPosition = Math.min(
+          const previousWidth = Math.min(
             100,
             item.previousShare /
-              maxCandidateShare *
+              maxCombinedShare *
               100
           );
 
@@ -1731,9 +1730,13 @@
 
                 <i
                   class="top-media-shift-prior"
-                  style="--top-prior-share:${previousPosition.toFixed(2)}%"
+                  style="--top-prior-share:${previousWidth.toFixed(2)}%"
                 ></i>
               </span>
+
+              <em class="top-media-shift-prior-value">
+                ${previousShareText}%
+              </em>
 
               <b class="${directionClass}">
                 ${direction} ${escapeHtml(deltaText)}
@@ -1863,10 +1866,6 @@
           <section class="top-media-shift">
             <div class="top-media-section-heading">
               <h3>Coverage shift</h3>
-
-              <span>
-                Candidate-linked articles
-              </span>
             </div>
 
             <div
