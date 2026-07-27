@@ -37,6 +37,9 @@ jobs:
             test_source_health.py \
             test_fetch_source_icons.py \
             test_news_wire_relevance.py \
+            test_candidate_coverage_scope.py \
+            test_campaign_agenda_evidence.py \
+            test_workflow_media_pulse_contract.py \
             test_recent_changes.py \
             test_publication_manifest.py \
             test_frontend_facts.py
@@ -110,7 +113,10 @@ jobs:
           from pathlib import Path
           from typing import Any
 
-          from fetch_news_wire import validate_output
+          from fetch_news_wire import (
+              INVENTORY_SCHEMA_VERSION,
+              validate_output,
+          )
           from source_health import (
               has_substantive_change,
               validate_source_health,
@@ -164,8 +170,14 @@ jobs:
 
 
           # Rolling inventory contract.
-          if inventory.get("schema_version") != 3:
-              fail("inventory schema_version must equal 3")
+          if (
+              inventory.get("schema_version")
+              != INVENTORY_SCHEMA_VERSION
+          ):
+              fail(
+                  "inventory schema_version must equal "
+                  f"{INVENTORY_SCHEMA_VERSION}"
+              )
 
           inventory_items = inventory.get("items")
 
@@ -441,6 +453,9 @@ jobs:
                   },
                   "campaign_agenda": payload.get(
                       "campaign_agenda"
+                  ),
+                  "candidate_visibility": payload.get(
+                      "candidate_visibility"
                   ),
                   # Persist semantic feed-registry changes without
                   # committing hourly due/success timing fluctuations.
