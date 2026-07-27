@@ -69,6 +69,12 @@ CANDIDATE_VISIBILITY_THRESHOLDS = {
     "maximum_record_count_ratio": 2.0,
 }
 
+CANDIDATE_COVERAGE_SCOPES = (
+    "election",
+    "campaign",
+    "general",
+)
+
 TRACKING_PARAMETERS = {
     "fbclid",
     "gclid",
@@ -2473,6 +2479,27 @@ def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
     temporary_path.replace(path)
 
 
+def classify_candidate_coverage_scope(
+    *,
+    is_election_news: bool,
+    relevance: dict[str, Any] | None,
+    development: dict[str, Any] | None,
+) -> str:
+    """Explain why a candidate-linked record contributes to visibility.
+
+    ``election`` is reserved for a current presidential-race headline.
+    ``campaign`` covers other deterministically established race context or
+    concrete campaign developments. ``general`` records political visibility
+    without claiming that the article concerns the presidential campaign.
+    """
+
+    if is_election_news:
+        return "election"
+    if relevance is not None or development is not None:
+        return "campaign"
+    return "general"
+
+
 def public_item(
     entry: dict[str, Any],
     candidate_matches: list[dict[str, Any]],
@@ -3344,6 +3371,8 @@ def validate_output(payload: dict[str, Any]) -> None:
                 "candidates",
                 "candidate_matches",
             }
+            if list_name == "candidate_watch":
+                required.add("coverage_scope")
 
             if set(item) != required:
                 raise RuntimeError(
@@ -3359,6 +3388,20 @@ def validate_output(payload: dict[str, Any]) -> None:
                 item.get("candidate_matches"),
                 f"{list_name} item",
             )
+
+            if list_name == "candidate_watch":
+                coverage_scope = item.get("coverage_scope")
+                if coverage_scope not in CANDIDATE_COVERAGE_SCOPES:
+                    raise RuntimeError(
+                        "candidate_watch contains an invalid coverage_scope"
+                    )
+                if (
+                    (coverage_scope == "election")
+                    != bool(item["explicit_election"])
+                ):
+                    raise RuntimeError(
+                        "candidate_watch election scope is inconsistent"
+                    )
 
             if not str(item["url"]).startswith(("http://", "https://")):
                 raise RuntimeError(
@@ -3996,7 +4039,15 @@ def build_wire(
             )
 
         if matched_candidates:
-            candidate_watch.append(base_item)
+            candidate_item = dict(base_item)
+            candidate_item["coverage_scope"] = (
+                classify_candidate_coverage_scope(
+                    is_election_news=is_election_news,
+                    relevance=relevance,
+                    development=development,
+                )
+            )
+            candidate_watch.append(candidate_item)
 
     for items in (
         election_news,
