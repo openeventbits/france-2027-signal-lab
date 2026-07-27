@@ -289,6 +289,316 @@
     };
   }
 
+  const MEDIA_CANDIDATE_VISIBILITY_METHOD =
+    "share_of_candidate_linked_records";
+
+  const MEDIA_CANDIDATE_VISIBILITY_THRESHOLDS =
+    Object.freeze({
+      minimum_period_records: 10,
+      minimum_period_publishers: 5,
+      minimum_common_publishers: 5,
+      minimum_publisher_overlap_ratio: 0.5,
+      maximum_record_count_ratio: 2.0
+    });
+
+  const roundMediaComparisonRatio = value =>
+    Math.floor(value * 1000 + 0.5) / 1000;
+
+  const mediaComparisonDateKey = value => {
+    const parsed = new Date(String(value || ""));
+    return Number.isFinite(parsed.getTime())
+      ? utcDateKey(parsed)
+      : "";
+  };
+
+  const mediaCandidateComparisonGate = quality => {
+    const thresholds = MEDIA_CANDIDATE_VISIBILITY_THRESHOLDS;
+
+    if (
+      quality.current_record_count <
+        thresholds.minimum_period_records ||
+      quality.prior_record_count <
+        thresholds.minimum_period_records ||
+      quality.current_publisher_count <
+        thresholds.minimum_period_publishers ||
+      quality.prior_publisher_count <
+        thresholds.minimum_period_publishers ||
+      quality.common_publisher_count <
+        thresholds.minimum_common_publishers
+    ) {
+      return {
+        status: "not_comparable",
+        reason: "insufficient_data"
+      };
+    }
+
+    if (
+      quality.publisher_overlap_ratio <
+        thresholds.minimum_publisher_overlap_ratio ||
+      quality.record_count_ratio === null ||
+      quality.record_count_ratio >
+        thresholds.maximum_record_count_ratio
+    ) {
+      return {
+        status: "not_comparable",
+        reason: "publisher_panel_changed"
+      };
+    }
+
+    return {
+      status: "comparable",
+      reason: "comparable"
+    };
+  };
+
+  function deriveCandidateVisibility(payload) {
+    const candidateWatch = Array.isArray(payload?.candidate_watch)
+      ? payload.candidate_watch
+      : [];
+    const generatedKey = mediaComparisonDateKey(
+      payload?.generated_at
+    );
+    const candidateKeys = candidateWatch
+      .map(item => mediaComparisonDateKey(item?.published_at))
+      .filter(Boolean)
+      .sort();
+    const anchorKey = generatedKey ||
+      candidateKeys[candidateKeys.length - 1] ||
+      "1970-01-01";
+    const anchor = new Date(`${anchorKey}T00:00:00Z`);
+    const currentStartKey = dateKeyWithOffset(anchor, -6);
+    const currentEndKey = utcDateKey(anchor);
+    const priorStartKey = dateKeyWithOffset(anchor, -13);
+    const priorEndKey = dateKeyWithOffset(anchor, -7);
+
+    const buildPeriod = (startDate, endDate) => {
+      const records = candidateWatch.filter(item => {
+        const key = mediaComparisonDateKey(item?.published_at);
+        return key >= startDate && key <= endDate;
+      });
+      const publisherNames = [...new Set(
+        records
+          .map(item => String(item?.publisher || "").trim())
+          .filter(Boolean)
+      )].sort();
+
+      return {
+        start_date: startDate,
+        end_date: endDate,
+        record_count: records.length,
+        publisher_count: publisherNames.length,
+        publisher_names: publisherNames
+      };
+    };
+
+    const currentPeriod = buildPeriod(
+      currentStartKey,
+      currentEndKey
+    );
+    const priorPeriod = buildPeriod(
+      priorStartKey,
+      priorEndKey
+    );
+    const currentPublishers = new Set(
+      currentPeriod.publisher_names
+    );
+    const priorPublishers = new Set(
+      priorPeriod.publisher_names
+    );
+    const commonPublisherCount = [
+      ...currentPublishers
+    ].filter(name => priorPublishers.has(name)).length;
+    const publisherUnionCount = new Set([
+      ...currentPublishers,
+      ...priorPublishers
+    ]).size;
+    const publisherOverlapRatio =
+      roundMediaComparisonRatio(
+        publisherUnionCount
+          ? commonPublisherCount / publisherUnionCount
+          : 0
+      );
+    const currentRecordCount = currentPeriod.record_count;
+    const priorRecordCount = priorPeriod.record_count;
+    const recordCountRatio =
+      currentRecordCount && priorRecordCount
+        ? roundMediaComparisonRatio(
+            Math.max(currentRecordCount, priorRecordCount) /
+            Math.min(currentRecordCount, priorRecordCount)
+          )
+        : null;
+    const qualityCounts = {
+      current_record_count: currentRecordCount,
+      prior_record_count: priorRecordCount,
+      current_publisher_count: currentPeriod.publisher_count,
+      prior_publisher_count: priorPeriod.publisher_count,
+      common_publisher_count: commonPublisherCount,
+      publisher_union_count: publisherUnionCount,
+      publisher_overlap_ratio: publisherOverlapRatio,
+      record_count_ratio: recordCountRatio
+    };
+    const gate = mediaCandidateComparisonGate(qualityCounts);
+
+    return {
+      method: MEDIA_CANDIDATE_VISIBILITY_METHOD,
+      current_period: currentPeriod,
+      prior_period: priorPeriod,
+      comparison_quality: {
+        ...gate,
+        ...qualityCounts,
+        thresholds: {
+          ...MEDIA_CANDIDATE_VISIBILITY_THRESHOLDS
+        }
+      }
+    };
+  }
+
+  function isValidCandidateVisibility(candidateVisibility, payload) {
+    if (!candidateVisibility || typeof candidateVisibility !== "object") {
+      return false;
+    }
+
+    const exactKeys = (value, keys) =>
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.keys(value).sort().join("|") ===
+        [...keys].sort().join("|");
+    const periodKeys = [
+      "start_date",
+      "end_date",
+      "record_count",
+      "publisher_count",
+      "publisher_names"
+    ];
+    const qualityKeys = [
+      "status",
+      "reason",
+      "current_record_count",
+      "prior_record_count",
+      "current_publisher_count",
+      "prior_publisher_count",
+      "common_publisher_count",
+      "publisher_union_count",
+      "publisher_overlap_ratio",
+      "record_count_ratio",
+      "thresholds"
+    ];
+    const expected = deriveCandidateVisibility(payload);
+
+    if (
+      !exactKeys(candidateVisibility, [
+        "method",
+        "current_period",
+        "prior_period",
+        "comparison_quality"
+      ]) ||
+      candidateVisibility.method !==
+        MEDIA_CANDIDATE_VISIBILITY_METHOD ||
+      !exactKeys(candidateVisibility.current_period, periodKeys) ||
+      !exactKeys(candidateVisibility.prior_period, periodKeys) ||
+      !exactKeys(candidateVisibility.comparison_quality, qualityKeys) ||
+      !exactKeys(
+        candidateVisibility.comparison_quality.thresholds,
+        Object.keys(MEDIA_CANDIDATE_VISIBILITY_THRESHOLDS)
+      )
+    ) {
+      return false;
+    }
+
+    const periodsValid = [
+      "current_period",
+      "prior_period"
+    ].every(periodName => {
+      const period = candidateVisibility[periodName];
+      return (
+        /^\d{4}-\d{2}-\d{2}$/.test(period.start_date) &&
+        /^\d{4}-\d{2}-\d{2}$/.test(period.end_date) &&
+        mediaComparisonDateKey(period.start_date) ===
+          period.start_date &&
+        mediaComparisonDateKey(period.end_date) ===
+          period.end_date &&
+        Number.isInteger(period.record_count) &&
+        period.record_count >= 0 &&
+        Number.isInteger(period.publisher_count) &&
+        period.publisher_count >= 0 &&
+        Array.isArray(period.publisher_names) &&
+        period.publisher_names.every(
+          name => typeof name === "string" &&
+            name.trim() &&
+            name === name.trim()
+        ) &&
+        period.publisher_names.join("|") ===
+          [...new Set(period.publisher_names)].sort().join("|") &&
+        period.publisher_count === period.publisher_names.length
+      );
+    });
+    if (!periodsValid) return false;
+
+    const quality = candidateVisibility.comparison_quality;
+    const countFields = qualityKeys.filter(key =>
+      key.endsWith("_count")
+    );
+    const ratiosValid =
+      typeof quality.publisher_overlap_ratio === "number" &&
+      Number.isFinite(quality.publisher_overlap_ratio) &&
+      quality.publisher_overlap_ratio >= 0 &&
+      quality.publisher_overlap_ratio <= 1 &&
+      (
+        quality.record_count_ratio === null ||
+        (
+          typeof quality.record_count_ratio === "number" &&
+          Number.isFinite(quality.record_count_ratio) &&
+          quality.record_count_ratio >= 1
+        )
+      );
+    if (
+      countFields.some(
+        key => !Number.isInteger(quality[key]) || quality[key] < 0
+      ) ||
+      !ratiosValid
+    ) {
+      return false;
+    }
+
+    const equalValues = (left, right) => {
+      if (Array.isArray(left) || Array.isArray(right)) {
+        return (
+          Array.isArray(left) &&
+          Array.isArray(right) &&
+          left.length === right.length &&
+          left.every((value, index) =>
+            equalValues(value, right[index])
+          )
+        );
+      }
+      if (
+        left && right &&
+        typeof left === "object" &&
+        typeof right === "object"
+      ) {
+        const leftKeys = Object.keys(left).sort();
+        const rightKeys = Object.keys(right).sort();
+        return (
+          leftKeys.join("|") === rightKeys.join("|") &&
+          leftKeys.every(key => equalValues(left[key], right[key]))
+        );
+      }
+      return Object.is(left, right);
+    };
+
+    return equalValues(candidateVisibility, expected);
+  }
+
+  function resolveCandidateVisibility(payload) {
+    return isValidCandidateVisibility(
+      payload?.candidate_visibility,
+      payload
+    )
+      ? payload.candidate_visibility
+      : deriveCandidateVisibility(payload);
+  }
+
   function buildMediaViewModel() {
     const unavailable = viewModelState("news");
     if (unavailable) {
@@ -314,6 +624,13 @@
 
     const canonicalizeCandidate =
       buildMediaCandidateCanonicalizer(coverageItems);
+
+    const candidateVisibility =
+      resolveCandidateVisibility(payload);
+    const comparisonQuality =
+      candidateVisibility.comparison_quality;
+    const changeAvailable =
+      comparisonQuality.status === "comparable";
 
     const feedItems = newestNewsItems(
       electionItems
@@ -383,25 +700,16 @@
     }
 
     const latestStartKey =
-      dateKeyWithOffset(
-        safeAnchor,
-        -6
-      );
+      candidateVisibility.current_period.start_date;
 
     const latestEndKey =
-      utcDateKey(safeAnchor);
+      candidateVisibility.current_period.end_date;
 
     const previousStartKey =
-      dateKeyWithOffset(
-        safeAnchor,
-        -13
-      );
+      candidateVisibility.prior_period.start_date;
 
     const previousEndKey =
-      dateKeyWithOffset(
-        safeAnchor,
-        -7
-      );
+      candidateVisibility.prior_period.end_date;
 
     const periodArticleKeys = {
       latest: new Set(),
@@ -496,15 +804,27 @@
               100
             : 0;
 
+        const delta = changeAvailable
+          ? latestShare - previousShare
+          : null;
+        const direction = !changeAvailable
+          ? "unavailable"
+          : delta > 0.05
+            ? "positive"
+            : delta < -0.05
+              ? "negative"
+              : "flat";
+
         return {
           name,
           latestCount,
           previousCount,
           latestShare,
           previousShare,
-          changePp:
-            latestShare -
-            previousShare,
+          changeAvailable,
+          delta,
+          changePp: delta,
+          direction,
           latestItems: [
             ...periods.latest.values()
           ].sort((a, b) =>
@@ -527,8 +847,8 @@
         (a, b) =>
           b.latestShare -
             a.latestShare ||
-          b.changePp -
-            a.changePp ||
+          number(b.delta) -
+            number(a.delta) ||
           b.latestCount -
             a.latestCount ||
           a.name.localeCompare(
@@ -712,6 +1032,7 @@
       candidateCoverage:
         candidateCoverageShares,
       candidateCoverageLeaders,
+      comparisonQuality,
       latestCandidateArticleCount:
         latestDenominator,
       previousCandidateArticleCount:
@@ -1123,24 +1444,28 @@
     const candidateRows =
       model.candidateCoverageLeaders
         .map(item => {
-          const delta = item.changePp;
+          const deltaAvailable = item.changeAvailable === true;
+          const delta = item.delta;
 
-          const directionClass =
-            delta > 0.05
+          const directionClass = deltaAvailable
+            ? delta > 0.05
               ? "is-up"
               : delta < -0.05
                 ? "is-down"
-                : "is-flat";
+                : "is-flat"
+            : "";
 
-          const direction =
-            delta > 0.05
+          const direction = !deltaAvailable
+            ? ""
+            : delta > 0.05
               ? "▲"
               : delta < -0.05
                 ? "▼"
                 : "—";
 
-          const deltaText =
-            `${delta > 0 ? "+" : ""}${formatMediaShare(delta)}pp`;
+          const deltaText = deltaAvailable
+            ? `${delta > 0 ? "+" : ""}${formatMediaShare(delta)}pp`
+            : "Comparison unavailable";
 
           const latestShareText =
             formatMediaShare(item.latestShare);
@@ -1162,7 +1487,7 @@
             <div
               class="hybrid-candidate-share-row"
               aria-label="${escapeAttribute(
-                `${item.name}: ${latestShareText} percent of candidate-linked articles in the latest seven days, ${previousShareText} percent in the previous seven days, ${deltaText}; ${item.latestCount} latest raw articles and ${item.previousCount} previous raw articles`
+                `${item.name}: ${latestShareText} percent share of candidate-linked records in the latest seven days, ${previousShareText} percent in the previous seven days, ${deltaText}; ${item.latestCount} latest raw articles and ${item.previousCount} previous raw articles`
               )}"
             >
               <span class="hybrid-candidate-share-name">
@@ -1187,7 +1512,7 @@
               </span>
 
               <b class="${directionClass}">
-                ${direction} ${escapeHtml(deltaText)}
+                ${direction ? `${direction} ` : ""}${escapeHtml(deltaText)}
               </b>
             </div>`;
         })
@@ -1750,17 +2075,20 @@
       model.candidateCoverageLeaders
         .slice(0, 6)
         .map(item => {
-          const delta = item.changePp;
+          const deltaAvailable = item.changeAvailable === true;
+          const delta = item.delta;
 
-          const directionClass =
-            delta > 0.05
+          const directionClass = deltaAvailable
+            ? delta > 0.05
               ? "is-up"
               : delta < -0.05
                 ? "is-down"
-                : "is-flat";
+                : "is-flat"
+            : "";
 
-          const direction =
-            delta > 0.05
+          const direction = !deltaAvailable
+            ? ""
+            : delta > 0.05
               ? "▲"
               : delta < -0.05
                 ? "▼"
@@ -1776,9 +2104,10 @@
               item.previousShare
             );
 
-          const deltaText =
-            `${delta > 0 ? "+" : ""}` +
-            `${formatMediaShare(delta)}pp`;
+          const deltaText = deltaAvailable
+            ? `${delta > 0 ? "+" : ""}` +
+              `${formatMediaShare(delta)}pp`
+            : "Comparison unavailable";
 
           const currentWidth = Math.min(
             100,
@@ -1805,7 +2134,7 @@
               aria-controls="topic-coverage-modal"
               aria-expanded="false"
               aria-label="${escapeAttribute(
-                `${item.name}: ${latestShareText} percent current, ${previousShareText} percent prior, ${deltaText}`
+                `${item.name}: ${latestShareText} percent share of candidate-linked records in the current period, ${previousShareText} percent in the prior period, ${deltaText}`
               )}"
             >
               <span class="top-media-shift-name">
@@ -1836,7 +2165,7 @@
               </em>
 
               <b class="${directionClass}">
-                ${direction} ${escapeHtml(deltaText)}
+                ${direction ? `${direction} ` : ""}${escapeHtml(deltaText)}
               </b>
             </button>
           `;
@@ -2269,6 +2598,9 @@
 
   window.hybridDashboard = Object.freeze({
     buildMediaCandidateCanonicalizer,
+    deriveCandidateVisibility,
+    isValidCandidateVisibility,
+    resolveCandidateVisibility,
     deriveAcceptedNewsPublisherMetric,
     buildRunoffViewModel,
     buildMediaViewModel,

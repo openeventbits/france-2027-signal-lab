@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import hashlib
 import html
 import json
+import math
 import re
 from threading import BoundedSemaphore
 import unicodedata
@@ -58,6 +59,15 @@ MAX_NEWS_RESPONSE_BYTES = DEFAULT_MAX_RESPONSE_BYTES
 FETCH_WORKERS = 12
 GOOGLE_NEWS_WORKERS = 4
 GOOGLE_NEWS_SEMAPHORE = BoundedSemaphore(GOOGLE_NEWS_WORKERS)
+
+CANDIDATE_VISIBILITY_METHOD = "share_of_candidate_linked_records"
+CANDIDATE_VISIBILITY_THRESHOLDS = {
+    "minimum_period_records": 10,
+    "minimum_period_publishers": 5,
+    "minimum_common_publishers": 5,
+    "minimum_publisher_overlap_ratio": 0.5,
+    "maximum_record_count_ratio": 2.0,
+}
 
 TRACKING_PARAMETERS = {
     "fbclid",
@@ -2535,6 +2545,381 @@ def limit_items(items: list[dict[str, Any]], max_items: int) -> list[dict[str, A
     return items if max_items == 0 else items[:max_items]
 
 
+def round_candidate_visibility_ratio(value: float) -> float:
+    return math.floor(value * 1000 + 0.5) / 1000
+
+
+def candidate_visibility_gate(
+    *,
+    current_record_count: int,
+    prior_record_count: int,
+    current_publisher_count: int,
+    prior_publisher_count: int,
+    common_publisher_count: int,
+    publisher_overlap_ratio: float,
+    record_count_ratio: float | None,
+) -> tuple[str, str]:
+    thresholds = CANDIDATE_VISIBILITY_THRESHOLDS
+    if (
+        current_record_count < thresholds["minimum_period_records"]
+        or prior_record_count < thresholds["minimum_period_records"]
+        or current_publisher_count
+        < thresholds["minimum_period_publishers"]
+        or prior_publisher_count
+        < thresholds["minimum_period_publishers"]
+        or common_publisher_count
+        < thresholds["minimum_common_publishers"]
+    ):
+        return "not_comparable", "insufficient_data"
+
+    if (
+        publisher_overlap_ratio
+        < thresholds["minimum_publisher_overlap_ratio"]
+        or record_count_ratio is None
+        or record_count_ratio
+        > thresholds["maximum_record_count_ratio"]
+    ):
+        return "not_comparable", "publisher_panel_changed"
+
+    return "comparable", "comparable"
+
+
+def build_candidate_visibility(
+    candidate_watch: list[dict[str, Any]],
+    generated_at: datetime,
+) -> dict[str, Any]:
+    anchor = generated_at.astimezone(timezone.utc).date()
+    current_start = anchor - timedelta(days=6)
+    prior_end = current_start - timedelta(days=1)
+    prior_start = prior_end - timedelta(days=6)
+
+    def period(
+        start_date: date,
+        end_date: date,
+    ) -> dict[str, Any]:
+        records = []
+        for item in candidate_watch:
+            published = parse_feed_datetime(item.get("published_at"))
+            if (
+                published is not None
+                and start_date <= published.date() <= end_date
+            ):
+                records.append(item)
+
+        publishers = sorted(
+            {
+                str(item.get("publisher") or "").strip()
+                for item in records
+                if str(item.get("publisher") or "").strip()
+            }
+        )
+        return {
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "record_count": len(records),
+            "publisher_count": len(publishers),
+            "publisher_names": publishers,
+        }
+
+    current_period = period(current_start, anchor)
+    prior_period = period(prior_start, prior_end)
+    current_publishers = set(current_period["publisher_names"])
+    prior_publishers = set(prior_period["publisher_names"])
+    common_publisher_count = len(
+        current_publishers & prior_publishers
+    )
+    publisher_union_count = len(
+        current_publishers | prior_publishers
+    )
+    publisher_overlap_ratio = round_candidate_visibility_ratio(
+        common_publisher_count / publisher_union_count
+        if publisher_union_count
+        else 0.0
+    )
+    current_record_count = current_period["record_count"]
+    prior_record_count = prior_period["record_count"]
+    record_count_ratio = (
+        round_candidate_visibility_ratio(
+            max(current_record_count, prior_record_count)
+            / min(current_record_count, prior_record_count)
+        )
+        if current_record_count and prior_record_count
+        else None
+    )
+    status, reason = candidate_visibility_gate(
+        current_record_count=current_record_count,
+        prior_record_count=prior_record_count,
+        current_publisher_count=current_period["publisher_count"],
+        prior_publisher_count=prior_period["publisher_count"],
+        common_publisher_count=common_publisher_count,
+        publisher_overlap_ratio=publisher_overlap_ratio,
+        record_count_ratio=record_count_ratio,
+    )
+
+    return {
+        "method": CANDIDATE_VISIBILITY_METHOD,
+        "current_period": current_period,
+        "prior_period": prior_period,
+        "comparison_quality": {
+            "status": status,
+            "reason": reason,
+            "current_record_count": current_record_count,
+            "prior_record_count": prior_record_count,
+            "current_publisher_count": current_period[
+                "publisher_count"
+            ],
+            "prior_publisher_count": prior_period["publisher_count"],
+            "common_publisher_count": common_publisher_count,
+            "publisher_union_count": publisher_union_count,
+            "publisher_overlap_ratio": publisher_overlap_ratio,
+            "record_count_ratio": record_count_ratio,
+            "thresholds": dict(CANDIDATE_VISIBILITY_THRESHOLDS),
+        },
+    }
+
+
+def validate_candidate_visibility(
+    candidate_visibility: Any,
+    candidate_watch: list[dict[str, Any]],
+    generated_at: datetime,
+) -> None:
+    top_level_keys = {
+        "method",
+        "current_period",
+        "prior_period",
+        "comparison_quality",
+    }
+    if (
+        not isinstance(candidate_visibility, dict)
+        or set(candidate_visibility) != top_level_keys
+    ):
+        raise RuntimeError("candidate_visibility has unexpected fields")
+    if candidate_visibility["method"] != CANDIDATE_VISIBILITY_METHOD:
+        raise RuntimeError("candidate_visibility method is invalid")
+
+    period_keys = {
+        "start_date",
+        "end_date",
+        "record_count",
+        "publisher_count",
+        "publisher_names",
+    }
+    parsed_periods: dict[str, tuple[date, date]] = {}
+    for period_name in ("current_period", "prior_period"):
+        period = candidate_visibility.get(period_name)
+        if not isinstance(period, dict) or set(period) != period_keys:
+            raise RuntimeError(
+                f"candidate_visibility {period_name} has unexpected fields"
+            )
+        try:
+            start_date = date.fromisoformat(period["start_date"])
+            end_date = date.fromisoformat(period["end_date"])
+        except (TypeError, ValueError) as error:
+            raise RuntimeError(
+                f"candidate_visibility {period_name} dates are invalid"
+            ) from error
+        if (
+            period["start_date"] != start_date.isoformat()
+            or period["end_date"] != end_date.isoformat()
+            or start_date > end_date
+            or (end_date - start_date).days != 6
+        ):
+            raise RuntimeError(
+                f"candidate_visibility {period_name} dates are invalid"
+            )
+        parsed_periods[period_name] = (start_date, end_date)
+
+        for field in ("record_count", "publisher_count"):
+            if type(period[field]) is not int or period[field] < 0:
+                raise RuntimeError(
+                    f"candidate_visibility {period_name} counts are invalid"
+                )
+
+        publisher_names = period["publisher_names"]
+        if (
+            not isinstance(publisher_names, list)
+            or any(
+                not isinstance(name, str)
+                or not name.strip()
+                or name != name.strip()
+                for name in publisher_names
+            )
+            or publisher_names != sorted(publisher_names)
+            or len(publisher_names) != len(set(publisher_names))
+            or period["publisher_count"] != len(publisher_names)
+        ):
+            raise RuntimeError(
+                f"candidate_visibility {period_name} publishers are invalid"
+            )
+
+    current_start, current_end = parsed_periods["current_period"]
+    prior_start, prior_end = parsed_periods["prior_period"]
+    expected_current_end = generated_at.astimezone(timezone.utc).date()
+    if (
+        current_end != expected_current_end
+        or current_start != current_end - timedelta(days=6)
+        or prior_end != current_start - timedelta(days=1)
+        or prior_start != prior_end - timedelta(days=6)
+    ):
+        raise RuntimeError("candidate_visibility periods are invalid")
+
+    quality_keys = {
+        "status",
+        "reason",
+        "current_record_count",
+        "prior_record_count",
+        "current_publisher_count",
+        "prior_publisher_count",
+        "common_publisher_count",
+        "publisher_union_count",
+        "publisher_overlap_ratio",
+        "record_count_ratio",
+        "thresholds",
+    }
+    quality = candidate_visibility.get("comparison_quality")
+    if not isinstance(quality, dict) or set(quality) != quality_keys:
+        raise RuntimeError(
+            "candidate_visibility comparison_quality has unexpected fields"
+        )
+    thresholds = quality.get("thresholds")
+    if (
+        not isinstance(thresholds, dict)
+        or set(thresholds) != set(CANDIDATE_VISIBILITY_THRESHOLDS)
+        or any(
+            type(thresholds[field]) is not type(expected)
+            or thresholds[field] != expected
+            for field, expected in (
+                CANDIDATE_VISIBILITY_THRESHOLDS.items()
+            )
+        )
+    ):
+        raise RuntimeError(
+            "candidate_visibility comparison thresholds are invalid"
+        )
+
+    count_fields = (
+        "current_record_count",
+        "prior_record_count",
+        "current_publisher_count",
+        "prior_publisher_count",
+        "common_publisher_count",
+        "publisher_union_count",
+    )
+    if any(
+        type(quality.get(field)) is not int or quality[field] < 0
+        for field in count_fields
+    ):
+        raise RuntimeError(
+            "candidate_visibility comparison counts are invalid"
+        )
+
+    current_period = candidate_visibility["current_period"]
+    prior_period = candidate_visibility["prior_period"]
+    expected_counts = {
+        "current_record_count": current_period["record_count"],
+        "prior_record_count": prior_period["record_count"],
+        "current_publisher_count": current_period["publisher_count"],
+        "prior_publisher_count": prior_period["publisher_count"],
+    }
+    if any(
+        quality[field] != expected
+        for field, expected in expected_counts.items()
+    ):
+        raise RuntimeError(
+            "candidate_visibility comparison counts are inconsistent"
+        )
+
+    current_publishers = set(current_period["publisher_names"])
+    prior_publishers = set(prior_period["publisher_names"])
+    expected_common = len(current_publishers & prior_publishers)
+    expected_union = len(current_publishers | prior_publishers)
+    if (
+        quality["common_publisher_count"] > current_period[
+            "publisher_count"
+        ]
+        or quality["common_publisher_count"] > prior_period[
+            "publisher_count"
+        ]
+        or quality["common_publisher_count"] != expected_common
+        or quality["publisher_union_count"] != expected_union
+    ):
+        raise RuntimeError(
+            "candidate_visibility publisher counts are inconsistent"
+        )
+
+    overlap_ratio = quality.get("publisher_overlap_ratio")
+    if (
+        isinstance(overlap_ratio, bool)
+        or not isinstance(overlap_ratio, (int, float))
+        or not math.isfinite(overlap_ratio)
+        or not 0 <= overlap_ratio <= 1
+    ):
+        raise RuntimeError(
+            "candidate_visibility publisher overlap ratio is invalid"
+        )
+    expected_overlap = round_candidate_visibility_ratio(
+        expected_common / expected_union if expected_union else 0.0
+    )
+    if overlap_ratio != expected_overlap:
+        raise RuntimeError(
+            "candidate_visibility publisher overlap ratio is inconsistent"
+        )
+
+    record_ratio = quality.get("record_count_ratio")
+    current_record_count = current_period["record_count"]
+    prior_record_count = prior_period["record_count"]
+    expected_record_ratio = (
+        round_candidate_visibility_ratio(
+            max(current_record_count, prior_record_count)
+            / min(current_record_count, prior_record_count)
+        )
+        if current_record_count and prior_record_count
+        else None
+    )
+    if record_ratio is not None and (
+        isinstance(record_ratio, bool)
+        or not isinstance(record_ratio, (int, float))
+        or not math.isfinite(record_ratio)
+        or record_ratio < 1
+    ):
+        raise RuntimeError(
+            "candidate_visibility record count ratio is invalid"
+        )
+    if record_ratio != expected_record_ratio:
+        raise RuntimeError(
+            "candidate_visibility record count ratio is inconsistent"
+        )
+
+    expected_visibility = build_candidate_visibility(
+        candidate_watch,
+        generated_at,
+    )
+    for period_name in ("current_period", "prior_period"):
+        expected_period = expected_visibility[period_name]
+        if candidate_visibility[period_name] != expected_period:
+            raise RuntimeError(
+                f"candidate_visibility {period_name} does not match "
+                "candidate_watch"
+            )
+
+    expected_status, expected_reason = candidate_visibility_gate(
+        current_record_count=current_record_count,
+        prior_record_count=prior_record_count,
+        current_publisher_count=current_period["publisher_count"],
+        prior_publisher_count=prior_period["publisher_count"],
+        common_publisher_count=expected_common,
+        publisher_overlap_ratio=overlap_ratio,
+        record_count_ratio=record_ratio,
+    )
+    if (
+        quality.get("status") != expected_status
+        or quality.get("reason") != expected_reason
+    ):
+        raise RuntimeError(
+            "candidate_visibility comparison status is inconsistent"
+        )
+
+
 def validate_output(payload: dict[str, Any]) -> None:
     sources = payload.get("sources")
     election_news = payload.get("election_news")
@@ -2726,6 +3111,11 @@ def validate_output(payload: dict[str, Any]) -> None:
     generated_at = parse_feed_datetime(payload.get("generated_at"))
     if generated_at is None:
         raise RuntimeError("feed_coverage requires a valid generated_at")
+    validate_candidate_visibility(
+        payload.get("candidate_visibility"),
+        candidate_watch,
+        generated_at,
+    )
     expected_site_feeds_due = sum(
         publisher_site_feed_due(feed, generated_at)
         for feed in configured_site_feeds
@@ -3851,6 +4241,10 @@ def build_wire(
             "candidate_watch": len(candidate_watch),
         },
         "campaign_agenda": campaign_agenda,
+        "candidate_visibility": build_candidate_visibility(
+            candidate_watch,
+            generated_at,
+        ),
         "election_news": election_news,
         "notable_developments": notable_developments,
         "relevant_news": relevant_news,

@@ -204,6 +204,19 @@ jobs:
               if not isinstance(wire.get(list_name), list):
                   fail(f"{list_name} must be an array")
 
+          candidate_visibility = wire.get("candidate_visibility")
+          if (
+              not isinstance(candidate_visibility, dict)
+              or set(candidate_visibility)
+              != {
+                  "method",
+                  "current_period",
+                  "prior_period",
+                  "comparison_quality",
+              }
+          ):
+              fail("candidate_visibility must use the validated schema")
+
           approved_candidate_match_keys = {
               "candidate",
               "matched_aliases",

@@ -305,5 +305,69 @@ class CoverageAnalysisModalTests(unittest.TestCase):
 
 
 
+    def test_compact_candidate_panel_suppresses_unavailable_numeric_delta(self):
+        start = self.dashboard.index(
+            "function renderTopMediaPulsePanel("
+        )
+        end = self.dashboard.index(
+            "function renderTopMediaPulse(",
+            start,
+        )
+        renderer = self.dashboard[start:end]
+        self.assertIn(
+            ': "Comparison unavailable";',
+            renderer,
+        )
+        self.assertIn(
+            '${direction ? `${direction} ` : ""}',
+            renderer,
+        )
+        self.assertIn(
+            "const deltaAvailable = item.changeAvailable === true;",
+            renderer,
+        )
+
+    def test_candidate_modal_uses_one_shared_quality_warning(self):
+        self.assertEqual(
+            self.modal_js.count(
+                "Comparison unavailable — publisher panel changed"
+            ),
+            1,
+        )
+        self.assertEqual(
+            self.modal_js.count(
+                "Comparison unavailable — insufficient prior evidence"
+            ),
+            1,
+        )
+        self.assertEqual(
+            self.modal_js.count(
+                "comparisonQualityMessage(comparisonQuality)"
+            ),
+            1,
+        )
+        self.assertIn(
+            'candidate.changeAvailable ? "percentage points" : ""',
+            self.modal_js,
+        )
+        self.assertNotIn(
+            "formatDelta(candidate.changePp)",
+            self.modal_js,
+        )
+
+    def test_candidate_share_label_is_truthful(self):
+        self.assertIn(
+            "Share of candidate-linked records",
+            self.modal_js,
+        )
+        for forbidden in (
+            "market share",
+            "media share",
+            "share of all election coverage",
+            "exclusive share",
+        ):
+            self.assertNotIn(forbidden, self.modal_js.lower())
+
+
 if __name__ == "__main__":
     unittest.main()

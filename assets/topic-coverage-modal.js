@@ -5,6 +5,7 @@
   let returnFocus = null;
   let candidates = [];
   let topics = [];
+  let comparisonQuality = null;
   let selectedView = "topics";
   let selectedCandidateName = "";
   let selectedTopicId = "";
@@ -119,6 +120,14 @@
     return "—";
   };
 
+  const comparisonQualityMessage = quality => {
+    if (quality?.status === "comparable") return "";
+    if (quality?.reason === "publisher_panel_changed") {
+      return "Comparison unavailable — publisher panel changed";
+    }
+    return "Comparison unavailable — insufficient prior evidence";
+  };
+
   const normalizeArticle = (item, period = "") => ({
     id: String(item?.id || item?.url || ""),
     publisher:
@@ -174,6 +183,11 @@
         : []
     );
 
+    const changeAvailable = item?.changeAvailable === true;
+    const delta = changeAvailable && Number.isFinite(item?.delta)
+      ? item.delta
+      : null;
+
     return {
       name,
       latestCount: numberOrZero(
@@ -184,7 +198,12 @@
       ),
       latestShare: numberOrZero(item?.latestShare),
       previousShare: numberOrZero(item?.previousShare),
-      changePp: numberOrZero(item?.changePp),
+      changeAvailable,
+      delta,
+      changePp: delta,
+      direction: changeAvailable
+        ? String(item?.direction || "flat")
+        : "unavailable",
       latestItems,
       previousItems,
       searchText: normalizeSearch(
@@ -258,7 +277,7 @@
     sorted.sort((a, b) => {
       if (state.sort === "change") {
         return (
-          b.changePp - a.changePp ||
+          numberOrZero(b.delta) - numberOrZero(a.delta) ||
           b.latestShare - a.latestShare ||
           collator.compare(a.name, b.name)
         );
@@ -278,7 +297,7 @@
 
       return (
         b.latestShare - a.latestShare ||
-        b.changePp - a.changePp ||
+        numberOrZero(b.delta) - numberOrZero(a.delta) ||
         collator.compare(a.name, b.name)
       );
     });
@@ -430,7 +449,15 @@
       candidate.previousShare / maximum * 100
     );
     const active = candidate.name === selectedCandidateName;
-    const directionClass = deltaClass(candidate.changePp);
+    const directionClass = candidate.changeAvailable
+      ? deltaClass(candidate.delta)
+      : "";
+    const changeText = candidate.changeAvailable
+      ? formatDelta(candidate.delta)
+      : "Unavailable";
+    const changeArrow = candidate.changeAvailable
+      ? `${deltaArrow(candidate.delta)} `
+      : "";
 
     return `
       <button
@@ -439,7 +466,7 @@
         data-tcm-candidate="${escapeAttribute(candidate.name)}"
         aria-pressed="${String(active)}"
         aria-label="${escapeAttribute(
-          `${candidate.name}: ${formatShare(candidate.latestShare)} percent current, ${formatShare(candidate.previousShare)} percent prior, ${formatDelta(candidate.changePp)}.`
+          `${candidate.name}: ${formatShare(candidate.latestShare)} percent share of candidate-linked records in the current period, ${formatShare(candidate.previousShare)} percent in the prior period, ${changeText}.`
         )}"
       >
         <span class="tcm-row-rank">
@@ -450,8 +477,7 @@
           <span class="tcm-row-head">
             <strong>${escapeHtml(candidate.name)}</strong>
             <b class="${directionClass}">
-              ${deltaArrow(candidate.changePp)}
-              ${escapeHtml(formatDelta(candidate.changePp))}
+              ${changeArrow}${escapeHtml(changeText)}
             </b>
           </span>
 
@@ -575,7 +601,12 @@
       ...candidate.latestItems,
       ...candidate.previousItems
     ]);
-    const tone = deltaClass(candidate.changePp);
+    const tone = candidate.changeAvailable
+      ? deltaClass(candidate.delta)
+      : "";
+    const changeValue = candidate.changeAvailable
+      ? formatDelta(candidate.delta)
+      : "Unavailable";
 
     return `
       <div class="tcm-detail-content">
@@ -585,20 +616,20 @@
         <div class="tcm-metrics">
           ${renderMetric(
             `${formatShare(candidate.latestShare)}%`,
-            "Current share",
+            "Share of candidate-linked records",
             latestPeriodLabel,
             "is-current"
           )}
           ${renderMetric(
             `${formatShare(candidate.previousShare)}%`,
-            "Prior share",
+            "Share of candidate-linked records",
             priorPeriodLabel,
             "is-prior"
           )}
           ${renderMetric(
-            formatDelta(candidate.changePp),
+            changeValue,
             "Change",
-            "percentage points",
+            candidate.changeAvailable ? "percentage points" : "",
             tone
           )}
           ${renderMetric(
@@ -786,7 +817,9 @@
       }
 
       title.textContent = "Candidate visibility ranking";
-      subtitle.textContent = "Current seven-day share compared with the prior seven days";
+      subtitle.textContent =
+        comparisonQualityMessage(comparisonQuality) ||
+        "Share of candidate-linked records: current seven days compared with the prior seven days";
       summary.textContent = `${values.length} ${values.length === 1 ? "candidate" : "candidates"}`;
       list.innerHTML = renderCandidateRanking(values);
       detail.innerHTML = renderCandidateDetail(
@@ -933,6 +966,7 @@
     returnFocus = null;
     candidates = [];
     topics = [];
+    comparisonQuality = null;
     selectedCandidateName = "";
     selectedTopicId = "";
     latestPeriodLabel = "";
@@ -1026,6 +1060,15 @@
   ) => {
     const mediaModel = models?.media;
     const agendaModel = models?.agenda;
+
+    comparisonQuality =
+      mediaModel?.comparisonQuality &&
+      typeof mediaModel.comparisonQuality === "object"
+        ? mediaModel.comparisonQuality
+        : {
+            status: "not_comparable",
+            reason: "insufficient_data"
+          };
 
     candidates = Array.isArray(mediaModel?.candidateCoverage)
       ? mediaModel.candidateCoverage

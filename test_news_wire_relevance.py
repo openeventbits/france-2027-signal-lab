@@ -1,3 +1,4 @@
+import copy
 import json
 import tempfile
 import threading
@@ -10,6 +11,8 @@ from unittest.mock import patch
 
 from http_fetch import HttpFetchResult
 from fetch_news_wire import (
+    CANDIDATE_VISIBILITY_METHOD,
+    CANDIDATE_VISIBILITY_THRESHOLDS,
     DISCOVERY_QUERIES,
     DIRECT_ENTRY_LIMIT,
     DISCOVERY_ENTRY_LIMIT,
@@ -22,6 +25,7 @@ from fetch_news_wire import (
     SOURCES,
     accept_discovery_entries,
     aggregate_discovered_publishers,
+    build_candidate_visibility,
     build_wire,
     build_google_news_url,
     candidate_names_from_matches,
@@ -47,6 +51,7 @@ from fetch_news_wire import (
     remove_publisher_suffix,
     stable_slot,
     transport_priority,
+    validate_candidate_visibility,
     validate_output,
 )
 
@@ -2041,6 +2046,214 @@ class NewsWireRelevanceTests(unittest.TestCase):
             public_text,
         )
         self.assertEqual(len(payload["relevant_news"]), 1)
+
+class CandidateVisibilityComparisonTests(unittest.TestCase):
+    generated_at = datetime(2026, 7, 26, 20, 35, tzinfo=timezone.utc)
+
+    @staticmethod
+    def records(
+        count,
+        publishers,
+        published_at,
+        prefix,
+    ):
+        return [
+            {
+                "id": f"{prefix}-{index}",
+                "publisher": publishers[index % len(publishers)],
+                "published_at": published_at,
+            }
+            for index in range(count)
+        ]
+
+    def visibility(
+        self,
+        current_count,
+        prior_count,
+        current_publishers,
+        prior_publishers,
+    ):
+        records = self.records(
+            current_count,
+            current_publishers,
+            "2026-07-26T12:00:00Z",
+            "current",
+        ) + self.records(
+            prior_count,
+            prior_publishers,
+            "2026-07-19T12:00:00Z",
+            "prior",
+        )
+        return (
+            build_candidate_visibility(records, self.generated_at),
+            records,
+        )
+
+    def test_exact_adjacent_seven_day_boundaries(self):
+        records = [
+            *self.records(1, ["Current start"], "2026-07-20T00:00:00Z", "cs"),
+            *self.records(1, ["Current end"], "2026-07-26T23:59:59Z", "ce"),
+            *self.records(1, ["Prior start"], "2026-07-13T00:00:00Z", "ps"),
+            *self.records(1, ["Prior end"], "2026-07-19T23:59:59Z", "pe"),
+            *self.records(1, ["Outside old"], "2026-07-12T23:59:59Z", "old"),
+            *self.records(1, ["Outside new"], "2026-07-27T00:00:00Z", "new"),
+        ]
+        visibility = build_candidate_visibility(records, self.generated_at)
+
+        self.assertEqual(
+            visibility["current_period"],
+            {
+                "start_date": "2026-07-20",
+                "end_date": "2026-07-26",
+                "record_count": 2,
+                "publisher_count": 2,
+                "publisher_names": ["Current end", "Current start"],
+            },
+        )
+        self.assertEqual(
+            visibility["prior_period"],
+            {
+                "start_date": "2026-07-13",
+                "end_date": "2026-07-19",
+                "record_count": 2,
+                "publisher_count": 2,
+                "publisher_names": ["Prior end", "Prior start"],
+            },
+        )
+
+    def test_audited_publisher_panel_failure(self):
+        current = [f"Current {index:02d}" for index in range(55)]
+        prior = current[:5] + [f"Prior {index:02d}" for index in range(3)]
+        visibility, _records = self.visibility(173, 29, current, prior)
+        quality = visibility["comparison_quality"]
+
+        self.assertEqual(quality["status"], "not_comparable")
+        self.assertEqual(quality["reason"], "publisher_panel_changed")
+        self.assertEqual(quality["publisher_overlap_ratio"], 0.086)
+        self.assertEqual(quality["record_count_ratio"], 5.966)
+
+    def test_insufficient_period_records(self):
+        publishers = [f"Publisher {index}" for index in range(5)]
+        visibility, _records = self.visibility(9, 10, publishers, publishers)
+        self.assertEqual(
+            visibility["comparison_quality"]["reason"],
+            "insufficient_data",
+        )
+
+    def test_insufficient_period_publishers(self):
+        current = [f"Publisher {index}" for index in range(4)]
+        prior = [*current, "Publisher 4"]
+        visibility, _records = self.visibility(10, 10, current, prior)
+        self.assertEqual(
+            visibility["comparison_quality"]["reason"],
+            "insufficient_data",
+        )
+
+    def test_insufficient_common_publishers(self):
+        current = [f"Publisher {index}" for index in range(5)]
+        prior = current[:4] + ["Prior only"]
+        visibility, _records = self.visibility(10, 10, current, prior)
+        quality = visibility["comparison_quality"]
+        self.assertEqual(quality["common_publisher_count"], 4)
+        self.assertEqual(quality["reason"], "insufficient_data")
+
+    def test_comparable_periods(self):
+        publishers = [f"Publisher {index}" for index in range(5)]
+        visibility, records = self.visibility(10, 10, publishers, publishers)
+        quality = visibility["comparison_quality"]
+        self.assertEqual(quality["status"], "comparable")
+        self.assertEqual(quality["reason"], "comparable")
+        validate_candidate_visibility(
+            visibility,
+            records,
+            self.generated_at,
+        )
+
+    def test_comparable_at_locked_boundaries(self):
+        current = [f"Common {index}" for index in range(5)]
+        prior = current + [f"Prior only {index}" for index in range(5)]
+        visibility, _records = self.visibility(10, 20, current, prior)
+        quality = visibility["comparison_quality"]
+        self.assertEqual(quality["current_record_count"], 10)
+        self.assertEqual(quality["common_publisher_count"], 5)
+        self.assertEqual(quality["current_publisher_count"], 5)
+        self.assertEqual(quality["publisher_overlap_ratio"], 0.5)
+        self.assertEqual(quality["record_count_ratio"], 2.0)
+        self.assertEqual(quality["status"], "comparable")
+
+    def test_zero_record_ratio_is_null_and_insufficient(self):
+        publishers = [f"Publisher {index}" for index in range(5)]
+        visibility, _records = self.visibility(10, 0, publishers, publishers)
+        quality = visibility["comparison_quality"]
+        self.assertIsNone(quality["record_count_ratio"])
+        self.assertEqual(quality["status"], "not_comparable")
+        self.assertEqual(quality["reason"], "insufficient_data")
+
+    def test_schema_and_thresholds_are_exact(self):
+        publishers = [f"Publisher {index}" for index in range(5)]
+        visibility, _records = self.visibility(10, 10, publishers, publishers)
+        self.assertEqual(
+            set(visibility),
+            {
+                "method",
+                "current_period",
+                "prior_period",
+                "comparison_quality",
+            },
+        )
+        self.assertEqual(
+            visibility["method"],
+            CANDIDATE_VISIBILITY_METHOD,
+        )
+        self.assertEqual(
+            visibility["comparison_quality"]["thresholds"],
+            CANDIDATE_VISIBILITY_THRESHOLDS,
+        )
+
+    def test_validation_rejects_inconsistent_public_contract(self):
+        publishers = [f"Publisher {index}" for index in range(5)]
+        visibility, records = self.visibility(10, 10, publishers, publishers)
+        mutations = {
+            "counts": lambda value: value["current_period"].update(
+                record_count=11
+            ),
+            "ratios": lambda value: value["comparison_quality"].update(
+                record_count_ratio=1.5
+            ),
+            "status": lambda value: value["comparison_quality"].update(
+                status="not_comparable"
+            ),
+            "dates": lambda value: value["current_period"].update(
+                start_date="2026-07-19"
+            ),
+            "publisher arrays": lambda value: value["current_period"].update(
+                publisher_names=list(reversed(
+                    value["current_period"]["publisher_names"]
+                ))
+            ),
+            "threshold types": lambda value: value[
+                "comparison_quality"
+            ]["thresholds"].update(minimum_period_records=True),
+        }
+
+        for label, mutate in mutations.items():
+            with self.subTest(label=label):
+                invalid = copy.deepcopy(visibility)
+                mutate(invalid)
+                with self.assertRaises(RuntimeError):
+                    validate_candidate_visibility(
+                        invalid,
+                        records,
+                        self.generated_at,
+                    )
+
+    def test_workflow_validation_includes_candidate_visibility(self):
+        workflow = Path(
+            ".github/workflows/update-news-wire.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("validate_output(wire)", workflow)
+        self.assertIn("candidate_visibility", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

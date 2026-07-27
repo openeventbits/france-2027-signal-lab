@@ -1,11 +1,80 @@
 from pathlib import Path
+import json
 import re
+import subprocess
 import unittest
 
 
 ROOT = Path(__file__).resolve().parent
 INDEX = ROOT / "index.html"
 HYBRID_JS = ROOT / "assets" / "hybrid-dashboard.js"
+
+
+def run_media_model_script(payload, expression):
+    script = r"""
+const fs = require("fs");
+const vm = require("vm");
+let source = fs.readFileSync(
+  "assets/hybrid-dashboard.js",
+  "utf8"
+);
+source = source.replace(
+  /\s+retainLegacyComparison\(\);\s+renderAll\(\);\s+window\.addEventListener\("hashchange", handleSignalHashChange\);\s+document\.addEventListener\("hybrid:dataset", renderAll\);/,
+  ""
+);
+const input = JSON.parse(fs.readFileSync(0, "utf8"));
+const payload = input.payload;
+const mount = {};
+const context = {
+  console,
+  URL,
+  Date,
+  Math,
+  Map,
+  Set,
+  Object,
+  Array,
+  Number,
+  String,
+  JSON,
+  Intl,
+  window: { location: { hash: "" }, addEventListener() {} },
+  document: {
+    getElementById(id) {
+      return id === "hybrid-signal-board" ? mount : null;
+    },
+    addEventListener() {},
+    querySelector() { return null; }
+  },
+  dashboardState: {
+    loadState: { news: "ready" },
+    news: payload
+  },
+  candidatePortraits: {},
+  newestNewsItems: values => values,
+  formatScore: value => String(value),
+  formatDate: value => String(value),
+  escapeHtml: value => String(value),
+  escapeAttribute: value => String(value),
+  formatNewsDateTime: value => String(value),
+  formatRunoffFieldwork: value => String(value)
+};
+vm.runInNewContext(source, context);
+const api = context.window.hybridDashboard;
+const result = eval(input.expression);
+process.stdout.write(JSON.stringify(result));
+"""
+    completed = subprocess.run(
+        ["node", "-e", script],
+        input=json.dumps(
+            {"payload": payload, "expression": expression}
+        ),
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    return json.loads(completed.stdout)
 
 
 class FinalDashboardShellTests(unittest.TestCase):
@@ -574,6 +643,149 @@ class FinalDashboardShellTests(unittest.TestCase):
         )
         self.assertNotIn("!important", component)
 
+
+
+    @staticmethod
+    def candidate_payload(current_count=10, prior_count=10):
+        publishers = [f"Publisher {index}" for index in range(5)]
+        records = []
+        for period, count, published_at in (
+            ("current", current_count, "2026-07-26T12:00:00Z"),
+            ("prior", prior_count, "2026-07-19T12:00:00Z"),
+        ):
+            for index in range(count):
+                records.append(
+                    {
+                        "id": f"{period}-{index}",
+                        "publisher": publishers[index % len(publishers)],
+                        "published_at": published_at,
+                        "url": f"https://example.test/{period}-{index}",
+                        "candidates": [
+                            "Candidate A"
+                            if period == "current" or index < count / 2
+                            else "Candidate B"
+                        ],
+                    }
+                )
+        return {
+            "generated_at": "2026-07-26T20:35:00Z",
+            "window_days": 30,
+            "counts": {"election_news": 0},
+            "election_news": [],
+            "candidate_watch": records,
+            "campaign_agenda": {"topics": []},
+        }
+
+    def test_valid_backend_candidate_visibility_is_preferred(self):
+        result = run_media_model_script(
+            self.candidate_payload(),
+            """(() => {
+              const derived = api.deriveCandidateVisibility(payload);
+              const backend = {
+                comparison_quality: derived.comparison_quality,
+                prior_period: derived.prior_period,
+                current_period: derived.current_period,
+                method: derived.method
+              };
+              payload.candidate_visibility = backend;
+              return {
+                preferred:
+                  api.resolveCandidateVisibility(payload) === backend,
+                valid:
+                  api.isValidCandidateVisibility(backend, payload)
+              };
+            })()""",
+        )
+        self.assertEqual(result, {"preferred": True, "valid": True})
+
+    def test_missing_candidate_visibility_uses_deterministic_fallback(self):
+        result = run_media_model_script(
+            self.candidate_payload(9, 10),
+            """(() => {
+              const first = api.resolveCandidateVisibility(payload);
+              const second = api.resolveCandidateVisibility(payload);
+              return {
+                sameValue: JSON.stringify(first) === JSON.stringify(second),
+                current: first.current_period,
+                prior: first.prior_period,
+                quality: first.comparison_quality
+              };
+            })()""",
+        )
+        self.assertTrue(result["sameValue"])
+        self.assertEqual(result["current"]["start_date"], "2026-07-20")
+        self.assertEqual(result["current"]["end_date"], "2026-07-26")
+        self.assertEqual(result["prior"]["start_date"], "2026-07-13")
+        self.assertEqual(result["prior"]["end_date"], "2026-07-19")
+        self.assertEqual(result["quality"]["reason"], "insufficient_data")
+
+    def test_malformed_backend_candidate_visibility_uses_fallback(self):
+        result = run_media_model_script(
+            self.candidate_payload(),
+            """(() => {
+              payload.candidate_visibility = {
+                method: "share_of_candidate_linked_records",
+                comparison_quality: { status: "comparable" }
+              };
+              const resolved = api.resolveCandidateVisibility(payload);
+              return {
+                malformedRejected:
+                  resolved !== payload.candidate_visibility,
+                status: resolved.comparison_quality.status
+              };
+            })()""",
+        )
+        self.assertEqual(
+            result,
+            {"malformedRejected": True, "status": "comparable"},
+        )
+
+    def test_non_comparable_candidate_rows_expose_unavailable_change(self):
+        result = run_media_model_script(
+            self.candidate_payload(9, 10),
+            """(() => {
+              const model = api.buildMediaViewModel();
+              return {
+                quality: model.comparisonQuality,
+                rows: model.candidateCoverage.map(item => ({
+                  changeAvailable: item.changeAvailable,
+                  delta: item.delta,
+                  changePp: item.changePp,
+                  direction: item.direction
+                }))
+              };
+            })()""",
+        )
+        self.assertEqual(result["quality"]["status"], "not_comparable")
+        self.assertTrue(result["rows"])
+        for row in result["rows"]:
+            self.assertFalse(row["changeAvailable"])
+            self.assertIsNone(row["delta"])
+            self.assertIsNone(row["changePp"])
+            self.assertEqual(row["direction"], "unavailable")
+
+    def test_comparable_candidate_rows_preserve_actual_delta(self):
+        result = run_media_model_script(
+            self.candidate_payload(),
+            """(() => {
+              const model = api.buildMediaViewModel();
+              const candidate = model.candidateCoverage.find(
+                item => item.name === "Candidate A"
+              );
+              return {
+                status: model.comparisonQuality.status,
+                changeAvailable: candidate.changeAvailable,
+                delta: candidate.delta,
+                changePp: candidate.changePp,
+                direction: candidate.direction
+              };
+            })()""",
+        )
+        self.assertEqual(result["status"], "comparable")
+        self.assertTrue(result["changeAvailable"])
+        self.assertEqual(result["delta"], 50)
+        self.assertEqual(result["changePp"], 50)
+        self.assertEqual(result["direction"], "positive")
 
 
 if __name__ == "__main__":
