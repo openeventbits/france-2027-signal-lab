@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 
@@ -33,25 +34,18 @@ class FinalDashboardShellTests(unittest.TestCase):
 
     def test_top_media_mount_uses_existing_media_model(self):
         self.assertIn(
-            'id="top-media-pulse-content"',
-            self.html,
-        )
-        self.assertIn(
-            "function renderTopMediaPulsePanel(model)",
+            "renderTopMediaPulse(models.media, models.agenda);",
             self.js,
         )
-        self.assertIn(
-            "renderTopMediaPulsePanel(model)",
-            self.js,
-        )
-        self.assertIn(
+
+        self.assertNotIn(
             "renderTopMediaPulse(models.media);",
             self.js,
         )
 
     def test_summary_cards_are_removed_from_primary_render(self):
         start = self.js.index(
-            "function renderAll()"
+            "function renderAll(event = null)"
         )
         end = self.js.index(
             "function handleSignalHashChange",
@@ -73,11 +67,19 @@ class FinalDashboardShellTests(unittest.TestCase):
         )
 
     def test_media_topic_navigation_supports_top_mount(self):
-        self.assertIn(
-            "function bindMediaTopicLinks(root = mount)",
-            self.js,
-        )
-        self.assertIn(
+        for contract in (
+            "function bindTopicCoverageModal(",
+            "mediaModel,",
+            "agendaModel",
+            "[data-topic-coverage-open]",
+            "[data-hybrid-media-topic]",
+            "[data-hybrid-media-candidate]",
+            "France2027TopicCoverageModal",
+            "bindTopicCoverageModal(model, agendaModel);",
+        ):
+            self.assertIn(contract, self.js)
+
+        self.assertNotIn(
             "bindMediaTopicLinks(topMediaMount);",
             self.js,
         )
@@ -208,29 +210,29 @@ class FinalDashboardShellTests(unittest.TestCase):
 
     def test_top_media_header_contains_four_prominent_metrics(self):
         start = self.js.index(
-            "function renderTopMediaPulse(model)"
+            "function renderTopMediaPulse(model, agendaModel)"
         )
+
         end = self.js.index(
             "function bindPollCompareShortcut",
             start,
         )
-        renderer = self.js[start:end]
 
-        for label in (
+        section = self.js[start:end]
+
+        for contract in (
+            "const metrics = [",
+            "value: model.electionNewsCount",
+            "model.acceptedNewsPublisherCount",
+            "value: model.activityItemCount",
+            "value: model.candidateWatchCount",
             'label: "accepted news"',
             'label: "publishers"',
             'label: "recent (14d)"',
             'label: "candidate-watch"',
-        ):
-            self.assertIn(
-                label,
-                renderer,
-            )
-
-        self.assertIn(
             'class="top-media-header-metric"',
-            renderer,
-        )
+        ):
+            self.assertIn(contract, section)
 
     def test_media_model_derives_ranked_top_publishers(self):
         start = self.js.index(
@@ -458,6 +460,120 @@ class FinalDashboardShellTests(unittest.TestCase):
       min-height: 21px;""",
             css,
         )
+
+
+    def test_candidate_coverage_aliases_are_canonicalized(self):
+        for contract in (
+            "function buildMediaCandidateCanonicalizer",
+            "suffixMatches",
+            "canonicalizeCandidate",
+            "candidateCoverage:",
+            "latestItems:",
+            "previousItems:",
+        ):
+            self.assertIn(contract, self.js)
+
+    def test_top_candidate_shift_rows_open_combined_dialog(self):
+        position = self.js.index(
+            "data-hybrid-media-candidate"
+        )
+        context = self.js[position - 220:position + 420]
+
+        for contract in (
+            'type="button"',
+            'aria-haspopup="dialog"',
+            'aria-controls="topic-coverage-modal"',
+            'aria-expanded="false"',
+        ):
+            self.assertIn(contract, context)
+
+        self.assertIn(
+            "Open coverage analysis →",
+            self.js,
+        )
+
+
+    def test_exact_dashboard_cta_component_scope(self):
+        class_attributes = re.findall(
+            r'class="([^"]*\bmedia-pulse-dashboard-cta\b[^"]*)"',
+            self.html + "\n" + self.js,
+        )
+
+        self.assertCountEqual(
+            class_attributes,
+            [
+                "media-pulse-dashboard-cta",
+                "top-media-panel-link ecm-open media-pulse-dashboard-cta",
+                "top-media-panel-link tcm-open media-pulse-dashboard-cta",
+            ],
+        )
+        self.assertRegex(
+            self.html,
+            re.compile(
+                r'<a\s+id="race-source"\s+'
+                r'class="media-pulse-dashboard-cta"',
+                re.DOTALL,
+            ),
+        )
+
+    def test_media_pulse_rerender_is_news_lane_aware(self):
+        start = self.js.index(
+            "function renderAll(event = null)"
+        )
+        end = self.js.index(
+            "function handleSignalHashChange",
+            start,
+        )
+        renderer = self.js[start:end]
+
+        guarded_render = re.search(
+            r'const datasetLane = event\?\.detail\?\.name \|\| "";'
+            r'.*?if \(!datasetLane \|\| datasetLane === "news"\)\s*\{'
+            r'\s*renderTopMediaPulse\(models\.media, models\.agenda\);'
+            r'\s*\}',
+            renderer,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(guarded_render)
+        self.assertGreater(
+            renderer.index("mount.innerHTML"),
+            guarded_render.end(),
+        )
+        self.assertIn("renderAll();", self.js)
+        self.assertIn(
+            'document.addEventListener("hybrid:dataset", renderAll);',
+            self.js,
+        )
+
+    def test_dashboard_cta_component_is_narrow_and_non_global(self):
+        start = self.html.index(
+            ".media-pulse-dashboard-cta {"
+        )
+        end = self.html.index(
+            ".top-media-shift",
+            start,
+        )
+        component = self.html[start:end]
+
+        for contract in (
+            "appearance: none;",
+            "display: inline-flex;",
+            "width: max-content;",
+            "min-height: 16px;",
+            "padding: 1px 0;",
+            "font-size: 10px;",
+            "font-weight: 700;",
+            "line-height: 1.3;",
+            ".media-pulse-dashboard-cta:focus-visible",
+        ):
+            self.assertIn(contract, component)
+
+        self.assertNotRegex(
+            component,
+            re.compile(r"(?m)^\s*(button|a|h2|\*)\s*\{"),
+        )
+        self.assertNotIn("!important", component)
+
 
 
 if __name__ == "__main__":

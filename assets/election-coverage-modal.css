@@ -1,30 +1,7 @@
 /* Focused Election Coverage reader */
 
 .top-media-panel-link.ecm-open {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  width: max-content;
-  margin-top: 4px;
-  padding: 1px 0;
-  border: 0;
-  background: transparent;
-  color: var(--cyan);
-  font: inherit;
   font-size: 10px;
-  font-weight: 700;
-  line-height: 1.3;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.top-media-panel-link.ecm-open:hover {
-  color: #d5f8ff;
-}
-
-.top-media-panel-link.ecm-open:focus-visible {
-  outline: 2px solid var(--cyan);
-  outline-offset: 3px;
 }
 
 body.ecm-is-open {
@@ -571,7 +548,7 @@ body.ecm-is-open {
 
 .ecm-topic-section h4 small {
   color: #7895a6;
-  font-size: 8.5px;
+  font-size: 9px;
   font-weight: 650;
   letter-spacing: .025em;
 }
@@ -827,4 +804,221 @@ body.ecm-is-open {
     scroll-behavior: auto;
     transition: none;
   }
+}
+
+/* FR27 TERMINAL MODAL SYSTEM — ELECTION COVERAGE */
+
+.ecm-overlay {
+  padding: 16px;
+  background: rgba(1, 8, 15, 0.9);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.ecm-dialog {
+  width: min(1320px, calc(100vw - 32px));
+  height: min(780px, calc(100dvh - 32px));
+  border: 1px solid #24536d;
+  border-radius: 0;
+  background: #061522;
+  box-shadow: none;
+}
+
+.ecm-header {
+  height: 42px;
+  min-height: 42px;
+  padding: 7px 10px;
+  gap: 12px;
+  background: #061522;
+}
+
+.ecm-heading {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.ecm-heading p {
+  display: none;
+}
+
+.ecm-header h2 {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ecm-updated {
+  font-size: 9px;
+}
+
+.ecm-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 0;
+  font-size: 18px;
+}
+
+.ecm-toolbar {
+  gap: 6px;
+  padding: 5px 7px;
+  background: #05121d;
+}
+
+.ecm-toolbar input,
+.ecm-toolbar select {
+  min-height: 28px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-radius: 0;
+  font-size: 9px;
+}
+
+.ecm-workspace {
+  grid-template-columns: minmax(0, 1fr) 292px;
+  gap: 0;
+}
+
+.ecm-feed {
+  border-radius: 0;
+  background: #061522;
+  box-shadow: none;
+}
+
+.ecm-feed-header {
+  min-height: 32px;
+  padding: 0 9px;
+  background: #05121d;
+}
+
+.ecm-feed-header h3,
+.ecm-snapshot > h3,
+.ecm-publisher-section h4,
+.ecm-topic-section h4 {
+  font-size: 9px;
+  letter-spacing: 0.07em;
+}
+
+.ecm-feed-header > span {
+  font-size: 9px;
+}
+
+.ecm-feed-row {
+  grid-template-columns: 86px 132px minmax(0, 1fr) 68px;
+  gap: 8px;
+  min-height: 52px;
+  padding: 6px 9px;
+}
+
+.ecm-feed-time,
+.ecm-feed-time small {
+  font-size: 9px;
+  line-height: 1.15;
+}
+
+.ecm-feed-publisher {
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+.ecm-feed-copy {
+  gap: 2px;
+}
+
+.ecm-feed-copy h4 {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.ecm-feed-tags {
+  gap: 3px;
+}
+
+.ecm-feed-tags span {
+  padding: 1px 4px;
+  border-radius: 0;
+  font-size: 9px;
+}
+
+.ecm-feed-source,
+.ecm-source-unavailable {
+  font-size: 9px;
+}
+
+.ecm-snapshot {
+  padding: 0;
+  border-radius: 0;
+  background: #061522;
+  box-shadow: none;
+}
+
+.ecm-snapshot > h3 {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 9px;
+  border-bottom: 1px solid #17405a;
+  background: #05121d;
+}
+
+.ecm-snapshot-metrics {
+  gap: 0;
+  margin: 0;
+  padding: 0 9px;
+  border-bottom: 1px solid #17405a;
+}
+
+.ecm-snapshot-metrics > div {
+  min-height: 28px;
+  padding: 4px 0;
+}
+
+.ecm-snapshot-metrics dt,
+.ecm-snapshot-metrics dd,
+.ecm-snapshot-metrics .is-window dd {
+  font-size: 9px;
+}
+
+.ecm-publisher-section,
+.ecm-topic-section {
+  margin: 0;
+  padding: 7px 9px;
+  border-top: 1px solid #17405a;
+}
+
+.ecm-publisher-section h4,
+.ecm-topic-section h4 {
+  margin: 0 0 5px;
+}
+
+.ecm-publisher-list,
+.ecm-topic-list {
+  gap: 4px;
+}
+
+.ecm-publisher-row,
+.ecm-topic-row {
+  min-height: 22px;
+}
+
+.ecm-topic-row {
+  padding: 0;
+  border-radius: 0;
+}
+
+.ecm-topic-row > span,
+.ecm-topic-row > strong {
+  font-size: 9px;
+}
+
+.ecm-disclosure {
+  min-height: 32px;
+  padding: 5px 9px;
+  font-size: 9px;
 }

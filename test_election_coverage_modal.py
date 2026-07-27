@@ -426,5 +426,68 @@ class ElectionCoverageModalTests(
             )
 
 
+    def test_terminal_block_is_single_scoped_and_readable(self):
+        marker = (
+            "FR27 TERMINAL MODAL SYSTEM — ELECTION COVERAGE"
+        )
+        self.assertEqual(self.modal_css.count(marker), 1)
+        terminal = self.modal_css[
+            self.modal_css.index(marker):
+        ]
+
+        dead_selectors = (
+            ".ecm-controls",
+            ".ecm-filter-bar",
+            ".ecm-card",
+            ".ecm-panel-header",
+            ".ecm-feed-time strong",
+            ".ecm-sidebar",
+            ".ecm-card:last-child",
+            ".ecm-card-body",
+            ".ecm-period-title",
+            ".ecm-period-legend",
+            ".ecm-overview-list",
+            ".ecm-overview-row",
+            ".ecm-topic",
+            ".ecm-status",
+            ".ecm-status-icon",
+        )
+        for selector in dead_selectors:
+            self.assertNotRegex(
+                terminal,
+                re.compile(
+                    re.escape(selector) + r"(?![\w-])"
+                ),
+            )
+
+        for selector in (
+            ".ecm-feed-header",
+            ".ecm-snapshot",
+            ".ecm-snapshot-metrics",
+            ".ecm-publisher-section",
+            ".ecm-topic-section",
+            ".ecm-topic-row",
+            ".ecm-disclosure",
+        ):
+            self.assertIn(selector, terminal)
+
+        sizes = [
+            float(value)
+            for value in re.findall(
+                r"font-size:\s*([0-9.]+)px",
+                self.modal_css,
+            )
+        ]
+        self.assertTrue(sizes)
+        self.assertGreaterEqual(min(sizes), 9)
+
+        self.assertNotRegex(
+            terminal,
+            re.compile(r"(?m)^\s*(button|a|h2|\*)\s*\{"),
+        )
+        self.assertNotIn("!important", terminal)
+
+
+
 if __name__ == "__main__":
     unittest.main()
