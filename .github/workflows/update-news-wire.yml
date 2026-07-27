@@ -204,6 +204,75 @@ jobs:
               if not isinstance(wire.get(list_name), list):
                   fail(f"{list_name} must be an array")
 
+          approved_candidate_match_keys = {
+              "candidate",
+              "matched_aliases",
+              "locations",
+          }
+          approved_candidate_locations = ("headline", "summary")
+
+          for list_name in required_wire_lists:
+              for item in wire[list_name]:
+                  if not isinstance(item, dict):
+                      fail(f"{list_name} item must be an object")
+
+                  candidates = item.get("candidates")
+                  candidate_matches = item.get("candidate_matches")
+                  if not isinstance(candidates, list):
+                      fail(f"{list_name} candidates must be an array")
+                  if not isinstance(candidate_matches, list):
+                      fail(
+                          f"{list_name} candidate_matches must be an array"
+                      )
+
+                  matched_candidates = []
+                  for match in candidate_matches:
+                      if (
+                          not isinstance(match, dict)
+                          or set(match) != approved_candidate_match_keys
+                      ):
+                          fail(
+                              f"{list_name} candidate match keys are invalid"
+                          )
+
+                      candidate = match["candidate"]
+                      matched_aliases = match["matched_aliases"]
+                      locations = match["locations"]
+                      if (
+                          not isinstance(candidate, str)
+                          or not candidate.strip()
+                      ):
+                          fail(f"{list_name} candidate must be non-empty")
+                      if (
+                          not isinstance(matched_aliases, list)
+                          or not matched_aliases
+                          or any(
+                              not isinstance(alias, str) or not alias.strip()
+                              for alias in matched_aliases
+                          )
+                          or len(matched_aliases) != len(set(matched_aliases))
+                      ):
+                          fail(f"{list_name} matched_aliases are invalid")
+                      if (
+                          not isinstance(locations, list)
+                          or not locations
+                          or any(
+                              location not in approved_candidate_locations
+                              for location in locations
+                          )
+                          or len(locations) != len(set(locations))
+                      ):
+                          fail(f"{list_name} candidate locations are invalid")
+                      matched_candidates.append(candidate)
+
+                  if len(matched_candidates) != len(set(matched_candidates)):
+                      fail(f"{list_name} candidate matches are duplicated")
+                  if sorted(matched_candidates) != sorted(candidates):
+                      fail(
+                          f"{list_name} candidates and candidate_matches "
+                          "disagree"
+                      )
+
           counts = wire.get("counts")
 
           if not isinstance(counts, dict):

@@ -70,7 +70,8 @@ TRACKING_PARAMETERS = {
     "utm_term",
 }
 
-INVENTORY_SCHEMA_VERSION = 3
+INVENTORY_SCHEMA_VERSION = 4
+LEGACY_INVENTORY_SCHEMA_VERSION = 3
 INVENTORY_SUMMARY_MAX_CHARS = 1000
 INVENTORY_ITEM_FIELDS = {
     "id",
@@ -86,9 +87,16 @@ INVENTORY_ITEM_FIELDS = {
     "first_seen_at",
     "last_seen_at",
     "candidate_names",
+    "candidate_matches",
     "relevance_reason",
     "relevance_terms",
 }
+LEGACY_INVENTORY_ITEM_FIELDS = INVENTORY_ITEM_FIELDS - {"candidate_matches"}
+
+# Shorthand aliases must be reviewed and demonstrated to be unambiguous before
+# they are added here. The normalized full name remains eligible automatically.
+NEWS_CANDIDATE_ALIAS_OVERRIDES: dict[str, tuple[str, ...]] = {}
+CANDIDATE_MATCH_LOCATIONS = ("headline", "summary")
 
 ELECTION_PATTERNS = (
     re.compile(r"\bpresidentielle(?:\s+francaise)?(?:\s+de)?\s+2027\b"),
@@ -500,6 +508,179 @@ def normalize(value: Any) -> str:
     text = re.sub(r"<[^>]+>", " ", text)
     text = re.sub(r"[^a-z0-9]+", " ", text)
     return " ".join(text.split())
+
+
+def news_candidate_aliases(
+    candidates: list[str],
+) -> list[tuple[str, tuple[str, ...]]]:
+    """Return deterministic, reviewed aliases for canonical candidates."""
+
+    aliases_by_candidate: list[tuple[str, tuple[str, ...]]] = []
+    for candidate in sorted({
+        str(value).strip()
+        for value in candidates
+        if str(value).strip()
+    }):
+        normalized_full_name = normalize(candidate)
+        aliases: set[str] = set()
+
+        # A one-token roster label is not precise enough to become a news alias.
+        if len(normalized_full_name.split()) > 1:
+            aliases.add(normalized_full_name)
+
+        aliases.update(
+            normalized_alias
+            for alias in NEWS_CANDIDATE_ALIAS_OVERRIDES.get(candidate, ())
+            if (normalized_alias := normalize(alias))
+        )
+
+        if aliases:
+            aliases_by_candidate.append((candidate, tuple(sorted(aliases))))
+
+    return aliases_by_candidate
+
+
+def normalized_alias_matches(normalized_text: str, alias: str) -> bool:
+    """Match complete normalized token sequences, never partial tokens."""
+
+    return f" {alias} " in f" {normalize(normalized_text)} "
+
+
+def match_news_candidates(
+    headline: Any,
+    summary: Any,
+    candidates: list[str],
+) -> list[dict[str, Any]]:
+    """Return exact candidate matches with field-level provenance."""
+
+    normalized_fields = {
+        "headline": normalize(headline),
+        "summary": normalize(summary),
+    }
+    matches: list[dict[str, Any]] = []
+
+    for candidate, aliases in news_candidate_aliases(candidates):
+        matched_aliases = [
+            alias
+            for alias in aliases
+            if any(
+                normalized_alias_matches(text, alias)
+                for text in normalized_fields.values()
+            )
+        ]
+        if not matched_aliases:
+            continue
+
+        locations = [
+            location
+            for location in CANDIDATE_MATCH_LOCATIONS
+            if any(
+                normalized_alias_matches(normalized_fields[location], alias)
+                for alias in matched_aliases
+            )
+        ]
+        matches.append(
+            {
+                "candidate": candidate,
+                "matched_aliases": matched_aliases,
+                "locations": locations,
+            }
+        )
+
+    return matches
+
+
+def candidate_names_from_matches(
+    candidate_matches: list[dict[str, Any]],
+) -> list[str]:
+    return [match["candidate"] for match in candidate_matches]
+
+
+def candidate_has_match_location(
+    candidate_matches: list[dict[str, Any]],
+    location: str,
+) -> bool:
+    return any(
+        location in match.get("locations", [])
+        for match in candidate_matches
+    )
+
+
+def validate_candidate_match_contract(
+    candidates: Any,
+    candidate_matches: Any,
+    context: str,
+) -> None:
+    if (
+        not isinstance(candidates, list)
+        or any(
+            not isinstance(candidate, str) or not candidate.strip()
+            for candidate in candidates
+        )
+        or candidates != sorted(set(candidates))
+    ):
+        raise RuntimeError(f"{context} has invalid candidates")
+
+    if not isinstance(candidate_matches, list):
+        raise RuntimeError(f"{context} candidate_matches is not a list")
+
+    matched_candidates: list[str] = []
+    for match in candidate_matches:
+        if not isinstance(match, dict) or set(match) != {
+            "candidate",
+            "matched_aliases",
+            "locations",
+        }:
+            raise RuntimeError(
+                f"{context} has malformed candidate_matches"
+            )
+
+        candidate = match["candidate"]
+        matched_aliases = match["matched_aliases"]
+        locations = match["locations"]
+        if not isinstance(candidate, str) or not candidate.strip():
+            raise RuntimeError(
+                f"{context} candidate_matches has an empty candidate"
+            )
+        if (
+            not isinstance(matched_aliases, list)
+            or not matched_aliases
+            or any(
+                not isinstance(alias, str)
+                or not alias.strip()
+                or alias != normalize(alias)
+                for alias in matched_aliases
+            )
+            or matched_aliases != sorted(set(matched_aliases))
+        ):
+            raise RuntimeError(
+                f"{context} has invalid matched_aliases"
+            )
+        if (
+            not isinstance(locations, list)
+            or not locations
+            or any(
+                location not in CANDIDATE_MATCH_LOCATIONS
+                for location in locations
+            )
+            or len(locations) != len(set(locations))
+            or locations != [
+                location
+                for location in CANDIDATE_MATCH_LOCATIONS
+                if location in locations
+            ]
+        ):
+            raise RuntimeError(f"{context} has invalid match locations")
+        matched_candidates.append(candidate)
+
+    if matched_candidates != sorted(set(matched_candidates)):
+        raise RuntimeError(
+            f"{context} has duplicate or unsorted candidate matches"
+        )
+    if sorted(matched_candidates) != sorted(candidates):
+        raise RuntimeError(
+            f"{context} candidates disagree with candidate_matches"
+        )
 
 
 def clean_text(value: Any) -> str:
@@ -1447,6 +1628,7 @@ def classify_relevant_news(
     normalized_headline: str,
     normalized_summary: str,
     matched_candidates: list[str],
+    candidate_matches: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     """Classify broad but genuine France 2027 article relevance.
 
@@ -1467,11 +1649,16 @@ def classify_relevant_news(
 
     headline = normalize(normalized_headline)
     summary = normalize(normalized_summary)
+    if candidate_matches is None:
+        candidate_matches = match_news_candidates(
+            headline,
+            summary,
+            matched_candidates,
+        )
 
-    candidate_in_headline = any(
-        normalize(candidate) in headline
-        for candidate in matched_candidates
-        if normalize(candidate)
+    candidate_in_headline = candidate_has_match_location(
+        candidate_matches,
+        "headline",
     )
     headline_party_matches = campaign_agenda_term_matches(
         headline,
@@ -1624,6 +1811,7 @@ def classify_notable_development(
     matched_candidates: list[str],
     source: dict[str, Any],
     normalized_headline: str | None = None,
+    candidate_matches: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     """Return only concrete developments tied to the presidential race.
 
@@ -1635,6 +1823,12 @@ def classify_notable_development(
     del source  # source scope is metadata, not a substitute for race context
 
     headline_text = normalized_headline or normalized_text
+    if candidate_matches is None:
+        candidate_matches = match_news_candidates(
+            headline_text,
+            "",
+            matched_candidates,
+        )
     strict_topics: list[
         tuple[int, int, dict[str, Any], list[str]]
     ] = []
@@ -1687,10 +1881,9 @@ def classify_notable_development(
         f" {term} " in padded_headline
         for term in PARTY_CONTEXT_TERMS
     )
-    has_candidate_in_headline = any(
-        normalize(candidate) in headline_text
-        for candidate in matched_candidates
-        if normalize(candidate)
+    has_candidate_in_headline = candidate_has_match_location(
+        candidate_matches,
+        "headline",
     )
 
     result = {
@@ -1885,6 +2078,7 @@ def empty_inventory(window_days: int) -> dict[str, Any]:
 def load_inventory(
     path: Path | None,
     window_days: int,
+    candidates: list[str],
 ) -> dict[str, Any]:
     if path is None or not path.exists():
         return empty_inventory(window_days)
@@ -1898,18 +2092,42 @@ def load_inventory(
 
     if not isinstance(payload, dict):
         raise RuntimeError("News inventory must be an object")
-    if payload.get("schema_version") != INVENTORY_SCHEMA_VERSION:
+    schema_version = payload.get("schema_version")
+    if schema_version not in {
+        LEGACY_INVENTORY_SCHEMA_VERSION,
+        INVENTORY_SCHEMA_VERSION,
+    }:
         raise RuntimeError("Unsupported news inventory schema")
     if not isinstance(payload.get("items"), list):
         raise RuntimeError("News inventory items must be a list")
 
     seen_ids: set[str] = set()
     seen_keys: set[str] = set()
+    migrated_items: list[dict[str, Any]] = []
 
-    for item in payload["items"]:
-        if not isinstance(item, dict) or set(item) != INVENTORY_ITEM_FIELDS:
+    for stored_item in payload["items"]:
+        expected_fields = (
+            LEGACY_INVENTORY_ITEM_FIELDS
+            if schema_version == LEGACY_INVENTORY_SCHEMA_VERSION
+            else INVENTORY_ITEM_FIELDS
+        )
+        if (
+            not isinstance(stored_item, dict)
+            or set(stored_item) != expected_fields
+        ):
             raise RuntimeError(
                 "News inventory item has unexpected fields"
+            )
+        item = dict(stored_item)
+        if schema_version == LEGACY_INVENTORY_SCHEMA_VERSION:
+            candidate_matches = match_news_candidates(
+                item.get("headline"),
+                item.get("summary"),
+                candidates,
+            )
+            item["candidate_matches"] = candidate_matches
+            item["candidate_names"] = candidate_names_from_matches(
+                candidate_matches
             )
         if item["id"] in seen_ids:
             raise RuntimeError("News inventory contains duplicate ids")
@@ -1937,6 +2155,11 @@ def load_inventory(
             raise RuntimeError(
                 "News inventory item has invalid candidate_names"
             )
+        validate_candidate_match_contract(
+            candidate_names,
+            item.get("candidate_matches"),
+            "News inventory item",
+        )
         relevance_reason = item.get("relevance_reason")
         relevance_terms = item.get("relevance_terms")
         if relevance_reason is not None and (
@@ -1961,6 +2184,19 @@ def load_inventory(
             raise RuntimeError(
                 "News inventory relevance terms require a reason"
             )
+        if schema_version == LEGACY_INVENTORY_SCHEMA_VERSION:
+            relevance = classify_relevant_news(
+                item.get("headline"),
+                item.get("summary"),
+                candidate_names,
+                item["candidate_matches"],
+            )
+            item["relevance_reason"] = (
+                relevance["reason"] if relevance is not None else None
+            )
+            item["relevance_terms"] = (
+                relevance["matched_terms"] if relevance is not None else []
+            )
         key = inventory_identity(item)
         if key in seen_keys:
             raise RuntimeError(
@@ -1969,7 +2205,16 @@ def load_inventory(
         seen_ids.add(item["id"])
         seen_keys.add(key)
 
-    return payload
+        migrated_items.append(item)
+
+    if schema_version == INVENTORY_SCHEMA_VERSION:
+        return payload
+
+    return {
+        **payload,
+        "schema_version": INVENTORY_SCHEMA_VERSION,
+        "items": migrated_items,
+    }
 
 
 def inventory_item_from_entry(
@@ -1981,6 +2226,20 @@ def inventory_item_from_entry(
         entry.get("canonical_url") or entry.get("url")
     )
     identity = inventory_identity(entry)
+    candidate_matches = [
+        {
+            "candidate": match["candidate"],
+            "matched_aliases": list(match["matched_aliases"]),
+            "locations": list(match["locations"]),
+        }
+        for match in entry.get("candidate_matches", [])
+    ]
+    candidate_names = candidate_names_from_matches(candidate_matches)
+    validate_candidate_match_contract(
+        candidate_names,
+        candidate_matches,
+        "News inventory entry",
+    )
 
     return {
         "id": hashlib.sha256(
@@ -1999,13 +2258,8 @@ def inventory_item_from_entry(
         "last_seen_at": last_seen_at,
         # Preserve candidate associations derived from the complete RSS
         # title and summary before the stored summary is shortened.
-        "candidate_names": sorted(
-            {
-                str(candidate).strip()
-                for candidate in entry.get("candidate_names", [])
-                if str(candidate).strip()
-            }
-        ),
+        "candidate_names": candidate_names,
+        "candidate_matches": candidate_matches,
         # Preserve broad relevance derived from the complete feed text
         # before the stored summary is shortened.
         "relevance_reason": (
@@ -2040,7 +2294,14 @@ def inventory_entry(item: dict[str, Any]) -> dict[str, Any]:
         "url": item["url"],
         "canonical_url": item["canonical_url"],
         "published_at": published_at,
-        "candidate_names": list(item["candidate_names"]),
+        "candidate_matches": [
+            {
+                key: list(value) if isinstance(value, list) else value
+                for key, value in match.items()
+            }
+            for match in item["candidate_matches"]
+        ],
+        "candidate_names": candidate_names_from_matches(item["candidate_matches"]),
         "relevance_reason": item["relevance_reason"],
         "relevance_terms": list(item["relevance_terms"]),
     }
@@ -2204,9 +2465,17 @@ def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
 
 def public_item(
     entry: dict[str, Any],
-    candidates: list[str],
+    candidate_matches: list[dict[str, Any]],
     explicit_election: bool,
 ) -> dict[str, Any]:
+    public_candidate_matches = [
+        {
+            "candidate": match["candidate"],
+            "matched_aliases": list(match["matched_aliases"]),
+            "locations": list(match["locations"]),
+        }
+        for match in candidate_matches
+    ]
     return {
         "id": make_item_id(
             entry["canonical_url"],
@@ -2223,17 +2492,18 @@ def public_item(
         "headline": entry["headline"],
         "url": entry["url"],
         "explicit_election": explicit_election,
-        "candidates": candidates,
+        "candidates": candidate_names_from_matches(public_candidate_matches),
+        "candidate_matches": public_candidate_matches,
     }
 
 
 def public_relevant_item(
     entry: dict[str, Any],
-    candidates: list[str],
+    candidate_matches: list[dict[str, Any]],
     explicit_election: bool,
     classification: dict[str, Any],
 ) -> dict[str, Any]:
-    item = public_item(entry, candidates, explicit_election)
+    item = public_item(entry, candidate_matches, explicit_election)
     item.update(
         {
             "relevance_reason": classification["reason"],
@@ -2245,10 +2515,10 @@ def public_relevant_item(
 
 def public_notable_item(
     entry: dict[str, Any],
-    candidates: list[str],
+    candidate_matches: list[dict[str, Any]],
     classification: dict[str, Any],
 ) -> dict[str, Any]:
-    item = public_item(entry, candidates, False)
+    item = public_item(entry, candidate_matches, False)
     item.update(
         {
             "development_category": classification["id"],
@@ -2682,6 +2952,7 @@ def validate_output(payload: dict[str, Any]) -> None:
                 "url",
                 "explicit_election",
                 "candidates",
+                "candidate_matches",
             }
 
             if set(item) != required:
@@ -2693,6 +2964,11 @@ def validate_output(payload: dict[str, Any]) -> None:
                 raise RuntimeError(
                     f"{list_name} contains an empty headline or publisher"
                 )
+            validate_candidate_match_contract(
+                item.get("candidates"),
+                item.get("candidate_matches"),
+                f"{list_name} item",
+            )
 
             if not str(item["url"]).startswith(("http://", "https://")):
                 raise RuntimeError(
@@ -2718,11 +2994,17 @@ def validate_output(payload: dict[str, Any]) -> None:
             "url",
             "explicit_election",
             "candidates",
+            "candidate_matches",
             "relevance_reason",
             "relevance_terms",
         }
         if not isinstance(item, dict) or set(item) != required:
             raise RuntimeError("relevant_news item has unexpected fields")
+        validate_candidate_match_contract(
+            item.get("candidates"),
+            item.get("candidate_matches"),
+            "relevant_news item",
+        )
         if (
             not isinstance(item["relevance_reason"], str)
             or not item["relevance_reason"]
@@ -2745,12 +3027,18 @@ def validate_output(payload: dict[str, Any]) -> None:
             "url",
             "explicit_election",
             "candidates",
+            "candidate_matches",
             "development_category",
             "development_label",
             "matched_terms",
         }
         if not isinstance(item, dict) or set(item) != required:
             raise RuntimeError("notable_developments item has unexpected fields")
+        validate_candidate_match_contract(
+            item.get("candidates"),
+            item.get("candidate_matches"),
+            "notable_developments item",
+        )
         if item["development_category"] not in MATERIAL_TOPIC_IDS:
             raise RuntimeError("notable_developments has an invalid category")
         if not isinstance(item["matched_terms"], list) or not item["matched_terms"]:
@@ -2823,10 +3111,7 @@ def build_wire(
         polls_path,
         generated_at,
     )
-    normalized_candidates = {
-        candidate: normalize(candidate)
-        for candidate in candidates
-    }
+    candidate_set = set(candidates)
     discovery_queries = generate_discovery_queries(candidates)
     publisher_site_feeds = generate_publisher_site_feeds()
     if health_route_configurations is not None:
@@ -3156,20 +3441,19 @@ def build_wire(
     for entry in all_entries:
         normalized_headline = normalize(entry["headline"])
         normalized_summary = normalize(entry.get("summary") or "")
-        complete_text = " ".join(
-            part for part in (normalized_headline, normalized_summary)
-            if part
+        entry["candidate_matches"] = match_news_candidates(
+            normalized_headline,
+            normalized_summary,
+            candidates,
         )
-        entry["candidate_names"] = [
-            candidate
-            for candidate, normalized_name
-            in normalized_candidates.items()
-            if normalized_name in complete_text
-        ]
+        entry["candidate_names"] = candidate_names_from_matches(
+            entry["candidate_matches"]
+        )
         relevance = classify_relevant_news(
             normalized_headline,
             normalized_summary,
             entry["candidate_names"],
+            entry["candidate_matches"],
         )
         entry["relevance_reason"] = (
             relevance["reason"] if relevance is not None else None
@@ -3181,6 +3465,7 @@ def build_wire(
     existing_inventory = load_inventory(
         inventory_path,
         window_days,
+        candidates,
     )
     inventory_payload, inventory_entries, inventory_stats = merge_inventory(
         existing_inventory,
@@ -3221,11 +3506,14 @@ def build_wire(
         combined_text = normalize(
             f"{entry['headline']} {entry.get('summary') or ''}"
         )
-        matched_candidates = [
-            candidate
-            for candidate in entry.get("candidate_names", [])
-            if candidate in normalized_candidates
+        candidate_matches = [
+            match
+            for match in entry.get("candidate_matches", [])
+            if match.get("candidate") in candidate_set
         ]
+        matched_candidates = candidate_names_from_matches(
+            candidate_matches
+        )
         normalized_headline = normalize(entry["headline"])
         normalized_summary = normalize(entry.get("summary") or "")
 
@@ -3254,6 +3542,7 @@ def build_wire(
             matched_candidates,
             source,
             normalized_headline,
+            candidate_matches,
         )
 
         relevance = None
@@ -3267,6 +3556,7 @@ def build_wire(
                 normalized_headline,
                 normalized_summary,
                 matched_candidates,
+                candidate_matches,
             )
 
         # Election News is a current-race headline lane. Historical election
@@ -3279,7 +3569,7 @@ def build_wire(
         )
         base_item = public_item(
             entry,
-            matched_candidates,
+            candidate_matches,
             is_election_news,
         )
 
@@ -3292,7 +3582,7 @@ def build_wire(
             notable_developments.append(
                 public_notable_item(
                     entry,
-                    matched_candidates,
+                    candidate_matches,
                     development,
                 )
             )
@@ -3309,7 +3599,7 @@ def build_wire(
             relevant_news.append(
                 public_relevant_item(
                     entry,
-                    matched_candidates,
+                    candidate_matches,
                     is_election_news,
                     relevance,
                 )
