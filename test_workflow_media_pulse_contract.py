@@ -12,6 +12,7 @@ class WorkflowMediaPulseContractTests(unittest.TestCase):
     def test_workflow_runs_analytical_contract_tests(self):
         for filename in (
             "test_candidate_coverage_scope.py",
+            "test_candidate_identity_contract.py",
             "test_campaign_agenda_evidence.py",
             "test_workflow_media_pulse_contract.py",
         ):

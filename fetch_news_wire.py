@@ -178,8 +178,32 @@ INVENTORY_ITEM_FIELDS = {
 }
 LEGACY_INVENTORY_ITEM_FIELDS = INVENTORY_ITEM_FIELDS - {"candidate_matches"}
 
-# Shorthand aliases must be reviewed and demonstrated to be unambiguous before
-# they are added here. The normalized full name remains eligible automatically.
+# Poll sources sometimes alternate between full candidate names and compact
+# labels. Canonicalization prevents those variants from becoming separate
+# public identities. This map does not automatically approve surname-only
+# matching in news text.
+NEWS_CANDIDATE_NAME_OVERRIDES: dict[str, str] = {
+    "Arthaud": "Nathalie Arthaud",
+    "Attal": "Gabriel Attal",
+    "Bardella": "Jordan Bardella",
+    "Darmanin": "Gérald Darmanin",
+    "de Villepin": "Dominique de Villepin",
+    "Dupont-Aignan": "Nicolas Dupont-Aignan",
+    "Faure": "Olivier Faure",
+    "Hollande": "François Hollande",
+    "Knafo": "Sarah Knafo",
+    "Lecornu": "Sébastien Lecornu",
+    "Mélenchon": "Jean-Luc Mélenchon",
+    "Philippe": "Édouard Philippe",
+    "Retailleau": "Bruno Retailleau",
+    "Roussel": "Fabien Roussel",
+    "Ruffin": "François Ruffin",
+    "Tondelier": "Marine Tondelier",
+    "Zemmour": "Éric Zemmour",
+}
+
+# Additional text aliases must be reviewed and demonstrated to be
+# unambiguous before they are added here.
 NEWS_CANDIDATE_ALIAS_OVERRIDES: dict[str, tuple[str, ...]] = {}
 CANDIDATE_MATCH_LOCATIONS = ("headline", "summary")
 
@@ -595,27 +619,86 @@ def normalize(value: Any) -> str:
     return " ".join(text.split())
 
 
+def canonical_news_candidate_name(value: Any) -> str:
+    """Return one reviewed public identity for a poll candidate label."""
+
+    candidate = str(value or "").strip()
+    normalized_candidate = normalize(candidate)
+
+    if not normalized_candidate:
+        return ""
+
+    for alternate_name, canonical_name in (
+        NEWS_CANDIDATE_NAME_OVERRIDES.items()
+    ):
+        if normalized_candidate in {
+            normalize(alternate_name),
+            normalize(canonical_name),
+        }:
+            return canonical_name
+
+    return candidate
+
+
+def canonical_news_candidate_roster(
+    candidates: Any,
+) -> list[str]:
+    """Canonicalize and deterministically deduplicate candidate labels."""
+
+    if not isinstance(candidates, (list, tuple, set, frozenset)):
+        return []
+
+    return sorted(
+        {
+            canonical
+            for value in candidates
+            if (
+                canonical := canonical_news_candidate_name(value)
+            )
+        }
+    )
+
+
 def news_candidate_aliases(
     candidates: list[str],
 ) -> list[tuple[str, tuple[str, ...]]]:
     """Return deterministic, reviewed aliases for canonical candidates."""
 
     aliases_by_candidate: list[tuple[str, tuple[str, ...]]] = []
-    for candidate in sorted({
-        str(value).strip()
-        for value in candidates
-        if str(value).strip()
-    }):
+
+    for candidate in canonical_news_candidate_roster(candidates):
         normalized_full_name = normalize(candidate)
         aliases: set[str] = set()
 
-        # A one-token roster label is not precise enough to become a news alias.
+        # A one-token roster label is not precise enough to become a
+        # news alias.
         if len(normalized_full_name.split()) > 1:
             aliases.add(normalized_full_name)
 
+        # Reviewed poll labels containing more than one token remain
+        # useful exact text aliases. Surname-only labels remain excluded.
+        aliases.update(
+            normalized_alternate
+            for alternate_name, canonical_name in (
+                NEWS_CANDIDATE_NAME_OVERRIDES.items()
+            )
+            if (
+                canonical_name == candidate
+                and (
+                    normalized_alternate := normalize(
+                        alternate_name
+                    )
+                )
+                and len(normalized_alternate.split()) > 1
+            )
+        )
+
         aliases.update(
             normalized_alias
-            for alias in NEWS_CANDIDATE_ALIAS_OVERRIDES.get(candidate, ())
+            for alias in NEWS_CANDIDATE_ALIAS_OVERRIDES.get(
+                candidate,
+                (),
+            )
             if (normalized_alias := normalize(alias))
         )
 
@@ -1347,7 +1430,7 @@ def recent_candidate_roster(
             "during the previous six months"
         )
 
-    return sorted(names), cutoff.isoformat()
+    return canonical_news_candidate_roster(names), cutoff.isoformat()
 
 
 def discovery_rejection_reason(
