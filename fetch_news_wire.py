@@ -314,7 +314,7 @@ CAMPAIGN_AGENDA_TOPICS = (
     },
 )
 
-CAMPAIGN_AGENDA_SUPPORT_LIMIT = 5
+CAMPAIGN_AGENDA_SUPPORT_LIMIT = 20
 CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS = 2
 MATERIAL_TOPIC_IDS = {
     "legal_eligibility",
@@ -2015,6 +2015,26 @@ def classify_notable_development(
     return None
 
 
+def campaign_agenda_support_sort_key(
+    item: dict[str, Any],
+) -> tuple[float, str, str, str]:
+    """Sort topic evidence by recency with stable tie-breakers."""
+
+    published = parse_feed_datetime(item.get("published_at"))
+    timestamp = (
+        published.timestamp()
+        if published is not None
+        else float("-inf")
+    )
+
+    return (
+        -timestamp,
+        str(item.get("publisher") or "").casefold(),
+        str(item.get("headline") or "").casefold(),
+        str(item.get("id") or ""),
+    )
+
+
 def build_campaign_agenda(
     relevant_news: list[dict[str, Any]],
     window_days: int,
@@ -2052,8 +2072,7 @@ def build_campaign_agenda(
 
     for topic_id, items in topic_items.items():
         items.sort(
-            key=lambda item: item["published_at"],
-            reverse=True,
+            key=campaign_agenda_support_sort_key
         )
         publishers = sorted(
             {item["publisher"] for item in items}
@@ -2065,6 +2084,9 @@ def build_campaign_agenda(
             (item["publisher"], item["published_at"][:10])
             for item in items
         }
+        supporting_items = items[
+            :CAMPAIGN_AGENDA_SUPPORT_LIMIT
+        ]
 
         topics.append(
             {
@@ -2079,9 +2101,11 @@ def build_campaign_agenda(
                     len(source_days)
                     >= CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS
                 ),
-                "supporting_items": items[
-                    :CAMPAIGN_AGENDA_SUPPORT_LIMIT
-                ],
+                "supporting_item_count": len(supporting_items),
+                "omitted_item_count": (
+                    len(items) - len(supporting_items)
+                ),
+                "supporting_items": supporting_items,
             }
         )
 
@@ -3744,6 +3768,201 @@ def validate_candidate_visibility(
         )
 
 
+def validate_campaign_agenda_topic(
+    topic: Any,
+    seen_topic_ids: set[str],
+) -> None:
+    required = {
+        "id",
+        "label",
+        "item_count",
+        "publisher_count",
+        "publisher_names",
+        "source_day_count",
+        "active_day_count",
+        "display_eligible",
+        "supporting_item_count",
+        "omitted_item_count",
+        "supporting_items",
+    }
+
+    if not isinstance(topic, dict) or set(topic) != required:
+        raise RuntimeError(
+            "campaign_agenda topic has unexpected fields"
+        )
+
+    topic_id = topic["id"]
+    if (
+        not isinstance(topic_id, str)
+        or not topic_id.strip()
+        or topic_id in seen_topic_ids
+    ):
+        raise RuntimeError(
+            "campaign_agenda contains duplicate or invalid topic ids"
+        )
+
+    if (
+        not isinstance(topic["label"], str)
+        or not topic["label"].strip()
+    ):
+        raise RuntimeError(
+            "campaign_agenda topic label is invalid"
+        )
+
+    count_fields = (
+        "item_count",
+        "publisher_count",
+        "source_day_count",
+        "active_day_count",
+        "supporting_item_count",
+        "omitted_item_count",
+    )
+    if any(
+        type(topic[field]) is not int
+        or topic[field] < 0
+        for field in count_fields
+    ):
+        raise RuntimeError(
+            "campaign_agenda topic counts are invalid"
+        )
+
+    supporting_items = topic["supporting_items"]
+    if not isinstance(supporting_items, list):
+        raise RuntimeError(
+            "campaign_agenda supporting_items is not a list"
+        )
+
+    expected_supporting_count = min(
+        topic["item_count"],
+        CAMPAIGN_AGENDA_SUPPORT_LIMIT,
+    )
+
+    if (
+        topic["supporting_item_count"]
+        != len(supporting_items)
+        or topic["supporting_item_count"]
+        != expected_supporting_count
+        or topic["omitted_item_count"]
+        != topic["item_count"] - len(supporting_items)
+    ):
+        raise RuntimeError(
+            "campaign_agenda supporting item count is invalid"
+        )
+
+    item_keys = {
+        "id",
+        "publisher",
+        "published_at",
+        "headline",
+        "url",
+        "candidates",
+        "matched_terms",
+    }
+    item_ids: list[str] = []
+
+    for item in supporting_items:
+        if (
+            not isinstance(item, dict)
+            or set(item) != item_keys
+        ):
+            raise RuntimeError(
+                "campaign_agenda supporting item "
+                "has unexpected fields"
+            )
+
+        item_id = item["id"]
+        if (
+            not isinstance(item_id, str)
+            or not item_id.strip()
+        ):
+            raise RuntimeError(
+                "campaign_agenda supporting item id is invalid"
+            )
+
+        item_ids.append(item_id)
+
+        if (
+            not isinstance(item["publisher"], str)
+            or not item["publisher"].strip()
+            or not isinstance(item["headline"], str)
+            or not item["headline"].strip()
+            or parse_feed_datetime(
+                item["published_at"]
+            ) is None
+            or not str(item["url"]).startswith(
+                ("http://", "https://")
+            )
+        ):
+            raise RuntimeError(
+                "campaign_agenda supporting item is invalid"
+            )
+
+        for field in ("candidates", "matched_terms"):
+            values = item[field]
+
+            if (
+                not isinstance(values, list)
+                or any(
+                    not isinstance(value, str)
+                    or not value.strip()
+                    for value in values
+                )
+                or len(values) != len(set(values))
+            ):
+                raise RuntimeError(
+                    "campaign_agenda supporting item "
+                    "provenance is invalid"
+                )
+
+    if len(item_ids) != len(set(item_ids)):
+        raise RuntimeError(
+            "campaign_agenda supporting items "
+            "contain duplicate ids"
+        )
+
+    ordering = [
+        campaign_agenda_support_sort_key(item)
+        for item in supporting_items
+    ]
+    if ordering != sorted(ordering):
+        raise RuntimeError(
+            "campaign_agenda supporting item order is invalid"
+        )
+
+    publisher_names = topic["publisher_names"]
+    if (
+        not isinstance(publisher_names, list)
+        or any(
+            not isinstance(name, str)
+            or not name.strip()
+            or name != name.strip()
+            for name in publisher_names
+        )
+        or publisher_names != sorted(publisher_names)
+        or len(publisher_names)
+        != len(set(publisher_names))
+        or topic["publisher_count"]
+        != len(publisher_names)
+    ):
+        raise RuntimeError(
+            "campaign_agenda publisher evidence is invalid"
+        )
+
+    if (
+        type(topic["display_eligible"]) is not bool
+        or topic["display_eligible"]
+        != (
+            topic["source_day_count"]
+            >= CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS
+        )
+    ):
+        raise RuntimeError(
+            "campaign_agenda display eligibility is invalid"
+        )
+
+    seen_topic_ids.add(topic_id)
+
+
 def validate_output(payload: dict[str, Any]) -> None:
     sources = payload.get("sources")
     election_news = payload.get("election_news")
@@ -4094,34 +4313,10 @@ def validate_output(payload: dict[str, Any]) -> None:
     agenda_ids: set[str] = set()
 
     for topic in agenda_topics:
-        required = {
-            "id",
-            "label",
-            "item_count",
-            "publisher_count",
-            "publisher_names",
-            "source_day_count",
-            "active_day_count",
-            "display_eligible",
-            "supporting_items",
-        }
-
-        if set(topic) != required:
-            raise RuntimeError(
-                "campaign_agenda topic has unexpected fields"
-            )
-
-        if topic["id"] in agenda_ids:
-            raise RuntimeError(
-                "campaign_agenda contains duplicate topic ids"
-            )
-
-        if topic["item_count"] < len(topic["supporting_items"]):
-            raise RuntimeError(
-                "campaign_agenda supporting item count is invalid"
-            )
-
-        agenda_ids.add(topic["id"])
+        validate_campaign_agenda_topic(
+            topic,
+            agenda_ids,
+        )
 
     if not isinstance(sources, list) or len(sources) != len(SOURCES):
         raise RuntimeError("Unexpected source-status structure")
