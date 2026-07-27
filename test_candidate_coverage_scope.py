@@ -105,7 +105,7 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
             "coverage_scope": coverage_scope,
         }
 
-    def test_period_metrics_capture_scope_breadth_and_provenance(self):
+    def test_period_metrics_partition_race_and_general_visibility(self):
         records = [
             self.item(
                 item_id="attal-election",
@@ -153,75 +153,117 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
             records,
             self.generated_at,
         )
+
+        self.assertEqual(
+            visibility["primary_scopes"],
+            ["election", "campaign"],
+        )
+        self.assertEqual(
+            visibility["secondary_scope"],
+            "general",
+        )
+
         current = visibility["current_period"]
         prior = visibility["prior_period"]
+        general_current = visibility[
+            "general_current_period"
+        ]
+        general_prior = visibility[
+            "general_prior_period"
+        ]
 
-        self.assertEqual(current["record_count"], 4)
+        self.assertEqual(current["record_count"], 2)
+        self.assertEqual(current["publisher_count"], 2)
         self.assertEqual(
-            [metric["candidate"] for metric in current["candidate_metrics"]],
-            ["Gabriel Attal", "Édouard Philippe"],
+            [
+                metric["candidate"]
+                for metric in current["candidate_metrics"]
+            ],
+            ["Gabriel Attal"],
         )
 
         attal = current["candidate_metrics"][0]
-        self.assertEqual(attal["candidate"], "Gabriel Attal")
-        self.assertEqual(attal["record_count"], 3)
-        self.assertEqual(attal["share"], 0.75)
+
+        self.assertEqual(attal["record_count"], 2)
+        self.assertEqual(attal["share"], 1.0)
         self.assertEqual(attal["publisher_count"], 2)
         self.assertEqual(
             attal["publisher_names"],
             ["Le Figaro", "Le Monde"],
         )
-        self.assertEqual(attal["active_day_count"], 2)
-        self.assertEqual(attal["headline_match_count"], 2)
-        self.assertEqual(attal["summary_only_match_count"], 1)
+        self.assertEqual(attal["headline_match_count"], 1)
+        self.assertEqual(
+            attal["summary_only_match_count"],
+            1,
+        )
         self.assertEqual(
             attal["scope_counts"],
             {
                 "election": 1,
                 "campaign": 1,
-                "general": 1,
+                "general": 0,
             },
         )
         self.assertEqual(
             attal["scope_shares"],
             {
-                "election": 0.333,
-                "campaign": 0.333,
-                "general": 0.333,
+                "election": 0.5,
+                "campaign": 0.5,
+                "general": 0.0,
             },
         )
-        self.assertEqual(attal["story_cluster_count"], 3)
+
+        self.assertEqual(prior["record_count"], 1)
         self.assertEqual(
-            attal["concentration"]["leading_publisher"],
-            "Le Monde",
-        )
-        self.assertEqual(
-            attal["concentration"]["leading_publisher_share"],
-            0.667,
-        )
-        self.assertEqual(
-            attal["concentration"]["leading_story_share"],
-            0.333,
+            prior["candidate_metrics"][0]["candidate"],
+            "Gabriel Attal",
         )
 
-        philippe = current["candidate_metrics"][1]
-        self.assertEqual(philippe["record_count"], 1)
-        self.assertEqual(philippe["share"], 0.25)
         self.assertEqual(
-            philippe["scope_counts"],
+            general_current["record_count"],
+            2,
+        )
+        self.assertEqual(
+            [
+                metric["candidate"]
+                for metric in general_current[
+                    "candidate_metrics"
+                ]
+            ],
+            [
+                "Gabriel Attal",
+                "Édouard Philippe",
+            ],
+        )
+        self.assertEqual(
+            general_current["candidate_metrics"][0][
+                "scope_counts"
+            ],
             {
                 "election": 0,
                 "campaign": 0,
                 "general": 1,
             },
         )
-
         self.assertEqual(
-            prior["candidate_metrics"][0]["candidate"],
-            "Gabriel Attal",
+            general_prior["record_count"],
+            0,
         )
         self.assertEqual(
-            prior["candidate_metrics"][0]["scope_counts"]["campaign"],
+            general_prior["candidate_metrics"],
+            [],
+        )
+
+        self.assertEqual(
+            visibility["comparison_quality"][
+                "current_record_count"
+            ],
+            2,
+        )
+        self.assertEqual(
+            visibility["comparison_quality"][
+                "prior_record_count"
+            ],
             1,
         )
 
@@ -254,7 +296,7 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
         metrics = build_candidate_visibility(
             records,
             self.generated_at,
-        )["current_period"]["candidate_metrics"]
+        )["general_current_period"]["candidate_metrics"]
 
         self.assertEqual(
             [metric["candidate"] for metric in metrics],
@@ -299,12 +341,18 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
             ),
         ]
 
-        metric = build_candidate_visibility(
+        visibility = build_candidate_visibility(
             records,
             self.generated_at,
-        )["current_period"]["candidate_metrics"][0]
+        )
 
-        self.assertEqual(metric["story_cluster_count"], 2)
+        metric = visibility[
+            "current_period"
+        ]["candidate_metrics"][0]
+
+        self.assertEqual(metric["record_count"], 2)
+        self.assertEqual(metric["story_cluster_count"], 1)
+
         leading_story = metric["story_clusters"][0]
         self.assertEqual(leading_story["record_count"], 2)
         self.assertEqual(leading_story["publisher_count"], 2)
@@ -312,20 +360,20 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
             set(leading_story["item_ids"]),
             {"primary-one", "primary-two"},
         )
-        self.assertEqual(leading_story["share"], 0.667)
+        self.assertEqual(leading_story["share"], 1.0)
 
         concentration = metric["concentration"]
         self.assertEqual(
             concentration["leading_publisher"],
-            "Le Monde",
+            "Le Figaro",
         )
         self.assertEqual(
             concentration["leading_publisher_record_count"],
-            2,
+            1,
         )
         self.assertEqual(
             concentration["leading_publisher_share"],
-            0.667,
+            0.5,
         )
         self.assertEqual(
             concentration["leading_story_record_count"],
@@ -333,14 +381,25 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
         )
         self.assertEqual(
             concentration["leading_story_share"],
-            0.667,
+            1.0,
+        )
+
+        general_metric = visibility[
+            "general_current_period"
+        ]["candidate_metrics"][0]
+
+        self.assertEqual(general_metric["record_count"], 1)
+        self.assertEqual(
+            general_metric["story_cluster_count"],
+            1,
+        )
+        self.assertEqual(
+            general_metric["story_clusters"][0]["item_ids"],
+            ["factory"],
         )
 
         validate_candidate_visibility(
-            build_candidate_visibility(
-                records,
-                self.generated_at,
-            ),
+            visibility,
             records,
             self.generated_at,
         )
@@ -367,10 +426,23 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
             ),
         ]
 
-        metric = build_candidate_visibility(
+        visibility = build_candidate_visibility(
             records,
             self.generated_at,
-        )["current_period"]["candidate_metrics"][0]
+        )
+
+        self.assertEqual(
+            visibility["current_period"]["record_count"],
+            0,
+        )
+        self.assertEqual(
+            visibility["current_period"]["candidate_metrics"],
+            [],
+        )
+
+        metric = visibility[
+            "general_current_period"
+        ]["candidate_metrics"][0]
 
         self.assertEqual(metric["story_cluster_count"], 2)
         self.assertEqual(

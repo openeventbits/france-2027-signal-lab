@@ -58,6 +58,16 @@ class WorkflowMediaPulseContractTests(unittest.TestCase):
             projection,
         )
 
+    def test_workflow_accepts_partitioned_visibility_schema(self):
+        for field in (
+            '"primary_scopes",',
+            '"secondary_scope",',
+            '"general_current_period",',
+            '"general_prior_period",',
+        ):
+            with self.subTest(field=field):
+                self.assertIn(field, self.workflow)
+
     def test_generated_wire_still_uses_canonical_validator(self):
         self.assertIn(
             "validate_output(wire)",

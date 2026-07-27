@@ -75,6 +75,12 @@ CANDIDATE_COVERAGE_SCOPES = (
     "general",
 )
 
+CANDIDATE_VISIBILITY_PRIMARY_SCOPES = (
+    "election",
+    "campaign",
+)
+CANDIDATE_VISIBILITY_SECONDARY_SCOPE = "general"
+
 STORY_CLUSTER_MIN_SHARED_TOKENS = 3
 STORY_CLUSTER_MIN_JACCARD = 0.5
 STORY_CLUSTER_STOPWORDS = frozenset({
@@ -3112,18 +3118,41 @@ def build_candidate_visibility(
     candidate_watch: list[dict[str, Any]],
     generated_at: datetime,
 ) -> dict[str, Any]:
+    """Build race visibility and general political visibility separately."""
+
     anchor = generated_at.astimezone(timezone.utc).date()
     current_start = anchor - timedelta(days=6)
     prior_end = current_start - timedelta(days=1)
     prior_start = prior_end - timedelta(days=6)
 
+    primary_records: list[dict[str, Any]] = []
+    general_records: list[dict[str, Any]] = []
+
+    for item in candidate_watch:
+        coverage_scope = item.get("coverage_scope")
+
+        if coverage_scope not in CANDIDATE_COVERAGE_SCOPES:
+            raise RuntimeError(
+                "candidate visibility record has invalid coverage_scope"
+            )
+
+        if coverage_scope in CANDIDATE_VISIBILITY_PRIMARY_SCOPES:
+            primary_records.append(item)
+        elif coverage_scope == CANDIDATE_VISIBILITY_SECONDARY_SCOPE:
+            general_records.append(item)
+
     def period(
+        source_records: list[dict[str, Any]],
         start_date: date,
         end_date: date,
     ) -> dict[str, Any]:
         records = []
-        for item in candidate_watch:
-            published = parse_feed_datetime(item.get("published_at"))
+
+        for item in source_records:
+            published = parse_feed_datetime(
+                item.get("published_at")
+            )
+
             if (
                 published is not None
                 and start_date <= published.date() <= end_date
@@ -3137,34 +3166,62 @@ def build_candidate_visibility(
                 if str(item.get("publisher") or "").strip()
             }
         )
+
         return {
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat(),
             "record_count": len(records),
             "publisher_count": len(publishers),
             "publisher_names": publishers,
-            "candidate_metrics": build_candidate_visibility_metrics(
-                records
+            "candidate_metrics": (
+                build_candidate_visibility_metrics(records)
             ),
         }
 
-    current_period = period(current_start, anchor)
-    prior_period = period(prior_start, prior_end)
-    current_publishers = set(current_period["publisher_names"])
-    prior_publishers = set(prior_period["publisher_names"])
+    current_period = period(
+        primary_records,
+        current_start,
+        anchor,
+    )
+    prior_period = period(
+        primary_records,
+        prior_start,
+        prior_end,
+    )
+    general_current_period = period(
+        general_records,
+        current_start,
+        anchor,
+    )
+    general_prior_period = period(
+        general_records,
+        prior_start,
+        prior_end,
+    )
+
+    current_publishers = set(
+        current_period["publisher_names"]
+    )
+    prior_publishers = set(
+        prior_period["publisher_names"]
+    )
     common_publisher_count = len(
         current_publishers & prior_publishers
     )
     publisher_union_count = len(
         current_publishers | prior_publishers
     )
-    publisher_overlap_ratio = round_candidate_visibility_ratio(
-        common_publisher_count / publisher_union_count
-        if publisher_union_count
-        else 0.0
+    publisher_overlap_ratio = (
+        round_candidate_visibility_ratio(
+            common_publisher_count / publisher_union_count
+            if publisher_union_count
+            else 0.0
+        )
     )
+
     current_record_count = current_period["record_count"]
     prior_record_count = prior_period["record_count"]
+
     record_count_ratio = (
         round_candidate_visibility_ratio(
             max(current_record_count, prior_record_count)
@@ -3173,11 +3230,16 @@ def build_candidate_visibility(
         if current_record_count and prior_record_count
         else None
     )
+
     status, reason = candidate_visibility_gate(
         current_record_count=current_record_count,
         prior_record_count=prior_record_count,
-        current_publisher_count=current_period["publisher_count"],
-        prior_publisher_count=prior_period["publisher_count"],
+        current_publisher_count=current_period[
+            "publisher_count"
+        ],
+        prior_publisher_count=prior_period[
+            "publisher_count"
+        ],
         common_publisher_count=common_publisher_count,
         publisher_overlap_ratio=publisher_overlap_ratio,
         record_count_ratio=record_count_ratio,
@@ -3185,8 +3247,16 @@ def build_candidate_visibility(
 
     return {
         "method": CANDIDATE_VISIBILITY_METHOD,
+        "primary_scopes": list(
+            CANDIDATE_VISIBILITY_PRIMARY_SCOPES
+        ),
+        "secondary_scope": (
+            CANDIDATE_VISIBILITY_SECONDARY_SCOPE
+        ),
         "current_period": current_period,
         "prior_period": prior_period,
+        "general_current_period": general_current_period,
+        "general_prior_period": general_prior_period,
         "comparison_quality": {
             "status": status,
             "reason": reason,
@@ -3195,12 +3265,22 @@ def build_candidate_visibility(
             "current_publisher_count": current_period[
                 "publisher_count"
             ],
-            "prior_publisher_count": prior_period["publisher_count"],
-            "common_publisher_count": common_publisher_count,
-            "publisher_union_count": publisher_union_count,
-            "publisher_overlap_ratio": publisher_overlap_ratio,
+            "prior_publisher_count": prior_period[
+                "publisher_count"
+            ],
+            "common_publisher_count": (
+                common_publisher_count
+            ),
+            "publisher_union_count": (
+                publisher_union_count
+            ),
+            "publisher_overlap_ratio": (
+                publisher_overlap_ratio
+            ),
             "record_count_ratio": record_count_ratio,
-            "thresholds": dict(CANDIDATE_VISIBILITY_THRESHOLDS),
+            "thresholds": dict(
+                CANDIDATE_VISIBILITY_THRESHOLDS
+            ),
         },
     }
 
@@ -3212,8 +3292,12 @@ def validate_candidate_visibility(
 ) -> None:
     top_level_keys = {
         "method",
+        "primary_scopes",
+        "secondary_scope",
         "current_period",
         "prior_period",
+        "general_current_period",
+        "general_prior_period",
         "comparison_quality",
     }
     if (
@@ -3224,6 +3308,16 @@ def validate_candidate_visibility(
     if candidate_visibility["method"] != CANDIDATE_VISIBILITY_METHOD:
         raise RuntimeError("candidate_visibility method is invalid")
 
+    if (
+        candidate_visibility["primary_scopes"]
+        != list(CANDIDATE_VISIBILITY_PRIMARY_SCOPES)
+        or candidate_visibility["secondary_scope"]
+        != CANDIDATE_VISIBILITY_SECONDARY_SCOPE
+    ):
+        raise RuntimeError(
+            "candidate_visibility scope contract is invalid"
+        )
+
     period_keys = {
         "start_date",
         "end_date",
@@ -3233,7 +3327,15 @@ def validate_candidate_visibility(
         "candidate_metrics",
     }
     parsed_periods: dict[str, tuple[date, date]] = {}
-    for period_name in ("current_period", "prior_period"):
+
+    period_names = (
+        "current_period",
+        "prior_period",
+        "general_current_period",
+        "general_prior_period",
+    )
+
+    for period_name in period_names:
         period = candidate_visibility.get(period_name)
         if not isinstance(period, dict) or set(period) != period_keys:
             raise RuntimeError(
@@ -3683,16 +3785,48 @@ def validate_candidate_visibility(
                 "is invalid"
             )
 
-    current_start, current_end = parsed_periods["current_period"]
-    prior_start, prior_end = parsed_periods["prior_period"]
-    expected_current_end = generated_at.astimezone(timezone.utc).date()
+    current_start, current_end = parsed_periods[
+        "current_period"
+    ]
+    prior_start, prior_end = parsed_periods[
+        "prior_period"
+    ]
+    general_current_start, general_current_end = (
+        parsed_periods["general_current_period"]
+    )
+    general_prior_start, general_prior_end = (
+        parsed_periods["general_prior_period"]
+    )
+
+    expected_current_end = (
+        generated_at.astimezone(timezone.utc).date()
+    )
+
     if (
         current_end != expected_current_end
         or current_start != current_end - timedelta(days=6)
         or prior_end != current_start - timedelta(days=1)
         or prior_start != prior_end - timedelta(days=6)
+        or (
+            general_current_start,
+            general_current_end,
+        )
+        != (
+            current_start,
+            current_end,
+        )
+        or (
+            general_prior_start,
+            general_prior_end,
+        )
+        != (
+            prior_start,
+            prior_end,
+        )
     ):
-        raise RuntimeError("candidate_visibility periods are invalid")
+        raise RuntimeError(
+            "candidate_visibility periods are invalid"
+        )
 
     quality_keys = {
         "status",
@@ -3825,7 +3959,8 @@ def validate_candidate_visibility(
         candidate_watch,
         generated_at,
     )
-    for period_name in ("current_period", "prior_period"):
+
+    for period_name in period_names:
         expected_period = expected_visibility[period_name]
         if candidate_visibility[period_name] != expected_period:
             raise RuntimeError(

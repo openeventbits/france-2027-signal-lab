@@ -2062,6 +2062,7 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
                 "id": f"{prefix}-{index}",
                 "publisher": publishers[index % len(publishers)],
                 "published_at": published_at,
+                "coverage_scope": "campaign",
             }
             for index in range(count)
         ]
@@ -2198,14 +2199,38 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
             set(visibility),
             {
                 "method",
+                "primary_scopes",
+                "secondary_scope",
                 "current_period",
                 "prior_period",
+                "general_current_period",
+                "general_prior_period",
                 "comparison_quality",
             },
         )
         self.assertEqual(
             visibility["method"],
             CANDIDATE_VISIBILITY_METHOD,
+        )
+        self.assertEqual(
+            visibility["primary_scopes"],
+            ["election", "campaign"],
+        )
+        self.assertEqual(
+            visibility["secondary_scope"],
+            "general",
+        )
+        self.assertEqual(
+            visibility["general_current_period"][
+                "record_count"
+            ],
+            0,
+        )
+        self.assertEqual(
+            visibility["general_prior_period"][
+                "record_count"
+            ],
+            0,
         )
         self.assertEqual(
             visibility["comparison_quality"]["thresholds"],
