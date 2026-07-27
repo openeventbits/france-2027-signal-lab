@@ -2611,6 +2611,114 @@ def candidate_visibility_gate(
     return "comparable", "comparable"
 
 
+def build_candidate_visibility_metrics(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Aggregate candidate visibility without inferring sentiment or support."""
+
+    accumulators: dict[str, dict[str, Any]] = {}
+
+    for item in records:
+        published = parse_feed_datetime(item.get("published_at"))
+        published_date = (
+            published.date().isoformat()
+            if published is not None
+            else None
+        )
+        publisher = str(item.get("publisher") or "").strip()
+
+        for match in item.get("candidate_matches", []):
+            candidate = str(match.get("candidate") or "").strip()
+            if not candidate:
+                continue
+
+            coverage_scope = item.get("coverage_scope")
+            if coverage_scope not in CANDIDATE_COVERAGE_SCOPES:
+                raise RuntimeError(
+                    "candidate visibility record has invalid coverage_scope"
+                )
+
+            accumulator = accumulators.setdefault(
+                candidate,
+                {
+                    "record_count": 0,
+                    "publisher_names": set(),
+                    "active_dates": set(),
+                    "headline_match_count": 0,
+                    "summary_only_match_count": 0,
+                    "scope_counts": {
+                        scope: 0
+                        for scope in CANDIDATE_COVERAGE_SCOPES
+                    },
+                },
+            )
+
+            accumulator["record_count"] += 1
+
+            if publisher:
+                accumulator["publisher_names"].add(publisher)
+            if published_date:
+                accumulator["active_dates"].add(published_date)
+
+            locations = set(match.get("locations", []))
+            if "headline" in locations:
+                accumulator["headline_match_count"] += 1
+            elif "summary" in locations:
+                accumulator["summary_only_match_count"] += 1
+
+            accumulator["scope_counts"][coverage_scope] += 1
+
+    period_record_count = len(records)
+    metrics: list[dict[str, Any]] = []
+
+    for candidate, accumulator in accumulators.items():
+        record_count = accumulator["record_count"]
+        publisher_names = sorted(accumulator["publisher_names"])
+        scope_counts = {
+            scope: accumulator["scope_counts"][scope]
+            for scope in CANDIDATE_COVERAGE_SCOPES
+        }
+        scope_shares = {
+            scope: round_candidate_visibility_ratio(
+                scope_counts[scope] / record_count
+                if record_count
+                else 0.0
+            )
+            for scope in CANDIDATE_COVERAGE_SCOPES
+        }
+
+        metrics.append(
+            {
+                "candidate": candidate,
+                "record_count": record_count,
+                "share": round_candidate_visibility_ratio(
+                    record_count / period_record_count
+                    if period_record_count
+                    else 0.0
+                ),
+                "publisher_count": len(publisher_names),
+                "publisher_names": publisher_names,
+                "active_day_count": len(accumulator["active_dates"]),
+                "headline_match_count": accumulator[
+                    "headline_match_count"
+                ],
+                "summary_only_match_count": accumulator[
+                    "summary_only_match_count"
+                ],
+                "scope_counts": scope_counts,
+                "scope_shares": scope_shares,
+            }
+        )
+
+    metrics.sort(
+        key=lambda metric: (
+            -metric["record_count"],
+            metric["candidate"].casefold(),
+        )
+    )
+    return metrics
+
+
 def build_candidate_visibility(
     candidate_watch: list[dict[str, Any]],
     generated_at: datetime,
@@ -2646,6 +2754,9 @@ def build_candidate_visibility(
             "record_count": len(records),
             "publisher_count": len(publishers),
             "publisher_names": publishers,
+            "candidate_metrics": build_candidate_visibility_metrics(
+                records
+            ),
         }
 
     current_period = period(current_start, anchor)
@@ -2730,6 +2841,7 @@ def validate_candidate_visibility(
         "record_count",
         "publisher_count",
         "publisher_names",
+        "candidate_metrics",
     }
     parsed_periods: dict[str, tuple[date, date]] = {}
     for period_name in ("current_period", "prior_period"):
@@ -2777,6 +2889,179 @@ def validate_candidate_visibility(
         ):
             raise RuntimeError(
                 f"candidate_visibility {period_name} publishers are invalid"
+            )
+
+        candidate_metrics = period["candidate_metrics"]
+        metric_keys = {
+            "candidate",
+            "record_count",
+            "share",
+            "publisher_count",
+            "publisher_names",
+            "active_day_count",
+            "headline_match_count",
+            "summary_only_match_count",
+            "scope_counts",
+            "scope_shares",
+        }
+        if not isinstance(candidate_metrics, list):
+            raise RuntimeError(
+                f"candidate_visibility {period_name} metrics are invalid"
+            )
+
+        metric_candidates: list[str] = []
+        expected_metric_order: list[tuple[int, str]] = []
+
+        for metric in candidate_metrics:
+            if not isinstance(metric, dict) or set(metric) != metric_keys:
+                raise RuntimeError(
+                    f"candidate_visibility {period_name} metric "
+                    "has unexpected fields"
+                )
+
+            candidate = metric["candidate"]
+            if (
+                not isinstance(candidate, str)
+                or not candidate.strip()
+                or candidate != candidate.strip()
+            ):
+                raise RuntimeError(
+                    f"candidate_visibility {period_name} candidate is invalid"
+                )
+
+            metric_candidates.append(candidate)
+            expected_metric_order.append(
+                (-metric["record_count"], candidate.casefold())
+            )
+
+            count_fields = (
+                "record_count",
+                "publisher_count",
+                "active_day_count",
+                "headline_match_count",
+                "summary_only_match_count",
+            )
+            if any(
+                type(metric[field]) is not int or metric[field] < 0
+                for field in count_fields
+            ):
+                raise RuntimeError(
+                    f"candidate_visibility {period_name} metric counts "
+                    "are invalid"
+                )
+
+            if metric["record_count"] <= 0:
+                raise RuntimeError(
+                    f"candidate_visibility {period_name} metric "
+                    "record count is invalid"
+                )
+
+            share = metric["share"]
+            if (
+                isinstance(share, bool)
+                or not isinstance(share, (int, float))
+                or not math.isfinite(share)
+                or not 0 <= share <= 1
+            ):
+                raise RuntimeError(
+                    f"candidate_visibility {period_name} share is invalid"
+                )
+
+            expected_share = round_candidate_visibility_ratio(
+                metric["record_count"] / period["record_count"]
+                if period["record_count"]
+                else 0.0
+            )
+            if share != expected_share:
+                raise RuntimeError(
+                    f"candidate_visibility {period_name} share "
+                    "is inconsistent"
+                )
+
+            metric_publishers = metric["publisher_names"]
+            if (
+                not isinstance(metric_publishers, list)
+                or any(
+                    not isinstance(name, str)
+                    or not name.strip()
+                    or name != name.strip()
+                    for name in metric_publishers
+                )
+                or metric_publishers != sorted(metric_publishers)
+                or len(metric_publishers)
+                != len(set(metric_publishers))
+                or metric["publisher_count"]
+                != len(metric_publishers)
+                or metric["publisher_count"]
+                > metric["record_count"]
+            ):
+                raise RuntimeError(
+                    f"candidate_visibility {period_name} metric "
+                    "publishers are invalid"
+                )
+
+            if (
+                metric["active_day_count"] > 7
+                or metric["active_day_count"] > metric["record_count"]
+            ):
+                raise RuntimeError(
+                    f"candidate_visibility {period_name} active days "
+                    "are invalid"
+                )
+
+            if (
+                metric["headline_match_count"]
+                + metric["summary_only_match_count"]
+                != metric["record_count"]
+            ):
+                raise RuntimeError(
+                    f"candidate_visibility {period_name} match "
+                    "provenance is inconsistent"
+                )
+
+            scope_counts = metric["scope_counts"]
+            scope_shares = metric["scope_shares"]
+            if (
+                not isinstance(scope_counts, dict)
+                or set(scope_counts) != set(CANDIDATE_COVERAGE_SCOPES)
+                or any(
+                    type(scope_counts[scope]) is not int
+                    or scope_counts[scope] < 0
+                    for scope in CANDIDATE_COVERAGE_SCOPES
+                )
+                or sum(scope_counts.values()) != metric["record_count"]
+                or not isinstance(scope_shares, dict)
+                or set(scope_shares) != set(CANDIDATE_COVERAGE_SCOPES)
+            ):
+                raise RuntimeError(
+                    f"candidate_visibility {period_name} scope "
+                    "composition is invalid"
+                )
+
+            for scope in CANDIDATE_COVERAGE_SCOPES:
+                scope_share = scope_shares[scope]
+                expected_scope_share = round_candidate_visibility_ratio(
+                    scope_counts[scope] / metric["record_count"]
+                )
+                if (
+                    isinstance(scope_share, bool)
+                    or not isinstance(scope_share, (int, float))
+                    or not math.isfinite(scope_share)
+                    or not 0 <= scope_share <= 1
+                    or scope_share != expected_scope_share
+                ):
+                    raise RuntimeError(
+                        f"candidate_visibility {period_name} scope "
+                        "share is invalid"
+                    )
+
+        if (
+            len(metric_candidates) != len(set(metric_candidates))
+            or expected_metric_order != sorted(expected_metric_order)
+        ):
+            raise RuntimeError(
+                f"candidate_visibility {period_name} metric ordering "
+                "is invalid"
             )
 
     current_start, current_end = parsed_periods["current_period"]

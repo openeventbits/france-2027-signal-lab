@@ -2108,6 +2108,7 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
                 "record_count": 2,
                 "publisher_count": 2,
                 "publisher_names": ["Current end", "Current start"],
+                "candidate_metrics": [],
             },
         )
         self.assertEqual(
@@ -2118,6 +2119,7 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
                 "record_count": 2,
                 "publisher_count": 2,
                 "publisher_names": ["Prior end", "Prior start"],
+                "candidate_metrics": [],
             },
         )
 
