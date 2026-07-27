@@ -4,7 +4,12 @@ from datetime import datetime, timedelta, timezone
 
 from fetch_news_wire import (
     CAMPAIGN_AGENDA_SUPPORT_LIMIT,
+    STRICT_NOTABLE_TERMS,
     build_campaign_agenda,
+    classify_campaign_agenda,
+    classify_notable_development,
+    normalize,
+    validate_campaign_agenda,
     validate_campaign_agenda_topic,
 )
 
@@ -67,6 +72,19 @@ class CampaignAgendaEvidenceTests(unittest.TestCase):
         topic = agenda["topics"][0]
 
         self.assertEqual(
+            agenda["input_item_count"],
+            25,
+        )
+        self.assertEqual(
+            agenda["classified_item_count"],
+            25,
+        )
+        self.assertEqual(
+            agenda["unclassified_item_count"],
+            0,
+        )
+
+        self.assertEqual(
             CAMPAIGN_AGENDA_SUPPORT_LIMIT,
             20,
         )
@@ -99,6 +117,227 @@ class CampaignAgendaEvidenceTests(unittest.TestCase):
         self.assertEqual(
             seen,
             {"candidacies_endorsements"},
+        )
+
+        validate_campaign_agenda(
+            agenda,
+            self.build_items(),
+        )
+
+    def test_unclassified_relevant_news_is_omitted_from_topics(self):
+        item = {
+            "id": "race-analysis",
+            "publisher": "Example",
+            "published_at": "2026-07-26T12:00:00Z",
+            "headline": (
+                "Présidentielle 2027 : "
+                "où en est la course"
+            ),
+            "url": (
+                "https://example.test/"
+                "race-analysis"
+            ),
+            "candidates": [],
+            "explicit_election": True,
+        }
+
+        agenda = build_campaign_agenda(
+            [item],
+            window_days=30,
+        )
+
+        self.assertEqual(
+            agenda["input_item_count"],
+            1,
+        )
+        self.assertEqual(
+            agenda["classified_item_count"],
+            0,
+        )
+        self.assertEqual(
+            agenda["unclassified_item_count"],
+            1,
+        )
+        self.assertEqual(
+            agenda["topics"],
+            [],
+        )
+
+        validate_campaign_agenda(
+            agenda,
+            [item],
+        )
+
+    def test_ambiguous_rules_terms_require_presidential_headline(self):
+        routine = classify_campaign_agenda(
+            normalize(
+                "Fin de vie : le Conseil "
+                "constitutionnel est saisi"
+            ),
+            explicit_election=False,
+        )
+        presidential = classify_campaign_agenda(
+            normalize(
+                "Présidentielle 2027 : "
+                "le Conseil constitutionnel "
+                "précise les règles"
+            ),
+            explicit_election=True,
+        )
+
+        self.assertIsNone(routine)
+        self.assertIsNotNone(presidential)
+        self.assertEqual(
+            presidential["id"],
+            "rules_calendar",
+        )
+        self.assertEqual(
+            presidential["matched_terms"],
+            ["conseil constitutionnel"],
+        )
+
+    def test_generic_departure_and_preparation_are_not_topics(self):
+        headlines = (
+            (
+                "Olivier Girardin quitte la direction "
+                "du PS aubois et se rapproche de "
+                "Dominique de Villepin"
+            ),
+            (
+                "Comment le Sénat se prépare à "
+                "l'arrivée possible d'un groupe RN"
+            ),
+        )
+
+        for headline in headlines:
+            with self.subTest(headline=headline):
+                self.assertIsNone(
+                    classify_campaign_agenda(
+                        normalize(headline),
+                        explicit_election=False,
+                    )
+                )
+
+    def test_generic_preparation_is_not_a_notable_development(self):
+        headline = normalize(
+            "Il faut pousser les murs : "
+            "comment le Sénat se prépare à "
+            "l'arrivée possible d'un groupe RN "
+            "après les sénatoriales de septembre"
+        )
+
+        self.assertNotIn(
+            "se prepare",
+            STRICT_NOTABLE_TERMS[
+                "candidacies_endorsements"
+            ],
+        )
+        self.assertIn(
+            "se prepare a entrer en campagne",
+            STRICT_NOTABLE_TERMS[
+                "candidacies_endorsements"
+            ],
+        )
+
+        classification = classify_notable_development(
+            headline,
+            [],
+            {},
+            normalized_headline=headline,
+            candidate_matches=[],
+        )
+
+        self.assertIsNone(classification)
+
+    def test_presidential_candidate_preparation_requires_specific_evidence(self):
+        classification = classify_campaign_agenda(
+            normalize(
+                "François Hollande se prépare "
+                "discrètement à l'élection "
+                "présidentielle"
+            ),
+            explicit_election=True,
+        )
+
+        self.assertIsNone(classification)
+
+    def test_campaign_financing_phrase_variant_is_classified(self):
+        classification = classify_campaign_agenda(
+            normalize(
+                "Financement de la campagne pour "
+                "la présidentielle 2027 : "
+                "l'État pourrait garantir un emprunt"
+            ),
+            explicit_election=True,
+        )
+
+        self.assertIsNotNone(classification)
+        self.assertEqual(
+            classification["id"],
+            "rules_calendar",
+        )
+        self.assertEqual(
+            classification["matched_terms"],
+            ["financement de la campagne"],
+        )
+
+    def test_notable_development_category_is_authoritative(self):
+        relevant = {
+            "id": "legal-event",
+            "publisher": "Example",
+            "published_at": "2026-07-26T12:00:00Z",
+            "headline": (
+                "Marine Le Pen face à "
+                "une nouvelle décision"
+            ),
+            "url": (
+                "https://example.test/"
+                "legal-event"
+            ),
+            "candidates": ["Marine Le Pen"],
+            "explicit_election": False,
+        }
+        notable = {
+            **relevant,
+            "development_category": (
+                "legal_eligibility"
+            ),
+            "development_label": (
+                "Legal cases & eligibility"
+            ),
+            "matched_terms": [
+                "condamnation",
+            ],
+        }
+
+        agenda = build_campaign_agenda(
+            [relevant],
+            window_days=30,
+            notable_developments=[notable],
+        )
+
+        self.assertEqual(
+            agenda["classified_item_count"],
+            1,
+        )
+        self.assertEqual(
+            agenda["unclassified_item_count"],
+            0,
+        )
+        self.assertEqual(
+            agenda["topics"][0]["id"],
+            "legal_eligibility",
+        )
+        self.assertEqual(
+            agenda["topics"][0][
+                "supporting_items"
+            ][0]["matched_terms"],
+            ["condamnation"],
+        )
+
+        validate_campaign_agenda(
+            agenda,
+            [relevant],
         )
 
     def test_smaller_topics_export_all_evidence(self):
@@ -142,6 +381,56 @@ class CampaignAgendaEvidenceTests(unittest.TestCase):
                 "Le Monde",
             ],
         )
+
+    def test_agenda_validator_rejects_coverage_count_corruption(self):
+        items = self.build_items()[:7]
+        agenda = build_campaign_agenda(
+            items,
+            window_days=30,
+        )
+
+        mutations = {
+            "classified": (
+                lambda value: value.update(
+                    classified_item_count=6
+                )
+            ),
+            "unclassified": (
+                lambda value: value.update(
+                    unclassified_item_count=1
+                )
+            ),
+            "input": (
+                lambda value: value.update(
+                    input_item_count=8
+                )
+            ),
+            "catch-all": (
+                lambda value: value["topics"][
+                    0
+                ].update(
+                    id="other_campaign",
+                    label=(
+                        "Other campaign coverage"
+                    ),
+                )
+            ),
+        }
+
+        for label, mutate in mutations.items():
+            with self.subTest(label=label):
+                invalid = copy.deepcopy(
+                    agenda
+                )
+                mutate(invalid)
+
+                with self.assertRaises(
+                    RuntimeError
+                ):
+                    validate_campaign_agenda(
+                        invalid,
+                        items,
+                    )
 
     def test_validator_rejects_contract_corruption(self):
         topic = build_campaign_agenda(

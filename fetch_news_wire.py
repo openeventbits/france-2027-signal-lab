@@ -225,7 +225,7 @@ ELECTION_PATTERNS = (
 CAMPAIGN_AGENDA_TOPICS = (
     {
         "id": "legal_eligibility",
-        "label": "Legal status & eligibility",
+        "label": "Legal cases & eligibility",
         "terms": (
             "parquet national financier",
             "cour de cassation",
@@ -281,12 +281,9 @@ CAMPAIGN_AGENDA_TOPICS = (
             "officialise sa candidature",
             "se declare candidat",
             "se declare candidate",
-            "se prepare",
             "entree en campagne",
             "lance sa campagne",
             "ralliement",
-            "rejoint",
-            "quitte",
             "alliance",
             "propose un accord",
             "propose une alliance",
@@ -312,6 +309,7 @@ CAMPAIGN_AGENDA_TOPICS = (
             "conseil constitutionnel",
             "loi electorale",
             "financement de campagne",
+            "financement de la campagne",
             "temps de parole",
             "pluralisme",
         ),
@@ -346,6 +344,16 @@ CAMPAIGN_AGENDA_TOPICS = (
 
 CAMPAIGN_AGENDA_SUPPORT_LIMIT = 20
 CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS = 2
+
+# These expressions occur frequently in ordinary institutional or
+# legislative reporting. They contribute to Topic Coverage only when the
+# headline itself has already been classified as current presidential news.
+CAMPAIGN_AGENDA_CONTEXT_REQUIRED_TERMS = frozenset({
+    "conseil constitutionnel",
+    "niches parlementaires",
+    "referendum",
+})
+
 MATERIAL_TOPIC_IDS = {
     "legal_eligibility",
     "selection_strategy",
@@ -434,7 +442,7 @@ STRICT_NOTABLE_TERMS = {
         "se lancer dans la course",
         "se retire de la course",
         "renonce a se presenter",
-        "se prepare",
+        "se prepare a entrer en campagne",
         "entree en campagne",
         "lance sa campagne",
         "rejoint la campagne",
@@ -1945,32 +1953,56 @@ def campaign_agenda_term_matches(
 
 def classify_campaign_agenda(
     normalized_headline: str,
-) -> dict[str, Any]:
+    *,
+    explicit_election: bool = False,
+) -> dict[str, Any] | None:
+    """Classify a supported campaign theme or return no topic.
+
+    Topic Coverage is not a second copy of Relevant News. Articles without
+    evidence for one of the reviewed themes remain in Relevant News but are
+    omitted from the thematic agenda.
+    """
+
+    headline = normalize(normalized_headline)
     scored_topics: list[
         tuple[int, int, dict[str, Any], list[str]]
     ] = []
 
-    for position, topic in enumerate(CAMPAIGN_AGENDA_TOPICS):
+    for position, topic in enumerate(
+        CAMPAIGN_AGENDA_TOPICS
+    ):
         matches = campaign_agenda_term_matches(
-            normalized_headline,
+            headline,
             topic["terms"],
         )
 
+        if not explicit_election:
+            matches = [
+                term
+                for term in matches
+                if term
+                not in CAMPAIGN_AGENDA_CONTEXT_REQUIRED_TERMS
+            ]
+
         if matches:
             scored_topics.append(
-                (len(matches), -position, topic, matches)
+                (
+                    len(matches),
+                    -position,
+                    topic,
+                    matches,
+                )
             )
 
     if not scored_topics:
-        return {
-            "id": "other_campaign",
-            "label": "Other campaign coverage",
-            "matched_terms": [],
-        }
+        return None
 
     _score, _position, topic, matches = max(
         scored_topics,
-        key=lambda item: (item[0], item[1]),
+        key=lambda item: (
+            item[0],
+            item[1],
+        ),
     )
 
     return {
@@ -2127,33 +2159,94 @@ def campaign_agenda_support_sort_key(
 def build_campaign_agenda(
     relevant_news: list[dict[str, Any]],
     window_days: int,
+    notable_developments: (
+        list[dict[str, Any]] | None
+    ) = None,
 ) -> dict[str, Any]:
-    topic_items: dict[str, list[dict[str, Any]]] = {}
+    topic_items: dict[
+        str,
+        list[dict[str, Any]],
+    ] = {}
     topic_labels: dict[str, str] = {}
 
+    notable_by_id = {
+        str(item.get("id") or ""): item
+        for item in (
+            notable_developments or []
+        )
+        if str(item.get("id") or "")
+    }
+
+    unclassified_item_count = 0
+
     for item in relevant_news:
-        if item.get("development_category"):
+        item_id = str(item.get("id") or "")
+        development = (
+            item
+            if item.get("development_category")
+            else notable_by_id.get(item_id)
+        )
+
+        if (
+            isinstance(development, dict)
+            and development.get(
+                "development_category"
+            )
+        ):
             classification = {
-                "id": item["development_category"],
-                "label": item.get("development_label") or item["development_category"],
-                "matched_terms": item.get("matched_terms", []),
+                "id": development[
+                    "development_category"
+                ],
+                "label": (
+                    development.get(
+                        "development_label"
+                    )
+                    or development[
+                        "development_category"
+                    ]
+                ),
+                "matched_terms": list(
+                    development.get(
+                        "matched_terms",
+                        [],
+                    )
+                ),
             }
         else:
             classification = classify_campaign_agenda(
-                normalize(item["headline"])
+                normalize(item["headline"]),
+                explicit_election=bool(
+                    item.get("explicit_election")
+                ),
             )
-        topic_id = classification["id"]
-        topic_labels[topic_id] = classification["label"]
 
-        topic_items.setdefault(topic_id, []).append(
+        if classification is None:
+            unclassified_item_count += 1
+            continue
+
+        topic_id = classification["id"]
+        topic_labels[topic_id] = (
+            classification["label"]
+        )
+
+        topic_items.setdefault(
+            topic_id,
+            [],
+        ).append(
             {
                 "id": item["id"],
                 "publisher": item["publisher"],
-                "published_at": item["published_at"],
+                "published_at": item[
+                    "published_at"
+                ],
                 "headline": item["headline"],
                 "url": item["url"],
                 "candidates": item["candidates"],
-                "matched_terms": classification["matched_terms"],
+                "matched_terms": (
+                    classification[
+                        "matched_terms"
+                    ]
+                ),
             }
         )
 
@@ -2163,14 +2256,24 @@ def build_campaign_agenda(
         items.sort(
             key=campaign_agenda_support_sort_key
         )
+
         publishers = sorted(
-            {item["publisher"] for item in items}
+            {
+                item["publisher"]
+                for item in items
+            }
         )
         active_days = sorted(
-            {item["published_at"][:10] for item in items}
+            {
+                item["published_at"][:10]
+                for item in items
+            }
         )
         source_days = {
-            (item["publisher"], item["published_at"][:10])
+            (
+                item["publisher"],
+                item["published_at"][:10],
+            )
             for item in items
         }
         supporting_items = items[
@@ -2180,21 +2283,34 @@ def build_campaign_agenda(
         topics.append(
             {
                 "id": topic_id,
-                "label": topic_labels[topic_id],
+                "label": topic_labels[
+                    topic_id
+                ],
                 "item_count": len(items),
-                "publisher_count": len(publishers),
+                "publisher_count": len(
+                    publishers
+                ),
                 "publisher_names": publishers,
-                "source_day_count": len(source_days),
-                "active_day_count": len(active_days),
+                "source_day_count": len(
+                    source_days
+                ),
+                "active_day_count": len(
+                    active_days
+                ),
                 "display_eligible": (
                     len(source_days)
                     >= CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS
                 ),
-                "supporting_item_count": len(supporting_items),
-                "omitted_item_count": (
-                    len(items) - len(supporting_items)
+                "supporting_item_count": len(
+                    supporting_items
                 ),
-                "supporting_items": supporting_items,
+                "omitted_item_count": (
+                    len(items)
+                    - len(supporting_items)
+                ),
+                "supporting_items": (
+                    supporting_items
+                ),
             }
         )
 
@@ -2207,10 +2323,25 @@ def build_campaign_agenda(
         )
     )
 
+    classified_item_count = sum(
+        topic["item_count"]
+        for topic in topics
+    )
+
     return {
         "window_days": window_days,
-        "input_item_count": len(relevant_news),
-        "method": "accepted_relevant_news_by_campaign_theme",
+        "input_item_count": len(
+            relevant_news
+        ),
+        "classified_item_count": (
+            classified_item_count
+        ),
+        "unclassified_item_count": (
+            unclassified_item_count
+        ),
+        "method": (
+            "accepted_relevant_news_by_campaign_theme"
+        ),
         "display_min_source_days": (
             CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS
         ),
@@ -4181,6 +4312,146 @@ def validate_campaign_agenda_topic(
     seen_topic_ids.add(topic_id)
 
 
+def validate_campaign_agenda(
+    campaign_agenda: Any,
+    relevant_news: Any,
+) -> None:
+    required = {
+        "window_days",
+        "input_item_count",
+        "classified_item_count",
+        "unclassified_item_count",
+        "method",
+        "display_min_source_days",
+        "topics",
+    }
+
+    if (
+        not isinstance(campaign_agenda, dict)
+        or set(campaign_agenda) != required
+    ):
+        raise RuntimeError(
+            "campaign_agenda has unexpected fields"
+        )
+
+    if not isinstance(relevant_news, list):
+        raise RuntimeError(
+            "campaign_agenda relevant_news input "
+            "is invalid"
+        )
+
+    if (
+        campaign_agenda["method"]
+        != "accepted_relevant_news_by_campaign_theme"
+    ):
+        raise RuntimeError(
+            "campaign_agenda method is invalid"
+        )
+
+    for field in (
+        "window_days",
+        "input_item_count",
+        "classified_item_count",
+        "unclassified_item_count",
+        "display_min_source_days",
+    ):
+        if (
+            type(campaign_agenda[field])
+            is not int
+            or campaign_agenda[field] < 0
+        ):
+            raise RuntimeError(
+                "campaign_agenda counts are invalid"
+            )
+
+    if (
+        campaign_agenda[
+            "display_min_source_days"
+        ]
+        != CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS
+        or campaign_agenda["window_days"] < 1
+        or campaign_agenda["input_item_count"]
+        != len(relevant_news)
+        or (
+            campaign_agenda[
+                "classified_item_count"
+            ]
+            + campaign_agenda[
+                "unclassified_item_count"
+            ]
+            != campaign_agenda[
+                "input_item_count"
+            ]
+        )
+    ):
+        raise RuntimeError(
+            "campaign_agenda coverage counts "
+            "are inconsistent"
+        )
+
+    agenda_topics = campaign_agenda["topics"]
+
+    if not isinstance(agenda_topics, list):
+        raise RuntimeError(
+            "campaign_agenda topics is not a list"
+        )
+
+    agenda_ids: set[str] = set()
+    supporting_ids: set[str] = set()
+
+    for topic in agenda_topics:
+        validate_campaign_agenda_topic(
+            topic,
+            agenda_ids,
+        )
+
+        if topic["id"] == "other_campaign":
+            raise RuntimeError(
+                "campaign_agenda contains an "
+                "unsupported catch-all topic"
+            )
+
+        for item in topic["supporting_items"]:
+            item_id = item["id"]
+
+            if item_id in supporting_ids:
+                raise RuntimeError(
+                    "campaign_agenda evidence is "
+                    "assigned to multiple topics"
+                )
+
+            supporting_ids.add(item_id)
+
+    if (
+        sum(
+            topic["item_count"]
+            for topic in agenda_topics
+        )
+        != campaign_agenda[
+            "classified_item_count"
+        ]
+    ):
+        raise RuntimeError(
+            "campaign_agenda classified count "
+            "is inconsistent"
+        )
+
+    relevant_ids = {
+        str(item.get("id") or "")
+        for item in relevant_news
+        if isinstance(item, dict)
+        and str(item.get("id") or "")
+    }
+
+    if not supporting_ids.issubset(
+        relevant_ids
+    ):
+        raise RuntimeError(
+            "campaign_agenda evidence is not "
+            "a subset of relevant_news"
+        )
+
+
 def validate_output(payload: dict[str, Any]) -> None:
     sources = payload.get("sources")
     election_news = payload.get("election_news")
@@ -4518,23 +4789,14 @@ def validate_output(payload: dict[str, Any]) -> None:
             "feed_coverage priority replacement counts are invalid"
         )
 
-    campaign_agenda = payload.get("campaign_agenda")
+    campaign_agenda = payload.get(
+        "campaign_agenda"
+    )
 
-    if not isinstance(campaign_agenda, dict):
-        raise RuntimeError("campaign_agenda is not an object")
-
-    agenda_topics = campaign_agenda.get("topics")
-
-    if not isinstance(agenda_topics, list):
-        raise RuntimeError("campaign_agenda topics is not a list")
-
-    agenda_ids: set[str] = set()
-
-    for topic in agenda_topics:
-        validate_campaign_agenda_topic(
-            topic,
-            agenda_ids,
-        )
+    validate_campaign_agenda(
+        campaign_agenda,
+        relevant_news,
+    )
 
     if not isinstance(sources, list) or len(sources) != len(SOURCES):
         raise RuntimeError("Unexpected source-status structure")
@@ -5278,6 +5540,7 @@ def build_wire(
     campaign_agenda = build_campaign_agenda(
         relevant_news,
         window_days,
+        notable_developments,
     )
 
     discovered_publishers_payload = aggregate_discovered_publishers(

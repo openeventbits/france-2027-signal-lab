@@ -383,8 +383,52 @@ jobs:
                   "relevant_news"
               )
 
+          classified_item_count = agenda.get(
+              "classified_item_count"
+          )
+          unclassified_item_count = agenda.get(
+              "unclassified_item_count"
+          )
+
+          if (
+              type(classified_item_count) is not int
+              or classified_item_count < 0
+              or type(unclassified_item_count) is not int
+              or unclassified_item_count < 0
+              or (
+                  classified_item_count
+                  + unclassified_item_count
+                  != agenda["input_item_count"]
+              )
+          ):
+              fail(
+                  "campaign_agenda classification counts "
+                  "are invalid"
+              )
+
           if not isinstance(agenda.get("topics"), list):
               fail("campaign_agenda topics must be an array")
+
+          if (
+              sum(
+                  topic.get("item_count", -1)
+                  for topic in agenda["topics"]
+              )
+              != classified_item_count
+          ):
+              fail(
+                  "campaign_agenda topic counts do not match "
+                  "classified items"
+              )
+
+          if any(
+              topic.get("id") == "other_campaign"
+              for topic in agenda["topics"]
+          ):
+              fail(
+                  "campaign_agenda contains unsupported "
+                  "catch-all coverage"
+              )
 
 
           # Recent Changes contract.

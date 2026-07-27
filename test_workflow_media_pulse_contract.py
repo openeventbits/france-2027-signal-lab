@@ -68,6 +68,21 @@ class WorkflowMediaPulseContractTests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertIn(field, self.workflow)
 
+    def test_workflow_validates_agenda_classification_coverage(self):
+        for contract in (
+            '"classified_item_count"',
+            '"unclassified_item_count"',
+            '"other_campaign"',
+            '"campaign_agenda classification counts "',
+        ):
+            with self.subTest(
+                contract=contract
+            ):
+                self.assertIn(
+                    contract,
+                    self.workflow,
+                )
+
     def test_generated_wire_still_uses_canonical_validator(self):
         self.assertIn(
             "validate_output(wire)",
