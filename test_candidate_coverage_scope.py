@@ -86,11 +86,13 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
         published_at,
         locations,
         coverage_scope,
+        headline=None,
     ):
         return {
             "id": item_id,
             "publisher": publisher,
             "published_at": published_at,
+            "headline": headline or item_id,
             "candidate_matches": [
                 {
                     "candidate": candidate,
@@ -161,28 +163,45 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
         )
 
         attal = current["candidate_metrics"][0]
+        self.assertEqual(attal["candidate"], "Gabriel Attal")
+        self.assertEqual(attal["record_count"], 3)
+        self.assertEqual(attal["share"], 0.75)
+        self.assertEqual(attal["publisher_count"], 2)
         self.assertEqual(
-            attal,
+            attal["publisher_names"],
+            ["Le Figaro", "Le Monde"],
+        )
+        self.assertEqual(attal["active_day_count"], 2)
+        self.assertEqual(attal["headline_match_count"], 2)
+        self.assertEqual(attal["summary_only_match_count"], 1)
+        self.assertEqual(
+            attal["scope_counts"],
             {
-                "candidate": "Gabriel Attal",
-                "record_count": 3,
-                "share": 0.75,
-                "publisher_count": 2,
-                "publisher_names": ["Le Figaro", "Le Monde"],
-                "active_day_count": 2,
-                "headline_match_count": 2,
-                "summary_only_match_count": 1,
-                "scope_counts": {
-                    "election": 1,
-                    "campaign": 1,
-                    "general": 1,
-                },
-                "scope_shares": {
-                    "election": 0.333,
-                    "campaign": 0.333,
-                    "general": 0.333,
-                },
+                "election": 1,
+                "campaign": 1,
+                "general": 1,
             },
+        )
+        self.assertEqual(
+            attal["scope_shares"],
+            {
+                "election": 0.333,
+                "campaign": 0.333,
+                "general": 0.333,
+            },
+        )
+        self.assertEqual(attal["story_cluster_count"], 3)
+        self.assertEqual(
+            attal["concentration"]["leading_publisher"],
+            "Le Monde",
+        )
+        self.assertEqual(
+            attal["concentration"]["leading_publisher_share"],
+            0.667,
+        )
+        self.assertEqual(
+            attal["concentration"]["leading_story_share"],
+            0.333,
         )
 
         philippe = current["candidate_metrics"][1]
@@ -240,6 +259,123 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
         self.assertEqual(
             [metric["candidate"] for metric in metrics],
             ["Gabriel Attal", "Édouard Philippe"],
+        )
+
+
+    def test_similar_headlines_form_a_supported_story_cluster(self):
+        records = [
+            self.item(
+                item_id="primary-one",
+                candidate="Gabriel Attal",
+                publisher="Le Monde",
+                published_at="2026-07-26T12:00:00Z",
+                locations=("headline",),
+                coverage_scope="campaign",
+                headline=(
+                    "Gabriel Attal propose une primaire ouverte "
+                    "à droite"
+                ),
+            ),
+            self.item(
+                item_id="primary-two",
+                candidate="Gabriel Attal",
+                publisher="Le Figaro",
+                published_at="2026-07-25T12:00:00Z",
+                locations=("headline",),
+                coverage_scope="campaign",
+                headline=(
+                    "À droite, Gabriel Attal propose une "
+                    "primaire ouverte"
+                ),
+            ),
+            self.item(
+                item_id="factory",
+                candidate="Gabriel Attal",
+                publisher="Le Monde",
+                published_at="2026-07-24T12:00:00Z",
+                locations=("headline",),
+                coverage_scope="general",
+                headline="Gabriel Attal visite une usine à Lyon",
+            ),
+        ]
+
+        metric = build_candidate_visibility(
+            records,
+            self.generated_at,
+        )["current_period"]["candidate_metrics"][0]
+
+        self.assertEqual(metric["story_cluster_count"], 2)
+        leading_story = metric["story_clusters"][0]
+        self.assertEqual(leading_story["record_count"], 2)
+        self.assertEqual(leading_story["publisher_count"], 2)
+        self.assertEqual(
+            set(leading_story["item_ids"]),
+            {"primary-one", "primary-two"},
+        )
+        self.assertEqual(leading_story["share"], 0.667)
+
+        concentration = metric["concentration"]
+        self.assertEqual(
+            concentration["leading_publisher"],
+            "Le Monde",
+        )
+        self.assertEqual(
+            concentration["leading_publisher_record_count"],
+            2,
+        )
+        self.assertEqual(
+            concentration["leading_publisher_share"],
+            0.667,
+        )
+        self.assertEqual(
+            concentration["leading_story_record_count"],
+            2,
+        )
+        self.assertEqual(
+            concentration["leading_story_share"],
+            0.667,
+        )
+
+        validate_candidate_visibility(
+            build_candidate_visibility(
+                records,
+                self.generated_at,
+            ),
+            records,
+            self.generated_at,
+        )
+
+    def test_short_unrelated_headlines_do_not_false_cluster(self):
+        records = [
+            self.item(
+                item_id="matignon",
+                candidate="Gabriel Attal",
+                publisher="Le Monde",
+                published_at="2026-07-26T12:00:00Z",
+                locations=("headline",),
+                coverage_scope="general",
+                headline="Gabriel Attal à Matignon",
+            ),
+            self.item(
+                item_id="lyon",
+                candidate="Gabriel Attal",
+                publisher="Le Figaro",
+                published_at="2026-07-25T12:00:00Z",
+                locations=("headline",),
+                coverage_scope="general",
+                headline="Gabriel Attal à Lyon",
+            ),
+        ]
+
+        metric = build_candidate_visibility(
+            records,
+            self.generated_at,
+        )["current_period"]["candidate_metrics"][0]
+
+        self.assertEqual(metric["story_cluster_count"], 2)
+        self.assertEqual(
+            metric["concentration"]["leading_story_share"],
+            0.5,
         )
 
 

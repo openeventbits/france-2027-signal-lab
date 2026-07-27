@@ -75,6 +75,75 @@ CANDIDATE_COVERAGE_SCOPES = (
     "general",
 )
 
+STORY_CLUSTER_MIN_SHARED_TOKENS = 3
+STORY_CLUSTER_MIN_JACCARD = 0.5
+STORY_CLUSTER_STOPWORDS = frozenset({
+    "afin",
+    "ainsi",
+    "alors",
+    "apres",
+    "avec",
+    "avant",
+    "avoir",
+    "chez",
+    "comme",
+    "dans",
+    "depuis",
+    "des",
+    "elle",
+    "elles",
+    "entre",
+    "etre",
+    "fait",
+    "font",
+    "leur",
+    "leurs",
+    "mais",
+    "meme",
+    "moins",
+    "notre",
+    "nous",
+    "par",
+    "pas",
+    "plus",
+    "pour",
+    "quand",
+    "que",
+    "quel",
+    "quelle",
+    "qui",
+    "sans",
+    "ses",
+    "son",
+    "sont",
+    "sous",
+    "sur",
+    "tous",
+    "tout",
+    "toute",
+    "une",
+    "vers",
+    "vous",
+    "candidat",
+    "candidate",
+    "candidats",
+    "candidates",
+    "candidature",
+    "campagne",
+    "election",
+    "elections",
+    "electoral",
+    "electorale",
+    "president",
+    "presidente",
+    "presidentiel",
+    "presidentielle",
+    "politique",
+    "france",
+    "francais",
+    "francaise",
+})
+
 TRACKING_PARAMETERS = {
     "fbclid",
     "gclid",
@@ -2611,6 +2680,165 @@ def candidate_visibility_gate(
     return "comparable", "comparable"
 
 
+def candidate_story_tokens(
+    headline: Any,
+    candidate: str,
+) -> frozenset[str]:
+    """Return significant normalized terms for conservative clustering."""
+
+    candidate_tokens = set(normalize(candidate).split())
+    return frozenset(
+        token
+        for token in normalize(headline).split()
+        if (
+            len(token) >= 3
+            and not token.isdigit()
+            and token not in candidate_tokens
+            and token not in STORY_CLUSTER_STOPWORDS
+        )
+    )
+
+
+def candidate_story_similarity(
+    left: frozenset[str],
+    right: frozenset[str],
+) -> float:
+    """Measure headline overlap without semantic or embedding inference."""
+
+    if not left or not right:
+        return 0.0
+    if left == right:
+        return 1.0
+
+    shared_count = len(left & right)
+    if shared_count < STORY_CLUSTER_MIN_SHARED_TOKENS:
+        return 0.0
+
+    union_count = len(left | right)
+    if not union_count:
+        return 0.0
+
+    return shared_count / union_count
+
+
+def build_candidate_story_clusters(
+    records: list[dict[str, Any]],
+    candidate: str,
+) -> list[dict[str, Any]]:
+    """Group near-duplicate story frames using deterministic components."""
+
+    if not records:
+        return []
+
+    token_sets = [
+        candidate_story_tokens(item.get("headline"), candidate)
+        for item in records
+    ]
+    neighbours: list[set[int]] = [
+        set()
+        for _item in records
+    ]
+
+    for left_index in range(len(records)):
+        for right_index in range(left_index + 1, len(records)):
+            similarity = candidate_story_similarity(
+                token_sets[left_index],
+                token_sets[right_index],
+            )
+            if similarity >= STORY_CLUSTER_MIN_JACCARD:
+                neighbours[left_index].add(right_index)
+                neighbours[right_index].add(left_index)
+
+    components: list[list[int]] = []
+    unseen = set(range(len(records)))
+
+    while unseen:
+        seed = min(unseen)
+        stack = [seed]
+        component: list[int] = []
+        unseen.remove(seed)
+
+        while stack:
+            index = stack.pop()
+            component.append(index)
+            for neighbour in sorted(neighbours[index], reverse=True):
+                if neighbour in unseen:
+                    unseen.remove(neighbour)
+                    stack.append(neighbour)
+
+        components.append(sorted(component))
+
+    clusters: list[dict[str, Any]] = []
+
+    for component in components:
+        component_records = [
+            records[index]
+            for index in component
+        ]
+        ordered_records = sorted(
+            component_records,
+            key=lambda item: (
+                -(
+                    parse_feed_datetime(item.get("published_at"))
+                    or datetime.min.replace(tzinfo=timezone.utc)
+                ).timestamp(),
+                clean_text(item.get("headline")).casefold(),
+                str(item.get("id") or ""),
+            ),
+        )
+
+        item_ids = [
+            str(item.get("id") or "").strip()
+            for item in ordered_records
+            if str(item.get("id") or "").strip()
+        ]
+        publishers = {
+            str(item.get("publisher") or "").strip()
+            for item in component_records
+            if str(item.get("publisher") or "").strip()
+        }
+        active_dates = {
+            published.date().isoformat()
+            for item in component_records
+            if (
+                published := parse_feed_datetime(
+                    item.get("published_at")
+                )
+            ) is not None
+        }
+        cluster_signature = "|".join(sorted(item_ids))
+        cluster_id = hashlib.sha256(
+            f"{candidate}|{cluster_signature}".encode("utf-8")
+        ).hexdigest()[:12]
+
+        clusters.append(
+            {
+                "cluster_id": cluster_id,
+                "label": clean_text(
+                    ordered_records[0].get("headline")
+                ),
+                "record_count": len(component_records),
+                "share": round_candidate_visibility_ratio(
+                    len(component_records) / len(records)
+                ),
+                "publisher_count": len(publishers),
+                "active_day_count": len(active_dates),
+                "item_ids": item_ids,
+            }
+        )
+
+    clusters.sort(
+        key=lambda cluster: (
+            -cluster["record_count"],
+            -cluster["publisher_count"],
+            -cluster["active_day_count"],
+            cluster["label"].casefold(),
+            cluster["cluster_id"],
+        )
+    )
+    return clusters
+
+
 def build_candidate_visibility_metrics(
     records: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -2642,7 +2870,9 @@ def build_candidate_visibility_metrics(
                 candidate,
                 {
                     "record_count": 0,
+                    "records": [],
                     "publisher_names": set(),
+                    "publisher_counts": {},
                     "active_dates": set(),
                     "headline_match_count": 0,
                     "summary_only_match_count": 0,
@@ -2654,9 +2884,14 @@ def build_candidate_visibility_metrics(
             )
 
             accumulator["record_count"] += 1
+            accumulator["records"].append(item)
 
             if publisher:
                 accumulator["publisher_names"].add(publisher)
+                accumulator["publisher_counts"][publisher] = (
+                    accumulator["publisher_counts"].get(publisher, 0)
+                    + 1
+                )
             if published_date:
                 accumulator["active_dates"].add(published_date)
 
@@ -2686,6 +2921,30 @@ def build_candidate_visibility_metrics(
             )
             for scope in CANDIDATE_COVERAGE_SCOPES
         }
+        story_clusters = build_candidate_story_clusters(
+            accumulator["records"],
+            candidate,
+        )
+        publisher_ranking = sorted(
+            accumulator["publisher_counts"].items(),
+            key=lambda item: (
+                -item[1],
+                item[0].casefold(),
+            ),
+        )
+        if publisher_ranking:
+            leading_publisher, leading_publisher_count = (
+                publisher_ranking[0]
+            )
+        else:
+            leading_publisher = None
+            leading_publisher_count = 0
+
+        leading_story_count = (
+            story_clusters[0]["record_count"]
+            if story_clusters
+            else 0
+        )
 
         metrics.append(
             {
@@ -2707,6 +2966,29 @@ def build_candidate_visibility_metrics(
                 ],
                 "scope_counts": scope_counts,
                 "scope_shares": scope_shares,
+                "story_cluster_count": len(story_clusters),
+                "story_clusters": story_clusters,
+                "concentration": {
+                    "leading_publisher": leading_publisher,
+                    "leading_publisher_record_count": (
+                        leading_publisher_count
+                    ),
+                    "leading_publisher_share": (
+                        round_candidate_visibility_ratio(
+                            leading_publisher_count / record_count
+                            if record_count
+                            else 0.0
+                        )
+                    ),
+                    "leading_story_record_count": leading_story_count,
+                    "leading_story_share": (
+                        round_candidate_visibility_ratio(
+                            leading_story_count / record_count
+                            if record_count
+                            else 0.0
+                        )
+                    ),
+                },
             }
         )
 
@@ -2903,6 +3185,9 @@ def validate_candidate_visibility(
             "summary_only_match_count",
             "scope_counts",
             "scope_shares",
+            "story_cluster_count",
+            "story_clusters",
+            "concentration",
         }
         if not isinstance(candidate_metrics, list):
             raise RuntimeError(
@@ -3054,6 +3339,233 @@ def validate_candidate_visibility(
                         f"candidate_visibility {period_name} scope "
                         "share is invalid"
                     )
+
+            story_clusters = metric["story_clusters"]
+            if (
+                type(metric["story_cluster_count"]) is not int
+                or metric["story_cluster_count"] < 0
+                or not isinstance(story_clusters, list)
+                or metric["story_cluster_count"] != len(story_clusters)
+            ):
+                raise RuntimeError(
+                    f"candidate_visibility {period_name} story "
+                    "clusters are invalid"
+                )
+
+            cluster_keys = {
+                "cluster_id",
+                "label",
+                "record_count",
+                "share",
+                "publisher_count",
+                "active_day_count",
+                "item_ids",
+            }
+            cluster_ids: set[str] = set()
+            clustered_item_ids: list[str] = []
+            cluster_record_total = 0
+            cluster_order: list[
+                tuple[int, int, int, str, str]
+            ] = []
+
+            for cluster in story_clusters:
+                if (
+                    not isinstance(cluster, dict)
+                    or set(cluster) != cluster_keys
+                ):
+                    raise RuntimeError(
+                        f"candidate_visibility {period_name} story "
+                        "cluster has unexpected fields"
+                    )
+
+                cluster_id = cluster["cluster_id"]
+                label = cluster["label"]
+                if (
+                    not isinstance(cluster_id, str)
+                    or not cluster_id.strip()
+                    or cluster_id in cluster_ids
+                    or not isinstance(label, str)
+                    or not label.strip()
+                ):
+                    raise RuntimeError(
+                        f"candidate_visibility {period_name} story "
+                        "cluster identity is invalid"
+                    )
+                cluster_ids.add(cluster_id)
+
+                for field in (
+                    "record_count",
+                    "publisher_count",
+                    "active_day_count",
+                ):
+                    if (
+                        type(cluster[field]) is not int
+                        or cluster[field] <= 0
+                    ):
+                        raise RuntimeError(
+                            f"candidate_visibility {period_name} story "
+                            "cluster counts are invalid"
+                        )
+
+                if (
+                    cluster["publisher_count"]
+                    > cluster["record_count"]
+                    or cluster["active_day_count"] > 7
+                    or cluster["active_day_count"]
+                    > cluster["record_count"]
+                ):
+                    raise RuntimeError(
+                        f"candidate_visibility {period_name} story "
+                        "cluster breadth is invalid"
+                    )
+
+                item_ids = cluster["item_ids"]
+                if (
+                    not isinstance(item_ids, list)
+                    or len(item_ids) != cluster["record_count"]
+                    or any(
+                        not isinstance(item_id, str)
+                        or not item_id.strip()
+                        for item_id in item_ids
+                    )
+                    or len(item_ids) != len(set(item_ids))
+                ):
+                    raise RuntimeError(
+                        f"candidate_visibility {period_name} story "
+                        "cluster evidence is invalid"
+                    )
+
+                cluster_share = cluster["share"]
+                expected_cluster_share = (
+                    round_candidate_visibility_ratio(
+                        cluster["record_count"]
+                        / metric["record_count"]
+                    )
+                )
+                if (
+                    isinstance(cluster_share, bool)
+                    or not isinstance(cluster_share, (int, float))
+                    or not math.isfinite(cluster_share)
+                    or cluster_share != expected_cluster_share
+                ):
+                    raise RuntimeError(
+                        f"candidate_visibility {period_name} story "
+                        "cluster share is invalid"
+                    )
+
+                clustered_item_ids.extend(item_ids)
+                cluster_record_total += cluster["record_count"]
+                cluster_order.append(
+                    (
+                        -cluster["record_count"],
+                        -cluster["publisher_count"],
+                        -cluster["active_day_count"],
+                        label.casefold(),
+                        cluster_id,
+                    )
+                )
+
+            if (
+                cluster_record_total != metric["record_count"]
+                or len(clustered_item_ids)
+                != len(set(clustered_item_ids))
+                or cluster_order != sorted(cluster_order)
+            ):
+                raise RuntimeError(
+                    f"candidate_visibility {period_name} story "
+                    "cluster coverage is invalid"
+                )
+
+            concentration = metric["concentration"]
+            concentration_keys = {
+                "leading_publisher",
+                "leading_publisher_record_count",
+                "leading_publisher_share",
+                "leading_story_record_count",
+                "leading_story_share",
+            }
+            if (
+                not isinstance(concentration, dict)
+                or set(concentration) != concentration_keys
+            ):
+                raise RuntimeError(
+                    f"candidate_visibility {period_name} "
+                    "concentration is invalid"
+                )
+
+            leading_publisher = concentration["leading_publisher"]
+            if (
+                leading_publisher is not None
+                and (
+                    not isinstance(leading_publisher, str)
+                    or not leading_publisher.strip()
+                )
+            ):
+                raise RuntimeError(
+                    f"candidate_visibility {period_name} leading "
+                    "publisher is invalid"
+                )
+
+            for field in (
+                "leading_publisher_record_count",
+                "leading_story_record_count",
+            ):
+                if (
+                    type(concentration[field]) is not int
+                    or concentration[field] < 0
+                    or concentration[field] > metric["record_count"]
+                ):
+                    raise RuntimeError(
+                        f"candidate_visibility {period_name} "
+                        "concentration counts are invalid"
+                    )
+
+            for count_field, share_field in (
+                (
+                    "leading_publisher_record_count",
+                    "leading_publisher_share",
+                ),
+                (
+                    "leading_story_record_count",
+                    "leading_story_share",
+                ),
+            ):
+                share = concentration[share_field]
+                expected_share = round_candidate_visibility_ratio(
+                    concentration[count_field] / metric["record_count"]
+                )
+                if (
+                    isinstance(share, bool)
+                    or not isinstance(share, (int, float))
+                    or not math.isfinite(share)
+                    or share != expected_share
+                ):
+                    raise RuntimeError(
+                        f"candidate_visibility {period_name} "
+                        "concentration share is invalid"
+                    )
+
+            expected_leading_story_count = (
+                story_clusters[0]["record_count"]
+                if story_clusters
+                else 0
+            )
+            if (
+                concentration["leading_story_record_count"]
+                != expected_leading_story_count
+                or (
+                    concentration["leading_publisher_record_count"] == 0
+                    and leading_publisher is not None
+                )
+                or (
+                    concentration["leading_publisher_record_count"] > 0
+                    and leading_publisher is None
+                )
+            ):
+                raise RuntimeError(
+                    f"candidate_visibility {period_name} "
+                    "concentration is inconsistent"
+                )
 
         if (
             len(metric_candidates) != len(set(metric_candidates))
