@@ -26,6 +26,7 @@ from fetch_news_wire import (
     accept_discovery_entries,
     aggregate_discovered_publishers,
     build_candidate_visibility,
+    build_source_health_routes,
     build_wire,
     build_google_news_url,
     candidate_names_from_matches,
@@ -101,11 +102,44 @@ class NewsWireRelevanceTests(unittest.TestCase):
         self.assertEqual(GOOGLE_NEWS_WORKERS, 4)
 
     def test_registry_declares_source_specificity(self):
-        self.assertEqual(len(SOURCES), 19)
+        configured_sources = json.loads(
+            Path("news_sources.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(len(SOURCES), len(configured_sources))
         self.assertTrue(all(
             isinstance(source.get("politics_specific"), bool)
             for source in SOURCES
         ))
+
+    def test_marianne_uses_publisher_site_route_only(self):
+        self.assertNotIn(
+            "marianne-general",
+            {source["source_id"] for source in SOURCES},
+        )
+
+        publisher_site_feeds = generate_publisher_site_feeds()
+        marianne_feed = next(
+            feed
+            for feed in publisher_site_feeds
+            if feed["id"] == "publisher-site:marianne.net"
+        )
+        self.assertEqual(marianne_feed["publisher"], "Marianne")
+        self.assertEqual(marianne_feed["tier"], "core")
+        self.assertEqual(marianne_feed["interval_hours"], 3)
+
+        routes = build_source_health_routes(
+            generate_discovery_queries(
+                ["Alpha", "Bravo", "Charlie", "Delta"]
+            ),
+            publisher_site_feeds,
+            datetime(2026, 7, 28, 2, tzinfo=timezone.utc),
+        )
+        routes_by_id = {route["route_id"]: route for route in routes}
+        self.assertNotIn("direct:marianne-general", routes_by_id)
+        self.assertEqual(
+            routes_by_id["publisher-site:marianne.net"]["schedule_class"],
+            "every_3_hours",
+        )
 
     def test_full_candidate_name_matches_headline_with_provenance(self):
         matches = match_news_candidates(
@@ -952,8 +986,12 @@ class NewsWireRelevanceTests(unittest.TestCase):
                     review_path.read_text(encoding="utf-8")
                 )
 
-        self.assertEqual(len(payload["sources"]), 19)
-        self.assertEqual(payload["counts"]["successful_sources"], 19)
+        direct_source_count = len(SOURCES)
+        self.assertEqual(len(payload["sources"]), direct_source_count)
+        self.assertEqual(
+            payload["counts"]["successful_sources"],
+            direct_source_count,
+        )
         self.assertEqual(
             payload["discovery"]["configured_queries"],
             len(DISCOVERY_QUERIES) + 5,
@@ -967,10 +1005,17 @@ class NewsWireRelevanceTests(unittest.TestCase):
             ),
         )
         coverage = payload["feed_coverage"]
-        self.assertEqual(coverage["direct_feeds"], 19)
+        self.assertEqual(coverage["direct_feeds"], direct_source_count)
         self.assertEqual(coverage["shared_discovery_feeds"], 10)
         self.assertEqual(coverage["publisher_site_feeds"], 180)
-        self.assertEqual(coverage["configured_feeds"], 209)
+        self.assertEqual(
+            coverage["configured_feeds"],
+            (
+                direct_source_count
+                + coverage["shared_discovery_feeds"]
+                + coverage["publisher_site_feeds"]
+            ),
+        )
         self.assertEqual(payload["discovery"]["quarantined_items"], 0)
         self.assertGreater(
             coverage["publisher_site_items_quarantined"],
@@ -984,13 +1029,21 @@ class NewsWireRelevanceTests(unittest.TestCase):
             "publisher_site" in publisher["transports"]
             for publisher in review["publishers"]
         ))
+        hourly_feed_count = (
+            direct_source_count
+            + coverage["shared_discovery_feeds"]
+        )
         self.assertEqual(
             coverage["feeds_due_this_run"],
-            29 + coverage["publisher_site_feeds_due"],
+            hourly_feed_count + coverage["publisher_site_feeds_due"],
         )
         self.assertEqual(
             coverage["feeds_successful_this_run"],
-            29 + coverage["publisher_site_feeds_successful"],
+            (
+                direct_source_count
+                + payload["discovery"]["successful_queries"]
+                + coverage["publisher_site_feeds_successful"]
+            ),
         )
         due_health_routes = [
             route for route in health_routes if route["due_this_run"]
@@ -1068,16 +1121,28 @@ class NewsWireRelevanceTests(unittest.TestCase):
             )
         )
         reduced["discovery"]["approved_media_domains"] = 1
+        reduced_hourly_feed_count = (
+            len(SOURCES)
+            + reduced["feed_coverage"]["shared_discovery_feeds"]
+        )
+        reduced_successful_hourly_feed_count = (
+            len(SOURCES)
+            + reduced["discovery"]["successful_queries"]
+        )
         reduced["feed_coverage"].update(
             {
-                "configured_feeds": 30,
+                "configured_feeds": reduced_hourly_feed_count + 1,
                 "publisher_site_feeds": 1,
                 "publisher_site_feeds_due": reduced_due,
                 "publisher_site_feeds_successful": 0,
                 "configured_media_publishers": 1,
                 "contributing_publishers_30d": 0,
-                "feeds_due_this_run": 29 + reduced_due,
-                "feeds_successful_this_run": 29,
+                "feeds_due_this_run": (
+                    reduced_hourly_feed_count + reduced_due
+                ),
+                "feeds_successful_this_run": (
+                    reduced_successful_hourly_feed_count
+                ),
             }
         )
         with patch(

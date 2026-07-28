@@ -55,7 +55,13 @@ class RecentChangesTests(unittest.TestCase):
         validate_recent_changes(payload)
         self.assertGreaterEqual(len(payload["items"]), 1)
         self.assertEqual(payload["window"]["max_items"], 0)
-        self.assertEqual(len(SOURCES), 19)
+        configured_sources = json.loads(
+            (ROOT / "news_sources.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            len(payload["source_universe"]),
+            len(configured_sources),
+        )
         self.assertEqual(
             payload["source_universe"],
             [source["name"] for source in SOURCES],

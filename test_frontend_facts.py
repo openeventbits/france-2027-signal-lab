@@ -76,6 +76,82 @@ class FrontendPublicationFactsTests(unittest.TestCase):
         self.assertIn("lanes.recent_changes", self.index)
         self.assertIn('"Changes checked "', self.index)
 
+    def test_recent_changes_source_universe_matches_loaded_news(self):
+        validator = function_body(
+            self.index,
+            "validateRecentChangesPayload",
+            "loadRecentChanges",
+        )
+        self.assertNotIn("source_universe.length !== 19", validator)
+        self.assertNotIn("source_universe.length !== 18", validator)
+        self.assertIn(
+            "dashboardState.news?.feed_coverage?.direct_feeds",
+            validator,
+        )
+        self.assertIn(
+            "sourceUniverse.length !== expectedDirectSourceCount",
+            validator,
+        )
+
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("Node.js is required for frontend fact tests")
+        script = """
+          const dashboardState = { news: null };
+        """ + validator + """
+          function payload(sourceUniverse) {
+            return {
+              schema_version: 1,
+              window: {
+                days: 14,
+                max_items: 0,
+                start_date: "2026-07-15",
+                end_date: "2026-07-28"
+              },
+              source_universe: sourceUniverse,
+              items: [],
+              newest_trusted_change_at: null,
+              oldest_trusted_change_at: null
+            };
+          }
+          function names(count) {
+            return Array.from(
+              { length: count },
+              (_, index) => "Source " + index
+            );
+          }
+          function check(directFeeds, sourceUniverse) {
+            dashboardState.news = {
+              feed_coverage: { direct_feeds: directFeeds }
+            };
+            try {
+              validateRecentChangesPayload(payload(sourceUniverse));
+              return "ok";
+            } catch (error) {
+              return error.message;
+            }
+          }
+          console.log(JSON.stringify({
+            current: check(19, names(19)),
+            next: check(18, names(18)),
+            mismatch: check(18, names(19)),
+            duplicate: check(2, ["Source", "Source"]),
+            malformed: check(1, [" Source "])
+          }));
+        """
+        result = subprocess.run(
+            [node, "-e", script],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        outcomes = json.loads(result.stdout)
+        self.assertEqual(outcomes["current"], "ok")
+        self.assertEqual(outcomes["next"], "ok")
+        self.assertIn("does not match", outcomes["mismatch"])
+        self.assertIn("unique", outcomes["duplicate"])
+        self.assertIn("trimmed", outcomes["malformed"])
+
     def test_source_network_metrics_keep_distinct_labels(self):
         summary = function_body(
             self.index,
