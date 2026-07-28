@@ -191,57 +191,117 @@ class ElectionCoverageModalTests(
             self.modal_js,
         )
 
-        self.assertIn(
-            "recent ${noun}",
-            self.modal_js,
-        )
+        for contract in (
+            "hasActiveCoverageFilters",
+            "`All ${records.length}`",
+            "`Showing ${count} of ${records.length}`",
+        ):
+            self.assertIn(
+                contract,
+                self.modal_js,
+            )
 
         self.assertIn(
             "data-ecm-result-summary",
             self.modal_js,
         )
 
-    def test_contextual_right_rail_is_derived(self):
-        """The obsolete permanent right rail is replaced by a derived tab."""
-
-        self.assertIn(
-            "Coverage Intelligence",
-            self.modal_js,
-        )
-
-        self.assertIn(
-            "renderCoverageMetrics()",
-            self.modal_js,
-        )
-
-        self.assertIn(
-            "renderPublisherRows()",
-            self.modal_js,
-        )
-
-        self.assertIn(
-            "renderContextTopics()",
-            self.modal_js,
-        )
-
-        self.assertIn(
-            "renderCoverageShiftRows()",
-            self.modal_js,
-        )
-
-        self.assertIn(
-            "renderDailyVolume()",
-            self.modal_js,
-        )
-
-        self.assertIn(
-            'data-ecm-tab="intelligence"',
-            self.modal_js,
-        )
-
+    def test_coverage_feed_is_integrated_and_measured(self):
         self.assertNotIn(
-            "Coverage overview",
+            'class="ecm-coverage-summary"',
             self.modal_js,
+        )
+
+        for contract in (
+            'class="ecm-feed-meta"',
+            "Coverage window ·",
+            'class="ecm-feed-results"',
+            'title="${escapeAttribute(',
+            "list.scrollTop = 0;",
+        ):
+            self.assertIn(
+                contract,
+                self.modal_js,
+            )
+
+        readable_css = self.modal_css.split(
+            "/* FR27 SHARED READABLE TYPOGRAPHY "
+            "— COVERAGE MODAL — 2026-07 */",
+            1,
+        )[1]
+
+        for contract in (
+            "32px minmax(0, 1fr);",
+            "48px minmax(0, 1fr);",
+            "height: 60px;",
+            "min-height: 60px;",
+            "82px",
+            "132px",
+            "92px",
+            "scrollbar-gutter: stable;",
+            ".ecm-feed-list::-webkit-scrollbar-button",
+            "opacity: .38;",
+        ):
+            self.assertIn(
+                contract,
+                readable_css,
+            )
+
+    def test_modal_uses_single_coverage_view(self):
+        for contract in (
+            'class="ecm-tab-panel ecm-coverage-panel"',
+            'aria-label="Election coverage"',
+            'class="ecm-feed-meta"',
+            "renderToolbar()",
+            "updateFeed()",
+        ):
+            self.assertIn(
+                contract,
+                self.modal_js,
+            )
+
+        for removed in (
+            "Coverage Intelligence",
+            'role="tablist"',
+            'role="tab"',
+            "data-ecm-tab",
+            "ecm-intelligence-panel",
+            "renderIntelligence",
+            "setActiveTab",
+        ):
+            self.assertNotIn(
+                removed,
+                self.modal_js,
+            )
+
+        terminal_marker = (
+            "/* FR27 TABBED COVERAGE TERMINAL "
+            "— 2026-07 */"
+        )
+        readable_marker = (
+            "/* FR27 SHARED READABLE TYPOGRAPHY "
+            "— COVERAGE MODAL — 2026-07 */"
+        )
+        terminal_css = (
+            self.modal_css
+            .split(terminal_marker, 1)[1]
+            .split(readable_marker, 1)[0]
+        )
+
+        shell_start = terminal_css.index(
+            ".ecm-shell {"
+        )
+        shell_end = terminal_css.index(
+            "}",
+            shell_start,
+        )
+        shell_rule = terminal_css[
+            shell_start:shell_end + 1
+        ]
+
+        self.assertIn(
+            "minmax(0, 1fr) 24px;",
+            shell_rule,
         )
 
     def test_removed_old_dashboard_structures(self):
@@ -426,41 +486,6 @@ class ElectionCoverageModalTests(
             self.assertNotIn(
                 rule,
                 readable_css,
-            )
-
-    def test_coverage_intelligence_matches_mockup_structure(self):
-        order = [
-            self.modal_js.index("<h3 id=\"ecm-shift-title\">"),
-            self.modal_js.index("<h3 id=\"ecm-topic-title\">"),
-            self.modal_js.index("<h3 id=\"ecm-publisher-title\">"),
-            self.modal_js.index("<h3 id=\"ecm-volume-title\">"),
-        ]
-        self.assertEqual(order, sorted(order))
-
-        for contract in (
-            "ecm-shift-module",
-            "ecm-topic-module",
-            "ecm-publisher-module",
-            "ecm-volume-module",
-            "ecm-module-scroll",
-            "scrollbar-gutter: stable;",
-            "coverageWindowDays",
-            "model.publisherRanking",
-            "model.candidateCoverage",
-        ):
-            self.assertIn(
-                contract,
-                self.modal_js + self.modal_css,
-            )
-
-        for forbidden in (
-            "modelTopPublishers.slice(0, 5)",
-            "candidateCoverageLeaders.slice(0, 6)",
-            "contextTopics.slice(0, 5)",
-        ):
-            self.assertNotIn(
-                forbidden,
-                self.modal_js,
             )
 
     def test_no_article_images_or_external_assets(self):
