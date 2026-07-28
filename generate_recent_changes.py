@@ -16,7 +16,12 @@ from typing import Any, Iterable
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
-from fetch_news_wire import SOURCES, canonical_url, normalize
+from fetch_news_wire import (
+    SOURCES,
+    canonical_url,
+    classify_structured_electoral_support,
+    normalize,
+)
 
 
 SCHEMA_VERSION = 1
@@ -56,14 +61,6 @@ STRONG_CAMPAIGN_ACTION_PHRASES = (
     "est investie",
     "est designe",
     "est designee",
-    "rallie",
-    "ralliement",
-    "soutient la candidature",
-    "soutien a la candidature",
-    "apporte son soutien",
-    "soutien d",
-    "soutenus par",
-    "appelle a voter pour",
 )
 RETROSPECTIVE_CAMPAIGN_HEADLINE_PHRASES = (
     "longue liste des",
@@ -408,6 +405,16 @@ def classify_news_change(
         RETROSPECTIVE_CAMPAIGN_HEADLINE_PHRASES,
     ):
         return None
+
+    electoral_support = classify_structured_electoral_support(
+        headline_text,
+        sorted(candidate_names),
+    )
+    if electoral_support["matched_terms"]:
+        return (
+            "campaign",
+            "Concrete candidate, endorsement, selection or campaign-status change.",
+        )
 
     strong_campaign_phrase = first_matching_phrase(
         headline_text,

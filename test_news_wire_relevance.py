@@ -30,8 +30,10 @@ from fetch_news_wire import (
     build_wire,
     build_google_news_url,
     candidate_names_from_matches,
+    classify_candidate_coverage_scope,
     classify_notable_development,
     classify_relevant_news,
+    classify_structured_electoral_support,
     count_contributing_media_publishers,
     current_presidential_matches,
     deduplicate_entries,
@@ -1506,6 +1508,150 @@ class NewsWireRelevanceTests(unittest.TestCase):
             )
             self.assertIsNotNone(result, headline)
             self.assertEqual(result["id"], expected)
+
+    def test_structured_electoral_support_rejects_ordinary_destinations(self):
+        cases = [
+            (
+                "« Ces maisons détruites, ces animaux morts, ça fait "
+                "forcément penser à des scènes de guerre » : président des "
+                "maires de France, David Lisnard est allé au soutien des "
+                "communes incendiées dans le Var",
+                ["David Lisnard"],
+            ),
+            (
+                "« Ces maisons détruites, ces animaux morts… Alors que ça "
+                "fume encore, ça fait forcément penser à des scènes de "
+                "guerre » : président des maires de France, David Lisnard "
+                "est allé au soutien des communes incendiées dans le Var",
+                ["David Lisnard"],
+            ),
+            ("David Lisnard est allé au soutien des communes incendiées", ["David Lisnard"]),
+            ("Le candidat François Hollande apporte son soutien aux victimes", ["François Hollande"]),
+            ("Le président François Hollande soutient les agriculteurs", ["François Hollande"]),
+            ("François Hollande soutient une réforme", ["François Hollande"]),
+            ("François Hollande apporte son soutien aux sinistrés", ["François Hollande"]),
+            ("François Hollande apporte son soutien aux policiers", ["François Hollande"]),
+            ("François Hollande apporte son soutien aux pompiers", ["François Hollande"]),
+            ("Le soutien de David Lisnard aux pompiers", ["David Lisnard"]),
+            ("Les élus soutenus par David Lisnard après l'incendie", ["David Lisnard"]),
+            ("François Hollande appelle à voter pour une réforme", ["François Hollande"]),
+            ("Marine Le Pen soutient les agriculteurs à l’approche de la présidentielle", ["Marine Le Pen"]),
+            ("David Lisnard apporte son soutien aux communes pendant la campagne présidentielle", ["David Lisnard"]),
+            ("Édouard Philippe soutient une réforme pour l’élection présidentielle", ["Édouard Philippe"]),
+            ("X soutient les victimes avant le second tour", ["X"]),
+            ("X se rallie aux agriculteurs avant la présidentielle", ["X"]),
+            ("X appelle à voter pour une réforme à la présidentielle", ["X"]),
+            ("X apporte son soutien à une campagne de vaccination", ["X"]),
+            ("X apporte son appui à une campagne associative avant l’élection", ["X"]),
+            ("X soutient une coalition humanitaire pendant la présidentielle", ["X"]),
+        ]
+
+        for headline, candidates in cases:
+            normalized = normalize(headline)
+            candidate_matches = match_news_candidates(normalized, "", candidates)
+            evidence = classify_structured_electoral_support(normalized, candidates)
+            with self.subTest(headline=headline):
+                self.assertEqual(evidence["matched_terms"], [])
+                self.assertIsNone(
+                    classify_relevant_news(
+                        normalized,
+                        "",
+                        candidates,
+                        candidate_matches,
+                    )
+                )
+                self.assertIsNone(
+                    classify_notable_development(
+                        normalized,
+                        candidates,
+                        {"politics_specific": True},
+                        normalized,
+                        candidate_matches,
+                    )
+                )
+
+    def test_structured_electoral_support_accepts_electoral_destinations(self):
+        cases = [
+            ("François Hollande annonce son soutien à la candidature de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande soutient la candidature de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le parti apporte son soutien au candidat", []),
+            ("François Hollande se rallie à Raphaël Glucksmann pour la présidentielle", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande officialise son ralliement à Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande appelle à voter pour Raphaël Glucksmann au second tour", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande soutient Raphaël Glucksmann au second tour", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le soutien d'Elon Musk au RN relance la campagne de Marine Le Pen", ["Marine Le Pen"]),
+            ('"Marine Le Pen est le dernier espoir de la France": le soutien d\'Elon Musk au RN provoque des accusations d\'"ingérence étrangère"', ["Marine Le Pen"]),
+            ("Les élus RN de la région dieppoise au soutien de Marine Le Pen", ["Marine Le Pen"]),
+            ("Le soutien de François Hollande à la candidature de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le ralliement de François Hollande à Marine Le Pen", ["François Hollande", "Marine Le Pen"]),
+            ("François Hollande apporte son soutien à la campagne présidentielle de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande apporte son soutien à la campagne de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le parti apporte son soutien à la campagne du candidat", []),
+        ]
+
+        for headline, candidates in cases:
+            normalized = normalize(headline)
+            candidate_matches = match_news_candidates(normalized, "", candidates)
+            evidence = classify_structured_electoral_support(normalized, candidates)
+            relevance = classify_relevant_news(
+                normalized,
+                "",
+                candidates,
+                candidate_matches,
+            )
+            with self.subTest(headline=headline):
+                self.assertTrue(evidence["matched_terms"])
+                self.assertIsNotNone(relevance)
+                self.assertIn(
+                    relevance["reason"],
+                    {"campaign_or_selection_context", "presidential_context"},
+                )
+
+    def test_nice_matin_candidate_provenance_survives_relevance_rejection(self):
+        headline = (
+            "« Ces maisons détruites, ces animaux morts, ça fait forcément "
+            "penser à des scènes de guerre » : président des maires de "
+            "France, David Lisnard est allé au soutien des communes "
+            "incendiées dans le Var"
+        )
+        normalized = normalize(headline)
+        candidate_matches = match_news_candidates(
+            normalized,
+            normalized,
+            ["David Lisnard"],
+        )
+        self.assertEqual(
+            candidate_matches,
+            [{
+                "candidate": "David Lisnard",
+                "matched_aliases": ["david lisnard"],
+                "locations": ["headline", "summary"],
+            }],
+        )
+        relevance = classify_relevant_news(
+            normalized,
+            normalized,
+            ["David Lisnard"],
+            candidate_matches,
+        )
+        development = classify_notable_development(
+            normalized,
+            ["David Lisnard"],
+            {"politics_specific": True},
+            normalized,
+            candidate_matches,
+        )
+        self.assertIsNone(relevance)
+        self.assertIsNone(development)
+        self.assertEqual(current_presidential_matches(normalized), [])
+        self.assertEqual(
+            classify_candidate_coverage_scope(
+                is_election_news=False,
+                relevance=relevance,
+                development=development,
+            ),
+            "general",
+        )
 
     def test_broad_relevance_accepts_candidate_commentary(self):
         result = classify_relevant_news(

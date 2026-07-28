@@ -5,6 +5,12 @@ from fetch_news_wire import (
     CANDIDATE_COVERAGE_SCOPES,
     build_candidate_visibility,
     classify_candidate_coverage_scope,
+    classify_notable_development,
+    classify_relevant_news,
+    classify_structured_electoral_support,
+    explicit_election_match,
+    match_news_candidates,
+    normalize,
     validate_candidate_visibility,
 )
 
@@ -56,6 +62,105 @@ class CandidateCoverageScopeTests(unittest.TestCase):
         )
 
         self.assertEqual(scope, "campaign")
+
+    def test_nice_matin_support_visibility_has_general_scope(self) -> None:
+        headline = normalize(
+            "« Ces maisons détruites, ces animaux morts, ça fait forcément "
+            "penser à des scènes de guerre » : président des maires de "
+            "France, David Lisnard est allé au soutien des communes "
+            "incendiées dans le Var"
+        )
+        matches = match_news_candidates(
+            headline,
+            headline,
+            ["David Lisnard"],
+        )
+        relevance = classify_relevant_news(
+            headline,
+            headline,
+            ["David Lisnard"],
+            matches,
+        )
+
+        self.assertIsNone(relevance)
+        self.assertTrue(matches)
+        self.assertEqual(
+            classify_candidate_coverage_scope(
+                is_election_news=False,
+                relevance=relevance,
+                development=None,
+            ),
+            "general",
+        )
+
+    def test_electoral_support_visibility_keeps_campaign_scope(self) -> None:
+        headline = normalize(
+            "François Hollande annonce son soutien à la candidature de "
+            "Raphaël Glucksmann"
+        )
+        candidates = ["François Hollande", "Raphaël Glucksmann"]
+        matches = match_news_candidates(headline, "", candidates)
+        relevance = classify_relevant_news(
+            headline,
+            "",
+            candidates,
+            matches,
+        )
+
+        self.assertIsNotNone(relevance)
+        self.assertEqual(
+            classify_candidate_coverage_scope(
+                is_election_news=False,
+                relevance=relevance,
+                development=None,
+            ),
+            "campaign",
+        )
+
+    def test_later_electoral_context_does_not_create_support_scope(self) -> None:
+        cases = [
+            ("Marine Le Pen soutient les agriculteurs à l’approche de la présidentielle", ["Marine Le Pen"]),
+            ("David Lisnard apporte son soutien aux communes pendant la campagne présidentielle", ["David Lisnard"]),
+            ("Édouard Philippe soutient une réforme pour l’élection présidentielle", ["Édouard Philippe"]),
+            ("X soutient les victimes avant le second tour", ["X"]),
+            ("X se rallie aux agriculteurs avant la présidentielle", ["X"]),
+            ("X appelle à voter pour une réforme à la présidentielle", ["X"]),
+            ("X apporte son soutien à une campagne de vaccination", ["X"]),
+            ("X apporte son appui à une campagne associative avant l’élection", ["X"]),
+            ("X soutient une coalition humanitaire pendant la présidentielle", ["X"]),
+        ]
+
+        for headline, candidates in cases:
+            normalized = normalize(headline)
+            matches = match_news_candidates(normalized, "", candidates)
+            evidence = classify_structured_electoral_support(
+                normalized,
+                candidates,
+            )
+            relevance = classify_relevant_news(
+                normalized,
+                "",
+                candidates,
+                matches,
+            )
+            development = classify_notable_development(
+                normalized,
+                candidates,
+                {"politics_specific": True},
+                normalized,
+                matches,
+            )
+            scope = classify_candidate_coverage_scope(
+                is_election_news=explicit_election_match(normalized),
+                relevance=relevance,
+                development=development,
+            )
+
+            with self.subTest(headline=headline):
+                self.assertEqual(evidence["matched_terms"], [])
+                self.assertIsNone(relevance)
+                self.assertIsNone(development)
+                self.assertNotEqual(scope, "campaign")
 
     def test_routine_candidate_visibility_has_general_scope(self) -> None:
         scope = classify_candidate_coverage_scope(
