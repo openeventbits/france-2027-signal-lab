@@ -886,7 +886,7 @@
     const publisherCount =
       publisherCounts.size;
 
-    const topPublishers = [
+    const publisherRanking = [
       ...publisherCounts.entries()
     ]
       .map(([name, count]) => ({
@@ -900,8 +900,10 @@
             b.name,
             "fr"
           )
-      )
-      .slice(0, 5);
+      );
+
+    const topPublishers =
+      publisherRanking.slice(0, 5);
 
     const agendaTopics =
       Array.isArray(
@@ -1021,6 +1023,7 @@
       acceptedNewsPublisherCount:
         publisherCount,
       topPublishers,
+      publisherRanking,
       dailyActivity,
       activityMax: Math.max(
         1,
@@ -2019,7 +2022,7 @@
     };
 
     const coverageRows = model.feedItems
-      .slice(0, 5)
+      .slice(0, 20)
       .map(item => `
         <a
           class="top-media-coverage-row"
@@ -2071,26 +2074,39 @@
       )
     );
 
+    const comparisonAvailable =
+      model.comparisonQuality?.status ===
+      "comparable";
+
     const shiftRows =
       model.candidateCoverageLeaders
         .slice(0, 6)
         .map(item => {
-          const deltaAvailable = item.changeAvailable === true;
-          const delta = item.delta;
+          const deltaAvailable =
+            item.changeAvailable === true;
 
-          const directionClass = deltaAvailable
-            ? delta > 0.05
+          const displayedDelta =
+            deltaAvailable
+              ? item.delta
+              : item.latestShare -
+                item.previousShare;
+
+          const directionClass =
+            displayedDelta > 0.05
               ? "is-up"
-              : delta < -0.05
+              : displayedDelta < -0.05
                 ? "is-down"
-                : "is-flat"
-            : "";
+                : "is-flat";
 
-          const direction = !deltaAvailable
-            ? ""
-            : delta > 0.05
+          const comparisonClass =
+            deltaAvailable
+              ? ""
+              : " is-limited";
+
+          const direction =
+            displayedDelta > 0.05
               ? "▲"
-              : delta < -0.05
+              : displayedDelta < -0.05
                 ? "▼"
                 : "—";
 
@@ -2104,10 +2120,21 @@
               item.previousShare
             );
 
-          const deltaText = deltaAvailable
-            ? `${delta > 0 ? "+" : ""}` +
-              `${formatMediaShare(delta)}pp`
-            : "Comparison unavailable";
+          const deltaText =
+            `${displayedDelta > 0 ? "+" : ""}` +
+            `${formatMediaShare(
+              displayedDelta
+            )}pp`;
+
+          const deltaPrefix =
+            deltaAvailable
+              ? ""
+              : "≈ ";
+
+          const deltaTitle =
+            deltaAvailable
+              ? "Comparable period difference."
+              : "Comparison unavailable: raw period difference only; source mix differs.";
 
           const currentWidth = Math.min(
             100,
@@ -2134,7 +2161,9 @@
               aria-controls="topic-coverage-modal"
               aria-expanded="false"
               aria-label="${escapeAttribute(
-                `${item.name}: ${latestShareText} percent share of candidate-linked records in the current period, ${previousShareText} percent in the prior period, ${deltaText}`
+                deltaAvailable
+                  ? `${item.name}: ${latestShareText} percent share of candidate-linked records in the current period, ${previousShareText} percent in the prior period, change ${deltaText}`
+                  : `${item.name}: ${latestShareText} percent share of candidate-linked records in the current period, ${previousShareText} percent in the prior period. Comparison unavailable; raw period difference ${deltaText}.`
               )}"
             >
               <span class="top-media-shift-name">
@@ -2164,8 +2193,15 @@
                 ${previousShareText}%
               </em>
 
-              <b class="${directionClass}">
-                ${direction ? `${direction} ` : ""}${escapeHtml(deltaText)}
+              <b
+                class="${directionClass}${comparisonClass}"
+                title="${escapeAttribute(
+                  deltaTitle
+                )}"
+              >
+                ${direction} ${deltaPrefix}${escapeHtml(
+                  deltaText
+                )}
               </b>
             </button>
           `;
@@ -2261,7 +2297,45 @@
 
     return `
       <div class="top-media-dashboard">
-        <section class="top-media-latest">
+        <div
+          class="top-media-tabs"
+          role="tablist"
+          aria-label="Media Pulse views"
+        >
+          <button
+            id="top-media-overview-tab"
+            class="is-active"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="top-media-overview-panel"
+            tabindex="0"
+            data-top-media-tab="overview"
+          >
+            Overview
+          </button>
+
+          <button
+            id="top-media-coverage-tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="top-media-coverage-panel"
+            tabindex="-1"
+            data-top-media-tab="coverage"
+          >
+            Coverage
+          </button>
+        </div>
+
+        <section
+          id="top-media-coverage-panel"
+          class="top-media-tab-panel top-media-latest"
+          role="tabpanel"
+          aria-labelledby="top-media-coverage-tab"
+          data-top-media-panel="coverage"
+          hidden
+        >
           <div class="top-media-section-heading">
             <h3>Latest election coverage</h3>
 
@@ -2294,11 +2368,31 @@
           </button>
         </section>
 
-        <aside class="top-media-analysis">
+        <aside
+          id="top-media-overview-panel"
+          class="top-media-tab-panel is-active top-media-analysis"
+          role="tabpanel"
+          aria-labelledby="top-media-overview-tab"
+          data-top-media-panel="overview"
+        >
           <section class="top-media-shift">
             <div class="top-media-section-heading">
               <h3>Coverage shift</h3>
+
+              <span
+                class="top-media-shift-quality"
+                title="${escapeAttribute(
+                  comparisonAvailable
+                    ? "Comparable percentage-point change."
+                    : "Raw period difference only; source mix is not comparable."
+                )}"
+              >
+                ${comparisonAvailable
+                  ? "Δ pp"
+                  : "RAW Δ pp"}
+              </span>
             </div>
+
 
             <div
               class="top-media-period-legend"
@@ -2342,16 +2436,6 @@
                 ${topicRows}
               </div>
 
-              <button
-                class="top-media-panel-link tcm-open media-pulse-dashboard-cta"
-                type="button"
-                data-topic-coverage-open
-                aria-haspopup="dialog"
-                aria-controls="topic-coverage-modal"
-                aria-expanded="false"
-              >
-                Open coverage analysis →
-              </button>
             </section>
 
             <section>
@@ -2364,9 +2448,169 @@
               </div>
             </section>
           </div>
+
+          <button
+            class="top-media-panel-link tcm-open media-pulse-dashboard-cta"
+            type="button"
+            data-topic-coverage-open
+            aria-haspopup="dialog"
+            aria-controls="topic-coverage-modal"
+            aria-expanded="false"
+          >
+            Open coverage analysis →
+          </button>
         </aside>
       </div>
     `;
+  }
+
+
+  function bindTopMediaTabs() {
+    if (!topMediaMount) return;
+
+    const tabs = [
+      ...topMediaMount.querySelectorAll(
+        "[data-top-media-tab]"
+      )
+    ];
+
+    const panels = [
+      ...topMediaMount.querySelectorAll(
+        "[data-top-media-panel]"
+      )
+    ];
+
+    if (!tabs.length || !panels.length) {
+      return;
+    }
+
+    const activate = (
+      requestedView,
+      moveFocus = false
+    ) => {
+      const activeView =
+        requestedView === "overview"
+          ? "overview"
+          : "coverage";
+
+      tabs.forEach(tab => {
+        const selected =
+          tab.dataset.topMediaTab ===
+          activeView;
+
+        tab.classList.toggle(
+          "is-active",
+          selected
+        );
+
+        tab.setAttribute(
+          "aria-selected",
+          String(selected)
+        );
+
+        tab.tabIndex =
+          selected
+            ? 0
+            : -1;
+      });
+
+      panels.forEach(panel => {
+        const selected =
+          panel.dataset.topMediaPanel ===
+          activeView;
+
+        panel.classList.toggle(
+          "is-active",
+          selected
+        );
+
+        panel.hidden = !selected;
+
+        /*
+         * Explicit runtime display state
+         * prevents older layout rules from
+         * exposing both tab panels.
+         */
+        panel.style.display =
+          selected
+            ? ""
+            : "none";
+      });
+
+      if (moveFocus) {
+        tabs
+          .find(
+            tab =>
+              tab.dataset.topMediaTab ===
+              activeView
+          )
+          ?.focus();
+      }
+    };
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener(
+        "click",
+        () => {
+          activate(
+            tab.dataset.topMediaTab
+          );
+        }
+      );
+
+      tab.addEventListener(
+        "keydown",
+        event => {
+          const supportedKeys = [
+            "ArrowLeft",
+            "ArrowRight",
+            "Home",
+            "End"
+          ];
+
+          if (
+            !supportedKeys.includes(
+              event.key
+            )
+          ) {
+            return;
+          }
+
+          event.preventDefault();
+
+          let nextIndex = index;
+
+          if (event.key === "Home") {
+            nextIndex = 0;
+          } else if (event.key === "End") {
+            nextIndex =
+              tabs.length - 1;
+          } else if (
+            event.key === "ArrowRight"
+          ) {
+            nextIndex =
+              (index + 1) %
+              tabs.length;
+          } else {
+            nextIndex =
+              (
+                index -
+                1 +
+                tabs.length
+              ) %
+              tabs.length;
+          }
+
+          activate(
+            tabs[nextIndex]
+              .dataset.topMediaTab,
+            true
+          );
+        }
+      );
+    });
+
+    activate("overview");
   }
 
   function bindElectionCoverageModal(
@@ -2505,6 +2749,7 @@
       }
     }
 
+    bindTopMediaTabs();
     bindElectionCoverageModal(model);
     bindTopicCoverageModal(model, agendaModel);
     window.France2027TopicCoverageModal

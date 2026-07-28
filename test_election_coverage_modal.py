@@ -202,38 +202,48 @@ class ElectionCoverageModalTests(
         )
 
     def test_contextual_right_rail_is_derived(self):
-        for contract in (
-            "Coverage overview",
-            "Recent records",
-            "Publishers represented",
-            "Published in latest 24h",
-            "Coverage window",
-            "Top publishers",
-            "Topics in focus",
-            "latest24HourCount",
-            "coverageWindowLabel",
-            "publisherCounts()",
-            "contextTopics",
-            "topicContextDays",
-            ".slice(0, 5)",
-            ".slice(0, 5)",
-        ):
-            self.assertIn(
-                contract,
-                self.modal_js,
-            )
+        """The obsolete permanent right rail is replaced by a derived tab."""
 
-        for forbidden in (
-            "Candidate visibility",
-            "LIVE FEED",
-            "SOURCE NETWORK",
-            "Latest (24h)",
-            "No candidate metadata",
-        ):
-            self.assertNotIn(
-                forbidden,
-                self.modal_js,
-            )
+        self.assertIn(
+            "Coverage Intelligence",
+            self.modal_js,
+        )
+
+        self.assertIn(
+            "renderCoverageMetrics()",
+            self.modal_js,
+        )
+
+        self.assertIn(
+            "renderPublisherRows()",
+            self.modal_js,
+        )
+
+        self.assertIn(
+            "renderContextTopics()",
+            self.modal_js,
+        )
+
+        self.assertIn(
+            "renderCoverageShiftRows()",
+            self.modal_js,
+        )
+
+        self.assertIn(
+            "renderDailyVolume()",
+            self.modal_js,
+        )
+
+        self.assertIn(
+            'data-ecm-tab="intelligence"',
+            self.modal_js,
+        )
+
+        self.assertNotIn(
+            "Coverage overview",
+            self.modal_js,
+        )
+
     def test_removed_old_dashboard_structures(self):
         for forbidden in (
             "ecm-stats",
@@ -372,37 +382,86 @@ class ElectionCoverageModalTests(
         )
 
     def test_key_typography_is_readable(self):
-        trigger = self.css_rule(
-            ".top-media-panel-link.ecm-open"
+        """Readability is checked against the final active override."""
+
+        marker = (
+            "/* FR27 SHARED READABLE TYPOGRAPHY "
+            "— COVERAGE MODAL — 2026-07 */"
         )
 
-        headline = self.css_rule(
-            ".ecm-feed-copy h4"
+        self.assertEqual(
+            self.modal_css.count(marker),
+            1,
         )
 
-        source = self.css_rule(
-            ".ecm-feed-source"
-        )
+        readable_css = self.modal_css.split(
+            marker,
+            1,
+        )[1]
 
-        self.assertIn(
+        required_rules = (
+            "font-size: 12.5px;",
+            "font-size: 10.5px;",
             "font-size: 10px;",
-            trigger,
+            "font-size: 9px;",
+            "font-size: 18px;",
         )
 
-        self.assertIn(
-            "font-size: 13px;",
-            headline,
-        )
+        for rule in required_rules:
+            self.assertIn(
+                rule,
+                readable_css,
+            )
 
-        self.assertIn(
-            "font-size: 10px;",
-            source,
-        )
-
-        self.assertNotIn(
+        forbidden_reading_sizes = (
+            "font-size: 6px;",
+            "font-size: 6.5px;",
+            "font-size: 6.8px;",
+            "font-size: 7px;",
+            "font-size: 7.5px;",
             "font-size: 8px;",
-            self.modal_css,
         )
+
+        for rule in forbidden_reading_sizes:
+            self.assertNotIn(
+                rule,
+                readable_css,
+            )
+
+    def test_coverage_intelligence_matches_mockup_structure(self):
+        order = [
+            self.modal_js.index("<h3 id=\"ecm-shift-title\">"),
+            self.modal_js.index("<h3 id=\"ecm-topic-title\">"),
+            self.modal_js.index("<h3 id=\"ecm-publisher-title\">"),
+            self.modal_js.index("<h3 id=\"ecm-volume-title\">"),
+        ]
+        self.assertEqual(order, sorted(order))
+
+        for contract in (
+            "ecm-shift-module",
+            "ecm-topic-module",
+            "ecm-publisher-module",
+            "ecm-volume-module",
+            "ecm-module-scroll",
+            "scrollbar-gutter: stable;",
+            "coverageWindowDays",
+            "model.publisherRanking",
+            "model.candidateCoverage",
+        ):
+            self.assertIn(
+                contract,
+                self.modal_js + self.modal_css,
+            )
+
+        for forbidden in (
+            "modelTopPublishers.slice(0, 5)",
+            "candidateCoverageLeaders.slice(0, 6)",
+            "contextTopics.slice(0, 5)",
+        ):
+            self.assertNotIn(
+                forbidden,
+                self.modal_js,
+            )
 
     def test_no_article_images_or_external_assets(self):
         combined = (
@@ -427,67 +486,55 @@ class ElectionCoverageModalTests(
 
 
     def test_terminal_block_is_single_scoped_and_readable(self):
-        marker = (
-            "FR27 TERMINAL MODAL SYSTEM — ELECTION COVERAGE"
+        """The approved tabbed terminal and readability blocks are unique."""
+
+        terminal_marker = (
+            "/* FR27 TABBED COVERAGE TERMINAL "
+            "— 2026-07 */"
         )
-        self.assertEqual(self.modal_css.count(marker), 1)
-        terminal = self.modal_css[
-            self.modal_css.index(marker):
-        ]
 
-        dead_selectors = (
-            ".ecm-controls",
-            ".ecm-filter-bar",
-            ".ecm-card",
-            ".ecm-panel-header",
-            ".ecm-feed-time strong",
-            ".ecm-sidebar",
-            ".ecm-card:last-child",
-            ".ecm-card-body",
-            ".ecm-period-title",
-            ".ecm-period-legend",
-            ".ecm-overview-list",
-            ".ecm-overview-row",
-            ".ecm-topic",
-            ".ecm-status",
-            ".ecm-status-icon",
+        readable_marker = (
+            "/* FR27 SHARED READABLE TYPOGRAPHY "
+            "— COVERAGE MODAL — 2026-07 */"
         )
-        for selector in dead_selectors:
-            self.assertNotRegex(
-                terminal,
-                re.compile(
-                    re.escape(selector) + r"(?![\w-])"
-                ),
-            )
 
-        for selector in (
-            ".ecm-feed-header",
-            ".ecm-snapshot",
-            ".ecm-snapshot-metrics",
-            ".ecm-publisher-section",
-            ".ecm-topic-section",
-            ".ecm-topic-row",
-            ".ecm-disclosure",
-        ):
-            self.assertIn(selector, terminal)
-
-        sizes = [
-            float(value)
-            for value in re.findall(
-                r"font-size:\s*([0-9.]+)px",
-                self.modal_css,
-            )
-        ]
-        self.assertTrue(sizes)
-        self.assertGreaterEqual(min(sizes), 9)
-
-        self.assertNotRegex(
-            terminal,
-            re.compile(r"(?m)^\s*(button|a|h2|\*)\s*\{"),
+        self.assertEqual(
+            self.modal_css.count(terminal_marker),
+            1,
         )
-        self.assertNotIn("!important", terminal)
 
+        self.assertEqual(
+            self.modal_css.count(readable_marker),
+            1,
+        )
 
+        self.assertLess(
+            self.modal_css.index(terminal_marker),
+            self.modal_css.index(readable_marker),
+        )
 
-if __name__ == "__main__":
-    unittest.main()
+        terminal_css = (
+            self.modal_css
+            .split(terminal_marker, 1)[1]
+            .split(readable_marker, 1)[0]
+        )
+
+        self.assertIn(
+            "min(780px, calc(100vw - 48px))",
+            terminal_css,
+        )
+
+        self.assertIn(
+            ".ecm-tabs",
+            terminal_css,
+        )
+
+        self.assertIn(
+            ".ecm-intelligence-grid",
+            terminal_css,
+        )
+
+        self.assertIn(
+            ".ecm-feed-list",
+            terminal_css,
+        )

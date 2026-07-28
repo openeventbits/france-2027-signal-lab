@@ -253,7 +253,7 @@ class FinalDashboardShellTests(unittest.TestCase):
         renderer = self.js[start:end]
 
         self.assertIn(
-            ".slice(0, 5)",
+            ".slice(0, 20)",
             renderer,
         )
         self.assertIn(
@@ -786,6 +786,297 @@ class FinalDashboardShellTests(unittest.TestCase):
         self.assertEqual(result["delta"], 50)
         self.assertEqual(result["changePp"], 50)
         self.assertEqual(result["direction"], "positive")
+
+
+class BoundedTopRowPolishTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.css = Path(
+            "assets/final-dashboard-shell.css"
+        ).read_text(encoding="utf-8")
+        cls.javascript = Path(
+            "assets/hybrid-dashboard.js"
+        ).read_text(encoding="utf-8")
+
+    def test_desktop_top_row_ratio_and_height(self):
+        for contract in (
+            "/* BOUNDED TOP ROW POLISH - 2026-07 */",
+            "minmax(0, 27fr)",
+            "minmax(0, 30fr)",
+            "minmax(0, 43fr)",
+            "height: 400px !important;",
+        ):
+            self.assertIn(contract, self.css)
+
+    def test_latest_coverage_renders_twenty_items(self):
+        self.assertIn(
+            "const coverageRows = model.feedItems",
+            self.javascript,
+        )
+        self.assertIn(
+            ".slice(0, 20)",
+            self.javascript,
+        )
+
+    def test_latest_coverage_has_fixed_footer_and_scrollable_list(self):
+        self.assertIn(
+            "grid-template-rows:",
+            self.css,
+        )
+        self.assertIn(
+            "minmax(0, 1fr)",
+            self.css,
+        )
+        self.assertIn(
+            "overflow-y: auto;",
+            self.css,
+        )
+        self.assertIn(
+            "scrollbar-gutter: stable;",
+            self.css,
+        )
+
+    def test_top_ctas_share_identical_typography(self):
+        for contract in (
+            "--top-row-cta-height: 32px;",
+            "height: var(--top-row-cta-height);",
+            "font-size: 9px !important;",
+            "font-weight: 700 !important;",
+            "line-height: 1 !important;",
+        ):
+            self.assertIn(contract, self.css)
+
+
+class TopMediaProgressiveDisclosureTests(
+    unittest.TestCase
+):
+    @classmethod
+    def setUpClass(cls):
+        cls.javascript = Path(
+            "assets/hybrid-dashboard.js"
+        ).read_text(encoding="utf-8")
+
+        cls.css = Path(
+            "assets/final-dashboard-shell.css"
+        ).read_text(encoding="utf-8")
+
+    def test_top_media_uses_two_accessible_tabs(self):
+        for contract in (
+            'role="tablist"',
+            'data-top-media-tab="coverage"',
+            'data-top-media-tab="overview"',
+            'data-top-media-panel="coverage"',
+            'data-top-media-panel="overview"',
+            'aria-selected="true"',
+            'aria-selected="false"',
+        ):
+            self.assertIn(
+                contract,
+                self.javascript,
+            )
+
+    def test_top_media_tabs_support_keyboard_navigation(self):
+        for contract in (
+            "function bindTopMediaTabs()",
+            '"ArrowLeft"',
+            '"ArrowRight"',
+            '"Home"',
+            '"End"',
+            'activate("overview");',
+            "bindTopMediaTabs();",
+        ):
+            self.assertIn(
+                contract,
+                self.javascript,
+            )
+
+    def test_top_media_panels_use_full_width(self):
+        marker = (
+            "/* TOP MEDIA PULSE PROGRESSIVE "
+            "DISCLOSURE — 2026-07 */"
+        )
+
+        self.assertEqual(
+            self.css.count(marker),
+            1,
+        )
+
+        progressive_css = self.css.split(
+            marker,
+            1,
+        )[1]
+
+        for contract in (
+            ".top-media-tabs",
+            ".top-media-tab-panel[hidden]",
+            "grid-template-columns:",
+            "minmax(0, 1fr) !important;",
+            "min-height: 74px;",
+            "repeat(6, minmax(0, 1fr));",
+        ):
+            self.assertIn(
+                contract,
+                progressive_css,
+            )
+
+    def test_race_title_and_six_row_geometry_are_preserved(self):
+        marker = (
+            "/* TOP MEDIA PULSE PROGRESSIVE "
+            "DISCLOSURE — 2026-07 */"
+        )
+
+        progressive_css = self.css.split(
+            marker,
+            1,
+        )[1]
+
+        self.assertIn(
+            "minmax(145px, .78fr)",
+            progressive_css,
+        )
+
+        self.assertIn(
+            "white-space: nowrap;",
+            progressive_css,
+        )
+
+        self.assertIn(
+            "min-height: 43px;",
+            progressive_css,
+        )
+
+    def test_overview_is_first_and_default(self):
+        overview_tab = self.javascript.index(
+            'data-top-media-tab="overview"'
+        )
+
+        coverage_tab = self.javascript.index(
+            'data-top-media-tab="coverage"'
+        )
+
+        self.assertLess(
+            overview_tab,
+            coverage_tab,
+        )
+
+        self.assertIn(
+            'activate("overview");',
+            self.javascript,
+        )
+
+        self.assertIn(
+            'panel.style.display =',
+            self.javascript,
+        )
+
+        marker = (
+            "/* TOP MEDIA TAB STATE HARDENING "
+            "— OVERVIEW DEFAULT — 2026-07 */"
+        )
+
+        self.assertEqual(
+            self.css.count(marker),
+            1,
+        )
+
+        hardened_css = self.css.split(
+            marker,
+            1,
+        )[1]
+
+        self.assertIn(
+            "> .top-media-tab-panel[hidden]",
+            hardened_css,
+        )
+
+        self.assertIn(
+            "display: none !important;",
+            hardened_css,
+        )
+
+        self.assertIn(
+            "> .top-media-tabs",
+            hardened_css,
+        )
+
+        self.assertIn(
+            "display: flex !important;",
+            hardened_css,
+        )
+
+class MockupTopRowGeometryTests(
+    unittest.TestCase
+):
+    @classmethod
+    def setUpClass(cls):
+        cls.javascript = Path(
+            "assets/hybrid-dashboard.js"
+        ).read_text(encoding="utf-8")
+
+        cls.css = Path(
+            "assets/final-dashboard-shell.css"
+        ).read_text(encoding="utf-8")
+
+    def test_final_panel_proportions_match_reference(self):
+        marker = (
+            "/* MOCKUP TOP-ROW GEOMETRY AND "
+            "COVERAGE SHIFT CARD — 2026-07 */"
+        )
+
+        self.assertEqual(
+            self.css.count(marker),
+            1,
+        )
+
+        final_css = self.css.split(
+            marker,
+            1,
+        )[1]
+
+        for contract in (
+            "minmax(0, 28fr)",
+            "minmax(0, 35fr)",
+            "minmax(0, 37fr)",
+        ):
+            self.assertIn(
+                contract,
+                final_css,
+            )
+
+    def test_overview_matches_coverage_shift_card_anatomy(self):
+
+        self.assertNotIn(
+            "top-media-shift-subtitle",
+            self.javascript,
+        )
+
+        self.assertIn(
+            "MEDIA OVERVIEW SUBTITLE REMOVAL "
+            "AND HEIGHT TRANSFER",
+            self.css,
+        )
+
+        marker = (
+            "/* MOCKUP TOP-ROW GEOMETRY AND "
+            "COVERAGE SHIFT CARD — 2026-07 */"
+        )
+
+        final_css = self.css.split(
+            marker,
+            1,
+        )[1]
+
+        for contract in (
+            ".top-media-shift-subtitle",
+            "minmax(112px, 178px)",
+            "repeat(",
+            "112px",
+            "grid-template-columns:",
+        ):
+            self.assertIn(
+                contract,
+                final_css,
+            )
 
 
 if __name__ == "__main__":

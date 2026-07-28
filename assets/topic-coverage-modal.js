@@ -5,22 +5,13 @@
   let returnFocus = null;
   let candidates = [];
   let topics = [];
-  let comparisonQuality = null;
-  let selectedView = "topics";
-  let selectedCandidateName = "";
-  let selectedTopicId = "";
+  let publishers = [];
+  let dailyActivity = [];
+  let generatedAt = "";
   let latestPeriodLabel = "";
   let priorPeriodLabel = "";
-  let generatedAt = "";
-
-  const state = {
-    query: "",
-    sort: "source-days"
-  };
-
-  const collator = new Intl.Collator("en", {
-    sensitivity: "base"
-  });
+  let highlightedCandidate = "";
+  let highlightedTopic = "";
 
   const escapeHtml = value =>
     String(value ?? "")
@@ -32,14 +23,6 @@
 
   const escapeAttribute = escapeHtml;
 
-  const normalizeSearch = value =>
-    String(value ?? "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, " ")
-      .trim();
-
   const numberOrZero = value => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
@@ -50,21 +33,6 @@
     return Number.isFinite(parsed.getTime())
       ? parsed
       : null;
-  };
-
-  const safeUrl = value => {
-    try {
-      const parsed = new URL(
-        String(value || ""),
-        window.location.href
-      );
-
-      return ["http:", "https:"].includes(parsed.protocol)
-        ? parsed.href
-        : "";
-    } catch {
-      return "";
-    }
   };
 
   const formatTimestamp = value => {
@@ -84,16 +52,81 @@
       .replace(",", "");
   };
 
-  const formatDay = value => {
+  const formatCompactDate = value => {
+    const parsed = parseTimestamp(
+      /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))
+        ? `${value}T00:00:00Z`
+        : value
+    );
+
+    if (!parsed) return "—";
+
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "short",
+      timeZone: "UTC"
+    }).format(parsed);
+  };
+
+  const formatWindowDate = value => {
     const parsed = parseTimestamp(value);
-    if (!parsed) return "Date unavailable";
+    if (!parsed) return "Unavailable";
 
     return new Intl.DateTimeFormat("en-GB", {
       day: "2-digit",
       month: "short",
       year: "numeric",
-      timeZone: "Europe/Paris"
+      timeZone: "UTC"
     }).format(parsed);
+  };
+
+  const deriveCoverageWindow = mediaModel => {
+    const dated = (
+      Array.isArray(mediaModel?.feedItems)
+        ? mediaModel.feedItems
+        : []
+    )
+      .map(item => parseTimestamp(item?.published_at))
+      .filter(Boolean)
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    if (!dated.length) {
+      return {
+        label: "Unavailable",
+        days: 0
+      };
+    }
+
+    const oldest = dated[0];
+    const newest = dated[dated.length - 1];
+
+    const oldestDay = Date.UTC(
+      oldest.getUTCFullYear(),
+      oldest.getUTCMonth(),
+      oldest.getUTCDate()
+    );
+    const newestDay = Date.UTC(
+      newest.getUTCFullYear(),
+      newest.getUTCMonth(),
+      newest.getUTCDate()
+    );
+
+    const days =
+      Math.floor(
+        (newestDay - oldestDay) /
+        (24 * 60 * 60 * 1000)
+      ) + 1;
+
+    const oldestLabel = formatWindowDate(oldest);
+    const newestLabel = formatWindowDate(newest);
+
+    return {
+      label:
+        oldestLabel === newestLabel
+          ? newestLabel
+          : `${oldestLabel} – ${newestLabel}`,
+      days
+    };
   };
 
   const formatShare = value =>
@@ -120,861 +153,492 @@
     return "—";
   };
 
-  const comparisonQualityMessage = quality => {
-    if (quality?.status === "comparable") return "";
-    if (quality?.reason === "publisher_panel_changed") {
-      return "Comparison unavailable — publisher panel changed";
-    }
-    return "Comparison unavailable — insufficient prior evidence";
-  };
-
-  const normalizeArticle = (item, period = "") => ({
-    id: String(item?.id || item?.url || ""),
-    publisher:
-      String(item?.publisher || "Unknown publisher").trim() ||
-      "Unknown publisher",
-    publishedAt: String(item?.published_at || ""),
-    timestamp:
-      parseTimestamp(item?.published_at)?.getTime() || 0,
-    headline:
-      String(item?.headline || "Untitled coverage record").trim() ||
-      "Untitled coverage record",
-    url: String(item?.url || ""),
-    period
-  });
-
-  const dedupeArticles = values => {
-    const records = new Map();
-
-    values.forEach(item => {
-      const key =
-        item.id ||
-        safeUrl(item.url) ||
-        `${item.publisher}|${item.publishedAt}|${item.headline}`;
-
-      if (!records.has(key)) records.set(key, item);
-    });
-
-    return [...records.values()].sort(
-      (a, b) =>
-        b.timestamp - a.timestamp ||
-        collator.compare(a.publisher, b.publisher)
-    );
-  };
-
-  const normalizeCandidate = item => {
-    const name =
-      String(item?.name || "Unknown candidate").trim() ||
-      "Unknown candidate";
-
-    const latestItems = dedupeArticles(
-      Array.isArray(item?.latestItems)
-        ? item.latestItems.map(value =>
-            normalizeArticle(value, "current")
-          )
-        : []
-    );
-
-    const previousItems = dedupeArticles(
-      Array.isArray(item?.previousItems)
-        ? item.previousItems.map(value =>
-            normalizeArticle(value, "prior")
-          )
-        : []
-    );
-
-    const changeAvailable = item?.changeAvailable === true;
-    const delta = changeAvailable && Number.isFinite(item?.delta)
-      ? item.delta
-      : null;
-
-    return {
-      name,
-      latestCount: numberOrZero(
-        item?.latestCount ?? latestItems.length
-      ),
-      previousCount: numberOrZero(
-        item?.previousCount ?? previousItems.length
-      ),
-      latestShare: numberOrZero(item?.latestShare),
-      previousShare: numberOrZero(item?.previousShare),
-      changeAvailable,
-      delta,
-      changePp: delta,
-      direction: changeAvailable
-        ? String(item?.direction || "flat")
-        : "unavailable",
-      latestItems,
-      previousItems,
-      searchText: normalizeSearch(
-        [
-          name,
-          ...latestItems.map(value =>
-            `${value.publisher} ${value.headline}`
-          ),
-          ...previousItems.map(value =>
-            `${value.publisher} ${value.headline}`
-          )
-        ].join(" ")
-      )
-    };
-  };
-
   const isGeneralTopic = topic => {
-    const identity = normalizeSearch(
+    const identity = String(
       topic?.id || topic?.label || ""
-    );
+    )
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
 
     return (
       identity.startsWith("other ") ||
-      identity.startsWith("other_") ||
       identity.includes("other campaign coverage")
     );
   };
 
-  const normalizeTopic = topic => {
-    const supportingItems = dedupeArticles(
-      Array.isArray(topic?.supporting_items)
-        ? topic.supporting_items.map(value =>
-            normalizeArticle(value, "")
-          )
-        : []
-    );
-
-    const label =
-      String(topic?.label || "Untitled topic").trim() ||
-      "Untitled topic";
+  const normalizeCandidate = item => {
+    const latestShare = numberOrZero(item?.latestShare);
+    const previousShare = numberOrZero(item?.previousShare);
+    const changeAvailable = item?.changeAvailable === true;
+    const reportedDelta =
+      changeAvailable && Number.isFinite(Number(item?.delta))
+        ? Number(item.delta)
+        : null;
 
     return {
-      id: String(topic?.id || label).trim() || label,
-      label,
-      sourceDays: numberOrZero(topic?.source_day_count),
-      itemCount: numberOrZero(topic?.item_count),
-      publisherCount: numberOrZero(topic?.publisher_count),
-      activeDayCount: numberOrZero(topic?.active_day_count),
-      supportingItems,
-      searchText: normalizeSearch(
-        [
-          label,
-          ...supportingItems.map(value =>
-            `${value.publisher} ${value.headline}`
-          )
-        ].join(" ")
-      )
+      name:
+        String(item?.name || "Unknown candidate").trim() ||
+        "Unknown candidate",
+      latestShare,
+      previousShare,
+      latestCount: numberOrZero(item?.latestCount),
+      previousCount: numberOrZero(item?.previousCount),
+      changeAvailable,
+      delta: reportedDelta,
+      displayedDelta:
+        reportedDelta ?? latestShare - previousShare
     };
   };
 
-  const resetState = () => {
-    state.query = "";
-    state.sort = selectedView === "candidates"
-      ? "current-share"
-      : "source-days";
-  };
+  const normalizeTopic = item => ({
+    id: String(item?.id || item?.label || ""),
+    label:
+      String(item?.label || "Untitled topic").trim() ||
+      "Untitled topic",
+    sourceDays: numberOrZero(item?.source_day_count),
+    itemCount: numberOrZero(item?.item_count),
+    publisherCount: numberOrZero(item?.publisher_count),
+    activeDayCount: numberOrZero(item?.active_day_count)
+  });
 
-  const sortCandidates = values => {
-    const sorted = [...values];
+  const normalizePublisher = item => ({
+    name:
+      String(item?.name || "Unknown publisher").trim() ||
+      "Unknown publisher",
+    count: numberOrZero(item?.count)
+  });
 
-    sorted.sort((a, b) => {
-      if (state.sort === "change") {
-        return (
-          numberOrZero(b.delta) - numberOrZero(a.delta) ||
-          b.latestShare - a.latestShare ||
-          collator.compare(a.name, b.name)
-        );
-      }
-
-      if (state.sort === "articles") {
-        return (
-          b.latestCount - a.latestCount ||
-          b.previousCount - a.previousCount ||
-          collator.compare(a.name, b.name)
-        );
-      }
-
-      if (state.sort === "name") {
-        return collator.compare(a.name, b.name);
-      }
-
-      return (
-        b.latestShare - a.latestShare ||
-        numberOrZero(b.delta) - numberOrZero(a.delta) ||
-        collator.compare(a.name, b.name)
-      );
-    });
-
-    return sorted;
-  };
-
-  const sortTopics = values => {
-    const sorted = [...values];
-
-    sorted.sort((a, b) => {
-      if (state.sort === "publishers") {
-        return (
-          b.publisherCount - a.publisherCount ||
-          b.sourceDays - a.sourceDays ||
-          collator.compare(a.label, b.label)
-        );
-      }
-
-      if (state.sort === "items") {
-        return (
-          b.itemCount - a.itemCount ||
-          b.sourceDays - a.sourceDays ||
-          collator.compare(a.label, b.label)
-        );
-      }
-
-      if (state.sort === "name") {
-        return collator.compare(a.label, b.label);
-      }
-
-      return (
-        b.sourceDays - a.sourceDays ||
-        b.publisherCount - a.publisherCount ||
-        collator.compare(a.label, b.label)
-      );
-    });
-
-    return sorted;
-  };
-
-  const visibleCandidates = () => {
-    const query = normalizeSearch(state.query);
-    return sortCandidates(
-      candidates.filter(candidate =>
-        !query || candidate.searchText.includes(query)
-      )
-    );
-  };
-
-  const visibleTopics = () => {
-    const query = normalizeSearch(state.query);
-    return sortTopics(
-      topics.filter(topic =>
-        !query || topic.searchText.includes(query)
-      )
-    );
-  };
-
-  const selectedCandidate = values =>
-    values.find(
-      candidate => candidate.name === selectedCandidateName
-    ) || values[0] || null;
-
-  const selectedTopic = values =>
-    values.find(
-      topic => topic.id === selectedTopicId
-    ) || values[0] || null;
+  const normalizeDay = item => ({
+    key: String(item?.key || ""),
+    count: numberOrZero(item?.count)
+  });
 
   const renderMetric = (
     value,
     label,
-    secondary = "",
-    tone = ""
+    note = "",
+    className = ""
   ) => `
-    <div class="tcm-metric${tone ? ` ${tone}` : ""}">
+    <div class="tcm-summary-metric${className ? ` ${className}` : ""}">
       <strong>${escapeHtml(value)}</strong>
       <span>${escapeHtml(label)}</span>
-      ${secondary
-        ? `<small>${escapeHtml(secondary)}</small>`
-        : ""}
+      ${note ? `<small>${escapeHtml(note)}</small>` : ""}
     </div>
   `;
 
-  const renderSourceLink = item => {
-    const href = safeUrl(item.url);
-
-    if (!href) {
-      return `
-        <span class="tcm-source-unavailable">
-          Source unavailable
-        </span>
-      `;
-    }
+  const renderSummaryStrip = mediaModel => {
+    const coverageWindow =
+      deriveCoverageWindow(mediaModel);
 
     return `
-      <a
-        class="tcm-source-link"
-        href="${escapeAttribute(href)}"
-        target="_blank"
-        rel="noopener noreferrer"
+      <section
+        class="tcm-summary-strip"
+        aria-label="Coverage summary"
       >
-        Open source
-        <span aria-hidden="true">↗</span>
-      </a>
+        ${renderMetric(
+          String(numberOrZero(mediaModel?.electionNewsCount)),
+          "Accepted news"
+        )}
+        ${renderMetric(
+          String(numberOrZero(mediaModel?.acceptedNewsPublisherCount)),
+          "Publishers"
+        )}
+        ${renderMetric(
+          String(numberOrZero(mediaModel?.activityItemCount)),
+          "Recent activity",
+          `${numberOrZero(mediaModel?.activityWindowDays)} days`
+        )}
+        ${renderMetric(
+          coverageWindow.label,
+          "Coverage window",
+          coverageWindow.days
+            ? `${coverageWindow.days} days`
+            : "Current record range",
+          "is-window"
+        )}
+      </section>
     `;
   };
 
-  const renderCoverageRows = (values, showPeriod = false) => {
-    if (!values.length) {
+  const renderPeriodLegend = () => `
+    <div
+      class="tcm-period-legend"
+      role="group"
+      aria-label="${escapeAttribute(
+        `Coverage comparison. Current period ${latestPeriodLabel}; prior period ${priorPeriodLabel}.`
+      )}"
+    >
+      <span>
+        <i class="is-current" aria-hidden="true"></i>
+        <strong>CURRENT</strong>
+        <small>${escapeHtml(latestPeriodLabel)}</small>
+      </span>
+      <span>
+        <i class="is-prior" aria-hidden="true"></i>
+        <strong>PRIOR</strong>
+        <small>${escapeHtml(priorPeriodLabel)}</small>
+      </span>
+      <em>Δ pp</em>
+    </div>
+  `;
+
+  const renderCoverageShiftRows = () => {
+    if (!candidates.length) {
       return `
-        <div class="tcm-detail-empty">
-          No source-linked coverage is available for this selection.
-        </div>
-      `;
-    }
-
-    return values
-      .map(item => `
-        <article class="tcm-support-row">
-          <div class="tcm-support-meta">
-            <strong>${escapeHtml(item.publisher)}</strong>
-            <time datetime="${escapeAttribute(item.publishedAt)}">
-              ${escapeHtml(formatDay(item.publishedAt))}
-            </time>
-            ${showPeriod
-              ? `<span class="tcm-period-chip is-${escapeAttribute(item.period)}">${escapeHtml(item.period)}</span>`
-              : ""}
-          </div>
-
-          <h4 lang="fr">${escapeHtml(item.headline)}</h4>
-          ${renderSourceLink(item)}
-        </article>
-      `)
-      .join("");
-  };
-
-  const renderCandidateRow = (
-    candidate,
-    index,
-    maximum
-  ) => {
-    const currentWidth = Math.min(
-      100,
-      candidate.latestShare / maximum * 100
-    );
-    const priorPosition = Math.min(
-      100,
-      candidate.previousShare / maximum * 100
-    );
-    const active = candidate.name === selectedCandidateName;
-    const directionClass = candidate.changeAvailable
-      ? deltaClass(candidate.delta)
-      : "";
-    const changeText = candidate.changeAvailable
-      ? formatDelta(candidate.delta)
-      : "Unavailable";
-    const changeArrow = candidate.changeAvailable
-      ? `${deltaArrow(candidate.delta)} `
-      : "";
-
-    return `
-      <button
-        class="tcm-candidate-row${active ? " is-selected" : ""}"
-        type="button"
-        data-tcm-candidate="${escapeAttribute(candidate.name)}"
-        aria-pressed="${String(active)}"
-        aria-label="${escapeAttribute(
-          `${candidate.name}: ${formatShare(candidate.latestShare)} percent share of candidate-linked records in the current period, ${formatShare(candidate.previousShare)} percent in the prior period, ${changeText}.`
-        )}"
-      >
-        <span class="tcm-row-rank">
-          ${String(index + 1).padStart(2, "0")}
-        </span>
-
-        <span class="tcm-row-copy">
-          <span class="tcm-row-head">
-            <strong>${escapeHtml(candidate.name)}</strong>
-            <b class="${directionClass}">
-              ${changeArrow}${escapeHtml(changeText)}
-            </b>
-          </span>
-
-          <small>
-            ${candidate.latestCount} current ·
-            ${candidate.previousCount} prior
-          </small>
-
-          <i class="tcm-candidate-track" aria-hidden="true">
-            <b style="--tcm-current-width:${currentWidth.toFixed(2)}%"></b>
-            <em style="--tcm-prior-position:${priorPosition.toFixed(2)}%"></em>
-          </i>
-        </span>
-
-        <span class="tcm-row-value">
-          ${escapeHtml(formatShare(candidate.latestShare))}%
-        </span>
-      </button>
-    `;
-  };
-
-  const renderCandidateRanking = values => {
-    if (!values.length) {
-      return `
-        <div class="tcm-empty" role="status">
-          <strong>No matching candidates</strong>
-          <span>Adjust the search to show candidate coverage.</span>
+        <div class="tcm-empty">
+          Candidate coverage data unavailable.
         </div>
       `;
     }
 
     const maximum = Math.max(
       1,
-      ...values.flatMap(candidate => [
-        candidate.latestShare,
-        candidate.previousShare
-      ])
-    );
-
-    return values
-      .map((candidate, index) =>
-        renderCandidateRow(candidate, index, maximum)
+      ...candidates.map(
+        item => item.latestShare + item.previousShare
       )
-      .join("");
-  };
-
-  const renderTopicRow = (
-    topic,
-    index,
-    maximum
-  ) => {
-    const width = Math.min(
-      100,
-      topic.sourceDays / maximum * 100
-    );
-    const active = topic.id === selectedTopicId;
-
-    return `
-      <button
-        class="tcm-topic-row${active ? " is-selected" : ""}"
-        type="button"
-        data-tcm-topic="${escapeAttribute(topic.id)}"
-        aria-pressed="${String(active)}"
-      >
-        <span class="tcm-row-rank">
-          ${String(index + 1).padStart(2, "0")}
-        </span>
-
-        <span class="tcm-row-copy">
-          <span class="tcm-row-head">
-            <strong>${escapeHtml(topic.label)}</strong>
-            <b>${topic.sourceDays} source-days</b>
-          </span>
-
-          <small>
-            ${topic.itemCount} items ·
-            ${topic.publisherCount} publishers ·
-            ${topic.activeDayCount} active days
-          </small>
-
-          <i class="tcm-topic-track" aria-hidden="true">
-            <b style="--tcm-topic-width:${width.toFixed(2)}%"></b>
-          </i>
-        </span>
-      </button>
-    `;
-  };
-
-  const renderTopicRanking = values => {
-    if (!values.length) {
-      return `
-        <div class="tcm-empty" role="status">
-          <strong>No matching topics</strong>
-          <span>Adjust the search to show recurring topics.</span>
-        </div>
-      `;
-    }
-
-    const maximum = Math.max(
-      1,
-      ...values.map(topic => topic.sourceDays)
     );
 
-    return values
-      .map((topic, index) =>
-        renderTopicRow(topic, index, maximum)
-      )
-      .join("");
-  };
-
-  const renderCandidateDetail = candidate => {
-    if (!candidate) {
-      return `
-        <div class="tcm-detail-empty">
-          Select a candidate to inspect the coverage behind the shift.
-        </div>
-      `;
-    }
-
-    const coverage = dedupeArticles([
-      ...candidate.latestItems,
-      ...candidate.previousItems
-    ]);
-    const tone = candidate.changeAvailable
-      ? deltaClass(candidate.delta)
-      : "";
-    const changeValue = candidate.changeAvailable
-      ? formatDelta(candidate.delta)
-      : "Unavailable";
-
-    return `
-      <div class="tcm-detail-content">
-        <div class="tcm-detail-kicker">Selected candidate</div>
-        <h3>${escapeHtml(candidate.name)}</h3>
-
-        <div class="tcm-metrics">
-          ${renderMetric(
-            `${formatShare(candidate.latestShare)}%`,
-            "Share of candidate-linked records",
-            latestPeriodLabel,
-            "is-current"
-          )}
-          ${renderMetric(
-            `${formatShare(candidate.previousShare)}%`,
-            "Share of candidate-linked records",
-            priorPeriodLabel,
-            "is-prior"
-          )}
-          ${renderMetric(
-            changeValue,
-            "Change",
-            candidate.changeAvailable ? "percentage points" : "",
-            tone
-          )}
-          ${renderMetric(
-            `${candidate.latestCount} / ${candidate.previousCount}`,
-            "Articles",
-            "current / prior"
-          )}
-        </div>
-
-        <section class="tcm-supporting">
-          <header class="tcm-supporting-head">
-            <h4>Source-linked coverage</h4>
-            <span>${coverage.length} records</span>
-          </header>
-
-          <div class="tcm-supporting-list">
-            ${renderCoverageRows(coverage, true)}
-          </div>
-        </section>
-      </div>
-    `;
-  };
-
-  const renderTopicDetail = topic => {
-    if (!topic) {
-      return `
-        <div class="tcm-detail-empty">
-          Select a topic to inspect its supporting coverage.
-        </div>
-      `;
-    }
-
-    return `
-      <div class="tcm-detail-content">
-        <div class="tcm-detail-kicker">Selected topic</div>
-        <h3>${escapeHtml(topic.label)}</h3>
-
-        <div class="tcm-metrics">
-          ${renderMetric(
-            String(topic.sourceDays),
-            "Source-days",
-            "recurring coverage"
-          )}
-          ${renderMetric(
-            String(topic.itemCount),
-            "Accepted items"
-          )}
-          ${renderMetric(
-            String(topic.publisherCount),
-            "Publishers"
-          )}
-          ${renderMetric(
-            String(topic.activeDayCount),
-            "Active days"
-          )}
-        </div>
-
-        <section class="tcm-supporting">
-          <header class="tcm-supporting-head">
-            <h4>Supporting coverage</h4>
-            <span>${topic.supportingItems.length} source-linked items</span>
-          </header>
-
-          <div class="tcm-supporting-list">
-            ${renderCoverageRows(topic.supportingItems)}
-          </div>
-        </section>
-      </div>
-    `;
-  };
-
-  const renderSortOptions = () => {
-    const options = selectedView === "candidates"
-      ? [
-          ["current-share", "Sort: current share"],
-          ["change", "Sort: change"],
-          ["articles", "Sort: current articles"],
-          ["name", "Sort: name"]
-        ]
-      : [
-          ["source-days", "Sort: source-days"],
-          ["publishers", "Sort: publishers"],
-          ["items", "Sort: accepted items"],
-          ["name", "Sort: name"]
-        ];
-
-    return options
-      .map(([value, label]) => `
-        <option
-          value="${escapeAttribute(value)}"
-          ${state.sort === value ? "selected" : ""}
-        >${escapeHtml(label)}</option>
-      `)
-      .join("");
-  };
-
-  const renderBody = () => `
-    <div class="tcm-shell">
-      <div class="tcm-view-tabs" role="tablist" aria-label="Coverage analysis view">
-        <button
-          type="button"
-          role="tab"
-          data-tcm-view="candidates"
-          aria-selected="${String(selectedView === "candidates")}"
-        >Candidate shift</button>
-        <button
-          type="button"
-          role="tab"
-          data-tcm-view="topics"
-          aria-selected="${String(selectedView === "topics")}"
-        >Topic coverage</button>
-      </div>
-
-      <form class="tcm-toolbar" data-tcm-toolbar role="search">
-        <div class="tcm-search-control">
-          <label class="tcm-visually-hidden" for="tcm-search">
-            Search ${selectedView === "candidates" ? "candidates" : "topics"}
-          </label>
-          <span aria-hidden="true">⌕</span>
-          <input
-            id="tcm-search"
-            type="search"
-            placeholder="Search ${selectedView === "candidates" ? "candidates or coverage" : "topics or coverage"}"
-            autocomplete="off"
-            data-tcm-search
-            value="${escapeAttribute(state.query)}"
-          >
-        </div>
-
-        <label class="tcm-sort-control">
-          <span class="tcm-visually-hidden">Sort results</span>
-          <select data-tcm-sort>
-            ${renderSortOptions()}
-          </select>
-        </label>
-      </form>
-
-      <div class="tcm-workspace">
-        <section class="tcm-ranking">
-          <header class="tcm-ranking-head">
-            <div>
-              <h3 data-tcm-ranking-title></h3>
-              <p data-tcm-ranking-subtitle></p>
-            </div>
-            <span data-tcm-result-summary aria-live="polite"></span>
-          </header>
-
-          <div class="tcm-ranking-list" data-tcm-ranking-list></div>
-        </section>
-
-        <section class="tcm-detail" data-tcm-detail aria-live="polite"></section>
-      </div>
-    </div>
-  `;
-
-  const renderShell = () => {
-    modal.querySelector("[data-tcm-body]").innerHTML = renderBody();
-    bindControls();
-    updateView();
-  };
-
-  const updateView = () => {
-    const list = modal?.querySelector("[data-tcm-ranking-list]");
-    const detail = modal?.querySelector("[data-tcm-detail]");
-    const summary = modal?.querySelector("[data-tcm-result-summary]");
-    const title = modal?.querySelector("[data-tcm-ranking-title]");
-    const subtitle = modal?.querySelector("[data-tcm-ranking-subtitle]");
-
-    if (!list || !detail || !summary || !title || !subtitle) return;
-
-    modal
-      .querySelectorAll("[data-tcm-view]")
-      .forEach(button => {
-        button.setAttribute(
-          "aria-selected",
-          String(button.dataset.tcmView === selectedView)
+    return candidates
+      .map(item => {
+        const currentWidth = Math.min(
+          100,
+          item.latestShare / maximum * 100
         );
-      });
+        const priorWidth = Math.min(
+          100,
+          item.previousShare / maximum * 100
+        );
+        const delta = item.displayedDelta;
+        const limitedClass = item.changeAvailable
+          ? ""
+          : " is-limited";
+        const highlighted =
+          item.name === highlightedCandidate
+            ? " is-highlighted"
+            : "";
+        const deltaPrefix = item.changeAvailable ? "" : "≈ ";
 
-    if (selectedView === "candidates") {
-      const values = visibleCandidates();
+        return `
+          <div
+            class="tcm-shift-row${limitedClass}${highlighted}"
+            data-tcm-candidate-row="${escapeAttribute(item.name)}"
+            title="${escapeAttribute(
+              item.changeAvailable
+                ? "Comparable period change"
+                : "Raw period difference; comparison quality unavailable"
+            )}"
+          >
+            <strong title="${escapeAttribute(item.name)}">
+              ${escapeHtml(item.name)}
+            </strong>
+            <b>${escapeHtml(formatShare(item.latestShare))}%</b>
+            <span class="tcm-shift-track" aria-hidden="true">
+              <i
+                class="is-current"
+                style="--tcm-current-width:${currentWidth.toFixed(2)}%"
+              ></i>
+              <i
+                class="is-prior"
+                style="--tcm-prior-width:${priorWidth.toFixed(2)}%"
+              ></i>
+            </span>
+            <em>${escapeHtml(formatShare(item.previousShare))}%</em>
+            <span class="tcm-delta ${deltaClass(delta)}">
+              ${deltaArrow(delta)}
+              ${escapeHtml(deltaPrefix + formatDelta(delta))}
+            </span>
+          </div>
+        `;
+      })
+      .join("");
+  };
 
-      if (!values.some(value => value.name === selectedCandidateName)) {
-        selectedCandidateName = values[0]?.name || "";
-      }
-
-      title.textContent = "Candidate visibility ranking";
-      subtitle.textContent =
-        comparisonQualityMessage(comparisonQuality) ||
-        "Share of candidate-linked records: current seven days compared with the prior seven days";
-      summary.textContent = `${values.length} ${values.length === 1 ? "candidate" : "candidates"}`;
-      list.innerHTML = renderCandidateRanking(values);
-      detail.innerHTML = renderCandidateDetail(
-        selectedCandidate(values)
-      );
-    } else {
-      const values = visibleTopics();
-
-      if (!values.some(value => value.id === selectedTopicId)) {
-        selectedTopicId = values[0]?.id || "";
-      }
-
-      title.textContent = "Recurring topic ranking";
-      subtitle.textContent = "Specific eligible topics ranked by source-day recurrence";
-      summary.textContent = `${values.length} specific ${values.length === 1 ? "topic" : "topics"}`;
-      list.innerHTML = renderTopicRanking(values);
-      detail.innerHTML = renderTopicDetail(
-        selectedTopic(values)
-      );
+  const renderTopicRows = () => {
+    if (!topics.length) {
+      return `
+        <div class="tcm-empty">
+          Recurring topic data unavailable.
+        </div>
+      `;
     }
+
+    const maximum = Math.max(
+      1,
+      ...topics.map(item => item.sourceDays)
+    );
+
+    return topics
+      .map((item, index) => {
+        const width = Math.min(
+          100,
+          item.sourceDays / maximum * 100
+        );
+        const highlighted =
+          item.id === highlightedTopic
+            ? " is-highlighted"
+            : "";
+
+        return `
+          <div
+            class="tcm-topic-item${highlighted}"
+            data-tcm-topic-row="${escapeAttribute(item.id)}"
+          >
+            <span class="tcm-rank">
+              ${String(index + 1).padStart(2, "0")}
+            </span>
+            <span class="tcm-row-copy">
+              <strong>${escapeHtml(item.label)}</strong>
+              <small>
+                ${item.itemCount} items ·
+                ${item.publisherCount} publishers ·
+                ${item.activeDayCount} active days
+              </small>
+              <i class="tcm-topic-track" aria-hidden="true">
+                <b
+                  style="--tcm-topic-width:${width.toFixed(2)}%"
+                ></b>
+              </i>
+            </span>
+            <b>${item.sourceDays}</b>
+          </div>
+        `;
+      })
+      .join("");
   };
 
-  const bindControls = () => {
-    const form = modal.querySelector("[data-tcm-toolbar]");
-    const search = modal.querySelector("[data-tcm-search]");
-    const sort = modal.querySelector("[data-tcm-sort]");
-    const list = modal.querySelector("[data-tcm-ranking-list]");
-    const tabs = modal.querySelector(".tcm-view-tabs");
+  const renderPublisherRows = () => {
+    if (!publishers.length) {
+      return `
+        <div class="tcm-empty">
+          Publisher ranking unavailable.
+        </div>
+      `;
+    }
 
-    form?.addEventListener("submit", event => {
-      event.preventDefault();
-    });
+    const maximum = Math.max(
+      1,
+      ...publishers.map(item => item.count)
+    );
 
-    search?.addEventListener("input", event => {
-      state.query = event.currentTarget.value;
-      updateView();
-    });
+    return publishers
+      .map((item, index) => {
+        const width = Math.min(
+          100,
+          item.count / maximum * 100
+        );
 
-    sort?.addEventListener("change", event => {
-      state.sort = event.currentTarget.value;
-      updateView();
-    });
-
-    tabs?.addEventListener("click", event => {
-      const button = event.target.closest("[data-tcm-view]");
-      if (!button || button.dataset.tcmView === selectedView) return;
-
-      selectedView = button.dataset.tcmView;
-      state.query = "";
-      state.sort = selectedView === "candidates"
-        ? "current-share"
-        : "source-days";
-      renderShell();
-
-      requestAnimationFrame(() => {
-        modal.querySelector("[data-tcm-search]")?.focus();
-      });
-    });
-
-    list?.addEventListener("click", event => {
-      const candidateButton = event.target.closest("[data-tcm-candidate]");
-      const topicButton = event.target.closest("[data-tcm-topic]");
-
-      if (candidateButton) {
-        selectedCandidateName = candidateButton.dataset.tcmCandidate;
-        updateView();
-        modal
-          .querySelector(
-            `[data-tcm-candidate="${CSS.escape(selectedCandidateName)}"]`
-          )
-          ?.focus();
-        return;
-      }
-
-      if (topicButton) {
-        selectedTopicId = topicButton.dataset.tcmTopic;
-        updateView();
-        modal
-          .querySelector(
-            `[data-tcm-topic="${CSS.escape(selectedTopicId)}"]`
-          )
-          ?.focus();
-      }
-    });
+        return `
+          <div class="tcm-publisher-item">
+            <span class="tcm-rank">
+              ${String(index + 1).padStart(2, "0")}
+            </span>
+            <strong>${escapeHtml(item.name)}</strong>
+            <i class="tcm-publisher-track" aria-hidden="true">
+              <b
+                style="--tcm-publisher-width:${width.toFixed(2)}%"
+              ></b>
+            </i>
+            <b>${item.count}</b>
+          </div>
+        `;
+      })
+      .join("");
   };
+
+  const formatVolumeDay = value => {
+    const parsed = parseTimestamp(
+      /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))
+        ? `${value}T00:00:00Z`
+        : value
+    );
+
+    if (!parsed) return "—";
+
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "numeric",
+      timeZone: "UTC"
+    }).format(parsed);
+  };
+
+  const renderDailyVolumeMeta = () => {
+    if (!dailyActivity.length) {
+      return "Accepted reports per day";
+    }
+
+    const firstLabel = formatCompactDate(
+      dailyActivity[0].key
+    );
+    const lastLabel = formatCompactDate(
+      dailyActivity[dailyActivity.length - 1].key
+    );
+    const firstParts = firstLabel.split(" ");
+    const lastParts = lastLabel.split(" ");
+    const range =
+      firstParts.length === 2 &&
+      lastParts.length === 2 &&
+      firstParts[1] === lastParts[1]
+        ? `${firstParts[0]}–${lastLabel}`
+        : `${firstLabel}–${lastLabel}`;
+    const total = dailyActivity.reduce(
+      (sum, item) => sum + item.count,
+      0
+    );
+
+    return `${range} · total ${total}`;
+  };
+
+  const renderDailyVolume = () => {
+    if (!dailyActivity.length) {
+      return `
+        <div class="tcm-empty">
+          Daily activity data unavailable.
+        </div>
+      `;
+    }
+
+    const maximum = Math.max(
+      1,
+      ...dailyActivity.map(item => item.count)
+    );
+
+    const bars = dailyActivity
+      .map(item => {
+        const height = Math.max(
+          item.count ? 7 : 2,
+          item.count / maximum * 100
+        );
+
+        return `
+          <div
+            class="tcm-volume-day"
+            aria-label="${escapeAttribute(
+              `${formatCompactDate(item.key)}: ${item.count} accepted reports`
+            )}"
+          >
+            <b>${item.count}</b>
+            <i aria-hidden="true">
+              <span
+                style="--tcm-volume-height:${height.toFixed(2)}%"
+              ></span>
+            </i>
+            <time datetime="${escapeAttribute(item.key)}">
+              ${escapeHtml(formatVolumeDay(item.key))}
+            </time>
+          </div>
+        `;
+      })
+      .join("");
+
+    return `
+      <div
+        class="tcm-volume-wrap"
+        role="img"
+        aria-label="Daily accepted election coverage"
+      >
+        <div class="tcm-volume-chart">
+          ${bars}
+        </div>
+      </div>
+    `;
+  };
+
+  const renderModule = (
+    className,
+    title,
+    meta,
+    content
+  ) => `
+    <section class="tcm-module ${className}">
+      <header class="tcm-module-head">
+        <h3>${escapeHtml(title)}</h3>
+        ${meta ? `<span>${escapeHtml(meta)}</span>` : ""}
+      </header>
+      <div class="tcm-module-body">
+        ${content}
+      </div>
+    </section>
+  `;
+
+  const renderBody = mediaModel => `
+    <div class="tcm-shell">
+      ${renderSummaryStrip(mediaModel)}
+      <div class="tcm-intelligence-grid">
+        ${renderModule(
+          "tcm-module-shift",
+          "Coverage shift",
+          "Δ pp",
+          renderPeriodLegend() +
+            `<div
+              class="tcm-shift-list tcm-scroll-y"
+              tabindex="0"
+              aria-label="Complete candidate coverage shift"
+            >${renderCoverageShiftRows()}</div>`
+        )}
+        ${renderModule(
+          "tcm-module-topics",
+          "Topic coverage",
+          "Source-days · 30-day context",
+          `<div
+            class="tcm-topic-list tcm-scroll-y"
+            tabindex="0"
+            aria-label="Complete recurring topic ranking"
+          >${renderTopicRows()}</div>`
+        )}
+        ${renderModule(
+          "tcm-module-publishers",
+          "Top publishers",
+          `${publishers.length} represented`,
+          `<div
+            class="tcm-publisher-list tcm-scroll-y"
+            tabindex="0"
+            aria-label="Complete publisher ranking"
+          >${renderPublisherRows()}</div>`
+        )}
+        ${renderModule(
+          "tcm-module-volume",
+          "Daily volume",
+          renderDailyVolumeMeta(),
+          renderDailyVolume()
+        )}
+      </div>
+    </div>
+  `;
 
   const focusableElements = () =>
-    [
-      ...modal.querySelectorAll(
-        [
-          "a[href]",
-          "button:not([disabled])",
-          "input:not([disabled])",
-          "select:not([disabled])",
-          '[tabindex]:not([tabindex="-1"])'
-        ].join(",")
-      )
-    ].filter(
-      element =>
-        !element.hasAttribute("hidden") &&
-        element.getAttribute("aria-hidden") !== "true"
-    );
-
-  const reconcileReturnFocus = () => {
-    if (!returnFocus || document.contains(returnFocus)) return;
-
-    const targetAttribute = [
-      "data-topic-coverage-open",
-      "data-hybrid-media-topic",
-      "data-hybrid-media-candidate"
-    ].find(attribute => returnFocus.hasAttribute(attribute));
-
-    if (!targetAttribute) return;
-
-    const targetValue = returnFocus.getAttribute(targetAttribute);
-    const replacement = [
-      ...document.querySelectorAll(`[${targetAttribute}]`)
-    ].find(
-      element =>
-        element.getAttribute(targetAttribute) === targetValue
-    );
-
-    if (!replacement) return;
-
-    returnFocus = replacement;
-    if (modal && !modal.hidden) {
-      returnFocus.setAttribute("aria-expanded", "true");
-    }
-  };
+    modal
+      ? [
+          ...modal.querySelectorAll(
+            [
+              "a[href]",
+              "button:not([disabled])",
+              "input:not([disabled])",
+              "select:not([disabled])",
+              '[tabindex]:not([tabindex="-1"])'
+            ].join(",")
+          )
+        ].filter(
+          element =>
+            !element.hasAttribute("hidden") &&
+            element.getAttribute("aria-hidden") !== "true"
+        )
+      : [];
 
   const close = () => {
     if (!modal || modal.hidden) return;
 
     modal.hidden = true;
     document.body.classList.remove("tcm-is-open");
-    modal.querySelector("[data-tcm-body]").replaceChildren();
 
-    reconcileReturnFocus();
-    const target = returnFocus;
-    if (target && document.contains(target)) {
-      target.setAttribute("aria-expanded", "false");
+    if (
+      returnFocus &&
+      document.contains(returnFocus)
+    ) {
+      returnFocus.setAttribute("aria-expanded", "false");
+      returnFocus.focus();
     }
 
     returnFocus = null;
-    candidates = [];
-    topics = [];
-    comparisonQuality = null;
-    selectedCandidateName = "";
-    selectedTopicId = "";
-    latestPeriodLabel = "";
-    priorPeriodLabel = "";
-    generatedAt = "";
-    state.query = "";
-
-    if (target && document.contains(target)) target.focus();
   };
 
   const ensureModal = () => {
@@ -983,7 +647,11 @@
     document.body.insertAdjacentHTML(
       "beforeend",
       `
-        <div class="tcm-overlay" id="topic-coverage-modal" hidden>
+        <div
+          class="tcm-overlay"
+          id="topic-coverage-modal"
+          hidden
+        >
           <section
             class="tcm-dialog"
             role="dialog"
@@ -991,9 +659,14 @@
             aria-labelledby="tcm-title"
           >
             <header class="tcm-header">
-              <h2 id="tcm-title">Media Pulse / Coverage Analysis</h2>
+              <h2 id="tcm-title">
+                Media Pulse / Coverage Analysis
+              </h2>
               <div class="tcm-header-actions">
-                <span class="tcm-updated" data-tcm-updated></span>
+                <span
+                  class="tcm-updated"
+                  data-tcm-updated
+                ></span>
                 <button
                   class="tcm-close"
                   type="button"
@@ -1002,14 +675,18 @@
                 >×</button>
               </div>
             </header>
-
-            <div class="tcm-body" data-tcm-body></div>
+            <div
+              class="tcm-body"
+              data-tcm-body
+            ></div>
           </section>
         </div>
       `
     );
 
-    modal = document.getElementById("topic-coverage-modal");
+    modal = document.getElementById(
+      "topic-coverage-modal"
+    );
 
     modal.addEventListener("click", event => {
       if (
@@ -1053,86 +730,160 @@
     return modal;
   };
 
+  const reconcileReturnFocus = () => {
+    if (
+      !returnFocus ||
+      document.contains(returnFocus)
+    ) {
+      return;
+    }
+
+    const attributes = [
+      "data-topic-coverage-open",
+      "data-hybrid-media-topic",
+      "data-hybrid-media-candidate"
+    ];
+
+    const attribute = attributes.find(name =>
+      returnFocus.hasAttribute(name)
+    );
+
+    if (!attribute) {
+      returnFocus = null;
+      return;
+    }
+
+    const value = returnFocus.getAttribute(attribute);
+
+    returnFocus = [
+      ...document.querySelectorAll(`[${attribute}]`)
+    ].find(
+      element =>
+        element.getAttribute(attribute) === value
+    ) || null;
+  };
+
   const open = (
     models,
     trigger = null,
     options = {}
   ) => {
-    const mediaModel = models?.media;
-    const agendaModel = models?.agenda;
+    const mediaModel = models?.media || {};
+    const agendaModel = models?.agenda || {};
 
-    comparisonQuality =
-      mediaModel?.comparisonQuality &&
-      typeof mediaModel.comparisonQuality === "object"
-        ? mediaModel.comparisonQuality
-        : {
-            status: "not_comparable",
-            reason: "insufficient_data"
-          };
-
-    candidates = Array.isArray(mediaModel?.candidateCoverage)
+    candidates = Array.isArray(
+      mediaModel.candidateCoverage
+    )
       ? mediaModel.candidateCoverage
           .map(normalizeCandidate)
-          .filter(candidate => candidate.name)
+          .filter(item => item.name)
+          .sort(
+            (a, b) =>
+              b.latestShare - a.latestShare ||
+              b.previousShare - a.previousShare ||
+              a.name.localeCompare(b.name, "fr")
+          )
       : [];
 
     topics = Array.isArray(agendaModel?.topics)
       ? agendaModel.topics
-          .filter(topic => topic?.display_eligible)
-          .filter(topic => !isGeneralTopic(topic))
+          .filter(item => item?.display_eligible)
+          .filter(item => !isGeneralTopic(item))
           .map(normalizeTopic)
-          .filter(topic => topic.supportingItems.length)
+          .sort(
+            (a, b) =>
+              b.sourceDays - a.sourceDays ||
+              b.publisherCount - a.publisherCount ||
+              a.label.localeCompare(b.label, "en")
+          )
       : [];
 
-    selectedView = options.initialView === "candidates"
-      ? "candidates"
-      : options.initialView === "topics"
-        ? "topics"
-        : topics.length
-          ? "topics"
-          : "candidates";
-
-    selectedCandidateName = candidates.some(
-      candidate => candidate.name === options.candidateName
+    publishers = Array.isArray(
+      mediaModel.publisherRanking
     )
-      ? options.candidateName
-      : sortCandidates(candidates)[0]?.name || "";
+      ? mediaModel.publisherRanking
+          .map(normalizePublisher)
+          .filter(item => item.name)
+      : Array.isArray(mediaModel.topPublishers)
+        ? mediaModel.topPublishers
+            .map(normalizePublisher)
+            .filter(item => item.name)
+        : [];
 
-    selectedTopicId = topics.some(
-      topic => topic.id === options.topicId
+    dailyActivity = Array.isArray(
+      mediaModel.dailyActivity
     )
-      ? options.topicId
-      : sortTopics(topics)[0]?.id || "";
+      ? mediaModel.dailyActivity
+          .map(normalizeDay)
+          .filter(item => item.key)
+      : [];
 
+    if (
+      !candidates.length &&
+      !topics.length &&
+      !publishers.length &&
+      !dailyActivity.length
+    ) {
+      return;
+    }
+
+    highlightedCandidate = String(
+      options?.candidateName || ""
+    );
+    highlightedTopic = String(
+      options?.topicId || ""
+    );
     latestPeriodLabel = String(
-      mediaModel?.latestPeriodLabel || ""
+      mediaModel.latestPeriodLabel || ""
     );
     priorPeriodLabel = String(
-      mediaModel?.priorPeriodLabel || ""
+      mediaModel.priorPeriodLabel || ""
     );
     generatedAt = String(
-      mediaModel?.generatedAt ||
-      agendaModel?.generatedAt ||
+      mediaModel.generatedAt ||
+      agendaModel.generatedAt ||
       ""
     );
 
-    resetState();
     ensureModal();
     returnFocus = trigger;
 
-    if (returnFocus && document.contains(returnFocus)) {
-      returnFocus.setAttribute("aria-expanded", "true");
+    if (
+      returnFocus &&
+      document.contains(returnFocus)
+    ) {
+      returnFocus.setAttribute(
+        "aria-expanded",
+        "true"
+      );
     }
 
-    modal.querySelector("[data-tcm-updated]").textContent =
+    modal.querySelector(
+      "[data-tcm-updated]"
+    ).textContent =
       `Updated: ${formatTimestamp(generatedAt)}`;
 
-    renderShell();
+    modal.querySelector(
+      "[data-tcm-body]"
+    ).innerHTML = renderBody(mediaModel);
+
     modal.hidden = false;
     document.body.classList.add("tcm-is-open");
 
     requestAnimationFrame(() => {
-      modal.querySelector("[data-tcm-search]")?.focus();
+      modal.querySelector("[data-tcm-close]")?.focus();
+
+      const highlighted =
+        modal.querySelector(
+          ".tcm-shift-row.is-highlighted"
+        ) ||
+        modal.querySelector(
+          ".tcm-topic-item.is-highlighted"
+        );
+
+      highlighted?.scrollIntoView({
+        block: "nearest"
+      });
     });
   };
 
