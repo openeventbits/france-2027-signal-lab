@@ -7939,7 +7939,10 @@
       if (!payload.generated_at || !Number.isFinite(new Date(payload.generated_at).getTime())) {
         throw new Error("News-wire update time is malformed");
       }
-      if (!payload.counts || typeof payload.counts !== "object" || !Array.isArray(payload.sources)) {
+      if (!payload.counts || typeof payload.counts !== "object" || !Array.isArray(payload.sources) ||
+          !Number.isInteger(payload.feed_coverage?.direct_feeds) ||
+          payload.feed_coverage.direct_feeds < 0 ||
+          payload.feed_coverage.direct_feeds !== payload.sources.length) {
         throw new Error("News-wire status metadata is malformed");
       }
 
@@ -8296,8 +8299,27 @@
       if (!payload.window || payload.window.days !== 14 || payload.window.max_items !== 0) {
         throw new Error("recent_changes.json has an invalid unlimited-window contract");
       }
-      if (!Array.isArray(payload.source_universe) || payload.source_universe.length !== 19) {
-        throw new Error("recent_changes.json must retain the 19-feed source universe");
+      const sourceUniverse = payload.source_universe;
+      if (!Array.isArray(sourceUniverse) ||
+          sourceUniverse.some(source =>
+            typeof source !== "string" ||
+            !source.trim() ||
+            source !== source.trim()
+          ) ||
+          new Set(sourceUniverse).size !== sourceUniverse.length) {
+        throw new Error("recent_changes.json source_universe must contain unique, non-empty trimmed names");
+      }
+      const expectedDirectSourceCount =
+        dashboardState.news?.feed_coverage?.direct_feeds;
+      if (!Number.isInteger(expectedDirectSourceCount) ||
+          expectedDirectSourceCount < 0) {
+        throw new Error("Current news direct-feed count is unavailable");
+      }
+      if (sourceUniverse.length !== expectedDirectSourceCount) {
+        throw new Error(
+          "recent_changes.json source_universe count does not match " +
+          "the current news direct-feed count"
+        );
       }
       if (!Array.isArray(payload.items)) {
         throw new Error("recent_changes.json items must be a list");
@@ -8376,7 +8398,7 @@
 
     function loadNewsWire() {
       setupSignalTabs();
-      fetch("news_wire.json", { cache: "no-store" })
+      return fetch("news_wire.json", { cache: "no-store" })
         .then(response => {
           if (!response.ok) throw new Error("news_wire.json returned HTTP " + response.status);
           return response.json();
@@ -10809,9 +10831,8 @@
     renderElectionClock();
     setInterval(renderElectionClock, 60 * 60 * 1000);
     loadPublicationManifest();
-    loadRecentChanges();
     loadClosestRunoff();
-    loadNewsWire();
+    loadNewsWire().then(loadRecentChanges);
     loadClaimsUnderScrutiny();
 
     fetch("polls.json", { cache: "no-store" })
