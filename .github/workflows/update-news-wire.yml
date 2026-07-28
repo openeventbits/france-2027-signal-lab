@@ -37,6 +37,10 @@ jobs:
             test_source_health.py \
             test_fetch_source_icons.py \
             test_news_wire_relevance.py \
+            test_candidate_coverage_scope.py \
+            test_candidate_identity_contract.py \
+            test_campaign_agenda_evidence.py \
+            test_workflow_media_pulse_contract.py \
             test_recent_changes.py \
             test_publication_manifest.py \
             test_frontend_facts.py
@@ -110,7 +114,10 @@ jobs:
           from pathlib import Path
           from typing import Any
 
-          from fetch_news_wire import validate_output
+          from fetch_news_wire import (
+              INVENTORY_SCHEMA_VERSION,
+              validate_output,
+          )
           from source_health import (
               has_substantive_change,
               validate_source_health,
@@ -164,8 +171,14 @@ jobs:
 
 
           # Rolling inventory contract.
-          if inventory.get("schema_version") != 3:
-              fail("inventory schema_version must equal 3")
+          if (
+              inventory.get("schema_version")
+              != INVENTORY_SCHEMA_VERSION
+          ):
+              fail(
+                  "inventory schema_version must equal "
+                  f"{INVENTORY_SCHEMA_VERSION}"
+              )
 
           inventory_items = inventory.get("items")
 
@@ -203,6 +216,92 @@ jobs:
           for list_name in required_wire_lists:
               if not isinstance(wire.get(list_name), list):
                   fail(f"{list_name} must be an array")
+
+          candidate_visibility = wire.get("candidate_visibility")
+          if (
+              not isinstance(candidate_visibility, dict)
+              or set(candidate_visibility)
+              != {
+                  "method",
+                  "primary_scopes",
+                  "secondary_scope",
+                  "current_period",
+                  "prior_period",
+                  "general_current_period",
+                  "general_prior_period",
+                  "comparison_quality",
+              }
+          ):
+              fail("candidate_visibility must use the validated schema")
+
+          approved_candidate_match_keys = {
+              "candidate",
+              "matched_aliases",
+              "locations",
+          }
+          approved_candidate_locations = ("headline", "summary")
+
+          for list_name in required_wire_lists:
+              for item in wire[list_name]:
+                  if not isinstance(item, dict):
+                      fail(f"{list_name} item must be an object")
+
+                  candidates = item.get("candidates")
+                  candidate_matches = item.get("candidate_matches")
+                  if not isinstance(candidates, list):
+                      fail(f"{list_name} candidates must be an array")
+                  if not isinstance(candidate_matches, list):
+                      fail(
+                          f"{list_name} candidate_matches must be an array"
+                      )
+
+                  matched_candidates = []
+                  for match in candidate_matches:
+                      if (
+                          not isinstance(match, dict)
+                          or set(match) != approved_candidate_match_keys
+                      ):
+                          fail(
+                              f"{list_name} candidate match keys are invalid"
+                          )
+
+                      candidate = match["candidate"]
+                      matched_aliases = match["matched_aliases"]
+                      locations = match["locations"]
+                      if (
+                          not isinstance(candidate, str)
+                          or not candidate.strip()
+                      ):
+                          fail(f"{list_name} candidate must be non-empty")
+                      if (
+                          not isinstance(matched_aliases, list)
+                          or not matched_aliases
+                          or any(
+                              not isinstance(alias, str) or not alias.strip()
+                              for alias in matched_aliases
+                          )
+                          or len(matched_aliases) != len(set(matched_aliases))
+                      ):
+                          fail(f"{list_name} matched_aliases are invalid")
+                      if (
+                          not isinstance(locations, list)
+                          or not locations
+                          or any(
+                              location not in approved_candidate_locations
+                              for location in locations
+                          )
+                          or len(locations) != len(set(locations))
+                      ):
+                          fail(f"{list_name} candidate locations are invalid")
+                      matched_candidates.append(candidate)
+
+                  if len(matched_candidates) != len(set(matched_candidates)):
+                      fail(f"{list_name} candidate matches are duplicated")
+                  if sorted(matched_candidates) != sorted(candidates):
+                      fail(
+                          f"{list_name} candidates and candidate_matches "
+                          "disagree"
+                      )
 
           counts = wire.get("counts")
 
@@ -284,8 +383,52 @@ jobs:
                   "relevant_news"
               )
 
+          classified_item_count = agenda.get(
+              "classified_item_count"
+          )
+          unclassified_item_count = agenda.get(
+              "unclassified_item_count"
+          )
+
+          if (
+              type(classified_item_count) is not int
+              or classified_item_count < 0
+              or type(unclassified_item_count) is not int
+              or unclassified_item_count < 0
+              or (
+                  classified_item_count
+                  + unclassified_item_count
+                  != agenda["input_item_count"]
+              )
+          ):
+              fail(
+                  "campaign_agenda classification counts "
+                  "are invalid"
+              )
+
           if not isinstance(agenda.get("topics"), list):
               fail("campaign_agenda topics must be an array")
+
+          if (
+              sum(
+                  topic.get("item_count", -1)
+                  for topic in agenda["topics"]
+              )
+              != classified_item_count
+          ):
+              fail(
+                  "campaign_agenda topic counts do not match "
+                  "classified items"
+              )
+
+          if any(
+              topic.get("id") == "other_campaign"
+              for topic in agenda["topics"]
+          ):
+              fail(
+                  "campaign_agenda contains unsupported "
+                  "catch-all coverage"
+              )
 
 
           # Recent Changes contract.
@@ -359,6 +502,9 @@ jobs:
                   },
                   "campaign_agenda": payload.get(
                       "campaign_agenda"
+                  ),
+                  "candidate_visibility": payload.get(
+                      "candidate_visibility"
                   ),
                   # Persist semantic feed-registry changes without
                   # committing hourly due/success timing fluctuations.

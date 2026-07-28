@@ -191,49 +191,119 @@ class ElectionCoverageModalTests(
             self.modal_js,
         )
 
-        self.assertIn(
-            "recent ${noun}",
-            self.modal_js,
-        )
-
-        self.assertIn(
-            "data-ecm-result-summary",
-            self.modal_js,
-        )
-
-    def test_contextual_right_rail_is_derived(self):
         for contract in (
-            "Coverage overview",
-            "Recent records",
-            "Publishers represented",
-            "Published in latest 24h",
-            "Coverage window",
-            "Top publishers",
-            "Topics in focus",
-            "latest24HourCount",
-            "coverageWindowLabel",
-            "publisherCounts()",
-            "contextTopics",
-            "topicContextDays",
-            ".slice(0, 5)",
-            ".slice(0, 5)",
+            "hasActiveCoverageFilters",
+            "`All ${records.length}`",
+            "`Showing ${count} of ${records.length}`",
         ):
             self.assertIn(
                 contract,
                 self.modal_js,
             )
 
-        for forbidden in (
-            "Candidate visibility",
-            "LIVE FEED",
-            "SOURCE NETWORK",
-            "Latest (24h)",
-            "No candidate metadata",
+        self.assertIn(
+            "data-ecm-result-summary",
+            self.modal_js,
+        )
+
+    def test_coverage_feed_is_integrated_and_measured(self):
+        self.assertNotIn(
+            'class="ecm-coverage-summary"',
+            self.modal_js,
+        )
+
+        for contract in (
+            'class="ecm-feed-meta"',
+            "Coverage window ·",
+            'class="ecm-feed-results"',
+            'title="${escapeAttribute(',
+            "list.scrollTop = 0;",
         ):
-            self.assertNotIn(
-                forbidden,
+            self.assertIn(
+                contract,
                 self.modal_js,
             )
+
+        readable_css = self.modal_css.split(
+            "/* FR27 SHARED READABLE TYPOGRAPHY "
+            "— COVERAGE MODAL — 2026-07 */",
+            1,
+        )[1]
+
+        for contract in (
+            "32px minmax(0, 1fr);",
+            "48px minmax(0, 1fr);",
+            "height: 60px;",
+            "min-height: 60px;",
+            "82px",
+            "132px",
+            "92px",
+            "scrollbar-gutter: stable;",
+            ".ecm-feed-list::-webkit-scrollbar-button",
+            "opacity: .38;",
+        ):
+            self.assertIn(
+                contract,
+                readable_css,
+            )
+
+    def test_modal_uses_single_coverage_view(self):
+        for contract in (
+            'class="ecm-tab-panel ecm-coverage-panel"',
+            'aria-label="Election coverage"',
+            'class="ecm-feed-meta"',
+            "renderToolbar()",
+            "updateFeed()",
+        ):
+            self.assertIn(
+                contract,
+                self.modal_js,
+            )
+
+        for removed in (
+            "Coverage Intelligence",
+            'role="tablist"',
+            'role="tab"',
+            "data-ecm-tab",
+            "ecm-intelligence-panel",
+            "renderIntelligence",
+            "setActiveTab",
+        ):
+            self.assertNotIn(
+                removed,
+                self.modal_js,
+            )
+
+        terminal_marker = (
+            "/* FR27 TABBED COVERAGE TERMINAL "
+            "— 2026-07 */"
+        )
+        readable_marker = (
+            "/* FR27 SHARED READABLE TYPOGRAPHY "
+            "— COVERAGE MODAL — 2026-07 */"
+        )
+        terminal_css = (
+            self.modal_css
+            .split(terminal_marker, 1)[1]
+            .split(readable_marker, 1)[0]
+        )
+
+        shell_start = terminal_css.index(
+            ".ecm-shell {"
+        )
+        shell_end = terminal_css.index(
+            "}",
+            shell_start,
+        )
+        shell_rule = terminal_css[
+            shell_start:shell_end + 1
+        ]
+
+        self.assertIn(
+            "minmax(0, 1fr) 24px;",
+            shell_rule,
+        )
+
     def test_removed_old_dashboard_structures(self):
         for forbidden in (
             "ecm-stats",
@@ -372,37 +442,51 @@ class ElectionCoverageModalTests(
         )
 
     def test_key_typography_is_readable(self):
-        trigger = self.css_rule(
-            ".top-media-panel-link.ecm-open"
+        """Readability is checked against the final active override."""
+
+        marker = (
+            "/* FR27 SHARED READABLE TYPOGRAPHY "
+            "— COVERAGE MODAL — 2026-07 */"
         )
 
-        headline = self.css_rule(
-            ".ecm-feed-copy h4"
+        self.assertEqual(
+            self.modal_css.count(marker),
+            1,
         )
 
-        source = self.css_rule(
-            ".ecm-feed-source"
-        )
+        readable_css = self.modal_css.split(
+            marker,
+            1,
+        )[1]
 
-        self.assertIn(
+        required_rules = (
+            "font-size: 12.5px;",
+            "font-size: 10.5px;",
             "font-size: 10px;",
-            trigger,
+            "font-size: 9px;",
+            "font-size: 18px;",
         )
 
-        self.assertIn(
-            "font-size: 13px;",
-            headline,
-        )
+        for rule in required_rules:
+            self.assertIn(
+                rule,
+                readable_css,
+            )
 
-        self.assertIn(
-            "font-size: 10px;",
-            source,
-        )
-
-        self.assertNotIn(
+        forbidden_reading_sizes = (
+            "font-size: 6px;",
+            "font-size: 6.5px;",
+            "font-size: 6.8px;",
+            "font-size: 7px;",
+            "font-size: 7.5px;",
             "font-size: 8px;",
-            self.modal_css,
         )
+
+        for rule in forbidden_reading_sizes:
+            self.assertNotIn(
+                rule,
+                readable_css,
+            )
 
     def test_no_article_images_or_external_assets(self):
         combined = (
@@ -426,5 +510,56 @@ class ElectionCoverageModalTests(
             )
 
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_terminal_block_is_single_scoped_and_readable(self):
+        """The approved tabbed terminal and readability blocks are unique."""
+
+        terminal_marker = (
+            "/* FR27 TABBED COVERAGE TERMINAL "
+            "— 2026-07 */"
+        )
+
+        readable_marker = (
+            "/* FR27 SHARED READABLE TYPOGRAPHY "
+            "— COVERAGE MODAL — 2026-07 */"
+        )
+
+        self.assertEqual(
+            self.modal_css.count(terminal_marker),
+            1,
+        )
+
+        self.assertEqual(
+            self.modal_css.count(readable_marker),
+            1,
+        )
+
+        self.assertLess(
+            self.modal_css.index(terminal_marker),
+            self.modal_css.index(readable_marker),
+        )
+
+        terminal_css = (
+            self.modal_css
+            .split(terminal_marker, 1)[1]
+            .split(readable_marker, 1)[0]
+        )
+
+        self.assertIn(
+            "min(780px, calc(100vw - 48px))",
+            terminal_css,
+        )
+
+        self.assertIn(
+            ".ecm-tabs",
+            terminal_css,
+        )
+
+        self.assertIn(
+            ".ecm-intelligence-grid",
+            terminal_css,
+        )
+
+        self.assertIn(
+            ".ecm-feed-list",
+            terminal_css,
+        )

@@ -4,8 +4,7 @@
   let modal = null;
   let returnFocus = null;
   let records = [];
-  let contextTopics = [];
-  let topicContextDays = 0;
+
   const state = {
     query: "",
     publisher: "",
@@ -286,12 +285,22 @@
         }
       </time>
 
-      <div class="ecm-feed-publisher">
+      <div
+        class="ecm-feed-publisher"
+        title="${escapeAttribute(
+          record.publisher
+        )}"
+      >
         ${escapeHtml(record.publisher)}
       </div>
 
       <div class="ecm-feed-copy">
-        <h4 lang="fr">
+        <h4
+          lang="fr"
+          title="${escapeAttribute(
+            record.headline
+          )}"
+        >
           ${escapeHtml(record.headline)}
         </h4>
 
@@ -350,16 +359,19 @@
     );
   };
 
-  const resultLabel = count => {
-    const noun =
-      records.length === 1
-        ? "record"
-        : "records";
-
-    return (
-      `${count} of ${records.length} ` +
-      `recent ${noun}`
+  const hasActiveCoverageFilters = () =>
+    Boolean(
+      normalizeSearch(state.query) ||
+      state.publisher ||
+      state.candidate
     );
+
+  const resultLabel = count => {
+    if (!hasActiveCoverageFilters()) {
+      return `All ${records.length}`;
+    }
+
+    return `Showing ${count} of ${records.length}`;
   };
 
   const updateFeed = () => {
@@ -396,6 +408,8 @@
             </span>
           </div>
         `;
+
+    list.scrollTop = 0;
   };
 
   const publisherCounts = () => {
@@ -432,53 +446,6 @@
           : latest,
       null
     );
-
-  const renderPublisherRows = () => {
-    const publishers =
-      publisherCounts().slice(0, 5);
-
-    if (!publishers.length) {
-      return `
-        <p class="ecm-snapshot-empty">
-          Publisher data unavailable.
-        </p>
-      `;
-    }
-
-    const maximum = Math.max(
-      1,
-      ...publishers.map(
-        publisher => publisher.count
-      )
-    );
-
-    return publishers
-      .map(publisher => {
-        const width =
-          publisher.count /
-          maximum *
-          100;
-
-        return `
-          <div class="ecm-publisher-row">
-            <span>
-              ${escapeHtml(publisher.name)}
-            </span>
-
-            <i aria-hidden="true">
-              <b
-                style="--ecm-publisher-width:${width.toFixed(2)}%"
-              ></b>
-            </i>
-
-            <strong>
-              ${publisher.count}
-            </strong>
-          </div>
-        `;
-      })
-      .join("");
-  };
 
   const latest24HourCount = () => {
     const timestamps = records
@@ -522,107 +489,6 @@
       : `${oldestLabel}–${newestLabel}`;
   };
 
-  const renderContextTopics = () => {
-    if (!contextTopics.length) {
-      return `
-        <p class="ecm-snapshot-empty">
-          Topic context unavailable.
-        </p>
-      `;
-    }
-
-    return contextTopics
-      .map(
-        topic => `
-          <div class="ecm-topic-row">
-            <span>
-              ${escapeHtml(topic.label)}
-            </span>
-
-            <strong>
-              ${escapeHtml(topic.metric)}
-            </strong>
-          </div>
-        `
-      )
-      .join("");
-  };
-
-  const renderSnapshot = () => {
-    const publishers =
-      publisherCounts();
-
-    const contextLabel =
-      topicContextDays > 0
-        ? `${topicContextDays}-day context`
-        : "Media Pulse context";
-
-    return `
-      <aside
-        class="ecm-snapshot"
-        aria-labelledby="ecm-snapshot-title"
-      >
-        <h3 id="ecm-snapshot-title">
-          Coverage overview
-        </h3>
-
-        <dl class="ecm-snapshot-metrics">
-          <div>
-            <dt>Recent records</dt>
-            <dd>${records.length}</dd>
-          </div>
-
-          <div>
-            <dt>Publishers represented</dt>
-            <dd>${publishers.length}</dd>
-          </div>
-
-          <div>
-            <dt>Published in latest 24h</dt>
-            <dd>${latest24HourCount()}</dd>
-          </div>
-
-          <div class="is-window">
-            <dt>Coverage window</dt>
-            <dd>
-              ${escapeHtml(
-                coverageWindowLabel()
-              )}
-            </dd>
-          </div>
-        </dl>
-
-        <section
-          class="ecm-publisher-section"
-          aria-labelledby="ecm-publishers-title"
-        >
-          <h4 id="ecm-publishers-title">
-            Top publishers
-          </h4>
-
-          <div class="ecm-publisher-list">
-            ${renderPublisherRows()}
-          </div>
-        </section>
-
-        <section
-          class="ecm-topic-section"
-          aria-labelledby="ecm-topics-title"
-        >
-          <h4 id="ecm-topics-title">
-            Topics in focus
-            <small>
-              · source-days / ${escapeHtml(contextLabel)}
-            </small>
-          </h4>
-
-          <div class="ecm-topic-list">
-            ${renderContextTopics()}
-          </div>
-        </section>
-      </aside>
-    `;
-  };
   const renderToolbar = () => {
     const publishers =
       uniqueSorted(
@@ -746,19 +612,52 @@
   };
   const renderBody = () => `
     <div class="ecm-shell">
-      ${renderToolbar()}
+      <section
+        class="ecm-tab-panel ecm-coverage-panel"
+        id="ecm-coverage-panel"
+        aria-label="Election coverage"
+      >
+        ${renderToolbar()}
 
-      <div class="ecm-workspace">
         <section
           class="ecm-feed"
           aria-labelledby="ecm-feed-title"
         >
           <header class="ecm-feed-header">
-            <h3 id="ecm-feed-title">
-              Recent election coverage
-            </h3>
+            <div class="ecm-feed-heading">
+              <h3 id="ecm-feed-title">
+                Recent election coverage
+              </h3>
+
+              <div
+                class="ecm-feed-meta"
+                aria-label="Coverage summary"
+              >
+                <span>
+                  ${records.length} records
+                </span>
+
+                <span>
+                  ${publisherCounts().length}
+                  publishers
+                </span>
+
+                <span>
+                  ${latest24HourCount()}
+                  latest 24h
+                </span>
+
+                <span>
+                  Coverage window ·
+                  ${escapeHtml(
+                    coverageWindowLabel()
+                  )}
+                </span>
+              </div>
+            </div>
 
             <span
+              class="ecm-feed-results"
               data-ecm-result-summary
               aria-live="polite"
               aria-atomic="true"
@@ -774,15 +673,19 @@
             tabindex="0"
           ></div>
         </section>
-
-        ${renderSnapshot()}
-      </div>
+      </section>
 
       <footer class="ecm-disclosure">
         <span aria-hidden="true">ⓘ</span>
+
         <span>
           Source-linked automated collection
           · No editorial verification
+        </span>
+
+        <span>
+          Coverage is not a representative
+          measure of all French media
         </span>
       </footer>
     </div>
@@ -862,6 +765,7 @@
         updateFeed();
       }
     );
+
   };
 
   const focusableElements = () =>
@@ -909,8 +813,6 @@
 
     returnFocus = null;
     records = [];
-    contextTopics = [];
-    topicContextDays = 0;
     resetState();
 
     if (
@@ -1052,47 +954,6 @@
 
     records =
       normalizeRecords(model);
-
-    contextTopics =
-      Array.isArray(model.topicCoverage)
-        ? model.topicCoverage
-            .map(item => {
-              const rawMetric =
-                item?.sourceDays ??
-                item?.itemCount ??
-                0;
-
-              const parsedMetric =
-                Number(rawMetric);
-
-              return {
-                label:
-                  String(
-                    item?.label || ""
-                  ).trim(),
-                metric:
-                  Number.isFinite(
-                    parsedMetric
-                  )
-                    ? parsedMetric
-                    : 0
-              };
-            })
-            .filter(
-              item =>
-                item.label &&
-                item.metric > 0
-            )
-            .slice(0, 5)
-        : [];
-
-    const parsedContextDays =
-      Number(model.windowDays);
-
-    topicContextDays =
-      Number.isFinite(parsedContextDays)
-        ? parsedContextDays
-        : 0;
 
     returnFocus =
       trigger instanceof HTMLElement

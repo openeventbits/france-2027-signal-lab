@@ -1,3 +1,4 @@
+import copy
 import json
 import tempfile
 import threading
@@ -10,18 +11,24 @@ from unittest.mock import patch
 
 from http_fetch import HttpFetchResult
 from fetch_news_wire import (
+    CANDIDATE_VISIBILITY_METHOD,
+    CANDIDATE_VISIBILITY_THRESHOLDS,
     DISCOVERY_QUERIES,
     DIRECT_ENTRY_LIMIT,
     DISCOVERY_ENTRY_LIMIT,
     FETCH_WORKERS,
     GOOGLE_NEWS_WORKERS,
+    INVENTORY_SCHEMA_VERSION,
+    NEWS_CANDIDATE_ALIAS_OVERRIDES,
     PUBLISHER_POLICY,
     PUBLISHER_SITE_ENTRY_LIMIT,
     SOURCES,
     accept_discovery_entries,
     aggregate_discovered_publishers,
+    build_candidate_visibility,
     build_wire,
     build_google_news_url,
+    candidate_names_from_matches,
     classify_notable_development,
     classify_relevant_news,
     count_contributing_media_publishers,
@@ -33,6 +40,8 @@ from fetch_news_wire import (
     generate_publisher_site_feeds,
     is_static_entity_page,
     limit_items,
+    load_inventory,
+    match_news_candidates,
     merge_inventory,
     normalize,
     normalize_domain,
@@ -42,6 +51,7 @@ from fetch_news_wire import (
     remove_publisher_suffix,
     stable_slot,
     transport_priority,
+    validate_candidate_visibility,
     validate_output,
 )
 
@@ -96,6 +106,136 @@ class NewsWireRelevanceTests(unittest.TestCase):
             isinstance(source.get("politics_specific"), bool)
             for source in SOURCES
         ))
+
+    def test_full_candidate_name_matches_headline_with_provenance(self):
+        matches = match_news_candidates(
+            "Édouard Philippe prépare sa candidature",
+            "",
+            ["Édouard Philippe"],
+        )
+
+        self.assertEqual(
+            matches,
+            [
+                {
+                    "candidate": "Édouard Philippe",
+                    "matched_aliases": ["edouard philippe"],
+                    "locations": ["headline"],
+                }
+            ],
+        )
+        self.assertEqual(
+            candidate_names_from_matches(matches),
+            ["Édouard Philippe"],
+        )
+
+    def test_candidate_match_is_accent_and_punctuation_insensitive(self):
+        for headline in (
+            "Edouard Philippe prépare sa candidature",
+            "Édouard—Philippe prépare sa candidature",
+        ):
+            with self.subTest(headline=headline):
+                self.assertEqual(
+                    match_news_candidates(
+                        headline,
+                        "",
+                        ["Édouard Philippe"],
+                    ),
+                    [
+                        {
+                            "candidate": "Édouard Philippe",
+                            "matched_aliases": ["edouard philippe"],
+                            "locations": ["headline"],
+                        }
+                    ],
+                )
+
+    def test_candidate_match_rejects_other_people_named_philippe(self):
+        for headline in (
+            "Philippe Étienne revient sur sa carrière diplomatique",
+            "Le ministre Philippe Tabarot présente la réforme",
+            "Un entretien avec Philippe Étienne",
+            "Philippe présente la réforme",
+        ):
+            with self.subTest(headline=headline):
+                matches = match_news_candidates(
+                    headline,
+                    "",
+                    ["Édouard Philippe"],
+                )
+                self.assertEqual(matches, [])
+                self.assertEqual(candidate_names_from_matches(matches), [])
+
+    def test_candidate_match_preserves_summary_only_location(self):
+        headline = "Le débat politique continue"
+        summary = "Jean-Luc Mélenchon prépare sa candidature"
+        matches = match_news_candidates(
+            headline,
+            summary,
+            ["Jean-Luc Mélenchon"],
+        )
+
+        self.assertEqual(
+            matches,
+            [
+                {
+                    "candidate": "Jean-Luc Mélenchon",
+                    "matched_aliases": ["jean luc melenchon"],
+                    "locations": ["summary"],
+                }
+            ],
+        )
+        self.assertIsNone(
+            classify_relevant_news(
+                normalize(headline),
+                normalize(summary),
+                candidate_names_from_matches(matches),
+                matches,
+            )
+        )
+
+    def test_candidate_match_combines_headline_and_summary_locations(self):
+        matches = match_news_candidates(
+            "Jean-Luc Mélenchon prépare sa candidature",
+            "Jean-Luc Mélenchon détaille ensuite son calendrier",
+            ["Jean-Luc Mélenchon"],
+        )
+        self.assertEqual(matches[0]["matched_aliases"], ["jean luc melenchon"])
+        self.assertEqual(matches[0]["locations"], ["headline", "summary"])
+
+    def test_candidate_match_requires_token_boundaries(self):
+        self.assertEqual(
+            match_news_candidates(
+                "Le collectif Neoedouard Philippeville se réunit",
+                "",
+                ["Édouard Philippe"],
+            ),
+            [],
+        )
+
+    def test_candidate_matches_are_sorted_and_deduplicated(self):
+        matches = match_news_candidates(
+            "Marine Le Pen débat avec Jean-Luc Mélenchon et Marine Le Pen",
+            "",
+            ["Marine Le Pen", "Jean-Luc Mélenchon", "Marine Le Pen"],
+        )
+        self.assertEqual(
+            candidate_names_from_matches(matches),
+            ["Jean-Luc Mélenchon", "Marine Le Pen"],
+        )
+        self.assertTrue(all(match["locations"] == ["headline"] for match in matches))
+
+    def test_no_unreviewed_candidate_aliases_are_approved(self):
+        self.assertEqual(NEWS_CANDIDATE_ALIAS_OVERRIDES, {})
+        self.assertNotIn("Philippe", NEWS_CANDIDATE_ALIAS_OVERRIDES)
+        self.assertEqual(
+            match_news_candidates(
+                "Philippe prépare sa candidature",
+                "",
+                ["Philippe"],
+            ),
+            [],
+        )
 
     def test_discovery_static_configuration_contract(self):
         expected_fields = {"id", "label", "query", "enabled"}
@@ -906,6 +1046,16 @@ class NewsWireRelevanceTests(unittest.TestCase):
         ):
             validate_output(invalid)
 
+        invalid = json.loads(json.dumps(payload))
+        invalid_item = invalid["relevant_news"][0]
+        invalid_item["candidates"] = ["Édouard Philippe"]
+        invalid_item["candidate_matches"] = []
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "candidates disagree with candidate_matches",
+        ):
+            validate_output(invalid)
+
         reduced = json.loads(json.dumps(payload))
         reduced_site_feed = generate_publisher_site_feeds()[0]
         reduced_generated_at = datetime.fromisoformat(
@@ -1518,6 +1668,7 @@ class NewsWireRelevanceTests(unittest.TestCase):
             "canonical_url": "https://example.test/article",
             "published_at": published_at,
             "candidate_names": [],
+            "candidate_matches": [],
         }
 
     def test_inventory_retains_article_after_it_leaves_the_feed(self):
@@ -1580,7 +1731,16 @@ class NewsWireRelevanceTests(unittest.TestCase):
         )
         # build_wire derives this from the complete feed summary before
         # merge_inventory stores only the bounded summary.
-        entry["candidate_names"] = ["Gabriel Attal"]
+        entry["candidate_matches"] = [
+            {
+                "candidate": "Gabriel Attal",
+                "matched_aliases": ["gabriel attal"],
+                "locations": ["summary"],
+            }
+        ]
+        entry["candidate_names"] = candidate_names_from_matches(
+            entry["candidate_matches"]
+        )
         entry["relevance_reason"] = "campaign_or_selection_context"
         entry["relevance_terms"] = ["presidentielle"]
 
@@ -1598,6 +1758,10 @@ class NewsWireRelevanceTests(unittest.TestCase):
         )
         self.assertEqual(entries[0]["candidate_names"], ["Gabriel Attal"])
         self.assertEqual(
+            entries[0]["candidate_matches"],
+            entry["candidate_matches"],
+        )
+        self.assertEqual(
             payload["items"][0]["relevance_reason"],
             "campaign_or_selection_context",
         )
@@ -1605,6 +1769,72 @@ class NewsWireRelevanceTests(unittest.TestCase):
             entries[0]["relevance_terms"],
             ["presidentielle"],
         )
+
+    def test_old_inventory_migration_recomputes_strict_candidate_matches(self):
+        legacy_item = {
+            "id": "stable-inventory-id",
+            "source_id": "example",
+            "publisher": "Example",
+            "feed_url": "https://example.test/rss",
+            "politics_specific": True,
+            "headline": "Philippe Étienne revient sur sa carrière diplomatique",
+            "summary": "Un entretien politique.",
+            "url": "https://example.test/philippe-etienne",
+            "canonical_url": "https://example.test/philippe-etienne",
+            "published_at": "2026-07-22T08:00:00Z",
+            "first_seen_at": "2026-07-22T09:00:00Z",
+            "last_seen_at": "2026-07-23T09:00:00Z",
+            "candidate_names": ["Édouard Philippe"],
+            "relevance_reason": "candidate_political_coverage",
+            "relevance_terms": ["candidate_in_headline"],
+        }
+        legacy_payload = {
+            "schema_version": 3,
+            "generated_at": "2026-07-23T09:00:00Z",
+            "window_days": 30,
+            "items": [legacy_item],
+        }
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "inventory.json"
+            path.write_text(json.dumps(legacy_payload), encoding="utf-8")
+            migrated = load_inventory(
+                path,
+                30,
+                ["Édouard Philippe"],
+            )
+
+        self.assertEqual(migrated["schema_version"], INVENTORY_SCHEMA_VERSION)
+        item = migrated["items"][0]
+        self.assertEqual(item["candidate_names"], [])
+        self.assertEqual(item["candidate_matches"], [])
+        self.assertIsNone(item["relevance_reason"])
+        self.assertEqual(item["relevance_terms"], [])
+        for field in (
+            "id",
+            "first_seen_at",
+            "last_seen_at",
+            "url",
+            "canonical_url",
+            "published_at",
+        ):
+            self.assertEqual(item[field], legacy_item[field])
+
+    def test_workflow_validates_candidate_match_contract(self):
+        workflow = (
+            Path(__file__).parent
+            / ".github"
+            / "workflows"
+            / "update-news-wire.yml"
+        ).read_text(encoding="utf-8")
+        for contract in (
+            'candidate_matches = item.get("candidate_matches")',
+            'set(match) != approved_candidate_match_keys',
+            'approved_candidate_locations = ("headline", "summary")',
+            'len(matched_aliases) != len(set(matched_aliases))',
+            'sorted(matched_candidates) != sorted(candidates)',
+        ):
+            self.assertIn(contract, workflow)
 
 
     def test_foreign_presidential_races_require_a_french_anchor(self):
@@ -1816,6 +2046,241 @@ class NewsWireRelevanceTests(unittest.TestCase):
             public_text,
         )
         self.assertEqual(len(payload["relevant_news"]), 1)
+
+class CandidateVisibilityComparisonTests(unittest.TestCase):
+    generated_at = datetime(2026, 7, 26, 20, 35, tzinfo=timezone.utc)
+
+    @staticmethod
+    def records(
+        count,
+        publishers,
+        published_at,
+        prefix,
+    ):
+        return [
+            {
+                "id": f"{prefix}-{index}",
+                "publisher": publishers[index % len(publishers)],
+                "published_at": published_at,
+                "coverage_scope": "campaign",
+            }
+            for index in range(count)
+        ]
+
+    def visibility(
+        self,
+        current_count,
+        prior_count,
+        current_publishers,
+        prior_publishers,
+    ):
+        records = self.records(
+            current_count,
+            current_publishers,
+            "2026-07-26T12:00:00Z",
+            "current",
+        ) + self.records(
+            prior_count,
+            prior_publishers,
+            "2026-07-19T12:00:00Z",
+            "prior",
+        )
+        return (
+            build_candidate_visibility(records, self.generated_at),
+            records,
+        )
+
+    def test_exact_adjacent_seven_day_boundaries(self):
+        records = [
+            *self.records(1, ["Current start"], "2026-07-20T00:00:00Z", "cs"),
+            *self.records(1, ["Current end"], "2026-07-26T23:59:59Z", "ce"),
+            *self.records(1, ["Prior start"], "2026-07-13T00:00:00Z", "ps"),
+            *self.records(1, ["Prior end"], "2026-07-19T23:59:59Z", "pe"),
+            *self.records(1, ["Outside old"], "2026-07-12T23:59:59Z", "old"),
+            *self.records(1, ["Outside new"], "2026-07-27T00:00:00Z", "new"),
+        ]
+        visibility = build_candidate_visibility(records, self.generated_at)
+
+        self.assertEqual(
+            visibility["current_period"],
+            {
+                "start_date": "2026-07-20",
+                "end_date": "2026-07-26",
+                "record_count": 2,
+                "publisher_count": 2,
+                "publisher_names": ["Current end", "Current start"],
+                "candidate_metrics": [],
+            },
+        )
+        self.assertEqual(
+            visibility["prior_period"],
+            {
+                "start_date": "2026-07-13",
+                "end_date": "2026-07-19",
+                "record_count": 2,
+                "publisher_count": 2,
+                "publisher_names": ["Prior end", "Prior start"],
+                "candidate_metrics": [],
+            },
+        )
+
+    def test_audited_publisher_panel_failure(self):
+        current = [f"Current {index:02d}" for index in range(55)]
+        prior = current[:5] + [f"Prior {index:02d}" for index in range(3)]
+        visibility, _records = self.visibility(173, 29, current, prior)
+        quality = visibility["comparison_quality"]
+
+        self.assertEqual(quality["status"], "not_comparable")
+        self.assertEqual(quality["reason"], "publisher_panel_changed")
+        self.assertEqual(quality["publisher_overlap_ratio"], 0.086)
+        self.assertEqual(quality["record_count_ratio"], 5.966)
+
+    def test_insufficient_period_records(self):
+        publishers = [f"Publisher {index}" for index in range(5)]
+        visibility, _records = self.visibility(9, 10, publishers, publishers)
+        self.assertEqual(
+            visibility["comparison_quality"]["reason"],
+            "insufficient_data",
+        )
+
+    def test_insufficient_period_publishers(self):
+        current = [f"Publisher {index}" for index in range(4)]
+        prior = [*current, "Publisher 4"]
+        visibility, _records = self.visibility(10, 10, current, prior)
+        self.assertEqual(
+            visibility["comparison_quality"]["reason"],
+            "insufficient_data",
+        )
+
+    def test_insufficient_common_publishers(self):
+        current = [f"Publisher {index}" for index in range(5)]
+        prior = current[:4] + ["Prior only"]
+        visibility, _records = self.visibility(10, 10, current, prior)
+        quality = visibility["comparison_quality"]
+        self.assertEqual(quality["common_publisher_count"], 4)
+        self.assertEqual(quality["reason"], "insufficient_data")
+
+    def test_comparable_periods(self):
+        publishers = [f"Publisher {index}" for index in range(5)]
+        visibility, records = self.visibility(10, 10, publishers, publishers)
+        quality = visibility["comparison_quality"]
+        self.assertEqual(quality["status"], "comparable")
+        self.assertEqual(quality["reason"], "comparable")
+        validate_candidate_visibility(
+            visibility,
+            records,
+            self.generated_at,
+        )
+
+    def test_comparable_at_locked_boundaries(self):
+        current = [f"Common {index}" for index in range(5)]
+        prior = current + [f"Prior only {index}" for index in range(5)]
+        visibility, _records = self.visibility(10, 20, current, prior)
+        quality = visibility["comparison_quality"]
+        self.assertEqual(quality["current_record_count"], 10)
+        self.assertEqual(quality["common_publisher_count"], 5)
+        self.assertEqual(quality["current_publisher_count"], 5)
+        self.assertEqual(quality["publisher_overlap_ratio"], 0.5)
+        self.assertEqual(quality["record_count_ratio"], 2.0)
+        self.assertEqual(quality["status"], "comparable")
+
+    def test_zero_record_ratio_is_null_and_insufficient(self):
+        publishers = [f"Publisher {index}" for index in range(5)]
+        visibility, _records = self.visibility(10, 0, publishers, publishers)
+        quality = visibility["comparison_quality"]
+        self.assertIsNone(quality["record_count_ratio"])
+        self.assertEqual(quality["status"], "not_comparable")
+        self.assertEqual(quality["reason"], "insufficient_data")
+
+    def test_schema_and_thresholds_are_exact(self):
+        publishers = [f"Publisher {index}" for index in range(5)]
+        visibility, _records = self.visibility(10, 10, publishers, publishers)
+        self.assertEqual(
+            set(visibility),
+            {
+                "method",
+                "primary_scopes",
+                "secondary_scope",
+                "current_period",
+                "prior_period",
+                "general_current_period",
+                "general_prior_period",
+                "comparison_quality",
+            },
+        )
+        self.assertEqual(
+            visibility["method"],
+            CANDIDATE_VISIBILITY_METHOD,
+        )
+        self.assertEqual(
+            visibility["primary_scopes"],
+            ["election", "campaign"],
+        )
+        self.assertEqual(
+            visibility["secondary_scope"],
+            "general",
+        )
+        self.assertEqual(
+            visibility["general_current_period"][
+                "record_count"
+            ],
+            0,
+        )
+        self.assertEqual(
+            visibility["general_prior_period"][
+                "record_count"
+            ],
+            0,
+        )
+        self.assertEqual(
+            visibility["comparison_quality"]["thresholds"],
+            CANDIDATE_VISIBILITY_THRESHOLDS,
+        )
+
+    def test_validation_rejects_inconsistent_public_contract(self):
+        publishers = [f"Publisher {index}" for index in range(5)]
+        visibility, records = self.visibility(10, 10, publishers, publishers)
+        mutations = {
+            "counts": lambda value: value["current_period"].update(
+                record_count=11
+            ),
+            "ratios": lambda value: value["comparison_quality"].update(
+                record_count_ratio=1.5
+            ),
+            "status": lambda value: value["comparison_quality"].update(
+                status="not_comparable"
+            ),
+            "dates": lambda value: value["current_period"].update(
+                start_date="2026-07-19"
+            ),
+            "publisher arrays": lambda value: value["current_period"].update(
+                publisher_names=list(reversed(
+                    value["current_period"]["publisher_names"]
+                ))
+            ),
+            "threshold types": lambda value: value[
+                "comparison_quality"
+            ]["thresholds"].update(minimum_period_records=True),
+        }
+
+        for label, mutate in mutations.items():
+            with self.subTest(label=label):
+                invalid = copy.deepcopy(visibility)
+                mutate(invalid)
+                with self.assertRaises(RuntimeError):
+                    validate_candidate_visibility(
+                        invalid,
+                        records,
+                        self.generated_at,
+                    )
+
+    def test_workflow_validation_includes_candidate_visibility(self):
+        workflow = Path(
+            ".github/workflows/update-news-wire.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("validate_output(wire)", workflow)
+        self.assertIn("candidate_visibility", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,10 +1,80 @@
 from pathlib import Path
+import json
+import re
+import subprocess
 import unittest
 
 
 ROOT = Path(__file__).resolve().parent
 INDEX = ROOT / "index.html"
 HYBRID_JS = ROOT / "assets" / "hybrid-dashboard.js"
+
+
+def run_media_model_script(payload, expression):
+    script = r"""
+const fs = require("fs");
+const vm = require("vm");
+let source = fs.readFileSync(
+  "assets/hybrid-dashboard.js",
+  "utf8"
+);
+source = source.replace(
+  /\s+retainLegacyComparison\(\);\s+renderAll\(\);\s+window\.addEventListener\("hashchange", handleSignalHashChange\);\s+document\.addEventListener\("hybrid:dataset", renderAll\);/,
+  ""
+);
+const input = JSON.parse(fs.readFileSync(0, "utf8"));
+const payload = input.payload;
+const mount = {};
+const context = {
+  console,
+  URL,
+  Date,
+  Math,
+  Map,
+  Set,
+  Object,
+  Array,
+  Number,
+  String,
+  JSON,
+  Intl,
+  window: { location: { hash: "" }, addEventListener() {} },
+  document: {
+    getElementById(id) {
+      return id === "hybrid-signal-board" ? mount : null;
+    },
+    addEventListener() {},
+    querySelector() { return null; }
+  },
+  dashboardState: {
+    loadState: { news: "ready" },
+    news: payload
+  },
+  candidatePortraits: {},
+  newestNewsItems: values => values,
+  formatScore: value => String(value),
+  formatDate: value => String(value),
+  escapeHtml: value => String(value),
+  escapeAttribute: value => String(value),
+  formatNewsDateTime: value => String(value),
+  formatRunoffFieldwork: value => String(value)
+};
+vm.runInNewContext(source, context);
+const api = context.window.hybridDashboard;
+const result = eval(input.expression);
+process.stdout.write(JSON.stringify(result));
+"""
+    completed = subprocess.run(
+        ["node", "-e", script],
+        input=json.dumps(
+            {"payload": payload, "expression": expression}
+        ),
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    return json.loads(completed.stdout)
 
 
 class FinalDashboardShellTests(unittest.TestCase):
@@ -33,25 +103,18 @@ class FinalDashboardShellTests(unittest.TestCase):
 
     def test_top_media_mount_uses_existing_media_model(self):
         self.assertIn(
-            'id="top-media-pulse-content"',
-            self.html,
-        )
-        self.assertIn(
-            "function renderTopMediaPulsePanel(model)",
+            "renderTopMediaPulse(models.media, models.agenda);",
             self.js,
         )
-        self.assertIn(
-            "renderTopMediaPulsePanel(model)",
-            self.js,
-        )
-        self.assertIn(
+
+        self.assertNotIn(
             "renderTopMediaPulse(models.media);",
             self.js,
         )
 
     def test_summary_cards_are_removed_from_primary_render(self):
         start = self.js.index(
-            "function renderAll()"
+            "function renderAll(event = null)"
         )
         end = self.js.index(
             "function handleSignalHashChange",
@@ -73,11 +136,19 @@ class FinalDashboardShellTests(unittest.TestCase):
         )
 
     def test_media_topic_navigation_supports_top_mount(self):
-        self.assertIn(
-            "function bindMediaTopicLinks(root = mount)",
-            self.js,
-        )
-        self.assertIn(
+        for contract in (
+            "function bindTopicCoverageModal(",
+            "mediaModel,",
+            "agendaModel",
+            "[data-topic-coverage-open]",
+            "[data-hybrid-media-topic]",
+            "[data-hybrid-media-candidate]",
+            "France2027TopicCoverageModal",
+            "bindTopicCoverageModal(model, agendaModel);",
+        ):
+            self.assertIn(contract, self.js)
+
+        self.assertNotIn(
             "bindMediaTopicLinks(topMediaMount);",
             self.js,
         )
@@ -182,7 +253,7 @@ class FinalDashboardShellTests(unittest.TestCase):
         renderer = self.js[start:end]
 
         self.assertIn(
-            ".slice(0, 5)",
+            ".slice(0, 20)",
             renderer,
         )
         self.assertIn(
@@ -208,29 +279,29 @@ class FinalDashboardShellTests(unittest.TestCase):
 
     def test_top_media_header_contains_four_prominent_metrics(self):
         start = self.js.index(
-            "function renderTopMediaPulse(model)"
+            "function renderTopMediaPulse(model, agendaModel)"
         )
+
         end = self.js.index(
             "function bindPollCompareShortcut",
             start,
         )
-        renderer = self.js[start:end]
 
-        for label in (
+        section = self.js[start:end]
+
+        for contract in (
+            "const metrics = [",
+            "value: model.electionNewsCount",
+            "model.acceptedNewsPublisherCount",
+            "value: model.activityItemCount",
+            "value: model.candidateWatchCount",
             'label: "accepted news"',
             'label: "publishers"',
             'label: "recent (14d)"',
             'label: "candidate-watch"',
-        ):
-            self.assertIn(
-                label,
-                renderer,
-            )
-
-        self.assertIn(
             'class="top-media-header-metric"',
-            renderer,
-        )
+        ):
+            self.assertIn(contract, section)
 
     def test_media_model_derives_ranked_top_publishers(self):
         start = self.js.index(
@@ -458,6 +529,554 @@ class FinalDashboardShellTests(unittest.TestCase):
       min-height: 21px;""",
             css,
         )
+
+
+    def test_candidate_coverage_aliases_are_canonicalized(self):
+        for contract in (
+            "function buildMediaCandidateCanonicalizer",
+            "suffixMatches",
+            "canonicalizeCandidate",
+            "candidateCoverage:",
+            "latestItems:",
+            "previousItems:",
+        ):
+            self.assertIn(contract, self.js)
+
+    def test_top_candidate_shift_rows_open_combined_dialog(self):
+        position = self.js.index(
+            "data-hybrid-media-candidate"
+        )
+        context = self.js[position - 220:position + 420]
+
+        for contract in (
+            'type="button"',
+            'aria-haspopup="dialog"',
+            'aria-controls="topic-coverage-modal"',
+            'aria-expanded="false"',
+        ):
+            self.assertIn(contract, context)
+
+        self.assertIn(
+            "Open coverage analysis →",
+            self.js,
+        )
+
+
+    def test_exact_dashboard_cta_component_scope(self):
+        class_attributes = re.findall(
+            r'class="([^"]*\bmedia-pulse-dashboard-cta\b[^"]*)"',
+            self.html + "\n" + self.js,
+        )
+
+        self.assertCountEqual(
+            class_attributes,
+            [
+                "media-pulse-dashboard-cta",
+                "top-media-panel-link ecm-open media-pulse-dashboard-cta",
+                "top-media-panel-link tcm-open media-pulse-dashboard-cta",
+            ],
+        )
+        self.assertRegex(
+            self.html,
+            re.compile(
+                r'<a\s+id="race-source"\s+'
+                r'class="media-pulse-dashboard-cta"',
+                re.DOTALL,
+            ),
+        )
+
+    def test_media_pulse_rerender_is_news_lane_aware(self):
+        start = self.js.index(
+            "function renderAll(event = null)"
+        )
+        end = self.js.index(
+            "function handleSignalHashChange",
+            start,
+        )
+        renderer = self.js[start:end]
+
+        guarded_render = re.search(
+            r'const datasetLane = event\?\.detail\?\.name \|\| "";'
+            r'.*?if \(!datasetLane \|\| datasetLane === "news"\)\s*\{'
+            r'\s*renderTopMediaPulse\(models\.media, models\.agenda\);'
+            r'\s*\}',
+            renderer,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(guarded_render)
+        self.assertGreater(
+            renderer.index("mount.innerHTML"),
+            guarded_render.end(),
+        )
+        self.assertIn("renderAll();", self.js)
+        self.assertIn(
+            'document.addEventListener("hybrid:dataset", renderAll);',
+            self.js,
+        )
+
+    def test_dashboard_cta_component_is_narrow_and_non_global(self):
+        start = self.html.index(
+            ".media-pulse-dashboard-cta {"
+        )
+        end = self.html.index(
+            ".top-media-shift",
+            start,
+        )
+        component = self.html[start:end]
+
+        for contract in (
+            "appearance: none;",
+            "display: inline-flex;",
+            "width: max-content;",
+            "min-height: 16px;",
+            "padding: 1px 0;",
+            "font-size: 10px;",
+            "font-weight: 700;",
+            "line-height: 1.3;",
+            ".media-pulse-dashboard-cta:focus-visible",
+        ):
+            self.assertIn(contract, component)
+
+        self.assertNotRegex(
+            component,
+            re.compile(r"(?m)^\s*(button|a|h2|\*)\s*\{"),
+        )
+        self.assertNotIn("!important", component)
+
+
+
+    @staticmethod
+    def candidate_payload(current_count=10, prior_count=10):
+        publishers = [f"Publisher {index}" for index in range(5)]
+        records = []
+        for period, count, published_at in (
+            ("current", current_count, "2026-07-26T12:00:00Z"),
+            ("prior", prior_count, "2026-07-19T12:00:00Z"),
+        ):
+            for index in range(count):
+                records.append(
+                    {
+                        "id": f"{period}-{index}",
+                        "publisher": publishers[index % len(publishers)],
+                        "published_at": published_at,
+                        "url": f"https://example.test/{period}-{index}",
+                        "candidates": [
+                            "Candidate A"
+                            if period == "current" or index < count / 2
+                            else "Candidate B"
+                        ],
+                    }
+                )
+        return {
+            "generated_at": "2026-07-26T20:35:00Z",
+            "window_days": 30,
+            "counts": {"election_news": 0},
+            "election_news": [],
+            "candidate_watch": records,
+            "campaign_agenda": {"topics": []},
+        }
+
+    def test_valid_backend_candidate_visibility_is_preferred(self):
+        result = run_media_model_script(
+            self.candidate_payload(),
+            """(() => {
+              const derived = api.deriveCandidateVisibility(payload);
+              const backend = {
+                comparison_quality: derived.comparison_quality,
+                prior_period: derived.prior_period,
+                current_period: derived.current_period,
+                method: derived.method
+              };
+              payload.candidate_visibility = backend;
+              return {
+                preferred:
+                  api.resolveCandidateVisibility(payload) === backend,
+                valid:
+                  api.isValidCandidateVisibility(backend, payload)
+              };
+            })()""",
+        )
+        self.assertEqual(result, {"preferred": True, "valid": True})
+
+    def test_missing_candidate_visibility_uses_deterministic_fallback(self):
+        result = run_media_model_script(
+            self.candidate_payload(9, 10),
+            """(() => {
+              const first = api.resolveCandidateVisibility(payload);
+              const second = api.resolveCandidateVisibility(payload);
+              return {
+                sameValue: JSON.stringify(first) === JSON.stringify(second),
+                current: first.current_period,
+                prior: first.prior_period,
+                quality: first.comparison_quality
+              };
+            })()""",
+        )
+        self.assertTrue(result["sameValue"])
+        self.assertEqual(result["current"]["start_date"], "2026-07-20")
+        self.assertEqual(result["current"]["end_date"], "2026-07-26")
+        self.assertEqual(result["prior"]["start_date"], "2026-07-13")
+        self.assertEqual(result["prior"]["end_date"], "2026-07-19")
+        self.assertEqual(result["quality"]["reason"], "insufficient_data")
+
+    def test_malformed_backend_candidate_visibility_uses_fallback(self):
+        result = run_media_model_script(
+            self.candidate_payload(),
+            """(() => {
+              payload.candidate_visibility = {
+                method: "share_of_candidate_linked_records",
+                comparison_quality: { status: "comparable" }
+              };
+              const resolved = api.resolveCandidateVisibility(payload);
+              return {
+                malformedRejected:
+                  resolved !== payload.candidate_visibility,
+                status: resolved.comparison_quality.status
+              };
+            })()""",
+        )
+        self.assertEqual(
+            result,
+            {"malformedRejected": True, "status": "comparable"},
+        )
+
+    def test_non_comparable_candidate_rows_expose_unavailable_change(self):
+        result = run_media_model_script(
+            self.candidate_payload(9, 10),
+            """(() => {
+              const model = api.buildMediaViewModel();
+              return {
+                quality: model.comparisonQuality,
+                rows: model.candidateCoverage.map(item => ({
+                  changeAvailable: item.changeAvailable,
+                  delta: item.delta,
+                  changePp: item.changePp,
+                  direction: item.direction
+                }))
+              };
+            })()""",
+        )
+        self.assertEqual(result["quality"]["status"], "not_comparable")
+        self.assertTrue(result["rows"])
+        for row in result["rows"]:
+            self.assertFalse(row["changeAvailable"])
+            self.assertIsNone(row["delta"])
+            self.assertIsNone(row["changePp"])
+            self.assertEqual(row["direction"], "unavailable")
+
+    def test_comparable_candidate_rows_preserve_actual_delta(self):
+        result = run_media_model_script(
+            self.candidate_payload(),
+            """(() => {
+              const model = api.buildMediaViewModel();
+              const candidate = model.candidateCoverage.find(
+                item => item.name === "Candidate A"
+              );
+              return {
+                status: model.comparisonQuality.status,
+                changeAvailable: candidate.changeAvailable,
+                delta: candidate.delta,
+                changePp: candidate.changePp,
+                direction: candidate.direction
+              };
+            })()""",
+        )
+        self.assertEqual(result["status"], "comparable")
+        self.assertTrue(result["changeAvailable"])
+        self.assertEqual(result["delta"], 50)
+        self.assertEqual(result["changePp"], 50)
+        self.assertEqual(result["direction"], "positive")
+
+
+class BoundedTopRowPolishTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.css = Path(
+            "assets/final-dashboard-shell.css"
+        ).read_text(encoding="utf-8")
+        cls.javascript = Path(
+            "assets/hybrid-dashboard.js"
+        ).read_text(encoding="utf-8")
+
+    def test_desktop_top_row_ratio_and_height(self):
+        for contract in (
+            "/* BOUNDED TOP ROW POLISH - 2026-07 */",
+            "minmax(0, 27fr)",
+            "minmax(0, 30fr)",
+            "minmax(0, 43fr)",
+            "height: 400px !important;",
+        ):
+            self.assertIn(contract, self.css)
+
+    def test_latest_coverage_renders_twenty_items(self):
+        self.assertIn(
+            "const coverageRows = model.feedItems",
+            self.javascript,
+        )
+        self.assertIn(
+            ".slice(0, 20)",
+            self.javascript,
+        )
+
+    def test_latest_coverage_has_fixed_footer_and_scrollable_list(self):
+        self.assertIn(
+            "grid-template-rows:",
+            self.css,
+        )
+        self.assertIn(
+            "minmax(0, 1fr)",
+            self.css,
+        )
+        self.assertIn(
+            "overflow-y: auto;",
+            self.css,
+        )
+        self.assertIn(
+            "scrollbar-gutter: stable;",
+            self.css,
+        )
+
+    def test_top_ctas_share_identical_typography(self):
+        for contract in (
+            "--top-row-cta-height: 32px;",
+            "height: var(--top-row-cta-height);",
+            "font-size: 9px !important;",
+            "font-weight: 700 !important;",
+            "line-height: 1 !important;",
+        ):
+            self.assertIn(contract, self.css)
+
+
+class TopMediaProgressiveDisclosureTests(
+    unittest.TestCase
+):
+    @classmethod
+    def setUpClass(cls):
+        cls.javascript = Path(
+            "assets/hybrid-dashboard.js"
+        ).read_text(encoding="utf-8")
+
+        cls.css = Path(
+            "assets/final-dashboard-shell.css"
+        ).read_text(encoding="utf-8")
+
+    def test_top_media_uses_two_accessible_tabs(self):
+        for contract in (
+            'role="tablist"',
+            'data-top-media-tab="coverage"',
+            'data-top-media-tab="overview"',
+            'data-top-media-panel="coverage"',
+            'data-top-media-panel="overview"',
+            'aria-selected="true"',
+            'aria-selected="false"',
+        ):
+            self.assertIn(
+                contract,
+                self.javascript,
+            )
+
+    def test_top_media_tabs_support_keyboard_navigation(self):
+        for contract in (
+            "function bindTopMediaTabs()",
+            '"ArrowLeft"',
+            '"ArrowRight"',
+            '"Home"',
+            '"End"',
+            'activate("overview");',
+            "bindTopMediaTabs();",
+        ):
+            self.assertIn(
+                contract,
+                self.javascript,
+            )
+
+    def test_top_media_panels_use_full_width(self):
+        marker = (
+            "/* TOP MEDIA PULSE PROGRESSIVE "
+            "DISCLOSURE — 2026-07 */"
+        )
+
+        self.assertEqual(
+            self.css.count(marker),
+            1,
+        )
+
+        progressive_css = self.css.split(
+            marker,
+            1,
+        )[1]
+
+        for contract in (
+            ".top-media-tabs",
+            ".top-media-tab-panel[hidden]",
+            "grid-template-columns:",
+            "minmax(0, 1fr) !important;",
+            "min-height: 74px;",
+            "repeat(6, minmax(0, 1fr));",
+        ):
+            self.assertIn(
+                contract,
+                progressive_css,
+            )
+
+    def test_race_title_and_six_row_geometry_are_preserved(self):
+        marker = (
+            "/* TOP MEDIA PULSE PROGRESSIVE "
+            "DISCLOSURE — 2026-07 */"
+        )
+
+        progressive_css = self.css.split(
+            marker,
+            1,
+        )[1]
+
+        self.assertIn(
+            "minmax(145px, .78fr)",
+            progressive_css,
+        )
+
+        self.assertIn(
+            "white-space: nowrap;",
+            progressive_css,
+        )
+
+        self.assertIn(
+            "min-height: 43px;",
+            progressive_css,
+        )
+
+    def test_overview_is_first_and_default(self):
+        overview_tab = self.javascript.index(
+            'data-top-media-tab="overview"'
+        )
+
+        coverage_tab = self.javascript.index(
+            'data-top-media-tab="coverage"'
+        )
+
+        self.assertLess(
+            overview_tab,
+            coverage_tab,
+        )
+
+        self.assertIn(
+            'activate("overview");',
+            self.javascript,
+        )
+
+        self.assertIn(
+            'panel.style.display =',
+            self.javascript,
+        )
+
+        marker = (
+            "/* TOP MEDIA TAB STATE HARDENING "
+            "— OVERVIEW DEFAULT — 2026-07 */"
+        )
+
+        self.assertEqual(
+            self.css.count(marker),
+            1,
+        )
+
+        hardened_css = self.css.split(
+            marker,
+            1,
+        )[1]
+
+        self.assertIn(
+            "> .top-media-tab-panel[hidden]",
+            hardened_css,
+        )
+
+        self.assertIn(
+            "display: none !important;",
+            hardened_css,
+        )
+
+        self.assertIn(
+            "> .top-media-tabs",
+            hardened_css,
+        )
+
+        self.assertIn(
+            "display: flex !important;",
+            hardened_css,
+        )
+
+class MockupTopRowGeometryTests(
+    unittest.TestCase
+):
+    @classmethod
+    def setUpClass(cls):
+        cls.javascript = Path(
+            "assets/hybrid-dashboard.js"
+        ).read_text(encoding="utf-8")
+
+        cls.css = Path(
+            "assets/final-dashboard-shell.css"
+        ).read_text(encoding="utf-8")
+
+    def test_final_panel_proportions_match_reference(self):
+        marker = (
+            "/* MOCKUP TOP-ROW GEOMETRY AND "
+            "COVERAGE SHIFT CARD — 2026-07 */"
+        )
+
+        self.assertEqual(
+            self.css.count(marker),
+            1,
+        )
+
+        final_css = self.css.split(
+            marker,
+            1,
+        )[1]
+
+        for contract in (
+            "minmax(0, 28fr)",
+            "minmax(0, 35fr)",
+            "minmax(0, 37fr)",
+        ):
+            self.assertIn(
+                contract,
+                final_css,
+            )
+
+    def test_overview_matches_coverage_shift_card_anatomy(self):
+
+        self.assertNotIn(
+            "top-media-shift-subtitle",
+            self.javascript,
+        )
+
+        self.assertIn(
+            "MEDIA OVERVIEW SUBTITLE REMOVAL "
+            "AND HEIGHT TRANSFER",
+            self.css,
+        )
+
+        marker = (
+            "/* MOCKUP TOP-ROW GEOMETRY AND "
+            "COVERAGE SHIFT CARD — 2026-07 */"
+        )
+
+        final_css = self.css.split(
+            marker,
+            1,
+        )[1]
+
+        for contract in (
+            ".top-media-shift-subtitle",
+            "minmax(112px, 178px)",
+            "repeat(",
+            "112px",
+            "grid-template-columns:",
+        ):
+            self.assertIn(
+                contract,
+                final_css,
+            )
 
 
 if __name__ == "__main__":
