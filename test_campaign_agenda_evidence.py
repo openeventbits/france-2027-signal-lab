@@ -168,6 +168,96 @@ class CampaignAgendaEvidenceTests(unittest.TestCase):
             [item],
         )
 
+    def test_nice_matin_support_is_not_endorsement_evidence(self):
+        headline = (
+            "« Ces maisons détruites, ces animaux morts, ça fait forcément "
+            "penser à des scènes de guerre » : président des maires de "
+            "France, David Lisnard est allé au soutien des communes "
+            "incendiées dans le Var"
+        )
+        item = {
+            "id": "46d9840b9e91f688480a",
+            "publisher": "Nice-Matin",
+            "published_at": "2026-07-28T04:00:01Z",
+            "headline": headline,
+            "url": "https://example.test/nice-matin-wildfire",
+            "candidates": ["David Lisnard"],
+            "explicit_election": False,
+        }
+
+        self.assertIsNone(
+            classify_campaign_agenda(
+                normalize(headline),
+                explicit_election=False,
+                matched_candidates=["David Lisnard"],
+            )
+        )
+        agenda = build_campaign_agenda([item], window_days=30)
+        self.assertEqual(agenda["classified_item_count"], 0)
+        self.assertEqual(agenda["unclassified_item_count"], 1)
+        self.assertEqual(agenda["topics"], [])
+
+    def test_ordinary_support_and_bare_rallying_are_not_agenda_evidence(self):
+        headlines = (
+            "Le candidat François Hollande apporte son soutien aux victimes",
+            "Le président François Hollande soutient les agriculteurs",
+            "François Hollande soutient une réforme",
+            "François Hollande apporte son soutien aux pompiers",
+            "François Hollande annonce un ralliement",
+            "François Hollande rallie les élus à une réforme",
+            "Les jeunes soutiens du candidat Édouard Philippe font escale à Arles",
+            "Le soutien de David Lisnard aux pompiers",
+            "Les élus soutenus par David Lisnard après l'incendie",
+            "François Hollande appelle à voter pour une réforme",
+            "Marine Le Pen soutient les agriculteurs à l’approche de la présidentielle",
+            "David Lisnard apporte son soutien aux communes pendant la campagne présidentielle",
+            "Édouard Philippe soutient une réforme pour l’élection présidentielle",
+            "X soutient les victimes avant le second tour",
+            "X se rallie aux agriculteurs avant la présidentielle",
+            "X appelle à voter pour une réforme à la présidentielle",
+            "X apporte son soutien à une campagne de vaccination",
+            "X apporte son appui à une campagne associative avant l’élection",
+            "X soutient une coalition humanitaire pendant la présidentielle",
+        )
+        for headline in headlines:
+            with self.subTest(headline=headline):
+                self.assertIsNone(
+                    classify_campaign_agenda(
+                        normalize(headline),
+                        matched_candidates=["François Hollande"],
+                    )
+                )
+
+    def test_structured_electoral_support_is_endorsement_evidence(self):
+        cases = [
+            ("François Hollande annonce son soutien à la candidature de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande soutient la candidature de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le parti apporte son soutien au candidat", []),
+            ("François Hollande se rallie à Raphaël Glucksmann pour la présidentielle", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande officialise son ralliement à Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande appelle à voter pour Raphaël Glucksmann au second tour", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande soutient Raphaël Glucksmann au second tour", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le soutien d'Elon Musk au RN relance la campagne de Marine Le Pen", ["Marine Le Pen"]),
+            ('"Marine Le Pen est le dernier espoir de la France": le soutien d\'Elon Musk au RN provoque des accusations d\'"ingérence étrangère"', ["Marine Le Pen"]),
+            ("Les élus RN de la région dieppoise au soutien de Marine Le Pen", ["Marine Le Pen"]),
+            ("Le soutien de François Hollande à la candidature de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le ralliement de François Hollande à Marine Le Pen", ["François Hollande", "Marine Le Pen"]),
+            ("François Hollande apporte son soutien à la campagne présidentielle de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande apporte son soutien à la campagne de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le parti apporte son soutien à la campagne du candidat", []),
+        ]
+        for headline, candidates in cases:
+            classification = classify_campaign_agenda(
+                normalize(headline),
+                matched_candidates=candidates,
+            )
+            with self.subTest(headline=headline):
+                self.assertIsNotNone(classification)
+                self.assertEqual(
+                    classification["id"],
+                    "candidacies_endorsements",
+                )
+
     def test_ambiguous_rules_terms_require_presidential_headline(self):
         routine = classify_campaign_agenda(
             normalize(

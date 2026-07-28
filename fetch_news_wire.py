@@ -276,15 +276,11 @@ CAMPAIGN_AGENDA_TOPICS = (
             "je suis candidate",
             "candidature",
             "se lancer dans la course",
-            "soutient",
-            "soutien",
             "officialise sa candidature",
             "se declare candidat",
             "se declare candidate",
             "entree en campagne",
             "lance sa campagne",
-            "ralliement",
-            "alliance",
             "propose un accord",
             "propose une alliance",
             "propose une coalition",
@@ -447,10 +443,6 @@ STRICT_NOTABLE_TERMS = {
         "lance sa campagne",
         "rejoint la campagne",
         "quitte la campagne",
-        "ralliement",
-        "soutient la candidature",
-        "soutien a la candidature",
-        "soutient",
         "propose un accord",
         "propose une alliance",
         "propose une coalition",
@@ -520,8 +512,6 @@ RELEVANT_CAMPAIGN_TERMS = (
     "investiture",
     "programme",
     "meeting",
-    "ralliement",
-    "soutien",
     "alliance",
     "coalition",
     "strategie",
@@ -558,8 +548,6 @@ RELEVANT_HEADLINE_SUPPORT_TERMS = (
     "programme",
     "alliance",
     "coalition",
-    "ralliement",
-    "soutien",
     "sondage",
     "parrainage",
 )
@@ -617,6 +605,54 @@ STATIC_ENTITY_ROLE_SUFFIXES = (
     "candidate",
 )
 STATIC_ENTITY_URL_PATTERN = re.compile(r"_DN-\d+(?:\.html)?$")
+
+ELECTORAL_SUPPORT_ACTION_PATTERN = re.compile(
+    r"\b(?:"
+    r"soutien|(?:je|tu)\s+soutiens|soutient|soutiennent|soutenir|"
+    r"soutenu|soutenue|soutenus|soutenues|"
+    r"appui|appuie|appuient|appuyer"
+    r")\b"
+)
+ELECTORAL_RALLY_ACTION_PATTERN = re.compile(
+    r"\b(?:se\s+rallie|se\s+rallient|rallie|rallient|"
+    r"rallier|ralliement|ralliements)\b"
+)
+ELECTORAL_INTRINSIC_DESTINATION_PATTERN = re.compile(
+    r"^(?:"
+    r"candidature|candidat|candidate|candidats|candidates|"
+    r"investiture|presidentielle|election\s+presidentielle|"
+    r"second\s+tour"
+    r")(?:\s|$)"
+)
+ELECTORAL_GENERIC_ACTOR_PATTERN = re.compile(
+    r"^(?:candidat|candidate|candidats|candidates)(?:\s|$)"
+)
+ELECTORAL_QUALIFIED_DESTINATION_PATTERN = re.compile(
+    r"^(?:"
+    r"campagne\s+(?:presidentielle|electorale)|"
+    r"(?:alliance|coalition)\s+(?:electorale|presidentielle)|"
+    r"ticket\s+(?:presidentiel|electoral)"
+    r")(?:\s|$)"
+)
+ELECTORAL_VOTE_SUPPORT_PATTERN = re.compile(
+    r"\bappell(?:e|ent|er)\s+a\s+voter\s+pour\b"
+)
+ELECTORAL_DESTINATION_PREPOSITION_PATTERN = re.compile(
+    r"^(?:(?:a|au|aux|pour|d|de|du|des)\s+)"
+)
+ELECTORAL_DESTINATION_ARTICLE_PATTERN = re.compile(
+    r"^(?:(?:l|la|le|les|un|une)\s+)"
+)
+ELECTORAL_NOUN_ACTIONS = frozenset({
+    "appui",
+    "ralliement",
+    "ralliements",
+    "soutien",
+})
+ELECTORAL_SOURCE_PREPOSITIONS = frozenset({"d", "de", "du", "des"})
+ELECTORAL_DESTINATION_PREPOSITIONS = frozenset({"a", "au", "aux", "pour"})
+ELECTORAL_SOURCE_MAX_TOKENS = 6
+ELECTORAL_SUPPORT_WINDOW_TOKENS = 10
 
 
 def normalize(value: Any) -> str:
@@ -726,6 +762,159 @@ def normalized_alias_matches(normalized_text: str, alias: str) -> bool:
     """Match complete normalized token sequences, never partial tokens."""
 
     return f" {alias} " in f" {normalize(normalized_text)} "
+
+
+def classify_structured_electoral_support(
+    value: Any,
+    matched_candidates: list[str] | None = None,
+) -> dict[str, Any]:
+    """Return bounded electoral-support evidence and ambiguity provenance.
+
+    A support or rallying verb is not campaign evidence by itself. Its
+    grammatical destination must begin with an electoral object, monitored
+    candidate, or recognized party. Bounded source phrases may intervene only
+    in explicit noun-source-destination constructions.
+    """
+
+    text = normalize(value)
+    candidates = [
+        normalized
+        for candidate in (matched_candidates or [])
+        if (normalized := normalize(candidate))
+    ]
+    matched_terms: set[str] = set()
+    vote_matches = list(ELECTORAL_VOTE_SUPPORT_PATTERN.finditer(text))
+    support_matches = list(ELECTORAL_SUPPORT_ACTION_PATTERN.finditer(text))
+    rally_matches = list(ELECTORAL_RALLY_ACTION_PATTERN.finditer(text))
+
+    party_destinations = {
+        variant
+        for party in PARTY_CONTEXT_TERMS
+        for variant in (
+            party,
+            ELECTORAL_DESTINATION_ARTICLE_PATTERN.sub(
+                "",
+                party,
+                count=1,
+            ),
+        )
+    }
+
+    def bounded_tail(match: re.Match[str]) -> str:
+        return " ".join(
+            text[match.end():].split()[:ELECTORAL_SUPPORT_WINDOW_TOKENS]
+        )
+
+    def destination_variants(tail: str) -> tuple[str, ...]:
+        without_preposition = ELECTORAL_DESTINATION_PREPOSITION_PATTERN.sub(
+            "",
+            tail,
+            count=1,
+        )
+        without_article = ELECTORAL_DESTINATION_ARTICLE_PATTERN.sub(
+            "",
+            without_preposition,
+            count=1,
+        )
+        return tuple(dict.fromkeys((
+            without_preposition,
+            without_article,
+        )))
+
+    def starts_actor(destination: str) -> bool:
+        return any(
+            destination == candidate
+            or destination.startswith(candidate + " ")
+            for candidate in candidates
+        ) or any(
+            destination == party
+            or destination.startswith(party + " ")
+            for party in party_destinations
+        )
+
+    def starts_bound_actor(destination: str) -> bool:
+        return (
+            starts_actor(destination)
+            or bool(ELECTORAL_GENERIC_ACTOR_PATTERN.match(destination))
+        )
+
+    def is_electoral_destination(tail: str) -> bool:
+        for destination in destination_variants(tail):
+            if (
+                starts_actor(destination)
+                or ELECTORAL_INTRINSIC_DESTINATION_PATTERN.match(destination)
+                or ELECTORAL_QUALIFIED_DESTINATION_PATTERN.match(destination)
+            ):
+                return True
+
+            for object_name in ("campagne", "ticket"):
+                binding = re.match(
+                    rf"^{object_name}\s+(?:d|de|du|des|pour)\s+(.+)$",
+                    destination,
+                )
+                if binding and any(
+                    starts_bound_actor(variant)
+                    for variant in destination_variants(binding.group(1))
+                ):
+                    return True
+        return False
+
+    def source_to_electoral_destination(tail: str) -> bool:
+        tokens = tail.split()
+        if (
+            len(tokens) < 3
+            or tokens[0] not in ELECTORAL_SOURCE_PREPOSITIONS
+        ):
+            return False
+
+        final_source_index = min(
+            len(tokens) - 2,
+            ELECTORAL_SOURCE_MAX_TOKENS + 1,
+        )
+        for index in range(2, final_source_index + 1):
+            if tokens[index] not in ELECTORAL_DESTINATION_PREPOSITIONS:
+                continue
+            return is_electoral_destination(" ".join(tokens[index:]))
+        return False
+
+    def action_has_electoral_destination(match: re.Match[str]) -> bool:
+        tail = bounded_tail(match)
+        tokens = tail.split()
+        is_noun_action = match.group() in ELECTORAL_NOUN_ACTIONS
+        starts_with_source = bool(
+            tokens and tokens[0] in ELECTORAL_SOURCE_PREPOSITIONS
+        )
+        is_au_soutien_destination = bool(
+            match.group() == "soutien"
+            and re.search(r"\bau\s*$", text[:match.start()])
+        )
+
+        if (
+            is_noun_action
+            and starts_with_source
+            and not is_au_soutien_destination
+        ):
+            return source_to_electoral_destination(tail)
+        return is_electoral_destination(tail)
+
+    for match in support_matches:
+        if action_has_electoral_destination(match):
+            matched_terms.add("electoral_support")
+
+    for match in rally_matches:
+        if action_has_electoral_destination(match):
+            matched_terms.add("electoral_rallying")
+
+    for match in vote_matches:
+        if action_has_electoral_destination(match):
+            matched_terms.add("call_to_vote_for")
+
+    return {
+        "has_support_language": bool(
+            support_matches or rally_matches or vote_matches
+        ),
+        "matched_terms": sorted(matched_terms),
+    }
 
 
 def match_news_candidates(
@@ -1854,6 +2043,10 @@ def classify_relevant_news(
         " ".join(part for part in (headline, summary) if part),
         RELEVANT_CAMPAIGN_TERMS,
     )
+    headline_electoral_support = classify_structured_electoral_support(
+        headline,
+        matched_candidates,
+    )
     headline_support_matches = campaign_agenda_term_matches(
         headline,
         RELEVANT_HEADLINE_SUPPORT_TERMS,
@@ -1880,6 +2073,26 @@ def classify_relevant_news(
     if other_election_matches and not headline_presidential_matches:
         return None
 
+    # An ordinary support destination cannot be rescued by ambiguous campaign
+    # vocabulary or by presidential context appearing later in the headline.
+    # Independent concrete campaign terms remain available to the normal
+    # relevance branches below.
+    ambiguous_support_context_terms = {
+        "alliance",
+        "campagne",
+        "candidat",
+        "candidate",
+        "coalition",
+    }
+    if (
+        headline_electoral_support["has_support_language"]
+        and not headline_electoral_support["matched_terms"]
+        and set(combined_campaign_matches).issubset(
+            ambiguous_support_context_terms
+        )
+    ):
+        return None
+
     # A current presidential frame in the headline is sufficient, even
     # for analysis or commentary. Historical 2002/2007/2012 retrospectives
     # fail current_presidential_matches().
@@ -1893,6 +2106,20 @@ def classify_relevant_news(
     # unless the headline itself explicitly frames them around the race.
     if routine_matches:
         return None
+
+    # Structured electoral support is sufficient campaign evidence. A
+    # candidate name elsewhere in the headline cannot convert an ordinary
+    # support destination into an endorsement.
+    if headline_electoral_support["matched_terms"]:
+        return {
+            "reason": "campaign_or_selection_context",
+            "matched_terms": sorted(
+                set([
+                    *headline_electoral_support["matched_terms"],
+                    *combined_party_matches,
+                ])
+            ),
+        }
 
     # The summary can confirm current presidential relevance only when
     # the headline already contains a candidate, named party, or clear
@@ -1955,6 +2182,7 @@ def classify_campaign_agenda(
     normalized_headline: str,
     *,
     explicit_election: bool = False,
+    matched_candidates: list[str] | None = None,
 ) -> dict[str, Any] | None:
     """Classify a supported campaign theme or return no topic.
 
@@ -1964,6 +2192,10 @@ def classify_campaign_agenda(
     """
 
     headline = normalize(normalized_headline)
+    electoral_support = classify_structured_electoral_support(
+        headline,
+        matched_candidates,
+    )
     scored_topics: list[
         tuple[int, int, dict[str, Any], list[str]]
     ] = []
@@ -1975,6 +2207,11 @@ def classify_campaign_agenda(
             headline,
             topic["terms"],
         )
+        if topic["id"] == "candidacies_endorsements":
+            matches = sorted(set([
+                *matches,
+                *electoral_support["matched_terms"],
+            ]))
 
         if not explicit_election:
             matches = [
@@ -2035,6 +2272,10 @@ def classify_notable_development(
             "",
             matched_candidates,
         )
+    electoral_support = classify_structured_electoral_support(
+        headline_text,
+        matched_candidates,
+    )
     strict_topics: list[
         tuple[int, int, dict[str, Any], list[str]]
     ] = []
@@ -2046,6 +2287,11 @@ def classify_notable_development(
             headline_text,
             STRICT_NOTABLE_TERMS.get(topic["id"], ()),
         )
+        if topic["id"] == "candidacies_endorsements":
+            strict_matches = sorted(set([
+                *strict_matches,
+                *electoral_support["matched_terms"],
+            ]))
         if strict_matches:
             strict_topics.append(
                 (len(strict_matches), -position, topic, strict_matches)
@@ -2062,9 +2308,12 @@ def classify_notable_development(
 
     padded_text = f" {normalized_text} "
     padded_headline = f" {headline_text} "
-    has_election_context = any(
-        term in normalized_text
-        for term in ELECTION_CONTEXT_TERMS
+    has_election_context = (
+        bool(electoral_support["matched_terms"])
+        or any(
+            term in normalized_text
+            for term in ELECTION_CONTEXT_TERMS
+        )
     )
     has_presidential_context = any(
         term in normalized_text
@@ -2218,6 +2467,7 @@ def build_campaign_agenda(
                 explicit_election=bool(
                     item.get("explicit_election")
                 ),
+                matched_candidates=item.get("candidates", []),
             )
 
         if classification is None:

@@ -529,6 +529,129 @@ class RecentChangesTests(unittest.TestCase):
             for item in rejected
         ))
 
+    def test_ordinary_support_is_not_a_campaign_change(self):
+        cases = [
+            (
+                "« Ces maisons détruites, ces animaux morts, ça fait "
+                "forcément penser à des scènes de guerre » : président des "
+                "maires de France, David Lisnard est allé au soutien des "
+                "communes incendiées dans le Var",
+                ["David Lisnard"],
+            ),
+            (
+                "« Ces maisons détruites, ces animaux morts… Alors que ça "
+                "fume encore, ça fait forcément penser à des scènes de "
+                "guerre » : président des maires de France, David Lisnard "
+                "est allé au soutien des communes incendiées dans le Var",
+                ["David Lisnard"],
+            ),
+            ("David Lisnard est allé au soutien des communes incendiées", ["David Lisnard"]),
+            ("Le candidat apporte son soutien aux victimes", []),
+            ("Le président soutient les agriculteurs", []),
+            ("X soutient une réforme", ["X"]),
+            ("X apporte son soutien aux sinistrés", ["X"]),
+            ("X apporte son soutien aux policiers", ["X"]),
+            ("X apporte son soutien aux pompiers", ["X"]),
+            ("Président des maires de France, David Lisnard rencontre les élus", ["David Lisnard"]),
+            ("Les jeunes soutiens du candidat Édouard Philippe font escale à Arles", ["Édouard Philippe"]),
+            ("Le soutien de David Lisnard aux pompiers", ["David Lisnard"]),
+            ("Les élus soutenus par David Lisnard après l'incendie", ["David Lisnard"]),
+            ("François Hollande appelle à voter pour une réforme", ["François Hollande"]),
+            ("Marine Le Pen soutient les agriculteurs à l’approche de la présidentielle", ["Marine Le Pen"]),
+            ("David Lisnard apporte son soutien aux communes pendant la campagne présidentielle", ["David Lisnard"]),
+            ("Édouard Philippe soutient une réforme pour l’élection présidentielle", ["Édouard Philippe"]),
+            ("X soutient les victimes avant le second tour", ["X"]),
+            ("X se rallie aux agriculteurs avant la présidentielle", ["X"]),
+            ("X appelle à voter pour une réforme à la présidentielle", ["X"]),
+            ("X apporte son soutien à une campagne de vaccination", ["X"]),
+            ("X apporte son appui à une campagne associative avant l’élection", ["X"]),
+            ("X soutient une coalition humanitaire pendant la présidentielle", ["X"]),
+        ]
+        for headline, candidates in cases:
+            item = {
+                "headline": headline,
+                "summary": "",
+                "candidates": candidates,
+                "explicit_election": False,
+            }
+            with self.subTest(headline=headline):
+                self.assertIsNone(classify_news_change(item))
+
+    def test_structured_electoral_support_remains_a_campaign_change(self):
+        cases = [
+            ("François Hollande annonce son soutien à la candidature de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande soutient la candidature de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le parti apporte son soutien au candidat", []),
+            ("François Hollande se rallie à Raphaël Glucksmann pour la présidentielle", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande officialise son ralliement à Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande appelle à voter pour Raphaël Glucksmann au second tour", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande soutient Raphaël Glucksmann au second tour", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le soutien d'Elon Musk au RN relance la campagne de Marine Le Pen", ["Marine Le Pen"]),
+            ('"Marine Le Pen est le dernier espoir de la France": le soutien d\'Elon Musk au RN provoque des accusations d\'"ingérence étrangère"', ["Marine Le Pen"]),
+            ("Les élus RN de la région dieppoise au soutien de Marine Le Pen", ["Marine Le Pen"]),
+            ("Le soutien de François Hollande à la candidature de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le ralliement de François Hollande à Marine Le Pen", ["François Hollande", "Marine Le Pen"]),
+            ("François Hollande apporte son soutien à la campagne présidentielle de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande apporte son soutien à la campagne de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le parti apporte son soutien à la campagne du candidat", []),
+        ]
+        for headline, candidates in cases:
+            classification = classify_news_change({
+                "headline": headline,
+                "summary": "",
+                "candidates": candidates,
+                "explicit_election": False,
+            })
+            with self.subTest(headline=headline):
+                self.assertIsNotNone(classification)
+                self.assertEqual(classification[0], "campaign")
+
+    def test_nice_matin_candidate_watch_item_is_omitted_as_non_material(self):
+        item = {
+            "id": "46d9840b9e91f688480a",
+            "publisher": "Nice-Matin",
+            "published_at": "2026-07-28T04:00:01Z",
+            "headline": (
+                "« Ces maisons détruites, ces animaux morts, ça fait "
+                "forcément penser à des scènes de guerre » : président des "
+                "maires de France, David Lisnard est allé au soutien des "
+                "communes incendiées dans le Var"
+            ),
+            "summary": "",
+            "url": "https://example.test/nice-matin-wildfire",
+            "explicit_election": False,
+            "candidates": ["David Lisnard"],
+            "coverage_scope": "general",
+        }
+        diagnostics = Counter()
+        entries = news_entries(
+            {
+                "generated_at": "2026-07-28T17:59:33Z",
+                "election_news": [],
+                "notable_developments": [],
+                "candidate_watch": [item],
+            },
+            {},
+            parse_datetime("2026-07-28T17:59:41.308767Z"),
+            diagnostics,
+        )
+
+        self.assertEqual(entries, [])
+        self.assertEqual(diagnostics["omitted_news_non_material"], 1)
+        self.assertEqual(
+            diagnostics["omitted_candidate_watch_non_material"],
+            1,
+        )
+
+    def test_repository_data_omits_nice_matin_false_positive(self):
+        payload = self.compose(
+            checked_at=parse_datetime("2026-07-28T17:59:41.308767Z")
+        )
+        self.assertNotIn(
+            "campaign-46d9840b9e91f688480a",
+            {item["id"] for item in payload["items"]},
+        )
+
     def test_headline_first_change_classifier_accepts_required_events(self):
         accepted = [
             (
