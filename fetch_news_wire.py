@@ -2889,17 +2889,21 @@ def inventory_entry(item: dict[str, Any]) -> dict[str, Any]:
 def revalidate_retained_inventory_scope(
     item: dict[str, Any],
 ) -> dict[str, Any]:
-    """Apply current scope exclusions to retained inventory provenance."""
+    """Refresh retained relevance while preserving factual provenance."""
 
     refreshed = dict(item)
-
-    if unanchored_presidential_context(
+    relevance = classify_relevant_news(
         refreshed.get("headline"),
         refreshed.get("summary"),
         refreshed.get("candidate_names"),
-    ):
-        refreshed["relevance_reason"] = None
-        refreshed["relevance_terms"] = []
+        refreshed.get("candidate_matches"),
+    )
+    refreshed["relevance_reason"] = (
+        relevance["reason"] if relevance is not None else None
+    )
+    refreshed["relevance_terms"] = (
+        relevance["matched_terms"] if relevance is not None else []
+    )
 
     return refreshed
 
