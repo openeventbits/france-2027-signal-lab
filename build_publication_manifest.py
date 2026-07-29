@@ -27,6 +27,7 @@ SCHEMA_VERSION = "1.0"
 OUTPUT_NAME = "publication_manifest.json"
 TIMESTAMP_STATUSES = {"known", "unknown", "missing", "invalid"}
 LANE_FILES = {
+    "candidate_signals": ("candidate_signals.json",),
     "claims": ("claims_under_scrutiny.json",),
     "news": ("news_wire.json",),
     "polls": ("polls.json",),
@@ -124,6 +125,306 @@ def _schema_version(payload: Any) -> Any:
     return None
 
 
+def _calendar_date(value: Any, *, field: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ManifestError(f"{field} must be a valid calendar date")
+    try:
+        parsed = datetime.strptime(value.strip(), "%Y-%m-%d")
+    except ValueError as error:
+        raise ManifestError(
+            f"{field} must be a valid calendar date"
+        ) from error
+    return parsed.date().isoformat()
+
+
+def _required_object(
+    value: Any,
+    *,
+    field: str,
+    keys: set[str],
+) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) != keys:
+        raise ManifestError(f"{field} has an invalid structure")
+    return value
+
+
+def _required_text(value: Any, *, field: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ManifestError(f"{field} must be non-empty text")
+    return value.strip()
+
+
+def _required_count(value: Any, *, field: str) -> int:
+    if (
+        not isinstance(value, int)
+        or isinstance(value, bool)
+        or value < 0
+    ):
+        raise ManifestError(f"{field} must be a non-negative integer")
+    return value
+
+
+def _validate_candidate_signals_public(payload: Any) -> int:
+    value = _required_object(
+        payload,
+        field="candidate_signals",
+        keys={
+            "schema_version",
+            "candidate_universe",
+            "featured_polling_package",
+            "visibility",
+            "scrutiny_window",
+            "evidence_dates",
+            "candidates",
+        },
+    )
+    if value["schema_version"] != "1.0":
+        raise ManifestError(
+            "candidate_signals.schema_version must equal 1.0"
+        )
+
+    universe = _required_object(
+        value["candidate_universe"],
+        field="candidate_signals.candidate_universe",
+        keys={"rule", "as_of_date", "cutoff_date", "count"},
+    )
+    _required_text(
+        universe["rule"],
+        field="candidate_signals.candidate_universe.rule",
+    )
+    as_of_date = _calendar_date(
+        universe["as_of_date"],
+        field="candidate_signals.candidate_universe.as_of_date",
+    )
+    cutoff_date = _calendar_date(
+        universe["cutoff_date"],
+        field="candidate_signals.candidate_universe.cutoff_date",
+    )
+    if cutoff_date > as_of_date:
+        raise ManifestError(
+            "candidate_signals.candidate_universe cutoff follows as-of date"
+        )
+    candidate_count = _required_count(
+        universe["count"],
+        field="candidate_signals.candidate_universe.count",
+    )
+
+    featured = _required_object(
+        value["featured_polling_package"],
+        field="candidate_signals.featured_polling_package",
+        keys={
+            "package_key",
+            "pollster",
+            "fieldwork_start",
+            "fieldwork_end",
+            "sample_size",
+            "hypothesis_count",
+            "selected_hypothesis_event_id",
+            "source_urls",
+        },
+    )
+    for field in (
+        "package_key",
+        "pollster",
+        "selected_hypothesis_event_id",
+    ):
+        _required_text(
+            featured[field],
+            field=f"candidate_signals.featured_polling_package.{field}",
+        )
+    featured_start = _calendar_date(
+        featured["fieldwork_start"],
+        field="candidate_signals.featured_polling_package.fieldwork_start",
+    )
+    featured_end = _calendar_date(
+        featured["fieldwork_end"],
+        field="candidate_signals.featured_polling_package.fieldwork_end",
+    )
+    if featured_start > featured_end:
+        raise ManifestError(
+            "candidate_signals.featured_polling_package dates are reversed"
+        )
+    if featured["sample_size"] is not None:
+        _required_count(
+            featured["sample_size"],
+            field="candidate_signals.featured_polling_package.sample_size",
+        )
+    if _required_count(
+        featured["hypothesis_count"],
+        field=(
+            "candidate_signals.featured_polling_package.hypothesis_count"
+        ),
+    ) == 0:
+        raise ManifestError(
+            "candidate_signals.featured_polling_package must have hypotheses"
+        )
+    source_urls = featured["source_urls"]
+    if (
+        not isinstance(source_urls, list)
+        or not source_urls
+        or any(
+            not isinstance(url, str) or not url.strip()
+            for url in source_urls
+        )
+        or len(source_urls) != len(set(source_urls))
+    ):
+        raise ManifestError(
+            "candidate_signals featured source_urls are invalid"
+        )
+
+    visibility = _required_object(
+        value["visibility"],
+        field="candidate_signals.visibility",
+        keys={
+            "method",
+            "primary_scopes",
+            "secondary_scope",
+            "current_period",
+            "general_current_period",
+            "comparison_quality",
+        },
+    )
+    _required_text(
+        visibility["method"],
+        field="candidate_signals.visibility.method",
+    )
+    primary_scopes = visibility["primary_scopes"]
+    if (
+        not isinstance(primary_scopes, list)
+        or not primary_scopes
+        or any(
+            not isinstance(scope, str) or not scope.strip()
+            for scope in primary_scopes
+        )
+        or len(primary_scopes) != len(set(primary_scopes))
+    ):
+        raise ManifestError(
+            "candidate_signals.visibility.primary_scopes is invalid"
+        )
+    _required_text(
+        visibility["secondary_scope"],
+        field="candidate_signals.visibility.secondary_scope",
+    )
+    for period_name in ("current_period", "general_current_period"):
+        period = _required_object(
+            visibility[period_name],
+            field=f"candidate_signals.visibility.{period_name}",
+            keys={
+                "start_date",
+                "end_date",
+                "record_count",
+                "publisher_count",
+            },
+        )
+        period_start = _calendar_date(
+            period["start_date"],
+            field=(
+                f"candidate_signals.visibility.{period_name}.start_date"
+            ),
+        )
+        period_end = _calendar_date(
+            period["end_date"],
+            field=f"candidate_signals.visibility.{period_name}.end_date",
+        )
+        if period_start > period_end:
+            raise ManifestError(
+                f"candidate_signals.visibility.{period_name} dates "
+                "are reversed"
+            )
+        for count_name in ("record_count", "publisher_count"):
+            _required_count(
+                period[count_name],
+                field=(
+                    f"candidate_signals.visibility.{period_name}."
+                    f"{count_name}"
+                ),
+            )
+    comparison_quality = visibility["comparison_quality"]
+    if not isinstance(comparison_quality, dict):
+        raise ManifestError(
+            "candidate_signals.visibility.comparison_quality "
+            "must be an object"
+        )
+    _required_text(
+        comparison_quality.get("status"),
+        field="candidate_signals.visibility.comparison_quality.status",
+    )
+
+    scrutiny = _required_object(
+        value["scrutiny_window"],
+        field="candidate_signals.scrutiny_window",
+        keys={
+            "latest_days",
+            "latest_start_date",
+            "latest_end_date",
+            "archive_window_days",
+        },
+    )
+    if _required_count(
+        scrutiny["latest_days"],
+        field="candidate_signals.scrutiny_window.latest_days",
+    ) == 0:
+        raise ManifestError(
+            "candidate_signals.scrutiny_window.latest_days must be positive"
+        )
+    scrutiny_start = _calendar_date(
+        scrutiny["latest_start_date"],
+        field="candidate_signals.scrutiny_window.latest_start_date",
+    )
+    scrutiny_end = _calendar_date(
+        scrutiny["latest_end_date"],
+        field="candidate_signals.scrutiny_window.latest_end_date",
+    )
+    if scrutiny_start > scrutiny_end:
+        raise ManifestError(
+            "candidate_signals.scrutiny_window dates are reversed"
+        )
+    _required_count(
+        scrutiny["archive_window_days"],
+        field="candidate_signals.scrutiny_window.archive_window_days",
+    )
+
+    evidence_dates = _required_object(
+        value["evidence_dates"],
+        field="candidate_signals.evidence_dates",
+        keys={"polling", "news", "scrutiny"},
+    )
+    for field in ("polling", "news"):
+        _calendar_date(
+            evidence_dates[field],
+            field=f"candidate_signals.evidence_dates.{field}",
+        )
+    if evidence_dates["scrutiny"] is not None:
+        _calendar_date(
+            evidence_dates["scrutiny"],
+            field="candidate_signals.evidence_dates.scrutiny",
+        )
+
+    candidates = value["candidates"]
+    if not isinstance(candidates, list):
+        raise ManifestError("candidate_signals.candidates must be an array")
+    if candidate_count != len(candidates):
+        raise ManifestError(
+            "candidate_signals candidate count does not match candidates"
+        )
+    candidate_ids: set[str] = set()
+    for index, candidate in enumerate(candidates):
+        if not isinstance(candidate, dict):
+            raise ManifestError(
+                f"candidate_signals.candidates[{index}] must be an object"
+            )
+        candidate_id = _required_text(
+            candidate.get("candidate_id"),
+            field=f"candidate_signals.candidates[{index}].candidate_id",
+        )
+        if candidate_id in candidate_ids:
+            raise ManifestError(
+                "candidate_signals candidate IDs must be unique"
+            )
+        candidate_ids.add(candidate_id)
+    return candidate_count
+
+
 def _parse_evidence_value(value: Any) -> tuple[datetime, str] | None:
     if not isinstance(value, str) or not value.strip():
         return None
@@ -209,6 +510,9 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
         return False
 
     payload = sources[0]["payload"]
+    if lane_name == "candidate_signals":
+        _validate_candidate_signals_public(payload)
+        return True
     if lane_name == "polls":
         return isinstance(payload, list) and all(
             isinstance(item, dict) for item in payload
@@ -239,6 +543,16 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
 
 
 def _evidence_values(lane_name: str, payload: Any) -> list[Any]:
+    if lane_name == "candidate_signals":
+        evidence_dates = payload["evidence_dates"]
+        return [
+            evidence_dates["polling"],
+            evidence_dates["news"],
+        ] + (
+            [evidence_dates["scrutiny"]]
+            if evidence_dates["scrutiny"] is not None
+            else []
+        )
     if lane_name == "polls":
         return [item.get("fieldwork_end") for item in payload]
     if lane_name == "runoff":
@@ -284,6 +598,10 @@ def _build_lane(
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     file_names = LANE_FILES[lane_name]
     sources = [_read_source(root / file_name) for file_name in file_names]
+    if lane_name == "candidate_signals":
+        source_error = sources[0]["error"]
+        if source_error is not None:
+            raise ManifestError(source_error)
     lane_warnings = [
         source["error"] for source in sources if source["error"] is not None
     ]
@@ -342,6 +660,10 @@ def _build_lane(
             lane_warnings.append(
                 f"{lane_name}: no valid lane-local evidence date is available"
             )
+        if lane_name == "candidate_signals":
+            lane["record_count"] = primary["payload"][
+                "candidate_universe"
+            ]["count"]
 
     return lane, sources
 
@@ -521,6 +843,11 @@ def validate_manifest(manifest: Any) -> None:
             )
         if not isinstance(lane["warnings"], list):
             raise ManifestError(f"{lane_name} warnings must be an array")
+        if lane_name == "candidate_signals":
+            _required_count(
+                lane.get("record_count"),
+                field="candidate_signals lane record_count",
+            )
 
     network = manifest.get("source_network")
     if not isinstance(network, dict) or set(network) != set(
