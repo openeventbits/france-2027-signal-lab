@@ -629,20 +629,58 @@ jobs:
           )
           PY
 
-      - name: Rebuild and validate publication manifest
-        if: steps.promote.outputs.changed == 'true'
+      - name: Rebuild Candidate Signals
+        id: candidate_signals
         shell: bash
         run: |
-          published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          set -euo pipefail
+
+          python -B build_candidate_signals.py
+
+          if git diff --quiet -- candidate_signals.json \
+            && git ls-files --error-unmatch \
+              candidate_signals.json >/dev/null 2>&1
+          then
+            echo "candidate_signals_changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "candidate_signals_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Rebuild and validate publication manifest
+        id: publication_manifest
+        env:
+          SOURCE_CHANGED: ${{ steps.promote.outputs.changed }}
+          CANDIDATE_SIGNALS_CHANGED: ${{ steps.candidate_signals.outputs.candidate_signals_changed }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "$SOURCE_CHANGED" == "true" || "$CANDIDATE_SIGNALS_CHANGED" == "true" ]]; then
+            published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          elif published_at="$(python -c 'import json; from build_publication_manifest import _utc_timestamp; print(_utc_timestamp(json.load(open("publication_manifest.json", encoding="utf-8")).get("published_at"), field="published_at"))' 2>/dev/null)"; then
+            :
+          else
+            published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          fi
+
           python -B build_publication_manifest.py \
             --published-at "$published_at"
           python -B build_publication_manifest.py \
             --check \
             --published-at "$published_at"
 
+          if git diff --quiet -- publication_manifest.json \
+            && git ls-files --error-unmatch \
+              publication_manifest.json >/dev/null 2>&1
+          then
+            echo "publication_manifest_changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publication_manifest_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Commit changed rolling news data
         id: commit
-        if: steps.promote.outputs.changed == 'true' || steps.icons.outputs.changed == 'true'
+        if: steps.promote.outputs.changed == 'true' || steps.icons.outputs.changed == 'true' || steps.candidate_signals.outputs.candidate_signals_changed == 'true' || steps.publication_manifest.outputs.publication_manifest_changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -656,6 +694,7 @@ jobs:
             news_wire.json \
             recent_changes.json \
             source_health.json \
+            candidate_signals.json \
             publication_manifest.json \
             source_icons.json \
             assets/source-icons
@@ -680,6 +719,32 @@ jobs:
 
           git fetch origin "$target_branch"
           git rebase "origin/$target_branch"
+
+          post_rebase_published_at="$(python -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
+          python -B build_candidate_signals.py
+          python -B build_publication_manifest.py \
+            --published-at "$post_rebase_published_at"
+
+          if ! git diff --quiet -- \
+            candidate_signals.json publication_manifest.json
+          then
+            post_rebase_published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            python -B build_publication_manifest.py \
+              --published-at "$post_rebase_published_at"
+            git add -- \
+              candidate_signals.json publication_manifest.json
+            git commit --amend --no-edit
+          fi
+
+          final_published_at="$(python -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
+          python -B build_candidate_signals.py
+          python -B build_publication_manifest.py \
+            --published-at "$final_published_at"
+          python -B build_publication_manifest.py \
+            --check \
+            --published-at "$final_published_at"
+          git diff --exit-code -- \
+            candidate_signals.json publication_manifest.json
           git push origin "HEAD:$target_branch"
 
           echo "changed=true" >> "$GITHUB_OUTPUT"

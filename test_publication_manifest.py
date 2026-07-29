@@ -1,3 +1,4 @@
+import hashlib
 import json
 import shutil
 import unittest
@@ -20,7 +21,65 @@ def write_json(root, name, payload):
     )
 
 
+def candidate_signals_payload():
+    return {
+        "schema_version": "1.0",
+        "candidate_universe": {
+            "rule": "Accepted first-round polling",
+            "as_of_date": "2026-07-24",
+            "cutoff_date": "2026-01-22",
+            "count": 2,
+        },
+        "featured_polling_package": {
+            "package_key": "fixture-package",
+            "pollster": "Fixture Pollster",
+            "fieldwork_start": "2026-07-09",
+            "fieldwork_end": "2026-07-10",
+            "sample_size": 1000,
+            "hypothesis_count": 2,
+            "selected_hypothesis_event_id": "event-a",
+            "source_urls": ["https://example.test/poll"],
+        },
+        "visibility": {
+            "method": "share_of_candidate_linked_records",
+            "primary_scopes": ["election", "campaign"],
+            "secondary_scope": "general",
+            "current_period": {
+                "start_date": "2026-07-18",
+                "end_date": "2026-07-24",
+                "record_count": 12,
+                "publisher_count": 6,
+            },
+            "general_current_period": {
+                "start_date": "2026-07-18",
+                "end_date": "2026-07-24",
+                "record_count": 4,
+                "publisher_count": 3,
+            },
+            "comparison_quality": {
+                "status": "comparable",
+            },
+        },
+        "scrutiny_window": {
+            "latest_days": 14,
+            "latest_start_date": "2026-07-04",
+            "latest_end_date": "2026-07-17",
+            "archive_window_days": 365,
+        },
+        "evidence_dates": {
+            "polling": "2026-07-10",
+            "news": "2026-07-24",
+            "scrutiny": "2026-07-17",
+        },
+        "candidates": [
+            {"candidate_id": "candidate-a"},
+            {"candidate_id": "candidate-b"},
+        ],
+    }
+
+
 def complete_inputs(root):
+    write_json(root, "candidate_signals.json", candidate_signals_payload())
     write_json(
         root,
         "polls.json",
@@ -168,9 +227,17 @@ class PublicationManifestTests(unittest.TestCase):
             published_at=published_at,
         )
 
+    def candidate_payload(self):
+        return json.loads(
+            (self.root / "candidate_signals.json").read_text(
+                encoding="utf-8"
+            )
+        )
+
     def test_deterministic_snapshot_id(self):
         first = self.build()
         second = self.build()
+        self.assertEqual(first, second)
         self.assertEqual(first["snapshot_id"], second["snapshot_id"])
         self.assertRegex(first["snapshot_id"], r"^[0-9a-f]{64}$")
 
@@ -187,6 +254,7 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertEqual(
             set(manifest["lanes"]),
             {
+                "candidate_signals",
                 "polls",
                 "runoff",
                 "news",
@@ -200,6 +268,104 @@ class PublicationManifestTests(unittest.TestCase):
             self.assertTrue(lane["available"])
             self.assertTrue(lane["valid"])
             self.assertRegex(lane["sha256"], r"^[0-9a-f]{64}$")
+
+
+    def test_candidate_signals_lane_metadata(self):
+        manifest = self.build()
+        lane = manifest["lanes"]["candidate_signals"]
+        source = self.root / "candidate_signals.json"
+        self.assertEqual(lane["file"], "candidate_signals.json")
+        self.assertEqual(
+            lane["sha256"],
+            hashlib.sha256(source.read_bytes()).hexdigest(),
+        )
+        self.assertEqual(lane["record_count"], 2)
+        self.assertEqual(lane["data_as_of"], "2026-07-24")
+
+    def test_missing_candidate_signals_fails(self):
+        (self.root / "candidate_signals.json").unlink()
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "candidate_signals.json is missing",
+        ):
+            self.build()
+
+    def test_malformed_candidate_signals_json_fails(self):
+        (self.root / "candidate_signals.json").write_text(
+            "{not json",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "malformed JSON",
+        ):
+            self.build()
+
+    def test_malformed_candidate_signals_structure_fails(self):
+        payload = self.candidate_payload()
+        payload["visibility"] = []
+        write_json(self.root, "candidate_signals.json", payload)
+        with self.assertRaises(manifest_builder.ManifestError):
+            self.build()
+
+    def test_duplicate_candidate_ids_fail(self):
+        payload = self.candidate_payload()
+        payload["candidates"][1]["candidate_id"] = "candidate-a"
+        write_json(self.root, "candidate_signals.json", payload)
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "candidate IDs must be unique",
+        ):
+            self.build()
+
+    def test_candidate_count_mismatch_fails(self):
+        payload = self.candidate_payload()
+        payload["candidate_universe"]["count"] = 3
+        write_json(self.root, "candidate_signals.json", payload)
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "candidate count does not match",
+        ):
+            self.build()
+
+    def test_invalid_candidate_evidence_date_fails(self):
+        payload = self.candidate_payload()
+        payload["evidence_dates"]["news"] = "2026-02-30"
+        write_json(self.root, "candidate_signals.json", payload)
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "evidence_dates.news must be a valid calendar date",
+        ):
+            self.build()
+
+    def test_candidate_evidence_date_uses_latest_non_null_date(self):
+        payload = self.candidate_payload()
+        payload["evidence_dates"] = {
+            "polling": "2026-07-20",
+            "news": "2026-07-22",
+            "scrutiny": "2026-07-21",
+        }
+        write_json(self.root, "candidate_signals.json", payload)
+        self.assertEqual(
+            self.build()["lanes"]["candidate_signals"]["data_as_of"],
+            "2026-07-22",
+        )
+
+    def test_null_scrutiny_evidence_date_is_valid(self):
+        payload = self.candidate_payload()
+        payload["evidence_dates"]["scrutiny"] = None
+        write_json(self.root, "candidate_signals.json", payload)
+        lane = self.build()["lanes"]["candidate_signals"]
+        self.assertTrue(lane["valid"])
+        self.assertEqual(lane["data_as_of"], "2026-07-24")
+        self.assertEqual(lane["warnings"], [])
+
+    def test_candidate_signals_change_changes_snapshot_id(self):
+        first = self.build()["snapshot_id"]
+        payload = self.candidate_payload()
+        payload["candidate_universe"]["rule"] = "Changed fixture rule"
+        write_json(self.root, "candidate_signals.json", payload)
+        self.assertNotEqual(first, self.build()["snapshot_id"])
 
     def test_missing_lane_completes_with_warning(self):
         (self.root / "news_wire.json").unlink()

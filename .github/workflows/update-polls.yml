@@ -307,6 +307,23 @@ jobs:
           )
           PY
 
+      - name: Rebuild Candidate Signals
+        id: candidate_signals
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -B build_candidate_signals.py
+
+          if git diff --quiet -- candidate_signals.json \
+            && git ls-files --error-unmatch \
+              candidate_signals.json >/dev/null 2>&1
+          then
+            echo "candidate_signals_changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "candidate_signals_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Regenerate Recent Changes Ledger
         if: steps.validate.outputs.changed == 'true'
         run: |
@@ -319,24 +336,49 @@ jobs:
             --output recent_changes.json
 
       - name: Rebuild and validate publication manifest
-        if: steps.validate.outputs.changed == 'true'
+        id: publication_manifest
+        env:
+          SOURCE_CHANGED: ${{ steps.validate.outputs.changed }}
+          CANDIDATE_SIGNALS_CHANGED: ${{ steps.candidate_signals.outputs.candidate_signals_changed }}
         shell: bash
         run: |
-          published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          set -euo pipefail
+
+          if [[ "$SOURCE_CHANGED" == "true" || "$CANDIDATE_SIGNALS_CHANGED" == "true" ]]; then
+            published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          elif published_at="$(python -c 'import json; from build_publication_manifest import _utc_timestamp; print(_utc_timestamp(json.load(open("publication_manifest.json", encoding="utf-8")).get("published_at"), field="published_at"))' 2>/dev/null)"; then
+            :
+          else
+            published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          fi
+
           python -B build_publication_manifest.py \
             --published-at "$published_at"
           python -B build_publication_manifest.py \
             --check \
             --published-at "$published_at"
 
+          if git diff --quiet -- publication_manifest.json \
+            && git ls-files --error-unmatch \
+              publication_manifest.json >/dev/null 2>&1
+          then
+            echo "publication_manifest_changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publication_manifest_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Commit changed poll data
         id: commit
         env:
           POLL_DATA_CHANGED: ${{ steps.validate.outputs.changed }}
+          CANDIDATE_SIGNALS_CHANGED: ${{ steps.candidate_signals.outputs.candidate_signals_changed }}
+          PUBLICATION_MANIFEST_CHANGED: ${{ steps.publication_manifest.outputs.publication_manifest_changed }}
         shell: bash
         run: |
-          if [ "$POLL_DATA_CHANGED" != "true" ]; then
-            echo "No poll changes detected."
+          set -euo pipefail
+
+          if [[ "$POLL_DATA_CHANGED" != "true" && "$CANDIDATE_SIGNALS_CHANGED" != "true" && "$PUBLICATION_MANIFEST_CHANGED" != "true" ]]; then
+            echo "No poll or derived publication changes detected."
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -348,8 +390,20 @@ jobs:
           git add -- \
             polls.json second_round_polls.json closest_tested_runoff.json \
             commission_notice_registry.json \
-            recent_changes.json publication_manifest.json
+            recent_changes.json candidate_signals.json \
+            publication_manifest.json
           git commit -m "Update polls data"
+
+          published_at="$(python -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
+          python -B build_candidate_signals.py
+          python -B build_publication_manifest.py \
+            --published-at "$published_at"
+          python -B build_publication_manifest.py \
+            --check \
+            --published-at "$published_at"
+          git diff --exit-code -- \
+            candidate_signals.json publication_manifest.json
+
           git push origin HEAD:main
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
