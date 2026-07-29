@@ -1884,9 +1884,19 @@ class NewsWireRelevanceTests(unittest.TestCase):
 
     def test_inventory_retains_article_after_it_leaves_the_feed(self):
         first_run = datetime(2026, 7, 22, 10, tzinfo=timezone.utc)
+        entry = self.inventory_entry(first_run - timedelta(days=2))
+        relevance = classify_relevant_news(
+            normalize(entry["headline"]),
+            normalize(entry["summary"]),
+            entry["candidate_names"],
+            entry["candidate_matches"],
+        )
+        self.assertIsNotNone(relevance)
+        entry["relevance_reason"] = relevance["reason"]
+        entry["relevance_terms"] = relevance["matched_terms"]
         first, _entries, stats = merge_inventory(
             {"schema_version": 3, "generated_at": None, "window_days": 30, "items": []},
-            [self.inventory_entry(first_run - timedelta(days=2))],
+            [entry],
             first_run,
             30,
         )
@@ -1980,6 +1990,401 @@ class NewsWireRelevanceTests(unittest.TestCase):
             entries[0]["relevance_terms"],
             ["presidentielle"],
         )
+
+    def retained_semantic_entry(
+        self,
+        published_at,
+        slug,
+        headline,
+        summary,
+        candidates,
+        relevance=None,
+        source=None,
+    ):
+        item = self.inventory_entry(
+            published_at,
+            headline=headline,
+            summary=summary,
+        )
+        if source is not None:
+            item.update(
+                {
+                    "source_id": source["source_id"],
+                    "publisher": source["name"],
+                    "feed_url": source["feed_url"],
+                }
+            )
+        item["url"] = f"https://example.test/{slug}"
+        item["canonical_url"] = item["url"]
+        item["candidate_matches"] = match_news_candidates(
+            headline,
+            summary,
+            candidates,
+        )
+        item["candidate_names"] = candidate_names_from_matches(
+            item["candidate_matches"]
+        )
+        if relevance is None:
+            relevance = classify_relevant_news(
+                normalize(headline),
+                normalize(summary),
+                item["candidate_names"],
+                item["candidate_matches"],
+            )
+            self.assertIsNotNone(relevance)
+        item["relevance_reason"] = relevance["reason"]
+        item["relevance_terms"] = list(relevance["matched_terms"])
+        return item
+
+    def test_current_inventory_reclassifies_relevance_without_provenance_churn(self):
+        generated_at = datetime(2026, 7, 28, 8, tzinfo=timezone.utc)
+        stale = self.retained_semantic_entry(
+            generated_at - timedelta(hours=2),
+            "retained-support",
+            (
+                "David Lisnard est allé au soutien des communes "
+                "incendiées dans le Var"
+            ),
+            "Une visite auprès des sinistrés.",
+            ["David Lisnard"],
+            {
+                "reason": "campaign_or_selection_context",
+                "matched_terms": ["soutien"],
+            },
+        )
+        endorsement = self.retained_semantic_entry(
+            generated_at - timedelta(hours=2),
+            "retained-endorsement",
+            (
+                "François Hollande annonce son soutien à la candidature "
+                "de Raphaël Glucksmann"
+            ),
+            "Un choix annoncé publiquement.",
+            ["François Hollande", "Raphaël Glucksmann"],
+        )
+        summary_confirmed = self.retained_semantic_entry(
+            generated_at - timedelta(hours=2),
+            "retained-summary-context",
+            "Le Parti socialiste précise son calendrier interne",
+            (
+                "La primaire doit désigner son candidat à l'élection "
+                "présidentielle de 2027."
+            ),
+            [],
+        )
+        previous, _entries, _stats = merge_inventory(
+            {
+                "schema_version": INVENTORY_SCHEMA_VERSION,
+                "generated_at": None,
+                "window_days": 30,
+                "items": [],
+            },
+            [stale, endorsement, summary_confirmed],
+            generated_at,
+            30,
+        )
+        before = {
+            item["canonical_url"]: copy.deepcopy(item)
+            for item in previous["items"]
+        }
+        refreshed, entries, stats = merge_inventory(
+            previous,
+            [],
+            generated_at + timedelta(hours=1),
+            30,
+        )
+        after = {item["canonical_url"]: item for item in refreshed["items"]}
+        stale_item = after[stale["canonical_url"]]
+
+        self.assertEqual(stats["retained_inventory_items"], 3)
+        self.assertEqual(
+            {item["id"] for item in refreshed["items"]},
+            {item["id"] for item in previous["items"]},
+        )
+        self.assertIsNone(stale_item["relevance_reason"])
+        self.assertEqual(stale_item["relevance_terms"], [])
+        for field, value in before[stale["canonical_url"]].items():
+            if field not in {"relevance_reason", "relevance_terms"}:
+                self.assertEqual(stale_item[field], value, field)
+        self.assertEqual(
+            after[endorsement["canonical_url"]]["relevance_reason"],
+            "campaign_or_selection_context",
+        )
+        self.assertIn(
+            "electoral_support",
+            after[endorsement["canonical_url"]]["relevance_terms"],
+        )
+        self.assertEqual(
+            after[summary_confirmed["canonical_url"]]["relevance_reason"],
+            "summary_confirmed_presidential_context",
+        )
+        self.assertEqual(len(entries), 3)
+
+        second, second_entries, second_stats = merge_inventory(
+            refreshed,
+            [],
+            generated_at + timedelta(hours=2),
+            30,
+        )
+        self.assertEqual(second, refreshed)
+        self.assertEqual(second_entries, entries)
+        self.assertEqual(second_stats["refreshed_inventory_items"], 0)
+        self.assertEqual(
+            [
+                (item["id"], item["first_seen_at"], item["last_seen_at"])
+                for item in second["items"]
+            ],
+            [
+                (item["id"], item["first_seen_at"], item["last_seen_at"])
+                for item in refreshed["items"]
+            ],
+        )
+
+    def test_build_wire_refreshes_retained_semantics_and_keeps_full_input_override(self):
+        generated_at = datetime(2026, 7, 28, 12, tzinfo=timezone.utc)
+        source = {
+            "source_id": "retained-test-source",
+            "name": "Retained Test Source",
+            "feed_url": "https://example.test/rss",
+            "politics_specific": True,
+        }
+        sources = [
+            {
+                **source,
+                "source_id": f"retained-test-source-{index}",
+                "feed_url": f"https://example.test/rss-{index}",
+            }
+            for index in range(4)
+        ]
+        source = sources[0]
+        stale_headline = (
+            "David Lisnard est allé au soutien des communes incendiées "
+            "dans le Var"
+        )
+        stale_summary = "Une visite auprès des sinistrés."
+        stale = self.retained_semantic_entry(
+            generated_at - timedelta(hours=3),
+            "stale-support",
+            stale_headline,
+            stale_summary,
+            ["David Lisnard"],
+            {
+                "reason": "campaign_or_selection_context",
+                "matched_terms": ["soutien"],
+            },
+            source,
+        )
+        self.assertIsNone(
+            classify_relevant_news(
+                normalize(stale_headline),
+                normalize(stale_summary),
+                stale["candidate_names"],
+                stale["candidate_matches"],
+            )
+        )
+        endorsement = self.retained_semantic_entry(
+            generated_at - timedelta(hours=3),
+            "genuine-endorsement",
+            (
+                "François Hollande annonce son soutien à la candidature "
+                "de Raphaël Glucksmann"
+            ),
+            "Un choix annoncé publiquement.",
+            ["François Hollande", "Raphaël Glucksmann"],
+            source=source,
+        )
+        summary_control = self.retained_semantic_entry(
+            generated_at - timedelta(hours=3),
+            "summary-confirmed",
+            "Le Parti socialiste confirme son calendrier",
+            (
+                "La primaire doit désigner son candidat à l'élection "
+                "présidentielle de 2027."
+            ),
+            [],
+            source=source,
+        )
+        override_headline = "Le Parti socialiste publie son calendrier"
+        compact_summary = "x" * 1000
+        full_summary = (
+            ("x" * 1200)
+            + " La primaire doit désigner son candidat à l'élection "
+            + "présidentielle de 2027."
+        )
+        override_relevance = classify_relevant_news(
+            normalize(override_headline),
+            normalize(full_summary),
+            [],
+            [],
+        )
+        self.assertIsNotNone(override_relevance)
+        self.assertIsNone(
+            classify_relevant_news(
+                normalize(override_headline),
+                normalize(compact_summary),
+                [],
+                [],
+            )
+        )
+        override = self.retained_semantic_entry(
+            generated_at - timedelta(hours=3),
+            "full-input-override",
+            override_headline,
+            compact_summary,
+            [],
+            override_relevance,
+            source,
+        )
+        previous, _entries, _stats = merge_inventory(
+            {
+                "schema_version": INVENTORY_SCHEMA_VERSION,
+                "generated_at": None,
+                "window_days": 30,
+                "items": [],
+            },
+            [stale, endorsement, summary_control, override],
+            generated_at - timedelta(hours=1),
+            30,
+        )
+        previous_ids = {item["id"] for item in previous["items"]}
+        current_feed = f"""<?xml version='1.0' encoding='UTF-8'?>
+        <rss version='2.0'><channel><item>
+          <title>{override_headline}</title>
+          <link>{override['url']}</link>
+          <pubDate>{format_datetime(generated_at - timedelta(hours=2))}</pubDate>
+          <description>{full_summary}</description>
+        </item></channel></rss>""".encode("utf-8")
+
+        with tempfile.TemporaryDirectory() as directory:
+            polls_path = Path(directory) / "polls.json"
+            polls_path.write_text(
+                json.dumps(
+                    {
+                        "events": [{
+                            "round": "first_round",
+                            "fieldwork_end": "2026-07-28",
+                            "candidates": [
+                                {"name": "David Lisnard"},
+                                {"name": "François Hollande"},
+                                {"name": "Raphaël Glucksmann"},
+                            ],
+                        }]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            inventory_path = Path(directory) / "inventory.json"
+            inventory_path.write_text(json.dumps(previous), encoding="utf-8")
+            with (
+                patch("fetch_news_wire.SOURCES", sources),
+                patch(
+                    "fetch_news_wire.PUBLISHER_POLICY",
+                    {
+                        "example.test": {
+                            "name": source["name"],
+                            "source_type": "media",
+                            "enabled": True,
+                        }
+                    },
+                ),
+                patch(
+                    "fetch_news_wire.generate_discovery_queries",
+                    return_value=[{
+                        "id": "retained-test-discovery",
+                        "label": "Retained test discovery",
+                        "query": "presidentielle 2027",
+                        "kind": "static",
+                        "feed_url": (
+                            "https://news.google.com/rss/search?"
+                            "q=presidentielle+2027"
+                        ),
+                    }],
+                ),
+                patch(
+                    "fetch_news_wire.generate_publisher_site_feeds",
+                    return_value=[{
+                        "id": "publisher-site:example.test",
+                        "label": "Retained test publisher site",
+                        "publisher": source["name"],
+                        "domain": "example.test",
+                        "tier": "core",
+                        "query": "site:example.test presidentielle 2027",
+                        "feed_url": (
+                            "https://news.google.com/rss/search?"
+                            "q=site%3Aexample.test+presidentielle+2027"
+                        ),
+                        "interval_hours": 1,
+                        "slot": 0,
+                    }],
+                ),
+                patch(
+                    "fetch_news_wire.fetch_news_route",
+                    side_effect=lambda url, **_kwargs: successful_fetch(
+                        current_feed, url
+                    ),
+                ),
+            ):
+                payload, inventory = build_wire(
+                    polls_path,
+                    30,
+                    0,
+                    inventory_path,
+                    generated_at=generated_at,
+                )
+
+        inventory_by_url = {
+            item["canonical_url"]: item for item in inventory["items"]
+        }
+        self.assertEqual(
+            {item["id"] for item in inventory["items"]}, previous_ids
+        )
+        stale_inventory = inventory_by_url[stale["canonical_url"]]
+        self.assertIsNone(stale_inventory["relevance_reason"])
+        self.assertEqual(stale_inventory["relevance_terms"], [])
+        self.assertEqual(
+            stale_inventory["candidate_matches"], stale["candidate_matches"]
+        )
+        relevant_ids = {item["id"] for item in payload["relevant_news"]}
+        watch_by_id = {
+            item["id"]: item for item in payload["candidate_watch"]
+        }
+        self.assertNotIn(stale_inventory["id"], relevant_ids)
+        self.assertEqual(
+            watch_by_id[stale_inventory["id"]]["coverage_scope"], "general"
+        )
+        self.assertNotIn(
+            stale_inventory["id"],
+            {item["id"] for item in payload["election_news"]},
+        )
+        self.assertNotIn(
+            stale_inventory["id"],
+            {item["id"] for item in payload["notable_developments"]},
+        )
+        endorsement_inventory = inventory_by_url[endorsement["canonical_url"]]
+        self.assertIn(endorsement_inventory["id"], relevant_ids)
+        self.assertEqual(
+            watch_by_id[endorsement_inventory["id"]]["coverage_scope"],
+            "campaign",
+        )
+        self.assertIn(
+            inventory_by_url[summary_control["canonical_url"]]["id"],
+            relevant_ids,
+        )
+        override_inventory = inventory_by_url[override["canonical_url"]]
+        self.assertEqual(len(override_inventory["summary"]), 1000)
+        self.assertIsNone(
+            classify_relevant_news(
+                normalize(override_inventory["headline"]),
+                normalize(override_inventory["summary"]),
+                override_inventory["candidate_names"],
+                override_inventory["candidate_matches"],
+            )
+        )
+        self.assertEqual(
+            override_inventory["relevance_reason"],
+            "summary_confirmed_presidential_context",
+        )
+        self.assertIn(override_inventory["id"], relevant_ids)
 
     def test_old_inventory_migration_recomputes_strict_candidate_matches(self):
         legacy_item = {
