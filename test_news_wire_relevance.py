@@ -95,6 +95,24 @@ def not_modified_fetch(url):
     )
 
 
+def lcp_retrospective_summary() -> str:
+    intro = (
+        "Les élus insoumis annoncent un hommage historique. "
+        "Le mouvement de Jean-Luc Mélenchon revendique cet héritage. "
+        + ("La chronique retrace la Révolution française. " * 55)
+    )
+    retrospective = (
+        "En 2024, lors d'un meeting pour les élections européennes, "
+        "le leader de La France insoumise avait cité le fondateur de "
+        "Place publique, Raphaël Glucksmann."
+    )
+    summary = intro + retrospective
+    summary += " " + ("x" * (3232 - len(summary) - 1))
+    if len(summary) != 3232:
+        raise AssertionError("LCP regression summary must stay at 3,232 characters")
+    return summary
+
+
 class NewsWireRelevanceTests(unittest.TestCase):
     def test_feed_entry_and_concurrency_limits(self):
         self.assertEqual(DIRECT_ENTRY_LIMIT, 20)
@@ -1820,6 +1838,220 @@ class NewsWireRelevanceTests(unittest.TestCase):
             "summary_confirmed_presidential_context",
         )
 
+    def test_long_lcp_retrospective_is_rejected_but_keeps_candidates(self):
+        headline = (
+            "Hommage de La France insoumise à Robespierre: "
+            "pourquoi ça fait débat"
+        )
+        summary = lcp_retrospective_summary()
+        candidates = ["Jean-Luc Mélenchon", "Raphaël Glucksmann"]
+        matches = match_news_candidates(headline, summary, candidates)
+
+        self.assertEqual(len(summary), 3232)
+        self.assertEqual(
+            matches,
+            [
+                {
+                    "candidate": "Jean-Luc Mélenchon",
+                    "matched_aliases": ["jean luc melenchon"],
+                    "locations": ["summary"],
+                },
+                {
+                    "candidate": "Raphaël Glucksmann",
+                    "matched_aliases": ["raphael glucksmann"],
+                    "locations": ["summary"],
+                },
+            ],
+        )
+        relevance = classify_relevant_news(
+            headline,
+            summary,
+            candidates,
+            matches,
+        )
+        development = classify_notable_development(
+            normalize(f"{headline} {summary}"),
+            candidates,
+            {"politics_specific": True},
+            normalize(headline),
+            matches,
+        )
+
+        self.assertIsNone(relevance)
+        self.assertIsNone(development)
+        self.assertEqual(
+            classify_candidate_coverage_scope(
+                is_election_news=False,
+                relevance=relevance,
+                development=development,
+            ),
+            "general",
+        )
+
+    def test_incidental_summary_campaign_vocabulary_is_rejected(self):
+        cases = [
+            (
+                "Après l'affaire Barbara Butch, le chef grenoblois de LFI "
+                "saisit la justice",
+                "Il dénonce une campagne de cyberharcèlement contre lui.",
+                [],
+            ),
+            (
+                "Propos de Raphaël Glucksmann sur le Canon français : "
+                "qu’a dit le leader de Place publique ?",
+                "Raphaël Glucksmann tente de se défaire d'une image, "
+                "forgée par LFI, d'un candidat de droite.",
+                ["Raphaël Glucksmann"],
+            ),
+            (
+                "Détention provisoire des mineurs: Gérald Darmanin "
+                "tente de colmater la brèche",
+                "Après avoir renoncé à la mesure phare de son projet de "
+                "loi, Gérald Darmanin répond aux députés.",
+                ["Gérald Darmanin"],
+            ),
+            (
+                "Hommage de La France insoumise à Robespierre",
+                "En 2024, La France insoumise tenait un meeting pour les "
+                "élections européennes avec Raphaël Glucksmann.",
+                ["Raphaël Glucksmann"],
+            ),
+            (
+                "Raphaël Glucksmann commente la semaine politique",
+                "Le Parti socialiste organise une primaire sans rapport.",
+                ["Raphaël Glucksmann"],
+            ),
+            (
+                "La France insoumise publie un hommage historique",
+                "La France insoumise publie un hommage historique LCP.",
+                [],
+            ),
+        ]
+
+        for headline, summary, candidates in cases:
+            matches = match_news_candidates(headline, summary, candidates)
+            with self.subTest(headline=headline):
+                self.assertIsNone(
+                    classify_relevant_news(
+                        headline,
+                        summary,
+                        candidates,
+                        matches,
+                    )
+                )
+
+    def test_summary_campaign_evidence_is_local_and_minimal(self):
+        result = classify_relevant_news(
+            "Le Parti socialiste précise son calendrier interne",
+            (
+                "Le Parti socialiste organise une primaire pour choisir "
+                "son candidat. La France insoumise tient ensuite un "
+                "meeting culturel sans rapport."
+            ),
+            [],
+            [],
+        )
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result["reason"], "campaign_or_selection_context")
+        self.assertIn("parti socialiste", result["matched_terms"])
+        self.assertIn("primaire", result["matched_terms"])
+        self.assertNotIn("la france insoumise", result["matched_terms"])
+        self.assertNotIn("meeting", result["matched_terms"])
+
+    def test_structured_summary_selection_controls_remain_relevant(self):
+        controls = [
+            (
+                "Le Parti socialiste précise son calendrier interne",
+                "Le Parti socialiste organise une primaire pour son candidat.",
+                [],
+            ),
+            (
+                "Les Républicains précisent leur calendrier interne",
+                "Les Républicains accordent leur investiture à leur candidat.",
+                [],
+            ),
+            (
+                "Le Parti socialiste précise son calendrier interne",
+                "Le Parti socialiste organise un vote des adhérents pour "
+                "la désignation de son candidat.",
+                [],
+            ),
+        ]
+
+        for headline, summary, candidates in controls:
+            with self.subTest(summary=summary):
+                self.assertIsNotNone(
+                    classify_relevant_news(
+                        headline,
+                        summary,
+                        candidates,
+                        match_news_candidates(headline, summary, candidates),
+                    )
+                )
+
+    def test_current_candidacy_summary_controls_remain_relevant(self):
+        controls = [
+            (
+                "Raphaël Glucksmann à la ferme : les animaux de Daniel",
+                "Notre chroniqueur imagine les vacances de l'eurodéputé "
+                "de Place publique et aspirant candidat à l'Elysée en 2027.",
+                ["Raphaël Glucksmann"],
+            ),
+            (
+                "Jérôme Karsenti : Marine Le Pen a bafoué les principes "
+                "démocratiques",
+                "La candidature de la cheffe de file du RN s'inscrit dans "
+                "une époque de banalisation de la corruption.",
+                ["Marine Le Pen"],
+            ),
+            (
+                "Raphaël Glucksmann précise son calendrier",
+                "Sa candidature à l'élection présidentielle de 2027 sera "
+                "discutée cet été.",
+                ["Raphaël Glucksmann"],
+            ),
+        ]
+
+        for headline, summary, candidates in controls:
+            matches = match_news_candidates(headline, summary, candidates)
+            with self.subTest(headline=headline):
+                self.assertIsNotNone(
+                    classify_relevant_news(
+                        headline,
+                        summary,
+                        candidates,
+                        matches,
+                    )
+                )
+
+    def test_long_and_short_presidential_controls_remain_relevant(self):
+        long_summary = (
+            ("Contexte politique sans signal électoral. " * 45)
+            + "Le Parti socialiste prépare son candidat à l'élection "
+            + "présidentielle de 2027."
+        )
+        long_result = classify_relevant_news(
+            "Le Parti socialiste précise son calendrier",
+            long_summary,
+            [],
+            [],
+        )
+        google_result = classify_relevant_news(
+            "Présidentielle 2027 : le parti prépare sa primaire",
+            "Présidentielle 2027 : le parti prépare sa primaire Le Monde",
+            [],
+            [],
+        )
+
+        self.assertIsNotNone(long_result)
+        self.assertEqual(
+            long_result["reason"],
+            "summary_confirmed_presidential_context",
+        )
+        self.assertIsNotNone(google_result)
+        self.assertEqual(google_result["reason"], "presidential_context")
+
     def test_current_election_signals_reject_historical_presidential_years(self):
         self.assertEqual(
             current_presidential_matches(
@@ -2385,6 +2617,155 @@ class NewsWireRelevanceTests(unittest.TestCase):
             "summary_confirmed_presidential_context",
         )
         self.assertIn(override_inventory["id"], relevant_ids)
+
+    def test_fresh_lcp_entry_stays_inventory_and_general_candidate_watch(self):
+        generated_at = datetime(2026, 7, 29, 4, tzinfo=timezone.utc)
+        headline = (
+            "Hommage de La France insoumise à Robespierre: "
+            "pourquoi ça fait débat"
+        )
+        summary = lcp_retrospective_summary()
+        article_url = "https://lcp.example/actualites/robespierre"
+        feed = f"""<?xml version='1.0' encoding='UTF-8'?>
+        <rss version='2.0'><channel><item>
+          <title>{headline}</title>
+          <link>{article_url}</link>
+          <pubDate>{format_datetime(generated_at - timedelta(hours=2))}</pubDate>
+          <description>{summary}</description>
+        </item></channel></rss>""".encode("utf-8")
+        sources = [
+            {
+                "source_id": f"lcp-regression-{index}",
+                "name": "LCP — Actualités",
+                "feed_url": f"https://lcp.example/rss-{index}.xml",
+                "politics_specific": True,
+            }
+            for index in range(4)
+        ]
+
+        direct_feed_urls = {source["feed_url"] for source in sources}
+        empty_feed = b"""<?xml version='1.0' encoding='UTF-8'?>
+        <rss version='2.0'><channel></channel></rss>"""
+        discovery_queries = [{
+            "id": "lcp-regression-discovery",
+            "label": "LCP regression discovery",
+            "query": "presidentielle 2027",
+            "kind": "static",
+            "feed_url": (
+                "https://news.google.com/rss/search"
+                "?q=presidentielle+2027"
+            ),
+        }]
+        publisher_site_feeds = [{
+            "id": "publisher-site:lcp.example",
+            "label": "LCP publisher-site discovery",
+            "publisher": "LCP — Actualités",
+            "domain": "lcp.example",
+            "tier": "core",
+            "query": "site:lcp.example presidentielle 2027",
+            "feed_url": "https://news.google.com/rss/search?q=lcp",
+            "interval_hours": 1,
+            "slot": 0,
+        }]
+
+        with tempfile.TemporaryDirectory() as directory:
+            polls_path = Path(directory) / "polls.json"
+            polls_path.write_text(
+                json.dumps(
+                    {
+                        "events": [{
+                            "round": "first_round",
+                            "fieldwork_end": "2026-07-29",
+                            "candidates": [
+                                {"name": "Jean-Luc Mélenchon"},
+                                {"name": "Raphaël Glucksmann"},
+                            ],
+                        }]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            inventory_path = Path(directory) / "inventory.json"
+            with (
+                patch("fetch_news_wire.SOURCES", sources),
+                patch(
+                    "fetch_news_wire.generate_discovery_queries",
+                    return_value=discovery_queries,
+                ),
+                patch(
+                    "fetch_news_wire.generate_publisher_site_feeds",
+                    return_value=publisher_site_feeds,
+                ),
+                patch(
+                    "fetch_news_wire.PUBLISHER_POLICY",
+                    {"lcp.example": {
+                        "name": "LCP — Actualités",
+                        "source_type": "media",
+                        "enabled": True,
+                    }},
+                ),
+                patch(
+                    "fetch_news_wire.fetch_news_route",
+                    side_effect=lambda url, **_kwargs: successful_fetch(
+                        feed if url in direct_feed_urls else empty_feed,
+                        url,
+                    ),
+                ),
+            ):
+                payload, inventory = build_wire(
+                    polls_path,
+                    30,
+                    0,
+                    inventory_path,
+                    generated_at=generated_at,
+                )
+
+        self.assertEqual(len(inventory["items"]), 1)
+        inventory_item = inventory["items"][0]
+        item_id = inventory_item["id"]
+        self.assertEqual(len(inventory_item["summary"]), 1000)
+        self.assertEqual(
+            inventory_item["candidate_names"],
+            ["Jean-Luc Mélenchon", "Raphaël Glucksmann"],
+        )
+        self.assertEqual(
+            inventory_item["candidate_matches"],
+            [
+                {
+                    "candidate": "Jean-Luc Mélenchon",
+                    "matched_aliases": ["jean luc melenchon"],
+                    "locations": ["summary"],
+                },
+                {
+                    "candidate": "Raphaël Glucksmann",
+                    "matched_aliases": ["raphael glucksmann"],
+                    "locations": ["summary"],
+                },
+            ],
+        )
+        self.assertIsNone(inventory_item["relevance_reason"])
+        self.assertNotIn(
+            item_id,
+            {item["id"] for item in payload["relevant_news"]},
+        )
+        self.assertNotIn(
+            item_id,
+            {item["id"] for item in payload["election_news"]},
+        )
+        self.assertNotIn(
+            item_id,
+            {item["id"] for item in payload["notable_developments"]},
+        )
+        watch_by_id = {
+            item["id"]: item for item in payload["candidate_watch"]
+        }
+        self.assertEqual(watch_by_id[item_id]["coverage_scope"], "general")
+        agenda_item_ids = {
+            item["id"]
+            for topic in payload["campaign_agenda"]["topics"]
+            for item in topic["supporting_items"]
+        }
+        self.assertNotIn(item_id, agenda_item_ids)
 
     def test_old_inventory_migration_recomputes_strict_candidate_matches(self):
         legacy_item = {
