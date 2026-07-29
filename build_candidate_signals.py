@@ -1,0 +1,2225 @@
+"""Build the deterministic Candidate Signals public payload.
+
+This module is network-free and depends only on the Python standard library
+and the narrow helpers in candidate_identity.py.
+"""
+
+from __future__ import annotations
+
+import argparse
+import copy
+import json
+import math
+import os
+import re
+import tempfile
+import unicodedata
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
+from urllib.parse import urlsplit
+
+from candidate_identity import (
+    CandidateIdentityError,
+    candidate_id,
+    candidate_identity_map,
+    canonicalize_candidate_roster,
+    canonical_candidate_name,
+    normalized_candidate_key,
+    resolve_candidate_name,
+)
+
+
+SCHEMA_VERSION = "1.0"
+CANDIDATE_WINDOW_DAYS = 183
+LATEST_SCRUTINY_DAYS = 14
+CANDIDATE_UNIVERSE_RULE = (
+    "Figures appearing with numeric scores in accepted first-round polling "
+    "during the previous 183 days"
+)
+PRIMARY_SCOPES = ("election", "campaign")
+GENERAL_SCOPE = "general"
+VISIBILITY_SCOPES = (*PRIMARY_SCOPES, GENERAL_SCOPE)
+FORBIDDEN_FIELD_PARTS = {
+    "average",
+    "causal",
+    "combined_score",
+    "delta",
+    "endorsement",
+    "forecast",
+    "momentum",
+    "probability",
+    "sentiment",
+    "trend",
+    "viability",
+}
+DATE_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+class CandidateSignalsError(ValueError):
+    """Raised when source data or a Candidate Signals payload is invalid."""
+
+
+def _error_from_identity(error: CandidateIdentityError) -> CandidateSignalsError:
+    return CandidateSignalsError(str(error))
+
+
+def _require_object(value: Any, field: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise CandidateSignalsError(f"{field} must be an object")
+    return value
+
+
+def _require_list(value: Any, field: str) -> list[Any]:
+    if not isinstance(value, list):
+        raise CandidateSignalsError(f"{field} must be an array")
+    return value
+
+
+def _require_text(value: Any, field: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise CandidateSignalsError(f"{field} must be a non-empty string")
+    if value != value.strip():
+        raise CandidateSignalsError(f"{field} must not have outer whitespace")
+    return value
+
+
+def _require_non_negative_integer(value: Any, field: str) -> int:
+    if type(value) is not int or value < 0:
+        raise CandidateSignalsError(f"{field} must be a non-negative integer")
+    return value
+
+
+def _numeric(value: Any, field: str, *, non_negative: bool = False) -> int | float:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(float(value))
+    ):
+        raise CandidateSignalsError(f"{field} must be a finite number")
+    if non_negative and value < 0:
+        raise CandidateSignalsError(f"{field} must be non-negative")
+    return value
+
+
+def _ratio(value: Any, field: str) -> int | float:
+    numeric = _numeric(value, field, non_negative=True)
+    if numeric > 1:
+        raise CandidateSignalsError(f"{field} must be between zero and one")
+    return numeric
+
+
+def _parse_date(value: Any, field: str) -> date:
+    if not isinstance(value, str) or not DATE_PATTERN.fullmatch(value):
+        raise CandidateSignalsError(f"{field} must be an ISO calendar date")
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError as error:
+        raise CandidateSignalsError(
+            f"{field} must be an ISO calendar date"
+        ) from error
+    if parsed.isoformat() != value:
+        raise CandidateSignalsError(f"{field} must be an ISO calendar date")
+    return parsed
+
+
+def _parse_timestamp(value: Any, field: str) -> datetime:
+    if not isinstance(value, str) or not value.strip():
+        raise CandidateSignalsError(f"{field} must be an ISO-8601 timestamp")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise CandidateSignalsError(
+            f"{field} must be an ISO-8601 timestamp"
+        ) from error
+    if parsed.tzinfo is None:
+        raise CandidateSignalsError(f"{field} must include a UTC offset")
+    return parsed.astimezone(timezone.utc)
+
+
+def _timestamp_date(value: Any, field: str) -> date:
+    return _parse_timestamp(value, field).date()
+
+
+def _usable_url(value: Any) -> bool:
+    if not isinstance(value, str) or value != value.strip() or not value:
+        return False
+    parsed = urlsplit(value)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def load_json(path: Path | str) -> Any:
+    """Load one required JSON source with safe, path-specific errors."""
+
+    source_path = Path(path)
+    try:
+        content = source_path.read_text(encoding="utf-8")
+    except FileNotFoundError as error:
+        raise CandidateSignalsError(
+            f"required source file is missing: {source_path}"
+        ) from error
+    except OSError as error:
+        raise CandidateSignalsError(
+            f"could not read required source file {source_path}: {error}"
+        ) from error
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError as error:
+        raise CandidateSignalsError(
+            f"malformed JSON in {source_path}: "
+            f"line {error.lineno}, column {error.colno}"
+        ) from error
+
+
+def load_inputs(
+    polls_path: Path | str,
+    news_path: Path | str,
+    claims_path: Path | str,
+) -> tuple[list[Any], dict[str, Any], dict[str, Any]]:
+    """Load and minimally type-check the three required source payloads."""
+
+    polls = load_json(polls_path)
+    news = load_json(news_path)
+    claims = load_json(claims_path)
+    if not isinstance(polls, list):
+        raise CandidateSignalsError("polls source must be a top-level array")
+    if not isinstance(news, dict):
+        raise CandidateSignalsError("news source must be a top-level object")
+    if not isinstance(claims, dict):
+        raise CandidateSignalsError("claims source must be a top-level object")
+    return polls, news, claims
+
+
+def _poll_qualifying_date(event: dict[str, Any], context: str) -> date:
+    publication = event.get("publication_date")
+    if publication not in (None, ""):
+        return _parse_date(publication, f"{context}.publication_date")
+    return _parse_date(event.get("fieldwork_end"), f"{context}.fieldwork_end")
+
+
+def _validate_first_round_event(
+    event: Any,
+    index: int,
+) -> dict[str, Any]:
+    context = f"polls[{index}]"
+    value = _require_object(event, context)
+    if value.get("round") != "first_round":
+        raise CandidateSignalsError(f"{context}.round must equal first_round")
+
+    _require_text(value.get("event_id"), f"{context}.event_id")
+    _require_text(value.get("scenario_key"), f"{context}.scenario_key")
+    _require_text(value.get("pollster"), f"{context}.pollster")
+    fieldwork_start = _parse_date(
+        value.get("fieldwork_start"),
+        f"{context}.fieldwork_start",
+    )
+    fieldwork_end = _parse_date(
+        value.get("fieldwork_end"),
+        f"{context}.fieldwork_end",
+    )
+    if fieldwork_start > fieldwork_end:
+        raise CandidateSignalsError(
+            f"{context} has fieldwork_start after fieldwork_end"
+        )
+    _poll_qualifying_date(value, context)
+
+    sample_size = value.get("sample_size")
+    if sample_size is not None:
+        _require_non_negative_integer(sample_size, f"{context}.sample_size")
+
+    source_url = value.get("source_url")
+    if not _usable_url(source_url):
+        raise CandidateSignalsError(f"{context}.source_url is invalid")
+    official_source_url = value.get("official_source_url")
+    if official_source_url not in (None, "") and not _usable_url(
+        official_source_url
+    ):
+        raise CandidateSignalsError(
+            f"{context}.official_source_url is invalid"
+        )
+
+    candidates = _require_list(value.get("candidates"), f"{context}.candidates")
+    if len(candidates) < 2:
+        raise CandidateSignalsError(
+            f"{context}.candidates must contain at least two candidates"
+        )
+
+    seen_names: set[str] = set()
+    reported_total = 0.0
+    for candidate_index, candidate_value in enumerate(candidates):
+        candidate_context = f"{context}.candidates[{candidate_index}]"
+        candidate = _require_object(candidate_value, candidate_context)
+        try:
+            name = canonical_candidate_name(candidate.get("name"))
+            key = normalized_candidate_key(name)
+        except CandidateIdentityError as error:
+            raise _error_from_identity(error) from error
+        if candidate.get("name") != name:
+            raise CandidateSignalsError(
+                f"{candidate_context}.name is not canonical whitespace"
+            )
+        if key in seen_names:
+            raise CandidateSignalsError(
+                f"{context} contains a duplicate candidate identity"
+            )
+        seen_names.add(key)
+        score = _numeric(
+            candidate.get("score"),
+            f"{candidate_context}.score",
+            non_negative=True,
+        )
+        reported_total += float(score)
+
+    declared_total = _numeric(
+        value.get("reported_total"),
+        f"{context}.reported_total",
+        non_negative=True,
+    )
+    if not math.isclose(
+        float(declared_total),
+        reported_total,
+        rel_tol=0,
+        abs_tol=1e-9,
+    ):
+        raise CandidateSignalsError(
+            f"{context}.reported_total does not match candidate scores"
+        )
+
+    completeness_status = value.get("completeness_status")
+    partial_scenario = value.get("partial_scenario")
+    unreported_share = value.get("unreported_share")
+    if completeness_status == "complete":
+        if (
+            partial_scenario is not False
+            or not 99 <= reported_total <= 101
+            or unreported_share is not None
+        ):
+            raise CandidateSignalsError(
+                f"{context} has inconsistent complete-scenario metadata"
+            )
+    elif completeness_status == "partial":
+        expected_unreported = 100 - reported_total
+        if (
+            partial_scenario is not True
+            or not 0 < reported_total < 99
+            or isinstance(unreported_share, bool)
+            or not isinstance(unreported_share, (int, float))
+            or not math.isfinite(float(unreported_share))
+            or not math.isclose(
+                float(unreported_share),
+                expected_unreported,
+                rel_tol=0,
+                abs_tol=1e-9,
+            )
+        ):
+            raise CandidateSignalsError(
+                f"{context} has inconsistent partial-scenario metadata"
+            )
+    else:
+        raise CandidateSignalsError(
+            f"{context}.completeness_status is invalid"
+        )
+
+    return value
+
+
+def validated_first_round_events(
+    polls: Any,
+) -> list[tuple[int, dict[str, Any]]]:
+    """Return valid first-round events with their original input indexes."""
+
+    values = _require_list(polls, "polls")
+    events: list[tuple[int, dict[str, Any]]] = []
+    for index, event in enumerate(values):
+        if not isinstance(event, dict):
+            raise CandidateSignalsError(f"polls[{index}] must be an object")
+        round_name = event.get("round")
+        if round_name == "second_round":
+            continue
+        if round_name != "first_round":
+            raise CandidateSignalsError(f"polls[{index}].round is invalid")
+        events.append((index, _validate_first_round_event(event, index)))
+    if not events:
+        raise CandidateSignalsError("polls contains no valid first-round events")
+    return events
+
+
+def derive_candidate_universe(
+    polls: Any,
+    news: Any,
+    claims: Any,
+) -> tuple[dict[str, Any], list[dict[str, str]]]:
+    """Derive the inclusive 183-day candidate universe from source evidence."""
+
+    news_object = _require_object(news, "news")
+    claims_object = _require_object(claims, "claims")
+    news_date = _timestamp_date(
+        news_object.get("generated_at"),
+        "news.generated_at",
+    )
+    claims_date = _timestamp_date(
+        claims_object.get("generated_at"),
+        "claims.generated_at",
+    )
+    events = validated_first_round_events(polls)
+    qualifying_dates = [
+        _poll_qualifying_date(event, f"polls[{index}]")
+        for index, event in events
+    ]
+    as_of_date = max([news_date, claims_date, *qualifying_dates])
+    cutoff_date = as_of_date - timedelta(days=CANDIDATE_WINDOW_DAYS)
+
+    names: set[str] = set()
+    for (index, event), qualifying_date in zip(events, qualifying_dates):
+        if qualifying_date < cutoff_date or qualifying_date > as_of_date:
+            continue
+        for candidate_index, candidate in enumerate(event["candidates"]):
+            _numeric(
+                candidate.get("score"),
+                f"polls[{index}].candidates[{candidate_index}].score",
+                non_negative=True,
+            )
+            try:
+                names.add(canonical_candidate_name(candidate.get("name")))
+            except CandidateIdentityError as error:
+                raise _error_from_identity(error) from error
+
+    if not names:
+        raise CandidateSignalsError(
+            "candidate universe contains no qualifying candidates"
+        )
+    try:
+        canonical_names = canonicalize_candidate_roster(names)
+        identities = candidate_identity_map(canonical_names)
+    except CandidateIdentityError as error:
+        raise _error_from_identity(error) from error
+
+    candidates = [
+        {"candidate_id": identities[name], "candidate_name": name}
+        for name in canonical_names
+    ]
+    candidates.sort(
+        key=lambda candidate: (
+            candidate["candidate_name"].casefold(),
+            candidate["candidate_id"],
+        )
+    )
+    metadata = {
+        "rule": CANDIDATE_UNIVERSE_RULE,
+        "as_of_date": as_of_date.isoformat(),
+        "cutoff_date": cutoff_date.isoformat(),
+        "count": len(candidates),
+    }
+    return metadata, candidates
+
+
+def candidate_universe_matches_news_roster(
+    candidates: list[dict[str, str]],
+    news: Any,
+) -> bool:
+    """Return current-data parity without making the builder depend on it."""
+
+    news_object = _require_object(news, "news")
+    roster = news_object.get("candidate_roster")
+    if not isinstance(roster, dict) or not isinstance(roster.get("names"), list):
+        return False
+    try:
+        expected = {
+            canonical_candidate_name(value)
+            for value in roster["names"]
+        }
+    except CandidateIdentityError:
+        return False
+    actual = {candidate["candidate_name"] for candidate in candidates}
+    return (
+        roster.get("count") == len(expected)
+        and len(expected) == len(roster["names"])
+        and actual == expected
+    )
+
+
+def _package_key(event: dict[str, Any]) -> tuple[str, str, str, int | None]:
+    return (
+        event["pollster"],
+        event["fieldwork_start"],
+        event["fieldwork_end"],
+        event.get("sample_size"),
+    )
+
+
+def _serialized_package_key(
+    key: tuple[str, str, str, int | None],
+) -> str:
+    return json.dumps(
+        list(key),
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+
+
+def _event_candidate_score(
+    event: dict[str, Any],
+    candidate_name: str,
+) -> int | float | None:
+    for candidate in event["candidates"]:
+        if candidate["name"] == candidate_name:
+            return candidate["score"]
+    return None
+
+
+def _normalize_comparable_text(value: Any) -> str:
+    """Match the frontend's NFKC, whitespace, and French lowercase handling."""
+
+    return " ".join(unicodedata.normalize("NFKC", str(value)).split()).lower()
+
+
+def _comparable_candidate_count(
+    event: dict[str, Any],
+    events: list[dict[str, Any]],
+) -> int:
+    pollster_key = _normalize_comparable_text(event["pollster"])
+    count = 0
+    for candidate in event["candidates"]:
+        candidate_name = candidate["name"]
+        has_prior = any(
+            previous["round"] == event["round"]
+            and previous["scenario_key"] == event["scenario_key"]
+            and previous["fieldwork_end"] < event["fieldwork_end"]
+            and _normalize_comparable_text(previous["pollster"]) == pollster_key
+            and _event_candidate_score(previous, candidate_name) is not None
+            for previous in events
+        )
+        if has_prior:
+            count += 1
+    return count
+
+
+def french_compatible_sort_key(value: str) -> tuple[str, str]:
+    """Return deterministic accent-insensitive ordering compatible with French."""
+
+    decomposed = unicodedata.normalize("NFKD", value)
+    plain = "".join(
+        character
+        for character in decomposed
+        if not unicodedata.combining(character)
+    ).casefold()
+    normalized = " ".join(re.sub(r"[^a-z0-9]+", " ", plain).split())
+    return normalized, unicodedata.normalize("NFC", value).casefold()
+
+
+def build_poll_packages(polls: Any) -> list[dict[str, Any]]:
+    """Group first-round hypotheses by the exact Race at a Glance key."""
+
+    indexed_events = validated_first_round_events(polls)
+    events = [event for _index, event in indexed_events]
+    ordered_events = sorted(
+        indexed_events,
+        key=lambda item: (
+            -_parse_date(
+                item[1]["fieldwork_end"],
+                f"polls[{item[0]}].fieldwork_end",
+            ).toordinal(),
+            french_compatible_sort_key(item[1]["pollster"]),
+            item[0],
+        ),
+    )
+    packages_by_key: dict[
+        tuple[str, str, str, int | None],
+        dict[str, Any],
+    ] = {}
+    packages: list[dict[str, Any]] = []
+    for original_index, event in ordered_events:
+        key = _package_key(event)
+        package = packages_by_key.get(key)
+        if package is None:
+            package = {
+                "package_key_values": list(key),
+                "package_key": _serialized_package_key(key),
+                "pollster": event["pollster"],
+                "fieldwork_start": event["fieldwork_start"],
+                "fieldwork_end": event["fieldwork_end"],
+                "sample_size": event.get("sample_size"),
+                "events": [],
+                "original_package_index": len(packages),
+                "first_input_index": original_index,
+            }
+            packages_by_key[key] = package
+            packages.append(package)
+        package["events"].append(event)
+
+    for package in packages:
+        selected_event = package["events"][0]
+        selected_count = -1
+        selected_index = 0
+        for index, event in enumerate(package["events"]):
+            comparable_count = _comparable_candidate_count(event, events)
+            if comparable_count > selected_count:
+                selected_event = event
+                selected_count = comparable_count
+                selected_index = index
+        package["selected_event"] = selected_event
+        package["selected_event_index"] = selected_index
+        package["selected_comparable_candidate_count"] = max(
+            0,
+            selected_count,
+        )
+
+    return packages
+
+
+def select_featured_polling_package(polls: Any) -> dict[str, Any]:
+    """Return the first package under exact Race at a Glance ranking rules."""
+
+    packages = build_poll_packages(polls)
+    ranked = sorted(
+        packages,
+        key=lambda package: (
+            -_parse_date(
+                package["fieldwork_end"],
+                "poll package fieldwork_end",
+            ).toordinal(),
+            -package["selected_comparable_candidate_count"],
+            french_compatible_sort_key(package["pollster"]),
+            package["original_package_index"],
+        ),
+    )
+    if not ranked:
+        raise CandidateSignalsError("no valid featured poll package exists")
+    return ranked[0]
+
+
+def project_candidate_polling(
+    candidates: list[dict[str, str]],
+    featured_package: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Project featured-package ranges without crossing pollster boundaries."""
+
+    expected_key = (
+        featured_package["pollster"],
+        featured_package["fieldwork_start"],
+        featured_package["fieldwork_end"],
+        featured_package["sample_size"],
+    )
+    if any(_package_key(event) != expected_key for event in featured_package["events"]):
+        raise CandidateSignalsError(
+            "featured polling range would cross package or pollster boundaries"
+        )
+
+    canonical_names = [
+        candidate["candidate_name"]
+        for candidate in candidates
+    ]
+    by_name = {
+        candidate["candidate_name"]: candidate
+        for candidate in candidates
+    }
+    appearances: dict[str, list[int | float]] = {
+        candidate["candidate_id"]: []
+        for candidate in candidates
+    }
+    for event in featured_package["events"]:
+        seen: set[str] = set()
+        for candidate in event["candidates"]:
+            try:
+                resolved_name = resolve_candidate_name(
+                    candidate["name"],
+                    canonical_names,
+                )
+            except CandidateIdentityError as error:
+                raise _error_from_identity(error) from error
+            universe_candidate = by_name[resolved_name]
+            identifier = universe_candidate["candidate_id"]
+            if identifier in seen:
+                raise CandidateSignalsError(
+                    "featured hypothesis repeats a candidate"
+                )
+            seen.add(identifier)
+            appearances[identifier].append(candidate["score"])
+
+    selected_event = featured_package["selected_event"]
+    selected_scores: dict[str, int | float] = {}
+    for selected_candidate in selected_event["candidates"]:
+        try:
+            resolved_name = resolve_candidate_name(
+                selected_candidate["name"],
+                canonical_names,
+            )
+        except CandidateIdentityError as error:
+            raise _error_from_identity(error) from error
+        selected_scores[resolved_name] = selected_candidate["score"]
+    projections: dict[str, dict[str, Any]] = {}
+    for candidate in candidates:
+        identifier = candidate["candidate_id"]
+        scores = appearances[identifier]
+        selected_score = selected_scores.get(candidate["candidate_name"])
+        selected_rank = (
+            1
+            + sum(
+                float(score) > float(selected_score)
+                for score in selected_scores.values()
+            )
+            if selected_score is not None
+            else None
+        )
+        if scores:
+            projections[identifier] = {
+                "evidence_state": "reported",
+                "hypothesis_count": len(scores),
+                "range_min": min(scores),
+                "range_max": max(scores),
+                "selected_hypothesis_score": selected_score,
+                "selected_hypothesis_rank": selected_rank,
+            }
+        else:
+            projections[identifier] = {
+                "evidence_state": "not_tested",
+                "hypothesis_count": None,
+                "range_min": None,
+                "range_max": None,
+                "selected_hypothesis_score": None,
+                "selected_hypothesis_rank": None,
+            }
+    return projections
+
+
+PERIOD_KEYS = {
+    "start_date",
+    "end_date",
+    "record_count",
+    "publisher_count",
+    "publisher_names",
+    "candidate_metrics",
+}
+METRIC_KEYS = {
+    "candidate",
+    "record_count",
+    "share",
+    "publisher_count",
+    "publisher_names",
+    "active_day_count",
+    "headline_match_count",
+    "summary_only_match_count",
+    "scope_counts",
+    "scope_shares",
+    "story_cluster_count",
+    "story_clusters",
+    "concentration",
+}
+CONCENTRATION_KEYS = {
+    "leading_publisher",
+    "leading_publisher_record_count",
+    "leading_publisher_share",
+    "leading_story_record_count",
+    "leading_story_share",
+}
+QUALITY_KEYS = {
+    "status",
+    "reason",
+    "current_record_count",
+    "prior_record_count",
+    "current_publisher_count",
+    "prior_publisher_count",
+    "common_publisher_count",
+    "publisher_union_count",
+    "publisher_overlap_ratio",
+    "record_count_ratio",
+    "thresholds",
+}
+
+
+def _validate_concentration(
+    value: Any,
+    context: str,
+    record_count: int,
+) -> dict[str, Any]:
+    concentration = _require_object(value, context)
+    if set(concentration) != CONCENTRATION_KEYS:
+        raise CandidateSignalsError(f"{context} has unexpected fields")
+    leading_publisher = concentration["leading_publisher"]
+    if leading_publisher is not None:
+        _require_text(leading_publisher, f"{context}.leading_publisher")
+    for field in (
+        "leading_publisher_record_count",
+        "leading_story_record_count",
+    ):
+        count = _require_non_negative_integer(
+            concentration[field],
+            f"{context}.{field}",
+        )
+        if count > record_count:
+            raise CandidateSignalsError(f"{context}.{field} is too large")
+    for field in ("leading_publisher_share", "leading_story_share"):
+        _ratio(concentration[field], f"{context}.{field}")
+    return concentration
+
+
+def _validate_visibility_period(
+    value: Any,
+    context: str,
+    *,
+    expected_lane: str,
+) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+    period = _require_object(value, context)
+    if set(period) != PERIOD_KEYS:
+        raise CandidateSignalsError(f"{context} has unexpected fields")
+    start = _parse_date(period["start_date"], f"{context}.start_date")
+    end = _parse_date(period["end_date"], f"{context}.end_date")
+    if start > end or (end - start).days != 6:
+        raise CandidateSignalsError(f"{context} must span exactly seven days")
+    _require_non_negative_integer(
+        period["record_count"],
+        f"{context}.record_count",
+    )
+    publisher_count = _require_non_negative_integer(
+        period["publisher_count"],
+        f"{context}.publisher_count",
+    )
+    publisher_names = _require_list(
+        period["publisher_names"],
+        f"{context}.publisher_names",
+    )
+    if (
+        any(
+            not isinstance(name, str)
+            or not name.strip()
+            or name != name.strip()
+            for name in publisher_names
+        )
+        or len(publisher_names) != len(set(publisher_names))
+        or publisher_count != len(publisher_names)
+    ):
+        raise CandidateSignalsError(f"{context}.publisher_names is invalid")
+
+    metrics = _require_list(
+        period["candidate_metrics"],
+        f"{context}.candidate_metrics",
+    )
+    metrics_by_key: dict[str, dict[str, Any]] = {}
+    for index, metric_value in enumerate(metrics):
+        metric_context = f"{context}.candidate_metrics[{index}]"
+        metric = _require_object(metric_value, metric_context)
+        if set(metric) != METRIC_KEYS:
+            raise CandidateSignalsError(
+                f"{metric_context} has unexpected fields"
+            )
+        try:
+            candidate_name = canonical_candidate_name(metric["candidate"])
+            candidate_key = normalized_candidate_key(candidate_name)
+        except CandidateIdentityError as error:
+            raise _error_from_identity(error) from error
+        if candidate_name != metric["candidate"]:
+            raise CandidateSignalsError(
+                f"{metric_context}.candidate has non-canonical whitespace"
+            )
+        if candidate_key in metrics_by_key:
+            raise CandidateSignalsError(
+                f"{context} contains duplicate candidate metrics"
+            )
+
+        record_count = _require_non_negative_integer(
+            metric["record_count"],
+            f"{metric_context}.record_count",
+        )
+        if record_count == 0:
+            raise CandidateSignalsError(
+                f"{metric_context}.record_count must be positive"
+            )
+        _ratio(metric["share"], f"{metric_context}.share")
+        metric_publisher_count = _require_non_negative_integer(
+            metric["publisher_count"],
+            f"{metric_context}.publisher_count",
+        )
+        metric_publishers = _require_list(
+            metric["publisher_names"],
+            f"{metric_context}.publisher_names",
+        )
+        if (
+            len(metric_publishers) != len(set(metric_publishers))
+            or any(
+                not isinstance(name, str)
+                or not name.strip()
+                or name != name.strip()
+                for name in metric_publishers
+            )
+            or metric_publisher_count != len(metric_publishers)
+        ):
+            raise CandidateSignalsError(
+                f"{metric_context}.publisher_names is invalid"
+            )
+        for field in (
+            "active_day_count",
+            "headline_match_count",
+            "summary_only_match_count",
+            "story_cluster_count",
+        ):
+            _require_non_negative_integer(
+                metric[field],
+                f"{metric_context}.{field}",
+            )
+        if (
+            metric["headline_match_count"]
+            + metric["summary_only_match_count"]
+            != record_count
+        ):
+            raise CandidateSignalsError(
+                f"{metric_context} match counts do not equal record_count"
+            )
+
+        scope_counts = _require_object(
+            metric["scope_counts"],
+            f"{metric_context}.scope_counts",
+        )
+        scope_shares = _require_object(
+            metric["scope_shares"],
+            f"{metric_context}.scope_shares",
+        )
+        if set(scope_counts) != set(VISIBILITY_SCOPES) or set(
+            scope_shares
+        ) != set(VISIBILITY_SCOPES):
+            raise CandidateSignalsError(
+                f"{metric_context} scope composition is invalid"
+            )
+        for scope in VISIBILITY_SCOPES:
+            _require_non_negative_integer(
+                scope_counts[scope],
+                f"{metric_context}.scope_counts.{scope}",
+            )
+            _ratio(
+                scope_shares[scope],
+                f"{metric_context}.scope_shares.{scope}",
+            )
+        if sum(scope_counts.values()) != record_count:
+            raise CandidateSignalsError(
+                f"{metric_context} scope counts do not equal record_count"
+            )
+        if expected_lane == "primary":
+            if scope_counts[GENERAL_SCOPE] != 0:
+                raise CandidateSignalsError(
+                    "general records appear inside the primary attention lane"
+                )
+        elif (
+            scope_counts["election"] != 0
+            or scope_counts["campaign"] != 0
+            or scope_counts[GENERAL_SCOPE] != record_count
+        ):
+            raise CandidateSignalsError(
+                "election/campaign records appear inside the general lane"
+            )
+
+        story_clusters = _require_list(
+            metric["story_clusters"],
+            f"{metric_context}.story_clusters",
+        )
+        if metric["story_cluster_count"] != len(story_clusters):
+            raise CandidateSignalsError(
+                f"{metric_context}.story_cluster_count is inconsistent"
+            )
+        _validate_concentration(
+            metric["concentration"],
+            f"{metric_context}.concentration",
+            record_count,
+        )
+        metrics_by_key[candidate_key] = metric
+    return period, metrics_by_key
+
+
+def _project_concentration(value: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "leading_publisher": value["leading_publisher"],
+        "leading_publisher_record_count": value[
+            "leading_publisher_record_count"
+        ],
+        "leading_publisher_share": value["leading_publisher_share"],
+        "leading_story_record_count": value["leading_story_record_count"],
+        "leading_story_share": value["leading_story_share"],
+    }
+
+
+def _campaign_metric_projection(
+    metric: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if metric is None:
+        return {
+            "evidence_state": "not_observed",
+            "record_count": None,
+            "share": None,
+            "publisher_count": None,
+            "active_day_count": None,
+            "headline_match_count": None,
+            "summary_only_match_count": None,
+            "scope_counts": None,
+            "scope_shares": None,
+            "story_cluster_count": None,
+            "concentration": None,
+        }
+    return {
+        "evidence_state": "reported",
+        "record_count": metric["record_count"],
+        "share": metric["share"],
+        "publisher_count": metric["publisher_count"],
+        "active_day_count": metric["active_day_count"],
+        "headline_match_count": metric["headline_match_count"],
+        "summary_only_match_count": metric["summary_only_match_count"],
+        "scope_counts": copy.deepcopy(metric["scope_counts"]),
+        "scope_shares": copy.deepcopy(metric["scope_shares"]),
+        "story_cluster_count": metric["story_cluster_count"],
+        "concentration": _project_concentration(metric["concentration"]),
+    }
+
+
+def _general_metric_projection(
+    metric: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if metric is None:
+        return {
+            "evidence_state": "not_observed",
+            "record_count": None,
+            "share": None,
+            "publisher_count": None,
+            "active_day_count": None,
+            "headline_match_count": None,
+            "summary_only_match_count": None,
+            "story_cluster_count": None,
+            "concentration": None,
+        }
+    return {
+        "evidence_state": "reported",
+        "record_count": metric["record_count"],
+        "share": metric["share"],
+        "publisher_count": metric["publisher_count"],
+        "active_day_count": metric["active_day_count"],
+        "headline_match_count": metric["headline_match_count"],
+        "summary_only_match_count": metric["summary_only_match_count"],
+        "story_cluster_count": metric["story_cluster_count"],
+        "concentration": _project_concentration(metric["concentration"]),
+    }
+
+
+def project_visibility(
+    candidates: list[dict[str, str]],
+    news: Any,
+) -> tuple[
+    dict[str, Any],
+    dict[str, dict[str, Any]],
+    dict[str, dict[str, Any]],
+]:
+    """Validate and separately project primary and general visibility."""
+
+    news_object = _require_object(news, "news")
+    visibility = _require_object(
+        news_object.get("candidate_visibility"),
+        "news.candidate_visibility",
+    )
+    expected_top_keys = {
+        "method",
+        "primary_scopes",
+        "secondary_scope",
+        "current_period",
+        "prior_period",
+        "general_current_period",
+        "general_prior_period",
+        "comparison_quality",
+    }
+    if set(visibility) != expected_top_keys:
+        raise CandidateSignalsError(
+            "news.candidate_visibility has unexpected fields"
+        )
+    method = _require_text(
+        visibility["method"],
+        "news.candidate_visibility.method",
+    )
+    if visibility["primary_scopes"] != list(PRIMARY_SCOPES):
+        raise CandidateSignalsError(
+            "news.candidate_visibility.primary_scopes is invalid"
+        )
+    if visibility["secondary_scope"] != GENERAL_SCOPE:
+        raise CandidateSignalsError(
+            "news.candidate_visibility.secondary_scope is invalid"
+        )
+
+    current, current_metrics = _validate_visibility_period(
+        visibility["current_period"],
+        "news.candidate_visibility.current_period",
+        expected_lane="primary",
+    )
+    prior, _prior_metrics = _validate_visibility_period(
+        visibility["prior_period"],
+        "news.candidate_visibility.prior_period",
+        expected_lane="primary",
+    )
+    general_current, general_metrics = _validate_visibility_period(
+        visibility["general_current_period"],
+        "news.candidate_visibility.general_current_period",
+        expected_lane="general",
+    )
+    _general_prior, _general_prior_metrics = _validate_visibility_period(
+        visibility["general_prior_period"],
+        "news.candidate_visibility.general_prior_period",
+        expected_lane="general",
+    )
+
+    quality = _require_object(
+        visibility["comparison_quality"],
+        "news.candidate_visibility.comparison_quality",
+    )
+    if set(quality) != QUALITY_KEYS:
+        raise CandidateSignalsError(
+            "news.candidate_visibility.comparison_quality has unexpected fields"
+        )
+    if quality["status"] not in {"comparable", "not_comparable"}:
+        raise CandidateSignalsError(
+            "news.candidate_visibility.comparison_quality.status is invalid"
+        )
+    _require_text(
+        quality["reason"],
+        "news.candidate_visibility.comparison_quality.reason",
+    )
+    for field in (
+        "current_record_count",
+        "prior_record_count",
+        "current_publisher_count",
+        "prior_publisher_count",
+        "common_publisher_count",
+        "publisher_union_count",
+    ):
+        _require_non_negative_integer(
+            quality[field],
+            f"news.candidate_visibility.comparison_quality.{field}",
+        )
+    _ratio(
+        quality["publisher_overlap_ratio"],
+        "news.candidate_visibility.comparison_quality.publisher_overlap_ratio",
+    )
+    record_count_ratio = quality["record_count_ratio"]
+    if record_count_ratio is not None:
+        ratio = _numeric(
+            record_count_ratio,
+            "news.candidate_visibility.comparison_quality.record_count_ratio",
+            non_negative=True,
+        )
+        if ratio < 1:
+            raise CandidateSignalsError(
+                "comparison_quality.record_count_ratio must be at least one"
+            )
+    _require_object(
+        quality["thresholds"],
+        "news.candidate_visibility.comparison_quality.thresholds",
+    )
+    expected_quality_counts = {
+        "current_record_count": current["record_count"],
+        "prior_record_count": prior["record_count"],
+        "current_publisher_count": current["publisher_count"],
+        "prior_publisher_count": prior["publisher_count"],
+    }
+    if any(
+        quality[field] != expected
+        for field, expected in expected_quality_counts.items()
+    ):
+        raise CandidateSignalsError(
+            "comparison_quality counts do not match visibility periods"
+        )
+
+    visibility_projection = {
+        "method": method,
+        "primary_scopes": list(PRIMARY_SCOPES),
+        "secondary_scope": GENERAL_SCOPE,
+        "current_period": {
+            "start_date": current["start_date"],
+            "end_date": current["end_date"],
+            "record_count": current["record_count"],
+            "publisher_count": current["publisher_count"],
+        },
+        "general_current_period": {
+            "start_date": general_current["start_date"],
+            "end_date": general_current["end_date"],
+            "record_count": general_current["record_count"],
+            "publisher_count": general_current["publisher_count"],
+        },
+        "comparison_quality": copy.deepcopy(quality),
+    }
+    campaign: dict[str, dict[str, Any]] = {}
+    general: dict[str, dict[str, Any]] = {}
+    for candidate in candidates:
+        identifier = candidate["candidate_id"]
+        key = normalized_candidate_key(candidate["candidate_name"])
+        campaign[identifier] = _campaign_metric_projection(
+            current_metrics.get(key)
+        )
+        general[identifier] = _general_metric_projection(
+            general_metrics.get(key)
+        )
+    return visibility_projection, campaign, general
+
+
+def _empty_scrutiny_counts() -> dict[str, Any]:
+    return {
+        "review_count": 0,
+        "by_count": 0,
+        "about_count": 0,
+        "newest_review_date": None,
+        "newest_review_url": None,
+    }
+
+
+def _update_newest_review(
+    bucket: dict[str, Any],
+    review_date: str,
+    review_url: str,
+) -> None:
+    current_date = bucket["newest_review_date"]
+    current_url = bucket["newest_review_url"]
+    if (
+        current_date is None
+        or review_date > current_date
+        or (
+            review_date == current_date
+            and (current_url is None or review_url < current_url)
+        )
+    ):
+        bucket["newest_review_date"] = review_date
+        bucket["newest_review_url"] = review_url
+
+
+def project_scrutiny(
+    candidates: list[dict[str, str]],
+    claims: Any,
+) -> tuple[dict[str, Any], dict[str, dict[str, Any]], str | None]:
+    """Project inclusive 14-day and archive scrutiny counts per candidate."""
+
+    claims_object = _require_object(claims, "claims")
+    latest_end = _timestamp_date(
+        claims_object.get("generated_at"),
+        "claims.generated_at",
+    )
+    latest_start = latest_end - timedelta(days=LATEST_SCRUTINY_DAYS - 1)
+    archive_window_days = _require_non_negative_integer(
+        claims_object.get("archive_window_days"),
+        "claims.archive_window_days",
+    )
+    reviews = _require_list(claims_object.get("reviews"), "claims.reviews")
+
+    by_id = {candidate["candidate_id"]: candidate for candidate in candidates}
+    by_key = {
+        normalized_candidate_key(candidate["candidate_name"]): candidate
+        for candidate in candidates
+    }
+    projections = {
+        candidate["candidate_id"]: {
+            "latest_14_days": _empty_scrutiny_counts(),
+            "archive": _empty_scrutiny_counts(),
+        }
+        for candidate in candidates
+    }
+    newest_evidence: date | None = None
+
+    for review_index, review_value in enumerate(reviews):
+        context = f"claims.reviews[{review_index}]"
+        review = _require_object(review_value, context)
+        review_date = _parse_date(
+            review.get("review_date"),
+            f"{context}.review_date",
+        )
+        if review_date > latest_end:
+            raise CandidateSignalsError(
+                f"{context}.review_date is in the future relative to "
+                "claims.generated_at"
+            )
+        newest_evidence = (
+            review_date
+            if newest_evidence is None
+            else max(newest_evidence, review_date)
+        )
+        review_url = review.get("review_url")
+        if not _usable_url(review_url):
+            raise CandidateSignalsError(f"{context}.review_url is invalid")
+        associations = _require_list(
+            review.get("candidate_associations"),
+            f"{context}.candidate_associations",
+        )
+        seen_associations: set[str] = set()
+        for association_index, association_value in enumerate(associations):
+            association_context = (
+                f"{context}.candidate_associations[{association_index}]"
+            )
+            association = _require_object(
+                association_value,
+                association_context,
+            )
+            association_id = _require_text(
+                association.get("candidate_id"),
+                f"{association_context}.candidate_id",
+            )
+            try:
+                association_name = canonical_candidate_name(
+                    association.get("candidate_name")
+                )
+                association_key = normalized_candidate_key(association_name)
+                expected_id = candidate_id(association_name)
+            except CandidateIdentityError as error:
+                raise _error_from_identity(error) from error
+            if association_id != expected_id:
+                raise CandidateSignalsError(
+                    f"{association_context}.candidate_id does not match name"
+                )
+            if association_id in seen_associations:
+                raise CandidateSignalsError(
+                    f"{context} associates the same candidate more than once"
+                )
+            seen_associations.add(association_id)
+            relationship = association.get("relationship")
+            if relationship not in {"by", "about"}:
+                raise CandidateSignalsError(
+                    f"{association_context}.relationship must be by or about"
+                )
+
+            universe_candidate = by_id.get(association_id)
+            if universe_candidate is None:
+                universe_candidate = by_key.get(association_key)
+            if universe_candidate is None:
+                continue
+            if (
+                universe_candidate["candidate_id"] != association_id
+                or normalized_candidate_key(
+                    universe_candidate["candidate_name"]
+                )
+                != association_key
+            ):
+                raise CandidateSignalsError(
+                    f"{association_context} conflicts with candidate universe"
+                )
+
+            candidate_projection = projections[association_id]
+            archive = candidate_projection["archive"]
+            archive["review_count"] += 1
+            archive[f"{relationship}_count"] += 1
+            _update_newest_review(
+                archive,
+                review_date.isoformat(),
+                review_url,
+            )
+            if latest_start <= review_date <= latest_end:
+                latest = candidate_projection["latest_14_days"]
+                latest["review_count"] += 1
+                latest[f"{relationship}_count"] += 1
+                _update_newest_review(
+                    latest,
+                    review_date.isoformat(),
+                    review_url,
+                )
+
+    window = {
+        "latest_days": LATEST_SCRUTINY_DAYS,
+        "latest_start_date": latest_start.isoformat(),
+        "latest_end_date": latest_end.isoformat(),
+        "archive_window_days": archive_window_days,
+    }
+    return (
+        window,
+        projections,
+        newest_evidence.isoformat() if newest_evidence is not None else None,
+    )
+
+
+def _validated_candidate_watch(
+    candidate_watch: Any,
+) -> list[dict[str, Any]]:
+    items = _require_list(candidate_watch, "news.candidate_watch")
+    validated: list[dict[str, Any]] = []
+    for index, item_value in enumerate(items):
+        context = f"news.candidate_watch[{index}]"
+        item = _require_object(item_value, context)
+        identifier = _require_text(item.get("id"), f"{context}.id")
+        published = _parse_timestamp(
+            item.get("published_at"),
+            f"{context}.published_at",
+        )
+        publisher = _require_text(
+            item.get("publisher"),
+            f"{context}.publisher",
+        )
+        headline = _require_text(
+            item.get("headline"),
+            f"{context}.headline",
+        )
+        coverage_scope = item.get("coverage_scope")
+        if coverage_scope not in VISIBILITY_SCOPES:
+            raise CandidateSignalsError(
+                f"{context}.coverage_scope is invalid"
+            )
+        candidates = _require_list(
+            item.get("candidates"),
+            f"{context}.candidates",
+        )
+        candidate_keys: list[str] = []
+        for candidate_index, candidate_name in enumerate(candidates):
+            try:
+                canonical = canonical_candidate_name(candidate_name)
+                candidate_keys.append(normalized_candidate_key(canonical))
+            except CandidateIdentityError as error:
+                raise CandidateSignalsError(
+                    f"{context}.candidates[{candidate_index}]: {error}"
+                ) from error
+        if len(candidate_keys) != len(set(candidate_keys)):
+            raise CandidateSignalsError(
+                f"{context}.candidates contains duplicates"
+            )
+        url = item.get("url")
+        validated.append(
+            {
+                "id": identifier,
+                "published_at": item["published_at"],
+                "_published_datetime": published,
+                "publisher": publisher,
+                "headline": headline,
+                "url": url,
+                "_usable_url": _usable_url(url),
+                "coverage_scope": coverage_scope,
+                "_candidate_keys": candidate_keys,
+            }
+        )
+    return validated
+
+
+def _empty_latest_development() -> dict[str, Any]:
+    return {
+        "evidence_state": "none",
+        "id": None,
+        "published_at": None,
+        "publisher": None,
+        "headline": None,
+        "url": None,
+        "coverage_scope": None,
+    }
+
+
+def select_latest_development(
+    candidate_name: str,
+    candidate_watch: Any,
+) -> dict[str, Any]:
+    """Select one newest source-linked election/campaign candidate record."""
+
+    try:
+        key = normalized_candidate_key(candidate_name)
+    except CandidateIdentityError as error:
+        raise _error_from_identity(error) from error
+    items = _validated_candidate_watch(candidate_watch)
+    matches = [
+        item
+        for item in items
+        if key in item["_candidate_keys"]
+        and item["coverage_scope"] in PRIMARY_SCOPES
+        and item["_usable_url"]
+    ]
+    if not matches:
+        return _empty_latest_development()
+    matches.sort(
+        key=lambda item: (
+            -item["_published_datetime"].timestamp(),
+            item["id"],
+        )
+    )
+    selected = matches[0]
+    return {
+        "evidence_state": "reported",
+        "id": selected["id"],
+        "published_at": selected["published_at"],
+        "publisher": selected["publisher"],
+        "headline": selected["headline"],
+        "url": selected["url"],
+        "coverage_scope": selected["coverage_scope"],
+    }
+
+
+def project_latest_developments(
+    candidates: list[dict[str, str]],
+    candidate_watch: Any,
+) -> tuple[dict[str, dict[str, Any]], str | None]:
+    """Project latest developments and the newest candidate-watch evidence date."""
+
+    items = _validated_candidate_watch(candidate_watch)
+    developments: dict[str, dict[str, Any]] = {}
+    for candidate in candidates:
+        key = normalized_candidate_key(candidate["candidate_name"])
+        matches = [
+            item
+            for item in items
+            if key in item["_candidate_keys"]
+            and item["coverage_scope"] in PRIMARY_SCOPES
+            and item["_usable_url"]
+        ]
+        matches.sort(
+            key=lambda item: (
+                -item["_published_datetime"].timestamp(),
+                item["id"],
+            )
+        )
+        if matches:
+            selected = matches[0]
+            developments[candidate["candidate_id"]] = {
+                "evidence_state": "reported",
+                "id": selected["id"],
+                "published_at": selected["published_at"],
+                "publisher": selected["publisher"],
+                "headline": selected["headline"],
+                "url": selected["url"],
+                "coverage_scope": selected["coverage_scope"],
+            }
+        else:
+            developments[candidate["candidate_id"]] = (
+                _empty_latest_development()
+            )
+
+    usable_dates = [
+        item["_published_datetime"].date()
+        for item in items
+        if item["_usable_url"]
+    ]
+    newest = max(usable_dates).isoformat() if usable_dates else None
+    return developments, newest
+
+
+def _featured_package_public(
+    package: dict[str, Any],
+) -> dict[str, Any]:
+    source_urls: list[str] = []
+    for event in package["events"]:
+        for field in ("official_source_url", "source_url"):
+            url = event.get(field)
+            if _usable_url(url) and url not in source_urls:
+                source_urls.append(url)
+    if not source_urls:
+        raise CandidateSignalsError(
+            "featured polling package has no usable source URL"
+        )
+    return {
+        "package_key": package["package_key"],
+        "pollster": package["pollster"],
+        "fieldwork_start": package["fieldwork_start"],
+        "fieldwork_end": package["fieldwork_end"],
+        "sample_size": package["sample_size"],
+        "hypothesis_count": len(package["events"]),
+        "selected_hypothesis_event_id": package["selected_event"]["event_id"],
+        "source_urls": source_urls,
+    }
+
+
+def _polling_evidence_date(package: dict[str, Any]) -> str:
+    publication_dates = [
+        _parse_date(
+            event["publication_date"],
+            "featured package publication_date",
+        )
+        for event in package["events"]
+        if event.get("publication_date") not in (None, "")
+    ]
+    if publication_dates:
+        return max(publication_dates).isoformat()
+    return _parse_date(
+        package["fieldwork_end"],
+        "featured package fieldwork_end",
+    ).isoformat()
+
+
+def _construct_candidate_signals(
+    polls: Any,
+    news: Any,
+    claims: Any,
+) -> dict[str, Any]:
+    universe, candidates = derive_candidate_universe(polls, news, claims)
+    featured_package = select_featured_polling_package(polls)
+    polling = project_candidate_polling(candidates, featured_package)
+    visibility, campaign_attention, general_visibility = project_visibility(
+        candidates,
+        news,
+    )
+    scrutiny_window, scrutiny, scrutiny_evidence = project_scrutiny(
+        candidates,
+        claims,
+    )
+    news_object = _require_object(news, "news")
+    developments, news_evidence = project_latest_developments(
+        candidates,
+        news_object.get("candidate_watch"),
+    )
+    if news_evidence is None:
+        news_evidence = visibility["current_period"]["end_date"]
+
+    candidate_payloads = []
+    for candidate in candidates:
+        identifier = candidate["candidate_id"]
+        candidate_payloads.append(
+            {
+                "candidate_id": identifier,
+                "candidate_name": candidate["candidate_name"],
+                "polling": polling[identifier],
+                "campaign_attention": campaign_attention[identifier],
+                "general_visibility": general_visibility[identifier],
+                "scrutiny": scrutiny[identifier],
+                "latest_development": developments[identifier],
+            }
+        )
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "candidate_universe": universe,
+        "featured_polling_package": _featured_package_public(
+            featured_package
+        ),
+        "visibility": visibility,
+        "scrutiny_window": scrutiny_window,
+        "evidence_dates": {
+            "polling": _polling_evidence_date(featured_package),
+            "news": news_evidence,
+            "scrutiny": scrutiny_evidence,
+        },
+        "candidates": candidate_payloads,
+    }
+
+
+POLLING_OUTPUT_KEYS = {
+    "evidence_state",
+    "hypothesis_count",
+    "range_min",
+    "range_max",
+    "selected_hypothesis_score",
+    "selected_hypothesis_rank",
+}
+CAMPAIGN_OUTPUT_KEYS = {
+    "evidence_state",
+    "record_count",
+    "share",
+    "publisher_count",
+    "active_day_count",
+    "headline_match_count",
+    "summary_only_match_count",
+    "scope_counts",
+    "scope_shares",
+    "story_cluster_count",
+    "concentration",
+}
+GENERAL_OUTPUT_KEYS = CAMPAIGN_OUTPUT_KEYS - {
+    "scope_counts",
+    "scope_shares",
+}
+SCRUTINY_COUNT_KEYS = {
+    "review_count",
+    "by_count",
+    "about_count",
+    "newest_review_date",
+    "newest_review_url",
+}
+LATEST_DEVELOPMENT_KEYS = {
+    "evidence_state",
+    "id",
+    "published_at",
+    "publisher",
+    "headline",
+    "url",
+    "coverage_scope",
+}
+
+
+def _audit_forbidden_fields(value: Any, path: str = "payload") -> None:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            normalized_key = key.casefold().replace("-", "_")
+            if any(part in normalized_key for part in FORBIDDEN_FIELD_PARTS):
+                raise CandidateSignalsError(
+                    f"forbidden interpretive field at {path}.{key}"
+                )
+            _audit_forbidden_fields(item, f"{path}.{key}")
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            _audit_forbidden_fields(item, f"{path}[{index}]")
+
+
+def _validate_projected_metric(
+    metric: Any,
+    context: str,
+    expected_keys: set[str],
+) -> None:
+    value = _require_object(metric, context)
+    if set(value) != expected_keys:
+        raise CandidateSignalsError(f"{context} has unexpected fields")
+    state = value["evidence_state"]
+    metric_fields = expected_keys - {"evidence_state"}
+    if state == "not_observed":
+        if any(value[field] is not None for field in metric_fields):
+            raise CandidateSignalsError(
+                f"{context} fabricates values for unobserved evidence"
+            )
+        return
+    if state != "reported":
+        raise CandidateSignalsError(f"{context}.evidence_state is invalid")
+    for field in (
+        "record_count",
+        "publisher_count",
+        "active_day_count",
+        "headline_match_count",
+        "summary_only_match_count",
+        "story_cluster_count",
+    ):
+        _require_non_negative_integer(value[field], f"{context}.{field}")
+    _ratio(value["share"], f"{context}.share")
+    _validate_concentration(
+        value["concentration"],
+        f"{context}.concentration",
+        value["record_count"],
+    )
+    if "scope_counts" in value:
+        counts = _require_object(value["scope_counts"], f"{context}.scope_counts")
+        shares = _require_object(value["scope_shares"], f"{context}.scope_shares")
+        if set(counts) != set(VISIBILITY_SCOPES) or set(shares) != set(
+            VISIBILITY_SCOPES
+        ):
+            raise CandidateSignalsError(f"{context} scope fields are invalid")
+        if counts[GENERAL_SCOPE] != 0:
+            raise CandidateSignalsError(
+                f"{context} contains general records in primary attention"
+            )
+
+
+def validate_candidate_signals(
+    payload: Any,
+    *,
+    polls: Any | None = None,
+    news: Any | None = None,
+    claims: Any | None = None,
+) -> None:
+    """Strictly validate structure and, when supplied, source equivalence."""
+
+    value = _require_object(payload, "payload")
+    _audit_forbidden_fields(value)
+    expected_top_keys = {
+        "schema_version",
+        "candidate_universe",
+        "featured_polling_package",
+        "visibility",
+        "scrutiny_window",
+        "evidence_dates",
+        "candidates",
+    }
+    if set(value) != expected_top_keys:
+        raise CandidateSignalsError("payload has unexpected fields")
+    if value["schema_version"] != SCHEMA_VERSION:
+        raise CandidateSignalsError("schema_version must equal 1.0")
+
+    universe = _require_object(
+        value["candidate_universe"],
+        "candidate_universe",
+    )
+    if set(universe) != {"rule", "as_of_date", "cutoff_date", "count"}:
+        raise CandidateSignalsError(
+            "candidate_universe has unexpected fields"
+        )
+    _require_text(universe["rule"], "candidate_universe.rule")
+    as_of = _parse_date(
+        universe["as_of_date"],
+        "candidate_universe.as_of_date",
+    )
+    cutoff = _parse_date(
+        universe["cutoff_date"],
+        "candidate_universe.cutoff_date",
+    )
+    if cutoff != as_of - timedelta(days=CANDIDATE_WINDOW_DAYS):
+        raise CandidateSignalsError(
+            "candidate_universe cutoff is not the inclusive 183-day boundary"
+        )
+    count = _require_non_negative_integer(
+        universe["count"],
+        "candidate_universe.count",
+    )
+
+    featured = _require_object(
+        value["featured_polling_package"],
+        "featured_polling_package",
+    )
+    featured_keys = {
+        "package_key",
+        "pollster",
+        "fieldwork_start",
+        "fieldwork_end",
+        "sample_size",
+        "hypothesis_count",
+        "selected_hypothesis_event_id",
+        "source_urls",
+    }
+    if set(featured) != featured_keys:
+        raise CandidateSignalsError(
+            "featured_polling_package has unexpected fields"
+        )
+    package_key = _require_text(
+        featured["package_key"],
+        "featured_polling_package.package_key",
+    )
+    try:
+        parsed_package_key = json.loads(package_key)
+    except json.JSONDecodeError as error:
+        raise CandidateSignalsError(
+            "featured_polling_package.package_key is invalid"
+        ) from error
+    expected_package_key = [
+        featured["pollster"],
+        featured["fieldwork_start"],
+        featured["fieldwork_end"],
+        featured["sample_size"],
+    ]
+    if parsed_package_key != expected_package_key:
+        raise CandidateSignalsError(
+            "featured_polling_package.package_key does not match its fields"
+        )
+    _require_text(featured["pollster"], "featured_polling_package.pollster")
+    start = _parse_date(
+        featured["fieldwork_start"],
+        "featured_polling_package.fieldwork_start",
+    )
+    end = _parse_date(
+        featured["fieldwork_end"],
+        "featured_polling_package.fieldwork_end",
+    )
+    if start > end:
+        raise CandidateSignalsError(
+            "featured polling fieldwork dates are reversed"
+        )
+    if featured["sample_size"] is not None:
+        _require_non_negative_integer(
+            featured["sample_size"],
+            "featured_polling_package.sample_size",
+        )
+    if (
+        _require_non_negative_integer(
+            featured["hypothesis_count"],
+            "featured_polling_package.hypothesis_count",
+        )
+        == 0
+    ):
+        raise CandidateSignalsError(
+            "featured_polling_package must contain hypotheses"
+        )
+    _require_text(
+        featured["selected_hypothesis_event_id"],
+        "featured_polling_package.selected_hypothesis_event_id",
+    )
+    source_urls = _require_list(
+        featured["source_urls"],
+        "featured_polling_package.source_urls",
+    )
+    if (
+        not source_urls
+        or any(not _usable_url(url) for url in source_urls)
+        or len(source_urls) != len(set(source_urls))
+    ):
+        raise CandidateSignalsError(
+            "featured_polling_package.source_urls is invalid"
+        )
+
+    visibility = _require_object(value["visibility"], "visibility")
+    if set(visibility) != {
+        "method",
+        "primary_scopes",
+        "secondary_scope",
+        "current_period",
+        "general_current_period",
+        "comparison_quality",
+    }:
+        raise CandidateSignalsError("visibility has unexpected fields")
+    _require_text(visibility["method"], "visibility.method")
+    if visibility["primary_scopes"] != list(PRIMARY_SCOPES):
+        raise CandidateSignalsError("visibility.primary_scopes is invalid")
+    if visibility["secondary_scope"] != GENERAL_SCOPE:
+        raise CandidateSignalsError("visibility.secondary_scope is invalid")
+    for period_name in ("current_period", "general_current_period"):
+        period = _require_object(
+            visibility[period_name],
+            f"visibility.{period_name}",
+        )
+        if set(period) != {
+            "start_date",
+            "end_date",
+            "record_count",
+            "publisher_count",
+        }:
+            raise CandidateSignalsError(
+                f"visibility.{period_name} has unexpected fields"
+            )
+        period_start = _parse_date(
+            period["start_date"],
+            f"visibility.{period_name}.start_date",
+        )
+        period_end = _parse_date(
+            period["end_date"],
+            f"visibility.{period_name}.end_date",
+        )
+        if period_start > period_end or (period_end - period_start).days != 6:
+            raise CandidateSignalsError(
+                f"visibility.{period_name} must span seven days"
+            )
+        _require_non_negative_integer(
+            period["record_count"],
+            f"visibility.{period_name}.record_count",
+        )
+        _require_non_negative_integer(
+            period["publisher_count"],
+            f"visibility.{period_name}.publisher_count",
+        )
+    quality = _require_object(
+        visibility["comparison_quality"],
+        "visibility.comparison_quality",
+    )
+    if set(quality) != QUALITY_KEYS:
+        raise CandidateSignalsError(
+            "visibility.comparison_quality has unexpected fields"
+        )
+
+    scrutiny_window = _require_object(
+        value["scrutiny_window"],
+        "scrutiny_window",
+    )
+    if set(scrutiny_window) != {
+        "latest_days",
+        "latest_start_date",
+        "latest_end_date",
+        "archive_window_days",
+    }:
+        raise CandidateSignalsError("scrutiny_window has unexpected fields")
+    if scrutiny_window["latest_days"] != LATEST_SCRUTINY_DAYS:
+        raise CandidateSignalsError("scrutiny_window.latest_days is invalid")
+    scrutiny_start = _parse_date(
+        scrutiny_window["latest_start_date"],
+        "scrutiny_window.latest_start_date",
+    )
+    scrutiny_end = _parse_date(
+        scrutiny_window["latest_end_date"],
+        "scrutiny_window.latest_end_date",
+    )
+    if scrutiny_start != scrutiny_end - timedelta(
+        days=LATEST_SCRUTINY_DAYS - 1
+    ):
+        raise CandidateSignalsError("scrutiny_window boundaries are invalid")
+    _require_non_negative_integer(
+        scrutiny_window["archive_window_days"],
+        "scrutiny_window.archive_window_days",
+    )
+
+    evidence_dates = _require_object(
+        value["evidence_dates"],
+        "evidence_dates",
+    )
+    if set(evidence_dates) != {"polling", "news", "scrutiny"}:
+        raise CandidateSignalsError("evidence_dates has unexpected fields")
+    _parse_date(evidence_dates["polling"], "evidence_dates.polling")
+    _parse_date(evidence_dates["news"], "evidence_dates.news")
+    if evidence_dates["scrutiny"] is not None:
+        _parse_date(
+            evidence_dates["scrutiny"],
+            "evidence_dates.scrutiny",
+        )
+
+    candidates = _require_list(value["candidates"], "candidates")
+    if len(candidates) != count:
+        raise CandidateSignalsError(
+            "candidate_universe.count does not match candidates"
+        )
+    identity_names: list[str] = []
+    expected_order: list[tuple[str, str]] = []
+    seen_ids: set[str] = set()
+    for index, candidate_value in enumerate(candidates):
+        context = f"candidates[{index}]"
+        candidate = _require_object(candidate_value, context)
+        if set(candidate) != {
+            "candidate_id",
+            "candidate_name",
+            "polling",
+            "campaign_attention",
+            "general_visibility",
+            "scrutiny",
+            "latest_development",
+        }:
+            raise CandidateSignalsError(f"{context} has unexpected fields")
+        try:
+            name = canonical_candidate_name(candidate["candidate_name"])
+            identifier = candidate_id(name)
+        except CandidateIdentityError as error:
+            raise _error_from_identity(error) from error
+        if candidate["candidate_id"] != identifier:
+            raise CandidateSignalsError(
+                f"{context}.candidate_id does not match candidate_name"
+            )
+        if identifier in seen_ids:
+            raise CandidateSignalsError("candidate IDs must be unique")
+        seen_ids.add(identifier)
+        identity_names.append(name)
+        expected_order.append((name.casefold(), identifier))
+
+        polling = _require_object(candidate["polling"], f"{context}.polling")
+        if set(polling) != POLLING_OUTPUT_KEYS:
+            raise CandidateSignalsError(
+                f"{context}.polling has unexpected fields"
+            )
+        polling_state = polling["evidence_state"]
+        polling_fields = POLLING_OUTPUT_KEYS - {"evidence_state"}
+        if polling_state == "not_tested":
+            if any(polling[field] is not None for field in polling_fields):
+                raise CandidateSignalsError(
+                    f"{context}.polling fabricates an untested value"
+                )
+        elif polling_state == "reported":
+            if (
+                type(polling["hypothesis_count"]) is not int
+                or polling["hypothesis_count"] <= 0
+            ):
+                raise CandidateSignalsError(
+                    f"{context}.polling.hypothesis_count is invalid"
+                )
+            low = _numeric(
+                polling["range_min"],
+                f"{context}.polling.range_min",
+                non_negative=True,
+            )
+            high = _numeric(
+                polling["range_max"],
+                f"{context}.polling.range_max",
+                non_negative=True,
+            )
+            if low > high:
+                raise CandidateSignalsError(
+                    f"{context}.polling range is reversed"
+                )
+            selected_score = polling["selected_hypothesis_score"]
+            selected_rank = polling["selected_hypothesis_rank"]
+            if (selected_score is None) != (selected_rank is None):
+                raise CandidateSignalsError(
+                    f"{context}.polling selected score/rank must align"
+                )
+            if selected_score is not None:
+                _numeric(
+                    selected_score,
+                    f"{context}.polling.selected_hypothesis_score",
+                    non_negative=True,
+                )
+                if type(selected_rank) is not int or selected_rank <= 0:
+                    raise CandidateSignalsError(
+                        f"{context}.polling selected rank is invalid"
+                    )
+        else:
+            raise CandidateSignalsError(
+                f"{context}.polling.evidence_state is invalid"
+            )
+
+        _validate_projected_metric(
+            candidate["campaign_attention"],
+            f"{context}.campaign_attention",
+            CAMPAIGN_OUTPUT_KEYS,
+        )
+        _validate_projected_metric(
+            candidate["general_visibility"],
+            f"{context}.general_visibility",
+            GENERAL_OUTPUT_KEYS,
+        )
+
+        scrutiny = _require_object(candidate["scrutiny"], f"{context}.scrutiny")
+        if set(scrutiny) != {"latest_14_days", "archive"}:
+            raise CandidateSignalsError(
+                f"{context}.scrutiny has unexpected fields"
+            )
+        for window_name in ("latest_14_days", "archive"):
+            window = _require_object(
+                scrutiny[window_name],
+                f"{context}.scrutiny.{window_name}",
+            )
+            if set(window) != SCRUTINY_COUNT_KEYS:
+                raise CandidateSignalsError(
+                    f"{context}.scrutiny.{window_name} has unexpected fields"
+                )
+            for field in ("review_count", "by_count", "about_count"):
+                _require_non_negative_integer(
+                    window[field],
+                    f"{context}.scrutiny.{window_name}.{field}",
+                )
+            if window["review_count"] != window["by_count"] + window["about_count"]:
+                raise CandidateSignalsError(
+                    f"{context}.scrutiny.{window_name} counts are inconsistent"
+                )
+            newest_date = window["newest_review_date"]
+            newest_url = window["newest_review_url"]
+            if window["review_count"] == 0:
+                if newest_date is not None or newest_url is not None:
+                    raise CandidateSignalsError(
+                        f"{context}.scrutiny.{window_name} has unsupported "
+                        "newest-review evidence"
+                    )
+            else:
+                _parse_date(
+                    newest_date,
+                    f"{context}.scrutiny.{window_name}.newest_review_date",
+                )
+                if not _usable_url(newest_url):
+                    raise CandidateSignalsError(
+                        f"{context}.scrutiny.{window_name}.newest_review_url "
+                        "is invalid"
+                    )
+
+        development = _require_object(
+            candidate["latest_development"],
+            f"{context}.latest_development",
+        )
+        if set(development) != LATEST_DEVELOPMENT_KEYS:
+            raise CandidateSignalsError(
+                f"{context}.latest_development has unexpected fields"
+            )
+        development_fields = LATEST_DEVELOPMENT_KEYS - {"evidence_state"}
+        if development["evidence_state"] == "none":
+            if any(development[field] is not None for field in development_fields):
+                raise CandidateSignalsError(
+                    f"{context}.latest_development fabricates evidence"
+                )
+        elif development["evidence_state"] == "reported":
+            for field in ("id", "published_at", "publisher", "headline"):
+                _require_text(
+                    development[field],
+                    f"{context}.latest_development.{field}",
+                )
+            _parse_timestamp(
+                development["published_at"],
+                f"{context}.latest_development.published_at",
+            )
+            if not _usable_url(development["url"]):
+                raise CandidateSignalsError(
+                    f"{context}.latest_development.url is invalid"
+                )
+            if development["coverage_scope"] not in PRIMARY_SCOPES:
+                raise CandidateSignalsError(
+                    f"{context}.latest_development scope is not campaign-relevant"
+                )
+        else:
+            raise CandidateSignalsError(
+                f"{context}.latest_development.evidence_state is invalid"
+            )
+
+    try:
+        candidate_identity_map(identity_names)
+    except CandidateIdentityError as error:
+        raise _error_from_identity(error) from error
+    if expected_order != sorted(expected_order):
+        raise CandidateSignalsError(
+            "candidates are not deterministically ordered"
+        )
+
+    supplied = (polls is not None, news is not None, claims is not None)
+    if any(supplied) and not all(supplied):
+        raise CandidateSignalsError(
+            "polls, news, and claims must all be supplied for source validation"
+        )
+    if all(supplied):
+        expected = _construct_candidate_signals(polls, news, claims)
+        if value != expected:
+            raise CandidateSignalsError(
+                "candidate signals payload does not match source evidence"
+            )
+
+
+def build_candidate_signals(
+    polls: Any,
+    news: Any,
+    claims: Any,
+) -> dict[str, Any]:
+    """Construct and strictly validate one Candidate Signals payload."""
+
+    payload = _construct_candidate_signals(polls, news, claims)
+    validate_candidate_signals(payload)
+    return payload
+
+
+def serialize_candidate_signals(payload: Any) -> bytes:
+    """Return the canonical UTF-8 public serialization."""
+
+    validate_candidate_signals(payload)
+    return (
+        json.dumps(payload, ensure_ascii=False, indent=2)
+        + "\n"
+    ).encode("utf-8")
+
+
+def atomic_write(path: Path | str, content: bytes) -> None:
+    """Atomically replace a target only after complete content is available."""
+
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{target.name}.",
+        suffix=".tmp",
+        dir=target.parent,
+    )
+    temporary_path = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, target)
+    except BaseException:
+        try:
+            temporary_path.unlink()
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def build_from_paths(
+    polls_path: Path | str = "polls.json",
+    news_path: Path | str = "news_wire.json",
+    claims_path: Path | str = "claims_under_scrutiny.json",
+    output_path: Path | str = "candidate_signals.json",
+) -> dict[str, Any]:
+    """Load, construct, source-validate, serialize, and atomically write."""
+
+    polls, news, claims = load_inputs(polls_path, news_path, claims_path)
+    payload = build_candidate_signals(polls, news, claims)
+    validate_candidate_signals(
+        payload,
+        polls=polls,
+        news=news,
+        claims=claims,
+    )
+    content = serialize_candidate_signals(payload)
+    atomic_write(output_path, content)
+    return payload
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Build deterministic Candidate Signals data",
+    )
+    parser.add_argument("--polls", default="polls.json")
+    parser.add_argument("--news", default="news_wire.json")
+    parser.add_argument(
+        "--claims",
+        default="claims_under_scrutiny.json",
+    )
+    parser.add_argument("--output", default="candidate_signals.json")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    arguments = _parser().parse_args(argv)
+    try:
+        payload = build_from_paths(
+            arguments.polls,
+            arguments.news,
+            arguments.claims,
+            arguments.output,
+        )
+    except CandidateSignalsError as error:
+        raise SystemExit(f"Candidate Signals build failed: {error}") from None
+    print(
+        "Candidate Signals: "
+        f"{payload['candidate_universe']['count']} candidates; "
+        f"featured {payload['featured_polling_package']['pollster']} "
+        f"with {payload['featured_polling_package']['hypothesis_count']} "
+        f"hypotheses; wrote {arguments.output}"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
