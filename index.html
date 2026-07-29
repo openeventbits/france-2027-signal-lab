@@ -7785,7 +7785,7 @@
       return Number.isInteger(value) && value >= 0
         ? {
             value,
-            label: "APPROVED PUBLISHER DOMAINS",
+            label: "approved publisher domains",
             mastheadUnit: "approved publisher domains"
           }
         : null;
@@ -7811,7 +7811,7 @@
       const successful = metrics.successful_due_routes;
       const configured = metrics.configured_routes_or_feeds;
       const configuredText = isNonNegativeInteger(configured)
-        ? " · " + configured + " CONFIGURED FEED ROUTES"
+        ? " · " + configured + " configured routes"
         : "";
 
       if (
@@ -7828,7 +7828,7 @@
             status: "OPERATIONAL",
             secondaryText:
               successful + "/" + due +
-              " due routes succeeded this run" + configuredText,
+              " due routes succeeded" + configuredText,
             visualState: "operational"
           };
         }
@@ -7840,7 +7840,7 @@
             failed +
             " due " +
             (failed === 1 ? "route" : "routes") +
-            " unavailable this run" + configuredText,
+            " unavailable" + configuredText,
           visualState: "degraded"
         };
       }
@@ -7896,17 +7896,30 @@
         const latestPublication = latest.publication_date
           ? formatDate(latest.publication_date)
           : "";
+        const latestSampleValue = Number(latest.sample_size);
+        const latestSample =
+          Number.isFinite(latestSampleValue) && latestSampleValue > 0
+            ? " · n=" + latestSampleValue.toLocaleString("en-GB")
+            : "";
+
         $("#context-poll-value").textContent =
           latest.pollster + (latestPublication ? " · " + latestPublication : "");
         $("#context-poll-meta").textContent =
-          (latest.publication_date ? "" : "Publication date not stated · ") +
-          "Fieldwork: " + pollFieldworkLabel(latest);
+          "Fieldwork " + pollFieldworkLabel(latest) + latestSample;
+
         const coverage = derivePollCoverage(dashboardState.polls.events);
+
         $("#context-coverage-value").textContent = coverage
-          ? coverage.count + " " + (coverage.count === 1 ? "pollster" : "pollsters") + " in last 6 months"
+          ? coverage.count + " " +
+            (coverage.count === 1 ? "pollster" : "pollsters") +
+            " · 6-month window"
           : "Coverage unavailable";
+
         $("#context-coverage-meta").textContent = coverage
-          ? "First round · " + formatDate(coverage.startDate) + "–" + formatDate(coverage.latestDate)
+          ? "First round · " +
+            formatDate(coverage.startDate) +
+            "–" +
+            formatDate(coverage.latestDate)
           : "Target: first round";
       } else {
         const pollError = dashboardState.loadState.polls === "error";
