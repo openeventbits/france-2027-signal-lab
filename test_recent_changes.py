@@ -182,7 +182,7 @@ class RecentChangesTests(unittest.TestCase):
             "configured_media_publishers",
             "approved_media_domains",
             "configured_feeds",
-            "FEED ROUTES",
+            '" configured routes"',
             "feeds_due_this_run",
             "feeds_successful_this_run",
             "Automatically updated from the source registry",
