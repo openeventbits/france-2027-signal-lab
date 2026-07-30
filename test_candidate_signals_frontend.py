@@ -8,6 +8,7 @@ import unittest
 ROOT = Path(__file__).resolve().parent
 INDEX = ROOT / "index.html"
 HYBRID_JS = ROOT / "assets" / "hybrid-dashboard.js"
+CANDIDATE_JS = ROOT / "assets" / "candidate-signals.js"
 SHELL_CSS = ROOT / "assets" / "final-dashboard-shell.css"
 
 VIEW_NAMES = [
@@ -129,6 +130,272 @@ process.stdout.write(JSON.stringify(result));
     completed = subprocess.run(
         ["node", "-e", script],
         input=json.dumps({"hash": hash_value, "expression": expression}),
+        cwd=ROOT,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+    return json.loads(completed.stdout)
+
+
+def candidate_payload(candidates=None, schema_version="1.0"):
+    return {
+        "schema_version": schema_version,
+        "candidate_universe": {"count": len(candidates or [])},
+        "candidates": candidates or [],
+    }
+
+
+def candidate_row(candidate_id="alpha", candidate_name="Alpha"):
+    return {
+        "candidate_id": candidate_id,
+        "candidate_name": candidate_name,
+        "polling": {
+            "evidence_state": "reported",
+            "hypothesis_count": 2,
+            "range_min": 4.5,
+            "range_max": 6.0,
+            "selected_hypothesis_score": None,
+            "selected_hypothesis_rank": None,
+        },
+        "campaign_attention": {
+            "evidence_state": "reported",
+            "record_count": 3,
+            "share": 0.25,
+            "publisher_count": 2,
+            "active_day_count": 2,
+            "headline_match_count": 2,
+            "summary_only_match_count": 1,
+            "scope_counts": {"election": 1, "campaign": 2, "general": 0},
+            "scope_shares": {
+                "election": 0.333,
+                "campaign": 0.667,
+                "general": 0.0,
+            },
+            "story_cluster_count": 2,
+            "concentration": {
+                "leading_publisher": "Example",
+                "leading_publisher_record_count": 2,
+                "leading_publisher_share": 0.667,
+                "leading_story_record_count": 1,
+                "leading_story_share": 0.333,
+            },
+        },
+        "general_visibility": {
+            "evidence_state": "not_observed",
+            "record_count": None,
+            "share": None,
+            "publisher_count": None,
+            "active_day_count": None,
+            "headline_match_count": None,
+            "summary_only_match_count": None,
+            "story_cluster_count": None,
+            "concentration": None,
+        },
+        "scrutiny": {
+            "latest_14_days": {
+                "review_count": 1,
+                "by_count": 0,
+                "about_count": 1,
+                "newest_review_date": "2026-07-17",
+                "newest_review_url": "https://example.test/review",
+            },
+            "archive": {
+                "review_count": 2,
+                "by_count": 1,
+                "about_count": 1,
+                "newest_review_date": "2026-07-17",
+                "newest_review_url": "https://example.test/review",
+            },
+        },
+        "latest_development": {
+            "evidence_state": "reported",
+            "id": "development-alpha",
+            "published_at": "2026-07-29T12:00:00Z",
+            "publisher": "Example",
+            "headline": "Published development",
+            "url": "https://example.test/development",
+            "coverage_scope": "campaign",
+        },
+    }
+
+
+def run_candidate_module(expression, payload=None, fetch_mode="success"):
+    script = r"""
+const fs = require("fs");
+const vm = require("vm");
+const input = JSON.parse(fs.readFileSync(0, "utf8"));
+const windowObject = {};
+windowObject.fetch = async () => {
+  if (input.fetchMode === "fetch_failed") throw new Error("private network text");
+  if (input.fetchMode === "http_error") {
+    return { ok: false, status: 503, json: async () => input.payload };
+  }
+  if (input.fetchMode === "malformed_json") {
+    return {
+      ok: true,
+      status: 200,
+      json: async () => { throw new SyntaxError("private parser text"); }
+    };
+  }
+  return { ok: true, status: 200, json: async () => input.payload };
+};
+const context = {
+  window: windowObject,
+  Object,
+  Array,
+  Set,
+  Map,
+  Promise
+};
+vm.runInNewContext(
+  fs.readFileSync("assets/candidate-signals.js", "utf8"),
+  context
+);
+(async () => {
+  const api = context.window.France2027CandidateSignals;
+  const result = await eval(input.expression);
+  process.stdout.write(JSON.stringify(result));
+})().catch(error => {
+  process.stderr.write(String(error && error.stack || error));
+  process.exit(1);
+});
+"""
+    completed = subprocess.run(
+        ["node", "-e", script],
+        input=json.dumps(
+            {
+                "expression": expression,
+                "payload": payload,
+                "fetchMode": fetch_mode,
+            }
+        ),
+        cwd=ROOT,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+    return json.loads(completed.stdout)
+
+
+def run_hybrid_candidate_integration(load_mode, expression):
+    script = r"""
+const fs = require("fs");
+const vm = require("vm");
+const input = JSON.parse(fs.readFileSync(0, "utf8"));
+let source = fs.readFileSync("assets/hybrid-dashboard.js", "utf8");
+source = source.replace(
+  /\s+retainLegacyComparison\(\);\s+renderAll\(\);\s+window\.addEventListener\("hashchange", handleSignalHashChange\);\s+document\.addEventListener\("hybrid:dataset", renderAll\);/,
+  ""
+);
+let loadCount = 0;
+const loadedUrls = [];
+const candidateRoot = {
+  attributes: {},
+  setAttribute(key, value) { this.attributes[key] = String(value); }
+};
+const panelIds = [
+  "signal-runoff-panel",
+  "signal-candidates-panel",
+  "signal-events-panel",
+  "signal-agenda-panel",
+  "signal-claims-panel",
+  "polling-evidence-lab"
+];
+const panels = Object.fromEntries(
+  panelIds.map(id => [id, { id, hidden: true }])
+);
+const names = ["runoff", "candidates", "events", "agenda", "claims", "pollCompare"];
+const tabs = names.map((name, index) => ({
+  dataset: { hybridView: name },
+  attributes: { "aria-controls": panelIds[index] },
+  tabIndex: -1,
+  classList: { toggle() {} },
+  setAttribute(key, value) { this.attributes[key] = String(value); },
+  getAttribute(key) { return this.attributes[key]; },
+  closest() { return null; },
+  focus() {}
+}));
+const mount = {
+  innerHTML: "",
+  querySelectorAll(selector) {
+    if (selector === "[role='tab'][data-hybrid-view]") return tabs;
+    if (selector === "[data-hybrid-card]") return [];
+    return [];
+  },
+  querySelector() { return null; }
+};
+const windowObject = {
+  location: { hash: "#signal-candidates" },
+  history: { replaceState() {} },
+  addEventListener() {},
+  matchMedia() { return { matches: true }; },
+  innerHeight: 900,
+  France2027CandidateSignals: {
+    load(url) {
+      loadCount += 1;
+      loadedUrls.push(url);
+      if (input.loadMode === "reject") {
+        return Promise.reject(new Error("must remain private"));
+      }
+      return Promise.resolve({
+        status: "ready",
+        candidates: [],
+        metadata: {},
+        reason: null
+      });
+    }
+  }
+};
+const context = {
+  console,
+  URL,
+  Date,
+  Math,
+  Map,
+  Set,
+  Object,
+  Array,
+  Number,
+  String,
+  JSON,
+  Intl,
+  Promise,
+  window: windowObject,
+  document: {
+    getElementById(id) {
+      if (id === "hybrid-signal-board") return mount;
+      if (id === "candidate-signals-root") return candidateRoot;
+      return panels[id] || null;
+    },
+    addEventListener() {},
+    querySelector() { return null; }
+  },
+  dashboardState: {},
+  candidatePortraits: {},
+  newestNewsItems: values => values,
+  formatScore: value => String(value),
+  formatDate: value => String(value),
+  escapeHtml: value => String(value),
+  escapeAttribute: value => String(value),
+  formatNewsDateTime: value => String(value),
+  formatRunoffFieldwork: value => String(value)
+};
+vm.runInNewContext(source, context);
+(async () => {
+  await Promise.resolve();
+  await Promise.resolve();
+  const api = context.window.hybridDashboard;
+  const result = eval(input.expression);
+  process.stdout.write(JSON.stringify(result));
+})().catch(error => {
+  process.stderr.write(String(error && error.stack || error));
+  process.exit(1);
+});
+"""
+    completed = subprocess.run(
+        ["node", "-e", script],
+        input=json.dumps({"loadMode": load_mode, "expression": expression}),
         cwd=ROOT,
         encoding="utf-8",
         capture_output=True,
@@ -437,10 +704,8 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
         self.assertIn("overflow-x: auto;", narrow_shell)
         self.assertIn("function revealActiveTab(tab)", self.js)
 
-    def test_stage_a_has_no_candidate_data_or_matrix_dossier_implementation(self):
+    def test_stage_b1_retains_placeholder_without_matrix_or_dossier(self):
         combined = self.html + self.js
-        self.assertNotIn('fetch("candidate_signals.json")', combined)
-        self.assertNotIn("fetch('candidate_signals.json')", combined)
         self.assertNotIn("candidate-signals.css", combined)
         candidate_start = self.workspace.index('id="candidate-signals-root"')
         candidate_end = self.workspace.index("      </section>", candidate_start)
@@ -449,10 +714,329 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
             "matrix",
             "dossier",
             "portrait",
-            "data-candidate",
             "source-link",
         ):
             self.assertNotIn(forbidden, placeholder.lower())
+        self.assertEqual(
+            re.findall(r"data-candidate-signals-[a-z-]+", placeholder),
+            ["data-candidate-signals-state"],
+        )
+
+
+class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.html = INDEX.read_text(encoding="utf-8")
+        cls.hybrid_js = HYBRID_JS.read_text(encoding="utf-8")
+        cls.candidate_js = CANDIDATE_JS.read_text(encoding="utf-8")
+
+    def test_module_exists_and_loads_before_dashboard(self):
+        self.assertTrue(CANDIDATE_JS.is_file())
+        candidate_script = '<script src="assets/candidate-signals.js"></script>'
+        dashboard_script = '<script src="assets/hybrid-dashboard.js"></script>'
+        self.assertIn(candidate_script, self.html)
+        self.assertLess(
+            self.html.index(candidate_script),
+            self.html.index(dashboard_script),
+        )
+
+    def test_exact_namespace_frozen_api_and_states(self):
+        result = run_candidate_module(
+            """({
+              namespaceExists: !!api,
+              apiKeys: Object.keys(api).sort(),
+              apiFrozen: Object.isFrozen(api),
+              stateKeys: Object.keys(api.STATES),
+              stateValues: Object.values(api.STATES),
+              statesFrozen: Object.isFrozen(api.STATES)
+            })"""
+        )
+        self.assertTrue(result["namespaceExists"])
+        self.assertEqual(result["apiKeys"], ["STATES", "load", "normalize"])
+        self.assertTrue(result["apiFrozen"])
+        self.assertEqual(
+            result["stateKeys"],
+            ["loading", "ready", "empty", "unavailable"],
+        )
+        self.assertEqual(
+            result["stateValues"],
+            ["loading", "ready", "empty", "unavailable"],
+        )
+        self.assertTrue(result["statesFrozen"])
+        self.assertIn(
+            "window.France2027CandidateSignals = Object.freeze({",
+            self.candidate_js,
+        )
+
+    def test_successful_nonempty_and_empty_payload_states(self):
+        ready = run_candidate_module(
+            'api.load("candidate_signals.json")',
+            candidate_payload([candidate_row()]),
+        )
+        empty = run_candidate_module(
+            'api.load("candidate_signals.json")',
+            candidate_payload([]),
+        )
+        self.assertEqual(ready["status"], "ready")
+        self.assertEqual(len(ready["candidates"]), 1)
+        self.assertEqual(ready["reason"], None)
+        self.assertEqual(empty["status"], "empty")
+        self.assertEqual(empty["candidates"], [])
+        self.assertEqual(empty["reason"], None)
+        for state in (ready, empty):
+            self.assertEqual(
+                sorted(state),
+                ["candidates", "metadata", "reason", "status"],
+            )
+            self.assertIsInstance(state["metadata"], dict)
+
+    def test_fetch_http_and_json_failures_resolve_unavailable(self):
+        expected_reasons = {
+            "fetch_failed": "fetch_failed",
+            "http_error": "http_error",
+            "malformed_json": "invalid_payload",
+        }
+        for mode, reason in expected_reasons.items():
+            with self.subTest(mode=mode):
+                state = run_candidate_module(
+                    'api.load("candidate_signals.json")',
+                    candidate_payload([]),
+                    mode,
+                )
+                self.assertEqual(
+                    state,
+                    {
+                        "status": "unavailable",
+                        "candidates": [],
+                        "metadata": {},
+                        "reason": reason,
+                    },
+                )
+                self.assertNotIn("private", json.dumps(state))
+
+    def test_malformed_and_unsupported_payloads_are_unavailable(self):
+        cases = [
+            (None, "invalid_payload"),
+            ([], "invalid_payload"),
+            ({"schema_version": "1.0"}, "invalid_payload"),
+            ({"schema_version": "2.0", "candidates": []}, "unsupported_schema"),
+            ({"candidates": []}, "unsupported_schema"),
+            (
+                {"schema_version": "1.0", "candidates": ["bad row"]},
+                "invalid_payload",
+            ),
+        ]
+        for payload, reason in cases:
+            with self.subTest(payload=payload):
+                state = run_candidate_module("api.normalize(input.payload)", payload)
+                self.assertEqual(state["status"], "unavailable")
+                self.assertEqual(state["reason"], reason)
+                self.assertEqual(state["candidates"], [])
+                self.assertEqual(state["metadata"], {})
+
+    def test_duplicate_and_missing_candidate_ids_are_rejected(self):
+        cases = [
+            [candidate_row("same", "One"), candidate_row("same", "Two")],
+            [candidate_row("", "One")],
+            [candidate_row("   ", "One")],
+            [{**candidate_row(), "candidate_id": None}],
+        ]
+        for candidates in cases:
+            with self.subTest(candidates=candidates):
+                state = run_candidate_module(
+                    "api.normalize(input.payload)",
+                    candidate_payload(candidates),
+                )
+                self.assertEqual(state["status"], "unavailable")
+                self.assertEqual(state["reason"], "invalid_payload")
+
+    def test_missing_published_names_are_rejected(self):
+        missing = candidate_row()
+        missing.pop("candidate_name")
+        cases = [
+            [missing],
+            [candidate_row("alpha", "")],
+            [candidate_row("alpha", "   ")],
+            [{**candidate_row(), "candidate_name": None}],
+        ]
+        for candidates in cases:
+            with self.subTest(candidates=candidates):
+                state = run_candidate_module(
+                    "api.normalize(input.payload)",
+                    candidate_payload(candidates),
+                )
+                self.assertEqual(state["status"], "unavailable")
+                self.assertEqual(state["reason"], "invalid_payload")
+
+    def test_source_order_and_published_evidence_are_preserved(self):
+        rows = [
+            candidate_row("zeta", "Zeta"),
+            candidate_row("alpha", "Alpha"),
+            candidate_row("middle", "Middle"),
+        ]
+        state = run_candidate_module(
+            "api.normalize(input.payload)",
+            candidate_payload(rows),
+        )
+        self.assertEqual(
+            [item["candidate_id"] for item in state["candidates"]],
+            ["zeta", "alpha", "middle"],
+        )
+        normalized = state["candidates"][0]
+        self.assertEqual(normalized["candidate_name"], "Zeta")
+        self.assertEqual(normalized["polling"], rows[0]["polling"])
+        self.assertEqual(
+            normalized["campaign_attention"],
+            rows[0]["campaign_attention"],
+        )
+        self.assertEqual(
+            normalized["general_visibility"],
+            rows[0]["general_visibility"],
+        )
+        self.assertEqual(normalized["scrutiny"], rows[0]["scrutiny"])
+        self.assertEqual(
+            normalized["latest_development"],
+            rows[0]["latest_development"],
+        )
+
+    def test_normalization_does_not_mutate_source_objects(self):
+        row = candidate_row()
+        result = run_candidate_module(
+            """(() => {
+              const sourceCandidate = input.payload.candidates[0];
+              const sourcePolling = sourceCandidate.polling;
+              const before = JSON.stringify(input.payload);
+              const state = api.normalize(input.payload);
+              state.candidates[0].polling.range_min = 999;
+              state.metadata.candidate_universe.count = 999;
+              return {
+                sourceUnchanged: JSON.stringify(input.payload) === before,
+                candidateIsNew: state.candidates[0] !== sourceCandidate,
+                pollingIsNew: state.candidates[0].polling !== sourcePolling
+              };
+            })()""",
+            candidate_payload([row]),
+        )
+        self.assertEqual(
+            result,
+            {
+                "sourceUnchanged": True,
+                "candidateIsNew": True,
+                "pollingIsNew": True,
+            },
+        )
+
+    def test_missing_optional_evidence_normalizes_to_null_not_zero(self):
+        minimal = {
+            "candidate_id": "minimal",
+            "candidate_name": "Minimal Candidate",
+        }
+        state = run_candidate_module(
+            "api.normalize(input.payload)",
+            candidate_payload([minimal]),
+        )
+        self.assertEqual(state["status"], "ready")
+        candidate = state["candidates"][0]
+        for field in (
+            "polling",
+            "campaign_attention",
+            "general_visibility",
+            "scrutiny",
+            "latest_development",
+        ):
+            self.assertIsNone(candidate[field])
+        self.assertNotIn(0, candidate.values())
+
+    def test_no_ranking_scoring_or_visual_renderer_is_introduced(self):
+        self.assertNotIn(".sort(", self.candidate_js)
+        self.assertNotRegex(
+            self.candidate_js.lower(),
+            r"\b(momentum|viability|sentiment|probability|forecast)\b",
+        )
+        self.assertNotRegex(
+            self.candidate_js,
+            r"\b(render|matrix|dossier|card|filter)\w*\s*\(",
+        )
+        self.assertNotIn("document.", self.candidate_js)
+        self.assertNotIn("querySelector", self.candidate_js)
+        self.assertNotIn("combined_score", self.candidate_js)
+        self.assertNotIn("composite", self.candidate_js.lower())
+
+    def test_candidate_signals_loads_once_during_initialization_not_tabs(self):
+        result = run_hybrid_candidate_integration(
+            "resolve",
+            """(() => {
+              api.setActiveSignalView("events");
+              api.setActiveSignalView("candidates");
+              api.setActiveSignalView("candidates");
+              return { loadCount, loadedUrls };
+            })()""",
+        )
+        self.assertEqual(
+            result,
+            {"loadCount": 1, "loadedUrls": ["candidate_signals.json"]},
+        )
+        self.assertEqual(
+            self.hybrid_js.count('.load("candidate_signals.json")'),
+            1,
+        )
+        interaction_start = self.hybrid_js.index(
+            "  function bindInteractions()"
+        )
+        interaction_end = self.hybrid_js.index(
+            "  function renderTopMediaPulsePanel(", interaction_start
+        )
+        self.assertNotIn(
+            "candidate_signals.json",
+            self.hybrid_js[interaction_start:interaction_end],
+        )
+
+    def test_candidate_failure_isolated_from_dashboard_initialization(self):
+        result = run_hybrid_candidate_integration(
+            "reject",
+            """({
+              apiReady: !!api,
+              loadCount,
+              stateAttribute:
+                candidateRoot.attributes["data-candidate-signals-state"]
+            })""",
+        )
+        self.assertEqual(
+            result,
+            {
+                "apiReady": True,
+                "loadCount": 1,
+                "stateAttribute": "unavailable",
+            },
+        )
+        self.assertIn(".catch(() => {", self.hybrid_js)
+
+    def test_placeholder_copy_and_state_attribute_contract(self):
+        workspace = run_router_script(
+            "",
+            """api.renderFocusWorkspace({
+              runoff: { state: "empty", message: "runoff" },
+              agenda: { state: "empty", message: "agenda" },
+              claims: { state: "empty", message: "claims" }
+            })""",
+        )
+        visible_copy = [
+            "CANDIDATE SIGNALS",
+            "Polling · campaign attention · scrutiny",
+            "Separate evidence dimensions. No combined score or forecast.",
+            "Candidate evidence will be rendered in the next implementation stage.",
+        ]
+        for copy in visible_copy:
+            self.assertEqual(workspace.count(copy), 1)
+        attribute = re.search(
+            r'data-candidate-signals-state="([^"]+)"',
+            workspace,
+        )
+        self.assertIsNotNone(attribute)
+        self.assertEqual(attribute.group(1), "loading")
+        allowed = {"loading", "ready", "empty", "unavailable"}
+        module_values = run_candidate_module("Object.values(api.STATES)")
+        self.assertEqual(set(module_values), allowed)
 
 
 if __name__ == "__main__":
