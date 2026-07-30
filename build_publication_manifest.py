@@ -10,11 +10,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
+from urllib.parse import urlsplit
 
 from source_health import (
     SourceHealthError,
@@ -164,6 +166,225 @@ def _required_count(value: Any, *, field: str) -> int:
     return value
 
 
+def _absolute_http_url(value: Any) -> bool:
+    if not isinstance(value, str) or not value or value != value.strip():
+        return False
+    parsed = urlsplit(value)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def _validate_featured_poll_board_public(
+    value: Any,
+    *,
+    candidates_by_id: dict[str, str],
+    featured_package: dict[str, Any],
+) -> None:
+    board = _required_object(
+        value,
+        field="candidate_signals.featured_poll_board",
+        keys={
+            "selection_basis",
+            "pollster",
+            "fieldwork_start",
+            "fieldwork_end",
+            "sample_size",
+            "round",
+            "scenario_key",
+            "selected_event_id",
+            "hypothesis_label",
+            "package_hypothesis_count",
+            "source_urls",
+            "full_candidate_count",
+            "display_limit",
+            "displayed_candidate_count",
+            "omitted_candidate_count",
+            "candidates",
+        },
+    )
+    if board["selection_basis"] != (
+        "featured_package_selected_hypothesis"
+    ):
+        raise ManifestError(
+            "candidate_signals.featured_poll_board selection_basis is invalid"
+        )
+    _required_text(
+        board["pollster"],
+        field="candidate_signals.featured_poll_board.pollster",
+    )
+    start = _calendar_date(
+        board["fieldwork_start"],
+        field="candidate_signals.featured_poll_board.fieldwork_start",
+    )
+    end = _calendar_date(
+        board["fieldwork_end"],
+        field="candidate_signals.featured_poll_board.fieldwork_end",
+    )
+    if start > end:
+        raise ManifestError(
+            "candidate_signals.featured_poll_board dates are reversed"
+        )
+    if board["sample_size"] is not None and _required_count(
+        board["sample_size"],
+        field="candidate_signals.featured_poll_board.sample_size",
+    ) == 0:
+        raise ManifestError(
+            "candidate_signals.featured_poll_board sample_size must be positive"
+        )
+    if board["round"] != "first_round":
+        raise ManifestError(
+            "candidate_signals.featured_poll_board round is invalid"
+        )
+    for field in ("scenario_key", "selected_event_id"):
+        _required_text(
+            board[field],
+            field=f"candidate_signals.featured_poll_board.{field}",
+        )
+    if board["hypothesis_label"] is not None:
+        _required_text(
+            board["hypothesis_label"],
+            field="candidate_signals.featured_poll_board.hypothesis_label",
+        )
+    package_count = _required_count(
+        board["package_hypothesis_count"],
+        field="candidate_signals.featured_poll_board.package_hypothesis_count",
+    )
+    if package_count == 0:
+        raise ManifestError(
+            "candidate_signals.featured_poll_board package count must be positive"
+        )
+    source_urls = board["source_urls"]
+    if (
+        not isinstance(source_urls, list)
+        or not source_urls
+        or any(not _absolute_http_url(url) for url in source_urls)
+        or len(source_urls) != len(set(source_urls))
+    ):
+        raise ManifestError(
+            "candidate_signals.featured_poll_board source_urls are invalid"
+        )
+
+    full_count = _required_count(
+        board["full_candidate_count"],
+        field="candidate_signals.featured_poll_board.full_candidate_count",
+    )
+    display_limit = _required_count(
+        board["display_limit"],
+        field="candidate_signals.featured_poll_board.display_limit",
+    )
+    displayed_count = _required_count(
+        board["displayed_candidate_count"],
+        field="candidate_signals.featured_poll_board.displayed_candidate_count",
+    )
+    omitted_count = _required_count(
+        board["omitted_candidate_count"],
+        field="candidate_signals.featured_poll_board.omitted_candidate_count",
+    )
+    board_candidates = board["candidates"]
+    if full_count == 0 or display_limit == 0:
+        raise ManifestError(
+            "candidate_signals.featured_poll_board counts must be positive"
+        )
+    if not isinstance(board_candidates, list):
+        raise ManifestError(
+            "candidate_signals.featured_poll_board.candidates must be an array"
+        )
+    if displayed_count != len(board_candidates):
+        raise ManifestError(
+            "candidate_signals.featured_poll_board displayed count is invalid"
+        )
+    if displayed_count > display_limit:
+        raise ManifestError(
+            "candidate_signals.featured_poll_board exceeds display limit"
+        )
+    if displayed_count != min(full_count, display_limit):
+        raise ManifestError(
+            "candidate_signals.featured_poll_board did not apply display limit"
+        )
+    if omitted_count != full_count - displayed_count:
+        raise ManifestError(
+            "candidate_signals.featured_poll_board omitted count is invalid"
+        )
+
+    if (
+        board["pollster"] != featured_package["pollster"]
+        or board["fieldwork_start"] != featured_package["fieldwork_start"]
+        or board["fieldwork_end"] != featured_package["fieldwork_end"]
+        or board["sample_size"] != featured_package["sample_size"]
+        or package_count != featured_package["hypothesis_count"]
+        or board["selected_event_id"]
+        != featured_package["selected_hypothesis_event_id"]
+        or source_urls != featured_package["source_urls"]
+    ):
+        raise ManifestError(
+            "candidate_signals.featured_poll_board does not match package"
+        )
+
+    seen_ids: set[str] = set()
+    source_positions: set[int] = set()
+    rows: list[tuple[float, int, str, int]] = []
+    for index, candidate in enumerate(board_candidates):
+        row = _required_object(
+            candidate,
+            field=f"candidate_signals.featured_poll_board.candidates[{index}]",
+            keys={
+                "candidate_id",
+                "candidate_name",
+                "reported_score",
+                "source_position",
+                "display_position",
+            },
+        )
+        identifier = _required_text(
+            row["candidate_id"],
+            field=f"candidate_signals.featured_poll_board.candidates[{index}].candidate_id",
+        )
+        if identifier in seen_ids:
+            raise ManifestError(
+                "candidate_signals featured board candidate IDs must be unique"
+            )
+        seen_ids.add(identifier)
+        if identifier not in candidates_by_id:
+            raise ManifestError(
+                "candidate_signals featured board candidate ID is unknown"
+            )
+        if row["candidate_name"] != candidates_by_id[identifier]:
+            raise ManifestError(
+                "candidate_signals featured board candidate name is not canonical"
+            )
+        score = row["reported_score"]
+        if (
+            isinstance(score, bool)
+            or not isinstance(score, (int, float))
+            or not math.isfinite(float(score))
+        ):
+            raise ManifestError(
+                "candidate_signals featured board score must be finite numeric"
+            )
+        source_position = _required_count(
+            row["source_position"],
+            field=f"candidate_signals.featured_poll_board.candidates[{index}].source_position",
+        )
+        display_position = _required_count(
+            row["display_position"],
+            field=f"candidate_signals.featured_poll_board.candidates[{index}].display_position",
+        )
+        if source_position == 0 or source_position in source_positions:
+            raise ManifestError(
+                "candidate_signals featured board source positions are invalid"
+            )
+        source_positions.add(source_position)
+        rows.append((float(score), source_position, identifier, display_position))
+
+    if [row[3] for row in rows] != list(range(1, len(rows) + 1)):
+        raise ManifestError(
+            "candidate_signals featured board display positions are not contiguous"
+        )
+    if rows != sorted(rows, key=lambda row: (-row[0], row[1], row[2])):
+        raise ManifestError(
+            "candidate_signals featured board scores are not correctly ordered"
+        )
+
+
 def _validate_candidate_signals_public(payload: Any) -> int:
     value = _required_object(
         payload,
@@ -172,6 +393,7 @@ def _validate_candidate_signals_public(payload: Any) -> int:
             "schema_version",
             "candidate_universe",
             "featured_polling_package",
+            "featured_poll_board",
             "visibility",
             "scrutiny_window",
             "evidence_dates",
@@ -408,6 +630,7 @@ def _validate_candidate_signals_public(payload: Any) -> int:
             "candidate_signals candidate count does not match candidates"
         )
     candidate_ids: set[str] = set()
+    candidates_by_id: dict[str, str] = {}
     for index, candidate in enumerate(candidates):
         if not isinstance(candidate, dict):
             raise ManifestError(
@@ -417,11 +640,21 @@ def _validate_candidate_signals_public(payload: Any) -> int:
             candidate.get("candidate_id"),
             field=f"candidate_signals.candidates[{index}].candidate_id",
         )
+        candidate_name = _required_text(
+            candidate.get("candidate_name"),
+            field=f"candidate_signals.candidates[{index}].candidate_name",
+        )
         if candidate_id in candidate_ids:
             raise ManifestError(
                 "candidate_signals candidate IDs must be unique"
             )
         candidate_ids.add(candidate_id)
+        candidates_by_id[candidate_id] = candidate_name
+    _validate_featured_poll_board_public(
+        value["featured_poll_board"],
+        candidates_by_id=candidates_by_id,
+        featured_package=featured,
+    )
     return candidate_count
 
 

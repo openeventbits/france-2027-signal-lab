@@ -33,6 +33,10 @@ from candidate_identity import (
 SCHEMA_VERSION = "1.0"
 CANDIDATE_WINDOW_DAYS = 183
 LATEST_SCRUTINY_DAYS = 14
+FEATURED_POLL_BOARD_DISPLAY_LIMIT = 10
+FEATURED_POLL_BOARD_SELECTION_BASIS = (
+    "featured_package_selected_hypothesis"
+)
 CANDIDATE_UNIVERSE_RULE = (
     "Figures appearing with numeric scores in accepted first-round polling "
     "during the previous 183 days"
@@ -70,6 +74,12 @@ def _require_object(value: Any, field: str) -> dict[str, Any]:
     return value
 
 
+def _require_plain_object(value: Any, field: str) -> dict[str, Any]:
+    if type(value) is not dict:
+        raise CandidateSignalsError(f"{field} must be a plain object")
+    return value
+
+
 def _require_list(value: Any, field: str) -> list[Any]:
     if not isinstance(value, list):
         raise CandidateSignalsError(f"{field} must be an array")
@@ -87,6 +97,12 @@ def _require_text(value: Any, field: str) -> str:
 def _require_non_negative_integer(value: Any, field: str) -> int:
     if type(value) is not int or value < 0:
         raise CandidateSignalsError(f"{field} must be a non-negative integer")
+    return value
+
+
+def _require_positive_integer(value: Any, field: str) -> int:
+    if type(value) is not int or value <= 0:
+        raise CandidateSignalsError(f"{field} must be a positive integer")
     return value
 
 
@@ -1503,6 +1519,84 @@ def _featured_package_public(
     }
 
 
+def _featured_poll_candidate_sort_key(
+    candidate: dict[str, Any],
+) -> tuple[float, int, str]:
+    return (
+        -float(candidate["reported_score"]),
+        candidate["source_position"],
+        candidate["candidate_id"],
+    )
+
+
+def _featured_poll_board_public(
+    package: dict[str, Any],
+    candidates: list[dict[str, str]],
+    source_urls: list[str],
+) -> dict[str, Any]:
+    selected_event = package["selected_event"]
+    canonical_names = [
+        candidate["candidate_name"]
+        for candidate in candidates
+    ]
+    by_name = {
+        candidate["candidate_name"]: candidate
+        for candidate in candidates
+    }
+    lineup: list[dict[str, Any]] = []
+    for source_position, selected_candidate in enumerate(
+        selected_event["candidates"],
+        start=1,
+    ):
+        try:
+            resolved_name = resolve_candidate_name(
+                selected_candidate["name"],
+                canonical_names,
+            )
+        except CandidateIdentityError as error:
+            raise _error_from_identity(error) from error
+        canonical = by_name[resolved_name]
+        lineup.append(
+            {
+                "candidate_id": canonical["candidate_id"],
+                "candidate_name": canonical["candidate_name"],
+                "reported_score": selected_candidate["score"],
+                "source_position": source_position,
+            }
+        )
+
+    ordered = sorted(lineup, key=_featured_poll_candidate_sort_key)
+    displayed = ordered[:FEATURED_POLL_BOARD_DISPLAY_LIMIT]
+    board_candidates = [
+        {**candidate, "display_position": display_position}
+        for display_position, candidate in enumerate(displayed, start=1)
+    ]
+    hypothesis = selected_event.get("hypothesis")
+    hypothesis_label = (
+        hypothesis.strip()
+        if isinstance(hypothesis, str) and hypothesis.strip()
+        else None
+    )
+    return {
+        "selection_basis": FEATURED_POLL_BOARD_SELECTION_BASIS,
+        "pollster": package["pollster"],
+        "fieldwork_start": package["fieldwork_start"],
+        "fieldwork_end": package["fieldwork_end"],
+        "sample_size": package["sample_size"],
+        "round": selected_event["round"],
+        "scenario_key": selected_event["scenario_key"],
+        "selected_event_id": selected_event["event_id"],
+        "hypothesis_label": hypothesis_label,
+        "package_hypothesis_count": len(package["events"]),
+        "source_urls": list(source_urls),
+        "full_candidate_count": len(lineup),
+        "display_limit": FEATURED_POLL_BOARD_DISPLAY_LIMIT,
+        "displayed_candidate_count": len(board_candidates),
+        "omitted_candidate_count": len(lineup) - len(board_candidates),
+        "candidates": board_candidates,
+    }
+
+
 def _polling_evidence_date(package: dict[str, Any]) -> str:
     publication_dates = [
         _parse_date(
@@ -1543,6 +1637,12 @@ def _construct_candidate_signals(
     )
     if news_evidence is None:
         news_evidence = visibility["current_period"]["end_date"]
+    featured_polling_package = _featured_package_public(featured_package)
+    featured_poll_board = _featured_poll_board_public(
+        featured_package,
+        candidates,
+        featured_polling_package["source_urls"],
+    )
 
     candidate_payloads = []
     for candidate in candidates:
@@ -1562,9 +1662,8 @@ def _construct_candidate_signals(
     return {
         "schema_version": SCHEMA_VERSION,
         "candidate_universe": universe,
-        "featured_polling_package": _featured_package_public(
-            featured_package
-        ),
+        "featured_polling_package": featured_polling_package,
+        "featured_poll_board": featured_poll_board,
         "visibility": visibility,
         "scrutiny_window": scrutiny_window,
         "evidence_dates": {
@@ -1617,6 +1716,32 @@ LATEST_DEVELOPMENT_KEYS = {
     "url",
     "coverage_scope",
 }
+FEATURED_POLL_BOARD_KEYS = {
+    "selection_basis",
+    "pollster",
+    "fieldwork_start",
+    "fieldwork_end",
+    "sample_size",
+    "round",
+    "scenario_key",
+    "selected_event_id",
+    "hypothesis_label",
+    "package_hypothesis_count",
+    "source_urls",
+    "full_candidate_count",
+    "display_limit",
+    "displayed_candidate_count",
+    "omitted_candidate_count",
+    "candidates",
+}
+FEATURED_POLL_BOARD_CANDIDATE_KEYS = {
+    "candidate_id",
+    "candidate_name",
+    "reported_score",
+    "source_position",
+    "display_position",
+}
+
 
 
 def _audit_forbidden_fields(value: Any, path: str = "payload") -> None:
@@ -1679,6 +1804,241 @@ def _validate_projected_metric(
             )
 
 
+def _validate_featured_poll_board(
+    value: Any,
+    candidates: list[dict[str, Any]],
+    featured_package: dict[str, Any],
+) -> None:
+    board = _require_plain_object(value, "featured_poll_board")
+    if set(board) != FEATURED_POLL_BOARD_KEYS:
+        raise CandidateSignalsError(
+            "featured_poll_board has unexpected fields"
+        )
+    if board["selection_basis"] != FEATURED_POLL_BOARD_SELECTION_BASIS:
+        raise CandidateSignalsError(
+            "featured_poll_board.selection_basis is invalid"
+        )
+    _require_text(board["pollster"], "featured_poll_board.pollster")
+    start = _parse_date(
+        board["fieldwork_start"],
+        "featured_poll_board.fieldwork_start",
+    )
+    end = _parse_date(
+        board["fieldwork_end"],
+        "featured_poll_board.fieldwork_end",
+    )
+    if start > end:
+        raise CandidateSignalsError(
+            "featured_poll_board fieldwork dates are reversed"
+        )
+    if board["sample_size"] is not None:
+        _require_positive_integer(
+            board["sample_size"],
+            "featured_poll_board.sample_size",
+        )
+    if board["round"] != "first_round":
+        raise CandidateSignalsError(
+            "featured_poll_board.round must equal first_round"
+        )
+    _require_text(
+        board["scenario_key"],
+        "featured_poll_board.scenario_key",
+    )
+    _require_text(
+        board["selected_event_id"],
+        "featured_poll_board.selected_event_id",
+    )
+    if board["hypothesis_label"] is not None:
+        _require_text(
+            board["hypothesis_label"],
+            "featured_poll_board.hypothesis_label",
+        )
+    package_hypothesis_count = _require_positive_integer(
+        board["package_hypothesis_count"],
+        "featured_poll_board.package_hypothesis_count",
+    )
+    source_urls = _require_list(
+        board["source_urls"],
+        "featured_poll_board.source_urls",
+    )
+    if (
+        not source_urls
+        or any(not _usable_url(url) for url in source_urls)
+        or len(source_urls) != len(set(source_urls))
+    ):
+        raise CandidateSignalsError(
+            "featured_poll_board.source_urls is invalid"
+        )
+
+    full_candidate_count = _require_positive_integer(
+        board["full_candidate_count"],
+        "featured_poll_board.full_candidate_count",
+    )
+    display_limit = _require_positive_integer(
+        board["display_limit"],
+        "featured_poll_board.display_limit",
+    )
+    displayed_candidate_count = _require_non_negative_integer(
+        board["displayed_candidate_count"],
+        "featured_poll_board.displayed_candidate_count",
+    )
+    omitted_candidate_count = _require_non_negative_integer(
+        board["omitted_candidate_count"],
+        "featured_poll_board.omitted_candidate_count",
+    )
+    board_candidates = _require_list(
+        board["candidates"],
+        "featured_poll_board.candidates",
+    )
+    if displayed_candidate_count != len(board_candidates):
+        raise CandidateSignalsError(
+            "featured_poll_board displayed count does not match candidates"
+        )
+    if displayed_candidate_count > display_limit:
+        raise CandidateSignalsError(
+            "featured_poll_board displayed count exceeds display limit"
+        )
+    if displayed_candidate_count != min(full_candidate_count, display_limit):
+        raise CandidateSignalsError(
+            "featured_poll_board displayed count does not apply display limit"
+        )
+    if omitted_candidate_count != (
+        full_candidate_count - displayed_candidate_count
+    ):
+        raise CandidateSignalsError(
+            "featured_poll_board omitted count is inconsistent"
+        )
+    if full_candidate_count != (
+        displayed_candidate_count + omitted_candidate_count
+    ):
+        raise CandidateSignalsError(
+            "featured_poll_board full candidate count is inconsistent"
+        )
+
+    if (
+        board["pollster"] != featured_package["pollster"]
+        or board["fieldwork_start"] != featured_package["fieldwork_start"]
+        or board["fieldwork_end"] != featured_package["fieldwork_end"]
+        or board["sample_size"] != featured_package["sample_size"]
+        or package_hypothesis_count != featured_package["hypothesis_count"]
+        or board["selected_event_id"]
+        != featured_package["selected_hypothesis_event_id"]
+        or source_urls != featured_package["source_urls"]
+    ):
+        raise CandidateSignalsError(
+            "featured_poll_board does not match featured polling package"
+        )
+
+    main_by_id = {
+        candidate["candidate_id"]: candidate
+        for candidate in candidates
+    }
+    selected_main = {
+        identifier: candidate
+        for identifier, candidate in main_by_id.items()
+        if candidate["polling"]["selected_hypothesis_score"] is not None
+    }
+    if full_candidate_count != len(selected_main):
+        raise CandidateSignalsError(
+            "featured_poll_board full count does not match selected event"
+        )
+
+    seen_ids: set[str] = set()
+    seen_source_positions: set[int] = set()
+    seen_display_positions: set[int] = set()
+    validated_rows: list[dict[str, Any]] = []
+    for index, candidate_value in enumerate(board_candidates):
+        context = f"featured_poll_board.candidates[{index}]"
+        candidate = _require_plain_object(candidate_value, context)
+        if set(candidate) != FEATURED_POLL_BOARD_CANDIDATE_KEYS:
+            raise CandidateSignalsError(f"{context} has unexpected fields")
+        identifier = _require_text(
+            candidate["candidate_id"],
+            f"{context}.candidate_id",
+        )
+        if identifier in seen_ids:
+            raise CandidateSignalsError(
+                "featured_poll_board candidate IDs must be unique"
+            )
+        seen_ids.add(identifier)
+        main_candidate = main_by_id.get(identifier)
+        if main_candidate is None:
+            raise CandidateSignalsError(
+                f"{context}.candidate_id is not in main candidates"
+            )
+        if candidate["candidate_name"] != main_candidate["candidate_name"]:
+            raise CandidateSignalsError(
+                f"{context}.candidate_name is not canonical"
+            )
+        reported_score = _numeric(
+            candidate["reported_score"],
+            f"{context}.reported_score",
+            non_negative=True,
+        )
+        if identifier not in selected_main:
+            raise CandidateSignalsError(
+                f"{context} is not in the selected event"
+            )
+        if (
+            reported_score
+            != main_candidate["polling"]["selected_hypothesis_score"]
+        ):
+            raise CandidateSignalsError(
+                f"{context}.reported_score does not match selected event"
+            )
+        source_position = _require_positive_integer(
+            candidate["source_position"],
+            f"{context}.source_position",
+        )
+        if source_position > full_candidate_count:
+            raise CandidateSignalsError(
+                f"{context}.source_position exceeds selected event"
+            )
+        if source_position in seen_source_positions:
+            raise CandidateSignalsError(
+                "featured_poll_board source positions must be unique"
+            )
+        seen_source_positions.add(source_position)
+        display_position = _require_positive_integer(
+            candidate["display_position"],
+            f"{context}.display_position",
+        )
+        if display_position in seen_display_positions:
+            raise CandidateSignalsError(
+                "featured_poll_board display positions must be unique"
+            )
+        seen_display_positions.add(display_position)
+        validated_rows.append(candidate)
+
+    if [
+        candidate["display_position"]
+        for candidate in validated_rows
+    ] != list(range(1, len(validated_rows) + 1)):
+        raise CandidateSignalsError(
+            "featured_poll_board display positions are not contiguous"
+        )
+    if validated_rows != sorted(
+        validated_rows,
+        key=_featured_poll_candidate_sort_key,
+    ):
+        raise CandidateSignalsError(
+            "featured_poll_board candidates are not correctly ordered"
+        )
+    omitted_scores = [
+        candidate["polling"]["selected_hypothesis_score"]
+        for identifier, candidate in selected_main.items()
+        if identifier not in seen_ids
+    ]
+    if (
+        validated_rows
+        and omitted_scores
+        and max(omitted_scores) > validated_rows[-1]["reported_score"]
+    ):
+        raise CandidateSignalsError(
+            "featured_poll_board does not contain the highest scores"
+        )
+
+
 def validate_candidate_signals(
     payload: Any,
     *,
@@ -1694,6 +2054,7 @@ def validate_candidate_signals(
         "schema_version",
         "candidate_universe",
         "featured_polling_package",
+        "featured_poll_board",
         "visibility",
         "scrutiny_window",
         "evidence_dates",
@@ -2104,6 +2465,11 @@ def validate_candidate_signals(
         raise CandidateSignalsError(
             "candidates are not deterministically ordered"
         )
+    _validate_featured_poll_board(
+        value["featured_poll_board"],
+        candidates,
+        featured,
+    )
 
     supplied = (polls is not None, news is not None, claims is not None)
     if any(supplied) and not all(supplied):
