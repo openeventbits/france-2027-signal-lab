@@ -40,6 +40,39 @@ def candidate_signals_payload():
             "selected_hypothesis_event_id": "event-a",
             "source_urls": ["https://example.test/poll"],
         },
+        "featured_poll_board": {
+            "selection_basis": "featured_package_selected_hypothesis",
+            "pollster": "Fixture Pollster",
+            "fieldwork_start": "2026-07-09",
+            "fieldwork_end": "2026-07-10",
+            "sample_size": 1000,
+            "round": "first_round",
+            "scenario_key": "scenario-a",
+            "selected_event_id": "event-a",
+            "hypothesis_label": "Fixture hypothesis",
+            "package_hypothesis_count": 2,
+            "source_urls": ["https://example.test/poll"],
+            "full_candidate_count": 2,
+            "display_limit": 10,
+            "displayed_candidate_count": 2,
+            "omitted_candidate_count": 0,
+            "candidates": [
+                {
+                    "candidate_id": "candidate-a",
+                    "candidate_name": "Candidate A",
+                    "reported_score": 60,
+                    "source_position": 1,
+                    "display_position": 1,
+                },
+                {
+                    "candidate_id": "candidate-b",
+                    "candidate_name": "Candidate B",
+                    "reported_score": 40,
+                    "source_position": 2,
+                    "display_position": 2,
+                },
+            ],
+        },
         "visibility": {
             "method": "share_of_candidate_linked_records",
             "primary_scopes": ["election", "campaign"],
@@ -72,8 +105,8 @@ def candidate_signals_payload():
             "scrutiny": "2026-07-17",
         },
         "candidates": [
-            {"candidate_id": "candidate-a"},
-            {"candidate_id": "candidate-b"},
+            {"candidate_id": "candidate-a", "candidate_name": "Candidate A"},
+            {"candidate_id": "candidate-b", "candidate_name": "Candidate B"},
         ],
     }
 
@@ -366,6 +399,123 @@ class PublicationManifestTests(unittest.TestCase):
         payload["candidate_universe"]["rule"] = "Changed fixture rule"
         write_json(self.root, "candidate_signals.json", payload)
         self.assertNotEqual(first, self.build()["snapshot_id"])
+
+    def test_valid_featured_poll_board_is_accepted(self):
+        payload = self.candidate_payload()
+        self.assertEqual(
+            manifest_builder._validate_candidate_signals_public(payload),
+            2,
+        )
+
+    def test_missing_featured_poll_board_fails(self):
+        payload = self.candidate_payload()
+        del payload["featured_poll_board"]
+        write_json(self.root, "candidate_signals.json", payload)
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "invalid structure",
+        ):
+            self.build()
+
+    def test_unknown_candidate_signals_top_level_key_still_fails(self):
+        payload = self.candidate_payload()
+        payload["unknown"] = True
+        write_json(self.root, "candidate_signals.json", payload)
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "invalid structure",
+        ):
+            self.build()
+
+    def test_malformed_featured_board_counts_fail(self):
+        payload = self.candidate_payload()
+        payload["featured_poll_board"]["omitted_candidate_count"] = 1
+        write_json(self.root, "candidate_signals.json", payload)
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "omitted count",
+        ):
+            self.build()
+
+    def test_duplicate_featured_board_candidate_ids_fail(self):
+        payload = self.candidate_payload()
+        payload["featured_poll_board"]["candidates"][1][
+            "candidate_id"
+        ] = "candidate-a"
+        write_json(self.root, "candidate_signals.json", payload)
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "candidate IDs must be unique",
+        ):
+            self.build()
+
+    def test_unknown_featured_board_candidate_id_fails(self):
+        payload = self.candidate_payload()
+        payload["featured_poll_board"]["candidates"][0][
+            "candidate_id"
+        ] = "unknown"
+        write_json(self.root, "candidate_signals.json", payload)
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "candidate ID is unknown",
+        ):
+            self.build()
+
+    def test_mismatched_featured_board_candidate_name_fails(self):
+        payload = self.candidate_payload()
+        payload["featured_poll_board"]["candidates"][0][
+            "candidate_name"
+        ] = "Candidate B"
+        write_json(self.root, "candidate_signals.json", payload)
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "name is not canonical",
+        ):
+            self.build()
+
+    def test_noncontiguous_featured_board_positions_fail(self):
+        payload = self.candidate_payload()
+        payload["featured_poll_board"]["candidates"][1][
+            "display_position"
+        ] = 3
+        write_json(self.root, "candidate_signals.json", payload)
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "not contiguous",
+        ):
+            self.build()
+
+    def test_incorrect_featured_board_score_order_fails(self):
+        payload = self.candidate_payload()
+        rows = payload["featured_poll_board"]["candidates"]
+        rows[0], rows[1] = rows[1], rows[0]
+        for position, row in enumerate(rows, start=1):
+            row["display_position"] = position
+        write_json(self.root, "candidate_signals.json", payload)
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "not correctly ordered",
+        ):
+            self.build()
+
+    def test_invalid_featured_board_source_url_fails(self):
+        payload = self.candidate_payload()
+        payload["featured_poll_board"]["source_urls"] = ["relative/path"]
+        write_json(self.root, "candidate_signals.json", payload)
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "source_urls are invalid",
+        ):
+            self.build()
+
+    def test_generated_candidate_signals_passes_public_validation(self):
+        payload = json.loads(
+            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            manifest_builder._validate_candidate_signals_public(payload),
+            20,
+        )
 
     def test_missing_lane_completes_with_warning(self):
         (self.root / "news_wire.json").unlink()
