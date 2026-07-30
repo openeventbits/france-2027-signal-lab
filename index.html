@@ -4995,11 +4995,7 @@
       .hybrid-tabs {
       display: grid;
       grid-template-columns:
-        repeat(5, minmax(0, 1fr));
-    }
-
-    .hybrid-poll-compare-tab {
-      border-radius: 0;
+        repeat(6, minmax(0, 1fr));
     }
 
     @media (max-width: 1350px) {
@@ -6690,7 +6686,7 @@
       </article>
     </section>
 
-    <section class="panel polling-evidence" id="polling-evidence-lab" aria-labelledby="polling-evidence-title">
+    <section class="panel polling-evidence" id="polling-evidence-lab" role="tabpanel" aria-labelledby="signal-poll-compare-tab" hidden>
       <div class="panel-head pe-head">
         <div>
           <div class="eyebrow">POLLING EVIDENCE</div>
