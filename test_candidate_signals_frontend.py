@@ -526,15 +526,14 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
         self.assertIn('aria-labelledby="signal-candidates-tab"', panel)
         self.assertIn('id="candidate-signals-root"', workspace)
 
-    def test_candidate_placeholder_uses_locked_copy_only(self):
+    def test_candidate_scaffold_uses_local_loading_message(self):
         workspace = self.render_workspace()
-        for copy in (
-            "CANDIDATE SIGNALS",
-            "Polling · campaign attention · scrutiny",
-            "Separate evidence dimensions. No combined score or forecast.",
+        self.assertIn("Loading candidate evidence…", workspace)
+        self.assertNotIn(
             "Candidate evidence will be rendered in the next implementation stage.",
-        ):
-            self.assertIn(copy, workspace)
+            workspace,
+        )
+        self.assertNotIn("candidate-signals-header", workspace)
 
     def test_events_has_real_tab_and_explicit_unavailable_panel(self):
         workspace = self.render_workspace()
@@ -704,21 +703,18 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
         self.assertIn("overflow-x: auto;", narrow_shell)
         self.assertIn("function revealActiveTab(tab)", self.js)
 
-    def test_stage_b1_retains_placeholder_without_matrix_or_dossier(self):
+    def test_stage_b2_replaces_temporary_placeholder(self):
         combined = self.html + self.js
-        self.assertNotIn("candidate-signals.css", combined)
+        self.assertIn("candidate-signals.css", combined)
         candidate_start = self.workspace.index('id="candidate-signals-root"')
         candidate_end = self.workspace.index("      </section>", candidate_start)
-        placeholder = self.workspace[candidate_start:candidate_end]
-        for forbidden in (
-            "matrix",
-            "dossier",
-            "portrait",
-            "source-link",
-        ):
-            self.assertNotIn(forbidden, placeholder.lower())
+        scaffold = self.workspace[candidate_start:candidate_end]
+        self.assertNotIn(
+            "Candidate evidence will be rendered in the next implementation stage.",
+            scaffold,
+        )
         self.assertEqual(
-            re.findall(r"data-candidate-signals-[a-z-]+", placeholder),
+            re.findall(r"data-candidate-signals-[a-z-]+", scaffold),
             ["data-candidate-signals-state"],
         )
 
@@ -1011,7 +1007,7 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
         )
         self.assertIn(".catch(() => {", self.hybrid_js)
 
-    def test_placeholder_copy_and_state_attribute_contract(self):
+    def test_loading_scaffold_and_state_attribute_contract(self):
         workspace = run_router_script(
             "",
             """api.renderFocusWorkspace({
@@ -1020,14 +1016,12 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
               claims: { state: "empty", message: "claims" }
             })""",
         )
-        visible_copy = [
-            "CANDIDATE SIGNALS",
-            "Polling · campaign attention · scrutiny",
-            "Separate evidence dimensions. No combined score or forecast.",
+        self.assertEqual(workspace.count("Loading candidate evidence…"), 1)
+        self.assertNotIn("candidate-signals-header", workspace)
+        self.assertNotIn(
             "Candidate evidence will be rendered in the next implementation stage.",
-        ]
-        for copy in visible_copy:
-            self.assertEqual(workspace.count(copy), 1)
+            workspace,
+        )
         attribute = re.search(
             r'data-candidate-signals-state="([^"]+)"',
             workspace,
