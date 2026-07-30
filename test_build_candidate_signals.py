@@ -370,10 +370,11 @@ class IdentityTests(unittest.TestCase):
 class CandidateUniverseTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.polls, cls.news, cls.claims = builder.load_inputs(
+        cls.polls, cls.news, cls.claims, cls.candidacy_status = builder.load_inputs(
             ROOT / "polls.json",
             ROOT / "news_wire.json",
             ROOT / "claims_under_scrutiny.json",
+            ROOT / "candidate_candidacy_status.json",
         )
 
     def test_current_data_produces_news_roster_parity(self):
@@ -455,10 +456,11 @@ class CandidateUniverseTests(unittest.TestCase):
 class PollPackageTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.polls, cls.news, cls.claims = builder.load_inputs(
+        cls.polls, cls.news, cls.claims, cls.candidacy_status = builder.load_inputs(
             ROOT / "polls.json",
             ROOT / "news_wire.json",
             ROOT / "claims_under_scrutiny.json",
+            ROOT / "candidate_candidacy_status.json",
         )
         cls.universe, cls.candidates = builder.derive_candidate_universe(
             cls.polls,
@@ -574,10 +576,11 @@ class PollPackageTests(unittest.TestCase):
 class FeaturedPollBoardTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.polls, cls.news, cls.claims = builder.load_inputs(
+        cls.polls, cls.news, cls.claims, cls.candidacy_status = builder.load_inputs(
             ROOT / "polls.json",
             ROOT / "news_wire.json",
             ROOT / "claims_under_scrutiny.json",
+            ROOT / "candidate_candidacy_status.json",
         )
         cls.package = builder.select_featured_polling_package(cls.polls)
         cls.selected_event = cls.package["selected_event"]
@@ -585,6 +588,7 @@ class FeaturedPollBoardTests(unittest.TestCase):
             cls.polls,
             cls.news,
             cls.claims,
+            cls.candidacy_status,
         )
 
     def changed_payload(self):
@@ -785,9 +789,18 @@ class FeaturedPollBoardTests(unittest.TestCase):
         polls = copy.deepcopy(self.polls)
         news = copy.deepcopy(self.news)
         claims = copy.deepcopy(self.claims)
-        originals = copy.deepcopy((polls, news, claims))
-        builder.build_candidate_signals(polls, news, claims)
-        self.assertEqual((polls, news, claims), originals)
+        candidacy_status = copy.deepcopy(self.candidacy_status)
+        originals = copy.deepcopy((polls, news, claims, candidacy_status))
+        builder.build_candidate_signals(
+            polls,
+            news,
+            claims,
+            candidacy_status,
+        )
+        self.assertEqual(
+            (polls, news, claims, candidacy_status),
+            originals,
+        )
 
     def test_board_is_required_and_top_level_keys_remain_exact(self):
         payload = self.changed_payload()
@@ -1127,29 +1140,184 @@ class LatestDevelopmentTests(unittest.TestCase):
         self.assertEqual(selected["id"], "source-linked")
 
 
+class PresidentialFieldContractTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        (
+            cls.polls,
+            cls.news,
+            cls.claims,
+            cls.registry,
+        ) = builder.load_inputs(
+            ROOT / "polls.json",
+            ROOT / "news_wire.json",
+            ROOT / "claims_under_scrutiny.json",
+            ROOT / "candidate_candidacy_status.json",
+        )
+        cls.payload = builder.build_candidate_signals(
+            cls.polls,
+            cls.news,
+            cls.claims,
+            cls.registry,
+        )
+
+    def test_schema_keys_complete_universe_and_order_are_exact(self):
+        self.assertEqual(self.payload["schema_version"], "1.1")
+        self.assertEqual(
+            list(self.payload),
+            [
+                "schema_version",
+                "candidate_universe",
+                "presidential_field",
+                "featured_polling_package",
+                "featured_poll_board",
+                "visibility",
+                "scrutiny_window",
+                "evidence_dates",
+                "candidates",
+            ],
+        )
+        self.assertNotIn("active_field_visibility", self.payload)
+        self.assertEqual(len(self.payload["candidates"]), 20)
+        order = [
+            (candidate["candidate_name"].casefold(), candidate["candidate_id"])
+            for candidate in self.payload["candidates"]
+        ]
+        self.assertEqual(order, sorted(order))
+        self.assertEqual(
+            set(self.payload["candidates"][0]),
+            {
+                "candidate_id",
+                "candidate_name",
+                "candidacy",
+                "polling",
+                "campaign_attention",
+                "general_visibility",
+                "scrutiny",
+                "latest_development",
+            },
+        )
+
+    def test_candidacy_and_presidential_field_are_exact_registry_projections(self):
+        registry_by_id = {
+            candidate["candidate_id"]: candidate
+            for candidate in self.registry["candidates"]
+        }
+        for candidate in self.payload["candidates"]:
+            source = registry_by_id[candidate["candidate_id"]]
+            expected = {
+                key: source[key]
+                for key in (
+                    "status",
+                    "display_tier",
+                    "status_as_of",
+                    "source_date",
+                    "source_url",
+                    "source_title",
+                    "source_publisher",
+                    "status_note",
+                )
+            }
+            expected["active_field_eligible"] = (
+                source["display_tier"] != "hidden"
+            )
+            self.assertEqual(candidate["candidacy"], expected)
+        field = self.payload["presidential_field"]
+        self.assertEqual(
+            set(field),
+            {"status_as_of", "main", "secondary", "hidden", "counts"},
+        )
+        self.assertEqual(
+            field["counts"],
+            {"main": 11, "secondary": 7, "hidden": 2, "active": 18, "total": 20},
+        )
+        self.assertEqual(
+            field["hidden"],
+            ["sarah-knafo", "sebastien-lecornu"],
+        )
+        all_ids = field["main"] + field["secondary"] + field["hidden"]
+        self.assertEqual(len(all_ids), len(set(all_ids)))
+        self.assertEqual(
+            set(all_ids),
+            {candidate["candidate_id"] for candidate in self.payload["candidates"]},
+        )
+
+    def test_hidden_and_conditional_poll_figures_are_not_filtered(self):
+        rows = self.payload["featured_poll_board"]["candidates"]
+        self.assertIn("eric-zemmour", {row["candidate_id"] for row in rows})
+        payload_ids = {candidate["candidate_id"] for candidate in self.payload["candidates"]}
+        self.assertIn("sarah-knafo", payload_ids)
+        self.assertIn("sebastien-lecornu", payload_ids)
+
+    def test_registry_parity_failures_stop_build(self):
+        mutations = []
+        missing = copy.deepcopy(self.registry)
+        missing["candidates"].pop()
+        mutations.append(missing)
+        unknown = copy.deepcopy(self.registry)
+        unknown["candidates"][0]["candidate_id"] = "unknown-candidate"
+        mutations.append(unknown)
+        wrong_name = copy.deepcopy(self.registry)
+        wrong_name["candidates"][0]["candidate_name"] = "Wrong Name"
+        mutations.append(wrong_name)
+        for registry in mutations:
+            with self.subTest(registry=registry):
+                with self.assertRaises(builder.CandidateSignalsError):
+                    builder.build_candidate_signals(
+                        self.polls,
+                        self.news,
+                        self.claims,
+                        registry,
+                    )
+
+    def test_registry_path_failures_preserve_last_good_output(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "candidate_signals.json"
+            output.write_text("last-good\n", encoding="utf-8")
+            missing = root / "missing.json"
+            with self.assertRaisesRegex(builder.CandidateSignalsError, "missing"):
+                builder.build_from_paths(
+                    ROOT / "polls.json",
+                    ROOT / "news_wire.json",
+                    ROOT / "claims_under_scrutiny.json",
+                    missing,
+                    output,
+                )
+            malformed = root / "malformed.json"
+            malformed.write_text("{broken", encoding="utf-8")
+            with self.assertRaisesRegex(builder.CandidateSignalsError, "malformed"):
+                builder.build_from_paths(
+                    ROOT / "polls.json",
+                    ROOT / "news_wire.json",
+                    ROOT / "claims_under_scrutiny.json",
+                    malformed,
+                    output,
+                )
+            self.assertEqual(output.read_text(encoding="utf-8"), "last-good\n")
+
+
 class DeterminismAndSafetyTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.current_polls, cls.current_news, cls.current_claims = (
-            builder.load_inputs(
-                ROOT / "polls.json",
-                ROOT / "news_wire.json",
-                ROOT / "claims_under_scrutiny.json",
-            )
+        (
+            cls.current_polls,
+            cls.current_news,
+            cls.current_claims,
+            cls.current_candidacy_status,
+        ) = builder.load_inputs(
+            ROOT / "polls.json",
+            ROOT / "news_wire.json",
+            ROOT / "claims_under_scrutiny.json",
+            ROOT / "candidate_candidacy_status.json",
         )
 
     def fixture_payload(self, *, news=None, claims=None):
-        polls = [
-            poll_event(
-                pollster="Alpha",
-                candidates=[("Candidate A", 60), ("Candidate B", 40)],
-                event_id="fixture-current",
-            )
-        ]
         return builder.build_candidate_signals(
-            polls,
-            news or news_fixture(),
-            claims or claims_fixture(),
+            copy.deepcopy(self.current_polls),
+            copy.deepcopy(news or self.current_news),
+            copy.deepcopy(claims or self.current_claims),
+            copy.deepcopy(self.current_candidacy_status),
         )
 
     def test_identical_builds_are_byte_identical(self):
@@ -1159,14 +1327,16 @@ class DeterminismAndSafetyTests(unittest.TestCase):
         self.assertTrue(first.endswith(b"\n"))
 
     def test_same_day_raw_generated_times_do_not_change_output(self):
-        first = self.fixture_payload(
-            news=news_fixture(generated_at="2026-07-29T00:01:00Z"),
-            claims=claims_fixture(generated_at="2026-07-27T00:01:00Z"),
-        )
-        second = self.fixture_payload(
-            news=news_fixture(generated_at="2026-07-29T23:59:00Z"),
-            claims=claims_fixture(generated_at="2026-07-27T23:59:00Z"),
-        )
+        first_news = copy.deepcopy(self.current_news)
+        first_claims = copy.deepcopy(self.current_claims)
+        second_news = copy.deepcopy(self.current_news)
+        second_claims = copy.deepcopy(self.current_claims)
+        first_news["generated_at"] = "2026-07-30T00:01:00Z"
+        first_claims["generated_at"] = "2026-07-30T00:01:00Z"
+        second_news["generated_at"] = "2026-07-30T23:59:00Z"
+        second_claims["generated_at"] = "2026-07-30T23:59:00Z"
+        first = self.fixture_payload(news=first_news, claims=first_claims)
+        second = self.fixture_payload(news=second_news, claims=second_claims)
         self.assertEqual(
             builder.serialize_candidate_signals(first),
             builder.serialize_candidate_signals(second),
@@ -1222,6 +1392,7 @@ class DeterminismAndSafetyTests(unittest.TestCase):
                     polls_path,
                     news_path,
                     claims_path,
+                    ROOT / "candidate_candidacy_status.json",
                     output_path,
                 )
             self.assertEqual(
@@ -1238,6 +1409,7 @@ class DeterminismAndSafetyTests(unittest.TestCase):
             polls=self.current_polls,
             news=self.current_news,
             claims=self.current_claims,
+            candidacy_status=self.current_candidacy_status,
         )
         self.assertEqual(payload["candidate_universe"]["count"], 20)
         self.assertEqual(

@@ -947,6 +947,88 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
             self.assertIsNone(candidate[field])
         self.assertNotIn(0, candidate.values())
 
+    def test_schema_11_normalizes_complete_presidential_field(self):
+        payload = json.loads(
+            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+        )
+        state = run_candidate_module("api.normalize(input.payload)", payload)
+        self.assertEqual(state["status"], "ready")
+        self.assertEqual(len(state["candidates"]), 20)
+        field = state["metadata"]["presidentialField"]
+        self.assertEqual(field["counts"], {
+            "main": 11,
+            "secondary": 7,
+            "hidden": 2,
+            "active": 18,
+            "total": 20,
+        })
+        self.assertEqual(
+            field["hidden"],
+            ["sarah-knafo", "sebastien-lecornu"],
+        )
+        self.assertTrue(
+            all(candidate["candidacy"] for candidate in state["candidates"])
+        )
+        self.assertEqual(
+            [candidate["candidate_id"] for candidate in state["candidates"]],
+            [candidate["candidate_id"] for candidate in payload["candidates"]],
+        )
+
+    def test_schema_11_rejects_invalid_tier_membership_counts_and_eligibility(self):
+        base = json.loads(
+            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+        )
+        cases = []
+        duplicate = json.loads(json.dumps(base))
+        duplicate["presidential_field"]["secondary"].append(
+            duplicate["presidential_field"]["main"][0]
+        )
+        duplicate["presidential_field"]["counts"]["secondary"] += 1
+        duplicate["presidential_field"]["counts"]["active"] += 1
+        duplicate["presidential_field"]["counts"]["total"] += 1
+        cases.append(duplicate)
+        unknown = json.loads(json.dumps(base))
+        unknown["presidential_field"]["main"][0] = "unknown-candidate"
+        cases.append(unknown)
+        missing = json.loads(json.dumps(base))
+        missing["presidential_field"]["main"].pop()
+        missing["presidential_field"]["counts"]["main"] -= 1
+        missing["presidential_field"]["counts"]["active"] -= 1
+        missing["presidential_field"]["counts"]["total"] -= 1
+        cases.append(missing)
+        counts = json.loads(json.dumps(base))
+        counts["presidential_field"]["counts"]["active"] = 20
+        cases.append(counts)
+        eligibility = json.loads(json.dumps(base))
+        eligibility["candidates"][0]["candidacy"][
+            "active_field_eligible"
+        ] = not eligibility["candidates"][0]["candidacy"][
+            "active_field_eligible"
+        ]
+        cases.append(eligibility)
+        mismatch = json.loads(json.dumps(base))
+        mismatch["candidates"][0]["candidacy"]["display_tier"] = "hidden"
+        mismatch["candidates"][0]["candidacy"][
+            "active_field_eligible"
+        ] = False
+        cases.append(mismatch)
+        for payload in cases:
+            with self.subTest(payload=payload["presidential_field"]):
+                state = run_candidate_module(
+                    "api.normalize(input.payload)",
+                    payload,
+                )
+                self.assertEqual(state["status"], "unavailable")
+                self.assertEqual(state["reason"], "invalid_payload")
+
+    def test_schema_10_retains_evidence_without_fabricating_active_field(self):
+        payload = candidate_payload([candidate_row()], schema_version="1.0")
+        state = run_candidate_module("api.normalize(input.payload)", payload)
+        self.assertEqual(state["status"], "ready")
+        self.assertIsNone(state["metadata"]["presidentialField"])
+        self.assertIsNone(state["candidates"][0]["candidacy"])
+        self.assertEqual(state["candidates"][0]["polling"], payload["candidates"][0]["polling"])
+
     def test_no_ranking_scoring_or_visual_renderer_is_introduced(self):
         self.assertNotIn(".sort(", self.candidate_js)
         self.assertNotRegex(

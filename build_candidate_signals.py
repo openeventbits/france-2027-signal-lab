@@ -1,7 +1,7 @@
 """Build the deterministic Candidate Signals public payload.
 
 This module is network-free and depends only on the Python standard library
-and the narrow helpers in candidate_identity.py.
+and the narrow candidate identity and candidacy-status helpers.
 """
 
 from __future__ import annotations
@@ -19,6 +19,12 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+from candidate_candidacy_status import (
+    CandidateCandidacyStatusError,
+    candidacy_status_by_id,
+    project_display_tiers,
+    validate_candidate_candidacy_status,
+)
 from candidate_identity import (
     CandidateIdentityError,
     candidate_id,
@@ -30,7 +36,7 @@ from candidate_identity import (
 )
 
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 CANDIDATE_WINDOW_DAYS = 183
 LATEST_SCRUTINY_DAYS = 14
 FEATURED_POLL_BOARD_DISPLAY_LIMIT = 10
@@ -58,6 +64,31 @@ FORBIDDEN_FIELD_PARTS = {
     "viability",
 }
 DATE_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}")
+CANDIDACY_OUTPUT_KEYS = {
+    "status",
+    "display_tier",
+    "active_field_eligible",
+    "status_as_of",
+    "source_date",
+    "source_url",
+    "source_title",
+    "source_publisher",
+    "status_note",
+}
+PRESIDENTIAL_FIELD_KEYS = {
+    "status_as_of",
+    "main",
+    "secondary",
+    "hidden",
+    "counts",
+}
+PRESIDENTIAL_FIELD_COUNT_KEYS = {
+    "main",
+    "secondary",
+    "hidden",
+    "active",
+    "total",
+}
 
 
 class CandidateSignalsError(ValueError):
@@ -191,19 +222,25 @@ def load_inputs(
     polls_path: Path | str,
     news_path: Path | str,
     claims_path: Path | str,
-) -> tuple[list[Any], dict[str, Any], dict[str, Any]]:
-    """Load and minimally type-check the three required source payloads."""
+    candidacy_status_path: Path | str,
+) -> tuple[list[Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """Load and minimally type-check the four required source payloads."""
 
     polls = load_json(polls_path)
     news = load_json(news_path)
     claims = load_json(claims_path)
+    candidacy_status = load_json(candidacy_status_path)
     if not isinstance(polls, list):
         raise CandidateSignalsError("polls source must be a top-level array")
     if not isinstance(news, dict):
         raise CandidateSignalsError("news source must be a top-level object")
     if not isinstance(claims, dict):
         raise CandidateSignalsError("claims source must be a top-level object")
-    return polls, news, claims
+    if not isinstance(candidacy_status, dict):
+        raise CandidateSignalsError(
+            "candidacy-status source must be a top-level object"
+        )
+    return polls, news, claims, candidacy_status
 
 
 def _poll_qualifying_date(event: dict[str, Any], context: str) -> date:
@@ -1618,8 +1655,20 @@ def _construct_candidate_signals(
     polls: Any,
     news: Any,
     claims: Any,
+    candidacy_status: Any,
 ) -> dict[str, Any]:
     universe, candidates = derive_candidate_universe(polls, news, claims)
+    try:
+        validate_candidate_candidacy_status(
+            candidacy_status,
+            candidate_universe=candidates,
+        )
+        candidacy_by_id = candidacy_status_by_id(candidacy_status)
+        presidential_field = project_display_tiers(candidacy_status)
+    except CandidateCandidacyStatusError as error:
+        raise CandidateSignalsError(
+            f"candidacy-status registry is invalid: {error}"
+        ) from error
     featured_package = select_featured_polling_package(polls)
     polling = project_candidate_polling(candidates, featured_package)
     visibility, campaign_attention, general_visibility = project_visibility(
@@ -1647,10 +1696,24 @@ def _construct_candidate_signals(
     candidate_payloads = []
     for candidate in candidates:
         identifier = candidate["candidate_id"]
+        source_candidacy = candidacy_by_id[identifier]
         candidate_payloads.append(
             {
                 "candidate_id": identifier,
                 "candidate_name": candidate["candidate_name"],
+                "candidacy": {
+                    "status": source_candidacy["status"],
+                    "display_tier": source_candidacy["display_tier"],
+                    "active_field_eligible": (
+                        source_candidacy["display_tier"] != "hidden"
+                    ),
+                    "status_as_of": source_candidacy["status_as_of"],
+                    "source_date": source_candidacy["source_date"],
+                    "source_url": source_candidacy["source_url"],
+                    "source_title": source_candidacy["source_title"],
+                    "source_publisher": source_candidacy["source_publisher"],
+                    "status_note": source_candidacy["status_note"],
+                },
                 "polling": polling[identifier],
                 "campaign_attention": campaign_attention[identifier],
                 "general_visibility": general_visibility[identifier],
@@ -1662,6 +1725,7 @@ def _construct_candidate_signals(
     return {
         "schema_version": SCHEMA_VERSION,
         "candidate_universe": universe,
+        "presidential_field": presidential_field,
         "featured_polling_package": featured_polling_package,
         "featured_poll_board": featured_poll_board,
         "visibility": visibility,
@@ -2045,6 +2109,7 @@ def validate_candidate_signals(
     polls: Any | None = None,
     news: Any | None = None,
     claims: Any | None = None,
+    candidacy_status: Any | None = None,
 ) -> None:
     """Strictly validate structure and, when supplied, source equivalence."""
 
@@ -2053,6 +2118,7 @@ def validate_candidate_signals(
     expected_top_keys = {
         "schema_version",
         "candidate_universe",
+        "presidential_field",
         "featured_polling_package",
         "featured_poll_board",
         "visibility",
@@ -2063,7 +2129,7 @@ def validate_candidate_signals(
     if set(value) != expected_top_keys:
         raise CandidateSignalsError("payload has unexpected fields")
     if value["schema_version"] != SCHEMA_VERSION:
-        raise CandidateSignalsError("schema_version must equal 1.0")
+        raise CandidateSignalsError("schema_version must equal 1.1")
 
     universe = _require_object(
         value["candidate_universe"],
@@ -2090,6 +2156,63 @@ def validate_candidate_signals(
         universe["count"],
         "candidate_universe.count",
     )
+
+    presidential_field = _require_plain_object(
+        value["presidential_field"],
+        "presidential_field",
+    )
+    if set(presidential_field) != PRESIDENTIAL_FIELD_KEYS:
+        raise CandidateSignalsError(
+            "presidential_field has unexpected fields"
+        )
+    _parse_date(
+        presidential_field["status_as_of"],
+        "presidential_field.status_as_of",
+    )
+    tier_ids: dict[str, list[str]] = {}
+    for tier in ("main", "secondary", "hidden"):
+        identifiers = _require_list(
+            presidential_field[tier],
+            f"presidential_field.{tier}",
+        )
+        if any(
+            not isinstance(identifier, str) or not identifier
+            for identifier in identifiers
+        ):
+            raise CandidateSignalsError(
+                f"presidential_field.{tier} must contain candidate IDs"
+            )
+        if len(identifiers) != len(set(identifiers)):
+            raise CandidateSignalsError(
+                f"presidential_field.{tier} candidate IDs must be unique"
+            )
+        tier_ids[tier] = identifiers
+    counts_value = _require_plain_object(
+        presidential_field["counts"],
+        "presidential_field.counts",
+    )
+    if set(counts_value) != PRESIDENTIAL_FIELD_COUNT_KEYS:
+        raise CandidateSignalsError(
+            "presidential_field.counts has unexpected fields"
+        )
+    field_counts = {
+        key: _require_non_negative_integer(
+            counts_value[key],
+            f"presidential_field.counts.{key}",
+        )
+        for key in PRESIDENTIAL_FIELD_COUNT_KEYS
+    }
+    expected_counts = {
+        "main": len(tier_ids["main"]),
+        "secondary": len(tier_ids["secondary"]),
+        "hidden": len(tier_ids["hidden"]),
+        "active": len(tier_ids["main"]) + len(tier_ids["secondary"]),
+        "total": sum(len(tier_ids[tier]) for tier in tier_ids),
+    }
+    if field_counts != expected_counts:
+        raise CandidateSignalsError(
+            "presidential_field counts do not match tier membership"
+        )
 
     featured = _require_object(
         value["featured_polling_package"],
@@ -2290,6 +2413,7 @@ def validate_candidate_signals(
         if set(candidate) != {
             "candidate_id",
             "candidate_name",
+            "candidacy",
             "polling",
             "campaign_attention",
             "general_visibility",
@@ -2311,6 +2435,48 @@ def validate_candidate_signals(
         seen_ids.add(identifier)
         identity_names.append(name)
         expected_order.append((name.casefold(), identifier))
+
+        candidacy = _require_plain_object(
+            candidate["candidacy"],
+            f"{context}.candidacy",
+        )
+        if set(candidacy) != CANDIDACY_OUTPUT_KEYS:
+            raise CandidateSignalsError(
+                f"{context}.candidacy has unexpected fields"
+            )
+        for field in (
+            "status",
+            "display_tier",
+            "source_title",
+            "source_publisher",
+            "status_note",
+        ):
+            _require_text(candidacy[field], f"{context}.candidacy.{field}")
+        if candidacy["display_tier"] not in {"main", "secondary", "hidden"}:
+            raise CandidateSignalsError(
+                f"{context}.candidacy.display_tier is invalid"
+            )
+        if type(candidacy["active_field_eligible"]) is not bool:
+            raise CandidateSignalsError(
+                f"{context}.candidacy.active_field_eligible must be boolean"
+            )
+        expected_eligible = candidacy["display_tier"] != "hidden"
+        if candidacy["active_field_eligible"] != expected_eligible:
+            raise CandidateSignalsError(
+                f"{context}.candidacy active eligibility conflicts with tier"
+            )
+        _parse_date(
+            candidacy["status_as_of"],
+            f"{context}.candidacy.status_as_of",
+        )
+        _parse_date(
+            candidacy["source_date"],
+            f"{context}.candidacy.source_date",
+        )
+        if not _usable_url(candidacy["source_url"]):
+            raise CandidateSignalsError(
+                f"{context}.candidacy.source_url is invalid"
+            )
 
         polling = _require_object(candidate["polling"], f"{context}.polling")
         if set(polling) != POLLING_OUTPUT_KEYS:
@@ -2465,19 +2631,66 @@ def validate_candidate_signals(
         raise CandidateSignalsError(
             "candidates are not deterministically ordered"
         )
+    all_tier_ids = [
+        identifier
+        for tier in ("main", "secondary", "hidden")
+        for identifier in tier_ids[tier]
+    ]
+    if len(all_tier_ids) != len(set(all_tier_ids)):
+        raise CandidateSignalsError(
+            "presidential_field candidate IDs appear in multiple tiers"
+        )
+    unknown_tier_ids = sorted(set(all_tier_ids) - seen_ids)
+    missing_tier_ids = sorted(seen_ids - set(all_tier_ids))
+    if unknown_tier_ids:
+        raise CandidateSignalsError(
+            f"presidential_field has unknown candidate IDs: {unknown_tier_ids}"
+        )
+    if missing_tier_ids:
+        raise CandidateSignalsError(
+            f"presidential_field is missing candidate IDs: {missing_tier_ids}"
+        )
+    if field_counts["total"] != count:
+        raise CandidateSignalsError(
+            "presidential_field total does not match candidate universe"
+        )
+    tier_by_id = {
+        identifier: tier
+        for tier in ("main", "secondary", "hidden")
+        for identifier in tier_ids[tier]
+    }
+    for index, candidate in enumerate(candidates):
+        if candidate["candidacy"]["display_tier"] != tier_by_id[
+            candidate["candidate_id"]
+        ]:
+            raise CandidateSignalsError(
+                f"candidates[{index}].candidacy tier conflicts with "
+                "presidential_field"
+            )
     _validate_featured_poll_board(
         value["featured_poll_board"],
         candidates,
         featured,
     )
 
-    supplied = (polls is not None, news is not None, claims is not None)
+    supplied = (
+        polls is not None,
+        news is not None,
+        claims is not None,
+        candidacy_status is not None,
+    )
     if any(supplied) and not all(supplied):
         raise CandidateSignalsError(
-            "polls, news, and claims must all be supplied for source validation"
+            "polls, news, claims, and candidacy_status must all be supplied "
+            "for source validation"
         )
     if all(supplied):
-        expected = _construct_candidate_signals(polls, news, claims)
+        expected = _construct_candidate_signals(
+            polls,
+            news,
+            claims,
+            candidacy_status,
+        )
         if value != expected:
             raise CandidateSignalsError(
                 "candidate signals payload does not match source evidence"
@@ -2488,10 +2701,16 @@ def build_candidate_signals(
     polls: Any,
     news: Any,
     claims: Any,
+    candidacy_status: Any,
 ) -> dict[str, Any]:
     """Construct and strictly validate one Candidate Signals payload."""
 
-    payload = _construct_candidate_signals(polls, news, claims)
+    payload = _construct_candidate_signals(
+        polls,
+        news,
+        claims,
+        candidacy_status,
+    )
     validate_candidate_signals(payload)
     return payload
 
@@ -2535,17 +2754,29 @@ def build_from_paths(
     polls_path: Path | str = "polls.json",
     news_path: Path | str = "news_wire.json",
     claims_path: Path | str = "claims_under_scrutiny.json",
+    candidacy_status_path: Path | str = "candidate_candidacy_status.json",
     output_path: Path | str = "candidate_signals.json",
 ) -> dict[str, Any]:
     """Load, construct, source-validate, serialize, and atomically write."""
 
-    polls, news, claims = load_inputs(polls_path, news_path, claims_path)
-    payload = build_candidate_signals(polls, news, claims)
+    polls, news, claims, candidacy_status = load_inputs(
+        polls_path,
+        news_path,
+        claims_path,
+        candidacy_status_path,
+    )
+    payload = build_candidate_signals(
+        polls,
+        news,
+        claims,
+        candidacy_status,
+    )
     validate_candidate_signals(
         payload,
         polls=polls,
         news=news,
         claims=claims,
+        candidacy_status=candidacy_status,
     )
     content = serialize_candidate_signals(payload)
     atomic_write(output_path, content)
@@ -2562,6 +2793,10 @@ def _parser() -> argparse.ArgumentParser:
         "--claims",
         default="claims_under_scrutiny.json",
     )
+    parser.add_argument(
+        "--candidacy-status",
+        default="candidate_candidacy_status.json",
+    )
     parser.add_argument("--output", default="candidate_signals.json")
     return parser
 
@@ -2573,6 +2808,7 @@ def main(argv: list[str] | None = None) -> int:
             arguments.polls,
             arguments.news,
             arguments.claims,
+            arguments.candidacy_status,
             arguments.output,
         )
     except CandidateSignalsError as error:

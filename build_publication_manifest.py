@@ -18,6 +18,16 @@ from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import urlsplit
 
+from build_candidate_signals import (
+    CandidateSignalsError,
+    validate_candidate_signals,
+)
+from candidate_candidacy_status import (
+    CandidateCandidacyStatusError,
+    candidacy_status_by_id,
+    project_display_tiers,
+    validate_candidate_candidacy_status,
+)
 from source_health import (
     SourceHealthError,
     source_health_aggregate,
@@ -25,10 +35,11 @@ from source_health import (
 )
 
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 OUTPUT_NAME = "publication_manifest.json"
 TIMESTAMP_STATUSES = {"known", "unknown", "missing", "invalid"}
 LANE_FILES = {
+    "candidacy_status": ("candidate_candidacy_status.json",),
     "candidate_signals": ("candidate_signals.json",),
     "claims": ("claims_under_scrutiny.json",),
     "news": ("news_wire.json",),
@@ -386,12 +397,19 @@ def _validate_featured_poll_board_public(
 
 
 def _validate_candidate_signals_public(payload: Any) -> int:
+    try:
+        validate_candidate_signals(payload)
+    except CandidateSignalsError as error:
+        raise ManifestError(
+            f"candidate_signals invalid structure: {error}"
+        ) from error
     value = _required_object(
         payload,
         field="candidate_signals",
         keys={
             "schema_version",
             "candidate_universe",
+            "presidential_field",
             "featured_polling_package",
             "featured_poll_board",
             "visibility",
@@ -400,9 +418,9 @@ def _validate_candidate_signals_public(payload: Any) -> int:
             "candidates",
         },
     )
-    if value["schema_version"] != "1.0":
+    if value["schema_version"] != "1.1":
         raise ManifestError(
-            "candidate_signals.schema_version must equal 1.0"
+            "candidate_signals.schema_version must equal 1.1"
         )
 
     universe = _required_object(
@@ -658,6 +676,64 @@ def _validate_candidate_signals_public(payload: Any) -> int:
     return candidate_count
 
 
+def _validate_candidacy_status_public(payload: Any) -> int:
+    try:
+        validate_candidate_candidacy_status(payload)
+    except CandidateCandidacyStatusError as error:
+        raise ManifestError(
+            f"candidacy_status invalid structure: {error}"
+        ) from error
+    return len(payload["candidates"])
+
+
+def _validate_candidacy_status_parity(
+    registry: Any,
+    candidate_signals: Any,
+) -> None:
+    candidates = candidate_signals["candidates"]
+    universe = [
+        {
+            "candidate_id": candidate["candidate_id"],
+            "candidate_name": candidate["candidate_name"],
+        }
+        for candidate in candidates
+    ]
+    try:
+        validate_candidate_candidacy_status(
+            registry,
+            candidate_universe=universe,
+        )
+        registry_by_id = candidacy_status_by_id(registry)
+        expected_field = project_display_tiers(registry)
+    except CandidateCandidacyStatusError as error:
+        raise ManifestError(
+            f"candidacy_status registry parity failed: {error}"
+        ) from error
+
+    if candidate_signals["presidential_field"] != expected_field:
+        raise ManifestError(
+            "candidate_signals presidential_field does not match registry"
+        )
+    for candidate in candidates:
+        source = registry_by_id[candidate["candidate_id"]]
+        expected_candidacy = {
+            "status": source["status"],
+            "display_tier": source["display_tier"],
+            "active_field_eligible": source["display_tier"] != "hidden",
+            "status_as_of": source["status_as_of"],
+            "source_date": source["source_date"],
+            "source_url": source["source_url"],
+            "source_title": source["source_title"],
+            "source_publisher": source["source_publisher"],
+            "status_note": source["status_note"],
+        }
+        if candidate["candidacy"] != expected_candidacy:
+            raise ManifestError(
+                "candidate_signals candidacy does not match registry for "
+                f"{candidate['candidate_id']}"
+            )
+
+
 def _parse_evidence_value(value: Any) -> tuple[datetime, str] | None:
     if not isinstance(value, str) or not value.strip():
         return None
@@ -701,6 +777,8 @@ def _timestamp_fields(
 ) -> tuple[dict[str, str], str]:
     if lane_name == "polls":
         return {}, "unknown"
+    if lane_name == "candidacy_status":
+        return {}, "known"
     if not isinstance(payload, dict):
         return {}, "invalid"
 
@@ -743,6 +821,9 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
         return False
 
     payload = sources[0]["payload"]
+    if lane_name == "candidacy_status":
+        _validate_candidacy_status_public(payload)
+        return True
     if lane_name == "candidate_signals":
         _validate_candidate_signals_public(payload)
         return True
@@ -776,6 +857,8 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
 
 
 def _evidence_values(lane_name: str, payload: Any) -> list[Any]:
+    if lane_name == "candidacy_status":
+        return [payload["status_as_of"]]
     if lane_name == "candidate_signals":
         evidence_dates = payload["evidence_dates"]
         return [
@@ -831,7 +914,7 @@ def _build_lane(
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     file_names = LANE_FILES[lane_name]
     sources = [_read_source(root / file_name) for file_name in file_names]
-    if lane_name == "candidate_signals":
+    if lane_name in {"candidacy_status", "candidate_signals"}:
         source_error = sources[0]["error"]
         if source_error is not None:
             raise ManifestError(source_error)
@@ -893,6 +976,8 @@ def _build_lane(
             lane_warnings.append(
                 f"{lane_name}: no valid lane-local evidence date is available"
             )
+        if lane_name == "candidacy_status":
+            lane["record_count"] = len(primary["payload"]["candidates"])
         if lane_name == "candidate_signals":
             lane["record_count"] = primary["payload"][
                 "candidate_universe"
@@ -1010,6 +1095,11 @@ def build_manifest(
         lanes[lane_name] = lane
         lane_sources[lane_name] = sources
 
+    _validate_candidacy_status_parity(
+        lane_sources["candidacy_status"][0]["payload"],
+        lane_sources["candidate_signals"][0]["payload"],
+    )
+
     warnings = [
         warning
         for lane_name in sorted(lanes)
@@ -1042,7 +1132,7 @@ def validate_manifest(manifest: Any) -> None:
     if not isinstance(manifest, dict):
         raise ManifestError("manifest must be a JSON object")
     if manifest.get("schema_version") != SCHEMA_VERSION:
-        raise ManifestError("schema_version must equal 1.0")
+        raise ManifestError("schema_version must equal 1.1")
     snapshot_id = manifest.get("snapshot_id")
     if (
         not isinstance(snapshot_id, str)
@@ -1054,7 +1144,7 @@ def validate_manifest(manifest: Any) -> None:
 
     lanes = manifest.get("lanes")
     if not isinstance(lanes, dict) or set(lanes) != set(LANE_FILES):
-        raise ManifestError("manifest lanes do not match the version 1 contract")
+        raise ManifestError("manifest lanes do not match the version 1.1 contract")
     for lane_name, lane in lanes.items():
         if not isinstance(lane, dict):
             raise ManifestError(f"{lane_name} lane must be an object")
@@ -1076,10 +1166,10 @@ def validate_manifest(manifest: Any) -> None:
             )
         if not isinstance(lane["warnings"], list):
             raise ManifestError(f"{lane_name} warnings must be an array")
-        if lane_name == "candidate_signals":
+        if lane_name in {"candidacy_status", "candidate_signals"}:
             _required_count(
                 lane.get("record_count"),
-                field="candidate_signals lane record_count",
+                field=f"{lane_name} lane record_count",
             )
 
     network = manifest.get("source_network")
@@ -1156,7 +1246,7 @@ def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Build publication_manifest.json version 1"
+        description="Build publication_manifest.json version 1.1"
     )
     parser.add_argument(
         "--check",
