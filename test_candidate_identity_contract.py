@@ -1,6 +1,13 @@
 import inspect
+import json
 import unittest
+from pathlib import Path
 
+import candidate_identity
+from candidate_candidacy_status import (
+    load_candidate_candidacy_status,
+    validate_candidate_candidacy_status,
+)
 from fetch_news_wire import (
     canonical_news_candidate_roster,
     candidate_names_from_matches,
@@ -151,6 +158,36 @@ class CandidateIdentityContractTests(unittest.TestCase):
             "canonical_news_candidate_roster(names)",
             source,
         )
+
+    def test_registry_has_exact_identity_parity_with_candidate_signals(self):
+        root = Path(__file__).resolve().parent
+        registry = load_candidate_candidacy_status(
+            root / "candidate_candidacy_status.json"
+        )
+        with (root / "candidate_signals.json").open(
+            "r",
+            encoding="utf-8",
+        ) as source:
+            candidate_signals = json.load(source)
+
+        validate_candidate_candidacy_status(
+            registry,
+            candidate_universe=candidate_signals["candidates"],
+        )
+        self.assertEqual(
+            [
+                (candidate["candidate_id"], candidate["candidate_name"])
+                for candidate in registry["candidates"]
+            ],
+            [
+                (candidate["candidate_id"], candidate["candidate_name"])
+                for candidate in candidate_signals["candidates"]
+            ],
+        )
+
+    def test_candidate_identity_contains_no_candidacy_logic(self):
+        source = inspect.getsource(candidate_identity).casefold()
+        self.assertNotIn("candidacy", source)
 
 
 if __name__ == "__main__":
