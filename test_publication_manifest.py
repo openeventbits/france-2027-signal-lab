@@ -22,97 +22,21 @@ def write_json(root, name, payload):
 
 
 def candidate_signals_payload():
-    return {
-        "schema_version": "1.0",
-        "candidate_universe": {
-            "rule": "Accepted first-round polling",
-            "as_of_date": "2026-07-24",
-            "cutoff_date": "2026-01-22",
-            "count": 2,
-        },
-        "featured_polling_package": {
-            "package_key": "fixture-package",
-            "pollster": "Fixture Pollster",
-            "fieldwork_start": "2026-07-09",
-            "fieldwork_end": "2026-07-10",
-            "sample_size": 1000,
-            "hypothesis_count": 2,
-            "selected_hypothesis_event_id": "event-a",
-            "source_urls": ["https://example.test/poll"],
-        },
-        "featured_poll_board": {
-            "selection_basis": "featured_package_selected_hypothesis",
-            "pollster": "Fixture Pollster",
-            "fieldwork_start": "2026-07-09",
-            "fieldwork_end": "2026-07-10",
-            "sample_size": 1000,
-            "round": "first_round",
-            "scenario_key": "scenario-a",
-            "selected_event_id": "event-a",
-            "hypothesis_label": "Fixture hypothesis",
-            "package_hypothesis_count": 2,
-            "source_urls": ["https://example.test/poll"],
-            "full_candidate_count": 2,
-            "display_limit": 10,
-            "displayed_candidate_count": 2,
-            "omitted_candidate_count": 0,
-            "candidates": [
-                {
-                    "candidate_id": "candidate-a",
-                    "candidate_name": "Candidate A",
-                    "reported_score": 60,
-                    "source_position": 1,
-                    "display_position": 1,
-                },
-                {
-                    "candidate_id": "candidate-b",
-                    "candidate_name": "Candidate B",
-                    "reported_score": 40,
-                    "source_position": 2,
-                    "display_position": 2,
-                },
-            ],
-        },
-        "visibility": {
-            "method": "share_of_candidate_linked_records",
-            "primary_scopes": ["election", "campaign"],
-            "secondary_scope": "general",
-            "current_period": {
-                "start_date": "2026-07-18",
-                "end_date": "2026-07-24",
-                "record_count": 12,
-                "publisher_count": 6,
-            },
-            "general_current_period": {
-                "start_date": "2026-07-18",
-                "end_date": "2026-07-24",
-                "record_count": 4,
-                "publisher_count": 3,
-            },
-            "comparison_quality": {
-                "status": "comparable",
-            },
-        },
-        "scrutiny_window": {
-            "latest_days": 14,
-            "latest_start_date": "2026-07-04",
-            "latest_end_date": "2026-07-17",
-            "archive_window_days": 365,
-        },
-        "evidence_dates": {
-            "polling": "2026-07-10",
-            "news": "2026-07-24",
-            "scrutiny": "2026-07-17",
-        },
-        "candidates": [
-            {"candidate_id": "candidate-a", "candidate_name": "Candidate A"},
-            {"candidate_id": "candidate-b", "candidate_name": "Candidate B"},
-        ],
-    }
-
+    return json.loads(
+        (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+    )
 
 def complete_inputs(root):
     write_json(root, "candidate_signals.json", candidate_signals_payload())
+    write_json(
+        root,
+        "candidate_candidacy_status.json",
+        json.loads(
+            (ROOT / "candidate_candidacy_status.json").read_text(
+                encoding="utf-8"
+            )
+        ),
+    )
     write_json(
         root,
         "polls.json",
@@ -282,11 +206,12 @@ class PublicationManifestTests(unittest.TestCase):
 
     def test_valid_complete_inputs(self):
         manifest = self.build()
-        self.assertEqual(manifest["schema_version"], "1.0")
+        self.assertEqual(manifest["schema_version"], "1.1")
         self.assertEqual(manifest["published_at"], PUBLISHED_AT)
         self.assertEqual(
             set(manifest["lanes"]),
             {
+                "candidacy_status",
                 "candidate_signals",
                 "polls",
                 "runoff",
@@ -303,6 +228,78 @@ class PublicationManifestTests(unittest.TestCase):
             self.assertRegex(lane["sha256"], r"^[0-9a-f]{64}$")
 
 
+    def test_candidacy_status_lane_metadata(self):
+        manifest = self.build()
+        lane = manifest["lanes"]["candidacy_status"]
+        source = self.root / "candidate_candidacy_status.json"
+        self.assertEqual(
+            list(manifest["lanes"]),
+            [
+                "candidacy_status",
+                "candidate_signals",
+                "claims",
+                "news",
+                "polls",
+                "recent_changes",
+                "runoff",
+                "source_health",
+            ],
+        )
+        self.assertEqual(lane["file"], "candidate_candidacy_status.json")
+        self.assertTrue(lane["available"])
+        self.assertTrue(lane["valid"])
+        self.assertEqual(lane["schema_version"], "1.0")
+        self.assertEqual(lane["data_as_of"], "2026-07-30")
+        self.assertEqual(lane["timestamp_status"], "known")
+        self.assertEqual(lane["record_count"], 20)
+        self.assertEqual(lane["warnings"], [])
+        self.assertEqual(
+            lane["sha256"],
+            hashlib.sha256(source.read_bytes()).hexdigest(),
+        )
+
+    def test_missing_or_malformed_candidacy_registry_fails(self):
+        registry_path = self.root / "candidate_candidacy_status.json"
+        registry_path.unlink()
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "candidate_candidacy_status.json is missing",
+        ):
+            self.build()
+        write_json(self.root, "candidate_candidacy_status.json", {})
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "candidacy_status invalid structure",
+        ):
+            self.build()
+
+    def test_registry_candidate_signals_parity_is_required(self):
+        payload = self.candidate_payload()
+        payload["candidates"][0]["candidacy"][
+            "active_field_eligible"
+        ] = not payload["candidates"][0]["candidacy"][
+            "active_field_eligible"
+        ]
+        write_json(self.root, "candidate_signals.json", payload)
+        with self.assertRaises(manifest_builder.ManifestError):
+            self.build()
+
+    def test_valid_registry_and_projection_change_changes_snapshot_id(self):
+        first = self.build()["snapshot_id"]
+        registry_path = self.root / "candidate_candidacy_status.json"
+        registry = json.loads(registry_path.read_text(encoding="utf-8"))
+        payload = self.candidate_payload()
+        changed_id = registry["candidates"][0]["candidate_id"]
+        registry["candidates"][0]["source_title"] += " — updated"
+        next(
+            candidate
+            for candidate in payload["candidates"]
+            if candidate["candidate_id"] == changed_id
+        )["candidacy"]["source_title"] += " — updated"
+        write_json(self.root, "candidate_candidacy_status.json", registry)
+        write_json(self.root, "candidate_signals.json", payload)
+        self.assertNotEqual(first, self.build()["snapshot_id"])
+
     def test_candidate_signals_lane_metadata(self):
         manifest = self.build()
         lane = manifest["lanes"]["candidate_signals"]
@@ -312,8 +309,8 @@ class PublicationManifestTests(unittest.TestCase):
             lane["sha256"],
             hashlib.sha256(source.read_bytes()).hexdigest(),
         )
-        self.assertEqual(lane["record_count"], 2)
-        self.assertEqual(lane["data_as_of"], "2026-07-24")
+        self.assertEqual(lane["record_count"], 20)
+        self.assertEqual(lane["data_as_of"], "2026-07-30")
 
     def test_missing_candidate_signals_fails(self):
         (self.root / "candidate_signals.json").unlink()
@@ -343,7 +340,12 @@ class PublicationManifestTests(unittest.TestCase):
 
     def test_duplicate_candidate_ids_fail(self):
         payload = self.candidate_payload()
-        payload["candidates"][1]["candidate_id"] = "candidate-a"
+        payload["candidates"][1]["candidate_id"] = (
+            payload["candidates"][0]["candidate_id"]
+        )
+        payload["candidates"][1]["candidate_name"] = (
+            payload["candidates"][0]["candidate_name"]
+        )
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
@@ -357,7 +359,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            "candidate count does not match",
+            "candidate_universe.count does not match",
         ):
             self.build()
 
@@ -367,7 +369,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            "evidence_dates.news must be a valid calendar date",
+            "evidence_dates.news must be an ISO calendar date",
         ):
             self.build()
 
@@ -390,7 +392,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         lane = self.build()["lanes"]["candidate_signals"]
         self.assertTrue(lane["valid"])
-        self.assertEqual(lane["data_as_of"], "2026-07-24")
+        self.assertEqual(lane["data_as_of"], "2026-07-30")
         self.assertEqual(lane["warnings"], [])
 
     def test_candidate_signals_change_changes_snapshot_id(self):
@@ -404,7 +406,7 @@ class PublicationManifestTests(unittest.TestCase):
         payload = self.candidate_payload()
         self.assertEqual(
             manifest_builder._validate_candidate_signals_public(payload),
-            2,
+            20,
         )
 
     def test_missing_featured_poll_board_fails(self):
@@ -429,7 +431,7 @@ class PublicationManifestTests(unittest.TestCase):
 
     def test_malformed_featured_board_counts_fail(self):
         payload = self.candidate_payload()
-        payload["featured_poll_board"]["omitted_candidate_count"] = 1
+        payload["featured_poll_board"]["omitted_candidate_count"] += 1
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
@@ -441,7 +443,9 @@ class PublicationManifestTests(unittest.TestCase):
         payload = self.candidate_payload()
         payload["featured_poll_board"]["candidates"][1][
             "candidate_id"
-        ] = "candidate-a"
+        ] = payload["featured_poll_board"]["candidates"][0][
+            "candidate_id"
+        ]
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
@@ -457,7 +461,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            "candidate ID is unknown",
+            "candidate_id is not in main candidates",
         ):
             self.build()
 
@@ -475,9 +479,9 @@ class PublicationManifestTests(unittest.TestCase):
 
     def test_noncontiguous_featured_board_positions_fail(self):
         payload = self.candidate_payload()
-        payload["featured_poll_board"]["candidates"][1][
+        payload["featured_poll_board"]["candidates"][-1][
             "display_position"
-        ] = 3
+        ] += 1
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
@@ -504,7 +508,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            "source_urls are invalid",
+            "source_urls is invalid",
         ):
             self.build()
 

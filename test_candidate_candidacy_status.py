@@ -506,19 +506,52 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
             candidate_universe=self.candidate_universe(),
         )
 
-    def test_d1_production_modules_do_not_import_registry(self):
+    def test_d2_candidate_signals_uses_shared_registry_contract(self):
+        source = (ROOT / "build_candidate_signals.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("from candidate_candidacy_status import (", source)
+        self.assertIn("candidate_candidacy_status.json", source)
+        for public_api in (
+            "validate_candidate_candidacy_status",
+            "candidacy_status_by_id",
+            "project_display_tiers",
+        ):
+            with self.subTest(public_api=public_api):
+                self.assertIn(public_api, source)
+        self.assertNotIn("STATUS_TO_TIER", source)
+        for status in (
+            "declared",
+            "party_selected",
+            "primary_contender",
+            "active_potential",
+            "conditional",
+            "ruled_out",
+            "withdrawn",
+            "historical_poll_only",
+        ):
+            with self.subTest(status=status):
+                self.assertNotIn(f'"{status}"', source)
+
+    def test_collectors_and_evidence_generators_remain_registry_free(self):
         for filename in (
             "fetch_polls.py",
+            "poll_contract.py",
             "fetch_news_wire.py",
             "fetch_claims_under_scrutiny.py",
             "generate_recent_changes.py",
-            "build_candidate_signals.py",
         ):
             with self.subTest(filename=filename):
                 source = (ROOT / filename).read_text(encoding="utf-8")
                 self.assertNotIn("candidate_candidacy_status", source)
+                self.assertNotIn("candidacy_status", source)
 
-    def test_d1_workflows_do_not_reference_registry(self):
+    def test_d2_workflows_read_but_never_mutate_or_stage_registry(self):
+        validation_marker = "load_candidate_candidacy_status("
+        build_marker = (
+            "python -B build_candidate_signals.py "
+            "--candidacy-status candidate_candidacy_status.json"
+        )
         for filename in (
             ".github/workflows/update-polls.yml",
             ".github/workflows/update-news-wire.yml",
@@ -526,7 +559,48 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
         ):
             with self.subTest(filename=filename):
                 source = (ROOT / filename).read_text(encoding="utf-8")
-                self.assertNotIn("candidate_candidacy_status", source)
+                self.assertIn("candidate_candidacy_status.json", source)
+                self.assertEqual(
+                    source.count(validation_marker),
+                    source.count(build_marker),
+                )
+                self.assertGreater(source.count(build_marker), 0)
+
+                cursor = 0
+                while True:
+                    build_position = source.find(build_marker, cursor)
+                    if build_position == -1:
+                        break
+                    validation_position = source.rfind(
+                        validation_marker,
+                        cursor,
+                        build_position,
+                    )
+                    self.assertGreaterEqual(validation_position, cursor)
+                    cursor = build_position + len(build_marker)
+
+                registry_lines = [
+                    line.strip()
+                    for line in source.splitlines()
+                    if "candidate_candidacy_status" in line
+                ]
+                self.assertTrue(registry_lines)
+                for line in registry_lines:
+                    self.assertTrue(
+                        "load_candidate_candidacy_status" in line
+                        or build_marker in line
+                    )
+                    for prohibited in (
+                        "git add",
+                        "git commit",
+                        "atomic_write",
+                        "write_text",
+                        "touch ",
+                        "cp ",
+                        "mv ",
+                        "> candidate_candidacy_status.json",
+                    ):
+                        self.assertNotIn(prohibited, line)
 
     def test_d1_javascript_does_not_reference_registry(self):
         for filename in (

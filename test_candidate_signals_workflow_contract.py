@@ -61,6 +61,58 @@ class CandidateSignalsWorkflowContractTests(unittest.TestCase):
                 )
                 self.assertLess(authoritative, candidate)
 
+    def test_registry_is_validated_and_required_by_every_rebuild(self):
+        validation = (
+            "from candidate_candidacy_status import "
+            "load_candidate_candidacy_status"
+        )
+        build = (
+            "python -B build_candidate_signals.py "
+            "--candidacy-status candidate_candidacy_status.json"
+        )
+        for name, workflow in self.workflows.items():
+            with self.subTest(workflow=name):
+                self.assertEqual(workflow.count(validation), workflow.count(build))
+                self.assertGreaterEqual(workflow.count(build), 2)
+                positions = []
+                cursor = 0
+                while True:
+                    candidate = workflow.find(build, cursor)
+                    if candidate == -1:
+                        break
+                    prior_validation = workflow.rfind(validation, 0, candidate)
+                    self.assertGreaterEqual(prior_validation, cursor)
+                    self.assertLess(prior_validation, candidate)
+                    positions.append(candidate)
+                    cursor = candidate + len(build)
+                self.assertTrue(positions)
+
+    def test_registry_is_never_generated_rewritten_or_staged(self):
+        for name, workflow in self.workflows.items():
+            with self.subTest(workflow=name):
+                for line in workflow.splitlines():
+                    if "candidate_candidacy_status.json" in line:
+                        self.assertNotIn("git add", line)
+                        self.assertNotIn(">", line)
+                        self.assertNotIn("write", line.lower())
+                commit_start = workflow.index("      - name: Commit changed")
+                commit_command = workflow.index("git commit", commit_start)
+                stage_region = workflow[commit_start:commit_command]
+                self.assertNotIn("candidate_candidacy_status.json", stage_region)
+
+    def test_registry_is_absent_from_collector_commands(self):
+        for name, workflow in self.workflows.items():
+            with self.subTest(workflow=name):
+                collector_lines = [
+                    line
+                    for line in workflow.splitlines()
+                    if "fetch_" in line or "generate_recent_changes.py" in line
+                ]
+                self.assertTrue(collector_lines)
+                self.assertTrue(
+                    all("candidate_candidacy_status" not in line for line in collector_lines)
+                )
+
     def test_candidate_signals_precedes_publication_manifest(self):
         for name, workflow in self.workflows.items():
             with self.subTest(workflow=name):

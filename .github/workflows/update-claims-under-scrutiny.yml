@@ -116,7 +116,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          python -B build_candidate_signals.py
+          python -B -c 'from candidate_candidacy_status import load_candidate_candidacy_status; load_candidate_candidacy_status("candidate_candidacy_status.json")'
+          python -B build_candidate_signals.py --candidacy-status candidate_candidacy_status.json
 
           if git diff --quiet -- candidate_signals.json \
             && git ls-files --error-unmatch \
@@ -202,7 +203,8 @@ jobs:
           git rebase origin/main
 
           post_rebase_published_at="$(python -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
-          python -B build_candidate_signals.py
+          python -B -c 'from candidate_candidacy_status import load_candidate_candidacy_status; load_candidate_candidacy_status("candidate_candidacy_status.json")'
+          python -B build_candidate_signals.py --candidacy-status candidate_candidacy_status.json
           python -B build_publication_manifest.py \
             --published-at "$post_rebase_published_at"
 
@@ -227,7 +229,8 @@ jobs:
           fi
 
           final_published_at="$(python -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
-          python -B build_candidate_signals.py
+          python -B -c 'from candidate_candidacy_status import load_candidate_candidacy_status; load_candidate_candidacy_status("candidate_candidacy_status.json")'
+          python -B build_candidate_signals.py --candidacy-status candidate_candidacy_status.json
           python -B build_publication_manifest.py \
             --published-at "$final_published_at"
           python -B build_publication_manifest.py \
