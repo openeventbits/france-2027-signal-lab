@@ -12,15 +12,57 @@
   if (!mount) return;
 
   const views = Object.freeze({
-    runoff: { label: "RUNOFF", title: "Closest Runoff", hash: "#signal-runoff", index: "1" },
-    media: { label: "MEDIA PULSE", title: "Media Pulse", hash: "#signal-media", index: "2" },
-    agenda: { label: "AGENDA", title: "Campaign Agenda", hash: "#signal-agenda", index: "3" },
-    claims: { label: "CLAIM SCRUTINY", title: "Claim Scrutiny", hash: "#signal-claims", index: "4" }
+    runoff: {
+      label: "RUNOFF",
+      title: "Closest Runoff",
+      hash: "#signal-runoff",
+      tabId: "signal-runoff-tab",
+      panelId: "signal-runoff-panel",
+      index: "1"
+    },
+    candidates: {
+      label: "CANDIDATES",
+      title: "Candidate Signals",
+      hash: "#signal-candidates",
+      tabId: "signal-candidates-tab",
+      panelId: "signal-candidates-panel"
+    },
+    events: {
+      label: "EVENTS",
+      title: "Campaign Events",
+      hash: "#signal-events",
+      tabId: "signal-events-tab",
+      panelId: "signal-events-panel"
+    },
+    agenda: {
+      label: "AGENDA",
+      title: "Campaign Agenda",
+      hash: "#signal-agenda",
+      tabId: "signal-agenda-tab",
+      panelId: "signal-agenda-panel",
+      index: "3"
+    },
+    claims: {
+      label: "CLAIM SCRUTINY",
+      title: "Claim Scrutiny",
+      hash: "#signal-claims",
+      tabId: "signal-claims-tab",
+      panelId: "signal-claims-panel",
+      index: "4"
+    },
+    pollCompare: {
+      label: "POLL COMPARE",
+      title: "Polling Evidence",
+      hash: "#signal-poll-compare",
+      tabId: "signal-poll-compare-tab",
+      panelId: "polling-evidence-lab"
+    }
   });
   const viewOrder = Object.keys(views);
   const hashToView = new Map(viewOrder.map(key => [views[key].hash, key]));
+  const defaultView = "candidates";
   const state = {
-    activeView: hashToView.get(window.location.hash) || "media",
+    activeView: hashToView.get(window.location.hash) || defaultView,
     selectedAgendaTopicId: "",
     claimsRelationship: "all",
     claimsCandidateId: "",
@@ -1179,7 +1221,7 @@
   }
 
   function cardShell(view, kicker, body, description = "") {
-    const config = views[view];
+    const config = views[view] || { title: "Media Pulse", index: "2" };
     const descriptionId = `hybrid-card-${view}-description`;
     return `<button class="hybrid-card hybrid-card-${view}" type="button"
       data-hybrid-card="${view}" aria-pressed="false" aria-label="${escapeAttribute(config.title)}. Open detail."${description ? ` aria-describedby="${descriptionId}"` : ""}>
@@ -1837,25 +1879,30 @@
 
   function renderFocusWorkspace(models) {
     return `<section class="hybrid-workspace" data-hybrid-workspace aria-label="Signal Board focus workspace">
-      <div class="hybrid-tabs" role="tablist" aria-label="Signal Board detail views">
-        ${viewOrder.map(key => `<button class="hybrid-tab" id="hybrid-tab-${key}" type="button" role="tab"
-          data-hybrid-view="${key}" aria-controls="hybrid-panel-${key}" aria-selected="false" tabindex="-1">${views[key].label}</button>`).join("")}
-        <button
-          class="hybrid-tab hybrid-poll-compare-tab"
-          type="button"
-          data-hybrid-poll-compare
-          aria-controls="polling-evidence-lab"
-        >POLL COMPARE</button>
+      <div class="hybrid-tabs" role="tablist" aria-label="Lower evidence workspace" aria-orientation="horizontal">
+        ${viewOrder.map(key => `<button class="hybrid-tab" id="${views[key].tabId}" type="button" role="tab"
+          data-hybrid-view="${key}" aria-controls="${views[key].panelId}" aria-selected="${String(state.activeView === key)}" tabindex="${state.activeView === key ? "0" : "-1"}">${views[key].label}</button>`).join("")}
       </div>
-      <section class="hybrid-panel" id="hybrid-panel-runoff" role="tabpanel" aria-labelledby="hybrid-tab-runoff">${renderRunoffPanel(models.runoff)}</section>
-      <section class="hybrid-panel" id="hybrid-panel-media" role="tabpanel" aria-labelledby="hybrid-tab-media">${renderMediaPanel(models.media)}</section>
-      <section class="hybrid-panel" id="hybrid-panel-agenda" role="tabpanel" aria-labelledby="hybrid-tab-agenda">${renderAgendaPanel(models.agenda)}</section>
-      <section class="hybrid-panel" id="hybrid-panel-claims" role="tabpanel" aria-labelledby="hybrid-tab-claims">${renderClaimsPanel(models.claims)}</section>
+      <section class="hybrid-panel" id="signal-runoff-panel" role="tabpanel" aria-labelledby="signal-runoff-tab"${state.activeView === "runoff" ? "" : " hidden"}>${renderRunoffPanel(models.runoff)}</section>
+      <section class="hybrid-panel" id="signal-candidates-panel" role="tabpanel" aria-labelledby="signal-candidates-tab"${state.activeView === "candidates" ? "" : " hidden"}>
+        <div id="candidate-signals-root">
+          <h2 class="hybrid-section-title">CANDIDATE SIGNALS</h2>
+          <p class="hybrid-summary-meta">Polling · campaign attention · scrutiny</p>
+          <p class="hybrid-disclosure">Separate evidence dimensions. No combined score or forecast.</p>
+          <div class="hybrid-state">Candidate evidence will be rendered in the next implementation stage.</div>
+        </div>
+      </section>
+      <section class="hybrid-panel" id="signal-events-panel" role="tabpanel" aria-labelledby="signal-events-tab"${state.activeView === "events" ? "" : " hidden"}>
+        <h2 class="hybrid-section-title">CAMPAIGN EVENTS</h2>
+        <div class="hybrid-state">Campaign Events is not yet available.</div>
+      </section>
+      <section class="hybrid-panel" id="signal-agenda-panel" role="tabpanel" aria-labelledby="signal-agenda-tab"${state.activeView === "agenda" ? "" : " hidden"}>${renderAgendaPanel(models.agenda)}</section>
+      <section class="hybrid-panel" id="signal-claims-panel" role="tabpanel" aria-labelledby="signal-claims-tab"${state.activeView === "claims" ? "" : " hidden"}>${renderClaimsPanel(models.claims)}</section>
     </section>`;
   }
 
   function setActiveSignalView(view, options = {}) {
-    if (!views[view]) view = "media";
+    if (!views[view]) view = defaultView;
     state.activeView = view;
     mount.querySelectorAll("[data-hybrid-card]").forEach(card => {
       const active = card.dataset.hybridCard === view;
@@ -1873,7 +1920,7 @@
     });
     if (activeTab) revealActiveTab(activeTab);
     if (options.focusTab) activeTab?.focus();
-    if (options.scrollWorkspace) scrollWorkspaceIfNeeded();
+    if (options.scrollWorkspace) scrollWorkspaceIfNeeded(view);
   }
 
   function revealActiveTab(tab) {
@@ -1892,7 +1939,8 @@
   }
 
   function setViewHash(view, source) {
-    state.scrollOnNextHash = source === "card";
+    if (!views[view]) view = defaultView;
+    state.scrollOnNextHash = source === "card" || (source === "tab" && view === "pollCompare");
     if (window.location.hash === views[view].hash) {
       setActiveSignalView(view, { scrollWorkspace: state.scrollOnNextHash });
       state.scrollOnNextHash = false;
@@ -1901,13 +1949,15 @@
     window.location.hash = views[view].hash;
   }
 
-  function scrollWorkspaceIfNeeded() {
-    const workspace = mount.querySelector("[data-hybrid-workspace]");
-    if (!workspace) return;
-    const rect = workspace.getBoundingClientRect();
+  function scrollWorkspaceIfNeeded(view = state.activeView) {
+    const target = view === "pollCompare"
+      ? document.getElementById("polling-evidence-lab")
+      : mount.querySelector("[data-hybrid-workspace]");
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
     if (rect.top >= 0 && rect.top < window.innerHeight * .82) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    workspace.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
+    target.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
   }
 
   function bindMediaTopicLinks(root = mount) {
@@ -2756,33 +2806,20 @@
       ?.reconcileReturnFocus?.();
   }
 
-  function bindPollCompareShortcut() {
-    const button = mount.querySelector(
-      "[data-hybrid-poll-compare]"
+  function resolveSignalViewFromHash() {
+    const view = hashToView.get(window.location.hash);
+    if (view) return view;
+    window.history.replaceState(
+      null,
+      "",
+      views[defaultView].hash
     );
-
-    if (!button) return;
-
-    button.addEventListener("click", () => {
-      const target = document.getElementById(
-        "polling-evidence-lab"
-      );
-
-      if (!target) return;
-
-      const reduced = window.matchMedia(
-        "(prefers-reduced-motion: reduce)"
-      ).matches;
-
-      target.scrollIntoView({
-        block: "start",
-        behavior: reduced ? "auto" : "smooth"
-      });
-    });
+    return defaultView;
   }
 
   function renderAll(event = null) {
     try {
+      state.activeView = resolveSignalViewFromHash();
       const models = buildAllViewModels();
       const datasetLane = event?.detail?.name || "";
 
@@ -2794,7 +2831,6 @@
         renderFocusWorkspace(models);
 
       bindInteractions();
-      bindPollCompareShortcut();
       setActiveSignalView(state.activeView);
     } catch (error) {
       console.error(
@@ -2818,7 +2854,7 @@
   }
 
   function handleSignalHashChange() {
-    const next = hashToView.get(window.location.hash) || "media";
+    const next = resolveSignalViewFromHash();
     const shouldScroll = state.scrollOnNextHash;
     state.scrollOnNextHash = false;
     setActiveSignalView(next, { scrollWorkspace: shouldScroll });

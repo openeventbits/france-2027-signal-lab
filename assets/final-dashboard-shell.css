@@ -6,7 +6,7 @@
  * - masthead
  * - three-panel briefing row
  * - context/status strip
- * - five-tab navigation
+ * - six-tab navigation
  * - Media Pulse overview presentation
  *
  * Deliberately unchanged:
@@ -596,7 +596,7 @@ h1 {
 
 
 /* --------------------------------------------------------------------------
-   Five-tab dashboard workspace
+   Six-tab dashboard workspace
    -------------------------------------------------------------------------- */
 
 #hybrid-signal-board {
@@ -605,7 +605,7 @@ h1 {
 
 #hybrid-signal-board .hybrid-tabs {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   min-height: 57px;
   overflow: hidden;
   border: 1px solid var(--final-line);
@@ -773,7 +773,7 @@ h1 {
   }
 
   #hybrid-signal-board .hybrid-tabs {
-    grid-template-columns: repeat(5, minmax(112px, 1fr));
+    grid-template-columns: repeat(6, minmax(112px, 1fr));
     overflow-x: auto;
   }
 }

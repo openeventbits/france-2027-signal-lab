@@ -153,13 +153,13 @@ class FinalDashboardShellTests(unittest.TestCase):
             self.js,
         )
 
-    def test_module_navigation_includes_poll_compare(self):
+    def test_module_navigation_includes_routed_poll_compare(self):
         self.assertIn(
-            "data-hybrid-poll-compare",
+            'tabId: "signal-poll-compare-tab"',
             self.js,
         )
         self.assertIn(
-            ">POLL COMPARE</button>",
+            'label: "POLL COMPARE"',
             self.js,
         )
         self.assertIn(
@@ -167,7 +167,7 @@ class FinalDashboardShellTests(unittest.TestCase):
             self.js,
         )
 
-    def test_three_column_and_five_module_layout_are_locked(self):
+    def test_three_column_and_six_module_layout_are_locked(self):
         self.assertIn(
             "/* FINAL DASHBOARD V2 SHELL */",
             self.html,
@@ -189,7 +189,7 @@ class FinalDashboardShellTests(unittest.TestCase):
             self.html,
         )
         self.assertIn(
-            "repeat(5, minmax(0, 1fr));",
+            "repeat(6, minmax(0, 1fr));",
             self.html,
         )
 
@@ -283,7 +283,7 @@ class FinalDashboardShellTests(unittest.TestCase):
         )
 
         end = self.js.index(
-            "function bindPollCompareShortcut",
+            "function resolveSignalViewFromHash",
             start,
         )
 
