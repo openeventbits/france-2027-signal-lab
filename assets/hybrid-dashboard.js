@@ -67,8 +67,43 @@
     claimsRelationship: "all",
     claimsCandidateId: "",
     claimsPublisher: "",
+    candidateSignals: {
+      status: "loading",
+      candidates: [],
+      metadata: {},
+      reason: null
+    },
     scrollOnNextHash: false
   };
+  const candidateSignalsRequest =
+    window.France2027CandidateSignals
+      ?.load("candidate_signals.json")
+      .then(candidateSignalsState => {
+        state.candidateSignals = candidateSignalsState;
+        document
+          .getElementById("candidate-signals-root")
+          ?.setAttribute(
+            "data-candidate-signals-state",
+            candidateSignalsState.status
+          );
+        return candidateSignalsState;
+      })
+      .catch(() => {
+        const candidateSignalsState = {
+          status: "unavailable",
+          candidates: [],
+          metadata: {},
+          reason: "fetch_failed"
+        };
+        state.candidateSignals = candidateSignalsState;
+        document
+          .getElementById("candidate-signals-root")
+          ?.setAttribute(
+            "data-candidate-signals-state",
+            candidateSignalsState.status
+          );
+        return candidateSignalsState;
+      });
 
   const number = value => Number.isFinite(Number(value)) ? Number(value) : 0;
   const percent = value => Number.isFinite(value) ? formatScore(value) : "—";
@@ -1885,7 +1920,7 @@
       </div>
       <section class="hybrid-panel" id="signal-runoff-panel" role="tabpanel" aria-labelledby="signal-runoff-tab"${state.activeView === "runoff" ? "" : " hidden"}>${renderRunoffPanel(models.runoff)}</section>
       <section class="hybrid-panel" id="signal-candidates-panel" role="tabpanel" aria-labelledby="signal-candidates-tab"${state.activeView === "candidates" ? "" : " hidden"}>
-        <div id="candidate-signals-root">
+        <div id="candidate-signals-root" data-candidate-signals-state="${state.candidateSignals.status}">
           <h2 class="hybrid-section-title">CANDIDATE SIGNALS</h2>
           <p class="hybrid-summary-meta">Polling · campaign attention · scrutiny</p>
           <p class="hybrid-disclosure">Separate evidence dimensions. No combined score or forecast.</p>
