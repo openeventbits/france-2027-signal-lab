@@ -59,42 +59,67 @@ class FrontendPublicationFactsTests(unittest.TestCase):
         candidate = json.loads(
             CANDIDATE_SIGNALS_PATH.read_text(encoding="utf-8")
         )
+        lane = manifest["lanes"]["candidate_signals"]
         self.assertEqual(manifest["schema_version"], "1.2")
-        self.assertEqual(
-            manifest["lanes"]["candidate_signals"]["schema_version"],
-            "1.2",
-        )
+        self.assertEqual(lane["schema_version"], candidate["schema_version"])
         self.assertEqual(candidate["schema_version"], "1.2")
+        self.assertEqual(lane["file"], "candidate_signals.json")
+        self.assertEqual(lane["record_count"], len(candidate["candidates"]))
+        self.assertEqual(
+            lane["data_as_of"],
+            candidate["candidate_universe"]["as_of_date"],
+        )
         active = candidate["active_field_visibility"]
         self.assertEqual(
-            [active[scope][period]["record_count"]
-             for scope in ("primary", "general")
-             for period in ("current_period", "prior_period")],
-            [118, 82, 21, 19],
+            active["method"],
+            "share_of_active_candidate_linked_records",
         )
+        for scope_name in ("primary", "general"):
+            scope = active[scope_name]
+            quality = scope["comparison_quality"]
+            for prefix, period_name in (
+                ("current", "current_period"),
+                ("prior", "prior_period"),
+            ):
+                period = scope[period_name]
+                self.assertIsInstance(period["record_count"], int)
+                self.assertGreaterEqual(period["record_count"], 0)
+                self.assertEqual(
+                    quality[f"{prefix}_record_count"],
+                    period["record_count"],
+                )
+                self.assertEqual(
+                    quality[f"{prefix}_publisher_count"],
+                    period["publisher_count"],
+                )
 
     def test_active_field_quality_remains_authoritative_for_frontend_rendering(self):
         candidate = json.loads(
             CANDIDATE_SIGNALS_PATH.read_text(encoding="utf-8")
         )
         primary = candidate["active_field_visibility"]["primary"]
-        self.assertEqual(
-            primary["comparison_quality"]["status"],
-            "not_comparable",
-        )
-        self.assertEqual(
-            primary["comparison_quality"]["reason"],
-            "publisher_panel_changed",
-        )
+        quality = primary["comparison_quality"]
+        self.assertIn(quality["status"], {"comparable", "not_comparable"})
+        if quality["status"] == "comparable":
+            self.assertEqual(quality["reason"], "comparable")
+        else:
+            self.assertIn(
+                quality["reason"],
+                {"insufficient_data", "publisher_panel_changed"},
+            )
         rows = primary["main"] + primary["secondary"]
         self.assertTrue(rows)
-        self.assertTrue(all(row["share_change"] is None for row in rows))
-        self.assertTrue(
-            all(
-                "current_share" in row and "prior_share" in row
-                for row in rows
-            )
-        )
+        for row in rows:
+            self.assertIn("current_share", row)
+            self.assertIn("prior_share", row)
+            if (
+                quality["status"] == "comparable"
+                and row["current_share"] is not None
+                and row["prior_share"] is not None
+            ):
+                self.assertIsNotNone(row["share_change"])
+            else:
+                self.assertIsNone(row["share_change"])
         identities = {
             row["candidate_id"]: row["candidate_name"]
             for row in rows
@@ -105,7 +130,6 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             identities["dominique-de-villepin"],
             "Dominique de Villepin",
         )
-
         dashboard = (
             ROOT / "assets" / "hybrid-dashboard.js"
         ).read_text(encoding="utf-8")
