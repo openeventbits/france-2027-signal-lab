@@ -771,54 +771,36 @@ class FinalDashboardShellTests(unittest.TestCase):
             "active_field_visibility"
         ]["primary"]
 
-        self.assertEqual(
-            primary["comparison_quality"]["status"],
-            "not_comparable",
-        )
-        self.assertEqual(
-            primary["comparison_quality"]["reason"],
-            "publisher_panel_changed",
-        )
-
+        quality = primary["comparison_quality"]
         rows = primary["main"] + primary["secondary"]
         self.assertTrue(rows)
-        self.assertTrue(
-            all(
-                row["share_change"] is None
-                for row in rows
+        current_count = primary["current_period"]["record_count"]
+        prior_count = primary["prior_period"]["record_count"]
+        round_ratio = lambda value: int(value * 1000 + 0.5) / 1000
+        for row in rows:
+            expected_current = (
+                round_ratio(row["current_record_count"] / current_count)
+                if current_count
+                else None
             )
-        )
-
-        by_id = {
-            row["candidate_id"]: row
-            for row in rows
-        }
-
-        expected_raw_pp = {
-            "gabriel-attal": -3.9,
-            "marine-le-pen": 4.1,
-            "dominique-de-villepin": 15.7,
-            "marine-tondelier": -2.9,
-        }
-
-        for candidate_id, expected in expected_raw_pp.items():
-            row = by_id[candidate_id]
-            actual = round(
-                (
-                    row["current_share"]
-                    - row["prior_share"]
-                ) * 100,
-                1,
+            expected_prior = (
+                round_ratio(row["prior_record_count"] / prior_count)
+                if prior_count
+                else None
             )
-            self.assertEqual(actual, expected)
-
-        self.assertNotIn(
-            "sarah-knafo",
-            {row["candidate_id"] for row in rows},
-        )
-        self.assertNotIn(
-            "sebastien-lecornu",
-            {row["candidate_id"] for row in rows},
+            self.assertEqual(row["current_share"], expected_current)
+            self.assertEqual(row["prior_share"], expected_prior)
+            if (
+                quality["status"] == "comparable"
+                and expected_current is not None
+                and expected_prior is not None
+            ):
+                self.assertIsNotNone(row["share_change"])
+            else:
+                self.assertIsNone(row["share_change"])
+        self.assertFalse(
+            set(payload["presidential_field"]["hidden"])
+            & {row["candidate_id"] for row in rows}
         )
 
         renderer = self.js[

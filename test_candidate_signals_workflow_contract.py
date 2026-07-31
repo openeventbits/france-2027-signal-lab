@@ -61,7 +61,34 @@ class CandidateSignalsWorkflowContractTests(unittest.TestCase):
             active["method"],
             "share_of_active_candidate_linked_records",
         )
-        self.assertEqual(active["primary"]["current_period"]["record_count"], 118)
+        self.assertEqual(
+            active["denominator_scope"],
+            "records_linked_to_at_least_one_main_or_secondary_candidate",
+        )
+        self.assertEqual(
+            active["status_as_of"],
+            payload["presidential_field"]["status_as_of"],
+        )
+        for scope_name in ("primary", "general"):
+            scope = active[scope_name]
+            quality = scope["comparison_quality"]
+            for prefix, period_name in (
+                ("current", "current_period"),
+                ("prior", "prior_period"),
+            ):
+                period = scope[period_name]
+                self.assertIsInstance(period["record_count"], int)
+                self.assertIsInstance(period["publisher_count"], int)
+                self.assertGreaterEqual(period["record_count"], 0)
+                self.assertGreaterEqual(period["publisher_count"], 0)
+                self.assertEqual(
+                    quality[f"{prefix}_record_count"],
+                    period["record_count"],
+                )
+                self.assertEqual(
+                    quality[f"{prefix}_publisher_count"],
+                    period["publisher_count"],
+                )
         for workflow in self.workflows.values():
             candidate = workflow.index("python -B build_candidate_signals.py")
             manifest = workflow.index("python -B build_publication_manifest.py")

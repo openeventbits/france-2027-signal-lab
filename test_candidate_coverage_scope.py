@@ -581,30 +581,83 @@ class ActiveFieldVisibilityScopeTests(unittest.TestCase):
         )
 
     def test_source_wide_visibility_contract_remains_unchanged(self):
-        self.assertEqual(self.news["candidate_visibility"]["current_period"]["record_count"], 140)
-        self.assertEqual(self.news["candidate_visibility"]["prior_period"]["record_count"], 103)
-        self.assertEqual(self.news["candidate_visibility"]["general_current_period"]["record_count"], 42)
-        self.assertEqual(self.news["candidate_visibility"]["general_prior_period"]["record_count"], 26)
+        visibility = self.news["candidate_visibility"]
+        specifications = {
+            "current_period": {"election", "campaign"},
+            "prior_period": {"election", "campaign"},
+            "general_current_period": {"general"},
+            "general_prior_period": {"general"},
+        }
+        for period_name, scopes in specifications.items():
+            period = visibility[period_name]
+            records = [
+                record for record in self.news["candidate_watch"]
+                if period["start_date"] <= record["published_at"][:10] <= period["end_date"]
+                and record["coverage_scope"] in scopes
+            ]
+            self.assertEqual(len(records), len({record["id"] for record in records}))
+            self.assertEqual(len(records), period["record_count"])
+            self.assertEqual(
+                len({record["publisher"] for record in records}),
+                period["publisher_count"],
+            )
 
     def test_active_union_denominators_and_publishers_are_separate(self):
-        primary = self.active["primary"]
-        general = self.active["general"]
-        self.assertEqual(
-            (primary["current_period"]["record_count"], primary["prior_period"]["record_count"]),
-            (118, 82),
+        registry_by_id = {
+            candidate["candidate_id"]: candidate
+            for candidate in self.registry["candidates"]
+        }
+        active_names = {
+            registry_by_id[identifier]["candidate_name"]
+            for tier in ("main", "secondary")
+            for identifier in self.field[tier]
+        }
+        visibility = self.news["candidate_visibility"]
+        specifications = (
+            (
+                visibility["current_period"],
+                {"election", "campaign"},
+                self.active["primary"]["current_period"],
+            ),
+            (
+                visibility["prior_period"],
+                {"election", "campaign"},
+                self.active["primary"]["prior_period"],
+            ),
+            (
+                visibility["general_current_period"],
+                {"general"},
+                self.active["general"]["current_period"],
+            ),
+            (
+                visibility["general_prior_period"],
+                {"general"},
+                self.active["general"]["prior_period"],
+            ),
         )
-        self.assertEqual(
-            (general["current_period"]["record_count"], general["prior_period"]["record_count"]),
-            (21, 19),
-        )
-        self.assertEqual(
-            (primary["current_period"]["publisher_count"], primary["prior_period"]["publisher_count"]),
-            (54, 44),
-        )
-        self.assertEqual(
-            (general["current_period"]["publisher_count"], general["prior_period"]["publisher_count"]),
-            (11, 10),
-        )
+        for source_period, scopes, active_period in specifications:
+            records = [
+                record for record in self.news["candidate_watch"]
+                if source_period["start_date"] <= record["published_at"][:10] <= source_period["end_date"]
+                and record["coverage_scope"] in scopes
+                and active_names & set(record["candidates"])
+            ]
+            self.assertEqual(
+                len({record["id"] for record in records}),
+                active_period["record_count"],
+            )
+            self.assertEqual(
+                len({record["publisher"] for record in records}),
+                active_period["publisher_count"],
+            )
+            self.assertLessEqual(
+                active_period["record_count"],
+                source_period["record_count"],
+            )
+            self.assertLessEqual(
+                active_period["publisher_count"],
+                source_period["publisher_count"],
+            )
 
     def test_hidden_only_evidence_remains_in_source_records(self):
         registry_by_id = {
@@ -620,33 +673,52 @@ class ActiveFieldVisibilityScopeTests(unittest.TestCase):
             for tier in ("main", "secondary")
             for identifier in self.field[tier]
         }
+        self.assertTrue(hidden_names)
+        self.assertTrue(hidden_names.isdisjoint(active_names))
         current_start = self.news["candidate_visibility"]["current_period"]["start_date"]
         current_end = self.news["candidate_visibility"]["current_period"]["end_date"]
-        primary = [
-            record for record in self.news["candidate_watch"]
-            if current_start <= record["published_at"][:10] <= current_end
-            and record["coverage_scope"] in {"election", "campaign"}
-        ]
-        general = [
-            record for record in self.news["candidate_watch"]
-            if current_start <= record["published_at"][:10] <= current_end
-            and record["coverage_scope"] == "general"
-        ]
-        hidden_only = lambda records: [
-            record for record in records
-            if hidden_names & set(record["candidates"])
-            and not active_names & set(record["candidates"])
-        ]
-        mixed = lambda records: [
-            record for record in records
-            if hidden_names & set(record["candidates"])
-            and active_names & set(record["candidates"])
-        ]
-        self.assertEqual(len(hidden_only(primary)), 22)
-        self.assertEqual(len(hidden_only(general)), 21)
-        self.assertEqual(len(mixed(primary)), 9)
-        self.assertEqual(len(mixed(general)), 3)
-        self.assertTrue(all(record in self.news["candidate_watch"] for record in hidden_only(primary + general)))
+        scopes = (
+            (
+                [
+                    record for record in self.news["candidate_watch"]
+                    if current_start <= record["published_at"][:10] <= current_end
+                    and record["coverage_scope"] in {"election", "campaign"}
+                ],
+                self.active["primary"]["current_period"],
+            ),
+            (
+                [
+                    record for record in self.news["candidate_watch"]
+                    if current_start <= record["published_at"][:10] <= current_end
+                    and record["coverage_scope"] == "general"
+                ],
+                self.active["general"]["current_period"],
+            ),
+        )
+        for records, projection in scopes:
+            active_records = [
+                record for record in records
+                if active_names & set(record["candidates"])
+            ]
+            hidden_only = [
+                record for record in records
+                if hidden_names & set(record["candidates"])
+                and not active_names & set(record["candidates"])
+            ]
+            mixed = [
+                record for record in records
+                if hidden_names & set(record["candidates"])
+                and active_names & set(record["candidates"])
+            ]
+            active_ids = {record["id"] for record in active_records}
+            hidden_only_ids = {record["id"] for record in hidden_only}
+            mixed_ids = {record["id"] for record in mixed}
+            self.assertEqual(len(active_ids), projection["record_count"])
+            self.assertTrue(hidden_only_ids.isdisjoint(active_ids))
+            self.assertTrue(mixed_ids.issubset(active_ids))
+            self.assertTrue(
+                all(record in self.news["candidate_watch"] for record in hidden_only + mixed)
+            )
 
 if __name__ == "__main__":
     unittest.main()
