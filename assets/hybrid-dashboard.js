@@ -86,6 +86,7 @@
             "data-candidate-signals-state",
             candidateSignalsState.status
           );
+        renderAll();
         return candidateSignalsState;
       })
       .catch(() => {
@@ -102,6 +103,7 @@
             "data-candidate-signals-state",
             candidateSignalsState.status
           );
+        renderAll();
         return candidateSignalsState;
       });
 
@@ -699,15 +701,16 @@
       ? payload.candidate_watch
       : [];
 
-    const canonicalizeCandidate =
-      buildMediaCandidateCanonicalizer(coverageItems);
-
-    const candidateVisibility =
-      resolveCandidateVisibility(payload);
-    const comparisonQuality =
-      candidateVisibility.comparison_quality;
-    const changeAvailable =
-      comparisonQuality.status === "comparable";
+    const activeFieldVisibility =
+      state.candidateSignals.status === "ready"
+        ? state.candidateSignals.metadata?.activeFieldVisibility || null
+        : null;
+    const activePrimary = activeFieldVisibility?.primary || null;
+    const comparisonQuality = activePrimary?.comparison_quality || {
+      status: "unavailable",
+      reason: "active_field_visibility_unavailable"
+    };
+    const changeAvailable = comparisonQuality.status === "comparable";
 
     const feedItems = newestNewsItems(
       electionItems
@@ -776,170 +779,73 @@
       });
     }
 
-    const latestStartKey =
-      candidateVisibility.current_period.start_date;
-
-    const latestEndKey =
-      candidateVisibility.current_period.end_date;
-
-    const previousStartKey =
-      candidateVisibility.prior_period.start_date;
-
-    const previousEndKey =
-      candidateVisibility.prior_period.end_date;
-
-    const periodArticleKeys = {
-      latest: new Set(),
-      previous: new Set()
+    const latestStartKey = activePrimary?.current_period?.start_date || "";
+    const latestEndKey = activePrimary?.current_period?.end_date || "";
+    const previousStartKey = activePrimary?.prior_period?.start_date || "";
+    const previousEndKey = activePrimary?.prior_period?.end_date || "";
+    const latestDenominator = activePrimary?.current_period?.record_count ?? null;
+    const previousDenominator = activePrimary?.prior_period?.record_count ?? null;
+    const candidateCoverageAvailable = Boolean(activePrimary);
+    const activeRows = activePrimary
+      ? [
+          ...activePrimary.main.map(row => ({ ...row, tier: "main" })),
+          ...activePrimary.secondary.map(row => ({ ...row, tier: "secondary" }))
+        ]
+      : [];
+    const compareNullableDescending = (left, right, field) => {
+      const leftMissing = left[field] === null;
+      const rightMissing = right[field] === null;
+      if (leftMissing !== rightMissing) return leftMissing ? 1 : -1;
+      return leftMissing ? 0 : right[field] - left[field];
     };
-
-    const candidatePeriods =
-      new Map();
-
-    coverageItems.forEach(
-      (item, itemIndex) => {
-        const publishedKey = String(
-          item.published_at || ""
-        ).slice(0, 10);
-
-        let period = "";
-
-        if (
-          publishedKey >= latestStartKey &&
-          publishedKey <= latestEndKey
-        ) {
-          period = "latest";
-        } else if (
-          publishedKey >=
-            previousStartKey &&
-          publishedKey <=
-            previousEndKey
-        ) {
-          period = "previous";
-        }
-
-        if (!period) return;
-
-        const articleKey = String(
-          item.id ||
-          safeSourceUrl(item.url) ||
-          itemIndex
-        );
-
-        periodArticleKeys[period].add(articleKey);
-
-        const canonicalCandidates = new Set(
-          (Array.isArray(item.candidates)
-            ? item.candidates
-            : [])
-            .map(canonicalizeCandidate)
-            .filter(Boolean)
-        );
-
-        canonicalCandidates.forEach(candidate => {
-          if (!candidatePeriods.has(candidate)) {
-            candidatePeriods.set(candidate, {
-              latest: new Map(),
-              previous: new Map()
-            });
-          }
-
-          candidatePeriods
-            .get(candidate)[period]
-            .set(articleKey, item);
-        });
-      }
-    );
-
-    const latestDenominator =
-      periodArticleKeys.latest.size;
-
-    const previousDenominator =
-      periodArticleKeys.previous.size;
-
-    const candidateCoverageShares = [
-      ...candidatePeriods.entries()
-    ]
-      .map(([name, periods]) => {
-        const latestCount =
-          periods.latest.size;
-
-        const previousCount =
-          periods.previous.size;
-
-        const latestShare =
-          latestDenominator
-            ? latestCount /
-              latestDenominator *
-              100
-            : 0;
-
-        const previousShare =
-          previousDenominator
-            ? previousCount /
-              previousDenominator *
-              100
-            : 0;
-
-        const delta = changeAvailable
-          ? latestShare - previousShare
+    const candidateCoverageShares = activeRows
+      .map(row => {
+        const latestShare = row.current_share === null
+          ? null
+          : row.current_share * 100;
+        const previousShare = row.prior_share === null
+          ? null
+          : row.prior_share * 100;
+        const delta = changeAvailable && row.share_change !== null
+          ? row.share_change * 100
           : null;
-        const direction = !changeAvailable
-          ? "unavailable"
-          : delta > 0.05
-            ? "positive"
-            : delta < -0.05
-              ? "negative"
-              : "flat";
-
         return {
-          name,
-          latestCount,
-          previousCount,
+          id: row.candidate_id,
+          name: row.candidate_name,
+          status: row.status,
+          tier: row.tier,
+          tierLabel: row.tier.toUpperCase(),
+          latestCount: row.current_record_count,
+          previousCount: row.prior_record_count,
           latestShare,
           previousShare,
-          changeAvailable,
+          changeAvailable: delta !== null,
           delta,
           changePp: delta,
-          direction,
-          latestItems: [
-            ...periods.latest.values()
-          ].sort((a, b) =>
-            String(b.published_at || "")
-              .localeCompare(
-                String(a.published_at || "")
-              )
-          ),
-          previousItems: [
-            ...periods.previous.values()
-          ].sort((a, b) =>
-            String(b.published_at || "")
-              .localeCompare(
-                String(a.published_at || "")
-              )
-          )
+          direction: delta === null
+            ? "unavailable"
+            : delta > 0.05
+              ? "positive"
+              : delta < -0.05
+                ? "negative"
+                : "flat",
+          latestItems: [],
+          previousItems: []
         };
       })
-      .sort(
-        (a, b) =>
-          b.latestShare -
-            a.latestShare ||
-          number(b.delta) -
-            number(a.delta) ||
-          b.latestCount -
-            a.latestCount ||
-          a.name.localeCompare(
-            b.name,
-            "fr"
-          )
-      );
-
-    const candidateCoverageLeaders =
-      takeMediaLeadersWithTies(
-        candidateCoverageShares,
-        6,
-        item => item.latestShare
-      );
+      .sort((left, right) => {
+        const metricOrder =
+          compareNullableDescending(left, right, "latestShare") ||
+          right.latestCount - left.latestCount ||
+          compareNullableDescending(left, right, "previousShare") ||
+          right.previousCount - left.previousCount;
+        if (metricOrder) return metricOrder;
+        const leftName = left.name.toLowerCase();
+        const rightName = right.name.toLowerCase();
+        if (leftName !== rightName) return leftName < rightName ? -1 : 1;
+        return left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
+      });
+    const candidateCoverageLeaders = candidateCoverageShares.slice(0, 6);
 
     const publisherCounts =
       electionItems.reduce(
@@ -1109,6 +1015,8 @@
         )
       ),
       feedItems,
+      candidateCoverageAvailable,
+      activeFieldVisibility,
       candidateCoverage:
         candidateCoverageShares,
       candidateCoverageLeaders,
@@ -1515,14 +1423,15 @@
       1,
       ...model.candidateCoverageLeaders.flatMap(
         item => [
-          item.latestShare,
-          item.previousShare
+          number(item.latestShare),
+          number(item.previousShare)
         ]
       )
     );
 
-    const candidateRows =
-      model.candidateCoverageLeaders
+    const candidateRows = !model.candidateCoverageAvailable
+      ? `<div class="hybrid-state is-compact">Active-field candidate comparison unavailable.</div>`
+      : model.candidateCoverageLeaders
         .map(item => {
           const deltaAvailable = item.changeAvailable === true;
           const delta = item.delta;
@@ -1567,12 +1476,13 @@
             <div
               class="hybrid-candidate-share-row"
               aria-label="${escapeAttribute(
-                `${item.name}: ${latestShareText} percent share of candidate-linked records in the latest seven days, ${previousShareText} percent in the previous seven days, ${deltaText}; ${item.latestCount} latest raw articles and ${item.previousCount} previous raw articles`
+                `${item.name}, ${item.tierLabel}: ${latestShareText} percent active-field candidate-linked share in the latest seven days, ${previousShareText} percent in the previous seven days, ${deltaText}; ${item.latestCount} latest records and ${item.previousCount} previous records`
               )}"
             >
               <span class="hybrid-candidate-share-name">
                 ${escapeHtml(item.name)}
               </span>
+                <small class="hybrid-status-chip">${escapeHtml(item.tierLabel)}</small>
 
               <strong>${latestShareText}%</strong>
 
@@ -2079,7 +1989,64 @@
     });
   }
 
+  function topMediaComparisonPresentation(model) {
+    const available =
+      model.candidateCoverageAvailable &&
+      model.comparisonQuality?.status ===
+      "comparable";
+    const reason =
+      model.comparisonQuality?.reason || "";
+    const reasonLabel =
+      reason === "publisher_panel_changed"
+        ? "publisher panel changed"
+        : reason === "insufficient_data"
+          ? "insufficient data"
+          : "comparison unavailable";
+
+    return {
+      available,
+      label: available
+        ? "Δ pp"
+        : model.candidateCoverageAvailable
+          ? "RAW Δ pp"
+          : "UNAVAILABLE",
+      explanation: available
+        ? "Comparable active-field percentage-point change."
+        : model.candidateCoverageAvailable
+          ? `Raw arithmetic current-minus-prior differences are displayed because comparison quality is not comparable; reason: ${reason || "unknown"}. These values are descriptive and are not comparable trend estimates.`
+          : "Active-field candidate comparison unavailable."
+    };
+  }
+
+  function syncTopMediaShiftQualityLabel(label) {
+    const selector =
+      ".top-media-shift .top-media-section-heading::after";
+    let updatedRules = 0;
+
+    [...document.styleSheets].forEach(styleSheet => {
+      let rules;
+      try {
+        rules = [...styleSheet.cssRules];
+      } catch (error) {
+        return;
+      }
+
+      rules.forEach(rule => {
+        if (
+          rule.selectorText !== selector ||
+          !rule.style?.content
+        ) {
+          return;
+        }
+        rule.style.content = JSON.stringify(label);
+        updatedRules += 1;
+      });
+    });
+
+    return updatedRules;
+  }
   function renderTopMediaPulsePanel(model) {
+
     if (model.state !== "ready") {
       return summaryState(model);
     }
@@ -2154,144 +2121,116 @@
       1,
       ...model.candidateCoverageLeaders.map(
         item =>
-          item.latestShare +
-          item.previousShare
+          number(item.latestShare) +
+          number(item.previousShare)
       )
     );
 
-    const comparisonAvailable =
-      model.comparisonQuality?.status ===
-      "comparable";
+    const candidateComparison =
+      topMediaComparisonPresentation(model);
+    const candidateComparisonAvailable =
+      candidateComparison.available;
+    const candidateComparisonLabel =
+      candidateComparison.label;
+    const candidateComparisonExplanation =
+      candidateComparison.explanation;
 
-    const shiftRows =
-      model.candidateCoverageLeaders
-        .slice(0, 6)
-        .map(item => {
-          const deltaAvailable =
-            item.changeAvailable === true;
-
-          const displayedDelta =
-            deltaAvailable
+    const shiftRows = !model.candidateCoverageAvailable
+      ? `<div class="hybrid-state is-compact">Active-field candidate comparison unavailable.</div>`
+      : model.candidateCoverageLeaders
+          .slice(0, 6)
+          .map(item => {
+            const deltaAvailable =
+              item.changeAvailable === true;
+            const rawDeltaAvailable =
+              !deltaAvailable &&
+              Number.isFinite(item.latestShare) &&
+              Number.isFinite(item.previousShare);
+            const displayedDelta = deltaAvailable
               ? item.delta
-              : item.latestShare -
-                item.previousShare;
-
-          const directionClass =
-            displayedDelta > 0.05
-              ? "is-up"
-              : displayedDelta < -0.05
-                ? "is-down"
-                : "is-flat";
-
-          const comparisonClass =
-            deltaAvailable
-              ? ""
-              : " is-limited";
-
-          const direction =
-            displayedDelta > 0.05
-              ? "▲"
-              : displayedDelta < -0.05
-                ? "▼"
+              : rawDeltaAvailable
+                ? item.latestShare - item.previousShare
+                : null;
+            const directionClass =
+              displayedDelta === null
+                ? "is-limited"
+                : displayedDelta > 0.05
+                  ? "is-up"
+                  : displayedDelta < -0.05
+                    ? "is-down"
+                    : "is-flat";
+            const direction =
+              displayedDelta === null
+                ? ""
+                : displayedDelta > 0.05
+                  ? "▲"
+                  : displayedDelta < -0.05
+                    ? "▼"
+                    : "—";
+            const latestShareText =
+              Number.isFinite(item.latestShare)
+                ? formatMediaShare(item.latestShare)
                 : "—";
-
-          const latestShareText =
-            formatMediaShare(
-              item.latestShare
+            const previousShareText =
+              Number.isFinite(item.previousShare)
+                ? formatMediaShare(item.previousShare)
+                : "—";
+            const deltaText =
+              displayedDelta === null
+                ? "—"
+                : `${displayedDelta > 0 ? "+" : ""}${formatMediaShare(displayedDelta)}pp`;
+            const currentWidth = Math.min(
+              100,
+              number(item.latestShare) / maxCombinedShare * 100
+            );
+            const previousWidth = Math.min(
+              100,
+              number(item.previousShare) / maxCombinedShare * 100
             );
 
-          const previousShareText =
-            formatMediaShare(
-              item.previousShare
-            );
-
-          const deltaText =
-            `${displayedDelta > 0 ? "+" : ""}` +
-            `${formatMediaShare(
-              displayedDelta
-            )}pp`;
-
-          const deltaPrefix =
-            deltaAvailable
-              ? ""
-              : "≈ ";
-
-          const deltaTitle =
-            deltaAvailable
-              ? "Comparable period difference."
-              : "Comparison unavailable: raw period difference only; source mix differs.";
-
-          const currentWidth = Math.min(
-            100,
-            item.latestShare /
-              maxCombinedShare *
-              100
-          );
-
-          const previousWidth = Math.min(
-            100,
-            item.previousShare /
-              maxCombinedShare *
-              100
-          );
-
-          return `
-            <button
-              class="top-media-shift-row"
-              type="button"
-              data-hybrid-media-candidate="${escapeAttribute(
-                item.name
-              )}"
-              aria-haspopup="dialog"
-              aria-controls="topic-coverage-modal"
-              aria-expanded="false"
-              aria-label="${escapeAttribute(
-                deltaAvailable
-                  ? `${item.name}: ${latestShareText} percent share of candidate-linked records in the current period, ${previousShareText} percent in the prior period, change ${deltaText}`
-                  : `${item.name}: ${latestShareText} percent share of candidate-linked records in the current period, ${previousShareText} percent in the prior period. Comparison unavailable; raw period difference ${deltaText}.`
-              )}"
-            >
-              <span class="top-media-shift-name">
-                ${escapeHtml(item.name)}
-              </span>
-
-              <strong>
-                ${latestShareText}%
-              </strong>
-
-              <span
-                class="top-media-shift-track"
-                aria-hidden="true"
-              >
-                <span
-                  class="top-media-shift-current"
-                  style="--top-current-share:${currentWidth.toFixed(2)}%"
-                ></span>
-
-                <i
-                  class="top-media-shift-prior"
-                  style="--top-prior-share:${previousWidth.toFixed(2)}%"
-                ></i>
-              </span>
-
-              <em class="top-media-shift-prior-value">
-                ${previousShareText}%
-              </em>
-
-              <b
-                class="${directionClass}${comparisonClass}"
-                title="${escapeAttribute(
-                  deltaTitle
+            return `
+              <button
+                class="top-media-shift-row"
+                type="button"
+                data-hybrid-media-candidate="${escapeAttribute(item.name)}"
+                aria-haspopup="dialog"
+                aria-controls="topic-coverage-modal"
+                aria-expanded="false"
+                aria-label="${escapeAttribute(
+                  deltaAvailable
+                    ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent active-field candidate-linked share in the current period, ${previousShareText} percent in the prior period, comparable change ${deltaText}`
+                    : rawDeltaAvailable
+                      ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent active-field candidate-linked share in the current period, ${previousShareText} percent in the prior period, raw arithmetic difference ${deltaText}. Publisher panels changed, so this is not a comparable trend estimate.`
+                      : `${item.name}, ${item.tierLabel}: ${latestShareText} percent active-field candidate-linked share in the current period, ${previousShareText} percent in the prior period.`
                 )}"
               >
-                ${direction} ${deltaPrefix}${escapeHtml(
-                  deltaText
-                )}
-              </b>
-            </button>
-          `;
-        })
-        .join("");
+                <span class="top-media-shift-name">
+                  ${escapeHtml(item.name)}
+                  <small class="hybrid-status-chip">${escapeHtml(item.tierLabel)}</small>
+                </span>
+                <strong>${latestShareText}${latestShareText === "—" ? "" : "%"}</strong>
+                <span class="top-media-shift-track" aria-hidden="true">
+                  <span
+                    class="top-media-shift-current"
+                    style="--top-current-share:${currentWidth.toFixed(2)}%"
+                  ></span>
+                  <i
+                    class="top-media-shift-prior"
+                    style="--top-prior-share:${previousWidth.toFixed(2)}%"
+                  ></i>
+                </span>
+                <em class="top-media-shift-prior-value">
+                  ${previousShareText}${previousShareText === "—" ? "" : "%"}
+                </em>
+                <b class="${directionClass}" aria-hidden="true">
+                  ${displayedDelta === null
+                    ? "—"
+                    : direction + " " + escapeHtml(deltaText)}
+                </b>
+              </button>
+            `;
+          })
+          .join("");
 
     const maxTopicDays = Math.max(
       1,
@@ -2461,20 +2400,18 @@
           data-top-media-panel="overview"
         >
           <section class="top-media-shift">
-            <div class="top-media-section-heading">
-              <h3>Coverage shift</h3>
+            <div
+              class="top-media-section-heading"
+              aria-label="${escapeAttribute(`Active-field coverage shift. ${candidateComparisonExplanation}`)}"
+            >
+              <h3>Active-field coverage shift</h3>
 
               <span
                 class="top-media-shift-quality"
-                title="${escapeAttribute(
-                  comparisonAvailable
-                    ? "Comparable percentage-point change."
-                    : "Raw period difference only; source mix is not comparable."
-                )}"
+                title="${escapeAttribute(candidateComparisonExplanation)}"
+                aria-label="${escapeAttribute(candidateComparisonExplanation)}"
               >
-                ${comparisonAvailable
-                  ? "Δ pp"
-                  : "RAW Δ pp"}
+                ${escapeHtml(candidateComparisonLabel)}
               </span>
             </div>
 
@@ -2482,7 +2419,7 @@
             <div
               class="top-media-period-legend"
               aria-label="${escapeAttribute(
-                `Current period ${currentPeriodLabel}; prior period ${priorPeriodLabel}.`
+                `Active-field candidate-linked share. Current period ${currentPeriodLabel}; prior period ${priorPeriodLabel}.`
               )}"
             >
               <span class="is-current">
@@ -2777,8 +2714,12 @@
   function renderTopMediaPulse(model, agendaModel) {
     if (!topMediaMount) return;
 
+    const candidateComparison =
+      topMediaComparisonPresentation(model);
+
     topMediaMount.innerHTML =
       renderTopMediaPulsePanel(model);
+    syncTopMediaShiftQualityLabel(candidateComparison.label);
 
     if (topMediaMetrics) {
       if (model.state === "ready") {

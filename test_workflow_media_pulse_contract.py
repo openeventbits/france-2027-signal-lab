@@ -2,6 +2,7 @@ import unittest
 from pathlib import Path
 
 
+ROOT = Path(__file__).resolve().parent
 class WorkflowMediaPulseContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -67,6 +68,28 @@ class WorkflowMediaPulseContractTests(unittest.TestCase):
         ):
             with self.subTest(field=field):
                 self.assertIn(field, self.workflow)
+
+    def test_active_field_projection_remains_downstream_of_news_collection(self):
+        collector = (ROOT / "fetch_news_wire.py").read_text(encoding="utf-8")
+        self.assertNotIn("candidate_candidacy_status", collector)
+        self.assertNotIn("active_field_visibility", collector)
+        self.assertIn("build_candidate_visibility(", collector)
+
+        fetch = self.workflow.index("python fetch_news_wire.py")
+        finalized = self.workflow.index(
+            "shutil.copyfile(\n                  TEMP_WIRE,\n                  CURRENT_WIRE,"
+        )
+        derived = self.workflow.index(
+            "python -B build_candidate_signals.py",
+            finalized,
+        )
+        self.assertLess(fetch, finalized)
+        self.assertLess(finalized, derived)
+
+    def test_source_wide_candidate_visibility_contract_is_not_weakened(self):
+        self.assertIn('"candidate_visibility": payload.get(', self.workflow)
+        self.assertIn("validate_output(wire)", self.workflow)
+        self.assertNotIn("active_field_visibility", self.workflow)
 
     def test_workflow_validates_agenda_classification_coverage(self):
         for contract in (

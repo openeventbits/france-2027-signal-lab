@@ -1,4 +1,5 @@
 import unittest
+import json
 from pathlib import Path
 
 
@@ -49,6 +50,22 @@ class CandidateSignalsWorkflowContractTests(unittest.TestCase):
         for name, expected_schedule in SCHEDULES.items():
             with self.subTest(workflow=name):
                 self.assertIn(expected_schedule, self.workflows[name])
+
+    def test_workflow_publishes_versioned_active_field_artifact(self):
+        payload = json.loads(
+            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(payload["schema_version"], "1.2")
+        active = payload["active_field_visibility"]
+        self.assertEqual(
+            active["method"],
+            "share_of_active_candidate_linked_records",
+        )
+        self.assertEqual(active["primary"]["current_period"]["record_count"], 118)
+        for workflow in self.workflows.values():
+            candidate = workflow.index("python -B build_candidate_signals.py")
+            manifest = workflow.index("python -B build_publication_manifest.py")
+            self.assertLess(candidate, manifest)
 
     def test_candidate_signals_runs_after_authoritative_source_decision(self):
         for name, workflow in self.workflows.items():

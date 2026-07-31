@@ -947,7 +947,7 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
             self.assertIsNone(candidate[field])
         self.assertNotIn(0, candidate.values())
 
-    def test_schema_11_normalizes_complete_presidential_field(self):
+    def test_schema_12_normalizes_complete_presidential_field(self):
         payload = json.loads(
             (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
         )
@@ -973,8 +973,30 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
             [candidate["candidate_id"] for candidate in state["candidates"]],
             [candidate["candidate_id"] for candidate in payload["candidates"]],
         )
+        active = state["metadata"]["activeFieldVisibility"]
+        self.assertEqual(active["method"], "share_of_active_candidate_linked_records")
+        self.assertEqual(active["primary"]["current_period"]["record_count"], 118)
+        self.assertEqual(active["primary"]["prior_period"]["record_count"], 82)
+        self.assertEqual(active["general"]["current_period"]["record_count"], 21)
+        self.assertEqual(active["general"]["prior_period"]["record_count"], 19)
+        for scope_name in ("primary", "general"):
+            self.assertEqual(
+                active[scope_name]["comparison_quality"]["status"],
+                "not_comparable",
+            )
+            self.assertEqual(
+                active[scope_name]["comparison_quality"]["reason"],
+                "publisher_panel_changed",
+            )
+            self.assertTrue(
+                all(
+                    row["share_change"] is None
+                    for tier in ("main", "secondary")
+                    for row in active[scope_name][tier]
+                )
+            )
 
-    def test_schema_11_rejects_invalid_tier_membership_counts_and_eligibility(self):
+    def test_schema_12_rejects_invalid_tier_membership_counts_and_eligibility(self):
         base = json.loads(
             (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
         )
@@ -1021,6 +1043,71 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
                 self.assertEqual(state["status"], "unavailable")
                 self.assertEqual(state["reason"], "invalid_payload")
 
+    def test_schema_12_rejects_malformed_active_projection(self):
+        base = json.loads(
+            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+        )
+        cases = []
+        hidden = json.loads(json.dumps(base))
+        hidden["active_field_visibility"]["primary"]["secondary"][0][
+            "candidate_id"
+        ] = "sarah-knafo"
+        cases.append(hidden)
+        duplicate = json.loads(json.dumps(base))
+        duplicate["active_field_visibility"]["primary"]["secondary"][0] = (
+            duplicate["active_field_visibility"]["primary"]["main"][0]
+        )
+        cases.append(duplicate)
+        denominator = json.loads(json.dumps(base))
+        denominator["active_field_visibility"]["primary"]["current_period"][
+            "record_count"
+        ] = 122
+        cases.append(denominator)
+        share = json.loads(json.dumps(base))
+        share["active_field_visibility"]["general"]["main"][0][
+            "current_share"
+        ] = 0.999
+        cases.append(share)
+        fabricated_delta = json.loads(json.dumps(base))
+        fabricated_delta["active_field_visibility"]["primary"]["main"][0][
+            "share_change"
+        ] = 0
+        cases.append(fabricated_delta)
+        missing = json.loads(json.dumps(base))
+        missing["active_field_visibility"]["general"]["secondary"].pop()
+        cases.append(missing)
+        tier = json.loads(json.dumps(base))
+        tier["active_field_visibility"]["general"]["main"][0][
+            "display_tier"
+        ] = "secondary"
+        cases.append(tier)
+        quality = json.loads(json.dumps(base))
+        quality["active_field_visibility"]["primary"]["comparison_quality"][
+            "status"
+        ] = "comparable"
+        cases.append(quality)
+        ordering = json.loads(json.dumps(base))
+        ordering["active_field_visibility"]["general"]["main"][0:2] = reversed(
+            ordering["active_field_visibility"]["general"]["main"][0:2]
+        )
+        cases.append(ordering)
+
+        for index, payload in enumerate(cases):
+            with self.subTest(case=index):
+                state = run_candidate_module("api.normalize(input.payload)", payload)
+                self.assertEqual(state["status"], "unavailable")
+                self.assertEqual(state["reason"], "invalid_payload")
+
+    def test_schema_11_does_not_fabricate_active_projection(self):
+        payload = json.loads(
+            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+        )
+        payload["schema_version"] = "1.1"
+        payload.pop("active_field_visibility")
+        state = run_candidate_module("api.normalize(input.payload)", payload)
+        self.assertEqual(state["status"], "ready")
+        self.assertIsNone(state["metadata"]["activeFieldVisibility"])
+
     def test_schema_10_retains_evidence_without_fabricating_active_field(self):
         payload = candidate_payload([candidate_row()], schema_version="1.0")
         state = run_candidate_module("api.normalize(input.payload)", payload)
@@ -1029,15 +1116,15 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
         self.assertIsNone(state["candidates"][0]["candidacy"])
         self.assertEqual(state["candidates"][0]["polling"], payload["candidates"][0]["polling"])
 
-    def test_no_ranking_scoring_or_visual_renderer_is_introduced(self):
-        self.assertNotIn(".sort(", self.candidate_js)
+    def test_no_scoring_or_visual_renderer_is_introduced(self):
+        self.assertIn(".sort(activeRowOrder)", self.candidate_js)
         self.assertNotRegex(
             self.candidate_js.lower(),
             r"\b(momentum|viability|sentiment|probability|forecast)\b",
         )
         self.assertNotRegex(
             self.candidate_js,
-            r"\b(render|matrix|dossier|card|filter)\w*\s*\(",
+            r"\b(render|matrix|dossier|card)\w*\s*\(",
         )
         self.assertNotIn("document.", self.candidate_js)
         self.assertNotIn("querySelector", self.candidate_js)

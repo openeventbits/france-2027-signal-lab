@@ -1,4 +1,5 @@
 import re
+import json
 import unittest
 from pathlib import Path
 
@@ -136,6 +137,40 @@ class ElectionCoverageModalTests(
             "fetch(",
             self.modal_js,
         )
+
+    def test_hidden_field_candidates_remain_in_source_evidence_and_filters(self):
+        wire = json.loads(
+            (ROOT / "news_wire.json").read_text(encoding="utf-8")
+        )
+        election_rows = wire["election_news"]
+        watch_rows = wire["candidate_watch"]
+        self.assertEqual(len(election_rows), wire["counts"]["election_news"])
+        self.assertEqual(
+            len({row["id"] for row in election_rows}),
+            len(election_rows),
+        )
+        media_model = self.dashboard[
+            self.dashboard.index("function buildMediaViewModel()"):
+            self.dashboard.index("function buildAgendaViewModel()")
+        ]
+        self.assertIn("const feedItems = newestNewsItems(\n      electionItems", media_model)
+        self.assertNotIn("activePrimary.main", media_model[
+            media_model.index("const feedItems"):
+            media_model.index("const generatedKey")
+        ])
+        for candidate in ("Sarah Knafo", "Sébastien Lecornu"):
+            self.assertTrue(
+                any(candidate in row["candidates"] for row in election_rows),
+                candidate,
+            )
+            self.assertTrue(
+                any(
+                    candidate in [match["candidate"] for match in row["candidate_matches"]]
+                    for row in watch_rows
+                ),
+                candidate,
+            )
+        self.assertIn("item?.candidate_names", self.modal_js)
 
     def test_search_and_filters_exist(self):
         for contract in (

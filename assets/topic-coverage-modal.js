@@ -5,6 +5,9 @@
   let returnFocus = null;
   let candidates = [];
   let topics = [];
+  let candidateProjectionAvailable = false;
+  let candidateComparisonAvailable = false;
+  let candidateComparisonReason = "";
   let publishers = [];
   let dailyActivity = [];
   let generatedAt = "";
@@ -167,27 +170,28 @@
     );
   };
 
-  const normalizeCandidate = item => {
-    const latestShare = numberOrZero(item?.latestShare);
-    const previousShare = numberOrZero(item?.previousShare);
-    const changeAvailable = item?.changeAvailable === true;
-    const reportedDelta =
-      changeAvailable && Number.isFinite(Number(item?.delta))
-        ? Number(item.delta)
-        : null;
-
+  const normalizeCandidate = (item, tier) => {
+    const latestShare = item?.current_share === null
+      ? null
+      : Number(item?.current_share) * 100;
+    const previousShare = item?.prior_share === null
+      ? null
+      : Number(item?.prior_share) * 100;
+    const changeAvailable = candidateComparisonAvailable &&
+      item?.share_change !== null;
     return {
-      name:
-        String(item?.name || "Unknown candidate").trim() ||
+      id: String(item?.candidate_id || ""),
+      name: String(item?.candidate_name || "Unknown candidate").trim() ||
         "Unknown candidate",
+      tier,
+      tierLabel: tier === "main" ? "MAIN FIELD" : "SECONDARY FIELD",
+      status: String(item?.status || ""),
       latestShare,
       previousShare,
-      latestCount: numberOrZero(item?.latestCount),
-      previousCount: numberOrZero(item?.previousCount),
+      latestCount: numberOrZero(item?.current_record_count),
+      previousCount: numberOrZero(item?.prior_record_count),
       changeAvailable,
-      delta: reportedDelta,
-      displayedDelta:
-        reportedDelta ?? latestShare - previousShare
+      delta: changeAvailable ? Number(item.share_change) * 100 : null
     };
   };
 
@@ -261,97 +265,133 @@
     `;
   };
 
-  const renderPeriodLegend = () => `
-    <div
-      class="tcm-period-legend"
-      role="group"
-      aria-label="${escapeAttribute(
-        `Coverage comparison. Current period ${latestPeriodLabel}; prior period ${priorPeriodLabel}.`
-      )}"
-    >
-      <span>
-        <i class="is-current" aria-hidden="true"></i>
-        <strong>CURRENT</strong>
-        <small>${escapeHtml(latestPeriodLabel)}</small>
-      </span>
-      <span>
-        <i class="is-prior" aria-hidden="true"></i>
-        <strong>PRIOR</strong>
-        <small>${escapeHtml(priorPeriodLabel)}</small>
-      </span>
-      <em>Δ pp</em>
-    </div>
-  `;
+  const candidateComparisonLabel = () =>
+    candidateComparisonAvailable
+      ? "Δ pp"
+      : candidateProjectionAvailable
+        ? "RAW Δ pp"
+        : "UNAVAILABLE";
+
+  const renderPeriodLegend = () => {
+    const reasonLabel =
+      candidateComparisonReason ===
+      "publisher_panel_changed"
+        ? "publisher panel changed"
+        : candidateComparisonReason ===
+          "insufficient_data"
+          ? "insufficient data"
+          : "comparison unavailable";
+    const qualityExplanation =
+      candidateComparisonAvailable
+        ? "Comparable active-field percentage-point change."
+        : candidateProjectionAvailable
+          ? `Comparison quality is not comparable: ${reasonLabel}. Raw arithmetic differences are current-minus-prior percentage-point values, not comparable trend estimates.`
+          : "Active-field candidate comparison unavailable.";
+
+    return `
+      <div
+        class="tcm-period-legend"
+        role="group"
+        aria-label="${escapeAttribute(
+          `Active-field candidate-linked share. Current period ${latestPeriodLabel}; prior period ${priorPeriodLabel}. ${qualityExplanation}`
+        )}"
+      >
+        <span>
+          <i class="is-current" aria-hidden="true"></i>
+          <strong>CURRENT</strong>
+          <small>${escapeHtml(latestPeriodLabel)}</small>
+        </span>
+        <span>
+          <i class="is-prior" aria-hidden="true"></i>
+          <strong>PRIOR</strong>
+          <small>${escapeHtml(priorPeriodLabel)}</small>
+        </span>
+      </div>
+    `;
+  };
 
   const renderCoverageShiftRows = () => {
-    if (!candidates.length) {
+    if (!candidateProjectionAvailable) {
       return `
         <div class="tcm-empty">
-          Candidate coverage data unavailable.
+          Active-field candidate comparison unavailable.
         </div>
       `;
     }
-
     const maximum = Math.max(
       1,
-      ...candidates.map(
-        item => item.latestShare + item.previousShare
+      ...candidates.map(item =>
+        numberOrZero(item.latestShare) + numberOrZero(item.previousShare)
       )
     );
-
-    return candidates
-      .map(item => {
+    const renderGroup = (tier, label) => {
+      const rows = candidates.filter(item => item.tier === tier);
+      const renderedRows = rows.map(item => {
         const currentWidth = Math.min(
           100,
-          item.latestShare / maximum * 100
+          numberOrZero(item.latestShare) / maximum * 100
         );
         const priorWidth = Math.min(
           100,
-          item.previousShare / maximum * 100
+          numberOrZero(item.previousShare) / maximum * 100
         );
-        const delta = item.displayedDelta;
-        const limitedClass = item.changeAvailable
-          ? ""
-          : " is-limited";
-        const highlighted =
-          item.name === highlightedCandidate
-            ? " is-highlighted"
-            : "";
-        const deltaPrefix = item.changeAvailable ? "" : "≈ ";
-
+        const highlighted = item.name === highlightedCandidate
+          ? " is-highlighted"
+          : "";
+        const latestText = item.latestShare === null
+          ? "—"
+          : `${formatShare(item.latestShare)}%`;
+        const priorText = item.previousShare === null
+          ? "—"
+          : `${formatShare(item.previousShare)}%`;
+        const rawDeltaAvailable =
+          !item.changeAvailable &&
+          Number.isFinite(item.latestShare) &&
+          Number.isFinite(item.previousShare);
+        const displayedDelta =
+          item.changeAvailable
+            ? item.delta
+            : rawDeltaAvailable
+              ? item.latestShare - item.previousShare
+              : null;
+        const deltaMarkup =
+          displayedDelta === null
+            ? "—"
+            : item.changeAvailable
+              ? `${deltaArrow(item.delta)} ${formatDelta(item.delta)}`
+              : `${deltaArrow(displayedDelta)} ${formatDelta(displayedDelta)}`;
         return `
           <div
-            class="tcm-shift-row${limitedClass}${highlighted}"
+            class="tcm-shift-row${displayedDelta === null ? " is-limited" : ""}${highlighted}"
             data-tcm-candidate-row="${escapeAttribute(item.name)}"
-            title="${escapeAttribute(
-              item.changeAvailable
-                ? "Comparable period change"
-                : "Raw period difference; comparison quality unavailable"
+            title="${escapeAttribute(item.name)}"
+            aria-label="${escapeAttribute(
+              `${item.name}. Candidate status ${item.status}. Current active-field share ${latestText}; prior active-field share ${priorText}.${item.changeAvailable ? ` Comparable change ${deltaMarkup}.` : rawDeltaAvailable ? ` Raw arithmetic difference ${deltaMarkup}. Publisher panels changed, so this is not a comparable trend estimate.` : ""}`
             )}"
           >
-            <strong title="${escapeAttribute(item.name)}">
-              ${escapeHtml(item.name)}
-            </strong>
-            <b>${escapeHtml(formatShare(item.latestShare))}%</b>
+            <strong title="${escapeAttribute(item.name)}">${escapeHtml(item.name)}</strong>
+            <b>${escapeHtml(latestText)}</b>
             <span class="tcm-shift-track" aria-hidden="true">
-              <i
-                class="is-current"
-                style="--tcm-current-width:${currentWidth.toFixed(2)}%"
-              ></i>
-              <i
-                class="is-prior"
-                style="--tcm-prior-width:${priorWidth.toFixed(2)}%"
-              ></i>
+              <i class="is-current" style="--tcm-current-width:${currentWidth.toFixed(2)}%"></i>
+              <i class="is-prior" style="--tcm-prior-width:${priorWidth.toFixed(2)}%"></i>
             </span>
-            <em>${escapeHtml(formatShare(item.previousShare))}%</em>
-            <span class="tcm-delta ${deltaClass(delta)}">
-              ${deltaArrow(delta)}
-              ${escapeHtml(deltaPrefix + formatDelta(delta))}
+            <em>${escapeHtml(priorText)}</em>
+            <span class="tcm-delta ${displayedDelta === null ? "is-limited" : deltaClass(displayedDelta)}">
+              ${escapeHtml(deltaMarkup)}
             </span>
           </div>
         `;
-      })
-      .join("");
+      }).join("");
+      return `
+        <div class="tcm-module-head">
+          <h3>${escapeHtml(label)}</h3>
+          <span>${rows.length} active candidates</span>
+        </div>
+        ${renderedRows}
+      `;
+    };
+    return renderGroup("main", "MAIN FIELD") +
+      renderGroup("secondary", "SECONDARY FIELD");
   };
 
   const renderTopicRows = () => {
@@ -566,13 +606,13 @@
       <div class="tcm-intelligence-grid">
         ${renderModule(
           "tcm-module-shift",
-          "Coverage shift",
-          "Δ pp",
+          "Active-field coverage shift",
+          candidateComparisonLabel(),
           renderPeriodLegend() +
             `<div
               class="tcm-shift-list tcm-scroll-y"
               tabindex="0"
-              aria-label="Complete candidate coverage shift"
+              aria-label="Complete active-field candidate coverage shift"
             >${renderCoverageShiftRows()}</div>`
         )}
         ${renderModule(
@@ -771,18 +811,24 @@
     const mediaModel = models?.media || {};
     const agendaModel = models?.agenda || {};
 
-    candidates = Array.isArray(
-      mediaModel.candidateCoverage
-    )
-      ? mediaModel.candidateCoverage
-          .map(normalizeCandidate)
-          .filter(item => item.name)
-          .sort(
-            (a, b) =>
-              b.latestShare - a.latestShare ||
-              b.previousShare - a.previousShare ||
-              a.name.localeCompare(b.name, "fr")
+    const activePrimary = mediaModel.activeFieldVisibility?.primary || null;
+    candidateProjectionAvailable = Boolean(
+      activePrimary &&
+      Array.isArray(activePrimary.main) &&
+      Array.isArray(activePrimary.secondary)
+    );
+    candidateComparisonAvailable =
+      activePrimary?.comparison_quality?.status === "comparable";
+    candidateComparisonReason = String(
+      activePrimary?.comparison_quality?.reason || ""
+    );
+    candidates = candidateProjectionAvailable
+      ? [
+          ...activePrimary.main.map(item => normalizeCandidate(item, "main")),
+          ...activePrimary.secondary.map(item =>
+            normalizeCandidate(item, "secondary")
           )
+        ]
       : [];
 
     topics = Array.isArray(agendaModel?.topics)
