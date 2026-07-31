@@ -11,7 +11,7 @@ import source_health
 
 
 ROOT = Path(__file__).resolve().parent
-PUBLISHED_AT = "2026-07-24T10:00:00Z"
+PUBLISHED_AT = "2026-07-25T10:00:00Z"
 
 
 def write_json(root, name, payload):
@@ -27,6 +27,9 @@ def candidate_signals_payload():
     )
 
 def complete_inputs(root):
+    source_news = json.loads(
+        (ROOT / "news_wire.json").read_text(encoding="utf-8")
+    )
     write_json(root, "candidate_signals.json", candidate_signals_payload())
     write_json(
         root,
@@ -71,7 +74,7 @@ def complete_inputs(root):
         "news_wire.json",
         {
             "schema_version": 1,
-            "generated_at": "2026-07-24T08:03:00Z",
+            "generated_at": "2026-07-25T08:03:00Z",
             "discovery": {
                 "approved_publisher_domains": 202,
             },
@@ -85,16 +88,17 @@ def complete_inputs(root):
             "election_news": [
                 {
                     "publisher": "Publisher A",
-                    "published_at": "2026-07-24T06:00:00Z",
+                    "published_at": "2026-07-25T06:00:00Z",
                 },
                 {
                     "publisher": "Publisher B",
-                    "published_at": "2026-07-24T06:04:00Z",
+                    "published_at": "2026-07-25T06:04:00Z",
                 },
             ],
             "notable_developments": [],
             "relevant_news": [],
-            "candidate_watch": [],
+            "candidate_visibility": source_news["candidate_visibility"],
+            "candidate_watch": source_news["candidate_watch"],
         },
     )
     write_json(
@@ -114,8 +118,8 @@ def complete_inputs(root):
         "recent_changes.json",
         {
             "schema_version": 1,
-            "generated_at": "2026-07-24T08:04:00Z",
-            "last_successful_check_at": "2026-07-24T08:04:00Z",
+            "generated_at": "2026-07-25T08:04:00Z",
+            "last_successful_check_at": "2026-07-25T08:04:00Z",
             "items": [
                 {"trusted_change_at": "2026-07-22T11:11:10Z"},
                 {"trusted_change_at": "2026-07-21"},
@@ -150,9 +154,9 @@ def complete_inputs(root):
 
     health_payload = None
     for run_at, route_four_success in (
-        ("2026-07-24T08:00:00Z", False),
-        ("2026-07-24T09:00:00Z", False),
-        ("2026-07-24T10:00:00Z", True),
+        ("2026-07-25T08:00:00Z", False),
+        ("2026-07-25T09:00:00Z", False),
+        ("2026-07-25T10:00:00Z", True),
     ):
         health_payload = source_health.update_source_health(
             health_payload,
@@ -199,14 +203,14 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertRegex(first["snapshot_id"], r"^[0-9a-f]{64}$")
 
     def test_snapshot_id_is_independent_of_published_at(self):
-        first = self.build("2026-07-24T10:00:00Z")
-        second = self.build("2026-07-24T11:00:00Z")
+        first = self.build("2026-07-25T10:00:00Z")
+        second = self.build("2026-07-25T11:00:00Z")
         self.assertNotEqual(first["published_at"], second["published_at"])
         self.assertEqual(first["snapshot_id"], second["snapshot_id"])
 
     def test_valid_complete_inputs(self):
         manifest = self.build()
-        self.assertEqual(manifest["schema_version"], "1.1")
+        self.assertEqual(manifest["schema_version"], "1.2")
         self.assertEqual(manifest["published_at"], PUBLISHED_AT)
         self.assertEqual(
             set(manifest["lanes"]),
@@ -310,7 +314,136 @@ class PublicationManifestTests(unittest.TestCase):
             hashlib.sha256(source.read_bytes()).hexdigest(),
         )
         self.assertEqual(lane["record_count"], 20)
-        self.assertEqual(lane["data_as_of"], "2026-07-30")
+        self.assertEqual(lane["data_as_of"], "2026-07-31")
+
+    def test_active_field_projection_matches_record_level_news(self):
+        payload = self.candidate_payload()
+        active = payload["active_field_visibility"]
+        primary = active["primary"]
+        general = active["general"]
+        self.assertEqual(
+            (primary["current_period"]["record_count"], primary["prior_period"]["record_count"]),
+            (118, 82),
+        )
+        self.assertEqual(
+            (general["current_period"]["record_count"], general["prior_period"]["record_count"]),
+            (21, 19),
+        )
+        self.assertEqual(
+            (primary["current_period"]["publisher_count"], primary["prior_period"]["publisher_count"]),
+            (54, 44),
+        )
+        self.assertEqual(
+            (general["current_period"]["publisher_count"], general["prior_period"]["publisher_count"]),
+            (11, 10),
+        )
+        expected_quality = {
+            "primary": (32, 66, 0.485, 1.439),
+            "general": (6, 15, 0.4, 1.105),
+        }
+        for scope_name, scope in (("primary", primary), ("general", general)):
+            quality = scope["comparison_quality"]
+            self.assertEqual(quality["status"], "not_comparable")
+            self.assertEqual(quality["reason"], "publisher_panel_changed")
+            common, publisher_union, overlap, record_ratio = expected_quality[scope_name]
+            self.assertEqual(quality["common_publisher_count"], common)
+            self.assertEqual(quality["publisher_union_count"], publisher_union)
+            self.assertEqual(quality["publisher_overlap_ratio"], overlap)
+            self.assertEqual(quality["record_count_ratio"], record_ratio)
+            self.assertTrue(all(
+                row["share_change"] is None
+                for tier in ("main", "secondary")
+                for row in scope[tier]
+            ))
+        self.assertEqual(len(primary["main"]), 11)
+        self.assertEqual(len(primary["secondary"]), 7)
+        self.assertFalse(
+            {"sarah-knafo", "sebastien-lecornu"}
+            & {row["candidate_id"] for tier in ("main", "secondary") for row in primary[tier]}
+        )
+
+    def test_active_projection_structural_mutations_fail(self):
+        mutations = []
+        count = self.candidate_payload()
+        count["active_field_visibility"]["primary"]["current_period"]["record_count"] += 1
+        mutations.append(count)
+        publishers = self.candidate_payload()
+        publishers["active_field_visibility"]["general"]["prior_period"]["publisher_count"] += 1
+        mutations.append(publishers)
+        hidden = self.candidate_payload()
+        hidden["active_field_visibility"]["primary"]["main"][0]["candidate_id"] = "sebastien-lecornu"
+        mutations.append(hidden)
+        tier = self.candidate_payload()
+        tier["active_field_visibility"]["primary"]["secondary"][0]["display_tier"] = "main"
+        mutations.append(tier)
+        share = self.candidate_payload()
+        share["active_field_visibility"]["general"]["main"][0]["current_share"] = 0.999
+        mutations.append(share)
+        ordering = self.candidate_payload()
+        ordering["active_field_visibility"]["primary"]["main"].reverse()
+        mutations.append(ordering)
+        quality = self.candidate_payload()
+        quality["active_field_visibility"]["primary"]["comparison_quality"]["reason"] = "comparable"
+        mutations.append(quality)
+        for payload in mutations:
+            with self.subTest(mutation=mutations.index(payload)):
+                write_json(self.root, "candidate_signals.json", payload)
+                with self.assertRaises(manifest_builder.ManifestError):
+                    self.build()
+                write_json(self.root, "candidate_signals.json", candidate_signals_payload())
+
+    def test_record_level_denominator_mismatch_fails(self):
+        news_path = self.root / "news_wire.json"
+        news = json.loads(news_path.read_text(encoding="utf-8"))
+        active_names = {
+            candidate["candidate_name"]
+            for candidate in self.candidate_payload()["candidates"]
+            if candidate["candidacy"]["active_field_eligible"]
+        }
+        removed = next(
+            record for record in news["candidate_watch"]
+            if record["coverage_scope"] in {"election", "campaign"}
+            and record["published_at"][:10] >= "2026-07-25"
+            and active_names & set(record["candidates"])
+        )
+        news["candidate_watch"].remove(removed)
+        write_json(self.root, "news_wire.json", news)
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "does not match news evidence",
+        ):
+            self.build()
+
+    def test_valid_active_projection_change_changes_snapshot_id(self):
+        first = self.build()["snapshot_id"]
+        news_path = self.root / "news_wire.json"
+        news = json.loads(news_path.read_text(encoding="utf-8"))
+        payload = self.candidate_payload()
+        active_names = {
+            candidate["candidate_name"]
+            for candidate in payload["candidates"]
+            if candidate["candidacy"]["active_field_eligible"]
+        }
+        removed = next(
+            record for record in news["candidate_watch"]
+            if record["coverage_scope"] == "general"
+            and "2026-07-25" <= record["published_at"][:10] <= "2026-07-31"
+            and active_names & set(record["candidates"])
+        )
+        news["candidate_watch"].remove(removed)
+        registry = json.loads(
+            (self.root / "candidate_candidacy_status.json").read_text(encoding="utf-8")
+        )
+        payload["active_field_visibility"] = (
+            manifest_builder.derive_active_field_visibility(
+                news,
+                payload["presidential_field"],
+                registry,
+            )
+        )
+        write_json(self.root, "news_wire.json", news)
+        write_json(self.root, "candidate_signals.json", payload)
+        self.assertNotEqual(first, self.build()["snapshot_id"])
 
     def test_missing_candidate_signals_fails(self):
         (self.root / "candidate_signals.json").unlink()
@@ -392,7 +525,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         lane = self.build()["lanes"]["candidate_signals"]
         self.assertTrue(lane["valid"])
-        self.assertEqual(lane["data_as_of"], "2026-07-30")
+        self.assertEqual(lane["data_as_of"], "2026-07-31")
         self.assertEqual(lane["warnings"], [])
 
     def test_candidate_signals_change_changes_snapshot_id(self):
@@ -556,7 +689,7 @@ class PublicationManifestTests(unittest.TestCase):
     def test_no_cross_lane_timestamp_inference(self):
         manifest = self.build()
         recent_check = manifest["lanes"]["recent_changes"]["last_success_at"]
-        self.assertEqual(recent_check, "2026-07-24T08:04:00Z")
+        self.assertEqual(recent_check, "2026-07-25T08:04:00Z")
         self.assertNotIn(recent_check, manifest["lanes"]["polls"].values())
         self.assertEqual(
             manifest["lanes"]["polls"]["timestamp_status"],

@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parent
 INDEX_PATH = ROOT / "index.html"
 MANIFEST_PATH = ROOT / "publication_manifest.json"
 
+CANDIDATE_SIGNALS_PATH = ROOT / "candidate_signals.json"
 
 def function_body(source, function_name, next_function_name):
     start = source.index(f"function {function_name}(")
@@ -52,6 +53,67 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             MANIFEST_PATH.exists(),
             "publication_manifest.json must be a published static artifact",
         )
+
+    def test_publication_facts_version_active_field_snapshot(self):
+        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        candidate = json.loads(
+            CANDIDATE_SIGNALS_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual(manifest["schema_version"], "1.2")
+        self.assertEqual(
+            manifest["lanes"]["candidate_signals"]["schema_version"],
+            "1.2",
+        )
+        self.assertEqual(candidate["schema_version"], "1.2")
+        active = candidate["active_field_visibility"]
+        self.assertEqual(
+            [active[scope][period]["record_count"]
+             for scope in ("primary", "general")
+             for period in ("current_period", "prior_period")],
+            [118, 82, 21, 19],
+        )
+
+    def test_active_field_quality_remains_authoritative_for_frontend_rendering(self):
+        candidate = json.loads(
+            CANDIDATE_SIGNALS_PATH.read_text(encoding="utf-8")
+        )
+        primary = candidate["active_field_visibility"]["primary"]
+        self.assertEqual(
+            primary["comparison_quality"]["status"],
+            "not_comparable",
+        )
+        self.assertEqual(
+            primary["comparison_quality"]["reason"],
+            "publisher_panel_changed",
+        )
+        rows = primary["main"] + primary["secondary"]
+        self.assertTrue(rows)
+        self.assertTrue(all(row["share_change"] is None for row in rows))
+        self.assertTrue(
+            all(
+                "current_share" in row and "prior_share" in row
+                for row in rows
+            )
+        )
+        identities = {
+            row["candidate_id"]: row["candidate_name"]
+            for row in rows
+        }
+        self.assertNotIn("sarah-knafo", identities)
+        self.assertNotIn("sebastien-lecornu", identities)
+        self.assertEqual(
+            identities["dominique-de-villepin"],
+            "Dominique de Villepin",
+        )
+
+        dashboard = (
+            ROOT / "assets" / "hybrid-dashboard.js"
+        ).read_text(encoding="utf-8")
+        modal = (
+            ROOT / "assets" / "topic-coverage-modal.js"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("fetch(", dashboard)
+        self.assertNotIn("fetch(", modal)
 
     def test_masthead_uses_snapshot_publication_language(self):
         renderer = function_body(

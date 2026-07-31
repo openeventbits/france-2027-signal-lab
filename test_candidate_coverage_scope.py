@@ -1,5 +1,9 @@
+import json
 import unittest
 from datetime import datetime, timezone
+from pathlib import Path
+
+import build_candidate_signals as candidate_signals_builder
 
 from fetch_news_wire import (
     CANDIDATE_COVERAGE_SCOPES,
@@ -13,6 +17,9 @@ from fetch_news_wire import (
     normalize,
     validate_candidate_visibility,
 )
+
+
+ROOT = Path(__file__).resolve().parent
 
 
 class CandidateCoverageScopeTests(unittest.TestCase):
@@ -555,6 +562,91 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
             0.5,
         )
 
+
+
+class ActiveFieldVisibilityScopeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.news = json.loads((ROOT / "news_wire.json").read_text(encoding="utf-8"))
+        cls.registry = json.loads(
+            (ROOT / "candidate_candidacy_status.json").read_text(encoding="utf-8")
+        )
+        cls.field = json.loads(
+            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+        )["presidential_field"]
+        cls.active = candidate_signals_builder.derive_active_field_visibility(
+            cls.news,
+            cls.field,
+            cls.registry,
+        )
+
+    def test_source_wide_visibility_contract_remains_unchanged(self):
+        self.assertEqual(self.news["candidate_visibility"]["current_period"]["record_count"], 140)
+        self.assertEqual(self.news["candidate_visibility"]["prior_period"]["record_count"], 103)
+        self.assertEqual(self.news["candidate_visibility"]["general_current_period"]["record_count"], 42)
+        self.assertEqual(self.news["candidate_visibility"]["general_prior_period"]["record_count"], 26)
+
+    def test_active_union_denominators_and_publishers_are_separate(self):
+        primary = self.active["primary"]
+        general = self.active["general"]
+        self.assertEqual(
+            (primary["current_period"]["record_count"], primary["prior_period"]["record_count"]),
+            (118, 82),
+        )
+        self.assertEqual(
+            (general["current_period"]["record_count"], general["prior_period"]["record_count"]),
+            (21, 19),
+        )
+        self.assertEqual(
+            (primary["current_period"]["publisher_count"], primary["prior_period"]["publisher_count"]),
+            (54, 44),
+        )
+        self.assertEqual(
+            (general["current_period"]["publisher_count"], general["prior_period"]["publisher_count"]),
+            (11, 10),
+        )
+
+    def test_hidden_only_evidence_remains_in_source_records(self):
+        registry_by_id = {
+            candidate["candidate_id"]: candidate
+            for candidate in self.registry["candidates"]
+        }
+        hidden_names = {
+            registry_by_id[identifier]["candidate_name"]
+            for identifier in self.field["hidden"]
+        }
+        active_names = {
+            registry_by_id[identifier]["candidate_name"]
+            for tier in ("main", "secondary")
+            for identifier in self.field[tier]
+        }
+        current_start = self.news["candidate_visibility"]["current_period"]["start_date"]
+        current_end = self.news["candidate_visibility"]["current_period"]["end_date"]
+        primary = [
+            record for record in self.news["candidate_watch"]
+            if current_start <= record["published_at"][:10] <= current_end
+            and record["coverage_scope"] in {"election", "campaign"}
+        ]
+        general = [
+            record for record in self.news["candidate_watch"]
+            if current_start <= record["published_at"][:10] <= current_end
+            and record["coverage_scope"] == "general"
+        ]
+        hidden_only = lambda records: [
+            record for record in records
+            if hidden_names & set(record["candidates"])
+            and not active_names & set(record["candidates"])
+        ]
+        mixed = lambda records: [
+            record for record in records
+            if hidden_names & set(record["candidates"])
+            and active_names & set(record["candidates"])
+        ]
+        self.assertEqual(len(hidden_only(primary)), 22)
+        self.assertEqual(len(hidden_only(general)), 21)
+        self.assertEqual(len(mixed(primary)), 9)
+        self.assertEqual(len(mixed(general)), 3)
+        self.assertTrue(all(record in self.news["candidate_watch"] for record in hidden_only(primary + general)))
 
 if __name__ == "__main__":
     unittest.main()

@@ -342,7 +342,7 @@ class FinalDashboardShellTests(unittest.TestCase):
 
         for label in (
             "Latest election coverage",
-            "Coverage shift",
+            "Active-field coverage shift",
             "Topic coverage",
             "Top publishers",
         ):
@@ -420,7 +420,7 @@ class FinalDashboardShellTests(unittest.TestCase):
             renderer,
         )
         self.assertIn(
-            "item.latestShare +",
+            "number(item.latestShare) +",
             renderer,
         )
         self.assertIn(
@@ -436,7 +436,7 @@ class FinalDashboardShellTests(unittest.TestCase):
             renderer,
         )
         self.assertIn(
-            "${previousShareText}%",
+            '${previousShareText}${previousShareText === "—" ? "" : "%"}',
             renderer,
         )
         self.assertNotIn(
@@ -531,16 +531,37 @@ class FinalDashboardShellTests(unittest.TestCase):
         )
 
 
-    def test_candidate_coverage_aliases_are_canonicalized(self):
+    def test_candidate_coverage_consumes_active_projection_only(self):
         for contract in (
-            "function buildMediaCandidateCanonicalizer",
-            "suffixMatches",
-            "canonicalizeCandidate",
-            "candidateCoverage:",
-            "latestItems:",
-            "previousItems:",
+            "state.candidateSignals.metadata?.activeFieldVisibility",
+            "const activePrimary = activeFieldVisibility?.primary || null;",
+            "...activePrimary.main.map",
+            "...activePrimary.secondary.map",
+            "candidateCoverageAvailable,",
+            "activeFieldVisibility,",
         ):
             self.assertIn(contract, self.js)
+        model = self.js[
+            self.js.index("function buildMediaViewModel()"):
+            self.js.index("function buildAgendaViewModel()")
+        ]
+        self.assertNotIn("resolveCandidateVisibility(payload)", model)
+
+    def test_active_projection_unavailable_is_scoped_without_raw_fallback(self):
+        model = self.js[
+            self.js.index("function buildMediaViewModel()"):
+            self.js.index("function buildAgendaViewModel()")
+        ]
+        renderer = self.js[
+            self.js.index("function renderTopMediaPulsePanel("):
+            self.js.index("function renderTopMediaPulse(",
+                          self.js.index("function renderTopMediaPulsePanel("))
+        ]
+        self.assertIn("candidateCoverageAvailable = Boolean(activePrimary)", model)
+        self.assertIn("Active-field candidate comparison unavailable.", renderer)
+        self.assertIn('tierLabel: row.tier.toUpperCase()', model)
+        self.assertNotIn("candidatePeriods", model)
+        self.assertNotIn("canonicalizeCandidate", model)
 
     def test_top_candidate_shift_rows_open_combined_dialog(self):
         position = self.js.index(
@@ -740,52 +761,270 @@ class FinalDashboardShellTests(unittest.TestCase):
             {"malformedRejected": True, "status": "comparable"},
         )
 
-    def test_non_comparable_candidate_rows_expose_unavailable_change(self):
-        result = run_media_model_script(
-            self.candidate_payload(9, 10),
-            """(() => {
-              const model = api.buildMediaViewModel();
-              return {
-                quality: model.comparisonQuality,
-                rows: model.candidateCoverage.map(item => ({
-                  changeAvailable: item.changeAvailable,
-                  delta: item.delta,
-                  changePp: item.changePp,
-                  direction: item.direction
-                }))
-              };
-            })()""",
+    def test_primary_active_rows_render_raw_period_differences(self):
+        payload = json.loads(
+            (ROOT / "candidate_signals.json").read_text(
+                encoding="utf-8"
+            )
         )
-        self.assertEqual(result["quality"]["status"], "not_comparable")
-        self.assertTrue(result["rows"])
-        for row in result["rows"]:
-            self.assertFalse(row["changeAvailable"])
-            self.assertIsNone(row["delta"])
-            self.assertIsNone(row["changePp"])
-            self.assertEqual(row["direction"], "unavailable")
+        primary = payload[
+            "active_field_visibility"
+        ]["primary"]
 
-    def test_comparable_candidate_rows_preserve_actual_delta(self):
-        result = run_media_model_script(
-            self.candidate_payload(),
-            """(() => {
-              const model = api.buildMediaViewModel();
-              const candidate = model.candidateCoverage.find(
-                item => item.name === "Candidate A"
-              );
-              return {
-                status: model.comparisonQuality.status,
-                changeAvailable: candidate.changeAvailable,
-                delta: candidate.delta,
-                changePp: candidate.changePp,
-                direction: candidate.direction
-              };
-            })()""",
+        self.assertEqual(
+            primary["comparison_quality"]["status"],
+            "not_comparable",
         )
-        self.assertEqual(result["status"], "comparable")
-        self.assertTrue(result["changeAvailable"])
-        self.assertEqual(result["delta"], 50)
-        self.assertEqual(result["changePp"], 50)
-        self.assertEqual(result["direction"], "positive")
+        self.assertEqual(
+            primary["comparison_quality"]["reason"],
+            "publisher_panel_changed",
+        )
+
+        rows = primary["main"] + primary["secondary"]
+        self.assertTrue(rows)
+        self.assertTrue(
+            all(
+                row["share_change"] is None
+                for row in rows
+            )
+        )
+
+        by_id = {
+            row["candidate_id"]: row
+            for row in rows
+        }
+
+        expected_raw_pp = {
+            "gabriel-attal": -3.9,
+            "marine-le-pen": 4.1,
+            "dominique-de-villepin": 15.7,
+            "marine-tondelier": -2.9,
+        }
+
+        for candidate_id, expected in expected_raw_pp.items():
+            row = by_id[candidate_id]
+            actual = round(
+                (
+                    row["current_share"]
+                    - row["prior_share"]
+                ) * 100,
+                1,
+            )
+            self.assertEqual(actual, expected)
+
+        self.assertNotIn(
+            "sarah-knafo",
+            {row["candidate_id"] for row in rows},
+        )
+        self.assertNotIn(
+            "sebastien-lecornu",
+            {row["candidate_id"] for row in rows},
+        )
+
+        renderer = self.js[
+            self.js.index(
+                "function renderTopMediaPulsePanel("
+            ):
+            self.js.index(
+                "function renderTopMediaPulse(",
+                self.js.index(
+                    "function renderTopMediaPulsePanel("
+                ),
+            )
+        ]
+
+        row_renderer = renderer[
+            renderer.index("const shiftRows"):
+            renderer.index("const maxTopicDays")
+        ]
+
+        presentation_start = self.js.index(
+            "function topMediaComparisonPresentation("
+        )
+        sync_start = self.js.index(
+            "function syncTopMediaShiftQualityLabel("
+        )
+        renderer_start = self.js.index(
+            "function renderTopMediaPulsePanel("
+        )
+
+        presentation_source = self.js[
+            presentation_start:sync_start
+        ]
+        sync_source = self.js[
+            sync_start:renderer_start
+        ]
+
+        script = presentation_source + sync_source + r"""
+const selector =
+  ".top-media-shift .top-media-section-heading::after";
+const contentRule = {
+  selectorText: selector,
+  style: { content: '"Δ pp"' }
+};
+const layoutRule = {
+  selectorText: selector,
+  style: { content: "" }
+};
+const document = {
+  styleSheets: [
+    { cssRules: [contentRule, layoutRule] }
+  ]
+};
+const invalid = topMediaComparisonPresentation({
+  candidateCoverageAvailable: true,
+  comparisonQuality: {
+    status: "not_comparable",
+    reason: "publisher_panel_changed"
+  }
+});
+const comparable = topMediaComparisonPresentation({
+  candidateCoverageAvailable: true,
+  comparisonQuality: {
+    status: "comparable",
+    reason: "comparable"
+  }
+});
+const invalidUpdates =
+  syncTopMediaShiftQualityLabel(invalid.label);
+const invalidContent = contentRule.style.content;
+const comparableUpdates =
+  syncTopMediaShiftQualityLabel(comparable.label);
+const comparableContent = contentRule.style.content;
+process.stdout.write(JSON.stringify({
+  invalid,
+  comparable,
+  invalidUpdates,
+  invalidContent,
+  comparableUpdates,
+  comparableContent
+}));
+"""
+
+        completed = subprocess.run(
+            ["node", "-"],
+            cwd=ROOT,
+            input=script,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            check=True,
+        )
+
+        presentation = json.loads(
+            completed.stdout
+        )
+
+        raw_label = "RAW Δ pp"
+
+        self.assertEqual(
+            presentation["invalid"]["label"],
+            raw_label,
+        )
+        self.assertIn(
+            "Raw arithmetic current-minus-prior",
+            presentation["invalid"]["explanation"],
+        )
+        self.assertIn(
+            "reason: publisher_panel_changed",
+            presentation["invalid"]["explanation"],
+        )
+        self.assertEqual(
+            presentation["invalidUpdates"],
+            1,
+        )
+        self.assertEqual(
+            presentation["invalidContent"],
+            f'"{raw_label}"',
+        )
+        self.assertEqual(
+            presentation["comparable"]["label"],
+            "Δ pp",
+        )
+        self.assertEqual(
+            presentation["comparableUpdates"],
+            1,
+        )
+        self.assertEqual(
+            presentation["comparableContent"],
+            '"Δ pp"',
+        )
+
+        self.assertEqual(
+            self.html.count('content: "Δ pp";'),
+            1,
+        )
+        self.assertIn(
+            "const rawDeltaAvailable",
+            row_renderer,
+        )
+        self.assertIn(
+            "item.latestShare - item.previousShare",
+            row_renderer,
+        )
+        self.assertIn(
+            "raw arithmetic difference ${deltaText}",
+            row_renderer,
+        )
+        self.assertIn(
+            'direction + " " + escapeHtml(deltaText)',
+            row_renderer,
+        )
+        self.assertIn(
+            '"is-up"',
+            row_renderer,
+        )
+        self.assertIn(
+            '"is-down"',
+            row_renderer,
+        )
+        self.assertNotIn(
+            "isRawDelta",
+            row_renderer,
+        )
+        self.assertNotIn(
+            "Not comparable",
+            row_renderer,
+        )
+        self.assertNotIn(
+            "displayedDelta = deltaAvailable ? item.delta : 0",
+            renderer,
+        )
+        self.assertIn(
+            'class="hybrid-status-chip"',
+            row_renderer,
+        )
+
+    def test_general_active_rows_suppress_unavailable_change(self):
+        payload = json.loads(
+            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+        )
+        general = payload["active_field_visibility"]["general"]
+        self.assertEqual(
+            general["comparison_quality"],
+            {
+                "status": "not_comparable",
+                "reason": "publisher_panel_changed",
+                "current_record_count": 21,
+                "prior_record_count": 19,
+                "current_publisher_count": 11,
+                "prior_publisher_count": 10,
+                "common_publisher_count": 6,
+                "publisher_union_count": 15,
+                "publisher_overlap_ratio": 0.4,
+                "record_count_ratio": 1.105,
+                "thresholds": {
+                    "minimum_period_records": 10,
+                    "minimum_period_publishers": 5,
+                    "minimum_common_publishers": 5,
+                    "minimum_publisher_overlap_ratio": 0.5,
+                    "maximum_record_count_ratio": 2.0,
+                },
+            },
+        )
+        rows = general["main"] + general["secondary"]
+        self.assertTrue(rows)
+        self.assertTrue(all(row["share_change"] is None for row in rows))
 
 
 class BoundedTopRowPolishTests(unittest.TestCase):

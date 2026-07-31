@@ -20,6 +20,7 @@ from urllib.parse import urlsplit
 
 from build_candidate_signals import (
     CandidateSignalsError,
+    derive_active_field_visibility,
     validate_candidate_signals,
 )
 from candidate_candidacy_status import (
@@ -35,7 +36,7 @@ from source_health import (
 )
 
 
-SCHEMA_VERSION = "1.1"
+SCHEMA_VERSION = "1.2"
 OUTPUT_NAME = "publication_manifest.json"
 TIMESTAMP_STATUSES = {"known", "unknown", "missing", "invalid"}
 LANE_FILES = {
@@ -410,6 +411,7 @@ def _validate_candidate_signals_public(payload: Any) -> int:
             "schema_version",
             "candidate_universe",
             "presidential_field",
+            "active_field_visibility",
             "featured_polling_package",
             "featured_poll_board",
             "visibility",
@@ -418,9 +420,9 @@ def _validate_candidate_signals_public(payload: Any) -> int:
             "candidates",
         },
     )
-    if value["schema_version"] != "1.1":
+    if value["schema_version"] != "1.2":
         raise ManifestError(
-            "candidate_signals.schema_version must equal 1.1"
+            "candidate_signals.schema_version must equal 1.2"
         )
 
     universe = _required_object(
@@ -732,6 +734,27 @@ def _validate_candidacy_status_parity(
                 "candidate_signals candidacy does not match registry for "
                 f"{candidate['candidate_id']}"
             )
+
+
+def _validate_active_field_visibility_parity(
+    registry: Any,
+    candidate_signals: Any,
+    news: Any,
+) -> None:
+    try:
+        expected = derive_active_field_visibility(
+            news,
+            candidate_signals["presidential_field"],
+            registry,
+        )
+    except CandidateSignalsError as error:
+        raise ManifestError(
+            f"candidate_signals active visibility source validation failed: {error}"
+        ) from error
+    if candidate_signals["active_field_visibility"] != expected:
+        raise ManifestError(
+            "candidate_signals active_field_visibility does not match news evidence"
+        )
 
 
 def _parse_evidence_value(value: Any) -> tuple[datetime, str] | None:
@@ -1110,6 +1133,12 @@ def build_manifest(
         if lanes["news"]["valid"]
         else None
     )
+    if news_payload is not None:
+        _validate_active_field_visibility_parity(
+            lane_sources["candidacy_status"][0]["payload"],
+            lane_sources["candidate_signals"][0]["payload"],
+            news_payload,
+        )
     source_health_payload = (
         lane_sources["source_health"][0]["payload"]
         if lanes["source_health"]["valid"]
@@ -1132,7 +1161,7 @@ def validate_manifest(manifest: Any) -> None:
     if not isinstance(manifest, dict):
         raise ManifestError("manifest must be a JSON object")
     if manifest.get("schema_version") != SCHEMA_VERSION:
-        raise ManifestError("schema_version must equal 1.1")
+        raise ManifestError("schema_version must equal 1.2")
     snapshot_id = manifest.get("snapshot_id")
     if (
         not isinstance(snapshot_id, str)
@@ -1144,7 +1173,7 @@ def validate_manifest(manifest: Any) -> None:
 
     lanes = manifest.get("lanes")
     if not isinstance(lanes, dict) or set(lanes) != set(LANE_FILES):
-        raise ManifestError("manifest lanes do not match the version 1.1 contract")
+        raise ManifestError("manifest lanes do not match the version 1.2 contract")
     for lane_name, lane in lanes.items():
         if not isinstance(lane, dict):
             raise ManifestError(f"{lane_name} lane must be an object")
@@ -1246,7 +1275,7 @@ def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Build publication_manifest.json version 1.1"
+        description="Build publication_manifest.json version 1.2"
     )
     parser.add_argument(
         "--check",

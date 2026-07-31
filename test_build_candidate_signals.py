@@ -384,8 +384,8 @@ class CandidateUniverseTests(unittest.TestCase):
             self.claims,
         )
         self.assertEqual(universe["count"], 20)
-        self.assertEqual(universe["as_of_date"], "2026-07-30")
-        self.assertEqual(universe["cutoff_date"], "2026-01-28")
+        self.assertEqual(universe["as_of_date"], "2026-07-31")
+        self.assertEqual(universe["cutoff_date"], "2026-01-29")
         self.assertTrue(
             builder.candidate_universe_matches_news_roster(
                 candidates,
@@ -1162,13 +1162,14 @@ class PresidentialFieldContractTests(unittest.TestCase):
         )
 
     def test_schema_keys_complete_universe_and_order_are_exact(self):
-        self.assertEqual(self.payload["schema_version"], "1.1")
+        self.assertEqual(self.payload["schema_version"], "1.2")
         self.assertEqual(
             list(self.payload),
             [
                 "schema_version",
                 "candidate_universe",
                 "presidential_field",
+                "active_field_visibility",
                 "featured_polling_package",
                 "featured_poll_board",
                 "visibility",
@@ -1177,7 +1178,7 @@ class PresidentialFieldContractTests(unittest.TestCase):
                 "candidates",
             ],
         )
-        self.assertNotIn("active_field_visibility", self.payload)
+        self.assertIn("active_field_visibility", self.payload)
         self.assertEqual(len(self.payload["candidates"]), 20)
         order = [
             (candidate["candidate_name"].casefold(), candidate["candidate_id"])
@@ -1197,6 +1198,201 @@ class PresidentialFieldContractTests(unittest.TestCase):
                 "latest_development",
             },
         )
+
+    def test_active_field_visibility_contract_and_fixture_values(self):
+        active = self.payload["active_field_visibility"]
+        self.assertEqual(
+            set(active),
+            {"method", "denominator_scope", "status_as_of", "primary", "general"},
+        )
+        self.assertEqual(
+            active["method"],
+            "share_of_active_candidate_linked_records",
+        )
+        self.assertEqual(
+            active["denominator_scope"],
+            "records_linked_to_at_least_one_main_or_secondary_candidate",
+        )
+        self.assertEqual(
+            active["status_as_of"],
+            self.payload["presidential_field"]["status_as_of"],
+        )
+        expected = {
+            "primary": (118, 82, 54, 44, "not_comparable", "publisher_panel_changed", 32, 66, 0.485, 1.439),
+            "general": (21, 19, 11, 10, "not_comparable", "publisher_panel_changed", 6, 15, 0.4, 1.105),
+        }
+        hidden = {"sarah-knafo", "sebastien-lecornu"}
+        row_keys = {
+            "candidate_id", "candidate_name", "status", "display_tier",
+            "current_record_count", "current_share", "prior_record_count",
+            "prior_share", "share_change",
+        }
+        for scope_name, values in expected.items():
+            scope = active[scope_name]
+            self.assertEqual(
+                set(scope),
+                {"current_period", "prior_period", "comparison_quality", "main", "secondary"},
+            )
+            current_count, prior_count, current_publishers, prior_publishers, status, reason, common, publisher_union, overlap, record_ratio = values
+            self.assertEqual(scope["current_period"]["record_count"], current_count)
+            self.assertEqual(scope["prior_period"]["record_count"], prior_count)
+            self.assertEqual(scope["current_period"]["publisher_count"], current_publishers)
+            self.assertEqual(scope["prior_period"]["publisher_count"], prior_publishers)
+            self.assertEqual(scope["comparison_quality"]["status"], status)
+            self.assertEqual(scope["comparison_quality"]["reason"], reason)
+            self.assertEqual(len(scope["main"]), 11)
+            self.assertEqual(scope["comparison_quality"]["common_publisher_count"], common)
+            self.assertEqual(scope["comparison_quality"]["publisher_union_count"], publisher_union)
+            self.assertEqual(scope["comparison_quality"]["publisher_overlap_ratio"], overlap)
+            self.assertEqual(scope["comparison_quality"]["record_count_ratio"], record_ratio)
+            self.assertEqual(len(scope["secondary"]), 7)
+            rows = scope["main"] + scope["secondary"]
+            self.assertFalse(hidden & {row["candidate_id"] for row in rows})
+            for row in rows:
+                self.assertEqual(set(row), row_keys)
+                self.assertEqual(
+                    row["current_share"],
+                    builder._round_visibility_ratio(
+                        row["current_record_count"] / current_count
+                    ),
+                )
+                self.assertEqual(
+                    row["prior_share"],
+                    builder._round_visibility_ratio(
+                        row["prior_record_count"] / prior_count
+                    ),
+                )
+                if status == "comparable":
+                    self.assertEqual(
+                        row["share_change"],
+                        builder._round_visibility_ratio(
+                            row["current_share"] - row["prior_share"]
+                        ),
+                    )
+                else:
+                    self.assertIsNone(row["share_change"])
+            for tier in ("main", "secondary"):
+                self.assertEqual(
+                    scope[tier],
+                    sorted(scope[tier], key=builder._active_row_sort_key),
+                )
+
+        compact_top_five = [
+            row["candidate_id"]
+            for row in sorted(
+                active["primary"]["main"] + active["primary"]["secondary"],
+                key=builder._active_row_sort_key,
+            )[:5]
+        ]
+        self.assertEqual(
+            compact_top_five,
+            [
+                "gabriel-attal",
+                "marine-le-pen",
+                "dominique-de-villepin",
+                "edouard-philippe",
+                "marine-tondelier",
+            ],
+        )
+
+    def test_active_union_reconciliation_uses_published_record_associations(self):
+        before = copy.deepcopy(self.news)
+        field = self.payload["presidential_field"]
+        names_by_id = {
+            candidate["candidate_id"]: candidate["candidate_name"]
+            for candidate in self.payload["candidates"]
+        }
+        active_names = {
+            names_by_id[identifier]
+            for tier in ("main", "secondary")
+            for identifier in field[tier]
+        }
+        hidden_names = {
+            names_by_id[identifier]
+            for identifier in field["hidden"]
+        }
+        records = self.news["candidate_watch"]
+        self.assertEqual(
+            len(records),
+            len({record["id"] for record in records}),
+        )
+        self.assertTrue(all(
+            record["candidates"]
+            == [match["candidate"] for match in record["candidate_matches"]]
+            for record in records
+        ))
+        visibility = self.news["candidate_visibility"]
+        specifications = {
+            "primary_current": (visibility["current_period"], {"election", "campaign"}),
+            "primary_prior": (visibility["prior_period"], {"election", "campaign"}),
+            "general_current": (visibility["general_current_period"], {"general"}),
+            "general_prior": (visibility["general_prior_period"], {"general"}),
+        }
+        expected = {
+            "primary_current": (140, 22, 118, 9),
+            "primary_prior": (103, 21, 82, 3),
+            "general_current": (42, 21, 21, 3),
+            "general_prior": (26, 7, 19, 0),
+        }
+        for name, (period, scopes) in specifications.items():
+            qualifying = [
+                record for record in records
+                if period["start_date"] <= record["published_at"][:10] <= period["end_date"]
+                and record["coverage_scope"] in scopes
+            ]
+            active_records = [
+                record for record in qualifying
+                if active_names & set(record["candidates"])
+            ]
+            hidden_only = [
+                record for record in qualifying
+                if hidden_names & set(record["candidates"])
+                and not active_names & set(record["candidates"])
+            ]
+            mixed = [
+                record for record in qualifying
+                if hidden_names & set(record["candidates"])
+                and active_names & set(record["candidates"])
+            ]
+            self.assertEqual(
+                (len(qualifying), len(hidden_only), len({record["id"] for record in active_records}), len(mixed)),
+                expected[name],
+            )
+        builder.derive_active_field_visibility(self.news, field, self.registry)
+        self.assertEqual(self.news, before)
+
+    def test_zero_denominator_uses_missing_shares_and_null_changes(self):
+        news = copy.deepcopy(self.news)
+        news["candidate_watch"] = []
+        for period_name in (
+            "current_period", "prior_period",
+            "general_current_period", "general_prior_period",
+        ):
+            period = news["candidate_visibility"][period_name]
+            period["record_count"] = 0
+            period["publisher_count"] = 0
+            period["publisher_names"] = []
+            period["candidate_metrics"] = []
+        active = builder.derive_active_field_visibility(
+            news,
+            self.payload["presidential_field"],
+            self.registry,
+        )
+        for scope_name in ("primary", "general"):
+            scope = active[scope_name]
+            self.assertEqual(scope["current_period"]["record_count"], 0)
+            self.assertEqual(scope["comparison_quality"]["status"], "not_comparable")
+            for row in scope["main"] + scope["secondary"]:
+                self.assertEqual(row["current_record_count"], 0)
+                self.assertIsNone(row["current_share"])
+                self.assertIsNone(row["prior_share"])
+                self.assertIsNone(row["share_change"])
+
+    def test_active_visibility_validator_rejects_fabricated_primary_change(self):
+        malformed = copy.deepcopy(self.payload)
+        malformed["active_field_visibility"]["primary"]["main"][0]["share_change"] = 0
+        with self.assertRaises(builder.CandidateSignalsError):
+            builder.validate_candidate_signals(malformed)
 
     def test_candidacy_and_presidential_field_are_exact_registry_projections(self):
         registry_by_id = {

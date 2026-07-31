@@ -1,4 +1,6 @@
+import json
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -57,7 +59,7 @@ class TopicCoverageModalTests(unittest.TestCase):
 
     def test_modal_is_a_four_module_terminal(self):
         order = [
-            self.modal_js.index('"Coverage shift"'),
+            self.modal_js.index('"Active-field coverage shift"'),
             self.modal_js.index('"Topic coverage"'),
             self.modal_js.index('"Top publishers"'),
             self.modal_js.index('"Daily volume"'),
@@ -93,7 +95,7 @@ class TopicCoverageModalTests(unittest.TestCase):
 
     def test_complete_model_arrays_feed_scrollable_modules(self):
         for contract in (
-            "mediaModel.candidateCoverage",
+            "mediaModel.activeFieldVisibility?.primary",
             "agendaModel.topics",
             "mediaModel.publisherRanking",
             "mediaModel.dailyActivity",
@@ -108,6 +110,207 @@ class TopicCoverageModalTests(unittest.TestCase):
             "publisherRanking.slice(0, 5);",
             self.dashboard,
         )
+
+    def test_candidate_module_honors_active_tiers_and_raw_differences(self):
+        open_block = self.modal_js[
+            self.modal_js.index("  const open = ("):
+            self.modal_js.index(
+                "  window.France2027TopicCoverageModal"
+            )
+        ]
+
+        renderer = self.modal_js[
+            self.modal_js.index(
+                "const renderCoverageShiftRows"
+            ):
+            self.modal_js.index(
+                "const renderTopicRows"
+            )
+        ]
+
+        legend_start = self.modal_js.index(
+            "const renderPeriodLegend"
+        )
+        legend_end = self.modal_js.index(
+            "const renderCoverageShiftRows",
+            legend_start,
+        )
+        legend_source = self.modal_js[
+            legend_start:legend_end
+        ]
+
+        render_body = self.modal_js[
+            self.modal_js.index(
+                "const renderBody ="
+            ):
+            self.modal_js.index(
+                "const focusableElements"
+            )
+        ]
+
+        for contract in (
+            "activePrimary.main.map",
+            "activePrimary.secondary.map",
+            'comparison_quality?.status === "comparable"',
+            'renderGroup("main", "MAIN FIELD")',
+            'renderGroup("secondary", "SECONDARY FIELD")',
+            'const candidateComparisonLabel',
+            '"RAW Δ pp"',
+            '"publisher panel changed"',
+            "Raw arithmetic differences are current-minus-prior",
+        ):
+            self.assertIn(
+                contract,
+                self.modal_js,
+            )
+
+        self.assertEqual(
+            self.modal_js.count('"RAW Δ pp"'),
+            1,
+        )
+
+        self.assertIn(
+            "candidateComparisonLabel(),",
+            render_body,
+        )
+        self.assertNotIn(
+            "Active candidate-linked share",
+            self.modal_js,
+        )
+
+        self.assertIn(
+            "const rawDeltaAvailable",
+            renderer,
+        )
+        self.assertIn(
+            "item.latestShare - item.previousShare",
+            renderer,
+        )
+        self.assertIn(
+            "deltaArrow(displayedDelta)",
+            renderer,
+        )
+        self.assertIn(
+            "formatDelta(displayedDelta)",
+            renderer,
+        )
+        self.assertIn(
+            "deltaClass(displayedDelta)",
+            renderer,
+        )
+
+        self.assertIn(
+            'class="tcm-shift-row${displayedDelta === null ? " is-limited" : ""}${highlighted}"',
+            renderer,
+        )
+        self.assertNotIn(
+            'class="tcm-shift-row${item.changeAvailable ? "" : " is-limited"}',
+            renderer,
+        )
+
+        self.assertIn(
+            'class="tcm-delta ${displayedDelta === null ? "is-limited" : deltaClass(displayedDelta)}"',
+            renderer,
+        )
+
+        self.assertIn(
+            "Raw arithmetic difference ${deltaMarkup}",
+            renderer,
+        )
+        self.assertNotIn(
+            "Not comparable",
+            renderer,
+        )
+
+        self.assertIn(
+            'class="tcm-shift-track"',
+            renderer,
+        )
+        self.assertIn(
+            '<strong title="${escapeAttribute(item.name)}">${escapeHtml(item.name)}</strong>',
+            renderer,
+        )
+        self.assertNotIn(
+            "hybrid-status-chip",
+            renderer,
+        )
+        self.assertNotIn(
+            "item.tierLabel",
+            renderer,
+        )
+        self.assertNotIn(
+            "mediaModel.candidateCoverage",
+            open_block,
+        )
+        self.assertNotIn(
+            "candidate_watch",
+            open_block,
+        )
+
+        script = r"""
+let candidateProjectionAvailable = true;
+let candidateComparisonAvailable = false;
+let candidateComparisonReason =
+  "publisher_panel_changed";
+let latestPeriodLabel = "25–31 Jul";
+let priorPeriodLabel = "18–24 Jul";
+const escapeHtml = value => String(value);
+const escapeAttribute = escapeHtml;
+""" + legend_source + r"""
+const invalid = renderPeriodLegend();
+candidateComparisonAvailable = true;
+candidateComparisonReason = "comparable";
+const comparable = renderPeriodLegend();
+process.stdout.write(
+  JSON.stringify({ invalid, comparable })
+);
+"""
+
+        completed = subprocess.run(
+            ["node", "-"],
+            input=script,
+            cwd=ROOT,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            check=True,
+        )
+
+        rendered = json.loads(
+            completed.stdout
+        )
+
+        self.assertNotIn(
+            "RAW Δ pp",
+            rendered["invalid"],
+        )
+        self.assertNotIn(
+            "data-tcm-candidate-comparison-quality",
+            rendered["invalid"],
+        )
+        self.assertIn(
+            "publisher panel changed",
+            rendered["invalid"],
+        )
+        self.assertIn(
+            "Raw arithmetic differences are current-minus-prior",
+            rendered["invalid"],
+        )
+        self.assertIn(
+            "Comparable active-field percentage-point change.",
+            rendered["comparable"],
+        )
+
+    def test_candidate_projection_fallback_is_module_scoped(self):
+        renderer = self.modal_js[
+            self.modal_js.index("const renderCoverageShiftRows"):
+            self.modal_js.index("const renderTopicRows")
+        ]
+        self.assertIn("candidateProjectionAvailable", renderer)
+        self.assertIn("Active-field candidate comparison unavailable.", renderer)
+        self.assertIn("const renderTopicRows", self.modal_js)
+        self.assertIn("const renderPublisherRows", self.modal_js)
+        self.assertIn("const renderDailyVolume", self.modal_js)
 
     def test_three_lists_scroll_but_daily_volume_fits_without_scrolling(self):
         for contract in (
