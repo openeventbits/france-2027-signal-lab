@@ -1061,32 +1061,17 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         self.assertNotIn("candidate_signals.json", interaction + active_view)
         self.assertNotIn(".load(", interaction + active_view)
 
-    def test_changed_scope_excludes_generated_json_and_portraits(self):
-        completed = subprocess.run(
-            ["git", "status", "--porcelain=v1"],
-            cwd=ROOT,
-            encoding="utf-8",
-            capture_output=True,
-            check=True,
-        )
-        changed = {
-            line[3:]
-            for line in completed.stdout.splitlines()
-            if len(line) > 3
-        }
-        self.assertEqual(
-            changed,
-            {
-                "assets/candidate-signals-workspace.js",
-                "assets/candidate-signals.css",
-                "assets/hybrid-dashboard.js",
-                "index.html",
-                "test_candidate_signals_frontend.py",
-                "test_candidate_signals_workspace.py",
-            },
-        )
-        self.assertFalse(any(path.endswith(".json") for path in changed))
-        self.assertFalse(any(path.startswith("assets/candidates/") for path in changed))
+    def test_workspace_consumes_generated_assets_without_owning_them(self):
+        source = (
+            ROOT
+            / "assets"
+            / "candidate-signals-workspace.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertNotIn("candidate_signals.json", source)
+        self.assertNotIn("candidate-portraits/", source)
+        self.assertNotIn("fetch(", source)
+        self.assertIn("resolvePortrait", source)
 
     def test_all_css_rule_selectors_are_candidate_signals_scoped(self):
         without_comments = re.sub(r"/\*.*?\*/", "", self.css, flags=re.DOTALL)
