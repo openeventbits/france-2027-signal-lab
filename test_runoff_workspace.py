@@ -288,6 +288,184 @@ process.stdout.write(JSON.stringify(result));
     return json.loads(completed.stdout)
 
 
+def run_runoff_loader(
+    payload: dict | None,
+    *,
+    fetch_mode: str = "success",
+    legacy_throws: bool = False,
+) -> dict:
+    node = shutil.which("node")
+    if node is None:
+        raise unittest.SkipTest("Node.js is required for frontend contract tests")
+    script = r'''
+const fs = require("fs");
+const vm = require("vm");
+const source = fs.readFileSync("index.html", "utf8");
+const input = JSON.parse(fs.readFileSync(0, "utf8"));
+const extract = (startMarker, endMarker) => {
+  const start = source.indexOf(startMarker);
+  const end = source.indexOf(endMarker, start);
+  if (start < 0 || end < 0) throw new Error(`Could not extract ${startMarker}`);
+  return source.slice(start, end);
+};
+const markDatasetSource = extract(
+  "    function markDataset(",
+  "\n\n    function dashboardTimestamp"
+);
+const validationSource = extract(
+  "    function isValidRunoffResult(",
+  "\n\n    function runoffSourceLink"
+);
+const loaderSource = extract(
+  "    function loadClosestRunoff(",
+  "\n\n    function candidateScore"
+);
+const warnings = [];
+const events = [];
+const publishedPayloads = [];
+const legacyCalls = [];
+const elements = new Map();
+const otherState = {
+  candidates: { sentinel: "candidates" },
+  events: { sentinel: "events" },
+  agenda: { sentinel: "agenda" },
+  claims: { sentinel: "claims" },
+  pollCompare: { sentinel: "poll-compare" }
+};
+const dashboardState = {
+  ...otherState,
+  runoff: null,
+  loadState: {
+    candidates: "loaded",
+    events: "loaded",
+    agenda: "loaded",
+    claims: "loaded",
+    pollCompare: "loaded",
+    runoff: "loading"
+  },
+  updatedAt: {}
+};
+const otherStateBefore = JSON.stringify(otherState);
+const document = {
+  documentElement: { dataset: {} },
+  querySelector(selector) {
+    if (!elements.has(selector)) {
+      elements.set(selector, { hidden: true, className: "", textContent: "", innerHTML: "" });
+    }
+    return elements.get(selector);
+  },
+  dispatchEvent(event) {
+    events.push(event.detail);
+    if (event.detail.name === "runoff" && event.detail.status === "loaded") {
+      publishedPayloads.push(dashboardState.runoff);
+    }
+  }
+};
+const fetch = () => {
+  if (input.fetchMode === "reject") {
+    return Promise.reject(new Error("synthetic fetch failure"));
+  }
+  return Promise.resolve({
+    ok: true,
+    status: 200,
+    json() {
+      if (input.fetchMode === "invalid-json") {
+        return Promise.reject(new SyntaxError("synthetic invalid JSON"));
+      }
+      return Promise.resolve(input.payload);
+    }
+  });
+};
+const context = {
+  URL,
+  Set,
+  Number,
+  Promise,
+  dashboardState,
+  document,
+  CustomEvent: class CustomEvent {
+    constructor(_name, options) { this.detail = options.detail; }
+  },
+  fetch,
+  $: selector => document.querySelector(selector),
+  escapeHtml: value => String(value ?? ""),
+  safeSourceUrl(value) {
+    try {
+      const url = new URL(String(value));
+      return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+    } catch (_error) {
+      return "";
+    }
+  },
+  renderMastheadMetadata() {},
+  renderContextStrip() {},
+  renderWhatChanged() {},
+  renderClosestRunoff(value) {
+    legacyCalls.push({
+      payload: value,
+      state: dashboardState.loadState.runoff,
+      publishedCount: publishedPayloads.length
+    });
+    if (input.legacyThrows) throw new Error("synthetic legacy render failure");
+    document.documentElement.dataset.runoffReady = value.status;
+  },
+  console: {
+    warn(...values) {
+      warnings.push(values.map(value => value instanceof Error ? value.message : String(value)));
+    }
+  }
+};
+vm.runInNewContext(
+  [markDatasetSource, validationSource, loaderSource].join("\n"),
+  context
+);
+(async () => {
+  await context.loadClosestRunoff();
+  const otherStateAfter = {
+    candidates: dashboardState.candidates,
+    events: dashboardState.events,
+    agenda: dashboardState.agenda,
+    claims: dashboardState.claims,
+    pollCompare: dashboardState.pollCompare
+  };
+  process.stdout.write(JSON.stringify({
+    runoff: dashboardState.runoff,
+    runoffState: dashboardState.loadState.runoff,
+    updatedAt: dashboardState.updatedAt.runoff || null,
+    events,
+    publishedPayloads,
+    legacyCalls,
+    warnings,
+    documentRunoffReady: document.documentElement.dataset.runoffReady || null,
+    unavailableHtml: elements.get("#closest-runoff-hero")?.innerHTML || null,
+    otherStateUnchanged: otherStateBefore === JSON.stringify(otherStateAfter),
+    errorStates: Object.entries(dashboardState.loadState)
+      .filter(([_name, status]) => status === "error")
+      .map(([name]) => name)
+  }));
+})().catch(error => {
+  process.stderr.write(error.stack);
+  process.exitCode = 1;
+});
+'''
+    completed = subprocess.run(
+        [node, "-e", script],
+        input=json.dumps(
+            {
+                "payload": payload,
+                "fetchMode": fetch_mode,
+                "legacyThrows": legacy_throws,
+            }
+        ),
+        cwd=ROOT,
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+    return json.loads(completed.stdout)
+
+
 class RunoffBackendDerivationTests(unittest.TestCase):
     def test_one_pollster_is_insufficient(self):
         result = derive_closest_tested_runoff(
@@ -678,6 +856,82 @@ class RunoffFrontendContractTests(unittest.TestCase):
             'aria-controls="polling-evidence-lab"',
         ):
             self.assertIn(contract, output["html"])
+
+
+class RunoffActiveLoadIsolationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.payload = derive_closest_tested_runoff(
+            qualifying_events({"Ifop": (4, 8), "Ipsos": (5, 9)})
+        )
+        cls.payload["disclosure"] = "Source-reported second-round observations."
+
+    def test_valid_payload_is_published_before_successful_legacy_render(self):
+        output = run_runoff_loader(self.payload)
+        self.assertEqual(output["runoffState"], "loaded")
+        self.assertEqual(output["runoff"], self.payload)
+        self.assertEqual(output["updatedAt"], "2026-07-02")
+        self.assertEqual(output["publishedPayloads"], [self.payload])
+        self.assertEqual(output["legacyCalls"], [{
+            "payload": self.payload,
+            "state": "loaded",
+            "publishedCount": 1,
+        }])
+        self.assertEqual(output["events"], [{"name": "runoff", "status": "loaded"}])
+        self.assertEqual(output["documentRunoffReady"], "agree")
+        self.assertEqual(output["warnings"], [])
+        self.assertTrue(output["otherStateUnchanged"])
+
+    def test_legacy_render_failure_does_not_reclassify_valid_payload(self):
+        output = run_runoff_loader(self.payload, legacy_throws=True)
+        self.assertEqual(output["runoffState"], "loaded")
+        self.assertEqual(output["runoff"], self.payload)
+        self.assertEqual(output["updatedAt"], "2026-07-02")
+        self.assertEqual(output["publishedPayloads"], [self.payload])
+        self.assertEqual(output["events"], [{"name": "runoff", "status": "loaded"}])
+        self.assertEqual(output["errorStates"], [])
+        self.assertTrue(output["otherStateUnchanged"])
+        self.assertEqual(output["legacyCalls"][0]["state"], "loaded")
+        self.assertEqual(output["legacyCalls"][0]["publishedCount"], 1)
+        self.assertIsNone(output["documentRunoffReady"])
+        self.assertIn("Legacy runoff card unavailable.", output["warnings"][0])
+        self.assertIn("synthetic legacy render failure", output["warnings"][0])
+
+    def test_invalid_payload_keeps_existing_unavailable_behavior(self):
+        output = run_runoff_loader({})
+        self.assertEqual(output["runoffState"], "error")
+        self.assertIsNone(output["runoff"])
+        self.assertEqual(output["events"], [{"name": "runoff", "status": "error"}])
+        self.assertEqual(output["publishedPayloads"], [])
+        self.assertEqual(output["legacyCalls"], [])
+        self.assertEqual(output["documentRunoffReady"], "error")
+        self.assertIn("Runoff comparison unavailable", output["unavailableHtml"])
+        self.assertEqual(output["errorStates"], ["runoff"])
+        self.assertTrue(output["otherStateUnchanged"])
+
+    def test_invalid_json_keeps_existing_unavailable_behavior(self):
+        output = run_runoff_loader(None, fetch_mode="invalid-json")
+        self.assertEqual(output["runoffState"], "error")
+        self.assertIsNone(output["runoff"])
+        self.assertEqual(output["events"], [{"name": "runoff", "status": "error"}])
+        self.assertEqual(output["publishedPayloads"], [])
+        self.assertEqual(output["legacyCalls"], [])
+        self.assertEqual(output["documentRunoffReady"], "error")
+        self.assertIn("Runoff comparison unavailable", output["unavailableHtml"])
+        self.assertEqual(output["errorStates"], ["runoff"])
+        self.assertTrue(output["otherStateUnchanged"])
+
+    def test_failed_fetch_keeps_existing_unavailable_behavior(self):
+        output = run_runoff_loader(None, fetch_mode="reject")
+        self.assertEqual(output["runoffState"], "error")
+        self.assertIsNone(output["runoff"])
+        self.assertEqual(output["events"], [{"name": "runoff", "status": "error"}])
+        self.assertEqual(output["publishedPayloads"], [])
+        self.assertEqual(output["legacyCalls"], [])
+        self.assertEqual(output["documentRunoffReady"], "error")
+        self.assertIn("Runoff comparison unavailable", output["unavailableHtml"])
+        self.assertEqual(output["errorStates"], ["runoff"])
+        self.assertTrue(output["otherStateUnchanged"])
 
 
 class RunoffIsolationAndStaticContractTests(unittest.TestCase):
