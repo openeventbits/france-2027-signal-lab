@@ -308,18 +308,31 @@ class PublicationManifestTests(unittest.TestCase):
         manifest = self.build()
         lane = manifest["lanes"]["candidate_signals"]
         source = self.root / "candidate_signals.json"
-        source_payload = json.loads(source.read_text(encoding="utf-8"))
+        source_payload = json.loads(
+            source.read_text(encoding="utf-8")
+        )
         self.assertEqual(lane["file"], "candidate_signals.json")
         self.assertEqual(
             lane["sha256"],
             hashlib.sha256(source.read_bytes()).hexdigest(),
         )
-        self.assertEqual(lane["record_count"], len(source_payload["candidates"]))
+        self.assertEqual(
+            lane["record_count"],
+            len(source_payload["candidates"]),
+        )
         self.assertEqual(
             lane["record_count"],
             source_payload["candidate_universe"]["count"],
         )
-        self.assertEqual(
+
+        evidence_dates = [
+            value
+            for value in source_payload["evidence_dates"].values()
+            if value is not None
+        ]
+        self.assertTrue(evidence_dates)
+        self.assertEqual(lane["data_as_of"], max(evidence_dates))
+        self.assertLessEqual(
             lane["data_as_of"],
             source_payload["candidate_universe"]["as_of_date"],
         )

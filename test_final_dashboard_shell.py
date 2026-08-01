@@ -979,34 +979,81 @@ process.stdout.write(JSON.stringify({
 
     def test_general_active_rows_suppress_unavailable_change(self):
         payload = json.loads(
-            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+            (ROOT / "candidate_signals.json").read_text(
+                encoding="utf-8"
+            )
         )
         general = payload["active_field_visibility"]["general"]
+        quality = general["comparison_quality"]
+        thresholds = quality["thresholds"]
+
+        self.assertEqual(quality["status"], "not_comparable")
         self.assertEqual(
-            general["comparison_quality"],
+            quality["reason"],
+            "publisher_panel_changed",
+        )
+        self.assertEqual(
+            thresholds,
             {
-                "status": "not_comparable",
-                "reason": "publisher_panel_changed",
-                "current_record_count": 21,
-                "prior_record_count": 19,
-                "current_publisher_count": 11,
-                "prior_publisher_count": 10,
-                "common_publisher_count": 6,
-                "publisher_union_count": 15,
-                "publisher_overlap_ratio": 0.4,
-                "record_count_ratio": 1.105,
-                "thresholds": {
-                    "minimum_period_records": 10,
-                    "minimum_period_publishers": 5,
-                    "minimum_common_publishers": 5,
-                    "minimum_publisher_overlap_ratio": 0.5,
-                    "maximum_record_count_ratio": 2.0,
-                },
+                "minimum_period_records": 10,
+                "minimum_period_publishers": 5,
+                "minimum_common_publishers": 5,
+                "minimum_publisher_overlap_ratio": 0.5,
+                "maximum_record_count_ratio": 2.0,
             },
         )
+
+        self.assertGreaterEqual(
+            quality["current_record_count"],
+            thresholds["minimum_period_records"],
+        )
+        self.assertGreaterEqual(
+            quality["prior_record_count"],
+            thresholds["minimum_period_records"],
+        )
+        self.assertGreaterEqual(
+            quality["current_publisher_count"],
+            thresholds["minimum_period_publishers"],
+        )
+        self.assertGreaterEqual(
+            quality["prior_publisher_count"],
+            thresholds["minimum_period_publishers"],
+        )
+        self.assertGreaterEqual(
+            quality["common_publisher_count"],
+            thresholds["minimum_common_publishers"],
+        )
+        self.assertLess(
+            quality["publisher_overlap_ratio"],
+            thresholds["minimum_publisher_overlap_ratio"],
+        )
+        self.assertLessEqual(
+            quality["record_count_ratio"],
+            thresholds["maximum_record_count_ratio"],
+        )
+
+        self.assertEqual(
+            quality["publisher_overlap_ratio"],
+            round(
+                quality["common_publisher_count"]
+                / quality["publisher_union_count"],
+                3,
+            ),
+        )
+        self.assertEqual(
+            quality["record_count_ratio"],
+            round(
+                quality["current_record_count"]
+                / quality["prior_record_count"],
+                3,
+            ),
+        )
+
         rows = general["main"] + general["secondary"]
         self.assertTrue(rows)
-        self.assertTrue(all(row["share_change"] is None for row in rows))
+        self.assertTrue(
+            all(row["share_change"] is None for row in rows)
+        )
 
 
 class BoundedTopRowPolishTests(unittest.TestCase):

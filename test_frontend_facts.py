@@ -46,29 +46,73 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             'fetch("publication_manifest.json", { cache: "no-store" })',
             self.index,
         )
-        self.assertIn("function validatePublicationManifestPayload(", self.index)
-        self.assertIn("function loadPublicationManifest(", self.index)
+        self.assertIn(
+            "function validatePublicationManifestPayload(",
+            self.index,
+        )
+        self.assertIn(
+            "function loadPublicationManifest(",
+            self.index,
+        )
         self.assertIn("loadPublicationManifest();", self.index)
         self.assertTrue(
-            MANIFEST_PATH.exists(),
+            MANIFEST_PATH.is_file(),
             "publication_manifest.json must be a published static artifact",
         )
 
+        validator = self.index[
+            self.index.index(
+                "function validatePublicationManifestPayload("
+            ):
+            self.index.index(
+                "function loadPublicationManifest("
+            )
+        ]
+        manifest = json.loads(
+            MANIFEST_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual(manifest["schema_version"], "1.2")
+        self.assertIn(
+            'payload.schema_version !== "1.2"',
+            validator,
+        )
+        self.assertNotIn(
+            'payload.schema_version !== "1.0"',
+            validator,
+        )
+
     def test_publication_facts_version_active_field_snapshot(self):
-        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        manifest = json.loads(
+            MANIFEST_PATH.read_text(encoding="utf-8")
+        )
         candidate = json.loads(
             CANDIDATE_SIGNALS_PATH.read_text(encoding="utf-8")
         )
         lane = manifest["lanes"]["candidate_signals"]
         self.assertEqual(manifest["schema_version"], "1.2")
-        self.assertEqual(lane["schema_version"], candidate["schema_version"])
+        self.assertEqual(
+            lane["schema_version"],
+            candidate["schema_version"],
+        )
         self.assertEqual(candidate["schema_version"], "1.2")
         self.assertEqual(lane["file"], "candidate_signals.json")
-        self.assertEqual(lane["record_count"], len(candidate["candidates"]))
         self.assertEqual(
+            lane["record_count"],
+            len(candidate["candidates"]),
+        )
+
+        evidence_dates = [
+            value
+            for value in candidate["evidence_dates"].values()
+            if value is not None
+        ]
+        self.assertTrue(evidence_dates)
+        self.assertEqual(lane["data_as_of"], max(evidence_dates))
+        self.assertLessEqual(
             lane["data_as_of"],
             candidate["candidate_universe"]["as_of_date"],
         )
+
         active = candidate["active_field_visibility"]
         self.assertEqual(
             active["method"],
@@ -82,8 +126,14 @@ class FrontendPublicationFactsTests(unittest.TestCase):
                 ("prior", "prior_period"),
             ):
                 period = scope[period_name]
-                self.assertIsInstance(period["record_count"], int)
-                self.assertGreaterEqual(period["record_count"], 0)
+                self.assertIsInstance(
+                    period["record_count"],
+                    int,
+                )
+                self.assertGreaterEqual(
+                    period["record_count"],
+                    0,
+                )
                 self.assertEqual(
                     quality[f"{prefix}_record_count"],
                     period["record_count"],
