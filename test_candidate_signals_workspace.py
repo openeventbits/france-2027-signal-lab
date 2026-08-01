@@ -360,13 +360,68 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             1,
         )
 
-    def test_normalized_source_order_and_default_selection(self):
-        result = run_workspace(payload(self.rows))
-        expected = ["zeta", "alpha", "middle"]
+    def test_monitor_orders_point_scores_then_range_only_then_not_tested(self):
+        def row(identifier, score=None, state="reported"):
+            value = json.loads(json.dumps(self.rows[0]))
+            value["candidate_id"] = identifier
+            value["candidate_name"] = identifier.replace("-", " ").title()
+            polling = value["polling"]
+
+            if state == "reported":
+                polling.update(
+                    {
+                        "evidence_state": "reported",
+                        "hypothesis_count": 1,
+                        "range_min": score if score is not None else 4.0,
+                        "range_max": score if score is not None else 6.0,
+                        "selected_hypothesis_score": score,
+                        "selected_hypothesis_rank": (
+                            1 if score is not None else None
+                        ),
+                    }
+                )
+            else:
+                polling.update(
+                    {
+                        "evidence_state": "not_tested",
+                        "hypothesis_count": None,
+                        "range_min": None,
+                        "range_max": None,
+                        "selected_hypothesis_score": None,
+                        "selected_hypothesis_rank": None,
+                    }
+                )
+
+            return value
+
+        rows = [
+            row("low-score", 5),
+            row("equal-a", 10),
+            row("range-only"),
+            row("equal-b", 10),
+            row("not-tested", state="not_tested"),
+        ]
+
+        result = run_workspace(payload(rows))
+        expected = [
+            "equal-a",
+            "equal-b",
+            "low-score",
+            "range-only",
+            "not-tested",
+        ]
+
         self.assertEqual(result["candidateOrder"], expected)
-        self.assertEqual(result["resolved"], "zeta")
-        self.assertEqual(result["pressed"], ["true", "false", "false"])
+        self.assertEqual(result["resolved"], "equal-a")
+        self.assertEqual(
+            result["pressed"],
+            ["true", "false", "false", "false", "false"],
+        )
         self.assertNotIn(".sort(", self.workspace_js)
+        self.assertIn(
+            "function orderWorkspaceCandidates(candidates)",
+            self.workspace_js,
+        )
 
     def test_only_active_main_and_secondary_candidates_are_rendered(self):
         published = json.loads(
@@ -378,22 +433,69 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             *published["presidential_field"]["main"],
             *published["presidential_field"]["secondary"],
         }
-        expected = [
-            candidate["candidate_id"]
+        source_active = [
+            candidate
             for candidate in published["candidates"]
             if candidate["candidate_id"] in active_ids
         ]
+        by_id = {
+            candidate["candidate_id"]: candidate
+            for candidate in source_active
+        }
 
         self.assertEqual(
-            len(expected),
+            len(result["candidateOrder"]),
             published["presidential_field"]["counts"]["active"],
         )
-        self.assertEqual(len(result["candidateOrder"]), 18)
-        self.assertEqual(result["candidateOrder"], expected)
-        self.assertEqual(result["monitorListCount"], 1)
-        self.assertFalse(
-            set(published["presidential_field"]["hidden"])
-            & set(result["candidateOrder"])
+        self.assertEqual(set(result["candidateOrder"]), active_ids)
+
+        groups = []
+        point_scores = []
+        range_only = []
+        not_tested = []
+
+        for identifier in result["candidateOrder"]:
+            polling = by_id[identifier]["polling"]
+            score = polling["selected_hypothesis_score"]
+
+            if (
+                polling["evidence_state"] == "reported"
+                and isinstance(score, (int, float))
+            ):
+                groups.append(0)
+                point_scores.append(float(score))
+            elif polling["evidence_state"] == "reported":
+                groups.append(1)
+                range_only.append(identifier)
+            else:
+                groups.append(2)
+                not_tested.append(identifier)
+
+        source_range_only = [
+            candidate["candidate_id"]
+            for candidate in source_active
+            if (
+                candidate["polling"]["evidence_state"] == "reported"
+                and candidate["polling"]["selected_hypothesis_score"]
+                is None
+            )
+        ]
+        source_not_tested = [
+            candidate["candidate_id"]
+            for candidate in source_active
+            if candidate["polling"]["evidence_state"] != "reported"
+        ]
+
+        self.assertEqual(groups, sorted(groups))
+        self.assertEqual(
+            point_scores,
+            sorted(point_scores, reverse=True),
+        )
+        self.assertEqual(range_only, source_range_only)
+        self.assertEqual(not_tested, source_not_tested)
+        self.assertEqual(
+            result["resolved"],
+            result["candidateOrder"][0],
         )
 
     def test_valid_active_selection_is_preserved_and_hidden_falls_back(self):
@@ -418,10 +520,18 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
 
         self.assertEqual(preserved["resolved"], preserved_id)
         self.assertEqual(len(preserved["pressed"]), 18)
-        self.assertEqual(hidden["resolved"], active_ids[0])
-        self.assertEqual(invalid["resolved"], active_ids[0])
-        self.assertEqual(hidden["pressed"][0], "true")
-        self.assertNotIn(hidden_id, hidden["candidateOrder"])
+        self.assertEqual(
+            hidden["resolved"],
+            hidden["candidateOrder"][0],
+        )
+        self.assertEqual(
+            invalid["resolved"],
+            invalid["candidateOrder"][0],
+        )
+        self.assertEqual(
+            hidden["candidateOrder"],
+            invalid["candidateOrder"],
+        )
 
     def test_selection_updates_dossier_without_reordering(self):
         result = run_workspace(payload(self.rows), action="click-second")
@@ -620,20 +730,79 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             self.workspace_js,
         )
 
+    def test_not_tested_polling_uses_poll_specific_copy(self):
+        source = payload(self.rows)
+        selected_id = source["candidates"][0]["candidate_id"]
+        source["candidates"][0]["polling"].update(
+            {
+                "evidence_state": "not_tested",
+                "hypothesis_count": None,
+                "range_min": None,
+                "range_max": None,
+                "selected_hypothesis_score": None,
+                "selected_hypothesis_rank": None,
+            }
+        )
+
+        result = run_workspace(source, selected_id)
+        text = result["text"]
+
+        self.assertEqual(result["resolved"], selected_id)
+        self.assertIn("POLL EVIDENCENot tested", text)
+        self.assertIn("Point estimateNot tested", text)
+        self.assertIn("Published rangeNot tested", text)
+        self.assertIn("Not tested in featured package", text)
+        self.assertIn(
+            "No accepted first-round test in the current polling window.",
+            text,
+        )
+        self.assertNotIn("Point estimateNot published", text)
+        self.assertNotIn("Published rangeNot published", text)
+        self.assertIn(
+            'const NOT_TESTED = "Not tested";',
+            self.workspace_js,
+        )
+        self.assertIn(
+            'pollText === MISSING || pollText === NOT_TESTED',
+            self.workspace_js,
+        )
+
     def test_unpublished_fields_are_not_zero_and_published_zero_remains(self):
         source = payload(self.rows)
+        selected_id = source["candidates"][0]["candidate_id"]
         source["candidates"][0]["general_visibility"] = None
-        result = run_workspace(source)
+        result = run_workspace(source, selected_id)
+
+        self.assertEqual(result["resolved"], selected_id)
         self.assertIn("Not published", result["text"])
         self.assertIn("Point estimate0%", result["text"])
-        self.assertIn("Campaign / election0 records · 0%", result["text"])
+        self.assertIn(
+            "Campaign / election0 records · 0%",
+            result["text"],
+        )
 
         range_only = payload(self.rows)
+        range_selected_id = range_only["candidates"][0]["candidate_id"]
         range_only["candidates"][0]["polling"][
             "selected_hypothesis_score"
         ] = None
-        range_result = run_workspace(range_only)
-        self.assertIn("Point estimateRange only", range_result["text"])
+        range_only["candidates"][0]["polling"][
+            "selected_hypothesis_rank"
+        ] = None
+
+        range_result = run_workspace(
+            range_only,
+            range_selected_id,
+        )
+
+        self.assertEqual(
+            range_result["resolved"],
+            range_selected_id,
+        )
+        self.assertIn(
+            "Point estimateRange only",
+            range_result["text"],
+        )
 
     def test_visibility_composition_and_scrutiny_dimensions_remain_separate(self):
         result = run_workspace(payload(self.rows))
