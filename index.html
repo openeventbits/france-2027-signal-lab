@@ -9284,7 +9284,6 @@
         renderRunoffContext(payload);
       }
       document.documentElement.dataset.runoffReady = payload.status;
-      markDataset("runoff", "loaded", payload, payload.fieldwork_window?.end || "");
     }
 
     function loadClosestRunoff() {
@@ -9293,7 +9292,15 @@
           if (!response.ok) throw new Error(`closest_tested_runoff.json returned HTTP ${response.status}`);
           return response.json();
         })
-        .then(renderClosestRunoff)
+        .then(validateClosestRunoffPayload)
+        .then(payload => {
+          markDataset("runoff", "loaded", payload, payload.fieldwork_window?.end || "");
+          try {
+            renderClosestRunoff(payload);
+          } catch (error) {
+            console.warn("Legacy runoff card unavailable.", error);
+          }
+        })
         .catch(error => {
           $("#closest-runoff-status").hidden = false;
           $("#closest-runoff-status").className = "runoff-status is-insufficient";
