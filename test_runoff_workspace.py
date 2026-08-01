@@ -300,7 +300,7 @@ def run_runoff_loader(
     script = r'''
 const fs = require("fs");
 const vm = require("vm");
-const source = fs.readFileSync("index.html", "utf8");
+const source = fs.readFileSync("index.html", "utf8").replace(/\r\n?/g, "\n");
 const input = JSON.parse(fs.readFileSync(0, "utf8"));
 const extract = (startMarker, endMarker) => {
   const start = source.indexOf(startMarker);
