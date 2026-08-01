@@ -771,54 +771,36 @@ class FinalDashboardShellTests(unittest.TestCase):
             "active_field_visibility"
         ]["primary"]
 
-        self.assertEqual(
-            primary["comparison_quality"]["status"],
-            "not_comparable",
-        )
-        self.assertEqual(
-            primary["comparison_quality"]["reason"],
-            "publisher_panel_changed",
-        )
-
+        quality = primary["comparison_quality"]
         rows = primary["main"] + primary["secondary"]
         self.assertTrue(rows)
-        self.assertTrue(
-            all(
-                row["share_change"] is None
-                for row in rows
+        current_count = primary["current_period"]["record_count"]
+        prior_count = primary["prior_period"]["record_count"]
+        round_ratio = lambda value: int(value * 1000 + 0.5) / 1000
+        for row in rows:
+            expected_current = (
+                round_ratio(row["current_record_count"] / current_count)
+                if current_count
+                else None
             )
-        )
-
-        by_id = {
-            row["candidate_id"]: row
-            for row in rows
-        }
-
-        expected_raw_pp = {
-            "gabriel-attal": -3.9,
-            "marine-le-pen": 4.1,
-            "dominique-de-villepin": 15.7,
-            "marine-tondelier": -2.9,
-        }
-
-        for candidate_id, expected in expected_raw_pp.items():
-            row = by_id[candidate_id]
-            actual = round(
-                (
-                    row["current_share"]
-                    - row["prior_share"]
-                ) * 100,
-                1,
+            expected_prior = (
+                round_ratio(row["prior_record_count"] / prior_count)
+                if prior_count
+                else None
             )
-            self.assertEqual(actual, expected)
-
-        self.assertNotIn(
-            "sarah-knafo",
-            {row["candidate_id"] for row in rows},
-        )
-        self.assertNotIn(
-            "sebastien-lecornu",
-            {row["candidate_id"] for row in rows},
+            self.assertEqual(row["current_share"], expected_current)
+            self.assertEqual(row["prior_share"], expected_prior)
+            if (
+                quality["status"] == "comparable"
+                and expected_current is not None
+                and expected_prior is not None
+            ):
+                self.assertIsNotNone(row["share_change"])
+            else:
+                self.assertIsNone(row["share_change"])
+        self.assertFalse(
+            set(payload["presidential_field"]["hidden"])
+            & {row["candidate_id"] for row in rows}
         )
 
         renderer = self.js[
@@ -997,34 +979,81 @@ process.stdout.write(JSON.stringify({
 
     def test_general_active_rows_suppress_unavailable_change(self):
         payload = json.loads(
-            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+            (ROOT / "candidate_signals.json").read_text(
+                encoding="utf-8"
+            )
         )
         general = payload["active_field_visibility"]["general"]
+        quality = general["comparison_quality"]
+        thresholds = quality["thresholds"]
+
+        self.assertEqual(quality["status"], "not_comparable")
         self.assertEqual(
-            general["comparison_quality"],
+            quality["reason"],
+            "publisher_panel_changed",
+        )
+        self.assertEqual(
+            thresholds,
             {
-                "status": "not_comparable",
-                "reason": "publisher_panel_changed",
-                "current_record_count": 21,
-                "prior_record_count": 19,
-                "current_publisher_count": 11,
-                "prior_publisher_count": 10,
-                "common_publisher_count": 6,
-                "publisher_union_count": 15,
-                "publisher_overlap_ratio": 0.4,
-                "record_count_ratio": 1.105,
-                "thresholds": {
-                    "minimum_period_records": 10,
-                    "minimum_period_publishers": 5,
-                    "minimum_common_publishers": 5,
-                    "minimum_publisher_overlap_ratio": 0.5,
-                    "maximum_record_count_ratio": 2.0,
-                },
+                "minimum_period_records": 10,
+                "minimum_period_publishers": 5,
+                "minimum_common_publishers": 5,
+                "minimum_publisher_overlap_ratio": 0.5,
+                "maximum_record_count_ratio": 2.0,
             },
         )
+
+        self.assertGreaterEqual(
+            quality["current_record_count"],
+            thresholds["minimum_period_records"],
+        )
+        self.assertGreaterEqual(
+            quality["prior_record_count"],
+            thresholds["minimum_period_records"],
+        )
+        self.assertGreaterEqual(
+            quality["current_publisher_count"],
+            thresholds["minimum_period_publishers"],
+        )
+        self.assertGreaterEqual(
+            quality["prior_publisher_count"],
+            thresholds["minimum_period_publishers"],
+        )
+        self.assertGreaterEqual(
+            quality["common_publisher_count"],
+            thresholds["minimum_common_publishers"],
+        )
+        self.assertLess(
+            quality["publisher_overlap_ratio"],
+            thresholds["minimum_publisher_overlap_ratio"],
+        )
+        self.assertLessEqual(
+            quality["record_count_ratio"],
+            thresholds["maximum_record_count_ratio"],
+        )
+
+        self.assertEqual(
+            quality["publisher_overlap_ratio"],
+            round(
+                quality["common_publisher_count"]
+                / quality["publisher_union_count"],
+                3,
+            ),
+        )
+        self.assertEqual(
+            quality["record_count_ratio"],
+            round(
+                quality["current_record_count"]
+                / quality["prior_record_count"],
+                3,
+            ),
+        )
+
         rows = general["main"] + general["secondary"]
         self.assertTrue(rows)
-        self.assertTrue(all(row["share_change"] is None for row in rows))
+        self.assertTrue(
+            all(row["share_change"] is None for row in rows)
+        )
 
 
 class BoundedTopRowPolishTests(unittest.TestCase):

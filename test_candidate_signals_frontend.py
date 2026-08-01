@@ -961,27 +961,37 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
             [candidate["candidate_id"] for candidate in payload["candidates"]],
         )
         active = state["metadata"]["activeFieldVisibility"]
+        self.assertEqual(active, payload["active_field_visibility"])
         self.assertEqual(active["method"], "share_of_active_candidate_linked_records")
-        self.assertEqual(active["primary"]["current_period"]["record_count"], 118)
-        self.assertEqual(active["primary"]["prior_period"]["record_count"], 82)
-        self.assertEqual(active["general"]["current_period"]["record_count"], 21)
-        self.assertEqual(active["general"]["prior_period"]["record_count"], 19)
+        self.assertEqual(
+            active["denominator_scope"],
+            "records_linked_to_at_least_one_main_or_secondary_candidate",
+        )
         for scope_name in ("primary", "general"):
+            scope = active[scope_name]
+            quality = scope["comparison_quality"]
             self.assertEqual(
-                active[scope_name]["comparison_quality"]["status"],
-                "not_comparable",
+                quality["current_record_count"],
+                scope["current_period"]["record_count"],
             )
             self.assertEqual(
-                active[scope_name]["comparison_quality"]["reason"],
-                "publisher_panel_changed",
+                quality["prior_record_count"],
+                scope["prior_period"]["record_count"],
             )
-            self.assertTrue(
-                all(
-                    row["share_change"] is None
-                    for tier in ("main", "secondary")
-                    for row in active[scope_name][tier]
+            if quality["status"] == "comparable":
+                self.assertEqual(quality["reason"], "comparable")
+            else:
+                self.assertIn(
+                    quality["reason"],
+                    {"insufficient_data", "publisher_panel_changed"},
                 )
-            )
+                self.assertTrue(
+                    all(
+                        row["share_change"] is None
+                        for tier in ("main", "secondary")
+                        for row in scope[tier]
+                    )
+                )
 
     def test_schema_12_rejects_invalid_tier_membership_counts_and_eligibility(self):
         base = json.loads(

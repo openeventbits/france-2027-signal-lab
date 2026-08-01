@@ -308,59 +308,153 @@ class PublicationManifestTests(unittest.TestCase):
         manifest = self.build()
         lane = manifest["lanes"]["candidate_signals"]
         source = self.root / "candidate_signals.json"
+        source_payload = json.loads(
+            source.read_text(encoding="utf-8")
+        )
         self.assertEqual(lane["file"], "candidate_signals.json")
         self.assertEqual(
             lane["sha256"],
             hashlib.sha256(source.read_bytes()).hexdigest(),
         )
-        self.assertEqual(lane["record_count"], 20)
-        self.assertEqual(lane["data_as_of"], "2026-07-31")
+        self.assertEqual(
+            lane["record_count"],
+            len(source_payload["candidates"]),
+        )
+        self.assertEqual(
+            lane["record_count"],
+            source_payload["candidate_universe"]["count"],
+        )
+
+        evidence_dates = [
+            value
+            for value in source_payload["evidence_dates"].values()
+            if value is not None
+        ]
+        self.assertTrue(evidence_dates)
+        self.assertEqual(lane["data_as_of"], max(evidence_dates))
+        self.assertLessEqual(
+            lane["data_as_of"],
+            source_payload["candidate_universe"]["as_of_date"],
+        )
 
     def test_active_field_projection_matches_record_level_news(self):
         payload = self.candidate_payload()
+        news = json.loads(
+            (self.root / "news_wire.json").read_text(encoding="utf-8")
+        )
         active = payload["active_field_visibility"]
-        primary = active["primary"]
-        general = active["general"]
-        self.assertEqual(
-            (primary["current_period"]["record_count"], primary["prior_period"]["record_count"]),
-            (118, 82),
-        )
-        self.assertEqual(
-            (general["current_period"]["record_count"], general["prior_period"]["record_count"]),
-            (21, 19),
-        )
-        self.assertEqual(
-            (primary["current_period"]["publisher_count"], primary["prior_period"]["publisher_count"]),
-            (54, 44),
-        )
-        self.assertEqual(
-            (general["current_period"]["publisher_count"], general["prior_period"]["publisher_count"]),
-            (11, 10),
-        )
-        expected_quality = {
-            "primary": (32, 66, 0.485, 1.439),
-            "general": (6, 15, 0.4, 1.105),
+        field = payload["presidential_field"]
+        active_names = {
+            candidate["candidate_name"]
+            for candidate in payload["candidates"]
+            if candidate["candidacy"]["active_field_eligible"]
         }
-        for scope_name, scope in (("primary", primary), ("general", general)):
+        scope_rules = {
+            "primary": {"election", "campaign"},
+            "general": {"general"},
+        }
+        for scope_name, coverage_scopes in scope_rules.items():
+            scope = active[scope_name]
+            publishers_by_period = {}
+            for period_name in ("current_period", "prior_period"):
+                period = scope[period_name]
+                matching = [
+                    record for record in news["candidate_watch"]
+                    if period["start_date"] <= record["published_at"][:10] <= period["end_date"]
+                    and record["coverage_scope"] in coverage_scopes
+                    and active_names & set(record["candidates"])
+                ]
+                records_by_id = {record["id"]: record for record in matching}
+                self.assertEqual(len(records_by_id), len(matching))
+                publishers = {
+                    record["publisher"]
+                    for record in records_by_id.values()
+                }
+                publishers_by_period[period_name] = publishers
+                self.assertEqual(period["record_count"], len(records_by_id))
+                self.assertEqual(period["publisher_count"], len(publishers))
+            current = scope["current_period"]
+            prior = scope["prior_period"]
+            current_publishers = publishers_by_period["current_period"]
+            prior_publishers = publishers_by_period["prior_period"]
+            common = len(current_publishers & prior_publishers)
+            publisher_union = len(current_publishers | prior_publishers)
+            round_ratio = lambda value: int(value * 1000 + 0.5) / 1000
+            round_signed = lambda value: (
+                int(value * 1000 + 0.5) / 1000
+                if value >= 0
+                else -int(-value * 1000 + 0.5) / 1000
+            )
+            overlap = round_ratio(common / publisher_union) if publisher_union else 0.0
+            record_ratio = (
+                round_ratio(
+                    max(current["record_count"], prior["record_count"])
+                    / min(current["record_count"], prior["record_count"])
+                )
+                if current["record_count"] and prior["record_count"]
+                else None
+            )
             quality = scope["comparison_quality"]
-            self.assertEqual(quality["status"], "not_comparable")
-            self.assertEqual(quality["reason"], "publisher_panel_changed")
-            common, publisher_union, overlap, record_ratio = expected_quality[scope_name]
+            self.assertEqual(quality["current_record_count"], current["record_count"])
+            self.assertEqual(quality["prior_record_count"], prior["record_count"])
+            self.assertEqual(quality["current_publisher_count"], len(current_publishers))
+            self.assertEqual(quality["prior_publisher_count"], len(prior_publishers))
             self.assertEqual(quality["common_publisher_count"], common)
             self.assertEqual(quality["publisher_union_count"], publisher_union)
             self.assertEqual(quality["publisher_overlap_ratio"], overlap)
             self.assertEqual(quality["record_count_ratio"], record_ratio)
-            self.assertTrue(all(
-                row["share_change"] is None
-                for tier in ("main", "secondary")
-                for row in scope[tier]
-            ))
-        self.assertEqual(len(primary["main"]), 11)
-        self.assertEqual(len(primary["secondary"]), 7)
-        self.assertFalse(
-            {"sarah-knafo", "sebastien-lecornu"}
-            & {row["candidate_id"] for tier in ("main", "secondary") for row in primary[tier]}
-        )
+            thresholds = quality["thresholds"]
+            if (
+                current["record_count"] < thresholds["minimum_period_records"]
+                or prior["record_count"] < thresholds["minimum_period_records"]
+                or len(current_publishers) < thresholds["minimum_period_publishers"]
+                or len(prior_publishers) < thresholds["minimum_period_publishers"]
+                or common < thresholds["minimum_common_publishers"]
+            ):
+                expected_quality = ("not_comparable", "insufficient_data")
+            elif (
+                overlap < thresholds["minimum_publisher_overlap_ratio"]
+                or record_ratio is None
+                or record_ratio > thresholds["maximum_record_count_ratio"]
+            ):
+                expected_quality = ("not_comparable", "publisher_panel_changed")
+            else:
+                expected_quality = ("comparable", "comparable")
+            self.assertEqual(
+                (quality["status"], quality["reason"]),
+                expected_quality,
+            )
+            self.assertEqual(
+                {row["candidate_id"] for row in scope["main"]},
+                set(field["main"]),
+            )
+            self.assertEqual(
+                {row["candidate_id"] for row in scope["secondary"]},
+                set(field["secondary"]),
+            )
+            rows = scope["main"] + scope["secondary"]
+            self.assertFalse(set(field["hidden"]) & {row["candidate_id"] for row in rows})
+            for row in rows:
+                expected_current = (
+                    round_ratio(row["current_record_count"] / current["record_count"])
+                    if current["record_count"]
+                    else None
+                )
+                expected_prior = (
+                    round_ratio(row["prior_record_count"] / prior["record_count"])
+                    if prior["record_count"]
+                    else None
+                )
+                self.assertEqual(row["current_share"], expected_current)
+                self.assertEqual(row["prior_share"], expected_prior)
+                expected_change = (
+                    round_signed(expected_current - expected_prior)
+                    if quality["status"] == "comparable"
+                    and expected_current is not None
+                    and expected_prior is not None
+                    else None
+                )
+                self.assertEqual(row["share_change"], expected_change)
 
     def test_active_projection_structural_mutations_fail(self):
         mutations = []
