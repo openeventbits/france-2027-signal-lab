@@ -619,7 +619,12 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         lane = self.build()["lanes"]["candidate_signals"]
         self.assertTrue(lane["valid"])
-        self.assertEqual(lane["data_as_of"], "2026-07-31")
+        expected_data_as_of = max(
+            value
+            for value in payload["evidence_dates"].values()
+            if value is not None
+        )
+        self.assertEqual(lane["data_as_of"], expected_data_as_of)
         self.assertEqual(lane["warnings"], [])
 
     def test_candidate_signals_change_changes_snapshot_id(self):
