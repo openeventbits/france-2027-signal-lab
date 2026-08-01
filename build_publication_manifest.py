@@ -113,6 +113,12 @@ def _sha256(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
+def _canonical_source_bytes(content: bytes) -> bytes:
+    """Return repository publication bytes with platform newlines normalized."""
+
+    return content.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+
 def _read_source(path: Path) -> dict[str, Any]:
     result: dict[str, Any] = {
         "available": False,
@@ -130,9 +136,11 @@ def _read_source(path: Path) -> dict[str, Any]:
         result["error"] = f"{path.name} could not be read: {error}"
         return result
 
+    # Byte metadata stays canonical even when UTF-8 or JSON validation fails.
+    canonical_content = _canonical_source_bytes(content)
     result["available"] = True
-    result["byte_size"] = len(content)
-    result["sha256"] = _sha256(content)
+    result["byte_size"] = len(canonical_content)
+    result["sha256"] = _sha256(canonical_content)
     try:
         result["payload"] = json.loads(content.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as error:

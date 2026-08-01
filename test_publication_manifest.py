@@ -35,6 +35,14 @@ def serialized_manifest(payload):
     )
 
 
+def canonical_newlines(content):
+    return content.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+
+def canonical_source_bytes(path):
+    return canonical_newlines(path.read_bytes())
+
+
 def complete_inputs(root):
     source_news = json.loads(
         (ROOT / "news_wire.json").read_text(encoding="utf-8")
@@ -281,7 +289,7 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertEqual(lane["warnings"], [])
         self.assertEqual(
             lane["sha256"],
-            hashlib.sha256(source.read_bytes()).hexdigest(),
+            hashlib.sha256(canonical_source_bytes(source)).hexdigest(),
         )
 
     def production_inputs_root(self, name):
@@ -291,6 +299,158 @@ class PublicationManifestTests(unittest.TestCase):
             for filename in file_names:
                 shutil.copy2(ROOT / filename, destination / filename)
         return destination
+
+    def manifest_inputs_with_newlines(self, name, newline):
+        destination = self.production_inputs_root(name)
+        for file_names in manifest_builder.LANE_FILES.values():
+            for filename in file_names:
+                source = destination / filename
+                source.write_bytes(
+                    canonical_source_bytes(source).replace(b"\n", newline)
+                )
+        return destination
+
+    def test_lf_and_crlf_sources_have_identical_manifest_metadata(self):
+        lf_root = self.manifest_inputs_with_newlines("lf-inputs", b"\n")
+        crlf_root = self.manifest_inputs_with_newlines(
+            "crlf-inputs", b"\r\n"
+        )
+        crlf_before = {
+            filename: (crlf_root / filename).read_bytes()
+            for file_names in manifest_builder.LANE_FILES.values()
+            for filename in file_names
+        }
+
+        lf_manifest = manifest_builder.build_manifest(
+            lf_root,
+            published_at=PUBLISHED_AT,
+        )
+        crlf_manifest = manifest_builder.build_manifest(
+            crlf_root,
+            published_at=PUBLISHED_AT,
+        )
+
+        self.assertEqual(lf_manifest, crlf_manifest)
+        self.assertEqual(
+            lf_manifest["snapshot_id"], crlf_manifest["snapshot_id"]
+        )
+        self.assertEqual(
+            lf_manifest["lanes"]["campaign_events"]["byte_size"],
+            crlf_manifest["lanes"]["campaign_events"]["byte_size"],
+        )
+        self.assertEqual(
+            crlf_before,
+            {
+                filename: (crlf_root / filename).read_bytes()
+                for file_names in manifest_builder.LANE_FILES.values()
+                for filename in file_names
+            },
+        )
+
+    def test_lone_cr_sources_match_lf_manifest_metadata(self):
+        lf_root = self.manifest_inputs_with_newlines("lone-cr-lf", b"\n")
+        cr_root = self.manifest_inputs_with_newlines("lone-cr", b"\r")
+
+        self.assertEqual(
+            manifest_builder.build_manifest(lf_root, published_at=PUBLISHED_AT),
+            manifest_builder.build_manifest(cr_root, published_at=PUBLISHED_AT),
+        )
+
+    def test_non_newline_byte_changes_remain_digest_significant(self):
+        baseline = self.build()
+
+        def assert_changed(filename, lane_name, content):
+            source = self.root / filename
+            original = source.read_bytes()
+            source.write_bytes(content)
+            try:
+                changed = self.build()
+            finally:
+                source.write_bytes(original)
+            self.assertNotEqual(
+                changed["lanes"][lane_name]["sha256"],
+                baseline["lanes"][lane_name]["sha256"],
+            )
+            self.assertNotEqual(changed["snapshot_id"], baseline["snapshot_id"])
+
+        polls_path = self.root / "polls.json"
+        polls = json.loads(polls_path.read_text(encoding="utf-8"))
+        changed_value = json.loads(json.dumps(polls))
+        changed_value[-1]["fieldwork_end"] = "2026-07-11"
+        assert_changed(
+            "polls.json",
+            "polls",
+            json.dumps(changed_value, ensure_ascii=False).encode("utf-8"),
+        )
+        assert_changed(
+            "polls.json",
+            "polls",
+            json.dumps(
+                polls,
+                ensure_ascii=False,
+                separators=(",", ":"),
+            ).encode("utf-8"),
+        )
+
+        claims_path = self.root / "claims_under_scrutiny.json"
+        claims = json.loads(claims_path.read_text(encoding="utf-8"))
+        reordered_claims = dict(reversed(list(claims.items())))
+        self.assertEqual(reordered_claims, claims)
+        assert_changed(
+            "claims_under_scrutiny.json",
+            "claims",
+            json.dumps(reordered_claims, ensure_ascii=False).encode("utf-8"),
+        )
+        assert_changed(
+            "polls.json",
+            "polls",
+            polls_path.read_bytes() + b"\n",
+        )
+
+    def test_non_utf8_source_remains_invalid_and_lane_isolated(self):
+        baseline = self.build()
+        source = self.root / "claims_under_scrutiny.json"
+        undecodable = b'{"schema_version": 1, "value": "\xff"}'
+        source.write_bytes(undecodable)
+
+        manifest = self.build()
+        lane = manifest["lanes"]["claims"]
+        self.assertTrue(lane["available"])
+        self.assertFalse(lane["valid"])
+        self.assertEqual(
+            lane["sha256"],
+            hashlib.sha256(canonical_newlines(undecodable)).hexdigest(),
+        )
+        self.assertTrue(
+            any("malformed JSON" in warning for warning in lane["warnings"])
+        )
+        self.assertEqual(source.read_bytes(), undecodable)
+        self.assertEqual(
+            {
+                name: value
+                for name, value in manifest["lanes"].items()
+                if name != "claims"
+            },
+            {
+                name: value
+                for name, value in baseline["lanes"].items()
+                if name != "claims"
+            },
+        )
+
+    def test_manifest_construction_does_not_rewrite_sources(self):
+        before = {
+            filename: (self.root / filename).read_bytes()
+            for file_names in manifest_builder.LANE_FILES.values()
+            for filename in file_names
+        }
+        self.build()
+        after = {
+            filename: (self.root / filename).read_bytes()
+            for file_names in manifest_builder.LANE_FILES.values()
+            for filename in file_names
+        }
+        self.assertEqual(after, before)
 
     def test_campaign_events_lane_metadata(self):
         manifest = self.build()
@@ -304,10 +464,10 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertEqual(lane["data_as_of"], "2026-08-01T00:00:00Z")
         self.assertEqual(lane["timestamp_status"], "known")
         self.assertEqual(lane["record_count"], 0)
-        self.assertEqual(lane["byte_size"], len(source.read_bytes()))
+        self.assertEqual(lane["byte_size"], len(canonical_source_bytes(source)))
         self.assertEqual(
             lane["sha256"],
-            hashlib.sha256(source.read_bytes()).hexdigest(),
+            hashlib.sha256(canonical_source_bytes(source)).hexdigest(),
         )
         self.assertEqual(lane["warnings"], [])
 
@@ -324,10 +484,16 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertTrue(lane["available"])
         self.assertTrue(lane["valid"])
         self.assertEqual(lane["record_count"], 2)
-        self.assertEqual(lane["byte_size"], len(source.read_bytes()))
+        self.assertEqual(lane["byte_size"], 2690)
+        self.assertEqual(lane["byte_size"], len(canonical_source_bytes(source)))
         self.assertEqual(
             lane["sha256"],
-            hashlib.sha256(source.read_bytes()).hexdigest(),
+            "e05516db9e0c809ec3fd71ad81cd01bce"
+            "13a8255dbcd82fa584d5b97801202ad",
+        )
+        self.assertEqual(
+            lane["sha256"],
+            hashlib.sha256(canonical_source_bytes(source)).hexdigest(),
         )
         self.assertEqual(lane["timestamp_status"], "known")
 
@@ -478,7 +644,7 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertEqual(lane["file"], "candidate_signals.json")
         self.assertEqual(
             lane["sha256"],
-            hashlib.sha256(source.read_bytes()).hexdigest(),
+            hashlib.sha256(canonical_source_bytes(source)).hexdigest(),
         )
         self.assertEqual(
             lane["record_count"],
