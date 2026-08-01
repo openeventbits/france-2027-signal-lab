@@ -67,6 +67,7 @@
     claimsRelationship: "all",
     claimsCandidateId: "",
     claimsPublisher: "",
+    selectedCandidateSignalsId: null,
     candidateSignals: {
       status: "loading",
       candidates: [],
@@ -1831,10 +1832,7 @@
       <section class="hybrid-panel" id="signal-runoff-panel" role="tabpanel" aria-labelledby="signal-runoff-tab"${state.activeView === "runoff" ? "" : " hidden"}>${renderRunoffPanel(models.runoff)}</section>
       <section class="hybrid-panel" id="signal-candidates-panel" role="tabpanel" aria-labelledby="signal-candidates-tab"${state.activeView === "candidates" ? "" : " hidden"}>
         <div id="candidate-signals-root" data-candidate-signals-state="${state.candidateSignals.status}">
-          <h2 class="hybrid-section-title">CANDIDATE SIGNALS</h2>
-          <p class="hybrid-summary-meta">Polling · campaign attention · scrutiny</p>
-          <p class="hybrid-disclosure">Separate evidence dimensions. No combined score or forecast.</p>
-          <div class="hybrid-state">Candidate evidence will be rendered in the next implementation stage.</div>
+          <div class="candidate-signals-state" role="status" aria-live="polite">Loading candidate evidence…</div>
         </div>
       </section>
       <section class="hybrid-panel" id="signal-events-panel" role="tabpanel" aria-labelledby="signal-events-tab"${state.activeView === "events" ? "" : " hidden"}>
@@ -1844,6 +1842,43 @@
       <section class="hybrid-panel" id="signal-agenda-panel" role="tabpanel" aria-labelledby="signal-agenda-tab"${state.activeView === "agenda" ? "" : " hidden"}>${renderAgendaPanel(models.agenda)}</section>
       <section class="hybrid-panel" id="signal-claims-panel" role="tabpanel" aria-labelledby="signal-claims-tab"${state.activeView === "claims" ? "" : " hidden"}>${renderClaimsPanel(models.claims)}</section>
     </section>`;
+  }
+
+  function resolveCandidateSignalsPortrait(candidateId) {
+    const candidate = state.candidateSignals.candidates.find(
+      item => item.candidate_id === candidateId
+    );
+    return candidate
+      ? candidatePortraits[candidate.candidate_name] || null
+      : null;
+  }
+
+  function renderCandidateSignalsPanel() {
+    const candidateMount = document.getElementById(
+      "candidate-signals-root"
+    );
+    const renderer =
+      window.France2027CandidateSignalsWorkspace;
+    if (!candidateMount || !renderer) return null;
+
+    const selectedCandidateId = renderer.render(
+      candidateMount,
+      state.candidateSignals,
+      {
+        selectedCandidateId:
+          state.selectedCandidateSignalsId,
+        onSelect(candidateId) {
+          state.selectedCandidateSignalsId =
+            candidateId;
+          renderCandidateSignalsPanel();
+        },
+        resolvePortrait:
+          resolveCandidateSignalsPortrait
+      }
+    );
+    state.selectedCandidateSignalsId =
+      selectedCandidateId;
+    return selectedCandidateId;
   }
 
   function setActiveSignalView(view, options = {}) {
@@ -2805,6 +2840,7 @@
 
       mount.innerHTML =
         renderFocusWorkspace(models);
+        renderCandidateSignalsPanel();
 
       bindInteractions();
       setActiveSignalView(state.activeView);

@@ -1,0 +1,2666 @@
+.candidate-signals-state {
+  min-height: 176px;
+  display: grid;
+  place-items: center;
+  padding: 26px;
+  border: 1px solid rgba(31, 75, 101, 0.72);
+  border-radius: 8px;
+  background: rgba(3, 17, 29, 0.76);
+  color: #8ea9b8;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.candidate-signals-workspace {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+  overflow: visible;
+  color: #dce9ef;
+  font-family: inherit;
+}
+
+.candidate-signals-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  border: 1px solid rgba(31, 75, 101, 0.82);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(6, 27, 44, 0.97), rgba(3, 17, 29, 0.96));
+  box-shadow: inset 0 1px 0 rgba(112, 195, 229, 0.025);
+}
+
+.candidate-signals-panel:last-child {
+  margin-right: 0;
+}
+
+.candidate-signals-region-header {
+  min-height: 42px;
+  flex: 0 0 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px;
+  border-bottom: 1px solid rgba(31, 75, 101, 0.72);
+  background: rgba(5, 22, 37, 0.44);
+}
+
+.candidate-signals-region-title,
+.candidate-signals-subsection-title,
+.candidate-signals-analysis-card-title,
+.candidate-signals-dossier-card-title,
+.candidate-signals-evidence-group-title,
+.candidate-signals-scrutiny-period-title {
+  margin: 0;
+  color: #dceaf0;
+  font-weight: 760;
+  letter-spacing: 0.055em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.candidate-signals-region-title {
+  margin: 0;
+  color: #f0f6fb;
+  font-size: 11px;
+  font-weight: 720;
+  line-height: 1;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.candidate-signals-region-note {
+  margin-left: auto;
+  color: #6f91a8;
+  font-size: 9px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.candidate-signals-region-header.is-inline-meta {
+  justify-content: flex-start;
+}
+
+.candidate-signals-region-header.is-inline-meta
+  .candidate-signals-region-note {
+  margin-left: 10px;
+}
+
+.candidate-signals-region-action {
+  margin-left: auto;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--final-cyan, #35d8ff);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.candidate-signals-region-action:hover {
+  color: #8cecff;
+}
+
+.candidate-signals-region-action:focus-visible {
+  outline: 2px solid var(--final-cyan, #35d8ff);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+
+.candidate-signals-monitor-tools {
+  padding: 15px 16px 11px;
+}
+
+.candidate-signals-search-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.candidate-signals-search-input {
+  width: 100%;
+  min-height: 46px;
+  padding: 12px 15px;
+  border: 1px solid rgba(31, 75, 101, 0.88);
+  border-radius: 6px;
+  outline: none;
+  background: rgba(2, 15, 27, 0.78);
+  color: #e5f0f4;
+  font: inherit;
+  font-size: 12px;
+}
+
+.candidate-signals-search-input::placeholder {
+  color: #607f91;
+}
+
+.candidate-signals-search-input:focus-visible {
+  border-color: var(--final-cyan, #35d8ff);
+  box-shadow: 0 0 0 2px rgba(53, 216, 255, 0.13);
+}
+
+.candidate-signals-monitor-list {
+  display: grid;
+  align-content: start;
+  gap: 11px;
+  padding: 9px 15px 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-color: rgba(53, 216, 255, 0.36) rgba(2, 15, 27, 0.42);
+  scrollbar-width: thin;
+}
+
+.candidate-signals-analysis-body,
+.candidate-signals-dossier-body {
+  min-width: 0;
+  overflow: visible;
+}
+
+.candidate-signals-analysis-body,
+.candidate-signals-dossier-body {
+  padding: 17px;
+}
+
+.candidate-signals-monitor-empty {
+  margin: 0 14px 15px;
+  padding: 16px;
+  border: 1px dashed rgba(57, 101, 124, 0.58);
+  border-radius: 6px;
+  color: #809ead;
+  font-size: 10px;
+  text-align: center;
+}
+
+.candidate-signals-candidate-button {
+  position: relative;
+  width: 100%;
+  min-height: 154px;
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  padding: 15px 16px 14px;
+  border: 1px solid rgba(30, 72, 98, 0.9);
+  border-radius: 7px;
+  background:
+    linear-gradient(105deg, rgba(8, 31, 49, 0.96), rgba(4, 19, 33, 0.9));
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    transform 120ms ease;
+}
+
+.candidate-signals-candidate-button:hover {
+  border-color: rgba(53, 216, 255, 0.7);
+  background:
+    linear-gradient(105deg, rgba(10, 42, 65, 0.98), rgba(5, 24, 41, 0.94));
+}
+
+.candidate-signals-candidate-button.is-selected {
+  border-color: var(--final-cyan, #35d8ff);
+  background:
+    radial-gradient(
+      circle at 18% 40%,
+      rgba(40, 135, 183, 0.17),
+      transparent 43%
+    ),
+    linear-gradient(105deg, rgba(10, 48, 74, 0.99), rgba(5, 26, 44, 0.98));
+  box-shadow:
+    inset 4px 0 0 var(--final-cyan, #35d8ff),
+    0 0 0 1px rgba(53, 216, 255, 0.08);
+}
+
+.candidate-signals-candidate-button.is-selected::after {
+  content: "›";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  color: var(--final-cyan, #35d8ff);
+  font-size: 24px;
+  transform: translateY(-50%);
+}
+
+.candidate-signals-candidate-button:focus-visible,
+.candidate-signals-source-link:focus-visible,
+.candidate-signals-dossier-details-summary:focus-visible,
+.candidate-signals-snapshot-details-summary:focus-visible {
+  outline: 2px solid var(--final-cyan, #35d8ff);
+  outline-offset: 2px;
+}
+
+.candidate-signals-candidate-top {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+}
+
+.candidate-signals-candidate-identity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.candidate-signals-portrait {
+  position: relative;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(69, 117, 143, 0.72);
+  border-radius: 5px;
+  background:
+    radial-gradient(circle at 50% 25%, rgba(75, 132, 160, 0.2), transparent 64%),
+    #071d2d;
+}
+
+.candidate-signals-monitor-portrait {
+  width: 78px;
+  height: 78px;
+}
+
+.candidate-signals-dossier-portrait {
+  width: 118px;
+  height: 118px;
+}
+
+.candidate-signals-portrait-fallback {
+  color: #9fc6d8;
+  font-size: 14px;
+  font-weight: 760;
+  letter-spacing: 0.05em;
+}
+
+.candidate-signals-portrait-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.candidate-signals-candidate-copy,
+.candidate-signals-candidate-metric {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.candidate-signals-candidate-name {
+  color: #f2f7fa;
+  font-size: 15px;
+  font-weight: 760;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.candidate-signals-candidate-secondary {
+  color: #8ba8b7;
+  font-size: 11px;
+  line-height: 1.38;
+  overflow-wrap: anywhere;
+}
+
+.candidate-signals-candidate-tier {
+  width: fit-content;
+  padding: 3px 7px;
+  border: 1px solid rgba(135, 88, 255, 0.48);
+  border-radius: 3px;
+  background: rgba(98, 63, 188, 0.16);
+  color: #bba9ff;
+  font-size: 9px;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+}
+
+.candidate-signals-candidate-metric {
+  padding-right: 16px;
+  justify-items: end;
+  text-align: right;
+}
+
+.candidate-signals-candidate-poll {
+  color: #f2f8fa;
+  font-size: 21px;
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.candidate-signals-selection-label {
+  color: #6f92a6;
+  font-size: 9px;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-align: right;
+}
+
+.candidate-signals-candidate-button[aria-pressed="true"] .candidate-signals-selection-label {
+  color: var(--final-cyan, #35d8ff);
+}
+
+.candidate-signals-candidate-evidence {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  padding-left: 92px;
+}
+
+.candidate-signals-candidate-fact {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 0 11px;
+  border-left: 1px solid rgba(42, 88, 112, 0.48);
+}
+
+.candidate-signals-candidate-fact:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.candidate-signals-candidate-fact-label {
+  color: #6e91a3;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.candidate-signals-candidate-fact-value {
+  color: #d3e1e7;
+  font-size: 10.5px;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.candidate-signals-candidate-attention {
+  color: inherit;
+}
+
+.candidate-signals-candidate-records {
+  color: inherit;
+}
+
+.candidate-signals-candidate-scrutiny {
+  color: inherit;
+}
+
+.candidate-signals-analysis {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.candidate-signals-analysis .candidate-signals-region-header {
+  min-height: 42px;
+  flex-basis: 42px;
+  padding: 0 11px;
+  border-bottom-color: rgba(42, 96, 124, 0.82);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(13, 34, 52, 0.82),
+      rgba(7, 23, 37, 0.36)
+    );
+  box-shadow: inset 0 -2px 0 rgba(53, 216, 255, 0.12);
+}
+
+.candidate-signals-analysis .candidate-signals-region-title {
+  color: #f2f8fb;
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: 0.035em;
+}
+
+.candidate-signals-analysis .candidate-signals-region-note {
+  color: #8ba6b6;
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.candidate-signals-analysis-body {
+  padding: 5px;
+}
+
+.candidate-signals-analysis-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid rgba(35, 86, 114, 0.8);
+  border-radius: 2px;
+  background: rgba(3, 15, 26, 0.64);
+}
+
+.candidate-signals-analysis-card {
+  position: relative;
+  min-width: 0;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 9px;
+  overflow: hidden;
+  border: 0;
+  border-right: 1px solid rgba(35, 86, 114, 0.58);
+  border-bottom: 1px solid rgba(35, 86, 114, 0.58);
+  border-radius: 0;
+  background: rgba(5, 21, 34, 0.42);
+}
+
+.candidate-signals-analysis-card:nth-child(even) {
+  border-right: 0;
+}
+
+.candidate-signals-analysis-card:nth-child(n + 3) {
+  border-bottom: 0;
+}
+
+.candidate-signals-analysis-card::before {
+  display: none;
+}
+
+.candidate-signals-analysis-card-title,
+.candidate-signals-subsection-title {
+  margin: 0;
+  color: #e7f0f5;
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1.1;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.candidate-signals-summary-primary {
+  display: block;
+  margin: 2px 0 3px;
+  color: #f3f8fb;
+  font-size: 27px;
+  font-weight: 730;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+
+.candidate-signals-summary-primary.is-textual {
+  color: #a7bac4;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.candidate-signals-card-state {
+  margin: auto 0 0;
+  color: #91aaba;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.candidate-signals-poll-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto 1fr;
+  align-content: start;
+  column-gap: 9px;
+}
+
+.candidate-signals-poll-summary
+  .candidate-signals-analysis-card-title {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+}
+
+.candidate-signals-poll-summary
+  .candidate-signals-summary-primary {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  margin: 0;
+  font-size: 25px;
+}
+
+.candidate-signals-poll-gauge {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: grid;
+  gap: 3px;
+  margin-top: 7px;
+}
+
+.candidate-signals-poll-gauge-kicker {
+  color: #819dad;
+  font-size: 8.5px;
+  font-weight: 740;
+  letter-spacing: 0.07em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.candidate-signals-poll-gauge-track {
+  position: relative;
+  height: 5px;
+  display: block;
+  border: 1px solid rgba(53, 113, 142, 0.74);
+  border-radius: 1px;
+  background: rgba(2, 15, 26, 0.96);
+}
+
+.candidate-signals-poll-gauge-range {
+  position: absolute;
+  inset: 1px;
+  display: block;
+  border-radius: 0;
+  background: linear-gradient(
+    90deg,
+    var(--final-violet, #8758ff),
+    var(--final-cyan, #35d8ff)
+  );
+}
+
+.candidate-signals-poll-gauge-marker {
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--final-cyan, #35d8ff);
+  border-radius: 1px;
+  background: #061a2a;
+  box-shadow: none;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.candidate-signals-poll-gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  color: #91aaba;
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.candidate-signals-poll-gauge-labels.is-single {
+  justify-content: center;
+}
+
+.candidate-signals-poll-facts {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 7px;
+  overflow: hidden;
+  border-top: 1px solid rgba(35, 86, 114, 0.58);
+  border-left: 1px solid rgba(35, 86, 114, 0.36);
+}
+
+.candidate-signals-poll-fact {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  min-height: 31px;
+  padding: 5px 7px;
+  border-right: 1px solid rgba(35, 86, 114, 0.42);
+  border-bottom: 1px solid rgba(35, 86, 114, 0.42);
+  background: rgba(3, 17, 29, 0.34);
+}
+
+.candidate-signals-poll-fact-label {
+  color: #7898aa;
+  font-size: 8.5px;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.candidate-signals-poll-fact-value {
+  min-width: 0;
+  overflow: hidden;
+  color: #dce9ef;
+  font-size: 10.5px;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.candidate-signals-attention-visual {
+  display: grid;
+  gap: 7px;
+  margin-top: 6px;
+}
+
+.candidate-signals-attention-row {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.candidate-signals-attention-row + .candidate-signals-attention-row {
+  padding-top: 6px;
+  border-top: 1px solid rgba(35, 86, 114, 0.48);
+}
+
+.candidate-signals-attention-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.candidate-signals-attention-label {
+  color: #d7e6ed;
+  font-size: 9.5px;
+  font-weight: 750;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.candidate-signals-attention-share {
+  color: #f3f8fb;
+  font-size: 18px;
+  font-weight: 730;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.candidate-signals-attention-share.is-unpublished {
+  color: #8da4af;
+  font-size: 10px;
+  font-weight: 620;
+  letter-spacing: 0;
+}
+
+.candidate-signals-attention-detail {
+  overflow: hidden;
+  color: #8fa9b8;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.035em;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.candidate-signals-attention-track {
+  height: 5px;
+  display: block;
+  overflow: hidden;
+  border: 1px solid rgba(42, 89, 113, 0.66);
+  border-radius: 1px;
+  background: rgba(2, 15, 26, 0.94);
+}
+
+.candidate-signals-attention-track.is-unavailable {
+  opacity: 0.42;
+}
+
+.candidate-signals-attention-fill {
+  height: 100%;
+  display: block;
+  background: linear-gradient(
+    90deg,
+    var(--final-violet, #8758ff),
+    var(--final-cyan, #35d8ff)
+  );
+}
+
+.candidate-signals-attention-row.is-general
+  .candidate-signals-attention-fill {
+  background: #6d8d9e;
+}
+
+.candidate-signals-attention-fill.has-value {
+  min-width: 3px;
+}
+
+.candidate-signals-composition-card {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
+  column-gap: 8px;
+}
+
+.candidate-signals-composition-card
+  .candidate-signals-analysis-card-title {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+}
+
+.candidate-signals-composition-visual {
+  grid-column: 1 / -1;
+  grid-row: 1 / 3;
+  min-width: 0;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(64px, 1fr);
+  align-content: stretch;
+  gap: 8px 8px;
+}
+
+.candidate-signals-composition-total-line {
+  grid-column: 2;
+  grid-row: 1;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  justify-self: end;
+}
+
+.candidate-signals-composition-total {
+  color: #f3f8fb;
+  font-size: 22px;
+  font-weight: 730;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.candidate-signals-composition-unit {
+  color: #819dad;
+  font-size: 8.5px;
+  font-weight: 740;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.candidate-signals-composition-stack {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  height: 12px;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid rgba(42, 89, 113, 0.68);
+  border-radius: 1px;
+  background: rgba(2, 15, 26, 0.94);
+}
+
+.candidate-signals-composition-stack.is-incomplete {
+  opacity: 0.48;
+}
+
+.candidate-signals-composition-segment {
+  height: 100%;
+  display: block;
+}
+
+.candidate-signals-composition-segment.is-campaign {
+  background: var(--final-violet, #8758ff);
+}
+
+.candidate-signals-composition-segment.is-election {
+  background: var(--final-cyan, #35d8ff);
+}
+
+.candidate-signals-composition-segment.is-general {
+  background: #60778a;
+}
+
+.candidate-signals-composition-legend {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  min-width: 0;
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border-right: 1px solid rgba(35, 86, 114, 0.38);
+  border-bottom: 1px solid rgba(35, 86, 114, 0.38);
+  border-left: 1px solid rgba(35, 86, 114, 0.38);
+  background: rgba(2, 15, 26, 0.28);
+}
+
+.candidate-signals-composition-legend.is-incomplete {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.candidate-signals-scope-row {
+  min-width: 0;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "label label"
+    "count percentage";
+  align-content: space-between;
+  align-items: end;
+  gap: 6px 7px;
+  padding: 8px 9px 7px;
+  border-top: 2px solid var(--final-violet, #8758ff);
+  border-right: 1px solid rgba(35, 86, 114, 0.38);
+  background: rgba(5, 21, 34, 0.34);
+}
+
+.candidate-signals-scope-row.is-election {
+  border-top-color: var(--final-cyan, #35d8ff);
+}
+
+.candidate-signals-scope-row.is-general {
+  border-top-color: #60778a;
+  border-right: 0;
+}
+
+.candidate-signals-scope-count {
+  grid-area: count;
+  color: #f1f7fb;
+  font-size: 22px;
+  font-weight: 730;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.candidate-signals-scope-percentage {
+  grid-area: percentage;
+  align-self: end;
+  justify-self: end;
+  padding-bottom: 1px;
+  color: #d8e7ee;
+  font-size: 10.5px;
+  font-weight: 690;
+  font-variant-numeric: tabular-nums;
+}
+
+.candidate-signals-scope-label {
+  grid-area: label;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  color: #9ab2be;
+  font-size: 9px;
+  font-weight: 720;
+  letter-spacing: 0.05em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.candidate-signals-scope-dot {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+  border-radius: 1px;
+  background: var(--final-violet, #8758ff);
+}
+
+.candidate-signals-scope-dot.is-election {
+  background: var(--final-cyan, #35d8ff);
+}
+
+.candidate-signals-scope-dot.is-general {
+  background: #60778a;
+}
+
+.candidate-signals-scrutiny-matrix {
+  display: grid;
+  grid-template-columns: minmax(58px, 0.95fr) repeat(3, minmax(0, 1fr));
+  margin-top: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(35, 86, 114, 0.66);
+  border-radius: 1px;
+  background: rgba(2, 15, 26, 0.3);
+}
+
+.candidate-signals-scrutiny-corner,
+.candidate-signals-scrutiny-column,
+.candidate-signals-scrutiny-row-label,
+.candidate-signals-scrutiny-cell {
+  min-width: 0;
+  min-height: 27px;
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border-right: 1px solid rgba(35, 86, 114, 0.38);
+  border-bottom: 1px solid rgba(35, 86, 114, 0.38);
+}
+
+.candidate-signals-scrutiny-column:nth-child(4),
+.candidate-signals-scrutiny-cell:nth-child(8),
+.candidate-signals-scrutiny-cell:nth-child(12) {
+  border-right: 0;
+}
+
+.candidate-signals-scrutiny-row-label:nth-child(9),
+.candidate-signals-scrutiny-cell:nth-child(n + 10) {
+  border-bottom: 0;
+}
+
+.candidate-signals-scrutiny-corner,
+.candidate-signals-scrutiny-column,
+.candidate-signals-scrutiny-row-label {
+  color: #8aa5b5;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.candidate-signals-scrutiny-corner,
+.candidate-signals-scrutiny-column {
+  background: rgba(6, 28, 45, 0.46);
+}
+
+.candidate-signals-scrutiny-row-label {
+  justify-items: start;
+  padding-left: 7px;
+  background: rgba(5, 25, 41, 0.36);
+}
+
+.candidate-signals-scrutiny-cell {
+  position: relative;
+  color: #dceaf1;
+  font-size: 17px;
+  font-weight: 690;
+  font-variant-numeric: tabular-nums;
+}
+
+.candidate-signals-scrutiny-cell.is-zero {
+  color: #688496;
+  font-weight: 560;
+}
+
+.candidate-signals-scrutiny-cell.is-active {
+  color: #f3f8fb;
+  font-weight: 760;
+  background: rgba(53, 216, 255, 0.035);
+  box-shadow: inset 0 2px 0 rgba(53, 216, 255, 0.72);
+}
+
+.candidate-signals-scrutiny-cell.is-archive.is-active {
+  color: #f2efff;
+  background: rgba(139, 121, 255, 0.05);
+  box-shadow: inset 0 2px 0 rgba(139, 121, 255, 0.8);
+}
+
+.candidate-signals-scrutiny-cell.is-unpublished {
+  color: #78919e;
+  font-size: 8.5px;
+  font-weight: 590;
+}
+
+.candidate-signals-scrutiny-foot {
+  margin-top: 6px;
+  color: #8ba6b6;
+  font-size: 9.5px;
+  font-weight: 620;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.candidate-signals-evidence-structure {
+  margin-top: 5px;
+  padding: 7px 8px;
+  border: 1px solid rgba(35, 86, 114, 0.78);
+  border-radius: 2px;
+  background: rgba(3, 15, 26, 0.58);
+}
+
+.candidate-signals-evidence-structure-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.candidate-signals-evidence-structure-period {
+  color: #8ba6b6;
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.candidate-signals-evidence-structure-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid rgba(35, 86, 114, 0.54);
+  border-radius: 1px;
+  background: rgba(2, 15, 26, 0.3);
+}
+
+.candidate-signals-evidence-structure-stat {
+  min-width: 0;
+  min-height: 37px;
+  display: grid;
+  place-content: center;
+  gap: 2px;
+  padding: 3px;
+  border-right: 1px solid rgba(35, 86, 114, 0.44);
+  text-align: center;
+}
+
+.candidate-signals-evidence-structure-stat:last-child {
+  border-right: 0;
+}
+
+.candidate-signals-evidence-structure-value {
+  color: #eafcff;
+  font-size: 20px;
+  font-weight: 730;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.candidate-signals-evidence-structure-label {
+  color: #819dad;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: 0.055em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.candidate-signals-evidence-structure-ratios {
+  display: grid;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.candidate-signals-evidence-ratio,
+.candidate-signals-match-basis {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.candidate-signals-evidence-ratio-copy {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.candidate-signals-evidence-ratio-label {
+  color: #d7e6ed;
+  font-size: 9.5px;
+  font-weight: 720;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.candidate-signals-evidence-ratio-detail {
+  min-width: 0;
+  overflow: hidden;
+  color: #dceaf1;
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.candidate-signals-evidence-ratio-track,
+.candidate-signals-match-basis-track {
+  height: 5px;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid rgba(42, 89, 113, 0.64);
+  border-radius: 1px;
+  background: rgba(2, 15, 26, 0.94);
+}
+
+.candidate-signals-evidence-ratio-track.is-unavailable,
+.candidate-signals-match-basis-track.is-unavailable {
+  opacity: 0.44;
+}
+
+.candidate-signals-evidence-ratio-fill {
+  height: 100%;
+  display: block;
+  background: var(--final-cyan, #35d8ff);
+}
+
+.candidate-signals-evidence-ratio.is-story
+  .candidate-signals-evidence-ratio-fill {
+  background: #6d8d9e;
+}
+
+.candidate-signals-match-basis-headline {
+  height: 100%;
+  display: block;
+  background: var(--final-cyan, #35d8ff);
+}
+
+.candidate-signals-match-basis-summary {
+  height: 100%;
+  display: block;
+  background: var(--final-violet, #8758ff);
+}
+
+.candidate-signals-analysis-lower {
+  display: grid;
+  grid-template-columns: minmax(0, 48fr) minmax(0, 52fr);
+  gap: 0;
+  margin-top: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(35, 86, 114, 0.78);
+  border-radius: 2px;
+  background: rgba(3, 15, 26, 0.58);
+}
+
+.candidate-signals-candidacy-evidence,
+.candidate-signals-latest-development {
+  min-width: 0;
+  min-height: 148px;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 0;
+  background: rgba(5, 21, 34, 0.42);
+}
+
+.candidate-signals-latest-development {
+  border-left: 1px solid rgba(35, 86, 114, 0.58);
+}
+
+.candidate-signals-candidacy-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin: 7px 0 6px;
+}
+
+.candidate-signals-candidacy-status,
+.candidate-signals-candidacy-tier,
+.candidate-signals-development-scope {
+  width: fit-content;
+  padding: 2px 6px;
+  border: 1px solid rgba(139, 121, 255, 0.48);
+  border-radius: 1px;
+  background: rgba(98, 63, 188, 0.14);
+  color: #bba9ff;
+  font-size: 8.5px;
+  font-weight: 750;
+  letter-spacing: 0.055em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.candidate-signals-candidacy-tier {
+  border-color: rgba(53, 216, 255, 0.34);
+  background: rgba(53, 216, 255, 0.07);
+  color: #8edff0;
+}
+
+.candidate-signals-candidacy-note {
+  margin: 0;
+  color: #dceaf1;
+  font-size: 11px;
+  line-height: 1.38;
+}
+
+.candidate-signals-candidacy-source {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+  margin: 7px 0 0;
+  padding-top: 7px;
+  border-top: 1px solid rgba(35, 86, 114, 0.48);
+  font-size: 9.5px;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.candidate-signals-candidacy-source-label {
+  color: #819dad;
+}
+
+.candidate-signals-candidacy-source-value {
+  color: #dceaf1;
+  font-weight: 680;
+  text-align: right;
+}
+
+.candidate-signals-development-scope {
+  margin-top: 7px;
+  border-color: rgba(53, 216, 255, 0.34);
+  background: rgba(53, 216, 255, 0.07);
+  color: #8edff0;
+}
+
+.candidate-signals-latest-development
+  .candidate-signals-development-headline {
+  margin: 6px 0;
+  color: #edf5f9;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.candidate-signals-development-meta {
+  margin: 0;
+  color: #8fa9b8;
+  font-size: 9.5px;
+  font-weight: 620;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.candidate-signals-analysis-lower
+  .candidate-signals-source-link {
+  min-height: 31px;
+  margin-top: auto;
+  padding-top: 8px;
+  color: var(--final-cyan, #35d8ff);
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: 0.01em;
+}
+
+.candidate-signals-analysis-lower
+  .candidate-signals-source-link:hover {
+  color: #8cecff;
+}
+
+
+.candidate-signals-dossier {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.candidate-signals-dossier .candidate-signals-region-header {
+  min-height: 42px;
+  flex-basis: 42px;
+  padding: 0 11px;
+  border-bottom-color: rgba(42, 96, 124, 0.82);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(13, 34, 52, 0.82),
+      rgba(7, 23, 37, 0.36)
+    );
+  box-shadow: inset 0 -2px 0 rgba(53, 216, 255, 0.1);
+}
+
+.candidate-signals-dossier .candidate-signals-region-title {
+  color: #f2f8fb;
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: 0.035em;
+}
+
+.candidate-signals-dossier .candidate-signals-region-action {
+  color: var(--final-cyan, #35d8ff);
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: 0.01em;
+}
+
+.candidate-signals-dossier-body {
+  padding: 5px;
+}
+
+.candidate-signals-dossier-identity {
+  min-height: 132px;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  padding: 11px 13px;
+  border: 1px solid rgba(35, 86, 114, 0.76);
+  border-radius: 2px 2px 0 0;
+  background:
+    radial-gradient(
+      circle at 14% 48%,
+      rgba(53, 216, 255, 0.08),
+      transparent 35%
+    ),
+    rgba(5, 22, 36, 0.72);
+  box-shadow: inset 2px 0 0 rgba(53, 216, 255, 0.72);
+}
+
+.candidate-signals-dossier .candidate-signals-dossier-portrait {
+  width: 96px;
+  height: 96px;
+  border-color: rgba(54, 118, 151, 0.84);
+  border-radius: 2px;
+}
+
+.candidate-signals-dossier-name-block {
+  min-width: 0;
+}
+
+.candidate-signals-kicker {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--final-cyan, #35d8ff);
+  font-size: 8.5px;
+  font-weight: 780;
+  letter-spacing: 0.085em;
+}
+
+.candidate-signals-dossier-name {
+  margin: 0;
+  color: #f2f8fb;
+  font-size: 23px;
+  font-weight: 720;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.candidate-signals-dossier-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.candidate-signals-dossier-status,
+.candidate-signals-dossier-tier,
+.candidate-signals-dossier-development-scope {
+  width: fit-content;
+  padding: 2px 6px;
+  border: 1px solid rgba(139, 121, 255, 0.5);
+  border-radius: 1px;
+  background: rgba(98, 63, 188, 0.14);
+  color: #c1b2ff;
+  font-size: 8.5px;
+  font-weight: 760;
+  letter-spacing: 0.055em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.candidate-signals-dossier-tier,
+.candidate-signals-dossier-development-scope {
+  border-color: rgba(53, 216, 255, 0.38);
+  background: rgba(53, 216, 255, 0.07);
+  color: #8ee7f7;
+}
+
+.candidate-signals-dossier-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid rgba(35, 86, 114, 0.76);
+  border-top: 0;
+  border-radius: 0 0 2px 2px;
+  background: rgba(3, 15, 26, 0.54);
+}
+
+.candidate-signals-dossier-metric {
+  min-width: 0;
+  min-height: 72px;
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  padding: 7px 11px;
+  border-right: 1px solid rgba(35, 86, 114, 0.48);
+  border-bottom: 1px solid rgba(35, 86, 114, 0.48);
+  background: rgba(5, 21, 34, 0.38);
+}
+
+.candidate-signals-dossier-metric:nth-child(even) {
+  border-right: 0;
+}
+
+.candidate-signals-dossier-metric:nth-child(n + 3) {
+  border-bottom: 0;
+}
+
+.candidate-signals-dossier-metric-label {
+  color: #8faab8;
+  font-size: 9.5px;
+  font-weight: 760;
+  letter-spacing: 0.05em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.candidate-signals-dossier-metric-value {
+  color: #eef7fa;
+  font-size: 22px;
+  font-weight: 710;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.candidate-signals-dossier-metric.is-composite
+  .candidate-signals-dossier-metric-value {
+  font-size: 18px;
+  font-weight: 690;
+  letter-spacing: -0.01em;
+}
+
+.candidate-signals-dossier-metric-notes {
+  display: grid;
+  gap: 1px;
+}
+
+.candidate-signals-dossier-metric-note {
+  color: #91aab8;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+}
+
+.candidate-signals-dossier-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.candidate-signals-dossier-card {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(35, 86, 114, 0.72);
+  border-radius: 2px;
+  background: rgba(3, 15, 26, 0.58);
+}
+
+.candidate-signals-dossier-card-title {
+  margin: 0 0 8px;
+  color: #e7f0f5;
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1.1;
+  letter-spacing: 0.045em;
+}
+
+.candidate-signals-dossier-visibility,
+.candidate-signals-dossier-structure {
+  min-height: 171px;
+}
+
+.candidate-signals-dossier-visibility-total {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.candidate-signals-dossier-visibility-total-value {
+  color: #f2f8fb;
+  font-size: 23px;
+  font-weight: 730;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.candidate-signals-dossier-visibility-total-value.is-textual {
+  color: #9ab1bd;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.candidate-signals-dossier-visibility-total-label {
+  color: #819dad;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.candidate-signals-dossier-composition-stack {
+  height: 10px;
+  display: flex;
+  margin-top: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(42, 89, 113, 0.66);
+  border-radius: 1px;
+  background: rgba(2, 15, 26, 0.94);
+}
+
+.candidate-signals-dossier-composition-stack.is-incomplete {
+  opacity: 0.44;
+}
+
+.candidate-signals-dossier-composition-segment {
+  height: 100%;
+  display: block;
+}
+
+.candidate-signals-dossier-composition-segment.is-campaign {
+  background: var(--final-violet, #8758ff);
+}
+
+.candidate-signals-dossier-composition-segment.is-election {
+  background: var(--final-cyan, #35d8ff);
+}
+
+.candidate-signals-dossier-composition-segment.is-general {
+  background: #60778a;
+}
+
+.candidate-signals-dossier-scope-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.candidate-signals-dossier-scope-cell {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "count share"
+    "label label";
+  align-items: baseline;
+  gap: 1px 4px;
+  padding-top: 3px;
+  border-top: 2px solid var(--final-violet, #8758ff);
+}
+
+.candidate-signals-dossier-scope-cell.is-election {
+  border-top-color: var(--final-cyan, #35d8ff);
+}
+
+.candidate-signals-dossier-scope-cell.is-general {
+  border-top-color: #60778a;
+}
+
+.candidate-signals-dossier-scope-count {
+  grid-area: count;
+  color: #eef7fa;
+  font-size: 17px;
+  font-weight: 730;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.candidate-signals-dossier-scope-share {
+  grid-area: share;
+  align-self: center;
+  justify-self: end;
+  color: #d4e4eb;
+  font-size: 9.5px;
+  font-weight: 690;
+  font-variant-numeric: tabular-nums;
+}
+
+.candidate-signals-dossier-scope-label {
+  grid-area: label;
+  overflow: hidden;
+  color: #8fa9b8;
+  font-size: 8.5px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.candidate-signals-dossier-visibility-summary {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(35, 86, 114, 0.42);
+}
+
+.candidate-signals-dossier-visibility-summary
+  .candidate-signals-summary-meta {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 2px 0;
+  color: #8fa9b8;
+  font-size: 9.5px;
+  line-height: 1.2;
+}
+
+.candidate-signals-dossier-visibility-summary
+  .candidate-signals-summary-meta-label {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 720;
+  letter-spacing: 0.035em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.candidate-signals-dossier-visibility-summary
+  .candidate-signals-summary-meta-value {
+  color: #dce9ef;
+  font-size: 10px;
+  font-weight: 690;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.candidate-signals-structure-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid rgba(35, 86, 114, 0.48);
+  border-radius: 1px;
+  background: rgba(2, 15, 26, 0.28);
+}
+
+.candidate-signals-structure-stat {
+  min-width: 0;
+  min-height: 54px;
+  display: grid;
+  place-content: center;
+  gap: 3px;
+  padding: 4px 2px;
+  border-right: 1px solid rgba(35, 86, 114, 0.4);
+  text-align: center;
+}
+
+.candidate-signals-structure-stat:last-child {
+  border-right: 0;
+}
+
+.candidate-signals-structure-stat-value {
+  color: #eafcff;
+  font-size: 20px;
+  font-weight: 730;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.candidate-signals-structure-stat-label {
+  color: #819dad;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: 0.045em;
+  line-height: 1.12;
+  text-transform: uppercase;
+}
+
+.candidate-signals-dossier-structure-ratios {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.candidate-signals-dossier-structure-ratio {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.candidate-signals-dossier-structure-ratio-copy {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.candidate-signals-dossier-structure-ratio-label {
+  color: #d7e6ed;
+  font-size: 9.5px;
+  font-weight: 730;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.candidate-signals-dossier-structure-ratio-detail {
+  min-width: 0;
+  overflow: hidden;
+  color: #dceaf1;
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.candidate-signals-dossier-structure-track {
+  height: 5px;
+  display: block;
+  overflow: hidden;
+  border: 1px solid rgba(42, 89, 113, 0.62);
+  border-radius: 1px;
+  background: rgba(2, 15, 26, 0.94);
+}
+
+.candidate-signals-dossier-structure-track.is-unavailable {
+  opacity: 0.42;
+}
+
+.candidate-signals-dossier-structure-fill {
+  height: 100%;
+  display: block;
+  background: var(--final-cyan, #35d8ff);
+}
+
+.candidate-signals-dossier-structure-ratio.is-story
+  .candidate-signals-dossier-structure-fill {
+  background: #6d8d9e;
+}
+
+.candidate-signals-dossier-scrutiny,
+.candidate-signals-dossier-development,
+.candidate-signals-dossier-details {
+  grid-column: 1 / -1;
+}
+
+.candidate-signals-dossier-scrutiny-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid rgba(35, 86, 114, 0.48);
+  border-radius: 1px;
+}
+
+.candidate-signals-dossier-scrutiny-block {
+  min-width: 0;
+  min-height: 91px;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  padding: 8px;
+  border-right: 1px solid rgba(35, 86, 114, 0.44);
+  background: rgba(3, 18, 30, 0.38);
+}
+
+.candidate-signals-dossier-scrutiny-block:last-child {
+  border-right: 0;
+}
+
+.candidate-signals-dossier-scrutiny-block.is-current.has-signal {
+  background: rgba(53, 216, 255, 0.035);
+  box-shadow: inset 0 2px 0 rgba(53, 216, 255, 0.72);
+}
+
+.candidate-signals-dossier-scrutiny-block.is-archive.has-signal {
+  background: rgba(139, 121, 255, 0.045);
+  box-shadow: inset 0 2px 0 rgba(139, 121, 255, 0.78);
+}
+
+.candidate-signals-scrutiny-period-title {
+  margin: 0;
+  color: #8aa5b5;
+  font-size: 9.5px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.candidate-signals-dossier-scrutiny-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.candidate-signals-dossier-scrutiny-metric {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.candidate-signals-dossier-scrutiny-value {
+  color: #eef7fa;
+  font-size: 19px;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.candidate-signals-dossier-scrutiny-value.is-zero {
+  color: #6d8999;
+  font-weight: 580;
+}
+
+.candidate-signals-dossier-scrutiny-label {
+  color: #819dad;
+  font-size: 8.5px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.candidate-signals-dossier-review-date {
+  color: #eef7fa;
+  font-size: 16px;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.12;
+}
+
+.candidate-signals-dossier-review-note {
+  color: #8fa9b8;
+  font-size: 9.5px;
+  line-height: 1.25;
+}
+
+.candidate-signals-dossier-development {
+  min-height: 130px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: inset 2px 0 0 rgba(53, 216, 255, 0.58);
+}
+
+.candidate-signals-dossier-development-scope {
+  margin-bottom: 7px;
+}
+
+.candidate-signals-dossier-development
+  .candidate-signals-development-headline {
+  margin: 0 0 7px;
+  color: #edf5f9;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.32;
+}
+
+.candidate-signals-dossier-development-meta {
+  margin: 0;
+  color: #8fa9b8;
+  font-size: 9.5px;
+  font-weight: 620;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.candidate-signals-dossier-development
+  .candidate-signals-source-link {
+  min-height: 30px;
+  margin-top: auto;
+  padding-top: 8px;
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.candidate-signals-dossier-details {
+  overflow: hidden;
+  border: 1px solid rgba(35, 86, 114, 0.74);
+  border-radius: 2px;
+  background: rgba(3, 15, 26, 0.58);
+}
+
+.candidate-signals-dossier-details-summary {
+  padding: 10px 12px;
+  color: #a0b9c5;
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.candidate-signals-dossier-details[open]
+  .candidate-signals-dossier-details-summary {
+  border-bottom: 1px solid rgba(35, 86, 114, 0.58);
+  color: #dce9ef;
+}
+
+.candidate-signals-dossier-details-content {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  padding: 7px;
+}
+
+.candidate-signals-dossier-details-content
+  .candidate-signals-evidence-group {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(35, 86, 114, 0.46);
+  border-radius: 1px;
+  background: rgba(2, 15, 26, 0.28);
+}
+
+.candidate-signals-dossier-details-content
+  .candidate-signals-evidence-group-title {
+  margin: 0;
+  padding: 7px 8px;
+  border-bottom: 1px solid rgba(35, 86, 114, 0.46);
+  color: #9eb7c3;
+  font-size: 9.5px;
+  font-weight: 760;
+  letter-spacing: 0.045em;
+  line-height: 1.2;
+}
+
+.candidate-signals-dossier-details-content
+  .candidate-signals-evidence-line {
+  min-height: 28px;
+  display: grid;
+  grid-template-columns: minmax(0, 0.58fr) minmax(0, 0.42fr);
+  align-items: center;
+  gap: 9px;
+  padding: 5px 8px;
+  border-bottom: 1px solid rgba(35, 86, 114, 0.26);
+  color: #8fa9b8;
+  font-size: 9.5px;
+  line-height: 1.25;
+}
+
+.candidate-signals-dossier-details-content
+  .candidate-signals-evidence-line:last-child {
+  border-bottom: 0;
+}
+
+.candidate-signals-dossier-details-content
+  .candidate-signals-evidence-line +
+  .candidate-signals-evidence-line {
+  margin-top: 0;
+}
+
+.candidate-signals-dossier-details-content
+  .candidate-signals-evidence-value {
+  color: #dce9ef;
+  font-size: 10.5px;
+  font-weight: 680;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 1180px) {
+  .candidate-signals-workspace {
+    grid-template-columns:
+      minmax(0, 27fr)
+      minmax(0, 36fr)
+      minmax(0, 37fr);
+    height: 430px;
+    max-height: 430px;
+    align-items: stretch;
+    overflow: hidden;
+  }
+
+  .candidate-signals-panel {
+    min-height: 0;
+    height: 100%;
+    align-self: stretch;
+    overflow: hidden;
+  }
+
+  .candidate-signals-dossier {
+    align-self: stretch;
+  }
+
+  .candidate-signals-monitor {
+    position: relative;
+    top: auto;
+    align-self: stretch;
+    max-height: none;
+    overflow: hidden;
+  }
+
+  .candidate-signals-monitor-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .candidate-signals-analysis-body,
+  .candidate-signals-dossier-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-color:
+      rgba(53, 216, 255, 0.36)
+      rgba(2, 15, 27, 0.42);
+    scrollbar-width: thin;
+  }
+
+  .candidate-signals-analysis-cards,
+  .candidate-signals-dossier-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .candidate-signals-dossier-metric:nth-child(2) {
+    border-right: 0;
+  }
+
+  .candidate-signals-dossier-metric:nth-child(-n + 2) {
+    border-bottom: 1px solid rgba(31, 75, 101, 0.42);
+  }
+}
+
+@media (min-width: 760px) and (max-width: 1179px) {
+  .candidate-signals-workspace {
+    grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
+    grid-template-rows: auto auto;
+    align-items: start;
+  }
+
+  .candidate-signals-monitor {
+    position: sticky;
+    top: 8px;
+    max-height: calc(100vh - 24px);
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    overflow: hidden;
+  }
+
+  .candidate-signals-analysis {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .candidate-signals-dossier {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .candidate-signals-analysis-cards,
+  .candidate-signals-dossier-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .candidate-signals-dossier-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .candidate-signals-dossier-metric:nth-child(2) {
+    border-right: 0;
+  }
+
+  .candidate-signals-dossier-metric:nth-child(-n + 2) {
+    border-bottom: 1px solid rgba(31, 75, 101, 0.5);
+  }
+}
+
+@media (max-width: 759px) {
+  .candidate-signals-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .candidate-signals-monitor {
+    position: static;
+    max-height: none;
+  }
+
+  .candidate-signals-monitor-list {
+    max-height: min(68vh, 660px);
+  }
+
+  .candidate-signals-analysis-cards,
+  .candidate-signals-dossier-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .candidate-signals-analysis-lower {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .candidate-signals-latest-development {
+    border-top: 1px solid rgba(31, 75, 101, 0.46);
+    border-left: 0;
+  }
+
+  .candidate-signals-dossier-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .candidate-signals-dossier-metric:nth-child(2) {
+    border-right: 0;
+  }
+
+  .candidate-signals-dossier-metric:nth-child(-n + 2) {
+    border-bottom: 1px solid rgba(31, 75, 101, 0.5);
+  }
+
+  .candidate-signals-dossier-details-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .candidate-signals-analysis-cards,
+  .candidate-signals-dossier-grid,
+  .candidate-signals-dossier-metrics,
+  .candidate-signals-scrutiny-overview-grid,
+  .candidate-signals-scrutiny-overview-groups {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .candidate-signals-analysis-card {
+    border-right: 0;
+    border-bottom: 1px solid rgba(31, 75, 101, 0.48);
+  }
+
+  .candidate-signals-analysis-card:last-child {
+    border-bottom: 0;
+  }
+
+  .candidate-signals-dossier-card,
+  .candidate-signals-dossier-details {
+    grid-column: auto;
+  }
+
+  .candidate-signals-dossier-metric,
+  .candidate-signals-dossier-metric:nth-child(2) {
+    border-right: 0;
+    border-bottom: 1px solid rgba(31, 75, 101, 0.5);
+  }
+
+  .candidate-signals-dossier-metric:last-child {
+    border-bottom: 0;
+  }
+
+  .candidate-signals-dossier-visibility-content,
+  .candidate-signals-composition-visual {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+
+  .candidate-signals-dossier-visibility-summary,
+  .candidate-signals-composition-legend {
+    width: 100%;
+  }
+
+  .candidate-signals-structure-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .candidate-signals-structure-stat:nth-child(2) {
+    border-right: 0;
+  }
+
+  .candidate-signals-structure-stat:nth-child(-n + 2) {
+    border-bottom: 1px solid rgba(31, 75, 101, 0.44);
+  }
+}
+
+@media (max-width: 560px) {
+  .candidate-signals-evidence-structure-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .candidate-signals-evidence-structure-stat:nth-child(2) {
+    border-right: 0;
+  }
+
+  .candidate-signals-evidence-structure-stat:nth-child(-n + 2) {
+    border-bottom: 1px solid rgba(31, 75, 101, 0.4);
+  }
+
+  .candidate-signals-evidence-ratio-copy {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .candidate-signals-evidence-ratio-detail {
+    text-align: left;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 430px) {
+  .candidate-signals-region-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .candidate-signals-candidate-evidence {
+    grid-template-columns: minmax(0, 1fr);
+    padding-left: 0;
+  }
+
+  .candidate-signals-candidate-fact {
+    padding: 5px 0 0;
+    border-top: 1px solid rgba(42, 88, 112, 0.45);
+    border-left: 0;
+  }
+
+  .candidate-signals-candidate-fact:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .candidate-signals-snapshot-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .candidate-signals-snapshot-value {
+    text-align: left;
+  }
+
+  .candidate-signals-dossier-identity {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* CANDIDATE MONITOR — CONSOLIDATED CARD LAYOUT */
+
+.candidate-signals-monitor .candidate-signals-region-note {
+  color: #7fa2b8;
+  font-size: 10px;
+}
+
+.candidate-signals-monitor-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px 9px;
+}
+
+.candidate-signals-monitor .candidate-signals-search-input {
+  min-height: 40px;
+  padding: 9px 13px;
+  border-color: rgba(43, 100, 130, 0.94);
+  border-radius: 5px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(5, 24, 40, 0.98),
+      rgba(3, 19, 32, 0.98)
+    );
+  color: #d7e6ee;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.candidate-signals-monitor
+  .candidate-signals-search-input::placeholder {
+  color: #66869b;
+  opacity: 1;
+}
+
+.candidate-signals-filter-button {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(43, 100, 130, 0.94);
+  border-radius: 5px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(7, 31, 49, 0.98),
+      rgba(4, 22, 37, 0.98)
+    );
+  color: #7798ad;
+  cursor: pointer;
+}
+
+.candidate-signals-filter-button:hover {
+  border-color: rgba(53, 216, 255, 0.72);
+  color: var(--final-cyan, #35d8ff);
+}
+
+.candidate-signals-filter-button.is-active {
+  border-color: var(--final-cyan, #35d8ff);
+  background: rgba(17, 69, 96, 0.94);
+  color: var(--final-cyan, #35d8ff);
+  box-shadow: inset 0 0 0 1px rgba(53, 216, 255, 0.1);
+}
+
+.candidate-signals-filter-button:focus-visible {
+  outline: 2px solid var(--final-cyan, #35d8ff);
+  outline-offset: 2px;
+}
+
+.candidate-signals-filter-glyph {
+  width: 14px;
+  height: 13px;
+  display: block;
+  background: currentColor;
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    64% 42%,
+    64% 78%,
+    50% 100%,
+    36% 78%,
+    36% 42%
+  );
+}
+
+@media (min-width: 1180px) {
+  .candidate-signals-monitor-list {
+    gap: 8px;
+    padding: 8px 9px 12px;
+    scrollbar-color:
+      rgba(53, 216, 255, 0.42)
+      rgba(2, 15, 27, 0.48);
+    scrollbar-width: thin;
+  }
+
+  .candidate-signals-monitor-list::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .candidate-signals-monitor-list::-webkit-scrollbar-track {
+    background: rgba(2, 15, 27, 0.48);
+  }
+
+  .candidate-signals-monitor-list::-webkit-scrollbar-thumb {
+    border: 2px solid rgba(2, 15, 27, 0.48);
+    border-radius: 8px;
+    background: rgba(53, 216, 255, 0.42);
+  }
+
+  .candidate-signals-candidate-button {
+    position: relative;
+    width: 100%;
+    min-height: 92px;
+    height: 92px;
+    display: grid;
+    grid-template-columns:
+      58px
+      minmax(0, 1fr)
+      max-content;
+    grid-template-rows:
+      minmax(20px, auto)
+      minmax(29px, auto);
+    align-content: center;
+    column-gap: 11px;
+    row-gap: 7px;
+    padding: 9px 12px;
+    overflow: hidden;
+    border: 1px solid rgba(36, 83, 109, 0.94);
+    border-radius: 6px;
+    background:
+      linear-gradient(
+        105deg,
+        rgba(6, 29, 47, 0.98),
+        rgba(3, 20, 34, 0.96)
+      );
+  }
+
+  .candidate-signals-candidate-button:hover {
+    border-color: rgba(53, 216, 255, 0.66);
+    background:
+      linear-gradient(
+        105deg,
+        rgba(8, 40, 61, 0.99),
+        rgba(4, 25, 41, 0.98)
+      );
+  }
+
+  .candidate-signals-candidate-button.is-selected {
+    border-color: var(--final-cyan, #35d8ff);
+    background:
+      linear-gradient(
+        102deg,
+        rgba(8, 58, 86, 0.99),
+        rgba(4, 28, 47, 0.98)
+      );
+    box-shadow:
+      inset 4px 0 0 var(--final-cyan, #35d8ff),
+      0 0 0 1px rgba(53, 216, 255, 0.11);
+  }
+
+  .candidate-signals-candidate-button.is-selected::after {
+    display: none;
+  }
+
+  .candidate-signals-candidate-top,
+  .candidate-signals-candidate-identity {
+    display: contents;
+  }
+
+  .candidate-signals-monitor-portrait {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    align-self: center;
+    width: 58px;
+    height: 58px;
+    margin: 0;
+    border-color: rgba(64, 133, 167, 0.9);
+    border-radius: 6px;
+  }
+
+  .candidate-signals-candidate-copy {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    overflow: hidden;
+  }
+
+  .candidate-signals-candidate-name {
+    min-width: 0;
+    flex: 0 1 auto;
+    display: block;
+    overflow: hidden;
+    color: #f4f8fb;
+    font-size: 15px;
+    font-weight: 740;
+    line-height: 1.1;
+    letter-spacing: -0.012em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .candidate-signals-monitor
+    .candidate-signals-candidate-secondary {
+    display: none;
+  }
+
+  .candidate-signals-candidate-tier {
+    width: auto;
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 8px;
+    line-height: 1;
+  }
+
+  .candidate-signals-candidate-metric {
+    grid-column: 3;
+    grid-row: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0;
+    text-align: right;
+  }
+
+  .candidate-signals-candidate-poll {
+    max-width: none;
+    overflow: visible;
+    color: #f4f8fb;
+    font-size: 14px;
+    font-weight: 730;
+    line-height: 1;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
+
+  .candidate-signals-candidate-poll.is-unpublished {
+    color: #98acb7;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  .candidate-signals-selection-label {
+    display: none;
+  }
+
+  .candidate-signals-candidate-evidence {
+    grid-column: 2 / 4;
+    grid-row: 2;
+    min-width: 0;
+    display: grid;
+    grid-template-columns:
+      minmax(0, 0.9fr)
+      minmax(66px, 0.65fr)
+      minmax(0, 1.45fr);
+    align-items: start;
+    gap: 0;
+    padding: 0;
+  }
+
+  .candidate-signals-candidate-fact {
+    min-width: 0;
+    display: grid;
+    align-content: start;
+    gap: 2px;
+    padding: 0 9px;
+    border-left: 1px solid rgba(49, 93, 118, 0.58);
+  }
+
+  .candidate-signals-candidate-fact:first-child {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .candidate-signals-candidate-fact-label {
+    display: block;
+    overflow: hidden;
+    color: #82a1b4;
+    font-size: 8.5px;
+    font-weight: 720;
+    line-height: 1.12;
+    letter-spacing: 0.02em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .candidate-signals-candidate-fact-value {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    color: #e6eef3;
+    font-size: 10.5px;
+    font-weight: 680;
+    line-height: 1.16;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .candidate-signals-candidate-scrutiny
+    .candidate-signals-candidate-fact-value {
+    font-size: 10px;
+  }
+}
+
+/* CANDIDATE MONITOR — FINAL DATA LEGIBILITY */
+
+@media (min-width: 1180px) {
+  .candidate-signals-candidate-fact-label {
+    color: #8aa9bb;
+    font-size: 9px;
+    line-height: 1.14;
+  }
+
+  .candidate-signals-candidate-fact-value {
+    font-size: 11px;
+    line-height: 1.18;
+  }
+
+  .candidate-signals-candidate-scrutiny
+    .candidate-signals-candidate-fact-value {
+    font-size: 10.75px;
+  }
+}
+
+
+/* CANDIDATE DOSSIER — RESPONSIVE TERMINAL PROFILE */
+
+@media (max-width: 759px) {
+  .candidate-signals-dossier-identity {
+    grid-template-columns: 84px minmax(0, 1fr);
+  }
+
+  .candidate-signals-dossier .candidate-signals-dossier-portrait {
+    width: 84px;
+    height: 84px;
+  }
+}
+
+@media (max-width: 560px) {
+  .candidate-signals-dossier-identity {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .candidate-signals-dossier .candidate-signals-dossier-portrait {
+    width: 72px;
+    height: 72px;
+  }
+
+  .candidate-signals-dossier-name {
+    font-size: 20px;
+  }
+
+  .candidate-signals-dossier-scrutiny-grid,
+  .candidate-signals-dossier-details-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .candidate-signals-dossier-scrutiny-block {
+    border-right: 0;
+    border-bottom: 1px solid rgba(35, 86, 114, 0.44);
+  }
+
+  .candidate-signals-dossier-scrutiny-block:last-child {
+    border-bottom: 0;
+  }
+}
+
+/* FILTERED CANDIDATE VISIBILITY */
+
+.candidate-signals-candidate-button[hidden],
+.candidate-signals-monitor-empty[hidden] {
+  display: none;
+}
