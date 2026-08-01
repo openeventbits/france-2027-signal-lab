@@ -2649,19 +2649,64 @@
     return section;
   }
 
+  function selectedPollScore(candidate) {
+    const polling = candidate?.polling;
+    if (
+      polling?.evidence_state !== "reported" ||
+      !hasValue(polling.selected_hypothesis_score)
+    ) {
+      return null;
+    }
+
+    const score = Number(polling.selected_hypothesis_score);
+    return Number.isFinite(score) ? score : null;
+  }
+
+  function pollOrderGroup(candidate) {
+    if (selectedPollScore(candidate) !== null) return 0;
+    return candidate?.polling?.evidence_state === "reported" ? 1 : 2;
+  }
+
+  function orderWorkspaceCandidates(candidates) {
+    const ordered = [];
+
+    candidates.forEach(candidate => {
+      const group = pollOrderGroup(candidate);
+      const score = selectedPollScore(candidate);
+      const insertion = ordered.findIndex(existing => {
+        const existingGroup = pollOrderGroup(existing);
+
+        if (group !== existingGroup) return group < existingGroup;
+        if (group !== 0) return false;
+
+        const existingScore = selectedPollScore(existing);
+        return existingScore !== null && score > existingScore;
+      });
+
+      if (insertion === -1) {
+        ordered.push(candidate);
+      } else {
+        ordered.splice(insertion, 0, candidate);
+      }
+    });
+
+    return ordered;
+  }
+
   function activeWorkspaceCandidates(candidates, metadata) {
     const field = metadata?.presidentialField;
     const activeIds = [
       ...(Array.isArray(field?.main) ? field.main : []),
       ...(Array.isArray(field?.secondary) ? field.secondary : [])
     ];
-
-    if (!activeIds.length) return candidates;
-
     const active = new Set(activeIds);
-    return candidates.filter(
-      candidate => active.has(candidate.candidate_id)
-    );
+    const visible = activeIds.length
+      ? candidates.filter(candidate => active.has(
+        candidate.candidate_id
+      ))
+      : candidates;
+
+    return orderWorkspaceCandidates(visible);
   }
 
   function render(mount, state, options = {}) {
