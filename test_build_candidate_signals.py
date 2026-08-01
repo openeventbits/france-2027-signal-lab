@@ -384,8 +384,19 @@ class CandidateUniverseTests(unittest.TestCase):
             self.claims,
         )
         self.assertEqual(universe["count"], 20)
-        self.assertEqual(universe["as_of_date"], "2026-07-31")
-        self.assertEqual(universe["cutoff_date"], "2026-01-29")
+        published = json.loads(
+            (ROOT / "candidate_signals.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            universe["as_of_date"],
+            published["candidate_universe"]["as_of_date"],
+        )
+        self.assertEqual(
+            universe["cutoff_date"],
+            published["candidate_universe"]["cutoff_date"],
+        )
         self.assertTrue(
             builder.candidate_universe_matches_news_roster(
                 candidates,
