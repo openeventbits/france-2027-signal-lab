@@ -620,6 +620,41 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             self.workspace_js,
         )
 
+    def test_not_tested_polling_uses_poll_specific_copy(self):
+        source = payload(self.rows)
+        source["candidates"][0]["polling"].update(
+            {
+                "evidence_state": "not_tested",
+                "hypothesis_count": None,
+                "range_min": None,
+                "range_max": None,
+                "selected_hypothesis_score": None,
+                "selected_hypothesis_rank": None,
+            }
+        )
+
+        result = run_workspace(source)
+        text = result["text"]
+
+        self.assertIn("POLL EVIDENCENot tested", text)
+        self.assertIn("Point estimateNot tested", text)
+        self.assertIn("Published rangeNot tested", text)
+        self.assertIn("Not tested in featured package", text)
+        self.assertIn(
+            "No accepted first-round test in the current polling window.",
+            text,
+        )
+        self.assertNotIn("Point estimateNot published", text)
+        self.assertNotIn("Published rangeNot published", text)
+        self.assertIn(
+            'const NOT_TESTED = "Not tested";',
+            self.workspace_js,
+        )
+        self.assertIn(
+            'pollText === MISSING || pollText === NOT_TESTED',
+            self.workspace_js,
+        )
+
     def test_unpublished_fields_are_not_zero_and_published_zero_remains(self):
         source = payload(self.rows)
         source["candidates"][0]["general_visibility"] = None

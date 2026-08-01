@@ -2,6 +2,7 @@
   "use strict";
 
   const MISSING = "Not published";
+  const NOT_TESTED = "Not tested";
   const stateNames = new Set([
     "loading",
     "ready",
@@ -131,7 +132,7 @@
 
   function pollValue(candidate) {
     const polling = candidate.polling;
-    if (!polling) return MISSING;
+    if (polling?.evidence_state !== "reported") return NOT_TESTED;
     if (hasValue(polling.selected_hypothesis_score)) {
       return percentageText(polling.selected_hypothesis_score);
     }
@@ -264,14 +265,15 @@
 
   function pollLines(candidate, metadata) {
     const polling = candidate.polling;
+    const reported = polling?.evidence_state === "reported";
     const pollPackage = metadata?.featured_polling_package;
     const lines = [
-      ["Selected estimate", polling
+      ["Selected estimate", reported
         ? percentageText(polling.selected_hypothesis_score)
-        : MISSING],
-      ["Published range", polling
+        : NOT_TESTED],
+      ["Published range", reported
         ? rangeText(polling.range_min, polling.range_max)
-        : MISSING]
+        : NOT_TESTED]
     ];
 
     if (pollPackage) {
@@ -489,7 +491,9 @@
         createElement(
           "strong",
           `candidate-signals-candidate-poll${
-            pollText === MISSING ? " is-unpublished" : ""
+            pollText === MISSING || pollText === NOT_TESTED
+              ? " is-unpublished"
+              : ""
           }`,
           pollText
         )
@@ -963,7 +967,7 @@
       hasValue(poll.selected_hypothesis_score);
 
     const primaryText = !reported
-      ? "Not tested"
+      ? NOT_TESTED
       : hasSelected
         ? percentageText(poll.selected_hypothesis_score)
         : hasRange
@@ -1856,15 +1860,16 @@
 
   function dossierPollLines(candidate, metadata) {
     const polling = candidate.polling;
+    const reported = polling?.evidence_state === "reported";
     const pollPackage = metadata?.featured_polling_package;
     const sourceCount = Array.isArray(pollPackage?.source_urls)
       ? pollPackage.source_urls.filter(safeUrl).length
       : null;
     const hasPointEstimate = (
-      polling && hasValue(polling.selected_hypothesis_score)
+      reported && hasValue(polling.selected_hypothesis_score)
     );
     const hasPublishedRange = (
-      polling &&
+      reported &&
       (
         hasValue(polling.range_min) ||
         hasValue(polling.range_max)
@@ -1876,10 +1881,12 @@
         ? percentageText(polling.selected_hypothesis_score)
         : hasPublishedRange
           ? "Range only"
-          : MISSING],
-      ["Published range", polling
+          : reported
+            ? MISSING
+            : NOT_TESTED],
+      ["Published range", reported
         ? rangeText(polling.range_min, polling.range_max)
-        : MISSING],
+        : NOT_TESTED],
       ["Pollster", pollPackage?.pollster || MISSING],
       ["Field dates", formatDateRange(
         pollPackage?.fieldwork_start,
@@ -1888,9 +1895,11 @@
       ["Sample", hasValue(pollPackage?.sample_size)
         ? groupedNumberText(pollPackage.sample_size)
         : MISSING],
-      ["Hypotheses", polling && hasValue(polling.hypothesis_count)
+      ["Hypotheses", reported && hasValue(polling.hypothesis_count)
         ? numberText(polling.hypothesis_count)
-        : MISSING],
+        : reported
+          ? MISSING
+          : NOT_TESTED],
       ["Published sources", hasValue(sourceCount)
         ? numberText(sourceCount)
         : MISSING]
