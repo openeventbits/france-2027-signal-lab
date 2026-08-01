@@ -6,8 +6,10 @@ import uuid
 from pathlib import Path
 from unittest.mock import patch
 
+import build_campaign_events as campaign_builder
 import build_publication_manifest as manifest_builder
 import source_health
+from campaign_events_contract import serialize_campaign_events
 
 
 ROOT = Path(__file__).resolve().parent
@@ -26,6 +28,13 @@ def candidate_signals_payload():
         (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
     )
 
+
+def serialized_manifest(payload):
+    return (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode(
+        "utf-8"
+    )
+
+
 def complete_inputs(root):
     source_news = json.loads(
         (ROOT / "news_wire.json").read_text(encoding="utf-8")
@@ -39,6 +48,17 @@ def complete_inputs(root):
                 encoding="utf-8"
             )
         ),
+    )
+    write_json(
+        root,
+        "campaign_events.json",
+        {
+            "schema_version": "1.0",
+            "generated_at": "2026-08-01T00:00:00Z",
+            "data_as_of": "2026-08-01T00:00:00Z",
+            "campaign_events": [],
+            "institutional_milestones": [],
+        },
     )
     write_json(
         root,
@@ -216,6 +236,7 @@ class PublicationManifestTests(unittest.TestCase):
             set(manifest["lanes"]),
             {
                 "candidacy_status",
+                "campaign_events",
                 "candidate_signals",
                 "polls",
                 "runoff",
@@ -239,6 +260,7 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertEqual(
             list(manifest["lanes"]),
             [
+                "campaign_events",
                 "candidacy_status",
                 "candidate_signals",
                 "claims",
@@ -260,6 +282,148 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertEqual(
             lane["sha256"],
             hashlib.sha256(source.read_bytes()).hexdigest(),
+        )
+
+    def production_inputs_root(self, name):
+        destination = self.root / name
+        destination.mkdir()
+        for file_names in manifest_builder.LANE_FILES.values():
+            for filename in file_names:
+                shutil.copy2(ROOT / filename, destination / filename)
+        return destination
+
+    def test_campaign_events_lane_metadata(self):
+        manifest = self.build()
+        lane = manifest["lanes"]["campaign_events"]
+        source = self.root / "campaign_events.json"
+        self.assertEqual(lane["file"], "campaign_events.json")
+        self.assertTrue(lane["available"])
+        self.assertTrue(lane["valid"])
+        self.assertEqual(lane["schema_version"], "1.0")
+        self.assertEqual(lane["generated_at"], "2026-08-01T00:00:00Z")
+        self.assertEqual(lane["data_as_of"], "2026-08-01T00:00:00Z")
+        self.assertEqual(lane["timestamp_status"], "known")
+        self.assertEqual(lane["record_count"], 0)
+        self.assertEqual(lane["byte_size"], len(source.read_bytes()))
+        self.assertEqual(
+            lane["sha256"],
+            hashlib.sha256(source.read_bytes()).hexdigest(),
+        )
+        self.assertEqual(lane["warnings"], [])
+
+    def test_tracked_campaign_events_lane_metadata(self):
+        tracked_manifest = json.loads(
+            (ROOT / "publication_manifest.json").read_text(encoding="utf-8")
+        )
+        rebuilt = manifest_builder.build_manifest(
+            ROOT,
+            published_at=tracked_manifest["published_at"],
+        )
+        lane = rebuilt["lanes"]["campaign_events"]
+        source = ROOT / "campaign_events.json"
+        self.assertTrue(lane["available"])
+        self.assertTrue(lane["valid"])
+        self.assertEqual(lane["record_count"], 2)
+        self.assertEqual(lane["byte_size"], len(source.read_bytes()))
+        self.assertEqual(
+            lane["sha256"],
+            hashlib.sha256(source.read_bytes()).hexdigest(),
+        )
+        self.assertEqual(lane["timestamp_status"], "known")
+
+    def test_tracked_manifest_regenerates_byte_for_byte(self):
+        tracked_path = ROOT / "publication_manifest.json"
+        tracked = json.loads(tracked_path.read_text(encoding="utf-8"))
+        rebuilt = manifest_builder.build_manifest(
+            ROOT,
+            published_at=tracked["published_at"],
+        )
+        self.assertEqual(serialized_manifest(rebuilt), tracked_path.read_bytes())
+        self.assertEqual(rebuilt["snapshot_id"], tracked["snapshot_id"])
+        self.assertEqual(
+            rebuilt["lanes"]["campaign_events"]["sha256"],
+            tracked["lanes"]["campaign_events"]["sha256"],
+        )
+
+    def test_workflow_no_churn_sequence_matches_both_tracked_outputs(self):
+        production_root = self.production_inputs_root("workflow-no-churn")
+        tracked_campaign = ROOT / "campaign_events.json"
+        tracked_manifest_path = ROOT / "publication_manifest.json"
+        tracked_manifest = json.loads(
+            tracked_manifest_path.read_text(encoding="utf-8")
+        )
+        campaign_builder.build_from_paths(
+            generated_at="2026-08-02T16:00:00Z",
+            seed_path=ROOT / "campaign_event_institutional_seeds.json",
+            source_registry_path=ROOT / "campaign_event_sources.json",
+            candidate_registry_path=ROOT / "candidate_candidacy_status.json",
+            output_path=production_root / "campaign_events.json",
+            preserve_generated_at_from=tracked_campaign,
+        )
+        self.assertEqual(
+            (production_root / "campaign_events.json").read_bytes(),
+            tracked_campaign.read_bytes(),
+        )
+        rebuilt = manifest_builder.build_manifest(
+            production_root,
+            published_at=tracked_manifest["published_at"],
+        )
+        self.assertEqual(
+            serialized_manifest(rebuilt),
+            tracked_manifest_path.read_bytes(),
+        )
+
+    def test_genuine_campaign_events_change_updates_digest_and_snapshot(self):
+        production_root = self.production_inputs_root("campaign-change")
+        tracked_manifest = json.loads(
+            (ROOT / "publication_manifest.json").read_text(encoding="utf-8")
+        )
+        changed = json.loads(
+            (ROOT / "campaign_events.json").read_text(encoding="utf-8")
+        )
+        changed["institutional_milestones"][0]["title"] += " — mise à jour"
+        (production_root / "campaign_events.json").write_bytes(
+            serialize_campaign_events(changed)
+        )
+        rebuilt = manifest_builder.build_manifest(
+            production_root,
+            published_at=tracked_manifest["published_at"],
+        )
+        self.assertNotEqual(
+            rebuilt["lanes"]["campaign_events"]["sha256"],
+            tracked_manifest["lanes"]["campaign_events"]["sha256"],
+        )
+        self.assertNotEqual(rebuilt["snapshot_id"], tracked_manifest["snapshot_id"])
+
+    def test_missing_campaign_events_is_isolated_to_its_lane(self):
+        baseline = self.build()
+        (self.root / "campaign_events.json").unlink()
+        manifest = self.build()
+        lane = manifest["lanes"]["campaign_events"]
+        self.assertFalse(lane["available"])
+        self.assertFalse(lane["valid"])
+        self.assertTrue(any("campaign_events.json is missing" in item for item in lane["warnings"]))
+        self.assertTrue(any("campaign_events.json is missing" in item for item in manifest["warnings"]))
+        self.assertEqual(
+            {name: value for name, value in manifest["lanes"].items() if name != "campaign_events"},
+            {name: value for name, value in baseline["lanes"].items() if name != "campaign_events"},
+        )
+
+    def test_malformed_campaign_events_is_isolated_to_its_lane(self):
+        baseline = self.build()
+        (self.root / "campaign_events.json").write_text(
+            "{not json",
+            encoding="utf-8",
+        )
+        manifest = self.build()
+        lane = manifest["lanes"]["campaign_events"]
+        self.assertTrue(lane["available"])
+        self.assertFalse(lane["valid"])
+        self.assertTrue(any("campaign_events.json is malformed JSON" in item for item in lane["warnings"]))
+        self.assertTrue(any("campaign_events.json is malformed JSON" in item for item in manifest["warnings"]))
+        self.assertEqual(
+            {name: value for name, value in manifest["lanes"].items() if name != "campaign_events"},
+            {name: value for name, value in baseline["lanes"].items() if name != "campaign_events"},
         )
 
     def test_missing_or_malformed_candidacy_registry_fails(self):

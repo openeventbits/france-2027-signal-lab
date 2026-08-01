@@ -1,4 +1,39 @@
 {
   "schema_version": "1.0",
-  "sources": []
+  "sources": [
+    {
+      "source_id": "interieur-presidential-calendar",
+      "publisher": "Ministère de l’Intérieur",
+      "source_type": "official_unstructured",
+      "url": "https://www.elections.interieur.gouv.fr/scrutins/lelection-presidentielle",
+      "allowed_lanes": [
+        "institutional_milestones"
+      ],
+      "allowed_event_types": [
+        "first_round",
+        "second_round"
+      ],
+      "enabled": true,
+      "required": true,
+      "refresh_class": "manual",
+      "zero_result_valid": false
+    },
+    {
+      "source_id": "vie-publique-presidential-calendar",
+      "publisher": "Vie publique",
+      "source_type": "official_unstructured",
+      "url": "https://www.vie-publique.fr/en-bref/303896-election-presidentielle-2027-les-dates-sont-connues",
+      "allowed_lanes": [
+        "institutional_milestones"
+      ],
+      "allowed_event_types": [
+        "first_round",
+        "second_round"
+      ],
+      "enabled": true,
+      "required": true,
+      "refresh_class": "manual",
+      "zero_result_valid": false
+    }
+  ]
 }

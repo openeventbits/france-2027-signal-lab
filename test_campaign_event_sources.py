@@ -49,15 +49,51 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
         if pattern is not None:
             self.assertRegex(str(context.exception), pattern)
 
-    def test_valid_empty_registry_loads(self):
-        expected = {"schema_version": "1.0", "sources": []}
-        self.assertEqual(
-            load_campaign_event_source_registry(
-                ROOT / "campaign_event_sources.json"
-            ),
-            expected,
+    def test_production_registry_has_exact_approved_institutional_sources(self):
+        loaded = load_campaign_event_source_registry(
+            ROOT / "campaign_event_sources.json"
         )
+        self.assertEqual(
+            [source["source_id"] for source in loaded["sources"]],
+            [
+                "interieur-presidential-calendar",
+                "vie-publique-presidential-calendar",
+            ],
+        )
+        self.assertEqual(
+            loaded["sources"],
+            [
+                {
+                    "source_id": "interieur-presidential-calendar",
+                    "publisher": "Ministère de l’Intérieur",
+                    "source_type": "official_unstructured",
+                    "url": "https://www.elections.interieur.gouv.fr/scrutins/lelection-presidentielle",
+                    "allowed_lanes": ["institutional_milestones"],
+                    "allowed_event_types": ["first_round", "second_round"],
+                    "enabled": True,
+                    "required": True,
+                    "refresh_class": "manual",
+                    "zero_result_valid": False,
+                },
+                {
+                    "source_id": "vie-publique-presidential-calendar",
+                    "publisher": "Vie publique",
+                    "source_type": "official_unstructured",
+                    "url": "https://www.vie-publique.fr/en-bref/303896-election-presidentielle-2027-les-dates-sont-connues",
+                    "allowed_lanes": ["institutional_milestones"],
+                    "allowed_event_types": ["first_round", "second_round"],
+                    "enabled": True,
+                    "required": True,
+                    "refresh_class": "manual",
+                    "zero_result_valid": False,
+                },
+            ],
+        )
+
+    def test_valid_empty_registry_remains_supported_in_memory(self):
+        expected = {"schema_version": "1.0", "sources": []}
         validate_campaign_event_source_registry(expected)
+        self.assertEqual(normalize_campaign_event_source_registry(expected), expected)
 
     def test_exact_top_level_keys(self):
         for changed in (
@@ -333,7 +369,13 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
             loaded = load_campaign_event_source_registry(
                 ROOT / "campaign_event_sources.json"
             )
-        self.assertEqual(loaded["sources"], [])
+        self.assertEqual(
+            [source["source_id"] for source in loaded["sources"]],
+            [
+                "interieur-presidential-calendar",
+                "vie-publique-presidential-calendar",
+            ],
+        )
 
 
 if __name__ == "__main__":
