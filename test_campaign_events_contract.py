@@ -1,9 +1,10 @@
 import copy
 import hashlib
 import json
+import shutil
 import socket
-import tempfile
 import unittest
+import uuid
 from pathlib import Path
 from unittest import mock
 
@@ -18,6 +19,7 @@ from campaign_events_contract import (
 
 GENERATED_AT = "2026-08-01T10:00:00Z"
 DATA_AS_OF = "2026-08-01T09:00:00Z"
+ROOT = Path(__file__).resolve().parent
 
 
 def first_party_evidence(source_id="candidate-calendar"):
@@ -176,9 +178,9 @@ def artifact(campaign_events=None, institutional_milestones=None, **changes):
 
 class CampaignEventsContractTests(unittest.TestCase):
     def setUp(self):
-        self._temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(self._temporary.cleanup)
-        self.temporary_root = Path(self._temporary.name)
+        self.temporary_root = ROOT / f".campaign-events-contract-test-{uuid.uuid4().hex}"
+        self.temporary_root.mkdir()
+        self.addCleanup(shutil.rmtree, self.temporary_root, True)
         self.registry_path = self.write_registry(
             "approved-sources.json",
             [
@@ -352,12 +354,42 @@ class CampaignEventsContractTests(unittest.TestCase):
             self.empty_registry_path,
         )
 
-    def test_default_empty_registry_rejects_nonempty_artifact(self):
+    def test_default_production_registry_rejects_unregistered_artifact(self):
         with self.assertRaisesRegex(
             CampaignEventsContractError,
             "not in the approved source registry",
         ):
             normalize_campaign_events_artifact(artifact([campaign_event()]))
+
+    def test_default_production_registry_accepts_official_milestone(self):
+        evidence = [
+            {
+                "source_id": "interieur-presidential-calendar",
+                "source_url": "https://www.elections.interieur.gouv.fr/scrutins/lelection-presidentielle",
+                "source_publisher": "Ministère de l’Intérieur",
+                "source_type": "official_unstructured",
+                "evidence_type": "official_rule_derivation",
+            },
+            {
+                "source_id": "vie-publique-presidential-calendar",
+                "source_url": "https://www.vie-publique.fr/en-bref/303896-election-presidentielle-2027-les-dates-sont-connues",
+                "source_publisher": "Vie publique",
+                "source_type": "official_unstructured",
+                "evidence_type": "official_rule_derivation",
+            },
+        ]
+        event = institutional_event(
+            event_key="presidential-2027-first-round",
+            scheduled_start="2027-04-18",
+            evidence=evidence,
+        )
+        normalized = normalize_campaign_events_artifact(
+            artifact(institutional_milestones=[event])
+        )
+        self.assertEqual(
+            normalized["institutional_milestones"][0]["scheduled_start"],
+            "2027-04-18",
+        )
 
     def test_unknown_and_disabled_sources_are_rejected(self):
         unknown = first_party_evidence()

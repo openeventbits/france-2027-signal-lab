@@ -29,6 +29,10 @@ from candidate_candidacy_status import (
     project_display_tiers,
     validate_candidate_candidacy_status,
 )
+from campaign_events_contract import (
+    CampaignEventsContractError,
+    validate_campaign_events_artifact,
+)
 from source_health import (
     SourceHealthError,
     source_health_aggregate,
@@ -41,6 +45,7 @@ OUTPUT_NAME = "publication_manifest.json"
 TIMESTAMP_STATUSES = {"known", "unknown", "missing", "invalid"}
 LANE_FILES = {
     "candidacy_status": ("candidate_candidacy_status.json",),
+    "campaign_events": ("campaign_events.json",),
     "candidate_signals": ("candidate_signals.json",),
     "claims": ("claims_under_scrutiny.json",),
     "news": ("news_wire.json",),
@@ -108,9 +113,16 @@ def _sha256(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
+def _canonical_source_bytes(content: bytes) -> bytes:
+    """Return repository publication bytes with platform newlines normalized."""
+
+    return content.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+
 def _read_source(path: Path) -> dict[str, Any]:
     result: dict[str, Any] = {
         "available": False,
+        "byte_size": None,
         "sha256": None,
         "payload": None,
         "error": None,
@@ -124,8 +136,11 @@ def _read_source(path: Path) -> dict[str, Any]:
         result["error"] = f"{path.name} could not be read: {error}"
         return result
 
+    # Byte metadata stays canonical even when UTF-8 or JSON validation fails.
+    canonical_content = _canonical_source_bytes(content)
     result["available"] = True
-    result["sha256"] = _sha256(content)
+    result["byte_size"] = len(canonical_content)
+    result["sha256"] = _sha256(canonical_content)
     try:
         result["payload"] = json.loads(content.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
@@ -850,6 +865,12 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
     if lane_name == "candidate_signals":
         _validate_candidate_signals_public(payload)
         return True
+    if lane_name == "campaign_events":
+        try:
+            validate_campaign_events_artifact(payload)
+        except CampaignEventsContractError:
+            return False
+        return True
     if lane_name == "polls":
         return isinstance(payload, list) and all(
             isinstance(item, dict) for item in payload
@@ -892,6 +913,8 @@ def _evidence_values(lane_name: str, payload: Any) -> list[Any]:
             if evidence_dates["scrutiny"] is not None
             else []
         )
+    if lane_name == "campaign_events":
+        return [payload["data_as_of"]]
     if lane_name == "polls":
         return [item.get("fieldwork_end") for item in payload]
     if lane_name == "runoff":
@@ -968,6 +991,8 @@ def _build_lane(
         ),
         "warnings": lane_warnings,
     }
+    if lane_name == "campaign_events":
+        lane["byte_size"] = primary["byte_size"]
     if len(file_names) > 1:
         lane["related_files"] = [
             {
@@ -1005,6 +1030,11 @@ def _build_lane(
             lane["record_count"] = primary["payload"][
                 "candidate_universe"
             ]["count"]
+        if lane_name == "campaign_events":
+            lane["record_count"] = sum(
+                len(primary["payload"][field])
+                for field in ("campaign_events", "institutional_milestones")
+            )
 
     return lane, sources
 
@@ -1200,6 +1230,21 @@ def validate_manifest(manifest: Any) -> None:
                 lane.get("record_count"),
                 field=f"{lane_name} lane record_count",
             )
+        if lane_name == "campaign_events":
+            if lane["available"]:
+                _required_count(
+                    lane.get("byte_size"),
+                    field="campaign_events lane byte_size",
+                )
+            elif lane.get("byte_size") is not None:
+                raise ManifestError(
+                    "campaign_events lane byte_size must be null when missing"
+                )
+            if lane["valid"]:
+                _required_count(
+                    lane.get("record_count"),
+                    field="campaign_events lane record_count",
+                )
 
     network = manifest.get("source_network")
     if not isinstance(network, dict) or set(network) != set(
