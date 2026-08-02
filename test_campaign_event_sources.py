@@ -6,6 +6,8 @@ from pathlib import Path
 from unittest import mock
 
 from campaign_event_sources import (
+    CAMPAIGN_EVENT_TYPES,
+    INSTITUTIONAL_EVENT_TYPES,
     CampaignEventSourceRegistryError,
     load_campaign_event_source_registry,
     normalize_campaign_event_source_registry,
@@ -234,9 +236,8 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
                 )
 
     def test_event_type_vocabulary_and_lane_compatibility(self):
-        self.assert_invalid(
-            registry(source_record(allowed_event_types=["debate"])),
-            "allowed_event_types",
+        validate_campaign_event_source_registry(
+            registry(source_record(allowed_event_types=["debate"]))
         )
         self.assert_invalid(
             registry(
@@ -264,6 +265,66 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
         self.assertEqual(
             normalized["sources"][0]["allowed_event_types"],
             ["rally", "first_round"],
+        )
+
+    def test_event_type_vocabularies_add_only_debate(self):
+        self.assertEqual(
+            CAMPAIGN_EVENT_TYPES,
+            {
+                "rally",
+                "public_meeting",
+                "debate",
+                "candidate_visit",
+                "campaign_launch",
+            },
+        )
+        self.assertEqual(
+            INSTITUTIONAL_EVENT_TYPES,
+            {
+                "sponsorship_deadline",
+                "official_candidate_list",
+                "campaign_period_boundary",
+                "first_round",
+                "second_round",
+            },
+        )
+
+    def test_event_type_order_is_campaign_then_unchanged_institutional(self):
+        payload = registry(
+            source_record(
+                allowed_lanes=[
+                    "institutional_milestones",
+                    "campaign_events",
+                ],
+                allowed_event_types=[
+                    "second_round",
+                    "campaign_launch",
+                    "candidate_visit",
+                    "first_round",
+                    "debate",
+                    "public_meeting",
+                    "rally",
+                    "campaign_period_boundary",
+                    "official_candidate_list",
+                    "sponsorship_deadline",
+                ],
+            )
+        )
+        normalized = normalize_campaign_event_source_registry(payload)
+        self.assertEqual(
+            normalized["sources"][0]["allowed_event_types"],
+            [
+                "rally",
+                "public_meeting",
+                "debate",
+                "candidate_visit",
+                "campaign_launch",
+                "sponsorship_deadline",
+                "official_candidate_list",
+                "campaign_period_boundary",
+                "first_round",
+                "second_round",
+            ],
         )
 
     def test_boolean_fields_require_actual_booleans(self):

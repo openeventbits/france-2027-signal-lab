@@ -138,6 +138,7 @@ _EVENT_TYPE_ORDER = {
         (
             "rally",
             "public_meeting",
+            "debate",
             "candidate_visit",
             "campaign_launch",
             "sponsorship_deadline",

@@ -85,7 +85,13 @@ def registered_source(
         "url": f"https://{hostname or source_id + '.example.org'}/registry",
         "allowed_lanes": allowed_lanes or ["campaign_events"],
         "allowed_event_types": allowed_event_types
-        or ["rally", "public_meeting", "candidate_visit", "campaign_launch"],
+        or [
+            "rally",
+            "public_meeting",
+            "debate",
+            "candidate_visit",
+            "campaign_launch",
+        ],
         "enabled": enabled,
         "required": False,
         "refresh_class": "daily",
@@ -637,6 +643,7 @@ class CampaignEventsContractTests(unittest.TestCase):
         campaign_types = (
             "rally",
             "public_meeting",
+            "debate",
             "candidate_visit",
             "campaign_launch",
         )
@@ -846,6 +853,29 @@ class CampaignEventsContractTests(unittest.TestCase):
         self.assert_invalid(
             artifact([event, copy.deepcopy(event)]),
             "duplicate event_id",
+        )
+
+    def test_campaign_event_type_order_is_deterministic(self):
+        event_types = [
+            "rally",
+            "public_meeting",
+            "debate",
+            "candidate_visit",
+            "campaign_launch",
+        ]
+        events = [
+            campaign_event(
+                f"same-time-{event_type.replace('_', '-')}",
+                event_type=event_type,
+                scheduled_start="2027-05-01T18:00:00+02:00",
+                time_precision="datetime",
+            )
+            for event_type in reversed(event_types)
+        ]
+        normalized = self.canonical(artifact(events))
+        self.assertEqual(
+            [event["event_type"] for event in normalized["campaign_events"]],
+            event_types,
         )
 
     def test_event_ordering_is_deterministic(self):
