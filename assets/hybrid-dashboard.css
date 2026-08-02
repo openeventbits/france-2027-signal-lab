@@ -6880,3 +6880,55 @@
     margin: 0 !important;
   }
 }
+/* RUNOFF NEUTRAL STATUS AND MARGINS V1
+   Remove evaluative green, preserve a neutral analytical palette,
+   and replace boxed margin tiles with lightweight terminal readouts.
+*/
+
+/* AGREE remains a status chip, but uses the dashboard cyan. */
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-status,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-status.is-agree {
+  color: rgb(53, 213, 255) !important;
+  border-color: rgba(53, 213, 255, .55) !important;
+  background: rgba(53, 213, 255, .045) !important;
+  box-shadow: none !important;
+}
+
+/* Remove the complete box around margin values. */
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile {
+  padding: 4px 4px 4px 10px !important;
+  border: 0 !important;
+  border-left: 1px solid rgba(29, 75, 103, .62) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Neutral label. */
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile span {
+  color: rgb(143, 169, 185) !important;
+}
+
+/* First observation: cyan analytical accent. */
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-observations
+> .hybrid-runoff-source-observation:nth-of-type(1)
+.hybrid-runoff-margin-tile strong,
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-observations
+> .hybrid-runoff-source-observation:nth-of-type(1)
+.hybrid-runoff-margin-tile small {
+  color: rgb(53, 213, 255) !important;
+}
+
+/* Second observation: dashboard violet accent. */
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-observations
+> .hybrid-runoff-source-observation:nth-of-type(2)
+.hybrid-runoff-margin-tile strong,
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-observations
+> .hybrid-runoff-source-observation:nth-of-type(2)
+.hybrid-runoff-margin-tile small {
+  color: rgb(157, 140, 255) !important;
+}
