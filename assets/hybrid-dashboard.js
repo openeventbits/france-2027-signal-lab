@@ -63,6 +63,7 @@
   const defaultView = "candidates";
   const state = {
     activeView: hashToView.get(window.location.hash) || defaultView,
+    selectedRunoffHistoryKey: "",
     selectedAgendaTopicId: "",
     claimsRelationship: "all",
     claimsCandidateId: "",
@@ -76,6 +77,12 @@
     },
     scrollOnNextHash: false
   };
+  const runoffArchiveState = {
+    status: "loading",
+    events: [],
+    error: ""
+  };
+  let runoffArchiveRequest = null;
   const candidateSignalsRequest =
     window.France2027CandidateSignals
       ?.load("candidate_signals.json")
@@ -113,13 +120,55 @@
   const countLabel = (value, singular, plural = singular + "s") => `${value} ${value === 1 ? singular : plural}`;
   const formatDay = value => formatDate(String(value).slice(0, 10));
   const statusCopy = status => ({
-    agree: "Same closest matchup",
+    agree: "Agree",
     split: "Pollsters split",
     ambiguous: "No single closest matchup",
     insufficient: "Insufficient comparable evidence",
     unavailable: "Unavailable"
   })[status] || "Unavailable";
 
+  function isValidRunoffArchivePayload(payload) {
+    if (!payload || typeof payload !== "object" || !Array.isArray(payload.events)) return false;
+    const eventIds = new Set();
+    return payload.events.every(event => {
+      if (!event || typeof event !== "object" || typeof event.event_id !== "string" || !event.event_id) return false;
+      if (eventIds.has(event.event_id)) return false;
+      eventIds.add(event.event_id);
+      return typeof event.matchup_key === "string" && Boolean(event.matchup_key) &&
+        typeof event.pollster === "string" && Boolean(event.pollster) &&
+        /^\d{4}-\d{2}-\d{2}$/.test(event.fieldwork_start) &&
+        /^\d{4}-\d{2}-\d{2}$/.test(event.fieldwork_end) &&
+        Array.isArray(event.candidates) && event.candidates.length === 2 &&
+        event.candidates.every(candidate => candidate && typeof candidate.name === "string" && Number.isFinite(candidate.score)) &&
+        Number.isFinite(event.margin);
+    });
+  }
+
+  function loadRunoffArchive(fetchImplementation = typeof window.fetch === "function" ? window.fetch.bind(window) : null) {
+    if (runoffArchiveRequest || !fetchImplementation) return runoffArchiveRequest;
+    runoffArchiveRequest = fetchImplementation("second_round_polls.json", { cache: "no-store" })
+      .then(response => {
+        if (!response.ok) throw new Error(`second_round_polls.json returned HTTP ${response.status}`);
+        return response.json();
+      })
+      .then(payload => {
+        if (!isValidRunoffArchivePayload(payload)) throw new Error("Invalid second_round_polls.json payload");
+        runoffArchiveState.status = "ready";
+        runoffArchiveState.events = payload.events.slice();
+        runoffArchiveState.error = "";
+        if (typeof mount.querySelectorAll === "function") renderAll();
+        return runoffArchiveState;
+      })
+      .catch(error => {
+        runoffArchiveState.status = "unavailable";
+        runoffArchiveState.events = [];
+        runoffArchiveState.error = error instanceof Error ? error.message : "Archive enrichment unavailable";
+        console.warn("Runoff archive enrichment unavailable.", error);
+        if (typeof mount.querySelectorAll === "function") renderAll();
+        return runoffArchiveState;
+      });
+    return runoffArchiveRequest;
+  }
   function viewModelState(name) {
     const loadState = dashboardState.loadState[name];
     if (loadState === "loading") return { state: "loading", message: "Loading repository data…" };
@@ -149,11 +198,111 @@
     </span>`;
   }
 
-  function buildRunoffViewModel() {
+  function exactRunoffWindowLabel(event) {
+    return formatRunoffFieldwork({ start: event.fieldwork_start, end: event.fieldwork_end });
+  }
+
+  function runoffScoresForCandidates(observation, candidates) {
+    return candidates.map(name => observation.candidates.find(candidate => candidate.name === name)?.score);
+  }
+
+  function enrichRunoffResult(result, eventById) {
+    const raw = typeof result.event_id === "string" ? eventById.get(result.event_id) : null;
+    return {
+      ...result,
+      fieldwork_start: raw?.fieldwork_start || result.fieldwork_start || "",
+      fieldwork_end: raw?.fieldwork_end || result.fieldwork_end || "",
+      sampleSize: raw && Number.isInteger(raw.sample_size) ? raw.sample_size : null,
+      archiveMatched: Boolean(raw)
+    };
+  }
+
+  function buildRunoffArchiveModel(archiveState, currentCommonKeys, preferredHistoryKey) {
+    if (archiveState.status !== "ready") {
+      return {
+        state: archiveState.status === "loading" ? "loading" : "unavailable",
+        message: archiveState.status === "loading"
+          ? "Loading the source-linked archive…"
+          : "Archive coverage and history are locally unavailable; current comparison evidence remains available.",
+        eventById: new Map(),
+        footprint: null,
+        matchups: [],
+        selectedHistoryKey: "",
+        history: [],
+        otherMatchups: []
+      };
+    }
+
+    const events = archiveState.events;
+    const eventById = new Map(events.map(event => [event.event_id, event]));
+    const matchupMap = new Map();
+    events.forEach(event => {
+      if (!matchupMap.has(event.matchup_key)) {
+        matchupMap.set(event.matchup_key, {
+          key: event.matchup_key,
+          candidates: event.candidates.map(candidate => candidate.name),
+          observations: []
+        });
+      }
+      matchupMap.get(event.matchup_key).observations.push(event);
+    });
+    const matchups = [...matchupMap.values()].sort((a, b) =>
+      a.candidates.join(" vs ").localeCompare(b.candidates.join(" vs "), "fr")
+    );
+    matchups.forEach(matchup => {
+      matchup.observations = matchup.observations.slice().sort((a, b) =>
+        String(a.fieldwork_end).localeCompare(String(b.fieldwork_end)) ||
+        String(a.fieldwork_start).localeCompare(String(b.fieldwork_start)) ||
+        String(a.pollster).localeCompare(String(b.pollster), "fr") ||
+        String(a.event_id).localeCompare(String(b.event_id))
+      );
+    });
+    const selectedHistoryKey = matchupMap.has(preferredHistoryKey)
+      ? preferredHistoryKey
+      : matchups[0]?.key || "";
+    const selectedHistory = matchupMap.get(selectedHistoryKey);
+    const windows = new Map();
+    events.forEach(event => windows.set(`${event.fieldwork_start}/${event.fieldwork_end}`, event));
+    const sortedWindows = [...windows.values()].sort((a, b) =>
+      String(a.fieldwork_end).localeCompare(String(b.fieldwork_end)) ||
+      String(a.fieldwork_start).localeCompare(String(b.fieldwork_start))
+    );
+    const commonKeys = new Set(currentCommonKeys);
+    return {
+      state: "ready",
+      message: "",
+      eventById,
+      footprint: {
+        observationCount: events.length,
+        matchupCount: matchupMap.size,
+        pollsterCount: new Set(events.map(event => event.pollster)).size,
+        windowCount: windows.size,
+        earliestWindow: sortedWindows[0] || null,
+        latestWindow: sortedWindows[sortedWindows.length - 1] || null
+      },
+      matchups,
+      selectedHistoryKey,
+      history: selectedHistory?.observations || [],
+      otherMatchups: matchups
+        .filter(matchup => !commonKeys.has(matchup.key))
+        .map(matchup => ({
+          ...matchup,
+          latest: matchup.observations[matchup.observations.length - 1]
+        }))
+    };
+  }
+
+  function buildRunoffViewModel(archiveState = runoffArchiveState) {
     const unavailable = viewModelState("runoff");
     if (unavailable) return { domain: "runoff", ...unavailable };
 
     const payload = dashboardState.runoff;
+    if (!payload || !["agree", "split", "ambiguous", "insufficient"].includes(payload.status)) {
+      return { domain: "runoff", state: "invalid", message: "Runoff evidence is unavailable because the derived artifact is malformed." };
+    }
+    const commonMatchups = Array.isArray(payload.common_matchups) ? payload.common_matchups : [];
+    const preferredHistoryKey = state.selectedRunoffHistoryKey || payload.selected_matchup?.matchup_key || commonMatchups[0]?.matchup_key || "";
+    const archive = buildRunoffArchiveModel(archiveState, commonMatchups.map(matchup => matchup.matchup_key), preferredHistoryKey);
     const model = {
       domain: "runoff",
       state: payload.status === "insufficient" ? "empty" : "ready",
@@ -167,15 +316,26 @@
       commonMatchupCount: number(payload.common_matchup_count),
       selectedMatchup: null,
       featuredObservation: null,
-      commonMatchups: Array.isArray(payload.common_matchups) ? payload.common_matchups : [],
-      pollsters: Array.isArray(payload.pollsters) ? payload.pollsters : []
+      commonMatchups: commonMatchups.map(matchup => ({
+        ...matchup,
+        results: Array.isArray(matchup.results) ? matchup.results.map(result => enrichRunoffResult(result, archive.eventById)) : []
+      })),
+      pollsters: Array.isArray(payload.pollsters)
+        ? payload.pollsters.map(pollster => ({
+          ...pollster,
+          closest_matchups: Array.isArray(pollster.closest_matchups)
+            ? pollster.closest_matchups.map(matchup => ({ ...matchup, result: enrichRunoffResult(matchup.result, archive.eventById) }))
+            : []
+        }))
+        : [],
+      archive
     };
 
     if (payload.status !== "agree" || !payload.selected_matchup) return model;
 
     const selected = payload.selected_matchup;
     const observations = selected.results.map((result, sourceIndex) => ({
-      ...result,
+      ...enrichRunoffResult(result, archive.eventById),
       sourceIndex,
       observationDate: result.fieldwork_end || result.publication_date || payload.fieldwork_window?.end || ""
     }));
@@ -195,7 +355,6 @@
     model.featuredObservation = featured;
     return model;
   }
-
   function utcDateKey(date) {
     return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
   }
@@ -1328,54 +1487,350 @@
       : `<span class="${className}">Source unavailable</span>`;
   }
 
-  function observationMarkup(observation, candidates, featured = false) {
-    const [leftName, rightName] = candidates;
-    const left = observation.candidates.find(item => item.name === leftName)?.score;
-    const right = observation.candidates.find(item => item.name === rightName)?.score;
-    return `<article class="hybrid-observation${featured ? " is-featured" : ""}">
-      <div class="hybrid-observation-head"><strong>${escapeHtml(observation.pollster)}</strong><span>${featured ? "Smallest reported margin" : "Separate observation"}</span></div>
-      <div class="hybrid-observation-scores">
-        <span class="hybrid-observation-score">${percent(left)}</span>
-        <span class="hybrid-observation-vs">VS</span>
-        <span class="hybrid-observation-score is-right">${percent(right)}</span>
+  function runoffSampleLabel(value) {
+    return Number.isInteger(value) ? `n=${new Intl.NumberFormat("en-US").format(value)}` : "n unavailable";
+  }
+
+  function runoffScorePair(observation, candidates) {
+    const scores = runoffScoresForCandidates(observation, candidates);
+    return `${percent(scores[0])} · ${percent(scores[1])}`;
+  }
+
+  function runoffMonthYear(event) {
+    if (!event?.fieldwork_end) return "Date unavailable";
+    return new Intl.DateTimeFormat("en-GB", {
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC"
+    }).format(new Date(`${event.fieldwork_end}T00:00:00Z`));
+  }
+  function runoffTitleCaseDate(value) {
+    return String(value || "").replace(/\b([A-Z]{3})\b/g, month => month[0] + month.slice(1).toLowerCase());
+  }
+
+  function runoffIconMarkup(name, className = "") {
+    const paths = {
+      runoff: '<path d="M4 5h5v5H4zM15 5h5v5h-5zM9 7.5h6M12 7.5v9M8 19h8M9 16h6"/>',
+      calendar: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 9.5h17M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01"/>',
+      observations: '<path d="M4 20V11M9 20V7M14 20V12M19 20V4M2 20h20"/>',
+      matchups: '<circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2.5 20c.4-4 2.3-6 5.5-6s5.1 2 5.5 6M10.5 20c.4-4 2.3-6 5.5-6s5.1 2 5.5 6"/>',
+      pollsters: '<path d="M3 10h18M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 19h18M12 3l9 5H3z"/>',
+      target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'
+    };
+    const body = paths[name] || paths.runoff;
+    return `<svg class="${escapeAttribute(className)}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+  }
+
+  function runoffCompactSourceLink(url, accessibleLabel) {
+    const safe = safeSourceUrl(url);
+    return safe
+      ? `<a class="hybrid-runoff-source is-compact is-icon-only" href="${escapeAttribute(safe)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeAttribute(accessibleLabel)}"><span aria-hidden="true">↗</span></a>`
+      : '<span class="hybrid-runoff-source is-compact is-icon-only">—</span>';
+  }
+
+  function groupRunoffHistoryWindows(observations) {
+    const windows = [];
+    (Array.isArray(observations) ? observations : []).forEach(event => {
+      const key = `${event.fieldwork_start}/${event.fieldwork_end}`;
+      const current = windows[windows.length - 1];
+      if (current?.key === key) current.observations.push(event);
+      else windows.push({ key, event, observations: [event] });
+    });
+    return windows;
+  }
+  function runoffBalanceRail(observation, candidates) {
+    const scores = runoffScoresForCandidates(observation, candidates);
+    const left = Number.isFinite(scores[0]) ? Math.max(0, Math.min(100, scores[0])) : 50;
+    return `<div class="hybrid-runoff-balance" role="img" aria-label="Reported score: ${escapeAttribute(candidates[0])} ${percent(scores[0])}; ${escapeAttribute(candidates[1])} ${percent(scores[1])}; 50 percent centre reference">
+      <span class="hybrid-runoff-balance-left" style="width:${left}%"></span>
+      <span class="hybrid-runoff-balance-right"></span>
+      <span class="hybrid-runoff-balance-centre" aria-hidden="true"></span>
+      <span class="hybrid-runoff-balance-label" aria-hidden="true">50</span>
+    </div>`;
+  }
+
+  function runoffCompactRail(observation, candidates) {
+    const scores = runoffScoresForCandidates(observation, candidates);
+    const left = Number.isFinite(scores[0]) ? Math.max(0, Math.min(100, scores[0])) : 50;
+    return `<span class="hybrid-runoff-compact-rail" role="img" aria-label="${escapeAttribute(candidates[0])} ${percent(scores[0])}; ${escapeAttribute(candidates[1])} ${percent(scores[1])}">
+      <span class="hybrid-runoff-compact-left" style="width:${left}%"></span>
+      <span class="hybrid-runoff-compact-right"></span>
+      <span class="hybrid-runoff-compact-centre" aria-hidden="true"></span>
+    </span>`;
+  }
+  function observationMarkup(observation, candidates) {
+    const scores = runoffScoresForCandidates(observation, candidates);
+
+    const fieldwork = observation.fieldwork_start && observation.fieldwork_end
+      ? exactRunoffWindowLabel(observation)
+      : "Exact fieldwork unavailable";
+
+    const fieldworkLabel = fieldwork === "Exact fieldwork unavailable"
+      ? fieldwork
+      : runoffTitleCaseDate(fieldwork);
+
+    const sampleSize =
+      observation.sampleSize ??
+      observation.sample_size;
+
+    const sampleLabel = Number.isInteger(sampleSize)
+      ? runoffSampleLabel(sampleSize)
+      : "";
+
+    const tooltip = [
+      observation.pollster,
+      fieldworkLabel,
+      sampleLabel
+    ].filter(Boolean).join(" · ");
+
+    return `<article class="hybrid-observation hybrid-runoff-source-observation" title="${escapeAttribute(tooltip)}" data-runoff-hover="RUNOFF_HOVER_METADATA">
+      <div class="hybrid-runoff-candidate">
+        <span class="hybrid-runoff-candidate-name">${escapeHtml(candidates[0])}</span>
+        <span class="hybrid-runoff-candidate-result">${portraitMarkup(candidates[0])}<strong>${percent(scores[0])}</strong></span>
       </div>
-      <div class="hybrid-observation-names"><span>${escapeHtml(leftName)}</span><span>${escapeHtml(rightName)}</span></div>
-      <div class="hybrid-observation-foot"><strong>Reported margin ${number(observation.margin)} pts</strong>${sourceLink(observation.source_url, "Open source", "", `Open ${observation.pollster} source for ${leftName} versus ${rightName}`)}</div>
+
+      <div class="hybrid-runoff-instrument">
+        <div class="hybrid-runoff-observation-head">
+          <strong>${escapeHtml(observation.pollster)}</strong>
+          <span>${escapeHtml(fieldworkLabel)}${sampleLabel ? ` · ${escapeHtml(sampleLabel)}` : ""}</span>
+        </div>
+
+        ${runoffBalanceRail(observation, candidates)}
+
+        ${runoffCompactSourceLink(
+          observation.source_url,
+          `Open ${observation.pollster} source for ${candidates.join(" versus ")}`
+        )}
+      </div>
+
+      <div class="hybrid-runoff-candidate is-right">
+        <span class="hybrid-runoff-candidate-name">${escapeHtml(candidates[1])}</span>
+        <span class="hybrid-runoff-candidate-result"><strong>${percent(scores[1])}</strong>${portraitMarkup(candidates[1])}</span>
+      </div>
+
+      <div class="hybrid-runoff-margin-tile">
+        <span>MARGIN</span>
+        <strong>${number(observation.margin)}</strong>
+        <small>pts</small>
+      </div>
     </article>`;
   }
-
-  function renderRunoffPanel(model) {
-    if (model.state !== "ready" || !model.selectedMatchup) {
-      const unresolved = ["split", "ambiguous"].includes(model.status);
-      if (!unresolved) return summaryState(model);
-      return `<div class="hybrid-runoff-focus-head"><div><div class="hybrid-section-title">Second-round tests</div><h3>${escapeHtml(model.statusLabel)}</h3></div><span class="hybrid-status-chip">${escapeHtml(model.fieldworkLabel)}</span></div>
-        <p class="hybrid-section-sub">${escapeHtml(model.message)}</p>
-        <div class="hybrid-common-grid">${model.pollsters.map(pollster => `<article class="hybrid-common-card"><h4>${escapeHtml(pollster.pollster)}</h4>${pollster.closest_matchups.map(matchup => observationMarkup(matchup.result, matchup.candidates)).join("")}</article>`).join("")}</div>
-        <p class="hybrid-disclosure">Each source-reported result remains separate. No average, combined margin, probability or forecast is calculated.</p>`;
+  function renderRunoffHeader(model) {
+    const footprint = model.archive?.state === "ready" ? model.archive.footprint : null;
+    const counters = [
+      [footprint?.observationCount ?? "—", "observations"],
+      [footprint?.matchupCount ?? "—", "matchups"],
+      [footprint?.pollsterCount ?? "—", "pollsters"],
+      [footprint?.windowCount ?? "—", "windows"]
+    ];
+    const explanation = model.status === "agree"
+      ? "Both pollsters agree this is the closest tested runoff"
+      : model.message || "Current comparison unavailable.";
+    return `<header class="hybrid-runoff-evidence-header">
+      <div class="hybrid-runoff-title-block">
+        <span class="hybrid-runoff-mark">${runoffIconMarkup("runoff", "hybrid-runoff-title-icon")}</span>
+        <div><h2>RUNOFF SIGNALS</h2><p>Source-separated second-round evidence · no averages · no forecast</p></div>
+      </div>
+      <div class="hybrid-runoff-current-scope" aria-label="Current exact-window scope">
+        <span class="hybrid-runoff-status is-${escapeAttribute(model.status)}">${escapeHtml(model.statusLabel).toUpperCase()}</span>
+        <span class="hybrid-runoff-scope-message">${escapeHtml(explanation)}</span>
+        <strong class="hybrid-runoff-date-pill">${runoffIconMarkup("calendar", "hybrid-runoff-inline-icon")}<span>${escapeHtml(runoffTitleCaseDate(model.fieldworkLabel))}</span></strong>
+      </div>
+      <div class="hybrid-runoff-header-metrics" aria-label="Full archive counts">${counters.map(counter => `<span class="hybrid-runoff-header-metric"><strong>${counter[0]}</strong><small>${counter[1]}</small></span>`).join("")}</div>
+    </header>`;
+  }
+  function renderRunoffClosest(model) {
+    if (model.status === "agree" && model.selectedMatchup) {
+      const matchup = model.selectedMatchup;
+      const narrowest = Math.min(...matchup.observations.map(item => Number(item.margin)));
+      return `<section class="hybrid-runoff-module hybrid-runoff-closest" aria-labelledby="hybrid-runoff-closest-title">
+        <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">1</span><h3 id="hybrid-runoff-closest-title">CLOSEST TESTED RUNOFF</h3></div><span>Same closest matchup · different reported distance</span></div>
+        <h4>${escapeHtml(matchup.candidates.join(" vs "))}</h4>
+        <div class="hybrid-runoff-observations">${matchup.observations.map(item => observationMarkup(item, matchup.candidates)).join("")}</div>
+        <div class="hybrid-runoff-closest-callout">${runoffIconMarkup("target", "hybrid-runoff-callout-icon")}<strong>NARROWEST OBSERVED MARGIN · ${number(narrowest)} PTS</strong></div>
+      </section>`;
     }
 
-    const matchup = model.selectedMatchup;
-    const otherCommonMatchups = model.commonMatchups.filter(common => common.matchup_key !== matchup.key);
-    return `<div class="hybrid-runoff-focus-head">
-      <div><div class="hybrid-section-title">Closest tested runoff</div><h3>${escapeHtml(matchup.candidates.join(" vs "))}</h3></div>
-      <span class="hybrid-status-chip">${escapeHtml(model.statusLabel)} · ${model.pollsterCount} pollsters</span>
-    </div>
-    <p class="hybrid-section-sub">Shared fieldwork window: ${escapeHtml(model.fieldworkLabel)} · ${matchup.observationCount} supporting source-reported observations.</p>
-    <div class="hybrid-runoff-observations">
-      ${matchup.observations.map(item => observationMarkup(item, matchup.candidates, item.sourceIndex === model.featuredObservation.sourceIndex)).join("")}
-    </div>
-    <section class="hybrid-common-section" aria-label="Common tested matchup information">
-      <h3 class="hybrid-common-title">OTHER COMMON TESTED MATCHUPS</h3>
-      <div class="hybrid-common-grid">${otherCommonMatchups.map(common => `
-        <article class="hybrid-common-card">
-          <h4>${escapeHtml(common.candidates.join(" vs "))}</h4>
-          ${common.results.map(result => `<div class="hybrid-common-row"><span>${escapeHtml(result.pollster)}</span><strong>${number(result.margin)} pts</strong>${sourceLink(result.source_url, "Source", "", `Open ${result.pollster} source for ${common.candidates.join(" versus ")}`)}</div>`).join("")}
-        </article>`).join("")}
-      </div>
-    </section>
-    <p class="hybrid-disclosure">Second-round polling, not a forecast. Individual source-reported results and margins are shown separately; no average or probability is calculated. The featured result is the smallest absolute margin in the backend-selected matchup.</p>`;
-  }
+    if (["split", "ambiguous"].includes(model.status)) {
+      const explanation = model.status === "split"
+        ? "Pollsters identify different uniquely closest matchups in the common tested set."
+        : "At least one pollster has multiple matchups tied at its minimum reported margin.";
+      return `<section class="hybrid-runoff-module hybrid-runoff-closest" aria-labelledby="hybrid-runoff-closest-title">
+        <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">1</span><h3 id="hybrid-runoff-closest-title">CLOSEST TESTED RUNOFF</h3></div><span>${escapeHtml(model.statusLabel)}</span></div>
+        <p class="hybrid-runoff-local-state">${escapeHtml(explanation)}</p>
+        <div class="hybrid-runoff-unresolved-grid">${model.pollsters.map(pollster => `<section class="hybrid-runoff-unresolved-source"><h4>${escapeHtml(pollster.pollster)}</h4>${pollster.closest_matchups.map(matchup => `<div class="hybrid-runoff-unresolved-row"><strong>${escapeHtml(matchup.candidates.join(" vs "))}</strong><span>${escapeHtml(runoffScorePair(matchup.result, matchup.candidates))} · ${number(matchup.result.margin)} pts</span>${sourceLink(matchup.result.source_url, "SOURCE", "hybrid-runoff-source is-compact")}</div>`).join("")}</section>`).join("")}</div>
+      </section>`;
+    }
 
+    return `<section class="hybrid-runoff-module hybrid-runoff-closest" aria-labelledby="hybrid-runoff-closest-title">
+      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">1</span><h3 id="hybrid-runoff-closest-title">CLOSEST TESTED RUNOFF</h3></div></div>
+      <div class="hybrid-runoff-local-state" role="status">No score comparison is shown. A qualifying window requires at least two pollsters, at least two tested matchups per pollster, and at least two exact common matchup keys.</div>
+    </section>`;
+  }
+  function renderRunoffCommonMatchups(model) {
+    const pollsters = model.pollsters.map(item => item.pollster);
+    const displayMatchups = [...model.commonMatchups].sort((left, right) => {
+      const leftSelected = left.matchup_key === model.selectedMatchup?.key;
+      const rightSelected = right.matchup_key === model.selectedMatchup?.key;
+      if (leftSelected !== rightSelected) return leftSelected ? -1 : 1;
+      return left.candidates.join(" ").localeCompare(right.candidates.join(" "), "fr");
+    });
+    return `<section class="hybrid-runoff-module hybrid-runoff-common" aria-labelledby="hybrid-runoff-common-title">
+      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">2</span><div><h3 id="hybrid-runoff-common-title">CURRENT COMMON MATCHUPS</h3></div></div></div>
+      ${model.commonMatchups.length ? `<div class="hybrid-runoff-matrix" role="table" aria-label="Current common matchup source results">
+        <div class="hybrid-runoff-matrix-head" role="row"><span role="columnheader">MATCHUP</span>${pollsters.map(name => `<span role="columnheader">${escapeHtml(name)}</span>`).join("")}<span role="columnheader">MARGINS</span></div>
+        ${displayMatchups.map(matchup => {
+          const selected = model.selectedMatchup?.key === matchup.matchup_key;
+          const margins = pollsters.map(name => matchup.results.find(item => item.pollster === name)?.margin);
+          return `<div class="hybrid-runoff-matrix-row${selected ? " is-selected" : ""}" role="row">
+            <span class="hybrid-runoff-matrix-matchup" role="rowheader">${selected ? '<small>CLOSEST COMMON MATCHUP</small>' : ""}<strong>${escapeHtml(matchup.candidates.join(" vs "))}</strong></span>
+            ${pollsters.map(name => {
+              const result = matchup.results.find(item => item.pollster === name);
+              if (!result) return `<span class="hybrid-runoff-matrix-result" role="cell">—</span>`;
+              const scores = runoffScoresForCandidates(result, matchup.candidates);
+              return `<span class="hybrid-runoff-matrix-result" role="cell"><span class="hybrid-runoff-matrix-score is-left">${percent(scores[0])}</span>${runoffCompactRail(result, matchup.candidates)}<span class="hybrid-runoff-matrix-score is-right">${percent(scores[1])}</span></span>`;
+            }).join("")}
+            <span class="hybrid-runoff-matrix-margins" role="cell"><strong>${margins.map(value => number(value)).join(" / ")}</strong><small>pts</small></span>
+          </div>`;
+        }).join("")}
+      </div>` : `<div class="hybrid-runoff-local-state" role="status">No common exact-window matchup matrix is available for this status.</div>`}
+      <div class="hybrid-runoff-matrix-legend"><span><i class="is-left"></i>Candidate 1</span><span><i class="is-right"></i>Candidate 2</span><span>Exact source-reported scores · no averages</span></div>
+    </section>`;
+  }
+  function renderRunoffFootprint(model) {
+    if (model.archive.state !== "ready") {
+      return `<section class="hybrid-runoff-module hybrid-runoff-footprint" aria-labelledby="hybrid-runoff-footprint-title"><div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">3</span><h3 id="hybrid-runoff-footprint-title">EVIDENCE FOOTPRINT</h3></div></div><div class="hybrid-runoff-local-state" role="status" aria-live="polite">${escapeHtml(model.archive.message)}</div></section>`;
+    }
+    const footprint = model.archive.footprint;
+    const metrics = [
+      [footprint.observationCount, "TOTAL OBSERVATIONS", "observations"],
+      [footprint.matchupCount, "DISTINCT MATCHUPS", "matchups"],
+      [footprint.pollsterCount, "POLLSTERS REPRESENTED", "pollsters"],
+      [footprint.windowCount, "FIELDWORK WINDOWS", "calendar"]
+    ];
+    const earliestYear = String(footprint.earliestWindow.fieldwork_end).slice(0, 4);
+    return `<section class="hybrid-runoff-module hybrid-runoff-footprint" aria-labelledby="hybrid-runoff-footprint-title">
+      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">3</span><h3 id="hybrid-runoff-footprint-title">EVIDENCE FOOTPRINT</h3></div></div>
+      <dl class="hybrid-runoff-footprint-grid">${metrics.map(metric => `<div class="hybrid-runoff-metric">${runoffIconMarkup(metric[2], "hybrid-runoff-metric-icon")}<dd><strong>${metric[0]}</strong></dd><dt>${metric[1]}</dt></div>`).join("")}</dl>
+      <div class="hybrid-runoff-window-range">
+        <article><span>EARLIEST EVIDENCE</span><strong>${escapeHtml(earliestYear)}</strong><b>${escapeHtml(runoffMonthYear(footprint.earliestWindow))}</b><small>${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(footprint.earliestWindow)))}</small></article>
+        <article><span>LATEST EVIDENCE</span><strong>${escapeHtml(runoffMonthYear(footprint.latestWindow))}</strong><small>${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(footprint.latestWindow)))}</small></article>
+      </div>
+      <p class="hybrid-runoff-module-note">Source-linked evidence · no synthesis · no forecast</p>
+    </section>`;
+  }
+  function renderRunoffHistory(model) {
+    if (model.archive.state !== "ready") {
+      return `<section class="hybrid-runoff-module hybrid-runoff-history" aria-labelledby="hybrid-runoff-history-title"><div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">4</span><h3 id="hybrid-runoff-history-title">SELECTED MATCHUP HISTORY</h3></div></div><div class="hybrid-runoff-local-state" role="status" aria-live="polite">${escapeHtml(model.archive.message)}</div></section>`;
+    }
+
+    const selected = model.archive.matchups.find(
+      matchup => matchup.key === model.archive.selectedHistoryKey
+    );
+
+    const observations = Array.isArray(model.archive.history)
+      ? model.archive.history
+      : [];
+
+    const candidates =
+      selected?.candidates ||
+      observations[0]?.candidates ||
+      [];
+
+    return `<section class="hybrid-runoff-module hybrid-runoff-history" aria-labelledby="hybrid-runoff-history-title">
+      <div class="hybrid-runoff-module-head hybrid-runoff-history-head">
+        <div>
+          <span class="hybrid-runoff-step" aria-hidden="true">4</span>
+          <div>
+            <h3 id="hybrid-runoff-history-title">SELECTED MATCHUP HISTORY</h3>
+            <p>${escapeHtml(selected?.candidates.join(" vs ") || "Exact matchup")} · Discrete source observations only</p>
+          </div>
+        </div>
+
+        <label>
+          INSPECT MATCHUP
+          <select class="hybrid-runoff-history-select" data-hybrid-runoff-history>
+            ${model.archive.matchups.map(matchup => `<option value="${escapeAttribute(matchup.key)}"${matchup.key === model.archive.selectedHistoryKey ? " selected" : ""}>${escapeHtml(matchup.candidates.join(" vs "))}</option>`).join("")}
+          </select>
+        </label>
+      </div>
+
+      <div
+        class="hybrid-runoff-history-scroll"
+        tabindex="0"
+        aria-label="Scrollable selected matchup history"
+      >
+        <div
+          class="hybrid-runoff-chronology is-observation-strip"
+          aria-label="${observations.length} exact source observations"
+        >
+          <span
+            class="hybrid-runoff-chronology-guide"
+            aria-hidden="true"
+          ></span>
+
+          ${observations.map((event, index) => {
+            const scores = runoffScoresForCandidates(
+              event,
+              candidates
+            );
+
+            return `<div class="hybrid-runoff-history-position">
+              <span class="hybrid-runoff-history-node${index % 2 ? " is-violet" : ""}" aria-hidden="true"></span>
+
+              <time datetime="${escapeAttribute(event.fieldwork_end)}">${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(event)))}</time>
+
+              <div class="hybrid-runoff-history-group">
+                <article class="hybrid-runoff-history-entry" title="${escapeAttribute(`${runoffTitleCaseDate(exactRunoffWindowLabel(event))} · ${event.pollster} · ${percent(scores[0])}–${percent(scores[1])} · Margin ${number(event.margin)} pts · ${runoffSampleLabel(event.sample_size)}`)}" data-runoff-hover="RUNOFF_HOVER_METADATA">
+                  <strong class="hybrid-runoff-history-pollster">${escapeHtml(event.pollster)}${runoffCompactSourceLink(
+                      event.source_url,
+                      `Open ${event.pollster} source for ${candidates.join(" versus ")}`
+                    )}</strong>
+
+                  <span class="hybrid-runoff-history-scores">
+                    <b>${percent(scores[0])}</b>
+                    <i>–</i>
+                    <b>${percent(scores[1])}</b>
+                  </span>
+
+                </article>
+              </div>
+            </div>`;
+          }).join("")}
+        </div>
+      </div>
+    </section>`;
+  }
+  function renderRunoffOtherMatchups(model) {
+    if (model.archive.state !== "ready") {
+      return `<section class="hybrid-runoff-module hybrid-runoff-others" aria-labelledby="hybrid-runoff-others-title"><div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">5</span><h3 id="hybrid-runoff-others-title">OTHER TESTED MATCHUPS</h3></div></div><div class="hybrid-runoff-local-state" role="status" aria-live="polite">${escapeHtml(model.archive.message)}</div></section>`;
+    }
+    return `<section class="hybrid-runoff-module hybrid-runoff-others" aria-labelledby="hybrid-runoff-others-title">
+      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">5</span><h3 id="hybrid-runoff-others-title">OTHER TESTED MATCHUPS</h3></div><span>Evidence catalogue · latest reported source result shown</span></div>
+      <div class="hybrid-runoff-other-grid">${model.archive.otherMatchups.map(matchup => {
+        const event = matchup.latest;
+        const scores = runoffScoresForCandidates(event, matchup.candidates);
+        const sourceLabel = `Open ${event.pollster} source for ${matchup.candidates.join(" versus ")}`;
+        return `<article class="hybrid-runoff-other-card" title="${escapeAttribute(`${event.pollster} · ${runoffTitleCaseDate(exactRunoffWindowLabel(event))} · Margin ${number(event.margin)} pts · ${runoffSampleLabel(event.sample_size)}`)}" data-runoff-hover="RUNOFF_HOVER_METADATA"><h4><span>${escapeHtml(matchup.candidates[0])}</span><small>vs ${escapeHtml(matchup.candidates[1])}</small></h4><span class="hybrid-runoff-other-meta">${escapeHtml(event.pollster)} · ${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(event)))}</span><div class="hybrid-runoff-other-score"><strong>${percent(scores[0])}</strong>${runoffCompactRail(event, matchup.candidates)}<strong>${percent(scores[1])}</strong></div><div class="hybrid-runoff-other-foot"><span>MARGIN · ${number(event.margin)} PTS</span><span>${escapeHtml(runoffSampleLabel(event.sample_size))}</span>${runoffCompactSourceLink(event.source_url, sourceLabel)}</div></article>`;
+      }).join("")}</div>
+    </section>`;
+  }
+  function renderRunoffPanel(model) {
+    if (model.state !== "ready" && model.status !== "insufficient") {
+      return `<div class="hybrid-runoff-local-state" role="status" aria-live="polite">${escapeHtml(model.message || "Runoff evidence is unavailable.")}</div>`;
+    }
+    return `<div class="hybrid-runoff-workspace">
+      ${renderRunoffHeader(model)}
+      <div class="hybrid-runoff-current-grid">
+        ${renderRunoffClosest(model)}
+        ${renderRunoffCommonMatchups(model)}
+        ${renderRunoffOtherMatchups(model)}
+      </div>
+      <div class="hybrid-runoff-archive-grid">
+        ${renderRunoffHistory(model)}
+      </div>
+    </div>`;
+  }
   function renderMediaPanel(model) {
     if (model.state !== "ready") {
       return summaryState(model);
@@ -2021,6 +2476,13 @@
       state.claimsPublisher = event.target.value;
       renderAll();
       mount.querySelector("[data-hybrid-claims-publisher]")?.focus();
+    });
+
+    const runoffHistory = mount.querySelector("[data-hybrid-runoff-history]");
+    if (runoffHistory) runoffHistory.addEventListener("change", event => {
+      state.selectedRunoffHistoryKey = event.target.value;
+      renderAll();
+      mount.querySelector("[data-hybrid-runoff-history]")?.focus();
     });
   }
 
@@ -2884,12 +3346,17 @@
     polling.insertAdjacentElement("afterend", details);
   }
 
+  loadRunoffArchive();
   retainLegacyComparison();
   renderAll();
   window.addEventListener("hashchange", handleSignalHashChange);
   document.addEventListener("hybrid:dataset", renderAll);
 
   window.hybridDashboard = Object.freeze({
+    isValidRunoffArchivePayload,
+    loadRunoffArchive,
+    buildRunoffArchiveModel,
+    groupRunoffHistoryWindows,
     buildMediaCandidateCanonicalizer,
     deriveCandidateVisibility,
     isValidCandidateVisibility,

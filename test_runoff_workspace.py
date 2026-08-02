@@ -21,6 +21,8 @@ ROOT = Path(__file__).resolve().parent
 INDEX = ROOT / "index.html"
 HYBRID_JS = ROOT / "assets" / "hybrid-dashboard.js"
 HYBRID_CSS = ROOT / "assets" / "hybrid-dashboard.css"
+RUNOFF_ARCHIVE = ROOT / "second_round_polls.json"
+RUNOFF_DERIVED = ROOT / "closest_tested_runoff.json"
 
 PHILIPPE_LE_PEN = ("Édouard Philippe", "Marine Le Pen")
 BARDella_ATTAL = ("Jordan Bardella", "Gabriel Attal")
@@ -190,7 +192,13 @@ def unresolved_payload(status: str) -> dict:
     }
 
 
-def run_runoff_script(payload: dict | None, expression: str, *, load_state: str = "ready"):
+def run_runoff_script(
+    payload: dict | None,
+    expression: str,
+    *,
+    load_state: str = "ready",
+    archive_state: dict | None = None,
+):
     node = shutil.which("node")
     if node is None:
         raise unittest.SkipTest("Node.js is required for frontend contract tests")
@@ -271,13 +279,22 @@ const context = {
 };
 vm.runInNewContext(source, context);
 const api = context.window.hybridDashboard;
-const result = eval(input.expression);
-process.stdout.write(JSON.stringify(result));
+Promise.resolve(eval(input.expression))
+  .then(result => process.stdout.write(JSON.stringify(result)))
+  .catch(error => {
+    process.stderr.write(error.stack);
+    process.exitCode = 1;
+  });
 '''
     completed = subprocess.run(
         [node, "-e", script],
         input=json.dumps(
-            {"payload": payload, "expression": expression, "loadState": load_state}
+            {
+                "payload": payload,
+                "expression": expression,
+                "loadState": load_state,
+                "archiveState": archive_state,
+            }
         ),
         cwd=ROOT,
         text=True,
@@ -636,227 +653,208 @@ class RunoffBackendDerivationTests(unittest.TestCase):
 
 
 class RunoffFrontendContractTests(unittest.TestCase):
-    def build_and_render(self, payload: dict) -> dict:
+    @classmethod
+    def setUpClass(cls):
+        cls.derived = json.loads(RUNOFF_DERIVED.read_text(encoding="utf-8"))
+        cls.archive_payload = json.loads(RUNOFF_ARCHIVE.read_text(encoding="utf-8"))
+        cls.archive_state = {"status": "ready", "events": cls.archive_payload["events"], "error": ""}
+
+    def build_and_render(
+        self,
+        payload: dict,
+        archive_state: dict | None = None,
+    ) -> dict:
         return run_runoff_script(
             payload,
-            "(() => { const model = api.buildRunoffViewModel(); return { model, html: api.renderRunoffPanel(model) }; })()",
+            "(() => { const model = api.buildRunoffViewModel(input.archiveState || undefined); return { model, html: api.renderRunoffPanel(model) }; })()",
+            archive_state=archive_state,
         )
 
-    def test_source_reported_observations_render_separately(self):
+    def render_real(self) -> dict:
+        return self.build_and_render(self.derived, self.archive_state)
+
+    def test_current_comparison_uses_exact_source_separated_evidence(self):
+        output = self.render_real()
+        html = output["html"]
+        observations = output["model"]["selectedMatchup"]["observations"]
+        self.assertEqual([item["pollster"] for item in observations], ["Harris Interactive", "Ifop"])
+        self.assertEqual([item["sampleSize"] for item in observations], [1582, 984])
+        for exact in (
+            "Édouard Philippe vs Marine Le Pen",
+            "49%",
+            "51%",
+            "46%",
+            "54%",
+            "hybrid-runoff-margin-tile",
+            "NARROWEST OBSERVED MARGIN · 2 PTS",
+            "n=1,582",
+            "n=984",
+            "7–8 Jul 2026",
+            "50 percent centre reference",
+        ):
+            self.assertIn(exact, html)
+        self.assertEqual(html.count('class="hybrid-observation hybrid-runoff-source-observation"'), 2)
+        self.assertEqual(html.count('class="hybrid-runoff-margin-tile"'), 2)
+        self.assertEqual(html.count('target="_blank" rel="noopener noreferrer"'), 16)
+        self.assertEqual(html.count('is-compact is-icon-only'), 16)
+        self.assertIn('class="hybrid-runoff-title-icon"', html)
+        self.assertIn('class="hybrid-runoff-inline-icon"', html)
+        self.assertIn("Both pollsters agree this is the closest tested runoff", html)
+
+    def test_raw_join_is_event_id_only_and_does_not_mutate_payloads(self):
+        derived = copy.deepcopy(self.derived)
+        archive_state = copy.deepcopy(self.archive_state)
+        before_derived = json.dumps(derived, ensure_ascii=False, sort_keys=True)
+        before_archive = json.dumps(archive_state, ensure_ascii=False, sort_keys=True)
+        derived["selected_matchup"]["results"][0]["event_id"] = "not-an-archive-event"
+        for matchup in derived["common_matchups"]:
+            if matchup["matchup_key"] == derived["selected_matchup"]["matchup_key"]:
+                matchup["results"][0]["event_id"] = "not-an-archive-event"
+        output = self.build_and_render(derived, archive_state)
+        self.assertIsNone(output["model"]["selectedMatchup"]["observations"][0]["sampleSize"])
+        self.assertFalse(output["model"]["selectedMatchup"]["observations"][0]["archiveMatched"])
+        self.assertEqual(before_archive, json.dumps(archive_state, ensure_ascii=False, sort_keys=True))
+        self.assertNotEqual(before_derived, json.dumps(derived, ensure_ascii=False, sort_keys=True))
+        unchanged = run_runoff_script(
+            self.derived,
+            "(() => { const before = JSON.stringify(context.dashboardState.runoff); const rawBefore = JSON.stringify(input.archiveState); const model = api.buildRunoffViewModel(input.archiveState); api.renderRunoffPanel(model); return { derived: before === JSON.stringify(context.dashboardState.runoff), raw: rawBefore === JSON.stringify(input.archiveState) }; })()",
+            archive_state=self.archive_state,
+        )
+        self.assertEqual(unchanged, {"derived": True, "raw": True})
+
+    def test_raw_failure_is_local_and_current_comparison_survives(self):
         output = self.build_and_render(
-            agreed_payload(
-                [frontend_result("Ifop", 3), frontend_result("Ipsos", 7)]
-            )
+            self.derived,
+            {"status": "unavailable", "events": [], "error": "synthetic"},
         )
-        self.assertEqual(output["html"].count('<article class="hybrid-observation'), 2)
-        self.assertEqual(output["html"].count("Separate observation"), 1)
-        self.assertIn(
-            "Individual source-reported results and margins are shown separately",
-            output["html"],
-        )
+        html = output["html"]
+        self.assertEqual(output["model"]["status"], "agree")
+        self.assertEqual(len(output["model"]["selectedMatchup"]["observations"]), 2)
+        self.assertIn("49%", html)
+        self.assertIn("54%", html)
+        self.assertIn("Archive coverage and history are locally unavailable", html)
+        self.assertNotIn("n=1,582", html)
 
-    def test_two_three_and_more_observations_are_supported(self):
-        for count in (2, 3, 4):
-            with self.subTest(count=count):
-                results = [
-                    frontend_result(f"Pollster {index}", index + 1)
-                    for index in range(count)
-                ]
-                output = self.build_and_render(agreed_payload(results))
-                self.assertEqual(output["model"]["selectedMatchup"]["observationCount"], count)
-                self.assertEqual(output["html"].count('<article class="hybrid-observation'), count)
+    def test_current_common_matchups_and_selected_structure_are_exact(self):
+        output = self.render_real()
+        html = output["html"]
+        self.assertEqual(len(output["model"]["commonMatchups"]), 3)
+        for matchup in (
+            "Édouard Philippe vs Marine Le Pen",
+            "Gabriel Attal vs Marine Le Pen",
+            "Jean-Luc Mélenchon vs Marine Le Pen",
+        ):
+            self.assertIn(matchup, html)
+        self.assertIn("CLOSEST COMMON MATCHUP", html)
+        self.assertIn("<strong>2 / 8</strong><small>pts</small>", html)
+        self.assertIn("<strong>10 / 10</strong><small>pts</small>", html)
+        self.assertIn("<strong>34 / 40</strong><small>pts</small>", html)
+        self.assertEqual(html.count('class="hybrid-runoff-compact-rail"'), 12)
+        for forbidden in ("🏆", "winner", "leader", "favored", "advantage", "Smallest reported margin"):
+            self.assertNotIn(forbidden.casefold(), html.casefold())
 
-    def test_smallest_observation_is_featured(self):
-        output = self.build_and_render(
-            agreed_payload(
-                [
-                    frontend_result("Largest", 9),
-                    frontend_result("Smallest", 1),
-                    frontend_result("Middle", 5),
-                ]
-            )
+    def test_archive_history_and_remaining_matchups_are_complete(self):
+        output = self.render_real()
+        model = output["model"]
+        html = output["html"]
+        footprint = model["archive"]["footprint"]
+        self.assertEqual(
+            {key: footprint[key] for key in ("observationCount", "matchupCount", "pollsterCount", "windowCount")},
+            {"observationCount": 38, "matchupCount": 9, "pollsterCount": 6, "windowCount": 11},
         )
-        self.assertEqual(output["model"]["featuredObservation"]["pollster"], "Smallest")
-        featured = re.search(r'<article class="hybrid-observation is-featured">(.*?)</article>', output["html"], re.DOTALL)
-        self.assertIsNotNone(featured)
-        self.assertIn("Smallest", featured.group(1))
+        self.assertEqual(model["archive"]["selectedHistoryKey"], self.derived["selected_matchup"]["matchup_key"])
+        self.assertEqual(len(model["archive"]["history"]), 8)
+        self.assertEqual(len(model["archive"]["otherMatchups"]), 6)
+        self.assertIn("31 Jan–1 Feb 2024", html)
+        self.assertIn("7–8 Jul 2026", html)
+        for matchup in (
+            "Édouard Philippe vs Jordan Bardella",
+            "Gabriel Attal vs Jordan Bardella",
+            "Jean-Luc Mélenchon vs Jordan Bardella",
+            "Bruno Retailleau vs Jordan Bardella",
+            "Raphaël Glucksmann vs Jordan Bardella",
+            "François Ruffin vs Marine Le Pen",
+        ):
+            self.assertIn(matchup, html)
+        self.assertIn("SELECTED MATCHUP HISTORY", html)
+        self.assertIn('aria-label="8 exact source observations"', html)
+        self.assertEqual(html.count('class="hybrid-runoff-history-entry"'), 8)
+        self.assertEqual(html.count('class="hybrid-runoff-history-position'), 8)
+        self.assertEqual(html.count('hybrid-runoff-history-position is-paired'), 0)
+        self.assertNotIn("Each mark is a separate source observation · marks are not connected", html)
+        self.assertNotIn('<dl class="hybrid-runoff-footprint-grid">', html)
+        self.assertNotIn("EVIDENCE FOOTPRINT", html)
+        self.assertIn("OTHER TESTED MATCHUPS", html)
 
-    def test_featured_ties_use_newest_date_then_source_order(self):
-        dated = self.build_and_render(
-            agreed_payload(
-                [
-                    frontend_result("Older", 2, fieldwork_end="2026-07-01"),
-                    frontend_result("Newer", 2, fieldwork_end="2026-07-03"),
-                ]
-            )
+    def test_history_window_grouping_is_exact_deterministic_and_non_mutating(self):
+        output = run_runoff_script(
+            self.derived,
+            "(() => { const model = api.buildRunoffViewModel(input.archiveState); const before = JSON.stringify(model.archive.history); const groups = api.groupRunoffHistoryWindows(model.archive.history); return { unchanged: before === JSON.stringify(model.archive.history), count: groups.length, sizes: groups.map(group => group.observations.length), keys: groups.map(group => group.key), finalPollsters: groups.at(-1).observations.map(item => item.pollster) }; })()",
+            archive_state=self.archive_state,
         )
-        self.assertEqual(dated["model"]["featuredObservation"]["pollster"], "Newer")
-        same_date = self.build_and_render(
-            agreed_payload(
-                [
-                    frontend_result("First", 2, fieldwork_end="2026-07-03"),
-                    frontend_result("Second", 2, fieldwork_end="2026-07-03"),
-                ]
-            )
+        self.assertTrue(output["unchanged"])
+        self.assertEqual(output["count"], 7)
+        self.assertEqual(output["sizes"], [1, 1, 1, 1, 1, 1, 2])
+        self.assertEqual(len(output["keys"]), len(set(output["keys"])))
+        self.assertEqual(output["finalPollsters"], ["Harris Interactive", "Ifop"])
+    def test_history_accepts_an_exact_matchup_key(self):
+        target = "78ee22bdc7b20f010e4240afc3268ceb9f2bdb50e8a49b6be5fccd3c5f8e77f9"
+        output = run_runoff_script(
+            self.derived,
+            "(() => { const archive = api.buildRunoffArchiveModel(input.archiveState, [], '" + target + "'); return { key: archive.selectedHistoryKey, count: archive.history.length, matchup: archive.matchups.find(item => item.key === archive.selectedHistoryKey).candidates }; })()",
+            archive_state=self.archive_state,
         )
-        self.assertEqual(same_date["model"]["featuredObservation"]["pollster"], "First")
+        self.assertEqual(output, {"key": target, "count": 1, "matchup": ["François Ruffin", "Marine Le Pen"]})
 
-    def test_observation_count_comes_from_displayed_records(self):
-        payload = agreed_payload(
-            [frontend_result("Ifop", 2), frontend_result("Ipsos", 4), frontend_result("Elabe", 6)]
-        )
-        payload["observation_count"] = 99
-        output = self.build_and_render(payload)
-        self.assertEqual(output["model"]["selectedMatchup"]["observationCount"], 3)
-        self.assertIn("3 supporting source-reported observations", output["html"])
+    def test_status_fallbacks_never_fabricate_a_shared_selection(self):
+        split = self.build_and_render(unresolved_payload("split"))["html"]
+        ambiguous = self.build_and_render(unresolved_payload("ambiguous"))["html"]
+        insufficient = self.build_and_render(unresolved_payload("insufficient"))["html"]
+        self.assertIn("different uniquely closest matchups", split)
+        self.assertNotIn("hybrid-runoff-candidate-pair", split)
+        self.assertIn("multiple matchups tied", ambiguous)
+        self.assertIn("No score comparison is shown", insufficient)
+        self.assertNotIn("hybrid-runoff-balance", insufficient)
 
-    def test_distinct_pollster_count_follows_published_contract(self):
-        payload = agreed_payload(
-            [frontend_result("Ifop", 2), frontend_result("Ifop", 4), frontend_result("Ipsos", 6)]
-        )
-        payload["pollster_count"] = 2
-        output = self.build_and_render(payload)
-        self.assertEqual(output["model"]["pollsterCount"], 2)
-        self.assertIn("2 pollsters", output["html"])
-        self.assertEqual(output["model"]["selectedMatchup"]["observationCount"], 3)
-
-    def test_http_and_https_sources_render_as_links(self):
-        output = self.build_and_render(
-            agreed_payload(
-                [
-                    frontend_result("HTTP", 2, source_url="http://example.test/http"),
-                    frontend_result("HTTPS", 4, source_url="https://example.test/https"),
-                ]
-            )
-        )
-        self.assertIn('href="http://example.test/http"', output["html"])
-        self.assertIn('href="https://example.test/https"', output["html"])
-        self.assertEqual(output["model"]["selectedMatchup"]["sourceCount"], 2)
-
-    def test_missing_and_invalid_urls_render_source_unavailable(self):
-        output = self.build_and_render(
-            agreed_payload(
-                [
-                    frontend_result("Missing", 2, source_url=""),
-                    frontend_result("Invalid", 4, source_url="javascript:alert(1)"),
-                    frontend_result("Valid", 6, source_url="https://example.test/valid"),
-                ]
-            )
-        )
-        self.assertEqual(output["html"].count("Source unavailable"), 2)
-        self.assertNotIn("javascript:", output["html"])
-        self.assertEqual(output["model"]["selectedMatchup"]["sourceCount"], 1)
-
-    def test_supported_unresolved_malformed_and_failed_load_states_do_not_throw(self):
+    def test_loading_malformed_and_failed_derived_states_remain_accessible(self):
         cases = [
-            ("agree", agreed_payload(), "ready"),
-            ("split", unresolved_payload("split"), "ready"),
-            ("ambiguous", unresolved_payload("ambiguous"), "ready"),
-            ("insufficient", unresolved_payload("insufficient"), "ready"),
-            ("malformed", {}, "ready"),
-            ("failed-load", None, "error"),
+            (self.derived, "loading", "Loading repository data"),
+            ({}, "ready", "derived artifact is malformed"),
+            (None, "error", "This data domain is unavailable"),
         ]
-        for name, payload, load_state in cases:
-            with self.subTest(name=name):
+        for payload, load_state, expected in cases:
+            with self.subTest(expected=expected):
                 output = run_runoff_script(
                     payload,
-                    "(() => { const model = api.buildRunoffViewModel(); return { state: model.state, html: api.renderRunoffPanel(model) }; })()",
+                    "(() => { const model = api.buildRunoffViewModel(); return api.renderRunoffPanel(model); })()",
                     load_state=load_state,
                 )
-                self.assertIsInstance(output["html"], str)
-                self.assertTrue(output["html"])
+                self.assertIn(expected, output)
+                self.assertIn('aria-live="polite"', output)
 
-    def test_equal_scores_render_without_winner_or_leader_language(self):
-        equal = frontend_result("Tie Poll", 0)
-        output = self.build_and_render(agreed_payload([equal, copy.deepcopy(equal)]))
-        html = output["html"].casefold()
-        self.assertIn("reported margin 0 pts", html)
-        self.assertNotRegex(html, r"\b(winner|leader|leading|ahead)\b")
+    def test_methodology_and_semantics_are_neutral(self):
+        html = self.render_real()["html"]
+        self.assertIn("no forecast", html)
+        self.assertNotIn("No polling average, probability, forecast, voter-transfer model, or synthetic ranking is calculated", html)
+        for forbidden in ("momentum", "viability", "confidence gauge", "projection", "winner", "leader", "trophy"):
+            self.assertNotIn(forbidden, html.casefold())
+        self.assertNotIn("is-green", html)
 
-    def test_alternative_matchups_preserve_published_order(self):
-        payload = agreed_payload()
-        alternatives = [
-            {
-                "matchup_key": "alternative-a",
-                "candidates": list(BARDella_ATTAL),
-                "results": [frontend_result("Ifop", 4, candidates=BARDella_ATTAL)],
-            },
-            {
-                "matchup_key": "alternative-b",
-                "candidates": list(GLUCKSMANN_ZEMMOUR),
-                "results": [frontend_result("Ipsos", 6, candidates=GLUCKSMANN_ZEMMOUR)],
-            },
-        ]
-        payload["common_matchups"] += alternatives
-        output = self.build_and_render(payload)
+    def test_archive_loader_fetches_once_and_isolates_malformed_payloads(self):
+        loaded = run_runoff_script(
+            self.derived,
+            """(async () => { let calls = 0; const fetcher = () => { calls += 1; return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ events: input.archiveState.events }) }); }; const first = api.loadRunoffArchive(fetcher); const second = api.loadRunoffArchive(fetcher); const state = await first; return { calls, sameRequest: first === second, status: state.status, count: state.events.length }; })()""",
+            archive_state=self.archive_state,
+        )
+        self.assertEqual(loaded, {"calls": 1, "sameRequest": True, "status": "ready", "count": 38})
+        malformed = run_runoff_script(
+            self.derived,
+            """(async () => { const fetcher = () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ events: [{ event_id: 'broken' }] }) }); const state = await api.loadRunoffArchive(fetcher); const model = api.buildRunoffViewModel(state); return { status: state.status, currentStatus: model.status, currentCount: model.selectedMatchup.observations.length, archiveState: model.archive.state }; })()""",
+        )
         self.assertEqual(
-            [item["matchup_key"] for item in output["model"]["commonMatchups"]],
-            ["selected-key", "alternative-a", "alternative-b"],
+            malformed,
+            {"status": "unavailable", "currentStatus": "agree", "currentCount": 2, "archiveState": "unavailable"},
         )
-        self.assertLess(
-            output["html"].index("Jordan Bardella vs Gabriel Attal"),
-            output["html"].index("Raphaël Glucksmann vs Éric Zemmour"),
-        )
-
-    def test_exact_fieldwork_wording_is_preserved(self):
-        output = self.build_and_render(agreed_payload())
-        self.assertIn("Shared fieldwork window: 1–2 JUL 2026", output["html"])
-
-    def test_active_output_has_no_average_metric(self):
-        html = self.build_and_render(agreed_payload())["html"]
-        self.assertIn("no average", html)
-        self.assertNotIn("hybrid-runoff-average", html)
-        self.assertNotRegex(html, r"(?i)average\s*<strong>\s*[-+]?\d")
-
-    def test_active_output_has_no_forecast_metric(self):
-        html = self.build_and_render(agreed_payload())["html"]
-        self.assertIn("not a forecast", html)
-        self.assertNotIn("hybrid-runoff-forecast", html)
-        self.assertNotRegex(html, r"(?i)forecast\s*<strong>\s*[-+]?\d")
-
-    def test_active_output_has_no_probability_metric(self):
-        html = self.build_and_render(agreed_payload())["html"]
-        self.assertIn("no average or probability", html)
-        self.assertNotIn("hybrid-runoff-probability", html)
-        self.assertNotRegex(html, r"(?i)probability\s*<strong>\s*[-+]?\d")
-
-    def test_active_output_has_no_momentum_score(self):
-        html = self.build_and_render(agreed_payload())["html"].casefold()
-        self.assertNotIn("momentum", html)
-
-    def test_active_output_has_no_synthetic_ranking(self):
-        html = self.build_and_render(agreed_payload())["html"].casefold()
-        self.assertNotIn("synthetic", html)
-        self.assertNotIn("ranking", html)
-
-    def test_active_output_has_no_inferred_winner_or_leader_label(self):
-        html = self.build_and_render(agreed_payload())["html"].casefold()
-        self.assertNotRegex(html, r"\b(winner|leader|leading)\b")
-
-    def test_rendering_does_not_mutate_supplied_payload(self):
-        result = run_runoff_script(
-            agreed_payload(),
-            "(() => { const before = JSON.stringify(context.dashboardState.runoff); const model = api.buildRunoffViewModel(); api.renderRunoffSummary(model); api.renderRunoffPanel(model); return { unchanged: before === JSON.stringify(context.dashboardState.runoff) }; })()",
-        )
-        self.assertTrue(result["unchanged"])
-
-    def test_runoff_failure_model_is_isolated_from_other_workspace_models(self):
-        output = run_runoff_script(
-            None,
-            "(() => { const runoff = api.buildRunoffViewModel(); const html = api.renderFocusWorkspace({ runoff, agenda: { state: 'empty', message: 'Agenda remains isolated' }, claims: { state: 'empty', message: 'Claims remain isolated' } }); return { runoff, html }; })()",
-            load_state="error",
-        )
-        self.assertEqual(output["runoff"]["state"], "unavailable")
-        for contract in (
-            "This data domain is unavailable",
-            "candidate-signals-root",
-            "Campaign Events is not yet available",
-            "Agenda remains isolated",
-            "Claims remain isolated",
-            'aria-controls="polling-evidence-lab"',
-        ):
-            self.assertIn(contract, output["html"])
-
 
 class RunoffActiveLoadIsolationTests(unittest.TestCase):
     @classmethod
@@ -940,6 +938,7 @@ class RunoffIsolationAndStaticContractTests(unittest.TestCase):
         cls.html = INDEX.read_text(encoding="utf-8")
         cls.js = HYBRID_JS.read_text(encoding="utf-8")
         cls.css = HYBRID_CSS.read_text(encoding="utf-8")
+        cls.runoff_css = cls.css[cls.css.index("/* RUNOFF WORKSPACE REDESIGN V1") :]
 
     def test_tab_panel_hash_and_aria_contract_is_stable(self):
         runoff_config = re.search(
@@ -957,37 +956,268 @@ class RunoffIsolationAndStaticContractTests(unittest.TestCase):
         self.assertIn('id="signal-runoff-panel" role="tabpanel" aria-labelledby="signal-runoff-tab"', self.js)
         self.assertIn('data-hybrid-view="${key}" aria-controls="${views[key].panelId}"', self.js)
 
-    def test_active_runoff_selectors_keep_hybrid_naming_scheme(self):
-        selectors = re.findall(r"(?m)^([^@\n][^\n{]*runoff[^\n{]*)\{", self.css)
-        self.assertTrue(selectors)
-        for selector_group in selectors:
+    def test_archive_load_and_join_contract_is_exact(self):
+        self.assertEqual(self.js.count('loadRunoffArchive();'), 1)
+        self.assertEqual(self.js.count('fetchImplementation("second_round_polls.json"'), 1)
+        join = re.search(
+            r"function enrichRunoffResult\(result, eventById\) \{(?P<body>.*?)\n  \}",
+            self.js,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(join)
+        self.assertIn("eventById.get(result.event_id)", join.group("body"))
+        for forbidden in ("candidate", "pollster", "source_url"):
+            self.assertNotIn(forbidden, join.group("body").replace("archiveMatched", ""))
+
+
+    def test_runoff_dom_order_and_native_history_control(self):
+        renderer = self._runoff_source()
+
+        panel_start = renderer.index(
+            "function renderRunoffPanel(model)"
+        )
+
+        panel_end = len(renderer)
+
+        for token in ("\n  function ", "\nfunction "):
+            position = renderer.find(
+                token,
+                panel_start + 1,
+            )
+
+            if position >= 0:
+                panel_end = min(panel_end, position)
+
+        panel_renderer = renderer[
+            panel_start:
+            panel_end
+        ]
+
+        ordered = [
+            "renderRunoffHeader(model)",
+            "renderRunoffClosest(model)",
+            "renderRunoffCommonMatchups(model)",
+            "renderRunoffOtherMatchups(model)",
+            "renderRunoffHistory(model)",
+        ]
+
+        positions = [
+            panel_renderer.index(item)
+            for item in ordered
+        ]
+
+        self.assertEqual(
+            positions,
+            sorted(positions),
+        )
+
+        self.assertIn(
+            '<select class="hybrid-runoff-history-select" data-hybrid-runoff-history>',
+            renderer,
+        )
+
+        self.assertIn(
+            'runoffHistory.addEventListener("change"',
+            self.js,
+        )
+
+        self.assertNotIn(
+            'document.addEventListener("change"',
+            self.js,
+        )
+
+
+    def test_shared_geometry_and_single_runoff_scroll_region(self):
+        shared = self.css[
+            self.css.index("/* SHARED WORKSPACE HEIGHT PARITY V1"):
+            self.css.index("/* RUNOFF WORKSPACE REDESIGN V1")
+        ]
+
+        self.assertIn(
+            ".hybrid-workspace > .hybrid-panel",
+            shared,
+        )
+
+        for contract in (
+            "height: 462px",
+            "min-height: 462px",
+            "max-height: 462px",
+            "overflow-y: auto",
+        ):
+            self.assertIn(contract, shared)
+
+        self.assertIn(
+            ".hybrid-workspace > .hybrid-panel#signal-candidates-panel",
+            shared,
+        )
+
+        self.assertIn(
+            "overflow: hidden",
+            shared,
+        )
+
+        self.assertNotRegex(
+            shared,
+            r"(?m)^\s*\.hybrid-panel\s*\{",
+        )
+
+        self.assertEqual(
+            self.runoff_css.count("overflow-y: auto"),
+            2,
+        )
+
+        self.assertNotIn(
+            "overflow-y: scroll",
+            self.runoff_css,
+        )
+
+        other_grid_rules = re.findall(
+            r"\.hybrid-panel#signal-runoff-panel "
+            r"\.hybrid-runoff-other-grid\s*\{"
+            r"(?P<body>.*?)\}",
+            self.runoff_css,
+            re.DOTALL,
+        )
+
+        self.assertTrue(
+            any(
+                "overflow-y: auto" in body
+                for body in other_grid_rules
+            )
+        )
+
+        history_scroll_rules = re.findall(
+            r"\.hybrid-panel#signal-runoff-panel "
+            r"\.hybrid-runoff-history-scroll\s*\{"
+            r"(?P<body>.*?)\}",
+            self.runoff_css,
+            re.DOTALL,
+        )
+
+        self.assertTrue(history_scroll_rules)
+
+        self.assertTrue(
+            any(
+                "overflow-x: auto" in body
+                and "overflow-y: hidden" in body
+                for body in history_scroll_rules
+            )
+        )
+
+    def test_locked_runoff_typography_and_dashboard_geometry_are_static(self):
+        for contract in (
+            "grid-template-columns: minmax(390px, 1.12fr) minmax(390px, 1.12fr) minmax(280px, .96fr)",
+            "grid-template-columns: minmax(0, .96fr) minmax(0, 1.04fr)",
+            "font-size: 29px",
+            "font-weight: 720",
+            "line-height: 24.94px",
+            "letter-spacing: -1.015px",
+            "font-size: 15px",
+            "font-weight: 760",
+            "line-height: 16.5px",
+            "font-size: 14px",
+            "font-weight: 730",
+            "line-height: 14px",
+        ):
+            self.assertIn(contract, self.runoff_css)
+        self.assertIn("RUNOFF FINAL ARCHITECTURE V1", self.runoff_css)
+        self.assertIn(".hybrid-runoff-step", self.runoff_css)
+        self.assertIn(".hybrid-runoff-other-grid", self.runoff_css)
+        self.assertIn("overflow-y: auto", self.runoff_css)
+        self.assertIn(".hybrid-runoff-archive-grid", self.runoff_css)
+
+    def test_all_new_runoff_css_is_owned_and_mobile_stacks(self):
+        css_without_comments = re.sub(
+            r"/\*.*?\*/",
+            "",
+            self.runoff_css,
+            flags=re.DOTALL,
+        )
+
+        selector_groups = re.findall(
+            r"([^{}]+)\{",
+            css_without_comments,
+            re.DOTALL,
+        )
+
+        self.assertTrue(selector_groups)
+
+        checked = 0
+
+        for selector_group in selector_groups:
+            selector_group = " ".join(
+                selector_group.split()
+            )
+
+            if (
+                not selector_group
+                or selector_group.startswith("@")
+            ):
+                continue
+
             for selector in selector_group.split(","):
-                selector = selector.strip()
-                if selector:
-                    self.assertTrue(
-                        selector.startswith(".hybrid-"),
-                        f"Runoff selector escaped hybrid scope: {selector}",
-                    )
+                selector = " ".join(
+                    selector.split()
+                )
 
-    def test_runoff_introduces_no_global_css_or_global_event_listener(self):
-        runoff_css = "\n".join(
-            line for line in self.css.splitlines() if "runoff" in line.casefold()
+                if (
+                    not selector
+                    or selector.startswith(("from", "to"))
+                ):
+                    continue
+
+                checked += 1
+
+                self.assertTrue(
+                    selector.startswith(
+                        ".hybrid-panel#signal-runoff-panel"
+                    ),
+                    (
+                        "Runoff selector escaped the owned panel: "
+                        f"{selector}"
+                    ),
+                )
+
+        self.assertGreater(checked, 0)
+
+        mobile = re.search(
+            r"@media \(max-width: 679px\) \{"
+            r"(?P<body>.*)\n\}",
+            self.runoff_css,
+            re.DOTALL,
         )
-        self.assertNotRegex(runoff_css, r"(?m)^\s*(?:html|body|:root|\*)\b")
-        runoff_source = self._runoff_source()
-        self.assertNotIn("addEventListener", runoff_source)
-        self.assertEqual(self.js.count('window.addEventListener("hashchange", handleSignalHashChange);'), 1)
-        self.assertEqual(self.js.count('document.addEventListener("hybrid:dataset", renderAll);'), 1)
 
-    def test_narrow_runoff_grids_retain_one_column_fallback(self):
-        narrow = re.search(r"@media \(max-width: 679px\) \{(?P<body>.*?)\n\}", self.css, re.DOTALL)
-        self.assertIsNotNone(narrow)
-        self.assertRegex(
-            narrow.group("body"),
-            r"\.hybrid-runoff-observations,\s*\n\s*\.hybrid-common-grid\s*\{\s*grid-template-columns:\s*1fr;",
+        self.assertIsNotNone(mobile)
+
+        for selector in (
+            ".hybrid-runoff-observations",
+            ".hybrid-runoff-chronology",
+            ".hybrid-runoff-other-grid",
+        ):
+            self.assertIn(
+                selector,
+                mobile.group("body"),
+            )
+
+        self.assertIn(
+            "grid-template-columns: 1fr",
+            mobile.group("body"),
         )
 
-    def test_runoff_implementation_does_not_reference_candidate_workspace_sources(self):
+    def test_accessibility_and_neutral_visual_semantics_are_static(self):
+        renderer = self._runoff_source()
+        for contract in (
+            'role="img"',
+            'aria-live="polite"',
+            'target="_blank" rel="noopener noreferrer"',
+            'aria-labelledby="hybrid-runoff-closest-title"',
+        ):
+            self.assertIn(contract, renderer)
+        self.assertIn("focus-visible", self.runoff_css)
+        for forbidden in ("is-green", "#00ff", "trophy", "winner", "leader", "momentum"):
+            self.assertNotIn(forbidden, (renderer + self.runoff_css).casefold())
+
+    def test_runoff_implementation_remains_isolated(self):
         source = self._runoff_source().casefold()
         for forbidden in (
             "candidate-signals.js",
@@ -997,9 +1227,9 @@ class RunoffIsolationAndStaticContractTests(unittest.TestCase):
             "france2027candidatesignals",
         ):
             self.assertNotIn(forbidden, source)
-
-    def test_active_renderer_is_separate_from_derived_aggregate_metrics(self):
-        source = self._runoff_source()
+        self.assertEqual(self.js.count('window.addEventListener("hashchange", handleSignalHashChange);'), 1)
+        self.assertEqual(self.js.count('document.addEventListener("hybrid:dataset", renderAll);'), 1)
+        self.assertNotIn("document.addEventListener", source)
         for forbidden in (
             ".reduce(",
             "Math.random",
@@ -1010,11 +1240,9 @@ class RunoffIsolationAndStaticContractTests(unittest.TestCase):
             "syntheticRanking",
         ):
             self.assertNotIn(forbidden, source)
-        self.assertIn("number(a.margin) - number(b.margin)", source)
-        self.assertIn("Individual source-reported results and margins are shown separately", source)
 
     def _runoff_source(self) -> str:
-        model_start = self.js.index("function buildRunoffViewModel()")
+        model_start = self.js.index("function exactRunoffWindowLabel(")
         model_end = self.js.index("function utcDateKey", model_start)
         summary_start = self.js.index("function renderRunoffSummary(")
         summary_end = self.js.index("function activityBars", summary_start)
@@ -1025,7 +1253,6 @@ class RunoffIsolationAndStaticContractTests(unittest.TestCase):
             + self.js[summary_start:summary_end]
             + self.js[panel_start:panel_end]
         )
-
 
 if __name__ == "__main__":
     unittest.main()

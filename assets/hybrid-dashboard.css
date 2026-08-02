@@ -1666,3 +1666,5217 @@
   }
 
 }
+/* SHARED WORKSPACE HEIGHT PARITY V1
+   Candidate workspace is the canonical desktop viewport.
+   430px internal workspace + 16px top and bottom panel padding. */
+@media (min-width: 1180px) {
+  .hybrid-workspace > .hybrid-panel {
+    box-sizing: border-box;
+    height: 462px;
+    min-height: 462px;
+    max-height: 462px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-color:
+      rgba(53, 216, 255, 0.36)
+      rgba(2, 15, 27, 0.42);
+    scrollbar-width: thin;
+  }
+
+  .hybrid-workspace > .hybrid-panel#signal-candidates-panel {
+    overflow: hidden;
+  }
+}
+
+/* RUNOFF WORKSPACE REDESIGN V1 — scoped to the owned Runoff panel. */
+.hybrid-panel#signal-runoff-panel {
+  --hybrid-runoff-line: rgba(29, 75, 103, .68);
+  --hybrid-runoff-surface: rgba(4, 17, 29, .82);
+  --hybrid-runoff-inner: rgba(9, 29, 45, .58);
+  --hybrid-runoff-meta: rgb(143, 169, 185);
+  padding: 8px;
+  color: rgb(231, 240, 245);
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-workspace {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-evidence-header {
+  display: grid;
+  grid-template-columns: minmax(250px, 1fr) minmax(430px, 1.25fr) minmax(310px, .85fr);
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 3px 6px 8px;
+  border-bottom: 1px solid var(--hybrid-runoff-line);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block > div,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-current-scope,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module-head,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module-head > div,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module-head > div > div {
+  min-width: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 25px;
+  width: 25px;
+  height: 25px;
+  border: 1px solid rgba(53, 213, 255, .62);
+  border-radius: 50%;
+  color: rgb(53, 213, 255);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-step {
+  display: grid;
+  place-items: center;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(53, 213, 255, .72);
+  border-radius: 50%;
+  color: rgb(53, 213, 255);
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 11px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block h2,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module h3,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module h4,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block p,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module-head p,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module-note {
+  margin: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block h2 {
+  color: rgb(238, 246, 250);
+  font-size: 15px;
+  font-weight: 760;
+  line-height: 16.5px;
+  letter-spacing: .3px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block p {
+  margin-top: 2px;
+  color: rgb(143, 169, 185);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 11.25px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-current-scope {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  color: rgb(143, 169, 185);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 11.25px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-status {
+  padding: 5px 8px;
+  border: 1px solid rgba(53, 213, 255, .58);
+  border-radius: 3px;
+  color: rgb(53, 213, 255);
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 11px;
+  letter-spacing: .45px;
+  text-transform: uppercase;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-status.is-split,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-status.is-ambiguous,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-status.is-insufficient {
+  border-color: rgb(112, 140, 158);
+  color: rgb(169, 192, 206);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-scope-message {
+  color: rgb(220, 234, 242);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-date-pill {
+  padding: 5px 9px;
+  border: 1px solid rgba(29, 75, 103, .82);
+  border-radius: 3px;
+  color: rgb(231, 241, 246);
+  font-size: 13px;
+  font-weight: 690;
+  line-height: 15.34px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+  min-width: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metric {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  padding: 0 7px;
+  border-left: 1px solid rgba(29, 75, 103, .68);
+  text-align: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metric strong {
+  color: rgb(237, 247, 252);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: -.24px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metric small {
+  color: rgb(169, 192, 206);
+  font-size: 8px;
+  font-weight: 550;
+  line-height: 9.2px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-current-grid {
+  display: grid;
+  grid-template-columns: minmax(390px, 1.12fr) minmax(390px, 1.12fr) minmax(280px, .96fr);
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-archive-grid {
+  display: grid;
+  grid-template-columns: minmax(0, .96fr) minmax(0, 1.04fr);
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--hybrid-runoff-line);
+  border-radius: 3px;
+  background: var(--hybrid-runoff-surface);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-current-grid > .hybrid-runoff-module,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-archive-grid > .hybrid-runoff-module {
+  height: 100%;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+  color: rgb(143, 169, 185);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 11.25px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module-head > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module h3 {
+  color: rgb(231, 240, 245);
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 11px;
+  letter-spacing: .45px;
+  text-transform: uppercase;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module-head p {
+  margin-top: 2px;
+  color: rgb(143, 169, 185);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 11.25px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module > h4 {
+  margin: 0 0 7px;
+  color: rgb(238, 246, 250);
+  font-size: 15px;
+  font-weight: 760;
+  line-height: 16.5px;
+  letter-spacing: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-observations {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 5px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation {
+  display: grid;
+  grid-template-columns: minmax(96px, .9fr) minmax(113px, 1.1fr) minmax(96px, .9fr) 40px;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid rgba(29, 75, 103, .68);
+  background: rgba(7, 24, 38, .72);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-instrument {
+  display: grid;
+  align-content: center;
+  min-width: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-observation-head {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  text-align: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-observation-head strong {
+  overflow: hidden;
+  color: rgb(231, 241, 246);
+  font-size: 13px;
+  font-weight: 690;
+  line-height: 15.34px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-observation-head span {
+  overflow: hidden;
+  color: rgb(143, 169, 185);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 11.25px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate.is-right {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate .hybrid-portrait {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  font-size: 9px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate-copy {
+  min-width: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate-name {
+  display: block;
+  overflow: hidden;
+  color: rgb(220, 234, 242);
+  font-size: 12.5px;
+  font-weight: 680;
+  line-height: 14px;
+  max-height: 28px;
+  white-space: normal;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--cyan);
+  font-size: 29px;
+  font-weight: 720;
+  line-height: 24.94px;
+  letter-spacing: -1.015px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate.is-right strong {
+  color: var(--hybrid-violet);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-balance {
+  position: relative;
+  display: flex;
+  height: 8px;
+  margin: 10px 0 5px;
+  overflow: visible;
+  border: 1px solid rgba(41, 76, 99, .9);
+  background: rgb(7, 19, 30);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-balance-left,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-compact-left {
+  flex: 0 0 auto;
+  background: rgb(53, 213, 255);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-balance-right,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-compact-right {
+  flex: 1 1 auto;
+  background: var(--hybrid-violet);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-balance-centre,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-compact-centre {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  left: 50%;
+  width: 1px;
+  background: rgb(238, 246, 250);
+  opacity: .75;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-balance-label {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  color: rgb(112, 140, 158);
+  font-size: 6px;
+  line-height: 6px;
+  transform: translateX(-50%);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source {
+  justify-self: center;
+  color: rgb(53, 216, 255);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 12.65px;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source.is-compact {
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 10px;
+  letter-spacing: .2px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source:focus-visible,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-select:focus-visible {
+  outline: 2px solid rgb(53, 216, 255);
+  outline-offset: 2px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 1px;
+  align-self: stretch;
+  min-width: 0;
+  border-left: 1px solid rgba(29, 75, 103, .68);
+  color: rgb(112, 140, 158);
+  text-align: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile span {
+  font-size: 8px;
+  font-weight: 730;
+  line-height: 8.8px;
+  letter-spacing: .88px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile strong {
+  color: rgb(231, 241, 246);
+  font-size: 13px;
+  font-weight: 690;
+  line-height: 15.34px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile small {
+  color: rgb(143, 169, 185);
+  font-size: 9px;
+  line-height: 11.25px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-closest-callout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 5px;
+  padding: 6px;
+  border: 1px solid rgba(53, 213, 255, .22);
+  background: rgba(16, 60, 79, .16);
+  color: rgb(53, 213, 255);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-closest-callout span {
+  font-size: 13px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-closest-callout strong {
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 11px;
+  letter-spacing: .45px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-compact-rail {
+  position: relative;
+  display: flex;
+  min-width: 26px;
+  height: 6px;
+  overflow: visible;
+  border: 1px solid rgba(41, 76, 99, .9);
+  background: rgb(7, 19, 30);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-head,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row {
+  display: grid;
+  grid-template-columns: minmax(100px, 1.02fr) minmax(96px, .94fr) minmax(96px, .94fr) minmax(48px, .5fr);
+  align-items: stretch;
+  min-width: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-head {
+  color: rgb(112, 140, 158);
+  font-size: 8px;
+  font-weight: 730;
+  line-height: 8.8px;
+  letter-spacing: .88px;
+  text-transform: uppercase;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-head > span,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row > span {
+  min-width: 0;
+  padding: 5px;
+  border-right: 1px solid rgba(29, 75, 103, .48);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-head > span:last-child,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row > span:last-child {
+  border-right: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row {
+  min-height: 48px;
+  border-top: 1px solid rgba(29, 75, 103, .58);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row.is-selected {
+  box-shadow: inset 2px 0 0 rgb(53, 213, 255);
+  background: rgba(19, 71, 96, .24);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-matchup {
+  display: grid;
+  align-content: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-matchup small {
+  display: block;
+  margin-bottom: 2px;
+  color: rgb(53, 213, 255);
+  font-size: 8px;
+  font-weight: 730;
+  line-height: 8.8px;
+  letter-spacing: .88px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-matchup strong {
+  display: block;
+  color: rgb(220, 234, 242);
+  font-size: 10px;
+  font-weight: 680;
+  line-height: 12px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-result {
+  display: grid;
+  grid-template-columns: auto minmax(28px, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-score {
+  color: rgb(53, 213, 255);
+  font-size: 14px;
+  font-weight: 730;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-score.is-right {
+  color: var(--hybrid-violet);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-margins {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 1px;
+  color: rgb(244, 248, 251);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-margins strong {
+  font-size: 13px;
+  font-weight: 690;
+  line-height: 15.34px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-margins small {
+  color: rgb(112, 140, 158);
+  font-size: 8px;
+  font-weight: 730;
+  line-height: 8.8px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 7px;
+  color: rgb(143, 169, 185);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 11.25px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-legend > span:last-child {
+  margin-left: auto;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-legend i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 4px;
+  background: rgb(53, 213, 255);
+  vertical-align: -1px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-legend i.is-right {
+  background: var(--hybrid-violet);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  min-width: 0;
+  min-height: 84px;
+  padding: 5px;
+  border: 1px solid rgba(29, 75, 103, .52);
+  background: var(--hybrid-runoff-inner);
+  text-align: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric-icon {
+  color: rgb(53, 213, 255) !important;
+  font-size: 22px !important;
+  font-weight: 400 !important;
+  line-height: 22px !important;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric strong {
+  color: rgb(237, 247, 252);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: -.24px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric > span:last-child {
+  color: rgb(169, 192, 206);
+  font-size: 8px;
+  font-weight: 550;
+  line-height: 9.2px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > div {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  min-height: 57px;
+  padding: 5px;
+  border: 1px solid rgba(29, 75, 103, .52);
+  background: rgba(9, 29, 45, .4);
+  text-align: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range span {
+  color: rgb(112, 140, 158);
+  font-size: 8px;
+  font-weight: 730;
+  line-height: 8.8px;
+  letter-spacing: .88px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range strong {
+  color: rgb(231, 241, 246);
+  font-size: 13px;
+  font-weight: 690;
+  line-height: 15.34px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range b,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range small {
+  color: rgb(143, 169, 185);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 11.25px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module-note {
+  margin-top: 6px;
+  color: rgb(143, 169, 185);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 11.25px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint .hybrid-runoff-module-note {
+  text-align: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-local-state {
+  padding: 14px;
+  border: 1px dashed rgba(112, 140, 158, .72);
+  color: rgb(169, 192, 206);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-unresolved-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-unresolved-source {
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid rgba(29, 75, 103, .68);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-unresolved-source h4 {
+  margin: 0 0 5px;
+  color: rgb(220, 234, 242);
+  font-size: 10px;
+  font-weight: 680;
+  line-height: 12px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-unresolved-row {
+  display: grid;
+  gap: 3px;
+  padding: 5px 0;
+  border-top: 1px solid rgba(29, 75, 103, .58);
+  color: rgb(143, 169, 185);
+  font-size: 9px;
+  line-height: 11.25px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-unresolved-row strong {
+  color: rgb(220, 234, 242);
+  font-size: 10px;
+  font-weight: 680;
+  line-height: 12px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-head {
+  align-items: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-head p {
+  color: rgb(143, 169, 185);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-head label {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 280px);
+  align-items: center;
+  gap: 7px;
+  color: rgb(112, 140, 158);
+  font-size: 8px;
+  font-weight: 730;
+  line-height: 8.8px;
+  letter-spacing: .88px;
+  text-transform: uppercase;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-select {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 24px 5px 7px;
+  border: 1px solid rgba(49, 81, 106, .9);
+  border-radius: 2px;
+  background: rgb(7, 24, 39);
+  color: rgb(220, 234, 242);
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 11.25px;
+  text-transform: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--hybrid-runoff-window-count), minmax(0, 1fr));
+  align-items: start;
+  gap: 4px;
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology-guide {
+  position: absolute;
+  top: 5px;
+  right: calc(100% / var(--hybrid-runoff-window-count) / 2);
+  left: calc(100% / var(--hybrid-runoff-window-count) / 2);
+  height: 1px;
+  background: rgba(112, 140, 158, .7);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-position {
+  position: relative;
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  text-align: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-node {
+  z-index: 1;
+  justify-self: center;
+  width: 9px;
+  height: 9px;
+  border: 2px solid rgb(7, 24, 39);
+  border-radius: 50%;
+  background: rgb(53, 213, 255);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-node.is-violet {
+  background: var(--hybrid-violet);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-position time {
+  display: block;
+  min-height: 23px;
+  margin-top: 5px;
+  color: rgb(143, 169, 185);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 11.25px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-group {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-entry {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 3px 2px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-entry + .hybrid-runoff-history-entry {
+  border-top: 1px solid rgba(29, 75, 103, .56);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-entry > strong {
+  overflow: hidden;
+  max-width: 100%;
+  color: rgb(220, 234, 242);
+  font-size: 9px;
+  font-weight: 680;
+  line-height: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-scores {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  color: rgb(244, 248, 251);
+  font-size: 14px;
+  font-weight: 730;
+  line-height: 14px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-scores b:first-child {
+  color: rgb(53, 213, 255);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-scores b:last-child {
+  color: var(--hybrid-violet);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-scores i {
+  color: rgb(112, 140, 158);
+  font-style: normal;
+  font-weight: 400;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-meta {
+  color: rgb(143, 169, 185);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 11.25px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-meta .hybrid-runoff-source {
+  display: inline;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  min-height: 91px;
+  padding: 6px;
+  border: 1px solid rgba(29, 75, 103, .58);
+  background: rgba(7, 24, 38, .62);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 {
+  min-height: 24px;
+  color: rgb(220, 234, 242);
+  font-size: 10px;
+  font-weight: 680;
+  line-height: 12px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-meta {
+  display: block;
+  overflow: hidden;
+  margin-top: 2px;
+  color: rgb(143, 169, 185);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 11.25px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score {
+  display: grid;
+  grid-template-columns: auto minmax(28px, 1fr) auto;
+  align-items: center;
+  gap: 5px;
+  margin: 7px 0 5px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score > strong {
+  color: rgb(53, 213, 255);
+  font-size: 14px;
+  font-weight: 730;
+  line-height: 14px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score > strong:last-child {
+  color: var(--hybrid-violet);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-foot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 4px;
+  color: rgb(112, 140, 158);
+  font-size: 8px;
+  font-weight: 730;
+  line-height: 8.8px;
+  letter-spacing: .2px;
+  text-transform: uppercase;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-methodology {
+  padding: 7px 9px;
+  border: 1px solid var(--hybrid-runoff-line);
+  background: rgba(4, 15, 25, .72);
+  color: rgb(143, 169, 185);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 11.25px;
+}
+
+@media (max-width: 1179px) {
+  .hybrid-panel#signal-runoff-panel {
+    box-sizing: border-box;
+    height: 462px;
+    min-height: 462px;
+    max-height: 462px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-color: rgba(53, 216, 255, .36) rgba(2, 15, 27, .42);
+    scrollbar-width: thin;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-evidence-header {
+    grid-template-columns: minmax(240px, .9fr) minmax(390px, 1.2fr) minmax(270px, .9fr);
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-current-grid {
+    grid-template-columns: minmax(360px, 1fr) minmax(360px, 1fr);
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint {
+    grid-column: 1 / -1;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-archive-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 920px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-evidence-header {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metrics {
+    grid-column: 1 / -1;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation {
+    grid-template-columns: minmax(96px, .9fr) minmax(113px, 1.1fr) minmax(96px, .9fr) 40px;
+  }
+}
+
+@media (max-width: 820px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-evidence-header,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-current-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-current-scope {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-date-pill {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint {
+    grid-column: auto;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    row-gap: 8px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology-guide {
+    display: none;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 679px) {
+  .hybrid-panel#signal-runoff-panel {
+    padding: 7px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-current-scope,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-observations,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-unresolved-grid,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 7px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-current-scope {
+    align-items: start;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-head label {
+    grid-template-columns: 1fr;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+    grid-template-areas:
+      "candidate-left candidate-right margin"
+      "instrument instrument instrument";
+    gap: 6px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation > .hybrid-runoff-candidate:not(.is-right) {
+    grid-area: candidate-left;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation > .hybrid-runoff-instrument {
+    grid-area: instrument;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation > .hybrid-runoff-candidate.is-right {
+    grid-area: candidate-right;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate.is-right {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile {
+    grid-area: margin;
+    grid-template-columns: 1fr;
+    justify-content: center;
+    align-self: stretch;
+    padding: 0 0 0 5px;
+    border-top: 0;
+    border-left: 1px solid rgba(29, 75, 103, .68);
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-head {
+    display: none;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row {
+    grid-template-columns: 1fr;
+    padding: 5px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row > span {
+    border-right: 0;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-result::before {
+    color: rgb(112, 140, 158);
+    font-size: 8px;
+    font-weight: 730;
+    line-height: 8.8px;
+    letter-spacing: .88px;
+    content: "SOURCE RESULT";
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-margins::before {
+    color: rgb(112, 140, 158);
+    font-size: 8px;
+    font-weight: 730;
+    line-height: 8.8px;
+    letter-spacing: .88px;
+    content: "REPORTED MARGINS";
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-legend {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-legend > span:last-child {
+    margin-left: 0;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-position {
+    grid-template-columns: 12px minmax(78px, .58fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 6px;
+    text-align: left;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-node {
+    margin-top: 2px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-position time {
+    min-height: 0;
+    margin-top: 0;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-entry {
+    justify-items: start;
+    padding: 0 0 4px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
+    min-height: 0;
+  }
+}
+/* RUNOFF BOUNDED STRUCTURAL POLISH V2 — owned panel only. */
+.hybrid-panel#signal-runoff-panel {
+  --hybrid-runoff-line-strong: rgba(35, 86, 115, .78);
+  --hybrid-runoff-line-medium: rgba(35, 86, 115, .54);
+  --hybrid-runoff-line-soft: rgba(35, 86, 115, .3);
+  scrollbar-color: rgba(91, 126, 147, .48) rgba(2, 15, 27, .2);
+  scrollbar-width: thin;
+}
+
+.hybrid-panel#signal-runoff-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.hybrid-panel#signal-runoff-panel::-webkit-scrollbar-track {
+  background: rgba(2, 15, 27, .2);
+}
+
+.hybrid-panel#signal-runoff-panel::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+  background: rgba(91, 126, 147, .48);
+}
+
+.hybrid-panel#signal-runoff-panel:hover::-webkit-scrollbar-thumb {
+  background: rgba(92, 153, 181, .68);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-evidence-header {
+  grid-template-columns: minmax(260px, .95fr) minmax(440px, 1.28fr) minmax(320px, .9fr);
+  gap: 14px;
+  padding: 5px 8px 9px;
+  border-bottom-color: var(--hybrid-runoff-line-strong);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-mark {
+  flex-basis: 30px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-icon {
+  width: 28px;
+  height: 28px;
+  color: rgb(53, 213, 255);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-current-scope {
+  grid-template-columns: auto minmax(190px, 1fr) auto;
+  gap: 9px;
+  padding: 6px 8px;
+  border: 1px solid var(--hybrid-runoff-line-soft);
+  border-radius: 3px;
+  background: rgba(7, 24, 38, .48);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-scope-message {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-date-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-color: var(--hybrid-runoff-line-medium);
+  background: rgba(9, 29, 45, .52);
+  text-transform: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-inline-icon {
+  width: 15px;
+  height: 15px;
+  color: rgb(143, 169, 185);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metrics {
+  padding-left: 5px;
+  border-left: 1px solid var(--hybrid-runoff-line-medium);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metric {
+  padding: 0 8px;
+  border-left-color: var(--hybrid-runoff-line-soft);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metric:first-child {
+  border-left: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module {
+  border-color: var(--hybrid-runoff-line-strong);
+  background: rgba(4, 17, 29, .88);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module-head {
+  min-height: 20px;
+  margin-bottom: 8px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module h3 {
+  color: rgb(184, 222, 239);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-step {
+  border-color: rgba(53, 213, 255, .8);
+  background: rgba(8, 35, 51, .72);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation {
+  grid-template-columns: minmax(108px, 24fr) minmax(140px, 35fr) minmax(108px, 24fr) minmax(56px, 17fr);
+  gap: 5px;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation + .hybrid-runoff-source-observation {
+  border-top: 1px solid var(--hybrid-runoff-line-soft);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate {
+  display: grid;
+  grid-template-rows: 14px 44px;
+  align-content: center;
+  gap: 3px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate.is-right {
+  justify-content: stretch;
+  text-align: right;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate-name {
+  max-height: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate-result {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate.is-right .hybrid-runoff-candidate-result {
+  justify-content: flex-end;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate-result strong {
+  display: block;
+  margin: 0;
+  color: var(--cyan);
+  font-size: 29px;
+  font-weight: 720;
+  line-height: 24.94px;
+  letter-spacing: -1.015px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate.is-right .hybrid-runoff-candidate-result strong {
+  color: var(--hybrid-violet);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-instrument {
+  align-self: stretch;
+  align-content: center;
+  padding: 5px 6px 3px;
+  border: 1px solid var(--hybrid-runoff-line-medium);
+  background: rgba(8, 29, 45, .56);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-balance {
+  height: 8px;
+  margin: 9px 0 2px;
+  border-color: var(--hybrid-runoff-line-medium);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source {
+  justify-self: end;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source.is-icon-only {
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 17px;
+  color: rgb(118, 166, 189);
+  font-size: 10px;
+  line-height: 10px;
+  text-decoration: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source.is-icon-only:hover {
+  color: rgb(53, 216, 255);
+  background: rgba(53, 216, 255, .08);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile {
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--hybrid-runoff-line-medium);
+  background: rgba(8, 29, 45, .42);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile strong {
+  color: rgb(231, 241, 246);
+  font-size: 14px;
+  font-weight: 730;
+  line-height: 14px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-closest-callout {
+  min-height: 31px;
+  margin-top: 6px;
+  padding: 7px 9px;
+  border-color: var(--hybrid-runoff-line-medium);
+  background: rgba(11, 45, 62, .3);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-callout-icon {
+  width: 16px;
+  height: 16px;
+  color: rgb(143, 169, 185);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-others {
+  display: flex;
+  flex-direction: column;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix {
+  flex: 1 1 auto;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-head,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row {
+  grid-template-columns: minmax(112px, 1.08fr) minmax(94px, .93fr) minmax(94px, .93fr) minmax(52px, .5fr);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-head > span,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row > span {
+  padding: 6px;
+  border-right-color: var(--hybrid-runoff-line-soft);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row {
+  min-height: 51px;
+  border-top-color: var(--hybrid-runoff-line-soft);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row.is-selected {
+  box-shadow: inset 2px 0 0 rgb(53, 213, 255);
+  background: rgba(19, 71, 96, .14);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-compact-rail {
+  height: 6px;
+  border-color: var(--hybrid-runoff-line-medium);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-margins {
+  padding-right: 7px;
+  padding-left: 7px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-legend {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--hybrid-runoff-line-soft);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint-grid {
+  margin: 0;
+  gap: 6px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric {
+  min-height: 88px;
+  padding: 7px 5px;
+  border-color: var(--hybrid-runoff-line-medium);
+  background: rgba(9, 29, 45, .54);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric dt,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric dd {
+  margin: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric dt {
+  color: rgb(169, 192, 206);
+  font-size: 8px;
+  font-weight: 550;
+  line-height: 9.2px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric-icon {
+  width: 24px;
+  height: 24px;
+  color: rgb(53, 213, 255) !important;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range {
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  min-height: 60px;
+  padding: 6px;
+  border: 1px solid var(--hybrid-runoff-line-medium);
+  background: rgba(9, 29, 45, .42);
+  text-align: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint .hybrid-runoff-module-note {
+  margin-top: auto;
+  padding-top: 7px;
+  border-top: 1px solid var(--hybrid-runoff-line-soft);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-head {
+  min-height: 29px;
+  margin-bottom: 5px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology {
+  flex: 1 1 auto;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.has-shared-window {
+  grid-template-columns: repeat(6, minmax(0, 1fr)) minmax(92px, 1.28fr);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-position.is-paired .hybrid-runoff-history-group {
+  padding: 2px 3px;
+  border: 1px solid var(--hybrid-runoff-line-soft);
+  background: rgba(8, 29, 45, .36);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-entry {
+  gap: 1px;
+  padding: 2px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-entry + .hybrid-runoff-history-entry {
+  border-top-color: var(--hybrid-runoff-line-soft);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-meta .hybrid-runoff-source.is-icon-only {
+  display: inline-grid;
+  width: 15px;
+  height: 14px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history .hybrid-runoff-module-note {
+  margin-top: auto;
+  padding-top: 5px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-grid {
+  flex: 1 1 auto;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
+  align-content: stretch;
+  min-height: 0;
+  padding: 7px;
+  border-color: var(--hybrid-runoff-line-medium);
+  background: rgba(7, 24, 38, .54);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card:hover {
+  border-color: rgba(53, 213, 255, .36);
+  background: rgba(9, 31, 47, .64);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 {
+  display: grid;
+  align-content: start;
+  gap: 0;
+  min-height: 24px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 span,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 small {
+  overflow: hidden;
+  color: rgb(220, 234, 242);
+  font-size: 10px;
+  font-weight: 680;
+  line-height: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score {
+  grid-template-columns: auto minmax(52px, 110px) auto;
+  justify-content: space-between;
+  margin: 6px 0 4px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-foot {
+  margin-top: auto;
+  padding-top: 4px;
+  border-top: 1px solid var(--hybrid-runoff-line-soft);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-foot .hybrid-runoff-source.is-icon-only {
+  width: 15px;
+  height: 14px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-methodology {
+  max-width: 100%;
+  padding: 7px 9px 2px;
+  border: 0;
+  border-top: 1px solid var(--hybrid-runoff-line-soft);
+  background: transparent;
+}
+
+@media (max-width: 1250px) and (min-width: 680px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation {
+    grid-template-columns: 104px minmax(108px, 1fr) 104px 42px;
+    gap: 3px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-instrument {
+    padding-inline: 3px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate {
+    grid-template-rows: 14px 38px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate .hybrid-portrait {
+    flex-basis: 38px;
+    width: 38px;
+    height: 38px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate-result {
+    gap: 3px;
+  }
+}
+
+@media (max-width: 820px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.has-shared-window {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 679px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-evidence-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-evidence-header > * {
+    min-width: 0;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-current-scope {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-date-pill {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metrics {
+    width: auto;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 5px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row > span {
+    min-width: 0;
+    border-right: 0;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 48px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate {
+    grid-template-rows: 14px 44px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile {
+    border: 1px solid var(--hybrid-runoff-line-medium);
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.has-shared-window {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* RUNOFF FINAL OPTICAL CALIBRATION V1
+   CSS-only optical refinement after structural implementation.
+   Scoped exclusively to the owned Runoff workspace.
+*/
+
+.hybrid-panel#signal-runoff-panel {
+  scrollbar-color:
+    rgba(91, 126, 147, .38)
+    rgba(2, 15, 27, .14);
+}
+
+.hybrid-panel#signal-runoff-panel::-webkit-scrollbar {
+  width: 5px;
+}
+
+.hybrid-panel#signal-runoff-panel::-webkit-scrollbar-track {
+  background: rgba(2, 15, 27, .14);
+}
+
+.hybrid-panel#signal-runoff-panel::-webkit-scrollbar-thumb {
+  border-radius: 5px;
+  background: rgba(91, 126, 147, .38);
+}
+
+.hybrid-panel#signal-runoff-panel:hover::-webkit-scrollbar-thumb {
+  background: rgba(92, 153, 181, .62);
+}
+
+/* Header grouping and contrast. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block {
+  gap: 11px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-mark {
+  flex-basis: 32px;
+  width: 32px;
+  height: 32px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-mark svg {
+  width: 22px;
+  height: 22px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block p {
+  color: rgb(154, 178, 190);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-current-scope {
+  padding: 7px 9px;
+  border-color: rgba(35, 86, 115, .4);
+  background: rgba(7, 24, 38, .58);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-scope-message {
+  color: rgb(205, 225, 235);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-date-pill {
+  padding: 6px 11px;
+  border-color: rgba(35, 86, 115, .66);
+  background: rgba(7, 24, 38, .42);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metrics {
+  padding-left: 7px;
+  border-left: 1px solid rgba(53, 213, 255, .16);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metric {
+  padding-right: 9px;
+  padding-left: 9px;
+  border-left-color: rgba(53, 213, 255, .16);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metric:first-child {
+  border-left: 0;
+}
+
+/* Stronger analytical module identification. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module h3 {
+  color: rgb(53, 213, 255);
+}
+
+/* Closest tested runoff: reduce row boxiness and improve hierarchy. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation {
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation + .hybrid-runoff-source-observation {
+  padding-top: 7px;
+  border-top: 1px solid var(--hybrid-runoff-line-soft);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate {
+  padding-right: 2px;
+  padding-left: 2px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate-result {
+  gap: 7px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-instrument {
+  padding: 7px 7px 4px;
+  border-color: rgba(35, 86, 115, .62);
+  background: rgba(8, 29, 45, .64);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-observation-head {
+  gap: 2px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-balance {
+  height: 9px;
+  margin-top: 10px;
+  margin-bottom: 3px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-balance-centre {
+  opacity: .9;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source.is-icon-only {
+  color: rgb(143, 169, 185);
+  opacity: .88;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source.is-icon-only:hover, .hybrid-panel#signal-runoff-panel .hybrid-runoff-source.is-icon-only:focus-visible {
+  color: rgb(53, 216, 255);
+  opacity: 1;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile {
+  padding: 5px;
+  border-color: rgba(35, 86, 115, .64);
+  background: rgba(8, 29, 45, .5);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile span {
+  color: rgb(154, 178, 190);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-closest-callout {
+  min-height: 34px;
+  margin-top: 7px;
+  padding: 8px 10px;
+  border-color: rgba(53, 213, 255, .3);
+  background: rgba(11, 45, 62, .36);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-callout-icon {
+  width: 17px;
+  height: 17px;
+}
+
+@media (min-width: 1251px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation {
+    grid-template-columns:
+      minmax(112px, 1fr)
+      minmax(136px, 1.18fr)
+      minmax(112px, 1fr)
+      64px;
+    gap: 5px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate {
+    grid-template-rows: 14px 46px;
+    gap: 4px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate .hybrid-portrait {
+    flex-basis: 46px;
+    width: 46px;
+    height: 46px;
+  }
+}
+
+/* Current common matchups. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-head {
+  color: rgb(154, 178, 190);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row {
+  min-height: 53px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row.is-selected {
+  background: rgba(19, 71, 96, .1);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-compact-rail {
+  height: 7px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-margins {
+  display: grid;
+  place-items: center;
+  align-content: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-legend {
+  padding-top: 9px;
+  color: rgb(154, 178, 190);
+}
+
+/* Evidence footprint: use the full module height deliberately. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint-grid {
+  gap: 7px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric {
+  min-height: 92px;
+  padding: 9px 5px;
+  border-color: rgba(35, 86, 115, .6);
+  background: rgba(9, 29, 45, .58);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric-icon {
+  margin-bottom: 2px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range {
+  flex: 1 1 auto;
+  align-items: stretch;
+  gap: 8px;
+  min-height: 74px;
+  margin-top: 8px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article {
+  height: 100%;
+  min-height: 72px;
+  padding: 8px 6px;
+  border-color: rgba(35, 86, 115, .6);
+  background: rgba(9, 29, 45, .48);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint .hybrid-runoff-module-note {
+  padding-top: 8px;
+  color: rgb(154, 178, 190);
+}
+
+/* Selected matchup history. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology-guide {
+  height: 1px;
+  background: rgba(154, 178, 190, .84);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-node {
+  width: 10px;
+  height: 10px;
+  border-color: rgb(7, 24, 39);
+  box-shadow: 0 0 0 1px rgba(53, 213, 255, .08);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-position time {
+  margin-top: 4px;
+  color: rgb(154, 178, 190);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-entry {
+  grid-template-rows: 11px 14px 11.25px;
+  align-content: start;
+  min-height: 41px;
+  gap: 2px;
+  padding: 2px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-entry > strong {
+  color: rgb(231, 241, 246);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-meta {
+  color: rgb(154, 178, 190);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-position.is-paired .hybrid-runoff-history-group {
+  padding: 1px 3px 2px;
+  border: 0;
+  border-top: 1px solid var(--hybrid-runoff-line-soft);
+  border-bottom: 1px solid var(--hybrid-runoff-line-soft);
+  background: rgba(8, 29, 45, .28);
+  box-shadow: inset 2px 0 0 rgba(53, 213, 255, .26);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-entry + .hybrid-runoff-history-entry {
+  border-top-color: rgba(35, 86, 115, .38);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history .hybrid-runoff-module-note {
+  color: rgb(154, 178, 190);
+}
+
+/* Other tested matchups. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
+  padding: 8px;
+  border-color: rgba(35, 86, 115, .42);
+  background: rgba(7, 24, 38, .5);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card:hover {
+  border-color: rgba(53, 213, 255, .4);
+  background: rgba(9, 31, 47, .68);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 {
+  min-height: 26px;
+  padding-bottom: 1px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-meta {
+  margin-top: 3px;
+  color: rgb(154, 178, 190);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score {
+  grid-template-columns: auto minmax(56px, 96px) auto;
+  margin-top: 8px;
+  margin-bottom: 6px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-foot {
+  padding-top: 5px;
+  color: rgb(154, 178, 190);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-foot .hybrid-runoff-source.is-icon-only {
+  opacity: .82;
+}
+
+/* Methodology disclosure. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-methodology {
+  padding: 9px 10px 5px;
+  color: rgb(154, 178, 190);
+  line-height: 12.5px;
+}
+
+
+/* RUNOFF HEADER MOCKUP PARITY V1
+   Compact three-zone header matching the approved visual direction.
+   Scoped exclusively to the owned Runoff panel.
+*/
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-evidence-header {
+  grid-template-columns:
+    minmax(260px, .88fr)
+    minmax(420px, 1.36fr)
+    minmax(330px, .98fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 66px;
+  padding: 3px 10px 6px;
+  border-top-color: rgba(35, 86, 115, .24);
+  border-bottom-color: rgba(35, 86, 115, .72);
+  background: rgba(5, 16, 28, .7);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block {
+  gap: 12px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-mark {
+  flex: 0 0 31px;
+  width: 31px;
+  height: 31px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-icon {
+  width: 29px;
+  height: 29px;
+  color: rgb(53, 213, 255);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block h2 {
+  font-size: 17px;
+  font-weight: 760;
+  line-height: 18.7px;
+  letter-spacing: .28px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block p {
+  margin-top: 3px;
+  color: rgb(154, 178, 190);
+  font-size: 10px;
+  line-height: 12px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-current-scope {
+  grid-template-columns: auto minmax(210px, 1fr) auto;
+  align-items: center;
+  gap: 15px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-status {
+  padding: 7px 12px;
+  border-color: rgba(103, 203, 147, .68);
+  background: rgba(63, 145, 101, .1);
+  color: rgb(116, 211, 158);
+  font-size: 12px;
+  line-height: 13px;
+  letter-spacing: .5px;
+  box-shadow:
+    inset 0 0 0 1px rgba(74, 157, 111, .08);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-status.is-split,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-status.is-ambiguous,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-status.is-insufficient {
+  border-color: rgb(112, 140, 158);
+  background: transparent;
+  color: rgb(169, 192, 206);
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-scope-message {
+  overflow: visible;
+  color: rgb(205, 225, 235);
+  font-size: 10px;
+  font-weight: 450;
+  line-height: 12px;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-date-pill {
+  gap: 7px;
+  padding: 7px 13px;
+  border-color: rgba(35, 86, 115, .68);
+  background: rgba(8, 27, 42, .5);
+  color: rgb(231, 241, 246);
+  font-size: 14px;
+  font-weight: 690;
+  line-height: 16px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-date-pill .hybrid-runoff-inline-icon {
+  width: 16px;
+  height: 16px;
+  color: rgb(143, 169, 185);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metrics {
+  min-width: 0;
+  padding-left: 8px;
+  border-left: 1px solid rgba(53, 213, 255, .16);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metric {
+  gap: 2px;
+  padding: 0 11px;
+  border-left-color: rgba(53, 213, 255, .16);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metric:first-child {
+  border-left: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metric strong {
+  color: rgb(239, 247, 251);
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 20px;
+  letter-spacing: -.34px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metric small {
+  color: rgb(169, 192, 206);
+  font-size: 8.5px;
+  font-weight: 550;
+  line-height: 10px;
+  white-space: nowrap;
+}
+
+@media (max-width: 1250px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-evidence-header {
+    grid-template-columns:
+      minmax(230px, .82fr)
+      minmax(390px, 1.28fr)
+      minmax(300px, .92fr);
+    gap: 9px;
+    padding-right: 7px;
+    padding-left: 7px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block {
+    gap: 9px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block h2 {
+    font-size: 16px;
+    line-height: 17.6px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block p {
+    font-size: 9px;
+    line-height: 11.25px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-current-scope {
+    grid-template-columns: auto minmax(170px, 1fr) auto;
+    gap: 9px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-status {
+    padding: 6px 9px;
+    font-size: 11px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-scope-message {
+    overflow: hidden;
+    font-size: 9px;
+    text-overflow: ellipsis;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-date-pill {
+    padding: 6px 9px;
+    font-size: 13px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metric {
+    padding-right: 7px;
+    padding-left: 7px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metric strong {
+    font-size: 18px;
+    line-height: 18px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metric small {
+    font-size: 8px;
+    line-height: 9.2px;
+  }
+}
+
+
+/* RUNOFF HEADER TERMINAL STATUS POLISH V1
+   Header-only polish: corrected icon, larger AGREE badge,
+   and terminal-style printed status content.
+*/
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-icon {
+  width: 30px;
+  height: 30px;
+  color: rgb(53, 213, 255);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-status {
+  padding: 8px 14px;
+  border-color: rgba(105, 208, 148, .78);
+  background: rgba(62, 137, 96, .14);
+  color: rgb(122, 224, 166);
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 13.5px;
+  letter-spacing: .56px;
+  box-shadow:
+    inset 0 0 0 1px rgba(74, 157, 111, .12),
+    0 0 0 1px rgba(40, 82, 58, .22);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-current-scope {
+  grid-template-columns: auto minmax(250px, 1fr) auto;
+  gap: 13px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-scope-message {
+  display: flex;
+  align-items: center;
+  min-height: 26px;
+  color: rgb(196, 214, 223);
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    "Liberation Mono",
+    "Courier New",
+    monospace;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 12.8px;
+  letter-spacing: .14px;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-scope-message::before {
+  content: "> STATUS:";
+  display: inline-block;
+  margin-right: 8px;
+  color: rgb(114, 144, 160);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .72px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-date-pill {
+  padding: 7px 13px;
+}
+
+@media (max-width: 1250px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-status {
+    padding: 7px 11px;
+    font-size: 12px;
+    line-height: 12.6px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-current-scope {
+    grid-template-columns: auto minmax(190px, 1fr) auto;
+    gap: 10px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-scope-message {
+    font-size: 10px;
+    line-height: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-scope-message::before {
+    margin-right: 6px;
+    font-size: 9px;
+    letter-spacing: .58px;
+  }
+}
+
+
+/* RUNOFF HEADER ICON REMOVAL V1
+   Remove the Runoff title icon and rebalance the left header group.
+*/
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-mark {
+  display: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block {
+  gap: 0;
+  align-items: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block > div,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-copy {
+  min-width: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block h2 {
+  margin: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block p {
+  margin-top: 4px;
+}
+
+@media (max-width: 1250px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block {
+    gap: 0;
+  }
+}
+
+
+/* RUNOFF MARGIN TILE PARITY V1
+   Present the exact reported margin as one compact value:
+   label above, number and unit on one baseline.
+*/
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  align-items: baseline;
+  justify-content: center;
+  column-gap: 4px;
+  row-gap: 5px;
+  min-width: 64px;
+  padding: 8px 5px;
+  border-color: rgba(35, 86, 115, .72);
+  background: rgba(8, 29, 45, .58);
+  text-align: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile > span {
+  flex: 0 0 100%;
+  color: rgb(154, 178, 190);
+  font-size: 8px;
+  font-weight: 730;
+  line-height: 8.8px;
+  letter-spacing: .88px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile > strong {
+  display: inline;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 730;
+  line-height: 22px;
+  letter-spacing: -.35px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile > small {
+  display: inline;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 15px;
+  letter-spacing: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation:nth-child(1) .hybrid-runoff-margin-tile > strong,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation:nth-child(1) .hybrid-runoff-margin-tile > small {
+  color: rgb(111, 211, 156);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation:nth-child(2) .hybrid-runoff-margin-tile > strong,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation:nth-child(2) .hybrid-runoff-margin-tile > small {
+  color: var(--hybrid-violet);
+}
+
+@media (max-width: 1250px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile {
+    min-width: 58px;
+    padding-right: 4px;
+    padding-left: 4px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile > strong {
+    font-size: 20px;
+    line-height: 20px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile > small {
+    font-size: 12px;
+    line-height: 14px;
+  }
+}
+
+
+/* RUNOFF COMMON MATCHUPS REDESIGN V1
+   Non-interactive, full-height exact-source comparison matrix.
+*/
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-module-head {
+  flex: 0 0 auto;
+  margin-bottom: 8px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-module-head p {
+  display: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-head,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row {
+  grid-template-columns:
+    minmax(155px, 1.4fr)
+    minmax(118px, 1fr)
+    minmax(118px, 1fr)
+    minmax(62px, .58fr);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-head {
+  flex: 0 0 auto;
+  min-height: 25px;
+  color: rgb(154, 178, 190);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-head > span {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-head > span:first-child {
+  justify-content: flex-start;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row {
+  flex: 1 1 0;
+  min-height: 68px;
+  cursor: default;
+  border-top-color: rgba(35, 86, 115, .5);
+  background: transparent;
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row.is-selected {
+  cursor: default;
+  border-left: 2px solid rgba(53, 213, 255, .82);
+  background: rgba(19, 71, 96, .11);
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row > span {
+  display: grid;
+  align-content: center;
+  padding: 8px;
+  border-right-color: rgba(35, 86, 115, .34);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-matchup {
+  gap: 3px;
+  text-wrap: balance;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-matchup small {
+  margin-bottom: 1px;
+  color: rgb(53, 213, 255);
+  font-size: 8px;
+  font-weight: 730;
+  line-height: 8.8px;
+  letter-spacing: .76px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-matchup strong {
+  color: rgb(225, 238, 245);
+  font-size: 12.5px;
+  font-weight: 680;
+  line-height: 14px;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result {
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "score-left score-right"
+    "score-rail score-rail";
+  align-content: center;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 7px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result > .hybrid-runoff-matrix-score:not(.is-right) {
+  grid-area: score-left;
+  justify-self: start;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result > .hybrid-runoff-matrix-score.is-right {
+  grid-area: score-right;
+  justify-self: end;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result > .hybrid-runoff-compact-rail {
+  grid-area: score-rail;
+  width: 100%;
+  min-width: 0;
+  height: 8px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-score {
+  font-size: 15px;
+  line-height: 15px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins {
+  justify-items: center;
+  align-content: center;
+  gap: 3px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 18px;
+  letter-spacing: -.2px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins small {
+  color: rgb(143, 169, 185);
+  font-size: 8px;
+  line-height: 9px;
+  text-transform: lowercase;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend {
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 14px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(35, 86, 115, .46);
+  color: rgb(154, 178, 190);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span:last-child {
+  margin-left: auto;
+  color: rgb(143, 169, 185);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row:hover {
+  background: transparent;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row.is-selected:hover {
+  background: rgba(19, 71, 96, .11);
+}
+
+@media (max-width: 1250px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-head,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row {
+    grid-template-columns:
+      minmax(135px, 1.3fr)
+      minmax(105px, 1fr)
+      minmax(105px, 1fr)
+      minmax(56px, .55fr);
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-matchup strong {
+    font-size: 11.5px;
+    line-height: 13px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row {
+    min-height: 64px;
+  }
+}
+
+@media (max-width: 679px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    min-height: 0;
+    padding: 8px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row > span {
+    padding: 7px 5px;
+    border-right: 0;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-matchup strong {
+    font-size: 12.5px;
+    line-height: 14px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span:last-child {
+    margin-left: 0;
+  }
+}
+
+
+/* RUNOFF COMMON MATCHUPS LEGEND V2
+   Remove the redundant methodology note and turn the legend
+   into two equal-width candidate-side instruments.
+*/
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 0;
+  min-height: 36px;
+  margin-top: auto;
+  padding-top: 0;
+  border-top: 1px solid rgba(35, 86, 115, .52);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 36px;
+  margin: 0;
+  color: rgb(169, 192, 206);
+  font-size: 10px;
+  font-weight: 620;
+  line-height: 12px;
+  letter-spacing: .08px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span:nth-child(1) {
+  background: rgba(53, 213, 255, .035);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span:nth-child(2) {
+  margin-left: 0;
+  border-left: 1px solid rgba(35, 86, 115, .42);
+  background: rgba(157, 140, 255, .035);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span:nth-child(n+3) {
+  display: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend i {
+  flex: 0 0 11px;
+  width: 11px;
+  height: 11px;
+}
+
+@media (max-width: 679px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 33px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span {
+    min-height: 33px;
+    font-size: 9px;
+    line-height: 11px;
+  }
+}
+
+
+/* RUNOFF COMMON MATCHUPS INLINE LEGEND AND RAIL EFFECT V1
+   Keep the current matrix layout, move the legend into a compact
+   inline key at the bottom-right, and polish only the rail effect.
+*/
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  width: auto;
+  min-height: 0;
+  margin-top: 8px;
+  margin-left: auto;
+  padding-top: 0;
+  border-top: 0;
+  background: transparent;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: rgb(166, 189, 203);
+  font-size: 10px;
+  font-weight: 560;
+  line-height: 12px;
+  letter-spacing: .04px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span:nth-child(1),
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span:nth-child(2) {
+  background: transparent;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span:nth-child(n+3) {
+  display: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend i {
+  flex: 0 0 10px;
+  width: 10px;
+  height: 10px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result > .hybrid-runoff-compact-rail {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(36, 92, 122, .34);
+  border-radius: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(8, 24, 37, .96) 0%,
+      rgba(6, 18, 29, .98) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .05),
+    inset 0 0 0 1px rgba(13, 34, 49, .18);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result > .hybrid-runoff-compact-rail .hybrid-runoff-compact-left {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(52, 213, 255, .98) 0%,
+      rgba(86, 220, 255, .92) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .18),
+    0 0 7px rgba(53, 213, 255, .10);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result > .hybrid-runoff-compact-rail .hybrid-runoff-compact-right {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(191, 166, 255, .92) 0%,
+      rgba(157, 140, 255, .98) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .16),
+    0 0 7px rgba(157, 140, 255, .10);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result > .hybrid-runoff-compact-rail .hybrid-runoff-compact-centre {
+  width: 2px;
+  background: rgba(236, 244, 248, .94);
+  box-shadow: 0 0 5px rgba(255, 255, 255, .16);
+}
+
+@media (max-width: 679px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend {
+    justify-content: flex-start;
+    gap: 14px;
+    margin-left: 0;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span {
+    font-size: 9px;
+    line-height: 11px;
+  }
+}
+
+
+/* RUNOFF COMMON MATCHUPS BAR AND MARGIN PARITY V1
+   Bring the Harris/Ifop rails and the margins column closer
+   to the approved mockup without changing Panel 2 structure.
+*/
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result {
+  row-gap: 6px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result > .hybrid-runoff-compact-rail {
+  position: relative;
+  width: 100%;
+  max-width: 165px;
+  height: 12px;
+  justify-self: start;
+  overflow: hidden;
+  border: 1px solid rgba(52, 90, 118, .44);
+  border-radius: 2px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(10, 30, 45, .96) 0%,
+      rgba(7, 20, 31, .98) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .05),
+    inset 0 0 0 1px rgba(10, 32, 49, .18);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result > .hybrid-runoff-compact-rail .hybrid-runoff-compact-left,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result > .hybrid-runoff-compact-rail .hybrid-runoff-compact-right {
+  top: 1px;
+  bottom: 1px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result > .hybrid-runoff-compact-rail .hybrid-runoff-compact-left {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(63, 214, 255, .98) 0%,
+      rgba(102, 225, 255, .94) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .18);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result > .hybrid-runoff-compact-rail .hybrid-runoff-compact-right {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(198, 176, 255, .93) 0%,
+      rgba(160, 144, 255, .98) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .16);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result > .hybrid-runoff-compact-rail .hybrid-runoff-compact-centre {
+  width: 2px;
+  background: rgba(236, 242, 247, .96);
+  box-shadow: 0 0 3px rgba(255, 255, 255, .14);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-score {
+  font-size: 16px;
+  font-weight: 730;
+  line-height: 16px;
+  letter-spacing: -.12px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins {
+  justify-items: center;
+  align-content: center;
+  row-gap: 5px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(55, 112, 145, .58);
+  border-radius: 8px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(8, 25, 39, .98) 0%,
+      rgba(6, 18, 30, .98) 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(16, 44, 63, .22),
+    0 0 0 1px rgba(22, 49, 66, .12);
+  color: rgb(220, 236, 244);
+  font-size: 16px;
+  font-weight: 730;
+  line-height: 16px;
+  letter-spacing: -.16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row:nth-child(2) .hybrid-runoff-matrix-margins strong {
+  color: rgb(121, 228, 255);
+  border-color: rgba(64, 186, 230, .56);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row:nth-child(3) .hybrid-runoff-matrix-margins strong {
+  color: rgb(116, 220, 255);
+  border-color: rgba(64, 186, 230, .54);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row:nth-child(4) .hybrid-runoff-matrix-margins strong {
+  color: rgb(178, 161, 255);
+  border-color: rgba(134, 116, 218, .56);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins small {
+  color: rgb(145, 169, 184);
+  font-size: 8.5px;
+  font-weight: 620;
+  line-height: 9px;
+  letter-spacing: .04px;
+  text-transform: lowercase;
+}
+
+@media (max-width: 1250px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result > .hybrid-runoff-compact-rail {
+    max-width: 154px;
+    height: 11px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
+    min-width: 60px;
+    height: 32px;
+    font-size: 15px;
+    line-height: 15px;
+  }
+}
+
+
+/* RUNOFF COMMON MATCHUPS ALIGNMENT V2
+   Equalize margin instruments and align the candidate legend
+   directly beneath the Harris and Ifop comparison columns.
+*/
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-head > span:last-child {
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  text-align: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-head > span:last-child::after {
+  content: "(pts)";
+  display: block;
+  color: rgb(112, 140, 158);
+  font-size: 7.5px;
+  font-weight: 650;
+  line-height: 8px;
+  letter-spacing: .35px;
+  text-transform: lowercase;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result {
+  min-height: 46px;
+  align-content: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 6px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
+  box-sizing: border-box;
+  width: 88px;
+  min-width: 88px;
+  height: 40px;
+  padding: 0 8px;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins small {
+  display: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend {
+  display: grid;
+  grid-template-columns:
+    minmax(155px, 1.4fr)
+    minmax(118px, 1fr)
+    minmax(118px, 1fr)
+    minmax(88px, .58fr);
+  align-items: center;
+  width: 100%;
+  min-height: 34px;
+  margin: 0;
+  padding: 7px 0 0;
+  border-top: 1px solid rgba(35, 86, 115, .46);
+  background: transparent;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 26px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgb(166, 189, 203);
+  font-size: 10px;
+  font-weight: 560;
+  line-height: 12px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span:nth-child(1) {
+  grid-column: 2;
+  justify-self: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span:nth-child(2) {
+  grid-column: 3;
+  justify-self: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span:nth-child(n+3) {
+  display: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend i {
+  flex: 0 0 10px;
+  width: 10px;
+  height: 10px;
+}
+
+@media (max-width: 1250px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
+    width: 82px;
+    min-width: 82px;
+    height: 38px;
+    font-size: 15px;
+    line-height: 15px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend {
+    grid-template-columns:
+      minmax(135px, 1.3fr)
+      minmax(105px, 1fr)
+      minmax(105px, 1fr)
+      minmax(82px, .55fr);
+  }
+}
+
+@media (max-width: 679px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-head > span:last-child::after {
+    content: "";
+    display: none;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins small {
+    display: block;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-top: 7px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span:nth-child(1) {
+    grid-column: 1;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span:nth-child(2) {
+    grid-column: 2;
+  }
+}
+
+
+/* RUNOFF COMMON MATCHUPS MARGIN PILL REMOVAL V1
+   Remove the outline pill around the margin values while preserving
+   fixed alignment, consistent width, and row color treatment.
+*/
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+
+/* RUNOFF COMMON MATCHUPS MARGIN VERTICAL ALIGN V1
+   Lower the margin values slightly so they align more precisely
+   with the score-and-bar instruments.
+*/
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins {
+  align-items: flex-start;
+  padding-top: 10px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
+  position: relative;
+  top: 3px;
+}
+
+@media (max-width: 1250px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins {
+    padding-top: 9px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
+    top: 2px;
+  }
+}
+
+
+/* RUNOFF COMMON MATCHUPS MARGIN VERTICAL ALIGN V2
+   Tiny extra downward nudge for the margin values.
+*/
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
+  top: 5px;
+}
+
+@media (max-width: 1250px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
+    top: 4px;
+  }
+}
+
+
+/* RUNOFF COMMON MATCHUPS MARGIN VERTICAL ALIGN V3
+   Extra downward nudge for the margin values.
+*/
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
+  top: 8px;
+}
+
+@media (max-width: 1250px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
+    top: 6px;
+  }
+}
+
+
+/* RUNOFF EVIDENCE FOOTPRINT MOCKUP PARITY V2
+   Corrected against the actual DOM:
+   .hybrid-runoff-window-range is the container;
+   its direct article children are the date cards.
+*/
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 5px;
+  min-height: 112px;
+  padding: 12px 6px 11px;
+  border: 1px solid rgba(35, 86, 115, .56);
+  border-radius: 7px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(11, 31, 47, .68) 0%,
+      rgba(7, 23, 36, .88) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .025),
+    inset 0 0 0 1px rgba(13, 37, 54, .16);
+  text-align: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric-icon {
+  width: 29px;
+  height: 29px;
+  margin: 0 0 2px;
+  color: rgb(53, 213, 255) !important;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric dd {
+  margin: 0;
+  color: rgb(237, 247, 252);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 24px;
+  letter-spacing: -.3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric dt {
+  max-width: 110px;
+  margin: 0;
+  color: rgb(205, 219, 227);
+  font-size: 0;
+  font-weight: 560;
+  line-height: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric dt::after {
+  display: block;
+  font-size: 10px;
+  line-height: 12px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric:nth-child(1) dt::after {
+  content: "Total observations";
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric:nth-child(2) dt::after {
+  content: "Distinct matchups";
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric:nth-child(3) dt::after {
+  content: "Pollsters represented";
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric:nth-child(4) dt::after {
+  content: "Fieldwork windows";
+}
+
+/* Two-card evidence-window container. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  flex: 1 1 auto;
+  gap: 10px;
+  min-height: 0;
+  margin-top: 10px;
+}
+
+/* Individual earliest/latest cards. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article {
+  position: relative;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto;
+  place-items: initial;
+  align-content: center;
+  column-gap: 10px;
+  row-gap: 2px;
+  min-height: 90px;
+  height: 100%;
+  padding: 11px 12px;
+  border: 1px solid rgba(35, 86, 115, .56);
+  border-radius: 7px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(11, 31, 47, .62) 0%,
+      rgba(7, 23, 36, .84) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .025);
+  text-align: left;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article::before {
+  content: "";
+  grid-column: 1;
+  grid-row: 1 / -1;
+  align-self: center;
+  justify-self: center;
+  width: 28px;
+  height: 28px;
+  background-color: rgb(53, 213, 255);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01'/%3E%3C/svg%3E");
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01'/%3E%3C/svg%3E");
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article > span {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+  color: rgb(154, 178, 190);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 10px;
+  letter-spacing: .85px;
+  text-transform: uppercase;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article > strong {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: center;
+  color: rgb(237, 247, 252);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 22px;
+  letter-spacing: -.25px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article > b {
+  grid-column: 2;
+  grid-row: 3;
+  color: rgb(205, 219, 227);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 12px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article > small {
+  grid-column: 2;
+  grid-row: 4;
+  color: rgb(143, 169, 185);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 11px;
+}
+
+/* The mockup uses month-level support for the earliest card. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article:first-child > small {
+  display: none;
+}
+
+/* Remove the redundant Panel 3 disclosure requested by the user. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint .hybrid-runoff-module-note {
+  display: none;
+}
+
+@media (max-width: 1250px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint-grid {
+    gap: 8px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-metric {
+    min-height: 104px;
+    padding: 10px 5px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range {
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article {
+    min-height: 84px;
+    padding: 9px 10px;
+  }
+}
+
+@media (max-width: 679px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* RUNOFF EVIDENCE FOOTPRINT DEBOXING V1
+   Reduce the number of hard internal boxes in Panel 3.
+   Keep the module box, soften the metric cards, and make the
+   earliest/latest evidence cards feel more integrated.
+*/
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint-grid {
+  gap: 14px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric {
+  border-color: rgba(40, 96, 124, .34);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(10, 29, 44, .46) 0%,
+      rgba(8, 24, 37, .70) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.018),
+    0 0 0 1px rgba(10, 32, 46, .06);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric-icon {
+  opacity: .96;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range {
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article {
+  min-height: 84px;
+  padding: 10px 12px;
+  border: 1px solid rgba(38, 90, 118, .20);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(9, 25, 38, .30) 0%,
+      rgba(8, 22, 34, .48) 100%
+    );
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article::before {
+  width: 24px;
+  height: 24px;
+  opacity: .96;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article > span {
+  color: rgb(148, 172, 186);
+  font-size: 8.5px;
+  line-height: 9px;
+  letter-spacing: .78px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article > strong {
+  font-size: 19px;
+  line-height: 19px;
+  letter-spacing: -.2px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article > b {
+  color: rgb(194, 208, 218);
+  font-size: 10px;
+  line-height: 11px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article > small {
+  color: rgb(134, 160, 176);
+  font-size: 8.5px;
+  line-height: 10px;
+}
+
+@media (max-width: 1250px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint-grid {
+    gap: 12px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range {
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article {
+    min-height: 80px;
+    padding: 9px 11px;
+  }
+}
+
+
+/* RUNOFF EVIDENCE FOOTPRINT INTEGRATED BOARD V1
+   Replace six nested dark cards with two integrated evidence bands.
+   Panels 1 and 2 are not affected.
+*/
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-color: rgba(40, 94, 122, .62);
+  background:
+    linear-gradient(
+      145deg,
+      rgba(9, 32, 49, .76) 0%,
+      rgba(6, 23, 37, .88) 58%,
+      rgba(5, 19, 31, .94) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(53, 213, 255, .045);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint .hybrid-runoff-module-head {
+  margin-bottom: 8px;
+}
+
+/* One continuous four-cell evidence band. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(42, 101, 132, .46);
+  border-radius: 6px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(13, 42, 61, .46) 0%,
+      rgba(8, 29, 44, .34) 100%
+    );
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  min-height: 84px;
+  padding: 9px 5px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric + .hybrid-runoff-metric {
+  border-left: 1px solid rgba(53, 213, 255, .13);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric-icon {
+  width: 24px;
+  height: 24px;
+  margin: 0 0 2px;
+  color: rgb(53, 213, 255) !important;
+  opacity: .96;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric dd {
+  margin: 0;
+  color: rgb(237, 247, 252);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 20px;
+  letter-spacing: -.25px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric dt {
+  max-width: 105px;
+  color: rgb(184, 205, 216);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-metric dt::after {
+  font-size: 9px;
+  font-weight: 560;
+  line-height: 11px;
+}
+
+/* One continuous two-cell evidence-window band. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  flex: 1 1 auto;
+  gap: 0;
+  min-height: 78px;
+  margin-top: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(42, 101, 132, .42);
+  border-radius: 6px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(11, 37, 55, .38) 0%,
+      rgba(7, 27, 42, .3) 100%
+    );
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto;
+  align-content: center;
+  column-gap: 10px;
+  row-gap: 1px;
+  min-height: 78px;
+  height: 100%;
+  padding: 10px 13px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article + article {
+  border-left: 1px solid rgba(53, 213, 255, .13);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article::before {
+  width: 23px;
+  height: 23px;
+  opacity: .94;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article > span {
+  color: rgb(143, 169, 185);
+  font-size: 8px;
+  line-height: 9px;
+  letter-spacing: .72px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article > strong {
+  color: rgb(237, 247, 252);
+  font-size: 18px;
+  line-height: 19px;
+  letter-spacing: -.2px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article > b {
+  color: rgb(190, 208, 218);
+  font-size: 9px;
+  line-height: 11px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article > small {
+  color: rgb(126, 155, 172);
+  font-size: 8px;
+  line-height: 10px;
+}
+
+/* Keep the redundant disclosure removed. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint .hybrid-runoff-module-note {
+  display: none;
+}
+
+@media (max-width: 1250px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-metric {
+    min-height: 80px;
+    padding: 8px 4px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-metric-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range {
+    min-height: 74px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article {
+    min-height: 74px;
+    padding: 9px 11px;
+  }
+}
+
+@media (max-width: 679px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-metric:nth-child(3) {
+    border-left: 0;
+    border-top: 1px solid rgba(53, 213, 255, .13);
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-metric:nth-child(4) {
+    border-top: 1px solid rgba(53, 213, 255, .13);
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range {
+    grid-template-columns: 1fr;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article + article {
+    border-top: 1px solid rgba(53, 213, 255, .13);
+    border-left: 0;
+  }
+}
+
+/* RUNOFF FINAL ARCHITECTURE V1
+   Locked composition:
+   - Panels 1 and 2 remain internally unchanged.
+   - Other Tested Matchups occupies the upper-right position.
+   - Other Tested Matchups is a one-row-per-matchup scroll catalogue.
+   - Selected Matchup History spans the complete lower workspace.
+   - Evidence Footprint and methodology disclosures are not rendered.
+*/
+
+/* Remove visual module numbering without modifying Panels 1 or 2 markup. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-step {
+  display: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-module-head > div {
+  column-gap: 0;
+}
+
+/* Preserve the established three-column upper composition. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-current-grid {
+  grid-template-columns: minmax(390px, 1.12fr) minmax(390px, 1.12fr) minmax(280px, .96fr);
+  align-items: stretch;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-current-grid > .hybrid-runoff-module {
+  min-height: 0;
+  height: 100%;
+}
+
+@media (min-width: 1180px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-current-grid {
+    height: 271px;
+  }
+}
+
+/* Upper-right Other Tested Matchups catalogue. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-others {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-others .hybrid-runoff-module-head {
+  flex: 0 0 auto;
+  margin-bottom: 5px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-others .hybrid-runoff-module-head > span {
+  display: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: auto;
+  align-content: start;
+  flex: 1 1 auto;
+  gap: 5px;
+  min-width: 0;
+  min-height: 0;
+  padding-right: 4px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(53, 213, 255, .44) rgba(4, 16, 27, .62);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-grid::-webkit-scrollbar {
+  width: 5px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-grid::-webkit-scrollbar-track {
+  background: rgba(4, 16, 27, .62);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-grid::-webkit-scrollbar-thumb {
+  border-radius: 5px;
+  background: rgba(53, 213, 255, .38);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
+  display: grid;
+  grid-template-columns: minmax(118px, 1.05fr) minmax(125px, .95fr);
+  grid-template-areas:
+    "title score"
+    "meta score"
+    "foot foot";
+  align-items: center;
+  column-gap: 9px;
+  row-gap: 2px;
+  min-width: 0;
+  min-height: 72px;
+  padding: 7px 8px;
+  border-color: rgba(35, 86, 115, .46);
+  background: rgba(7, 24, 38, .48);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 {
+  grid-area: title;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 span,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 small {
+  display: block;
+  overflow: visible;
+  font-size: 10px;
+  line-height: 11.5px;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-meta {
+  grid-area: meta;
+  align-self: start;
+  overflow: hidden;
+  margin: 0;
+  color: rgb(143, 169, 185);
+  font-size: 8px;
+  line-height: 9.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score {
+  grid-area: score;
+  display: grid;
+  grid-template-columns: auto minmax(56px, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score > strong {
+  font-size: 13px;
+  line-height: 13px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score .hybrid-runoff-compact-rail {
+  width: 100%;
+  min-width: 0;
+  height: 7px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-foot {
+  grid-area: foot;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding-top: 4px;
+  border-top: 1px solid rgba(35, 86, 115, .32);
+  color: rgb(143, 169, 185);
+  font-size: 7.5px;
+  line-height: 9px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-foot > span:nth-child(2) {
+  justify-self: end;
+}
+
+/* Full-width Selected Matchup History. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-archive-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history {
+  width: 100%;
+  min-width: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history .hybrid-runoff-module-note {
+  display: none;
+}
+
+/* Defensive suppression; both elements are removed from rendered markup. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint {
+  display: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-methodology {
+  display: none;
+}
+
+/* Intermediate layout: Panels 1 and 2 remain paired; catalogue spans below. */
+
+@media (max-width: 1179px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-others {
+    grid-column: 1 / -1;
+    height: 240px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
+    grid-template-columns: minmax(180px, 1.1fr) minmax(190px, .9fr);
+  }
+}
+
+/* Single-column workspace. */
+
+@media (max-width: 820px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-others {
+    grid-column: auto;
+    height: 280px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
+    grid-template-columns: minmax(130px, 1fr) minmax(125px, .9fr);
+  }
+}
+
+/* Compact/mobile card stacking. */
+
+@media (max-width: 560px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "title"
+      "meta"
+      "score"
+      "foot";
+    gap: 5px;
+    min-height: 0;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score {
+    grid-template-columns: auto minmax(80px, 1fr) auto;
+  }
+}
+
+/* RUNOFF DENSE ARCHIVE POLISH V3
+   Working archive renderers preserved.
+   Other Tested Matchups becomes a border-light terminal row list.
+   History renders one horizontally scrollable position per observation.
+*/
+
+/* Keep the narrowest-margin band inside Panel 1. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-closest {
+  overflow: hidden;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-closest-callout {
+  box-sizing: border-box;
+  flex: 0 0 22px;
+  width: 100%;
+  min-height: 22px;
+  max-height: 22px;
+  margin: 3px 0 0;
+  padding: 2px 7px;
+  overflow: hidden;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-closest-callout strong {
+  font-size: 8.5px;
+  line-height: 9px;
+  white-space: nowrap;
+}
+
+/* Other Tested Matchups: rows, not nested cards. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-others .hybrid-runoff-module-head {
+  margin-bottom: 2px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-others .hybrid-runoff-module-head > span {
+  display: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-grid {
+  display: block;
+  grid-template-columns: none;
+  grid-auto-rows: auto;
+  align-content: start;
+  min-width: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
+  display: grid;
+  grid-template-columns:
+    minmax(125px, 1.28fr)
+    minmax(108px, .9fr)
+    minmax(65px, .4fr);
+  grid-template-areas:
+    "title score foot"
+    "meta  score foot";
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 2px;
+  min-width: 0;
+  min-height: 62px;
+  margin: 0;
+  padding: 7px 3px;
+  border: 0;
+  border-bottom: 1px solid rgba(35, 86, 115, .42);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card:last-child {
+  border-bottom: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card:hover {
+  border-color: rgba(53, 213, 255, .30);
+  background: rgba(10, 38, 55, .18);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 {
+  grid-area: title;
+  display: block;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 span,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 small {
+  display: block;
+  overflow: visible;
+  color: rgb(226, 237, 244);
+  font-size: 11.5px;
+  font-weight: 710;
+  line-height: 12.5px;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-meta {
+  grid-area: meta;
+  overflow: hidden;
+  margin: 1px 0 0;
+  color: rgb(139, 165, 181);
+  font-size: 8px;
+  line-height: 9.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score {
+  grid-area: score;
+  display: grid;
+  grid-template-columns:
+    auto
+    minmax(52px, 68px)
+    auto;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score > strong {
+  font-size: 14px;
+  font-weight: 730;
+  line-height: 14px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score .hybrid-runoff-compact-rail {
+  width: 100%;
+  min-width: 52px;
+  max-width: 68px;
+  height: 6px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-foot {
+  grid-area: foot;
+  display: grid;
+  align-content: center;
+  justify-items: end;
+  gap: 3px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  color: rgb(139, 165, 181);
+  font-size: 7.5px;
+  line-height: 9px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-foot > span {
+  white-space: nowrap;
+}
+
+/* Full-width history: independent source observations. */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history {
+  overflow: hidden;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-head {
+  min-height: 31px;
+  margin-bottom: 4px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-head p {
+  margin-top: 2px;
+  font-size: 9.5px;
+  line-height: 11px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-scroll {
+  min-width: 0;
+  padding: 1px 0 7px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color:
+    rgba(53, 213, 255, .44)
+    rgba(4, 16, 27, .52);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-scroll::-webkit-scrollbar {
+  height: 7px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-scroll::-webkit-scrollbar-track {
+  background: rgba(4, 16, 27, .52);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-scroll::-webkit-scrollbar-thumb {
+  border-radius: 7px;
+  background: rgba(53, 213, 255, .40);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip {
+  position: relative;
+  display: grid;
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: 174px;
+  align-items: start;
+  gap: 0;
+  width: max-content;
+  min-width: max-content;
+  padding: 1px 0 3px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-chronology-guide {
+  top: 6px;
+  right: 87px;
+  left: 87px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-position {
+  position: relative;
+  display: grid;
+  align-content: start;
+  width: 174px;
+  min-width: 174px;
+  padding: 0 11px;
+  border-left: 1px solid rgba(35, 86, 115, .17);
+  text-align: center;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-position:first-of-type {
+  border-left: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-node {
+  width: 11px;
+  height: 11px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-position time {
+  min-height: 26px;
+  margin-top: 5px;
+  color: rgb(164, 185, 198);
+  font-size: 10px;
+  font-weight: 520;
+  line-height: 12px;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-group {
+  display: block;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-entry {
+  display: grid;
+  grid-template-rows: 14px 19px 13px;
+  justify-items: center;
+  align-content: start;
+  gap: 3px;
+  min-height: 55px;
+  padding: 4px 2px 3px;
+  border: 0;
+  background: transparent;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-entry > strong {
+  overflow: visible;
+  max-width: 100%;
+  color: rgb(230, 240, 246);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 12px;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-scores {
+  gap: 3px;
+  font-size: 17px;
+  font-weight: 730;
+  line-height: 18px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-meta {
+  gap: 3px;
+  color: rgb(143, 169, 185);
+  font-size: 9px;
+  line-height: 11px;
+  white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip {
+    grid-auto-columns: 168px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-position {
+    width: 168px;
+    min-width: 168px;
+  }
+}
+
+@media (max-width: 679px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "title"
+      "meta"
+      "score"
+      "foot";
+    gap: 5px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score {
+    justify-content: start;
+    grid-template-columns:
+      auto
+      minmax(80px, 118px)
+      auto;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-foot {
+    display: flex;
+    justify-content: flex-start;
+    gap: 7px;
+  }
+}
+
+
+/* RUNOFF ARCHIVE OPTICAL POLISH V1
+   Remove residual card chrome, improve record density and typography,
+   contain the upper modules, and make History a genuinely scrollable
+   terminal chronology.
+*/
+
+/* ================================================================
+   Panel 1 — replace the protruding margin card with a status rule
+   ================================================================ */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-closest {
+  box-sizing: border-box;
+  overflow: hidden;
+  padding-bottom: 6px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-closest-callout {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 0;
+  max-height: none;
+  margin: 4px 0 0;
+  padding: 5px 0 0;
+  overflow: visible;
+  border: 0;
+  border-top: 1px solid rgba(53, 213, 255, .24);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-closest-callout .hybrid-runoff-callout-icon {
+  width: 12px;
+  height: 12px;
+  opacity: .74;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-closest-callout strong {
+  color: rgb(53, 213, 255);
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 10px;
+  letter-spacing: .38px;
+  white-space: nowrap;
+}
+
+/* ================================================================
+   Panel 2 — contain the legend inside the panel
+   ================================================================ */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common {
+  overflow: hidden;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend {
+  box-sizing: border-box;
+  flex: 0 0 21px;
+  min-height: 21px;
+  max-height: 21px;
+  margin: 0;
+  padding-top: 4px;
+  overflow: hidden;
+}
+
+/* ================================================================
+   Other Tested Matchups — terminal records, not miniature cards
+   ================================================================ */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-others {
+  overflow: hidden;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-others .hybrid-runoff-module-head {
+  margin-bottom: 3px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-grid {
+  display: block;
+  min-width: 0;
+  padding-right: 7px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-grid::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
+  display: grid;
+  grid-template-columns:
+    minmax(145px, 1.32fr)
+    minmax(125px, .88fr);
+  grid-template-areas:
+    "title score"
+    "meta  score"
+    "foot  foot";
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 2px;
+  min-width: 0;
+  min-height: 72px;
+  margin: 0;
+  padding: 8px 4px 7px;
+  border: 0;
+  border-bottom: 1px solid rgba(42, 91, 118, .42);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card:last-child {
+  border-bottom: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card:hover {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(53, 213, 255, .035),
+      rgba(157, 140, 255, .018)
+    );
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 {
+  grid-area: title;
+  min-height: 0;
+  margin: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 span,
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 small {
+  display: block;
+  overflow: visible;
+  color: rgb(228, 238, 244);
+  font-size: 12.5px;
+  font-weight: 720;
+  line-height: 13.5px;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-meta {
+  grid-area: meta;
+  overflow: hidden;
+  margin: 2px 0 0;
+  color: rgb(143, 169, 185);
+  font-size: 8.5px;
+  line-height: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score {
+  grid-area: score;
+  display: grid;
+  grid-template-columns:
+    auto
+    minmax(62px, 84px)
+    auto;
+  align-items: center;
+  justify-content: end;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score > strong {
+  font-size: 15px;
+  font-weight: 730;
+  line-height: 15px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score .hybrid-runoff-compact-rail {
+  width: 84px;
+  min-width: 62px;
+  max-width: 84px;
+  height: 6px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-foot {
+  grid-area: foot;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  margin-top: 3px;
+  padding: 4px 0 0;
+  border: 0;
+  border-top: 1px solid rgba(42, 91, 118, .22);
+  color: rgb(143, 169, 185);
+  font-size: 8px;
+  line-height: 9px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-foot > span {
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-foot .hybrid-runoff-source {
+  margin-left: auto;
+  font-size: 10px;
+}
+
+/* ================================================================
+   Selected Matchup History — wider, clearer scrolling observations
+   ================================================================ */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history {
+  overflow: hidden;
+  padding-bottom: 5px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-head {
+  margin-bottom: 5px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-head p {
+  margin-top: 3px;
+  font-size: 10px;
+  line-height: 12px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-select {
+  min-width: 280px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-scroll {
+  scroll-snap-type: x proximity;
+  min-width: 0;
+  padding: 2px 0 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color:
+    rgba(53, 213, 255, .52)
+    rgba(4, 16, 27, .56);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-scroll::-webkit-scrollbar-track {
+  background: rgba(4, 16, 27, .56);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-scroll::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  background: rgba(53, 213, 255, .46);
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-scroll::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip {
+  grid-auto-columns: 192px;
+  width: max-content;
+  min-width: max-content;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-chronology-guide {
+  right: 96px;
+  left: 96px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-position {
+  scroll-snap-align: start;
+  width: 192px;
+  min-width: 192px;
+  padding: 0 15px;
+  border-left: 0;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-position time {
+  min-height: 29px;
+  margin-top: 6px;
+  color: rgb(174, 195, 207);
+  font-size: 10.5px;
+  font-weight: 560;
+  line-height: 13px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-entry {
+  grid-template-rows: 16px 21px 14px;
+  gap: 4px;
+  min-height: 62px;
+  padding: 5px 2px 4px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-entry > strong {
+  color: rgb(232, 241, 246);
+  font-size: 11.5px;
+  font-weight: 710;
+  line-height: 13px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-scores {
+  gap: 3px;
+  font-size: 18px;
+  font-weight: 730;
+  line-height: 19px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-meta {
+  color: rgb(150, 175, 190);
+  font-size: 9.5px;
+  line-height: 12px;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-meta .hybrid-runoff-source {
+  font-size: 11px;
+}
+
+/* Keep observations readable at narrower breakpoints. */
+
+@media (max-width: 1180px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip {
+    grid-auto-columns: 184px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip .hybrid-runoff-history-position {
+    width: 184px;
+    min-width: 184px;
+    padding-inline: 13px;
+  }
+}
+
+@media (max-width: 679px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "title"
+      "meta"
+      "score"
+      "foot";
+    gap: 5px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score {
+    justify-content: start;
+    grid-template-columns:
+      auto
+      minmax(86px, 118px)
+      auto;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score .hybrid-runoff-compact-rail {
+    width: 118px;
+    max-width: 118px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-select {
+    min-width: 100%;
+  }
+}
+
+/* RUNOFF HOVER METADATA V1
+   Hide secondary evidence metadata from the persistent layout.
+   Preserve the data in markup and expose it through native hover titles.
+*/
+
+/* Panel 1 */
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-closest
+.hybrid-runoff-module-head > span {
+  display: none;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-source-observation {
+  cursor: help;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-observation-head > span {
+  display: none;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-observation-head {
+  justify-content: center;
+  min-height: 16px;
+}
+
+/* Panel 3 */
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-others
+.hybrid-runoff-module-head > span {
+  display: none;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-other-card {
+  cursor: help;
+  min-height: 62px;
+  padding-top: 8px;
+  padding-bottom: 6px;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-other-card h4 {
+  min-height: 30px;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-other-card h4 span,
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-other-card h4 small {
+  overflow: visible;
+  color: rgb(232, 241, 246);
+  font-size: 13.5px;
+  font-weight: 720;
+  line-height: 14.5px;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-other-meta {
+  display: none;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-other-foot {
+  min-height: 13px;
+  margin-top: 1px;
+  padding-top: 0;
+  border-top: 0;
+  font-size: 0;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-other-foot > span {
+  display: none;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-other-foot
+.hybrid-runoff-source {
+  display: inline-grid;
+  margin-left: auto;
+  font-size: 10px;
+}
+
+/* Panel 4 */
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-history-head p {
+  display: none;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-history-entry {
+  cursor: help;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-history-meta {
+  min-height: 13px;
+  font-size: 0;
+  line-height: 13px;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-history-meta
+.hybrid-runoff-source {
+  display: inline-grid;
+  width: 15px;
+  height: 14px;
+  font-size: 11px;
+  line-height: 11px;
+}
+
+/* RUNOFF FINAL MICROFIX V1
+   - contain and strengthen the narrowest-margin status band;
+   - vertically centre Other Tested Matchups records;
+   - move History source links beside pollster names;
+   - remove the permanently visible History metadata row.
+*/
+
+/* ================================================================
+   Panel 1 — contained, centred narrowest-margin status band
+   ================================================================ */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-closest {
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  padding-bottom: 7px !important;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-observations {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+}
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-closest-callout {
+  position: static !important;
+  align-self: stretch !important;
+
+  display: flex !important;
+  flex: 0 0 30px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+
+  height: 30px !important;
+  min-height: 30px !important;
+  max-height: 30px !important;
+
+  margin: 5px 0 0 !important;
+  padding: 0 10px !important;
+  overflow: hidden !important;
+
+  border: 1px solid rgba(53, 213, 255, .28) !important;
+  border-radius: 0 !important;
+  background: rgba(11, 45, 62, .34) !important;
+  box-shadow: none !important;
+  text-align: center !important;
+  transform: none !important;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-closest-callout
+.hybrid-runoff-callout-icon {
+  flex: 0 0 14px !important;
+  width: 14px !important;
+  height: 14px !important;
+  margin: 0 !important;
+  color: rgb(143, 169, 185) !important;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-closest-callout strong {
+  display: block !important;
+  margin: 0 !important;
+  color: rgb(53, 213, 255) !important;
+  font-size: 11.5px !important;
+  font-weight: 760 !important;
+  line-height: 13px !important;
+  letter-spacing: .34px !important;
+  white-space: nowrap !important;
+}
+
+/* ================================================================
+   Panel 3 — vertically centred terminal records
+   ================================================================ */
+
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
+  grid-template-columns:
+    minmax(145px, 1.25fr)
+    minmax(118px, .9fr)
+    18px !important;
+
+  grid-template-rows: minmax(68px, 1fr) !important;
+  grid-template-areas:
+    "title score foot" !important;
+
+  align-content: center !important;
+  align-items: center !important;
+
+  min-height: 68px !important;
+  padding: 0 8px !important;
+  column-gap: 8px !important;
+  row-gap: 0 !important;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-other-card h4 {
+  grid-area: title !important;
+  align-self: center !important;
+
+  display: grid !important;
+  align-content: center !important;
+
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-other-card h4 span,
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-other-card h4 small {
+  color: rgb(235, 243, 248) !important;
+  font-size: 14px !important;
+  font-weight: 740 !important;
+  line-height: 15px !important;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-other-meta {
+  display: none !important;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-other-score {
+  grid-area: score !important;
+  align-self: center !important;
+  margin: 0 !important;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-other-foot {
+  grid-area: foot !important;
+  align-self: center !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  min-width: 18px !important;
+  min-height: 18px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+
+  border: 0 !important;
+  font-size: 0 !important;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-other-foot > span {
+  display: none !important;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-other-foot
+.hybrid-runoff-source {
+  display: inline-grid !important;
+  place-items: center !important;
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 !important;
+  font-size: 11px !important;
+}
+
+/* ================================================================
+   Panel 4 — source arrow beside pollster; no bottom micro-notes
+   ================================================================ */
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-history-entry {
+  grid-template-rows: 16px 21px !important;
+  align-content: start !important;
+  gap: 4px !important;
+  min-height: 43px !important;
+  padding: 4px 2px 2px !important;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-history-pollster {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+
+  overflow: visible !important;
+  max-width: 100% !important;
+  color: rgb(232, 241, 246) !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-history-pollster
+.hybrid-runoff-source {
+  display: inline-grid !important;
+  place-items: center !important;
+
+  flex: 0 0 14px !important;
+  width: 14px !important;
+  height: 14px !important;
+
+  color: rgb(118, 166, 189) !important;
+  font-size: 10px !important;
+  line-height: 10px !important;
+  text-decoration: none !important;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-history-pollster
+.hybrid-runoff-source:hover {
+  color: rgb(53, 213, 255) !important;
+}
+
+.hybrid-panel#signal-runoff-panel
+.hybrid-runoff-history-meta {
+  display: none !important;
+}
+
+/* RUNOFF HISTORY SELECT TYPOGRAPHY V1 */
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-history-select {
+  font-size: 11.5px !important;
+  font-weight: 520 !important;
+  line-height: 16px !important;
+  letter-spacing: 0 !important;
+}
+
+/* RUNOFF LOCKED FINAL REPAIR V2
+   Protect decimal score labels in Other Tested Matchups and preserve
+   the approved compact terminal composition.
+*/
+
+@media (min-width: 821px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
+    grid-template-columns: minmax(0, 1fr) minmax(178px, .92fr) 18px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score {
+    display: grid !important;
+    grid-template-columns: 48px 66px 54px !important;
+    align-items: center !important;
+    justify-content: end !important;
+    gap: 5px !important;
+    width: 178px !important;
+    min-width: 178px !important;
+    max-width: 178px !important;
+    margin: 0 !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score > strong {
+    display: block !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    font-variant-numeric: tabular-nums !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score > strong:first-child {
+    justify-self: end !important;
+    text-align: right !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score > strong:last-child {
+    justify-self: end !important;
+    text-align: right !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score .hybrid-runoff-compact-rail {
+    justify-self: start !important;
+    width: 66px !important;
+    min-width: 66px !important;
+    max-width: 66px !important;
+  }
+}
+
+/* RUNOFF PANEL 3 SCORE SYMMETRY V1
+   Balance the left score, center rail, and right score so the rail sits
+   visually centered and the right percentage no longer floats too far away.
+*/
+@media (min-width: 821px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score {
+    grid-template-columns: 58px 68px 58px !important;
+    width: 184px !important;
+    min-width: 184px !important;
+    max-width: 184px !important;
+    gap: 0 !important;
+    align-items: center !important;
+    justify-content: end !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score > strong:first-child {
+    justify-self: end !important;
+    text-align: right !important;
+    padding-right: 6px !important;
+    white-space: nowrap !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score > strong:last-child {
+    justify-self: start !important;
+    text-align: left !important;
+    padding-left: 6px !important;
+    white-space: nowrap !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score .hybrid-runoff-compact-rail {
+    justify-self: center !important;
+    width: 68px !important;
+    min-width: 68px !important;
+    max-width: 68px !important;
+    margin: 0 !important;
+  }
+}
+
+/* RUNOFF PANEL 3 SOURCE PROXIMITY V1
+   Keep the score rail balanced while bringing the source action closer
+   to the right-hand percentage.
+*/
+@media (min-width: 821px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
+    grid-template-columns:
+      minmax(0, 1fr)
+      172px
+      14px !important;
+    column-gap: 4px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score {
+    grid-template-columns:
+      58px
+      68px
+      46px !important;
+    width: 172px !important;
+    min-width: 172px !important;
+    max-width: 172px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+  .hybrid-runoff-other-score > strong:last-child {
+    justify-self: start !important;
+    padding-left: 6px !important;
+    padding-right: 0 !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+  .hybrid-runoff-other-foot {
+    justify-self: start !important;
+    width: 14px !important;
+    min-width: 14px !important;
+    max-width: 14px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+  .hybrid-runoff-other-foot
+  .hybrid-runoff-source {
+    width: 14px !important;
+    height: 14px !important;
+    margin: 0 !important;
+  }
+}
