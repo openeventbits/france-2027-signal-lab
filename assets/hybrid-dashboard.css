@@ -6932,3 +6932,27 @@
 .hybrid-runoff-margin-tile small {
   color: rgb(157, 140, 255) !important;
 }
+/* RUNOFF PANELS 2 AND 3 OPTICAL TYPOGRAPHY PARITY V5
+   Preserve candidate-pair typography and slightly reduce only
+   the vertical footprint of Panel 3 matchup rows. */
+@media (min-width: 1251px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-matchup strong {
+    font-size: 12.5px !important;
+    font-weight: 680 !important;
+    line-height: 16px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 > span,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 > small {
+    font-size: 13px !important;
+    font-weight: 680 !important;
+    line-height: 16px !important;
+    letter-spacing: 0 !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
+    grid-template-rows: minmax(62px, 1fr) !important;
+    min-height: 62px !important;
+  }
+}
