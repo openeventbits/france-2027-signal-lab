@@ -1683,7 +1683,7 @@
           const selected = model.selectedMatchup?.key === matchup.matchup_key;
           const margins = pollsters.map(name => matchup.results.find(item => item.pollster === name)?.margin);
           return `<div class="hybrid-runoff-matrix-row${selected ? " is-selected" : ""}" role="row">
-            <span class="hybrid-runoff-matrix-matchup" role="rowheader">${selected ? '<small>CLOSEST COMMON MATCHUP</small>' : ""}<strong>${escapeHtml(matchup.candidates.join(" vs "))}</strong></span>
+            <span class="hybrid-runoff-matrix-matchup" role="rowheader">${selected ? '<small>CLOSEST COMMON MATCHUP</small>' : ""}<strong>${escapeHtml(matchup.candidates[0] || "")}<br>vs ${escapeHtml(matchup.candidates[1] || "")}</strong></span>
             ${pollsters.map(name => {
               const result = matchup.results.find(item => item.pollster === name);
               if (!result) return `<span class="hybrid-runoff-matrix-result" role="cell">—</span>`;
