@@ -6956,3 +6956,851 @@
     min-height: 62px !important;
   }
 }
+
+/* RUNOFF TYPOGRAPHY SCALE ALIGNMENT V1: START */
+/*
+ * Bring the desktop Runoff workspace closer to the compact top-row
+ * typography without changing row spacing, padding, grids or dimensions.
+ */
+@media (min-width: 1100px) {
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-module
+    h3 {
+    font-size: 9.5px;
+    line-height: 11px;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-module
+    > h4 {
+    font-size: 13.5px;
+    line-height: 16px;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-candidate-name {
+    font-size: 11.5px;
+    line-height: 14px;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-candidate
+    strong,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-candidate-result
+    strong {
+    font-size: 27px;
+    line-height: 25px;
+    letter-spacing: -.8px;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-source {
+    font-size: 10px;
+    line-height: 12px;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-closest-callout
+    strong {
+    font-size: 10px !important;
+    line-height: 13px !important;
+  }
+
+  /*
+   * Panel 2: reduce the names by 1px while retaining the existing
+   * 16px line box so matchup rows do not move closer together.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-matchup
+    strong {
+    font-size: 11.5px !important;
+    line-height: 16px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-score {
+    font-size: 15px !important;
+    line-height: 16px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-margins
+    strong {
+    font-size: 15px !important;
+    line-height: 16px !important;
+  }
+
+  /*
+   * Panel 3: use the same name scale as panel 2 and preserve its
+   * existing 16px line box and row separation.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-card
+    h4,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-card
+    h4
+    > span,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-card
+    h4
+    > small {
+    font-size: 11.5px !important;
+    line-height: 16px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-score
+    > strong {
+    font-size: 14px !important;
+    line-height: 1 !important;
+  }
+
+  /*
+   * History strip: modestly reduce text and figures without changing
+   * the chronology structure or vertical allocation.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-history-select {
+    font-size: 10.5px !important;
+    line-height: 16px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-chronology.is-observation-strip
+    .hybrid-runoff-history-position
+    time {
+    font-size: 9.5px;
+    line-height: 13px;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-chronology.is-observation-strip
+    .hybrid-runoff-history-entry
+    > strong {
+    font-size: 10.5px;
+    line-height: 13px;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-chronology.is-observation-strip
+    .hybrid-runoff-history-scores {
+    font-size: 17px;
+    line-height: 19px;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-history-pollster
+    .hybrid-runoff-source {
+    font-size: 10px !important;
+    line-height: 10px !important;
+  }
+}
+/* RUNOFF TYPOGRAPHY SCALE ALIGNMENT V1: END */
+
+/* RUNOFF ROW REFINEMENT V2: START */
+/*
+ * Panel 2:
+ * Keep the current type scale and row spacing, but constrain the
+ * matchup label so all candidate pairings use a stable two-line format.
+ *
+ * Panel 3:
+ * Reduce excess vertical space between matchup rows without changing
+ * names, scores, bars or horizontal alignment.
+ */
+@media (min-width: 1100px) {
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-matchup {
+    min-width: 0;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-matchup
+    strong {
+    display: block;
+    width: 124px;
+    max-width: 124px;
+    white-space: normal !important;
+    overflow-wrap: normal;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-card {
+    box-sizing: border-box;
+    min-height: 54px !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+}
+/* RUNOFF ROW REFINEMENT V2: END */
+
+/* RUNOFF DENSITY BALANCE V3: START */
+/*
+ * Final desktop density pass:
+ * - modestly reduce Panel 1 result dominance
+ * - reduce header metric dominance
+ * - tighten Panel 3 rows substantially
+ * - slightly reduce history scores
+ *
+ * Panel 2 typography and spacing remain unchanged.
+ */
+@media (min-width: 1100px) {
+  /*
+   * Workspace header metrics.
+   * Both selectors are included because the current header has used
+   * both structures across the runoff redesign.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-header-metric
+    strong,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-metric
+    dd {
+    font-size: 18px !important;
+    line-height: 18px !important;
+    letter-spacing: -.24px;
+  }
+
+  /*
+   * Panel 1: retain the strongest numerical hierarchy, but bring the
+   * figures closer to the surrounding dashboard scale.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-candidate
+    strong,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-candidate-result
+    strong {
+    font-size: 26px !important;
+    line-height: 25px !important;
+    letter-spacing: -.72px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-margin-tile
+    > strong {
+    font-size: 18px !important;
+    line-height: 18px !important;
+    letter-spacing: -.25px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-margin-tile
+    > small {
+    font-size: 11px !important;
+    line-height: 13px !important;
+  }
+
+  /*
+   * Panel 3: materially denser rows.
+   * Scores and bars retain their current scale and alignment.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-card {
+    box-sizing: border-box;
+    min-height: 46px !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-card
+    h4,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-card
+    h4
+    > span,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-card
+    h4
+    > small {
+    font-size: 11.5px !important;
+    line-height: 14px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-meta {
+    font-size: 8px !important;
+    line-height: 9px !important;
+  }
+
+  /*
+   * History remains readable but no longer competes with live results.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-chronology.is-observation-strip
+    .hybrid-runoff-history-scores {
+    font-size: 16px !important;
+    line-height: 18px !important;
+  }
+}
+/* RUNOFF DENSITY BALANCE V3: END */
+
+/* RUNOFF PANEL 3 DENSITY V4: START */
+/*
+ * Panel 3 only.
+ * Balanced compact-card treatment: dense enough for rapid comparison,
+ * but with enough separation to avoid reading as one continuous list.
+ *
+ * Typography, scores, bars and horizontal geometry are unchanged.
+ */
+@media (min-width: 1100px) {
+  .hybrid-panel#signal-runoff-panel
+    *:has(> .hybrid-runoff-other-card) {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-content: flex-start !important;
+    gap: 3px !important;
+    row-gap: 3px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-card {
+    box-sizing: border-box !important;
+    flex: 0 0 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+  }
+}
+/* RUNOFF PANEL 3 DENSITY V4: END */
+
+/* RUNOFF PANEL 3 TYPOGRAPHY MATCH V5: START */
+/*
+ * Panel 3 only.
+ * Match Panel 2's matchup-name and result typography exactly.
+ * Existing 38px rows and 3px row separation remain unchanged.
+ */
+@media (min-width: 1100px) {
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-card
+    h4,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-card
+    h4
+    > span,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-card
+    h4
+    > small {
+    font-size: 11.5px !important;
+    font-weight: 680 !important;
+    line-height: 16px !important;
+    letter-spacing: 0 !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-score
+    > strong {
+    font-size: 15px !important;
+    font-weight: 730 !important;
+    line-height: 16px !important;
+    letter-spacing: -.12px !important;
+  }
+}
+/* RUNOFF PANEL 3 TYPOGRAPHY MATCH V5: END */
+
+/* RUNOFF PANEL 3 WATCHLIST V6: START */
+/*
+ * Panel 3 terminal-watchlist treatment.
+ *
+ * CSS-only implementation:
+ * - preserves the accepted highlighted ledger rows
+ * - keeps full candidate names and source markup intact
+ * - uses one compact inline pair instead of separate grid columns
+ * - makes the space before "vs" approximately equal to a normal word space
+ *
+ * No runtime DOM mutation is required.
+ */
+@media (min-width: 1100px) {
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-card {
+    box-shadow:
+      inset 2px 0 0 rgba(70, 214, 255, .42),
+      inset 0 1px 0 rgba(20, 63, 90, .70),
+      inset 0 -1px 0 rgba(20, 63, 90, .58);
+    background:
+      linear-gradient(
+        90deg,
+        rgba(10, 28, 44, .82) 0%,
+        rgba(5, 18, 31, .55) 48%,
+        rgba(8, 20, 34, .82) 100%
+      );
+  }
+
+  /*
+   * The existing markup contains candidate one and the
+   * "vs candidate two" segment as separate children.
+   *
+   * Flex keeps them on one line while .3em closely matches
+   * the ordinary word space already present after "vs".
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-card
+    h4 {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: .3em !important;
+    column-gap: .3em !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-card
+    h4
+    > span,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-card
+    h4
+    > small {
+    display: inline-block !important;
+    flex: 0 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: 11.5px !important;
+    font-weight: 680 !important;
+    line-height: 16px !important;
+    letter-spacing: 0 !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-score
+    > strong {
+    font-size: 15px !important;
+    font-weight: 730 !important;
+    line-height: 16px !important;
+    letter-spacing: -.12px !important;
+  }
+}
+/* RUNOFF PANEL 3 WATCHLIST V6: END */
+
+/* RUNOFF PANEL 3 COLUMN HEADER V6.3: START */
+/*
+ * Panel 3 only.
+ * Replace the empty alignment inset with a meaningful terminal-style
+ * column header while preserving the established first-row position.
+ *
+ * Panel 3 represents one latest result per matchup, so its headings
+ * intentionally differ from Panel 2's two-pollster matrix headings.
+ */
+@media (min-width: 1100px) {
+  .hybrid-panel#signal-runoff-panel
+    *:has(> .hybrid-runoff-other-card) {
+    position: relative !important;
+    box-sizing: border-box !important;
+    padding-top: 32px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    *:has(> .hybrid-runoff-other-card)::before,
+  .hybrid-panel#signal-runoff-panel
+    *:has(> .hybrid-runoff-other-card)::after {
+    position: absolute;
+    top: 11px;
+    z-index: 2;
+    color: #9ab2be;
+    font-family: inherit !important;
+    font-size: 8px;
+    font-weight: 730;
+    line-height: 8.8px;
+    letter-spacing: .88px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    *:has(> .hybrid-runoff-other-card)::before {
+    left: 8px;
+    content: "MATCHUP";
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    *:has(> .hybrid-runoff-other-card)::after {
+    right: 28px;
+    content: "LATEST RESULT · BALANCE";
+    text-align: right;
+  }
+}
+/* RUNOFF PANEL 3 COLUMN HEADER V6.3: END */
+
+/* RUNOFF HISTORY OBSERVATION GROUPING V7: START */
+/*
+ * Selected Matchup History only.
+ *
+ * Strengthen the chronological date and visually bind each date,
+ * pollster and score into one compact observation stack.
+ *
+ * Timeline geometry, dots and horizontal distribution are unchanged.
+ */
+@media (min-width: 1100px) {
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-chronology.is-observation-strip
+    .hybrid-runoff-history-position
+    time {
+    margin: 0 !important;
+    color: #9ab2be !important;
+    font-size: 10.5px !important;
+    font-weight: 650 !important;
+    line-height: 12px !important;
+    letter-spacing: 0 !important;
+  }
+
+  /*
+   * Pull the source/result stack closer to its date.
+   * This replaces the detached annotation effect with one observation unit.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-chronology.is-observation-strip
+    .hybrid-runoff-history-entry {
+    margin-top: 4px !important;
+    padding-top: 0 !important;
+    row-gap: 2px !important;
+    gap: 2px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-chronology.is-observation-strip
+    .hybrid-runoff-history-entry
+    > strong {
+    margin: 0 !important;
+    color: rgba(236, 245, 250, .96) !important;
+    font-size: 10.5px !important;
+    font-weight: 680 !important;
+    line-height: 12px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-history-pollster {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-history-pollster
+    .hybrid-runoff-source {
+    margin: 0 !important;
+    font-size: 10.5px !important;
+    font-weight: 680 !important;
+    line-height: 12px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-chronology.is-observation-strip
+    .hybrid-runoff-history-scores {
+    margin-top: 2px !important;
+    font-size: 16px !important;
+    line-height: 18px !important;
+  }
+}
+/* RUNOFF HISTORY OBSERVATION GROUPING V7: END */
+
+/* RUNOFF HISTORY STACK OPTICAL GROUPING V7.1: START */
+/*
+ * Selected Matchup History only.
+ *
+ * The measured date-to-source gap is already 5px, but the source and
+ * result still appear detached because they occupy a separate layout
+ * track. Lift the complete source/result stack slightly so each
+ * observation reads as one attached chronological unit.
+ */
+@media (min-width: 1100px) {
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-chronology.is-observation-strip
+    .hybrid-runoff-history-entry {
+    margin-top: 0 !important;
+    gap: 3px !important;
+    row-gap: 3px !important;
+    transform: translateY(-4px) !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-history-pollster,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-history-pollster
+    .hybrid-runoff-source {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-chronology.is-observation-strip
+    .hybrid-runoff-history-scores {
+    margin-top: 0 !important;
+  }
+}
+/* RUNOFF HISTORY STACK OPTICAL GROUPING V7.1: END */
+
+/* RUNOFF BAND REMOVAL AND HISTORY SCROLL V9: START */
+/*
+ * Final Runoff workspace structure.
+ *
+ * - Remove the redundant Runoff Signals evidence band from the layout.
+ * - Preserve the workspace's established fixed height.
+ * - Allow vertical scrolling only when future content genuinely overflows.
+ * - Keep the history heading and selector fixed.
+ * - Let the chronology itself become horizontally scrollable as new
+ *   source observations are published.
+ */
+@media (min-width: 1100px) {
+  /*
+   * The active RUNOFF tab and analytical modules already identify the
+   * workspace. Keep the status-band markup available in the renderer,
+   * but remove it from the visible layout.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-evidence-header {
+    display: none !important;
+  }
+
+  /*
+   * Do not change the panel's assigned height.
+   * Auto overflow removes the permanent vertical scrollbar when the
+   * current content fits, while preserving scrolling for future growth.
+   */
+  .hybrid-panel#signal-runoff-panel {
+overflow-x: hidden !important;
+    scrollbar-gutter: auto !important;
+    overscroll-behavior: contain;
+  }
+
+  .hybrid-panel#signal-runoff-panel::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .hybrid-panel#signal-runoff-panel::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .hybrid-panel#signal-runoff-panel::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background:
+      rgba(77, 125, 151, .42)
+      padding-box;
+  }
+
+  .hybrid-panel#signal-runoff-panel::-webkit-scrollbar-thumb:hover {
+    background:
+      rgba(73, 197, 230, .62)
+      padding-box;
+  }
+
+  .hybrid-panel#signal-runoff-panel::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  /*
+   * Restore a small deliberate inset between the tabs and the first
+   * analytical row after removing the 62px status band.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-current-grid {
+    margin-top: 8px !important;
+  }
+
+  /*
+   * Panel 4 owns horizontal overflow.
+   * Its heading and matchup selector remain outside this wrapper.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-history-scroll {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-gutter: auto !important;
+    overscroll-behavior-x: contain;
+    scroll-behavior: smooth;
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  /*
+   * Flex gives two useful states:
+   *
+   * 1. With the current eight observations, items grow evenly and
+   *    occupy the full available width.
+   *
+   * 2. When additional polls raise the total beyond available width,
+   *    each observation stops shrinking below 132px and the chronology
+   *    extends horizontally inside its own scroll wrapper.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-chronology.is-observation-strip {
+    position: relative;
+    display: flex !important;
+    align-items: stretch;
+    width: max-content !important;
+    min-width: 100% !important;
+    grid-template-columns: none !important;
+    column-gap: 0 !important;
+    row-gap: 0 !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-chronology.is-observation-strip
+    .hybrid-runoff-history-position {
+    box-sizing: border-box;
+    flex: 1 0 132px !important;
+    width: auto !important;
+    min-width: 132px !important;
+  }
+
+  /*
+   * The guide remains attached to the entire scrollable chronology,
+   * not merely the initially visible viewport.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-chronology.is-observation-strip
+    .hybrid-runoff-chronology-guide {
+    right: 0 !important;
+    left: 0 !important;
+  }
+
+  /*
+   * Low-profile horizontal scrollbar. It appears only when the track
+   * genuinely exceeds the available width.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-history-scroll {
+    scrollbar-width: thin;
+    scrollbar-color:
+      rgba(53, 213, 255, .46)
+      rgba(4, 16, 27, .28);
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-history-scroll::-webkit-scrollbar {
+    height: 7px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-history-scroll::-webkit-scrollbar-track {
+    border-radius: 999px;
+    background: rgba(4, 16, 27, .28) !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-history-scroll::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background:
+      rgba(53, 213, 255, .46)
+      padding-box !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-history-scroll::-webkit-scrollbar-thumb:hover {
+    background:
+      rgba(53, 213, 255, .72)
+      padding-box !important;
+  }
+}
+/* RUNOFF BAND REMOVAL AND HISTORY SCROLL V9: END */
+
+/* RUNOFF SHELL PARITY V9.3: START */
+/*
+ * Final Runoff content framing.
+ *
+ * Preserve the shared Candidates-sized outer workspace, but:
+ * - stop the history module from stretching below its content;
+ * - let the upper analytical row absorb the remaining height;
+ * - use the same rounded, contained panel language as Candidates;
+ * - preserve conditional vertical and horizontal scrolling.
+ */
+@media (min-width: 1100px) {
+  /*
+   * V9 previously placed the desktop top inset on the current grid.
+   * Move that inset to the workspace itself so its two rows can divide
+   * the remaining height predictably.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-workspace {
+    box-sizing: border-box !important;
+    padding: 0 10px 8px !important;
+    height: calc(100% - 8px) !important;
+    margin-top: 8px !important;
+    grid-template-rows:
+      minmax(0, 1fr)
+      auto !important;
+    align-content: stretch !important;
+    gap: 10px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-current-grid {
+    height: auto !important;
+    min-height: 0 !important;
+    margin-top: 0 !important;
+    gap: 10px !important;
+  }
+
+  /*
+   * The history row should use only the height required by its heading,
+   * timeline and scores. The upper row receives the released space.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-archive-grid {
+    align-items: start !important;
+    gap: 10px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-archive-grid
+    > .hybrid-runoff-history {
+    align-self: start !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding-bottom: 8px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-history-scroll,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-chronology.is-observation-strip {
+    flex: 0 0 auto !important;
+  }
+
+  /*
+   * Candidates-style contained framing.
+   * Applied only to the four Runoff analytical modules.
+   */
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-current-grid
+    > .hybrid-runoff-module,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-archive-grid
+    > .hybrid-runoff-module {
+    border-color: rgba(35, 86, 115, .76) !important;
+    border-radius: 8px !important;
+    background: rgba(4, 17, 29, .90) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(113, 172, 201, .045) !important;
+    overflow: hidden !important;
+  }
+}
+/* RUNOFF SHELL PARITY V9.3: END */
