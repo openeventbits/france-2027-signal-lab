@@ -198,7 +198,12 @@ class FrontendPublicationFactsTests(unittest.TestCase):
         self.assertIn('"Snapshot published "', renderer)
         self.assertIn("manifest.published_at", renderer)
         self.assertIn("mastheadLaneSummaries(manifest)", renderer)
-        self.assertIn('"Poll check unknown"', self.index)
+        self.assertIn('"Polls checked "', self.index)
+        self.assertIn('"Poll evidence through "', self.index)
+        self.assertIn("formatManifestEvidenceDate(polls.data_as_of)", self.index)
+        self.assertIn('"Poll freshness unavailable"', self.index)
+        self.assertIn('"Poll data unavailable"', self.index)
+        self.assertNotIn('"Poll check unknown"', self.index)
         self.assertNotIn("Published data checked", self.index)
 
     def test_recent_changes_check_is_not_global_dashboard_freshness(self):
