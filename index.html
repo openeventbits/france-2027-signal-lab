@@ -6872,13 +6872,18 @@
       const polls = lanes.polls;
       if (polls?.available && polls.valid) {
         const pollTime = polls.last_success_at || polls.generated_at;
-        summaries.push(
-          polls.timestamp_status === "known" && pollTime
-            ? "Polls updated " + formatMastheadParisClock(pollTime)
-            : "Poll check unknown"
-        );
+        if (polls.timestamp_status === "known" && pollTime) {
+          summaries.push("Polls checked " + formatMastheadParisClock(pollTime));
+        } else if (polls.data_as_of) {
+          summaries.push(
+            "Poll evidence through " +
+            formatManifestEvidenceDate(polls.data_as_of)
+          );
+        } else {
+          summaries.push("Poll freshness unavailable");
+        }
       } else {
-        summaries.push(unavailableLaneLabel("Polls", polls));
+        summaries.push("Poll data unavailable");
       }
 
       const runoff = lanes.runoff;
