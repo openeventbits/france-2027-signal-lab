@@ -98,5 +98,87 @@ class LocalizationFoundationTests(unittest.TestCase):
         self.assertEqual(messages[TITLE_KEY], TITLE_TEXT)
 
 
+    def test_first_static_text_batch_is_keyed(self):
+        targets = {
+            "dashboard.what_changed": "WHAT CHANGED",
+            "dashboard.source_linked_updates_loading": (
+                "SOURCE-LINKED UPDATES LOADING"
+            ),
+            "dashboard.checking_for_source_linked_dashboard_signals": (
+                "Checking for source-linked dashboard signals…"
+            ),
+            "dashboard.race_at_a_glance": "RACE AT A GLANCE",
+            "dashboard.loading_candidate_scores": (
+                "Loading candidate scores…"
+            ),
+            "dashboard.30_day_activity_14_day_recent": (
+                "30-day activity · 14-day recent"
+            ),
+            "dashboard.loading_media_metrics": (
+                "Loading media metrics…"
+            ),
+        }
+
+        self.assertEqual(len(targets), 7)
+
+        for key, english in targets.items():
+            self.assertEqual(
+                INDEX_TEXT.count(f'data-i18n="{key}"'),
+                1,
+            )
+            self.assertEqual(INDEX_TEXT.count(english), 1)
+
+    def test_first_static_aria_batch_is_keyed(self):
+        targets = {
+            "dashboard.first_round_election_countdown": (
+                "First-round election countdown"
+            ),
+            "dashboard.top_briefing": "Top briefing",
+            "dashboard.latest_first_round_poll_events": (
+                "Latest first-round poll events"
+            ),
+            "dashboard.choose_a_reported_first_round_poll_scenario": (
+                "Choose a reported first-round poll scenario"
+            ),
+            "dashboard.dashboard_context": "Dashboard context",
+        }
+
+        self.assertEqual(len(targets), 5)
+
+        for key, english in targets.items():
+            self.assertEqual(
+                INDEX_TEXT.count(
+                    f'data-i18n-aria-label="{key}"'
+                ),
+                1,
+            )
+            self.assertEqual(
+                INDEX_TEXT.count(f'aria-label="{english}"'),
+                1,
+            )
+
+    def test_static_runtime_preserves_updated_dynamic_content(self):
+        for declaration in (
+            "const fallbackMessageFor =",
+            "const applyTextTranslations =",
+            "const applyAttributeTranslations =",
+            "const applyStaticTranslations =",
+        ):
+            self.assertIn(declaration, RUNTIME_TEXT)
+
+        self.assertIn(
+            "current === fallback.trim()",
+            RUNTIME_TEXT,
+        )
+        self.assertIn(
+            "current === fallback",
+            RUNTIME_TEXT,
+        )
+        self.assertIn(
+            '"DOMContentLoaded"',
+            RUNTIME_TEXT,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

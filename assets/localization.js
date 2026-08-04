@@ -171,6 +171,64 @@
     }
   };
 
+  const fallbackMessageFor = key => {
+    const normalizedKey = String(key || "");
+
+    return Object.prototype.hasOwnProperty.call(
+      fallbackCatalog,
+      normalizedKey
+    )
+      ? String(fallbackCatalog[normalizedKey])
+      : null;
+  };
+
+  const applyTextTranslations = () => {
+    if (!global.document || !global.document.querySelectorAll) {
+      return;
+    }
+
+    const elements = global.document.querySelectorAll(
+      "[data-i18n]"
+    );
+
+    elements.forEach(element => {
+      const key = element.getAttribute("data-i18n");
+      const fallback = fallbackMessageFor(key);
+      const current = String(element.textContent || "").trim();
+
+      if (fallback !== null && current === fallback.trim()) {
+        element.textContent = t(key);
+      }
+    });
+  };
+
+  const applyAttributeTranslations = () => {
+    if (!global.document || !global.document.querySelectorAll) {
+      return;
+    }
+
+    const elements = global.document.querySelectorAll(
+      "[data-i18n-aria-label]"
+    );
+
+    elements.forEach(element => {
+      const key = element.getAttribute(
+        "data-i18n-aria-label"
+      );
+      const fallback = fallbackMessageFor(key);
+      const current = element.getAttribute("aria-label");
+
+      if (fallback !== null && current === fallback) {
+        element.setAttribute("aria-label", t(key));
+      }
+    });
+  };
+
+  const applyStaticTranslations = () => {
+    applyTextTranslations();
+    applyAttributeTranslations();
+  };
+
   const api = Object.freeze({
     locale,
     localeTag,
@@ -182,9 +240,22 @@
     pluralCategory,
     siteUrl,
     buildLocaleUrl,
-    applyDocumentTitle
+    applyDocumentTitle,
+    applyStaticTranslations
   });
 
   global.FR27I18N = api;
   applyDocumentTitle();
+
+  if (global.document) {
+    if (global.document.readyState === "loading") {
+      global.document.addEventListener(
+        "DOMContentLoaded",
+        applyStaticTranslations,
+        { once: true }
+      );
+    } else {
+      applyStaticTranslations();
+    }
+  }
 })(window);
