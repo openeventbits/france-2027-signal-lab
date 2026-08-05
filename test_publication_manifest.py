@@ -807,7 +807,12 @@ class PublicationManifestTests(unittest.TestCase):
         ordering["active_field_visibility"]["primary"]["main"].reverse()
         mutations.append(ordering)
         quality = self.candidate_payload()
-        quality["active_field_visibility"]["primary"]["comparison_quality"]["reason"] = "comparable"
+        current_reason = quality["active_field_visibility"]["primary"]["comparison_quality"]["reason"]
+        quality["active_field_visibility"]["primary"]["comparison_quality"]["reason"] = (
+            "publisher_panel_changed"
+            if current_reason == "comparable"
+            else "comparable"
+        )
         mutations.append(quality)
         for payload in mutations:
             with self.subTest(mutation=mutations.index(payload)):
