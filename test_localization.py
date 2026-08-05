@@ -180,5 +180,29 @@ class LocalizationFoundationTests(unittest.TestCase):
         )
 
 
+    def test_static_shell_context_batch_is_keyed(self):
+        targets = {
+            "dashboard.source_linked_signals_from_the_french_presidential_race": (
+                "Source-linked signals from the French presidential race."
+            ),
+            "dashboard.next_milestone": "NEXT MILESTONE",
+            "dashboard.latest_poll": "LATEST POLL",
+            "dashboard.poll_coverage": "POLL COVERAGE",
+            "dashboard.source_network": "SOURCE NETWORK",
+        }
+
+        self.assertEqual(len(targets), 5)
+
+        for key, english in targets.items():
+            self.assertEqual(
+                INDEX_TEXT.count(f'data-i18n="{key}"'),
+                1,
+            )
+            self.assertEqual(
+                INDEX_TEXT.count(english),
+                1,
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
