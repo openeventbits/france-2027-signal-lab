@@ -204,5 +204,74 @@ class LocalizationFoundationTests(unittest.TestCase):
             )
 
 
+    def test_javascript_generated_headings_use_localization_fallbacks(self):
+        hybrid_text = (
+            ROOT / "assets" / "hybrid-dashboard.js"
+        ).read_text(
+            encoding="utf-8-sig",
+            errors="strict",
+        )
+        candidate_text = (
+            ROOT / "assets" / "candidate-signals-workspace.js"
+        ).read_text(
+            encoding="utf-8-sig",
+            errors="strict",
+        )
+
+        for source in (
+            hybrid_text,
+            candidate_text,
+        ):
+            self.assertEqual(
+                source.count(
+                    "const translate = (key, fallback) =>"
+                ),
+                1,
+            )
+            self.assertIn(
+                "const localizer = globalThis.FR27I18N;",
+                source,
+            )
+            self.assertIn(
+                'typeof localizer.t === "function"',
+                source,
+            )
+            self.assertIn(
+                "? localizer.t(key)",
+                source,
+            )
+            self.assertIn(
+                ": fallback;",
+                source,
+            )
+
+        expected_calls = {
+            hybrid_text: (
+                'translate("signal_board.poll_compare", "POLL COMPARE")',
+            ),
+            candidate_text: (
+                'translate('
+                '"candidate.candidate_monitor", '
+                '"CANDIDATE MONITOR"'
+                ')',
+                'translate('
+                '"candidate.selected_analysis", '
+                '"SELECTED ANALYSIS"'
+                ')',
+                'translate('
+                '"candidate.candidate_dossier", '
+                '"CANDIDATE DOSSIER"'
+                ')',
+            ),
+        }
+
+        for source, calls in expected_calls.items():
+            for call in calls:
+                self.assertEqual(
+                    source.count(call),
+                    1,
+                )
+
+
 if __name__ == "__main__":
     unittest.main()

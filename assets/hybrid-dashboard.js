@@ -1,6 +1,15 @@
 (() => {
   "use strict";
 
+
+  const translate = (key, fallback) => {
+    const localizer = globalThis.FR27I18N;
+
+    return localizer && typeof localizer.t === "function"
+      ? localizer.t(key)
+      : fallback;
+  };
+
   const mount = document.getElementById("hybrid-signal-board");
   const topMediaMount = document.getElementById(
     "top-media-pulse-content"
@@ -51,7 +60,7 @@
       index: "4"
     },
     pollCompare: {
-      label: "POLL COMPARE",
+      label: translate("signal_board.poll_compare", "POLL COMPARE"),
       title: "Polling Evidence",
       hash: "#signal-poll-compare",
       tabId: "signal-poll-compare-tab",
