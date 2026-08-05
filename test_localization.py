@@ -250,6 +250,12 @@ class LocalizationFoundationTests(unittest.TestCase):
                 'translate("signal_board.runoff", "RUNOFF")',
                 'translate("signal_board.candidates_847367c6", "CANDIDATES")',
                 'translate("signal_board.claim_scrutiny", "CLAIM SCRUTINY")',
+                'translate("signal_board.closest_runoff", "Closest Runoff")',
+                'translate("signal_board.candidate_signals", "Candidate Signals")',
+                'translate("signal_board.campaign_events", "Campaign Events")',
+                'translate("signal_board.campaign_agenda", "Campaign Agenda")',
+                'translate("signal_board.claim_scrutiny_da3f82b0", "Claim Scrutiny")',
+                'translate("signal_board.polling_evidence", "Polling Evidence")',
                 'translate("signal_board.poll_compare", "POLL COMPARE")',
             ),
             candidate_text: (

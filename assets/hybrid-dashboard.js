@@ -23,7 +23,7 @@
   const views = Object.freeze({
     runoff: {
       label: translate("signal_board.runoff", "RUNOFF"),
-      title: "Closest Runoff",
+      title: translate("signal_board.closest_runoff", "Closest Runoff"),
       hash: "#signal-runoff",
       tabId: "signal-runoff-tab",
       panelId: "signal-runoff-panel",
@@ -31,21 +31,21 @@
     },
     candidates: {
       label: translate("signal_board.candidates_847367c6", "CANDIDATES"),
-      title: "Candidate Signals",
+      title: translate("signal_board.candidate_signals", "Candidate Signals"),
       hash: "#signal-candidates",
       tabId: "signal-candidates-tab",
       panelId: "signal-candidates-panel"
     },
     events: {
       label: "EVENTS",
-      title: "Campaign Events",
+      title: translate("signal_board.campaign_events", "Campaign Events"),
       hash: "#signal-events",
       tabId: "signal-events-tab",
       panelId: "signal-events-panel"
     },
     agenda: {
       label: "AGENDA",
-      title: "Campaign Agenda",
+      title: translate("signal_board.campaign_agenda", "Campaign Agenda"),
       hash: "#signal-agenda",
       tabId: "signal-agenda-tab",
       panelId: "signal-agenda-panel",
@@ -53,7 +53,7 @@
     },
     claims: {
       label: translate("signal_board.claim_scrutiny", "CLAIM SCRUTINY"),
-      title: "Claim Scrutiny",
+      title: translate("signal_board.claim_scrutiny_da3f82b0", "Claim Scrutiny"),
       hash: "#signal-claims",
       tabId: "signal-claims-tab",
       panelId: "signal-claims-panel",
@@ -61,7 +61,7 @@
     },
     pollCompare: {
       label: translate("signal_board.poll_compare", "POLL COMPARE"),
-      title: "Polling Evidence",
+      title: translate("signal_board.polling_evidence", "Polling Evidence"),
       hash: "#signal-poll-compare",
       tabId: "signal-poll-compare-tab",
       panelId: "polling-evidence-lab"
