@@ -247,6 +247,9 @@ class LocalizationFoundationTests(unittest.TestCase):
 
         expected_calls = {
             hybrid_text: (
+                'translate("signal_board.runoff", "RUNOFF")',
+                'translate("signal_board.candidates_847367c6", "CANDIDATES")',
+                'translate("signal_board.claim_scrutiny", "CLAIM SCRUTINY")',
                 'translate("signal_board.poll_compare", "POLL COMPARE")',
             ),
             candidate_text: (

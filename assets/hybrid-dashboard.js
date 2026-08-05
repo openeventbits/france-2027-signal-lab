@@ -22,7 +22,7 @@
 
   const views = Object.freeze({
     runoff: {
-      label: "RUNOFF",
+      label: translate("signal_board.runoff", "RUNOFF"),
       title: "Closest Runoff",
       hash: "#signal-runoff",
       tabId: "signal-runoff-tab",
@@ -30,7 +30,7 @@
       index: "1"
     },
     candidates: {
-      label: "CANDIDATES",
+      label: translate("signal_board.candidates_847367c6", "CANDIDATES"),
       title: "Candidate Signals",
       hash: "#signal-candidates",
       tabId: "signal-candidates-tab",
@@ -52,7 +52,7 @@
       index: "3"
     },
     claims: {
-      label: "CLAIM SCRUTINY",
+      label: translate("signal_board.claim_scrutiny", "CLAIM SCRUTINY"),
       title: "Claim Scrutiny",
       hash: "#signal-claims",
       tabId: "signal-claims-tab",
