@@ -267,7 +267,7 @@
     return [
       ["14 days · BY", latest ? numberText(latest.by_count) : MISSING],
       ["14 days · ABOUT", latest ? numberText(latest.about_count) : MISSING],
-      ["Archive · BY", archive ? numberText(archive.by_count) : MISSING],
+      [translate("candidate.scrutiny.archive_by", "Archive · BY"), archive ? numberText(archive.by_count) : MISSING],
       ["Archive · ABOUT", archive ? numberText(archive.about_count) : MISSING]
     ];
   }
@@ -1964,7 +1964,7 @@
       ["Archive · ABOUT", archive
         ? numberText(archive.about_count)
         : MISSING],
-      ["Archive · BY", archive
+      [translate("candidate.scrutiny.archive_by", "Archive · BY"), archive
         ? numberText(archive.by_count)
         : MISSING],
       ["Archive · Reviews", archive

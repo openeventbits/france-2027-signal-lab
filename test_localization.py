@@ -301,6 +301,57 @@ class LocalizationFoundationTests(unittest.TestCase):
                     1,
                 )
 
+    def test_candidate_scrutiny_archive_by_uses_localization(self):
+        candidate_text = (
+            ROOT / "assets" / "candidate-signals-workspace.js"
+        ).read_text(
+            encoding="utf-8-sig",
+            errors="strict",
+        )
+
+        call = (
+            'translate('
+            '"candidate.scrutiny.archive_by", '
+            '"Archive · BY"'
+            ')'
+        )
+
+        self.assertEqual(
+            candidate_text.count(call),
+            2,
+        )
+        self.assertEqual(
+            candidate_text.count(
+                '["Archive · BY",'
+            ),
+            0,
+        )
+
+        for start_marker in (
+            "function scrutinyLines(candidate) {",
+            "function dossierScrutinyLines(candidate) {",
+        ):
+            start = candidate_text.index(
+                start_marker
+            )
+            body_start = (
+                start + len(start_marker)
+            )
+            next_function = candidate_text.find(
+                "\n  function ",
+                body_start,
+            )
+            end = (
+                len(candidate_text)
+                if next_function < 0
+                else next_function
+            )
+            block = candidate_text[start:end]
+            self.assertEqual(
+                block.count(call),
+                1,
+            )
+
     def test_hybrid_dynamic_date_messages_are_parameterized(self):
         hybrid_text = (
             ROOT / "assets" / "hybrid-dashboard.js"
