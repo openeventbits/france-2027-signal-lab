@@ -352,6 +352,107 @@ class LocalizationFoundationTests(unittest.TestCase):
                 1,
             )
 
+    def test_inline_dynamic_messages_use_localization_seam(self):
+        index_text = (
+            ROOT / "index.html"
+        ).read_text(
+            encoding="utf-8-sig",
+            errors="strict",
+        )
+
+        adapter = (
+            "const translate = "
+            "(key, fallback, parameters) => {\n"
+            "      const localizer = globalThis.FR27I18N;\n"
+            "      return localizer && "
+            'typeof localizer.t === "function"\n'
+            "        ? localizer.t(key, parameters)\n"
+            "        : fallback;\n"
+            "    };"
+        )
+
+        self.assertEqual(
+            index_text.count(adapter),
+            1,
+        )
+        self.assertEqual(
+            index_text.count(
+                "const candidatePortraitAlt = "
+                "candidateName =>"
+            ),
+            1,
+        )
+
+        for key in (
+            "dashboard.candidate_portrait_alt",
+            "dashboard.claims.review_count_label",
+            "dashboard.news.campaign_agenda_unavailable",
+            "dashboard.news.candidate_coverage_unavailable",
+            "dashboard.news.relevant_news_unavailable",
+            "dashboard.poll.partial_reported_field",
+            "dashboard.runoff.smallest_reported_margin",
+            "dashboard.source.open_category_source_from_publisher",
+        ):
+            self.assertEqual(
+                index_text.count(f'"{key}"'),
+                1,
+            )
+
+        self.assertEqual(
+            index_text.count(
+                "candidatePortraitAlt("
+            ),
+            6,
+        )
+        self.assertEqual(
+            index_text.count(
+                "image.alt = "
+                "candidatePortraitAlt(candidateName);"
+            ),
+            1,
+        )
+        self.assertEqual(
+            index_text.count(
+                "escapeAttribute("
+                "candidatePortraitAlt(candidateName))"
+            ),
+            4,
+        )
+        self.assertEqual(
+            index_text.count(
+                "escapeAttribute("
+                "candidatePortraitAlt(name))"
+            ),
+            1,
+        )
+        self.assertEqual(
+            index_text.count(
+                'image.alt = "AI-generated portrait of " '
+                "+ candidateName;"
+            ),
+            0,
+        )
+        self.assertEqual(
+            index_text.count(
+                "const errorMessage = "
+                "escapeHtml(error.message);"
+            ),
+            1,
+        )
+        self.assertEqual(
+            index_text.count(
+                "{ errorMessage }"
+            ),
+            3,
+        )
+        self.assertEqual(
+            index_text.count(
+                "{ reportedTotal, "
+                "unreportedShare }"
+            ),
+            1,
+        )
+
     def test_hybrid_dynamic_date_messages_are_parameterized(self):
         hybrid_text = (
             ROOT / "assets" / "hybrid-dashboard.js"

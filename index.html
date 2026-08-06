@@ -6769,6 +6769,13 @@
 
   <script>
     const $ = (selector) => document.querySelector(selector);
+    const translate = (key, fallback, parameters) => {
+      const localizer = globalThis.FR27I18N;
+      return localizer && typeof localizer.t === "function"
+        ? localizer.t(key, parameters)
+        : fallback;
+    };
+
     const palette = ["#35d5ff", "#52e5a3", "#ffbf4b", "#9d8cff", "#ff7c8a", "#75a7ff"];
     const formatDate = (iso) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${iso}T00:00:00Z`));
     const formatScore = (value) => Number.isInteger(value) ? `${value}%` : `${value.toFixed(1)}%`;
@@ -6776,6 +6783,13 @@
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
     })[character]);
     const escapeAttribute = escapeHtml;
+
+    const candidatePortraitAlt = candidateName =>
+      translate(
+        "dashboard.candidate_portrait_alt",
+        "AI-generated portrait of " + candidateName,
+        { candidateName }
+      );
 
     function safeSourceUrl(value) {
       try {
@@ -6992,7 +7006,17 @@
       const observations = ordered.length;
       return {
         category: "RUNOFF STATUS",
-        headline: matchup.candidates.join(" vs ") + " has a smallest reported margin of " + closest.margin + " points.",
+        headline: translate(
+          "dashboard.runoff.smallest_reported_margin",
+          matchup.candidates.join(" vs ") +
+            " has a smallest reported margin of " +
+            closest.margin +
+            " points.",
+          {
+            matchup: matchup.candidates.join(" vs "),
+            margin: closest.margin
+          }
+        ),
         context: observations + " supporting " + (observations === 1 ? "observation is" : "observations are") + " shown separately; no average is calculated.",
         date: payload.fieldwork_window ? "Fieldwork ended " + formatDate(payload.fieldwork_window.end) : "Fieldwork date unavailable",
         sourceName: closest.pollster,
@@ -7064,7 +7088,7 @@
         marker.classList.add("has-portrait");
         const image = document.createElement("img");
         image.src = portrait;
-        image.alt = "AI-generated portrait of " + candidateName;
+        image.alt = candidatePortraitAlt(candidateName);
         image.loading = "lazy";
         image.decoding = "async";
         image.onerror = () => image.remove();
@@ -7562,10 +7586,19 @@
       source.target = "_blank";
       source.rel = "noopener noreferrer";
       source.textContent = "Open source ↗";
+      const categoryLabelLower =
+        entry.categoryLabel.toLowerCase();
       source.setAttribute(
         "aria-label",
-        "Open " + entry.categoryLabel.toLowerCase() +
-        " source from " + entry.sourceName
+        translate(
+          "dashboard.source.open_category_source_from_publisher",
+          "Open " + categoryLabelLower +
+            " source from " + entry.sourceName,
+          {
+            categoryLabelLower,
+            sourceName: entry.sourceName
+          }
+        )
       );
 
       meta.appendChild(source);
@@ -8438,9 +8471,31 @@
           renderSignalDeskNote();
         })
         .catch(error => {
-          $("#election-news-list").innerHTML = '<div class="signal-state error">Relevant News unavailable: ' + escapeHtml(error.message) + '</div>';
-          $("#campaign-agenda-view").innerHTML = '<div class="signal-state error">Campaign Agenda unavailable: ' + escapeHtml(error.message) + '</div>';
-          $("#candidate-coverage-list").innerHTML = '<div class="signal-state error">Candidate Coverage unavailable: ' + escapeHtml(error.message) + '</div>';
+          const errorMessage = escapeHtml(error.message);
+          $("#election-news-list").innerHTML =
+            '<div class="signal-state error">' +
+            translate(
+              "dashboard.news.relevant_news_unavailable",
+              "Relevant News unavailable: " + errorMessage,
+              { errorMessage }
+            ) +
+            '</div>';
+          $("#campaign-agenda-view").innerHTML =
+            '<div class="signal-state error">' +
+            translate(
+              "dashboard.news.campaign_agenda_unavailable",
+              "Campaign Agenda unavailable: " + errorMessage,
+              { errorMessage }
+            ) +
+            '</div>';
+          $("#candidate-coverage-list").innerHTML =
+            '<div class="signal-state error">' +
+            translate(
+              "dashboard.news.candidate_coverage_unavailable",
+              "Candidate Coverage unavailable: " + errorMessage,
+              { errorMessage }
+            ) +
+            '</div>';
           document.documentElement.dataset.newsReady = "error";
           markDataset("news", "error");
           renderSignalDeskNote();
@@ -8770,7 +8825,7 @@
           <span class="runoff-monogram-fallback" aria-hidden="true">${initials}</span>
           <img
             src="${escapeAttribute(portrait)}"
-            alt="AI-generated portrait of ${escapeAttribute(candidateName)}"
+            alt="${escapeAttribute(candidatePortraitAlt(candidateName))}"
             loading="eager"
             decoding="async"
             onerror="this.remove()"
@@ -8791,7 +8846,7 @@
           <span class="candidate-monogram-fallback" aria-hidden="true">${initials}</span>
           <img
             src="${escapeAttribute(portrait)}"
-            alt="AI-generated portrait of ${escapeAttribute(candidateName)}"
+            alt="${escapeAttribute(candidatePortraitAlt(candidateName))}"
             loading="lazy"
             decoding="async"
             onerror="this.remove()"
@@ -8876,7 +8931,7 @@
       const initials = escapeHtml(candidateMonogram(candidateName));
       const portrait = candidatePortraits[candidateName];
       if (!portrait) return `<span class="claim-portrait" aria-hidden="true">${initials}</span>`;
-      return `<span class="claim-portrait"><span aria-hidden="true">${initials}</span><img src="${escapeAttribute(portrait)}" alt="AI-generated portrait of ${escapeAttribute(candidateName)}" loading="lazy" decoding="async" onerror="this.remove()"></span>`;
+      return `<span class="claim-portrait"><span aria-hidden="true">${initials}</span><img src="${escapeAttribute(portrait)}" alt="${escapeAttribute(candidatePortraitAlt(candidateName))}" loading="lazy" decoding="async" onerror="this.remove()"></span>`;
     }
 
     function claimAssociation(association) {
@@ -8949,7 +9004,14 @@
       });
 
       return [...grouped.values()].map(monthReviews => {
-        const heading = `${claimsMonthLabel(monthReviews[0].review_date)} · ${monthReviews.length} ${monthReviews.length === 1 ? "REVIEW" : "REVIEWS"}`;
+        const reviewCountLabel = translate(
+          "dashboard.claims.review_count_label",
+          monthReviews.length === 1
+            ? "REVIEW"
+            : "REVIEWS",
+          { count: monthReviews.length }
+        );
+        const heading = `${claimsMonthLabel(monthReviews[0].review_date)} · ${monthReviews.length} ${reviewCountLabel}`;
         return `<div class="claim-month">${escapeHtml(heading)}</div>${monthReviews.map(review => claimReviewRow(review, idPrefix)).join("")}`;
       }).join("");
     }
@@ -9492,7 +9554,7 @@
           <span class="candidate-monogram-fallback" aria-hidden="true">${initials}</span>
           <img
             src="${escapeAttribute(portrait)}"
-            alt="AI-generated portrait of ${escapeAttribute(candidateName)}"
+            alt="${escapeAttribute(candidatePortraitAlt(candidateName))}"
             loading="lazy"
             decoding="async"
             onerror="this.remove()"
@@ -10045,11 +10107,19 @@
         !Number.isFinite(event.unreported_share)
       ) return "";
 
-      return (
+      const reportedTotal = formatScore(
+        event.reported_total
+      );
+      const unreportedShare = formatScore(
+        event.unreported_share
+      );
+      return translate(
+        "dashboard.poll.partial_reported_field",
         "Partial reported field · Reported total " +
-        formatScore(event.reported_total) +
-        " · Unreported share " +
-        formatScore(event.unreported_share)
+          reportedTotal +
+          " · Unreported share " +
+          unreportedShare,
+        { reportedTotal, unreportedShare }
       );
     }
 
@@ -10438,7 +10508,7 @@
         return `
           <div class="pe-portrait">
             <span aria-hidden="true">${initials}</span>
-            <img src="${escapeAttribute(portrait)}" alt="AI-generated portrait of ${escapeAttribute(name)}" loading="lazy" decoding="async" onerror="this.remove()">
+            <img src="${escapeAttribute(portrait)}" alt="${escapeAttribute(candidatePortraitAlt(name))}" loading="lazy" decoding="async" onerror="this.remove()">
           </div>`;
       }
 

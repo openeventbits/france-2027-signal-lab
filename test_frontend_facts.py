@@ -430,6 +430,22 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             r"const formatScore = .*?;",
             self.index,
         ).group(0)
+        translate_start = self.index.index(
+            (
+                "const translate = "
+                "(key, fallback, parameters) => {"
+            )
+        )
+        translate_end = (
+            self.index.index(
+                "\n    };",
+                translate_start,
+            )
+            + len("\n    };")
+        )
+        translate_adapter = self.index[
+            translate_start:translate_end
+        ]
         expression = """
           [
             pollPartialDisclosure({
@@ -450,7 +466,9 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             [
                 node,
                 "-e",
-                format_score
+                translate_adapter
+                + "\n"
+                + format_score
                 + "\n"
                 + renderer
                 + "\nconsole.log(JSON.stringify("
