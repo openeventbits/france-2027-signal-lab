@@ -431,7 +431,7 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
 
     def test_exact_six_labels_and_hashes_in_locked_order(self):
         entries = re.findall(
-            r"^    (\w+): \{.*?^      label: \"([^\"]+)\","
+            r'^    (\w+): \{.*?^      label: (?:translate\("[^"]+", )?"([^"]+)"\)?,'
             r".*?^      hash: \"([^\"]+)\",",
             self.views,
             re.MULTILINE | re.DOTALL,

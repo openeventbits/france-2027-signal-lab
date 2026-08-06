@@ -159,7 +159,7 @@ class FinalDashboardShellTests(unittest.TestCase):
             self.js,
         )
         self.assertIn(
-            'label: "POLL COMPARE"',
+            'label: translate("signal_board.poll_compare", "POLL COMPARE")',
             self.js,
         )
         self.assertIn(

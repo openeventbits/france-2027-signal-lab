@@ -1,6 +1,34 @@
 (() => {
   "use strict";
 
+
+  const translate = (key, fallback, parameters) => {
+    const localizer = globalThis.FR27I18N;
+
+    return localizer && typeof localizer.t === "function"
+      ? localizer.t(key, parameters)
+      : fallback;
+  };
+
+  const renderStrongDateOrUnavailable = (
+    value,
+    options,
+    fallbackFormatter
+  ) => {
+    const localizer = globalThis.FR27I18N;
+    const renderedValue = value
+      ? localizer &&
+        typeof localizer.formatDate === "function"
+        ? localizer.formatDate(value, options)
+        : fallbackFormatter()
+      : translate(
+          "coverage_modal.unavailable",
+          "Unavailable"
+        );
+
+    return `<strong>${escapeHtml(renderedValue)}</strong>`;
+  };
+
   const mount = document.getElementById("hybrid-signal-board");
   const topMediaMount = document.getElementById(
     "top-media-pulse-content"
@@ -13,46 +41,46 @@
 
   const views = Object.freeze({
     runoff: {
-      label: "RUNOFF",
-      title: "Closest Runoff",
+      label: translate("signal_board.runoff", "RUNOFF"),
+      title: translate("signal_board.closest_runoff", "Closest Runoff"),
       hash: "#signal-runoff",
       tabId: "signal-runoff-tab",
       panelId: "signal-runoff-panel",
       index: "1"
     },
     candidates: {
-      label: "CANDIDATES",
-      title: "Candidate Signals",
+      label: translate("signal_board.candidates_847367c6", "CANDIDATES"),
+      title: translate("signal_board.candidate_signals", "Candidate Signals"),
       hash: "#signal-candidates",
       tabId: "signal-candidates-tab",
       panelId: "signal-candidates-panel"
     },
     events: {
       label: "EVENTS",
-      title: "Campaign Events",
+      title: translate("signal_board.campaign_events", "Campaign Events"),
       hash: "#signal-events",
       tabId: "signal-events-tab",
       panelId: "signal-events-panel"
     },
     agenda: {
       label: "AGENDA",
-      title: "Campaign Agenda",
+      title: translate("signal_board.campaign_agenda", "Campaign Agenda"),
       hash: "#signal-agenda",
       tabId: "signal-agenda-tab",
       panelId: "signal-agenda-panel",
       index: "3"
     },
     claims: {
-      label: "CLAIM SCRUTINY",
-      title: "Claim Scrutiny",
+      label: translate("signal_board.claim_scrutiny", "CLAIM SCRUTINY"),
+      title: translate("signal_board.claim_scrutiny_da3f82b0", "Claim Scrutiny"),
       hash: "#signal-claims",
       tabId: "signal-claims-tab",
       panelId: "signal-claims-panel",
       index: "4"
     },
     pollCompare: {
-      label: "POLL COMPARE",
-      title: "Polling Evidence",
+      label: translate("signal_board.poll_compare", "POLL COMPARE"),
+      title: translate("signal_board.polling_evidence", "Polling Evidence"),
       hash: "#signal-poll-compare",
       tabId: "signal-poll-compare-tab",
       panelId: "polling-evidence-lab"
@@ -1424,6 +1452,24 @@
       model.windowDays
     );
 
+    const latestAcceptedValue =
+      renderStrongDateOrUnavailable(
+        model.latestAcceptedAt,
+        {
+          timeZone: "Europe/Paris",
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+          timeZoneName: "short"
+        },
+        () => formatNewsDateTime(
+          model.latestAcceptedAt
+        )
+      );
+
     return cardShell("media", `14-day activity · ${model.windowDays}-day source scope`, `
       <span class="hybrid-mini-bars" role="img" aria-label="Accepted election-news items by day for the latest 14 calendar days">
         ${activityBars(model.dailyActivity, model.activityMax, true)}
@@ -1435,7 +1481,14 @@
         <span class="hybrid-mini-stat"><strong>${model.candidateWatchCount}</strong>${model.windowDays}-day watch</span>
         <span class="hybrid-mini-stat"><strong>${escapeHtml(contribution.valueText)}</strong>${escapeHtml(contribution.secondaryText)}</span>
       </span>
-      <span class="hybrid-summary-meta" style="margin-top:8px">Latest accepted item: <strong>${model.latestAcceptedAt ? escapeHtml(formatNewsDateTime(model.latestAcceptedAt)) : "Unavailable"}</strong></span>`,
+      <span class="hybrid-summary-meta" style="margin-top:8px">${translate(
+        "signal_board.media.latest_accepted_item",
+        "Latest accepted item: " +
+          latestAcceptedValue,
+        {
+          dateOrUnavailable: latestAcceptedValue
+        }
+      )}</span>`,
       `${model.activityItemCount} accepted election-news items in the displayed ${model.activityWindowDays}-day activity window; ${model.electionNewsCount} accepted election-news items and ${model.candidateWatchCount} candidate-watch records in the ${model.windowDays}-day source window; ${contribution.accessibleText}.`);
   }
 
@@ -1456,6 +1509,25 @@
 
   function renderClaimsSummary(model) {
     if (model.state !== "ready") return cardShell("claims", "Validated publisher reviews", summaryState(model));
+
+    const latestReviewValue =
+      renderStrongDateOrUnavailable(
+        model.latestReviewDate
+          ? new Date(
+              `${String(model.latestReviewDate).slice(0, 10)}T00:00:00Z`
+            )
+          : null,
+        {
+          timeZone: "UTC",
+          day: "numeric",
+          month: "short",
+          year: "numeric"
+        },
+        () => formatDay(
+          model.latestReviewDate
+        )
+      );
+
     return cardShell("claims", "Candidate associations in validated reviews", `
       <span class="hybrid-claims-numbers">
         <span class="hybrid-claims-number"><strong>${model.byAssociations}</strong>BY associations</span>
@@ -1467,7 +1539,14 @@
         <span class="hybrid-relation-about" style="--hybrid-about:${model.aboutPercent.toFixed(2)}%"></span>
       </span>
       <span class="hybrid-relation-legend"><span><strong>${model.byPercent.toFixed(0)}%</strong> BY</span><span><strong>${model.aboutPercent.toFixed(0)}%</strong> ABOUT</span></span>
-      <span class="hybrid-summary-meta">Latest review: <strong>${model.latestReviewDate ? formatDay(model.latestReviewDate) : "Unavailable"}</strong></span>`,
+      <span class="hybrid-summary-meta">${translate(
+        "signal_board.claims.latest_review",
+        "Latest review: " +
+          latestReviewValue,
+        {
+          dateOrUnavailable: latestReviewValue
+        }
+      )}</span>`,
       `${model.reviewCount} validated reviews; ${model.byAssociations} BY and ${model.aboutAssociations} ABOUT associations, ${model.totalAssociations} candidate associations total; ${model.coveredCandidateCount} distinct candidates covered.`);
   }
 

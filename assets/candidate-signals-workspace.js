@@ -1,6 +1,15 @@
 (() => {
   "use strict";
 
+
+  const translate = (key, fallback) => {
+    const localizer = globalThis.FR27I18N;
+
+    return localizer && typeof localizer.t === "function"
+      ? localizer.t(key)
+      : fallback;
+  };
+
   const MISSING = "Not published";
   const NOT_TESTED = "Not tested";
   const stateNames = new Set([
@@ -258,7 +267,7 @@
     return [
       ["14 days · BY", latest ? numberText(latest.by_count) : MISSING],
       ["14 days · ABOUT", latest ? numberText(latest.about_count) : MISSING],
-      ["Archive · BY", archive ? numberText(archive.by_count) : MISSING],
+      [translate("candidate.scrutiny.archive_by", "Archive · BY"), archive ? numberText(archive.by_count) : MISSING],
       ["Archive · ABOUT", archive ? numberText(archive.about_count) : MISSING]
     ];
   }
@@ -378,7 +387,7 @@
     );
     section.setAttribute("aria-labelledby", "candidate-signals-monitor-title");
 
-    const header = regionHeader("CANDIDATE MONITOR");
+    const header = regionHeader(translate("candidate.candidate_monitor", "CANDIDATE MONITOR"));
     header.querySelector("h2").id = "candidate-signals-monitor-title";
 
     const tools = createElement("div", "candidate-signals-monitor-tools");
@@ -1764,7 +1773,7 @@
 
     const updateDate = metadata?.evidence_dates?.news;
     const header = regionHeader(
-      "SELECTED ANALYSIS",
+      translate("candidate.selected_analysis", "SELECTED ANALYSIS"),
       hasValue(updateDate)
         ? `Updated ${formatDisplayDate(updateDate)}`
         : null
@@ -1955,7 +1964,7 @@
       ["Archive · ABOUT", archive
         ? numberText(archive.about_count)
         : MISSING],
-      ["Archive · BY", archive
+      [translate("candidate.scrutiny.archive_by", "Archive · BY"), archive
         ? numberText(archive.by_count)
         : MISSING],
       ["Archive · Reviews", archive
@@ -2487,7 +2496,7 @@
       "candidate-signals-panel candidate-signals-dossier"
     );
     section.setAttribute("aria-labelledby", "candidate-signals-dossier-title");
-    const header = regionHeader("CANDIDATE DOSSIER");
+    const header = regionHeader(translate("candidate.candidate_dossier", "CANDIDATE DOSSIER"));
     header.querySelector("h2").id = "candidate-signals-dossier-title";
 
     const headerAction = createElement(
