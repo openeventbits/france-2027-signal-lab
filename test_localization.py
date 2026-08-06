@@ -218,32 +218,52 @@ class LocalizationFoundationTests(unittest.TestCase):
             errors="strict",
         )
 
-        for source in (
+        self.assertEqual(
+            hybrid_text.count(
+                "const translate = "
+                "(key, fallback, parameters) =>"
+            ),
+            1,
+        )
+        self.assertIn(
+            "const localizer = globalThis.FR27I18N;",
             hybrid_text,
+        )
+        self.assertIn(
+            'typeof localizer.t === "function"',
+            hybrid_text,
+        )
+        self.assertIn(
+            "? localizer.t(key, parameters)",
+            hybrid_text,
+        )
+        self.assertIn(
+            ": fallback;",
+            hybrid_text,
+        )
+
+        self.assertEqual(
+            candidate_text.count(
+                "const translate = (key, fallback) =>"
+            ),
+            1,
+        )
+        self.assertIn(
+            "const localizer = globalThis.FR27I18N;",
             candidate_text,
-        ):
-            self.assertEqual(
-                source.count(
-                    "const translate = (key, fallback) =>"
-                ),
-                1,
-            )
-            self.assertIn(
-                "const localizer = globalThis.FR27I18N;",
-                source,
-            )
-            self.assertIn(
-                'typeof localizer.t === "function"',
-                source,
-            )
-            self.assertIn(
-                "? localizer.t(key)",
-                source,
-            )
-            self.assertIn(
-                ": fallback;",
-                source,
-            )
+        )
+        self.assertIn(
+            'typeof localizer.t === "function"',
+            candidate_text,
+        )
+        self.assertIn(
+            "? localizer.t(key)",
+            candidate_text,
+        )
+        self.assertIn(
+            ": fallback;",
+            candidate_text,
+        )
 
         expected_calls = {
             hybrid_text: (
@@ -280,6 +300,74 @@ class LocalizationFoundationTests(unittest.TestCase):
                     source.count(call),
                     1,
                 )
+
+    def test_hybrid_dynamic_date_messages_are_parameterized(self):
+        hybrid_text = (
+            ROOT / "assets" / "hybrid-dashboard.js"
+        ).read_text(
+            encoding="utf-8-sig",
+            errors="strict",
+        )
+
+        self.assertEqual(
+            hybrid_text.count(
+                "const renderStrongDateOrUnavailable = ("
+            ),
+            1,
+        )
+        self.assertIn(
+            "localizer.formatDate(value, options)",
+            hybrid_text,
+        )
+        self.assertIn(
+            '"coverage_modal.unavailable"',
+            hybrid_text,
+        )
+        self.assertIn(
+            (
+                "return `<strong>"
+                "${escapeHtml(renderedValue)}"
+                "</strong>`;"
+            ),
+            hybrid_text,
+        )
+
+        for key in (
+            "signal_board.media.latest_accepted_item",
+            "signal_board.claims.latest_review",
+        ):
+            self.assertEqual(
+                hybrid_text.count(f'"{key}"'),
+                1,
+            )
+
+        self.assertEqual(
+            hybrid_text.count(
+                "dateOrUnavailable: latestAcceptedValue"
+            ),
+            1,
+        )
+        self.assertEqual(
+            hybrid_text.count(
+                "dateOrUnavailable: latestReviewValue"
+            ),
+            1,
+        )
+        self.assertIn(
+            'timeZone: "Europe/Paris"',
+            hybrid_text,
+        )
+        self.assertIn(
+            'timeZone: "UTC"',
+            hybrid_text,
+        )
+        self.assertIn(
+            (
+                "`${String(model.latestReviewDate)"
+                ".slice(0, 10)}T00:00:00Z`"
+            ),
+            hybrid_text,
+        )
 
 
 if __name__ == "__main__":
