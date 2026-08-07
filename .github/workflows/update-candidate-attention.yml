@@ -1,0 +1,681 @@
+name: Update candidate attention
+
+on:
+  schedule:
+    - cron: "3 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: production-data-update
+  cancel-in-progress: false
+
+jobs:
+  update-candidate-attention:
+    runs-on: ubuntu-latest
+
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Pin complete UTC observation date
+        id: observation_date
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          expected_data_as_of="$(date -u -d 'yesterday' +'%Y-%m-%d')"
+
+          echo "expected_data_as_of=$expected_data_as_of" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$expected_data_as_of" > /tmp/expected_data_as_of
+
+          echo "Pinned Candidate Attention data_as_of: $expected_data_as_of"
+
+      - name: Run Candidate Attention publication tests
+        run: |
+          python -B -m unittest -v \
+            test_candidate_attention_contract \
+            test_build_candidate_attention \
+            test_publication_manifest \
+            test_candidate_attention_workflow_contract
+
+      - name: Build and promote validated Candidate Attention
+        id: candidate_attention
+        env:
+          EXPECTED_DATA_AS_OF: ${{ steps.observation_date.outputs.expected_data_as_of }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          generated_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+          python -B build_candidate_attention.py \
+            --end-date "$EXPECTED_DATA_AS_OF" \
+            --generated-at "$generated_at" \
+            --output /tmp/candidate_attention.json
+
+          python -B - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          from build_candidate_attention import (
+              atomic_write_bytes,
+              serialize_semantic_payload,
+          )
+          from candidate_attention_contract import (
+              validate_candidate_attention,
+          )
+          from candidate_candidacy_status import (
+              load_candidate_candidacy_status,
+          )
+
+          expected_data_as_of = os.environ[
+              "EXPECTED_DATA_AS_OF"
+          ]
+
+          candidacy = load_candidate_candidacy_status(
+              "candidate_candidacy_status.json"
+          )
+
+          candidate_path = Path(
+              "/tmp/candidate_attention.json"
+          )
+
+          candidate = json.loads(
+              candidate_path.read_text(
+                  encoding="utf-8"
+              )
+          )
+
+          existing = json.loads(
+              Path("candidate_attention.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+
+          # The new artifact must match the current controlled
+          # candidacy identity universe.
+          validate_candidate_attention(
+              candidate,
+              expected_candidates=candidacy["candidates"],
+          )
+
+          if (
+              candidate["period"]["data_as_of"]
+              != expected_data_as_of
+          ):
+              raise SystemExit(
+                  "Candidate Attention data_as_of does not "
+                  "match the pinned UTC observation date."
+              )
+
+          # The tracked artifact must itself be a valid Candidate
+          # Attention artifact. Current-universe parity is not
+          # required here because this workflow must be able to
+          # reconcile a legitimate future universe change.
+          validate_candidate_attention(
+              existing
+          )
+
+          changed = (
+              serialize_semantic_payload(candidate)
+              != serialize_semantic_payload(existing)
+          )
+
+          if changed:
+              atomic_write_bytes(
+                  "candidate_attention.json",
+                  candidate_path.read_bytes(),
+              )
+
+              published = json.loads(
+                  Path(
+                      "candidate_attention.json"
+                  ).read_text(
+                      encoding="utf-8"
+                  )
+              )
+
+              validate_candidate_attention(
+                  published,
+                  expected_candidates=candidacy["candidates"],
+              )
+
+              if (
+                  published["period"]["data_as_of"]
+                  != expected_data_as_of
+              ):
+                  raise SystemExit(
+                      "Published Candidate Attention "
+                      "data_as_of moved away from the "
+                      "pinned observation date."
+                  )
+
+              print(
+                  "Candidate Attention changed and was "
+                  "promoted atomically."
+              )
+          else:
+              print(
+                  "Candidate Attention semantic content "
+                  "is unchanged; tracked artifact was "
+                  "left byte-for-byte untouched."
+              )
+
+          with open(
+              os.environ["GITHUB_OUTPUT"],
+              "a",
+              encoding="utf-8",
+          ) as handle:
+              handle.write(
+                  f"changed={'true' if changed else 'false'}\n"
+              )
+          PY
+
+      - name: Rebuild and validate publication manifest
+        id: publication_manifest
+        env:
+          CANDIDATE_ATTENTION_CHANGED: ${{ steps.candidate_attention.outputs.changed }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "$CANDIDATE_ATTENTION_CHANGED" == "true" ]]; then
+            published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          else
+            published_at="$(
+              python -B -c \
+                'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])'
+            )"
+          fi
+
+          python -B build_publication_manifest.py \
+            --published-at "$published_at"
+
+          python -B build_publication_manifest.py \
+            --check \
+            --published-at "$published_at"
+
+          if git diff --quiet -- publication_manifest.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify generated-file scope
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -B - <<'PY'
+          import subprocess
+
+          allowed = {
+              "candidate_attention.json",
+              "publication_manifest.json",
+          }
+
+          status = subprocess.check_output(
+              [
+                  "git",
+                  "status",
+                  "--porcelain=v1",
+                  "--untracked-files=all",
+              ],
+              text=True,
+          )
+
+          unexpected = []
+
+          for line in status.splitlines():
+              path = line[3:]
+
+              if " -> " in path:
+                  path = path.split(" -> ", 1)[1]
+
+              if path not in allowed:
+                  unexpected.append(line)
+
+          if unexpected:
+              raise SystemExit(
+                  "Unexpected generated-file scope:\n"
+                  + "\n".join(unexpected)
+              )
+
+          print(
+              "Generated-file scope is limited to "
+              "candidate_attention.json and "
+              "publication_manifest.json."
+          )
+          PY
+
+      - name: Commit and publish Candidate Attention
+        id: commit
+        env:
+          CANDIDATE_ATTENTION_CHANGED: ${{ steps.candidate_attention.outputs.changed }}
+          PUBLICATION_MANIFEST_CHANGED: ${{ steps.publication_manifest.outputs.changed }}
+          EXPECTED_DATA_AS_OF: ${{ steps.observation_date.outputs.expected_data_as_of }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "$CANDIDATE_ATTENTION_CHANGED" != "true" && "$PUBLICATION_MANIFEST_CHANGED" != "true" ]]; then
+            echo "No Candidate Attention publication change detected."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          python -B - <<'PY'
+          import subprocess
+
+          allowed = {
+              "candidate_attention.json",
+              "publication_manifest.json",
+          }
+
+          status = subprocess.check_output(
+              [
+                  "git",
+                  "status",
+                  "--porcelain=v1",
+                  "--untracked-files=all",
+              ],
+              text=True,
+          )
+
+          unexpected = []
+
+          for line in status.splitlines():
+              path = line[3:]
+
+              if " -> " in path:
+                  path = path.split(" -> ", 1)[1]
+
+              if path not in allowed:
+                  unexpected.append(line)
+
+          if unexpected:
+              raise SystemExit(
+                  "Unexpected pre-commit repository scope:\n"
+                  + "\n".join(unexpected)
+              )
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -- \
+            candidate_attention.json \
+            publication_manifest.json
+
+          python -B - <<'PY'
+          import subprocess
+
+          allowed = {
+              "candidate_attention.json",
+              "publication_manifest.json",
+          }
+
+          staged = {
+              line.strip()
+              for line in subprocess.check_output(
+                  [
+                      "git",
+                      "diff",
+                      "--cached",
+                      "--name-only",
+                  ],
+                  text=True,
+              ).splitlines()
+              if line.strip()
+          }
+
+          if not staged:
+              raise SystemExit(
+                  "Expected at least one staged "
+                  "publication file."
+              )
+
+          if not staged <= allowed:
+              raise SystemExit(
+                  "Unexpected staged files: "
+                  + ", ".join(
+                      sorted(staged - allowed)
+                  )
+              )
+
+          print(
+              "Staged publication scope:",
+              ", ".join(sorted(staged)),
+          )
+          PY
+
+          git commit \
+            -m "Update candidate attention data" \
+            -- \
+            candidate_attention.json \
+            publication_manifest.json
+
+          git fetch origin main
+          git rebase origin/main
+
+          generated_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+          python -B build_candidate_attention.py \
+            --end-date "$EXPECTED_DATA_AS_OF" \
+            --generated-at "$generated_at" \
+            --output /tmp/candidate_attention-rebase.json
+
+          python -B - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          from build_candidate_attention import (
+              atomic_write_bytes,
+              serialize_semantic_payload,
+          )
+          from candidate_attention_contract import (
+              validate_candidate_attention,
+          )
+          from candidate_candidacy_status import (
+              load_candidate_candidacy_status,
+          )
+
+          expected_data_as_of = os.environ[
+              "EXPECTED_DATA_AS_OF"
+          ]
+
+          candidacy = load_candidate_candidacy_status(
+              "candidate_candidacy_status.json"
+          )
+
+          candidate_path = Path(
+              "/tmp/candidate_attention-rebase.json"
+          )
+
+          candidate = json.loads(
+              candidate_path.read_text(
+                  encoding="utf-8"
+              )
+          )
+
+          existing = json.loads(
+              Path("candidate_attention.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+
+          validate_candidate_attention(
+              candidate,
+              expected_candidates=candidacy["candidates"],
+          )
+
+          if (
+              candidate["period"]["data_as_of"]
+              != expected_data_as_of
+          ):
+              raise SystemExit(
+                  "Post-rebase Candidate Attention "
+                  "data_as_of does not match the "
+                  "pinned observation date."
+              )
+
+          validate_candidate_attention(
+              existing
+          )
+
+          changed = (
+              serialize_semantic_payload(candidate)
+              != serialize_semantic_payload(existing)
+          )
+
+          if changed:
+              atomic_write_bytes(
+                  "candidate_attention.json",
+                  candidate_path.read_bytes(),
+              )
+
+              published = json.loads(
+                  Path(
+                      "candidate_attention.json"
+                  ).read_text(
+                      encoding="utf-8"
+                  )
+              )
+
+              validate_candidate_attention(
+                  published,
+                  expected_candidates=candidacy["candidates"],
+              )
+
+          Path(
+              "/tmp/candidate_attention_rebuilt"
+          ).write_text(
+              "true" if changed else "false",
+              encoding="utf-8",
+          )
+
+          print(
+              "Post-rebase Candidate Attention changed:",
+              changed,
+          )
+          PY
+
+          candidate_rebuilt="$(
+            cat /tmp/candidate_attention_rebuilt
+          )"
+
+          published_at="$(
+            python -B -c \
+              'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])'
+          )"
+
+          if [[ "$candidate_rebuilt" == "true" ]]; then
+            published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          fi
+
+          python -B build_publication_manifest.py \
+            --published-at "$published_at"
+
+          # If rebasing changed any other manifest input, the new
+          # snapshot itself is a real publication change.
+          if [[ "$candidate_rebuilt" != "true" ]] && \
+             ! git diff --quiet -- publication_manifest.json
+          then
+            published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+            python -B build_publication_manifest.py \
+              --published-at "$published_at"
+          fi
+
+          python -B build_publication_manifest.py \
+            --check \
+            --published-at "$published_at"
+
+          python -B - <<'PY'
+          import subprocess
+
+          allowed = {
+              "candidate_attention.json",
+              "publication_manifest.json",
+          }
+
+          status = subprocess.check_output(
+              [
+                  "git",
+                  "status",
+                  "--porcelain=v1",
+                  "--untracked-files=all",
+              ],
+              text=True,
+          )
+
+          unexpected = []
+
+          for line in status.splitlines():
+              path = line[3:]
+
+              if " -> " in path:
+                  path = path.split(" -> ", 1)[1]
+
+              if path not in allowed:
+                  unexpected.append(line)
+
+          if unexpected:
+              raise SystemExit(
+                  "Unexpected post-rebase repository scope:\n"
+                  + "\n".join(unexpected)
+              )
+          PY
+
+          if ! git diff --quiet -- \
+            candidate_attention.json \
+            publication_manifest.json
+          then
+            git add -- \
+              candidate_attention.json \
+              publication_manifest.json
+
+            git commit --amend --no-edit
+          fi
+
+          python -B - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
+
+          from build_publication_manifest import (
+              validate_manifest,
+          )
+          from candidate_attention_contract import (
+              validate_candidate_attention,
+          )
+          from candidate_candidacy_status import (
+              load_candidate_candidacy_status,
+          )
+
+          expected_data_as_of = Path(
+              "/tmp/expected_data_as_of"
+          ).read_text(
+              encoding="utf-8"
+          ).strip()
+
+          candidacy = load_candidate_candidacy_status(
+              "candidate_candidacy_status.json"
+          )
+
+          attention = json.loads(
+              Path("candidate_attention.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+
+          manifest = json.loads(
+              Path("publication_manifest.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+
+          validate_candidate_attention(
+              attention,
+              expected_candidates=candidacy["candidates"],
+          )
+
+          validate_manifest(
+              manifest
+          )
+
+          if (
+              attention["period"]["data_as_of"]
+              != expected_data_as_of
+          ):
+              raise SystemExit(
+                  "Final Candidate Attention data_as_of "
+                  "does not match the pinned observation date."
+              )
+
+          if manifest["schema_version"] != "1.3":
+              raise SystemExit(
+                  "Final publication manifest is not schema 1.3."
+              )
+
+          allowed = {
+              "candidate_attention.json",
+              "publication_manifest.json",
+          }
+
+          committed = {
+              line.strip()
+              for line in subprocess.check_output(
+                  [
+                      "git",
+                      "diff-tree",
+                      "--no-commit-id",
+                      "--name-only",
+                      "-r",
+                      "HEAD",
+                  ],
+                  text=True,
+              ).splitlines()
+              if line.strip()
+          }
+
+          if not committed:
+              raise SystemExit(
+                  "Publication commit contains no files."
+              )
+
+          if not committed <= allowed:
+              raise SystemExit(
+                  "Publication commit escaped scope: "
+                  + ", ".join(
+                      sorted(committed - allowed)
+                  )
+              )
+
+          print(
+              "Final Candidate Attention and manifest "
+              "contracts are valid."
+          )
+          PY
+
+          final_published_at="$(
+            python -B -c \
+              'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])'
+          )"
+
+          python -B build_publication_manifest.py \
+            --check \
+            --published-at "$final_published_at"
+
+          final_status="$(
+            git status \
+              --porcelain=v1 \
+              --untracked-files=all
+          )"
+
+          if [[ -n "$final_status" ]]; then
+            echo "Repository is not clean before push:"
+            echo "$final_status"
+            exit 1
+          fi
+
+          git push origin HEAD:main
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"

@@ -59,6 +59,15 @@ def complete_inputs(root):
     )
     write_json(
         root,
+        "candidate_attention.json",
+        json.loads(
+            (ROOT / "candidate_attention.json").read_text(
+                encoding="utf-8"
+            )
+        ),
+    )
+    write_json(
+        root,
         "campaign_events.json",
         {
             "schema_version": "1.0",
@@ -238,13 +247,14 @@ class PublicationManifestTests(unittest.TestCase):
 
     def test_valid_complete_inputs(self):
         manifest = self.build()
-        self.assertEqual(manifest["schema_version"], "1.2")
+        self.assertEqual(manifest["schema_version"], "1.3")
         self.assertEqual(manifest["published_at"], PUBLISHED_AT)
         self.assertEqual(
             set(manifest["lanes"]),
             {
                 "candidacy_status",
                 "campaign_events",
+                "candidate_attention",
                 "candidate_signals",
                 "polls",
                 "runoff",
@@ -270,6 +280,7 @@ class PublicationManifestTests(unittest.TestCase):
             [
                 "campaign_events",
                 "candidacy_status",
+                "candidate_attention",
                 "candidate_signals",
                 "claims",
                 "news",
@@ -633,6 +644,257 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_candidacy_status.json", registry)
         write_json(self.root, "candidate_signals.json", payload)
         self.assertNotEqual(first, self.build()["snapshot_id"])
+
+    def test_candidate_attention_lane_metadata(self):
+        manifest = self.build()
+        lane = manifest["lanes"]["candidate_attention"]
+        source = self.root / "candidate_attention.json"
+        payload = json.loads(
+            source.read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(
+            lane["file"],
+            "candidate_attention.json",
+        )
+        self.assertTrue(lane["available"])
+        self.assertTrue(lane["valid"])
+        self.assertEqual(
+            lane["schema_version"],
+            "1.0",
+        )
+        self.assertEqual(
+            lane["generated_at"],
+            payload["generated_at"],
+        )
+        self.assertEqual(
+            lane["data_as_of"],
+            payload["period"]["data_as_of"],
+        )
+        self.assertNotEqual(
+            lane["data_as_of"],
+            payload["generated_at"][:10],
+        )
+        self.assertEqual(
+            lane["timestamp_status"],
+            "known",
+        )
+        self.assertEqual(
+            lane["record_count"],
+            len(payload["candidates"]),
+        )
+        self.assertEqual(
+            lane["record_count"],
+            20,
+        )
+        self.assertEqual(
+            lane["sha256"],
+            hashlib.sha256(
+                canonical_source_bytes(source)
+            ).hexdigest(),
+        )
+        self.assertEqual(
+            lane["warnings"],
+            [],
+        )
+
+    def test_candidate_attention_participates_in_snapshot_id(self):
+        first = self.build()["snapshot_id"]
+
+        path = self.root / "candidate_attention.json"
+        payload = json.loads(
+            path.read_text(encoding="utf-8")
+        )
+
+        payload["generated_at"] = (
+            "2026-08-07T09:00:00Z"
+        )
+
+        write_json(
+            self.root,
+            "candidate_attention.json",
+            payload,
+        )
+
+        self.assertNotEqual(
+            first,
+            self.build()["snapshot_id"],
+        )
+
+    def test_missing_candidate_attention_fails(self):
+        (
+            self.root
+            / "candidate_attention.json"
+        ).unlink()
+
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "candidate_attention.json is missing",
+        ):
+            self.build()
+
+    def test_malformed_candidate_attention_json_fails(self):
+        (
+            self.root
+            / "candidate_attention.json"
+        ).write_text(
+            "{not json",
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "candidate_attention.json is malformed JSON",
+        ):
+            self.build()
+
+    def test_invalid_candidate_attention_structure_fails_cleanly(self):
+        path = self.root / "candidate_attention.json"
+
+        payload = json.loads(
+            path.read_text(encoding="utf-8")
+        )
+
+        payload["period"]["days"] = 89
+
+        write_json(
+            self.root,
+            "candidate_attention.json",
+            payload,
+        )
+
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "candidate_attention invalid structure",
+        ):
+            self.build()
+
+    def test_candidate_attention_name_parity_is_required(self):
+        path = self.root / "candidate_attention.json"
+
+        payload = json.loads(
+            path.read_text(encoding="utf-8")
+        )
+
+        payload["candidates"][0][
+            "candidate_name"
+        ] += " changed"
+
+        write_json(
+            self.root,
+            "candidate_attention.json",
+            payload,
+        )
+
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "candidate_attention candidacy parity failed",
+        ):
+            self.build()
+
+    def test_candidate_attention_id_parity_is_required(self):
+        path = self.root / "candidate_attention.json"
+
+        payload = json.loads(
+            path.read_text(encoding="utf-8")
+        )
+
+        payload["candidates"][0][
+            "candidate_id"
+        ] = "different-candidate-id"
+
+        write_json(
+            self.root,
+            "candidate_attention.json",
+            payload,
+        )
+
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "candidate_attention candidacy parity failed",
+        ):
+            self.build()
+
+    def test_candidate_attention_order_parity_is_required(self):
+        path = self.root / "candidate_attention.json"
+
+        payload = json.loads(
+            path.read_text(encoding="utf-8")
+        )
+
+        payload["candidates"][0], payload["candidates"][1] = (
+            payload["candidates"][1],
+            payload["candidates"][0],
+        )
+
+        write_json(
+            self.root,
+            "candidate_attention.json",
+            payload,
+        )
+
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "candidate_attention candidacy parity failed",
+        ):
+            self.build()
+
+    def test_candidate_attention_parity_ignores_candidacy_state(self):
+        registry = json.loads(
+            (
+                self.root
+                / "candidate_candidacy_status.json"
+            ).read_text(
+                encoding="utf-8"
+            )
+        )
+
+        attention = json.loads(
+            (
+                self.root
+                / "candidate_attention.json"
+            ).read_text(
+                encoding="utf-8"
+            )
+        )
+
+        registry["candidates"][0][
+            "status"
+        ] = "test-only-status"
+
+        registry["candidates"][0][
+            "display_tier"
+        ] = "hidden"
+
+        registry["candidates"][0][
+            "status_as_of"
+        ] = "2030-01-01"
+
+        # Candidate Attention parity is intentionally limited
+        # to ID, canonical name, membership and ordering.
+        manifest_builder._validate_candidate_attention_parity(
+            registry,
+            attention,
+        )
+
+    def test_candidate_attention_parity_wraps_bad_registry(self):
+        attention = json.loads(
+            (
+                self.root
+                / "candidate_attention.json"
+            ).read_text(
+                encoding="utf-8"
+            )
+        )
+
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "candidate_attention candidacy parity failed",
+        ):
+            manifest_builder._validate_candidate_attention_parity(
+                {},
+                attention,
+            )
 
     def test_candidate_signals_lane_metadata(self):
         manifest = self.build()
