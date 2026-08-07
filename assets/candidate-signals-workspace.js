@@ -1762,7 +1762,490 @@
     return section;
   }
 
-  function selectedAnalysis(candidate, metadata) {
+
+  function wikipediaSignedPercent(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return MISSING;
+    return `${numeric > 0 ? "+" : ""}${numeric.toFixed(1)}%`;
+  }
+
+  function wikipediaAttentionFlagLabel(value) {
+    const labels = {
+      sustained_rise: "SUSTAINED RISE",
+      sustained_decline: "SUSTAINED DECLINE",
+      event_amplified: "EVENT AMPLIFIED",
+      stable: "STABLE",
+      low_attention: "LOW ATTENTION"
+    };
+
+    return labels[value] || (
+      hasValue(value)
+        ? String(value).replace(/_/g, " ").toUpperCase()
+        : MISSING
+    );
+  }
+
+  function wikipediaAttentionTone(value) {
+    if (value === "sustained_rise") return "rise";
+    if (value === "sustained_decline") return "decline";
+    if (value === "event_amplified") return "event";
+    if (value === "low_attention") return "low";
+    return "stable";
+  }
+
+  function wikipediaAttentionMetric(
+    label,
+    value,
+    note,
+    className = ""
+  ) {
+    const metric = createElement(
+      "div",
+      `candidate-signals-wikipedia-metric${
+        className ? ` ${className}` : ""
+      }`
+    );
+
+    metric.append(
+      createElement(
+        "span",
+        "candidate-signals-wikipedia-metric-label",
+        label
+      ),
+      createElement(
+        "strong",
+        "candidate-signals-wikipedia-metric-value",
+        value
+      ),
+      createElement(
+        "span",
+        "candidate-signals-wikipedia-metric-note",
+        note
+      )
+    );
+
+    return metric;
+  }
+
+  function wikipediaAttentionPanel(
+    candidate,
+    attentionState
+  ) {
+    const section = createElement(
+      "section",
+      "candidate-signals-wikipedia-attention"
+    );
+
+    const head = createElement(
+      "div",
+      "candidate-signals-wikipedia-head"
+    );
+
+    const heading = createElement(
+      "div",
+      "candidate-signals-wikipedia-heading"
+    );
+
+    const headingTitle = createElement(
+      "h3",
+      "candidate-signals-subsection-title",
+      "WIKIPEDIA ATTENTION · 30 DAYS"
+    );
+
+    heading.append(
+      headingTitle,
+      createElement(
+        "span",
+        "candidate-signals-wikipedia-source",
+        "French Wikipedia pageviews"
+      )
+    );
+
+    head.append(heading);
+
+    if (attentionState?.status === "loading") {
+      section.append(head);
+      section.append(
+        createElement(
+          "p",
+          "candidate-signals-wikipedia-state",
+          "Loading published Wikimedia attention…"
+        )
+      );
+      return section;
+    }
+
+    const payload =
+      attentionState?.status === "ready"
+        ? attentionState.payload
+        : null;
+
+    const methodology = payload?.methodology;
+
+    const interpretation =
+      methodology?.interpretation ||
+      "French Wikipedia pageviews measure article-reading attention.";
+
+    const exclusions =
+      Array.isArray(methodology?.not_measures)
+        ? methodology.not_measures.filter(hasValue)
+        : [];
+
+    const methodologyNote =
+      exclusions.length
+        ? `${interpretation} They do not measure ${exclusions.join(
+          ", "
+        )}.`
+        : interpretation;
+
+    headingTitle.setAttribute(
+      "title",
+      methodologyNote
+    );
+
+    const record = payload?.candidates?.find(
+      item =>
+        item.candidate_id === candidate.candidate_id
+    );
+
+    if (!record) {
+      section.append(head);
+      section.append(
+        createElement(
+          "p",
+          "candidate-signals-wikipedia-state",
+          "Published Wikipedia attention is unavailable for this candidate."
+        )
+      );
+      return section;
+    }
+
+    const validSeries = record.daily_series.filter(
+      point =>
+        point &&
+        /^\d{4}-\d{2}-\d{2}$/.test(
+          String(point.date || "")
+        ) &&
+        Number.isFinite(Number(point.views)) &&
+        Number(point.views) >= 0
+    );
+
+    const recent = validSeries.slice(-30);
+
+    if (recent.length !== 30) {
+      section.append(head);
+      section.append(
+        createElement(
+          "p",
+          "candidate-signals-wikipedia-state",
+          "A complete 30-day Wikipedia attention series is unavailable."
+        )
+      );
+      return section;
+    }
+
+    const peak = recent.reduce(
+      (best, point) =>
+        !best ||
+        Number(point.views) > Number(best.views)
+          ? point
+          : best,
+      null
+    );
+
+    const maximum = peak
+      ? Number(peak.views)
+      : 0;
+
+    const latestPoint =
+      recent[recent.length - 1];
+
+    const periodDate =
+      payload?.period?.data_as_of ||
+      latestPoint.date;
+
+    head.append(
+      createElement(
+        "span",
+        "candidate-signals-wikipedia-asof",
+        `DATA THROUGH ${formatDisplayDate(
+          periodDate
+        ).toUpperCase()}`
+      )
+    );
+
+    const tone =
+      wikipediaAttentionTone(
+        record.interpretation_flag
+      );
+
+    const pattern = createElement(
+      "span",
+      `candidate-signals-wikipedia-pattern is-${tone}`,
+      wikipediaAttentionFlagLabel(
+        record.interpretation_flag
+      )
+    );
+
+    const grid = createElement(
+      "div",
+      "candidate-signals-wikipedia-grid"
+    );
+
+    const chartPanel = createElement(
+      "div",
+      "candidate-signals-wikipedia-chart-panel"
+    );
+
+    const chartSummary = createElement(
+      "div",
+      "candidate-signals-wikipedia-chart-summary"
+    );
+
+    const totalWrap = createElement(
+      "div",
+      "candidate-signals-wikipedia-total-wrap"
+    );
+
+    totalWrap.append(
+      createElement(
+        "span",
+        "candidate-signals-wikipedia-kicker",
+        "LATEST 7 COMPLETE DAYS"
+      ),
+      createElement(
+        "strong",
+        "candidate-signals-wikipedia-total",
+        groupedNumberText(
+          record.latest_7_views
+        )
+      ),
+      createElement(
+        "span",
+        "candidate-signals-wikipedia-total-unit",
+        "pageviews"
+      )
+    );
+
+    chartSummary.append(
+      totalWrap,
+      pattern
+    );
+
+    const chart = createElement(
+      "div",
+      "candidate-signals-wikipedia-chart"
+    );
+
+    chart.setAttribute(
+      "role",
+      "img"
+    );
+
+    chart.setAttribute(
+      "aria-label",
+      `French Wikipedia pageviews for ${
+        candidate.candidate_name
+      }, ${formatDisplayDate(
+        recent[0].date
+      )} through ${formatDisplayDate(
+        latestPoint.date
+      )}. Thirty-day peak ${
+        groupedNumberText(peak.views)
+      } views on ${formatDisplayDate(
+        peak.date
+      )}.`
+    );
+
+    const bars = createElement(
+      "div",
+      "candidate-signals-wikipedia-bars"
+    );
+
+    recent.forEach((point, index) => {
+      const views = Number(point.views);
+      const height =
+        maximum > 0
+          ? Math.max(
+            2,
+            Math.min(
+              100,
+              (views / maximum) * 100
+            )
+          )
+          : 2;
+
+      const classes = [
+        "candidate-signals-wikipedia-bar"
+      ];
+
+      if (point.date === peak.date) {
+        classes.push("is-peak");
+      }
+
+      if (index === recent.length - 1) {
+        classes.push("is-latest");
+      }
+
+      const bar = createElement(
+        "span",
+        classes.join(" ")
+      );
+
+      bar.style.height = `${height}%`;
+
+      bar.setAttribute(
+        "title",
+        `${formatDisplayDate(
+          point.date
+        )} · ${groupedNumberText(
+          views
+        )} views`
+      );
+
+      bar.setAttribute(
+        "aria-hidden",
+        "true"
+      );
+
+      bars.append(bar);
+    });
+
+    const axis = createElement(
+      "div",
+      "candidate-signals-wikipedia-axis"
+    );
+
+    axis.append(
+      createElement(
+        "span",
+        "",
+        formatDisplayDate(
+          recent[0].date
+        )
+      ),
+      createElement(
+        "span",
+        "candidate-signals-wikipedia-axis-label",
+        "30 COMPLETE UTC DAYS"
+      ),
+      createElement(
+        "span",
+        "",
+        formatDisplayDate(
+          latestPoint.date
+        )
+      )
+    );
+
+    chart.append(
+      bars,
+      axis
+    );
+
+    const chartFoot = createElement(
+      "div",
+      "candidate-signals-wikipedia-chart-foot"
+    );
+
+    chartFoot.append(
+      createElement(
+        "span",
+        "",
+        `30D PEAK · ${groupedNumberText(
+          peak.views
+        )} · ${formatDisplayDate(
+          peak.date
+        )}`
+      ),
+      createElement(
+        "span",
+        "",
+        `LATEST · ${groupedNumberText(
+          latestPoint.views
+        )}`
+      )
+    );
+
+    chartPanel.append(
+      chartSummary,
+      chart,
+      chartFoot
+    );
+
+    const metrics = createElement(
+      "div",
+      "candidate-signals-wikipedia-metrics"
+    );
+
+    const weekChange =
+      Number(record.change_7_pct);
+
+    const weekTone =
+      Number.isFinite(weekChange)
+        ? weekChange > 0
+          ? "is-rise"
+          : weekChange < 0
+            ? "is-decline"
+            : "is-stable"
+        : "";
+
+    const peakRemoved =
+      Number(
+        record.change_7_peak_removed_pct
+      );
+
+    const peakRemovedTone =
+      Number.isFinite(peakRemoved)
+        ? peakRemoved > 0
+          ? "is-rise"
+          : peakRemoved < 0
+            ? "is-decline"
+            : "is-stable"
+        : "";
+
+    metrics.append(
+      wikipediaAttentionMetric(
+        "7D CHANGE",
+        wikipediaSignedPercent(
+          record.change_7_pct
+        ),
+        "vs preceding 7 days",
+        weekTone
+      ),
+      wikipediaAttentionMetric(
+        "PEAK-REMOVED",
+        wikipediaSignedPercent(
+          record.change_7_peak_removed_pct
+        ),
+        "7-day comparison",
+        peakRemovedTone
+      ),
+      wikipediaAttentionMetric(
+        "28D TOTAL",
+        groupedNumberText(
+          record.latest_28_views
+        ),
+        wikipediaSignedPercent(
+          record.change_28_pct
+        )
+      )
+    );
+
+    grid.append(
+      chartPanel,
+      metrics
+    );
+
+    section.append(
+      head,
+      grid
+    );
+
+    return section;
+  }
+
+  function selectedAnalysis(candidate, metadata, attentionState) {
     const section = createElement(
       "section",
       "candidate-signals-panel candidate-signals-analysis"
@@ -1798,7 +2281,11 @@
     body.append(
       cards,
       evidenceStructureBreakdown(candidate, metadata),
-      lower
+      lower,
+      wikipediaAttentionPanel(
+        candidate,
+        attentionState
+      )
     );
     section.append(header, body);
     return section;
@@ -2803,7 +3290,11 @@
     const workspace = createElement("div", "candidate-signals-workspace");
     workspace.append(
       candidateMonitor(candidates, selected, options, chooseCandidate),
-      selectedAnalysis(selectedCandidate, state.metadata || {}),
+      selectedAnalysis(
+        selectedCandidate,
+        state.metadata || {},
+        options.candidateAttention
+      ),
       candidateDossier(selectedCandidate, state.metadata || {}, options)
     );
     mount.append(workspace);

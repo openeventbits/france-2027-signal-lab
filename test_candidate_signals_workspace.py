@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import date, timedelta
 import json
 import re
 import subprocess
@@ -106,7 +107,104 @@ def payload(rows):
     }
 
 
-def run_workspace(input_payload, selected_id=None, action=None):
+def candidate_attention_state(rows):
+    start = date(2026, 7, 7)
+
+    candidates = []
+
+    flags = [
+        "event_amplified",
+        "sustained_decline",
+        "stable",
+    ]
+
+    for candidate_index, row in enumerate(rows):
+        daily_series = []
+
+        for offset in range(31):
+            current = start + timedelta(days=offset)
+
+            # Deliberately make the first observation the full-period peak.
+            # Because the UI is a 30-day view, this point MUST be excluded.
+            if offset == 0:
+                views = 99999 + candidate_index
+            elif offset == 8:
+                views = 3333 + candidate_index
+            else:
+                views = 500 + candidate_index * 10 + offset
+
+            daily_series.append(
+                {
+                    "date": current.isoformat(),
+                    "views": views,
+                }
+            )
+
+        candidates.append(
+            {
+                "candidate_id": row["candidate_id"],
+                "candidate_name": row["candidate_name"],
+                "canonical_article": row["candidate_name"],
+                "article_url": (
+                    "https://fr.wikipedia.org/wiki/"
+                    + row["candidate_id"]
+                ),
+                "latest_7_views": 7000 + candidate_index,
+                "previous_7_views": 8000 + candidate_index,
+                "change_7_pct": (
+                    12.5 if candidate_index == 0 else -11.9
+                ),
+                "latest_28_views": 23000 + candidate_index,
+                "previous_28_views": 26000 + candidate_index,
+                "change_28_pct": -11.5 - candidate_index,
+                "latest_7_peak_date": "2026-08-05",
+                "latest_7_peak_views": 900,
+                "latest_7_peak_share": 0.12,
+                "change_7_peak_removed_pct": (
+                    1.3 if candidate_index == 0 else -7.2
+                ),
+                "period_peak_date": "2026-07-07",
+                "period_peak_views": 99999 + candidate_index,
+                "interpretation_flag": flags[
+                    min(candidate_index, len(flags) - 1)
+                ],
+                "daily_series": daily_series,
+            }
+        )
+
+    payload = {
+        "schema_version": "1.0",
+        "period": {
+            "start_date": "2026-07-07",
+            "end_date": "2026-08-06",
+            "days": 31,
+            "data_as_of": "2026-08-06",
+        },
+        "methodology": {
+            "label": "Wikipedia Attention",
+            "interpretation": (
+                "French Wikipedia pageviews measure "
+                "article-reading attention."
+            ),
+            "not_measures": [
+                "unique individuals",
+                "sentiment",
+                "approval",
+                "electoral support",
+                "voting intention",
+            ],
+        },
+        "candidates": candidates,
+    }
+
+    return {
+        "status": "ready",
+        "payload": payload,
+        "reason": None,
+    }
+
+
+def run_workspace(input_payload, selected_id=None, action=None, candidate_attention=None):
     script = r"""
 const fs = require("fs");
 const vm = require("vm");
@@ -227,6 +325,7 @@ let selectCalls = [];
 function renderCurrent() {
   return api.render(mount, state, {
     selectedCandidateId: selected,
+    candidateAttention: input.candidateAttention,
     onSelect(candidateId) {
       selectCalls.push(candidateId);
       selected = candidateId;
@@ -253,6 +352,18 @@ function details() {
   const buttons = mount.querySelectorAll(".candidate-signals-candidate-button");
   const links = mount.querySelectorAll(".candidate-signals-source-link");
   const workspace = mount.querySelector(".candidate-signals-workspace");
+  const analysisBody =
+    mount.querySelector(".candidate-signals-analysis-body");
+  const wikipediaHeading =
+    mount
+      .querySelectorAll(".candidate-signals-subsection-title")
+      .find(
+        node =>
+          node.textContent ===
+          "WIKIPEDIA ATTENTION · 30 DAYS"
+      ) || null;
+  const wikipediaBars =
+    mount.querySelectorAll(".candidate-signals-wikipedia-bar");
   const allNodes = [];
   const visit = node => {
     allNodes.push(node);
@@ -276,6 +387,22 @@ function details() {
     analysisCardTitles:
       mount.querySelectorAll(".candidate-signals-analysis-card-title")
         .map(node => node.textContent),
+    analysisBodyOrder:
+      analysisBody
+        ? analysisBody.children.map(node => node.className)
+        : [],
+    wikipediaPanelCount:
+      mount.querySelectorAll(
+        ".candidate-signals-wikipedia-attention"
+      ).length,
+    wikipediaBarTitles:
+      wikipediaBars.map(
+        node => node.getAttribute("title") || null
+      ),
+    wikipediaHeadingTooltip:
+      wikipediaHeading
+        ? wikipediaHeading.getAttribute("title") || null
+        : null,
     dossierCardTitles:
       mount.querySelectorAll(".candidate-signals-dossier-card-title")
         .map(node => node.textContent),
@@ -307,6 +434,7 @@ process.stdout.write(JSON.stringify(details()));
                 "payload": input_payload,
                 "selectedId": selected_id,
                 "action": action,
+                "candidateAttention": candidate_attention,
             }
         ),
         cwd=ROOT,
@@ -977,6 +1105,262 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             "Published sources1",
         ):
             self.assertIn(label, result["text"])
+
+
+    def test_wikipedia_attention_is_final_selected_analysis_module(self):
+        attention = candidate_attention_state(self.rows)
+
+        result = run_workspace(
+            payload(self.rows),
+            candidate_attention=attention,
+        )
+
+        self.assertEqual(
+            result["wikipediaPanelCount"],
+            1,
+        )
+        self.assertEqual(
+            result["analysisBodyOrder"][-1],
+            "candidate-signals-wikipedia-attention",
+        )
+        self.assertIn(
+            "WIKIPEDIA ATTENTION · 30 DAYS",
+            result["text"],
+        )
+        self.assertIn(
+            "LATEST 7 COMPLETE DAYS",
+            result["text"],
+        )
+        self.assertIn(
+            "30 COMPLETE UTC DAYS",
+            result["text"],
+        )
+        self.assertIn(
+            "30D PEAK",
+            result["text"],
+        )
+
+
+    def test_wikipedia_attention_uses_exact_last_30_observations(self):
+        attention = candidate_attention_state(self.rows)
+
+        result = run_workspace(
+            payload(self.rows),
+            candidate_attention=attention,
+        )
+
+        bars = result["wikipediaBarTitles"]
+
+        self.assertEqual(len(bars), 30)
+        self.assertTrue(
+            all(title for title in bars)
+        )
+
+        # The synthetic 99,999-view point is observation 31-from-last.
+        # It is the full-period peak but must NOT enter the 30-day module.
+        self.assertFalse(
+            any("99,999" in title for title in bars)
+        )
+        self.assertNotIn(
+            "99,999",
+            result["text"],
+        )
+
+        # The true peak inside the displayed 30-day window is 3,333.
+        self.assertTrue(
+            any("3,333" in title for title in bars)
+        )
+        self.assertIn(
+            "3,333",
+            result["text"],
+        )
+
+
+    def test_wikipedia_methodology_is_hover_only_and_cta_is_absent(self):
+        attention = candidate_attention_state(self.rows)
+
+        result = run_workspace(
+            payload(self.rows),
+            candidate_attention=attention,
+        )
+
+        expected = (
+            "French Wikipedia pageviews measure "
+            "article-reading attention. "
+            "They do not measure unique individuals, "
+            "sentiment, approval, electoral support, "
+            "voting intention."
+        )
+
+        self.assertEqual(
+            result["wikipediaHeadingTooltip"],
+            expected,
+        )
+
+        # title= is metadata, not visible textContent.
+        self.assertNotIn(
+            expected,
+            result["text"],
+        )
+
+        self.assertNotIn(
+            "Open Wikipedia",
+            result["text"],
+        )
+
+        self.assertNotIn(
+            "candidate-signals-wikipedia-footer",
+            self.workspace_js,
+        )
+        self.assertNotIn(
+            "candidate-signals-wikipedia-link",
+            self.workspace_js,
+        )
+
+
+    def test_wikipedia_attention_tracks_selected_candidate(self):
+        attention = candidate_attention_state(self.rows)
+
+        result = run_workspace(
+            payload(self.rows),
+            action="click-second",
+            candidate_attention=attention,
+        )
+
+        self.assertEqual(
+            result["resolved"],
+            "alpha",
+        )
+        self.assertIn(
+            "7,001",
+            result["text"],
+        )
+        self.assertIn(
+            "SUSTAINED DECLINE",
+            result["text"],
+        )
+        self.assertNotIn(
+            "EVENT AMPLIFIED",
+            result["text"],
+        )
+
+
+    def test_wikipedia_attention_loading_and_unavailable_are_bounded(self):
+        loading = run_workspace(
+            payload(self.rows),
+            candidate_attention={
+                "status": "loading",
+                "payload": None,
+                "reason": None,
+            },
+        )
+
+        unavailable = run_workspace(
+            payload(self.rows),
+            candidate_attention={
+                "status": "unavailable",
+                "payload": None,
+                "reason": "fetch_failed",
+            },
+        )
+
+        self.assertIn(
+            "Loading published Wikimedia attention…",
+            loading["text"],
+        )
+        self.assertEqual(
+            loading["wikipediaBarTitles"],
+            [],
+        )
+
+        self.assertIn(
+            "Published Wikipedia attention is unavailable "
+            "for this candidate.",
+            unavailable["text"],
+        )
+        self.assertEqual(
+            unavailable["wikipediaBarTitles"],
+            [],
+        )
+
+
+    def test_wikipedia_attention_frontend_ownership_contract(self):
+        attention_js = (
+            ROOT / "assets" / "candidate-attention.js"
+        ).read_text(encoding="utf-8")
+
+        index = (
+            ROOT / "index.html"
+        ).read_text(encoding="utf-8")
+
+        self.assertNotIn(
+            "candidate_attention.json",
+            self.workspace_js,
+        )
+        self.assertNotIn(
+            "fetch(",
+            self.workspace_js,
+        )
+
+        self.assertNotIn(
+            "fetch(",
+            self.hybrid_js,
+        )
+
+        self.assertEqual(
+            self.hybrid_js.count(
+                '.load("candidate_attention.json")'
+            ),
+            1,
+        )
+
+        self.assertIn(
+            "window.France2027CandidateAttention",
+            attention_js,
+        )
+        self.assertIn(
+            "fetchImplementation",
+            attention_js,
+        )
+        self.assertIn(
+            "function normalize(payload)",
+            attention_js,
+        )
+
+        attention_script = (
+            '<script src="assets/candidate-attention.js"></script>'
+        )
+        dashboard_script = (
+            '<script src="assets/hybrid-dashboard.js"></script>'
+        )
+
+        self.assertIn(
+            attention_script,
+            index,
+        )
+        self.assertLess(
+            index.index(attention_script),
+            index.index(dashboard_script),
+        )
+
+        self.assertIn(
+            "candidateAttention:",
+            self.hybrid_js,
+        )
+
+        self.assertIn(
+            "minmax(126px, 0.24fr);",
+            self.css,
+        )
+
+        self.assertNotIn(
+            ".candidate-signals-wikipedia-footer",
+            self.css,
+        )
+        self.assertNotIn(
+            ".candidate-signals-wikipedia-link",
+            self.css,
+        )
 
     def test_evidence_breadth_and_concentration_are_neutral(self):
         result = run_workspace(payload(self.rows))
