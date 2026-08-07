@@ -29,6 +29,10 @@ from candidate_candidacy_status import (
     project_display_tiers,
     validate_candidate_candidacy_status,
 )
+from candidate_attention_contract import (
+    CandidateAttentionContractError,
+    validate_candidate_attention,
+)
 from campaign_events_contract import (
     CampaignEventsContractError,
     validate_campaign_events_artifact,
@@ -40,12 +44,13 @@ from source_health import (
 )
 
 
-SCHEMA_VERSION = "1.2"
+SCHEMA_VERSION = "1.3"
 OUTPUT_NAME = "publication_manifest.json"
 TIMESTAMP_STATUSES = {"known", "unknown", "missing", "invalid"}
 LANE_FILES = {
     "candidacy_status": ("candidate_candidacy_status.json",),
     "campaign_events": ("campaign_events.json",),
+    "candidate_attention": ("candidate_attention.json",),
     "candidate_signals": ("candidate_signals.json",),
     "claims": ("claims_under_scrutiny.json",),
     "news": ("news_wire.json",),
@@ -703,6 +708,51 @@ def _validate_candidacy_status_public(payload: Any) -> int:
     return len(payload["candidates"])
 
 
+
+def _validate_candidate_attention_public(payload: Any) -> int:
+    """Validate the intrinsic Candidate Attention artifact contract."""
+
+    try:
+        validate_candidate_attention(payload)
+    except CandidateAttentionContractError as error:
+        raise ManifestError(
+            f"candidate_attention invalid structure: {error}"
+        ) from error
+
+    return len(payload["candidates"])
+
+
+def _validate_candidate_attention_parity(
+    registry: Any,
+    candidate_attention: Any,
+) -> None:
+    """Require exact candidate ID/name/order parity with candidacy registry."""
+
+    if not isinstance(registry, dict):
+        raise ManifestError(
+            "candidate_attention candidacy parity failed: "
+            "controlled candidacy registry is not an object"
+        )
+
+    expected_candidates = registry.get("candidates")
+
+    if not isinstance(expected_candidates, list):
+        raise ManifestError(
+            "candidate_attention candidacy parity failed: "
+            "controlled candidacy candidate list is unavailable"
+        )
+
+    try:
+        validate_candidate_attention(
+            candidate_attention,
+            expected_candidates=expected_candidates,
+        )
+    except CandidateAttentionContractError as error:
+        raise ManifestError(
+            f"candidate_attention candidacy parity failed: {error}"
+        ) from error
+
+
 def _validate_candidacy_status_parity(
     registry: Any,
     candidate_signals: Any,
@@ -862,6 +912,12 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
     if lane_name == "candidacy_status":
         _validate_candidacy_status_public(payload)
         return True
+    if lane_name == "candidate_attention":
+        try:
+            validate_candidate_attention(payload)
+        except CandidateAttentionContractError:
+            return False
+        return True
     if lane_name == "candidate_signals":
         _validate_candidate_signals_public(payload)
         return True
@@ -903,6 +959,8 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
 def _evidence_values(lane_name: str, payload: Any) -> list[Any]:
     if lane_name == "candidacy_status":
         return [payload["status_as_of"]]
+    if lane_name == "candidate_attention":
+        return [payload["period"]["data_as_of"]]
     if lane_name == "candidate_signals":
         evidence_dates = payload["evidence_dates"]
         return [
@@ -960,7 +1018,11 @@ def _build_lane(
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     file_names = LANE_FILES[lane_name]
     sources = [_read_source(root / file_name) for file_name in file_names]
-    if lane_name in {"candidacy_status", "candidate_signals"}:
+    if lane_name in {
+        "candidacy_status",
+        "candidate_attention",
+        "candidate_signals",
+    }:
         source_error = sources[0]["error"]
         if source_error is not None:
             raise ManifestError(source_error)
@@ -1025,6 +1087,8 @@ def _build_lane(
                 f"{lane_name}: no valid lane-local evidence date is available"
             )
         if lane_name == "candidacy_status":
+            lane["record_count"] = len(primary["payload"]["candidates"])
+        if lane_name == "candidate_attention":
             lane["record_count"] = len(primary["payload"]["candidates"])
         if lane_name == "candidate_signals":
             lane["record_count"] = primary["payload"][
@@ -1153,6 +1217,20 @@ def build_manifest(
         lane_sources["candidate_signals"][0]["payload"],
     )
 
+    candidate_attention_payload = (
+        lane_sources["candidate_attention"][0]["payload"]
+    )
+
+    # Intrinsic Stage 2 validation and contemporaneous cross-lane
+    # identity parity are deliberately separate publication checks.
+    _validate_candidate_attention_public(
+        candidate_attention_payload
+    )
+    _validate_candidate_attention_parity(
+        lane_sources["candidacy_status"][0]["payload"],
+        candidate_attention_payload,
+    )
+
     warnings = [
         warning
         for lane_name in sorted(lanes)
@@ -1191,7 +1269,7 @@ def validate_manifest(manifest: Any) -> None:
     if not isinstance(manifest, dict):
         raise ManifestError("manifest must be a JSON object")
     if manifest.get("schema_version") != SCHEMA_VERSION:
-        raise ManifestError("schema_version must equal 1.2")
+        raise ManifestError("schema_version must equal 1.3")
     snapshot_id = manifest.get("snapshot_id")
     if (
         not isinstance(snapshot_id, str)
@@ -1203,7 +1281,7 @@ def validate_manifest(manifest: Any) -> None:
 
     lanes = manifest.get("lanes")
     if not isinstance(lanes, dict) or set(lanes) != set(LANE_FILES):
-        raise ManifestError("manifest lanes do not match the version 1.2 contract")
+        raise ManifestError("manifest lanes do not match the version 1.3 contract")
     for lane_name, lane in lanes.items():
         if not isinstance(lane, dict):
             raise ManifestError(f"{lane_name} lane must be an object")
@@ -1225,7 +1303,11 @@ def validate_manifest(manifest: Any) -> None:
             )
         if not isinstance(lane["warnings"], list):
             raise ManifestError(f"{lane_name} warnings must be an array")
-        if lane_name in {"candidacy_status", "candidate_signals"}:
+        if lane_name in {
+            "candidacy_status",
+            "candidate_attention",
+            "candidate_signals",
+        }:
             _required_count(
                 lane.get("record_count"),
                 field=f"{lane_name} lane record_count",
@@ -1320,7 +1402,7 @@ def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Build publication_manifest.json version 1.2"
+        description="Build publication_manifest.json version 1.3"
     )
     parser.add_argument(
         "--check",

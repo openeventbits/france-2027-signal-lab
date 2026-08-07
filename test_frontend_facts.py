@@ -71,9 +71,9 @@ class FrontendPublicationFactsTests(unittest.TestCase):
         manifest = json.loads(
             MANIFEST_PATH.read_text(encoding="utf-8")
         )
-        self.assertEqual(manifest["schema_version"], "1.2")
+        self.assertEqual(manifest["schema_version"], "1.3")
         self.assertIn(
-            'payload.schema_version !== "1.2"',
+            'payload.schema_version !== "1.3"',
             validator,
         )
         self.assertNotIn(
@@ -89,7 +89,7 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             CANDIDATE_SIGNALS_PATH.read_text(encoding="utf-8")
         )
         lane = manifest["lanes"]["candidate_signals"]
-        self.assertEqual(manifest["schema_version"], "1.2")
+        self.assertEqual(manifest["schema_version"], "1.3")
         self.assertEqual(
             lane["schema_version"],
             candidate["schema_version"],
