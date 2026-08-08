@@ -103,6 +103,11 @@
       metadata: {},
       reason: null
     },
+    candidateAttention: {
+      status: "loading",
+      payload: null,
+      reason: null
+    },
     scrollOnNextHash: false
   };
   const runoffArchiveState = {
@@ -141,6 +146,31 @@
           );
         renderAll();
         return candidateSignalsState;
+      });
+
+
+  const candidateAttentionRequest =
+    window.France2027CandidateAttention
+      ?.load("candidate_attention.json")
+      .then(candidateAttentionState => {
+        state.candidateAttention =
+          candidateAttentionState;
+        renderCandidateSignalsPanel();
+        return candidateAttentionState;
+      })
+      .catch(() => {
+        const candidateAttentionState = {
+          status: "unavailable",
+          payload: null,
+          reason: "fetch_failed"
+        };
+
+        state.candidateAttention =
+          candidateAttentionState;
+
+        renderCandidateSignalsPanel();
+
+        return candidateAttentionState;
       });
 
   const number = value => Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -2406,6 +2436,8 @@
             candidateId;
           renderCandidateSignalsPanel();
         },
+        candidateAttention:
+          state.candidateAttention,
         resolvePortrait:
           resolveCandidateSignalsPortrait
       }
