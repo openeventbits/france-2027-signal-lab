@@ -248,6 +248,7 @@ class MiniNode {
   }
   setAttribute(name, value) {
     this.attributes[name] = String(value);
+    if (name === "class") this.className = String(value);
     if (name.startsWith("data-")) this.dataset[dataKey(name)] = String(value);
   }
   getAttribute(name) {
@@ -298,7 +299,10 @@ class MiniNode {
 
 const documentObject = {
   activeElement: null,
-  createElement(tagName) { return new MiniNode(tagName); }
+  createElement(tagName) { return new MiniNode(tagName); },
+  createElementNS(_namespace, tagName) {
+    return new MiniNode(tagName);
+  }
 };
 const windowObject = {};
 const context = {
@@ -362,8 +366,18 @@ function details() {
           node.textContent ===
           "WIKIPEDIA ATTENTION · 30 DAYS"
       ) || null;
-  const wikipediaBars =
-    mount.querySelectorAll(".candidate-signals-wikipedia-bar");
+  const wikipediaPoints =
+    mount.querySelectorAll(".candidate-signals-wikipedia-point");
+  const wikipediaLines =
+    mount.querySelectorAll(".candidate-signals-wikipedia-line");
+  const wikipediaPeakPoints =
+    wikipediaPoints.filter(
+      node => node.className.split(/\s+/).includes("is-peak")
+    );
+  const wikipediaLatestPoints =
+    wikipediaPoints.filter(
+      node => node.className.split(/\s+/).includes("is-latest")
+    );
   const allNodes = [];
   const visit = node => {
     allNodes.push(node);
@@ -395,10 +409,17 @@ function details() {
       mount.querySelectorAll(
         ".candidate-signals-wikipedia-attention"
       ).length,
-    wikipediaBarTitles:
-      wikipediaBars.map(
-        node => node.getAttribute("title") || null
-      ),
+    wikipediaPointTitles:
+      wikipediaPoints.map(node => {
+        const title = node.querySelector("title");
+        return title ? title.textContent : null;
+      }),
+    wikipediaLineCount:
+      wikipediaLines.length,
+    wikipediaPeakMarkerCount:
+      wikipediaPeakPoints.length,
+    wikipediaLatestMarkerCount:
+      wikipediaLatestPoints.length,
     wikipediaHeadingTooltip:
       wikipediaHeading
         ? wikipediaHeading.getAttribute("title") || null
@@ -1127,17 +1148,36 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             "WIKIPEDIA ATTENTION · 30 DAYS",
             result["text"],
         )
-        self.assertIn(
-            "LATEST 7 COMPLETE DAYS",
-            result["text"],
-        )
-        self.assertIn(
-            "30 COMPLETE UTC DAYS",
-            result["text"],
-        )
+
         self.assertIn(
             "30D PEAK",
             result["text"],
+        )
+
+        for label in (
+            "LATEST 7D",
+            "PREVIOUS 7D",
+            "7D CHANGE",
+            "PEAK DATE",
+            "STATE",
+            "DAILY PAGEVIEWS",
+            "PEAK-REMOVED 7D",
+            "28D TOTAL",
+            "28D CHANGE",
+        ):
+            self.assertIn(label, result["text"])
+
+        self.assertEqual(
+            result["wikipediaLineCount"],
+            1,
+        )
+        self.assertEqual(
+            result["wikipediaPeakMarkerCount"],
+            1,
+        )
+        self.assertEqual(
+            result["wikipediaLatestMarkerCount"],
+            1,
         )
 
 
@@ -1149,7 +1189,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             candidate_attention=attention,
         )
 
-        bars = result["wikipediaBarTitles"]
+        bars = result["wikipediaPointTitles"]
 
         self.assertEqual(len(bars), 30)
         self.assertTrue(
@@ -1213,8 +1253,17 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             self.workspace_js,
         )
         self.assertNotIn(
+            "French Wikipedia daily pageviews · "
+            "article-reading attention, not electoral support",
+            result["text"],
+        )
+        self.assertNotIn(
             "candidate-signals-wikipedia-link",
             self.workspace_js,
+        )
+        self.assertNotIn(
+            "Open Wikipedia",
+            result["text"],
         )
 
 
@@ -1269,7 +1318,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             loading["text"],
         )
         self.assertEqual(
-            loading["wikipediaBarTitles"],
+            loading["wikipediaPointTitles"],
             [],
         )
 
@@ -1279,7 +1328,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             unavailable["text"],
         )
         self.assertEqual(
-            unavailable["wikipediaBarTitles"],
+            unavailable["wikipediaPointTitles"],
             [],
         )
 
@@ -1349,16 +1398,27 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         )
 
         self.assertIn(
-            "minmax(126px, 0.24fr);",
+            ".candidate-signals-wikipedia-primary-metrics {",
             self.css,
         )
-
+        self.assertIn(
+            ".candidate-signals-wikipedia-svg {",
+            self.css,
+        )
+        self.assertIn(
+            ".candidate-signals-wikipedia-line {",
+            self.css,
+        )
         self.assertNotIn(
             ".candidate-signals-wikipedia-footer",
             self.css,
         )
         self.assertNotIn(
             ".candidate-signals-wikipedia-link",
+            self.css,
+        )
+        self.assertNotIn(
+            ".candidate-signals-wikipedia-bars {",
             self.css,
         )
 

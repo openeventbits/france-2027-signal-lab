@@ -2664,37 +2664,37 @@
 .candidate-signals-monitor-empty[hidden] {
   display: none;
 }
-/* Wikipedia Attention v1 */
+/* Wikipedia Attention v2 — analytical trajectory */
 
 .candidate-signals-wikipedia-attention {
   min-width: 0;
   margin-top: 5px;
   overflow: hidden;
-  border: 1px solid rgba(35, 86, 114, 0.8);
+  border: 1px solid rgba(35, 86, 114, 0.82);
   border-radius: 2px;
   background:
     linear-gradient(
       180deg,
       rgba(5, 22, 36, 0.82),
-      rgba(3, 15, 26, 0.68)
+      rgba(3, 15, 26, 0.7)
     );
 }
 
 .candidate-signals-wikipedia-head {
-  min-height: 38px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 7px 9px;
-  border-bottom: 1px solid rgba(35, 86, 114, 0.58);
-  background: rgba(5, 21, 34, 0.4);
+  padding: 6px 9px;
+  border-bottom: 1px solid rgba(42, 104, 132, 0.68);
+  background: rgba(5, 21, 34, 0.42);
 }
 
 .candidate-signals-wikipedia-heading {
   min-width: 0;
   display: grid;
-  gap: 3px;
+  gap: 2px;
 }
 
 .candidate-signals-wikipedia-heading
@@ -2726,80 +2726,77 @@
   line-height: 1.4;
 }
 
-.candidate-signals-wikipedia-grid {
+.candidate-signals-wikipedia-primary-metrics {
   min-width: 0;
   display: grid;
   grid-template-columns:
-    minmax(0, 1fr)
-    minmax(126px, 0.24fr);
+    repeat(5, minmax(0, 1fr))
+    minmax(112px, 1.18fr);
+  border-bottom: 1px solid rgba(42, 104, 132, 0.62);
+  background: rgba(3, 17, 29, 0.28);
 }
 
-.candidate-signals-wikipedia-chart-panel {
+.candidate-signals-wikipedia-metric {
   min-width: 0;
-  padding: 9px 9px 8px;
-}
-
-.candidate-signals-wikipedia-chart-summary {
-  min-width: 0;
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.candidate-signals-wikipedia-total-wrap {
-  min-width: 0;
+  min-height: 44px;
   display: grid;
-  grid-template-columns: auto auto;
-  grid-template-rows: auto auto;
-  grid-template-areas:
-    "kicker kicker"
-    "value unit";
-  align-items: baseline;
-  column-gap: 6px;
+  align-content: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border-right: 1px solid rgba(35, 86, 114, 0.48);
 }
 
-.candidate-signals-wikipedia-kicker {
-  grid-area: kicker;
+.candidate-signals-wikipedia-metric:last-child {
+  border-right: 0;
+}
+
+.candidate-signals-wikipedia-metric-label {
   color: #7898aa;
-  font-size: 8px;
+  font-size: 7.8px;
   font-weight: 760;
   letter-spacing: 0.065em;
   line-height: 1;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.candidate-signals-wikipedia-total {
-  grid-area: value;
-  color: #f2f8fb;
-  font-size: 22px;
-  font-weight: 740;
+.candidate-signals-wikipedia-metric-value {
+  min-width: 0;
+  overflow: hidden;
+  color: #edf5f8;
+  font-size: 15px;
+  font-weight: 730;
   font-variant-numeric: tabular-nums;
   line-height: 1;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.018em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.candidate-signals-wikipedia-total-unit {
-  grid-area: unit;
-  color: #8ca5b4;
-  font-size: 8.5px;
-  font-weight: 650;
-  letter-spacing: 0.035em;
-  text-transform: uppercase;
+.candidate-signals-wikipedia-metric.is-rise
+  .candidate-signals-wikipedia-metric-value {
+  color: #72e3ff;
+}
+
+.candidate-signals-wikipedia-metric.is-decline
+  .candidate-signals-wikipedia-metric-value {
+  color: #9aafbb;
 }
 
 .candidate-signals-wikipedia-pattern {
-  flex: 0 0 auto;
-  padding: 3px 6px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 8px;
+  overflow: hidden;
   border: 1px solid rgba(74, 113, 135, 0.62);
-  border-radius: 2px;
+  border-radius: 10px;
   background: rgba(5, 24, 39, 0.72);
   color: #9eb4bf;
   font-size: 8px;
   font-weight: 760;
-  letter-spacing: 0.055em;
+  letter-spacing: 0.05em;
   line-height: 1;
+  text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -2811,12 +2808,12 @@
 
 .candidate-signals-wikipedia-pattern.is-decline {
   border-color: rgba(91, 127, 148, 0.56);
-  color: #8faabd;
+  color: #98afbd;
 }
 
 .candidate-signals-wikipedia-pattern.is-event {
-  border-color: rgba(135, 88, 255, 0.58);
-  background: rgba(83, 54, 160, 0.16);
+  border-color: rgba(135, 88, 255, 0.64);
+  background: rgba(83, 54, 160, 0.15);
   color: #b9a7ff;
 }
 
@@ -2824,158 +2821,102 @@
   opacity: 0.78;
 }
 
-.candidate-signals-wikipedia-chart {
+.candidate-signals-wikipedia-line-block {
   min-width: 0;
+  padding: 6px 9px 1px;
 }
 
-.candidate-signals-wikipedia-bars {
-  height: 92px;
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  padding: 8px 6px 5px;
-  overflow: hidden;
-  border-top: 1px solid rgba(35, 86, 114, 0.55);
-  border-right: 1px solid rgba(35, 86, 114, 0.42);
-  border-left: 1px solid rgba(35, 86, 114, 0.42);
-  background:
-    repeating-linear-gradient(
-      to bottom,
-      rgba(2, 15, 26, 0.16) 0,
-      rgba(2, 15, 26, 0.16) 22px,
-      rgba(46, 93, 117, 0.18) 23px,
-      rgba(2, 15, 26, 0.16) 24px
-    );
-}
-
-.candidate-signals-wikipedia-bar {
-  min-width: 2px;
-  flex: 1 1 0;
+.candidate-signals-wikipedia-chart-title {
   display: block;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(53, 216, 255, 0.82),
-      rgba(45, 136, 176, 0.56)
-    );
-  opacity: 0.72;
-}
-
-.candidate-signals-wikipedia-bar.is-peak {
-  background:
-    linear-gradient(
-      180deg,
-      rgba(166, 137, 255, 0.98),
-      rgba(115, 75, 218, 0.7)
-    );
-  opacity: 1;
-}
-
-.candidate-signals-wikipedia-bar.is-latest {
-  box-shadow:
-    0 0 0 1px rgba(53, 216, 255, 0.44);
-  opacity: 1;
-}
-
-.candidate-signals-wikipedia-axis {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 7px;
-  min-height: 24px;
-  padding: 3px 5px 0;
-  border: 1px solid rgba(35, 86, 114, 0.42);
-  color: #7898aa;
-  font-size: 8px;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-.candidate-signals-wikipedia-axis-label {
-  overflow: hidden;
-  color: #627f91;
-  font-size: 7.5px;
-  font-weight: 700;
-  letter-spacing: 0.055em;
-  text-align: center;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.candidate-signals-wikipedia-chart-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 5px;
-  color: #7898aa;
-  font-size: 8px;
-  font-weight: 680;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.025em;
-  line-height: 1.2;
-}
-
-.candidate-signals-wikipedia-metrics {
-  min-width: 0;
-  display: grid;
-  grid-template-rows: repeat(3, minmax(0, 1fr));
-  border-left: 1px solid rgba(35, 86, 114, 0.58);
-}
-
-.candidate-signals-wikipedia-metric {
-  min-width: 0;
-  display: grid;
-  align-content: center;
-  gap: 4px;
-  padding: 8px 9px;
-  border-bottom: 1px solid rgba(35, 86, 114, 0.48);
-  background: rgba(3, 17, 29, 0.3);
-}
-
-.candidate-signals-wikipedia-metric:last-child {
-  border-bottom: 0;
-}
-
-.candidate-signals-wikipedia-metric-label {
-  color: #7898aa;
+  margin-bottom: 2px;
+  color: #8aa9b9;
   font-size: 8px;
   font-weight: 760;
-  letter-spacing: 0.065em;
+  letter-spacing: 0.07em;
   line-height: 1;
   text-transform: uppercase;
 }
 
-.candidate-signals-wikipedia-metric-value {
-  color: #e8f1f5;
-  font-size: 18px;
-  font-weight: 735;
+.candidate-signals-wikipedia-svg {
+  width: 100%;
+  height: 94px;
+  display: block;
+  overflow: visible;
+}
+
+.candidate-signals-wikipedia-gridline {
+  stroke: rgba(51, 103, 128, 0.28);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.candidate-signals-wikipedia-y-label,
+.candidate-signals-wikipedia-x-label {
+  fill: #668698;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-size: 7px;
   font-variant-numeric: tabular-nums;
-  line-height: 1;
-  letter-spacing: -0.02em;
 }
 
-.candidate-signals-wikipedia-metric.is-rise
+.candidate-signals-wikipedia-line {
+  fill: none;
+  stroke: var(--final-cyan, #35d8ff);
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.9;
+}
+
+.candidate-signals-wikipedia-point {
+  fill: #75e4ff;
+  stroke: rgba(4, 26, 41, 0.94);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.candidate-signals-wikipedia-point.is-peak {
+  fill: #a789ff;
+  stroke: rgba(178, 154, 255, 0.95);
+  stroke-width: 1.4;
+}
+
+.candidate-signals-wikipedia-point.is-latest {
+  fill: #8cecff;
+  stroke: var(--final-cyan, #35d8ff);
+  stroke-width: 1.4;
+}
+
+.candidate-signals-wikipedia-secondary-metrics {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid rgba(35, 86, 114, 0.42);
+  border-bottom: 1px solid rgba(35, 86, 114, 0.5);
+  background: rgba(3, 17, 29, 0.24);
+}
+
+.candidate-signals-wikipedia-secondary-metrics
+  .candidate-signals-wikipedia-metric {
+  min-height: 32px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  align-content: center;
+  gap: 8px;
+  padding: 4px 9px;
+}
+
+.candidate-signals-wikipedia-secondary-metrics
   .candidate-signals-wikipedia-metric-value {
-  color: #72e3ff;
+  font-size: 12px;
+  text-align: right;
 }
-
-.candidate-signals-wikipedia-metric.is-decline
-  .candidate-signals-wikipedia-metric-value {
-  color: #98afbd;
-}
-
-.candidate-signals-wikipedia-metric-note {
-  overflow: hidden;
-  color: #6e8b9c;
-  font-size: 7.5px;
-  font-weight: 620;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 
 
 @media (max-width: 759px) {
@@ -2987,32 +2928,62 @@
     font-size: 7.5px;
   }
 
-  .candidate-signals-wikipedia-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .candidate-signals-wikipedia-bars {
-    height: 84px;
-  }
-
-  .candidate-signals-wikipedia-metrics {
+  .candidate-signals-wikipedia-primary-metrics {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: auto;
-    border-top: 1px solid rgba(35, 86, 114, 0.58);
-    border-left: 0;
   }
 
-  .candidate-signals-wikipedia-metric {
-    min-height: 68px;
-    border-right: 1px solid rgba(35, 86, 114, 0.48);
-    border-bottom: 0;
-  }
-
-  .candidate-signals-wikipedia-metric:last-child {
+  .candidate-signals-wikipedia-primary-metrics
+    .candidate-signals-wikipedia-metric:nth-child(3) {
     border-right: 0;
   }
 
-  .candidate-signals-wikipedia-metric-value {
-    font-size: 16px;
+  .candidate-signals-wikipedia-primary-metrics
+    .candidate-signals-wikipedia-metric:nth-child(-n + 3) {
+    border-bottom: 1px solid rgba(35, 86, 114, 0.42);
+  }
+
+  .candidate-signals-wikipedia-svg {
+    height: 92px;
+  }
+}
+
+@media (max-width: 560px) {
+  .candidate-signals-wikipedia-primary-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .candidate-signals-wikipedia-primary-metrics
+    .candidate-signals-wikipedia-metric {
+    border-right: 1px solid rgba(35, 86, 114, 0.48);
+    border-bottom: 1px solid rgba(35, 86, 114, 0.42);
+  }
+
+  .candidate-signals-wikipedia-primary-metrics
+    .candidate-signals-wikipedia-metric:nth-child(even) {
+    border-right: 0;
+  }
+
+  .candidate-signals-wikipedia-primary-metrics
+    .candidate-signals-wikipedia-metric:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+
+  .candidate-signals-wikipedia-secondary-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .candidate-signals-wikipedia-secondary-metrics
+    .candidate-signals-wikipedia-metric {
+    border-right: 0;
+    border-bottom: 1px solid rgba(35, 86, 114, 0.42);
+  }
+
+  .candidate-signals-wikipedia-secondary-metrics
+    .candidate-signals-wikipedia-metric:last-child {
+    border-bottom: 0;
+  }
+
+  .candidate-signals-wikipedia-svg {
+    height: 90px;
   }
 }
