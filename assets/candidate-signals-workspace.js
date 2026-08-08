@@ -1793,10 +1793,85 @@
     return "stable";
   }
 
+  function wikipediaChangeTone(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric === 0) {
+      return "stable";
+    }
+    return numeric > 0 ? "rise" : "decline";
+  }
+
+  function wikipediaCompactNumber(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return MISSING;
+
+    const absolute = Math.abs(numeric);
+
+    if (absolute >= 1000000) {
+      const amount = numeric / 1000000;
+      return `${
+        Math.abs(amount) >= 10
+          ? amount.toFixed(0)
+          : amount.toFixed(1).replace(/\.0$/, "")
+      }M`;
+    }
+
+    if (absolute >= 1000) {
+      const amount = numeric / 1000;
+      return `${
+        Math.abs(amount) >= 10
+          ? amount.toFixed(0)
+          : amount.toFixed(1).replace(/\.0$/, "")
+      }K`;
+    }
+
+    return groupedNumberText(numeric);
+  }
+
+  function wikipediaShortDate(value) {
+    if (!hasValue(value)) return MISSING;
+
+    const date = new Date(`${value}T00:00:00Z`);
+
+    if (!Number.isFinite(date.getTime())) {
+      return String(value);
+    }
+
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "numeric",
+      month: "short",
+      timeZone: "UTC"
+    }).format(date);
+  }
+
+  function wikipediaNiceStep(value) {
+    const numeric = Number(value);
+
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+      return 1;
+    }
+
+    const exponent = Math.floor(Math.log10(numeric));
+    const magnitude = 10 ** exponent;
+    const normalized = numeric / magnitude;
+
+    const factor =
+      normalized <= 1
+        ? 1
+        : normalized <= 2
+          ? 2
+          : normalized <= 2.5
+            ? 2.5
+            : normalized <= 5
+              ? 5
+              : 10;
+
+    return factor * magnitude;
+  }
+
   function wikipediaAttentionMetric(
     label,
     value,
-    note,
     className = ""
   ) {
     const metric = createElement(
@@ -1816,15 +1891,285 @@
         "strong",
         "candidate-signals-wikipedia-metric-value",
         value
-      ),
-      createElement(
-        "span",
-        "candidate-signals-wikipedia-metric-note",
-        note
       )
     );
 
     return metric;
+  }
+
+  function wikipediaAttentionStateMetric(flag, tone) {
+    const metric = createElement(
+      "div",
+      "candidate-signals-wikipedia-metric is-state"
+    );
+
+    metric.append(
+      createElement(
+        "span",
+        "candidate-signals-wikipedia-metric-label",
+        "STATE"
+      ),
+      createElement(
+        "span",
+        `candidate-signals-wikipedia-pattern is-${tone}`,
+        wikipediaAttentionFlagLabel(flag)
+      )
+    );
+
+    return metric;
+  }
+
+  function wikipediaSvgElement(tagName, className = "") {
+    const node = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      tagName
+    );
+
+    if (className) {
+      node.setAttribute("class", className);
+    }
+
+    return node;
+  }
+
+  function wikipediaAttentionLineChart(
+    recent,
+    candidate,
+    peak,
+    latestPoint
+  ) {
+    const block = createElement(
+      "div",
+      "candidate-signals-wikipedia-line-block"
+    );
+
+    block.append(
+      createElement(
+        "span",
+        "candidate-signals-wikipedia-chart-title",
+        "DAILY PAGEVIEWS"
+      )
+    );
+
+    const svg = wikipediaSvgElement(
+      "svg",
+      "candidate-signals-wikipedia-svg"
+    );
+
+    const width = 640;
+    const height = 104;
+    const margin = {
+      top: 7,
+      right: 10,
+      bottom: 22,
+      left: 43
+    };
+
+    const plotWidth =
+      width - margin.left - margin.right;
+    const plotHeight =
+      height - margin.top - margin.bottom;
+
+    const maximum = Math.max(
+      0,
+      ...recent.map(point => Number(point.views))
+    );
+
+    const step = wikipediaNiceStep(maximum / 3);
+
+    const axisMaximum =
+      maximum > 0
+        ? Math.max(
+          step,
+          Math.ceil(maximum / step) * step
+        )
+        : 1;
+
+    const xFor = index =>
+      margin.left +
+      (
+        recent.length <= 1
+          ? 0
+          : (
+            index /
+            (recent.length - 1)
+          ) * plotWidth
+      );
+
+    const yFor = value =>
+      margin.top +
+      plotHeight -
+      (
+        Math.max(0, Number(value)) /
+        axisMaximum
+      ) * plotHeight;
+
+    svg.setAttribute(
+      "viewBox",
+      `0 0 ${width} ${height}`
+    );
+    svg.setAttribute(
+      "preserveAspectRatio",
+      "none"
+    );
+    svg.setAttribute(
+      "role",
+      "img"
+    );
+    svg.setAttribute(
+      "aria-label",
+      `French Wikipedia daily pageviews for ${
+        candidate.candidate_name
+      }, ${formatDisplayDate(
+        recent[0].date
+      )} through ${formatDisplayDate(
+        latestPoint.date
+      )}. Thirty-day peak ${
+        groupedNumberText(peak.views)
+      } views on ${formatDisplayDate(
+        peak.date
+      )}.`
+    );
+
+    const title = wikipediaSvgElement("title");
+    title.textContent =
+      `French Wikipedia daily pageviews for ${
+        candidate.candidate_name
+      }`;
+    svg.append(title);
+
+    for (
+      let tick = 0;
+      tick <= axisMaximum + (step / 10);
+      tick += step
+    ) {
+      const y = yFor(tick);
+
+      const grid = wikipediaSvgElement(
+        "line",
+        "candidate-signals-wikipedia-gridline"
+      );
+      grid.setAttribute("x1", margin.left);
+      grid.setAttribute("x2", width - margin.right);
+      grid.setAttribute("y1", y);
+      grid.setAttribute("y2", y);
+      svg.append(grid);
+
+      const label = wikipediaSvgElement(
+        "text",
+        "candidate-signals-wikipedia-y-label"
+      );
+      label.setAttribute("x", margin.left - 7);
+      label.setAttribute("y", y + 3);
+      label.setAttribute("text-anchor", "end");
+      label.textContent = wikipediaCompactNumber(tick);
+      svg.append(label);
+    }
+
+    const xLabelIndices = [
+      0,
+      6,
+      12,
+      18,
+      24,
+      recent.length - 1
+    ];
+
+    [...new Set(xLabelIndices)]
+      .filter(
+        index =>
+          index >= 0 &&
+          index < recent.length
+      )
+      .forEach((index, position, values) => {
+        const label = wikipediaSvgElement(
+          "text",
+          "candidate-signals-wikipedia-x-label"
+        );
+
+        label.setAttribute("x", xFor(index));
+        label.setAttribute("y", height - 5);
+        label.setAttribute(
+          "text-anchor",
+          position === 0
+            ? "start"
+            : position === values.length - 1
+              ? "end"
+              : "middle"
+        );
+        label.textContent =
+          wikipediaShortDate(recent[index].date);
+        svg.append(label);
+      });
+
+    const line = wikipediaSvgElement(
+      "polyline",
+      "candidate-signals-wikipedia-line"
+    );
+
+    line.setAttribute(
+      "points",
+      recent.map(
+        (point, index) =>
+          `${xFor(index).toFixed(2)},${
+            yFor(point.views).toFixed(2)
+          }`
+      ).join(" ")
+    );
+
+    svg.append(line);
+
+    recent.forEach((point, index) => {
+      const classes = [
+        "candidate-signals-wikipedia-point"
+      ];
+
+      if (point.date === peak.date) {
+        classes.push("is-peak");
+      }
+
+      if (index === recent.length - 1) {
+        classes.push("is-latest");
+      }
+
+      const marker = wikipediaSvgElement(
+        "circle",
+        classes.join(" ")
+      );
+
+      marker.setAttribute("cx", xFor(index));
+      marker.setAttribute("cy", yFor(point.views));
+      marker.setAttribute(
+        "r",
+        point.date === peak.date
+          ? 3
+          : index === recent.length - 1
+            ? 2.7
+            : 1.7
+      );
+
+      const pointLabel =
+        `${formatDisplayDate(
+          point.date
+        )} · ${groupedNumberText(
+          point.views
+        )} views`;
+
+      marker.setAttribute(
+        "aria-label",
+        pointLabel
+      );
+
+      const pointTitle =
+        wikipediaSvgElement("title");
+      pointTitle.textContent = pointLabel;
+      marker.append(pointTitle);
+
+      svg.append(marker);
+    });
+
+    block.append(svg);
+    return block;
   }
 
   function wikipediaAttentionPanel(
@@ -1857,15 +2202,15 @@
       createElement(
         "span",
         "candidate-signals-wikipedia-source",
-        "French Wikipedia pageviews"
+        "French Wikipedia daily pageviews"
       )
     );
 
     head.append(heading);
 
     if (attentionState?.status === "loading") {
-      section.append(head);
       section.append(
+        head,
         createElement(
           "p",
           "candidate-signals-wikipedia-state",
@@ -1893,9 +2238,9 @@
 
     const methodologyNote =
       exclusions.length
-        ? `${interpretation} They do not measure ${exclusions.join(
-          ", "
-        )}.`
+        ? `${interpretation} They do not measure ${
+          exclusions.join(", ")
+        }.`
         : interpretation;
 
     headingTitle.setAttribute(
@@ -1909,8 +2254,8 @@
     );
 
     if (!record) {
-      section.append(head);
       section.append(
+        head,
         createElement(
           "p",
           "candidate-signals-wikipedia-state",
@@ -1933,8 +2278,8 @@
     const recent = validSeries.slice(-30);
 
     if (recent.length !== 30) {
-      section.append(head);
       section.append(
+        head,
         createElement(
           "p",
           "candidate-signals-wikipedia-state",
@@ -1952,10 +2297,6 @@
           : best,
       null
     );
-
-    const maximum = peak
-      ? Number(peak.views)
-      : 0;
 
     const latestPoint =
       recent[recent.length - 1];
@@ -1979,271 +2320,98 @@
         record.interpretation_flag
       );
 
-    const pattern = createElement(
-      "span",
-      `candidate-signals-wikipedia-pattern is-${tone}`,
-      wikipediaAttentionFlagLabel(
-        record.interpretation_flag
-      )
-    );
-
-    const grid = createElement(
+    const primary = createElement(
       "div",
-      "candidate-signals-wikipedia-grid"
+      "candidate-signals-wikipedia-primary-metrics"
     );
 
-    const chartPanel = createElement(
-      "div",
-      "candidate-signals-wikipedia-chart-panel"
-    );
-
-    const chartSummary = createElement(
-      "div",
-      "candidate-signals-wikipedia-chart-summary"
-    );
-
-    const totalWrap = createElement(
-      "div",
-      "candidate-signals-wikipedia-total-wrap"
-    );
-
-    totalWrap.append(
-      createElement(
-        "span",
-        "candidate-signals-wikipedia-kicker",
-        "LATEST 7 COMPLETE DAYS"
-      ),
-      createElement(
-        "strong",
-        "candidate-signals-wikipedia-total",
+    primary.append(
+      wikipediaAttentionMetric(
+        "LATEST 7D",
         groupedNumberText(
           record.latest_7_views
         )
       ),
-      createElement(
-        "span",
-        "candidate-signals-wikipedia-total-unit",
-        "pageviews"
-      )
-    );
-
-    chartSummary.append(
-      totalWrap,
-      pattern
-    );
-
-    const chart = createElement(
-      "div",
-      "candidate-signals-wikipedia-chart"
-    );
-
-    chart.setAttribute(
-      "role",
-      "img"
-    );
-
-    chart.setAttribute(
-      "aria-label",
-      `French Wikipedia pageviews for ${
-        candidate.candidate_name
-      }, ${formatDisplayDate(
-        recent[0].date
-      )} through ${formatDisplayDate(
-        latestPoint.date
-      )}. Thirty-day peak ${
-        groupedNumberText(peak.views)
-      } views on ${formatDisplayDate(
-        peak.date
-      )}.`
-    );
-
-    const bars = createElement(
-      "div",
-      "candidate-signals-wikipedia-bars"
-    );
-
-    recent.forEach((point, index) => {
-      const views = Number(point.views);
-      const height =
-        maximum > 0
-          ? Math.max(
-            2,
-            Math.min(
-              100,
-              (views / maximum) * 100
-            )
-          )
-          : 2;
-
-      const classes = [
-        "candidate-signals-wikipedia-bar"
-      ];
-
-      if (point.date === peak.date) {
-        classes.push("is-peak");
-      }
-
-      if (index === recent.length - 1) {
-        classes.push("is-latest");
-      }
-
-      const bar = createElement(
-        "span",
-        classes.join(" ")
-      );
-
-      bar.style.height = `${height}%`;
-
-      bar.setAttribute(
-        "title",
-        `${formatDisplayDate(
-          point.date
-        )} · ${groupedNumberText(
-          views
-        )} views`
-      );
-
-      bar.setAttribute(
-        "aria-hidden",
-        "true"
-      );
-
-      bars.append(bar);
-    });
-
-    const axis = createElement(
-      "div",
-      "candidate-signals-wikipedia-axis"
-    );
-
-    axis.append(
-      createElement(
-        "span",
-        "",
-        formatDisplayDate(
-          recent[0].date
+      wikipediaAttentionMetric(
+        "PREVIOUS 7D",
+        groupedNumberText(
+          record.previous_7_views
         )
       ),
-      createElement(
-        "span",
-        "candidate-signals-wikipedia-axis-label",
-        "30 COMPLETE UTC DAYS"
-      ),
-      createElement(
-        "span",
-        "",
-        formatDisplayDate(
-          latestPoint.date
-        )
-      )
-    );
-
-    chart.append(
-      bars,
-      axis
-    );
-
-    const chartFoot = createElement(
-      "div",
-      "candidate-signals-wikipedia-chart-foot"
-    );
-
-    chartFoot.append(
-      createElement(
-        "span",
-        "",
-        `30D PEAK · ${groupedNumberText(
-          peak.views
-        )} · ${formatDisplayDate(
-          peak.date
-        )}`
-      ),
-      createElement(
-        "span",
-        "",
-        `LATEST · ${groupedNumberText(
-          latestPoint.views
-        )}`
-      )
-    );
-
-    chartPanel.append(
-      chartSummary,
-      chart,
-      chartFoot
-    );
-
-    const metrics = createElement(
-      "div",
-      "candidate-signals-wikipedia-metrics"
-    );
-
-    const weekChange =
-      Number(record.change_7_pct);
-
-    const weekTone =
-      Number.isFinite(weekChange)
-        ? weekChange > 0
-          ? "is-rise"
-          : weekChange < 0
-            ? "is-decline"
-            : "is-stable"
-        : "";
-
-    const peakRemoved =
-      Number(
-        record.change_7_peak_removed_pct
-      );
-
-    const peakRemovedTone =
-      Number.isFinite(peakRemoved)
-        ? peakRemoved > 0
-          ? "is-rise"
-          : peakRemoved < 0
-            ? "is-decline"
-            : "is-stable"
-        : "";
-
-    metrics.append(
       wikipediaAttentionMetric(
         "7D CHANGE",
         wikipediaSignedPercent(
           record.change_7_pct
         ),
-        "vs preceding 7 days",
-        weekTone
+        `is-${wikipediaChangeTone(
+          record.change_7_pct
+        )}`
       ),
       wikipediaAttentionMetric(
-        "PEAK-REMOVED",
+        "30D PEAK",
+        groupedNumberText(peak.views)
+      ),
+      wikipediaAttentionMetric(
+        "PEAK DATE",
+        formatDisplayDate(peak.date)
+      ),
+      wikipediaAttentionStateMetric(
+        record.interpretation_flag,
+        tone
+      )
+    );
+
+    const chart =
+      wikipediaAttentionLineChart(
+        recent,
+        candidate,
+        peak,
+        latestPoint
+      );
+
+    const secondary = createElement(
+      "div",
+      "candidate-signals-wikipedia-secondary-metrics"
+    );
+
+    secondary.append(
+      wikipediaAttentionMetric(
+        "PEAK-REMOVED 7D",
         wikipediaSignedPercent(
           record.change_7_peak_removed_pct
         ),
-        "7-day comparison",
-        peakRemovedTone
+        `is-${wikipediaChangeTone(
+          record.change_7_peak_removed_pct
+        )}`
       ),
       wikipediaAttentionMetric(
         "28D TOTAL",
         groupedNumberText(
           record.latest_28_views
-        ),
+        )
+      ),
+      wikipediaAttentionMetric(
+        "28D CHANGE",
         wikipediaSignedPercent(
           record.change_28_pct
-        )
+        ),
+        `is-${wikipediaChangeTone(
+          record.change_28_pct
+        )}`
       )
     );
 
-    grid.append(
-      chartPanel,
-      metrics
-    );
 
     section.append(
       head,
-      grid
+      primary,
+      chart,
+      secondary
     );
 
     return section;
   }
+
 
   function selectedAnalysis(candidate, metadata, attentionState) {
     const section = createElement(
