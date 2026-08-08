@@ -2030,14 +2030,6 @@
         peak.date
       )}.`
     );
-
-    const title = wikipediaSvgElement("title");
-    title.textContent =
-      `French Wikipedia daily pageviews for ${
-        candidate.candidate_name
-      }`;
-    svg.append(title);
-
     for (
       let tick = 0;
       tick <= axisMaximum + (step / 10);
@@ -2142,10 +2134,10 @@
       marker.setAttribute(
         "r",
         point.date === peak.date
-          ? 3
+          ? 4
           : index === recent.length - 1
-            ? 2.7
-            : 1.7
+            ? 3.5
+            : 2.7
       );
 
       const pointLabel =
