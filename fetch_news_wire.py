@@ -340,6 +340,8 @@ CAMPAIGN_AGENDA_TOPICS = (
 
 CAMPAIGN_AGENDA_SUPPORT_LIMIT = 20
 CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS = 2
+CAMPAIGN_AGENDA_EVOLUTION_DAYS = 30
+CAMPAIGN_AGENDA_COMPARISON_DAYS = 7
 
 # These expressions occur frequently in ordinary institutional or
 # legislative reporting. They contribute to Topic Coverage only when the
@@ -2661,12 +2663,233 @@ def campaign_agenda_support_sort_key(
     )
 
 
+def campaign_agenda_evolution_anchor(
+    relevant_news: list[dict[str, Any]],
+    generated_at: datetime | None,
+) -> datetime:
+    """Return a deterministic UTC anchor for Agenda evolution."""
+
+    if generated_at is not None:
+        if (
+            generated_at.tzinfo is None
+            or generated_at.utcoffset() is None
+        ):
+            raise ValueError(
+                "campaign agenda generated_at must be timezone-aware"
+            )
+
+        return generated_at.astimezone(timezone.utc)
+
+    published = [
+        parsed
+        for item in relevant_news
+        if (
+            parsed := parse_feed_datetime(
+                item.get("published_at")
+            )
+        )
+        is not None
+    ]
+
+    if published:
+        return max(published).astimezone(timezone.utc)
+
+    # Deterministic fallback for empty synthetic/test inputs.
+    return datetime(
+        1970,
+        1,
+        CAMPAIGN_AGENDA_EVOLUTION_DAYS,
+        tzinfo=timezone.utc,
+    )
+
+
+def build_campaign_agenda_evolution(
+    topic_items: dict[str, list[dict[str, Any]]],
+    topic_labels: dict[str, str],
+    generated_at: datetime,
+) -> dict[str, Any]:
+    """Build the calendar-day analytical projection for Agenda."""
+
+    anchor = generated_at.astimezone(timezone.utc)
+    period_end = anchor.date()
+    period_start = period_end - timedelta(
+        days=CAMPAIGN_AGENDA_EVOLUTION_DAYS - 1
+    )
+
+    calendar_days = [
+        period_start + timedelta(days=offset)
+        for offset in range(
+            CAMPAIGN_AGENDA_EVOLUTION_DAYS
+        )
+    ]
+
+    latest_end = period_end - timedelta(days=1)
+    latest_start = latest_end - timedelta(
+        days=CAMPAIGN_AGENDA_COMPARISON_DAYS - 1
+    )
+    previous_end = latest_start - timedelta(days=1)
+    previous_start = previous_end - timedelta(
+        days=CAMPAIGN_AGENDA_COMPARISON_DAYS - 1
+    )
+
+    evolution_topics: list[dict[str, Any]] = []
+
+    for topic_id, items in topic_items.items():
+        period_items = [
+            item
+            for item in items
+            if (
+                period_start.isoformat()
+                <= item["published_at"][:10]
+                <= period_end.isoformat()
+            )
+        ]
+
+        items_by_date: dict[
+            str,
+            list[dict[str, Any]],
+        ] = {}
+
+        for item in period_items:
+            day = item["published_at"][:10]
+            items_by_date.setdefault(day, []).append(
+                item
+            )
+
+        daily_activity: list[dict[str, Any]] = []
+
+        for current_date in calendar_days:
+            date_key = current_date.isoformat()
+            day_items = items_by_date.get(
+                date_key,
+                [],
+            )
+
+            day_publishers = {
+                item["publisher"]
+                for item in day_items
+            }
+
+            daily_activity.append(
+                {
+                    "date": date_key,
+                    "item_count": len(day_items),
+                    "source_day_count": len(
+                        day_publishers
+                    ),
+                }
+            )
+
+        publishers = {
+            item["publisher"]
+            for item in period_items
+        }
+
+        matched_term_counts: dict[str, int] = {}
+
+        for item in period_items:
+            # One accepted record contributes at most once
+            # to any individual matched term.
+            for term in sorted(
+                set(item.get("matched_terms", []))
+            ):
+                matched_term_counts[term] = (
+                    matched_term_counts.get(
+                        term,
+                        0,
+                    )
+                    + 1
+                )
+
+        matched_terms = [
+            {
+                "term": term,
+                "item_count": count,
+            }
+            for term, count in sorted(
+                matched_term_counts.items(),
+                key=lambda pair: (
+                    -pair[1],
+                    pair[0],
+                ),
+            )
+        ]
+
+        source_day_count = sum(
+            day["source_day_count"]
+            for day in daily_activity
+        )
+
+        active_day_count = sum(
+            day["item_count"] > 0
+            for day in daily_activity
+        )
+
+        evolution_topics.append(
+            {
+                "id": topic_id,
+                "label": topic_labels[
+                    topic_id
+                ],
+                "item_count": len(period_items),
+                "publisher_count": len(
+                    publishers
+                ),
+                "source_day_count": (
+                    source_day_count
+                ),
+                "active_day_count": (
+                    active_day_count
+                ),
+                "display_eligible": (
+                    source_day_count
+                    >= CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS
+                ),
+                "daily_activity": (
+                    daily_activity
+                ),
+                "matched_term_counts": (
+                    matched_terms
+                ),
+            }
+        )
+
+    evolution_topics.sort(
+        key=lambda topic: (
+            -topic["display_eligible"],
+            -topic["source_day_count"],
+            -topic["item_count"],
+            topic["label"],
+        )
+    )
+
+    return {
+        "period_days": (
+            CAMPAIGN_AGENDA_EVOLUTION_DAYS
+        ),
+        "period_start": period_start.isoformat(),
+        "period_end": period_end.isoformat(),
+        "period_end_partial": True,
+        "comparison_days": (
+            CAMPAIGN_AGENDA_COMPARISON_DAYS
+        ),
+        "latest_start": latest_start.isoformat(),
+        "latest_end": latest_end.isoformat(),
+        "previous_start": (
+            previous_start.isoformat()
+        ),
+        "previous_end": previous_end.isoformat(),
+        "topics": evolution_topics,
+    }
+
+
 def build_campaign_agenda(
     relevant_news: list[dict[str, Any]],
     window_days: int,
     notable_developments: (
         list[dict[str, Any]] | None
     ) = None,
+    generated_at: datetime | None = None,
 ) -> dict[str, Any]:
     topic_items: dict[
         str,
@@ -2756,6 +2979,13 @@ def build_campaign_agenda(
             }
         )
 
+    evolution_anchor = (
+        campaign_agenda_evolution_anchor(
+            relevant_news,
+            generated_at,
+        )
+    )
+
     topics: list[dict[str, Any]] = []
 
     for topic_id, items in topic_items.items():
@@ -2834,6 +3064,12 @@ def build_campaign_agenda(
         for topic in topics
     )
 
+    evolution = build_campaign_agenda_evolution(
+        topic_items,
+        topic_labels,
+        evolution_anchor,
+    )
+
     return {
         "window_days": window_days,
         "input_item_count": len(
@@ -2851,6 +3087,7 @@ def build_campaign_agenda(
         "display_min_source_days": (
             CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS
         ),
+        "evolution": evolution,
         "topics": topics,
     }
 
@@ -4822,6 +5059,348 @@ def validate_campaign_agenda_topic(
     seen_topic_ids.add(topic_id)
 
 
+def validate_campaign_agenda_evolution(
+    evolution: Any,
+    agenda_topics: list[dict[str, Any]],
+) -> None:
+    required = {
+        "period_days",
+        "period_start",
+        "period_end",
+        "period_end_partial",
+        "comparison_days",
+        "latest_start",
+        "latest_end",
+        "previous_start",
+        "previous_end",
+        "topics",
+    }
+
+    if (
+        not isinstance(evolution, dict)
+        or set(evolution) != required
+    ):
+        raise RuntimeError(
+            "campaign_agenda evolution has unexpected fields"
+        )
+
+    if (
+        type(evolution["period_days"]) is not int
+        or evolution["period_days"]
+        != CAMPAIGN_AGENDA_EVOLUTION_DAYS
+        or type(evolution["comparison_days"])
+        is not int
+        or evolution["comparison_days"]
+        != CAMPAIGN_AGENDA_COMPARISON_DAYS
+        or type(evolution["period_end_partial"])
+        is not bool
+    ):
+        raise RuntimeError(
+            "campaign_agenda evolution window is invalid"
+        )
+
+    try:
+        period_start = date.fromisoformat(
+            evolution["period_start"]
+        )
+        period_end = date.fromisoformat(
+            evolution["period_end"]
+        )
+        latest_start = date.fromisoformat(
+            evolution["latest_start"]
+        )
+        latest_end = date.fromisoformat(
+            evolution["latest_end"]
+        )
+        previous_start = date.fromisoformat(
+            evolution["previous_start"]
+        )
+        previous_end = date.fromisoformat(
+            evolution["previous_end"]
+        )
+    except (TypeError, ValueError) as error:
+        raise RuntimeError(
+            "campaign_agenda evolution dates are invalid"
+        ) from error
+
+    if (
+        period_start
+        != period_end
+        - timedelta(
+            days=CAMPAIGN_AGENDA_EVOLUTION_DAYS - 1
+        )
+        or latest_end
+        != period_end - timedelta(days=1)
+        or latest_start
+        != latest_end
+        - timedelta(
+            days=CAMPAIGN_AGENDA_COMPARISON_DAYS - 1
+        )
+        or previous_end
+        != latest_start - timedelta(days=1)
+        or previous_start
+        != previous_end
+        - timedelta(
+            days=CAMPAIGN_AGENDA_COMPARISON_DAYS - 1
+        )
+    ):
+        raise RuntimeError(
+            "campaign_agenda evolution date windows are inconsistent"
+        )
+
+    evolution_topics = evolution["topics"]
+
+    if not isinstance(evolution_topics, list):
+        raise RuntimeError(
+            "campaign_agenda evolution topics is not a list"
+        )
+
+    agenda_ids = {
+        topic["id"]
+        for topic in agenda_topics
+    }
+
+    evolution_ids: set[str] = set()
+
+    expected_dates = [
+        (
+            period_start
+            + timedelta(days=offset)
+        ).isoformat()
+        for offset in range(
+            CAMPAIGN_AGENDA_EVOLUTION_DAYS
+        )
+    ]
+
+    ordering: list[
+        tuple[bool, int, int, str]
+    ] = []
+
+    for topic in evolution_topics:
+        topic_required = {
+            "id",
+            "label",
+            "item_count",
+            "publisher_count",
+            "source_day_count",
+            "active_day_count",
+            "display_eligible",
+            "daily_activity",
+            "matched_term_counts",
+        }
+
+        if (
+            not isinstance(topic, dict)
+            or set(topic) != topic_required
+        ):
+            raise RuntimeError(
+                "campaign_agenda evolution topic has unexpected fields"
+            )
+
+        topic_id = topic["id"]
+
+        if (
+            not isinstance(topic_id, str)
+            or not topic_id.strip()
+            or topic_id in evolution_ids
+        ):
+            raise RuntimeError(
+                "campaign_agenda evolution topic id is invalid"
+            )
+
+        evolution_ids.add(topic_id)
+
+        if (
+            not isinstance(topic["label"], str)
+            or not topic["label"].strip()
+        ):
+            raise RuntimeError(
+                "campaign_agenda evolution topic label is invalid"
+            )
+
+        for field in (
+            "item_count",
+            "publisher_count",
+            "source_day_count",
+            "active_day_count",
+        ):
+            if (
+                type(topic[field]) is not int
+                or topic[field] < 0
+            ):
+                raise RuntimeError(
+                    "campaign_agenda evolution topic counts are invalid"
+                )
+
+        if (
+            topic["publisher_count"]
+            > topic["item_count"]
+            or topic["source_day_count"]
+            > topic["item_count"]
+            or topic["active_day_count"]
+            > CAMPAIGN_AGENDA_EVOLUTION_DAYS
+        ):
+            raise RuntimeError(
+                "campaign_agenda evolution topic counts are inconsistent"
+            )
+
+        if (
+            type(topic["display_eligible"])
+            is not bool
+            or topic["display_eligible"]
+            != (
+                topic["source_day_count"]
+                >= CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS
+            )
+        ):
+            raise RuntimeError(
+                "campaign_agenda evolution eligibility is invalid"
+            )
+
+        daily_activity = topic[
+            "daily_activity"
+        ]
+
+        if (
+            not isinstance(daily_activity, list)
+            or len(daily_activity)
+            != CAMPAIGN_AGENDA_EVOLUTION_DAYS
+        ):
+            raise RuntimeError(
+                "campaign_agenda evolution daily activity is invalid"
+            )
+
+        actual_dates: list[str] = []
+
+        for day in daily_activity:
+            if (
+                not isinstance(day, dict)
+                or set(day)
+                != {
+                    "date",
+                    "item_count",
+                    "source_day_count",
+                }
+                or not isinstance(
+                    day["date"],
+                    str,
+                )
+                or type(day["item_count"])
+                is not int
+                or day["item_count"] < 0
+                or type(day["source_day_count"])
+                is not int
+                or day["source_day_count"] < 0
+                or day["source_day_count"]
+                > day["item_count"]
+            ):
+                raise RuntimeError(
+                    "campaign_agenda evolution daily value is invalid"
+                )
+
+            actual_dates.append(day["date"])
+
+        if actual_dates != expected_dates:
+            raise RuntimeError(
+                "campaign_agenda evolution daily dates are invalid"
+            )
+
+        if (
+            sum(
+                day["item_count"]
+                for day in daily_activity
+            )
+            != topic["item_count"]
+            or sum(
+                day["source_day_count"]
+                for day in daily_activity
+            )
+            != topic["source_day_count"]
+            or sum(
+                day["item_count"] > 0
+                for day in daily_activity
+            )
+            != topic["active_day_count"]
+        ):
+            raise RuntimeError(
+                "campaign_agenda evolution daily totals are inconsistent"
+            )
+
+        matched_terms = topic[
+            "matched_term_counts"
+        ]
+
+        if not isinstance(matched_terms, list):
+            raise RuntimeError(
+                "campaign_agenda evolution matched terms are invalid"
+            )
+
+        term_names: list[str] = []
+        term_order: list[
+            tuple[int, str]
+        ] = []
+
+        for matched in matched_terms:
+            if (
+                not isinstance(matched, dict)
+                or set(matched)
+                != {"term", "item_count"}
+                or not isinstance(
+                    matched["term"],
+                    str,
+                )
+                or not matched["term"].strip()
+                or type(
+                    matched["item_count"]
+                )
+                is not int
+                or matched["item_count"] < 1
+                or matched["item_count"]
+                > topic["item_count"]
+            ):
+                raise RuntimeError(
+                    "campaign_agenda evolution matched term is invalid"
+                )
+
+            term_names.append(
+                matched["term"]
+            )
+            term_order.append(
+                (
+                    -matched["item_count"],
+                    matched["term"],
+                )
+            )
+
+        if (
+            len(term_names)
+            != len(set(term_names))
+            or term_order != sorted(term_order)
+        ):
+            raise RuntimeError(
+                "campaign_agenda evolution matched term ordering is invalid"
+            )
+
+        ordering.append(
+            (
+                not topic["display_eligible"],
+                -topic["source_day_count"],
+                -topic["item_count"],
+                topic["label"],
+            )
+        )
+
+    if evolution_ids != agenda_ids:
+        raise RuntimeError(
+            "campaign_agenda evolution topics do not match agenda topics"
+        )
+
+    if ordering != sorted(ordering):
+        raise RuntimeError(
+            "campaign_agenda evolution topic order is invalid"
+        )
+
+
 def validate_campaign_agenda(
     campaign_agenda: Any,
     relevant_news: Any,
@@ -4833,6 +5412,7 @@ def validate_campaign_agenda(
         "unclassified_item_count",
         "method",
         "display_min_source_days",
+        "evolution",
         "topics",
     }
 
@@ -4931,6 +5511,11 @@ def validate_campaign_agenda(
                 )
 
             supporting_ids.add(item_id)
+
+    validate_campaign_agenda_evolution(
+        campaign_agenda["evolution"],
+        agenda_topics,
+    )
 
     if (
         sum(
@@ -6051,6 +6636,7 @@ def build_wire(
         relevant_news,
         window_days,
         notable_developments,
+        generated_at,
     )
 
     discovered_publishers_payload = aggregate_discovered_publishers(

@@ -563,6 +563,247 @@ class CampaignAgendaEvidenceTests(unittest.TestCase):
                         set(),
                     )
 
+    def test_evolution_uses_exact_thirty_calendar_days(self):
+        items = [
+            self.item(
+                0,
+                "2026-08-08T00:30:00Z",
+                "Publisher A",
+            ),
+            self.item(
+                1,
+                "2026-08-07T10:00:00Z",
+                "Publisher A",
+            ),
+            self.item(
+                2,
+                "2026-08-07T11:00:00Z",
+                "Publisher A",
+            ),
+            self.item(
+                3,
+                "2026-08-07T12:00:00Z",
+                "Publisher B",
+            ),
+            self.item(
+                4,
+                "2026-07-09T18:00:00Z",
+                "Publisher C",
+            ),
+        ]
+
+        generated_at = datetime(
+            2026,
+            8,
+            8,
+            2,
+            30,
+            tzinfo=timezone.utc,
+        )
+
+        agenda = build_campaign_agenda(
+            items,
+            window_days=30,
+            generated_at=generated_at,
+        )
+
+        evolution = agenda["evolution"]
+        topic = evolution["topics"][0]
+
+        self.assertEqual(
+            evolution["period_start"],
+            "2026-07-10",
+        )
+        self.assertEqual(
+            evolution["period_end"],
+            "2026-08-08",
+        )
+        self.assertTrue(
+            evolution["period_end_partial"]
+        )
+
+        self.assertEqual(
+            evolution["latest_start"],
+            "2026-08-01",
+        )
+        self.assertEqual(
+            evolution["latest_end"],
+            "2026-08-07",
+        )
+        self.assertEqual(
+            evolution["previous_start"],
+            "2026-07-25",
+        )
+        self.assertEqual(
+            evolution["previous_end"],
+            "2026-07-31",
+        )
+
+        self.assertEqual(
+            len(topic["daily_activity"]),
+            30,
+        )
+        self.assertEqual(
+            topic["daily_activity"][0]["date"],
+            "2026-07-10",
+        )
+        self.assertEqual(
+            topic["daily_activity"][-1]["date"],
+            "2026-08-08",
+        )
+
+        daily = {
+            entry["date"]: entry
+            for entry in topic["daily_activity"]
+        }
+
+        # Two articles from the same publisher/day are
+        # one source-day; a second publisher creates another.
+        self.assertEqual(
+            daily["2026-08-07"]["item_count"],
+            3,
+        )
+        self.assertEqual(
+            daily["2026-08-07"][
+                "source_day_count"
+            ],
+            2,
+        )
+
+        self.assertEqual(
+            daily["2026-08-08"]["item_count"],
+            1,
+        )
+        self.assertEqual(
+            daily["2026-08-08"][
+                "source_day_count"
+            ],
+            1,
+        )
+
+        # 9 July remains part of the legacy rolling input,
+        # but is intentionally outside the exact 30-date
+        # evolution projection ending 8 August.
+        self.assertEqual(
+            agenda["topics"][0]["item_count"],
+            5,
+        )
+        self.assertEqual(
+            topic["item_count"],
+            4,
+        )
+        self.assertEqual(
+            topic["source_day_count"],
+            3,
+        )
+        self.assertEqual(
+            topic["active_day_count"],
+            2,
+        )
+        self.assertEqual(
+            topic["publisher_count"],
+            2,
+        )
+
+        validate_campaign_agenda(
+            agenda,
+            items,
+        )
+
+    def test_evolution_term_counts_use_complete_classified_set(self):
+        items = self.build_items()
+
+        agenda = build_campaign_agenda(
+            items,
+            window_days=30,
+            generated_at=datetime(
+                2026,
+                7,
+                26,
+                20,
+                0,
+                tzinfo=timezone.utc,
+            ),
+        )
+
+        topic = agenda["topics"][0]
+        evolution_topic = (
+            agenda["evolution"]["topics"][0]
+        )
+
+        self.assertEqual(
+            topic["item_count"],
+            25,
+        )
+        self.assertEqual(
+            topic["supporting_item_count"],
+            20,
+        )
+        self.assertEqual(
+            topic["omitted_item_count"],
+            5,
+        )
+
+        # Evolution is built before evidence truncation.
+        self.assertEqual(
+            evolution_topic["item_count"],
+            25,
+        )
+        self.assertEqual(
+            evolution_topic[
+                "matched_term_counts"
+            ],
+            [
+                {
+                    "term": "candidature",
+                    "item_count": 25,
+                }
+            ],
+        )
+
+        # With all synthetic items inside the projection,
+        # evolution source-day recurrence matches the
+        # authoritative legacy aggregate.
+        self.assertEqual(
+            evolution_topic[
+                "source_day_count"
+            ],
+            topic["source_day_count"],
+        )
+
+        validate_campaign_agenda(
+            agenda,
+            items,
+        )
+
+    def test_evolution_validator_rejects_daily_parity_corruption(self):
+        items = self.build_items()[:7]
+
+        agenda = build_campaign_agenda(
+            items,
+            window_days=30,
+            generated_at=datetime(
+                2026,
+                7,
+                26,
+                20,
+                0,
+                tzinfo=timezone.utc,
+            ),
+        )
+
+        invalid = copy.deepcopy(agenda)
+
+        invalid["evolution"]["topics"][0][
+            "daily_activity"
+        ][-1]["source_day_count"] += 1
+
+        with self.assertRaises(RuntimeError):
+            validate_campaign_agenda(
+                invalid,
+                items,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
