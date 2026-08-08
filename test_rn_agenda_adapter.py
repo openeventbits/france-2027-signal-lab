@@ -300,6 +300,55 @@ class RnAgendaAdapterTests(unittest.TestCase):
             [],
         )
 
+    def test_explicit_cancellation_text_fails_closed(self):
+        for wording in (
+            "annulé",
+            "annulée",
+            "annulés",
+            "annulées",
+            "annulation",
+            "déprogrammé",
+            "déprogrammée",
+            "déprogrammés",
+            "déprogrammées",
+        ):
+            with self.subTest(wording=wording):
+                description = (
+                    "Marine Le Pen participera à un débat de la campagne "
+                    "présidentielle le 27 août 2026 à 16h45. "
+                    f"Événement {wording}."
+                )
+                self.assert_parser_error(
+                    page(card(description=description)),
+                    "negative lifecycle",
+                )
+
+    def test_explicit_postponement_text_fails_closed(self):
+        for wording in ("reporté", "reportée", "reportés", "reportées"):
+            with self.subTest(wording=wording):
+                description = (
+                    "Marine Le Pen participera à un débat de la campagne "
+                    "présidentielle le 27 août 2026 à 16h45. "
+                    f"Émission {wording}."
+                )
+                self.assert_parser_error(
+                    page(card(description=description)),
+                    "negative lifecycle",
+                )
+
+    def test_negative_lifecycle_longer_token_near_miss_remains_scheduled(self):
+        description = (
+            "Marine Le Pen participera à un débat de la campagne "
+            "présidentielle le 27 août 2026 à 16h45. "
+            "Le code interne xannulés reste inchangé."
+        )
+        event = self.parse(page(card(description=description)))[0]
+        self.assertEqual(event["status"], "scheduled")
+        self.assertEqual(
+            event["event_key"],
+            "rn-agenda-marine-le-pen-2026-08-27-1645-debate",
+        )
+
     def test_unsupported_canonical_candidate_fails_closed(self):
         description = (
             "Jordan Bardella participera à un débat de la campagne "

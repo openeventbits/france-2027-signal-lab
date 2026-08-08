@@ -51,7 +51,7 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
         if pattern is not None:
             self.assertRegex(str(context.exception), pattern)
 
-    def test_production_registry_has_exact_approved_institutional_sources(self):
+    def test_production_registry_has_exact_approved_sources(self):
         loaded = load_campaign_event_source_registry(
             ROOT / "campaign_event_sources.json"
         )
@@ -59,9 +59,14 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
             [source["source_id"] for source in loaded["sources"]],
             [
                 "interieur-presidential-calendar",
+                "rn-agenda",
                 "vie-publique-presidential-calendar",
             ],
         )
+        rn_source = next(
+            source for source in loaded["sources"] if source["source_id"] == "rn-agenda"
+        )
+        self.assertNotIn("candidate_ids", rn_source)
         self.assertEqual(
             loaded["sources"],
             [
@@ -76,6 +81,19 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
                     "required": True,
                     "refresh_class": "manual",
                     "zero_result_valid": False,
+                },
+                {
+                    "source_id": "rn-agenda",
+                    "publisher": "Rassemblement National",
+                    "source_type": "party_first_party",
+                    "url": "https://rassemblementnational.fr/agenda",
+                    "allowed_lanes": ["campaign_events"],
+                    "allowed_event_types": ["debate"],
+                    "enabled": True,
+                    "required": False,
+                    "refresh_class": "daily",
+                    "zero_result_valid": True,
+                    "organization": "Rassemblement National",
                 },
                 {
                     "source_id": "vie-publique-presidential-calendar",
@@ -434,6 +452,7 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
             [source["source_id"] for source in loaded["sources"]],
             [
                 "interieur-presidential-calendar",
+                "rn-agenda",
                 "vie-publique-presidential-calendar",
             ],
         )

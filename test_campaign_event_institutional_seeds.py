@@ -158,7 +158,9 @@ class CampaignEventInstitutionalSeedTests(unittest.TestCase):
     def test_evidence_urls_require_exact_registered_url_without_mutation(self):
         registry = json.loads(SOURCES_PATH.read_text(encoding="utf-8"))
         registered_urls = {
-            source["source_id"]: source["url"] for source in registry["sources"]
+            source["source_id"]: source["url"]
+            for source in registry["sources"]
+            if "institutional_milestones" in source["allowed_lanes"]
         }
         for source_id, registered_url in registered_urls.items():
             source_path = registered_url.split("/", 3)

@@ -36,9 +36,18 @@ jobs:
             test_campaign_event_sources \
             test_campaign_events_contract \
             test_campaign_event_institutional_seeds \
+            test_rn_agenda_adapter \
             test_build_campaign_events \
             test_publication_manifest \
             test_campaign_events_workflow_contract
+
+      - name: Create canonical publication timestamp
+        id: campaign_timestamp
+        shell: bash
+        run: |
+          set -euo pipefail
+          timestamp="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          echo "value=$timestamp" >> "$GITHUB_OUTPUT"
 
       - name: Validate and atomically publish Campaign Events
         id: campaign_events
@@ -46,9 +55,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          generated_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           python -B build_campaign_events.py \
-            --generated-at "$generated_at" \
+            --generated-at "${{ steps.campaign_timestamp.outputs.value }}" \
             --preserve-generated-at-from campaign_events.json \
             --output /tmp/campaign_events.json
 
@@ -63,12 +71,16 @@ jobs:
           PY
 
           if cmp --silent campaign_events.json /tmp/campaign_events.json; then
-            echo "No institutional milestone change was detected."
+            echo "No Campaign Events change was detected."
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
-            python -B build_campaign_events.py \
-              --generated-at "$generated_at" \
-              --preserve-generated-at-from campaign_events.json
+            python -B - <<'PY'
+          from pathlib import Path
+          from build_campaign_events import atomic_write
+
+          candidate = Path("/tmp/campaign_events.json").read_bytes()
+          atomic_write("campaign_events.json", candidate)
+          PY
             python -B -c 'import json; from campaign_events_contract import validate_campaign_events_artifact; validate_campaign_events_artifact(json.load(open("campaign_events.json", encoding="utf-8")))'
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
@@ -77,12 +89,13 @@ jobs:
         id: publication_manifest
         env:
           CAMPAIGN_EVENTS_CHANGED: ${{ steps.campaign_events.outputs.changed }}
+          CAMPAIGN_TIMESTAMP: ${{ steps.campaign_timestamp.outputs.value }}
         shell: bash
         run: |
           set -euo pipefail
 
           if [[ "$CAMPAIGN_EVENTS_CHANGED" == "true" ]]; then
-            published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            published_at="$CAMPAIGN_TIMESTAMP"
           else
             published_at="$(python -B -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
           fi
@@ -134,14 +147,8 @@ jobs:
           git fetch origin main
           git rebase origin/main
 
-          generated_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          python -B -c 'import json; from campaign_events_contract import validate_campaign_events_artifact; validate_campaign_events_artifact(json.load(open("campaign_events.json", encoding="utf-8")))'
           published_at="$(python -B -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
-          python -B build_campaign_events.py \
-            --generated-at "$generated_at" \
-            --preserve-generated-at-from campaign_events.json
-          if ! git diff --quiet -- campaign_events.json; then
-            published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          fi
           python -B build_publication_manifest.py --published-at "$published_at"
           python -B build_publication_manifest.py \
             --check \
