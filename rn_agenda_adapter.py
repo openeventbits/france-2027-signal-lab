@@ -55,6 +55,11 @@ _DISPLAY_TIME = re.compile(r"(?<!\d)([01]?\d|2[0-3])h([0-5]\d)(?!\d)")
 _OBSERVED_AT = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z")
 _CAMPAIGN_CONTEXT = re.compile(r"\bcampagne\s+présidentielle\b", re.IGNORECASE)
 _DEBATE_CONTEXT = re.compile(r"\bdébat\w*", re.IGNORECASE)
+_NEGATIVE_LIFECYCLE = re.compile(
+    r"(?<!\w)(?:annul(?:é|ée|és|ées)|annulation|"
+    r"report(?:é|ée|és|ées)|déprogramm(?:é|ée|és|ées))(?!\w)",
+    re.IGNORECASE,
+)
 _ORGANIZER = re.compile(
     r"\borganis(?:é|ée|e)\s+par\s+(?:(?:le|la)\s+|l['’])?([A-Z][A-Z0-9.-]{1,})\b"
 )
@@ -442,6 +447,10 @@ def _build_event(
         )
     if _DEBATE_CONTEXT.search(local_text) is None:
         raise RnAgendaAdapterError("presidential event cannot be classified as debate")
+    if _NEGATIVE_LIFECYCLE.search(local_text) is not None:
+        raise RnAgendaAdapterError(
+            "presidential debate has explicit negative lifecycle wording"
+        )
 
     event_key = (
         f"rn-agenda-{candidate_id}-{card['date_key']}-{card['time_key']}-debate"

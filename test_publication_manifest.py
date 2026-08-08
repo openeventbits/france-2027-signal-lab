@@ -536,6 +536,7 @@ class PublicationManifestTests(unittest.TestCase):
             candidate_registry_path=ROOT / "candidate_candidacy_status.json",
             output_path=production_root / "campaign_events.json",
             preserve_generated_at_from=tracked_campaign,
+            source_event_builders={"rn-agenda": lambda **_kwargs: []},
         )
         self.assertEqual(
             (production_root / "campaign_events.json").read_bytes(),
@@ -555,6 +556,10 @@ class PublicationManifestTests(unittest.TestCase):
         tracked_manifest = json.loads(
             (ROOT / "publication_manifest.json").read_text(encoding="utf-8")
         )
+        baseline = manifest_builder.build_manifest(
+            production_root,
+            published_at=tracked_manifest["published_at"],
+        )
         changed = json.loads(
             (ROOT / "campaign_events.json").read_text(encoding="utf-8")
         )
@@ -571,6 +576,18 @@ class PublicationManifestTests(unittest.TestCase):
             tracked_manifest["lanes"]["campaign_events"]["sha256"],
         )
         self.assertNotEqual(rebuilt["snapshot_id"], tracked_manifest["snapshot_id"])
+        self.assertEqual(
+            {
+                name: lane
+                for name, lane in rebuilt["lanes"].items()
+                if name != "campaign_events"
+            },
+            {
+                name: lane
+                for name, lane in baseline["lanes"].items()
+                if name != "campaign_events"
+            },
+        )
 
     def test_missing_campaign_events_is_isolated_to_its_lane(self):
         baseline = self.build()
