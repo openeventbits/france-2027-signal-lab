@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import date, timedelta
 import json
 import re
 import subprocess
@@ -57,7 +58,8 @@ const context = {
   escapeHtml: value => String(value),
   escapeAttribute: value => String(value),
   formatNewsDateTime: value => String(value),
-  formatRunoffFieldwork: value => String(value)
+  formatRunoffFieldwork: value => String(value),
+  safeSourceUrl: value => String(value)
 };
 vm.runInNewContext(source, context);
 const api = context.window.hybridDashboard;
@@ -71,13 +73,620 @@ process.stdout.write(JSON.stringify(result));
         ),
         cwd=ROOT,
         text=True,
+        encoding="utf-8",
         capture_output=True,
         check=True,
     )
     return json.loads(completed.stdout)
 
 
+def agenda_evolution_payload():
+    start = date(2026, 7, 10)
+
+    dates = [
+        (
+            start + timedelta(days=index)
+        ).isoformat()
+        for index in range(30)
+    ]
+
+    definitions = [
+        (
+            "selection_strategy",
+            "Primaries & party strategy",
+            99,
+            1,
+            10,
+        ),
+        (
+            "candidacies_endorsements",
+            "Candidacies & endorsements",
+            98,
+            8,
+            2,
+        ),
+        (
+            "legal_eligibility",
+            "Legal cases & eligibility",
+            97,
+            1,
+            6,
+        ),
+        (
+            "polls_race",
+            "Polling & race narratives",
+            96,
+            5,
+            1,
+        ),
+        (
+            "rules_calendar",
+            "Rules, calendar & campaign mechanics",
+            95,
+            4,
+            1,
+        ),
+    ]
+
+    legacy_topics = []
+    evolution_topics = []
+
+    for (
+        topic_id,
+        label,
+        legacy_source_days,
+        previous_total,
+        latest_total,
+    ) in definitions:
+        counts = [0] * 30
+
+        # Previous comparison window:
+        # 25–31 July = indices 15–21.
+        counts[15] = previous_total
+
+        # Latest comparison window:
+        # 1–7 August = indices 22–28.
+        if latest_total >= 7:
+            base = latest_total // 7
+            remainder = latest_total % 7
+
+            for offset in range(7):
+                counts[22 + offset] = (
+                    base +
+                    (
+                        1
+                        if offset < remainder
+                        else 0
+                    )
+                )
+        else:
+            for offset in range(
+                latest_total
+            ):
+                counts[22 + offset] = 1
+
+        daily = [
+            {
+                "date": day,
+                "item_count": count,
+                "source_day_count": count,
+            }
+            for day, count in zip(
+                dates,
+                counts,
+            )
+        ]
+
+        evolution_source_days = sum(
+            counts
+        )
+
+        active_days = sum(
+            count > 0
+            for count in counts
+        )
+
+        legacy_topics.append(
+            {
+                "id": topic_id,
+                "label": label,
+                "item_count": legacy_source_days,
+                "publisher_count": 5,
+                "publisher_names": [
+                    "Publisher A",
+                    "Publisher B",
+                ],
+                "source_day_count": (
+                    legacy_source_days
+                ),
+                "active_day_count": 14,
+                "display_eligible": True,
+                "supporting_item_count": 1,
+                "omitted_item_count": 0,
+                "supporting_items": [
+                    {
+                        "id": (
+                            f"{topic_id}-evidence"
+                        ),
+                        "publisher": (
+                            "Publisher A"
+                        ),
+                        "published_at": (
+                            "2026-08-07T12:00:00Z"
+                        ),
+                        "headline": (
+                            f"{label} evidence"
+                        ),
+                        "url": (
+                            "https://example.test/evidence"
+                        ),
+                        "candidates": [],
+                        "matched_terms": [
+                            "example term"
+                        ],
+                    }
+                ],
+            }
+        )
+
+        evolution_topics.append(
+            {
+                "id": topic_id,
+                "label": label,
+                "item_count": (
+                    evolution_source_days
+                ),
+                "publisher_count": 5,
+                "source_day_count": (
+                    evolution_source_days
+                ),
+                "active_day_count": (
+                    active_days
+                ),
+                "display_eligible": True,
+                "daily_activity": daily,
+                "matched_term_counts": [
+                    {
+                        "term": (
+                            "example term"
+                        ),
+                        "item_count": max(
+                            1,
+                            evolution_source_days,
+                        ),
+                    }
+                ],
+            }
+        )
+
+    return {
+        "generated_at": (
+            "2026-08-08T02:30:00Z"
+        ),
+        "window_days": 30,
+        "campaign_agenda": {
+            "window_days": 30,
+            "input_item_count": 100,
+            "classified_item_count": 50,
+            "unclassified_item_count": 50,
+            "method": (
+                "accepted_relevant_news_by_campaign_theme"
+            ),
+            "display_min_source_days": 2,
+            "topics": legacy_topics,
+            "evolution": {
+                "period_days": 30,
+                "period_start": (
+                    "2026-07-10"
+                ),
+                "period_end": (
+                    "2026-08-08"
+                ),
+                "period_end_partial": True,
+                "comparison_days": 7,
+                "latest_start": (
+                    "2026-08-01"
+                ),
+                "latest_end": (
+                    "2026-08-07"
+                ),
+                "previous_start": (
+                    "2026-07-25"
+                ),
+                "previous_end": (
+                    "2026-07-31"
+                ),
+                "topics": evolution_topics,
+            },
+        },
+    }
+
+
 class FinalDashboardShellTests(unittest.TestCase):
+    def test_agenda_movement_threshold_boundaries(self):
+        payload = agenda_evolution_payload()
+
+        result = run_media_model_script(
+            payload,
+            """({
+              rising: api.agendaMovementLabel(4, 2, 5),
+              fading: api.agendaMovementLabel(2, 4, -5),
+              stableShare: api.agendaMovementLabel(4, 2, 4.9),
+              stableDelta: api.agendaMovementLabel(3, 2, 5),
+              stableActivity: api.agendaMovementLabel(2, 2, 6)
+            })""",
+        )
+
+        self.assertEqual(
+            result,
+            {
+                "rising": "RISING",
+                "fading": "FADING",
+                "stableShare": "STABLE",
+                "stableDelta": "STABLE",
+                "stableActivity": "STABLE",
+            },
+        )
+
+    def test_agenda_structure_threshold_boundaries(self):
+        payload = agenda_evolution_payload()
+
+        result = run_media_model_script(
+            payload,
+            """({
+              eventDriven: api.agendaStructureLabel(14, 20, 0.40, 5),
+              persistent14: api.agendaStructureLabel(7, 7, 0.39, 5),
+              persistent30: api.agendaStructureLabel(6, 12, 0.39, 5),
+              intermittent: api.agendaStructureLabel(6, 11, 0.39, 5),
+              eventPrecedence: api.agendaStructureLabel(14, 20, 0.50, 8)
+            })""",
+        )
+
+        self.assertEqual(
+            result["eventDriven"],
+            "EVENT-DRIVEN",
+        )
+
+        self.assertEqual(
+            result["persistent14"],
+            "PERSISTENT",
+        )
+
+        self.assertEqual(
+            result["persistent30"],
+            "PERSISTENT",
+        )
+
+        self.assertEqual(
+            result["intermittent"],
+            "INTERMITTENT",
+        )
+
+        self.assertEqual(
+            result["eventPrecedence"],
+            "EVENT-DRIVEN",
+        )
+
+    def test_agenda_evolution_model_keeps_legacy_topics_isolated(self):
+        payload = agenda_evolution_payload()
+
+        result = run_media_model_script(
+            payload,
+            """(() => {
+              const model = api.buildAgendaViewModel();
+              return {
+                ready: model.evolutionReady,
+                legacyFirst: {
+                  id: model.topics[0].id,
+                  sourceDays: model.topics[0].source_day_count
+                },
+                evolutionFirst: {
+                  id: model.evolutionTopics[0].id,
+                  sourceDays: model.evolutionTopics[0].source_day_count
+                }
+              };
+            })()""",
+        )
+
+        self.assertTrue(
+            result["ready"]
+        )
+
+        # Shared Agenda model values stay
+        # legacy-authoritative for Media Pulse.
+        self.assertEqual(
+            result["legacyFirst"],
+            {
+                "id": (
+                    "selection_strategy"
+                ),
+                "sourceDays": 99,
+            },
+        )
+
+        # Agenda Evolution uses its own
+        # exact-calendar projection.
+        self.assertEqual(
+            result["evolutionFirst"],
+            {
+                "id": (
+                    "selection_strategy"
+                ),
+                "sourceDays": 11,
+            },
+        )
+
+    def test_agenda_evolution_builds_exact_six_five_day_bins(self):
+        payload = agenda_evolution_payload()
+
+        result = run_media_model_script(
+            payload,
+            """(() => {
+              const model = api.buildAgendaViewModel();
+              const topic = model.evolutionTopics.find(
+                item => item.id === "selection_strategy"
+              );
+              return {
+                bins: topic.bins,
+                total: topic.source_day_count
+              };
+            })()""",
+        )
+
+        self.assertEqual(
+            len(result["bins"]),
+            6,
+        )
+
+        self.assertEqual(
+            result["bins"][0]["start"],
+            "2026-07-10",
+        )
+
+        self.assertEqual(
+            result["bins"][0]["end"],
+            "2026-07-14",
+        )
+
+        self.assertEqual(
+            result["bins"][-1]["start"],
+            "2026-08-04",
+        )
+
+        self.assertEqual(
+            result["bins"][-1]["end"],
+            "2026-08-08",
+        )
+
+        self.assertEqual(
+            sum(
+                item["sourceDays"]
+                for item
+                in result["bins"]
+            ),
+            result["total"],
+        )
+
+    def test_agenda_diagnostics_use_latest_complete_periods(self):
+        payload = agenda_evolution_payload()
+
+        result = run_media_model_script(
+            payload,
+            """(() => {
+              const model = api.buildAgendaViewModel();
+              return {
+                diagnostics: model.diagnostics,
+                movement: Object.fromEntries(
+                  model.evolutionTopics.map(
+                    topic => [
+                      topic.id,
+                      topic.movement
+                    ]
+                  )
+                )
+              };
+            })()""",
+        )
+
+        diagnostics = result[
+            "diagnostics"
+        ]
+
+        self.assertEqual(
+            diagnostics[
+                "activeTopics"
+            ],
+            5,
+        )
+
+        self.assertAlmostEqual(
+            diagnostics[
+                "top3Share"
+            ],
+            90.0,
+            places=6,
+        )
+
+        self.assertEqual(
+            diagnostics[
+                "risingTopics"
+            ],
+            2,
+        )
+
+        self.assertEqual(
+            diagnostics[
+                "top3Turnover"
+            ],
+            2,
+        )
+
+        self.assertEqual(
+            diagnostics[
+                "top3TurnoverDenominator"
+            ],
+            3,
+        )
+
+        self.assertEqual(
+            result["movement"][
+                "selection_strategy"
+            ],
+            "RISING",
+        )
+
+        self.assertEqual(
+            result["movement"][
+                "legal_eligibility"
+            ],
+            "RISING",
+        )
+
+        self.assertEqual(
+            result["movement"][
+                "candidacies_endorsements"
+            ],
+            "FADING",
+        )
+
+    def test_agenda_model_falls_back_when_evolution_is_absent(self):
+        payload = agenda_evolution_payload()
+
+        del payload[
+            "campaign_agenda"
+        ]["evolution"]
+
+        result = run_media_model_script(
+            payload,
+            """(() => {
+              const model = api.buildAgendaViewModel();
+              return {
+                state: model.state,
+                ready: model.evolutionReady,
+                topicCount: model.topics.length,
+                evolutionCount: model.evolutionTopics.length
+              };
+            })()""",
+        )
+
+        self.assertEqual(
+            result["state"],
+            "ready",
+        )
+
+        self.assertFalse(
+            result["ready"]
+        )
+
+        self.assertEqual(
+            result["topicCount"],
+            5,
+        )
+
+        self.assertEqual(
+            result["evolutionCount"],
+            0,
+        )
+
+    def test_agenda_evolution_renderer_exposes_full_workspace(self):
+        payload = agenda_evolution_payload()
+
+        html = run_media_model_script(
+            payload,
+            """(() => {
+              const model = api.buildAgendaViewModel();
+              return api.renderAgendaPanel(model);
+            })()""",
+        )
+
+        for contract in (
+            "AGENDA MONITOR",
+            "AGENDA EVOLUTION",
+            "TOPIC DOSSIER",
+            "ACTIVE TOPICS",
+            "TOP-3 SHARE",
+            "RISING TOPICS",
+            "TOP-3 TURNOVER",
+            "30-DAY EVOLUTION",
+            "WEEK SHIFT",
+            "SELECTED RECURRING TOPIC",
+            "ASSOCIATED SIGNALS",
+            "RECENT EVIDENCE",
+            "ACTIVITY PROFILE",
+        ):
+            self.assertIn(contract, html)
+
+        self.assertEqual(
+            html.count('data-agenda-day-cell="true"'),
+            150,
+        )
+
+        self.assertEqual(
+            html.count('data-agenda-activity-day="true"'),
+            30,
+        )
+
+        self.assertEqual(
+            html.count('data-hybrid-agenda-topic='),
+            10,
+        )
+
+        self.assertGreaterEqual(
+            html.count('aria-pressed="true"'),
+            2,
+        )
+
+        self.assertNotIn("Eligible-topic ranking", html)
+        self.assertNotIn("undefined/30", html)
+        self.assertIn("hybrid-agenda-v6-info", html)
+        self.assertIn("Source-day = unique publisher", html)
+
+        self.assertEqual(
+            html.count('data-agenda-scroll-region='),
+            2,
+        )
+
+        for legend in (
+            "OLDER",
+            "PRIOR 7D",
+            "LATEST 7D",
+            "PARTIAL DAY",
+        ):
+            self.assertIn(legend, html)
+
+        self.assertNotIn("MOVEMENT PROFILE", html)
+        self.assertNotIn("hybrid-agenda-v4-", html)
+
+    def test_agenda_renderer_keeps_legacy_fallback_without_evolution(self):
+        payload = agenda_evolution_payload()
+
+        del payload[
+            "campaign_agenda"
+        ]["evolution"]
+
+        html = run_media_model_script(
+            payload,
+            """(() => {
+              const model = api.buildAgendaViewModel();
+              return api.renderAgendaPanel(model);
+            })()""",
+        )
+
+        self.assertIn(
+            "Eligible-topic ranking",
+            html,
+        )
+
+        self.assertIn(
+            "Selected recurring topic",
+            html,
+        )
+
+        self.assertNotIn(
+            "AGENDA EVOLUTION · 30 DAYS",
+            html,
+        )
+
     @classmethod
     def setUpClass(cls):
         cls.html = INDEX.read_text(encoding="utf-8")

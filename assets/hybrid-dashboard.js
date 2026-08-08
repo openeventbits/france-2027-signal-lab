@@ -1265,36 +1265,526 @@
         payload.generated_at
     };
   }
+  const AGENDA_MOVEMENT_SHARE_THRESHOLD_PP = 5;
+  const AGENDA_MOVEMENT_SOURCE_DAY_DELTA_MIN = 2;
+  const AGENDA_MOVEMENT_COMPARISON_ACTIVITY_MIN = 5;
+
+  const AGENDA_EVENT_DRIVEN_PEAK_SHARE_MIN = 0.40;
+  const AGENDA_EVENT_DRIVEN_SOURCE_DAYS_MIN = 5;
+  const AGENDA_PERSISTENT_ACTIVE_14_MIN = 7;
+  const AGENDA_PERSISTENT_ACTIVE_30_MIN = 12;
+
+  function agendaMovementLabel(
+    latestSourceDays,
+    previousSourceDays,
+    agendaShareChangePp
+  ) {
+    const latest = number(latestSourceDays);
+    const previous = number(previousSourceDays);
+    const change = number(agendaShareChangePp);
+    const sourceDayDelta = latest - previous;
+    const comparisonActivity = latest + previous;
+
+    if (
+      comparisonActivity >= AGENDA_MOVEMENT_COMPARISON_ACTIVITY_MIN &&
+      change >= AGENDA_MOVEMENT_SHARE_THRESHOLD_PP &&
+      sourceDayDelta >= AGENDA_MOVEMENT_SOURCE_DAY_DELTA_MIN
+    ) {
+      return "RISING";
+    }
+
+    if (
+      comparisonActivity >= AGENDA_MOVEMENT_COMPARISON_ACTIVITY_MIN &&
+      change <= -AGENDA_MOVEMENT_SHARE_THRESHOLD_PP &&
+      sourceDayDelta <= -AGENDA_MOVEMENT_SOURCE_DAY_DELTA_MIN
+    ) {
+      return "FADING";
+    }
+
+    return "STABLE";
+  }
+
+  function agendaStructureLabel(
+    activeDays14,
+    activeDays30,
+    peakDayShare,
+    sourceDayCount
+  ) {
+    if (
+      number(sourceDayCount) >= AGENDA_EVENT_DRIVEN_SOURCE_DAYS_MIN &&
+      number(peakDayShare) >= AGENDA_EVENT_DRIVEN_PEAK_SHARE_MIN
+    ) {
+      return "EVENT-DRIVEN";
+    }
+
+    if (
+      number(activeDays14) >= AGENDA_PERSISTENT_ACTIVE_14_MIN ||
+      number(activeDays30) >= AGENDA_PERSISTENT_ACTIVE_30_MIN
+    ) {
+      return "PERSISTENT";
+    }
+
+    return "INTERMITTENT";
+  }
+
+  function agendaSourceDaysInRange(
+    dailyActivity,
+    startDate,
+    endDate
+  ) {
+    return dailyActivity.reduce(
+      (total, day) =>
+        day.date >= startDate && day.date <= endDate
+          ? total + number(day.source_day_count)
+          : total,
+      0
+    );
+  }
+
+  function agendaEvolutionTopicModel(
+    topic,
+    legacyTopic,
+    evolution
+  ) {
+    const dailyActivity = Array.isArray(topic.daily_activity)
+      ? topic.daily_activity
+      : [];
+
+    const bins = Array.from(
+      { length: 6 },
+      (_, index) => {
+        const days = dailyActivity.slice(
+          index * 5,
+          index * 5 + 5
+        );
+
+        return {
+          start: days[0]?.date || "",
+          end: days[days.length - 1]?.date || "",
+          sourceDays: days.reduce(
+            (total, day) =>
+              total + number(day.source_day_count),
+            0
+          )
+        };
+      }
+    );
+
+    const latestSourceDays = agendaSourceDaysInRange(
+      dailyActivity,
+      evolution.latest_start,
+      evolution.latest_end
+    );
+
+    const previousSourceDays = agendaSourceDaysInRange(
+      dailyActivity,
+      evolution.previous_start,
+      evolution.previous_end
+    );
+
+    const completeDays = dailyActivity.filter(
+      day => day.date <= evolution.latest_end
+    );
+
+    const latest14 = completeDays.slice(-14);
+
+    const activeDays14 = latest14.reduce(
+      (total, day) =>
+        total + (number(day.item_count) > 0 ? 1 : 0),
+      0
+    );
+
+    let peakDay = null;
+
+    dailyActivity.forEach(day => {
+      if (
+        peakDay === null ||
+        number(day.source_day_count) >
+          number(peakDay.source_day_count)
+      ) {
+        peakDay = day;
+      }
+    });
+
+    const sourceDayCount = number(
+      topic.source_day_count
+    );
+
+    const peakDayShare = (
+      sourceDayCount > 0 && peakDay
+        ? number(peakDay.source_day_count) /
+          sourceDayCount
+        : 0
+    );
+
+    return {
+      ...topic,
+      supporting_items:
+        Array.isArray(legacyTopic?.supporting_items)
+          ? legacyTopic.supporting_items
+          : [],
+      publisher_names:
+        Array.isArray(legacyTopic?.publisher_names)
+          ? legacyTopic.publisher_names
+          : [],
+      legacySourceDayCount:
+        number(legacyTopic?.source_day_count),
+      bins,
+      latestSourceDays,
+      previousSourceDays,
+      activeDays14,
+      peakDayDate: peakDay?.date || "",
+      peakDaySourceDays:
+        number(peakDay?.source_day_count),
+      peakDayShare,
+      structure: agendaStructureLabel(
+        activeDays14,
+        number(topic.active_day_count),
+        peakDayShare,
+        sourceDayCount
+      ),
+      associatedSignals:
+        Array.isArray(topic.matched_term_counts)
+          ? topic.matched_term_counts.slice()
+          : []
+    };
+  }
+
+  function agendaRankByWindow(
+    topics,
+    field
+  ) {
+    return [...topics].sort(
+      (a, b) =>
+        number(b[field]) - number(a[field]) ||
+        a.label.localeCompare(b.label, "en")
+    );
+  }
+
   function buildAgendaViewModel() {
     const unavailable = viewModelState("news");
     if (unavailable) return { domain: "agenda", ...unavailable };
 
     const agenda = dashboardState.news.campaign_agenda;
     const allTopics = Array.isArray(agenda?.topics) ? agenda.topics : [];
+
+    /*
+     * Keep the legacy topic collection unchanged here.
+     * Media Pulse already consumes Agenda model topics, so the
+     * new calendar-day projection must not silently redefine
+     * existing Media Pulse values.
+     */
     const sorted = [...allTopics].sort((a, b) =>
       number(b.source_day_count) - number(a.source_day_count) ||
       number(b.item_count) - number(a.item_count) ||
       a.label.localeCompare(b.label, "en")
     );
-    const eligible = sorted.filter(topic => topic.display_eligible);
-    const selectable = eligible.length ? eligible : sorted;
-    if (!selectable.some(topic => topic.id === state.selectedAgendaTopicId)) {
-      state.selectedAgendaTopicId = selectable[0]?.id || "";
+
+    const eligible = sorted.filter(
+      topic => topic.display_eligible
+    );
+
+    const selectable = eligible.length
+      ? eligible
+      : sorted;
+
+    if (
+      !selectable.some(
+        topic =>
+          topic.id === state.selectedAgendaTopicId
+      )
+    ) {
+      state.selectedAgendaTopicId =
+        selectable[0]?.id || "";
     }
-    const selectedTopic = selectable.find(topic => topic.id === state.selectedAgendaTopicId) || selectable[0] || null;
-    return {
+
+    const selectedTopic =
+      selectable.find(
+        topic =>
+          topic.id === state.selectedAgendaTopicId
+      ) ||
+      selectable[0] ||
+      null;
+
+    const evolution = agenda?.evolution;
+
+    const rawEvolutionTopics =
+      Array.isArray(evolution?.topics)
+        ? evolution.topics
+        : [];
+
+    const evolutionReady = Boolean(
+      evolution &&
+      number(evolution.period_days) === 30 &&
+      rawEvolutionTopics.length &&
+      rawEvolutionTopics.every(
+        topic =>
+          Array.isArray(topic.daily_activity) &&
+          topic.daily_activity.length === 30
+      )
+    );
+
+    const baseModel = {
       domain: "agenda",
-      state: selectable.length ? "ready" : "empty",
+      state: selectable.length
+        ? "ready"
+        : "empty",
       topics: selectable,
       eligibleTopics: eligible,
       selectedTopic,
-      maxSourceDays: Math.max(1, ...selectable.map(topic => number(topic.source_day_count))),
-      displayMinimum: number(agenda?.display_min_source_days),
-      inputItemCount: number(agenda?.input_item_count),
-      windowDays: number(agenda?.window_days || dashboardState.news.window_days),
+      maxSourceDays: Math.max(
+        1,
+        ...selectable.map(
+          topic => number(topic.source_day_count)
+        )
+      ),
+      displayMinimum:
+        number(agenda?.display_min_source_days),
+      inputItemCount:
+        number(agenda?.input_item_count),
+      windowDays:
+        number(
+          agenda?.window_days ||
+          dashboardState.news.window_days
+        ),
       method: agenda?.method || "",
       generatedAt:
-        dashboardState.news.generated_at
+        dashboardState.news.generated_at,
+      evolutionReady: false,
+      evolutionTopics: [],
+      selectedEvolutionTopic: null,
+      evolutionBins: [],
+      heatmapMaxSourceDays: 1,
+      diagnostics: null,
+      transitions: []
+    };
+
+    if (!evolutionReady) {
+      return baseModel;
+    }
+
+    const legacyById = new Map(
+      allTopics.map(
+        topic => [topic.id, topic]
+      )
+    );
+
+    let evolutionTopics =
+      rawEvolutionTopics.map(
+        topic =>
+          agendaEvolutionTopicModel(
+            topic,
+            legacyById.get(topic.id),
+            evolution
+          )
+      );
+
+    const evolutionEligible =
+      evolutionTopics.filter(
+        topic => topic.display_eligible
+      );
+
+    evolutionTopics =
+      evolutionEligible.length
+        ? evolutionEligible
+        : evolutionTopics;
+
+    const latestDenominator =
+      evolutionTopics.reduce(
+        (total, topic) =>
+          total +
+          number(topic.latestSourceDays),
+        0
+      );
+
+    const previousDenominator =
+      evolutionTopics.reduce(
+        (total, topic) =>
+          total +
+          number(topic.previousSourceDays),
+        0
+      );
+
+    evolutionTopics =
+      evolutionTopics.map(topic => {
+        const latestAgendaShare =
+          latestDenominator
+            ? (
+                number(topic.latestSourceDays) /
+                latestDenominator
+              ) * 100
+            : 0;
+
+        const previousAgendaShare =
+          previousDenominator
+            ? (
+                number(topic.previousSourceDays) /
+                previousDenominator
+              ) * 100
+            : 0;
+
+        const agendaShareChangePp =
+          latestAgendaShare -
+          previousAgendaShare;
+
+        return {
+          ...topic,
+          latestAgendaShare,
+          previousAgendaShare,
+          agendaShareChangePp,
+          movement: agendaMovementLabel(
+            topic.latestSourceDays,
+            topic.previousSourceDays,
+            agendaShareChangePp
+          )
+        };
+      });
+
+    evolutionTopics.sort(
+      (a, b) =>
+        number(b.source_day_count) -
+          number(a.source_day_count) ||
+        number(b.item_count) -
+          number(a.item_count) ||
+        a.label.localeCompare(
+          b.label,
+          "en"
+        )
+    );
+
+    const selectedEvolutionTopic =
+      evolutionTopics.find(
+        topic =>
+          topic.id === state.selectedAgendaTopicId
+      ) ||
+      evolutionTopics[0] ||
+      null;
+
+    const latestRanked =
+      agendaRankByWindow(
+        evolutionTopics,
+        "latestSourceDays"
+      );
+
+    const previousRanked =
+      agendaRankByWindow(
+        evolutionTopics,
+        "previousSourceDays"
+      );
+
+    const topCount = Math.min(
+      3,
+      evolutionTopics.length
+    );
+
+    const latestTop = latestRanked
+      .slice(0, topCount)
+      .map(topic => topic.id);
+
+    const previousTop = new Set(
+      previousRanked
+        .slice(0, topCount)
+        .map(topic => topic.id)
+    );
+
+    const top3Turnover =
+      latestTop.filter(
+        topicId =>
+          !previousTop.has(topicId)
+      ).length;
+
+    const top3Share = latestRanked
+      .slice(0, topCount)
+      .reduce(
+        (total, topic) =>
+          total +
+          number(topic.latestAgendaShare),
+        0
+      );
+
+    const diagnostics = {
+      activeTopics:
+        evolutionTopics.filter(
+          topic =>
+            number(topic.latestSourceDays) > 0
+        ).length,
+      top3Share,
+      risingTopics:
+        evolutionTopics.filter(
+          topic =>
+            topic.movement === "RISING"
+        ).length,
+      top3Turnover,
+      top3TurnoverDenominator: topCount,
+      latestDenominator,
+      previousDenominator
+    };
+
+    const transitions =
+      evolutionTopics
+        .filter(
+          topic =>
+            topic.movement !== "STABLE"
+        )
+        .sort(
+          (a, b) =>
+            Math.abs(
+              number(
+                b.agendaShareChangePp
+              )
+            ) -
+              Math.abs(
+                number(
+                  a.agendaShareChangePp
+                )
+              ) ||
+            a.label.localeCompare(
+              b.label,
+              "en"
+            )
+        )
+        .slice(0, 5)
+        .map(topic => ({
+          date: evolution.latest_end,
+          topicId: topic.id,
+          label: topic.label,
+          movement: topic.movement,
+          agendaShareChangePp:
+            topic.agendaShareChangePp,
+          latestSourceDays:
+            topic.latestSourceDays,
+          previousSourceDays:
+            topic.previousSourceDays
+        }));
+
+    const evolutionBins =
+      evolutionTopics[0]?.bins?.map(
+        bin => ({
+          start: bin.start,
+          end: bin.end
+        })
+      ) || [];
+
+    const heatmapMaxSourceDays = Math.max(
+      1,
+      ...evolutionTopics.flatMap(topic =>
+        (Array.isArray(topic.daily_activity)
+          ? topic.daily_activity
+          : []
+        ).map(day => number(day.source_day_count))
+      )
+    );
+
+    return {
+      ...baseModel,
+      evolutionReady: true,
+      evolution,
+      evolutionTopics,
+      selectedEvolutionTopic,
+      evolutionBins,
+      heatmapMaxSourceDays,
+      diagnostics,
+      transitions
     };
   }
 
@@ -2265,42 +2755,1012 @@
       </div>`;
   }
 
-  function renderAgendaPanel(model) {
-    if (model.state !== "ready") return summaryState(model);
+  function agendaSignedPp(value) {
+    const numeric = number(value);
+    return `${numeric > 0 ? "+" : ""}${numeric.toFixed(1)}pp`;
+  }
+
+  function agendaPercent(value, digits = 1) {
+    return `${(number(value) * 100).toFixed(digits)}%`;
+  }
+
+  function agendaCompactDate(value) {
+    const match = String(value || "").match(
+      /^(\d{4})-(\d{2})-(\d{2})$/
+    );
+
+    if (!match) return value || "";
+
+    const months = [
+      "JAN", "FEB", "MAR", "APR",
+      "MAY", "JUN", "JUL", "AUG",
+      "SEP", "OCT", "NOV", "DEC"
+    ];
+
+    return `${Number(match[3])} ${months[Number(match[2]) - 1]}`;
+  }
+
+  function agendaPeriodLabel(startValue, endValue) {
+    const start = String(startValue || "").match(
+      /^(\d{4})-(\d{2})-(\d{2})$/
+    );
+
+    const end = String(endValue || "").match(
+      /^(\d{4})-(\d{2})-(\d{2})$/
+    );
+
+    if (!start || !end) {
+      return `${startValue || ""}–${endValue || ""}`;
+    }
+
+    const months = [
+      "JAN", "FEB", "MAR", "APR",
+      "MAY", "JUN", "JUL", "AUG",
+      "SEP", "OCT", "NOV", "DEC"
+    ];
+
+    const startDay = Number(start[3]);
+    const endDay = Number(end[3]);
+    const startMonth = months[Number(start[2]) - 1];
+    const endMonth = months[Number(end[2]) - 1];
+
+    if (start[2] === end[2]) {
+      return `${startDay}–${endDay} ${endMonth}`;
+    }
+
+    return `${startDay} ${startMonth}–${endDay} ${endMonth}`;
+  }
+
+  function agendaSignalLabel(value) {
+    const cleaned = String(value || "")
+      .replaceAll("_", " ")
+      .trim();
+
+    if (!cleaned) return "";
+
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  }
+
+  function agendaTopicIcon(topicId) {
+    const icons = {
+      selection_strategy: `
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <path d="M3 15V9M7 15V5M11 15V8M15 15V3"/>
+          <path d="M2 15.5h14"/>
+        </svg>`,
+      candidacies_endorsements: `
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <circle cx="7" cy="5" r="2.2"/>
+          <circle cx="12.5" cy="6.5" r="1.7"/>
+          <path d="M2.8 14c.3-3 1.8-4.5 4.2-4.5S11 11 11.3 14"/>
+          <path d="M10.7 10.5c2.8-.1 4.2 1.1 4.5 3.5"/>
+        </svg>`,
+      legal_eligibility: `
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <path d="M9 2v13M4 5h10"/>
+          <path d="M4 5 2 10h4L4 5ZM14 5l-2 5h4l-2-5Z"/>
+          <path d="M5 15h8"/>
+        </svg>`,
+      polls_race: `
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <rect x="3" y="3" width="12" height="12" rx="1"/>
+          <path d="M6 12V9M9 12V6M12 12V8"/>
+        </svg>`,
+      rules_calendar: `
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <path d="M9 2.2 15 5v4.2c0 3.1-2.2 5.2-6 6.6-3.8-1.4-6-3.5-6-6.6V5l6-2.8Z"/>
+          <path d="m6.2 9 1.8 1.8 3.8-4"/>
+        </svg>`
+    };
+
+    return icons[topicId] || `
+      <svg viewBox="0 0 18 18" aria-hidden="true">
+        <circle cx="9" cy="9" r="5.5"/>
+      </svg>`;
+  }
+
+  function renderLegacyAgendaPanel(model) {
     const selected = model.selectedTopic;
-    const definitionAvailable = typeof selected.definition === "string" && Boolean(selected.definition.trim());
+
+    const definitionAvailable =
+      typeof selected.definition === "string" &&
+      Boolean(selected.definition.trim());
+
     const definition = definitionAvailable
       ? selected.definition.trim()
       : "Topic definition unavailable in the current repository data.";
+
     return `<div class="hybrid-agenda-layout">
       <section class="hybrid-agenda-ranking">
         <h3 class="hybrid-section-title">Eligible-topic ranking</h3>
         <p class="hybrid-section-sub">Accepted election-news topics · ${model.windowDays}-day source window. Primary bar value: source-day recurrence.</p>
+
         ${model.topics.map((topic, index) => `
-          <button class="hybrid-agenda-topic" type="button" data-hybrid-agenda-topic="${escapeAttribute(topic.id)}" aria-pressed="${String(topic.id === selected.id)}">
-            <span class="hybrid-agenda-topic-head"><span>${index + 1}. ${escapeHtml(topic.label)}</span><strong>${topic.source_day_count} source-days</strong></span>
-            <span class="hybrid-agenda-topic-meta">${countLabel(topic.item_count, "item")} · ${countLabel(topic.publisher_count, "publisher")} · ${countLabel(topic.active_day_count, "active day")}</span>
-            <span class="hybrid-track" aria-hidden="true"><span class="hybrid-fill" style="--hybrid-width:${(number(topic.source_day_count) / model.maxSourceDays * 100).toFixed(1)}%"></span></span>
-          </button>`).join("")}
+          <button
+            class="hybrid-agenda-topic"
+            type="button"
+            data-hybrid-agenda-topic="${escapeAttribute(topic.id)}"
+            aria-pressed="${String(topic.id === selected.id)}"
+          >
+            <span class="hybrid-agenda-topic-head">
+              <span>${index + 1}. ${escapeHtml(topic.label)}</span>
+              <strong>${topic.source_day_count} source-days</strong>
+            </span>
+
+            <span class="hybrid-agenda-topic-meta">
+              ${countLabel(topic.item_count, "item")} ·
+              ${countLabel(topic.publisher_count, "publisher")} ·
+              ${countLabel(topic.active_day_count, "active day")}
+            </span>
+
+            <span class="hybrid-track" aria-hidden="true">
+              <span
+                class="hybrid-fill"
+                style="--hybrid-width:${(
+                  number(topic.source_day_count) /
+                  model.maxSourceDays *
+                  100
+                ).toFixed(1)}%"
+              ></span>
+            </span>
+          </button>
+        `).join("")}
       </section>
+
       <section class="hybrid-agenda-detail" aria-live="polite">
         <div class="hybrid-section-title">Selected recurring topic</div>
         <h3>${escapeHtml(selected.label)}</h3>
-        <p class="hybrid-agenda-definition${definitionAvailable ? "" : " is-unavailable"}">${escapeHtml(definition)}</p>
+
+        <p class="hybrid-agenda-definition${definitionAvailable ? "" : " is-unavailable"}">
+          ${escapeHtml(definition)}
+        </p>
+
         <div class="hybrid-metrics">
           <span class="hybrid-metric">${selected.source_day_count} source-days</span>
           <span class="hybrid-metric">${countLabel(selected.item_count, "accepted item")}</span>
           <span class="hybrid-metric">${countLabel(selected.publisher_count, "publisher")}</span>
           <span class="hybrid-metric">${countLabel(selected.active_day_count, "active day")}</span>
         </div>
-        <div class="hybrid-supporting-list">${selected.supporting_items.slice(0, 5).map(item => `
-          <a class="hybrid-supporting-link" href="${escapeAttribute(safeSourceUrl(item.url))}" target="_blank" rel="noopener noreferrer">
-            <span class="hybrid-supporting-meta">${escapeHtml(item.publisher)} · ${formatDay(item.published_at)}</span>
-            <span lang="fr">${escapeHtml(item.headline)} <span aria-hidden="true">↗</span></span>
-          </a>`).join("") || '<div class="hybrid-state is-compact">No supporting source-linked items are available for this topic.</div>'}</div>
+
+        <div class="hybrid-supporting-list">
+          ${selected.supporting_items.slice(0, 5).map(item => `
+            <a
+              class="hybrid-supporting-link"
+              href="${escapeAttribute(safeSourceUrl(item.url))}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span class="hybrid-supporting-meta">
+                ${escapeHtml(item.publisher)} · ${formatDay(item.published_at)}
+              </span>
+              <span lang="fr">
+                ${escapeHtml(item.headline)}
+                <span aria-hidden="true">↗</span>
+              </span>
+            </a>
+          `).join("") || '<div class="hybrid-state is-compact">No supporting source-linked items are available for this topic.</div>'}
+        </div>
       </section>
     </div>
-    <p class="hybrid-disclosure">Recurring campaign topics classify accepted presidential-election coverage from monitored publishers. Bars use source-day count, not raw article volume. This is agenda activity, not voter or public priorities.</p>`;
+
+    <p class="hybrid-disclosure">
+      Recurring campaign topics classify accepted presidential-election coverage from monitored publishers. Bars use source-day count, not raw article volume. This is agenda activity, not voter or public priorities.
+    </p>`;
+  }
+
+  function agendaWindowRole(day, evolution) {
+    const value = String(day?.date || "");
+
+    if (
+      evolution?.period_end_partial &&
+      value === evolution.period_end
+    ) {
+      return "partial";
+    }
+
+    if (
+      value >= String(evolution?.latest_start || "") &&
+      value <= String(evolution?.latest_end || "")
+    ) {
+      return "latest";
+    }
+
+    if (
+      value >= String(evolution?.previous_start || "") &&
+      value <= String(evolution?.previous_end || "")
+    ) {
+      return "previous";
+    }
+
+    return "older";
+  }
+
+  function renderAgendaV6Monitor(model) {
+    const diagnostics = model.diagnostics;
+    const selected = model.selectedEvolutionTopic;
+    const maximumSourceDays = Math.max(
+      1,
+      ...model.evolutionTopics.map(topic => number(topic.source_day_count))
+    );
+
+    const diagnosticMarkup = diagnostics
+      ? `<div class="hybrid-agenda-v6-diagnostics" aria-label="Agenda diagnostics">
+          <article class="is-active">
+            <span>ACTIVE TOPICS</span>
+            <strong>${diagnostics.activeTopics}</strong>
+          </article>
+          <article class="is-concentration">
+            <span>TOP-3 SHARE</span>
+            <strong>${number(diagnostics.top3Share).toFixed(1)}%</strong>
+          </article>
+          <article class="is-rising">
+            <span>RISING TOPICS</span>
+            <strong>${diagnostics.risingTopics}</strong>
+          </article>
+          <article class="is-turnover">
+            <span>TOP-3 TURNOVER</span>
+            <strong>${diagnostics.top3Turnover}/${diagnostics.top3TurnoverDenominator}</strong>
+          </article>
+        </div>`
+      : "";
+
+    const rows = model.evolutionTopics.map(topic => {
+      const isSelected = topic.id === selected?.id;
+      const movement = String(topic.movement || "STABLE").toLowerCase();
+      const volumeWidth = Math.max(
+        4,
+        number(topic.source_day_count) / maximumSourceDays * 100
+      );
+      const movementGlyph = movement === "rising"
+        ? "▲"
+        : movement === "fading"
+          ? "▼"
+          : "•";
+
+      return `<button
+        class="hybrid-agenda-v6-topic-card"
+        type="button"
+        data-hybrid-agenda-topic="${escapeAttribute(topic.id)}"
+        data-movement="${escapeAttribute(movement)}"
+        aria-pressed="${String(isSelected)}"
+      >
+        <span class="hybrid-agenda-v6-topic-icon" aria-hidden="true">
+          ${agendaTopicIcon(topic.id)}
+        </span>
+
+        <span class="hybrid-agenda-v6-topic-copy">
+          <span class="hybrid-agenda-v6-topic-name">${escapeHtml(topic.label)}</span>
+          <span class="hybrid-agenda-v6-topic-tags">
+            <span
+              class="hybrid-agenda-v6-badge"
+              data-movement="${escapeAttribute(movement)}"
+            >${escapeHtml(topic.movement)}</span>
+            <span class="hybrid-agenda-v6-badge is-structure">${escapeHtml(topic.structure)}</span>
+          </span>
+        </span>
+
+        <span class="hybrid-agenda-v6-topic-total">
+          <strong>${topic.source_day_count}</strong>
+          <span>SOURCE-DAYS</span>
+          <i class="hybrid-agenda-v6-topic-volume" aria-hidden="true">
+            <b style="--agenda-monitor-volume:${volumeWidth.toFixed(1)}%"></b>
+          </i>
+        </span>
+
+        <span class="hybrid-agenda-v6-topic-shift">
+          <span>
+            <small>PRIOR</small>
+            <strong>${topic.previousSourceDays}</strong>
+          </span>
+          <span>
+            <small>LATEST</small>
+            <strong>${topic.latestSourceDays}</strong>
+          </span>
+          <em data-movement="${escapeAttribute(movement)}">
+            ${movementGlyph} ${escapeHtml(agendaSignedPp(topic.agendaShareChangePp))}
+          </em>
+        </span>
+      </button>`;
+    }).join("");
+
+    return `<section class="hybrid-agenda-v6-panel hybrid-agenda-v6-monitor">
+      <header class="hybrid-agenda-v6-panel-head">
+        <h3 class="hybrid-agenda-v6-panel-title">AGENDA MONITOR</h3>
+        <span class="hybrid-agenda-v6-panel-meta">
+          ${diagnostics ? `${diagnostics.activeTopics} ACTIVE · 30D` : "30D"}
+        </span>
+      </header>
+
+      <div class="hybrid-agenda-v6-panel-body hybrid-agenda-v6-monitor-body">
+        ${diagnosticMarkup}
+        <div class="hybrid-agenda-v6-topic-list">
+          ${rows}
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function agendaDailyCellV6(day, index, maxSourceDays, evolution) {
+    const value = number(day?.source_day_count);
+    const ratio = maxSourceDays ? Math.min(1, value / maxSourceDays) : 0;
+    const alpha = value === 0 ? 0 : 0.28 + ratio * 0.72;
+    const role = agendaWindowRole(day, evolution);
+
+    return `<span
+      class="hybrid-agenda-v6-day${index > 0 && index % 5 === 0 ? " is-period-start" : ""}${value === 0 ? " is-zero" : ""}"
+      data-agenda-day-cell="true"
+      data-agenda-window="${escapeAttribute(role)}"
+      style="--agenda-day-alpha:${alpha.toFixed(3)}"
+      title="${escapeAttribute(`${agendaCompactDate(day?.date)} · ${value} source-day${value === 1 ? "" : "s"}`)}"
+    ></span>`;
+  }
+
+  function renderAgendaV6Matrix(model) {
+    const selected = model.selectedEvolutionTopic;
+    const compactLabels = {
+      "Primaries & party strategy": "Primaries & strategy",
+      "Candidacies & endorsements": "Candidacies & endors.",
+      "Legal cases & eligibility": "Legal & eligibility",
+      "Polling & race narratives": "Polling & race",
+      "Rules, calendar & campaign mechanics": "Rules & mechanics"
+    };
+
+    const periodHeaders = model.evolutionBins.map(bin => `
+      <span class="hybrid-agenda-v6-period">
+        ${escapeHtml(agendaPeriodLabel(bin.start, bin.end))}
+      </span>
+    `).join("");
+
+    const rows = model.evolutionTopics.map(topic => {
+      const daily = Array.isArray(topic.daily_activity)
+        ? topic.daily_activity
+        : [];
+      const shortLabel = compactLabels[topic.label] || topic.label;
+
+      return `<button
+        class="hybrid-agenda-v6-matrix-row"
+        type="button"
+        data-hybrid-agenda-topic="${escapeAttribute(topic.id)}"
+        aria-pressed="${String(topic.id === selected?.id)}"
+        title="${escapeAttribute(topic.label)}"
+      >
+        <span class="hybrid-agenda-v6-matrix-label">${escapeHtml(shortLabel)}</span>
+
+        ${daily.map((day, index) =>
+          agendaDailyCellV6(
+            day,
+            index,
+            model.heatmapMaxSourceDays,
+            model.evolution
+          )
+        ).join("")}
+
+        <strong class="hybrid-agenda-v6-matrix-total">${topic.source_day_count}</strong>
+      </button>`;
+    }).join("");
+
+    return `<section class="hybrid-agenda-v6-module hybrid-agenda-v6-matrix-module">
+      <div class="hybrid-agenda-v6-module-head">
+        <strong>30-DAY EVOLUTION</strong>
+        <span>
+          ${escapeHtml(agendaCompactDate(model.evolution.period_start))}
+          →
+          ${escapeHtml(agendaCompactDate(model.evolution.period_end))}
+        </span>
+      </div>
+
+      <div class="hybrid-agenda-v6-matrix-wrap">
+        <div
+          class="hybrid-agenda-v6-matrix"
+          role="group"
+          aria-label="Thirty-day Agenda evolution matrix"
+        >
+          <div class="hybrid-agenda-v6-matrix-head" aria-hidden="true">
+            <span>TOPIC</span>
+            ${periodHeaders}
+            <span>30D</span>
+          </div>
+
+          ${rows}
+        </div>
+
+        <div class="hybrid-agenda-v6-matrix-legend" aria-label="Agenda evolution color key">
+          <span><i data-window="older"></i>OLDER</span>
+          <span><i data-window="previous"></i>PRIOR 7D</span>
+          <span><i data-window="latest"></i>LATEST 7D</span>
+          <span><i data-window="partial"></i>PARTIAL DAY</span>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function renderAgendaV6WeekShift(model) {
+    const compactLabels = {
+      "Primaries & party strategy": "Primaries & strategy",
+      "Candidacies & endorsements": "Candidacies & endors.",
+      "Legal cases & eligibility": "Legal & eligibility",
+      "Polling & race narratives": "Polling & race",
+      "Rules, calendar & campaign mechanics": "Rules & mechanics"
+    };
+
+    const maximum = Math.max(
+      1,
+      ...model.evolutionTopics.flatMap(topic => [
+        number(topic.latestSourceDays),
+        number(topic.previousSourceDays)
+      ])
+    );
+
+    const rows = model.evolutionTopics.map(topic => {
+      const latest = number(topic.latestSourceDays);
+      const previous = number(topic.previousSourceDays);
+      const movement = String(topic.movement || "STABLE").toLowerCase();
+      const glyph = movement === "rising"
+        ? "▲"
+        : movement === "fading"
+          ? "▼"
+          : "•";
+      const shortLabel = compactLabels[topic.label] || topic.label;
+
+      return `<div
+        class="hybrid-agenda-v6-shift-row"
+        data-movement="${escapeAttribute(movement)}"
+        title="${escapeAttribute(topic.label)}"
+      >
+        <span class="hybrid-agenda-v6-shift-label">${escapeHtml(shortLabel)}</span>
+
+        <span
+          class="hybrid-agenda-v6-pair-bars"
+          aria-label="Prior ${previous} source-days; latest ${latest} source-days"
+        >
+          <span class="hybrid-agenda-v6-pair-track is-prior" aria-hidden="true">
+            <i style="--agenda-width:${(previous / maximum * 100).toFixed(1)}%"></i>
+          </span>
+          <span class="hybrid-agenda-v6-pair-track is-latest" aria-hidden="true">
+            <i style="--agenda-width:${(latest / maximum * 100).toFixed(1)}%"></i>
+          </span>
+        </span>
+
+        <span
+          class="hybrid-agenda-v6-shift-count"
+          title="Prior 7D → latest 7D"
+        >${previous} → ${latest}</span>
+
+        <strong
+          class="hybrid-agenda-v6-shift-delta"
+          data-movement="${escapeAttribute(movement)}"
+        >${glyph} ${escapeHtml(agendaSignedPp(topic.agendaShareChangePp))}</strong>
+      </div>`;
+    }).join("");
+
+    return `<section class="hybrid-agenda-v6-module hybrid-agenda-v6-shift-module">
+      <div class="hybrid-agenda-v6-module-head">
+        <strong>WEEK SHIFT</strong>
+
+        <span class="hybrid-agenda-v6-shift-key">
+          <span>
+            <i class="is-prior" aria-hidden="true"></i>
+            PRIOR ${escapeHtml(
+              agendaPeriodLabel(
+                model.evolution.previous_start,
+                model.evolution.previous_end
+              )
+            )}
+          </span>
+          <span>
+            <i class="is-latest" aria-hidden="true"></i>
+            LATEST ${escapeHtml(
+              agendaPeriodLabel(
+                model.evolution.latest_start,
+                model.evolution.latest_end
+              )
+            )}
+          </span>
+        </span>
+      </div>
+
+      <div class="hybrid-agenda-v6-shift-list">
+        ${rows}
+      </div>
+    </section>`;
+  }
+
+  function renderAgendaV6Analysis(model) {
+    return `<section class="hybrid-agenda-v6-panel hybrid-agenda-v6-evolution-panel">
+      <header class="hybrid-agenda-v6-panel-head">
+        <h3>AGENDA EVOLUTION</h3>
+        <span class="hybrid-agenda-v6-head-tools">
+          <span class="hybrid-agenda-v6-panel-head-meta">COMPLETE-WEEK COMPARISON</span>
+          <button class="hybrid-agenda-v6-info" type="button" aria-label="Agenda methodology">
+            <span aria-hidden="true">i</span>
+            <span class="hybrid-agenda-v6-info-tooltip" role="tooltip">
+              Source-day = unique publisher × UTC date · exact 30D projection includes the current partial UTC day · movement compares latest 7 complete days with prior 7 · this measures monitored media agenda activity, not voter or public priorities.
+            </span>
+          </button>
+        </span>
+      </header>
+
+      <div class="hybrid-agenda-v6-panel-body hybrid-agenda-v6-evolution-body">
+        ${renderAgendaV6Matrix(model)}
+        ${renderAgendaV6WeekShift(model)}
+      </div>
+    </section>`;
+  }
+
+  function renderAgendaV6Activity(topic, evolution) {
+    const daily = Array.isArray(topic.daily_activity)
+      ? topic.daily_activity
+      : [];
+
+    const maxValue = Math.max(
+      1,
+      ...daily.map(day => number(day.source_day_count))
+    );
+
+    const activeDays30 = daily.filter(
+      day => number(day.source_day_count) > 0
+    ).length;
+
+    const latestSeries = daily
+      .filter(day => agendaWindowRole(day, evolution) === "latest")
+      .map(day => number(day.source_day_count));
+
+    const priorSeries = daily
+      .filter(day => agendaWindowRole(day, evolution) === "previous")
+      .map(day => number(day.source_day_count));
+
+    const comparisonMax = Math.max(
+      1,
+      ...latestSeries,
+      ...priorSeries
+    );
+
+    const renderSparkline = (values, tone, label) => {
+      const width = 118;
+      const height = 22;
+      const left = 2;
+      const right = 116;
+      const top = 3;
+      const bottom = 19;
+      const step = values.length > 1
+        ? (right - left) / (values.length - 1)
+        : 0;
+
+      const points = values.map((value, index) => {
+        const x = left + (index * step);
+        const y = bottom - (
+          number(value) / comparisonMax * (bottom - top)
+        );
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(" ");
+
+      const dots = values.map((value, index) => {
+        const x = left + (index * step);
+        const y = bottom - (
+          number(value) / comparisonMax * (bottom - top)
+        );
+
+        return `<circle
+          cx="${x.toFixed(1)}"
+          cy="${y.toFixed(1)}"
+          r="${number(value) > 0 ? "1.65" : "1.1"}"
+        ></circle>`;
+      }).join("");
+
+      return `<svg
+        class="hybrid-agenda-v6-week-sparkline"
+        data-tone="${escapeAttribute(tone)}"
+        viewBox="0 0 ${width} ${height}"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="${escapeAttribute(label)}"
+      >
+        <line
+          class="hybrid-agenda-v6-spark-baseline"
+          x1="${left}"
+          y1="${bottom}"
+          x2="${right}"
+          y2="${bottom}"
+        ></line>
+        <polyline
+          class="hybrid-agenda-v6-spark-line"
+          points="${escapeAttribute(points)}"
+        ></polyline>
+        <g class="hybrid-agenda-v6-spark-points">${dots}</g>
+      </svg>`;
+    };
+
+    return `<section class="hybrid-agenda-v6-module hybrid-agenda-v6-profile-module">
+      <div class="hybrid-agenda-v6-module-head">
+        <strong>ACTIVITY PROFILE · 30D</strong>
+        <span>
+          ${escapeHtml(agendaCompactDate(daily[0]?.date))}
+          →
+          ${escapeHtml(agendaCompactDate(daily[daily.length - 1]?.date))}
+        </span>
+      </div>
+
+      <div class="hybrid-agenda-v6-profile-body">
+        <div class="hybrid-agenda-v6-profile-top">
+          <div
+            class="hybrid-agenda-v6-bars"
+            aria-label="Thirty-day selected-topic source-day activity"
+          >
+            ${daily.map(day => {
+              const value = number(day.source_day_count);
+              const role = agendaWindowRole(day, evolution);
+              const height = value
+                ? Math.max(10, value / maxValue * 100)
+                : 2;
+
+              return `<span
+                class="${value === 0 ? "is-zero" : ""}"
+                data-agenda-activity-day="true"
+                data-agenda-window="${escapeAttribute(role)}"
+                style="--agenda-bar-height:${height.toFixed(1)}%"
+                title="${escapeAttribute(
+                  `${agendaCompactDate(day.date)} · ${value} source-day${value === 1 ? "" : "s"}`
+                )}"
+              ></span>`;
+            }).join("")}
+          </div>
+
+          <div
+            class="hybrid-agenda-v6-week-compare"
+            aria-label="Prior and latest complete-week daily activity shapes"
+          >
+            <div class="hybrid-agenda-v6-week-line is-latest">
+              <span>LATEST 7D</span>
+              ${renderSparkline(
+                latestSeries,
+                "latest",
+                `Latest 7D daily source-days: ${latestSeries.join(", ")}`
+              )}
+              <strong>${topic.latestSourceDays}</strong>
+            </div>
+
+            <div class="hybrid-agenda-v6-week-line is-prior">
+              <span>PRIOR 7D</span>
+              ${renderSparkline(
+                priorSeries,
+                "prior",
+                `Prior 7D daily source-days: ${priorSeries.join(", ")}`
+              )}
+              <strong>${topic.previousSourceDays}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="hybrid-agenda-v6-profile-facts"
+          aria-label="Selected topic persistence and peak facts"
+        >
+          <div>
+            <span>ACTIVE · 14D</span>
+            <strong>${topic.activeDays14}/14</strong>
+          </div>
+
+          <div>
+            <span>ACTIVE · 30D</span>
+            <strong>${activeDays30}/30</strong>
+          </div>
+
+          <div>
+            <span>PEAK SHARE</span>
+            <strong>${escapeHtml(agendaPercent(topic.peakDayShare))}</strong>
+          </div>
+
+          <div>
+            <span>PEAK DAY</span>
+            <strong>${escapeHtml(agendaCompactDate(topic.peakDayDate))} · ${topic.peakDaySourceDays} SD</strong>
+          </div>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function renderAgendaV6Signals(topic) {
+    const signals = Array.isArray(topic.associatedSignals)
+      ? topic.associatedSignals.slice(0, 8)
+      : [];
+
+    if (!signals.length) {
+      return `<div class="hybrid-agenda-v6-scroll" data-agenda-scroll-region="signals">
+        <div class="hybrid-agenda-v6-empty">No associated classification signals are published.</div>
+      </div>`;
+    }
+
+    const maximum = Math.max(1, ...signals.map(signal => number(signal.item_count)));
+
+    return `<div class="hybrid-agenda-v6-scroll" data-agenda-scroll-region="signals">
+      <div class="hybrid-agenda-v6-signal-list">
+        ${signals.map(signal => {
+          const count = number(signal.item_count);
+          return `<div class="hybrid-agenda-v6-signal-item">
+            <div class="hybrid-agenda-v6-signal-head">
+              <span>${escapeHtml(agendaSignalLabel(signal.term))}</span>
+              <strong>${count}</strong>
+            </div>
+            <span class="hybrid-agenda-v6-signal-track" aria-hidden="true">
+              <i style="--agenda-signal-width:${(count / maximum * 100).toFixed(1)}%"></i>
+            </span>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`;
+  }
+
+
+  const agendaSourceIconState = {
+    status: "idle",
+    records: new Map()
+  };
+  let agendaSourceIconRequest = null;
+
+  function agendaNormalizePublisherIconKey(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[’']/g, " ")
+      .replace(/[^a-zA-Z0-9]+/g, " ")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, " ");
+  }
+
+  function agendaPublisherIconKey(value) {
+    const normalized = agendaNormalizePublisherIconKey(value);
+    const aliases = new Map([
+      ["franceinfo", "franceinfo politique"],
+      ["lcp actualites", "lcp"],
+      ["france 24 france", "france 24 francais"]
+    ]);
+    return aliases.get(normalized) || normalized;
+  }
+
+  function ensureAgendaSourceIcons(
+    fetchImplementation =
+      typeof window.fetch === "function"
+        ? window.fetch.bind(window)
+        : null
+  ) {
+    if (
+      agendaSourceIconState.status !== "idle" ||
+      agendaSourceIconRequest ||
+      !fetchImplementation
+    ) {
+      return agendaSourceIconRequest;
+    }
+
+    agendaSourceIconState.status = "loading";
+
+    agendaSourceIconRequest = fetchImplementation("source_icons.json")
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(
+            `source_icons.json returned HTTP ${response.status}`
+          );
+        }
+        return response.json();
+      })
+      .then(payload => {
+        const sources = Array.isArray(payload?.sources)
+          ? payload.sources
+          : [];
+
+        agendaSourceIconState.records.clear();
+
+        sources.forEach(record => {
+          if (
+            !record ||
+            record.status !== "ok" ||
+            typeof record.publisher !== "string" ||
+            typeof record.path !== "string" ||
+            !record.path
+          ) {
+            return;
+          }
+
+          agendaSourceIconState.records.set(
+            agendaPublisherIconKey(record.publisher),
+            record.path
+          );
+        });
+
+        agendaSourceIconState.status = "ready";
+
+        if (typeof mount.querySelectorAll === "function") {
+          renderAll();
+        }
+
+        return agendaSourceIconState;
+      })
+      .catch(error => {
+        agendaSourceIconState.status = "unavailable";
+        agendaSourceIconState.records.clear();
+        console.warn("Agenda source icons unavailable.", error);
+        return agendaSourceIconState;
+      });
+
+    return agendaSourceIconRequest;
+  }
+
+  function agendaPublisherIconPath(publisher) {
+    ensureAgendaSourceIcons();
+
+    return agendaSourceIconState.records.get(
+      agendaPublisherIconKey(publisher)
+    ) || "";
+  }
+
+
+  function renderAgendaV6Evidence(topic) {
+    const allEvidence = Array.isArray(topic.supporting_items)
+      ? topic.supporting_items
+      : [];
+    const evidence = allEvidence.slice(0, 8);
+
+    if (!evidence.length) {
+      return `<div
+        class="hybrid-agenda-v6-scroll"
+        data-agenda-scroll-region="evidence"
+      >
+        <div class="hybrid-agenda-v6-empty">
+          No source-linked evidence is currently published.
+        </div>
+      </div>`;
+    }
+
+    return `<div
+      class="hybrid-agenda-v6-scroll"
+      data-agenda-scroll-region="evidence"
+    >
+      <div class="hybrid-agenda-v6-evidence-list">
+        ${evidence.map(item => {
+          const iconPath = agendaPublisherIconPath(item.publisher);
+          const iconMarkup = iconPath
+            ? `<span
+                class="hybrid-agenda-v6-publisher-icon"
+                title="${escapeAttribute(item.publisher)}"
+                aria-hidden="true"
+              >
+                <img
+                  src="${escapeAttribute(iconPath)}"
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  onerror="this.parentElement.remove()"
+                >
+              </span>`
+            : "";
+
+          return `<a
+            class="hybrid-agenda-v6-evidence-row ${iconPath ? "has-publisher-icon" : "has-no-publisher-icon"}"
+            href="${escapeAttribute(safeSourceUrl(item.url))}"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span class="hybrid-agenda-v6-evidence-copy">
+              <strong lang="fr">${escapeHtml(item.headline)}</strong>
+              <small>${escapeHtml(item.publisher)} · ${formatDay(item.published_at)}</small>
+            </span>
+
+            <i class="hybrid-agenda-v6-evidence-arrow" aria-hidden="true">↗</i>
+            ${iconMarkup}
+          </a>`;
+        }).join("")}
+      </div>
+    </div>`;
+  }
+
+  function renderAgendaV6Dossier(model) {
+    const topic = model.selectedEvolutionTopic;
+    if (!topic) return "";
+
+    const signals = Array.isArray(topic.associatedSignals)
+      ? topic.associatedSignals
+      : [];
+    const signalCount = signals.length;
+    const signalHits = signals.reduce(
+      (total, signal) => total + number(signal.item_count),
+      0
+    );
+
+    const evidenceCount = Array.isArray(topic.supporting_items)
+      ? topic.supporting_items.length
+      : 0;
+
+    const movement = String(topic.movement || "STABLE").toLowerCase();
+
+    return `<section class="hybrid-agenda-v6-panel hybrid-agenda-v6-dossier">
+      <header class="hybrid-agenda-v6-panel-head">
+        <h3 class="hybrid-agenda-v6-panel-title">TOPIC DOSSIER</h3>
+        <span class="hybrid-agenda-v6-panel-meta">SOURCE-LINKED EVIDENCE</span>
+      </header>
+
+      <div class="hybrid-agenda-v6-panel-body hybrid-agenda-v6-dossier-body">
+        <section class="hybrid-agenda-v6-identity">
+          <span class="hybrid-agenda-v6-dossier-icon" aria-hidden="true">
+            ${agendaTopicIcon(topic.id)}
+          </span>
+
+          <div class="hybrid-agenda-v6-identity-copy">
+            <span class="hybrid-agenda-v6-kicker">SELECTED RECURRING TOPIC</span>
+
+            <div class="hybrid-agenda-v6-title-line">
+              <h4>${escapeHtml(topic.label)}</h4>
+
+              <span
+                class="hybrid-agenda-v6-badge"
+                data-movement="${escapeAttribute(movement)}"
+              >${escapeHtml(topic.movement)}</span>
+
+              <span class="hybrid-agenda-v6-badge is-structure">
+                ${escapeHtml(topic.structure)}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="hybrid-agenda-v6-metrics"
+          aria-label="Selected topic headline metrics"
+        >
+          <article>
+            <strong>${topic.source_day_count}</strong>
+            <span>30D SOURCE-DAYS</span>
+          </article>
+
+          <article>
+            <strong data-movement="${escapeAttribute(movement)}">
+              ${escapeHtml(agendaSignedPp(topic.agendaShareChangePp))}
+            </strong>
+            <span>AGENDA SHARE Δ</span>
+          </article>
+
+          <article>
+            <strong>${topic.publisher_count}</strong>
+            <span>PUBLISHERS</span>
+          </article>
+        </section>
+
+        ${renderAgendaV6Activity(topic, model.evolution)}
+
+        <div class="hybrid-agenda-v6-detail-grid">
+          <section class="hybrid-agenda-v6-detail-card">
+            <div class="hybrid-agenda-v6-detail-head">
+              <strong>ASSOCIATED SIGNALS</strong>
+              <span>${signalHits} hits · ${signalCount} signals</span>
+            </div>
+            ${renderAgendaV6Signals(topic)}
+          </section>
+
+          <section class="hybrid-agenda-v6-detail-card">
+            <div class="hybrid-agenda-v6-detail-head">
+              <strong>RECENT EVIDENCE</strong>
+              <span>${Math.min(8, evidenceCount)} of ${evidenceCount}</span>
+            </div>
+            ${renderAgendaV6Evidence(topic)}
+          </section>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function renderAgendaPanel(model) {
+    if (model.state !== "ready") {
+      return summaryState(model);
+    }
+
+    if (!model.evolutionReady) {
+      return renderLegacyAgendaPanel(model);
+    }
+
+    return `<div class="hybrid-agenda-v6-workspace">
+      ${renderAgendaV6Monitor(model)}
+      ${renderAgendaV6Analysis(model)}
+      ${renderAgendaV6Dossier(model)}
+    </div>`;
   }
 
   function filteredClaimReviews(model) {
@@ -3475,6 +4935,8 @@
     deriveAcceptedNewsPublisherMetric,
     buildRunoffViewModel,
     buildMediaViewModel,
+    agendaMovementLabel,
+    agendaStructureLabel,
     buildAgendaViewModel,
     buildClaimsViewModel,
     renderSummaryGrid,
