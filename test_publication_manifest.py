@@ -486,27 +486,37 @@ class PublicationManifestTests(unittest.TestCase):
         tracked_manifest = json.loads(
             (ROOT / "publication_manifest.json").read_text(encoding="utf-8")
         )
+        tracked_campaign = json.loads(
+            (ROOT / "campaign_events.json").read_text(encoding="utf-8")
+        )
         rebuilt = manifest_builder.build_manifest(
             ROOT,
             published_at=tracked_manifest["published_at"],
         )
         lane = rebuilt["lanes"]["campaign_events"]
         source = ROOT / "campaign_events.json"
+        self.assertEqual(
+            lane, tracked_manifest["lanes"]["campaign_events"]
+        )
+        self.assertEqual(lane["file"], "campaign_events.json")
         self.assertTrue(lane["available"])
         self.assertTrue(lane["valid"])
-        self.assertEqual(lane["record_count"], 2)
-        self.assertEqual(lane["byte_size"], 2690)
-        self.assertEqual(lane["byte_size"], len(canonical_source_bytes(source)))
+        self.assertEqual(lane["schema_version"], tracked_campaign["schema_version"])
+        self.assertEqual(lane["generated_at"], tracked_campaign["generated_at"])
+        self.assertEqual(lane["data_as_of"], tracked_campaign["data_as_of"])
+        self.assertEqual(lane["record_count"], 3)
         self.assertEqual(
-            lane["sha256"],
-            "e05516db9e0c809ec3fd71ad81cd01bce"
-            "13a8255dbcd82fa584d5b97801202ad",
+            lane["record_count"],
+            len(tracked_campaign["campaign_events"])
+            + len(tracked_campaign["institutional_milestones"]),
         )
+        self.assertEqual(lane["byte_size"], len(canonical_source_bytes(source)))
         self.assertEqual(
             lane["sha256"],
             hashlib.sha256(canonical_source_bytes(source)).hexdigest(),
         )
         self.assertEqual(lane["timestamp_status"], "known")
+        self.assertEqual(lane["warnings"], [])
 
     def test_tracked_manifest_regenerates_byte_for_byte(self):
         tracked_path = ROOT / "publication_manifest.json"
@@ -525,18 +535,46 @@ class PublicationManifestTests(unittest.TestCase):
     def test_workflow_no_churn_sequence_matches_both_tracked_outputs(self):
         production_root = self.production_inputs_root("workflow-no-churn")
         tracked_campaign = ROOT / "campaign_events.json"
+        tracked_campaign_payload = json.loads(
+            tracked_campaign.read_text(encoding="utf-8")
+        )
         tracked_manifest_path = ROOT / "publication_manifest.json"
         tracked_manifest = json.loads(
             tracked_manifest_path.read_text(encoding="utf-8")
         )
+        simulated_timestamp = "2026-08-09T16:00:00Z"
+
+        def unchanged_rn_events(*, observed_at):
+            self.assertEqual(observed_at, simulated_timestamp)
+            event = json.loads(
+                json.dumps(tracked_campaign_payload["campaign_events"][0])
+            )
+            event["status_as_of"] = observed_at[:10]
+            event["last_verified_at"] = observed_at
+            return [event]
+
+        self.assertGreater(
+            simulated_timestamp, tracked_campaign_payload["generated_at"]
+        )
         campaign_builder.build_from_paths(
-            generated_at="2026-08-02T16:00:00Z",
+            generated_at=simulated_timestamp,
             seed_path=ROOT / "campaign_event_institutional_seeds.json",
             source_registry_path=ROOT / "campaign_event_sources.json",
             candidate_registry_path=ROOT / "candidate_candidacy_status.json",
             output_path=production_root / "campaign_events.json",
             preserve_generated_at_from=tracked_campaign,
-            source_event_builders={"rn-agenda": lambda **_kwargs: []},
+            source_event_builders={"rn-agenda": unchanged_rn_events},
+        )
+        rebuilt_campaign = json.loads(
+            (production_root / "campaign_events.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            rebuilt_campaign["generated_at"],
+            tracked_campaign_payload["generated_at"],
+        )
+        self.assertEqual(
+            rebuilt_campaign["campaign_events"],
+            tracked_campaign_payload["campaign_events"],
         )
         self.assertEqual(
             (production_root / "campaign_events.json").read_bytes(),
@@ -545,6 +583,19 @@ class PublicationManifestTests(unittest.TestCase):
         rebuilt = manifest_builder.build_manifest(
             production_root,
             published_at=tracked_manifest["published_at"],
+        )
+        self.assertEqual(rebuilt["published_at"], tracked_manifest["published_at"])
+        self.assertEqual(
+            {
+                name: lane
+                for name, lane in rebuilt["lanes"].items()
+                if name != "campaign_events"
+            },
+            {
+                name: lane
+                for name, lane in tracked_manifest["lanes"].items()
+                if name != "campaign_events"
+            },
         )
         self.assertEqual(
             serialized_manifest(rebuilt),

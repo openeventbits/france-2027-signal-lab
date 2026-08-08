@@ -523,11 +523,19 @@ class BuildCampaignEventsTests(unittest.TestCase):
     def test_tracked_artifact_regenerates_byte_for_byte_with_preservation(self):
         tracked = ROOT / "campaign_events.json"
         tracked_payload = json.loads(tracked.read_text(encoding="utf-8"))
+        newer_observed_at = "2026-08-09T16:00:00Z"
         candidate = self.build(
-            generated_at="2026-08-02T16:00:00Z",
+            generated_at=newer_observed_at,
             preserve_generated_at_from=tracked,
+            source_event_builders={
+                "rn-agenda": lambda **_kwargs: [rn_event(newer_observed_at)]
+            },
         )
+        self.assertGreater(newer_observed_at, tracked_payload["generated_at"])
         self.assertEqual(candidate["generated_at"], tracked_payload["generated_at"])
+        self.assertEqual(
+            candidate["campaign_events"], tracked_payload["campaign_events"]
+        )
         self.assertEqual(self.output.read_bytes(), tracked.read_bytes())
         self.assertEqual(candidate, tracked_payload)
 
