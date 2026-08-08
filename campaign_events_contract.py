@@ -29,6 +29,7 @@ from campaign_event_sources import (
 __all__ = [
     "CampaignEventsContractError",
     "campaign_event_id",
+    "normalize_campaign_event_observations",
     "normalize_campaign_events_artifact",
     "serialize_campaign_events",
     "validate_campaign_events_artifact",
@@ -363,6 +364,7 @@ def _normalize_evidence(
     event_candidate_ids: list[str],
     source_by_id: dict[str, dict[str, Any]],
     event_context: str,
+    require_evidence_sufficiency: bool = True,
 ) -> list[dict[str, Any]]:
     if not isinstance(value, list) or not value:
         _fail(f"{event_context}.evidence must be a non-empty list")
@@ -453,7 +455,12 @@ def _normalize_evidence(
         normalized.append(normalized_record)
 
     normalized.sort(key=_evidence_sort_key)
-    _validate_evidence_sufficiency(normalized, lane=lane, context=event_context)
+    if require_evidence_sufficiency:
+        _validate_evidence_sufficiency(
+            normalized,
+            lane=lane,
+            context=event_context,
+        )
     return normalized
 
 
@@ -604,6 +611,7 @@ def _normalize_event(
     index: int,
     candidate_by_id: dict[str, dict[str, Any]],
     source_by_id: dict[str, dict[str, Any]],
+    require_evidence_sufficiency: bool = True,
 ) -> dict[str, Any]:
     context = f"{lane}[{index}]"
     if type(value) is not dict:
@@ -660,6 +668,7 @@ def _normalize_event(
         event_candidate_ids=candidate_ids,
         source_by_id=source_by_id,
         event_context=context,
+        require_evidence_sufficiency=require_evidence_sufficiency,
     )
 
     optional_text: dict[str, str] = {}
@@ -706,6 +715,56 @@ def _normalize_event(
             "evidence": evidence,
         }
     )
+    return normalized
+
+
+def normalize_campaign_event_observations(
+    events: Any,
+    *,
+    candidate_registry_path: str | Path = _DEFAULT_CANDIDATE_REGISTRY,
+    source_registry_path: str | Path = _DEFAULT_SOURCE_REGISTRY,
+) -> list[dict[str, Any]]:
+    """Normalize source observations before cross-source reconciliation.
+
+    Structural, identity, candidate, time, source-registry, and ownership
+    validation remain enforced. Publication-level evidence sufficiency is
+    deliberately deferred until observations have been reconciled.
+    """
+
+    if not isinstance(events, list):
+        _fail("campaign event observations must be a list")
+
+    candidate_by_id = _candidate_registry_by_id(candidate_registry_path)
+    source_by_id = _source_registry_by_id(
+        source_registry_path,
+        candidate_registry_path=candidate_registry_path,
+    )
+
+    normalized = [
+        _normalize_event(
+            event,
+            lane=CAMPAIGN_EVENTS_LANE,
+            index=index,
+            candidate_by_id=candidate_by_id,
+            source_by_id=source_by_id,
+            require_evidence_sufficiency=False,
+        )
+        for index, event in enumerate(events)
+    ]
+
+    seen_event_keys: set[str] = set()
+    seen_event_ids: set[str] = set()
+    for event in normalized:
+        event_key = event["event_key"]
+        event_id = event["event_id"]
+        if event_key in seen_event_keys:
+            _fail(f"duplicate campaign event observation key: {event_key}")
+        if event_id in seen_event_ids:
+            _fail(f"duplicate campaign event observation id: {event_id}")
+        seen_event_keys.add(event_key)
+        seen_event_ids.add(event_id)
+
+    normalized.sort(key=_event_sort_key)
     return normalized
 
 

@@ -16,11 +16,14 @@ from candidate_candidacy_status import (
 )
 
 __all__ = [
+    "ATTRIBUTION_POLICIES",
     "ALLOWED_EVENT_TYPES",
     "ALLOWED_LANES",
     "CAMPAIGN_EVENT_TYPES",
     "CampaignEventSourceRegistryError",
+    "DISCOVERY_METHODS",
     "INSTITUTIONAL_EVENT_TYPES",
+    "PARSER_FAMILIES",
     "REFRESH_CLASSES",
     "SOURCE_TYPES",
     "load_campaign_event_source_registry",
@@ -34,7 +37,7 @@ class CampaignEventSourceRegistryError(ValueError):
     """Raised when a Campaign Events source registry violates its contract."""
 
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "2.0"
 SOURCE_TYPES = frozenset(
     {
         "official_structured",
@@ -80,6 +83,35 @@ REFRESH_CLASSES = frozenset(
     }
 )
 
+DISCOVERY_METHODS = frozenset(
+    {
+        "direct",
+        "linked_event_pages",
+        "ics",
+        "json_ld",
+        "rest",
+        "structured_html",
+        "custom",
+    }
+)
+PARSER_FAMILIES = frozenset(
+    {
+        "ics",
+        "json_ld",
+        "rest",
+        "structured_html",
+        "custom",
+    }
+)
+ATTRIBUTION_POLICIES = frozenset(
+    {
+        "explicit_participant",
+        "candidate_owned_campaign",
+        "multi_candidate_explicit",
+        "custom",
+    }
+)
+
 _DEFAULT_CANDIDATE_REGISTRY = Path(__file__).with_name(
     "candidate_candidacy_status.json"
 )
@@ -98,7 +130,13 @@ _REQUIRED_SOURCE_KEYS = frozenset(
         "zero_result_valid",
     }
 )
-_OPTIONAL_SOURCE_KEYS = frozenset({"candidate_ids", "organization"})
+_OPTIONAL_SOURCE_KEYS = frozenset(
+    {"candidate_ids", "organization", "collection"}
+)
+_REQUIRED_COLLECTION_KEYS = frozenset(
+    {"discovery_method", "parser_family", "attribution_policy"}
+)
+_OPTIONAL_COLLECTION_KEYS = frozenset({"collector_family"})
 _SOURCE_KEYS = _REQUIRED_SOURCE_KEYS | _OPTIONAL_SOURCE_KEYS
 _KEBAB_CASE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z", re.ASCII)
 _HOST_LABEL = re.compile(
@@ -249,6 +287,75 @@ def _normalize_candidate_ids(
     )
 
 
+def _normalize_collection(
+    value: Any,
+    *,
+    context: str,
+) -> dict[str, str]:
+    if type(value) is not dict:
+        _fail(f"{context} must be a plain dict")
+    _require_exact_keys(
+        value,
+        _REQUIRED_COLLECTION_KEYS,
+        _OPTIONAL_COLLECTION_KEYS,
+        context,
+    )
+
+    discovery_method = value["discovery_method"]
+    if (
+        not isinstance(discovery_method, str)
+        or discovery_method not in DISCOVERY_METHODS
+    ):
+        _fail(
+            f"{context}.discovery_method is not allowed: "
+            f"{discovery_method!r}"
+        )
+
+    parser_family = value["parser_family"]
+    if (
+        not isinstance(parser_family, str)
+        or parser_family not in PARSER_FAMILIES
+    ):
+        _fail(f"{context}.parser_family is not allowed: {parser_family!r}")
+
+    attribution_policy = value["attribution_policy"]
+    if (
+        not isinstance(attribution_policy, str)
+        or attribution_policy not in ATTRIBUTION_POLICIES
+    ):
+        _fail(
+            f"{context}.attribution_policy is not allowed: "
+            f"{attribution_policy!r}"
+        )
+
+    uses_custom_step = "custom" in {
+        discovery_method,
+        parser_family,
+        attribution_policy,
+    }
+    collector_family = None
+    if "collector_family" in value:
+        collector_family = _require_kebab_case(
+            value["collector_family"],
+            f"{context}.collector_family",
+        )
+    if uses_custom_step and collector_family is None:
+        _fail(f"{context} custom collection requires collector_family")
+    if not uses_custom_step and collector_family is not None:
+        _fail(
+            f"{context}.collector_family is only allowed for custom collection"
+        )
+
+    normalized = {
+        "discovery_method": discovery_method,
+        "parser_family": parser_family,
+        "attribution_policy": attribution_policy,
+    }
+    if collector_family is not None:
+        normalized["collector_family"] = collector_family
+    return normalized
+
+
 def _normalize_source(
     value: Any,
     *,
@@ -310,6 +417,28 @@ def _normalize_source(
             f"{context}.organization",
         )
 
+    collection = None
+    if "collection" in value:
+        collection = _normalize_collection(
+            value["collection"],
+            context=f"{context}.collection",
+        )
+    if "campaign_events" in lanes and collection is None:
+        _fail(f"{context} campaign-event source requires collection")
+    if "campaign_events" not in lanes and collection is not None:
+        _fail(
+            f"{context}.collection is only relevant to campaign-event sources"
+        )
+    if (
+        collection is not None
+        and collection["attribution_policy"] == "candidate_owned_campaign"
+        and source_type != "candidate_first_party"
+    ):
+        _fail(
+            f"{context}.collection candidate_owned_campaign attribution "
+            "requires candidate_first_party"
+        )
+
     if source_type == "candidate_first_party":
         if candidate_ids is None:
             _fail(f"{context} candidate_first_party requires candidate_ids")
@@ -337,6 +466,8 @@ def _normalize_source(
         normalized["candidate_ids"] = candidate_ids
     if organization is not None:
         normalized["organization"] = organization
+    if collection is not None:
+        normalized["collection"] = collection
     return normalized
 
 
@@ -351,7 +482,7 @@ def normalize_campaign_event_source_registry(
         _fail("payload must be a plain dict")
     _require_exact_keys(payload, _TOP_LEVEL_KEYS, frozenset(), "payload")
     if payload["schema_version"] != SCHEMA_VERSION:
-        _fail("schema_version must be exactly '1.0'")
+        _fail("schema_version must be exactly '2.0'")
     sources = payload["sources"]
     if not isinstance(sources, list):
         _fail("sources must be a list")

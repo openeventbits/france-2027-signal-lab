@@ -6,8 +6,11 @@ from pathlib import Path
 from unittest import mock
 
 from campaign_event_sources import (
+    ATTRIBUTION_POLICIES,
     CAMPAIGN_EVENT_TYPES,
+    DISCOVERY_METHODS,
     INSTITUTIONAL_EVENT_TYPES,
+    PARSER_FAMILIES,
     CampaignEventSourceRegistryError,
     load_campaign_event_source_registry,
     normalize_campaign_event_source_registry,
@@ -34,13 +37,18 @@ def source_record(
         "required": False,
         "refresh_class": "daily",
         "zero_result_valid": True,
+        "collection": {
+            "discovery_method": "structured_html",
+            "parser_family": "structured_html",
+            "attribution_policy": "explicit_participant",
+        },
     }
     source.update(changes)
     return source
 
 
 def registry(*sources):
-    return {"schema_version": "1.0", "sources": list(sources)}
+    return {"schema_version": "2.0", "sources": list(sources)}
 
 
 class CampaignEventSourceRegistryTests(unittest.TestCase):
@@ -94,6 +102,12 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
                     "refresh_class": "daily",
                     "zero_result_valid": True,
                     "organization": "Rassemblement National",
+                    "collection": {
+                        "discovery_method": "direct",
+                        "parser_family": "custom",
+                        "attribution_policy": "custom",
+                        "collector_family": "rn-agenda",
+                    },
                 },
                 {
                     "source_id": "vie-publique-presidential-calendar",
@@ -111,26 +125,26 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
         )
 
     def test_valid_empty_registry_remains_supported_in_memory(self):
-        expected = {"schema_version": "1.0", "sources": []}
+        expected = {"schema_version": "2.0", "sources": []}
         validate_campaign_event_source_registry(expected)
         self.assertEqual(normalize_campaign_event_source_registry(expected), expected)
 
     def test_exact_top_level_keys(self):
         for changed in (
             {"sources": []},
-            {"schema_version": "1.0"},
-            {"schema_version": "1.0", "sources": [], "extra": True},
+            {"schema_version": "2.0"},
+            {"schema_version": "2.0", "sources": [], "extra": True},
         ):
             with self.subTest(changed=changed):
                 self.assert_invalid(changed, "exact allowed keys")
 
     def test_schema_version_and_sources_type(self):
         self.assert_invalid(
-            {"schema_version": "2.0", "sources": []},
-            "exactly '1.0'",
+            {"schema_version": "1.0", "sources": []},
+            "exactly '2.0'",
         )
         self.assert_invalid(
-            {"schema_version": "1.0", "sources": {}},
+            {"schema_version": "2.0", "sources": {}},
             "sources must be a list",
         )
 
@@ -177,6 +191,89 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
         )
         self.assert_invalid(unordered, "deterministic source ordering")
         validate_campaign_event_source_registry(normalized)
+
+    def test_valid_campaign_source_collection_configuration(self):
+        payload = registry(source_record())
+        validate_campaign_event_source_registry(payload)
+        self.assertEqual(
+            normalize_campaign_event_source_registry(payload)["sources"][0][
+                "collection"
+            ],
+            {
+                "discovery_method": "structured_html",
+                "parser_family": "structured_html",
+                "attribution_policy": "explicit_participant",
+            },
+        )
+
+    def test_invalid_collection_controlled_values_are_rejected(self):
+        cases = (
+            ("discovery_method", "crawler", "discovery_method"),
+            ("parser_family", "microdata", "parser_family"),
+            ("attribution_policy", "party_leader", "attribution_policy"),
+        )
+        for field, value, pattern in cases:
+            changed = source_record()
+            changed["collection"][field] = value
+            with self.subTest(field=field):
+                self.assert_invalid(registry(changed), pattern)
+
+    def test_collection_vocabularies_are_exact_and_bounded(self):
+        self.assertEqual(
+            DISCOVERY_METHODS,
+            {
+                "direct",
+                "linked_event_pages",
+                "ics",
+                "json_ld",
+                "rest",
+                "structured_html",
+                "custom",
+            },
+        )
+        self.assertEqual(
+            PARSER_FAMILIES,
+            {"ics", "json_ld", "rest", "structured_html", "custom"},
+        )
+        self.assertEqual(
+            ATTRIBUTION_POLICIES,
+            {
+                "explicit_participant",
+                "candidate_owned_campaign",
+                "multi_candidate_explicit",
+                "custom",
+            },
+        )
+
+    def test_institutional_only_source_remains_valid_without_collection(self):
+        institutional = source_record(
+            allowed_lanes=["institutional_milestones"],
+            allowed_event_types=["first_round"],
+        )
+        institutional.pop("collection")
+        validate_campaign_event_source_registry(registry(institutional))
+
+    def test_campaign_source_requires_collection_configuration(self):
+        campaign = source_record()
+        campaign.pop("collection")
+        self.assert_invalid(registry(campaign), "requires collection")
+
+    def test_custom_collection_requires_bounded_collector_family(self):
+        custom = source_record(
+            collection={
+                "discovery_method": "direct",
+                "parser_family": "custom",
+                "attribution_policy": "custom",
+            }
+        )
+        self.assert_invalid(registry(custom), "collector_family")
+        custom["collection"]["collector_family"] = "RN_AGENDA"
+        self.assert_invalid(registry(custom), "lowercase ASCII kebab-case")
+
+    def test_noncustom_collection_rejects_collector_family(self):
+        changed = source_record()
+        changed["collection"]["collector_family"] = "unused"
+        self.assert_invalid(registry(changed), "only allowed for custom")
 
     def test_source_id_must_be_lowercase_ascii_kebab_case(self):
         for identifier in (
@@ -381,6 +478,32 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
         self.assert_invalid(
             registry(invalid_organization),
             "must not set organization",
+        )
+
+    def test_candidate_owned_attribution_requires_candidate_first_party(self):
+        collection = {
+            "discovery_method": "linked_event_pages",
+            "parser_family": "json_ld",
+            "attribution_policy": "candidate_owned_campaign",
+        }
+        validate_campaign_event_source_registry(
+            registry(
+                source_record(
+                    source_type="candidate_first_party",
+                    candidate_ids=["bruno-retailleau"],
+                    collection=collection,
+                )
+            )
+        )
+        self.assert_invalid(
+            registry(
+                source_record(
+                    source_type="party_first_party",
+                    organization="Party",
+                    collection=collection,
+                )
+            ),
+            "requires candidate_first_party",
         )
 
     def test_party_and_organizer_ownership_is_explicit(self):
