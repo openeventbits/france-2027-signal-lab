@@ -504,7 +504,6 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertEqual(lane["schema_version"], tracked_campaign["schema_version"])
         self.assertEqual(lane["generated_at"], tracked_campaign["generated_at"])
         self.assertEqual(lane["data_as_of"], tracked_campaign["data_as_of"])
-        self.assertEqual(lane["record_count"], 3)
         self.assertEqual(
             lane["record_count"],
             len(tracked_campaign["campaign_events"])
@@ -544,14 +543,30 @@ class PublicationManifestTests(unittest.TestCase):
         )
         simulated_timestamp = "2026-08-09T16:00:00Z"
 
-        def unchanged_rn_events(*, observed_at):
+        def unchanged_source_events(source_id, *, observed_at):
             self.assertEqual(observed_at, simulated_timestamp)
-            event = json.loads(
-                json.dumps(tracked_campaign_payload["campaign_events"][0])
-            )
-            event["status_as_of"] = observed_at[:10]
-            event["last_verified_at"] = observed_at
-            return [event]
+            events = []
+            for tracked_event in tracked_campaign_payload["campaign_events"]:
+                evidence = [
+                    record
+                    for record in tracked_event["evidence"]
+                    if record["source_id"] == source_id
+                ]
+                if not evidence:
+                    continue
+
+                event = json.loads(json.dumps(tracked_event))
+                event_key = f"{source_id}-{tracked_event['event_key']}"
+                event["event_key"] = event_key
+                event["event_id"] = campaign_builder.campaign_event_id(
+                    "campaign_events",
+                    event_key,
+                )
+                event["evidence"] = evidence
+                event["status_as_of"] = observed_at[:10]
+                event["last_verified_at"] = observed_at
+                events.append(event)
+            return events
 
         self.assertGreater(
             simulated_timestamp, tracked_campaign_payload["generated_at"]
@@ -563,7 +578,17 @@ class PublicationManifestTests(unittest.TestCase):
             candidate_registry_path=ROOT / "candidate_candidacy_status.json",
             output_path=production_root / "campaign_events.json",
             preserve_generated_at_from=tracked_campaign,
-            source_event_builders={"rn-agenda": unchanged_rn_events},
+            source_event_builders={
+                "rn-agenda": lambda **kwargs: unchanged_source_events(
+                    "rn-agenda", **kwargs
+                ),
+                "tf1-lci-debates": lambda **kwargs: unchanged_source_events(
+                    "tf1-lci-debates", **kwargs
+                ),
+                "la-lettre-expansion-agenda": lambda **kwargs: unchanged_source_events(
+                    "la-lettre-expansion-agenda", **kwargs
+                ),
+            },
         )
         rebuilt_campaign = json.loads(
             (production_root / "campaign_events.json").read_text(encoding="utf-8")

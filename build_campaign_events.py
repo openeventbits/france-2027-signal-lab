@@ -332,11 +332,23 @@ def _event_source_ids(event: dict[str, Any]) -> frozenset[str]:
 
 
 def _event_semantics_without_observation(event: dict[str, Any]) -> dict[str, Any]:
-    return {
+    semantics = {
         key: value
         for key, value in event.items()
         if key not in _OBSERVATION_FIELDS
     }
+    evidence = semantics.get("evidence")
+    if isinstance(evidence, list):
+        semantics["evidence"] = sorted(
+            evidence,
+            key=lambda record: json.dumps(
+                record,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ),
+        )
+    return semantics
 
 
 def _deduplicate_campaign_events(
