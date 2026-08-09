@@ -6,6 +6,7 @@ from dataclasses import FrozenInstanceError, fields
 import importlib
 from pathlib import Path
 import socket
+import sys
 import unittest
 from unittest import mock
 
@@ -406,15 +407,26 @@ class CampaignEventAttributionTests(unittest.TestCase):
             )
 
     def test_module_import_performs_no_network_access(self):
-        with (
-            mock.patch("urllib.request.urlopen", side_effect=AssertionError),
-            mock.patch.object(
-                socket,
-                "create_connection",
-                side_effect=AssertionError,
-            ),
-        ):
-            importlib.reload(campaign_event_attribution)
+        module_name = "_campaign_event_attribution_import_test"
+        module_path = Path(__file__).with_name("campaign_event_attribution.py")
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        imported = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = imported
+        try:
+            with (
+                mock.patch("urllib.request.urlopen", side_effect=AssertionError),
+                mock.patch.object(
+                    socket,
+                    "create_connection",
+                    side_effect=AssertionError,
+                ),
+            ):
+                spec.loader.exec_module(imported)
+        finally:
+            sys.modules.pop(module_name, None)
+        self.assertTrue(hasattr(imported, "attribute_structured_events"))
 
 
 if __name__ == "__main__":
