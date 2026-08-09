@@ -606,7 +606,7 @@ h1 {
 #hybrid-signal-board .hybrid-tabs {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  min-height: 57px;
+  min-height: 44px;
   overflow: hidden;
   border: 1px solid var(--final-line);
   border-radius: var(--final-radius) var(--final-radius) 0 0;
@@ -621,8 +621,9 @@ h1 {
 #hybrid-signal-board .hybrid-tabs > button {
   position: relative;
   min-width: 0;
-  min-height: 56px;
-  padding: 8px 12px;
+  min-height: 44px;
+  height: 44px;
+  padding: 0 10px;
   border: 0;
   border-right: 1px solid rgba(31, 73, 98, 0.72);
   border-radius: 0;
@@ -3499,5 +3500,98 @@ h1 {
     #top-media-coverage-panel
     .top-media-list > * {
     padding-block: 10px !important;
+  }
+}
+
+/* WORKSPACE TAB ICON POLISH — FINAL
+   Shell geometry and active-state treatment are owned by
+   final-dashboard-shell.css. */
+
+.hybrid-tab-icon {
+  display: block;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  opacity: .90;
+  transition: opacity 120ms ease;
+}
+
+.hybrid-tab-label {
+  display: block;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* Equalize perceived SVG icon weight. */
+.hybrid-tab[data-hybrid-view="candidates"] .hybrid-tab-icon {
+  stroke-width: 1.9;
+}
+
+.hybrid-tab[data-hybrid-view="events"] .hybrid-tab-icon {
+  stroke-width: 1.78;
+}
+
+.hybrid-tab[data-hybrid-view="agenda"] .hybrid-tab-icon {
+  stroke-width: 1.9;
+}
+
+.hybrid-tab[data-hybrid-view="claims"] .hybrid-tab-icon {
+  stroke-width: 1.78;
+}
+
+.hybrid-tab[data-hybrid-view="pollCompare"] .hybrid-tab-icon {
+  stroke-width: 1.9;
+}
+
+.hybrid-tab:hover:not([aria-selected="true"]) .hybrid-tab-icon {
+  opacity: 1;
+}
+
+.hybrid-tabs
+  .hybrid-tab[aria-selected="true"]
+  .hybrid-tab-icon {
+  color: rgb(193, 160, 255);
+  opacity: 1;
+}
+
+/* RUNOFF
+   Keep the approved three ascending bars.
+   Hide only the unused Runoff SVG in the workspace navigation. */
+.hybrid-tab[data-hybrid-view="runoff"] .hybrid-tab-icon {
+  display: none;
+}
+
+.hybrid-tab[data-hybrid-view="runoff"]::before {
+  content: "";
+  display: block;
+  flex: 0 0 auto;
+
+  width: 3px;
+  height: 7px;
+  margin-right: 12px;
+
+  border-radius: 1.5px;
+  background: currentColor;
+
+  box-shadow:
+    6px -4px 0 currentColor,
+    12px -9px 0 currentColor;
+
+  transform: translateY(4px);
+  opacity: .92;
+}
+
+.hybrid-tab[data-hybrid-view="runoff"]:not([aria-selected="true"])::before {
+  color: rgb(145, 166, 181);
+}
+
+.hybrid-tab[data-hybrid-view="runoff"][aria-selected="true"]::before {
+  color: rgb(193, 160, 255);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hybrid-tab-icon {
+    transition: none;
   }
 }
