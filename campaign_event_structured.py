@@ -214,7 +214,7 @@ class StructuredEventRecord:
     scheduled_start: str
     time_precision: Literal["date", "datetime"]
     timezone: str
-    source_format: Literal["json_ld", "ics"]
+    source_format: Literal["json_ld", "ics", "structured_html"]
     scheduled_end: str | None = None
     description: str | None = None
     location_name: str | None = None
@@ -235,7 +235,12 @@ class StructuredEventRecord:
             )
         if (
             not isinstance(self.source_format, str)
-            or self.source_format not in {"json_ld", "ics"}
+            or self.source_format
+            not in {
+                "json_ld",
+                "ics",
+                "structured_html",
+            }
         ):
             raise StructuredEventParseError("source_format is not allowed")
         _validate_normalized_temporal(

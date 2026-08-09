@@ -95,6 +95,12 @@ class BuildCampaignEventsTests(unittest.TestCase):
 
     def registry_with_rn(self, **changes):
         payload = self.production_registry()
+        payload["sources"] = [
+            item
+            for item in payload["sources"]
+            if "campaign_events" not in item["allowed_lanes"]
+            or item["source_id"] == "rn-agenda"
+        ]
         source = next(
             item for item in payload["sources"] if item["source_id"] == "rn-agenda"
         )
@@ -119,6 +125,10 @@ class BuildCampaignEventsTests(unittest.TestCase):
 
     def test_same_real_world_event_from_two_sources_reconciles(self):
         registry = self.production_registry()
+        registry["sources"] = [
+            item for item in registry["sources"]
+            if item["source_id"] != "tf1-lci-debates"
+        ]
         registry["sources"].append(
             {
                 "source_id": "tf1-lci-debates",
@@ -221,6 +231,10 @@ class BuildCampaignEventsTests(unittest.TestCase):
             {record["source_id"] for record in event["evidence"]},
             {"rn-agenda", "tf1-lci-debates"},
         )
+        self.assertEqual(
+            event["event_key"],
+            "campaign-debate-2026-08-27-1645-medef",
+        )
         self.assertFalse(event["event_key"].startswith("rn-agenda-"))
         self.assertFalse(event["event_key"].startswith("tf1-lci-"))
 
@@ -231,6 +245,10 @@ class BuildCampaignEventsTests(unittest.TestCase):
 
     def test_reconciled_event_survives_one_optional_source_failure(self):
         registry = self.production_registry()
+        registry["sources"] = [
+            item for item in registry["sources"]
+            if item["source_id"] != "tf1-lci-debates"
+        ]
         registry["sources"].append(
             {
                 "source_id": "tf1-lci-debates",
@@ -368,7 +386,7 @@ class BuildCampaignEventsTests(unittest.TestCase):
             "evidence": [
                 {
                     "source_id": "tf1-lci-debates",
-                    "source_url": "https://www.tf1info.fr/politique/test.html",
+                    "source_url": "https://www.tf1info.fr/politique/election-presidentielle-2027-lci-organisera-le-27-aout-un-grand-debat-avec-sept-candidats-declares-ou-pressentis-2455591.html",
                     "source_publisher": "TF1 Info",
                     "source_type": "reliable_media",
                     "evidence_type": "explicit_schedule",
@@ -376,7 +394,7 @@ class BuildCampaignEventsTests(unittest.TestCase):
             ],
         }
 
-        organizer_key = "laboratoire-2026-08-29-hollande-philippe-debate"
+        organizer_key = "la-lettre-2026-08-29-hollande-philippe-debate"
         organizer = {
             "event_key": organizer_key,
             "event_id": campaign_event_id(
@@ -404,10 +422,10 @@ class BuildCampaignEventsTests(unittest.TestCase):
             "last_verified_at": "2026-08-08T17:00:00Z",
             "evidence": [
                 {
-                    "source_id": "laboratoire-republique-events",
-                    "source_url": "https://www.lelaboratoiredelarepublique.fr/evenements/test/",
-                    "source_publisher": "Laboratoire de la République",
-                    "source_type": "organizer_first_party",
+                    "source_id": "la-lettre-expansion-agenda",
+                    "source_url": "https://www.lalettredelexpansion.com/article/71583/agenda",
+                    "source_publisher": "La Lettre de l'Expansion",
+                    "source_type": "reliable_media",
                     "evidence_type": "explicit_schedule",
                 }
             ],
@@ -435,9 +453,28 @@ class BuildCampaignEventsTests(unittest.TestCase):
             {record["source_id"] for record in event["evidence"]},
             {
                 "tf1-lci-debates",
-                "laboratoire-republique-events",
+                "la-lettre-expansion-agenda",
             },
         )
+        artifact = builder.build_campaign_events_artifact(
+            self.production_seeds(),
+            generated_at=GENERATED_AT,
+            campaign_events=reconciled,
+        )
+        self.assertEqual(len(artifact["campaign_events"]), 1)
+        validate_campaign_events_artifact(artifact)
+
+        for source_owned in (tf1, organizer):
+            with self.subTest(source_id=source_owned["evidence"][0]["source_id"]):
+                with self.assertRaisesRegex(
+                    builder.BuildCampaignEventsError,
+                    "two independent reliable-media",
+                ):
+                    builder.build_campaign_events_artifact(
+                        self.production_seeds(),
+                        generated_at=GENERATED_AT,
+                        campaign_events=[source_owned],
+                    )
 
     def test_cross_precision_reconciliation_requires_exact_candidate_set(self):
         datetime_key = "media-2026-08-29-1645-hollande-philippe"
@@ -582,12 +619,75 @@ class BuildCampaignEventsTests(unittest.TestCase):
     def test_production_collector_map_is_exact(self):
         self.assertEqual(
             set(builder._PRODUCTION_COLLECTION_COLLECTORS),
-            {"rn-agenda"},
+            {"la-lettre-expansion", "rn-agenda", "tf1-lci-debates"},
         )
         self.assertEqual(
             builder._PRODUCTION_COLLECTION_COLLECTORS["rn-agenda"].__name__,
             "_collect_rn_agenda",
         )
+        self.assertEqual(
+            builder._PRODUCTION_COLLECTION_COLLECTORS[
+                "tf1-lci-debates"
+            ].__name__,
+            "_collect_tf1_lci_debates",
+        )
+        self.assertEqual(
+            builder._PRODUCTION_COLLECTION_COLLECTORS[
+                "la-lettre-expansion"
+            ].__name__,
+            "_collect_la_lettre_expansion",
+        )
+
+    def test_production_media_wrappers_return_strict_collection_results(self):
+        sources = {
+            source["source_id"]: source
+            for source in builder.load_campaign_event_source_registry(
+                ROOT / "campaign_event_sources.json"
+            )["sources"]
+        }
+        cases = (
+            (
+                "tf1-lci-debates",
+                "tf1-lci-debates",
+                "build_tf1_lci_events",
+                builder.Tf1LciAdapterResult,
+                0,
+            ),
+            (
+                "la-lettre-expansion-agenda",
+                "la-lettre-expansion",
+                "build_la_lettre_expansion_events",
+                builder.LaLettreExpansionAdapterResult,
+                3,
+            ),
+        )
+        for source_id, family, builder_name, result_type, rejected in cases:
+            with self.subTest(source_id=source_id):
+                adapter = mock.Mock(
+                    return_value=result_type(
+                        observations=({"source_owned": source_id},),
+                        attribution_rejected_records=rejected,
+                    )
+                )
+                with mock.patch.object(builder, builder_name, adapter):
+                    result = builder._dispatch_campaign_event_collection(
+                        sources[source_id],
+                        observed_at=GENERATED_AT,
+                        collection_collectors=(
+                            builder._PRODUCTION_COLLECTION_COLLECTORS
+                        ),
+                    )
+                self.assertIn(family, builder._PRODUCTION_COLLECTION_COLLECTORS)
+                self.assertEqual(
+                    result,
+                    builder.SourceCollectionResult(
+                        observations=[{"source_owned": source_id}],
+                        attribution_rejected_records=rejected,
+                    ),
+                )
+                adapter.assert_called_once_with(
+                    source=sources[source_id], observed_at=GENERATED_AT
+                )
 
     def test_generic_dispatcher_routes_by_collector_family(self):
         source = next(
@@ -661,6 +761,7 @@ class BuildCampaignEventsTests(unittest.TestCase):
         self.assert_last_good(
             lambda: self.build(
                 source_event_builders=None,
+                source_registry_path=self.registry_with_rn(),
                 collection_collectors={},
                 collection_health=health,
             )
@@ -672,6 +773,7 @@ class BuildCampaignEventsTests(unittest.TestCase):
         self.assert_last_good(
             lambda: self.build(
                 source_event_builders=None,
+                source_registry_path=self.registry_with_rn(),
                 collection_collectors={"rn-agenda": lambda **_kwargs: []},
                 collection_health=health,
             )
@@ -715,6 +817,7 @@ class BuildCampaignEventsTests(unittest.TestCase):
         health = []
         artifact = self.build(
             source_event_builders=None,
+            source_registry_path=self.registry_with_rn(),
             collection_collectors={"rn-agenda": collector},
             collection_health=health,
         )
@@ -759,6 +862,7 @@ class BuildCampaignEventsTests(unittest.TestCase):
         health = []
         self.build(
             source_event_builders=None,
+            source_registry_path=self.registry_with_rn(),
             collection_collectors={
                 "rn-agenda": lambda **_kwargs: builder.SourceCollectionResult(
                     observations=[],
@@ -889,6 +993,7 @@ class BuildCampaignEventsTests(unittest.TestCase):
                 generated_at="2026-08-02T16:00:00Z",
                 preserve_generated_at_from=self.output,
                 source_event_builders=None,
+                source_registry_path=self.registry_with_rn(),
                 collection_collectors={"rn-agenda": source_builder},
                 collection_health=health,
             )

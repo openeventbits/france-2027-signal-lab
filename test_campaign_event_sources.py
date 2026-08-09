@@ -67,7 +67,9 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
             [source["source_id"] for source in loaded["sources"]],
             [
                 "interieur-presidential-calendar",
+                "la-lettre-expansion-agenda",
                 "rn-agenda",
+                "tf1-lci-debates",
                 "vie-publique-presidential-calendar",
             ],
         )
@@ -91,6 +93,24 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
                     "zero_result_valid": False,
                 },
                 {
+                    "source_id": "la-lettre-expansion-agenda",
+                    "publisher": "La Lettre de l'Expansion",
+                    "source_type": "reliable_media",
+                    "url": "https://www.lalettredelexpansion.com/article/71583/agenda",
+                    "allowed_lanes": ["campaign_events"],
+                    "allowed_event_types": ["debate"],
+                    "enabled": True,
+                    "required": False,
+                    "refresh_class": "daily",
+                    "zero_result_valid": False,
+                    "collection": {
+                        "discovery_method": "direct",
+                        "parser_family": "custom",
+                        "attribution_policy": "multi_candidate_explicit",
+                        "collector_family": "la-lettre-expansion",
+                    },
+                },
+                {
                     "source_id": "rn-agenda",
                     "publisher": "Rassemblement National",
                     "source_type": "party_first_party",
@@ -107,6 +127,24 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
                         "parser_family": "custom",
                         "attribution_policy": "custom",
                         "collector_family": "rn-agenda",
+                    },
+                },
+                {
+                    "source_id": "tf1-lci-debates",
+                    "publisher": "TF1 Info",
+                    "source_type": "reliable_media",
+                    "url": "https://www.tf1info.fr/politique/election-presidentielle-2027-lci-organisera-le-27-aout-un-grand-debat-avec-sept-candidats-declares-ou-pressentis-2455591.html",
+                    "allowed_lanes": ["campaign_events"],
+                    "allowed_event_types": ["debate"],
+                    "enabled": True,
+                    "required": False,
+                    "refresh_class": "daily",
+                    "zero_result_valid": False,
+                    "collection": {
+                        "discovery_method": "direct",
+                        "parser_family": "custom",
+                        "attribution_policy": "custom",
+                        "collector_family": "tf1-lci-debates",
                     },
                 },
                 {
@@ -575,7 +613,9 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
             [source["source_id"] for source in loaded["sources"]],
             [
                 "interieur-presidential-calendar",
+                "la-lettre-expansion-agenda",
                 "rn-agenda",
+                "tf1-lci-debates",
                 "vie-publique-presidential-calendar",
             ],
         )

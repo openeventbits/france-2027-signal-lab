@@ -22,7 +22,10 @@ from campaign_event_observation import (
     classify_campaign_event,
 )
 from campaign_event_sources import normalize_campaign_event_source_registry
-from campaign_event_structured import StructuredEventRecord
+from campaign_event_structured import (
+    StructuredEventParseError,
+    StructuredEventRecord,
+)
 from campaign_events_contract import normalize_campaign_event_observations
 
 
@@ -118,6 +121,35 @@ def source_record(
 
 
 class CampaignEventObservationTests(unittest.TestCase):
+    def test_structured_html_is_the_only_new_structured_source_format(self):
+        common = {
+            "title": "Débat entre deux candidats",
+            "scheduled_start": "2026-08-29",
+            "time_precision": "date",
+            "timezone": "Europe/Paris",
+        }
+        self.assertEqual(
+            StructuredEventRecord(
+                **common,
+                source_format="structured_html",
+            ).source_format,
+            "structured_html",
+        )
+        for existing in ("json_ld", "ics"):
+            with self.subTest(existing=existing):
+                self.assertEqual(
+                    StructuredEventRecord(
+                        **common,
+                        source_format=existing,
+                    ).source_format,
+                    existing,
+                )
+        with self.assertRaisesRegex(
+            StructuredEventParseError,
+            "source_format is not allowed",
+        ):
+            StructuredEventRecord(**common, source_format="custom")
+
     def setUp(self) -> None:
         self.temporary_root = Path(__file__).parent / (
             f".campaign-event-observation-test-{uuid.uuid4().hex}"

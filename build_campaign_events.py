@@ -13,9 +13,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+from campaign_event_attribution import CandidateAttributionConfigurationError
 from campaign_event_institutional_seeds import (
     CampaignEventInstitutionalSeedError,
     load_campaign_event_institutional_seeds,
+)
+from campaign_event_observation import (
+    CampaignEventObservationConfigurationError,
 )
 from campaign_event_sources import (
     CampaignEventSourceRegistryError,
@@ -29,7 +33,17 @@ from campaign_events_contract import (
     serialize_campaign_events,
     validate_campaign_events_artifact,
 )
+from la_lettre_expansion_adapter import (
+    LaLettreExpansionAdapterError,
+    LaLettreExpansionAdapterResult,
+    build_la_lettre_expansion_events,
+)
 from rn_agenda_adapter import build_rn_agenda_events
+from tf1_lci_adapter import (
+    Tf1LciAdapterError,
+    Tf1LciAdapterResult,
+    build_tf1_lci_events,
+)
 
 __all__ = [
     "BuildCampaignEventsError",
@@ -168,8 +182,89 @@ def _collect_rn_agenda(
     )
 
 
+def _collect_tf1_lci_debates(
+    *,
+    source: dict[str, Any],
+    observed_at: str,
+) -> SourceCollectionResult:
+    if (
+        source.get("source_id") != "tf1-lci-debates"
+        or source.get("collection", {}).get("collector_family")
+        != "tf1-lci-debates"
+    ):
+        raise CampaignEventCollectionConfigurationError(
+            "tf1-lci-debates collector received an incompatible source record"
+        )
+    try:
+        result = build_tf1_lci_events(source=source, observed_at=observed_at)
+    except (
+        CandidateAttributionConfigurationError,
+        CampaignEventObservationConfigurationError,
+    ) as error:
+        raise CampaignEventCollectionConfigurationError(
+            f"tf1-lci-debates collector configuration failed: {error}"
+        ) from error
+    if type(result) is not Tf1LciAdapterResult:
+        raise CampaignEventCollectionConfigurationError(
+            "tf1-lci-debates adapter returned an invalid result"
+        )
+    try:
+        result.__post_init__()
+    except Tf1LciAdapterError as error:
+        raise CampaignEventCollectionConfigurationError(
+            f"tf1-lci-debates adapter result is invalid: {error}"
+        ) from error
+    return SourceCollectionResult(
+        observations=list(result.observations),
+        attribution_rejected_records=result.attribution_rejected_records,
+    )
+
+
+def _collect_la_lettre_expansion(
+    *,
+    source: dict[str, Any],
+    observed_at: str,
+) -> SourceCollectionResult:
+    if (
+        source.get("source_id") != "la-lettre-expansion-agenda"
+        or source.get("collection", {}).get("collector_family")
+        != "la-lettre-expansion"
+    ):
+        raise CampaignEventCollectionConfigurationError(
+            "la-lettre-expansion collector received an incompatible source record"
+        )
+    try:
+        result = build_la_lettre_expansion_events(
+            source=source,
+            observed_at=observed_at,
+        )
+    except (
+        CandidateAttributionConfigurationError,
+        CampaignEventObservationConfigurationError,
+    ) as error:
+        raise CampaignEventCollectionConfigurationError(
+            f"la-lettre-expansion collector configuration failed: {error}"
+        ) from error
+    if type(result) is not LaLettreExpansionAdapterResult:
+        raise CampaignEventCollectionConfigurationError(
+            "la-lettre-expansion adapter returned an invalid result"
+        )
+    try:
+        result.__post_init__()
+    except LaLettreExpansionAdapterError as error:
+        raise CampaignEventCollectionConfigurationError(
+            f"la-lettre-expansion adapter result is invalid: {error}"
+        ) from error
+    return SourceCollectionResult(
+        observations=list(result.observations),
+        attribution_rejected_records=result.attribution_rejected_records,
+    )
+
+
 _PRODUCTION_COLLECTION_COLLECTORS: Mapping[str, CollectionCollector] = {
+    "la-lettre-expansion": _collect_la_lettre_expansion,
     "rn-agenda": _collect_rn_agenda,
+    "tf1-lci-debates": _collect_tf1_lci_debates,
 }
 
 
