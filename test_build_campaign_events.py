@@ -95,6 +95,12 @@ class BuildCampaignEventsTests(unittest.TestCase):
 
     def registry_with_rn(self, **changes):
         payload = self.production_registry()
+        payload["sources"] = [
+            item
+            for item in payload["sources"]
+            if "campaign_events" not in item["allowed_lanes"]
+            or item["source_id"] == "rn-agenda"
+        ]
         source = next(
             item for item in payload["sources"] if item["source_id"] == "rn-agenda"
         )
@@ -117,12 +123,786 @@ class BuildCampaignEventsTests(unittest.TestCase):
         self.assertEqual(self.output.read_bytes(), sentinel)
         self.assertEqual(list(self.temporary_root.glob(".campaign_events.json.*.tmp")), [])
 
-    def test_production_adapter_map_is_exact(self):
-        self.assertEqual(set(builder._PRODUCTION_SOURCE_EVENT_BUILDERS), {"rn-agenda"})
-        self.assertEqual(
-            builder._PRODUCTION_SOURCE_EVENT_BUILDERS["rn-agenda"].__name__,
-            "build_rn_agenda_events",
+    def test_same_real_world_event_from_two_sources_reconciles(self):
+        registry = self.production_registry()
+        registry["sources"] = [
+            item for item in registry["sources"]
+            if item["source_id"] != "tf1-lci-debates"
+        ]
+        registry["sources"].append(
+            {
+                "source_id": "tf1-lci-debates",
+                "publisher": "TF1 Info",
+                "source_type": "reliable_media",
+                "url": (
+                    "https://www.tf1info.fr/politique/"
+                    "election-presidentielle-2027-lci-organisera-le-27-aout-"
+                    "un-grand-debat-avec-sept-candidats-declares-ou-"
+                    "pressentis-2455591.html"
+                ),
+                "allowed_lanes": ["campaign_events"],
+                "allowed_event_types": ["debate"],
+                "enabled": True,
+                "required": False,
+                "refresh_class": "daily",
+                "zero_result_valid": True,
+                "collection": {
+                    "discovery_method": "direct",
+                    "parser_family": "json_ld",
+                    "attribution_policy": "multi_candidate_explicit",
+                },
+            }
         )
+        registry["sources"].sort(key=lambda item: item["source_id"])
+        registry_path = self.write_json("reconciliation-sources.json", registry)
+
+        lci_key = "tf1-lci-presidential-debate-2026-08-27-1645"
+        lci_event = {
+            "event_key": lci_key,
+            "event_id": campaign_event_id("campaign_events", lci_key),
+            "event_type": "debate",
+            "title": "Présidentielle 2027 : grand débat sur LCI",
+            "candidate_ids": [
+                "bruno-retailleau",
+                "edouard-philippe",
+                "gabriel-attal",
+                "jean-luc-melenchon",
+                "marine-le-pen",
+                "marine-tondelier",
+                "raphael-glucksmann",
+            ],
+            "candidate_names": [
+                "Bruno Retailleau",
+                "Édouard Philippe",
+                "Gabriel Attal",
+                "Jean-Luc Mélenchon",
+                "Marine Le Pen",
+                "Marine Tondelier",
+                "Raphaël Glucksmann",
+            ],
+            "scheduled_start": "2026-08-27T16:45:00+02:00",
+            "time_precision": "datetime",
+            "timezone": "Europe/Paris",
+            "organization": "MEDEF",
+            "status": "scheduled",
+            "status_as_of": GENERATED_AT[:10],
+            "evidence_status": "verified",
+            "last_verified_at": GENERATED_AT,
+            "evidence": [
+                {
+                    "source_id": "tf1-lci-debates",
+                    "source_url": (
+                        "https://www.tf1info.fr/politique/"
+                        "election-presidentielle-2027-lci-organisera-le-27-aout-"
+                        "un-grand-debat-avec-sept-candidats-declares-ou-"
+                        "pressentis-2455591.html"
+                    ),
+                    "source_publisher": "TF1 Info",
+                    "source_type": "reliable_media",
+                    "evidence_type": "explicit_schedule",
+                }
+            ],
+        }
+
+        artifact = self.build(
+            source_registry_path=registry_path,
+            source_event_builders={
+                "rn-agenda": lambda **_kwargs: [rn_event()],
+                "tf1-lci-debates": lambda **_kwargs: [lci_event],
+            },
+        )
+
+        self.assertEqual(len(artifact["campaign_events"]), 1)
+        event = artifact["campaign_events"][0]
+
+        self.assertEqual(
+            set(event["candidate_ids"]),
+            {
+                "bruno-retailleau",
+                "edouard-philippe",
+                "gabriel-attal",
+                "jean-luc-melenchon",
+                "marine-le-pen",
+                "marine-tondelier",
+                "raphael-glucksmann",
+            },
+        )
+        self.assertEqual(
+            {record["source_id"] for record in event["evidence"]},
+            {"rn-agenda", "tf1-lci-debates"},
+        )
+        self.assertEqual(
+            event["event_key"],
+            "campaign-debate-2026-08-27-1645-medef",
+        )
+        self.assertFalse(event["event_key"].startswith("rn-agenda-"))
+        self.assertFalse(event["event_key"].startswith("tf1-lci-"))
+
+        validate_campaign_events_artifact(
+            artifact,
+            source_registry_path=registry_path,
+        )
+
+    def test_reconciled_event_survives_one_optional_source_failure(self):
+        registry = self.production_registry()
+        registry["sources"] = [
+            item for item in registry["sources"]
+            if item["source_id"] != "tf1-lci-debates"
+        ]
+        registry["sources"].append(
+            {
+                "source_id": "tf1-lci-debates",
+                "publisher": "TF1 Info",
+                "source_type": "reliable_media",
+                "url": "https://www.tf1info.fr/politique/presidentielle-2027-debat.html",
+                "allowed_lanes": ["campaign_events"],
+                "allowed_event_types": ["debate"],
+                "enabled": True,
+                "required": False,
+                "refresh_class": "daily",
+                "zero_result_valid": True,
+                "collection": {
+                    "discovery_method": "direct",
+                    "parser_family": "json_ld",
+                    "attribution_policy": "multi_candidate_explicit",
+                },
+            }
+        )
+        registry["sources"].sort(key=lambda item: item["source_id"])
+        registry_path = self.write_json("failure-reconciliation-sources.json", registry)
+
+        lci_key = "tf1-lci-presidential-debate-2026-08-27-1645"
+        lci_event = {
+            "event_key": lci_key,
+            "event_id": campaign_event_id("campaign_events", lci_key),
+            "event_type": "debate",
+            "title": "Présidentielle 2027 : grand débat sur LCI",
+            "candidate_ids": [
+                "bruno-retailleau",
+                "edouard-philippe",
+                "gabriel-attal",
+                "jean-luc-melenchon",
+                "marine-le-pen",
+                "marine-tondelier",
+                "raphael-glucksmann",
+            ],
+            "candidate_names": [
+                "Bruno Retailleau",
+                "Édouard Philippe",
+                "Gabriel Attal",
+                "Jean-Luc Mélenchon",
+                "Marine Le Pen",
+                "Marine Tondelier",
+                "Raphaël Glucksmann",
+            ],
+            "scheduled_start": "2026-08-27T16:45:00+02:00",
+            "time_precision": "datetime",
+            "timezone": "Europe/Paris",
+            "organization": "MEDEF",
+            "status": "scheduled",
+            "status_as_of": "2026-08-01",
+            "evidence_status": "verified",
+            "last_verified_at": "2026-08-01T16:00:00Z",
+            "evidence": [
+                {
+                    "source_id": "tf1-lci-debates",
+                    "source_url": "https://www.tf1info.fr/politique/presidentielle-2027-debat.html",
+                    "source_publisher": "TF1 Info",
+                    "source_type": "reliable_media",
+                    "evidence_type": "explicit_schedule",
+                }
+            ],
+        }
+
+        first = self.build(
+            generated_at="2026-08-01T16:00:00Z",
+            source_registry_path=registry_path,
+            source_event_builders={
+                "rn-agenda": lambda **_kwargs: [
+                    rn_event("2026-08-01T16:00:00Z")
+                ],
+                "tf1-lci-debates": lambda **_kwargs: [lci_event],
+            },
+        )
+
+        with mock.patch("builtins.print") as printer:
+            second = self.build(
+                generated_at="2026-08-02T16:00:00Z",
+                source_registry_path=registry_path,
+                preserve_generated_at_from=self.output,
+                source_event_builders={
+                    "rn-agenda": lambda **_kwargs: [
+                        rn_event("2026-08-02T16:00:00Z")
+                    ],
+                    "tf1-lci-debates": mock.Mock(
+                        side_effect=OSError("offline")
+                    ),
+                },
+            )
+
+        self.assertEqual(len(second["campaign_events"]), 1)
+        event = second["campaign_events"][0]
+        self.assertEqual(
+            {record["source_id"] for record in event["evidence"]},
+            {"rn-agenda", "tf1-lci-debates"},
+        )
+        self.assertEqual(
+            set(event["candidate_ids"]),
+            set(first["campaign_events"][0]["candidate_ids"]),
+        )
+        self.assertEqual(
+            event["event_key"],
+            "campaign-debate-2026-08-27-1645-medef",
+        )
+        printer.assert_called_once_with(
+            "warning: Campaign Events source tf1-lci-debates failed; "
+            "preserved 1 previous record"
+        )
+
+    def test_date_only_and_datetime_same_event_reconcile_to_datetime(self):
+        tf1_key = "tf1-lci-2026-08-29-1645-hollande-philippe-debate"
+        tf1 = {
+            "event_key": tf1_key,
+            "event_id": campaign_event_id("campaign_events", tf1_key),
+            "event_type": "debate",
+            "title": "François Hollande face à Édouard Philippe sur LCI",
+            "candidate_ids": [
+                "edouard-philippe",
+                "francois-hollande",
+            ],
+            "candidate_names": [
+                "Édouard Philippe",
+                "François Hollande",
+            ],
+            "scheduled_start": "2026-08-29T16:45:00+02:00",
+            "time_precision": "datetime",
+            "timezone": "Europe/Paris",
+            "organization": "Laboratoire de la République",
+            "locality": "Sens",
+            "status": "scheduled",
+            "status_as_of": "2026-08-08",
+            "evidence_status": "verified",
+            "last_verified_at": "2026-08-08T17:00:00Z",
+            "evidence": [
+                {
+                    "source_id": "tf1-lci-debates",
+                    "source_url": "https://www.tf1info.fr/politique/election-presidentielle-2027-lci-organisera-le-27-aout-un-grand-debat-avec-sept-candidats-declares-ou-pressentis-2455591.html",
+                    "source_publisher": "TF1 Info",
+                    "source_type": "reliable_media",
+                    "evidence_type": "explicit_schedule",
+                }
+            ],
+        }
+
+        organizer_key = "la-lettre-2026-08-29-hollande-philippe-debate"
+        organizer = {
+            "event_key": organizer_key,
+            "event_id": campaign_event_id(
+                "campaign_events",
+                organizer_key,
+            ),
+            "event_type": "debate",
+            "title": "Débat François Hollande – Édouard Philippe",
+            "candidate_ids": [
+                "edouard-philippe",
+                "francois-hollande",
+            ],
+            "candidate_names": [
+                "Édouard Philippe",
+                "François Hollande",
+            ],
+            "scheduled_start": "2026-08-29",
+            "time_precision": "date",
+            "timezone": "Europe/Paris",
+            "organization": "Laboratoire de la République",
+            "locality": "Sens",
+            "status": "scheduled",
+            "status_as_of": "2026-08-08",
+            "evidence_status": "verified",
+            "last_verified_at": "2026-08-08T17:00:00Z",
+            "evidence": [
+                {
+                    "source_id": "la-lettre-expansion-agenda",
+                    "source_url": "https://www.lalettredelexpansion.com/article/71583/agenda",
+                    "source_publisher": "La Lettre de l'Expansion",
+                    "source_type": "reliable_media",
+                    "evidence_type": "explicit_schedule",
+                }
+            ],
+        }
+
+        reconciled = builder._reconcile_campaign_event_observations(
+            [organizer, tf1]
+        )
+
+        self.assertEqual(len(reconciled), 1)
+        event = reconciled[0]
+        self.assertEqual(
+            event["scheduled_start"],
+            "2026-08-29T16:45:00+02:00",
+        )
+        self.assertEqual(event["time_precision"], "datetime")
+        self.assertEqual(
+            event["event_key"],
+            (
+                "campaign-debate-2026-08-29-1645-"
+                "laboratoire-de-la-republique"
+            ),
+        )
+        self.assertEqual(
+            {record["source_id"] for record in event["evidence"]},
+            {
+                "tf1-lci-debates",
+                "la-lettre-expansion-agenda",
+            },
+        )
+        artifact = builder.build_campaign_events_artifact(
+            self.production_seeds(),
+            generated_at=GENERATED_AT,
+            campaign_events=reconciled,
+        )
+        self.assertEqual(len(artifact["campaign_events"]), 1)
+        validate_campaign_events_artifact(artifact)
+
+        for source_owned in (tf1, organizer):
+            with self.subTest(source_id=source_owned["evidence"][0]["source_id"]):
+                with self.assertRaisesRegex(
+                    builder.BuildCampaignEventsError,
+                    "two independent reliable-media",
+                ):
+                    builder.build_campaign_events_artifact(
+                        self.production_seeds(),
+                        generated_at=GENERATED_AT,
+                        campaign_events=[source_owned],
+                    )
+
+    def test_cross_precision_reconciliation_requires_exact_candidate_set(self):
+        datetime_key = "media-2026-08-29-1645-hollande-philippe"
+        datetime_event = {
+            "event_key": datetime_key,
+            "event_id": campaign_event_id(
+                "campaign_events",
+                datetime_key,
+            ),
+            "event_type": "debate",
+            "title": "Hollande face à Philippe",
+            "candidate_ids": [
+                "edouard-philippe",
+                "francois-hollande",
+            ],
+            "candidate_names": [
+                "Édouard Philippe",
+                "François Hollande",
+            ],
+            "scheduled_start": "2026-08-29T16:45:00+02:00",
+            "time_precision": "datetime",
+            "timezone": "Europe/Paris",
+            "organization": "Laboratoire de la République",
+            "locality": "Sens",
+            "status": "scheduled",
+            "status_as_of": "2026-08-08",
+            "evidence_status": "verified",
+            "last_verified_at": "2026-08-08T17:00:00Z",
+            "evidence": [
+                {
+                    "source_id": "media-source",
+                    "source_url": "https://example.com/media",
+                    "source_publisher": "Media",
+                    "source_type": "reliable_media",
+                    "evidence_type": "explicit_schedule",
+                }
+            ],
+        }
+
+        date_key = "organizer-2026-08-29-philippe"
+        date_event = {
+            "event_key": date_key,
+            "event_id": campaign_event_id(
+                "campaign_events",
+                date_key,
+            ),
+            "event_type": "debate",
+            "title": "Édouard Philippe à Sens",
+            "candidate_ids": ["edouard-philippe"],
+            "candidate_names": ["Édouard Philippe"],
+            "scheduled_start": "2026-08-29",
+            "time_precision": "date",
+            "timezone": "Europe/Paris",
+            "organization": "Laboratoire de la République",
+            "locality": "Sens",
+            "status": "scheduled",
+            "status_as_of": "2026-08-08",
+            "evidence_status": "verified",
+            "last_verified_at": "2026-08-08T17:00:00Z",
+            "evidence": [
+                {
+                    "source_id": "organizer-source",
+                    "source_url": "https://example.com/organizer",
+                    "source_publisher": "Organizer",
+                    "source_type": "organizer_first_party",
+                    "evidence_type": "explicit_schedule",
+                }
+            ],
+        }
+
+        reconciled = builder._reconcile_campaign_event_observations(
+            [date_event, datetime_event]
+        )
+
+        self.assertEqual(len(reconciled), 2)
+
+    def test_cross_precision_reconciliation_requires_same_calendar_date(self):
+        datetime_key = "media-2026-08-29-1645-hollande-philippe"
+        datetime_event = {
+            "event_key": datetime_key,
+            "event_id": campaign_event_id(
+                "campaign_events",
+                datetime_key,
+            ),
+            "event_type": "debate",
+            "title": "Hollande face à Philippe",
+            "candidate_ids": [
+                "edouard-philippe",
+                "francois-hollande",
+            ],
+            "candidate_names": [
+                "Édouard Philippe",
+                "François Hollande",
+            ],
+            "scheduled_start": "2026-08-29T16:45:00+02:00",
+            "time_precision": "datetime",
+            "timezone": "Europe/Paris",
+            "organization": "Laboratoire de la République",
+            "locality": "Sens",
+            "status": "scheduled",
+            "status_as_of": "2026-08-08",
+            "evidence_status": "verified",
+            "last_verified_at": "2026-08-08T17:00:00Z",
+            "evidence": [
+                {
+                    "source_id": "media-source",
+                    "source_url": "https://example.com/media",
+                    "source_publisher": "Media",
+                    "source_type": "reliable_media",
+                    "evidence_type": "explicit_schedule",
+                }
+            ],
+        }
+
+        date_key = "organizer-2026-08-28-hollande-philippe"
+        date_event = {
+            **datetime_event,
+            "event_key": date_key,
+            "event_id": campaign_event_id(
+                "campaign_events",
+                date_key,
+            ),
+            "scheduled_start": "2026-08-28",
+            "time_precision": "date",
+            "evidence": [
+                {
+                    "source_id": "organizer-source",
+                    "source_url": "https://example.com/organizer",
+                    "source_publisher": "Organizer",
+                    "source_type": "organizer_first_party",
+                    "evidence_type": "explicit_schedule",
+                }
+            ],
+        }
+
+        reconciled = builder._reconcile_campaign_event_observations(
+            [date_event, datetime_event]
+        )
+
+        self.assertEqual(len(reconciled), 2)
+
+    def test_production_collector_map_is_exact(self):
+        self.assertEqual(
+            set(builder._PRODUCTION_COLLECTION_COLLECTORS),
+            {"la-lettre-expansion", "rn-agenda", "tf1-lci-debates"},
+        )
+        self.assertEqual(
+            builder._PRODUCTION_COLLECTION_COLLECTORS["rn-agenda"].__name__,
+            "_collect_rn_agenda",
+        )
+        self.assertEqual(
+            builder._PRODUCTION_COLLECTION_COLLECTORS[
+                "tf1-lci-debates"
+            ].__name__,
+            "_collect_tf1_lci_debates",
+        )
+        self.assertEqual(
+            builder._PRODUCTION_COLLECTION_COLLECTORS[
+                "la-lettre-expansion"
+            ].__name__,
+            "_collect_la_lettre_expansion",
+        )
+
+    def test_production_media_wrappers_return_strict_collection_results(self):
+        sources = {
+            source["source_id"]: source
+            for source in builder.load_campaign_event_source_registry(
+                ROOT / "campaign_event_sources.json"
+            )["sources"]
+        }
+        cases = (
+            (
+                "tf1-lci-debates",
+                "tf1-lci-debates",
+                "build_tf1_lci_events",
+                builder.Tf1LciAdapterResult,
+                0,
+            ),
+            (
+                "la-lettre-expansion-agenda",
+                "la-lettre-expansion",
+                "build_la_lettre_expansion_events",
+                builder.LaLettreExpansionAdapterResult,
+                3,
+            ),
+        )
+        for source_id, family, builder_name, result_type, rejected in cases:
+            with self.subTest(source_id=source_id):
+                adapter = mock.Mock(
+                    return_value=result_type(
+                        observations=({"source_owned": source_id},),
+                        attribution_rejected_records=rejected,
+                    )
+                )
+                with mock.patch.object(builder, builder_name, adapter):
+                    result = builder._dispatch_campaign_event_collection(
+                        sources[source_id],
+                        observed_at=GENERATED_AT,
+                        collection_collectors=(
+                            builder._PRODUCTION_COLLECTION_COLLECTORS
+                        ),
+                    )
+                self.assertIn(family, builder._PRODUCTION_COLLECTION_COLLECTORS)
+                self.assertEqual(
+                    result,
+                    builder.SourceCollectionResult(
+                        observations=[{"source_owned": source_id}],
+                        attribution_rejected_records=rejected,
+                    ),
+                )
+                adapter.assert_called_once_with(
+                    source=sources[source_id], observed_at=GENERATED_AT
+                )
+
+    def test_generic_dispatcher_routes_by_collector_family(self):
+        source = next(
+            item
+            for item in builder.load_campaign_event_source_registry(
+                ROOT / "campaign_event_sources.json"
+            )["sources"]
+            if item["source_id"] == "rn-agenda"
+        )
+        expected = builder.SourceCollectionResult(observations=[])
+        collector = mock.Mock(return_value=expected)
+        result = builder._dispatch_campaign_event_collection(
+            source,
+            observed_at=GENERATED_AT,
+            collection_collectors={"rn-agenda": collector},
+        )
+
+        self.assertIs(result, expected)
+        collector.assert_called_once_with(
+            source=source,
+            observed_at=GENERATED_AT,
+        )
+
+    def test_generic_dispatcher_routes_by_parser_family(self):
+        source = next(
+            item
+            for item in builder.load_campaign_event_source_registry(
+                ROOT / "campaign_event_sources.json"
+            )["sources"]
+            if item["source_id"] == "rn-agenda"
+        )
+        source["collection"] = {
+            "discovery_method": "structured_html",
+            "parser_family": "structured_html",
+            "attribution_policy": "explicit_participant",
+        }
+        collector = mock.Mock(
+            return_value=builder.SourceCollectionResult(observations=[])
+        )
+        builder._dispatch_campaign_event_collection(
+            source,
+            observed_at=GENERATED_AT,
+            collection_collectors={"structured_html": collector},
+        )
+        collector.assert_called_once_with(
+            source=source,
+            observed_at=GENERATED_AT,
+        )
+
+    def test_unknown_collector_family_fails_closed(self):
+        source = next(
+            item
+            for item in builder.load_campaign_event_source_registry(
+                ROOT / "campaign_event_sources.json"
+            )["sources"]
+            if item["source_id"] == "rn-agenda"
+        )
+        source["collection"]["collector_family"] = "not-registered"
+        with self.assertRaisesRegex(
+            builder.BuildCampaignEventsError,
+            "no Campaign Events collector registered",
+        ):
+            builder._dispatch_campaign_event_collection(
+                source,
+                observed_at=GENERATED_AT,
+                collection_collectors={},
+            )
+
+    def test_unknown_collector_is_fatal_through_full_build_path(self):
+        health = []
+        self.assert_last_good(
+            lambda: self.build(
+                source_event_builders=None,
+                source_registry_path=self.registry_with_rn(),
+                collection_collectors={},
+                collection_health=health,
+            )
+        )
+        self.assertEqual(health, [])
+
+    def test_malformed_generic_collector_return_is_fatal_through_build(self):
+        health = []
+        self.assert_last_good(
+            lambda: self.build(
+                source_event_builders=None,
+                source_registry_path=self.registry_with_rn(),
+                collection_collectors={"rn-agenda": lambda **_kwargs: []},
+                collection_health=health,
+            )
+        )
+        self.assertEqual(health, [])
+
+    def test_custom_rn_collector_remains_supported(self):
+        source = next(
+            item
+            for item in builder.load_campaign_event_source_registry(
+                ROOT / "campaign_event_sources.json"
+            )["sources"]
+            if item["source_id"] == "rn-agenda"
+        )
+        with mock.patch.object(
+            builder,
+            "build_rn_agenda_events",
+            return_value=[],
+        ) as rn_builder:
+            result = builder._dispatch_campaign_event_collection(
+                source,
+                observed_at=GENERATED_AT,
+                collection_collectors=builder._PRODUCTION_COLLECTION_COLLECTORS,
+            )
+        self.assertEqual(
+            result,
+            builder.SourceCollectionResult(
+                observations=[],
+                attribution_rejected_records=0,
+            ),
+        )
+        rn_builder.assert_called_once_with(observed_at=GENERATED_AT)
+
+    def test_generic_collector_output_uses_source_owned_normalization(self):
+        collector = mock.Mock(
+            return_value=builder.SourceCollectionResult(
+                observations=[rn_event()],
+                attribution_rejected_records=2,
+            )
+        )
+        health = []
+        artifact = self.build(
+            source_event_builders=None,
+            source_registry_path=self.registry_with_rn(),
+            collection_collectors={"rn-agenda": collector},
+            collection_health=health,
+        )
+
+        self.assertEqual(len(artifact["campaign_events"]), 1)
+        collector.assert_called_once()
+        supplied = collector.call_args.kwargs
+        self.assertEqual(supplied["observed_at"], GENERATED_AT)
+        self.assertEqual(supplied["source"]["source_id"], "rn-agenda")
+        self.assertEqual(
+            health,
+            [
+                builder.SourceCollectionHealth(
+                    source_id="rn-agenda",
+                    checked_successfully=True,
+                    accepted_records=1,
+                    attribution_rejected_records=2,
+                    preserved_records=0,
+                    failure_reason=None,
+                )
+            ],
+        )
+        self.assertEqual(
+            set(artifact),
+            {
+                "schema_version",
+                "generated_at",
+                "data_as_of",
+                "campaign_events",
+                "institutional_milestones",
+            },
+        )
+        self.assertTrue(
+            all(
+                "attribution_rejected_records" not in event
+                and "collection_health" not in event
+                for event in artifact["campaign_events"]
+            )
+        )
+
+    def test_zero_accepted_with_rejections_flows_to_collection_health(self):
+        health = []
+        self.build(
+            source_event_builders=None,
+            source_registry_path=self.registry_with_rn(),
+            collection_collectors={
+                "rn-agenda": lambda **_kwargs: builder.SourceCollectionResult(
+                    observations=[],
+                    attribution_rejected_records=3,
+                )
+            },
+            collection_health=health,
+        )
+        self.assertEqual(
+            health,
+            [
+                builder.SourceCollectionHealth(
+                    source_id="rn-agenda",
+                    checked_successfully=True,
+                    accepted_records=0,
+                    attribution_rejected_records=3,
+                    preserved_records=0,
+                    failure_reason=None,
+                )
+            ],
+        )
+
+    def test_source_collection_result_rejects_negative_rejection_count(self):
+        with self.assertRaisesRegex(
+            builder.BuildCampaignEventsError,
+            "attribution_rejected_records",
+        ):
+            builder.SourceCollectionResult(
+                observations=[],
+                attribution_rejected_records=-1,
+            )
+
+    def test_source_collection_result_rejects_malformed_observations(self):
+        for observations in ({}, [object()]):
+            with self.subTest(observations=observations):
+                with self.assertRaisesRegex(
+                    builder.BuildCampaignEventsError,
+                    "observations",
+                ):
+                    builder.SourceCollectionResult(observations=observations)
 
     def test_exact_one_event_rn_success_invokes_injected_builder_once(self):
         source_builder = mock.Mock(return_value=[rn_event()])
@@ -134,11 +914,14 @@ class BuildCampaignEventsTests(unittest.TestCase):
         self.assertEqual(len(artifact["campaign_events"]), 1)
         self.assertEqual(
             artifact["campaign_events"][0]["event_key"],
-            "rn-agenda-marine-le-pen-2026-08-27-1645-debate",
+            "campaign-debate-2026-08-27-1645-medef",
         )
         self.assertEqual(
             artifact["campaign_events"][0]["event_id"],
-            "ce-de75c4df4e8c72a7cc486f26",
+            campaign_event_id(
+                "campaign_events",
+                "campaign-debate-2026-08-27-1645-medef",
+            ),
         )
         self.assertEqual(artifact["data_as_of"], GENERATED_AT)
         self.assert_two_milestones(artifact)
@@ -190,7 +973,7 @@ class BuildCampaignEventsTests(unittest.TestCase):
 
         self.assertEqual(
             [event["event_key"] for event in artifact["campaign_events"]],
-            [first["event_key"]],
+            ["campaign-debate-2026-08-27-1645-medef"],
         )
         self.assert_two_milestones(artifact)
 
@@ -204,11 +987,15 @@ class BuildCampaignEventsTests(unittest.TestCase):
         )
         previous_bytes = self.output.read_bytes()
         source_builder = mock.Mock(side_effect=OSError("offline"))
+        health = []
         with mock.patch("builtins.print") as printer:
             artifact = self.build(
                 generated_at="2026-08-02T16:00:00Z",
                 preserve_generated_at_from=self.output,
-                source_event_builders={"rn-agenda": source_builder},
+                source_event_builders=None,
+                source_registry_path=self.registry_with_rn(),
+                collection_collectors={"rn-agenda": source_builder},
+                collection_health=health,
             )
 
         self.assertEqual(artifact, previous)
@@ -219,6 +1006,19 @@ class BuildCampaignEventsTests(unittest.TestCase):
         printer.assert_called_once_with(
             "warning: Campaign Events source rn-agenda failed; "
             "preserved 1 previous record"
+        )
+        self.assertEqual(
+            health,
+            [
+                builder.SourceCollectionHealth(
+                    source_id="rn-agenda",
+                    checked_successfully=False,
+                    accepted_records=0,
+                    attribution_rejected_records=0,
+                    preserved_records=1,
+                    failure_reason="collector_failure",
+                )
+            ],
         )
         self.assert_two_milestones(artifact)
 
@@ -248,10 +1048,19 @@ class BuildCampaignEventsTests(unittest.TestCase):
         self.assert_last_good(
             lambda: self.build(
                 source_registry_path=required_registry,
-                source_event_builders={"rn-agenda": source_builder},
+                source_event_builders=None,
+                collection_collectors={"rn-agenda": source_builder},
             )
         )
-        source_builder.assert_called_once_with(observed_at=GENERATED_AT)
+        source_builder.assert_called_once()
+        self.assertEqual(
+            source_builder.call_args.kwargs["source"]["source_id"],
+            "rn-agenda",
+        )
+        self.assertEqual(
+            source_builder.call_args.kwargs["observed_at"],
+            GENERATED_AT,
+        )
 
     def test_invalid_previous_artifact_is_not_trusted_for_optional_failure(self):
         invalid_previous = self.temporary_root / "invalid-previous.json"

@@ -7,6 +7,7 @@ import unittest
 import uuid
 from pathlib import Path
 from unittest import mock
+import campaign_events_contract as contract
 
 from campaign_events_contract import (
     CampaignEventsContractError,
@@ -78,25 +79,32 @@ def registered_source(
     candidate_ids=None,
     organization=None,
 ):
+    lanes = allowed_lanes or ["campaign_events"]
+    event_types = allowed_event_types or [
+        "rally",
+        "public_meeting",
+        "debate",
+        "candidate_visit",
+        "campaign_launch",
+    ]
     source = {
         "source_id": source_id,
         "publisher": publisher,
         "source_type": source_type,
         "url": f"https://{hostname or source_id + '.example.org'}/registry",
-        "allowed_lanes": allowed_lanes or ["campaign_events"],
-        "allowed_event_types": allowed_event_types
-        or [
-            "rally",
-            "public_meeting",
-            "debate",
-            "candidate_visit",
-            "campaign_launch",
-        ],
+        "allowed_lanes": lanes,
+        "allowed_event_types": event_types,
         "enabled": enabled,
         "required": False,
         "refresh_class": "daily",
         "zero_result_valid": True,
     }
+    if "campaign_events" in lanes:
+        source["collection"] = {
+            "discovery_method": "structured_html",
+            "parser_family": "structured_html",
+            "attribution_policy": "explicit_participant",
+        }
     if candidate_ids is not None:
         source["candidate_ids"] = candidate_ids
     if organization is not None:
@@ -250,7 +258,7 @@ class CampaignEventsContractTests(unittest.TestCase):
     def write_registry(self, name, sources):
         target = self.temporary_root / name
         payload = {
-            "schema_version": "1.0",
+            "schema_version": "2.0",
             "sources": sorted(sources, key=lambda source: source["source_id"]),
         }
         target.write_text(
@@ -285,6 +293,34 @@ class CampaignEventsContractTests(unittest.TestCase):
         validate_campaign_events_artifact(
             payload,
             source_registry_path=source_registry_path or self.registry_path,
+        )
+
+    def test_single_media_observation_can_normalize_before_reconciliation(self):
+        event = campaign_event(
+            event_key="media-observation-2026-08-27-1645-debate",
+            event_type="debate",
+            title="Présidentielle 2027 : débat sur LCI",
+            scheduled_start="2026-08-27T16:45:00+02:00",
+            time_precision="datetime",
+            evidence=[media_evidence("a-media", "A Media")],
+        )
+
+        with self.assertRaises(CampaignEventsContractError):
+            normalize_campaign_events_artifact(
+                artifact(campaign_events=[event]),
+                source_registry_path=self.registry_path,
+            )
+
+        normalized = contract.normalize_campaign_event_observations(
+            [event],
+            source_registry_path=self.registry_path,
+        )
+
+        self.assertEqual(len(normalized), 1)
+        self.assertEqual(normalized[0]["event_key"], event["event_key"])
+        self.assertEqual(
+            normalized[0]["evidence"][0]["source_id"],
+            "a-media",
         )
 
     def test_deterministic_event_id_uses_exact_algorithm(self):
