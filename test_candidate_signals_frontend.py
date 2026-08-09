@@ -597,7 +597,7 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
             r'aria-label="[^"]+" aria-orientation="horizontal">',
         )
         controls = re.findall(
-            r'<button class="hybrid-tab"[^>]+>[^<]+</button>', workspace
+            r'<button class="hybrid-tab"[^>]+>[\s\S]*?</button>', workspace
         )
         self.assertEqual(len(controls), 6)
         for index, control in enumerate(controls):
