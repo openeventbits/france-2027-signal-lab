@@ -2120,6 +2120,20 @@
     return `<svg class="${escapeAttribute(className)}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
   }
 
+  function workspaceTabIconMarkup(name) {
+    const paths = {
+      runoff: '<path d="M4 5h5v5H4zM15 5h5v5h-5zM9 7.5h6M12 7.5v9M8 19h8M9 16h6"/>',
+      candidates: '<circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.5-4.5 2.7-6.8 6.5-6.8s6 2.3 6.5 6.8"/>',
+      events: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 9.5h17M8 13h3M8 16.5h5"/>',
+      agenda: '<path d="M7 6h12M7 12h12M7 18h12"/><circle cx="4" cy="6" r=".8"/><circle cx="4" cy="12" r=".8"/><circle cx="4" cy="18" r=".8"/>',
+      claims: '<path d="M12 3 19 6v5c0 4.4-2.6 7.4-7 9.5C7.6 18.4 5 15.4 5 11V6l7-3Z"/><path d="m8.7 11.5 2.1 2.1 4.5-5"/>',
+      pollCompare: '<path d="M4 7h7M15 7h5M4 17h3M11 17h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>'
+    };
+
+    const body = paths[name] || paths.runoff;
+    return `<svg class="hybrid-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+  }
+
   function runoffCompactSourceLink(url, accessibleLabel) {
     const safe = safeSourceUrl(url);
     return safe
@@ -3851,7 +3865,10 @@
     return `<section class="hybrid-workspace" data-hybrid-workspace aria-label="Signal Board focus workspace">
       <div class="hybrid-tabs" role="tablist" aria-label="Lower evidence workspace" aria-orientation="horizontal">
         ${viewOrder.map(key => `<button class="hybrid-tab" id="${views[key].tabId}" type="button" role="tab"
-          data-hybrid-view="${key}" aria-controls="${views[key].panelId}" aria-selected="${String(state.activeView === key)}" tabindex="${state.activeView === key ? "0" : "-1"}">${views[key].label}</button>`).join("")}
+          data-hybrid-view="${key}" aria-controls="${views[key].panelId}" aria-selected="${String(state.activeView === key)}" tabindex="${state.activeView === key ? "0" : "-1"}">
+          ${workspaceTabIconMarkup(key)}
+          <span class="hybrid-tab-label">${views[key].label}</span>
+        </button>`).join("")}
       </div>
       <section class="hybrid-panel" id="signal-runoff-panel" role="tabpanel" aria-labelledby="signal-runoff-tab"${state.activeView === "runoff" ? "" : " hidden"}>${renderRunoffPanel(models.runoff)}</section>
       <section class="hybrid-panel" id="signal-candidates-panel" role="tabpanel" aria-labelledby="signal-candidates-tab"${state.activeView === "candidates" ? "" : " hidden"}>

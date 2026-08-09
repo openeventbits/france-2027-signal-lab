@@ -364,6 +364,10 @@
 
 .hybrid-tab {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   flex: 1 0 auto;
   min-width: 140px;
   padding: 12px 14px;
@@ -376,6 +380,21 @@
   letter-spacing: .1em;
   text-transform: uppercase;
   cursor: pointer;
+}
+
+.hybrid-tab-icon {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  opacity: .82;
+}
+
+.hybrid-tab-label {
+  white-space: nowrap;
+}
+
+.hybrid-tab[aria-selected="true"] .hybrid-tab-icon {
+  opacity: 1;
 }
 
 .hybrid-tab::after {
