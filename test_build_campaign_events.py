@@ -647,6 +647,25 @@ class BuildCampaignEventsTests(unittest.TestCase):
             "_collect_la_lettre_expansion",
         )
 
+    def test_nouvelle_energie_uses_generic_linked_ics_collector(self):
+        source = next(
+            item
+            for item in builder.load_campaign_event_source_registry(
+                ROOT / "campaign_event_sources.json"
+            )["sources"]
+            if item["source_id"] == "nouvelle-energie-agenda"
+        )
+
+        collector = builder._resolve_campaign_event_collector(
+            source,
+            collection_collectors=builder._PRODUCTION_COLLECTION_COLLECTORS,
+        )
+
+        self.assertIs(
+            collector,
+            builder._PRODUCTION_COLLECTION_COLLECTORS["linked-ics"],
+        )
+
     def test_production_media_wrappers_return_strict_collection_results(self):
         sources = {
             source["source_id"]: source
