@@ -55,6 +55,7 @@ def attributed_event(
     event_url: str | None = "https://events.example/detail/one",
     external_id: str | None = None,
     source_status: str | None = None,
+    participants: tuple[str, ...] = (),
 ) -> AttributedStructuredEvent:
     record = StructuredEventRecord(
         title=title,
@@ -70,6 +71,7 @@ def attributed_event(
         event_url=event_url,
         external_id=external_id,
         source_status=source_status,
+        participants=participants,
     )
     return AttributedStructuredEvent(
         structured_event=record,
@@ -514,6 +516,24 @@ class CampaignEventObservationTests(unittest.TestCase):
             ),
             [observation],
         )
+
+    def test_explicit_structured_participants_are_copied_to_observation(self):
+        observation = self.build(
+            attributed_event(
+                "Meeting avec David Lisnard",
+                participants=("Unknown Political Actor",),
+            )
+        )
+        self.assertEqual(
+            observation["participants"],
+            ["Unknown Political Actor"],
+        )
+
+    def test_absent_structured_participants_preserve_public_shape(self):
+        observation = self.build(
+            attributed_event("Meeting avec David Lisnard")
+        )
+        self.assertNotIn("participants", observation)
 
     def test_date_precision_is_preserved(self):
         observation = self.build(

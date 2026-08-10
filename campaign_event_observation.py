@@ -79,6 +79,7 @@ _PUBLIC_OPTIONAL_KEYS = frozenset(
         "location_name",
         "locality",
         "department",
+        "participants",
     }
 )
 _EXCLUDED_SEQUENCES = (
@@ -595,6 +596,8 @@ def _raw_observation(
     }
     if structured.scheduled_end is not None:
         observation["scheduled_end"] = structured.scheduled_end
+    if structured.participants:
+        observation["participants"] = list(structured.participants)
     for field in ("organization", "location_name", "locality"):
         value = getattr(structured, field)
         if value is not None:

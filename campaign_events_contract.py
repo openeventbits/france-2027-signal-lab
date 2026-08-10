@@ -97,6 +97,7 @@ _OPTIONAL_EVENT_KEYS = frozenset(
         "location_name",
         "locality",
         "department",
+        "participants",
     }
 )
 _REQUIRED_EVIDENCE_KEYS = frozenset(
@@ -326,8 +327,6 @@ def _normalize_candidates(
         _fail(f"{context}.candidate_ids and candidate_names must be lists")
     if len(candidate_ids) != len(candidate_names):
         _fail(f"{context}.candidate_ids and candidate_names must be parallel")
-    if lane == CAMPAIGN_EVENTS_LANE and not candidate_ids:
-        _fail(f"{context} Campaign Events require at least one candidate")
     if lane == INSTITUTIONAL_MILESTONES_LANE and (
         candidate_ids or candidate_names
     ):
@@ -355,6 +354,29 @@ def _normalize_candidates(
 
     pairs.sort(key=lambda pair: (pair[1].casefold(), pair[0]))
     return [pair[0] for pair in pairs], [pair[1] for pair in pairs]
+
+
+def _normalize_participants(
+    event: dict[str, Any],
+    *,
+    lane: str,
+    context: str,
+) -> list[str] | None:
+    if "participants" not in event:
+        return None
+    if lane != CAMPAIGN_EVENTS_LANE:
+        _fail(f"{context}.participants is only allowed for Campaign Events")
+
+    supplied = event["participants"]
+    if not isinstance(supplied, list) or not supplied:
+        _fail(f"{context}.participants must be a non-empty list")
+    participants = [
+        _require_trimmed_text(value, f"{context}.participants[{index}]")
+        for index, value in enumerate(supplied)
+    ]
+    if len(set(participants)) != len(participants):
+        _fail(f"{context}.participants must not contain duplicates")
+    return sorted(participants, key=lambda value: (value.casefold(), value))
 
 
 def _normalize_evidence(
@@ -649,6 +671,11 @@ def _normalize_event(
         candidate_by_id=candidate_by_id,
         context=context,
     )
+    participants = _normalize_participants(
+        value,
+        lane=lane,
+        context=context,
+    )
     scheduled_start, scheduled_end = _normalize_scheduled_values(
         value,
         context=context,
@@ -694,6 +721,8 @@ def _normalize_event(
         "candidate_names": candidate_names,
         "scheduled_start": scheduled_start,
     }
+    if participants is not None:
+        normalized["participants"] = participants
     if scheduled_end is not None:
         normalized["scheduled_end"] = scheduled_end
     normalized.update(

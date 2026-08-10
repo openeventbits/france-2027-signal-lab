@@ -545,9 +545,74 @@ class CampaignEventsContractTests(unittest.TestCase):
             normalized = self.canonical(artifact([campaign_event()]))
         self.assertEqual(len(normalized["campaign_events"]), 1)
 
-    def test_campaign_events_require_candidates(self):
-        event = campaign_event(candidate_ids=[], candidate_names=[])
-        self.assert_invalid(artifact([event]), "at least one candidate")
+    def test_campaign_events_allow_empty_candidate_linkage(self):
+        event = campaign_event(
+            candidate_ids=[],
+            candidate_names=[],
+            evidence=[organizer_evidence()],
+        )
+        normalized = self.canonical(artifact([event]))
+        stored = normalized["campaign_events"][0]
+        self.assertEqual(stored["candidate_ids"], [])
+        self.assertEqual(stored["candidate_names"], [])
+
+    def test_unlinked_campaign_event_accepts_explicit_participants(self):
+        event = campaign_event(
+            participants=["Unknown Political Actor"],
+            candidate_ids=[],
+            candidate_names=[],
+            evidence=[organizer_evidence()],
+        )
+        normalized = self.canonical(artifact([event]))
+        self.assertEqual(
+            normalized["campaign_events"][0]["participants"],
+            ["Unknown Political Actor"],
+        )
+
+    def test_candidate_arrays_must_remain_parallel(self):
+        for candidate_ids, candidate_names in (
+            ([], ["Bruno Retailleau"]),
+            (["bruno-retailleau"], []),
+        ):
+            with self.subTest(
+                candidate_ids=candidate_ids,
+                candidate_names=candidate_names,
+            ):
+                self.assert_invalid(
+                    artifact(
+                        [
+                            campaign_event(
+                                candidate_ids=candidate_ids,
+                                candidate_names=candidate_names,
+                            )
+                        ]
+                    ),
+                    "parallel",
+                )
+
+    def test_participants_are_validated_and_sorted(self):
+        event = campaign_event(
+            participants=["Zoé Martin", "Alice Durand"],
+        )
+        normalized = self.canonical(artifact([event]))
+        self.assertEqual(
+            normalized["campaign_events"][0]["participants"],
+            ["Alice Durand", "Zoé Martin"],
+        )
+
+        for participants in (
+            [],
+            (),
+            [""],
+            [" padded "],
+            ["E\u0301lodie Martin"],
+            ["Same Person", "Same Person"],
+        ):
+            with self.subTest(participants=participants):
+                self.assert_invalid(
+                    artifact([campaign_event(participants=participants)]),
+                    "participants",
+                )
 
     def test_institutional_milestones_are_candidate_free(self):
         event = institutional_event(
@@ -557,6 +622,18 @@ class CampaignEventsContractTests(unittest.TestCase):
         self.assert_invalid(
             artifact(institutional_milestones=[event]),
             "candidate-free",
+        )
+
+    def test_institutional_milestones_reject_participants(self):
+        self.assert_invalid(
+            artifact(
+                institutional_milestones=[
+                    institutional_event(
+                        participants=["Unknown Political Actor"]
+                    )
+                ]
+            ),
+            "participants is only allowed for Campaign Events",
         )
 
     def test_candidate_identity_requires_registry_parity(self):
@@ -969,6 +1046,7 @@ class CampaignEventsContractTests(unittest.TestCase):
             "location_name",
             "locality",
             "department",
+            "participants",
         ):
             self.assertNotIn(field, stored)
         self.assert_invalid(
