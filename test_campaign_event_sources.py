@@ -313,6 +313,47 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
         changed["collection"]["collector_family"] = "unused"
         self.assert_invalid(registry(changed), "only allowed for custom")
 
+    def test_linked_ics_collection_allows_explicit_generic_family(self):
+        changed = source_record(
+            collection={
+                "discovery_method": "linked_event_pages",
+                "parser_family": "ics",
+                "attribution_policy": "explicit_participant",
+                "collector_family": "linked-ics",
+            }
+        )
+        normalized = normalize_campaign_event_source_registry(
+            registry(changed)
+        )
+        self.assertEqual(
+            normalized["sources"][0]["collection"],
+            changed["collection"],
+        )
+
+    def test_linked_ics_family_rejects_incompatible_collection_shape(self):
+        for discovery_method, parser_family in (
+            ("direct", "ics"),
+            ("linked_event_pages", "json_ld"),
+            ("custom", "ics"),
+            ("linked_event_pages", "custom"),
+        ):
+            with self.subTest(
+                discovery_method=discovery_method,
+                parser_family=parser_family,
+            ):
+                changed = source_record(
+                    collection={
+                        "discovery_method": discovery_method,
+                        "parser_family": parser_family,
+                        "attribution_policy": "explicit_participant",
+                        "collector_family": "linked-ics",
+                    }
+                )
+                self.assert_invalid(
+                    registry(changed),
+                    "linked-ics requires linked_event_pages",
+                )
+
     def test_source_id_must_be_lowercase_ascii_kebab_case(self):
         for identifier in (
             "Uppercase",

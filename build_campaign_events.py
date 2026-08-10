@@ -18,6 +18,11 @@ from campaign_event_institutional_seeds import (
     CampaignEventInstitutionalSeedError,
     load_campaign_event_institutional_seeds,
 )
+from campaign_event_linked_ics import (
+    LinkedIcsCollectorConfigurationError,
+    LinkedIcsCollectorResult,
+    build_linked_ics_events,
+)
 from campaign_event_observation import (
     CampaignEventObservationConfigurationError,
 )
@@ -261,8 +266,43 @@ def _collect_la_lettre_expansion(
     )
 
 
+def _collect_linked_ics(
+    *,
+    source: dict[str, Any],
+    observed_at: str,
+) -> SourceCollectionResult:
+    try:
+        result = build_linked_ics_events(
+            source=source,
+            observed_at=observed_at,
+        )
+    except (
+        LinkedIcsCollectorConfigurationError,
+        CandidateAttributionConfigurationError,
+        CampaignEventObservationConfigurationError,
+    ) as error:
+        raise CampaignEventCollectionConfigurationError(
+            f"linked ICS collector configuration failed: {error}"
+        ) from error
+    if type(result) is not LinkedIcsCollectorResult:
+        raise CampaignEventCollectionConfigurationError(
+            "linked ICS collector returned an invalid result"
+        )
+    try:
+        result.__post_init__()
+    except LinkedIcsCollectorConfigurationError as error:
+        raise CampaignEventCollectionConfigurationError(
+            f"linked ICS collector result is invalid: {error}"
+        ) from error
+    return SourceCollectionResult(
+        observations=list(result.observations),
+        attribution_rejected_records=result.attribution_rejected_records,
+    )
+
+
 _PRODUCTION_COLLECTION_COLLECTORS: Mapping[str, CollectionCollector] = {
     "la-lettre-expansion": _collect_la_lettre_expansion,
+    "linked-ics": _collect_linked_ics,
     "rn-agenda": _collect_rn_agenda,
     "tf1-lci-debates": _collect_tf1_lci_debates,
 }

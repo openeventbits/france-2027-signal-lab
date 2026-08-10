@@ -343,9 +343,24 @@ def _normalize_collection(
         )
     if uses_custom_step and collector_family is None:
         _fail(f"{context} custom collection requires collector_family")
-    if not uses_custom_step and collector_family is not None:
+    is_linked_ics_collection = (
+        collector_family == "linked-ics"
+        and discovery_method == "linked_event_pages"
+        and parser_family == "ics"
+    )
+    if collector_family == "linked-ics" and not is_linked_ics_collection:
         _fail(
-            f"{context}.collector_family is only allowed for custom collection"
+            f"{context}.collector_family linked-ics requires "
+            "linked_event_pages discovery and ics parsing"
+        )
+    if (
+        not uses_custom_step
+        and collector_family is not None
+        and not is_linked_ics_collection
+    ):
+        _fail(
+            f"{context}.collector_family is only allowed for custom collection "
+            "or the linked-ics collection architecture"
         )
 
     normalized = {

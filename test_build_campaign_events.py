@@ -619,7 +619,16 @@ class BuildCampaignEventsTests(unittest.TestCase):
     def test_production_collector_map_is_exact(self):
         self.assertEqual(
             set(builder._PRODUCTION_COLLECTION_COLLECTORS),
-            {"la-lettre-expansion", "rn-agenda", "tf1-lci-debates"},
+            {
+                "la-lettre-expansion",
+                "linked-ics",
+                "rn-agenda",
+                "tf1-lci-debates",
+            },
+        )
+        self.assertEqual(
+            builder._PRODUCTION_COLLECTION_COLLECTORS["linked-ics"].__name__,
+            "_collect_linked_ics",
         )
         self.assertEqual(
             builder._PRODUCTION_COLLECTION_COLLECTORS["rn-agenda"].__name__,
@@ -688,6 +697,85 @@ class BuildCampaignEventsTests(unittest.TestCase):
                 adapter.assert_called_once_with(
                     source=sources[source_id], observed_at=GENERATED_AT
                 )
+
+    def test_linked_ics_wrapper_returns_strict_collection_result(self):
+        source = {
+            "source_id": "generic-linked-ics",
+            "collection": {
+                "discovery_method": "linked_event_pages",
+                "parser_family": "ics",
+                "attribution_policy": "explicit_participant",
+                "collector_family": "linked-ics",
+            },
+        }
+        collected = builder.LinkedIcsCollectorResult(
+            observations=({"source_owned": "generic-linked-ics"},),
+            attribution_rejected_records=2,
+        )
+        with mock.patch.object(
+            builder,
+            "build_linked_ics_events",
+            return_value=collected,
+        ) as collector:
+            result = builder._collect_linked_ics(
+                source=source,
+                observed_at=GENERATED_AT,
+            )
+
+        self.assertEqual(
+            result,
+            builder.SourceCollectionResult(
+                observations=[{"source_owned": "generic-linked-ics"}],
+                attribution_rejected_records=2,
+            ),
+        )
+        collector.assert_called_once_with(
+            source=source,
+            observed_at=GENERATED_AT,
+        )
+
+    def test_linked_ics_dispatch_requires_explicit_collector_family(self):
+        source = {
+            "source_id": "generic-linked-ics",
+            "collection": {
+                "discovery_method": "linked_event_pages",
+                "parser_family": "ics",
+                "attribution_policy": "explicit_participant",
+            },
+        }
+        with self.assertRaisesRegex(
+            builder.CampaignEventCollectionConfigurationError,
+            "family 'ics'",
+        ):
+            builder._resolve_campaign_event_collector(
+                source,
+                collection_collectors=builder._PRODUCTION_COLLECTION_COLLECTORS,
+            )
+
+    def test_linked_ics_dispatch_routes_explicit_collector_family(self):
+        source = {
+            "source_id": "generic-linked-ics",
+            "collection": {
+                "discovery_method": "linked_event_pages",
+                "parser_family": "ics",
+                "attribution_policy": "explicit_participant",
+                "collector_family": "linked-ics",
+            },
+        }
+        expected = builder.SourceCollectionResult(observations=[])
+        collector = mock.Mock(return_value=expected)
+
+        result = builder._dispatch_campaign_event_collection(
+            source,
+            observed_at=GENERATED_AT,
+            collection_collectors={"linked-ics": collector},
+        )
+
+        self.assertIs(result, expected)
+        collector.assert_called_once_with(
+            source=source,
+            observed_at=GENERATED_AT,
+        )
 
     def test_generic_dispatcher_routes_by_collector_family(self):
         source = next(
