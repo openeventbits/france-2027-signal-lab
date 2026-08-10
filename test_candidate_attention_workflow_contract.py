@@ -73,7 +73,7 @@ class CandidateAttentionWorkflowContractTests(
             self.workflow,
         )
 
-    def test_expected_observation_date_is_pinned_once(self):
+    def test_preferred_observation_date_is_yesterday(self):
         self.assertEqual(
             self.workflow.count(
                 "date -u -d 'yesterday' +'%Y-%m-%d'"
@@ -81,14 +81,88 @@ class CandidateAttentionWorkflowContractTests(
             1,
         )
         self.assertIn(
-            "/tmp/expected_data_as_of",
+            "/tmp/preferred_data_as_of",
             self.workflow,
         )
         self.assertEqual(
             self.workflow.count(
-                '--end-date "$EXPECTED_DATA_AS_OF"'
+                '--end-date "$PREFERRED_DATA_AS_OF"'
             ),
-            2,
+            1,
+        )
+
+    def test_only_initial_build_enables_one_day_fallback(self):
+        self.assertEqual(
+            self.workflow.count("--fallback-days 1"),
+            1,
+        )
+        initial_build = self.workflow.index(
+            "python -B build_candidate_attention.py"
+        )
+        fallback = self.workflow.index(
+            "--fallback-days 1"
+        )
+        second_build = self.workflow.index(
+            "python -B build_candidate_attention.py",
+            initial_build + 1,
+        )
+        self.assertLess(initial_build, fallback)
+        self.assertLess(fallback, second_build)
+
+    def test_resolved_date_is_captured_and_bounded(self):
+        self.assertIn(
+            "resolved_data_as_of = candidate[",
+            self.workflow,
+        )
+        self.assertIn(
+            "date.fromisoformat(preferred_data_as_of)",
+            self.workflow,
+        )
+        self.assertIn(
+            "- timedelta(days=1)",
+            self.workflow,
+        )
+        self.assertIn(
+            "resolved_data_as_of not in {",
+            self.workflow,
+        )
+        self.assertIn(
+            'f"resolved_data_as_of={resolved_data_as_of}\\n"',
+            self.workflow,
+        )
+        self.assertIn(
+            'Path("/tmp/resolved_data_as_of").write_text(',
+            self.workflow,
+        )
+
+    def test_rebase_and_final_validation_use_resolved_date(self):
+        self.assertEqual(
+            self.workflow.count(
+                '--end-date "$RESOLVED_DATA_AS_OF"'
+            ),
+            1,
+        )
+        self.assertIn(
+            "RESOLVED_DATA_AS_OF: "
+            "${{ steps.candidate_attention.outputs."
+            "resolved_data_as_of }}",
+            self.workflow,
+        )
+        self.assertIn(
+            'resolved_data_as_of = os.environ[\n'
+            '              "RESOLVED_DATA_AS_OF"',
+            self.workflow,
+        )
+        self.assertIn(
+            'resolved_data_as_of = Path(\n'
+            '              "/tmp/resolved_data_as_of"',
+            self.workflow,
+        )
+        self.assertGreaterEqual(
+            self.workflow.count(
+                '!= resolved_data_as_of'
+            ),
+            3,
         )
 
     def test_builds_only_to_temporary_paths(self):

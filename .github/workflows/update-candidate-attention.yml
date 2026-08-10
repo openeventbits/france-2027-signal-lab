@@ -31,18 +31,18 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Pin complete UTC observation date
+      - name: Pin preferred UTC observation date
         id: observation_date
         shell: bash
         run: |
           set -euo pipefail
 
-          expected_data_as_of="$(date -u -d 'yesterday' +'%Y-%m-%d')"
+          preferred_data_as_of="$(date -u -d 'yesterday' +'%Y-%m-%d')"
 
-          echo "expected_data_as_of=$expected_data_as_of" >> "$GITHUB_OUTPUT"
-          printf '%s\n' "$expected_data_as_of" > /tmp/expected_data_as_of
+          echo "preferred_data_as_of=$preferred_data_as_of" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$preferred_data_as_of" > /tmp/preferred_data_as_of
 
-          echo "Pinned Candidate Attention data_as_of: $expected_data_as_of"
+          echo "Pinned Candidate Attention data_as_of: $preferred_data_as_of"
 
       - name: Run Candidate Attention publication tests
         run: |
@@ -55,7 +55,7 @@ jobs:
       - name: Build and promote validated Candidate Attention
         id: candidate_attention
         env:
-          EXPECTED_DATA_AS_OF: ${{ steps.observation_date.outputs.expected_data_as_of }}
+          PREFERRED_DATA_AS_OF: ${{ steps.observation_date.outputs.preferred_data_as_of }}
         shell: bash
         run: |
           set -euo pipefail
@@ -63,13 +63,15 @@ jobs:
           generated_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 
           python -B build_candidate_attention.py \
-            --end-date "$EXPECTED_DATA_AS_OF" \
+            --end-date "$PREFERRED_DATA_AS_OF" \
+            --fallback-days 1 \
             --generated-at "$generated_at" \
             --output /tmp/candidate_attention.json
 
           python -B - <<'PY'
           import json
           import os
+          from datetime import date, timedelta
           from pathlib import Path
 
           from build_candidate_attention import (
@@ -83,9 +85,13 @@ jobs:
               load_candidate_candidacy_status,
           )
 
-          expected_data_as_of = os.environ[
-              "EXPECTED_DATA_AS_OF"
+          preferred_data_as_of = os.environ[
+              "PREFERRED_DATA_AS_OF"
           ]
+          previous_data_as_of = (
+              date.fromisoformat(preferred_data_as_of)
+              - timedelta(days=1)
+          ).isoformat()
 
           candidacy = load_candidate_candidacy_status(
               "candidate_candidacy_status.json"
@@ -114,14 +120,23 @@ jobs:
               expected_candidates=candidacy["candidates"],
           )
 
-          if (
-              candidate["period"]["data_as_of"]
-              != expected_data_as_of
-          ):
+          resolved_data_as_of = candidate[
+              "period"
+          ]["data_as_of"]
+
+          if resolved_data_as_of not in {
+              preferred_data_as_of,
+              previous_data_as_of,
+          }:
               raise SystemExit(
-                  "Candidate Attention data_as_of does not "
-                  "match the pinned UTC observation date."
+                  "Candidate Attention data_as_of is not the "
+                  "preferred date or its one-day fallback."
               )
+
+          Path("/tmp/resolved_data_as_of").write_text(
+              resolved_data_as_of,
+              encoding="utf-8",
+          )
 
           # The tracked artifact must itself be a valid Candidate
           # Attention artifact. Current-universe parity is not
@@ -157,12 +172,12 @@ jobs:
 
               if (
                   published["period"]["data_as_of"]
-                  != expected_data_as_of
+                  != resolved_data_as_of
               ):
                   raise SystemExit(
                       "Published Candidate Attention "
                       "data_as_of moved away from the "
-                      "pinned observation date."
+                      "resolved observation date."
                   )
 
               print(
@@ -183,6 +198,9 @@ jobs:
           ) as handle:
               handle.write(
                   f"changed={'true' if changed else 'false'}\n"
+              )
+              handle.write(
+                  f"resolved_data_as_of={resolved_data_as_of}\n"
               )
           PY
 
@@ -268,7 +286,7 @@ jobs:
         env:
           CANDIDATE_ATTENTION_CHANGED: ${{ steps.candidate_attention.outputs.changed }}
           PUBLICATION_MANIFEST_CHANGED: ${{ steps.publication_manifest.outputs.changed }}
-          EXPECTED_DATA_AS_OF: ${{ steps.observation_date.outputs.expected_data_as_of }}
+          RESOLVED_DATA_AS_OF: ${{ steps.candidate_attention.outputs.resolved_data_as_of }}
         shell: bash
         run: |
           set -euo pipefail
@@ -377,7 +395,7 @@ jobs:
           generated_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 
           python -B build_candidate_attention.py \
-            --end-date "$EXPECTED_DATA_AS_OF" \
+            --end-date "$RESOLVED_DATA_AS_OF" \
             --generated-at "$generated_at" \
             --output /tmp/candidate_attention-rebase.json
 
@@ -397,8 +415,8 @@ jobs:
               load_candidate_candidacy_status,
           )
 
-          expected_data_as_of = os.environ[
-              "EXPECTED_DATA_AS_OF"
+          resolved_data_as_of = os.environ[
+              "RESOLVED_DATA_AS_OF"
           ]
 
           candidacy = load_candidate_candidacy_status(
@@ -428,12 +446,12 @@ jobs:
 
           if (
               candidate["period"]["data_as_of"]
-              != expected_data_as_of
+              != resolved_data_as_of
           ):
               raise SystemExit(
                   "Post-rebase Candidate Attention "
                   "data_as_of does not match the "
-                  "pinned observation date."
+                  "resolved observation date."
               )
 
           validate_candidate_attention(
@@ -570,8 +588,8 @@ jobs:
               load_candidate_candidacy_status,
           )
 
-          expected_data_as_of = Path(
-              "/tmp/expected_data_as_of"
+          resolved_data_as_of = Path(
+              "/tmp/resolved_data_as_of"
           ).read_text(
               encoding="utf-8"
           ).strip()
@@ -603,11 +621,11 @@ jobs:
 
           if (
               attention["period"]["data_as_of"]
-              != expected_data_as_of
+              != resolved_data_as_of
           ):
               raise SystemExit(
                   "Final Candidate Attention data_as_of "
-                  "does not match the pinned observation date."
+                  "does not match the resolved observation date."
               )
 
           if manifest["schema_version"] != "1.3":
