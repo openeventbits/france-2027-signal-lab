@@ -749,6 +749,17 @@ class CampaignEventObservationTests(unittest.TestCase):
             ),
             source=source,
         )
+        unlinked_same_uid = self.build(
+            attributed_event(
+                "Meeting avec David Lisnard",
+                external_id="uid-one",
+                candidate_ids=(),
+                candidate_names=(),
+                basis=None,
+                participants=("David Lisnard",),
+            ),
+            source=source,
+        )
         second_uid = self.build(
             attributed_event(
                 "Meeting avec David Lisnard",
@@ -768,6 +779,8 @@ class CampaignEventObservationTests(unittest.TestCase):
             first["event_key"],
             changed_roster_and_taxonomy["event_key"],
         )
+        self.assertEqual(first["event_key"], unlinked_same_uid["event_key"])
+        self.assertEqual(first["event_id"], unlinked_same_uid["event_id"])
         self.assertNotEqual(first["event_key"], second_uid["event_key"])
         self.assertTrue(
             first["event_key"].startswith(source["source_id"] + "-uid-")
@@ -795,6 +808,64 @@ class CampaignEventObservationTests(unittest.TestCase):
         self.assertEqual(first["event_key"], repeated["event_key"])
         self.assertEqual(first["event_id"], repeated["event_id"])
         self.assertNotEqual(first["event_key"], rescheduled["event_key"])
+
+    def test_fallback_identity_ignores_candidate_and_participant_enrichment(self):
+        source = source_record()
+        unlinked = self.build(
+            attributed_event(
+                "Meeting public",
+                external_id=None,
+                candidate_ids=(),
+                candidate_names=(),
+                basis=None,
+                participants=("David Lisnard",),
+            ),
+            source=source,
+        )
+        linked = self.build(
+            attributed_event(
+                "Meeting public",
+                external_id=None,
+                participants=("David Lisnard",),
+            ),
+            source=source,
+        )
+        changed_linkage = self.build(
+            attributed_event(
+                "Meeting public",
+                external_id=None,
+                candidate_ids=("david-lisnard", "bruno-retailleau"),
+                candidate_names=("David Lisnard", "Bruno Retailleau"),
+                participants=("David Lisnard",),
+            ),
+            source=source,
+        )
+        changed_participants = self.build(
+            attributed_event(
+                "Meeting public",
+                external_id=None,
+                candidate_ids=(),
+                candidate_names=(),
+                basis=None,
+                participants=("Unknown Political Actor",),
+            ),
+            source=source,
+        )
+
+        observations = (
+            unlinked,
+            linked,
+            changed_linkage,
+            changed_participants,
+        )
+        self.assertEqual(
+            {observation["event_key"] for observation in observations},
+            {unlinked["event_key"]},
+        )
+        self.assertEqual(
+            {observation["event_id"] for observation in observations},
+            {unlinked["event_id"]},
+        )
 
     def test_observed_at_and_internal_identity_defects_fail_closed(self):
         source = source_record()

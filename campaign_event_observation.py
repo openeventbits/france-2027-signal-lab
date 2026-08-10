@@ -543,7 +543,6 @@ def _source_owned_event_key(
         "event_type": classified.event_type,
         "scheduled_start": structured.scheduled_start,
         "time_precision": structured.time_precision,
-        "candidate_ids": attributed.candidate_ids,
         "anchor": anchor,
     }
     encoded = json.dumps(
