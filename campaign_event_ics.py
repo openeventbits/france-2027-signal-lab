@@ -372,6 +372,14 @@ def parse_ics_events(
                         "VEVENT must be a direct VCALENDAR component"
                     )
                 event_properties = []
+            elif component == "VALARM":
+                if (
+                    stack != ["VCALENDAR", "VEVENT"]
+                    or event_properties is None
+                ):
+                    raise StructuredEventParseError(
+                        "VALARM must be a direct VEVENT component"
+                    )
             elif event_properties is not None:
                 raise StructuredEventParseError(
                     "nested VEVENT components are unsupported"
@@ -390,7 +398,10 @@ def parse_ics_events(
                 events.append(event_properties)
                 event_properties = None
             continue
-        if event_properties is not None:
+        if (
+            event_properties is not None
+            and stack == ["VCALENDAR", "VEVENT"]
+        ):
             event_properties.append(prop)
 
     if not saw_calendar or stack:

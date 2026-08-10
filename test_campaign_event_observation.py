@@ -420,6 +420,62 @@ class CampaignEventObservationTests(unittest.TestCase):
         ):
             self.build(event, source=source)
 
+    def test_first_party_unclassified_event_uses_allowed_other_fallback(self):
+        source = source_record(
+            source_type="party_first_party",
+            allowed_event_types=[*ALL_CAMPAIGN_TYPES, "other"],
+        )
+        event = attributed_event("Discours de rentrée de David Lisnard")
+        self.assertIsNone(classify_campaign_event(event))
+
+        observation = self.build(event, source=source)
+
+        self.assertIsNotNone(observation)
+        self.assertEqual(observation["event_type"], "other")
+
+    def test_first_party_unclassified_event_is_rejected_without_other(self):
+        source = source_record(source_type="party_first_party")
+        self.write_registry(source)
+        batch = build_campaign_event_observations(
+            (attributed_event("Discours de rentrée de David Lisnard"),),
+            source=source,
+            observed_at=OBSERVED_AT,
+            evidence_url=str(source["url"]),
+            source_registry_path=self.registry_path,
+        )
+
+        self.assertEqual(batch.observations, ())
+        self.assertEqual(batch.relevance_rejected_records, 1)
+
+    def test_reliable_media_does_not_receive_other_fallback(self):
+        source = source_record(
+            source_type="reliable_media",
+            allowed_event_types=[*ALL_CAMPAIGN_TYPES, "other"],
+        )
+        self.write_registry(source)
+        batch = build_campaign_event_observations(
+            (attributed_event("Discours de rentrée de David Lisnard"),),
+            source=source,
+            observed_at=OBSERVED_AT,
+            evidence_url=str(source["url"]),
+            source_registry_path=self.registry_path,
+        )
+
+        self.assertEqual(batch.observations, ())
+        self.assertEqual(batch.relevance_rejected_records, 1)
+
+    def test_recognized_first_party_event_precedes_other_fallback(self):
+        source = source_record(
+            source_type="party_first_party",
+            allowed_event_types=[*ALL_CAMPAIGN_TYPES, "other"],
+        )
+        observation = self.build(
+            attributed_event("Meeting avec David Lisnard"),
+            source=source,
+        )
+
+        self.assertEqual(observation["event_type"], "public_meeting")
+
     def test_observation_maps_contract_fields_and_normalizes(self):
         source = source_record()
         event = attributed_event(

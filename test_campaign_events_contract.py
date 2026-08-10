@@ -86,6 +86,7 @@ def registered_source(
         "debate",
         "candidate_visit",
         "campaign_launch",
+        "other",
     ]
     source = {
         "source_id": source_id,
@@ -336,6 +337,14 @@ class CampaignEventsContractTests(unittest.TestCase):
             campaign_event_id("institutional_milestones", event_key),
             expected,
         )
+
+    def test_other_is_a_valid_campaign_event_type(self):
+        event = campaign_event(
+            event_type="other",
+            title="Discours de rentrée de David Lisnard",
+        )
+        normalized = self.canonical(artifact([event]))
+        self.assertEqual(normalized["campaign_events"][0]["event_type"], "other")
 
     def test_event_id_is_recomputed_and_mismatches_are_rejected(self):
         event = campaign_event()

@@ -134,6 +134,64 @@ class CampaignEventIcsTests(unittest.TestCase):
         )
         self.assertEqual(len(parse_ics_events(raw)), 1)
 
+    def test_valarm_is_ignored_inside_vevent(self):
+        raw = calendar(
+            "UID:event-with-alarm@example.org",
+            "DTSTART;VALUE=DATE:20260815",
+            "DTEND;VALUE=DATE:20260816",
+            "SUMMARY:Tour NE Bas-Rhin — Haguenau",
+            "DESCRIPTION:Outer event description",
+            "LOCATION:Haguenau, Haguenau",
+            "BEGIN:VALARM",
+            "TRIGGER:-PT1H",
+            "ACTION:DISPLAY",
+            "DESCRIPTION:Rappel",
+            "END:VALARM",
+        )
+
+        records = parse_ics_events(
+            raw,
+            default_timezone="Europe/Paris",
+        )
+
+        self.assertEqual(len(records), 1)
+        record = records[0]
+
+        self.assertEqual(
+            record.title,
+            "Tour NE Bas-Rhin — Haguenau",
+        )
+        self.assertEqual(
+            record.description,
+            "Outer event description",
+        )
+        self.assertEqual(
+            record.external_id,
+            "event-with-alarm@example.org",
+        )
+        self.assertEqual(
+            record.source_format,
+            "ics",
+        )
+
+    def test_unknown_nested_vevent_component_still_fails_closed(self):
+        raw = calendar(
+            "DTSTART;VALUE=DATE:20260815",
+            "SUMMARY:Campaign event",
+            "BEGIN:VTODO",
+            "SUMMARY:Nested task",
+            "END:VTODO",
+        )
+
+        with self.assertRaisesRegex(
+            StructuredEventParseError,
+            "nested VEVENT components are unsupported",
+        ):
+            parse_ics_events(
+                raw,
+                default_timezone="Europe/Paris",
+            )
+
     def test_property_before_vcalendar_fails_closed(self):
         with self.assertRaisesRegex(
             StructuredEventParseError,

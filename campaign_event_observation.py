@@ -160,6 +160,7 @@ class ClassifiedCampaignEvent:
         "debate",
         "candidate_visit",
         "campaign_launch",
+        "other",
     ]
 
     def __post_init__(self) -> None:
@@ -634,6 +635,17 @@ def build_campaign_event_observations(
             )
         _validate_attribution_source_compatibility(event, normalized_source)
         classified = classify_campaign_event(event)
+        if (
+            classified is None
+            and normalized_source["source_type"]
+            in {
+                "candidate_first_party",
+                "party_first_party",
+                "organizer_first_party",
+            }
+            and "other" in normalized_source["allowed_event_types"]
+        ):
+            classified = ClassifiedCampaignEvent(event, "other")
         if classified is None:
             rejected_records += 1
             continue

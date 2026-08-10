@@ -61,6 +61,7 @@ CAMPAIGN_EVENT_TYPES = frozenset(
         "debate",
         "candidate_visit",
         "campaign_launch",
+        "other",
     }
 )
 INSTITUTIONAL_EVENT_TYPES = frozenset(
@@ -156,6 +157,7 @@ _EVENT_TYPE_ORDER = {
             "debate",
             "candidate_visit",
             "campaign_launch",
+            "other",
             "sponsorship_deadline",
             "official_candidate_list",
             "campaign_period_boundary",

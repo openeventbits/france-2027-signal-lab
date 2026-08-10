@@ -420,7 +420,7 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
             ["rally", "first_round"],
         )
 
-    def test_event_type_vocabularies_add_only_debate(self):
+    def test_event_type_vocabularies_are_controlled(self):
         self.assertEqual(
             CAMPAIGN_EVENT_TYPES,
             {
@@ -429,6 +429,7 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
                 "debate",
                 "candidate_visit",
                 "campaign_launch",
+                "other",
             },
         )
         self.assertEqual(
@@ -457,6 +458,7 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
                     "debate",
                     "public_meeting",
                     "rally",
+                    "other",
                     "campaign_period_boundary",
                     "official_candidate_list",
                     "sponsorship_deadline",
@@ -472,6 +474,7 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
                 "debate",
                 "candidate_visit",
                 "campaign_launch",
+                "other",
                 "sponsorship_deadline",
                 "official_candidate_list",
                 "campaign_period_boundary",
