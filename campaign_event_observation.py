@@ -461,6 +461,18 @@ def _validate_attribution_source_compatibility(
     event: AttributedStructuredEvent,
     source: dict[str, Any],
 ) -> None:
+    if not event.candidate_ids:
+        if (
+            source["source_type"]
+            not in {"party_first_party", "organizer_first_party"}
+            or source["collection"]["attribution_policy"]
+            != "explicit_participant"
+        ):
+            raise CampaignEventObservationConfigurationError(
+                "unlinked attribution requires an explicit-participant "
+                "party or organizer first-party source"
+            )
+        return
     source_is_candidate_owned = (
         source["collection"]["attribution_policy"]
         == "candidate_owned_campaign"

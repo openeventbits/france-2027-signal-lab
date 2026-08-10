@@ -45,7 +45,7 @@ def attributed_event(
     description: str | None = None,
     candidate_ids: tuple[str, ...] = ("david-lisnard",),
     candidate_names: tuple[str, ...] = ("David Lisnard",),
-    basis: str = "explicit_participant",
+    basis: str | None = "explicit_participant",
     scheduled_start: str = "2026-08-29T19:00:00+02:00",
     time_precision: str = "datetime",
     scheduled_end: str | None = None,
@@ -528,6 +528,82 @@ class CampaignEventObservationTests(unittest.TestCase):
             observation["participants"],
             ["Unknown Political Actor"],
         )
+
+    def test_unlinked_explicit_participant_builds_public_meeting_observation(self):
+        observation = self.build(
+            attributed_event(
+                "Meeting public",
+                candidate_ids=(),
+                candidate_names=(),
+                basis=None,
+                participants=("Unknown Political Actor",),
+            )
+        )
+
+        self.assertEqual(observation["event_type"], "public_meeting")
+        self.assertEqual(observation["candidate_ids"], [])
+        self.assertEqual(observation["candidate_names"], [])
+        self.assertEqual(
+            observation["participants"],
+            ["Unknown Political Actor"],
+        )
+
+    def test_unlinked_unclassified_event_uses_bounded_other_fallback(self):
+        event = attributed_event(
+            "Discours de rentrée",
+            candidate_ids=(),
+            candidate_names=(),
+            basis=None,
+            participants=("Unknown Political Actor",),
+        )
+        source = source_record(
+            source_type="party_first_party",
+            allowed_event_types=[*ALL_CAMPAIGN_TYPES, "other"],
+        )
+
+        observation = self.build(event, source=source)
+
+        self.assertEqual(observation["event_type"], "other")
+        self.assertEqual(observation["candidate_ids"], [])
+
+    def test_unlinked_unclassified_event_is_rejected_without_other(self):
+        event = attributed_event(
+            "Discours de rentrée",
+            candidate_ids=(),
+            candidate_names=(),
+            basis=None,
+            participants=("Unknown Political Actor",),
+        )
+        source = source_record(source_type="party_first_party")
+        self.write_registry(source)
+
+        batch = build_campaign_event_observations(
+            (event,),
+            source=source,
+            observed_at=OBSERVED_AT,
+            evidence_url=str(source["url"]),
+            source_registry_path=self.registry_path,
+        )
+
+        self.assertEqual(batch.observations, ())
+        self.assertEqual(batch.relevance_rejected_records, 1)
+
+    def test_unlinked_observation_rejects_reliable_media_source(self):
+        source = source_record(source_type="reliable_media")
+        with self.assertRaisesRegex(
+            CampaignEventObservationConfigurationError,
+            "unlinked attribution",
+        ):
+            self.build(
+                attributed_event(
+                    "Meeting public",
+                    candidate_ids=(),
+                    candidate_names=(),
+                    basis=None,
+                    participants=("Unknown Political Actor",),
+                ),
+                source=source,
+            )
 
     def test_absent_structured_participants_preserve_public_shape(self):
         observation = self.build(
