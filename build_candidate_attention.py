@@ -623,6 +623,7 @@ WIKIMEDIA_PAGEVIEWS_BASE = (
 DEFAULT_HTTP_TIMEOUT_SECONDS = 20
 DEFAULT_MAX_RESPONSE_BYTES = 5 * 1024 * 1024
 DEFAULT_REQUEST_DELAY_SECONDS = 0.30
+PAGEVIEWS_404_RETRY_DELAYS = (1.0, 2.0)
 
 MAX_HTTP_ATTEMPTS = 4
 MAX_RETRY_AFTER_SECONDS = 30.0
@@ -1369,26 +1370,62 @@ def fetch_pageview_series(
         [str],
         dict[str, Any],
     ] = fetch_json,
+    sleeper: Callable[
+        [float],
+        None,
+    ] = time.sleep,
 ) -> list[dict[str, Any]]:
-    try:
-        payload = fetcher(
-            pageview_request_url(
-                canonical_article,
-                data_as_of=(
-                    data_as_of
-                ),
-            )
-        )
-    except WikimediaFetchError as error:
-        if error.status == 404:
-            raise WikimediaPageviewsNotFoundError(
-                error.category,
-                "Pageviews HTTP 404",
-                status=error.status,
-                attempts=error.attempts,
-            ) from error
+    request_url = pageview_request_url(
+        canonical_article,
+        data_as_of=(
+            data_as_of
+        ),
+    )
 
-        raise
+    total_attempts = (
+        len(
+            PAGEVIEWS_404_RETRY_DELAYS
+        )
+        + 1
+    )
+
+    for attempt in range(
+        1,
+        total_attempts + 1,
+    ):
+        try:
+            payload = fetcher(
+                request_url
+            )
+            break
+        except WikimediaFetchError as error:
+            if error.status != 404:
+                raise
+
+            if attempt == total_attempts:
+                raise WikimediaPageviewsNotFoundError(
+                    error.category,
+                    "Pageviews HTTP 404",
+                    status=error.status,
+                    attempts=attempt,
+                ) from error
+
+            delay = (
+                PAGEVIEWS_404_RETRY_DELAYS[
+                    attempt - 1
+                ]
+            )
+
+            print(
+                "Pageviews HTTP 404; retrying same request "
+                f"({attempt + 1}/{total_attempts}) after "
+                f"{delay:g}s.",
+                flush=True,
+            )
+
+            sleeper(
+                delay
+            )
 
     items = payload.get(
         "items"
@@ -1682,6 +1719,9 @@ def collect_wikimedia_observations(
                 ),
                 fetcher=(
                     paced_fetch
+                ),
+                sleeper=(
+                    sleeper
                 ),
             )
         )
