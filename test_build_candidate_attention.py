@@ -31,6 +31,7 @@ from build_candidate_attention import (
     serialize_semantic_payload,
     validate_daily_series,
     WikimediaFetchError,
+    WikimediaPageviewsNotFoundError,
     collect_wikimedia_observations,
     fetch_json,
     fetch_pageview_series,
@@ -1252,6 +1253,132 @@ class CandidateAttentionTitleTests(
 class CandidateAttentionPageviewCollectionTests(
     unittest.TestCase
 ):
+    def test_first_attempt_success_has_no_retry_sleep(
+        self,
+    ):
+        calls = []
+        sleeps = []
+
+        def fetcher(url):
+            calls.append(url)
+            return pageview_payload(value=123)
+
+        series = fetch_pageview_series(
+            "Gabriel Attal",
+            data_as_of=DATA_AS_OF,
+            fetcher=fetcher,
+            sleeper=sleeps.append,
+        )
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(sleeps, [])
+        self.assertEqual(len(series), 90)
+
+    def test_one_404_retries_same_url_then_succeeds(
+        self,
+    ):
+        calls = []
+        sleeps = []
+
+        def fetcher(url):
+            calls.append(url)
+
+            if len(calls) == 1:
+                raise WikimediaFetchError(
+                    "http_4xx",
+                    "HTTP 404",
+                    status=404,
+                    attempts=1,
+                )
+
+            return pageview_payload(value=123)
+
+        with redirect_stdout(io.StringIO()):
+            series = fetch_pageview_series(
+                "Gabriel Attal",
+                data_as_of=DATA_AS_OF,
+                fetcher=fetcher,
+                sleeper=sleeps.append,
+            )
+
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(set(calls)), 1)
+        self.assertEqual(sleeps, [1.0])
+        self.assertEqual(len(series), 90)
+
+    def test_two_404s_retry_same_url_then_succeed(
+        self,
+    ):
+        calls = []
+        sleeps = []
+
+        def fetcher(url):
+            calls.append(url)
+
+            if len(calls) < 3:
+                raise WikimediaFetchError(
+                    "http_4xx",
+                    "HTTP 404",
+                    status=404,
+                    attempts=1,
+                )
+
+            return pageview_payload(value=123)
+
+        with redirect_stdout(io.StringIO()):
+            series = fetch_pageview_series(
+                "Gabriel Attal",
+                data_as_of=DATA_AS_OF,
+                fetcher=fetcher,
+                sleeper=sleeps.append,
+            )
+
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(len(set(calls)), 1)
+        self.assertEqual(sleeps, [1.0, 2.0])
+        self.assertEqual(len(series), 90)
+
+    def test_three_404s_raise_after_bounded_retries_with_diagnostics(
+        self,
+    ):
+        calls = []
+        sleeps = []
+        output = io.StringIO()
+
+        def fetcher(url):
+            calls.append(url)
+            raise WikimediaFetchError(
+                "http_4xx",
+                "HTTP 404",
+                status=404,
+                attempts=1,
+            )
+
+        with self.assertRaises(
+            WikimediaPageviewsNotFoundError
+        ) as context:
+            with redirect_stdout(output):
+                fetch_pageview_series(
+                    "Gabriel Attal",
+                    data_as_of=DATA_AS_OF,
+                    fetcher=fetcher,
+                    sleeper=sleeps.append,
+                )
+
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(len(set(calls)), 1)
+        self.assertEqual(sleeps, [1.0, 2.0])
+        self.assertEqual(context.exception.attempts, 3)
+        self.assertEqual(
+            output.getvalue().splitlines(),
+            [
+                "Pageviews HTTP 404; retrying same "
+                "request (2/3) after 1s.",
+                "Pageviews HTTP 404; retrying same "
+                "request (3/3) after 2s.",
+            ],
+        )
+
     def test_exact_ninety_day_series_is_accepted(
         self,
     ):
@@ -1349,6 +1476,13 @@ class CandidateAttentionPageviewCollectionTests(
             10
         )
 
+        calls = []
+        sleeps = []
+
+        def fetcher(url):
+            calls.append(url)
+            return payload
+
         with self.assertRaises(
             CandidateAttentionBuildError
         ):
@@ -1358,10 +1492,15 @@ class CandidateAttentionPageviewCollectionTests(
                     DATA_AS_OF
                 ),
                 fetcher=(
-                    lambda _:
-                    payload
+                    fetcher
+                ),
+                sleeper=(
+                    sleeps.append
                 ),
             )
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(sleeps, [])
 
     def test_duplicate_day_is_rejected(
         self,
@@ -1646,7 +1785,7 @@ class CandidateAttentionAvailabilityFallbackTests(
 
         self.assertEqual(
             pageview_dates,
-            [DATA_AS_OF] + [previous] * 20,
+            [DATA_AS_OF] * 3 + [previous] * 20,
         )
         self.assertEqual(
             verification_calls,
@@ -1726,7 +1865,8 @@ class CandidateAttentionAvailabilityFallbackTests(
 
         self.assertEqual(
             requested_dates,
-            [DATA_AS_OF, DATA_AS_OF - timedelta(days=1)],
+            [DATA_AS_OF] * 3
+            + [DATA_AS_OF - timedelta(days=1)] * 3,
         )
 
     def test_pageviews_fallback_is_disabled_by_default(
@@ -1756,7 +1896,7 @@ class CandidateAttentionAvailabilityFallbackTests(
 
         self.assertEqual(
             pageview_dates,
-            [DATA_AS_OF],
+            [DATA_AS_OF] * 3,
         )
 
     def test_verification_404_does_not_trigger_fallback(
