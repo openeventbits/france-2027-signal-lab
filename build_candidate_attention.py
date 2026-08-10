@@ -659,6 +659,10 @@ class WikimediaFetchError(CandidateAttentionBuildError):
         self.attempts = attempts
 
 
+class WikimediaPageviewsNotFoundError(WikimediaFetchError):
+    """A Pageviews request returned HTTP 404."""
+
+
 def _http_failure_category(
     status: int,
 ) -> str:
@@ -1366,14 +1370,25 @@ def fetch_pageview_series(
         dict[str, Any],
     ] = fetch_json,
 ) -> list[dict[str, Any]]:
-    payload = fetcher(
-        pageview_request_url(
-            canonical_article,
-            data_as_of=(
-                data_as_of
-            ),
+    try:
+        payload = fetcher(
+            pageview_request_url(
+                canonical_article,
+                data_as_of=(
+                    data_as_of
+                ),
+            )
         )
-    )
+    except WikimediaFetchError as error:
+        if error.status == 404:
+            raise WikimediaPageviewsNotFoundError(
+                error.category,
+                "Pageviews HTTP 404",
+                status=error.status,
+                attempts=error.attempts,
+            ) from error
+
+        raise
 
     items = payload.get(
         "items"
@@ -1616,14 +1631,31 @@ def collect_wikimedia_observations(
 
     # Deliberately sequential. No thread pool, async gather,
     # multiprocessing pool, or concurrent Wikimedia requests.
-    for candidate in controlled_candidates:
+    candidate_count = len(
+        controlled_candidates
+    )
+
+    for index, candidate in enumerate(
+        controlled_candidates,
+        start=1,
+    ):
         candidate_id = candidate[
             "candidate_id"
+        ]
+
+        candidate_name = candidate[
+            "candidate_name"
         ]
 
         mapping = mappings[
             candidate_id
         ]
+
+        print(
+            f"[{index:02d}/{candidate_count:02d}] "
+            f"{candidate_name} ({candidate_id}) - verify",
+            flush=True,
+        )
 
         canonical = (
             verify_article_mapping(
@@ -1632,6 +1664,12 @@ def collect_wikimedia_observations(
                     paced_fetch
                 ),
             )
+        )
+
+        print(
+            f"[{index:02d}/{candidate_count:02d}] "
+            f"{candidate_name} ({candidate_id}) - pageviews",
+            flush=True,
         )
 
         observations[
@@ -1766,6 +1804,7 @@ def run_build(
     ),
     data_as_of: str | None = None,
     generated_at: str | None = None,
+    fallback_days: int = 0,
     delay_seconds: float = (
         DEFAULT_REQUEST_DELAY_SECONDS
     ),
@@ -1778,6 +1817,21 @@ def run_build(
         None,
     ] = time.sleep,
 ) -> dict[str, Any]:
+    if (
+        not isinstance(
+            fallback_days,
+            int,
+        )
+        or isinstance(
+            fallback_days,
+            bool,
+        )
+        or fallback_days not in (0, 1)
+    ):
+        _fail(
+            "fallback_days must be 0 or 1"
+        )
+
     try:
         candidacy_payload = (
             load_candidate_candidacy_status(
@@ -1827,28 +1881,69 @@ def run_build(
         else default_generated_at()
     )
 
-    observations = (
-        collect_wikimedia_observations(
-            candidacy_payload=(
-                candidacy_payload
-            ),
-            registry_payload=(
-                registry_payload
-            ),
-            data_as_of=(
-                end_date
-            ),
-            fetcher=(
-                fetcher
-            ),
-            delay_seconds=(
-                delay_seconds
-            ),
-            sleeper=(
-                sleeper
-            ),
+    resolved_date = end_date
+
+    try:
+        observations = (
+            collect_wikimedia_observations(
+                candidacy_payload=(
+                    candidacy_payload
+                ),
+                registry_payload=(
+                    registry_payload
+                ),
+                data_as_of=(
+                    resolved_date
+                ),
+                fetcher=(
+                    fetcher
+                ),
+                delay_seconds=(
+                    delay_seconds
+                ),
+                sleeper=(
+                    sleeper
+                ),
+            )
         )
-    )
+    except WikimediaPageviewsNotFoundError:
+        if fallback_days == 0:
+            raise
+
+        resolved_date = (
+            end_date
+            - timedelta(days=1)
+        )
+
+        print(
+            "Preferred Pageviews date unavailable; "
+            "retrying complete collection for "
+            f"{resolved_date.isoformat()}.",
+            flush=True,
+        )
+
+        observations = (
+            collect_wikimedia_observations(
+                candidacy_payload=(
+                    candidacy_payload
+                ),
+                registry_payload=(
+                    registry_payload
+                ),
+                data_as_of=(
+                    resolved_date
+                ),
+                fetcher=(
+                    fetcher
+                ),
+                delay_seconds=(
+                    delay_seconds
+                ),
+                sleeper=(
+                    sleeper
+                ),
+            )
+        )
 
     payload = (
         build_candidate_attention_payload(
@@ -1865,7 +1960,7 @@ def run_build(
                 execution_time
             ),
             data_as_of=(
-                end_date.isoformat()
+                resolved_date.isoformat()
             ),
         )
     )
@@ -1930,6 +2025,17 @@ def _parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--fallback-days",
+        type=int,
+        choices=(0, 1),
+        default=0,
+        help=(
+            "On a Pageviews HTTP 404 only, retry the complete "
+            "collection for one previous calendar day."
+        ),
+    )
+
+    parser.add_argument(
         "--generated-at",
         default=None,
         help=(
@@ -1969,6 +2075,9 @@ def main() -> int:
         ),
         generated_at=(
             args.generated_at
+        ),
+        fallback_days=(
+            args.fallback_days
         ),
         delay_seconds=(
             args.delay_seconds
