@@ -3595,3 +3595,225 @@ h1 {
     transition: none;
   }
 }
+
+/* STATUS BAND FINAL V32 */
+
+@media (min-width: 1120px) {
+  .context-strip {
+    position: relative;
+    z-index: 20;
+    min-height: 66px;
+    margin-top: 7px;
+    overflow: visible;
+    grid-template-columns:
+      minmax(0, 1.06fr)
+      minmax(0, 0.94fr)
+      minmax(0, 0.95fr)
+      minmax(0, 1.25fr);
+  }
+
+  .context-cell {
+    position: relative;
+    grid-template-columns: 34px minmax(0, 1fr);
+    column-gap: 8px;
+    min-height: 64px;
+    padding: 8px 14px;
+    border-right-color: transparent;
+  }
+
+  .context-cell:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 10px;
+    right: 0;
+    bottom: 10px;
+    width: 1px;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        180deg,
+        transparent,
+        rgba(42, 88, 112, 0.22) 24%,
+        rgba(42, 88, 112, 0.22) 76%,
+        transparent
+      );
+  }
+
+  .context-icon {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #42d7f3;
+    opacity: 0.98;
+    box-shadow: none;
+  }
+
+  .context-icon svg {
+    width: 26px;
+    height: 26px;
+    filter:
+      drop-shadow(0 0 5px rgba(53, 216, 255, 0.15));
+  }
+
+  .context-copy {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 11px 16px;
+    align-content: center;
+    row-gap: 7px;
+    min-height: 38px;
+    overflow: visible;
+  }
+
+  .context-label {
+    position: relative;
+    width: max-content;
+    max-width: 100%;
+    color: #87cbe2;
+    font-size: 9.6px;
+    font-weight: 780;
+    letter-spacing: 0.105em;
+  }
+
+  .context-label::after {
+    display: none;
+  }
+
+  .context-value {
+    margin-top: 0;
+    color: #f2f7f9;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.12;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .context-meta {
+    position: absolute;
+    z-index: 80;
+    top: calc(100% + 10px);
+    left: 0;
+    width: max-content;
+    max-width: min(360px, calc(100vw - 48px));
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid rgba(47, 103, 132, 0.94);
+    border-radius: 4px;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(9, 29, 46, 0.995),
+        rgba(4, 17, 29, 0.995)
+      );
+    box-shadow:
+      0 10px 28px rgba(0, 0, 0, 0.32),
+      inset 0 1px 0 rgba(77, 214, 244, 0.05);
+    color: #b7ccd6;
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1.32;
+    letter-spacing: 0;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(-3px);
+    pointer-events: none;
+    transition:
+      opacity 110ms ease,
+      transform 110ms ease;
+  }
+
+  .context-meta::before {
+    content: "";
+    position: absolute;
+    top: -4px;
+    left: 16px;
+    width: 7px;
+    height: 7px;
+    border-top: 1px solid rgba(47, 103, 132, 0.94);
+    border-left: 1px solid rgba(47, 103, 132, 0.94);
+    background: rgba(9, 29, 46, 0.995);
+    transform: rotate(45deg);
+  }
+
+  .context-cell:hover .context-meta {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .context-cell-status .context-meta {
+    right: 0;
+    left: auto;
+  }
+
+  .context-cell-status .context-meta::before {
+    right: 16px;
+    left: auto;
+  }
+
+  .context-source-label-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    min-height: 11px;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  #context-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-width: 84px;
+    min-height: 18px;
+    margin: 0 0 0 auto;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 8.5px;
+    font-weight: 780;
+    line-height: 1;
+    letter-spacing: 0.055em;
+    box-sizing: border-box;
+  }
+
+  .context-copy {
+    justify-content: stretch;
+  }
+
+  .context-label,
+  .context-source-label-row {
+    line-height: 1.1;
+  }
+
+  .context-icon {
+    align-self: center;
+  }
+
+  .context-cell-status.is-operational .context-icon {
+    color: #42d7f3;
+  }
+
+  .context-cell-status.is-degraded .context-icon {
+    color: var(--final-warn);
+  }
+
+  .context-cell-status.is-unknown .context-icon {
+    color: #718b9c;
+  }
+
+  #hybrid-signal-board {
+    position: relative;
+    z-index: 1;
+    margin-top: 8px;
+  }
+}
