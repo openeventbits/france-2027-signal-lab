@@ -1045,6 +1045,46 @@ class ScrutinyTests(unittest.TestCase):
         ):
             builder.project_scrutiny(self.candidates, claims)
 
+    def test_registry_stable_id_need_not_be_slug_of_current_name(self):
+        candidates = [
+            {
+                "candidate_id": "alice-ancienne",
+                "candidate_name": "Alice Nouvelle",
+            }
+        ]
+        claims = claims_fixture(
+            reviews=[
+                review(
+                    "renamed",
+                    "2026-07-20",
+                    [
+                        {
+                            "candidate_id": "alice-ancienne",
+                            "candidate_name": "Alice Nouvelle",
+                            "relationship": "by",
+                        }
+                    ],
+                )
+            ]
+        )
+        _window, projection, _evidence = builder.project_scrutiny(
+            candidates,
+            claims,
+        )
+        self.assertEqual(
+            projection["alice-ancienne"]["archive"]["review_count"],
+            1,
+        )
+
+    def test_zero_claims_does_not_change_candidate_membership(self):
+        _window, projection, evidence = builder.project_scrutiny(
+            self.candidates,
+            claims_fixture(reviews=[]),
+        )
+        self.assertEqual(set(projection), {"candidate-a", "candidate-b"})
+        self.assertEqual(projection["candidate-a"]["archive"]["review_count"], 0)
+        self.assertIsNone(evidence)
+
     def test_invalid_relationship_fails(self):
         claims = claims_fixture(
             reviews=[

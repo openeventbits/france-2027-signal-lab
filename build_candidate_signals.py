@@ -1291,13 +1291,8 @@ def project_scrutiny(
                     association.get("candidate_name")
                 )
                 association_key = normalized_candidate_key(association_name)
-                expected_id = candidate_id(association_name)
             except CandidateIdentityError as error:
                 raise _error_from_identity(error) from error
-            if association_id != expected_id:
-                raise CandidateSignalsError(
-                    f"{association_context}.candidate_id does not match name"
-                )
             if association_id in seen_associations:
                 raise CandidateSignalsError(
                     f"{context} associates the same candidate more than once"
@@ -1311,16 +1306,14 @@ def project_scrutiny(
 
             universe_candidate = by_id.get(association_id)
             if universe_candidate is None:
-                universe_candidate = by_key.get(association_key)
-            if universe_candidate is None:
+                if by_key.get(association_key) is not None:
+                    raise CandidateSignalsError(
+                        f"{association_context} conflicts with candidate universe"
+                    )
                 continue
-            if (
-                universe_candidate["candidate_id"] != association_id
-                or normalized_candidate_key(
-                    universe_candidate["candidate_name"]
-                )
-                != association_key
-            ):
+            if normalized_candidate_key(
+                universe_candidate["candidate_name"]
+            ) != association_key:
                 raise CandidateSignalsError(
                     f"{association_context} conflicts with candidate universe"
                 )
