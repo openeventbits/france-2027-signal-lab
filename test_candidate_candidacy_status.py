@@ -230,13 +230,20 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
         changed["status_as_of"] = "2026-07-29"
         self.assert_invalid(changed, "top-level status_as_of")
 
-    def test_absolute_http_and_https_source_urls_are_accepted(self):
+    def test_absolute_https_source_urls_are_accepted(self):
+        changed = copy.deepcopy(self.payload)
+        changed["candidates"][0]["source_url"] = (
+            "https://www.reuters.com/verified-source"
+        )
+        validate_candidate_candidacy_status(changed)
+        validate_candidate_candidacy_status(self.payload)
+
+    def test_http_source_urls_are_rejected(self):
         changed = copy.deepcopy(self.payload)
         changed["candidates"][0]["source_url"] = (
             "http://www.reuters.com/verified-source"
         )
-        validate_candidate_candidacy_status(changed)
-        validate_candidate_candidacy_status(self.payload)
+        self.assert_invalid(changed, "absolute HTTPS")
 
     def test_relative_and_unsafe_source_url_schemes_are_rejected(self):
         for invalid in (
@@ -249,7 +256,7 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
             with self.subTest(url=invalid):
                 changed = copy.deepcopy(self.payload)
                 changed["candidates"][0]["source_url"] = invalid
-                self.assert_invalid(changed, "HTTP or HTTPS")
+                self.assert_invalid(changed, "absolute HTTPS")
 
     def test_missing_source_url_hosts_are_rejected(self):
         for invalid in ("https:///source", "https://", "https://[invalid"):
@@ -350,29 +357,33 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
         changed["candidates"][1]["candidate_id"] = "bruno-retailleau"
         self.assert_invalid(changed, "normalized candidate identity collision")
 
-    def test_current_registry_contains_exactly_twenty_candidates(self):
-        self.assertEqual(len(self.payload["candidates"]), 20)
+    def test_dynamic_candidate_total_is_accepted(self):
         changed = copy.deepcopy(self.payload)
         changed["candidates"].pop()
-        self.assert_invalid(changed, "exactly 20")
+        validate_candidate_candidacy_status(changed)
 
-    def test_current_projection_has_locked_counts(self):
-        counts = project_display_tiers(self.payload)["counts"]
+    def test_arbitrary_semantic_tier_counts_are_accepted(self):
+        changed = copy.deepcopy(self.payload)
+        changed["candidates"] = [
+            candidate
+            for candidate in changed["candidates"]
+            if candidate["candidate_id"]
+            in {
+                "bruno-retailleau",
+                "dominique-de-villepin",
+                "sarah-knafo",
+            }
+        ]
+        validate_candidate_candidacy_status(changed)
         self.assertEqual(
-            counts,
+            project_display_tiers(changed)["counts"],
             {
-                "main": 11,
-                "secondary": 7,
-                "hidden": 2,
-                "active": 18,
-                "total": 20,
+                "main": 1,
+                "secondary": 1,
+                "hidden": 1,
+                "active": 2,
+                "total": 3,
             },
-        )
-
-    def test_current_hidden_ids_are_exact(self):
-        self.assertEqual(
-            set(project_display_tiers(self.payload)["hidden"]),
-            {"sarah-knafo", "sebastien-lecornu"},
         )
 
     def test_all_locked_candidate_statuses_are_exact(self):
@@ -457,7 +468,7 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
             candidate_universe=universe,
         )
 
-    def test_candidate_universe_requires_complete_twenty_person_coverage(self):
+    def test_candidate_universe_rejects_entries_outside_dynamic_registry(self):
         universe = copy.deepcopy(self.candidate_universe())
         universe.append(
             {

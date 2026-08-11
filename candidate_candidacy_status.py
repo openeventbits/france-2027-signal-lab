@@ -94,20 +94,6 @@ _PLACEHOLDER_URL_MARKERS = (
     "your-source",
     "your_source",
 )
-_EXPECTED_TOTAL = 20
-_EXPECTED_TIER_COUNTS = {
-    "main": 11,
-    "secondary": 7,
-    "hidden": 2,
-}
-_EXPECTED_HIDDEN_IDS = frozenset(
-    {
-        "sarah-knafo",
-        "sebastien-lecornu",
-    }
-)
-
-
 def _fail(message: str) -> None:
     raise CandidateCandidacyStatusError(message)
 
@@ -154,10 +140,10 @@ def _require_source_url(value: Any, context: str) -> str:
         hostname_value = parsed.hostname
     except ValueError as error:
         raise CandidateCandidacyStatusError(
-            f"{context} must be a well-formed absolute HTTP or HTTPS URL"
+            f"{context} must be a well-formed absolute HTTPS URL"
         ) from error
-    if parsed.scheme.lower() not in {"http", "https"}:
-        _fail(f"{context} must use absolute HTTP or HTTPS")
+    if parsed.scheme.lower() != "https":
+        _fail(f"{context} must use absolute HTTPS")
     if not parsed.netloc or not hostname_value:
         _fail(f"{context} must have a non-empty host")
 
@@ -215,11 +201,6 @@ def _validate_candidate_universe(
         _fail(f"candidate_universe has unknown candidate IDs: {unknown_ids}")
     if missing_ids:
         _fail(f"candidate_universe is missing registry IDs: {missing_ids}")
-    if len(candidate_universe) != _EXPECTED_TOTAL:
-        _fail(
-            "candidate_universe must provide complete 20-person coverage"
-        )
-
     for identifier, registry_name in registry_by_id.items():
         if universe_by_id[identifier] != registry_name:
             _fail(
@@ -235,9 +216,9 @@ def validate_candidate_candidacy_status(
 ) -> None:
     """Validate the complete candidacy-status source contract.
 
-    ``candidate_universe`` may be the current Candidate Signals candidate
-    list. When supplied, its candidate IDs and canonical names must have exact
-    20-person parity with the registry.
+    ``candidate_universe`` may be a Candidate Signals candidate list. When
+    supplied, its candidate IDs and canonical names must have exact parity
+    with the registry, regardless of the current candidate count.
     """
 
     if type(payload) is not dict:
@@ -253,16 +234,11 @@ def validate_candidate_candidacy_status(
     candidates = payload["candidates"]
     if not isinstance(candidates, list) or not candidates:
         _fail("candidates must be a non-empty list")
-    if len(candidates) != _EXPECTED_TOTAL:
-        _fail("candidates must contain exactly 20 entries")
-
     identifiers: set[str] = set()
     canonical_names: set[str] = set()
     normalized_names: dict[str, str] = {}
     identity_names: list[str] = []
     source_metadata_by_url: dict[str, tuple[str, str, str]] = {}
-    tier_ids = {tier: [] for tier in ("main", "secondary", "hidden")}
-
     for index, value in enumerate(candidates):
         context = f"candidates[{index}]"
         if type(value) is not dict:
@@ -315,8 +291,6 @@ def validate_candidate_candidacy_status(
                 f"{context} status {status!r} requires "
                 f"display_tier {expected_tier!r}"
             )
-        tier_ids[tier].append(identifier)
-
         entry_status_date = _require_iso_date(
             value["status_as_of"],
             f"{context}.status_as_of",
@@ -390,21 +364,6 @@ def validate_candidate_candidacy_status(
         _fail(
             "candidates must be ordered by "
             "candidate_name.casefold(), then candidate_id"
-        )
-
-    actual_tier_counts = {
-        tier: len(tier_ids[tier])
-        for tier in ("main", "secondary", "hidden")
-    }
-    if actual_tier_counts != _EXPECTED_TIER_COUNTS:
-        _fail(
-            "current snapshot tier counts must be "
-            f"{_EXPECTED_TIER_COUNTS}, got {actual_tier_counts}"
-        )
-    if set(tier_ids["hidden"]) != _EXPECTED_HIDDEN_IDS:
-        _fail(
-            "current hidden candidate IDs must be exactly "
-            f"{sorted(_EXPECTED_HIDDEN_IDS)}"
         )
 
     if candidate_universe is not None:
