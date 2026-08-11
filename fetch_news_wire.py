@@ -22,8 +22,8 @@ from xml.etree import ElementTree as ET
 
 from candidate_candidacy_status import (
     CandidateCandidacyStatusError,
+    active_candidate_names,
     load_candidate_candidacy_status,
-    validate_candidate_candidacy_status,
 )
 from http_fetch import (
     DEFAULT_MAX_RESPONSE_BYTES,
@@ -68,7 +68,8 @@ GOOGLE_NEWS_SEMAPHORE = BoundedSemaphore(GOOGLE_NEWS_WORKERS)
 CANDIDATE_VISIBILITY_METHOD = "share_of_candidate_linked_records"
 CANDIDACY_STATUS_SOURCE = "candidate_candidacy_status.json"
 ACTIVE_CANDIDATE_ROSTER_RULE = (
-    "Active presidential field: candidates with display tier main or secondary"
+    "Active presidential monitoring field: main or secondary candidates "
+    "that are currently present in the accepted candidacy source"
 )
 CANDIDATE_VISIBILITY_THRESHOLDS = {
     "minimum_period_records": 10,
@@ -1618,16 +1619,11 @@ def active_news_candidate_roster(
     """Return the validated main-and-secondary monitoring roster."""
 
     try:
-        validate_candidate_candidacy_status(candidacy_payload)
+        return active_candidate_names(candidacy_payload)
     except CandidateCandidacyStatusError as error:
         raise RuntimeError(
             f"Candidate candidacy registry is invalid: {error}"
         ) from error
-    return [
-        candidate["candidate_name"]
-        for candidate in candidacy_payload["candidates"]
-        if candidate["display_tier"] in {"main", "secondary"}
-    ]
 
 
 def candidate_roster_metadata(

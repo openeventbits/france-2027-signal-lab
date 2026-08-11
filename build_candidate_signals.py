@@ -22,6 +22,7 @@ from urllib.parse import urlsplit
 from candidate_candidacy_status import (
     CandidateCandidacyStatusError,
     candidacy_status_by_id,
+    project_active_monitoring_field,
     project_display_tiers,
     validate_candidate_candidacy_status,
 )
@@ -35,7 +36,7 @@ from candidate_identity import (
 )
 
 
-SCHEMA_VERSION = "1.2"
+SCHEMA_VERSION = "1.3"
 LATEST_SCRUTINY_DAYS = 14
 FEATURED_POLL_BOARD_DISPLAY_LIMIT = 10
 FEATURED_POLL_BOARD_SELECTION_BASIS = (
@@ -52,7 +53,7 @@ ACTIVE_FIELD_VISIBILITY_METHOD = (
     "share_of_active_candidate_linked_records"
 )
 ACTIVE_FIELD_DENOMINATOR_SCOPE = (
-    "records_linked_to_at_least_one_main_or_secondary_candidate"
+    "records_linked_to_at_least_one_active_monitoring_candidate"
 )
 ACTIVE_VISIBILITY_THRESHOLDS = {
     "minimum_period_records": 10,
@@ -80,6 +81,7 @@ DATE_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}")
 CANDIDACY_OUTPUT_KEYS = {
     "status",
     "display_tier",
+    "upstream_presence",
     "active_field_eligible",
     "status_as_of",
     "source_date",
@@ -99,9 +101,10 @@ PRESIDENTIAL_FIELD_COUNT_KEYS = {
     "main",
     "secondary",
     "hidden",
-    "active",
     "total",
 }
+ACTIVE_MONITORING_FIELD_KEYS = {"main", "secondary", "counts"}
+ACTIVE_MONITORING_FIELD_COUNT_KEYS = {"main", "secondary", "active"}
 
 
 class CandidateSignalsError(ValueError):
@@ -1502,35 +1505,31 @@ def _active_row_sort_key(row: dict[str, Any]) -> tuple[Any, ...]:
 
 def derive_active_field_visibility(
     news: Any,
-    presidential_field: Any,
+    active_monitoring_field: Any,
     candidacy_status: Any,
 ) -> dict[str, Any]:
     """Derive active-field visibility from published record associations."""
 
     news_object = _require_object(news, "news")
     field = _require_plain_object(
-        presidential_field,
-        "presidential_field",
+        active_monitoring_field,
+        "active_monitoring_field",
     )
-    if set(field) != PRESIDENTIAL_FIELD_KEYS:
+    if set(field) != ACTIVE_MONITORING_FIELD_KEYS:
         raise CandidateSignalsError(
-            "presidential_field has unexpected fields"
+            "active_monitoring_field has unexpected fields"
         )
     try:
         validate_candidate_candidacy_status(candidacy_status)
         registry_by_id = candidacy_status_by_id(candidacy_status)
-        expected_field = project_display_tiers(candidacy_status)
+        expected_field = project_active_monitoring_field(candidacy_status)
     except CandidateCandidacyStatusError as error:
         raise CandidateSignalsError(
             f"candidacy-status registry is invalid: {error}"
         ) from error
     if field != expected_field:
         raise CandidateSignalsError(
-            "presidential_field does not match candidacy registry"
-        )
-    if field["status_as_of"] != candidacy_status["status_as_of"]:
-        raise CandidateSignalsError(
-            "active-field status_as_of does not match registry"
+            "active_monitoring_field does not match candidacy registry"
         )
 
     source_visibility = _require_object(
@@ -1721,7 +1720,7 @@ def derive_active_field_visibility(
     return {
         "method": ACTIVE_FIELD_VISIBILITY_METHOD,
         "denominator_scope": ACTIVE_FIELD_DENOMINATOR_SCOPE,
-        "status_as_of": field["status_as_of"],
+        "status_as_of": candidacy_status["status_as_of"],
         "primary": build_scope(
             source_periods["current_period"],
             source_periods["prior_period"],
@@ -1736,8 +1735,9 @@ def derive_active_field_visibility(
 
 def validate_active_field_visibility(
     value: Any,
-    presidential_field: dict[str, Any],
+    active_monitoring_field: dict[str, Any],
     candidates: list[dict[str, Any]],
+    status_as_of: str,
 ) -> None:
     """Validate the published active roster, arithmetic, gate, and order."""
 
@@ -1754,7 +1754,7 @@ def validate_active_field_visibility(
         raise CandidateSignalsError(
             "active_field_visibility.denominator_scope is invalid"
         )
-    if active["status_as_of"] != presidential_field["status_as_of"]:
+    if active["status_as_of"] != status_as_of:
         raise CandidateSignalsError(
             "active_field_visibility.status_as_of is inconsistent"
         )
@@ -1899,7 +1899,7 @@ def validate_active_field_visibility(
                 scope[tier],
                 f"active_field_visibility.{scope_name}.{tier}",
             )
-            if len(rows) != len(presidential_field[tier]):
+            if len(rows) != len(active_monitoring_field[tier]):
                 raise CandidateSignalsError(
                     f"active_field_visibility.{scope_name}.{tier} count is invalid"
                 )
@@ -1929,7 +1929,7 @@ def validate_active_field_visibility(
                     )
                 candidacy = candidate["candidacy"]
                 if (
-                    identifier not in presidential_field[tier]
+                    identifier not in active_monitoring_field[tier]
                     or row["candidate_name"] != candidate["candidate_name"]
                     or row["status"] != candidacy["status"]
                     or row["display_tier"] != tier
@@ -2001,14 +2001,15 @@ def validate_active_field_visibility(
                     f"active_field_visibility.{scope_name}.{tier} order is invalid"
                 )
             if {row["candidate_id"] for row in normalized_rows} != set(
-                presidential_field[tier]
+                active_monitoring_field[tier]
             ):
                 raise CandidateSignalsError(
                     f"active_field_visibility.{scope_name}.{tier} membership is invalid"
                 )
 
         expected_active_ids = set(
-            presidential_field["main"] + presidential_field["secondary"]
+            active_monitoring_field["main"]
+            + active_monitoring_field["secondary"]
         )
         if published_ids != expected_active_ids:
             raise CandidateSignalsError(
@@ -2264,6 +2265,9 @@ def _construct_candidate_signals(
     try:
         candidacy_by_id = candidacy_status_by_id(candidacy_status)
         presidential_field = project_display_tiers(candidacy_status)
+        active_monitoring_field = project_active_monitoring_field(
+            candidacy_status
+        )
     except CandidateCandidacyStatusError as error:
         raise CandidateSignalsError(
             f"candidacy-status registry is invalid: {error}"
@@ -2276,7 +2280,7 @@ def _construct_candidate_signals(
     )
     active_field_visibility = derive_active_field_visibility(
         news,
-        presidential_field,
+        active_monitoring_field,
         candidacy_status,
     )
     scrutiny_window, scrutiny, scrutiny_evidence = project_scrutiny(
@@ -2298,6 +2302,10 @@ def _construct_candidate_signals(
     )
 
     candidate_payloads = []
+    active_candidate_identifiers = set(
+        active_monitoring_field["main"]
+        + active_monitoring_field["secondary"]
+    )
     for candidate in candidates:
         identifier = candidate["candidate_id"]
         source_candidacy = candidacy_by_id[identifier]
@@ -2308,8 +2316,12 @@ def _construct_candidate_signals(
                 "candidacy": {
                     "status": source_candidacy["status"],
                     "display_tier": source_candidacy["display_tier"],
+                    "upstream_presence": source_candidacy.get(
+                        "upstream_presence",
+                        "present",
+                    ),
                     "active_field_eligible": (
-                        source_candidacy["display_tier"] != "hidden"
+                        identifier in active_candidate_identifiers
                     ),
                     "status_as_of": source_candidacy["status_as_of"],
                     "source_date": source_candidacy["source_date"],
@@ -2330,6 +2342,7 @@ def _construct_candidate_signals(
         "schema_version": SCHEMA_VERSION,
         "candidate_universe": universe,
         "presidential_field": presidential_field,
+        "active_monitoring_field": active_monitoring_field,
         "active_field_visibility": active_field_visibility,
         "featured_polling_package": featured_polling_package,
         "featured_poll_board": featured_poll_board,
@@ -2730,6 +2743,7 @@ def validate_candidate_signals(
         "schema_version",
         "candidate_universe",
         "presidential_field",
+        "active_monitoring_field",
         "active_field_visibility",
         "featured_polling_package",
         "featured_poll_board",
@@ -2741,7 +2755,7 @@ def validate_candidate_signals(
     if set(value) != expected_top_keys:
         raise CandidateSignalsError("payload has unexpected fields")
     if value["schema_version"] != SCHEMA_VERSION:
-        raise CandidateSignalsError("schema_version must equal 1.2")
+        raise CandidateSignalsError("schema_version must equal 1.3")
 
     universe = _require_object(
         value["candidate_universe"],
@@ -2829,12 +2843,69 @@ def validate_candidate_signals(
         "main": len(tier_ids["main"]),
         "secondary": len(tier_ids["secondary"]),
         "hidden": len(tier_ids["hidden"]),
-        "active": len(tier_ids["main"]) + len(tier_ids["secondary"]),
         "total": sum(len(tier_ids[tier]) for tier in tier_ids),
     }
     if field_counts != expected_counts:
         raise CandidateSignalsError(
             "presidential_field counts do not match tier membership"
+        )
+
+    active_monitoring_field = _require_plain_object(
+        value["active_monitoring_field"],
+        "active_monitoring_field",
+    )
+    if set(active_monitoring_field) != ACTIVE_MONITORING_FIELD_KEYS:
+        raise CandidateSignalsError(
+            "active_monitoring_field has unexpected fields"
+        )
+    active_tier_ids: dict[str, list[str]] = {}
+    for tier in ("main", "secondary"):
+        identifiers = _require_list(
+            active_monitoring_field[tier],
+            f"active_monitoring_field.{tier}",
+        )
+        if any(
+            not isinstance(identifier, str) or not identifier
+            for identifier in identifiers
+        ):
+            raise CandidateSignalsError(
+                f"active_monitoring_field.{tier} must contain candidate IDs"
+            )
+        if len(identifiers) != len(set(identifiers)):
+            raise CandidateSignalsError(
+                f"active_monitoring_field.{tier} candidate IDs must be unique"
+            )
+        active_tier_ids[tier] = identifiers
+    if set(active_tier_ids["main"]) & set(active_tier_ids["secondary"]):
+        raise CandidateSignalsError(
+            "active_monitoring_field candidate IDs appear in multiple tiers"
+        )
+    active_counts_value = _require_plain_object(
+        active_monitoring_field["counts"],
+        "active_monitoring_field.counts",
+    )
+    if set(active_counts_value) != ACTIVE_MONITORING_FIELD_COUNT_KEYS:
+        raise CandidateSignalsError(
+            "active_monitoring_field.counts has unexpected fields"
+        )
+    active_counts = {
+        key: _require_non_negative_integer(
+            active_counts_value[key],
+            f"active_monitoring_field.counts.{key}",
+        )
+        for key in ACTIVE_MONITORING_FIELD_COUNT_KEYS
+    }
+    expected_active_counts = {
+        "main": len(active_tier_ids["main"]),
+        "secondary": len(active_tier_ids["secondary"]),
+        "active": (
+            len(active_tier_ids["main"])
+            + len(active_tier_ids["secondary"])
+        ),
+    }
+    if active_counts != expected_active_counts:
+        raise CandidateSignalsError(
+            "active_monitoring_field counts do not match membership"
         )
 
     featured = _require_object(
@@ -3079,14 +3150,16 @@ def validate_candidate_signals(
             raise CandidateSignalsError(
                 f"{context}.candidacy.display_tier is invalid"
             )
+        if candidacy["upstream_presence"] not in {
+            "present",
+            "temporarily_missing",
+        }:
+            raise CandidateSignalsError(
+                f"{context}.candidacy.upstream_presence is invalid"
+            )
         if type(candidacy["active_field_eligible"]) is not bool:
             raise CandidateSignalsError(
                 f"{context}.candidacy.active_field_eligible must be boolean"
-            )
-        expected_eligible = candidacy["display_tier"] != "hidden"
-        if candidacy["active_field_eligible"] != expected_eligible:
-            raise CandidateSignalsError(
-                f"{context}.candidacy active eligibility conflicts with tier"
             )
         _parse_date(
             candidacy["status_as_of"],
@@ -3290,10 +3363,50 @@ def validate_candidate_signals(
                 f"candidates[{index}].candidacy tier conflicts with "
                 "presidential_field"
             )
+    active_ids_in_order = (
+        active_tier_ids["main"] + active_tier_ids["secondary"]
+    )
+    active_id_set = set(active_ids_in_order)
+    unknown_active_ids = sorted(active_id_set - seen_ids)
+    if unknown_active_ids:
+        raise CandidateSignalsError(
+            "active_monitoring_field has unknown candidate IDs: "
+            f"{unknown_active_ids}"
+        )
+    for tier in ("main", "secondary"):
+        expected_tier_order = [
+            candidate["candidate_id"]
+            for candidate in candidates
+            if (
+                candidate["candidacy"]["display_tier"] == tier
+                and candidate["candidacy"]["active_field_eligible"]
+            )
+        ]
+        if active_tier_ids[tier] != expected_tier_order:
+            raise CandidateSignalsError(
+                f"active_monitoring_field.{tier} membership or order is invalid"
+            )
+    for index, candidate in enumerate(candidates):
+        identifier = candidate["candidate_id"]
+        candidacy = candidate["candidacy"]
+        expected_eligible = identifier in active_id_set
+        if candidacy["active_field_eligible"] != expected_eligible:
+            raise CandidateSignalsError(
+                f"candidates[{index}].candidacy active eligibility conflicts "
+                "with active_monitoring_field"
+            )
+        if expected_eligible and (
+            candidacy["display_tier"] not in {"main", "secondary"}
+            or candidacy["upstream_presence"] != "present"
+        ):
+            raise CandidateSignalsError(
+                f"candidates[{index}] is not eligible for active monitoring"
+            )
     validate_active_field_visibility(
         value["active_field_visibility"],
-        presidential_field,
+        active_monitoring_field,
         candidates,
+        presidential_field["status_as_of"],
     )
     _validate_featured_poll_board(
         value["featured_poll_board"],

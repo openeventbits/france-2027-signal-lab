@@ -1142,13 +1142,14 @@ class PresidentialFieldContractTests(unittest.TestCase):
         )
 
     def test_schema_keys_complete_universe_and_order_are_exact(self):
-        self.assertEqual(self.payload["schema_version"], "1.2")
+        self.assertEqual(self.payload["schema_version"], "1.3")
         self.assertEqual(
             list(self.payload),
             [
                 "schema_version",
                 "candidate_universe",
                 "presidential_field",
+                "active_monitoring_field",
                 "active_field_visibility",
                 "featured_polling_package",
                 "featured_poll_board",
@@ -1186,7 +1187,7 @@ class PresidentialFieldContractTests(unittest.TestCase):
         active = self.payload["active_field_visibility"]
         expected = builder.derive_active_field_visibility(
             self.news,
-            self.payload["presidential_field"],
+            self.payload["active_monitoring_field"],
             self.registry,
         )
         self.assertEqual(active, expected)
@@ -1200,15 +1201,15 @@ class PresidentialFieldContractTests(unittest.TestCase):
         )
         self.assertEqual(
             active["denominator_scope"],
-            "records_linked_to_at_least_one_main_or_secondary_candidate",
+            "records_linked_to_at_least_one_active_monitoring_candidate",
         )
         self.assertEqual(
             active["status_as_of"],
             self.payload["presidential_field"]["status_as_of"],
         )
-        field = self.payload["presidential_field"]
+        field = self.payload["active_monitoring_field"]
         active_ids = set(field["main"] + field["secondary"])
-        hidden = set(field["hidden"])
+        hidden = set(self.payload["presidential_field"]["hidden"])
         row_keys = {
             "candidate_id", "candidate_name", "status", "display_tier",
             "current_record_count", "current_share", "prior_record_count",
@@ -1286,7 +1287,7 @@ class PresidentialFieldContractTests(unittest.TestCase):
 
     def test_active_union_reconciliation_uses_published_record_associations(self):
         before = copy.deepcopy(self.news)
-        field = self.payload["presidential_field"]
+        field = self.payload["active_monitoring_field"]
         names_by_id = {
             candidate["candidate_id"]: candidate["candidate_name"]
             for candidate in self.payload["candidates"]
@@ -1298,7 +1299,7 @@ class PresidentialFieldContractTests(unittest.TestCase):
         }
         hidden_names = {
             names_by_id[identifier]
-            for identifier in field["hidden"]
+            for identifier in self.payload["presidential_field"]["hidden"]
         }
         records = self.news["candidate_watch"]
         self.assertEqual(
@@ -1380,7 +1381,7 @@ class PresidentialFieldContractTests(unittest.TestCase):
             period["candidate_metrics"] = []
         active = builder.derive_active_field_visibility(
             news,
-            self.payload["presidential_field"],
+            self.payload["active_monitoring_field"],
             self.registry,
         )
         for scope_name in ("primary", "general"):
@@ -1419,8 +1420,13 @@ class PresidentialFieldContractTests(unittest.TestCase):
                     "status_note",
                 )
             }
-            expected["active_field_eligible"] = (
-                source["display_tier"] != "hidden"
+            expected["upstream_presence"] = source.get(
+                "upstream_presence",
+                "present",
+            )
+            expected["active_field_eligible"] = candidate["candidate_id"] in set(
+                self.payload["active_monitoring_field"]["main"]
+                + self.payload["active_monitoring_field"]["secondary"]
             )
             self.assertEqual(candidate["candidacy"], expected)
         field = self.payload["presidential_field"]
@@ -1431,6 +1437,10 @@ class PresidentialFieldContractTests(unittest.TestCase):
         self.assertEqual(
             field,
             builder.project_display_tiers(self.registry),
+        )
+        self.assertEqual(
+            self.payload["active_monitoring_field"],
+            builder.project_active_monitoring_field(self.registry),
         )
         all_ids = field["main"] + field["secondary"] + field["hidden"]
         self.assertEqual(len(all_ids), len(set(all_ids)))

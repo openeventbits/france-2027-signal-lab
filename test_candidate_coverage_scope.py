@@ -4,6 +4,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import build_candidate_signals as candidate_signals_builder
+from candidate_candidacy_status import (
+    project_active_monitoring_field,
+    project_display_tiers,
+)
 
 from fetch_news_wire import (
     CANDIDATE_COVERAGE_SCOPES,
@@ -571,9 +575,8 @@ class ActiveFieldVisibilityScopeTests(unittest.TestCase):
         cls.registry = json.loads(
             (ROOT / "candidate_candidacy_status.json").read_text(encoding="utf-8")
         )
-        cls.field = json.loads(
-            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
-        )["presidential_field"]
+        cls.stored_field = project_display_tiers(cls.registry)
+        cls.field = project_active_monitoring_field(cls.registry)
         cls.active = candidate_signals_builder.derive_active_field_visibility(
             cls.news,
             cls.field,
@@ -666,7 +669,7 @@ class ActiveFieldVisibilityScopeTests(unittest.TestCase):
         }
         hidden_names = {
             registry_by_id[identifier]["candidate_name"]
-            for identifier in self.field["hidden"]
+            for identifier in self.stored_field["hidden"]
         }
         active_names = {
             registry_by_id[identifier]["candidate_name"]

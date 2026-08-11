@@ -11,9 +11,9 @@ from campaign_event_attribution import CandidateAttributionConfigurationError
 from campaign_event_sources import load_campaign_event_source_registry
 from campaign_event_structured import StructuredEventRecord
 from candidate_candidacy_status import (
+    active_candidate_ids,
     candidacy_status_by_id,
     load_candidate_candidacy_status,
-    project_display_tiers,
 )
 from http_fetch import HttpFetchResult
 from tf1_lci_adapter import (
@@ -95,7 +95,7 @@ def candidate_registry_views():
     )
     return (
         copy.deepcopy(candidacy_status_by_id(registry)),
-        copy.deepcopy(project_display_tiers(registry)),
+        list(active_candidate_ids(registry)),
     )
 
 
@@ -154,23 +154,22 @@ class Tf1LciAdapterTests(unittest.TestCase):
                 ),
             )
 
-    def attribute_with_registry_views(self, by_id, tiers):
+    def attribute_with_registry_views(self, by_id, active_ids):
         with mock.patch(
             "tf1_lci_adapter.candidacy_status_by_id",
             return_value=by_id,
         ), mock.patch(
-            "tf1_lci_adapter.project_display_tiers",
-            return_value=tiers,
+            "tf1_lci_adapter.active_candidate_ids",
+            return_value=active_ids,
         ):
             return attribute_tf1_lci_events(parse_tf1_lci_html(page()))
 
     def test_inactive_seven_person_participant_is_filtered_normally(self):
-        by_id, tiers = candidate_registry_views()
+        by_id, active_ids = candidate_registry_views()
         inactive_id = "marine-tondelier"
-        tiers["main"].remove(inactive_id)
-        tiers["hidden"].append(inactive_id)
+        active_ids.remove(inactive_id)
 
-        batch = self.attribute_with_registry_views(by_id, tiers)
+        batch = self.attribute_with_registry_views(by_id, active_ids)
 
         self.assertEqual(batch.rejected_records, 0)
         self.assertEqual(len(batch.accepted), 2)
@@ -201,11 +200,10 @@ class Tf1LciAdapterTests(unittest.TestCase):
         )
 
     def test_inactive_hollande_is_an_ordinary_record_rejection(self):
-        by_id, tiers = candidate_registry_views()
-        tiers["secondary"].remove("francois-hollande")
-        tiers["hidden"].append("francois-hollande")
+        by_id, active_ids = candidate_registry_views()
+        active_ids.remove("francois-hollande")
 
-        batch = self.attribute_with_registry_views(by_id, tiers)
+        batch = self.attribute_with_registry_views(by_id, active_ids)
 
         self.assertEqual(len(batch.accepted), 1)
         self.assertEqual(
@@ -215,24 +213,24 @@ class Tf1LciAdapterTests(unittest.TestCase):
         self.assertEqual(batch.rejected_records, 1)
 
     def test_missing_audited_canonical_id_remains_fatal(self):
-        by_id, tiers = candidate_registry_views()
+        by_id, active_ids = candidate_registry_views()
         by_id.pop("marine-tondelier")
 
         with self.assertRaisesRegex(
             CandidateAttributionConfigurationError,
             "marine-tondelier",
         ):
-            self.attribute_with_registry_views(by_id, tiers)
+            self.attribute_with_registry_views(by_id, active_ids)
 
     def test_audited_canonical_name_mismatch_remains_fatal(self):
-        by_id, tiers = candidate_registry_views()
+        by_id, active_ids = candidate_registry_views()
         by_id["marine-tondelier"]["candidate_name"] = "Wrong Canonical Name"
 
         with self.assertRaisesRegex(
             CandidateAttributionConfigurationError,
             "marine-tondelier",
         ):
-            self.attribute_with_registry_views(by_id, tiers)
+            self.attribute_with_registry_views(by_id, active_ids)
     def test_build_fetches_once_and_builds_stage_2c_observations(self):
         fetch = mock.Mock(return_value=fetch_result(page().encode("utf-8")))
         result = build_tf1_lci_events(

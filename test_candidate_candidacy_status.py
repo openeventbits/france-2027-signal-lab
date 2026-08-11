@@ -381,7 +381,6 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
                 "main": 1,
                 "secondary": 1,
                 "hidden": 1,
-                "active": 2,
                 "total": 3,
             },
         )

@@ -178,7 +178,11 @@ class CandidateSignalsRegistryTests(PhaseTwoFixtureMixin, unittest.TestCase):
         field = self.payload["presidential_field"]
         self.assertEqual(
             field["counts"],
-            {"main": 2, "secondary": 1, "hidden": 2, "active": 3, "total": 5},
+            {"main": 2, "secondary": 1, "hidden": 2, "total": 5},
+        )
+        self.assertEqual(
+            self.payload["active_monitoring_field"]["counts"],
+            {"main": 2, "secondary": 1, "active": 3},
         )
         active_ids = set()
         for lane in ("primary", "general"):
@@ -234,9 +238,9 @@ class CandidateSignalsRegistryTests(PhaseTwoFixtureMixin, unittest.TestCase):
         self.assertEqual(len(payload["candidates"]), 25)
         self.assertEqual(payload["presidential_field"]["counts"]["total"], 25)
         self.assertEqual(
-            payload["presidential_field"]["counts"]["active"],
-            payload["presidential_field"]["counts"]["main"]
-            + payload["presidential_field"]["counts"]["secondary"],
+            payload["active_monitoring_field"]["counts"]["active"],
+            payload["active_monitoring_field"]["counts"]["main"]
+            + payload["active_monitoring_field"]["counts"]["secondary"],
         )
 
 

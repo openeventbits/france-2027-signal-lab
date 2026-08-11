@@ -7,7 +7,9 @@
     empty: "empty",
     unavailable: "unavailable"
   });
-  const SUPPORTED_SCHEMA_VERSIONS = new Set(["1.0", "1.1", "1.2"]);
+  const SUPPORTED_SCHEMA_VERSIONS = new Set([
+    "1.0", "1.1", "1.2", "1.3"
+  ]);
   const metadataFields = [
     "candidate_universe",
     "featured_polling_package",
@@ -63,7 +65,7 @@
       "coverage_scope"
     ]
   });
-  const candidacyFields = [
+  const legacyCandidacyFields = [
     "status",
     "display_tier",
     "active_field_eligible",
@@ -74,12 +76,41 @@
     "source_publisher",
     "status_note"
   ];
+  const candidacyFields = [
+    "status",
+    "display_tier",
+    "upstream_presence",
+    "active_field_eligible",
+    "status_as_of",
+    "source_date",
+    "source_url",
+    "source_title",
+    "source_publisher",
+    "status_note"
+  ];
   const fieldTiers = ["main", "secondary", "hidden"];
-  const fieldCountKeys = ["main", "secondary", "hidden", "active", "total"];
+  const legacyFieldCountKeys = [
+    "main", "secondary", "hidden", "active", "total"
+  ];
+  const fieldCountKeys = ["main", "secondary", "hidden", "total"];
+  const activeMonitoringCountKeys = ["main", "secondary", "active"];
   const schema12TopFields = [
     "schema_version",
     "candidate_universe",
     "presidential_field",
+    "active_field_visibility",
+    "featured_polling_package",
+    "featured_poll_board",
+    "visibility",
+    "scrutiny_window",
+    "evidence_dates",
+    "candidates"
+  ];
+  const schema13TopFields = [
+    "schema_version",
+    "candidate_universe",
+    "presidential_field",
+    "active_monitoring_field",
     "active_field_visibility",
     "featured_polling_package",
     "featured_poll_board",
@@ -161,27 +192,38 @@
     return stateObject(STATES.unavailable, [], {}, reason);
   }
 
-  function normalizeCandidacy(source) {
-    if (!hasExactKeys(source, candidacyFields)) return undefined;
-    for (const field of candidacyFields) {
+  function normalizeCandidacy(source, isVersion13) {
+    const fields = isVersion13 ? candidacyFields : legacyCandidacyFields;
+    if (!hasExactKeys(source, fields)) return undefined;
+    for (const field of fields) {
       if (field === "active_field_eligible") continue;
       if (!nonemptyText(source[field])) return undefined;
     }
     if (!fieldTiers.includes(source.display_tier)) return undefined;
     if (typeof source.active_field_eligible !== "boolean") return undefined;
-    if (source.active_field_eligible !== (source.display_tier !== "hidden")) {
+    if (
+      isVersion13 &&
+      !["present", "temporarily_missing"].includes(source.upstream_presence)
+    ) {
+      return undefined;
+    }
+    if (
+      !isVersion13 &&
+      source.active_field_eligible !== (source.display_tier !== "hidden")
+    ) {
       return undefined;
     }
     return cloneValue(source);
   }
 
-  function normalizePresidentialField(source, candidates) {
+  function normalizePresidentialField(source, candidates, isVersion13) {
     const expectedKeys = ["status_as_of", ...fieldTiers, "counts"];
     if (!hasExactKeys(source, expectedKeys) || !nonemptyText(source.status_as_of)) {
       return undefined;
     }
-    if (!hasExactKeys(source.counts, fieldCountKeys)) return undefined;
-    if (!fieldCountKeys.every(key => nonnegativeInteger(source.counts[key]))) {
+    const countKeys = isVersion13 ? fieldCountKeys : legacyFieldCountKeys;
+    if (!hasExactKeys(source.counts, countKeys)) return undefined;
+    if (!countKeys.every(key => nonnegativeInteger(source.counts[key]))) {
       return undefined;
     }
 
@@ -204,7 +246,10 @@
         if (
           !candidate.candidacy ||
           candidate.candidacy.display_tier !== tier ||
-          candidate.candidacy.active_field_eligible !== (tier !== "hidden")
+          (
+            !isVersion13 &&
+            candidate.candidacy.active_field_eligible !== (tier !== "hidden")
+          )
         ) {
           return undefined;
         }
@@ -218,12 +263,66 @@
       main: normalized.main.length,
       secondary: normalized.secondary.length,
       hidden: normalized.hidden.length,
-      active: normalized.main.length + normalized.secondary.length,
       total: candidates.length
     };
-    if (fieldCountKeys.some(key => source.counts[key] !== expectedCounts[key])) {
+    if (!isVersion13) {
+      expectedCounts.active = normalized.main.length + normalized.secondary.length;
+    }
+    if (countKeys.some(key => source.counts[key] !== expectedCounts[key])) {
       return undefined;
     }
+    return normalized;
+  }
+
+  function normalizeActiveMonitoringField(source, candidates) {
+    if (!hasExactKeys(source, ["main", "secondary", "counts"])) {
+      return undefined;
+    }
+    if (!hasExactKeys(source.counts, activeMonitoringCountKeys)) {
+      return undefined;
+    }
+    if (!activeMonitoringCountKeys.every(
+      key => nonnegativeInteger(source.counts[key])
+    )) return undefined;
+
+    const candidateById = new Map(
+      candidates.map(candidate => [candidate.candidate_id, candidate])
+    );
+    const seen = new Set();
+    const normalized = {
+      main: [],
+      secondary: [],
+      counts: cloneValue(source.counts)
+    };
+    for (const tier of ["main", "secondary"]) {
+      if (!Array.isArray(source[tier])) return undefined;
+      for (const identifier of source[tier]) {
+        const candidate = candidateById.get(identifier);
+        if (
+          !nonemptyText(identifier) || !candidate || seen.has(identifier) ||
+          candidate.candidacy?.display_tier !== tier ||
+          candidate.candidacy?.upstream_presence !== "present" ||
+          candidate.candidacy?.active_field_eligible !== true
+        ) return undefined;
+        seen.add(identifier);
+        normalized[tier].push(identifier);
+      }
+    }
+    const eligible = candidates
+      .filter(candidate => candidate.candidacy?.active_field_eligible === true)
+      .map(candidate => candidate.candidate_id);
+    if (
+      eligible.length !== seen.size ||
+      eligible.some(identifier => !seen.has(identifier))
+    ) return undefined;
+    const expectedCounts = {
+      main: normalized.main.length,
+      secondary: normalized.secondary.length,
+      active: normalized.main.length + normalized.secondary.length
+    };
+    if (activeMonitoringCountKeys.some(
+      key => source.counts[key] !== expectedCounts[key]
+    )) return undefined;
     return normalized;
   }
 
@@ -383,15 +482,19 @@
     return seen.size === field.counts.active ? normalized : undefined;
   }
 
-  function normalizeActiveFieldVisibility(source, field, candidates) {
+  function normalizeActiveFieldVisibility(
+    source, field, candidates, statusAsOf, isVersion13
+  ) {
     if (!hasExactKeys(source, [
       "method", "denominator_scope", "status_as_of", "primary", "general"
     ])) return undefined;
     if (
       source.method !== "share_of_active_candidate_linked_records" ||
       source.denominator_scope !==
-        "records_linked_to_at_least_one_main_or_secondary_candidate" ||
-      source.status_as_of !== field.status_as_of
+        (isVersion13
+          ? "records_linked_to_at_least_one_active_monitoring_candidate"
+          : "records_linked_to_at_least_one_main_or_secondary_candidate") ||
+      source.status_as_of !== statusAsOf
     ) return undefined;
     const candidatesById = new Map(
       candidates.map(candidate => [candidate.candidate_id, candidate])
@@ -420,7 +523,11 @@
       return unavailable("unsupported_schema");
     }
     const isVersion12 = payload.schema_version === "1.2";
+    const isVersion13 = payload.schema_version === "1.3";
     if (isVersion12 && !hasExactKeys(payload, schema12TopFields)) {
+      return unavailable("invalid_payload");
+    }
+    if (isVersion13 && !hasExactKeys(payload, schema13TopFields)) {
       return unavailable("invalid_payload");
     }
     if (!Array.isArray(payload.candidates)) {
@@ -428,13 +535,16 @@
     }
 
     const hasPresidentialField =
-      payload.schema_version === "1.1" || isVersion12;
+      payload.schema_version === "1.1" || isVersion12 || isVersion13;
     const candidateIds = new Set();
     const candidates = [];
 
     for (const sourceCandidate of payload.candidates) {
       if (!isPlainObject(sourceCandidate)) return unavailable("invalid_payload");
-      if (isVersion12 && !hasExactKeys(sourceCandidate, candidateRecordFields)) {
+      if (
+        (isVersion12 || isVersion13) &&
+        !hasExactKeys(sourceCandidate, candidateRecordFields)
+      ) {
         return unavailable("invalid_payload");
       }
       const candidateId = sourceCandidate.candidate_id;
@@ -453,7 +563,10 @@
         candidacy: null
       };
       if (hasPresidentialField) {
-        candidate.candidacy = normalizeCandidacy(sourceCandidate.candidacy);
+        candidate.candidacy = normalizeCandidacy(
+          sourceCandidate.candidacy,
+          isVersion13
+        );
         if (candidate.candidacy === undefined) return unavailable("invalid_payload");
       }
 
@@ -469,6 +582,7 @@
     const metadata = {
       schema_version: payload.schema_version,
       presidentialField: null,
+      activeMonitoringField: null,
       activeFieldVisibility: null
     };
     for (const field of metadataFields) {
@@ -477,18 +591,41 @@
     if (hasPresidentialField) {
       metadata.presidentialField = normalizePresidentialField(
         payload.presidential_field,
-        candidates
+        candidates,
+        isVersion13
       );
       if (metadata.presidentialField === undefined) {
         return unavailable("invalid_payload");
       }
     }
 
-    if (isVersion12) {
+    if (isVersion13) {
+      metadata.activeMonitoringField = normalizeActiveMonitoringField(
+        payload.active_monitoring_field,
+        candidates
+      );
+      if (metadata.activeMonitoringField === undefined) {
+        return unavailable("invalid_payload");
+      }
+    } else if (isVersion12) {
+      metadata.activeMonitoringField = {
+        main: cloneValue(metadata.presidentialField.main),
+        secondary: cloneValue(metadata.presidentialField.secondary),
+        counts: {
+          main: metadata.presidentialField.main.length,
+          secondary: metadata.presidentialField.secondary.length,
+          active: metadata.presidentialField.counts.active
+        }
+      };
+    }
+
+    if (isVersion12 || isVersion13) {
       metadata.activeFieldVisibility = normalizeActiveFieldVisibility(
         payload.active_field_visibility,
-        metadata.presidentialField,
-        candidates
+        metadata.activeMonitoringField,
+        candidates,
+        metadata.presidentialField.status_as_of,
+        isVersion13
       );
       if (metadata.activeFieldVisibility === undefined) {
         return unavailable("invalid_payload");

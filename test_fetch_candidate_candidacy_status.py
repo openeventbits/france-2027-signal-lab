@@ -116,18 +116,44 @@ _DEFAULT_RESPONSE = object()
 
 
 class FakeFetch:
-    def __init__(self, query=_DEFAULT_RESPONSE, parsed=_DEFAULT_RESPONSE):
+    def __init__(
+        self,
+        query=_DEFAULT_RESPONSE,
+        parsed=_DEFAULT_RESPONSE,
+        article_responses=None,
+    ):
         self.query = query_response() if query is _DEFAULT_RESPONSE else query
         self.parsed = parse_response() if parsed is _DEFAULT_RESPONSE else parsed
+        self.article_responses = article_responses or {}
         self.calls: list[dict[str, str]] = []
 
     def __call__(self, params):
         copied = dict(params)
         self.calls.append(copied)
-        if copied.get("action") == "query":
+        if copied.get("action") == "query" and copied.get("prop") == "revisions":
             return copy.deepcopy(self.query)
         if copied.get("action") == "parse":
             return copy.deepcopy(self.parsed)
+        if copied.get("action") == "query" and copied.get("prop") == "info":
+            title = copied["titles"]
+            response = self.article_responses.get(title)
+            if response is None:
+                requested_titles = title.split("|")
+                response = {
+                    "query": {
+                        "pages": [
+                            {
+                                "pageid": 1000 + index,
+                                "ns": 0,
+                                "title": requested_title,
+                            }
+                            for index, requested_title in enumerate(
+                                requested_titles
+                            )
+                        ]
+                    }
+                }
+            return copy.deepcopy(response)
         raise AssertionError(f"unexpected MediaWiki action: {copied!r}")
 
 
@@ -186,6 +212,9 @@ class CandidateExtractionTests(unittest.TestCase):
         }
         self.assertFalse(extracted["Zoë Sans Article"].has_personal_article)
         self.assertIn("Zoë Sans Article", self.by_name)
+        self.assertIsNone(
+            self.by_name["Zoë Sans Article"]["wikipedia_article"]
+        )
 
     def test_candidate_ids_reuse_shared_identity_logic(self):
         for name, candidate in self.by_name.items():
@@ -326,9 +355,37 @@ class MediaWikiApiTests(unittest.TestCase):
         result = collector.fetch_candidate_candidacy_status(fake)
         self.assertEqual(result.revision.revision_id, REVISION_ID)
         self.assertEqual(result.revision.revision_timestamp, REVISION_TIMESTAMP)
-        self.assertEqual([call["action"] for call in fake.calls], ["query", "parse"])
+        self.assertEqual(
+            [call["action"] for call in fake.calls[:2]],
+            ["query", "parse"],
+        )
+        self.assertTrue(
+            all(call.get("prop") == "info" for call in fake.calls[2:])
+        )
+        self.assertEqual(
+            sum(call.get("prop") == "info" for call in fake.calls),
+            1,
+        )
         self.assertEqual(fake.calls[1]["oldid"], str(REVISION_ID))
         self.assertNotIn("page", fake.calls[1])
+
+    def test_revision_only_refresh_reports_no_semantic_change(self):
+        previous = collector.fetch_candidate_candidacy_status(
+            FakeFetch()
+        ).payload
+        next_revision = REVISION_ID + 1
+        fake = FakeFetch(
+            query=query_response(
+                revision_id=next_revision,
+                timestamp="2026-08-07T04:05:00Z",
+            ),
+            parsed=parse_response(revision_id=next_revision),
+        )
+        result = collector.fetch_candidate_candidacy_status(
+            fake,
+            previous_registry=previous,
+        )
+        self.assertFalse(result.semantic_changed)
 
     def test_malformed_api_payload_fails_closed(self):
         for malformed in (None, {}, {"query": {}}, {"query": {"pages": []}}):
@@ -376,6 +433,19 @@ class MediaWikiApiTests(unittest.TestCase):
             "does not match requested oldid",
         ):
             collector.fetch_candidate_candidacy_status(fake)
+
+
+class CommandLineTests(unittest.TestCase):
+    def test_previous_defaults_to_tracked_registry_path(self):
+        args = collector._parser().parse_args(["--output", "result.json"])
+        self.assertFalse(args.no_previous)
+        self.assertEqual(args.previous, collector.DEFAULT_PREVIOUS_PATH)
+
+    def test_explicit_no_previous_mode(self):
+        args = collector._parser().parse_args(
+            ["--output", "result.json", "--no-previous"]
+        )
+        self.assertTrue(args.no_previous)
 
 
 class SerializationAndWriteTests(unittest.TestCase):

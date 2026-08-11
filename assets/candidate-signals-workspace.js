@@ -3345,7 +3345,8 @@
   }
 
   function activeWorkspaceCandidates(candidates, metadata) {
-    const field = metadata?.presidentialField;
+    const field = metadata?.activeMonitoringField ||
+      metadata?.presidentialField;
     const activeIds = [
       ...(Array.isArray(field?.main) ? field.main : []),
       ...(Array.isArray(field?.secondary) ? field.secondary : [])
