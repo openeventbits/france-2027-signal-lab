@@ -23,6 +23,7 @@ __all__ = [
     "CandidateAttributionConfigurationError",
     "attribute_structured_event",
     "attribute_structured_events",
+    "match_active_candidate_participants",
 ]
 
 
@@ -215,6 +216,39 @@ def _load_active_candidates(
             "active candidate registry contains duplicate IDs"
         )
     return tuple(candidates), by_id
+
+
+def match_active_candidate_participants(
+    participants: Iterable[str],
+    *,
+    candidate_registry_path: str | Path = _DEFAULT_CANDIDATE_REGISTRY,
+) -> tuple[tuple[str, str], ...]:
+    """Return exact canonical active-candidate matches for participant labels."""
+
+    active_candidates, _ = _load_active_candidates(candidate_registry_path)
+    try:
+        supplied = tuple(participants)
+    except TypeError as error:
+        raise CandidateAttributionConfigurationError(
+            "participants must be an iterable of labels"
+        ) from error
+
+    candidates_by_tokens: dict[tuple[str, ...], list[_Candidate]] = {}
+    for candidate in active_candidates:
+        candidates_by_tokens.setdefault(candidate.name_tokens, []).append(candidate)
+
+    matched_by_id: dict[str, _Candidate] = {}
+    for participant in supplied:
+        matches = candidates_by_tokens.get(_tokens(participant), [])
+        if len(matches) == 1:
+            candidate = matches[0]
+            matched_by_id[candidate.candidate_id] = candidate
+
+    matched = sorted(matched_by_id.values(), key=_candidate_sort_key)
+    return tuple(
+        (candidate.candidate_id, candidate.candidate_name)
+        for candidate in matched
+    )
 
 
 def _source_policy(source: Any) -> str:

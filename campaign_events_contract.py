@@ -23,6 +23,7 @@ from campaign_event_sources import (
     SOURCE_TYPES,
     CampaignEventSourceRegistryError,
     load_campaign_event_source_registry,
+    manual_evidence_source_id,
     normalize_https_url,
 )
 
@@ -394,6 +395,7 @@ def _normalize_evidence(
     normalized: list[dict[str, Any]] = []
     full_records: set[tuple[Any, ...]] = set()
     source_urls: set[str] = set()
+    has_validated_manual_evidence = False
 
     for index, evidence in enumerate(value):
         context = f"{event_context}.evidence[{index}]"
@@ -464,7 +466,7 @@ def _normalize_evidence(
         }
         if source_published_at is not None:
             normalized_record["source_published_at"] = source_published_at
-        registered_source = _validate_evidence_registry_parity(
+        validated_source, is_manual_evidence = _validate_evidence_registry_parity(
             normalized_record,
             lane=lane,
             event_type=event_type,
@@ -472,9 +474,10 @@ def _normalize_evidence(
             source_by_id=source_by_id,
             context=context,
         )
-        normalized_record["source_id"] = registered_source["source_id"]
-        normalized_record["source_publisher"] = registered_source["publisher"]
-        normalized_record["source_type"] = registered_source["source_type"]
+        normalized_record["source_id"] = validated_source["source_id"]
+        normalized_record["source_publisher"] = validated_source["publisher"]
+        normalized_record["source_type"] = validated_source["source_type"]
+        has_validated_manual_evidence |= is_manual_evidence
         normalized.append(normalized_record)
 
     normalized.sort(key=_evidence_sort_key)
@@ -483,6 +486,7 @@ def _normalize_evidence(
             normalized,
             lane=lane,
             context=event_context,
+            has_validated_manual_evidence=has_validated_manual_evidence,
         )
     return normalized
 
@@ -495,11 +499,35 @@ def _validate_evidence_registry_parity(
     event_candidate_ids: list[str],
     source_by_id: dict[str, dict[str, Any]],
     context: str,
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], bool]:
     source_id = evidence["source_id"]
     registered = source_by_id.get(source_id)
     if registered is None:
-        _fail(f"{context}.source_id is not in the approved source registry")
+        if not source_id.startswith("manual-"):
+            _fail(f"{context}.source_id is not in the approved source registry")
+        if lane != CAMPAIGN_EVENTS_LANE:
+            _fail(f"{context}.manual source IDs are only allowed for campaign_events")
+        try:
+            expected_source_id = manual_evidence_source_id(
+                evidence["source_type"],
+                evidence["source_publisher"],
+                evidence["source_url"],
+            )
+        except CampaignEventSourceRegistryError as error:
+            raise CampaignEventsContractError(str(error)) from error
+        if source_id != expected_source_id:
+            _fail(
+                f"{context}.source_id does not match the derived manual "
+                "evidence identity"
+            )
+        return (
+            {
+                "source_id": expected_source_id,
+                "publisher": evidence["source_publisher"],
+                "source_type": evidence["source_type"],
+            },
+            True,
+        )
     if not registered["enabled"]:
         _fail(f"{context}.source_id is disabled in the approved source registry")
     if evidence["source_type"] != registered["source_type"]:
@@ -533,7 +561,7 @@ def _validate_evidence_registry_parity(
             _fail(
                 f"{context}.source_id is unrelated to every event candidate"
             )
-    return registered
+    return registered, False
 
 
 def _evidence_sort_key(evidence: dict[str, Any]) -> tuple[Any, ...]:
@@ -552,6 +580,7 @@ def _validate_evidence_sufficiency(
     *,
     lane: str,
     context: str,
+    has_validated_manual_evidence: bool,
 ) -> None:
     explicit_types = {"explicit_schedule", "explicit_status_update"}
     if lane == INSTITUTIONAL_MILESTONES_LANE:
@@ -564,6 +593,10 @@ def _validate_evidence_sufficiency(
         )
         if not qualifying:
             _fail(f"{context} requires qualifying official evidence")
+        return
+    if has_validated_manual_evidence and any(
+        record["evidence_type"] in explicit_types for record in evidence
+    ):
         return
 
     has_first_party = any(
