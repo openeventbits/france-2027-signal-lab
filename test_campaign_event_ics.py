@@ -96,6 +96,62 @@ class CampaignEventIcsTests(unittest.TestCase):
         self.assertEqual(record.description, "Ligne 1\nLigne 2, suite; fin\\")
         self.assertEqual(record.location_name, "Cannes, France")
 
+    def test_missing_description_remains_none(self):
+        record = parse_ics_events(
+            calendar(
+                "UID:no-description@example.org",
+                "DTSTART:20260829T170000Z",
+                "SUMMARY:Meeting public",
+            )
+        )[0]
+
+        self.assertIsNone(record.description)
+
+    def test_empty_description_is_treated_as_absent(self):
+        record = parse_ics_events(
+            calendar(
+                "UID:empty-description@example.org",
+                "DTSTART:20260829T170000Z",
+                "DTEND:20260829T190000Z",
+                "SUMMARY:Meeting public",
+                "DESCRIPTION:",
+                r"LOCATION:Paris\, France",
+                "ORGANIZER;CN=Organisation:mailto:agenda@example.org",
+                "URL:https://example.org/evenement",
+            )
+        )[0]
+
+        self.assertIsNone(record.description)
+        self.assertEqual(record.external_id, "empty-description@example.org")
+        self.assertEqual(record.title, "Meeting public")
+        self.assertEqual(record.scheduled_start, "2026-08-29T19:00:00+02:00")
+        self.assertEqual(record.scheduled_end, "2026-08-29T21:00:00+02:00")
+        self.assertEqual(record.location_name, "Paris, France")
+        self.assertEqual(record.organization, "Organisation")
+        self.assertEqual(record.event_url, "https://example.org/evenement")
+
+    def test_normalization_empty_description_is_treated_as_absent(self):
+        record = parse_ics_events(
+            calendar(
+                "DTSTART:20260829T170000Z",
+                "SUMMARY:Meeting public",
+                r"DESCRIPTION:\n   \n",
+            )
+        )[0]
+
+        self.assertIsNone(record.description)
+
+    def test_meaningful_description_remains_unchanged(self):
+        record = parse_ics_events(
+            calendar(
+                "DTSTART:20260829T170000Z",
+                "SUMMARY:Meeting public",
+                "DESCRIPTION:Texte explicite",
+            )
+        )[0]
+
+        self.assertEqual(record.description, "Texte explicite")
+
     def test_folded_lines_are_unfolded(self):
         raw = (
             "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\n"
@@ -173,6 +229,23 @@ class CampaignEventIcsTests(unittest.TestCase):
             record.source_format,
             "ics",
         )
+
+    def test_valarm_description_does_not_fill_empty_event_description(self):
+        record = parse_ics_events(
+            calendar(
+                "DTSTART;VALUE=DATE:20260815",
+                "SUMMARY:Campaign event",
+                "DESCRIPTION:",
+                "BEGIN:VALARM",
+                "TRIGGER:-PT1H",
+                "ACTION:DISPLAY",
+                "DESCRIPTION:Rappel",
+                "END:VALARM",
+            ),
+            default_timezone="Europe/Paris",
+        )[0]
+
+        self.assertIsNone(record.description)
 
     def test_unknown_nested_vevent_component_still_fails_closed(self):
         raw = calendar(
@@ -265,6 +338,26 @@ class CampaignEventIcsTests(unittest.TestCase):
         for raw, field in cases:
             with self.subTest(field=field):
                 with self.assertRaisesRegex(StructuredEventParseError, field):
+                    parse_ics_events(raw)
+
+    def test_empty_required_or_unrelated_text_still_fails_closed(self):
+        cases = (
+            (calendar("DTSTART:20260829T170000Z", "SUMMARY:"), "SUMMARY"),
+            (
+                calendar(
+                    "DTSTART:20260829T170000Z",
+                    "SUMMARY:Meeting public",
+                    "LOCATION:",
+                ),
+                "LOCATION",
+            ),
+        )
+        for raw, field in cases:
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(
+                    StructuredEventParseError,
+                    rf"{field} must be non-empty text",
+                ):
                     parse_ics_events(raw)
 
     def test_duplicate_required_property_fails_closed(self):

@@ -26,6 +26,11 @@ from campaign_event_linked_ics import (
 from campaign_event_observation import (
     CampaignEventObservationConfigurationError,
 )
+from campaign_event_qomon import (
+    QomonCollectorConfigurationError,
+    QomonCollectorResult,
+    build_qomon_events,
+)
 from campaign_event_sources import (
     CampaignEventSourceRegistryError,
     load_campaign_event_source_registry,
@@ -300,9 +305,41 @@ def _collect_linked_ics(
     )
 
 
+def _collect_qomon(
+    *,
+    source: dict[str, Any],
+    observed_at: str,
+) -> SourceCollectionResult:
+    try:
+        result = build_qomon_events(source=source, observed_at=observed_at)
+    except (
+        QomonCollectorConfigurationError,
+        CandidateAttributionConfigurationError,
+        CampaignEventObservationConfigurationError,
+    ) as error:
+        raise CampaignEventCollectionConfigurationError(
+            f"Qomon collector configuration failed: {error}"
+        ) from error
+    if type(result) is not QomonCollectorResult:
+        raise CampaignEventCollectionConfigurationError(
+            "Qomon collector returned an invalid result"
+        )
+    try:
+        result.__post_init__()
+    except QomonCollectorConfigurationError as error:
+        raise CampaignEventCollectionConfigurationError(
+            f"Qomon collector result is invalid: {error}"
+        ) from error
+    return SourceCollectionResult(
+        observations=list(result.observations),
+        attribution_rejected_records=result.attribution_rejected_records,
+    )
+
+
 _PRODUCTION_COLLECTION_COLLECTORS: Mapping[str, CollectionCollector] = {
     "la-lettre-expansion": _collect_la_lettre_expansion,
     "linked-ics": _collect_linked_ics,
+    "qomon": _collect_qomon,
     "rn-agenda": _collect_rn_agenda,
     "tf1-lci-debates": _collect_tf1_lci_debates,
 }

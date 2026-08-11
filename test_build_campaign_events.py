@@ -622,6 +622,7 @@ class BuildCampaignEventsTests(unittest.TestCase):
             {
                 "la-lettre-expansion",
                 "linked-ics",
+                "qomon",
                 "rn-agenda",
                 "tf1-lci-debates",
             },
@@ -629,6 +630,10 @@ class BuildCampaignEventsTests(unittest.TestCase):
         self.assertEqual(
             builder._PRODUCTION_COLLECTION_COLLECTORS["linked-ics"].__name__,
             "_collect_linked_ics",
+        )
+        self.assertEqual(
+            builder._PRODUCTION_COLLECTION_COLLECTORS["qomon"].__name__,
+            "_collect_qomon",
         )
         self.assertEqual(
             builder._PRODUCTION_COLLECTION_COLLECTORS["rn-agenda"].__name__,
@@ -791,6 +796,67 @@ class BuildCampaignEventsTests(unittest.TestCase):
         )
 
         self.assertIs(result, expected)
+        collector.assert_called_once_with(
+            source=source,
+            observed_at=GENERATED_AT,
+        )
+
+    def test_qomon_dispatch_routes_explicit_collector_family(self):
+        source = {
+            "source_id": "generic-qomon",
+            "collection": {
+                "discovery_method": "custom",
+                "parser_family": "custom",
+                "attribution_policy": "explicit_participant",
+                "collector_family": "qomon",
+            },
+        }
+        expected = builder.SourceCollectionResult(observations=[])
+        collector = mock.Mock(return_value=expected)
+
+        result = builder._dispatch_campaign_event_collection(
+            source,
+            observed_at=GENERATED_AT,
+            collection_collectors={"qomon": collector},
+        )
+
+        self.assertIs(result, expected)
+        collector.assert_called_once_with(
+            source=source,
+            observed_at=GENERATED_AT,
+        )
+
+    def test_qomon_wrapper_returns_strict_collection_result(self):
+        source = {
+            "source_id": "generic-qomon",
+            "collection": {
+                "discovery_method": "custom",
+                "parser_family": "custom",
+                "attribution_policy": "explicit_participant",
+                "collector_family": "qomon",
+            },
+        }
+        collected = builder.QomonCollectorResult(
+            observations=({"source_owned": "generic-qomon"},),
+            attribution_rejected_records=3,
+        )
+        with mock.patch.object(
+            builder,
+            "build_qomon_events",
+            return_value=collected,
+        ) as collector:
+            result = builder._collect_qomon(
+                source=source,
+                observed_at=GENERATED_AT,
+            )
+
+        self.assertEqual(
+            result,
+            builder.SourceCollectionResult(
+                observations=[{"source_owned": "generic-qomon"}],
+                attribution_rejected_records=3,
+            ),
+        )
         collector.assert_called_once_with(
             source=source,
             observed_at=GENERATED_AT,

@@ -288,12 +288,23 @@ def _event_record(
         context=f"VEVENT[{event_index}]",
     )
 
-    def decoded(name: str, *, multiline: bool = False) -> str | None:
+    def decoded(
+        name: str,
+        *,
+        multiline: bool = False,
+        empty_as_none: bool = False,
+    ) -> str | None:
         prop = _single(properties, name)
         if prop is None:
             return None
+        decoded_value = _decode_text(
+            prop.value,
+            context=f"VEVENT[{event_index}].{name}",
+        )
+        if empty_as_none and not decoded_value.strip():
+            return None
         return _normalize_text(
-            _decode_text(prop.value, context=f"VEVENT[{event_index}].{name}"),
+            decoded_value,
             context=f"VEVENT[{event_index}].{name}",
             multiline=multiline,
         )
@@ -325,7 +336,11 @@ def _event_record(
         timezone=TARGET_TIMEZONE,
         source_format="ics",
         scheduled_end=end,
-        description=decoded("DESCRIPTION", multiline=True),
+        description=decoded(
+            "DESCRIPTION",
+            multiline=True,
+            empty_as_none=True,
+        ),
         location_name=decoded("LOCATION"),
         organization=organization,
         event_url=decoded("URL"),
