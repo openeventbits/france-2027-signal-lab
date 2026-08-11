@@ -19,6 +19,7 @@ from campaign_events_contract import campaign_event_id
 from campaign_events_manual import (
     CampaignEventsManualError,
     load_campaign_events_manual,
+    normalize_campaign_events_manual,
 )
 
 __all__ = [
@@ -127,15 +128,23 @@ def campaign_event_update_id(update_key: str) -> str:
 def _load_manual_event_index(
     manual_events_path: str | Path,
     *,
+    manual_events_payload: Any | None,
     candidate_registry_path: str | Path,
     source_registry_path: str | Path,
 ) -> dict[str, dict[str, Any]]:
     try:
-        events = load_campaign_events_manual(
-            manual_events_path,
-            candidate_registry_path=candidate_registry_path,
-            source_registry_path=source_registry_path,
-        )
+        if manual_events_payload is None:
+            events = load_campaign_events_manual(
+                manual_events_path,
+                candidate_registry_path=candidate_registry_path,
+                source_registry_path=source_registry_path,
+            )
+        else:
+            events = normalize_campaign_events_manual(
+                manual_events_payload,
+                candidate_registry_path=candidate_registry_path,
+                source_registry_path=source_registry_path,
+            )
     except CampaignEventsManualError as error:
         raise CampaignEventUpdatesManualError(
             f"manual Campaign Events input is invalid: {error}"
@@ -170,17 +179,10 @@ def _normalize_update(
     event_key = value["event_key"]
     if not isinstance(event_key, str) or event_key not in event_by_key:
         _fail(f"{context}.event_key does not reference a manual Campaign Event")
-    event = event_by_key[event_key]
 
     update_type = value["update_type"]
     if not isinstance(update_type, str) or update_type not in _UPDATE_TYPES:
         _fail(f"{context}.update_type is not allowed")
-    event_status = event["status"]
-    if event_status not in _ALLOWED_EVENT_STATUSES[update_type]:
-        _fail(
-            f"{context}.update_type {update_type} is inconsistent with "
-            f"event status {event_status}"
-        )
 
     headline = _normalize_text(value["headline"], f"{context}.headline")
     observed_at = _require_utc_timestamp(
@@ -223,10 +225,34 @@ def _normalize_update(
     }
 
 
+def _validate_latest_update_statuses(
+    updates: list[dict[str, Any]],
+    event_by_key: dict[str, dict[str, Any]],
+) -> None:
+    """Validate current status against only the latest history entry per event."""
+
+    latest_by_event: dict[str, tuple[str, str, dict[str, Any]]] = {}
+    for update in updates:
+        candidate = (update["observed_at"], update["update_id"], update)
+        current = latest_by_event.get(update["event_key"])
+        if current is None or candidate[:2] > current[:2]:
+            latest_by_event[update["event_key"]] = candidate
+
+    for event_key, (_, _, update) in latest_by_event.items():
+        event_status = event_by_key[event_key]["status"]
+        update_type = update["update_type"]
+        if event_status not in _ALLOWED_EVENT_STATUSES[update_type]:
+            _fail(
+                f"latest update for {event_key} has type {update_type}, which is "
+                f"inconsistent with event status {event_status}"
+            )
+
+
 def normalize_campaign_event_updates_manual(
     payload: Any,
     *,
     manual_events_path: str | Path = _DEFAULT_MANUAL_EVENTS,
+    manual_events_payload: Any | None = None,
     candidate_registry_path: str | Path = _DEFAULT_CANDIDATE_REGISTRY,
     source_registry_path: str | Path = _DEFAULT_SOURCE_REGISTRY,
 ) -> list[dict[str, Any]]:
@@ -243,6 +269,7 @@ def normalize_campaign_event_updates_manual(
 
     event_by_key = _load_manual_event_index(
         manual_events_path,
+        manual_events_payload=manual_events_payload,
         candidate_registry_path=candidate_registry_path,
         source_registry_path=source_registry_path,
     )
@@ -263,6 +290,8 @@ def normalize_campaign_event_updates_manual(
         seen_keys.add(update_key)
         seen_ids.add(update_id)
 
+    _validate_latest_update_statuses(normalized, event_by_key)
+
     # The first stable sort supplies the ascending tie-breaker for the second.
     normalized.sort(key=lambda update: update["update_id"])
     normalized.sort(key=lambda update: update["observed_at"], reverse=True)
@@ -273,6 +302,7 @@ def validate_campaign_event_updates_manual(
     payload: Any,
     *,
     manual_events_path: str | Path = _DEFAULT_MANUAL_EVENTS,
+    manual_events_payload: Any | None = None,
     candidate_registry_path: str | Path = _DEFAULT_CANDIDATE_REGISTRY,
     source_registry_path: str | Path = _DEFAULT_SOURCE_REGISTRY,
 ) -> None:
@@ -281,6 +311,7 @@ def validate_campaign_event_updates_manual(
     normalize_campaign_event_updates_manual(
         payload,
         manual_events_path=manual_events_path,
+        manual_events_payload=manual_events_payload,
         candidate_registry_path=candidate_registry_path,
         source_registry_path=source_registry_path,
     )
@@ -290,6 +321,7 @@ def load_campaign_event_updates_manual(
     path: str | Path,
     *,
     manual_events_path: str | Path = _DEFAULT_MANUAL_EVENTS,
+    manual_events_payload: Any | None = None,
     candidate_registry_path: str | Path = _DEFAULT_CANDIDATE_REGISTRY,
     source_registry_path: str | Path = _DEFAULT_SOURCE_REGISTRY,
 ) -> list[dict[str, Any]]:
@@ -311,6 +343,7 @@ def load_campaign_event_updates_manual(
     return normalize_campaign_event_updates_manual(
         payload,
         manual_events_path=manual_events_path,
+        manual_events_payload=manual_events_payload,
         candidate_registry_path=candidate_registry_path,
         source_registry_path=source_registry_path,
     )

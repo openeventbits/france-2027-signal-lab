@@ -261,6 +261,33 @@ class CampaignEventUpdatesManualTests(unittest.TestCase):
             + [campaign_event_update_id(UPDATE_KEY)],
         )
 
+    def test_same_timestamp_latest_selection_uses_update_id(self):
+        lower_key, higher_key = sorted(
+            (UPDATE_KEY, SECOND_UPDATE_KEY),
+            key=campaign_event_update_id,
+        )
+        lower_id_cancelled = update_record(
+            update_key=lower_key,
+            update_type="CANCELLED",
+            headline="Lower-ID cancellation report",
+            observed_at="2026-08-11T10:00:00Z",
+        )
+        higher_id_new = update_record(
+            update_key=higher_key,
+            update_type="NEW",
+            headline="Higher-ID announcement",
+            observed_at="2026-08-11T10:00:00Z",
+        )
+
+        first = self.normalize(lower_id_cancelled, higher_id_new)
+        reversed_input = self.normalize(higher_id_new, lower_id_cancelled)
+
+        self.assertEqual(first, reversed_input)
+        self.assertEqual(
+            [record["update_id"] for record in first],
+            sorted(record["update_id"] for record in first),
+        )
+
     def test_generated_event_id_matches_campaign_event_id(self):
         record = self.normalize(update_record())[0]
         self.assertEqual(
