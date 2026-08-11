@@ -15,10 +15,15 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
-from candidate_candidacy_status import load_candidate_candidacy_status
+from candidate_candidacy_status import (
+    active_candidate_records,
+    load_candidate_candidacy_status,
+)
 
 from candidate_attention_contract import (
-    EXPECTED_CANDIDATE_COUNT,
+    EVIDENCE_OBSERVED,
+    EVIDENCE_UNAVAILABLE_NO_PERSONAL_ARTICLE,
+    LEGACY_SCHEMA_VERSION,
     EXPECTED_DAYS,
     METHODOLOGY_INTERPRETATION,
     METHODOLOGY_LABEL,
@@ -360,23 +365,20 @@ def build_candidate_record(
     *,
     data_as_of: date,
 ) -> dict[str, Any]:
+    """Build a legacy schema-1.0 observed record."""
+
     candidate_id = candidate["candidate_id"]
 
     if mapping["candidate_id"] != candidate_id:
-        _fail(
-            f"Wikimedia mapping ID mismatch for {candidate_id}"
-        )
+        _fail(f"Wikimedia mapping ID mismatch for {candidate_id}")
 
     if mapping["candidate_name"] != candidate["candidate_name"]:
-        _fail(
-            f"Wikimedia mapping name mismatch for {candidate_id}"
-        )
+        _fail(f"Wikimedia mapping name mismatch for {candidate_id}")
 
     series = validate_daily_series(
         daily_series,
         data_as_of=data_as_of,
     )
-
     metrics = calculate_candidate_metrics(
         series,
         data_as_of=data_as_of,
@@ -393,13 +395,144 @@ def build_candidate_record(
     }
 
 
+def _candidate_attention_universe(
+    candidacy_payload: dict[str, Any],
+) -> list[dict[str, Any]]:
+    if candidacy_payload.get("schema_version") == "2.0":
+        return active_candidate_records(candidacy_payload)
+
+    # Temporary schema-1.0 migration compatibility preserves the complete
+    # tracked 20-record snapshot until production Registry v2 migration.
+    if candidacy_payload.get("schema_version") == "1.0":
+        active_candidate_records(candidacy_payload)
+        return candidacy_payload["candidates"]
+
+    _fail("unsupported candidacy registry schema")
+
+
+def build_fetch_plan(
+    *,
+    candidacy_payload: dict[str, Any],
+    legacy_registry_payload: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Project current active candidates into deterministic fetch work.
+
+    Candidate Attention is a current evidence projection, not a historical
+    identity store. Hidden and temporarily-missing identities remain in the
+    canonical candidacy registry but are absent from this fetch plan.
+    """
+
+    active_candidates = _candidate_attention_universe(candidacy_payload)
+    schema_version = candidacy_payload["schema_version"]
+
+    if schema_version == "2.0":
+        return [
+            {
+                "candidate_id": candidate["candidate_id"],
+                "candidate_name": candidate["candidate_name"],
+                "wikipedia_article": candidate["wikipedia_article"],
+                "legacy_mapping": None,
+            }
+            for candidate in active_candidates
+        ]
+
+    if schema_version != "1.0":
+        _fail("unsupported candidacy registry schema")
+
+    if legacy_registry_payload is None:
+        _fail(
+            "schema-1.0 candidacy compatibility requires the legacy "
+            "Wikimedia article registry"
+        )
+
+    validate_wikimedia_candidate_articles(
+        legacy_registry_payload,
+        expected_candidates=active_candidates,
+    )
+    mappings = {
+        record["candidate_id"]: record
+        for record in legacy_registry_payload["candidates"]
+    }
+
+    return [
+        {
+            "candidate_id": candidate["candidate_id"],
+            "candidate_name": candidate["candidate_name"],
+            "wikipedia_article": {
+                "page_id": None,
+                "title": mappings[candidate["candidate_id"]][
+                    "canonical_article"
+                ],
+                "url": mappings[candidate["candidate_id"]]["article_url"],
+            },
+            "legacy_mapping": mappings[candidate["candidate_id"]],
+        }
+        for candidate in active_candidates
+    ]
+
+
+def build_observed_candidate_record(
+    candidate: dict[str, Any],
+    article: dict[str, Any],
+    daily_series: list[dict[str, Any]],
+    *,
+    data_as_of: date,
+) -> dict[str, Any]:
+    series = validate_daily_series(
+        daily_series,
+        data_as_of=data_as_of,
+    )
+    metrics = calculate_candidate_metrics(
+        series,
+        data_as_of=data_as_of,
+    )
+    return {
+        "candidate_id": candidate["candidate_id"],
+        "candidate_name": candidate["candidate_name"],
+        "evidence_state": EVIDENCE_OBSERVED,
+        "wikipedia_article": {
+            "page_id": article["page_id"],
+            "title": article["title"],
+            "url": article["url"],
+        },
+        **metrics,
+        "interpretation_flag": interpretation_flag(metrics),
+        "daily_series": series,
+    }
+
+
+def build_unavailable_candidate_record(
+    candidate: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "candidate_id": candidate["candidate_id"],
+        "candidate_name": candidate["candidate_name"],
+        "evidence_state": EVIDENCE_UNAVAILABLE_NO_PERSONAL_ARTICLE,
+        "wikipedia_article": None,
+        "latest_7_views": None,
+        "previous_7_views": None,
+        "change_7_pct": None,
+        "latest_28_views": None,
+        "previous_28_views": None,
+        "change_28_pct": None,
+        "latest_7_peak_date": None,
+        "latest_7_peak_views": None,
+        "latest_7_peak_share": None,
+        "change_7_peak_removed_pct": None,
+        "period_peak_date": None,
+        "period_peak_views": None,
+        "interpretation_flag": None,
+        "daily_series": [],
+    }
+
+
 def build_candidate_attention_payload(
     *,
     candidacy_payload: dict[str, Any],
-    registry_payload: dict[str, Any],
+    registry_payload: dict[str, Any] | None,
     observations_by_candidate: dict[
         str,
-        list[dict[str, Any]]
+        list[dict[str, Any]],
     ],
     generated_at: str,
     data_as_of: str,
@@ -407,91 +540,74 @@ def build_candidate_attention_payload(
     if not isinstance(candidacy_payload, dict):
         _fail("candidacy_payload must be an object")
 
-    controlled_candidates = candidacy_payload.get(
-        "candidates"
+    plan = build_fetch_plan(
+        candidacy_payload=candidacy_payload,
+        legacy_registry_payload=registry_payload,
     )
+    active_candidates = _candidate_attention_universe(candidacy_payload)
+    active_by_id = {
+        candidate["candidate_id"]: candidate
+        for candidate in active_candidates
+    }
 
-    if (
-        not isinstance(controlled_candidates, list)
-        or len(controlled_candidates)
-        != EXPECTED_CANDIDATE_COUNT
-    ):
-        _fail(
-            "controlled candidacy universe must contain "
-            f"exactly {EXPECTED_CANDIDATE_COUNT} candidates"
-        )
-
-    status_as_of = candidacy_payload.get(
-        "status_as_of"
-    )
-
+    status_as_of = candidacy_payload.get("status_as_of")
     if not isinstance(status_as_of, str):
-        _fail(
-            "candidate candidacy status_as_of is missing"
-        )
-
+        _fail("candidate candidacy status_as_of is missing")
     parse_calendar_date(
         status_as_of,
         "candidate_candidacy_status.status_as_of",
     )
 
-    validate_wikimedia_candidate_articles(
-        registry_payload,
-        expected_candidates=controlled_candidates,
-    )
-
-    registry_by_id = {
-        record["candidate_id"]: record
-        for record in registry_payload["candidates"]
-    }
-
-    candidate_ids = [
-        candidate["candidate_id"]
-        for candidate in controlled_candidates
+    article_eligible_ids = [
+        item["candidate_id"]
+        for item in plan
+        if item["wikipedia_article"] is not None
     ]
-
-    if set(observations_by_candidate) != set(candidate_ids):
+    if set(observations_by_candidate) != set(article_eligible_ids):
         missing = sorted(
-            set(candidate_ids)
-            - set(observations_by_candidate)
+            set(article_eligible_ids) - set(observations_by_candidate)
         )
         extra = sorted(
-            set(observations_by_candidate)
-            - set(candidate_ids)
+            set(observations_by_candidate) - set(article_eligible_ids)
         )
-
         _fail(
-            "observation universe does not match controlled "
-            f"candidate universe; missing={missing}; extra={extra}"
+            "observation universe does not match article-eligible "
+            f"active candidate universe; missing={missing}; extra={extra}"
         )
 
-    end_date = parse_calendar_date(
-        data_as_of,
-        "data_as_of",
-    )
-    start_date = (
-        end_date
-        - timedelta(days=EXPECTED_DAYS - 1)
-    )
+    end_date = parse_calendar_date(data_as_of, "data_as_of")
+    start_date = end_date - timedelta(days=EXPECTED_DAYS - 1)
+    normalized_generated_at = normalize_generated_at(generated_at)
 
-    normalized_generated_at = normalize_generated_at(
-        generated_at
-    )
+    legacy_build = candidacy_payload["schema_version"] == "1.0"
+    records: list[dict[str, Any]] = []
 
-    records = [
-        build_candidate_record(
-            candidate,
-            registry_by_id[candidate["candidate_id"]],
-            observations_by_candidate[
-                candidate["candidate_id"]
-            ],
-            data_as_of=end_date,
-        )
-        for candidate in controlled_candidates
-    ]
+    for item in plan:
+        candidate = active_by_id[item["candidate_id"]]
+        article = item["wikipedia_article"]
 
-    payload = {
-        "schema_version": SCHEMA_VERSION,
+        if article is None:
+            records.append(build_unavailable_candidate_record(candidate))
+        elif legacy_build:
+            records.append(
+                build_candidate_record(
+                    candidate,
+                    item["legacy_mapping"],
+                    observations_by_candidate[item["candidate_id"]],
+                    data_as_of=end_date,
+                )
+            )
+        else:
+            records.append(
+                build_observed_candidate_record(
+                    candidate,
+                    article,
+                    observations_by_candidate[item["candidate_id"]],
+                    data_as_of=end_date,
+                )
+            )
+
+    common_payload = {
         "generated_at": normalized_generated_at,
         "source": {
             "project": SOURCE_PROJECT,
@@ -507,42 +623,64 @@ def build_candidate_attention_payload(
             "days": EXPECTED_DAYS,
             "data_as_of": end_date.isoformat(),
         },
-        "candidate_universe": {
-            "source": "candidate_candidacy_status.json",
-            "status_as_of": status_as_of,
-            "count": EXPECTED_CANDIDATE_COUNT,
-        },
         "methodology": {
             "label": METHODOLOGY_LABEL,
             "interpretation": METHODOLOGY_INTERPRETATION,
-            "not_measures": list(
-                METHODOLOGY_NOT_MEASURES
-            ),
-            "weekly_comparison": (
-                METHODOLOGY_WEEKLY_COMPARISON
-            ),
-            "redirect_limitation": (
-                METHODOLOGY_REDIRECT_LIMITATION
-            ),
-        },
-        "validation": {
-            "status": "pass",
-            "candidate_count": EXPECTED_CANDIDATE_COUNT,
-            "expected_days_per_candidate": EXPECTED_DAYS,
-            "missing_dates": 0,
-            "duplicate_dates": 0,
+            "not_measures": list(METHODOLOGY_NOT_MEASURES),
+            "weekly_comparison": METHODOLOGY_WEEKLY_COMPARISON,
+            "redirect_limitation": METHODOLOGY_REDIRECT_LIMITATION,
         },
         "candidates": records,
     }
 
-    # The serializer also performs complete contract validation.
+    if legacy_build:
+        payload = {
+            "schema_version": LEGACY_SCHEMA_VERSION,
+            **common_payload,
+            "candidate_universe": {
+                "source": "candidate_candidacy_status.json",
+                "status_as_of": status_as_of,
+                "count": len(active_candidates),
+            },
+            "validation": {
+                "status": "pass",
+                "candidate_count": len(active_candidates),
+                "expected_days_per_candidate": EXPECTED_DAYS,
+                "missing_dates": 0,
+                "duplicate_dates": 0,
+            },
+        }
+    else:
+        unavailable_count = len(plan) - len(article_eligible_ids)
+        payload = {
+            "schema_version": SCHEMA_VERSION,
+            **common_payload,
+            "candidate_universe": {
+                "source": "candidate_candidacy_status.json",
+                "status_as_of": status_as_of,
+                "rule": "active_monitoring_field",
+                "count": len(active_candidates),
+                "article_eligible_count": len(article_eligible_ids),
+                "unavailable_no_personal_article_count": (
+                    unavailable_count
+                ),
+            },
+            "validation": {
+                "status": "pass",
+                "candidate_count": len(active_candidates),
+                "observed_candidate_count": len(article_eligible_ids),
+                "unavailable_candidate_count": unavailable_count,
+                "expected_days_per_observed_candidate": EXPECTED_DAYS,
+                "missing_dates": 0,
+                "duplicate_dates": 0,
+            },
+        }
+
     serialize_candidate_attention(
         payload,
-        expected_candidates=controlled_candidates,
+        expected_candidates=active_candidates,
     )
-
     return payload
-
 
 def serialize_semantic_payload(
     payload: dict[str, Any],
@@ -1568,166 +1706,83 @@ def fetch_pageview_series(
 def collect_wikimedia_observations(
     *,
     candidacy_payload: dict[str, Any],
-    registry_payload: dict[str, Any],
+    registry_payload: dict[str, Any] | None,
     data_as_of: date,
-    fetcher: Callable[
-        [str],
-        dict[str, Any],
-    ] = fetch_json,
+    fetcher: Callable[[str], dict[str, Any]] = fetch_json,
     delay_seconds: float = DEFAULT_REQUEST_DELAY_SECONDS,
-    sleeper: Callable[
-        [float],
-        None,
-    ] = time.sleep,
-) -> dict[
-    str,
-    list[dict[str, Any]],
-]:
+    sleeper: Callable[[float], None] = time.sleep,
+) -> dict[str, list[dict[str, Any]]]:
     if (
-        not isinstance(
-            delay_seconds,
-            (int, float),
-        )
-        or isinstance(
-            delay_seconds,
-            bool,
-        )
-        or not math.isfinite(
-            float(
-                delay_seconds
-            )
-        )
+        not isinstance(delay_seconds, (int, float))
+        or isinstance(delay_seconds, bool)
+        or not math.isfinite(float(delay_seconds))
         or delay_seconds < 0
     ):
-        _fail(
-            "delay_seconds must be a finite non-negative number"
-        )
+        _fail("delay_seconds must be a finite non-negative number")
 
-    controlled_candidates = (
-        candidacy_payload.get(
-            "candidates"
-        )
+    plan = build_fetch_plan(
+        candidacy_payload=candidacy_payload,
+        legacy_registry_payload=registry_payload,
     )
-
-    if not isinstance(
-        controlled_candidates,
-        list,
-    ):
-        _fail(
-            "candidacy payload has no candidates list"
-        )
-
-    validate_wikimedia_candidate_articles(
-        registry_payload,
-        expected_candidates=(
-            controlled_candidates
-        ),
-    )
-
-    mappings = {
-        record[
-            "candidate_id"
-        ]: record
-        for record
-        in registry_payload[
-            "candidates"
-        ]
-    }
-
+    legacy_build = candidacy_payload["schema_version"] == "1.0"
     logical_request_count = 0
 
-    def paced_fetch(
-        url: str,
-    ) -> dict[str, Any]:
+    def paced_fetch(url: str) -> dict[str, Any]:
         nonlocal logical_request_count
 
-        if (
-            logical_request_count
-            > 0
-            and delay_seconds
-            > 0
-        ):
-            sleeper(
-                float(
-                    delay_seconds
-                )
-            )
+        if logical_request_count > 0 and delay_seconds > 0:
+            sleeper(float(delay_seconds))
 
-        result = fetcher(
-            url
-        )
-
+        result = fetcher(url)
         logical_request_count += 1
-
         return result
 
-    observations: dict[
-        str,
-        list[dict[str, Any]],
-    ] = {}
+    observations: dict[str, list[dict[str, Any]]] = {}
 
     # Deliberately sequential. No thread pool, async gather,
     # multiprocessing pool, or concurrent Wikimedia requests.
-    candidate_count = len(
-        controlled_candidates
-    )
+    candidate_count = len(plan)
 
-    for index, candidate in enumerate(
-        controlled_candidates,
-        start=1,
-    ):
-        candidate_id = candidate[
-            "candidate_id"
-        ]
+    for index, item in enumerate(plan, start=1):
+        candidate_id = item["candidate_id"]
+        candidate_name = item["candidate_name"]
+        article = item["wikipedia_article"]
+        progress = f"[{index:02d}/{candidate_count:02d}]"
 
-        candidate_name = candidate[
-            "candidate_name"
-        ]
+        if article is None:
+            print(
+                f"{progress} {candidate_name} ({candidate_id}) "
+                "- no personal article",
+                flush=True,
+            )
+            continue
 
-        mapping = mappings[
-            candidate_id
-        ]
+        if legacy_build:
+            print(
+                f"{progress} {candidate_name} ({candidate_id}) - verify",
+                flush=True,
+            )
+            canonical_title = verify_article_mapping(
+                item["legacy_mapping"],
+                fetcher=paced_fetch,
+            )
+        else:
+            # Registry v2 canonical article metadata has already been
+            # resolved and validated by candidate registry ingestion.
+            canonical_title = article["title"]
 
         print(
-            f"[{index:02d}/{candidate_count:02d}] "
-            f"{candidate_name} ({candidate_id}) - verify",
+            f"{progress} {candidate_name} ({candidate_id}) - pageviews",
             flush=True,
         )
-
-        canonical = (
-            verify_article_mapping(
-                mapping,
-                fetcher=(
-                    paced_fetch
-                ),
-            )
-        )
-
-        print(
-            f"[{index:02d}/{candidate_count:02d}] "
-            f"{candidate_name} ({candidate_id}) - pageviews",
-            flush=True,
-        )
-
-        observations[
-            candidate_id
-        ] = (
-            fetch_pageview_series(
-                canonical,
-                data_as_of=(
-                    data_as_of
-                ),
-                fetcher=(
-                    paced_fetch
-                ),
-                sleeper=(
-                    sleeper
-                ),
-            )
+        observations[candidate_id] = fetch_pageview_series(
+            canonical_title,
+            data_as_of=data_as_of,
+            fetcher=paced_fetch,
+            sleeper=sleeper,
         )
 
     return observations
-
 
 def _load_json_object(
     path: Path | str,
@@ -1836,7 +1891,7 @@ def run_build(
     candidacy_path: Path | str = (
         "candidate_candidacy_status.json"
     ),
-    registry_path: Path | str = (
+    registry_path: Path | str | None = (
         "wikimedia_candidate_articles.json"
     ),
     output_path: Path | str = (
@@ -1884,24 +1939,21 @@ def run_build(
             f"{error}"
         ) from error
 
-    registry_payload = (
-        _load_json_object(
+    registry_payload = None
+    if candidacy_payload["schema_version"] == "1.0":
+        if registry_path is None:
+            _fail(
+                "schema-1.0 candidacy compatibility requires a "
+                "legacy Wikimedia article registry path"
+            )
+        registry_payload = _load_json_object(
             registry_path,
-            label=(
-                "Wikimedia article registry"
-            ),
+            label="legacy Wikimedia article registry",
         )
-    )
-
-    validate_wikimedia_candidate_articles(
-        registry_payload,
-        expected_candidates=(
-            candidacy_payload[
-                "candidates"
-            ]
-        ),
-    )
-
+        build_fetch_plan(
+            candidacy_payload=candidacy_payload,
+            legacy_registry_payload=registry_payload,
+        )
     end_date = (
         parse_calendar_date(
             data_as_of,
@@ -2009,10 +2061,8 @@ def run_build(
     content = (
         serialize_candidate_attention(
             payload,
-            expected_candidates=(
-                candidacy_payload[
-                    "candidates"
-                ]
+            expected_candidates=_candidate_attention_universe(
+                candidacy_payload
             ),
         )
     )
@@ -2041,9 +2091,15 @@ def _parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--legacy-wikimedia-registry",
         "--registry",
+        dest="legacy_wikimedia_registry",
         default=(
             "wikimedia_candidate_articles.json"
+        ),
+        help=(
+            "Legacy schema-1.0 article mapping. Ignored for Registry v2; "
+            "--registry remains a temporary backwards-compatible alias."
         ),
     )
 
@@ -2105,7 +2161,7 @@ def main() -> int:
             args.candidacy_status
         ),
         registry_path=(
-            args.registry
+            args.legacy_wikimedia_registry
         ),
         output_path=(
             args.output
