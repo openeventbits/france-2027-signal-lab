@@ -5,6 +5,8 @@ import re
 import subprocess
 import unittest
 
+from test_candidate_signals_frontend import dynamic_schema_12_payload
+
 
 ROOT = Path(__file__).resolve().parent
 INDEX = ROOT / "index.html"
@@ -351,6 +353,14 @@ if (input.action === "end-from-first") {
     .dispatch("keydown", { key: "End" });
   resolved = selected;
 }
+if (input.action === "main-only") {
+  mount.querySelector(".candidate-signals-filter-button").dispatch("click");
+}
+if (input.action && input.action.type === "search") {
+  const search = mount.querySelector(".candidate-signals-search-input");
+  search.value = input.action.term;
+  search.dispatch("input");
+}
 
 function details() {
   const buttons = mount.querySelectorAll(".candidate-signals-candidate-button");
@@ -392,6 +402,14 @@ function details() {
     text: mount.textContent,
     tags: allNodes.map(node => node.tagName),
     candidateOrder: buttons.map(button => button.dataset.candidateSignalsCandidate),
+    visibleCandidateOrder: buttons
+      .filter(button => !button.hidden)
+      .map(button => button.dataset.candidateSignalsCandidate),
+    filterPressed:
+      mount.querySelector(".candidate-signals-filter-button")
+        ?.getAttribute("aria-pressed") || null,
+    noMatchesHidden:
+      mount.querySelector(".candidate-signals-monitor-empty")?.hidden ?? null,
     pressed: buttons.map(button => button.getAttribute("aria-pressed")),
     primaryOrder: workspace
       ? workspace.children.map(node => node.className)
@@ -646,6 +664,85 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             result["resolved"],
             result["candidateOrder"][0],
         )
+
+    def test_dynamic_active_workspace_search_and_main_only_filter(self):
+        published = dynamic_schema_12_payload()
+        initial = run_workspace(published)
+        self.assertEqual(initial["status"], "ready")
+        self.assertEqual(
+            set(initial["candidateOrder"]),
+            {
+                "dynamic-candidate-01",
+                "dynamic-candidate-02",
+                "dynamic-candidate-03",
+            },
+        )
+        self.assertEqual(
+            initial["visibleCandidateOrder"],
+            initial["candidateOrder"],
+        )
+        self.assertNotIn("dynamic-candidate-04", initial["candidateOrder"])
+
+        main_only = run_workspace(
+            published,
+            selected_id="dynamic-candidate-03",
+            action="main-only",
+        )
+        self.assertEqual(main_only["filterPressed"], "true")
+        self.assertEqual(
+            set(main_only["visibleCandidateOrder"]),
+            {"dynamic-candidate-01", "dynamic-candidate-02"},
+        )
+        self.assertNotIn(
+            "dynamic-candidate-03",
+            main_only["visibleCandidateOrder"],
+        )
+
+        hidden_search = run_workspace(
+            published,
+            action={"type": "search", "term": "Dynamic Candidate 04"},
+        )
+        self.assertEqual(hidden_search["visibleCandidateOrder"], [])
+        self.assertFalse(hidden_search["noMatchesHidden"])
+
+    def test_dynamic_tier_reassignment_changes_filter_membership(self):
+        baseline = dynamic_schema_12_payload(
+            ("main", "secondary", "hidden", "hidden")
+        )
+        promoted = dynamic_schema_12_payload(
+            ("main", "main", "hidden", "hidden")
+        )
+        demoted = dynamic_schema_12_payload(
+            ("hidden", "secondary", "main", "hidden")
+        )
+
+        baseline_main = run_workspace(baseline, action="main-only")
+        promoted_main = run_workspace(promoted, action="main-only")
+        demoted_all = run_workspace(demoted)
+        demoted_main = run_workspace(demoted, action="main-only")
+
+        self.assertEqual(
+            baseline_main["visibleCandidateOrder"],
+            ["dynamic-candidate-01"],
+        )
+        self.assertEqual(
+            set(promoted_main["visibleCandidateOrder"]),
+            {"dynamic-candidate-01", "dynamic-candidate-02"},
+        )
+        self.assertNotIn(
+            "dynamic-candidate-01",
+            demoted_all["candidateOrder"],
+        )
+        self.assertEqual(
+            demoted_main["visibleCandidateOrder"],
+            ["dynamic-candidate-03"],
+        )
+
+    def test_all_hidden_dynamic_field_renders_no_monitor_candidates(self):
+        result = run_workspace(dynamic_schema_12_payload(("hidden",)))
+        self.assertEqual(result["status"], "empty")
+        self.assertEqual(result["candidateOrder"], [])
+        self.assertEqual(result["visibleCandidateOrder"], [])
 
     def test_valid_active_selection_is_preserved_and_hidden_falls_back(self):
         published = json.loads(

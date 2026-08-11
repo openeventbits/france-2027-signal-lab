@@ -69,9 +69,10 @@ class WorkflowMediaPulseContractTests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertIn(field, self.workflow)
 
-    def test_active_field_projection_remains_downstream_of_news_collection(self):
+    def test_news_uses_registry_while_active_projection_stays_downstream(self):
         collector = (ROOT / "fetch_news_wire.py").read_text(encoding="utf-8")
-        self.assertNotIn("candidate_candidacy_status", collector)
+        self.assertIn("from candidate_candidacy_status import (", collector)
+        self.assertIn("active_news_candidate_roster(", collector)
         self.assertNotIn("active_field_visibility", collector)
         self.assertIn("build_candidate_visibility(", collector)
 

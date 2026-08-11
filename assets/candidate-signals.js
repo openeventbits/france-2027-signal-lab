@@ -485,14 +485,6 @@
     }
 
     if (isVersion12) {
-      if (
-        candidates.length !== 20 ||
-        metadata.presidentialField.counts.main !== 11 ||
-        metadata.presidentialField.counts.secondary !== 7 ||
-        metadata.presidentialField.counts.hidden !== 2 ||
-        metadata.presidentialField.counts.active !== 18 ||
-        metadata.presidentialField.counts.total !== 20
-      ) return unavailable("invalid_payload");
       metadata.activeFieldVisibility = normalizeActiveFieldVisibility(
         payload.active_field_visibility,
         metadata.presidentialField,

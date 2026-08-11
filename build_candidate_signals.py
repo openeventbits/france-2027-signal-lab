@@ -29,7 +29,6 @@ from candidate_identity import (
     CandidateIdentityError,
     candidate_id,
     candidate_identity_map,
-    canonicalize_candidate_roster,
     canonical_candidate_name,
     normalized_candidate_key,
     resolve_candidate_name,
@@ -37,15 +36,14 @@ from candidate_identity import (
 
 
 SCHEMA_VERSION = "1.2"
-CANDIDATE_WINDOW_DAYS = 183
 LATEST_SCRUTINY_DAYS = 14
 FEATURED_POLL_BOARD_DISPLAY_LIMIT = 10
 FEATURED_POLL_BOARD_SELECTION_BASIS = (
     "featured_package_selected_hypothesis"
 )
+CANDIDATE_UNIVERSE_SOURCE = "candidate_candidacy_status.json"
 CANDIDATE_UNIVERSE_RULE = (
-    "Figures appearing with numeric scores in accepted first-round polling "
-    "during the previous 183 days"
+    "Complete controlled candidacy registry: main, secondary, and hidden"
 )
 PRIMARY_SCOPES = ("election", "campaign")
 GENERAL_SCOPE = "general"
@@ -259,6 +257,8 @@ def load_inputs(
 
 
 def _poll_qualifying_date(event: dict[str, Any], context: str) -> date:
+    """Return the event date used by existing poll package validation."""
+
     publication = event.get("publication_date")
     if publication not in (None, ""):
         return _parse_date(publication, f"{context}.publication_date")
@@ -412,98 +412,31 @@ def validated_first_round_events(
     return events
 
 
-def derive_candidate_universe(
-    polls: Any,
-    news: Any,
-    claims: Any,
+def candidate_universe_from_candidacy_status(
+    candidacy_status: Any,
 ) -> tuple[dict[str, Any], list[dict[str, str]]]:
-    """Derive the inclusive 183-day candidate universe from source evidence."""
+    """Project the complete canonical universe from the candidacy registry."""
 
-    news_object = _require_object(news, "news")
-    claims_object = _require_object(claims, "claims")
-    news_date = _timestamp_date(
-        news_object.get("generated_at"),
-        "news.generated_at",
-    )
-    claims_date = _timestamp_date(
-        claims_object.get("generated_at"),
-        "claims.generated_at",
-    )
-    events = validated_first_round_events(polls)
-    qualifying_dates = [
-        _poll_qualifying_date(event, f"polls[{index}]")
-        for index, event in events
-    ]
-    as_of_date = max([news_date, claims_date, *qualifying_dates])
-    cutoff_date = as_of_date - timedelta(days=CANDIDATE_WINDOW_DAYS)
-
-    names: set[str] = set()
-    for (index, event), qualifying_date in zip(events, qualifying_dates):
-        if qualifying_date < cutoff_date or qualifying_date > as_of_date:
-            continue
-        for candidate_index, candidate in enumerate(event["candidates"]):
-            _numeric(
-                candidate.get("score"),
-                f"polls[{index}].candidates[{candidate_index}].score",
-                non_negative=True,
-            )
-            try:
-                names.add(canonical_candidate_name(candidate.get("name")))
-            except CandidateIdentityError as error:
-                raise _error_from_identity(error) from error
-
-    if not names:
-        raise CandidateSignalsError(
-            "candidate universe contains no qualifying candidates"
-        )
     try:
-        canonical_names = canonicalize_candidate_roster(names)
-        identities = candidate_identity_map(canonical_names)
-    except CandidateIdentityError as error:
-        raise _error_from_identity(error) from error
-
+        validate_candidate_candidacy_status(candidacy_status)
+    except CandidateCandidacyStatusError as error:
+        raise CandidateSignalsError(
+            f"candidacy-status registry is invalid: {error}"
+        ) from error
     candidates = [
-        {"candidate_id": identities[name], "candidate_name": name}
-        for name in canonical_names
+        {
+            "candidate_id": candidate["candidate_id"],
+            "candidate_name": candidate["candidate_name"],
+        }
+        for candidate in candidacy_status["candidates"]
     ]
-    candidates.sort(
-        key=lambda candidate: (
-            candidate["candidate_name"].casefold(),
-            candidate["candidate_id"],
-        )
-    )
     metadata = {
+        "source": CANDIDATE_UNIVERSE_SOURCE,
         "rule": CANDIDATE_UNIVERSE_RULE,
-        "as_of_date": as_of_date.isoformat(),
-        "cutoff_date": cutoff_date.isoformat(),
+        "status_as_of": candidacy_status["status_as_of"],
         "count": len(candidates),
     }
     return metadata, candidates
-
-
-def candidate_universe_matches_news_roster(
-    candidates: list[dict[str, str]],
-    news: Any,
-) -> bool:
-    """Return current-data parity without making the builder depend on it."""
-
-    news_object = _require_object(news, "news")
-    roster = news_object.get("candidate_roster")
-    if not isinstance(roster, dict) or not isinstance(roster.get("names"), list):
-        return False
-    try:
-        expected = {
-            canonical_candidate_name(value)
-            for value in roster["names"]
-        }
-    except CandidateIdentityError:
-        return False
-    actual = {candidate["candidate_name"] for candidate in candidates}
-    return (
-        roster.get("count") == len(expected)
-        and len(expected) == len(roster["names"])
-        and actual == expected
-    )
 
 
 def _package_key(event: dict[str, Any]) -> tuple[str, str, str, int | None]:
@@ -693,8 +626,8 @@ def project_candidate_polling(
                     candidate["name"],
                     canonical_names,
                 )
-            except CandidateIdentityError as error:
-                raise _error_from_identity(error) from error
+            except CandidateIdentityError:
+                continue
             universe_candidate = by_name[resolved_name]
             identifier = universe_candidate["candidate_id"]
             if identifier in seen:
@@ -712,8 +645,8 @@ def project_candidate_polling(
                 selected_candidate["name"],
                 canonical_names,
             )
-        except CandidateIdentityError as error:
-            raise _error_from_identity(error) from error
+        except CandidateIdentityError:
+            continue
         selected_scores[resolved_name] = selected_candidate["score"]
     projections: dict[str, dict[str, Any]] = {}
     for candidate in candidates:
@@ -740,7 +673,7 @@ def project_candidate_polling(
             }
         else:
             projections[identifier] = {
-                "evidence_state": "not_tested",
+                "evidence_state": "not_observed",
                 "hypothesis_count": None,
                 "range_min": None,
                 "range_max": None,
@@ -2253,13 +2186,18 @@ def _featured_poll_board_public(
                 selected_candidate["name"],
                 canonical_names,
             )
-        except CandidateIdentityError as error:
-            raise _error_from_identity(error) from error
-        canonical = by_name[resolved_name]
+            candidate_name = by_name[resolved_name]["candidate_name"]
+        except CandidateIdentityError:
+            try:
+                candidate_name = canonical_candidate_name(
+                    selected_candidate["name"]
+                )
+            except CandidateIdentityError as error:
+                raise _error_from_identity(error) from error
         lineup.append(
             {
-                "candidate_id": canonical["candidate_id"],
-                "candidate_name": canonical["candidate_name"],
+                "candidate_id": candidate_id(candidate_name),
+                "candidate_name": candidate_name,
                 "reported_score": selected_candidate["score"],
                 "source_position": source_position,
             }
@@ -2320,12 +2258,10 @@ def _construct_candidate_signals(
     claims: Any,
     candidacy_status: Any,
 ) -> dict[str, Any]:
-    universe, candidates = derive_candidate_universe(polls, news, claims)
+    universe, candidates = candidate_universe_from_candidacy_status(
+        candidacy_status
+    )
     try:
-        validate_candidate_candidacy_status(
-            candidacy_status,
-            candidate_universe=candidates,
-        )
         candidacy_by_id = candidacy_status_by_id(candidacy_status)
         presidential_field = project_display_tiers(candidacy_status)
     except CandidateCandidacyStatusError as error:
@@ -2662,19 +2598,10 @@ def _validate_featured_poll_board(
             "featured_poll_board does not match featured polling package"
         )
 
-    main_by_id = {
+    dossier_by_id = {
         candidate["candidate_id"]: candidate
         for candidate in candidates
     }
-    selected_main = {
-        identifier: candidate
-        for identifier, candidate in main_by_id.items()
-        if candidate["polling"]["selected_hypothesis_score"] is not None
-    }
-    if full_candidate_count != len(selected_main):
-        raise CandidateSignalsError(
-            "featured_poll_board full count does not match selected event"
-        )
 
     seen_ids: set[str] = set()
     seen_source_positions: set[int] = set()
@@ -2694,31 +2621,43 @@ def _validate_featured_poll_board(
                 "featured_poll_board candidate IDs must be unique"
             )
         seen_ids.add(identifier)
-        main_candidate = main_by_id.get(identifier)
-        if main_candidate is None:
-            raise CandidateSignalsError(
-                f"{context}.candidate_id is not in main candidates"
+        try:
+            canonical_name = canonical_candidate_name(
+                candidate["candidate_name"]
             )
-        if candidate["candidate_name"] != main_candidate["candidate_name"]:
+            expected_identifier = candidate_id(canonical_name)
+        except CandidateIdentityError as error:
+            raise _error_from_identity(error) from error
+        if candidate["candidate_name"] != canonical_name:
             raise CandidateSignalsError(
                 f"{context}.candidate_name is not canonical"
+            )
+        dossier_candidate = dossier_by_id.get(identifier)
+        if (
+            dossier_candidate is not None
+            and dossier_candidate["candidate_name"] != canonical_name
+        ):
+            raise CandidateSignalsError(
+                f"{context}.candidate_name is not canonical"
+            )
+        if identifier != expected_identifier:
+            raise CandidateSignalsError(
+                f"{context}.candidate_id is not in main candidates or "
+                "does not match a canonical poll-only identity"
             )
         reported_score = _numeric(
             candidate["reported_score"],
             f"{context}.reported_score",
             non_negative=True,
         )
-        if identifier not in selected_main:
-            raise CandidateSignalsError(
-                f"{context} is not in the selected event"
-            )
-        if (
-            reported_score
-            != main_candidate["polling"]["selected_hypothesis_score"]
-        ):
-            raise CandidateSignalsError(
-                f"{context}.reported_score does not match selected event"
-            )
+        if dossier_candidate is not None:
+            selected_score = dossier_candidate["polling"][
+                "selected_hypothesis_score"
+            ]
+            if selected_score is None or reported_score != selected_score:
+                raise CandidateSignalsError(
+                    f"{context}.reported_score does not match selected event"
+                )
         source_position = _require_positive_integer(
             candidate["source_position"],
             f"{context}.source_position",
@@ -2759,8 +2698,11 @@ def _validate_featured_poll_board(
         )
     omitted_scores = [
         candidate["polling"]["selected_hypothesis_score"]
-        for identifier, candidate in selected_main.items()
-        if identifier not in seen_ids
+        for identifier, candidate in dossier_by_id.items()
+        if (
+            identifier not in seen_ids
+            and candidate["polling"]["selected_hypothesis_score"] is not None
+        )
     ]
     if (
         validated_rows
@@ -2805,23 +2747,34 @@ def validate_candidate_signals(
         value["candidate_universe"],
         "candidate_universe",
     )
-    if set(universe) != {"rule", "as_of_date", "cutoff_date", "count"}:
+    universe_keys = set(universe)
+    current_universe_keys = {"source", "rule", "status_as_of", "count"}
+    legacy_universe_keys = {"rule", "as_of_date", "cutoff_date", "count"}
+    if universe_keys == current_universe_keys:
+        if universe["source"] != CANDIDATE_UNIVERSE_SOURCE:
+            raise CandidateSignalsError("candidate_universe.source is invalid")
+        _parse_date(
+            universe["status_as_of"],
+            "candidate_universe.status_as_of",
+        )
+    elif universe_keys == legacy_universe_keys:
+        as_of = _parse_date(
+            universe["as_of_date"],
+            "candidate_universe.as_of_date",
+        )
+        cutoff = _parse_date(
+            universe["cutoff_date"],
+            "candidate_universe.cutoff_date",
+        )
+        if cutoff != as_of - timedelta(days=183):
+            raise CandidateSignalsError(
+                "legacy candidate_universe cutoff is invalid"
+            )
+    else:
         raise CandidateSignalsError(
             "candidate_universe has unexpected fields"
         )
     _require_text(universe["rule"], "candidate_universe.rule")
-    as_of = _parse_date(
-        universe["as_of_date"],
-        "candidate_universe.as_of_date",
-    )
-    cutoff = _parse_date(
-        universe["cutoff_date"],
-        "candidate_universe.cutoff_date",
-    )
-    if cutoff != as_of - timedelta(days=CANDIDATE_WINDOW_DAYS):
-        raise CandidateSignalsError(
-            "candidate_universe cutoff is not the inclusive 183-day boundary"
-        )
     count = _require_non_negative_integer(
         universe["count"],
         "candidate_universe.count",
@@ -3155,10 +3108,10 @@ def validate_candidate_signals(
             )
         polling_state = polling["evidence_state"]
         polling_fields = POLLING_OUTPUT_KEYS - {"evidence_state"}
-        if polling_state == "not_tested":
+        if polling_state in {"not_observed", "not_tested"}:
             if any(polling[field] is not None for field in polling_fields):
                 raise CandidateSignalsError(
-                    f"{context}.polling fabricates an untested value"
+                    f"{context}.polling fabricates an unobserved value"
                 )
         elif polling_state == "reported":
             if (

@@ -220,6 +220,122 @@ def candidate_row(candidate_id="alpha", candidate_name="Alpha"):
     }
 
 
+def dynamic_schema_12_payload(tiers=("main", "main", "secondary", "hidden")):
+    """Return a small internally consistent schema 1.2 frontend fixture."""
+
+    source = json.loads(
+        (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+    )
+    template = source["candidates"][0]
+    status_by_tier = {
+        "main": "declared",
+        "secondary": "active_potential",
+        "hidden": "withdrawn",
+    }
+    candidates = []
+    for index, tier in enumerate(tiers, start=1):
+        if tier not in status_by_tier:
+            raise ValueError(f"unsupported fixture tier: {tier}")
+        row = json.loads(json.dumps(template))
+        row["candidate_id"] = f"dynamic-candidate-{index:02d}"
+        row["candidate_name"] = f"Dynamic Candidate {index:02d}"
+        row["candidacy"]["status"] = status_by_tier[tier]
+        row["candidacy"]["display_tier"] = tier
+        row["candidacy"]["active_field_eligible"] = tier != "hidden"
+        candidates.append(row)
+
+    field = {
+        "status_as_of": "2026-08-01",
+        "main": [],
+        "secondary": [],
+        "hidden": [],
+        "counts": {},
+    }
+    for candidate in candidates:
+        field[candidate["candidacy"]["display_tier"]].append(
+            candidate["candidate_id"]
+        )
+    field["counts"] = {
+        "main": len(field["main"]),
+        "secondary": len(field["secondary"]),
+        "hidden": len(field["hidden"]),
+        "active": len(field["main"]) + len(field["secondary"]),
+        "total": len(candidates),
+    }
+
+    thresholds = json.loads(json.dumps(
+        source["active_field_visibility"]["primary"]
+        ["comparison_quality"]["thresholds"]
+    ))
+
+    def active_scope():
+        rows = {"main": [], "secondary": []}
+        for candidate in candidates:
+            tier = candidate["candidacy"]["display_tier"]
+            if tier == "hidden":
+                continue
+            rows[tier].append({
+                "candidate_id": candidate["candidate_id"],
+                "candidate_name": candidate["candidate_name"],
+                "status": candidate["candidacy"]["status"],
+                "display_tier": tier,
+                "current_record_count": 0,
+                "current_share": None,
+                "prior_record_count": 0,
+                "prior_share": None,
+                "share_change": None,
+            })
+        return {
+            "current_period": {
+                "start_date": "2026-07-26",
+                "end_date": "2026-08-01",
+                "record_count": 0,
+                "publisher_count": 0,
+            },
+            "prior_period": {
+                "start_date": "2026-07-19",
+                "end_date": "2026-07-25",
+                "record_count": 0,
+                "publisher_count": 0,
+            },
+            "comparison_quality": {
+                "status": "not_comparable",
+                "reason": "insufficient_data",
+                "current_record_count": 0,
+                "prior_record_count": 0,
+                "current_publisher_count": 0,
+                "prior_publisher_count": 0,
+                "common_publisher_count": 0,
+                "publisher_union_count": 0,
+                "publisher_overlap_ratio": 0.0,
+                "record_count_ratio": None,
+                "thresholds": thresholds,
+            },
+            "main": rows["main"],
+            "secondary": rows["secondary"],
+        }
+
+    payload = json.loads(json.dumps(source))
+    payload["candidate_universe"] = {
+        "source": "candidate_candidacy_status.json",
+        "rule": "Dynamic frontend fixture",
+        "status_as_of": "2026-08-01",
+        "count": len(candidates),
+    }
+    payload["candidates"] = candidates
+    payload["presidential_field"] = field
+    payload["active_field_visibility"] = {
+        "method": "share_of_active_candidate_linked_records",
+        "denominator_scope": (
+            "records_linked_to_at_least_one_main_or_secondary_candidate"
+        ),
+        "status_as_of": field["status_as_of"],
+        "primary": active_scope(),
+        "general": active_scope(),
+    }
+    return payload
+
+
 def run_candidate_module(expression, payload=None, fetch_mode="success"):
     script = r"""
 const fs = require("fs");
@@ -993,6 +1109,58 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
                     )
                 )
 
+    def test_schema_12_accepts_dynamic_candidate_and_tier_counts(self):
+        tier_sets = (
+            ("main", "main", "secondary", "hidden"),
+            ("main", "secondary", "secondary", "secondary", "hidden"),
+            tuple(["main"] * 9 + ["secondary"] * 8 + ["hidden"] * 8),
+        )
+        for tiers in tier_sets:
+            with self.subTest(tiers=tiers):
+                payload = dynamic_schema_12_payload(tiers)
+                state = run_candidate_module(
+                    "api.normalize(input.payload)",
+                    payload,
+                )
+                self.assertEqual(state["status"], "ready")
+                self.assertEqual(len(state["candidates"]), len(tiers))
+                counts = state["metadata"]["presidentialField"]["counts"]
+                self.assertEqual(counts["main"], tiers.count("main"))
+                self.assertEqual(
+                    counts["secondary"], tiers.count("secondary")
+                )
+                self.assertEqual(counts["hidden"], tiers.count("hidden"))
+                self.assertEqual(
+                    counts["active"],
+                    counts["main"] + counts["secondary"],
+                )
+                self.assertEqual(counts["total"], len(tiers))
+
+    def test_schema_12_dynamic_count_inconsistencies_still_reject(self):
+        base = dynamic_schema_12_payload()
+        cases = []
+        total = json.loads(json.dumps(base))
+        total["presidential_field"]["counts"]["total"] += 1
+        cases.append(total)
+        active = json.loads(json.dumps(base))
+        active["presidential_field"]["counts"]["active"] += 1
+        cases.append(active)
+        tier_total = json.loads(json.dumps(base))
+        tier_total["presidential_field"]["counts"]["hidden"] += 1
+        cases.append(tier_total)
+        missing_membership = json.loads(json.dumps(base))
+        missing_membership["presidential_field"]["secondary"].pop()
+        cases.append(missing_membership)
+
+        for payload in cases:
+            with self.subTest(counts=payload["presidential_field"]["counts"]):
+                state = run_candidate_module(
+                    "api.normalize(input.payload)",
+                    payload,
+                )
+                self.assertEqual(state["status"], "unavailable")
+                self.assertEqual(state["reason"], "invalid_payload")
+
     def test_schema_12_rejects_invalid_tier_membership_counts_and_eligibility(self):
         base = json.loads(
             (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
@@ -1079,9 +1247,14 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
         ] = "secondary"
         cases.append(tier)
         quality = json.loads(json.dumps(base))
-        quality["active_field_visibility"]["primary"]["comparison_quality"][
-            "status"
-        ] = "comparable"
+        quality_state = quality["active_field_visibility"]["primary"][
+            "comparison_quality"
+        ]
+        quality_state["status"] = (
+            "not_comparable"
+            if quality_state["status"] == "comparable"
+            else "comparable"
+        )
         cases.append(quality)
         ordering = json.loads(json.dumps(base))
         ordering["active_field_visibility"]["general"]["main"][0:2] = reversed(

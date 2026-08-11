@@ -20,6 +20,11 @@ from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from xml.etree import ElementTree as ET
 
+from candidate_candidacy_status import (
+    CandidateCandidacyStatusError,
+    load_candidate_candidacy_status,
+    validate_candidate_candidacy_status,
+)
 from http_fetch import (
     DEFAULT_MAX_RESPONSE_BYTES,
     HttpFetchResult,
@@ -61,6 +66,10 @@ GOOGLE_NEWS_WORKERS = 4
 GOOGLE_NEWS_SEMAPHORE = BoundedSemaphore(GOOGLE_NEWS_WORKERS)
 
 CANDIDATE_VISIBILITY_METHOD = "share_of_candidate_linked_records"
+CANDIDACY_STATUS_SOURCE = "candidate_candidacy_status.json"
+ACTIVE_CANDIDATE_ROSTER_RULE = (
+    "Active presidential field: candidates with display tier main or secondary"
+)
 CANDIDATE_VISIBILITY_THRESHOLDS = {
     "minimum_period_records": 10,
     "minimum_period_publishers": 5,
@@ -1603,85 +1612,37 @@ def parse_feed(
     return entries
 
 
-def find_event_list(payload: Any) -> list[dict[str, Any]]:
-    if isinstance(payload, list):
-        return [
-            item
-            for item in payload
-            if isinstance(item, dict)
-        ]
+def active_news_candidate_roster(
+    candidacy_payload: Any,
+) -> list[str]:
+    """Return the validated main-and-secondary monitoring roster."""
 
-    if isinstance(payload, dict):
-        for key in ("polls", "events", "rows", "data"):
-            value = payload.get(key)
-
-            if isinstance(value, list):
-                return [
-                    item
-                    for item in value
-                    if isinstance(item, dict)
-                ]
-
-    raise RuntimeError(
-        "Could not locate the poll-event list in polls.json"
-    )
-
-
-def recent_candidate_roster(
-    polls_path: Path,
-    generated_at: datetime,
-    days: int = 183,
-) -> tuple[list[str], str]:
-    payload = json.loads(
-        polls_path.read_text(encoding="utf-8")
-    )
-    events = find_event_list(payload)
-    cutoff = generated_at.date() - timedelta(days=days)
-    names: set[str] = set()
-
-    for event in events:
-        event_round = str(event.get("round") or "").strip()
-
-        if event_round and event_round != "first_round":
-            continue
-
-        event_date = None
-
-        for field in (
-            "publication_date",
-            "published_date",
-            "fieldwork_end",
-            "fieldwork_start",
-        ):
-            event_date = parse_iso_date(event.get(field))
-
-            if event_date is not None:
-                break
-
-        if event_date is None or event_date < cutoff:
-            continue
-
-        candidates = event.get("candidates")
-
-        if not isinstance(candidates, list):
-            continue
-
-        for candidate in candidates:
-            if not isinstance(candidate, dict):
-                continue
-
-            name = str(candidate.get("name") or "").strip()
-
-            if name:
-                names.add(name)
-
-    if not names:
+    try:
+        validate_candidate_candidacy_status(candidacy_payload)
+    except CandidateCandidacyStatusError as error:
         raise RuntimeError(
-            "No candidates appeared in first-round polling "
-            "during the previous six months"
-        )
+            f"Candidate candidacy registry is invalid: {error}"
+        ) from error
+    return [
+        candidate["candidate_name"]
+        for candidate in candidacy_payload["candidates"]
+        if candidate["display_tier"] in {"main", "secondary"}
+    ]
 
-    return canonical_news_candidate_roster(names), cutoff.isoformat()
+
+def candidate_roster_metadata(
+    candidacy_payload: Any,
+) -> dict[str, Any]:
+    """Describe the controlled active roster without poll-window metadata."""
+
+    candidates = active_news_candidate_roster(candidacy_payload)
+    return {
+        "source": CANDIDACY_STATUS_SOURCE,
+        "rule": ACTIVE_CANDIDATE_ROSTER_RULE,
+        "status_as_of": candidacy_payload["status_as_of"],
+        "count": len(candidates),
+        "names": candidates,
+    }
 
 
 def discovery_rejection_reason(
@@ -6098,6 +6059,7 @@ def build_wire(
     health_route_configurations: list[dict[str, Any]] | None = None,
     health_attempts: list[dict[str, Any]] | None = None,
     previous_source_health: dict[str, Any] | None = None,
+    candidacy_status_path: Path | str = CANDIDACY_STATUS_SOURCE,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     if generated_at is None:
         generated_at = datetime.now(timezone.utc)
@@ -6107,10 +6069,9 @@ def build_wire(
         generated_at = generated_at.astimezone(timezone.utc)
 
     window_start = generated_at - timedelta(days=window_days)
-    candidates, candidate_cutoff = recent_candidate_roster(
-        polls_path,
-        generated_at,
-    )
+    candidacy_payload = load_candidate_candidacy_status(candidacy_status_path)
+    candidate_roster = candidate_roster_metadata(candidacy_payload)
+    candidates = candidate_roster["names"]
     candidate_set = set(candidates)
     discovery_queries = generate_discovery_queries(candidates)
     publisher_site_feeds = generate_publisher_site_feeds()
@@ -6736,15 +6697,7 @@ def build_wire(
             generated_at.isoformat().replace("+00:00", "Z")
         ),
         "window_days": window_days,
-        "candidate_roster": {
-            "rule": (
-                "Figures appearing in first-round polling "
-                "during the previous six months"
-            ),
-            "cutoff_date": candidate_cutoff,
-            "count": len(candidates),
-            "names": candidates,
-        },
+        "candidate_roster": candidate_roster,
         "sources": source_status,
         "discovery": {
             "configured_queries": len(discovery_queries),
@@ -6890,6 +6843,11 @@ def main() -> int:
         default=Path("polls.json"),
     )
     parser.add_argument(
+        "--candidacy-status",
+        type=Path,
+        default=Path(CANDIDACY_STATUS_SOURCE),
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=Path("news_wire.json"),
@@ -6941,6 +6899,7 @@ def main() -> int:
         source_health_routes,
         source_health_attempts,
         previous_source_health,
+        candidacy_status_path=arguments.candidacy_status,
     )
     source_health_payload = update_source_health(
         previous_source_health,

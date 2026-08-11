@@ -544,11 +544,13 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
             with self.subTest(status=status):
                 self.assertNotIn(f'"{status}"', source)
 
-    def test_collectors_and_evidence_generators_remain_registry_free(self):
+    def test_news_uses_registry_but_other_evidence_collectors_do_not(self):
+        news_source = (ROOT / "fetch_news_wire.py").read_text(encoding="utf-8")
+        self.assertIn("from candidate_candidacy_status import (", news_source)
+        self.assertIn("active_news_candidate_roster(", news_source)
         for filename in (
             "fetch_polls.py",
             "poll_contract.py",
-            "fetch_news_wire.py",
             "fetch_claims_under_scrutiny.py",
             "generate_recent_changes.py",
         ):
