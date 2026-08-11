@@ -7859,13 +7859,15 @@
       ) {
         const failed = due - successful;
 
-        if (failed === 0) {
+        if (failed <= 1) {
           return {
             valueText,
             status: "OPERATIONAL",
             secondaryText:
-              successful + "/" + due +
-              " due routes succeeded" + configuredText,
+              failed === 0
+                ? successful + "/" + due +
+                  " due routes succeeded" + configuredText
+                : "1 due route unavailable" + configuredText,
             visualState: "operational"
           };
         }

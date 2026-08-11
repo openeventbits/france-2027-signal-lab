@@ -185,6 +185,8 @@ class RecentChangesTests(unittest.TestCase):
             '" configured routes"',
             "feeds_due_this_run",
             "feeds_successful_this_run",
+            "failed <= 1",
+            "1 due route unavailable",
             "Automatically updated from the source registry",
         )
 
