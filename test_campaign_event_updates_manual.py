@@ -85,10 +85,16 @@ class CampaignEventUpdatesManualTests(unittest.TestCase):
 
     def test_empty_input_is_valid(self):
         self.assertEqual(self.normalize(), [])
+
+        updates_path = Path(self.temp_dir.name) / "updates.json"
+        updates_path.write_text(
+            json.dumps(update_payload()),
+            encoding="utf-8",
+        )
         self.assertEqual(
             load_campaign_event_updates_manual(
-                ROOT / "campaign_event_updates_manual.json",
-                manual_events_path=ROOT / "campaign_events_manual.json",
+                updates_path,
+                manual_events_path=self.manual_events_path,
             ),
             [],
         )

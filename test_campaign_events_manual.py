@@ -1,6 +1,7 @@
 import copy
 import json
 import re
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -70,10 +71,14 @@ class CampaignEventsManualTests(unittest.TestCase):
 
     def test_empty_manual_input_is_valid(self):
         self.assertEqual(normalize_campaign_events_manual(manual_payload()), [])
-        self.assertEqual(
-            load_campaign_events_manual(ROOT / "campaign_events_manual.json"),
-            [],
-        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "campaign_events_manual.json"
+            path.write_text(
+                json.dumps(manual_payload()),
+                encoding="utf-8",
+            )
+            self.assertEqual(load_campaign_events_manual(path), [])
 
     def test_valid_dated_event(self):
         event = self.normalize(manual_event())[0]

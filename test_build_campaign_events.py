@@ -96,6 +96,14 @@ class BuildCampaignEventsTests(unittest.TestCase):
         self.temporary_root.mkdir()
         self.addCleanup(shutil.rmtree, self.temporary_root, True)
         self.output = self.temporary_root / "campaign_events.json"
+        self.manual_events_path = self.write_json(
+            "default-manual-events.json",
+            manual_payload(),
+        )
+        self.event_updates_path = self.write_json(
+            "default-manual-updates.json",
+            manual_update_payload(),
+        )
 
     def build(self, **changes):
         arguments = {
@@ -103,8 +111,8 @@ class BuildCampaignEventsTests(unittest.TestCase):
             "seed_path": ROOT / "campaign_event_institutional_seeds.json",
             "source_registry_path": ROOT / "campaign_event_sources.json",
             "candidate_registry_path": ROOT / "candidate_candidacy_status.json",
-            "manual_events_path": ROOT / "campaign_events_manual.json",
-            "event_updates_path": ROOT / "campaign_event_updates_manual.json",
+            "manual_events_path": self.manual_events_path,
+            "event_updates_path": self.event_updates_path,
             "output_path": self.output,
         }
         arguments.update(changes)
