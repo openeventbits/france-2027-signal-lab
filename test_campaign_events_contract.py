@@ -16,6 +16,8 @@ from campaign_events_contract import (
     serialize_campaign_events,
     validate_campaign_events_artifact,
 )
+from campaign_event_sources import manual_evidence_source_id
+from campaign_event_updates_manual import campaign_event_update_id
 
 
 GENERATED_AT = "2026-08-01T10:00:00Z"
@@ -179,16 +181,49 @@ def institutional_event(
 
 def artifact(campaign_events=None, institutional_milestones=None, **changes):
     payload = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "generated_at": GENERATED_AT,
         "data_as_of": DATA_AS_OF,
         "campaign_events": [] if campaign_events is None else campaign_events,
         "institutional_milestones": (
             [] if institutional_milestones is None else institutional_milestones
         ),
+        "event_watch": [],
     }
     payload.update(changes)
     return payload
+
+
+def event_watch_record(
+    *,
+    event_key="bruno-rennes-meeting",
+    update_key="update-00000000000000000000000000000001",
+    update_type="UPDATED",
+    headline="Réunion publique confirmée",
+    observed_at="2026-08-01T09:30:00Z",
+):
+    source_url = "https://example.com/politique/event-update"
+    source_publisher = "Example Média"
+    source_type = "reliable_media"
+    return {
+        "update_id": campaign_event_update_id(update_key),
+        "event_id": campaign_event_id("campaign_events", event_key),
+        "update_type": update_type,
+        "headline": headline,
+        "observed_at": observed_at,
+        "evidence": [
+            {
+                "source_id": manual_evidence_source_id(
+                    source_type,
+                    source_publisher,
+                    source_url,
+                ),
+                "source_url": source_url,
+                "source_publisher": source_publisher,
+                "source_type": source_type,
+            }
+        ],
+    }
 
 
 class CampaignEventsContractTests(unittest.TestCase):
@@ -296,6 +331,190 @@ class CampaignEventsContractTests(unittest.TestCase):
             source_registry_path=source_registry_path or self.registry_path,
         )
 
+    def test_schema_1_1_requires_event_watch(self):
+        payload = artifact(data_as_of=GENERATED_AT)
+        del payload["event_watch"]
+        self.assert_invalid(payload, r"missing=.*event_watch")
+
+        wrong_version = artifact(data_as_of=GENERATED_AT)
+        wrong_version["schema_version"] = "1.0"
+        self.assert_invalid(wrong_version, r"exactly '1\.1'")
+
+    def test_valid_public_event_watch_record(self):
+        event = campaign_event()
+        update = event_watch_record()
+        payload = artifact(
+            [event],
+            event_watch=[update],
+            data_as_of=update["observed_at"],
+        )
+        normalized = self.canonical(payload)
+        self.assertEqual(normalized, payload)
+        self.validate(payload)
+
+    def test_event_watch_rejects_internal_keys(self):
+        event = campaign_event()
+        update = event_watch_record()
+        base = artifact(
+            [event],
+            event_watch=[update],
+            data_as_of=update["observed_at"],
+        )
+
+        for internal_key, value in (
+            ("update_key", "update-00000000000000000000000000000001"),
+            ("event_key", event["event_key"]),
+        ):
+            candidate = copy.deepcopy(base)
+            candidate["event_watch"][0][internal_key] = value
+            self.assert_invalid(candidate, r"exact allowed keys")
+
+    def test_event_watch_requires_published_campaign_event(self):
+        event = campaign_event()
+
+        unknown = event_watch_record()
+        unknown["event_id"] = "ce-000000000000000000000000"
+        self.assert_invalid(
+            artifact(
+                [event],
+                event_watch=[unknown],
+                data_as_of=unknown["observed_at"],
+            ),
+            r"must reference campaign_events",
+        )
+
+        milestone = institutional_event()
+        institutional = event_watch_record()
+        institutional["event_id"] = milestone["event_id"]
+        self.assert_invalid(
+            artifact(
+                [event],
+                [milestone],
+                event_watch=[institutional],
+                data_as_of=institutional["observed_at"],
+            ),
+            r"must reference campaign_events",
+        )
+
+    def test_event_watch_update_ids_are_unique(self):
+        event = campaign_event()
+        first = event_watch_record()
+        second = event_watch_record(
+            update_key="update-00000000000000000000000000000002",
+            headline="Deuxième mise à jour",
+        )
+        second["update_id"] = first["update_id"]
+
+        self.assert_invalid(
+            artifact(
+                [event],
+                event_watch=[first, second],
+                data_as_of=first["observed_at"],
+            ),
+            r"duplicate event_watch update_id",
+        )
+
+    def test_event_watch_controlled_values_and_evidence(self):
+        event = campaign_event()
+        base = event_watch_record()
+
+        invalid_type = copy.deepcopy(base)
+        invalid_type["update_type"] = "RUMOUR"
+        self.assert_invalid(
+            artifact(
+                [event],
+                event_watch=[invalid_type],
+                data_as_of=base["observed_at"],
+            ),
+            r"update_type is invalid",
+        )
+
+        invalid_timestamp = copy.deepcopy(base)
+        invalid_timestamp["observed_at"] = "2026-08-01 09:30:00"
+        self.assert_invalid(
+            artifact(
+                [event],
+                event_watch=[invalid_timestamp],
+                data_as_of=base["observed_at"],
+            ),
+            r"observed_at",
+        )
+
+        forged_evidence = copy.deepcopy(base)
+        forged_evidence["evidence"][0]["source_id"] = "manual-0000000000000000"
+        self.assert_invalid(
+            artifact(
+                [event],
+                event_watch=[forged_evidence],
+                data_as_of=base["observed_at"],
+            ),
+            r"source_id is invalid",
+        )
+
+        empty_evidence = copy.deepcopy(base)
+        empty_evidence["evidence"] = []
+        self.assert_invalid(
+            artifact(
+                [event],
+                event_watch=[empty_evidence],
+                data_as_of=base["observed_at"],
+            ),
+            r"non-empty list",
+        )
+
+    def test_event_watch_ordering_and_data_as_of_are_deterministic(self):
+        event = campaign_event()
+
+        older = event_watch_record(
+            update_key="update-00000000000000000000000000000001",
+            headline="Ancienne mise à jour",
+            observed_at="2026-08-01T09:20:00Z",
+        )
+        tie_a = event_watch_record(
+            update_key="update-00000000000000000000000000000002",
+            headline="Mise à jour A",
+            observed_at="2026-08-01T09:40:00Z",
+        )
+        tie_b = event_watch_record(
+            update_key="update-00000000000000000000000000000003",
+            headline="Mise à jour B",
+            observed_at="2026-08-01T09:40:00Z",
+        )
+
+        payload = artifact(
+            [event],
+            event_watch=[older, tie_b, tie_a],
+            data_as_of="2026-08-01T09:40:00Z",
+        )
+        normalized = self.canonical(payload)
+
+        self.assertEqual(
+            [item["observed_at"] for item in normalized["event_watch"]],
+            [
+                "2026-08-01T09:40:00Z",
+                "2026-08-01T09:40:00Z",
+                "2026-08-01T09:20:00Z",
+            ],
+        )
+        self.assertEqual(
+            [
+                item["update_id"]
+                for item in normalized["event_watch"][:2]
+            ],
+            sorted([tie_a["update_id"], tie_b["update_id"]]),
+        )
+        self.assertEqual(
+            normalized["data_as_of"],
+            "2026-08-01T09:40:00Z",
+        )
+
+        stale = copy.deepcopy(payload)
+        stale["data_as_of"] = DATA_AS_OF
+        self.assert_invalid(
+            stale,
+            r"data_as_of must equal the latest event timestamp",
+        )
+
     def test_single_media_observation_can_normalize_before_reconciliation(self):
         event = campaign_event(
             event_key="media-observation-2026-08-27-1645-debate",
@@ -392,7 +611,7 @@ class CampaignEventsContractTests(unittest.TestCase):
         )
 
     def test_empty_arrays_are_valid(self):
-        payload = artifact()
+        payload = artifact(data_as_of=GENERATED_AT)
         normalized = self.canonical(payload, self.empty_registry_path)
         self.assertEqual(normalized, payload)
         self.validate(payload, self.empty_registry_path)

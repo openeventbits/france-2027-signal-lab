@@ -41,9 +41,11 @@ class CampaignEventsContractError(ValueError):
     """Raised when a Campaign Events artifact violates its contract."""
 
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 CAMPAIGN_EVENTS_LANE = "campaign_events"
 INSTITUTIONAL_MILESTONES_LANE = "institutional_milestones"
+EVENT_WATCH_LANE = "event_watch"
+UPDATE_TYPES = frozenset({"NEW", "CONFIRMED", "UPDATED", "POSTPONED", "CANCELLED"})
 TIMEZONE = "Europe/Paris"
 TIME_PRECISIONS = frozenset({"date", "datetime"})
 STATUSES = frozenset({"scheduled", "postponed", "cancelled", "completed"})
@@ -71,6 +73,7 @@ _TOP_LEVEL_KEYS = frozenset(
         "data_as_of",
         CAMPAIGN_EVENTS_LANE,
         INSTITUTIONAL_MILESTONES_LANE,
+        EVENT_WATCH_LANE,
     }
 )
 _REQUIRED_EVENT_KEYS = frozenset(
@@ -113,6 +116,7 @@ _REQUIRED_EVIDENCE_KEYS = frozenset(
 _OPTIONAL_EVIDENCE_KEYS = frozenset({"source_published_at"})
 _KEBAB_CASE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z", re.ASCII)
 _EVENT_ID = re.compile(r"ce-[0-9a-f]{24}\Z", re.ASCII)
+_UPDATE_ID = re.compile(r"cew-[0-9a-f]{24}\Z", re.ASCII)
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}\Z", re.ASCII)
 _UTC_TIMESTAMP = re.compile(
     r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z",
@@ -852,6 +856,61 @@ def _event_sort_key(event: dict[str, Any]) -> tuple[Any, ...]:
     )
 
 
+def _normalize_event_watch_record(
+    record: Any,
+    *,
+    index: int,
+    campaign_event_ids: set[str],
+) -> dict[str, Any]:
+    context = f"event_watch[{index}]"
+    required = frozenset({"update_id", "event_id", "update_type", "headline", "observed_at", "evidence"})
+    _require_exact_keys(record, required, frozenset(), context)
+    update_id = record["update_id"]
+    if not isinstance(update_id, str) or not _UPDATE_ID.fullmatch(update_id):
+        _fail(f"{context}.update_id is invalid")
+    event_id = record["event_id"]
+    if not isinstance(event_id, str) or not _EVENT_ID.fullmatch(event_id):
+        _fail(f"{context}.event_id is invalid")
+    if event_id not in campaign_event_ids:
+        _fail(f"{context}.event_id must reference campaign_events")
+    update_type = record["update_type"]
+    if not isinstance(update_type, str) or update_type not in UPDATE_TYPES:
+        _fail(f"{context}.update_type is invalid")
+    headline = _require_trimmed_text(
+        record["headline"],
+        f"{context}.headline",
+    )
+    _require_utc_timestamp(
+        record["observed_at"],
+        f"{context}.observed_at",
+    )
+    observed_at = record["observed_at"]
+    evidence = record["evidence"]
+    if not isinstance(evidence, list) or not evidence:
+        _fail(f"{context}.evidence must be a non-empty list")
+    normalized_evidence = []
+    keys = frozenset({"source_id", "source_url", "source_publisher", "source_type"})
+    for evidence_index, item in enumerate(evidence):
+        evidence_context = f"{context}.evidence[{evidence_index}]"
+        _require_exact_keys(item, keys, frozenset(), evidence_context)
+        publisher = _require_trimmed_text(
+            item["source_publisher"],
+            f"{evidence_context}.source_publisher",
+        )
+        source_type = item["source_type"]
+        if not isinstance(source_type, str) or source_type not in SOURCE_TYPES:
+            _fail(f"{evidence_context}.source_type is invalid")
+        source_url = normalize_https_url(item["source_url"], f"{evidence_context}.source_url")
+        source_id = manual_evidence_source_id(source_type, publisher, source_url)
+        if item["source_id"] != source_id:
+            _fail(f"{evidence_context}.source_id is invalid")
+        normalized_evidence.append({"source_id": source_id, "source_url": source_url, "source_publisher": publisher, "source_type": source_type})
+    if len({item["source_id"] for item in normalized_evidence}) != len(normalized_evidence):
+        _fail(f"{context}.evidence must be unique")
+    normalized_evidence.sort(key=lambda item: (item["source_id"], item["source_url"]))
+    return {"update_id": update_id, "event_id": event_id, "update_type": update_type, "headline": headline, "observed_at": observed_at, "evidence": normalized_evidence}
+
+
 def normalize_campaign_events_artifact(
     payload: Any,
     *,
@@ -864,7 +923,7 @@ def normalize_campaign_events_artifact(
         _fail("payload must be a plain dict")
     _require_exact_keys(payload, _TOP_LEVEL_KEYS, frozenset(), "payload")
     if payload["schema_version"] != SCHEMA_VERSION:
-        _fail("schema_version must be exactly '1.0'")
+        _fail(f"schema_version must be exactly '{SCHEMA_VERSION}'")
     _require_utc_timestamp(payload["generated_at"], "generated_at")
     _require_utc_timestamp(payload["data_as_of"], "data_as_of")
     candidate_by_id = _candidate_registry_by_id(candidate_registry_path)
@@ -902,14 +961,26 @@ def normalize_campaign_events_artifact(
         normalized_records.sort(key=_event_sort_key)
         normalized_lanes[lane] = normalized_records
 
+    campaign_event_ids = {record["event_id"] for record in normalized_lanes[CAMPAIGN_EVENTS_LANE]}
+    records = payload[EVENT_WATCH_LANE]
+    if not isinstance(records, list):
+        _fail("event_watch must be a list")
+    event_watch = [_normalize_event_watch_record(record, index=index, campaign_event_ids=campaign_event_ids) for index, record in enumerate(records)]
+    if len({record["update_id"] for record in event_watch}) != len(event_watch):
+        _fail("duplicate event_watch update_id")
+    event_watch.sort(key=lambda record: record["update_id"])
+    event_watch.sort(key=lambda record: record["observed_at"], reverse=True)
+    timestamps = [record["last_verified_at"] for lane in normalized_lanes.values() for record in lane] + [record["observed_at"] for record in event_watch]
+    data_as_of = max(timestamps) if timestamps else payload["generated_at"]
+    if payload["data_as_of"] != data_as_of:
+        _fail("data_as_of must equal the latest event timestamp")
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": payload["generated_at"],
-        "data_as_of": payload["data_as_of"],
+        "data_as_of": data_as_of,
         CAMPAIGN_EVENTS_LANE: normalized_lanes[CAMPAIGN_EVENTS_LANE],
-        INSTITUTIONAL_MILESTONES_LANE: normalized_lanes[
-            INSTITUTIONAL_MILESTONES_LANE
-        ],
+        INSTITUTIONAL_MILESTONES_LANE: normalized_lanes[INSTITUTIONAL_MILESTONES_LANE],
+        EVENT_WATCH_LANE: event_watch,
     }
 
 

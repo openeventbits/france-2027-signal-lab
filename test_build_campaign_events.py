@@ -14,6 +14,7 @@ from campaign_events_contract import (
     campaign_event_id,
     validate_campaign_events_artifact,
 )
+from campaign_event_updates_manual import campaign_event_update_id
 from rn_agenda_adapter import RnAgendaAdapterError
 
 
@@ -65,6 +66,30 @@ def manual_payload(*events):
     return {"schema_version": "1.0", "events": list(events)}
 
 
+def manual_update(
+    *,
+    event_key="manual-00000000000000000000000000000001",
+    update_key="update-00000000000000000000000000000001",
+    update_type="NEW",
+    headline="Grand débat présidentiel ajouté au calendrier",
+    observed_at="2026-08-01T12:35:00Z",
+):
+    return {
+        "update_key": update_key,
+        "event_key": event_key,
+        "update_type": update_type,
+        "headline": headline,
+        "source_url": "https://example.com/politique/debat-2027",
+        "source_publisher": "Example Média",
+        "source_type": "reliable_media",
+        "observed_at": observed_at,
+    }
+
+
+def manual_update_payload(*updates):
+    return {"schema_version": "1.0", "updates": list(updates)}
+
+
 class BuildCampaignEventsTests(unittest.TestCase):
     def setUp(self):
         self.temporary_root = ROOT / f".campaign-events-build-test-{uuid.uuid4().hex}"
@@ -79,6 +104,7 @@ class BuildCampaignEventsTests(unittest.TestCase):
             "source_registry_path": ROOT / "campaign_event_sources.json",
             "candidate_registry_path": ROOT / "candidate_candidacy_status.json",
             "manual_events_path": ROOT / "campaign_events_manual.json",
+            "event_updates_path": ROOT / "campaign_event_updates_manual.json",
             "output_path": self.output,
         }
         arguments.update(changes)
@@ -139,14 +165,190 @@ class BuildCampaignEventsTests(unittest.TestCase):
     def write_manual_events(self, *events):
         return self.write_json("manual-events.json", manual_payload(*events))
 
+    def write_manual_updates(self, *updates):
+        return self.write_json(
+            "manual-updates.json",
+            manual_update_payload(*updates),
+        )
+
     def test_empty_manual_input_publishes_two_milestones(self):
         path = self.write_manual_events()
-        with mock.patch.object(builder, "load_campaign_events_manual", wraps=builder.load_campaign_events_manual) as loader:
-            artifact = self.build(manual_events_path=path)
-        loader.assert_called_once_with(path, candidate_registry_path=ROOT / "candidate_candidacy_status.json", source_registry_path=ROOT / "campaign_event_sources.json")
+        updates_path = self.write_manual_updates()
+        artifact = self.build(
+            manual_events_path=path,
+            event_updates_path=updates_path,
+        )
         self.assertEqual(artifact["campaign_events"], [])
+        self.assertEqual(artifact["event_watch"], [])
         self.assert_two_milestones(artifact)
         validate_campaign_events_artifact(artifact)
+
+    def test_builder_embeds_public_event_watch_from_same_manual_snapshot(self):
+        event = manual_event()
+        update = manual_update(event_key=event["event_key"])
+        event_payload = manual_payload(event)
+
+        events_path = self.write_json("snapshot-events.json", event_payload)
+        updates_path = self.write_manual_updates(update)
+
+        with mock.patch.object(
+            builder,
+            "load_campaign_event_updates_manual",
+            wraps=builder.load_campaign_event_updates_manual,
+        ) as update_loader:
+            artifact = self.build(
+                manual_events_path=events_path,
+                event_updates_path=updates_path,
+            )
+
+        update_loader.assert_called_once()
+        self.assertEqual(
+            update_loader.call_args.kwargs["manual_events_payload"],
+            event_payload,
+        )
+
+        self.assertEqual(artifact["schema_version"], "1.1")
+        self.assertEqual(len(artifact["campaign_events"]), 1)
+        self.assertEqual(len(artifact["event_watch"]), 1)
+
+        published_event = artifact["campaign_events"][0]
+        published_update = artifact["event_watch"][0]
+
+        self.assertEqual(
+            set(published_update),
+            {
+                "update_id",
+                "event_id",
+                "update_type",
+                "headline",
+                "observed_at",
+                "evidence",
+            },
+        )
+        self.assertNotIn("update_key", published_update)
+        self.assertNotIn("event_key", published_update)
+        self.assertEqual(
+            published_update["update_id"],
+            campaign_event_update_id(update["update_key"]),
+        )
+        self.assertEqual(
+            published_update["event_id"],
+            published_event["event_id"],
+        )
+        self.assertEqual(
+            artifact["data_as_of"],
+            update["observed_at"],
+        )
+        validate_campaign_events_artifact(artifact)
+
+    def test_malformed_manual_event_watch_preserves_existing_artifact(self):
+        events_path = self.write_manual_events(manual_event())
+        malformed_updates = self.write_json(
+            "malformed-manual-updates.json",
+            {
+                "schema_version": "1.0",
+                "updates": "invalid",
+            },
+        )
+
+        self.assert_last_good(
+            lambda: self.build(
+                manual_events_path=events_path,
+                event_updates_path=malformed_updates,
+            )
+        )
+
+    def test_repeated_event_watch_build_is_byte_identical(self):
+        event = manual_event()
+        events_path = self.write_manual_events(event)
+        updates_path = self.write_manual_updates(
+            manual_update(event_key=event["event_key"])
+        )
+
+        self.build(
+            manual_events_path=events_path,
+            event_updates_path=updates_path,
+        )
+        first = self.output.read_bytes()
+
+        self.build(
+            manual_events_path=events_path,
+            event_updates_path=updates_path,
+        )
+        self.assertEqual(self.output.read_bytes(), first)
+
+    def test_unchanged_event_watch_preserves_generated_at(self):
+        event = manual_event()
+        events_path = self.write_manual_events(event)
+        updates_path = self.write_manual_updates(
+            manual_update(event_key=event["event_key"])
+        )
+
+        existing = self.build(
+            generated_at="2026-08-01T13:00:00Z",
+            manual_events_path=events_path,
+            event_updates_path=updates_path,
+        )
+        existing_bytes = self.output.read_bytes()
+
+        candidate_path = self.temporary_root / "unchanged-watch.json"
+        candidate = self.build(
+            generated_at="2026-08-01T14:00:00Z",
+            manual_events_path=events_path,
+            event_updates_path=updates_path,
+            output_path=candidate_path,
+            preserve_generated_at_from=self.output,
+        )
+
+        self.assertEqual(candidate, existing)
+        self.assertEqual(candidate_path.read_bytes(), existing_bytes)
+
+    def test_changed_event_watch_prevents_generated_at_preservation(self):
+        event = manual_event()
+        events_path = self.write_manual_events(event)
+
+        first_update = manual_update(
+            event_key=event["event_key"],
+            headline="Événement ajouté",
+        )
+        first_updates_path = self.write_json(
+            "first-updates.json",
+            manual_update_payload(first_update),
+        )
+
+        self.build(
+            generated_at="2026-08-01T13:00:00Z",
+            manual_events_path=events_path,
+            event_updates_path=first_updates_path,
+        )
+
+        changed_update = manual_update(
+            event_key=event["event_key"],
+            update_key=first_update["update_key"],
+            headline="Événement ajouté au calendrier officiel",
+        )
+        changed_updates_path = self.write_json(
+            "changed-updates.json",
+            manual_update_payload(changed_update),
+        )
+
+        candidate_path = self.temporary_root / "changed-watch.json"
+        candidate = self.build(
+            generated_at="2026-08-01T14:00:00Z",
+            manual_events_path=events_path,
+            event_updates_path=changed_updates_path,
+            output_path=candidate_path,
+            preserve_generated_at_from=self.output,
+        )
+
+        self.assertEqual(
+            candidate["generated_at"],
+            "2026-08-01T14:00:00Z",
+        )
+        self.assertEqual(
+            candidate["event_watch"][0]["headline"],
+            "Événement ajouté au calendrier officiel",
+        )
 
     def test_manual_event_publishes_with_persisted_key_and_deterministic_id(self):
         event = manual_event(participants=["David Lisnard"])
@@ -190,9 +392,15 @@ class BuildCampaignEventsTests(unittest.TestCase):
         self.assertEqual(candidate_path.read_bytes(), existing_bytes)
 
     def test_bootstrap_empty_does_not_require_manual_input(self):
-        artifact = self.build(seed_path=self.temporary_root / "missing-seeds.json", manual_events_path=self.temporary_root / "missing-manual-events.json", bootstrap_empty=True)
+        artifact = self.build(
+            seed_path=self.temporary_root / "missing-seeds.json",
+            manual_events_path=self.temporary_root / "missing-manual-events.json",
+            event_updates_path=self.temporary_root / "missing-manual-updates.json",
+            bootstrap_empty=True,
+        )
         self.assertEqual(artifact["campaign_events"], [])
         self.assertEqual(artifact["institutional_milestones"], [])
+        self.assertEqual(artifact["event_watch"], [])
         self.assertEqual(artifact["data_as_of"], GENERATED_AT)
 
     def test_date_only_and_datetime_same_event_reconcile_to_datetime(self):

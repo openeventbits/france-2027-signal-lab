@@ -48,11 +48,12 @@ def manual_payload(*events):
 
 def artifact_for(events):
     return {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "generated_at": VERIFIED_AT,
         "data_as_of": VERIFIED_AT,
         "campaign_events": events,
         "institutional_milestones": [],
+        "event_watch": [],
     }
 
 
@@ -334,12 +335,16 @@ class CampaignEventsManualTests(unittest.TestCase):
         tracked = json.loads(
             (ROOT / "campaign_events.json").read_text(encoding="utf-8")
         )
+        tracked["schema_version"] = "1.1"
+        tracked["event_watch"] = []
         validate_campaign_events_artifact(tracked)
 
     def test_manual_source_id_cannot_enter_institutional_lane(self):
         tracked = json.loads(
             (ROOT / "campaign_events.json").read_text(encoding="utf-8")
         )
+        tracked["schema_version"] = "1.1"
+        tracked["event_watch"] = []
         milestone = copy.deepcopy(tracked["institutional_milestones"][0])
         evidence = milestone["evidence"][0]
         evidence["source_id"] = manual_evidence_source_id(
