@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import build_candidate_signals as signals
 import build_publication_manifest as manifest
+import fetch_news_wire
 from fetch_claims_under_scrutiny import build_public_bundle, stable_review_id
 from test_build_candidate_signals import news_fixture, poll_event
 from test_candidate_active_monitoring_phase3a1 import registry_v2
@@ -29,13 +30,9 @@ def bundle():
         candidate_watch=[],
         roster_names=active_names,
     )
-    news["candidate_roster"] = {
-        "source": "candidate_candidacy_status.json",
-        "rule": "active_monitoring_field",
-        "status_as_of": registry["status_as_of"],
-        "count": len(active_names),
-        "names": active_names,
-    }
+    news["candidate_roster"] = fetch_news_wire.candidate_roster_metadata(
+        registry
+    )
     polls = [poll_event(candidates=[("Alice Observée", 60), ("Poll Only Person", 40)])]
     claims = build_public_bundle(registry, [], 365, "2026-08-07T05:00:00Z")
     candidate_signals = signals.build_candidate_signals(polls, news, claims, registry)
@@ -140,12 +137,47 @@ class PublicationManifestRegistryV2Tests(unittest.TestCase):
         self.assertEqual(lane["candidate_query_rule"], "active_monitoring_field")
         self.assertEqual(lane["candidate_query_count"], 2)
 
-    def test_news_active_roster_parity(self):
+    def test_fresh_news_active_roster_parity(self):
         manifest._validate_news_active_parity(self.registry, self.news)
-        changed = json.loads(json.dumps(self.news))
-        changed["candidate_roster"]["names"].reverse()
-        with self.assertRaisesRegex(manifest.ManifestError, "active registry"):
-            manifest._validate_news_active_parity(self.registry, changed)
+        self.assertEqual(
+            self.news["candidate_roster"]["rule"],
+            "active_monitoring_field",
+        )
+        self.assertEqual(
+            self.news["candidate_roster"]["names"],
+            manifest.active_candidate_names(self.registry),
+        )
+
+    def test_same_date_news_roster_mutations_remain_strictly_rejected(self):
+        mutations = {}
+
+        wrong_rule = json.loads(json.dumps(self.news))
+        wrong_rule["candidate_roster"]["rule"] = "descriptive prose"
+        mutations["wrong rule token"] = wrong_rule
+
+        wrong_count = json.loads(json.dumps(self.news))
+        wrong_count["candidate_roster"]["count"] += 1
+        mutations["wrong candidate count"] = wrong_count
+
+        wrong_names = json.loads(json.dumps(self.news))
+        wrong_names["candidate_roster"]["names"].reverse()
+        mutations["wrong candidate names"] = wrong_names
+
+        stale_membership = json.loads(json.dumps(self.news))
+        stale_membership["candidate_roster"]["names"] = ["Alice Observée"]
+        stale_membership["candidate_roster"]["count"] = 1
+        mutations["stale same-date membership"] = stale_membership
+
+        for label, changed in mutations.items():
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(
+                    manifest.ManifestError,
+                    "active registry",
+                ):
+                    manifest._validate_news_active_parity(
+                        self.registry,
+                        changed,
+                    )
 
     def test_registry_v2_lane_metadata_is_dynamic_and_provenanced(self):
         source = {

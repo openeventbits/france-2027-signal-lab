@@ -275,13 +275,25 @@ class FrontendAndWorkspaceActiveProjectionTests(unittest.TestCase):
 class NewsAndEventsActiveProjectionTests(unittest.TestCase):
     def test_news_roster_and_metadata_are_presence_aware(self):
         registry = registry_v2(DYNAMIC_REGISTRY, "chloe-potentielle")
+        active_records = active_candidate_records(registry)
         self.assertEqual(
             fetch_news_wire.active_news_candidate_roster(registry),
             ["Alice Observée", "Benoît Non Testé"],
         )
+        self.assertEqual(
+            [record["candidate_id"] for record in active_records],
+            ["alice-observee", "benoit-non-teste"],
+        )
+        self.assertEqual(
+            [record["candidate_name"] for record in active_records],
+            ["Alice Observée", "Benoît Non Testé"],
+        )
         metadata = fetch_news_wire.candidate_roster_metadata(registry)
         self.assertEqual(metadata["count"], 2)
-        self.assertIn("currently present", metadata["rule"])
+        self.assertEqual(metadata["rule"], "active_monitoring_field")
+        self.assertEqual(metadata["names"], active_candidate_names(registry))
+        self.assertNotIn("Chloé Potentielle", metadata["names"])
+        self.assertNotIn("David Retiré", metadata["names"])
 
     def test_campaign_attribution_excludes_temporarily_missing(self):
         registry = registry_v2(DYNAMIC_REGISTRY, "chloe-potentielle")

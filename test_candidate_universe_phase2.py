@@ -88,7 +88,7 @@ class NewsRegistryRosterTests(PhaseTwoFixtureMixin, unittest.TestCase):
         self.assertEqual(metadata["count"], 3)
         self.assertEqual(metadata["names"], self.active_names)
         self.assertNotIn("cutoff_date", metadata)
-        self.assertIn("main or secondary", metadata["rule"])
+        self.assertEqual(metadata["rule"], "active_monitoring_field")
 
     def test_poll_window_changes_cannot_change_membership(self):
         before = news_wire.active_news_candidate_roster(self.registry)

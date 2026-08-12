@@ -67,10 +67,7 @@ GOOGLE_NEWS_SEMAPHORE = BoundedSemaphore(GOOGLE_NEWS_WORKERS)
 
 CANDIDATE_VISIBILITY_METHOD = "share_of_candidate_linked_records"
 CANDIDACY_STATUS_SOURCE = "candidate_candidacy_status.json"
-ACTIVE_CANDIDATE_ROSTER_RULE = (
-    "Active presidential monitoring field: main or secondary candidates "
-    "that are currently present in the accepted candidacy source"
-)
+ACTIVE_CANDIDATE_ROSTER_RULE = "active_monitoring_field"
 CANDIDATE_VISIBILITY_THRESHOLDS = {
     "minimum_period_records": 10,
     "minimum_period_publishers": 5,
