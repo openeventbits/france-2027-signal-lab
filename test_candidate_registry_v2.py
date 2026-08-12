@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import copy
+import json
 import unittest
+from pathlib import Path
 
 import fetch_candidate_candidacy_status as collector
 from candidate_candidacy_status import (
@@ -72,6 +74,38 @@ def by_name(payload: dict, name: str) -> dict:
         for candidate in payload["candidates"]
         if candidate["candidate_name"] == name
     )
+
+
+class LegacyMigrationTests(unittest.TestCase):
+    def test_schema_1_previous_reconciles_directly_to_schema_2(self):
+        previous = json.loads(
+            (
+                Path(__file__).resolve().parent
+                / "test_fixtures"
+                / "candidate_candidacy_status_dynamic.json"
+            ).read_text(encoding="utf-8")
+        )
+        current = build(
+            fixture_html(
+                declared_names=("Alice Observée", "Benoît Non Testé"),
+                primary_names=(),
+                prospective_names=("Chloé Potentielle",),
+                withdrawn_names=("David Retiré",),
+                declined_names=("Élise Déclinée",),
+            ),
+            previous=previous,
+            rev=revision(101, 2),
+        )
+        self.assertEqual(previous["schema_version"], "1.0")
+        self.assertEqual(current["schema_version"], "2.0")
+        self.assertEqual(
+            [row["candidate_id"] for row in current["candidates"]],
+            [row["candidate_id"] for row in previous["candidates"]],
+        )
+        self.assertTrue(
+            all(row["upstream_presence"] == "present" for row in current["candidates"])
+        )
+        validate_candidate_candidacy_status(current)
 
 
 class StableIdentityTests(unittest.TestCase):

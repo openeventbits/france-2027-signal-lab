@@ -9,6 +9,8 @@ from fetch_claims_under_scrutiny import build_public_bundle, stable_review_id
 from test_build_candidate_signals import news_fixture, poll_event
 from test_candidate_active_monitoring_phase3a1 import registry_v2
 from test_candidate_attention_registry_v2 import build_payload
+from test_candidate_registry_v2 import build as build_registry, revision
+from test_fetch_candidate_candidacy_status import fixture_html
 
 
 ROOT = Path(__file__).resolve().parent
@@ -51,6 +53,38 @@ class PublicationManifestRegistryV2Tests(unittest.TestCase):
         manifest._validate_candidacy_status_parity(self.registry, self.signals)
         self.assertEqual(len(self.signals["candidates"]), 5)
         self.assertEqual(self.signals["active_monitoring_field"]["counts"]["active"], 2)
+
+    def advanced_registry(self):
+        return build_registry(
+            fixture_html(
+                declared_names=("Alice Observée", "Benoît Non Testé"),
+                primary_names=(),
+                prospective_names=("Chloé Potentielle",),
+                withdrawn_names=("David Retiré",),
+                declined_names=("Élise Déclinée",),
+            ),
+            previous=self.registry,
+            rev=revision(2, 2),
+        )
+
+    def test_older_attention_11_projection_is_valid_downstream_lag(self):
+        attention = build_payload(self.registry)
+        manifest._validate_candidate_attention_parity(
+            self.advanced_registry(), attention
+        )
+
+    def test_older_claims_2_query_is_valid_downstream_lag(self):
+        self.assertEqual(
+            manifest._validate_claims_public(
+                self.claims, self.advanced_registry()
+            ),
+            0,
+        )
+
+    def test_older_news_roster_is_valid_downstream_lag(self):
+        manifest._validate_news_active_parity(
+            self.advanced_registry(), self.news
+        )
 
     def test_attention_11_uses_active_not_complete_parity(self):
         attention = build_payload(self.registry)

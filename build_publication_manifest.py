@@ -740,10 +740,14 @@ def _validate_candidate_attention_parity(
     registry: Any,
     candidate_attention: Any,
 ) -> None:
-    """Require schema-1.1 Attention parity with the canonical active field."""
+    """Validate current parity while allowing an older published projection."""
 
     try:
+        validate_candidate_attention(candidate_attention)
         attention_schema = candidate_attention.get("schema_version")
+        if attention_schema == "1.0" and isinstance(registry, dict) and registry.get("schema_version") == "2.0":
+            # First Registry-v2 publication: legacy Attention converges later.
+            return
         if attention_schema == "1.0":
             if not isinstance(registry, dict) or not isinstance(
                 registry.get("candidates"), list
@@ -754,6 +758,14 @@ def _validate_candidate_attention_parity(
             expected_candidates = registry["candidates"]
         else:
             validate_candidate_candidacy_status(registry)
+            projection_date = candidate_attention["candidate_universe"]["status_as_of"]
+            registry_date = registry["status_as_of"]
+            if projection_date < registry_date:
+                return
+            if projection_date > registry_date:
+                raise CandidateAttentionContractError(
+                    "candidate universe is newer than the candidacy registry"
+                )
             expected_candidates = active_candidate_records(registry)
         validate_candidate_attention(
             candidate_attention,
@@ -844,10 +856,16 @@ def _validate_claims_public(payload: Any, registry: Any | None = None) -> int:
             raise ManifestError("claims.reviews must be an array")
         return len(reviews)
     try:
-        validate_claims_bundle(
-            payload,
-            candidacy_payload=registry,
-        )
+        validate_claims_bundle(payload)
+        if registry is not None:
+            query_date = payload["candidate_query"]["status_as_of"]
+            registry_date = registry["status_as_of"]
+            if query_date > registry_date:
+                raise ClaimsCollectorError(
+                    "candidate_query is newer than the candidacy registry"
+                )
+            if query_date == registry_date:
+                validate_claims_bundle(payload, candidacy_payload=registry)
     except ClaimsCollectorError as error:
         raise ManifestError(f"claims invalid structure: {error}") from error
     return len(payload["reviews"])
@@ -860,10 +878,16 @@ def _validate_news_active_parity(registry: Any, news: Any) -> None:
     if roster.get("source") != "candidate_candidacy_status.json":
         # Legacy tracked News metadata remains valid during migration.
         return
+    roster_date = roster.get("status_as_of")
+    registry_date = registry["status_as_of"]
+    if roster_date < registry_date:
+        # Evidence collectors converge on their next independent schedule.
+        return
+    if roster_date > registry_date:
+        raise ManifestError("news candidate roster is newer than the registry")
     expected_names = active_candidate_names(registry)
     if (
         roster.get("rule") != "active_monitoring_field"
-        or roster.get("status_as_of") != registry["status_as_of"]
         or roster.get("count") != len(expected_names)
         or roster.get("names") != expected_names
     ):

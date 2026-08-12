@@ -892,6 +892,28 @@ class PublicationManifestTests(unittest.TestCase):
         ):
             self.build()
 
+    def test_legacy_attention_is_intrinsic_during_registry_v2_migration(self):
+        registry = json.loads(
+            (self.root / "candidate_candidacy_status.json").read_text(encoding="utf-8")
+        )
+        registry["schema_version"] = "2.0"
+        registry["source"] = {
+            "publisher": "French Wikipedia",
+            "page_title": "Élection présidentielle française de 2027",
+            "page_url": "https://fr.wikipedia.org/wiki/Élection_présidentielle_française_de_2027",
+            "revision_id": 1,
+            "revision_timestamp": "2026-08-01T00:00:00Z",
+            "revision_url": "https://fr.wikipedia.org/w/index.php?oldid=1",
+        }
+        for candidate in registry["candidates"]:
+            candidate["upstream_presence"] = "present"
+            candidate["wikipedia_article"] = None
+            candidate["previous_names"] = []
+        attention = json.loads(
+            (self.root / "candidate_attention.json").read_text(encoding="utf-8")
+        )
+        manifest_builder._validate_candidate_attention_parity(registry, attention)
+
     def test_candidate_attention_id_parity_is_required(self):
         path = self.root / "candidate_attention.json"
 
