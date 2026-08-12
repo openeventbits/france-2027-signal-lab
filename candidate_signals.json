@@ -1,75 +1,174 @@
 {
-  "schema_version": "1.2",
+  "schema_version": "1.3",
   "candidate_universe": {
-    "rule": "Figures appearing with numeric scores in accepted first-round polling during the previous 183 days",
-    "as_of_date": "2026-08-12",
-    "cutoff_date": "2026-02-10",
-    "count": 20
+    "source": "candidate_candidacy_status.json",
+    "rule": "Complete controlled candidacy registry: main, secondary, and hidden",
+    "status_as_of": "2026-08-06",
+    "count": 64
   },
   "presidential_field": {
-    "status_as_of": "2026-07-30",
+    "status_as_of": "2026-08-06",
     "main": [
+      "anasse-kazib",
+      "bernard-cazeneuve",
       "bruno-retailleau",
       "david-lisnard",
-      "fabien-roussel",
+      "delphine-batho",
+      "florian-philippot",
+      "francois-asselineau",
       "francois-ruffin",
       "gabriel-attal",
       "jean-luc-melenchon",
+      "jerome-guedj",
+      "karim-bouamrane",
+      "lydie-massard",
       "marine-le-pen",
       "marine-tondelier",
       "nathalie-arthaud",
       "nicolas-dupont-aignan",
+      "philippe-brun",
+      "selma-labib",
+      "segolene-royal",
+      "xavier-bertrand",
       "edouard-philippe"
     ],
     "secondary": [
+      "aurore-berge",
+      "bruno-le-maire",
+      "carole-delga",
       "dominique-de-villepin",
+      "fabien-roussel",
+      "francois-baroin",
       "francois-hollande",
       "gerald-darmanin",
-      "jordan-bardella",
+      "jean-lassalle",
+      "jean-noel-barrot",
+      "manuel-valls",
+      "matthieu-pigasse",
+      "michel-barnier",
+      "olivier-becht",
       "olivier-faure",
+      "philippe-de-villiers",
       "raphael-glucksmann",
+      "robert-menard",
+      "sandrine-rousseau",
+      "teddy-riner",
+      "valerie-pecresse",
+      "yannick-jadot",
+      "elisabeth-borne",
       "eric-zemmour"
     ],
     "hidden": [
+      "benjamin-lucas-lundy",
+      "christiane-taubira",
+      "christine-lagarde",
+      "clementine-autain",
+      "cyril-hanouna",
+      "francois-bayrou",
+      "jean-castex",
+      "jordan-bardella",
+      "laurent-berger",
+      "laurent-wauquiez",
+      "lucie-castets",
+      "marion-marechal",
+      "michel-edouard-leclerc",
+      "philippe-poutou",
       "sarah-knafo",
-      "sebastien-lecornu"
+      "sebastien-lecornu",
+      "yael-braun-pivet",
+      "eric-ciotti"
     ],
     "counts": {
-      "main": 11,
-      "secondary": 7,
-      "hidden": 2,
-      "active": 18,
-      "total": 20
+      "main": 22,
+      "secondary": 24,
+      "hidden": 18,
+      "total": 64
+    }
+  },
+  "active_monitoring_field": {
+    "main": [
+      "anasse-kazib",
+      "bernard-cazeneuve",
+      "bruno-retailleau",
+      "david-lisnard",
+      "delphine-batho",
+      "florian-philippot",
+      "francois-asselineau",
+      "francois-ruffin",
+      "gabriel-attal",
+      "jean-luc-melenchon",
+      "jerome-guedj",
+      "karim-bouamrane",
+      "lydie-massard",
+      "marine-le-pen",
+      "marine-tondelier",
+      "nathalie-arthaud",
+      "nicolas-dupont-aignan",
+      "philippe-brun",
+      "selma-labib",
+      "segolene-royal",
+      "xavier-bertrand",
+      "edouard-philippe"
+    ],
+    "secondary": [
+      "aurore-berge",
+      "bruno-le-maire",
+      "carole-delga",
+      "dominique-de-villepin",
+      "fabien-roussel",
+      "francois-baroin",
+      "francois-hollande",
+      "gerald-darmanin",
+      "jean-lassalle",
+      "jean-noel-barrot",
+      "manuel-valls",
+      "matthieu-pigasse",
+      "michel-barnier",
+      "olivier-becht",
+      "philippe-de-villiers",
+      "raphael-glucksmann",
+      "robert-menard",
+      "sandrine-rousseau",
+      "teddy-riner",
+      "valerie-pecresse",
+      "yannick-jadot",
+      "elisabeth-borne",
+      "eric-zemmour"
+    ],
+    "counts": {
+      "main": 22,
+      "secondary": 23,
+      "active": 45
     }
   },
   "active_field_visibility": {
     "method": "share_of_active_candidate_linked_records",
-    "denominator_scope": "records_linked_to_at_least_one_main_or_secondary_candidate",
-    "status_as_of": "2026-07-30",
+    "denominator_scope": "records_linked_to_at_least_one_active_monitoring_candidate",
+    "status_as_of": "2026-08-06",
     "primary": {
       "current_period": {
         "start_date": "2026-08-06",
         "end_date": "2026-08-12",
-        "record_count": 313,
+        "record_count": 297,
         "publisher_count": 71
       },
       "prior_period": {
         "start_date": "2026-07-30",
         "end_date": "2026-08-05",
-        "record_count": 215,
-        "publisher_count": 60
+        "record_count": 209,
+        "publisher_count": 59
       },
       "comparison_quality": {
         "status": "comparable",
         "reason": "comparable",
-        "current_record_count": 313,
-        "prior_record_count": 215,
+        "current_record_count": 297,
+        "prior_record_count": 209,
         "current_publisher_count": 71,
-        "prior_publisher_count": 60,
+        "prior_publisher_count": 59,
         "common_publisher_count": 49,
-        "publisher_union_count": 82,
-        "publisher_overlap_ratio": 0.598,
-        "record_count_ratio": 1.456,
+        "publisher_union_count": 81,
+        "publisher_overlap_ratio": 0.605,
+        "record_count_ratio": 1.421,
         "thresholds": {
           "minimum_period_records": 10,
           "minimum_period_publishers": 5,
@@ -85,21 +184,21 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 120,
-          "current_share": 0.383,
+          "current_share": 0.404,
           "prior_record_count": 91,
-          "prior_share": 0.423,
-          "share_change": -0.04
+          "prior_share": 0.435,
+          "share_change": -0.031
         },
         {
           "candidate_id": "marine-tondelier",
           "candidate_name": "Marine Tondelier",
-          "status": "declared",
+          "status": "primary_contender",
           "display_tier": "main",
           "current_record_count": 55,
-          "current_share": 0.176,
+          "current_share": 0.185,
           "prior_record_count": 11,
-          "prior_share": 0.051,
-          "share_change": 0.125
+          "prior_share": 0.053,
+          "share_change": 0.132
         },
         {
           "candidate_id": "marine-le-pen",
@@ -107,10 +206,10 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 37,
-          "current_share": 0.118,
+          "current_share": 0.125,
           "prior_record_count": 27,
-          "prior_share": 0.126,
-          "share_change": -0.008
+          "prior_share": 0.129,
+          "share_change": -0.004
         },
         {
           "candidate_id": "edouard-philippe",
@@ -118,10 +217,10 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 27,
-          "current_share": 0.086,
+          "current_share": 0.091,
           "prior_record_count": 35,
-          "prior_share": 0.163,
-          "share_change": -0.077
+          "prior_share": 0.167,
+          "share_change": -0.076
         },
         {
           "candidate_id": "jean-luc-melenchon",
@@ -129,21 +228,21 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 11,
-          "current_share": 0.035,
+          "current_share": 0.037,
           "prior_record_count": 5,
-          "prior_share": 0.023,
-          "share_change": 0.012
+          "prior_share": 0.024,
+          "share_change": 0.013
         },
         {
           "candidate_id": "david-lisnard",
           "candidate_name": "David Lisnard",
-          "status": "declared",
+          "status": "primary_contender",
           "display_tier": "main",
           "current_record_count": 10,
-          "current_share": 0.032,
+          "current_share": 0.034,
           "prior_record_count": 12,
-          "prior_share": 0.056,
-          "share_change": -0.024
+          "prior_share": 0.057,
+          "share_change": -0.023
         },
         {
           "candidate_id": "bruno-retailleau",
@@ -151,9 +250,9 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 7,
-          "current_share": 0.022,
+          "current_share": 0.024,
           "prior_record_count": 15,
-          "prior_share": 0.07,
+          "prior_share": 0.072,
           "share_change": -0.048
         },
         {
@@ -162,15 +261,15 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 7,
-          "current_share": 0.022,
+          "current_share": 0.024,
           "prior_record_count": 0,
           "prior_share": 0.0,
-          "share_change": 0.022
+          "share_change": 0.024
         },
         {
           "candidate_id": "francois-ruffin",
           "candidate_name": "François Ruffin",
-          "status": "declared",
+          "status": "primary_contender",
           "display_tier": "main",
           "current_record_count": 1,
           "current_share": 0.003,
@@ -179,8 +278,85 @@
           "share_change": -0.002
         },
         {
-          "candidate_id": "fabien-roussel",
-          "candidate_name": "Fabien Roussel",
+          "candidate_id": "anasse-kazib",
+          "candidate_name": "Anasse Kazib",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "bernard-cazeneuve",
+          "candidate_name": "Bernard Cazeneuve",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "delphine-batho",
+          "candidate_name": "Delphine Batho",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "florian-philippot",
+          "candidate_name": "Florian Philippot",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "francois-asselineau",
+          "candidate_name": "François Asselineau",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "jerome-guedj",
+          "candidate_name": "Jérôme Guedj",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "karim-bouamrane",
+          "candidate_name": "Karim Bouamrane",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "lydie-massard",
+          "candidate_name": "Lydie Massard",
           "status": "primary_contender",
           "display_tier": "main",
           "current_record_count": 0,
@@ -199,6 +375,50 @@
           "prior_record_count": 0,
           "prior_share": 0.0,
           "share_change": 0.0
+        },
+        {
+          "candidate_id": "philippe-brun",
+          "candidate_name": "Philippe Brun",
+          "status": "primary_contender",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "selma-labib",
+          "candidate_name": "Selma Labib",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "segolene-royal",
+          "candidate_name": "Ségolène Royal",
+          "status": "primary_contender",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "xavier-bertrand",
+          "candidate_name": "Xavier Bertrand",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
         }
       ],
       "secondary": [
@@ -208,10 +428,10 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 30,
-          "current_share": 0.096,
+          "current_share": 0.101,
           "prior_record_count": 60,
-          "prior_share": 0.279,
-          "share_change": -0.183
+          "prior_share": 0.287,
+          "share_change": -0.186
         },
         {
           "candidate_id": "gerald-darmanin",
@@ -219,32 +439,10 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 16,
-          "current_share": 0.051,
+          "current_share": 0.054,
           "prior_record_count": 0,
           "prior_share": 0.0,
-          "share_change": 0.051
-        },
-        {
-          "candidate_id": "jordan-bardella",
-          "candidate_name": "Jordan Bardella",
-          "status": "conditional",
-          "display_tier": "secondary",
-          "current_record_count": 11,
-          "current_share": 0.035,
-          "prior_record_count": 8,
-          "prior_share": 0.037,
-          "share_change": -0.002
-        },
-        {
-          "candidate_id": "olivier-faure",
-          "candidate_name": "Olivier Faure",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 7,
-          "current_share": 0.022,
-          "prior_record_count": 1,
-          "prior_share": 0.005,
-          "share_change": 0.017
+          "share_change": 0.054
         },
         {
           "candidate_id": "francois-hollande",
@@ -252,15 +450,15 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 5,
-          "current_share": 0.016,
+          "current_share": 0.017,
           "prior_record_count": 4,
           "prior_share": 0.019,
-          "share_change": -0.003
+          "share_change": -0.002
         },
         {
           "candidate_id": "eric-zemmour",
           "candidate_name": "Éric Zemmour",
-          "status": "conditional",
+          "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 3,
           "current_share": 0.01,
@@ -278,6 +476,204 @@
           "prior_record_count": 3,
           "prior_share": 0.014,
           "share_change": -0.011
+        },
+        {
+          "candidate_id": "aurore-berge",
+          "candidate_name": "Aurore Bergé",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "bruno-le-maire",
+          "candidate_name": "Bruno Le Maire",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "carole-delga",
+          "candidate_name": "Carole Delga",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "fabien-roussel",
+          "candidate_name": "Fabien Roussel",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "francois-baroin",
+          "candidate_name": "François Baroin",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "jean-lassalle",
+          "candidate_name": "Jean Lassalle",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "jean-noel-barrot",
+          "candidate_name": "Jean-Noël Barrot",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "manuel-valls",
+          "candidate_name": "Manuel Valls",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "matthieu-pigasse",
+          "candidate_name": "Matthieu Pigasse",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "michel-barnier",
+          "candidate_name": "Michel Barnier",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "olivier-becht",
+          "candidate_name": "Olivier Becht",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "philippe-de-villiers",
+          "candidate_name": "Philippe de Villiers",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "robert-menard",
+          "candidate_name": "Robert Ménard",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "sandrine-rousseau",
+          "candidate_name": "Sandrine Rousseau",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "teddy-riner",
+          "candidate_name": "Teddy Riner",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "valerie-pecresse",
+          "candidate_name": "Valérie Pécresse",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "yannick-jadot",
+          "candidate_name": "Yannick Jadot",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "elisabeth-borne",
+          "candidate_name": "Élisabeth Borne",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
         }
       ]
     },
@@ -285,26 +681,26 @@
       "current_period": {
         "start_date": "2026-08-06",
         "end_date": "2026-08-12",
-        "record_count": 25,
-        "publisher_count": 15
+        "record_count": 21,
+        "publisher_count": 13
       },
       "prior_period": {
         "start_date": "2026-07-30",
         "end_date": "2026-08-05",
-        "record_count": 23,
-        "publisher_count": 14
+        "record_count": 21,
+        "publisher_count": 13
       },
       "comparison_quality": {
         "status": "not_comparable",
         "reason": "publisher_panel_changed",
-        "current_record_count": 25,
-        "prior_record_count": 23,
-        "current_publisher_count": 15,
-        "prior_publisher_count": 14,
-        "common_publisher_count": 8,
-        "publisher_union_count": 21,
-        "publisher_overlap_ratio": 0.381,
-        "record_count_ratio": 1.087,
+        "current_record_count": 21,
+        "prior_record_count": 21,
+        "current_publisher_count": 13,
+        "prior_publisher_count": 13,
+        "common_publisher_count": 7,
+        "publisher_union_count": 19,
+        "publisher_overlap_ratio": 0.368,
+        "record_count_ratio": 1.0,
         "thresholds": {
           "minimum_period_records": 10,
           "minimum_period_publishers": 5,
@@ -320,9 +716,9 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 4,
-          "current_share": 0.16,
+          "current_share": 0.19,
           "prior_record_count": 10,
-          "prior_share": 0.435,
+          "prior_share": 0.476,
           "share_change": null
         },
         {
@@ -331,20 +727,20 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 4,
-          "current_share": 0.16,
+          "current_share": 0.19,
           "prior_record_count": 1,
-          "prior_share": 0.043,
+          "prior_share": 0.048,
           "share_change": null
         },
         {
           "candidate_id": "marine-tondelier",
           "candidate_name": "Marine Tondelier",
-          "status": "declared",
+          "status": "primary_contender",
           "display_tier": "main",
           "current_record_count": 3,
-          "current_share": 0.12,
+          "current_share": 0.143,
           "prior_record_count": 1,
-          "prior_share": 0.043,
+          "prior_share": 0.048,
           "share_change": null
         },
         {
@@ -353,9 +749,9 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 2,
-          "current_share": 0.08,
+          "current_share": 0.095,
           "prior_record_count": 3,
-          "prior_share": 0.13,
+          "prior_share": 0.143,
           "share_change": null
         },
         {
@@ -364,20 +760,20 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 1,
-          "current_share": 0.04,
+          "current_share": 0.048,
           "prior_record_count": 4,
-          "prior_share": 0.174,
+          "prior_share": 0.19,
           "share_change": null
         },
         {
           "candidate_id": "david-lisnard",
           "candidate_name": "David Lisnard",
-          "status": "declared",
+          "status": "primary_contender",
           "display_tier": "main",
           "current_record_count": 1,
-          "current_share": 0.04,
+          "current_share": 0.048,
           "prior_record_count": 2,
-          "prior_share": 0.087,
+          "prior_share": 0.095,
           "share_change": null
         },
         {
@@ -388,13 +784,57 @@
           "current_record_count": 0,
           "current_share": 0.0,
           "prior_record_count": 1,
-          "prior_share": 0.043,
+          "prior_share": 0.048,
           "share_change": null
         },
         {
-          "candidate_id": "fabien-roussel",
-          "candidate_name": "Fabien Roussel",
-          "status": "primary_contender",
+          "candidate_id": "anasse-kazib",
+          "candidate_name": "Anasse Kazib",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "bernard-cazeneuve",
+          "candidate_name": "Bernard Cazeneuve",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "delphine-batho",
+          "candidate_name": "Delphine Batho",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "florian-philippot",
+          "candidate_name": "Florian Philippot",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "francois-asselineau",
+          "candidate_name": "François Asselineau",
+          "status": "declared",
           "display_tier": "main",
           "current_record_count": 0,
           "current_share": 0.0,
@@ -405,7 +845,40 @@
         {
           "candidate_id": "francois-ruffin",
           "candidate_name": "François Ruffin",
+          "status": "primary_contender",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "jerome-guedj",
+          "candidate_name": "Jérôme Guedj",
           "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "karim-bouamrane",
+          "candidate_name": "Karim Bouamrane",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "lydie-massard",
+          "candidate_name": "Lydie Massard",
+          "status": "primary_contender",
           "display_tier": "main",
           "current_record_count": 0,
           "current_share": 0.0,
@@ -434,6 +907,50 @@
           "prior_record_count": 0,
           "prior_share": 0.0,
           "share_change": null
+        },
+        {
+          "candidate_id": "philippe-brun",
+          "candidate_name": "Philippe Brun",
+          "status": "primary_contender",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "selma-labib",
+          "candidate_name": "Selma Labib",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "segolene-royal",
+          "candidate_name": "Ségolène Royal",
+          "status": "primary_contender",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "xavier-bertrand",
+          "candidate_name": "Xavier Bertrand",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
         }
       ],
       "secondary": [
@@ -443,20 +960,9 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 6,
-          "current_share": 0.24,
+          "current_share": 0.286,
           "prior_record_count": 2,
-          "prior_share": 0.087,
-          "share_change": null
-        },
-        {
-          "candidate_id": "jordan-bardella",
-          "candidate_name": "Jordan Bardella",
-          "status": "conditional",
-          "display_tier": "secondary",
-          "current_record_count": 4,
-          "current_share": 0.16,
-          "prior_record_count": 2,
-          "prior_share": 0.087,
+          "prior_share": 0.095,
           "share_change": null
         },
         {
@@ -465,9 +971,9 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 3,
-          "current_share": 0.12,
+          "current_share": 0.143,
           "prior_record_count": 5,
-          "prior_share": 0.217,
+          "prior_share": 0.238,
           "share_change": null
         },
         {
@@ -476,20 +982,42 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 2,
-          "current_share": 0.08,
+          "current_share": 0.095,
           "prior_record_count": 0,
           "prior_share": 0.0,
           "share_change": null
         },
         {
-          "candidate_id": "olivier-faure",
-          "candidate_name": "Olivier Faure",
+          "candidate_id": "aurore-berge",
+          "candidate_name": "Aurore Bergé",
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
           "current_share": 0.0,
-          "prior_record_count": 2,
-          "prior_share": 0.087,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "bruno-le-maire",
+          "candidate_name": "Bruno Le Maire",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "carole-delga",
+          "candidate_name": "Carole Delga",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
           "share_change": null
         },
         {
@@ -504,9 +1032,174 @@
           "share_change": null
         },
         {
+          "candidate_id": "fabien-roussel",
+          "candidate_name": "Fabien Roussel",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "francois-baroin",
+          "candidate_name": "François Baroin",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "jean-lassalle",
+          "candidate_name": "Jean Lassalle",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "jean-noel-barrot",
+          "candidate_name": "Jean-Noël Barrot",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "manuel-valls",
+          "candidate_name": "Manuel Valls",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "matthieu-pigasse",
+          "candidate_name": "Matthieu Pigasse",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "michel-barnier",
+          "candidate_name": "Michel Barnier",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "olivier-becht",
+          "candidate_name": "Olivier Becht",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "philippe-de-villiers",
+          "candidate_name": "Philippe de Villiers",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "robert-menard",
+          "candidate_name": "Robert Ménard",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "sandrine-rousseau",
+          "candidate_name": "Sandrine Rousseau",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "teddy-riner",
+          "candidate_name": "Teddy Riner",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "valerie-pecresse",
+          "candidate_name": "Valérie Pécresse",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "yannick-jadot",
+          "candidate_name": "Yannick Jadot",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
+          "candidate_id": "elisabeth-borne",
+          "candidate_name": "Élisabeth Borne",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": null
+        },
+        {
           "candidate_id": "eric-zemmour",
           "candidate_name": "Éric Zemmour",
-          "status": "conditional",
+          "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
           "current_share": 0.0,
@@ -674,11 +1367,377 @@
   },
   "candidates": [
     {
+      "candidate_id": "anasse-kazib",
+      "candidate_name": "Anasse Kazib",
+      "candidacy": {
+        "status": "declared",
+        "display_tier": "main",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a declared candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "aurore-berge",
+      "candidate_name": "Aurore Bergé",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "benjamin-lucas-lundy",
+      "candidate_name": "Benjamin Lucas-Lundy",
+      "candidacy": {
+        "status": "withdrawn",
+        "display_tier": "hidden",
+        "upstream_presence": "present",
+        "active_field_eligible": false,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a withdrawn candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "bernard-cazeneuve",
+      "candidate_name": "Bernard Cazeneuve",
+      "candidacy": {
+        "status": "declared",
+        "display_tier": "main",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a declared candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "bruno-le-maire",
+      "candidate_name": "Bruno Le Maire",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
       "candidate_id": "bruno-retailleau",
       "candidate_name": "Bruno Retailleau",
       "candidacy": {
         "status": "declared",
         "display_tier": "main",
+        "upstream_presence": "present",
         "active_field_eligible": true,
         "status_as_of": "2026-07-30",
         "source_date": "2026-02-12",
@@ -760,21 +1819,387 @@
       }
     },
     {
+      "candidate_id": "carole-delga",
+      "candidate_name": "Carole Delga",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "christiane-taubira",
+      "candidate_name": "Christiane Taubira",
+      "candidacy": {
+        "status": "ruled_out",
+        "display_tier": "hidden",
+        "upstream_presence": "present",
+        "active_field_eligible": false,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as having declined candidacy."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "christine-lagarde",
+      "candidate_name": "Christine Lagarde",
+      "candidacy": {
+        "status": "ruled_out",
+        "display_tier": "hidden",
+        "upstream_presence": "present",
+        "active_field_eligible": false,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as having declined candidacy."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "clementine-autain",
+      "candidate_name": "Clémentine Autain",
+      "candidacy": {
+        "status": "withdrawn",
+        "display_tier": "hidden",
+        "upstream_presence": "present",
+        "active_field_eligible": false,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a withdrawn candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "cyril-hanouna",
+      "candidate_name": "Cyril Hanouna",
+      "candidacy": {
+        "status": "ruled_out",
+        "display_tier": "hidden",
+        "upstream_presence": "present",
+        "active_field_eligible": false,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as having declined candidacy."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
       "candidate_id": "david-lisnard",
       "candidate_name": "David Lisnard",
       "candidacy": {
-        "status": "declared",
+        "status": "primary_contender",
         "display_tier": "main",
+        "upstream_presence": "present",
         "active_field_eligible": true,
-        "status_as_of": "2026-07-30",
-        "source_date": "2026-04-01",
-        "source_url": "https://www.publicsenat.fr/actualites/politique/presidentielle-2027-david-lisnard-maire-de-cannes-annonce-sa-candidature-et-quitte-officiellement-les-lr",
-        "source_title": "Présidentielle 2027 : David Lisnard, maire de Cannes, annonce sa candidature et quitte officiellement les LR",
-        "source_publisher": "Public Sénat",
-        "status_note": "Confirmed his presidential candidacy while announcing his departure from Les Républicains."
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a primary contender."
       },
       "polling": {
-        "evidence_state": "not_tested",
+        "evidence_state": "not_observed",
         "hypothesis_count": null,
         "range_min": null,
         "range_max": null,
@@ -852,11 +2277,85 @@
       }
     },
     {
+      "candidate_id": "delphine-batho",
+      "candidate_name": "Delphine Batho",
+      "candidacy": {
+        "status": "declared",
+        "display_tier": "main",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a declared candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
       "candidate_id": "dominique-de-villepin",
       "candidate_name": "Dominique de Villepin",
       "candidacy": {
         "status": "active_potential",
         "display_tier": "secondary",
+        "upstream_presence": "present",
         "active_field_eligible": true,
         "status_as_of": "2026-07-30",
         "source_date": "2026-05-29",
@@ -941,15 +2440,16 @@
       "candidate_id": "fabien-roussel",
       "candidate_name": "Fabien Roussel",
       "candidacy": {
-        "status": "primary_contender",
-        "display_tier": "main",
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
         "active_field_eligible": true,
-        "status_as_of": "2026-07-30",
-        "source_date": "2026-07-05",
-        "source_url": "https://www.boursorama.com/actualite-economique/actualites/fabien-roussel-reconduit-a-la-tete-du-pcf-et-a-85-candidat-a-la-presidentielle-b0b0840ece1d062d134a82a1d2023b00",
-        "source_title": "Fabien Roussel, reconduit à la tête du PCF et « à 85 % » candidat à la présidentielle",
-        "source_publisher": "AFP via Boursorama",
-        "status_note": "Has offered himself as the PCF presidential contender pending the party membership vote scheduled for September."
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
       },
       "polling": {
         "evidence_state": "reported",
@@ -1010,11 +2510,304 @@
       }
     },
     {
+      "candidate_id": "florian-philippot",
+      "candidate_name": "Florian Philippot",
+      "candidacy": {
+        "status": "declared",
+        "display_tier": "main",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a declared candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "francois-asselineau",
+      "candidate_name": "François Asselineau",
+      "candidacy": {
+        "status": "declared",
+        "display_tier": "main",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a declared candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "francois-baroin",
+      "candidate_name": "François Baroin",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "francois-bayrou",
+      "candidate_name": "François Bayrou",
+      "candidacy": {
+        "status": "ruled_out",
+        "display_tier": "hidden",
+        "upstream_presence": "present",
+        "active_field_eligible": false,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as having declined candidacy."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
       "candidate_id": "francois-hollande",
       "candidate_name": "François Hollande",
       "candidacy": {
         "status": "active_potential",
         "display_tier": "secondary",
+        "upstream_presence": "present",
         "active_field_eligible": true,
         "status_as_of": "2026-07-30",
         "source_date": "2026-02-13",
@@ -1105,15 +2898,16 @@
       "candidate_id": "francois-ruffin",
       "candidate_name": "François Ruffin",
       "candidacy": {
-        "status": "declared",
+        "status": "primary_contender",
         "display_tier": "main",
+        "upstream_presence": "present",
         "active_field_eligible": true,
-        "status_as_of": "2026-07-30",
-        "source_date": "2026-01-26",
-        "source_url": "https://www.rtl.fr/actu/politique/et-oui-sans-surprise-je-serai-candidat-francois-ruffin-confirme-sa-candidature-a-l-election-presidentielle-de-2027-7900593940",
-        "source_title": "« Et oui, sans surprise, je serai candidat » : François Ruffin confirme sa candidature à l’élection présidentielle de 2027",
-        "source_publisher": "RTL",
-        "status_note": "Confirmed that he would seek the presidency through the planned left-wing selection process."
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a primary contender."
       },
       "polling": {
         "evidence_state": "reported",
@@ -1193,6 +2987,7 @@
       "candidacy": {
         "status": "declared",
         "display_tier": "main",
+        "upstream_presence": "present",
         "active_field_eligible": true,
         "status_as_of": "2026-07-30",
         "source_date": "2026-05-22",
@@ -1285,6 +3080,7 @@
       "candidacy": {
         "status": "active_potential",
         "display_tier": "secondary",
+        "upstream_presence": "present",
         "active_field_eligible": true,
         "status_as_of": "2026-07-30",
         "source_date": "2026-01-25",
@@ -1294,7 +3090,7 @@
         "status_note": "Has publicly said he is considering a candidacy and feels capable of representing his political camp."
       },
       "polling": {
-        "evidence_state": "not_tested",
+        "evidence_state": "not_observed",
         "hypothesis_count": null,
         "range_min": null,
         "range_max": null,
@@ -1372,11 +3168,158 @@
       }
     },
     {
+      "candidate_id": "jean-castex",
+      "candidate_name": "Jean Castex",
+      "candidacy": {
+        "status": "ruled_out",
+        "display_tier": "hidden",
+        "upstream_presence": "present",
+        "active_field_eligible": false,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as having declined candidacy."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "jean-lassalle",
+      "candidate_name": "Jean Lassalle",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
       "candidate_id": "jean-luc-melenchon",
       "candidate_name": "Jean-Luc Mélenchon",
       "candidacy": {
         "status": "declared",
         "display_tier": "main",
+        "upstream_presence": "present",
         "active_field_eligible": true,
         "status_as_of": "2026-07-30",
         "source_date": "2026-05-03",
@@ -1464,21 +3407,95 @@
       }
     },
     {
+      "candidate_id": "jean-noel-barrot",
+      "candidate_name": "Jean-Noël Barrot",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
       "candidate_id": "jordan-bardella",
       "candidate_name": "Jordan Bardella",
       "candidacy": {
-        "status": "conditional",
-        "display_tier": "secondary",
-        "active_field_eligible": true,
-        "status_as_of": "2026-07-30",
-        "source_date": "2025-04-26",
-        "source_url": "https://www.lemonde.fr/politique/article/2025/04/26/si-marine-le-pen-est-empechee-pour-la-presidentielle-2027-je-serai-son-candidat-assure-jordan-bardella_6600386_823448.html",
-        "source_title": "Si Marine Le Pen est « empêchée » pour la présidentielle 2027, « je serai son candidat », affirme Jordan Bardella",
-        "source_publisher": "Le Monde",
-        "status_note": "Has stated that he would run if Marine Le Pen were prevented from standing."
+        "status": "ruled_out",
+        "display_tier": "hidden",
+        "upstream_presence": "present",
+        "active_field_eligible": false,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as having declined candidacy."
       },
       "polling": {
-        "evidence_state": "not_tested",
+        "evidence_state": "not_observed",
         "hypothesis_count": null,
         "range_min": null,
         "range_max": null,
@@ -1556,11 +3573,523 @@
       }
     },
     {
+      "candidate_id": "jerome-guedj",
+      "candidate_name": "Jérôme Guedj",
+      "candidacy": {
+        "status": "declared",
+        "display_tier": "main",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a declared candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "karim-bouamrane",
+      "candidate_name": "Karim Bouamrane",
+      "candidacy": {
+        "status": "declared",
+        "display_tier": "main",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a declared candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "laurent-berger",
+      "candidate_name": "Laurent Berger",
+      "candidacy": {
+        "status": "ruled_out",
+        "display_tier": "hidden",
+        "upstream_presence": "present",
+        "active_field_eligible": false,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as having declined candidacy."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "laurent-wauquiez",
+      "candidate_name": "Laurent Wauquiez",
+      "candidacy": {
+        "status": "ruled_out",
+        "display_tier": "hidden",
+        "upstream_presence": "present",
+        "active_field_eligible": false,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as having declined candidacy."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "lucie-castets",
+      "candidate_name": "Lucie Castets",
+      "candidacy": {
+        "status": "ruled_out",
+        "display_tier": "hidden",
+        "upstream_presence": "present",
+        "active_field_eligible": false,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as having declined candidacy."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "lydie-massard",
+      "candidate_name": "Lydie Massard",
+      "candidacy": {
+        "status": "primary_contender",
+        "display_tier": "main",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a primary contender."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "manuel-valls",
+      "candidate_name": "Manuel Valls",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
       "candidate_id": "marine-le-pen",
       "candidate_name": "Marine Le Pen",
       "candidacy": {
         "status": "declared",
         "display_tier": "main",
+        "upstream_presence": "present",
         "active_field_eligible": true,
         "status_as_of": "2026-07-30",
         "source_date": "2026-07-07",
@@ -1651,15 +4180,16 @@
       "candidate_id": "marine-tondelier",
       "candidate_name": "Marine Tondelier",
       "candidacy": {
-        "status": "declared",
+        "status": "primary_contender",
         "display_tier": "main",
+        "upstream_presence": "present",
         "active_field_eligible": true,
-        "status_as_of": "2026-07-30",
-        "source_date": "2025-10-22",
-        "source_url": "https://www.lemonde.fr/politique/article/2025/10/22/presidentielle-2027-marine-tondelier-se-presente-candidate_6648904_823448.html",
-        "source_title": "Marine Tondelier officialise sa candidature à l’élection présidentielle de 2027",
-        "source_publisher": "Le Monde",
-        "status_note": "Publicly announced her candidacy for the 2027 presidential election."
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a primary contender."
       },
       "polling": {
         "evidence_state": "reported",
@@ -1740,11 +4270,304 @@
       }
     },
     {
+      "candidate_id": "marion-marechal",
+      "candidate_name": "Marion Maréchal",
+      "candidacy": {
+        "status": "ruled_out",
+        "display_tier": "hidden",
+        "upstream_presence": "present",
+        "active_field_eligible": false,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as having declined candidacy."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "matthieu-pigasse",
+      "candidate_name": "Matthieu Pigasse",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "michel-barnier",
+      "candidate_name": "Michel Barnier",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "michel-edouard-leclerc",
+      "candidate_name": "Michel-Édouard Leclerc",
+      "candidacy": {
+        "status": "ruled_out",
+        "display_tier": "hidden",
+        "upstream_presence": "present",
+        "active_field_eligible": false,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as having declined candidacy."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
       "candidate_id": "nathalie-arthaud",
       "candidate_name": "Nathalie Arthaud",
       "candidacy": {
         "status": "declared",
         "display_tier": "main",
+        "upstream_presence": "present",
         "active_field_eligible": true,
         "status_as_of": "2026-07-30",
         "source_date": "2025-12-08",
@@ -1831,6 +4654,7 @@
       "candidacy": {
         "status": "declared",
         "display_tier": "main",
+        "upstream_presence": "present",
         "active_field_eligible": true,
         "status_as_of": "2026-07-30",
         "source_date": "2026-01-14",
@@ -1898,12 +4722,86 @@
       }
     },
     {
+      "candidate_id": "olivier-becht",
+      "candidate_name": "Olivier Becht",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
       "candidate_id": "olivier-faure",
       "candidate_name": "Olivier Faure",
       "candidacy": {
         "status": "active_potential",
         "display_tier": "secondary",
-        "active_field_eligible": true,
+        "upstream_presence": "temporarily_missing",
+        "active_field_eligible": false,
         "status_as_of": "2026-07-30",
         "source_date": "2026-07-10",
         "source_url": "https://www.publicsenat.fr/actualites/politique/presidentielle-2027-le-ps-enterre-la-primaire-ouverte-et-fragilise-olivier-faure",
@@ -1912,7 +4810,7 @@
         "status_note": "Remains a possible contender within an unresolved Socialist selection process but has not been selected or formally declared."
       },
       "polling": {
-        "evidence_state": "not_tested",
+        "evidence_state": "not_observed",
         "hypothesis_count": null,
         "range_min": null,
         "range_max": null,
@@ -1984,11 +4882,231 @@
       }
     },
     {
+      "candidate_id": "philippe-brun",
+      "candidate_name": "Philippe Brun",
+      "candidacy": {
+        "status": "primary_contender",
+        "display_tier": "main",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a primary contender."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "philippe-de-villiers",
+      "candidate_name": "Philippe de Villiers",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "philippe-poutou",
+      "candidate_name": "Philippe Poutou",
+      "candidacy": {
+        "status": "ruled_out",
+        "display_tier": "hidden",
+        "upstream_presence": "present",
+        "active_field_eligible": false,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as having declined candidacy."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
       "candidate_id": "raphael-glucksmann",
       "candidate_name": "Raphaël Glucksmann",
       "candidacy": {
         "status": "active_potential",
         "display_tier": "secondary",
+        "upstream_presence": "present",
         "active_field_eligible": true,
         "status_as_of": "2026-07-30",
         "source_date": "2026-07-15",
@@ -2076,11 +5194,158 @@
       }
     },
     {
+      "candidate_id": "robert-menard",
+      "candidate_name": "Robert Ménard",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "sandrine-rousseau",
+      "candidate_name": "Sandrine Rousseau",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
       "candidate_id": "sarah-knafo",
       "candidate_name": "Sarah Knafo",
       "candidacy": {
         "status": "ruled_out",
         "display_tier": "hidden",
+        "upstream_presence": "present",
         "active_field_eligible": false,
         "status_as_of": "2026-07-30",
         "source_date": "2026-01-08",
@@ -2090,7 +5355,7 @@
         "status_note": "Publicly excluded a candidacy in the 2027 presidential election."
       },
       "polling": {
-        "evidence_state": "not_tested",
+        "evidence_state": "not_observed",
         "hypothesis_count": null,
         "range_min": null,
         "range_max": null,
@@ -2162,11 +5427,85 @@
       }
     },
     {
+      "candidate_id": "selma-labib",
+      "candidate_name": "Selma Labib",
+      "candidacy": {
+        "status": "declared",
+        "display_tier": "main",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a declared candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
       "candidate_id": "sebastien-lecornu",
       "candidate_name": "Sébastien Lecornu",
       "candidacy": {
         "status": "ruled_out",
         "display_tier": "hidden",
+        "upstream_presence": "present",
         "active_field_eligible": false,
         "status_as_of": "2026-07-30",
         "source_date": "2026-03-07",
@@ -2176,7 +5515,7 @@
         "status_note": "Publicly reiterated that he is not a candidate for the 2027 presidential election."
       },
       "polling": {
-        "evidence_state": "not_tested",
+        "evidence_state": "not_observed",
         "hypothesis_count": null,
         "range_min": null,
         "range_max": null,
@@ -2254,11 +5593,450 @@
       }
     },
     {
+      "candidate_id": "segolene-royal",
+      "candidate_name": "Ségolène Royal",
+      "candidacy": {
+        "status": "primary_contender",
+        "display_tier": "main",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a primary contender."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "teddy-riner",
+      "candidate_name": "Teddy Riner",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "valerie-pecresse",
+      "candidate_name": "Valérie Pécresse",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "xavier-bertrand",
+      "candidate_name": "Xavier Bertrand",
+      "candidacy": {
+        "status": "declared",
+        "display_tier": "main",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a declared candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "yannick-jadot",
+      "candidate_name": "Yannick Jadot",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "yael-braun-pivet",
+      "candidate_name": "Yaël Braun-Pivet",
+      "candidacy": {
+        "status": "ruled_out",
+        "display_tier": "hidden",
+        "upstream_presence": "present",
+        "active_field_eligible": false,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as having declined candidacy."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
       "candidate_id": "edouard-philippe",
       "candidate_name": "Édouard Philippe",
       "candidacy": {
         "status": "declared",
         "display_tier": "main",
+        "upstream_presence": "present",
         "active_field_eligible": true,
         "status_as_of": "2026-07-30",
         "source_date": "2024-09-03",
@@ -2346,18 +6124,165 @@
       }
     },
     {
+      "candidate_id": "elisabeth-borne",
+      "candidate_name": "Élisabeth Borne",
+      "candidacy": {
+        "status": "active_potential",
+        "display_tier": "secondary",
+        "upstream_presence": "present",
+        "active_field_eligible": true,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
+      "candidate_id": "eric-ciotti",
+      "candidate_name": "Éric Ciotti",
+      "candidacy": {
+        "status": "ruled_out",
+        "display_tier": "hidden",
+        "upstream_presence": "present",
+        "active_field_eligible": false,
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as having declined candidacy."
+      },
+      "polling": {
+        "evidence_state": "not_observed",
+        "hypothesis_count": null,
+        "range_min": null,
+        "range_max": null,
+        "selected_hypothesis_score": null,
+        "selected_hypothesis_rank": null
+      },
+      "campaign_attention": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "scope_counts": null,
+        "scope_shares": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "general_visibility": {
+        "evidence_state": "not_observed",
+        "record_count": null,
+        "share": null,
+        "publisher_count": null,
+        "active_day_count": null,
+        "headline_match_count": null,
+        "summary_only_match_count": null,
+        "story_cluster_count": null,
+        "concentration": null
+      },
+      "scrutiny": {
+        "latest_14_days": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        },
+        "archive": {
+          "review_count": 0,
+          "by_count": 0,
+          "about_count": 0,
+          "newest_review_date": null,
+          "newest_review_url": null
+        }
+      },
+      "latest_development": {
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
+      }
+    },
+    {
       "candidate_id": "eric-zemmour",
       "candidate_name": "Éric Zemmour",
       "candidacy": {
-        "status": "conditional",
+        "status": "active_potential",
         "display_tier": "secondary",
+        "upstream_presence": "present",
         "active_field_eligible": true,
-        "status_as_of": "2026-07-30",
-        "source_date": "2026-05-03",
-        "source_url": "https://www.rtl.fr/actu/politique/s-il-n-y-a-pas-de-primaire-je-serai-candidat-eric-zemmour-affirme-sur-rtl-qu-il-se-prepare-a-la-presidentielle-2027-malgre-la-percee-magnifique-de-sarah-knafo-7900630227",
-        "source_title": "« S’il n’y a pas de primaire, je serai candidat » : Éric Zemmour affirme sur RTL qu’il se prépare à la présidentielle 2027",
-        "source_publisher": "RTL",
-        "status_note": "Has made his candidacy conditional on the outcome or absence of a right-wing primary."
+        "status_as_of": "2026-08-06",
+        "source_date": "2026-08-06",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
+        "source_title": "Élection présidentielle française de 2027",
+        "source_publisher": "French Wikipedia",
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
       },
       "polling": {
         "evidence_state": "reported",
