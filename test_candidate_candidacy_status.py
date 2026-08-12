@@ -23,6 +23,7 @@ CANDIDATE_SIGNALS_PATH = ROOT / "candidate_signals.json"
 TOP_LEVEL_KEYS = {
     "schema_version",
     "status_as_of",
+    "source",
     "candidates",
 }
 CANDIDATE_KEYS = {
@@ -36,6 +37,9 @@ CANDIDATE_KEYS = {
     "source_title",
     "source_publisher",
     "status_note",
+    "upstream_presence",
+    "wikipedia_article",
+    "previous_names",
 }
 STATUS_TO_TIER = {
     "declared": "main",
@@ -46,50 +50,6 @@ STATUS_TO_TIER = {
     "ruled_out": "hidden",
     "withdrawn": "hidden",
     "historical_poll_only": "hidden",
-}
-LOCKED_STATUSES = {
-    "bruno-retailleau": "declared",
-    "david-lisnard": "declared",
-    "dominique-de-villepin": "active_potential",
-    "fabien-roussel": "primary_contender",
-    "francois-hollande": "active_potential",
-    "francois-ruffin": "declared",
-    "gabriel-attal": "declared",
-    "gerald-darmanin": "active_potential",
-    "jean-luc-melenchon": "declared",
-    "jordan-bardella": "conditional",
-    "marine-le-pen": "declared",
-    "marine-tondelier": "declared",
-    "nathalie-arthaud": "declared",
-    "nicolas-dupont-aignan": "declared",
-    "olivier-faure": "active_potential",
-    "raphael-glucksmann": "active_potential",
-    "sarah-knafo": "ruled_out",
-    "sebastien-lecornu": "ruled_out",
-    "edouard-philippe": "declared",
-    "eric-zemmour": "conditional",
-}
-LOCKED_TIERS = {
-    "bruno-retailleau": "main",
-    "david-lisnard": "main",
-    "dominique-de-villepin": "secondary",
-    "fabien-roussel": "main",
-    "francois-hollande": "secondary",
-    "francois-ruffin": "main",
-    "gabriel-attal": "main",
-    "gerald-darmanin": "secondary",
-    "jean-luc-melenchon": "main",
-    "jordan-bardella": "secondary",
-    "marine-le-pen": "main",
-    "marine-tondelier": "main",
-    "nathalie-arthaud": "main",
-    "nicolas-dupont-aignan": "main",
-    "olivier-faure": "secondary",
-    "raphael-glucksmann": "secondary",
-    "sarah-knafo": "hidden",
-    "sebastien-lecornu": "hidden",
-    "edouard-philippe": "main",
-    "eric-zemmour": "secondary",
 }
 
 
@@ -119,7 +79,7 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
 
     def test_exact_top_level_key_set(self):
         self.assertEqual(set(self.payload), TOP_LEVEL_KEYS)
-        for key in ("schema_version", "status_as_of", "candidates"):
+        for key in ("schema_version", "status_as_of", "source", "candidates"):
             changed = copy.deepcopy(self.payload)
             changed.pop(key)
             self.assert_invalid(changed, "exact keys")
@@ -147,12 +107,15 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
         changed["candidates"][0] = DictSubclass(changed["candidates"][0])
         self.assert_invalid(changed, "plain dict")
 
-    def test_schema_version_is_exact(self):
-        self.assertEqual(self.payload["schema_version"], "1.0")
-        for invalid in ("1", "1.1", 1.0, None):
+    def test_tracked_schema_version_is_v2_and_unsupported_versions_fail(self):
+        self.assertEqual(self.payload["schema_version"], "2.0")
+        for invalid in ("1", "1.1", "2", "2.1", 2.0, None):
             changed = copy.deepcopy(self.payload)
             changed["schema_version"] = invalid
-            self.assert_invalid(changed, "exactly '1.0'")
+            self.assert_invalid(
+                changed,
+                "exactly '1.0' or '2.0'",
+            )
 
     def test_all_eight_statuses_are_accepted(self):
         for status, tier in STATUS_TO_TIER.items():
@@ -228,6 +191,9 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
     def test_top_level_date_cannot_precede_entry_dates(self):
         changed = copy.deepcopy(self.payload)
         changed["status_as_of"] = "2026-07-29"
+        changed["source"]["revision_timestamp"] = (
+            "2026-07-29T20:48:08Z"
+        )
         self.assert_invalid(changed, "top-level status_as_of")
 
     def test_absolute_https_source_urls_are_accepted(self):
@@ -321,10 +287,12 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
                 changed["candidates"][0]["candidate_id"] = invalid
                 self.assert_invalid(changed, "lowercase ASCII kebab-case")
 
-    def test_candidate_id_must_match_shared_identity_contract(self):
+    def test_v2_stable_candidate_id_need_not_be_current_name_slug(self):
         changed = copy.deepcopy(self.payload)
-        changed["candidates"][0]["candidate_id"] = "different-person"
-        self.assert_invalid(changed, "does not match candidate_name")
+        changed["candidates"][0]["candidate_id"] = (
+            "stable-anasse-kazib"
+        )
+        validate_candidate_candidacy_status(changed)
 
     def test_candidate_names_must_be_canonical(self):
         for invalid in (
@@ -385,19 +353,22 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
             },
         )
 
-    def test_all_locked_candidate_statuses_are_exact(self):
-        actual = {
-            candidate["candidate_id"]: candidate["status"]
-            for candidate in self.payload["candidates"]
-        }
-        self.assertEqual(actual, LOCKED_STATUSES)
+    def test_all_current_statuses_are_supported(self):
+        self.assertTrue(
+            all(
+                candidate["status"] in STATUS_TO_TIER
+                for candidate in self.payload["candidates"]
+            )
+        )
 
-    def test_all_locked_display_tiers_are_exact(self):
-        actual = {
-            candidate["candidate_id"]: candidate["display_tier"]
-            for candidate in self.payload["candidates"]
-        }
-        self.assertEqual(actual, LOCKED_TIERS)
+    def test_all_current_tiers_follow_status_contract(self):
+        self.assertTrue(
+            all(
+                candidate["display_tier"]
+                == STATUS_TO_TIER[candidate["status"]]
+                for candidate in self.payload["candidates"]
+            )
+        )
 
     def test_registry_order_is_deterministic(self):
         expected = sorted(
@@ -424,12 +395,22 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
                 if candidate["display_tier"] == tier
             ]
             self.assertEqual(projection[tier], expected)
-        self.assertEqual(projection["status_as_of"], "2026-07-30")
+        self.assertEqual(
+            projection["status_as_of"],
+            self.payload["status_as_of"],
+        )
 
     def test_candidacy_status_by_id_indexes_all_entries(self):
         indexed = candidacy_status_by_id(self.payload)
-        self.assertEqual(set(indexed), set(LOCKED_STATUSES))
-        self.assertEqual(indexed["sarah-knafo"]["candidate_name"], "Sarah Knafo")
+        expected_ids = {
+            candidate["candidate_id"]
+            for candidate in self.payload["candidates"]
+        }
+        self.assertEqual(set(indexed), expected_ids)
+        self.assertEqual(
+            indexed["sarah-knafo"]["candidate_name"],
+            "Sarah Knafo",
+        )
 
     def test_missing_candidate_universe_ids_are_rejected(self):
         universe = copy.deepcopy(self.candidate_universe())
@@ -492,10 +473,20 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
 
     def test_shared_source_url_with_conflicting_metadata_is_rejected(self):
         changed = copy.deepcopy(self.payload)
-        changed["candidates"][1]["source_url"] = (
-            changed["candidates"][0]["source_url"]
+        source = changed["candidates"][0]
+        reused = changed["candidates"][1]
+
+        reused["source_url"] = source["source_url"]
+        reused["source_date"] = source["source_date"]
+        reused["source_publisher"] = source["source_publisher"]
+        reused["source_title"] = (
+            source["source_title"] + " (conflict)"
         )
-        self.assert_invalid(changed, "conflicting source metadata")
+
+        self.assert_invalid(
+            changed,
+            "conflicting source metadata",
+        )
 
     def test_validation_does_not_mutate_source_records(self):
         original = copy.deepcopy(self.payload)

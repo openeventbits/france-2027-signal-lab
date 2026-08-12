@@ -1345,7 +1345,13 @@ class BuildCampaignEventsTests(unittest.TestCase):
         self.assertEqual(
             candidate["campaign_events"], tracked_payload["campaign_events"]
         )
-        self.assertEqual(self.output.read_bytes(), tracked.read_bytes())
+        expected_bytes = tracked.read_text(
+            encoding="utf-8"
+        ).encode("utf-8")
+        self.assertEqual(
+            self.output.read_bytes(),
+            expected_bytes,
+        )
         self.assertEqual(candidate, tracked_payload)
 
     def test_explicit_timestamp_is_required_and_local_timezone_independent(self):
