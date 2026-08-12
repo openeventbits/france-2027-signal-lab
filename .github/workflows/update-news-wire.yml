@@ -54,6 +54,7 @@ jobs:
           cp source_health.json /tmp/source_health.json
 
           python fetch_news_wire.py \
+            --candidacy-status candidate_candidacy_status.json \
             --polls polls.json \
             --inventory /tmp/news_inventory.json \
             --source-health /tmp/source_health.json \

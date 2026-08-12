@@ -19,9 +19,9 @@ from campaign_event_observation import build_campaign_event_observations
 from campaign_event_structured import StructuredEventRecord
 from candidate_candidacy_status import (
     CandidateCandidacyStatusError,
+    active_candidate_ids,
     candidacy_status_by_id,
     load_candidate_candidacy_status,
-    project_display_tiers,
 )
 from http_fetch import HttpFetchResult, fetch_news_route
 
@@ -283,12 +283,11 @@ def _canonical_candidates(
     try:
         registry = load_candidate_candidacy_status(candidate_registry_path)
         by_id = candidacy_status_by_id(registry)
-        tiers = project_display_tiers(registry)
+        active_ids = set(active_candidate_ids(registry))
     except (OSError, ValueError, CandidateCandidacyStatusError) as error:
         raise CandidateAttributionConfigurationError(
             f"canonical candidate registry is unavailable or invalid: {error}"
         ) from error
-    active_ids = set(tiers["main"]) | set(tiers["secondary"])
     resolved: dict[str, tuple[str, str]] = {}
     for candidate_id, expected_name in _SUPPORTED_CANDIDATES.items():
         entry = by_id.get(candidate_id)

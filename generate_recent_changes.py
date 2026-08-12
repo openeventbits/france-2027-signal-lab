@@ -315,6 +315,43 @@ def normalized_title(value: Any) -> str:
     return normalize(value)
 
 
+def source_candidate_id_map(
+    payload: dict[str, Any],
+    candidate_names: Iterable[str],
+) -> dict[str, str]:
+    """Preserve stable upstream IDs, falling back only for source-only names."""
+
+    names = [str(name).strip() for name in candidate_names if str(name).strip()]
+    mapping: dict[str, str] = {}
+    supplied_ids = payload.get("candidate_ids")
+    supplied_names = payload.get("candidates")
+    if (
+        isinstance(supplied_ids, list)
+        and isinstance(supplied_names, list)
+        and len(supplied_ids) == len(supplied_names)
+    ):
+        for name, identifier in zip(supplied_names, supplied_ids, strict=True):
+            clean_name = str(name).strip()
+            clean_id = str(identifier).strip()
+            if clean_name and clean_id:
+                mapping[clean_name] = clean_id
+
+    matches = payload.get("candidate_matches")
+    if isinstance(matches, list):
+        for match in matches:
+            if not isinstance(match, dict):
+                continue
+            clean_name = str(match.get("candidate") or "").strip()
+            clean_id = str(match.get("candidate_id") or "").strip()
+            if clean_name and clean_id:
+                mapping[clean_name] = clean_id
+
+    return {
+        name: mapping.get(name, slugify(name))
+        for name in names
+    }
+
+
 def first_matching_phrase(text: str, phrases: Iterable[str]) -> str | None:
     return next((phrase for phrase in phrases if phrase in text), None)
 
@@ -595,6 +632,7 @@ def news_entries(
                 if isinstance(name, str) and name.strip()
             }
         )
+        candidate_id_map = source_candidate_id_map(item, candidate_names)
         headline_text = normalized_title(headline)
         padded_headline = f" {headline_text} "
         headline_candidate_entities = set()
@@ -624,7 +662,7 @@ def news_entries(
                 "generated_at": utc_text(checked_at),
                 "primary_source": {"name": publisher, "url": url},
                 "source_icon_key": icon_key(publisher),
-                "candidate_ids": [slugify(name) for name in candidate_names],
+                "candidate_ids": [candidate_id_map[name] for name in candidate_names],
                 "candidate_names": candidate_names,
                 "supporting_source_count": 0,
                 "supporting_sources": [],
@@ -904,6 +942,7 @@ def runoff_entry(
     if not isinstance(selected, dict):
         return []
     candidates = [str(name) for name in selected.get("candidates", []) if str(name).strip()]
+    candidate_id_map = source_candidate_id_map(selected, candidates)
     results = selected.get("results")
     if len(candidates) != 2 or not isinstance(results, list) or not results:
         diagnostics["omitted_invalid_record"] += 1
@@ -987,7 +1026,7 @@ def runoff_entry(
             "generated_at": utc_text(checked_at),
             "primary_source": {"name": str(primary.get("pollster") or "Polling source"), "url": source_url},
             "source_icon_key": icon_key(str(primary.get("pollster") or "Polling source")),
-            "candidate_ids": [slugify(name) for name in candidates],
+            "candidate_ids": [candidate_id_map[name] for name in candidates],
             "candidate_names": candidates,
             "supporting_source_count": len(supporters),
             "supporting_sources": supporters,

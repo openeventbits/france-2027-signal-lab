@@ -584,14 +584,9 @@
             button.dataset.candidateSearch.includes(term)
           );
 
-          const selected = (
-            button.getAttribute("aria-pressed") === "true"
-          );
-
           const matchesTier = (
             !mainOnly ||
-            button.dataset.candidateTier === "main" ||
-            selected
+            button.dataset.candidateTier === "main"
           );
 
           const matches = matchesText && matchesTier;
@@ -3350,13 +3345,17 @@
   }
 
   function activeWorkspaceCandidates(candidates, metadata) {
-    const field = metadata?.presidentialField;
+    const field = metadata?.activeMonitoringField ||
+      metadata?.presidentialField;
     const activeIds = [
       ...(Array.isArray(field?.main) ? field.main : []),
       ...(Array.isArray(field?.secondary) ? field.secondary : [])
     ];
     const active = new Set(activeIds);
-    const visible = activeIds.length
+    const hasPresidentialField = field &&
+      Array.isArray(field.main) &&
+      Array.isArray(field.secondary);
+    const visible = hasPresidentialField
       ? candidates.filter(candidate => active.has(
         candidate.candidate_id
       ))

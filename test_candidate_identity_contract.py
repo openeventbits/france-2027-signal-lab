@@ -5,15 +5,16 @@ from pathlib import Path
 
 import candidate_identity
 from candidate_candidacy_status import (
+    active_candidate_names,
     load_candidate_candidacy_status,
     validate_candidate_candidacy_status,
 )
 from fetch_news_wire import (
+    active_news_candidate_roster,
     canonical_news_candidate_roster,
     candidate_names_from_matches,
     match_news_candidates,
     news_candidate_aliases,
-    recent_candidate_roster,
 )
 
 
@@ -149,15 +150,19 @@ class CandidateIdentityContractTests(unittest.TestCase):
             [],
         )
 
-    def test_poll_roster_builder_uses_canonical_identity_contract(self):
-        source = inspect.getsource(
-            recent_candidate_roster
+    def test_active_news_roster_uses_validated_registry_identities(self):
+        root = Path(__file__).resolve().parent
+        registry = load_candidate_candidacy_status(
+            root / "candidate_candidacy_status.json"
         )
-
-        self.assertIn(
-            "canonical_news_candidate_roster(names)",
-            source,
+        roster = active_news_candidate_roster(registry)
+        self.assertEqual(
+            roster,
+            active_candidate_names(registry),
         )
+        source = inspect.getsource(active_news_candidate_roster)
+        self.assertIn("active_candidate_names", source)
+        self.assertNotIn("poll", source.casefold())
 
     def test_registry_has_exact_identity_parity_with_candidate_signals(self):
         root = Path(__file__).resolve().parent

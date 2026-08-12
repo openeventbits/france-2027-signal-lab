@@ -49,6 +49,7 @@ jobs:
           python -B -m unittest -v \
             test_candidate_attention_contract \
             test_build_candidate_attention \
+            test_candidate_attention_registry_v2 \
             test_publication_manifest \
             test_candidate_attention_workflow_contract
 
@@ -63,6 +64,7 @@ jobs:
           generated_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 
           python -B build_candidate_attention.py \
+            --candidacy-status candidate_candidacy_status.json \
             --end-date "$PREFERRED_DATA_AS_OF" \
             --fallback-days 1 \
             --generated-at "$generated_at" \
@@ -82,6 +84,7 @@ jobs:
               validate_candidate_attention,
           )
           from candidate_candidacy_status import (
+              active_candidate_records,
               load_candidate_candidacy_status,
           )
 
@@ -117,7 +120,11 @@ jobs:
           # candidacy identity universe.
           validate_candidate_attention(
               candidate,
-              expected_candidates=candidacy["candidates"],
+              expected_candidates=(
+                  candidacy["candidates"]
+                  if candidate["schema_version"] == "1.0"
+                  else active_candidate_records(candidacy)
+              ),
           )
 
           resolved_data_as_of = candidate[
@@ -167,7 +174,11 @@ jobs:
 
               validate_candidate_attention(
                   published,
-                  expected_candidates=candidacy["candidates"],
+                  expected_candidates=(
+                      candidacy["candidates"]
+                      if published["schema_version"] == "1.0"
+                      else active_candidate_records(candidacy)
+                  ),
               )
 
               if (
@@ -395,6 +406,7 @@ jobs:
           generated_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 
           python -B build_candidate_attention.py \
+            --candidacy-status candidate_candidacy_status.json \
             --end-date "$RESOLVED_DATA_AS_OF" \
             --generated-at "$generated_at" \
             --output /tmp/candidate_attention-rebase.json
@@ -412,6 +424,7 @@ jobs:
               validate_candidate_attention,
           )
           from candidate_candidacy_status import (
+              active_candidate_records,
               load_candidate_candidacy_status,
           )
 
@@ -441,7 +454,11 @@ jobs:
 
           validate_candidate_attention(
               candidate,
-              expected_candidates=candidacy["candidates"],
+              expected_candidates=(
+                  candidacy["candidates"]
+                  if candidate["schema_version"] == "1.0"
+                  else active_candidate_records(candidacy)
+              ),
           )
 
           if (
@@ -479,7 +496,11 @@ jobs:
 
               validate_candidate_attention(
                   published,
-                  expected_candidates=candidacy["candidates"],
+                  expected_candidates=(
+                      candidacy["candidates"]
+                      if published["schema_version"] == "1.0"
+                      else active_candidate_records(candidacy)
+                  ),
               )
 
           Path(
@@ -585,6 +606,7 @@ jobs:
               validate_candidate_attention,
           )
           from candidate_candidacy_status import (
+              active_candidate_records,
               load_candidate_candidacy_status,
           )
 
@@ -612,7 +634,11 @@ jobs:
 
           validate_candidate_attention(
               attention,
-              expected_candidates=candidacy["candidates"],
+              expected_candidates=(
+                  candidacy["candidates"]
+                  if attention["schema_version"] == "1.0"
+                  else active_candidate_records(candidacy)
+              ),
           )
 
           validate_manifest(

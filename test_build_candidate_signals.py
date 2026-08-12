@@ -377,91 +377,60 @@ class CandidateUniverseTests(unittest.TestCase):
             ROOT / "candidate_candidacy_status.json",
         )
 
-    def test_current_data_produces_news_roster_parity(self):
-        universe, candidates = builder.derive_candidate_universe(
-            self.polls,
-            self.news,
-            self.claims,
-        )
-        self.assertEqual(universe["count"], 20)
-        published = json.loads(
-            (ROOT / "candidate_signals.json").read_text(
-                encoding="utf-8"
-            )
+    def test_current_registry_is_complete_candidate_universe(self):
+        universe, candidates = builder.candidate_universe_from_candidacy_status(
+            self.candidacy_status
         )
         self.assertEqual(
-            universe["as_of_date"],
-            published["candidate_universe"]["as_of_date"],
+            universe,
+            {
+                "source": "candidate_candidacy_status.json",
+                "rule": builder.CANDIDATE_UNIVERSE_RULE,
+                "status_as_of": self.candidacy_status["status_as_of"],
+                "count": len(self.candidacy_status["candidates"]),
+            },
         )
         self.assertEqual(
-            universe["cutoff_date"],
-            published["candidate_universe"]["cutoff_date"],
+            candidates,
+            [
+                {
+                    "candidate_id": candidate["candidate_id"],
+                    "candidate_name": candidate["candidate_name"],
+                }
+                for candidate in self.candidacy_status["candidates"]
+            ],
         )
-        self.assertTrue(
-            builder.candidate_universe_matches_news_roster(
-                candidates,
-                self.news,
+
+    def test_poll_evidence_cannot_change_candidate_membership(self):
+        first = builder.candidate_universe_from_candidacy_status(
+            self.candidacy_status
+        )
+        changed_polls = [
+            poll_event(
+                candidates=[
+                    ("Poll Only Person", 60),
+                    ("Another Poll Only Person", 40),
+                ]
             )
-        )
-
-    def test_inclusive_183_day_boundary_and_184_day_exclusion(self):
-        polls = [
-            poll_event(
-                publication_date="2026-01-27",
-                candidates=[("Boundary", 60), ("Anchor", 40)],
-                event_id="boundary",
-            ),
-            poll_event(
-                publication_date="2026-01-26",
-                candidates=[("Excluded", 60), ("Old Anchor", 40)],
-                event_id="excluded",
-                scenario_key="old",
-            ),
         ]
-        universe, candidates = builder.derive_candidate_universe(
-            polls,
-            news_fixture(primary_metrics=[], general_metrics=[]),
-            claims_fixture(),
+        builder.validated_first_round_events(changed_polls)
+        second = builder.candidate_universe_from_candidacy_status(
+            self.candidacy_status
         )
-        names = {candidate["candidate_name"] for candidate in candidates}
-        self.assertEqual(universe["cutoff_date"], "2026-01-27")
-        self.assertIn("Boundary", names)
-        self.assertNotIn("Excluded", names)
+        self.assertEqual(first, second)
+        self.assertNotIn(
+            "Poll Only Person",
+            {candidate["candidate_name"] for candidate in second[1]},
+        )
 
-    def test_publication_date_is_preferred_over_fieldwork_end(self):
-        polls = [
-            poll_event(
-                publication_date="2026-01-26",
-                fieldwork_end="2026-07-10",
-                candidates=[("Publication Old", 60), ("Other Old", 40)],
-            ),
-            poll_event(
-                event_id="anchor",
-                publication_date="2026-07-10",
-                candidates=[("Anchor One", 60), ("Anchor Two", 40)],
-            ),
-        ]
-        _universe, candidates = builder.derive_candidate_universe(
-            polls,
-            news_fixture(primary_metrics=[], general_metrics=[]),
-            claims_fixture(),
-        )
-        names = {candidate["candidate_name"] for candidate in candidates}
-        self.assertEqual(names, {"Anchor One", "Anchor Two"})
-
-    def test_non_numeric_score_fails(self):
-        invalid = poll_event(
-            candidates=[("Candidate A", "60"), ("Candidate B", 40)]
-        )
+    def test_invalid_registry_fails_closed(self):
+        invalid = copy.deepcopy(self.candidacy_status)
+        invalid["candidates"][0]["candidate_id"] = "wrong-id"
         with self.assertRaisesRegex(
             builder.CandidateSignalsError,
-            "finite number",
+            "candidacy-status registry is invalid",
         ):
-            builder.derive_candidate_universe(
-                [invalid],
-                news_fixture(),
-                claims_fixture(),
-            )
+            builder.candidate_universe_from_candidacy_status(invalid)
 
 
 class PollPackageTests(unittest.TestCase):
@@ -473,10 +442,10 @@ class PollPackageTests(unittest.TestCase):
             ROOT / "claims_under_scrutiny.json",
             ROOT / "candidate_candidacy_status.json",
         )
-        cls.universe, cls.candidates = builder.derive_candidate_universe(
-            cls.polls,
-            cls.news,
-            cls.claims,
+        cls.universe, cls.candidates = (
+            builder.candidate_universe_from_candidacy_status(
+                cls.candidacy_status
+            )
         )
 
     def test_exact_package_key_and_sample_size_separation(self):
@@ -544,7 +513,7 @@ class PollPackageTests(unittest.TestCase):
         self.assertEqual(
             projections["candidate-c"],
             {
-                "evidence_state": "not_tested",
+                "evidence_state": "not_observed",
                 "hypothesis_count": None,
                 "range_min": None,
                 "range_max": None,
@@ -747,20 +716,20 @@ class FeaturedPollBoardTests(unittest.TestCase):
             [(6, 9, "x"), (5, 1, "a"), (5, 1, "z"), (5, 2, "z")],
         )
 
-    def test_main_candidate_universe_and_order_are_unchanged(self):
-        main_names = [
-            candidate["candidate_name"]
+    def test_candidate_universe_matches_complete_registry(self):
+        expected = [
+            (candidate["candidate_id"], candidate["candidate_name"])
+            for candidate in self.candidacy_status["candidates"]
+        ]
+        actual = [
+            (candidate["candidate_id"], candidate["candidate_name"])
             for candidate in self.payload["candidates"]
         ]
-        self.assertEqual(self.payload["candidate_universe"]["count"], 20)
-        self.assertEqual(len(main_names), 20)
-        self.assertEqual(main_names, CURRENT_MAIN_CANDIDATE_ORDER)
-        main_by_id = {
-            candidate["candidate_id"]: candidate["candidate_name"]
-            for candidate in self.payload["candidates"]
-        }
-        for row in self.payload["featured_poll_board"]["candidates"]:
-            self.assertEqual(main_by_id[row["candidate_id"]], row["candidate_name"])
+        self.assertEqual(actual, expected)
+        self.assertEqual(
+            self.payload["candidate_universe"]["count"],
+            len(expected),
+        )
 
     def test_board_uses_no_range_or_cross_poll_synthetic_point(self):
         marine = next(
@@ -828,7 +797,7 @@ class FeaturedPollBoardTests(unittest.TestCase):
             lambda board: board["candidates"][0].__setitem__(
                 "candidate_id", "unknown-candidate"
             ),
-            "not in main candidates",
+            "candidate_id is not in main candidates",
         )
         self.assert_board_rejected(
             lambda board: board["candidates"][1].__setitem__(
@@ -1076,6 +1045,46 @@ class ScrutinyTests(unittest.TestCase):
         ):
             builder.project_scrutiny(self.candidates, claims)
 
+    def test_registry_stable_id_need_not_be_slug_of_current_name(self):
+        candidates = [
+            {
+                "candidate_id": "alice-ancienne",
+                "candidate_name": "Alice Nouvelle",
+            }
+        ]
+        claims = claims_fixture(
+            reviews=[
+                review(
+                    "renamed",
+                    "2026-07-20",
+                    [
+                        {
+                            "candidate_id": "alice-ancienne",
+                            "candidate_name": "Alice Nouvelle",
+                            "relationship": "by",
+                        }
+                    ],
+                )
+            ]
+        )
+        _window, projection, _evidence = builder.project_scrutiny(
+            candidates,
+            claims,
+        )
+        self.assertEqual(
+            projection["alice-ancienne"]["archive"]["review_count"],
+            1,
+        )
+
+    def test_zero_claims_does_not_change_candidate_membership(self):
+        _window, projection, evidence = builder.project_scrutiny(
+            self.candidates,
+            claims_fixture(reviews=[]),
+        )
+        self.assertEqual(set(projection), {"candidate-a", "candidate-b"})
+        self.assertEqual(projection["candidate-a"]["archive"]["review_count"], 0)
+        self.assertIsNone(evidence)
+
     def test_invalid_relationship_fails(self):
         claims = claims_fixture(
             reviews=[
@@ -1173,13 +1182,14 @@ class PresidentialFieldContractTests(unittest.TestCase):
         )
 
     def test_schema_keys_complete_universe_and_order_are_exact(self):
-        self.assertEqual(self.payload["schema_version"], "1.2")
+        self.assertEqual(self.payload["schema_version"], "1.3")
         self.assertEqual(
             list(self.payload),
             [
                 "schema_version",
                 "candidate_universe",
                 "presidential_field",
+                "active_monitoring_field",
                 "active_field_visibility",
                 "featured_polling_package",
                 "featured_poll_board",
@@ -1190,7 +1200,10 @@ class PresidentialFieldContractTests(unittest.TestCase):
             ],
         )
         self.assertIn("active_field_visibility", self.payload)
-        self.assertEqual(len(self.payload["candidates"]), 20)
+        self.assertEqual(
+            len(self.payload["candidates"]),
+            len(self.registry["candidates"]),
+        )
         order = [
             (candidate["candidate_name"].casefold(), candidate["candidate_id"])
             for candidate in self.payload["candidates"]
@@ -1214,7 +1227,7 @@ class PresidentialFieldContractTests(unittest.TestCase):
         active = self.payload["active_field_visibility"]
         expected = builder.derive_active_field_visibility(
             self.news,
-            self.payload["presidential_field"],
+            self.payload["active_monitoring_field"],
             self.registry,
         )
         self.assertEqual(active, expected)
@@ -1228,15 +1241,15 @@ class PresidentialFieldContractTests(unittest.TestCase):
         )
         self.assertEqual(
             active["denominator_scope"],
-            "records_linked_to_at_least_one_main_or_secondary_candidate",
+            "records_linked_to_at_least_one_active_monitoring_candidate",
         )
         self.assertEqual(
             active["status_as_of"],
             self.payload["presidential_field"]["status_as_of"],
         )
-        field = self.payload["presidential_field"]
+        field = self.payload["active_monitoring_field"]
         active_ids = set(field["main"] + field["secondary"])
-        hidden = set(field["hidden"])
+        hidden = set(self.payload["presidential_field"]["hidden"])
         row_keys = {
             "candidate_id", "candidate_name", "status", "display_tier",
             "current_record_count", "current_share", "prior_record_count",
@@ -1314,7 +1327,7 @@ class PresidentialFieldContractTests(unittest.TestCase):
 
     def test_active_union_reconciliation_uses_published_record_associations(self):
         before = copy.deepcopy(self.news)
-        field = self.payload["presidential_field"]
+        field = self.payload["active_monitoring_field"]
         names_by_id = {
             candidate["candidate_id"]: candidate["candidate_name"]
             for candidate in self.payload["candidates"]
@@ -1326,7 +1339,7 @@ class PresidentialFieldContractTests(unittest.TestCase):
         }
         hidden_names = {
             names_by_id[identifier]
-            for identifier in field["hidden"]
+            for identifier in self.payload["presidential_field"]["hidden"]
         }
         records = self.news["candidate_watch"]
         self.assertEqual(
@@ -1408,7 +1421,7 @@ class PresidentialFieldContractTests(unittest.TestCase):
             period["candidate_metrics"] = []
         active = builder.derive_active_field_visibility(
             news,
-            self.payload["presidential_field"],
+            self.payload["active_monitoring_field"],
             self.registry,
         )
         for scope_name in ("primary", "general"):
@@ -1447,8 +1460,13 @@ class PresidentialFieldContractTests(unittest.TestCase):
                     "status_note",
                 )
             }
-            expected["active_field_eligible"] = (
-                source["display_tier"] != "hidden"
+            expected["upstream_presence"] = source.get(
+                "upstream_presence",
+                "present",
+            )
+            expected["active_field_eligible"] = candidate["candidate_id"] in set(
+                self.payload["active_monitoring_field"]["main"]
+                + self.payload["active_monitoring_field"]["secondary"]
             )
             self.assertEqual(candidate["candidacy"], expected)
         field = self.payload["presidential_field"]
@@ -1457,12 +1475,12 @@ class PresidentialFieldContractTests(unittest.TestCase):
             {"status_as_of", "main", "secondary", "hidden", "counts"},
         )
         self.assertEqual(
-            field["counts"],
-            {"main": 11, "secondary": 7, "hidden": 2, "active": 18, "total": 20},
+            field,
+            builder.project_display_tiers(self.registry),
         )
         self.assertEqual(
-            field["hidden"],
-            ["sarah-knafo", "sebastien-lecornu"],
+            self.payload["active_monitoring_field"],
+            builder.project_active_monitoring_field(self.registry),
         )
         all_ids = field["main"] + field["secondary"] + field["hidden"]
         self.assertEqual(len(all_ids), len(set(all_ids)))
@@ -1478,11 +1496,8 @@ class PresidentialFieldContractTests(unittest.TestCase):
         self.assertIn("sarah-knafo", payload_ids)
         self.assertIn("sebastien-lecornu", payload_ids)
 
-    def test_registry_parity_failures_stop_build(self):
+    def test_malformed_registry_stops_build(self):
         mutations = []
-        missing = copy.deepcopy(self.registry)
-        missing["candidates"].pop()
-        mutations.append(missing)
         unknown = copy.deepcopy(self.registry)
         unknown["candidates"][0]["candidate_id"] = "unknown-candidate"
         mutations.append(unknown)
@@ -1560,10 +1575,11 @@ class DeterminismAndSafetyTests(unittest.TestCase):
         first_claims = copy.deepcopy(self.current_claims)
         second_news = copy.deepcopy(self.current_news)
         second_claims = copy.deepcopy(self.current_claims)
-        first_news["generated_at"] = "2026-07-30T00:01:00Z"
-        first_claims["generated_at"] = "2026-07-30T00:01:00Z"
-        second_news["generated_at"] = "2026-07-30T23:59:00Z"
-        second_claims["generated_at"] = "2026-07-30T23:59:00Z"
+        source_day = self.current_claims["generated_at"][:10]
+        first_news["generated_at"] = f"{source_day}T00:01:00Z"
+        first_claims["generated_at"] = f"{source_day}T00:01:00Z"
+        second_news["generated_at"] = f"{source_day}T23:59:00Z"
+        second_claims["generated_at"] = f"{source_day}T23:59:00Z"
         first = self.fixture_payload(news=first_news, claims=first_claims)
         second = self.fixture_payload(news=second_news, claims=second_claims)
         self.assertEqual(
@@ -1629,10 +1645,8 @@ class DeterminismAndSafetyTests(unittest.TestCase):
                 "last-good\n",
             )
 
-    def test_current_generated_payload_validates_against_sources(self):
-        payload = json.loads(
-            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
-        )
+    def test_current_sources_build_a_valid_dynamic_payload(self):
+        payload = self.fixture_payload()
         builder.validate_candidate_signals(
             payload,
             polls=self.current_polls,
@@ -1640,7 +1654,10 @@ class DeterminismAndSafetyTests(unittest.TestCase):
             claims=self.current_claims,
             candidacy_status=self.current_candidacy_status,
         )
-        self.assertEqual(payload["candidate_universe"]["count"], 20)
+        self.assertEqual(
+            payload["candidate_universe"]["count"],
+            len(self.current_candidacy_status["candidates"]),
+        )
         self.assertEqual(
             payload["featured_polling_package"]["pollster"],
             "Elabe",

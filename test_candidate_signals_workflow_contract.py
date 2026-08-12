@@ -116,7 +116,9 @@ class CandidateSignalsWorkflowContractTests(unittest.TestCase):
         )
         for name, workflow in self.workflows.items():
             with self.subTest(workflow=name):
-                self.assertEqual(workflow.count(validation), workflow.count(build))
+                self.assertGreaterEqual(
+                    workflow.count(validation), workflow.count(build)
+                )
                 self.assertGreaterEqual(workflow.count(build), 2)
                 positions = []
                 cursor = 0
@@ -144,18 +146,28 @@ class CandidateSignalsWorkflowContractTests(unittest.TestCase):
                 stage_region = workflow[commit_start:commit_command]
                 self.assertNotIn("candidate_candidacy_status.json", stage_region)
 
-    def test_registry_is_absent_from_collector_commands(self):
-        for name, workflow in self.workflows.items():
-            with self.subTest(workflow=name):
-                collector_lines = [
-                    line
-                    for line in workflow.splitlines()
-                    if "fetch_" in line or "generate_recent_changes.py" in line
-                ]
-                self.assertTrue(collector_lines)
-                self.assertTrue(
-                    all("candidate_candidacy_status" not in line for line in collector_lines)
-                )
+    def test_registry_authority_is_explicit_only_for_candidate_aware_collectors(self):
+        self.assertNotIn(
+            "--candidacy-status candidate_candidacy_status.json",
+            step_block(self.workflows["polls"], "Fetch polls into temporary files"),
+        )
+        self.assertIn(
+            "--candidacy-status candidate_candidacy_status.json",
+            step_block(self.workflows["news"], "Build temporary rolling news outputs"),
+        )
+        self.assertIn(
+            "--candidacy-status candidate_candidacy_status.json",
+            step_block(
+                self.workflows["claims"],
+                "Fetch Claims Under Scrutiny into temporary files",
+            ),
+        )
+        for name in ("polls", "claims"):
+            recent = step_block(
+                self.workflows[name],
+                "Regenerate Recent Changes Ledger",
+            )
+            self.assertNotIn("candidate_candidacy_status", recent)
 
     def test_candidate_signals_precedes_publication_manifest(self):
         for name, workflow in self.workflows.items():

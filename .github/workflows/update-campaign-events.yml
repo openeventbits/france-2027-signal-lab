@@ -56,6 +56,7 @@ jobs:
           set -euo pipefail
 
           python -B build_campaign_events.py \
+            --candidates candidate_candidacy_status.json \
             --generated-at "${{ steps.campaign_timestamp.outputs.value }}" \
             --preserve-generated-at-from campaign_events.json \
             --output /tmp/campaign_events.json

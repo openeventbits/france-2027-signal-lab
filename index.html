@@ -7030,20 +7030,20 @@
       const payload = dashboardState.claims;
       if (!payload || !payload.reviews.length) return null;
       const eligible = payload.reviews.filter(review =>
-        review.candidate_associations.some(association => payload.trackedCandidateNames.has(association.candidate_name))
+        review.candidate_associations.some(association => payload.evidenceCandidateNames.has(association.candidate_name))
       );
       if (!eligible.length) return null;
       const byReviews = eligible.filter(review =>
         review.candidate_associations.some(association =>
-          association.relationship === "by" && payload.trackedCandidateNames.has(association.candidate_name)
+          association.relationship === "by" && payload.evidenceCandidateNames.has(association.candidate_name)
         )
       );
       const review = (byReviews.length ? byReviews : eligible)[0];
       const byAssociation = review.candidate_associations.find(association =>
-        association.relationship === "by" && payload.trackedCandidateNames.has(association.candidate_name)
+        association.relationship === "by" && payload.evidenceCandidateNames.has(association.candidate_name)
       );
       const trackedAssociation = byAssociation || review.candidate_associations.find(association =>
-        payload.trackedCandidateNames.has(association.candidate_name)
+        payload.evidenceCandidateNames.has(association.candidate_name)
       );
       const relationshipNote = byAssociation
         ? "Candidate relationship: BY."
@@ -8856,7 +8856,7 @@
         </div>`;
     }
 
-    const claimsDisclosure = "Coverage reflects publishers’ editorial choices and the availability of structured fact-check records. It is not a representative measure of any political figure’s accuracy. BY identifies the recorded claimant; ABOUT identifies a candidate mentioned in a claim attributed to someone else. Candidates remain in scope while they have a qualifying numeric first-round poll appearance within the previous 45 days.";
+    const claimsDisclosure = "Coverage reflects publishers’ editorial choices and the availability of structured fact-check records. It is not a representative measure of any political figure’s accuracy. BY identifies the recorded claimant; ABOUT identifies a candidate mentioned in a claim attributed to someone else. Candidate-specific monitoring follows the current active field in the canonical candidacy registry; archived reviews remain visible as historical evidence when their candidate associations are present.";
     const claimRatingDisplay = Object.freeze({
       "Faux": { label: "False", tone: "is-false" },
       "Plutôt faux": { label: "Mostly false", tone: "is-mostly-false" },
@@ -8890,24 +8890,35 @@
     function validateClaimsPayload(payload) {
       if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new Error("Claims archive is not an object");
       if (!Array.isArray(payload.reviews)) throw new Error("Claims archive reviews are malformed");
-      if (!payload.candidate_roster || typeof payload.candidate_roster !== "object" || !Array.isArray(payload.candidate_roster.candidates)) {
-        throw new Error("Claims archive candidate roster is missing");
+      const legacyCandidates = Array.isArray(payload.candidate_roster?.candidates)
+        ? payload.candidate_roster.candidates
+        : null;
+      const registryQuery = payload.candidate_query;
+      const validRegistryQuery = registryQuery && typeof registryQuery === "object" &&
+        Array.isArray(registryQuery.candidate_ids) && Array.isArray(registryQuery.candidate_names) &&
+        Number.isInteger(registryQuery.count) && registryQuery.count === registryQuery.candidate_ids.length &&
+        registryQuery.count === registryQuery.candidate_names.length;
+      if (!legacyCandidates && !validRegistryQuery) {
+        throw new Error("Claims archive candidate query metadata is missing");
       }
       if (!payload.counts || typeof payload.counts !== "object") throw new Error("Claims archive counts are missing");
       if (!payload.generated_at || !Number.isFinite(new Date(payload.generated_at).getTime())) throw new Error("Claims archive update date is malformed");
-      if (!Number.isInteger(payload.candidate_roster.count) || payload.candidate_roster.count !== payload.candidate_roster.candidates.length) {
+      if (legacyCandidates && (!Number.isInteger(payload.candidate_roster.count) || payload.candidate_roster.count !== legacyCandidates.length)) {
         throw new Error("Claims archive candidate roster count is inconsistent");
       }
-      if (payload.candidate_roster.candidates.some(candidate => !candidate || typeof candidate.candidate_name !== "string" || !candidate.candidate_name.trim())) {
+      if (legacyCandidates?.some(candidate => !candidate || typeof candidate.candidate_name !== "string" || !candidate.candidate_name.trim())) {
         throw new Error("Claims archive candidate roster entries are malformed");
       }
 
       const validReviews = payload.reviews.filter(isValidClaimReview);
       if (payload.reviews.length && !validReviews.length) throw new Error("No claim reviews can be rendered safely");
+      const evidenceCandidateNames = new Set(validReviews.flatMap(review =>
+        review.candidate_associations.map(association => association.candidate_name)
+      ));
       return {
         generatedAt: payload.generated_at,
-        rosterCount: payload.candidate_roster.candidates.length,
-        trackedCandidateNames: new Set(payload.candidate_roster.candidates.map(candidate => candidate.candidate_name)),
+        rosterCount: validRegistryQuery ? registryQuery.count : legacyCandidates.length,
+        evidenceCandidateNames,
         reviews: validReviews.sort((a, b) => b.review_date.localeCompare(a.review_date) || a.id.localeCompare(b.id)),
         skippedReviews: payload.reviews.length - validReviews.length
       };
@@ -9083,8 +9094,8 @@
       $("#claims-match-count").textContent = `${filtered.length} matching ${filtered.length === 1 ? "review" : "reviews"}`;
       const wire = $("#claim-wire-scroll");
 
-      if (!claimsPayload.rosterCount) {
-        wire.innerHTML = '<div class="claims-state">No political figures currently meet the rolling 45-day polling eligibility rule.</div>';
+      if (!claimsPayload.rosterCount && !claimsPayload.reviews.length) {
+        wire.innerHTML = '<div class="claims-state">No political figures are currently in the active registry monitoring field.</div>';
         return;
       }
       if (!claimsPayload.reviews.length) {

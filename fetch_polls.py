@@ -47,7 +47,10 @@ WIKIPEDIA_LICENSE = "CC BY-SA 4.0"
 ROUND = FIRST_ROUND
 SECOND_ROUND = "second_round"
 DASHES = {"", "-", "–", "—", "−", "nan", "none"}
-CANONICAL_CANDIDATES = (
+# Reviewed source spellings support normalization and bounded adapters only.
+# This catalog is not a candidate-membership allowlist: clean unknown names pass
+# through every general poll contract and remain source evidence.
+REVIEWED_CANDIDATE_SPELLINGS = (
     "Bernard Cazeneuve",
     "Bruno Le Maire",
     "Bruno Retailleau",
@@ -103,10 +106,10 @@ def cell_link(cell: object) -> str | None:
 normalize = normalize_identity
 
 
-CANDIDATE_ALIASES = {
-    normalize(name): name for name in CANONICAL_CANDIDATES
+CANDIDATE_NORMALIZATION_ALIASES = {
+    normalize(name): name for name in REVIEWED_CANDIDATE_SPELLINGS
 }
-CANDIDATE_ALIASES.update(
+CANDIDATE_NORMALIZATION_ALIASES.update(
     {
         normalize("Edouard Philippe"): "Édouard Philippe",
         normalize("Eric Zemmour"): "Éric Zemmour",
@@ -127,13 +130,18 @@ CANDIDATE_ALIASES.update(
 
 
 def canonical_candidate_name(value: str, *, strict: bool = False) -> str:
-    """Return a known display name, failing on unknown official candidates."""
+    """Normalize reviewed aliases while preserving clean source-reported names.
+
+    ``strict`` protects source adapters from blank or visibly corrupted unknown
+    text. It does not turn the reviewed alias catalog into a membership list.
+    """
+
     name = re.sub(r"\s+", " ", value).strip()
-    canonical = CANDIDATE_ALIASES.get(normalize(name))
+    canonical = CANDIDATE_NORMALIZATION_ALIASES.get(normalize(name))
     if canonical:
         return canonical
-    if strict:
-        raise ValueError(f"unknown official candidate name: {value!r}")
+    if strict and (not name or "�" in name):
+        raise ValueError(f"invalid source candidate name: {value!r}")
     return name
 
 
@@ -615,21 +623,23 @@ def fetch_mediawiki_parse(parameters: dict[str, str]) -> dict:
 def canonical_matchup_candidate(value: str) -> str:
     """Resolve a full name or unique surname-style label to a candidate."""
     raw_name = candidate_name(value)
-    direct = CANDIDATE_ALIASES.get(normalize(raw_name))
+    direct = CANDIDATE_NORMALIZATION_ALIASES.get(normalize(raw_name))
     if direct:
         return direct
 
     short = normalize(raw_name)
     matches = [
         name
-        for name in CANONICAL_CANDIDATES
+        for name in REVIEWED_CANDIDATE_SPELLINGS
         if normalize(name) == short or normalize(name).endswith(f" {short}")
     ]
-    if len(matches) != 1:
-        raise ValueError(
-            f"matchup candidate is not uniquely canonical: {value!r}"
-        )
-    return matches[0]
+    if len(matches) == 1:
+        return matches[0]
+    if not matches and len(raw_name.split()) >= 2 and "�" not in raw_name:
+        return raw_name
+    raise ValueError(
+        f"matchup candidate is not uniquely identifiable: {value!r}"
+    )
 
 
 def matchup_candidates_from_heading(heading: str) -> list[str]:
@@ -1421,9 +1431,9 @@ def parse_ipsos(reader: PdfReader, notice: dict) -> list[dict]:
             if (match := percentage_line.fullmatch(line))
         ]
         names = [
-            CANDIDATE_ALIASES[normalize(line)]
+            CANDIDATE_NORMALIZATION_ALIASES[normalize(line)]
             for line in lines
-            if normalize(line) in CANDIDATE_ALIASES
+            if normalize(line) in CANDIDATE_NORMALIZATION_ALIASES
         ]
         if len(names) != len(scores):
             raise ValueError(
