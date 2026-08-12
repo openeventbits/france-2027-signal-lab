@@ -70,11 +70,12 @@ def complete_inputs(root):
         root,
         "campaign_events.json",
         {
-            "schema_version": "1.0",
+            "schema_version": "1.1",
             "generated_at": "2026-08-01T00:00:00Z",
             "data_as_of": "2026-08-01T00:00:00Z",
             "campaign_events": [],
             "institutional_milestones": [],
+            "event_watch": [],
         },
     )
     write_json(
@@ -482,7 +483,7 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertEqual(lane["file"], "campaign_events.json")
         self.assertTrue(lane["available"])
         self.assertTrue(lane["valid"])
-        self.assertEqual(lane["schema_version"], "1.0")
+        self.assertEqual(lane["schema_version"], "1.1")
         self.assertEqual(lane["generated_at"], "2026-08-01T00:00:00Z")
         self.assertEqual(lane["data_as_of"], "2026-08-01T00:00:00Z")
         self.assertEqual(lane["timestamp_status"], "known")
@@ -519,7 +520,8 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertEqual(
             lane["record_count"],
             len(tracked_campaign["campaign_events"])
-            + len(tracked_campaign["institutional_milestones"]),
+            + len(tracked_campaign["institutional_milestones"])
+            + len(tracked_campaign["event_watch"]),
         )
         self.assertEqual(lane["byte_size"], len(canonical_source_bytes(source)))
         self.assertEqual(
@@ -545,7 +547,7 @@ class PublicationManifestTests(unittest.TestCase):
             tracked["lanes"]["campaign_events"]["sha256"],
         )
 
-    def test_workflow_no_churn_sequence_matches_both_tracked_outputs(self):
+    def test_manual_workflow_no_churn_sequence_matches_both_tracked_outputs(self):
         production_root = self.production_inputs_root("workflow-no-churn")
         tracked_campaign = ROOT / "campaign_events.json"
         tracked_campaign_payload = json.loads(
@@ -555,84 +557,66 @@ class PublicationManifestTests(unittest.TestCase):
         tracked_manifest = json.loads(
             tracked_manifest_path.read_text(encoding="utf-8")
         )
-        simulated_timestamp = "2026-08-09T16:00:00Z"
-
-        def unchanged_source_events(source_id, *, observed_at):
-            self.assertEqual(observed_at, simulated_timestamp)
-            events = []
-            for tracked_event in tracked_campaign_payload["campaign_events"]:
-                evidence = [
-                    record
-                    for record in tracked_event["evidence"]
-                    if record["source_id"] == source_id
-                ]
-                if not evidence:
-                    continue
-
-                event = json.loads(json.dumps(tracked_event))
-                event_key = f"{source_id}-{tracked_event['event_key']}"
-                event["event_key"] = event_key
-                event["event_id"] = campaign_builder.campaign_event_id(
-                    "campaign_events",
-                    event_key,
-                )
-                event["evidence"] = evidence
-                event["status_as_of"] = observed_at[:10]
-                event["last_verified_at"] = observed_at
-                events.append(event)
-            return events
+        simulated_timestamp = "2099-01-01T00:00:00Z"
 
         self.assertGreater(
-            simulated_timestamp, tracked_campaign_payload["generated_at"]
+            simulated_timestamp,
+            tracked_campaign_payload["generated_at"],
         )
+
         campaign_builder.build_from_paths(
             generated_at=simulated_timestamp,
             seed_path=ROOT / "campaign_event_institutional_seeds.json",
             source_registry_path=ROOT / "campaign_event_sources.json",
             candidate_registry_path=ROOT / "candidate_candidacy_status.json",
+            manual_events_path=ROOT / "campaign_events_manual.json",
+            event_updates_path=ROOT / "campaign_event_updates_manual.json",
             output_path=production_root / "campaign_events.json",
             preserve_generated_at_from=tracked_campaign,
-            source_event_builders={
-                "rn-agenda": lambda **kwargs: unchanged_source_events(
-                    "rn-agenda", **kwargs
-                ),
-                "tf1-lci-debates": lambda **kwargs: unchanged_source_events(
-                    "tf1-lci-debates", **kwargs
-                ),
-                "la-lettre-expansion-agenda": lambda **kwargs: unchanged_source_events(
-                    "la-lettre-expansion-agenda", **kwargs
-                ),
-            },
         )
+
         rebuilt_campaign = json.loads(
-            (production_root / "campaign_events.json").read_text(encoding="utf-8")
+            (production_root / "campaign_events.json").read_text(
+                encoding="utf-8"
+            )
         )
+
         self.assertEqual(
             rebuilt_campaign["generated_at"],
             tracked_campaign_payload["generated_at"],
+        )
+        self.assertEqual(
+            rebuilt_campaign["data_as_of"],
+            tracked_campaign_payload["data_as_of"],
         )
         self.assertEqual(
             rebuilt_campaign["campaign_events"],
             tracked_campaign_payload["campaign_events"],
         )
         self.assertEqual(
+            rebuilt_campaign["institutional_milestones"],
+            tracked_campaign_payload["institutional_milestones"],
+        )
+        self.assertEqual(
+            rebuilt_campaign["event_watch"],
+            tracked_campaign_payload["event_watch"],
+        )
+        self.assertEqual(
             canonical_source_bytes(production_root / "campaign_events.json"),
             canonical_source_bytes(tracked_campaign),
         )
+
         rebuilt = manifest_builder.build_manifest(
             production_root,
             published_at=tracked_manifest["published_at"],
         )
-        self.assertEqual(rebuilt["published_at"], tracked_manifest["published_at"])
         repeated = manifest_builder.build_manifest(
             production_root,
             published_at=tracked_manifest["published_at"],
         )
+
         self.assertEqual(rebuilt, repeated)
-        self.assertEqual(
-            rebuilt["lanes"]["campaign_events"]["sha256"],
-            tracked_manifest["lanes"]["campaign_events"]["sha256"],
-        )
+        self.assertEqual(rebuilt, tracked_manifest)
 
     def test_genuine_campaign_events_change_updates_digest_and_snapshot(self):
         production_root = self.production_inputs_root("campaign-change")
