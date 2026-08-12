@@ -18,6 +18,7 @@ from campaign_event_institutional_seeds import (
     CampaignEventInstitutionalSeedError,
     load_campaign_event_institutional_seeds,
 )
+from campaign_events_manual import load_campaign_events_manual
 from campaign_event_linked_ics import (
     LinkedIcsCollectorConfigurationError,
     LinkedIcsCollectorResult,
@@ -75,6 +76,7 @@ class CampaignEventCollectionConfigurationError(BuildCampaignEventsError):
 DEFAULT_SEEDS = Path(__file__).with_name("campaign_event_institutional_seeds.json")
 DEFAULT_SOURCES = Path(__file__).with_name("campaign_event_sources.json")
 DEFAULT_CANDIDATES = Path(__file__).with_name("candidate_candidacy_status.json")
+DEFAULT_MANUAL_EVENTS = Path(__file__).with_name("campaign_events_manual.json")
 DEFAULT_OUTPUT = Path(__file__).with_name("campaign_events.json")
 
 SourceEventBuilder = Callable[..., list[dict[str, Any]]]
@@ -1216,6 +1218,7 @@ def build_from_paths(
     seed_path: str | Path = DEFAULT_SEEDS,
     source_registry_path: str | Path = DEFAULT_SOURCES,
     candidate_registry_path: str | Path = DEFAULT_CANDIDATES,
+    manual_events_path: str | Path = DEFAULT_MANUAL_EVENTS,
     output_path: str | Path = DEFAULT_OUTPUT,
     bootstrap_empty: bool = False,
     preserve_generated_at_from: str | Path | None = None,
@@ -1249,20 +1252,10 @@ def build_from_paths(
 
         campaign_events: list[dict[str, Any]] = []
         if not bootstrap_empty:
-            collectors = (
-                _PRODUCTION_COLLECTION_COLLECTORS
-                if collection_collectors is None
-                else collection_collectors
-            )
-            campaign_events = _collect_dynamic_campaign_events(
-                source_registry,
-                observed_at=generated_at,
-                previous_artifact=previous,
-                source_registry_path=source_registry_path,
+            campaign_events = load_campaign_events_manual(
+                manual_events_path,
                 candidate_registry_path=candidate_registry_path,
-                source_event_builders=source_event_builders,
-                collection_collectors=collectors,
-                collection_health=collection_health,
+                source_registry_path=source_registry_path,
             )
         artifact = build_campaign_events_artifact(
             seeds,
@@ -1304,6 +1297,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--seeds", default=str(DEFAULT_SEEDS))
     parser.add_argument("--sources", default=str(DEFAULT_SOURCES))
     parser.add_argument("--candidates", default=str(DEFAULT_CANDIDATES))
+    parser.add_argument("--manual-events", default=str(DEFAULT_MANUAL_EVENTS))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     parser.add_argument(
         "--preserve-generated-at-from",
@@ -1328,6 +1322,7 @@ def main(argv: list[str] | None = None) -> int:
             seed_path=arguments.seeds,
             source_registry_path=arguments.sources,
             candidate_registry_path=arguments.candidates,
+            manual_events_path=arguments.manual_events,
             output_path=arguments.output,
             bootstrap_empty=arguments.bootstrap_empty,
             preserve_generated_at_from=arguments.preserve_generated_at_from,

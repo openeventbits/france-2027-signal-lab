@@ -54,6 +54,17 @@ def rn_event(
         ],
     }
 
+def manual_event(*, event_key="manual-00000000000000000000000000000001", participants=None):
+    event = {"event_key": event_key, "title": "Grand débat présidentiel", "date": "2026-08-27", "event_type": "debate", "source_url": "https://example.com/politique/debat-2027", "source_publisher": "Example Média", "source_type": "reliable_media", "last_verified_at": GENERATED_AT}
+    if participants is not None:
+        event["participants"] = participants
+    return event
+
+
+def manual_payload(*events):
+    return {"schema_version": "1.0", "events": list(events)}
+
+
 class BuildCampaignEventsTests(unittest.TestCase):
     def setUp(self):
         self.temporary_root = ROOT / f".campaign-events-build-test-{uuid.uuid4().hex}"
@@ -67,8 +78,8 @@ class BuildCampaignEventsTests(unittest.TestCase):
             "seed_path": ROOT / "campaign_event_institutional_seeds.json",
             "source_registry_path": ROOT / "campaign_event_sources.json",
             "candidate_registry_path": ROOT / "candidate_candidacy_status.json",
+            "manual_events_path": ROOT / "campaign_events_manual.json",
             "output_path": self.output,
-            "source_event_builders": {"rn-agenda": lambda **_kwargs: []},
         }
         arguments.update(changes)
         return builder.build_from_paths(**arguments)
@@ -123,241 +134,66 @@ class BuildCampaignEventsTests(unittest.TestCase):
         self.assertEqual(self.output.read_bytes(), sentinel)
         self.assertEqual(list(self.temporary_root.glob(".campaign_events.json.*.tmp")), [])
 
-    def test_same_real_world_event_from_two_sources_reconciles(self):
-        registry = self.production_registry()
-        registry["sources"] = [
-            item for item in registry["sources"]
-            if item["source_id"] != "tf1-lci-debates"
-        ]
-        registry["sources"].append(
-            {
-                "source_id": "tf1-lci-debates",
-                "publisher": "TF1 Info",
-                "source_type": "reliable_media",
-                "url": (
-                    "https://www.tf1info.fr/politique/"
-                    "election-presidentielle-2027-lci-organisera-le-27-aout-"
-                    "un-grand-debat-avec-sept-candidats-declares-ou-"
-                    "pressentis-2455591.html"
-                ),
-                "allowed_lanes": ["campaign_events"],
-                "allowed_event_types": ["debate"],
-                "enabled": True,
-                "required": False,
-                "refresh_class": "daily",
-                "zero_result_valid": True,
-                "collection": {
-                    "discovery_method": "direct",
-                    "parser_family": "json_ld",
-                    "attribution_policy": "multi_candidate_explicit",
-                },
-            }
-        )
-        registry["sources"].sort(key=lambda item: item["source_id"])
-        registry_path = self.write_json("reconciliation-sources.json", registry)
 
-        lci_key = "tf1-lci-presidential-debate-2026-08-27-1645"
-        lci_event = {
-            "event_key": lci_key,
-            "event_id": campaign_event_id("campaign_events", lci_key),
-            "event_type": "debate",
-            "title": "Présidentielle 2027 : grand débat sur LCI",
-            "candidate_ids": [
-                "bruno-retailleau",
-                "edouard-philippe",
-                "gabriel-attal",
-                "jean-luc-melenchon",
-                "marine-le-pen",
-                "marine-tondelier",
-                "raphael-glucksmann",
-            ],
-            "candidate_names": [
-                "Bruno Retailleau",
-                "Édouard Philippe",
-                "Gabriel Attal",
-                "Jean-Luc Mélenchon",
-                "Marine Le Pen",
-                "Marine Tondelier",
-                "Raphaël Glucksmann",
-            ],
-            "scheduled_start": "2026-08-27T16:45:00+02:00",
-            "time_precision": "datetime",
-            "timezone": "Europe/Paris",
-            "organization": "MEDEF",
-            "status": "scheduled",
-            "status_as_of": GENERATED_AT[:10],
-            "evidence_status": "verified",
-            "last_verified_at": GENERATED_AT,
-            "evidence": [
-                {
-                    "source_id": "tf1-lci-debates",
-                    "source_url": (
-                        "https://www.tf1info.fr/politique/"
-                        "election-presidentielle-2027-lci-organisera-le-27-aout-"
-                        "un-grand-debat-avec-sept-candidats-declares-ou-"
-                        "pressentis-2455591.html"
-                    ),
-                    "source_publisher": "TF1 Info",
-                    "source_type": "reliable_media",
-                    "evidence_type": "explicit_schedule",
-                }
-            ],
-        }
 
-        artifact = self.build(
-            source_registry_path=registry_path,
-            source_event_builders={
-                "rn-agenda": lambda **_kwargs: [rn_event()],
-                "tf1-lci-debates": lambda **_kwargs: [lci_event],
-            },
-        )
+    def write_manual_events(self, *events):
+        return self.write_json("manual-events.json", manual_payload(*events))
 
+    def test_empty_manual_input_publishes_two_milestones(self):
+        path = self.write_manual_events()
+        with mock.patch.object(builder, "load_campaign_events_manual", wraps=builder.load_campaign_events_manual) as loader:
+            artifact = self.build(manual_events_path=path)
+        loader.assert_called_once_with(path, candidate_registry_path=ROOT / "candidate_candidacy_status.json", source_registry_path=ROOT / "campaign_event_sources.json")
+        self.assertEqual(artifact["campaign_events"], [])
+        self.assert_two_milestones(artifact)
+        validate_campaign_events_artifact(artifact)
+
+    def test_manual_event_publishes_with_persisted_key_and_deterministic_id(self):
+        event = manual_event(participants=["David Lisnard"])
+        artifact = self.build(manual_events_path=self.write_manual_events(event))
+        published = artifact["campaign_events"][0]
+        self.assert_two_milestones(artifact)
+        self.assertEqual(published["event_key"], event["event_key"])
+        self.assertEqual(published["event_id"], campaign_event_id("campaign_events", event["event_key"]))
+        self.assertEqual(published["candidate_ids"], ["david-lisnard"])
+        validate_campaign_events_artifact(artifact)
+
+    def test_manual_participant_linkage_respects_candidate_visibility(self):
+        artifact = self.build(manual_events_path=self.write_manual_events(manual_event(participants=["David Lisnard", "Benjamin Lucas-Lundy", "Unknown Political Actor"])))
+        published = artifact["campaign_events"][0]
+        self.assertEqual(published["participants"], ["Benjamin Lucas-Lundy", "David Lisnard", "Unknown Political Actor"])
+        self.assertEqual(published["candidate_ids"], ["david-lisnard"])
+        self.assertEqual(published["candidate_names"], ["David Lisnard"])
+
+    def test_normal_build_never_dispatches_dynamic_collectors_or_network(self):
+        path = self.write_manual_events(manual_event())
+        with mock.patch.object(builder, "_collect_dynamic_campaign_events", side_effect=AssertionError("dynamic collection invoked")), mock.patch.object(builder, "_dispatch_campaign_event_collection", side_effect=AssertionError("collection dispatch invoked")), mock.patch.object(socket, "create_connection", side_effect=AssertionError("network access attempted")), mock.patch.object(socket, "socket", side_effect=AssertionError("network access attempted")):
+            artifact = self.build(manual_events_path=path)
         self.assertEqual(len(artifact["campaign_events"]), 1)
-        event = artifact["campaign_events"][0]
 
-        self.assertEqual(
-            set(event["candidate_ids"]),
-            {
-                "bruno-retailleau",
-                "edouard-philippe",
-                "gabriel-attal",
-                "jean-luc-melenchon",
-                "marine-le-pen",
-                "marine-tondelier",
-                "raphael-glucksmann",
-            },
-        )
-        self.assertEqual(
-            {record["source_id"] for record in event["evidence"]},
-            {"rn-agenda", "tf1-lci-debates"},
-        )
-        self.assertEqual(
-            event["event_key"],
-            "campaign-debate-2026-08-27-1645-medef",
-        )
-        self.assertFalse(event["event_key"].startswith("rn-agenda-"))
-        self.assertFalse(event["event_key"].startswith("tf1-lci-"))
+    def test_malformed_manual_input_preserves_existing_artifact(self):
+        path = self.write_json("malformed-manual-events.json", {"schema_version": "1.0", "events": "invalid"})
+        self.assert_last_good(lambda: self.build(manual_events_path=path))
 
-        validate_campaign_events_artifact(
-            artifact,
-            source_registry_path=registry_path,
-        )
+    def test_repeated_manual_build_is_byte_identical(self):
+        path = self.write_manual_events(manual_event())
+        self.build(manual_events_path=path); first = self.output.read_bytes()
+        self.build(manual_events_path=path)
+        self.assertEqual(self.output.read_bytes(), first)
 
-    def test_reconciled_event_survives_one_optional_source_failure(self):
-        registry = self.production_registry()
-        registry["sources"] = [
-            item for item in registry["sources"]
-            if item["source_id"] != "tf1-lci-debates"
-        ]
-        registry["sources"].append(
-            {
-                "source_id": "tf1-lci-debates",
-                "publisher": "TF1 Info",
-                "source_type": "reliable_media",
-                "url": "https://www.tf1info.fr/politique/presidentielle-2027-debat.html",
-                "allowed_lanes": ["campaign_events"],
-                "allowed_event_types": ["debate"],
-                "enabled": True,
-                "required": False,
-                "refresh_class": "daily",
-                "zero_result_valid": True,
-                "collection": {
-                    "discovery_method": "direct",
-                    "parser_family": "json_ld",
-                    "attribution_policy": "multi_candidate_explicit",
-                },
-            }
-        )
-        registry["sources"].sort(key=lambda item: item["source_id"])
-        registry_path = self.write_json("failure-reconciliation-sources.json", registry)
+    def test_manual_input_preserves_generated_at_when_semantics_match(self):
+        path = self.write_manual_events(manual_event())
+        existing = self.build(generated_at="2026-08-01T16:00:00Z", manual_events_path=path); existing_bytes = self.output.read_bytes()
+        candidate_path = self.temporary_root / "candidate.json"
+        candidate = self.build(generated_at="2026-08-02T16:00:00Z", manual_events_path=path, output_path=candidate_path, preserve_generated_at_from=self.output)
+        self.assertEqual(candidate, existing)
+        self.assertEqual(candidate_path.read_bytes(), existing_bytes)
 
-        lci_key = "tf1-lci-presidential-debate-2026-08-27-1645"
-        lci_event = {
-            "event_key": lci_key,
-            "event_id": campaign_event_id("campaign_events", lci_key),
-            "event_type": "debate",
-            "title": "Présidentielle 2027 : grand débat sur LCI",
-            "candidate_ids": [
-                "bruno-retailleau",
-                "edouard-philippe",
-                "gabriel-attal",
-                "jean-luc-melenchon",
-                "marine-le-pen",
-                "marine-tondelier",
-                "raphael-glucksmann",
-            ],
-            "candidate_names": [
-                "Bruno Retailleau",
-                "Édouard Philippe",
-                "Gabriel Attal",
-                "Jean-Luc Mélenchon",
-                "Marine Le Pen",
-                "Marine Tondelier",
-                "Raphaël Glucksmann",
-            ],
-            "scheduled_start": "2026-08-27T16:45:00+02:00",
-            "time_precision": "datetime",
-            "timezone": "Europe/Paris",
-            "organization": "MEDEF",
-            "status": "scheduled",
-            "status_as_of": "2026-08-01",
-            "evidence_status": "verified",
-            "last_verified_at": "2026-08-01T16:00:00Z",
-            "evidence": [
-                {
-                    "source_id": "tf1-lci-debates",
-                    "source_url": "https://www.tf1info.fr/politique/presidentielle-2027-debat.html",
-                    "source_publisher": "TF1 Info",
-                    "source_type": "reliable_media",
-                    "evidence_type": "explicit_schedule",
-                }
-            ],
-        }
-
-        first = self.build(
-            generated_at="2026-08-01T16:00:00Z",
-            source_registry_path=registry_path,
-            source_event_builders={
-                "rn-agenda": lambda **_kwargs: [
-                    rn_event("2026-08-01T16:00:00Z")
-                ],
-                "tf1-lci-debates": lambda **_kwargs: [lci_event],
-            },
-        )
-
-        with mock.patch("builtins.print") as printer:
-            second = self.build(
-                generated_at="2026-08-02T16:00:00Z",
-                source_registry_path=registry_path,
-                preserve_generated_at_from=self.output,
-                source_event_builders={
-                    "rn-agenda": lambda **_kwargs: [
-                        rn_event("2026-08-02T16:00:00Z")
-                    ],
-                    "tf1-lci-debates": mock.Mock(
-                        side_effect=OSError("offline")
-                    ),
-                },
-            )
-
-        self.assertEqual(len(second["campaign_events"]), 1)
-        event = second["campaign_events"][0]
-        self.assertEqual(
-            {record["source_id"] for record in event["evidence"]},
-            {"rn-agenda", "tf1-lci-debates"},
-        )
-        self.assertEqual(
-            set(event["candidate_ids"]),
-            set(first["campaign_events"][0]["candidate_ids"]),
-        )
-        self.assertEqual(
-            event["event_key"],
-            "campaign-debate-2026-08-27-1645-medef",
-        )
-        printer.assert_called_once_with(
-            "warning: Campaign Events source tf1-lci-debates failed; "
-            "preserved 1 previous record"
-        )
+    def test_bootstrap_empty_does_not_require_manual_input(self):
+        artifact = self.build(seed_path=self.temporary_root / "missing-seeds.json", manual_events_path=self.temporary_root / "missing-manual-events.json", bootstrap_empty=True)
+        self.assertEqual(artifact["campaign_events"], [])
+        self.assertEqual(artifact["institutional_milestones"], [])
+        self.assertEqual(artifact["data_as_of"], GENERATED_AT)
 
     def test_date_only_and_datetime_same_event_reconcile_to_datetime(self):
         tf1_key = "tf1-lci-2026-08-29-1645-hollande-philippe-debate"
@@ -929,29 +765,7 @@ class BuildCampaignEventsTests(unittest.TestCase):
                 collection_collectors={},
             )
 
-    def test_unknown_collector_is_fatal_through_full_build_path(self):
-        health = []
-        self.assert_last_good(
-            lambda: self.build(
-                source_event_builders=None,
-                source_registry_path=self.registry_with_rn(),
-                collection_collectors={},
-                collection_health=health,
-            )
-        )
-        self.assertEqual(health, [])
 
-    def test_malformed_generic_collector_return_is_fatal_through_build(self):
-        health = []
-        self.assert_last_good(
-            lambda: self.build(
-                source_event_builders=None,
-                source_registry_path=self.registry_with_rn(),
-                collection_collectors={"rn-agenda": lambda **_kwargs: []},
-                collection_health=health,
-            )
-        )
-        self.assertEqual(health, [])
 
     def test_custom_rn_collector_remains_supported(self):
         source = next(
@@ -980,83 +794,7 @@ class BuildCampaignEventsTests(unittest.TestCase):
         )
         rn_builder.assert_called_once_with(observed_at=GENERATED_AT)
 
-    def test_generic_collector_output_uses_source_owned_normalization(self):
-        collector = mock.Mock(
-            return_value=builder.SourceCollectionResult(
-                observations=[rn_event()],
-                attribution_rejected_records=2,
-            )
-        )
-        health = []
-        artifact = self.build(
-            source_event_builders=None,
-            source_registry_path=self.registry_with_rn(),
-            collection_collectors={"rn-agenda": collector},
-            collection_health=health,
-        )
 
-        self.assertEqual(len(artifact["campaign_events"]), 1)
-        collector.assert_called_once()
-        supplied = collector.call_args.kwargs
-        self.assertEqual(supplied["observed_at"], GENERATED_AT)
-        self.assertEqual(supplied["source"]["source_id"], "rn-agenda")
-        self.assertEqual(
-            health,
-            [
-                builder.SourceCollectionHealth(
-                    source_id="rn-agenda",
-                    checked_successfully=True,
-                    accepted_records=1,
-                    attribution_rejected_records=2,
-                    preserved_records=0,
-                    failure_reason=None,
-                )
-            ],
-        )
-        self.assertEqual(
-            set(artifact),
-            {
-                "schema_version",
-                "generated_at",
-                "data_as_of",
-                "campaign_events",
-                "institutional_milestones",
-            },
-        )
-        self.assertTrue(
-            all(
-                "attribution_rejected_records" not in event
-                and "collection_health" not in event
-                for event in artifact["campaign_events"]
-            )
-        )
-
-    def test_zero_accepted_with_rejections_flows_to_collection_health(self):
-        health = []
-        self.build(
-            source_event_builders=None,
-            source_registry_path=self.registry_with_rn(),
-            collection_collectors={
-                "rn-agenda": lambda **_kwargs: builder.SourceCollectionResult(
-                    observations=[],
-                    attribution_rejected_records=3,
-                )
-            },
-            collection_health=health,
-        )
-        self.assertEqual(
-            health,
-            [
-                builder.SourceCollectionHealth(
-                    source_id="rn-agenda",
-                    checked_successfully=True,
-                    accepted_records=0,
-                    attribution_rejected_records=3,
-                    preserved_records=0,
-                    failure_reason=None,
-                )
-            ],
-        )
 
     def test_source_collection_result_rejects_negative_rejection_count(self):
         with self.assertRaisesRegex(
@@ -1077,317 +815,19 @@ class BuildCampaignEventsTests(unittest.TestCase):
                 ):
                     builder.SourceCollectionResult(observations=observations)
 
-    def test_exact_one_event_rn_success_invokes_injected_builder_once(self):
-        source_builder = mock.Mock(return_value=[rn_event()])
-        artifact = self.build(
-            source_event_builders={"rn-agenda": source_builder}
-        )
 
-        source_builder.assert_called_once_with(observed_at=GENERATED_AT)
-        self.assertEqual(len(artifact["campaign_events"]), 1)
-        self.assertEqual(
-            artifact["campaign_events"][0]["event_key"],
-            "campaign-debate-2026-08-27-1645-medef",
-        )
-        self.assertEqual(
-            artifact["campaign_events"][0]["event_id"],
-            campaign_event_id(
-                "campaign_events",
-                "campaign-debate-2026-08-27-1645-medef",
-            ),
-        )
-        self.assertEqual(artifact["data_as_of"], GENERATED_AT)
-        self.assert_two_milestones(artifact)
-        validate_campaign_events_artifact(artifact)
 
-    def test_valid_zero_removes_previous_rn_partition(self):
-        self.build(
-            generated_at="2026-08-01T16:00:00Z",
-            source_event_builders={
-                "rn-agenda": lambda **_kwargs: [
-                    rn_event("2026-08-01T16:00:00Z")
-                ]
-            },
-        )
-        artifact = self.build(
-            generated_at="2026-08-02T16:00:00Z",
-            preserve_generated_at_from=self.output,
-            source_event_builders={"rn-agenda": lambda **_kwargs: []},
-        )
 
-        self.assertEqual(artifact["campaign_events"], [])
-        self.assert_two_milestones(artifact)
-        self.assertEqual(artifact["data_as_of"], "2026-08-01T00:00:00Z")
 
-    def test_successful_replacement_removes_missing_prior_rn_event(self):
-        older = "2026-08-01T16:00:00Z"
-        first = rn_event(older)
-        missing = rn_event(
-            older,
-            event_key="rn-agenda-marine-le-pen-2027-01-15-1930-debate",
-            title="Marine Le Pen en débat en janvier",
-            scheduled_start="2027-01-15T19:30:00+01:00",
-        )
-        self.build(
-            generated_at=older,
-            source_event_builders={
-                "rn-agenda": lambda **_kwargs: [first, missing]
-            },
-        )
-        artifact = self.build(
-            generated_at="2026-08-02T16:00:00Z",
-            preserve_generated_at_from=self.output,
-            source_event_builders={
-                "rn-agenda": lambda **_kwargs: [
-                    rn_event("2026-08-02T16:00:00Z")
-                ]
-            },
-        )
 
-        self.assertEqual(
-            [event["event_key"] for event in artifact["campaign_events"]],
-            ["campaign-debate-2026-08-27-1645-medef"],
-        )
-        self.assert_two_milestones(artifact)
 
-    def test_optional_transport_failure_preserves_previous_rn_partition(self):
-        observed = "2026-08-01T16:00:00Z"
-        previous = self.build(
-            generated_at=observed,
-            source_event_builders={
-                "rn-agenda": lambda **_kwargs: [rn_event(observed)]
-            },
-        )
-        previous_bytes = self.output.read_bytes()
-        source_builder = mock.Mock(side_effect=OSError("offline"))
-        health = []
-        with mock.patch("builtins.print") as printer:
-            artifact = self.build(
-                generated_at="2026-08-02T16:00:00Z",
-                preserve_generated_at_from=self.output,
-                source_event_builders=None,
-                source_registry_path=self.registry_with_rn(),
-                collection_collectors={"rn-agenda": source_builder},
-                collection_health=health,
-            )
 
-        self.assertEqual(artifact, previous)
-        self.assertEqual(self.output.read_bytes(), previous_bytes)
-        self.assertEqual(
-            artifact["campaign_events"][0]["last_verified_at"], observed
-        )
-        printer.assert_called_once_with(
-            "warning: Campaign Events source rn-agenda failed; "
-            "preserved 1 previous record"
-        )
-        self.assertEqual(
-            health,
-            [
-                builder.SourceCollectionHealth(
-                    source_id="rn-agenda",
-                    checked_successfully=False,
-                    accepted_records=0,
-                    attribution_rejected_records=0,
-                    preserved_records=1,
-                    failure_reason="collector_failure",
-                )
-            ],
-        )
-        self.assert_two_milestones(artifact)
 
-    def test_optional_parser_failure_preserves_previous_rn_partition(self):
-        observed = "2026-08-01T16:00:00Z"
-        previous = self.build(
-            generated_at=observed,
-            source_event_builders={
-                "rn-agenda": lambda **_kwargs: [rn_event(observed)]
-            },
-        )
-        source_builder = mock.Mock(
-            side_effect=RnAgendaAdapterError("unrecognized structure")
-        )
-        with mock.patch("builtins.print"):
-            artifact = self.build(
-                generated_at="2026-08-02T16:00:00Z",
-                preserve_generated_at_from=self.output,
-                source_event_builders={"rn-agenda": source_builder},
-            )
-        self.assertEqual(artifact, previous)
-        self.assert_two_milestones(artifact)
 
-    def test_required_source_failure_aborts_and_preserves_output(self):
-        required_registry = self.registry_with_rn(required=True)
-        source_builder = mock.Mock(side_effect=OSError("offline"))
-        self.assert_last_good(
-            lambda: self.build(
-                source_registry_path=required_registry,
-                source_event_builders=None,
-                collection_collectors={"rn-agenda": source_builder},
-            )
-        )
-        source_builder.assert_called_once()
-        self.assertEqual(
-            source_builder.call_args.kwargs["source"]["source_id"],
-            "rn-agenda",
-        )
-        self.assertEqual(
-            source_builder.call_args.kwargs["observed_at"],
-            GENERATED_AT,
-        )
 
-    def test_invalid_previous_artifact_is_not_trusted_for_optional_failure(self):
-        invalid_previous = self.temporary_root / "invalid-previous.json"
-        invalid_previous.write_text("{not json", encoding="utf-8")
-        with mock.patch("builtins.print") as printer:
-            artifact = self.build(
-                generated_at="2026-08-02T16:00:00Z",
-                preserve_generated_at_from=invalid_previous,
-                source_event_builders={
-                    "rn-agenda": mock.Mock(side_effect=OSError("offline"))
-                },
-            )
-        self.assertEqual(artifact["campaign_events"], [])
-        self.assertEqual(artifact["generated_at"], "2026-08-02T16:00:00Z")
-        printer.assert_called_once_with(
-            "warning: Campaign Events source rn-agenda failed; "
-            "preserved 0 previous records"
-        )
-        self.assert_two_milestones(artifact)
 
-    def test_disallowed_zero_uses_optional_last_good_semantics(self):
-        registry_path = self.registry_with_rn(zero_result_valid=False)
-        observed = "2026-08-01T16:00:00Z"
-        previous = self.build(
-            generated_at=observed,
-            source_registry_path=registry_path,
-            source_event_builders={
-                "rn-agenda": lambda **_kwargs: [rn_event(observed)]
-            },
-        )
-        previous_bytes = self.output.read_bytes()
-        with mock.patch("builtins.print") as printer:
-            artifact = self.build(
-                generated_at="2026-08-02T16:00:00Z",
-                source_registry_path=registry_path,
-                preserve_generated_at_from=self.output,
-                source_event_builders={"rn-agenda": lambda **_kwargs: []},
-            )
-        self.assertEqual(artifact, previous)
-        self.assertEqual(self.output.read_bytes(), previous_bytes)
-        printer.assert_called_once_with(
-            "warning: Campaign Events source rn-agenda returned zero events "
-            "while zero_result_valid is false; preserved 1 previous record"
-        )
-        self.assert_two_milestones(artifact)
 
-    def test_identical_source_duplicates_collapse_deterministically(self):
-        event = rn_event()
-        artifact = self.build(
-            source_event_builders={
-                "rn-agenda": lambda **_kwargs: [event, json.loads(json.dumps(event))]
-            }
-        )
-        self.assertEqual(len(artifact["campaign_events"]), 1)
-        self.assert_two_milestones(artifact)
 
-    def test_conflicting_event_key_fails_without_replacing_output(self):
-        first = rn_event()
-        conflict = rn_event(title="Conflicting title")
-        self.assert_last_good(
-            lambda: self.build(
-                source_event_builders={
-                    "rn-agenda": lambda **_kwargs: [first, conflict]
-                }
-            )
-        )
-
-    def test_conflicting_event_id_fails_without_replacing_output(self):
-        first = rn_event()
-        conflict = rn_event(
-            event_key="rn-agenda-marine-le-pen-2027-01-15-1930-debate",
-            scheduled_start="2027-01-15T19:30:00+01:00",
-        )
-        conflict["event_id"] = first["event_id"]
-        self.assert_last_good(
-            lambda: self.build(
-                source_event_builders={
-                    "rn-agenda": lambda **_kwargs: [first, conflict]
-                }
-            )
-        )
-
-    def test_unchanged_source_preserves_nested_timestamps_and_exact_bytes(self):
-        previous_observed = "2026-08-01T16:00:00Z"
-        previous = self.build(
-            generated_at=previous_observed,
-            source_event_builders={
-                "rn-agenda": lambda **_kwargs: [rn_event(previous_observed)]
-            },
-        )
-        previous_bytes = self.output.read_bytes()
-        current_observed = "2026-08-02T16:00:00Z"
-        current = self.build(
-            generated_at=current_observed,
-            preserve_generated_at_from=self.output,
-            source_event_builders={
-                "rn-agenda": lambda **_kwargs: [rn_event(current_observed)]
-            },
-        )
-
-        self.assertEqual(current, previous)
-        self.assertEqual(self.output.read_bytes(), previous_bytes)
-        self.assertEqual(current["generated_at"], previous_observed)
-        self.assertEqual(
-            current["campaign_events"][0]["status_as_of"], "2026-08-01"
-        )
-        self.assertEqual(
-            current["campaign_events"][0]["last_verified_at"], previous_observed
-        )
-
-    def test_substantive_source_change_uses_current_observation_fields(self):
-        previous_observed = "2026-08-01T16:00:00Z"
-        self.build(
-            generated_at=previous_observed,
-            source_event_builders={
-                "rn-agenda": lambda **_kwargs: [rn_event(previous_observed)]
-            },
-        )
-        current_observed = "2026-08-02T16:00:00Z"
-        artifact = self.build(
-            generated_at=current_observed,
-            preserve_generated_at_from=self.output,
-            source_event_builders={
-                "rn-agenda": lambda **_kwargs: [
-                    rn_event(current_observed, title="Marine Le Pen face au MEDEF")
-                ]
-            },
-        )
-
-        event = artifact["campaign_events"][0]
-        self.assertEqual(artifact["generated_at"], current_observed)
-        self.assertEqual(artifact["data_as_of"], current_observed)
-        self.assertEqual(event["status_as_of"], "2026-08-02")
-        self.assertEqual(event["last_verified_at"], current_observed)
-        self.assert_two_milestones(artifact)
-
-    def test_invalid_adapter_output_does_not_replace_last_good(self):
-        observed = "2026-08-01T16:00:00Z"
-        self.build(
-            generated_at=observed,
-            source_event_builders={
-                "rn-agenda": lambda **_kwargs: [rn_event(observed)]
-            },
-        )
-        previous_bytes = self.output.read_bytes()
-        invalid = rn_event("2026-08-02T16:00:00Z")
-        invalid["evidence"][0]["source_publisher"] = "Wrong Publisher"
-        with self.assertRaises(builder.BuildCampaignEventsError):
-            self.build(
-                generated_at="2026-08-02T16:00:00Z",
-                preserve_generated_at_from=self.output,
-                source_event_builders={"rn-agenda": lambda **_kwargs: [invalid]},
-            )
-        self.assertEqual(self.output.read_bytes(), previous_bytes)
     def test_successful_two_milestone_build(self):
         artifact = self.build()
         self.assertEqual(artifact["generated_at"], GENERATED_AT)
@@ -1502,24 +942,6 @@ class BuildCampaignEventsTests(unittest.TestCase):
             source_registry_path=ROOT / "campaign_event_sources.json",
         )
 
-    def test_tracked_artifact_regenerates_byte_for_byte_with_preservation(self):
-        tracked = ROOT / "campaign_events.json"
-        tracked_payload = json.loads(tracked.read_text(encoding="utf-8"))
-        newer_observed_at = "2026-08-09T16:00:00Z"
-        candidate = self.build(
-            generated_at=newer_observed_at,
-            preserve_generated_at_from=tracked,
-            source_event_builders={
-                "rn-agenda": lambda **_kwargs: [rn_event(newer_observed_at)]
-            },
-        )
-        self.assertGreater(newer_observed_at, tracked_payload["generated_at"])
-        self.assertEqual(candidate["generated_at"], tracked_payload["generated_at"])
-        self.assertEqual(
-            candidate["campaign_events"], tracked_payload["campaign_events"]
-        )
-        self.assertEqual(self.output.read_bytes(), tracked.read_bytes())
-        self.assertEqual(candidate, tracked_payload)
 
     def test_explicit_timestamp_is_required_and_local_timezone_independent(self):
         artifact = self.build(generated_at="2026-12-15T01:02:03Z")
