@@ -275,6 +275,9 @@ class PublicationManifestTests(unittest.TestCase):
         manifest = self.build()
         lane = manifest["lanes"]["candidacy_status"]
         source = self.root / "candidate_candidacy_status.json"
+        source_payload = json.loads(
+            source.read_text(encoding="utf-8")
+        )
         self.assertEqual(
             list(manifest["lanes"]),
             [
@@ -293,22 +296,76 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertEqual(lane["file"], "candidate_candidacy_status.json")
         self.assertTrue(lane["available"])
         self.assertTrue(lane["valid"])
-        self.assertEqual(lane["schema_version"], "1.0")
-        self.assertEqual(lane["data_as_of"], "2026-07-30")
+        self.assertEqual(
+            lane["schema_version"],
+            source_payload["schema_version"],
+        )
+        self.assertEqual(
+            lane["data_as_of"],
+            source_payload["status_as_of"],
+        )
         self.assertEqual(lane["timestamp_status"], "known")
-        self.assertEqual(lane["record_count"], 20)
-        self.assertEqual(lane["candidate_total"], 20)
+        self.assertEqual(
+            lane["record_count"],
+            len(source_payload["candidates"]),
+        )
         self.assertEqual(
             lane["candidate_total"],
-            lane["main_total"] + lane["secondary_total"] + lane["hidden_total"],
+            len(source_payload["candidates"]),
         )
-        self.assertEqual(lane["active_total"], 18)
-        self.assertEqual(lane["temporarily_missing_total"], 0)
+
+        tier_counts = {
+            tier: sum(
+                candidate["display_tier"] == tier
+                for candidate in source_payload["candidates"]
+            )
+            for tier in ("main", "secondary", "hidden")
+        }
+        self.assertEqual(lane["main_total"], tier_counts["main"])
+        self.assertEqual(
+            lane["secondary_total"],
+            tier_counts["secondary"],
+        )
+        self.assertEqual(lane["hidden_total"], tier_counts["hidden"])
+        self.assertEqual(
+            lane["candidate_total"],
+            sum(tier_counts.values()),
+        )
+
+        expected_active = sum(
+            candidate["display_tier"] in {"main", "secondary"}
+            and candidate.get("upstream_presence", "present") == "present"
+            for candidate in source_payload["candidates"]
+        )
+        self.assertEqual(lane["active_total"], expected_active)
+        self.assertEqual(
+            lane["temporarily_missing_total"],
+            sum(
+                candidate.get("upstream_presence", "present")
+                == "temporarily_missing"
+                for candidate in source_payload["candidates"]
+            ),
+        )
+
         self.assertRegex(lane["semantic_sha256"], r"^[0-9a-f]{64}$")
-        self.assertEqual(lane["status_as_of"], "2026-07-30")
-        self.assertIsNone(lane["wikipedia_revision_id"])
-        self.assertIsNone(lane["wikipedia_revision_timestamp"])
-        self.assertIsNone(lane["canonical_source_url"])
+        self.assertEqual(
+            lane["status_as_of"],
+            source_payload["status_as_of"],
+        )
+
+        source_metadata = source_payload["source"]
+        self.assertEqual(
+            lane["wikipedia_revision_id"],
+            source_metadata["revision_id"],
+        )
+        self.assertEqual(
+            lane["wikipedia_revision_timestamp"],
+            source_metadata["revision_timestamp"],
+        )
+        self.assertEqual(
+            lane["canonical_source_url"],
+            source_metadata["page_url"],
+        )
         self.assertEqual(lane["warnings"], [])
         self.assertEqual(
             lane["sha256"],
@@ -735,12 +792,12 @@ class PublicationManifestTests(unittest.TestCase):
         registry = json.loads(registry_path.read_text(encoding="utf-8"))
         payload = self.candidate_payload()
         changed_id = registry["candidates"][0]["candidate_id"]
-        registry["candidates"][0]["source_title"] += " — updated"
+        registry["candidates"][0]["status_note"] += " Updated."
         next(
             candidate
             for candidate in payload["candidates"]
             if candidate["candidate_id"] == changed_id
-        )["candidacy"]["source_title"] += " — updated"
+        )["candidacy"]["status_note"] += " Updated."
         write_json(self.root, "candidate_candidacy_status.json", registry)
         write_json(self.root, "candidate_signals.json", payload)
         self.assertNotEqual(first, self.build()["snapshot_id"])
@@ -869,7 +926,7 @@ class PublicationManifestTests(unittest.TestCase):
         ):
             self.build()
 
-    def test_candidate_attention_name_parity_is_required(self):
+    def test_legacy_candidate_attention_name_parity_is_deferred_under_registry_v2(self):
         path = self.root / "candidate_attention.json"
 
         payload = json.loads(
@@ -886,11 +943,10 @@ class PublicationManifestTests(unittest.TestCase):
             payload,
         )
 
-        with self.assertRaisesRegex(
-            manifest_builder.ManifestError,
-            "candidate_attention candidacy parity failed",
-        ):
-            self.build()
+        manifest = self.build()
+        self.assertTrue(
+            manifest["lanes"]["candidate_attention"]["valid"]
+        )
 
     def test_legacy_attention_is_intrinsic_during_registry_v2_migration(self):
         registry = json.loads(
@@ -914,7 +970,7 @@ class PublicationManifestTests(unittest.TestCase):
         )
         manifest_builder._validate_candidate_attention_parity(registry, attention)
 
-    def test_candidate_attention_id_parity_is_required(self):
+    def test_legacy_candidate_attention_id_parity_is_deferred_under_registry_v2(self):
         path = self.root / "candidate_attention.json"
 
         payload = json.loads(
@@ -931,13 +987,12 @@ class PublicationManifestTests(unittest.TestCase):
             payload,
         )
 
-        with self.assertRaisesRegex(
-            manifest_builder.ManifestError,
-            "candidate_attention candidacy parity failed",
-        ):
-            self.build()
+        manifest = self.build()
+        self.assertTrue(
+            manifest["lanes"]["candidate_attention"]["valid"]
+        )
 
-    def test_candidate_attention_order_parity_is_required(self):
+    def test_legacy_candidate_attention_order_parity_is_deferred_under_registry_v2(self):
         path = self.root / "candidate_attention.json"
 
         payload = json.loads(
@@ -955,11 +1010,10 @@ class PublicationManifestTests(unittest.TestCase):
             payload,
         )
 
-        with self.assertRaisesRegex(
-            manifest_builder.ManifestError,
-            "candidate_attention candidacy parity failed",
-        ):
-            self.build()
+        manifest = self.build()
+        self.assertTrue(
+            manifest["lanes"]["candidate_attention"]["valid"]
+        )
 
     def test_candidate_attention_parity_ignores_candidacy_state(self):
         registry = json.loads(
@@ -992,8 +1046,8 @@ class PublicationManifestTests(unittest.TestCase):
             "status_as_of"
         ] = "2030-01-01"
 
-        # Candidate Attention parity is intentionally limited
-        # to ID, canonical name, membership and ordering.
+        # Legacy Attention schema 1.0 is intrinsic during the
+        # Registry 2.0 migration; candidacy state is not cross-validated.
         manifest_builder._validate_candidate_attention_parity(
             registry,
             attention,
@@ -1046,9 +1100,14 @@ class PublicationManifestTests(unittest.TestCase):
         ]
         self.assertTrue(evidence_dates)
         self.assertEqual(lane["data_as_of"], max(evidence_dates))
-        self.assertLessEqual(
-            lane["data_as_of"],
-            source_payload["candidate_universe"]["as_of_date"],
+        registry_payload = json.loads(
+            (
+                self.root / "candidate_candidacy_status.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            source_payload["candidate_universe"]["status_as_of"],
+            registry_payload["status_as_of"],
         )
 
     def test_active_field_projection_matches_record_level_news(self):
@@ -1057,7 +1116,8 @@ class PublicationManifestTests(unittest.TestCase):
             (self.root / "news_wire.json").read_text(encoding="utf-8")
         )
         active = payload["active_field_visibility"]
-        field = payload["presidential_field"]
+        complete_field = payload["presidential_field"]
+        active_field = payload["active_monitoring_field"]
         active_names = {
             candidate["candidate_name"]
             for candidate in payload["candidates"]
@@ -1140,14 +1200,17 @@ class PublicationManifestTests(unittest.TestCase):
             )
             self.assertEqual(
                 {row["candidate_id"] for row in scope["main"]},
-                set(field["main"]),
+                set(active_field["main"]),
             )
             self.assertEqual(
                 {row["candidate_id"] for row in scope["secondary"]},
-                set(field["secondary"]),
+                set(active_field["secondary"]),
             )
             rows = scope["main"] + scope["secondary"]
-            self.assertFalse(set(field["hidden"]) & {row["candidate_id"] for row in rows})
+            self.assertFalse(
+                set(complete_field["hidden"])
+                & {row["candidate_id"] for row in rows}
+            )
             for row in rows:
                 expected_current = (
                     round_ratio(row["current_record_count"] / current["record_count"])
@@ -1254,9 +1317,6 @@ class PublicationManifestTests(unittest.TestCase):
                 registry,
             )
         )
-        payload["active_field_visibility"]["denominator_scope"] = (
-            "records_linked_to_at_least_one_main_or_secondary_candidate"
-        )
         write_json(self.root, "news_wire.json", news)
         write_json(self.root, "candidate_signals.json", payload)
         self.assertNotEqual(first, self.build()["snapshot_id"])
@@ -1308,7 +1368,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            "candidate count does not match",
+            "candidate_universe.count does not match candidates",
         ):
             self.build()
 
@@ -1318,7 +1378,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            "evidence_dates.news must be a valid calendar date",
+            "evidence_dates.news must be an ISO calendar date",
         ):
             self.build()
 
@@ -1360,7 +1420,7 @@ class PublicationManifestTests(unittest.TestCase):
         payload = self.candidate_payload()
         self.assertEqual(
             manifest_builder._validate_candidate_signals_public(payload),
-            20,
+            len(payload["candidates"]),
         )
 
     def test_missing_featured_poll_board_fails(self):
@@ -1415,7 +1475,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            "featured board candidate ID is unknown",
+            "candidate_id is not in main candidates",
         ):
             self.build()
 
@@ -1462,7 +1522,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            "source_urls are invalid",
+            "featured_poll_board.source_urls is invalid",
         ):
             self.build()
 
@@ -1472,7 +1532,7 @@ class PublicationManifestTests(unittest.TestCase):
         )
         self.assertEqual(
             manifest_builder._validate_candidate_signals_public(payload),
-            20,
+            len(payload["candidates"]),
         )
 
     def test_missing_lane_completes_with_warning(self):
