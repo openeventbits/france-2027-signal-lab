@@ -288,12 +288,23 @@ def _event_record(
         context=f"VEVENT[{event_index}]",
     )
 
-    def decoded(name: str, *, multiline: bool = False) -> str | None:
+    def decoded(
+        name: str,
+        *,
+        multiline: bool = False,
+        empty_as_none: bool = False,
+    ) -> str | None:
         prop = _single(properties, name)
         if prop is None:
             return None
+        decoded_value = _decode_text(
+            prop.value,
+            context=f"VEVENT[{event_index}].{name}",
+        )
+        if empty_as_none and not decoded_value.strip():
+            return None
         return _normalize_text(
-            _decode_text(prop.value, context=f"VEVENT[{event_index}].{name}"),
+            decoded_value,
             context=f"VEVENT[{event_index}].{name}",
             multiline=multiline,
         )
@@ -325,7 +336,11 @@ def _event_record(
         timezone=TARGET_TIMEZONE,
         source_format="ics",
         scheduled_end=end,
-        description=decoded("DESCRIPTION", multiline=True),
+        description=decoded(
+            "DESCRIPTION",
+            multiline=True,
+            empty_as_none=True,
+        ),
         location_name=decoded("LOCATION"),
         organization=organization,
         event_url=decoded("URL"),
@@ -372,6 +387,14 @@ def parse_ics_events(
                         "VEVENT must be a direct VCALENDAR component"
                     )
                 event_properties = []
+            elif component == "VALARM":
+                if (
+                    stack != ["VCALENDAR", "VEVENT"]
+                    or event_properties is None
+                ):
+                    raise StructuredEventParseError(
+                        "VALARM must be a direct VEVENT component"
+                    )
             elif event_properties is not None:
                 raise StructuredEventParseError(
                     "nested VEVENT components are unsupported"
@@ -390,7 +413,10 @@ def parse_ics_events(
                 events.append(event_properties)
                 event_properties = None
             continue
-        if event_properties is not None:
+        if (
+            event_properties is not None
+            and stack == ["VCALENDAR", "VEVENT"]
+        ):
             event_properties.append(prop)
 
     if not saw_calendar or stack:

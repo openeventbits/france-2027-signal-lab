@@ -1,27 +1,66 @@
-name: Update campaign events
+name: Validate campaign events
 
 on:
-  schedule:
-    - cron: "29 5 * * *"
+  push:
+    paths:
+      - "campaign_events_manual.json"
+      - "campaign_event_updates_manual.json"
+      - "campaign_events.json"
+      - "publication_manifest.json"
+      - "campaign_events_manual.py"
+      - "campaign_event_updates_manual.py"
+      - "import_campaign_events.py"
+      - "build_campaign_events.py"
+      - "campaign_events_contract.py"
+      - "campaign_event_*.py"
+      - "candidate_candidacy_status.py"
+      - "la_lettre_expansion_adapter.py"
+      - "rn_agenda_adapter.py"
+      - "tf1_lci_adapter.py"
+      - "build_publication_manifest.py"
+      - "campaign_event_institutional_seeds.json"
+      - "campaign_event_sources.json"
+      - "candidate_candidacy_status.json"
+      - "test_*campaign_event*.py"
+      - "test_publication_manifest.py"
+      - ".github/workflows/update-campaign-events.yml"
+
+  pull_request:
+    paths:
+      - "campaign_events_manual.json"
+      - "campaign_event_updates_manual.json"
+      - "campaign_events.json"
+      - "publication_manifest.json"
+      - "campaign_events_manual.py"
+      - "campaign_event_updates_manual.py"
+      - "import_campaign_events.py"
+      - "build_campaign_events.py"
+      - "campaign_events_contract.py"
+      - "campaign_event_*.py"
+      - "candidate_candidacy_status.py"
+      - "la_lettre_expansion_adapter.py"
+      - "rn_agenda_adapter.py"
+      - "tf1_lci_adapter.py"
+      - "build_publication_manifest.py"
+      - "campaign_event_institutional_seeds.json"
+      - "campaign_event_sources.json"
+      - "candidate_candidacy_status.json"
+      - "test_*campaign_event*.py"
+      - "test_publication_manifest.py"
+      - ".github/workflows/update-campaign-events.yml"
+
   workflow_dispatch:
 
 permissions:
-  contents: write
-
-concurrency:
-  group: production-data-update
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  update-campaign-events:
+  validate-campaign-events:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out main
+      - name: Check out repository
         uses: actions/checkout@v7
-        with:
-          ref: main
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -36,131 +75,78 @@ jobs:
             test_campaign_event_sources \
             test_campaign_events_contract \
             test_campaign_event_institutional_seeds \
-            test_rn_agenda_adapter \
+            test_campaign_events_manual \
+            test_campaign_event_updates_manual \
+            test_add_campaign_event \
+            test_update_campaign_event \
+            test_import_campaign_events \
             test_build_campaign_events \
-            test_publication_manifest \
+            test_publication_manifest.PublicationManifestTests.test_campaign_events_lane_metadata \
+            test_publication_manifest.PublicationManifestTests.test_tracked_campaign_events_lane_metadata \
+            test_publication_manifest.PublicationManifestTests.test_manual_workflow_no_churn_sequence_matches_both_tracked_outputs \
+            test_publication_manifest.PublicationManifestTests.test_genuine_campaign_events_change_updates_digest_and_snapshot \
+            test_publication_manifest.PublicationManifestTests.test_malformed_campaign_events_is_isolated_to_its_lane \
+            test_publication_manifest.PublicationManifestTests.test_missing_campaign_events_is_isolated_to_its_lane \
+            test_publication_manifest.PublicationManifestTests.test_check_does_not_modify_publication_manifest \
+            test_publication_manifest.PublicationManifestTests.test_valid_complete_inputs \
             test_campaign_events_workflow_contract
 
-      - name: Create canonical publication timestamp
-        id: campaign_timestamp
-        shell: bash
-        run: |
-          set -euo pipefail
-          timestamp="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          echo "value=$timestamp" >> "$GITHUB_OUTPUT"
-
-      - name: Validate and atomically publish Campaign Events
-        id: campaign_events
+      - name: Verify Campaign Events artifact is synchronized
         shell: bash
         run: |
           set -euo pipefail
 
           python -B build_campaign_events.py \
+            --seeds campaign_event_institutional_seeds.json \
+            --sources campaign_event_sources.json \
             --candidates candidate_candidacy_status.json \
-            --generated-at "${{ steps.campaign_timestamp.outputs.value }}" \
+            --manual-events campaign_events_manual.json \
+            --event-updates campaign_event_updates_manual.json \
+            --generated-at "2099-01-01T00:00:00Z" \
             --preserve-generated-at-from campaign_events.json \
             --output /tmp/campaign_events.json
 
-          python -B - <<'PY'
-          import json
-          from pathlib import Path
-          from campaign_events_contract import validate_campaign_events_artifact
-
-          candidate = json.loads(Path("/tmp/campaign_events.json").read_text(encoding="utf-8"))
-          validate_campaign_events_artifact(candidate)
-          print("Candidate Campaign Events artifact is valid.")
-          PY
-
-          if cmp --silent campaign_events.json /tmp/campaign_events.json; then
-            echo "No Campaign Events change was detected."
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            python -B - <<'PY'
-          from pathlib import Path
-          from build_campaign_events import atomic_write
-
-          candidate = Path("/tmp/campaign_events.json").read_bytes()
-          atomic_write("campaign_events.json", candidate)
-          PY
-            python -B -c 'import json; from campaign_events_contract import validate_campaign_events_artifact; validate_campaign_events_artifact(json.load(open("campaign_events.json", encoding="utf-8")))'
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Rebuild and validate publication manifest
-        id: publication_manifest
-        env:
-          CAMPAIGN_EVENTS_CHANGED: ${{ steps.campaign_events.outputs.changed }}
-          CAMPAIGN_TIMESTAMP: ${{ steps.campaign_timestamp.outputs.value }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if [[ "$CAMPAIGN_EVENTS_CHANGED" == "true" ]]; then
-            published_at="$CAMPAIGN_TIMESTAMP"
-          else
-            published_at="$(python -B -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
-          fi
-
-          python -B build_publication_manifest.py --published-at "$published_at"
-          python -B build_publication_manifest.py \
-            --check \
-            --published-at "$published_at"
-
-          if git diff --quiet -- publication_manifest.json; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Verify generated-file scope
-        shell: bash
-        run: |
-          set -euo pipefail
-          unexpected="$(git diff --name-only | grep -Ev '^(campaign_events|publication_manifest)\.json$' || true)"
-          if [[ -n "$unexpected" ]]; then
-            echo "Unexpected generated files changed:"
-            echo "$unexpected"
+          if ! cmp --silent campaign_events.json /tmp/campaign_events.json; then
+            echo "campaign_events.json is not synchronized with its authoritative inputs."
+            diff -u campaign_events.json /tmp/campaign_events.json || true
             exit 1
           fi
 
-      - name: Commit changed Campaign Events data
-        id: commit
-        env:
-          CAMPAIGN_EVENTS_CHANGED: ${{ steps.campaign_events.outputs.changed }}
-          PUBLICATION_MANIFEST_CHANGED: ${{ steps.publication_manifest.outputs.changed }}
+      - name: Verify publication manifest is synchronized
         shell: bash
         run: |
           set -euo pipefail
 
-          if [[ "$CAMPAIGN_EVENTS_CHANGED" != "true" && "$PUBLICATION_MANIFEST_CHANGED" != "true" ]]; then
-            echo "No Campaign Events publication change detected."
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          published_at="$(
+            python -B -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])'
+          )"
 
-          git config user.name "github-actions[bot]"
-          git config user.email \
-            "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- campaign_events.json publication_manifest.json
-          git commit -m "Update campaign events data" -- \
-            campaign_events.json publication_manifest.json
-
-          git fetch origin main
-          git rebase origin/main
-
-          python -B -c 'import json; from campaign_events_contract import validate_campaign_events_artifact; validate_campaign_events_artifact(json.load(open("campaign_events.json", encoding="utf-8")))'
-          published_at="$(python -B -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
-          python -B build_publication_manifest.py --published-at "$published_at"
           python -B build_publication_manifest.py \
             --check \
             --published-at "$published_at"
 
-          if ! git diff --quiet -- campaign_events.json publication_manifest.json; then
-            git add -- campaign_events.json publication_manifest.json
-            git commit --amend --no-edit
-          fi
+          python -B - "$published_at" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          from build_publication_manifest import build_manifest
 
-          python -B -c 'import json; from campaign_events_contract import validate_campaign_events_artifact; validate_campaign_events_artifact(json.load(open("campaign_events.json", encoding="utf-8")))'
-          git diff --exit-code -- campaign_events.json publication_manifest.json
-          git push origin HEAD:main
-          echo "changed=true" >> "$GITHUB_OUTPUT"
+          published_at = sys.argv[1]
+          tracked_path = Path("publication_manifest.json")
+          tracked = json.loads(tracked_path.read_text(encoding="utf-8"))
+          rebuilt = build_manifest(Path.cwd(), published_at=published_at)
+
+          if rebuilt != tracked:
+              print("publication_manifest.json is not synchronized with repository inputs.")
+              print("tracked snapshot:", tracked.get("snapshot_id"))
+              print("rebuilt snapshot:", rebuilt.get("snapshot_id"))
+              raise SystemExit(1)
+
+          print("publication_manifest.json is synchronized.")
+          PY
+
+      - name: Verify validation did not modify repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code

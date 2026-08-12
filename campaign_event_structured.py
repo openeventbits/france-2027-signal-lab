@@ -224,6 +224,7 @@ class StructuredEventRecord:
     event_url: str | None = None
     external_id: str | None = None
     source_status: str | None = None
+    participants: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         normalized_title = _normalize_text(self.title, context="title")
@@ -276,6 +277,21 @@ class StructuredEventRecord:
                 raise StructuredEventParseError(
                     f"{field_name} must already be normalized"
                 )
+        if type(self.participants) is not tuple:
+            raise StructuredEventParseError("participants must be a tuple")
+        for index, participant in enumerate(self.participants):
+            normalized = _normalize_text(
+                participant,
+                context=f"participants[{index}]",
+            )
+            if normalized != participant:
+                raise StructuredEventParseError(
+                    f"participants[{index}] must already be normalized"
+                )
+        if len(set(self.participants)) != len(self.participants):
+            raise StructuredEventParseError(
+                "participants must not contain duplicates"
+            )
         _validate_time_range(
             self.scheduled_start,
             self.time_precision,

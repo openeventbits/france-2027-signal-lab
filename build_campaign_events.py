@@ -18,8 +18,20 @@ from campaign_event_institutional_seeds import (
     CampaignEventInstitutionalSeedError,
     load_campaign_event_institutional_seeds,
 )
+from campaign_events_manual import normalize_campaign_events_manual
+from campaign_event_updates_manual import load_campaign_event_updates_manual
+from campaign_event_linked_ics import (
+    LinkedIcsCollectorConfigurationError,
+    LinkedIcsCollectorResult,
+    build_linked_ics_events,
+)
 from campaign_event_observation import (
     CampaignEventObservationConfigurationError,
+)
+from campaign_event_qomon import (
+    QomonCollectorConfigurationError,
+    QomonCollectorResult,
+    build_qomon_events,
 )
 from campaign_event_sources import (
     CampaignEventSourceRegistryError,
@@ -65,6 +77,8 @@ class CampaignEventCollectionConfigurationError(BuildCampaignEventsError):
 DEFAULT_SEEDS = Path(__file__).with_name("campaign_event_institutional_seeds.json")
 DEFAULT_SOURCES = Path(__file__).with_name("campaign_event_sources.json")
 DEFAULT_CANDIDATES = Path(__file__).with_name("candidate_candidacy_status.json")
+DEFAULT_MANUAL_EVENTS = Path(__file__).with_name("campaign_events_manual.json")
+DEFAULT_MANUAL_UPDATES = Path(__file__).with_name("campaign_event_updates_manual.json")
 DEFAULT_OUTPUT = Path(__file__).with_name("campaign_events.json")
 
 SourceEventBuilder = Callable[..., list[dict[str, Any]]]
@@ -261,8 +275,75 @@ def _collect_la_lettre_expansion(
     )
 
 
+def _collect_linked_ics(
+    *,
+    source: dict[str, Any],
+    observed_at: str,
+) -> SourceCollectionResult:
+    try:
+        result = build_linked_ics_events(
+            source=source,
+            observed_at=observed_at,
+        )
+    except (
+        LinkedIcsCollectorConfigurationError,
+        CandidateAttributionConfigurationError,
+        CampaignEventObservationConfigurationError,
+    ) as error:
+        raise CampaignEventCollectionConfigurationError(
+            f"linked ICS collector configuration failed: {error}"
+        ) from error
+    if type(result) is not LinkedIcsCollectorResult:
+        raise CampaignEventCollectionConfigurationError(
+            "linked ICS collector returned an invalid result"
+        )
+    try:
+        result.__post_init__()
+    except LinkedIcsCollectorConfigurationError as error:
+        raise CampaignEventCollectionConfigurationError(
+            f"linked ICS collector result is invalid: {error}"
+        ) from error
+    return SourceCollectionResult(
+        observations=list(result.observations),
+        attribution_rejected_records=result.attribution_rejected_records,
+    )
+
+
+def _collect_qomon(
+    *,
+    source: dict[str, Any],
+    observed_at: str,
+) -> SourceCollectionResult:
+    try:
+        result = build_qomon_events(source=source, observed_at=observed_at)
+    except (
+        QomonCollectorConfigurationError,
+        CandidateAttributionConfigurationError,
+        CampaignEventObservationConfigurationError,
+    ) as error:
+        raise CampaignEventCollectionConfigurationError(
+            f"Qomon collector configuration failed: {error}"
+        ) from error
+    if type(result) is not QomonCollectorResult:
+        raise CampaignEventCollectionConfigurationError(
+            "Qomon collector returned an invalid result"
+        )
+    try:
+        result.__post_init__()
+    except QomonCollectorConfigurationError as error:
+        raise CampaignEventCollectionConfigurationError(
+            f"Qomon collector result is invalid: {error}"
+        ) from error
+    return SourceCollectionResult(
+        observations=list(result.observations),
+        attribution_rejected_records=result.attribution_rejected_records,
+    )
+
+
 _PRODUCTION_COLLECTION_COLLECTORS: Mapping[str, CollectionCollector] = {
     "la-lettre-expansion": _collect_la_lettre_expansion,
+    "linked-ics": _collect_linked_ics,
+    "qomon": _collect_qomon,
     "rn-agenda": _collect_rn_agenda,
     "tf1-lci-debates": _collect_tf1_lci_debates,
 }
@@ -1002,6 +1083,7 @@ def build_campaign_events_artifact(
     *,
     generated_at: str,
     campaign_events: list[dict[str, Any]] | None = None,
+    event_watch: list[dict[str, Any]] | None = None,
     source_registry_path: str | Path = DEFAULT_SOURCES,
     candidate_registry_path: str | Path = DEFAULT_CANDIDATES,
     bootstrap_empty: bool = False,
@@ -1021,18 +1103,18 @@ def build_campaign_events_artifact(
         milestones = [_transform_seed(seed) for seed in seeds]
 
     dynamic_events = [] if campaign_events is None else campaign_events
+    updates = [] if event_watch is None else event_watch
     records = dynamic_events + milestones
-    data_as_of = (
-        max(record["last_verified_at"] for record in records)
-        if records
-        else generated_at
-    )
+    timestamps = [record["last_verified_at"] for record in records]
+    timestamps.extend(record["observed_at"] for record in updates)
+    data_as_of = max(timestamps) if timestamps else generated_at
     payload = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "generated_at": generated_at,
         "data_as_of": data_as_of,
         "campaign_events": dynamic_events,
         "institutional_milestones": milestones,
+        "event_watch": updates,
     }
     try:
         normalized = normalize_campaign_events_artifact(
@@ -1106,6 +1188,37 @@ def _load_optional_existing_artifact(path: str | Path) -> Any | None:
         return None
 
 
+def _load_manual_events_snapshot(
+    path: str | Path,
+    *,
+    candidate_registry_path: str | Path,
+    source_registry_path: str | Path,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Read one manual-event document once and return payload plus normalized events."""
+
+    target = Path(path)
+    try:
+        raw = target.read_text(encoding="utf-8")
+    except OSError as error:
+        raise BuildCampaignEventsError(
+            f"could not read manual Campaign Events input {target}: {error}"
+        ) from error
+
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as error:
+        raise BuildCampaignEventsError(
+            f"manual Campaign Events input {target} is malformed JSON: {error}"
+        ) from error
+
+    events = normalize_campaign_events_manual(
+        payload,
+        candidate_registry_path=candidate_registry_path,
+        source_registry_path=source_registry_path,
+    )
+    return payload, events
+
+
 def atomic_write(path: str | Path, content: bytes) -> None:
     """Replace one artifact only after a complete durable temporary write."""
 
@@ -1139,6 +1252,8 @@ def build_from_paths(
     seed_path: str | Path = DEFAULT_SEEDS,
     source_registry_path: str | Path = DEFAULT_SOURCES,
     candidate_registry_path: str | Path = DEFAULT_CANDIDATES,
+    manual_events_path: str | Path = DEFAULT_MANUAL_EVENTS,
+    event_updates_path: str | Path = DEFAULT_MANUAL_UPDATES,
     output_path: str | Path = DEFAULT_OUTPUT,
     bootstrap_empty: bool = False,
     preserve_generated_at_from: str | Path | None = None,
@@ -1171,26 +1286,36 @@ def build_from_paths(
             )
 
         campaign_events: list[dict[str, Any]] = []
+        event_watch: list[dict[str, Any]] = []
         if not bootstrap_empty:
-            collectors = (
-                _PRODUCTION_COLLECTION_COLLECTORS
-                if collection_collectors is None
-                else collection_collectors
-            )
-            campaign_events = _collect_dynamic_campaign_events(
-                source_registry,
-                observed_at=generated_at,
-                previous_artifact=previous,
-                source_registry_path=source_registry_path,
+            manual_events_payload, campaign_events = _load_manual_events_snapshot(
+                manual_events_path,
                 candidate_registry_path=candidate_registry_path,
-                source_event_builders=source_event_builders,
-                collection_collectors=collectors,
-                collection_health=collection_health,
+                source_registry_path=source_registry_path,
             )
+            normalized_updates = load_campaign_event_updates_manual(
+                event_updates_path,
+                manual_events_path=manual_events_path,
+                manual_events_payload=manual_events_payload,
+                candidate_registry_path=candidate_registry_path,
+                source_registry_path=source_registry_path,
+            )
+            event_watch = [
+                {
+                    "update_id": update["update_id"],
+                    "event_id": update["event_id"],
+                    "update_type": update["update_type"],
+                    "headline": update["headline"],
+                    "observed_at": update["observed_at"],
+                    "evidence": copy.deepcopy(update["evidence"]),
+                }
+                for update in normalized_updates
+            ]
         artifact = build_campaign_events_artifact(
             seeds,
             generated_at=generated_at,
             campaign_events=campaign_events,
+            event_watch=event_watch,
             source_registry_path=source_registry_path,
             candidate_registry_path=candidate_registry_path,
             bootstrap_empty=bootstrap_empty,
@@ -1227,6 +1352,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--seeds", default=str(DEFAULT_SEEDS))
     parser.add_argument("--sources", default=str(DEFAULT_SOURCES))
     parser.add_argument("--candidates", default=str(DEFAULT_CANDIDATES))
+    parser.add_argument("--manual-events", default=str(DEFAULT_MANUAL_EVENTS))
+    parser.add_argument("--event-updates", default=str(DEFAULT_MANUAL_UPDATES))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     parser.add_argument(
         "--preserve-generated-at-from",
@@ -1251,6 +1378,8 @@ def main(argv: list[str] | None = None) -> int:
             seed_path=arguments.seeds,
             source_registry_path=arguments.sources,
             candidate_registry_path=arguments.candidates,
+            manual_events_path=arguments.manual_events,
+            event_updates_path=arguments.event_updates,
             output_path=arguments.output,
             bootstrap_empty=arguments.bootstrap_empty,
             preserve_generated_at_from=arguments.preserve_generated_at_from,

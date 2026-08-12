@@ -22,6 +22,7 @@ __all__ = [
     "CandidateAttributionConfigurationError",
     "attribute_structured_event",
     "attribute_structured_events",
+    "match_active_candidate_participants",
 ]
 
 
@@ -77,7 +78,7 @@ _EXCLUDED_EVENT_SEQUENCES = (
 
 @dataclass(frozen=True, slots=True)
 class AttributedStructuredEvent:
-    """One structured event associated with canonical candidate identities."""
+    """One structured event with optional canonical candidate identities."""
 
     structured_event: StructuredEventRecord
     candidate_ids: tuple[str, ...]
@@ -85,7 +86,7 @@ class AttributedStructuredEvent:
     attribution_basis: Literal[
         "explicit_participant",
         "candidate_owned_campaign",
-    ]
+    ] | None
 
     def __post_init__(self) -> None:
         if not isinstance(self.structured_event, StructuredEventRecord):
@@ -99,11 +100,9 @@ class AttributedStructuredEvent:
             raise CandidateAttributionConfigurationError(
                 "candidate IDs and names must be tuples"
             )
-        if not self.candidate_ids or len(self.candidate_ids) != len(
-            self.candidate_names
-        ):
+        if len(self.candidate_ids) != len(self.candidate_names):
             raise CandidateAttributionConfigurationError(
-                "candidate IDs and names must be non-empty parallel tuples"
+                "candidate IDs and names must be parallel tuples"
             )
         if any(
             not isinstance(value, str) or not value or value != value.strip()
@@ -120,12 +119,21 @@ class AttributedStructuredEvent:
             raise CandidateAttributionConfigurationError(
                 "candidate names must not contain duplicates"
             )
-        if (
+        if not self.candidate_ids:
+            if self.attribution_basis is not None:
+                raise CandidateAttributionConfigurationError(
+                    "unlinked events must not have an attribution basis"
+                )
+            if not self.structured_event.participants:
+                raise CandidateAttributionConfigurationError(
+                    "unlinked events require structured participants"
+                )
+        elif (
             not isinstance(self.attribution_basis, str)
             or self.attribution_basis not in _ATTRIBUTION_BASES
         ):
             raise CandidateAttributionConfigurationError(
-                "attribution_basis is not allowed"
+                "linked events require an allowed attribution_basis"
             )
 
 
@@ -198,6 +206,39 @@ def _load_active_candidates(
             "active candidate registry contains duplicate IDs"
         )
     return tuple(candidates), by_id
+
+
+def match_active_candidate_participants(
+    participants: Iterable[str],
+    *,
+    candidate_registry_path: str | Path = _DEFAULT_CANDIDATE_REGISTRY,
+) -> tuple[tuple[str, str], ...]:
+    """Return exact canonical active-candidate matches for participant labels."""
+
+    active_candidates, _ = _load_active_candidates(candidate_registry_path)
+    try:
+        supplied = tuple(participants)
+    except TypeError as error:
+        raise CandidateAttributionConfigurationError(
+            "participants must be an iterable of labels"
+        ) from error
+
+    candidates_by_tokens: dict[tuple[str, ...], list[_Candidate]] = {}
+    for candidate in active_candidates:
+        candidates_by_tokens.setdefault(candidate.name_tokens, []).append(candidate)
+
+    matched_by_id: dict[str, _Candidate] = {}
+    for participant in supplied:
+        matches = candidates_by_tokens.get(_tokens(participant), [])
+        if len(matches) == 1:
+            candidate = matches[0]
+            matched_by_id[candidate.candidate_id] = candidate
+
+    matched = sorted(matched_by_id.values(), key=_candidate_sort_key)
+    return tuple(
+        (candidate.candidate_id, candidate.candidate_name)
+        for candidate in matched
+    )
 
 
 def _source_policy(source: Any) -> str:
@@ -350,6 +391,12 @@ def _explicit_candidates(
     for tokens in title_and_description:
         matched_ids.update(_paired_candidates(tokens, candidates))
 
+    for participant in event.participants:
+        participant_tokens = _tokens(participant)
+        for candidate in candidates:
+            if participant_tokens == candidate.name_tokens:
+                matched_ids.add(candidate.candidate_id)
+
     if event.organization is not None:
         organization_tokens = _tokens(event.organization)
         for candidate in candidates:
@@ -428,9 +475,21 @@ def _attribute_with_context(
         )
 
     candidates = _explicit_candidates(event, active_candidates)
-    if not candidates or (
-        policy == "multi_candidate_explicit" and len(candidates) < 2
-    ):
+    if not candidates:
+        if (
+            event.participants
+            and policy == "explicit_participant"
+            and source.get("source_type")
+            in {"party_first_party", "organizer_first_party"}
+        ):
+            return AttributedStructuredEvent(
+                structured_event=event,
+                candidate_ids=(),
+                candidate_names=(),
+                attribution_basis=None,
+            )
+        return None
+    if policy == "multi_candidate_explicit" and len(candidates) < 2:
         return None
     return _attributed_record(
         event,

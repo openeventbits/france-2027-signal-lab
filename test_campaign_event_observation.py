@@ -45,7 +45,7 @@ def attributed_event(
     description: str | None = None,
     candidate_ids: tuple[str, ...] = ("david-lisnard",),
     candidate_names: tuple[str, ...] = ("David Lisnard",),
-    basis: str = "explicit_participant",
+    basis: str | None = "explicit_participant",
     scheduled_start: str = "2026-08-29T19:00:00+02:00",
     time_precision: str = "datetime",
     scheduled_end: str | None = None,
@@ -55,6 +55,7 @@ def attributed_event(
     event_url: str | None = "https://events.example/detail/one",
     external_id: str | None = None,
     source_status: str | None = None,
+    participants: tuple[str, ...] = (),
 ) -> AttributedStructuredEvent:
     record = StructuredEventRecord(
         title=title,
@@ -70,6 +71,7 @@ def attributed_event(
         event_url=event_url,
         external_id=external_id,
         source_status=source_status,
+        participants=participants,
     )
     return AttributedStructuredEvent(
         structured_event=record,
@@ -420,6 +422,62 @@ class CampaignEventObservationTests(unittest.TestCase):
         ):
             self.build(event, source=source)
 
+    def test_first_party_unclassified_event_uses_allowed_other_fallback(self):
+        source = source_record(
+            source_type="party_first_party",
+            allowed_event_types=[*ALL_CAMPAIGN_TYPES, "other"],
+        )
+        event = attributed_event("Discours de rentrée de David Lisnard")
+        self.assertIsNone(classify_campaign_event(event))
+
+        observation = self.build(event, source=source)
+
+        self.assertIsNotNone(observation)
+        self.assertEqual(observation["event_type"], "other")
+
+    def test_first_party_unclassified_event_is_rejected_without_other(self):
+        source = source_record(source_type="party_first_party")
+        self.write_registry(source)
+        batch = build_campaign_event_observations(
+            (attributed_event("Discours de rentrée de David Lisnard"),),
+            source=source,
+            observed_at=OBSERVED_AT,
+            evidence_url=str(source["url"]),
+            source_registry_path=self.registry_path,
+        )
+
+        self.assertEqual(batch.observations, ())
+        self.assertEqual(batch.relevance_rejected_records, 1)
+
+    def test_reliable_media_does_not_receive_other_fallback(self):
+        source = source_record(
+            source_type="reliable_media",
+            allowed_event_types=[*ALL_CAMPAIGN_TYPES, "other"],
+        )
+        self.write_registry(source)
+        batch = build_campaign_event_observations(
+            (attributed_event("Discours de rentrée de David Lisnard"),),
+            source=source,
+            observed_at=OBSERVED_AT,
+            evidence_url=str(source["url"]),
+            source_registry_path=self.registry_path,
+        )
+
+        self.assertEqual(batch.observations, ())
+        self.assertEqual(batch.relevance_rejected_records, 1)
+
+    def test_recognized_first_party_event_precedes_other_fallback(self):
+        source = source_record(
+            source_type="party_first_party",
+            allowed_event_types=[*ALL_CAMPAIGN_TYPES, "other"],
+        )
+        observation = self.build(
+            attributed_event("Meeting avec David Lisnard"),
+            source=source,
+        )
+
+        self.assertEqual(observation["event_type"], "public_meeting")
+
     def test_observation_maps_contract_fields_and_normalizes(self):
         source = source_record()
         event = attributed_event(
@@ -458,6 +516,100 @@ class CampaignEventObservationTests(unittest.TestCase):
             ),
             [observation],
         )
+
+    def test_explicit_structured_participants_are_copied_to_observation(self):
+        observation = self.build(
+            attributed_event(
+                "Meeting avec David Lisnard",
+                participants=("Unknown Political Actor",),
+            )
+        )
+        self.assertEqual(
+            observation["participants"],
+            ["Unknown Political Actor"],
+        )
+
+    def test_unlinked_explicit_participant_builds_public_meeting_observation(self):
+        observation = self.build(
+            attributed_event(
+                "Meeting public",
+                candidate_ids=(),
+                candidate_names=(),
+                basis=None,
+                participants=("Unknown Political Actor",),
+            )
+        )
+
+        self.assertEqual(observation["event_type"], "public_meeting")
+        self.assertEqual(observation["candidate_ids"], [])
+        self.assertEqual(observation["candidate_names"], [])
+        self.assertEqual(
+            observation["participants"],
+            ["Unknown Political Actor"],
+        )
+
+    def test_unlinked_unclassified_event_uses_bounded_other_fallback(self):
+        event = attributed_event(
+            "Discours de rentrée",
+            candidate_ids=(),
+            candidate_names=(),
+            basis=None,
+            participants=("Unknown Political Actor",),
+        )
+        source = source_record(
+            source_type="party_first_party",
+            allowed_event_types=[*ALL_CAMPAIGN_TYPES, "other"],
+        )
+
+        observation = self.build(event, source=source)
+
+        self.assertEqual(observation["event_type"], "other")
+        self.assertEqual(observation["candidate_ids"], [])
+
+    def test_unlinked_unclassified_event_is_rejected_without_other(self):
+        event = attributed_event(
+            "Discours de rentrée",
+            candidate_ids=(),
+            candidate_names=(),
+            basis=None,
+            participants=("Unknown Political Actor",),
+        )
+        source = source_record(source_type="party_first_party")
+        self.write_registry(source)
+
+        batch = build_campaign_event_observations(
+            (event,),
+            source=source,
+            observed_at=OBSERVED_AT,
+            evidence_url=str(source["url"]),
+            source_registry_path=self.registry_path,
+        )
+
+        self.assertEqual(batch.observations, ())
+        self.assertEqual(batch.relevance_rejected_records, 1)
+
+    def test_unlinked_observation_rejects_reliable_media_source(self):
+        source = source_record(source_type="reliable_media")
+        with self.assertRaisesRegex(
+            CampaignEventObservationConfigurationError,
+            "unlinked attribution",
+        ):
+            self.build(
+                attributed_event(
+                    "Meeting public",
+                    candidate_ids=(),
+                    candidate_names=(),
+                    basis=None,
+                    participants=("Unknown Political Actor",),
+                ),
+                source=source,
+            )
+
+    def test_absent_structured_participants_preserve_public_shape(self):
+        observation = self.build(
+            attributed_event("Meeting avec David Lisnard")
+        )
+        self.assertNotIn("participants", observation)
 
     def test_date_precision_is_preserved(self):
         observation = self.build(
@@ -597,6 +749,17 @@ class CampaignEventObservationTests(unittest.TestCase):
             ),
             source=source,
         )
+        unlinked_same_uid = self.build(
+            attributed_event(
+                "Meeting avec David Lisnard",
+                external_id="uid-one",
+                candidate_ids=(),
+                candidate_names=(),
+                basis=None,
+                participants=("David Lisnard",),
+            ),
+            source=source,
+        )
         second_uid = self.build(
             attributed_event(
                 "Meeting avec David Lisnard",
@@ -616,6 +779,8 @@ class CampaignEventObservationTests(unittest.TestCase):
             first["event_key"],
             changed_roster_and_taxonomy["event_key"],
         )
+        self.assertEqual(first["event_key"], unlinked_same_uid["event_key"])
+        self.assertEqual(first["event_id"], unlinked_same_uid["event_id"])
         self.assertNotEqual(first["event_key"], second_uid["event_key"])
         self.assertTrue(
             first["event_key"].startswith(source["source_id"] + "-uid-")
@@ -643,6 +808,64 @@ class CampaignEventObservationTests(unittest.TestCase):
         self.assertEqual(first["event_key"], repeated["event_key"])
         self.assertEqual(first["event_id"], repeated["event_id"])
         self.assertNotEqual(first["event_key"], rescheduled["event_key"])
+
+    def test_fallback_identity_ignores_candidate_and_participant_enrichment(self):
+        source = source_record()
+        unlinked = self.build(
+            attributed_event(
+                "Meeting public",
+                external_id=None,
+                candidate_ids=(),
+                candidate_names=(),
+                basis=None,
+                participants=("David Lisnard",),
+            ),
+            source=source,
+        )
+        linked = self.build(
+            attributed_event(
+                "Meeting public",
+                external_id=None,
+                participants=("David Lisnard",),
+            ),
+            source=source,
+        )
+        changed_linkage = self.build(
+            attributed_event(
+                "Meeting public",
+                external_id=None,
+                candidate_ids=("david-lisnard", "bruno-retailleau"),
+                candidate_names=("David Lisnard", "Bruno Retailleau"),
+                participants=("David Lisnard",),
+            ),
+            source=source,
+        )
+        changed_participants = self.build(
+            attributed_event(
+                "Meeting public",
+                external_id=None,
+                candidate_ids=(),
+                candidate_names=(),
+                basis=None,
+                participants=("Unknown Political Actor",),
+            ),
+            source=source,
+        )
+
+        observations = (
+            unlinked,
+            linked,
+            changed_linkage,
+            changed_participants,
+        )
+        self.assertEqual(
+            {observation["event_key"] for observation in observations},
+            {unlinked["event_key"]},
+        )
+        self.assertEqual(
+            {observation["event_id"] for observation in observations},
+            {unlinked["event_id"]},
+        )
 
     def test_observed_at_and_internal_identity_defects_fail_closed(self):
         source = source_record()

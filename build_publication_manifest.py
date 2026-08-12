@@ -1245,7 +1245,11 @@ def _build_lane(
         if lane_name == "campaign_events":
             lane["record_count"] = sum(
                 len(primary["payload"][field])
-                for field in ("campaign_events", "institutional_milestones")
+                for field in (
+                    "campaign_events",
+                    "institutional_milestones",
+                    "event_watch",
+                )
             )
         if lane_name == "claims":
             claims = primary["payload"]

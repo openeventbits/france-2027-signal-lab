@@ -68,6 +68,7 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
             [
                 "interieur-presidential-calendar",
                 "la-lettre-expansion-agenda",
+                "nouvelle-energie-agenda",
                 "rn-agenda",
                 "tf1-lci-debates",
                 "vie-publique-presidential-calendar",
@@ -108,6 +109,32 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
                         "parser_family": "custom",
                         "attribution_policy": "multi_candidate_explicit",
                         "collector_family": "la-lettre-expansion",
+                    },
+                },
+                {
+                    "source_id": "nouvelle-energie-agenda",
+                    "publisher": "Nouvelle Énergie",
+                    "source_type": "party_first_party",
+                    "url": "https://www.unenouvelleenergie.fr/agenda/",
+                    "allowed_lanes": ["campaign_events"],
+                    "allowed_event_types": [
+                        "rally",
+                        "public_meeting",
+                        "debate",
+                        "candidate_visit",
+                        "campaign_launch",
+                        "other",
+                    ],
+                    "enabled": True,
+                    "required": False,
+                    "refresh_class": "daily",
+                    "zero_result_valid": True,
+                    "organization": "Nouvelle Énergie",
+                    "collection": {
+                        "discovery_method": "linked_event_pages",
+                        "parser_family": "ics",
+                        "attribution_policy": "explicit_participant",
+                        "collector_family": "linked-ics",
                     },
                 },
                 {
@@ -160,6 +187,27 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
                     "zero_result_valid": False,
                 },
             ],
+        )
+
+        nouvelle_energie = next(
+            source
+            for source in loaded["sources"]
+            if source["source_id"] == "nouvelle-energie-agenda"
+        )
+        self.assertEqual(nouvelle_energie["source_type"], "party_first_party")
+        self.assertNotIn("candidate_ids", nouvelle_energie)
+        self.assertEqual(
+            nouvelle_energie["url"],
+            "https://www.unenouvelleenergie.fr/agenda/",
+        )
+        self.assertEqual(
+            nouvelle_energie["collection"],
+            {
+                "discovery_method": "linked_event_pages",
+                "parser_family": "ics",
+                "attribution_policy": "explicit_participant",
+                "collector_family": "linked-ics",
+            },
         )
 
     def test_valid_empty_registry_remains_supported_in_memory(self):
@@ -313,6 +361,47 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
         changed["collection"]["collector_family"] = "unused"
         self.assert_invalid(registry(changed), "only allowed for custom")
 
+    def test_linked_ics_collection_allows_explicit_generic_family(self):
+        changed = source_record(
+            collection={
+                "discovery_method": "linked_event_pages",
+                "parser_family": "ics",
+                "attribution_policy": "explicit_participant",
+                "collector_family": "linked-ics",
+            }
+        )
+        normalized = normalize_campaign_event_source_registry(
+            registry(changed)
+        )
+        self.assertEqual(
+            normalized["sources"][0]["collection"],
+            changed["collection"],
+        )
+
+    def test_linked_ics_family_rejects_incompatible_collection_shape(self):
+        for discovery_method, parser_family in (
+            ("direct", "ics"),
+            ("linked_event_pages", "json_ld"),
+            ("custom", "ics"),
+            ("linked_event_pages", "custom"),
+        ):
+            with self.subTest(
+                discovery_method=discovery_method,
+                parser_family=parser_family,
+            ):
+                changed = source_record(
+                    collection={
+                        "discovery_method": discovery_method,
+                        "parser_family": parser_family,
+                        "attribution_policy": "explicit_participant",
+                        "collector_family": "linked-ics",
+                    }
+                )
+                self.assert_invalid(
+                    registry(changed),
+                    "linked-ics requires linked_event_pages",
+                )
+
     def test_source_id_must_be_lowercase_ascii_kebab_case(self):
         for identifier in (
             "Uppercase",
@@ -420,7 +509,7 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
             ["rally", "first_round"],
         )
 
-    def test_event_type_vocabularies_add_only_debate(self):
+    def test_event_type_vocabularies_are_controlled(self):
         self.assertEqual(
             CAMPAIGN_EVENT_TYPES,
             {
@@ -429,6 +518,7 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
                 "debate",
                 "candidate_visit",
                 "campaign_launch",
+                "other",
             },
         )
         self.assertEqual(
@@ -457,6 +547,7 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
                     "debate",
                     "public_meeting",
                     "rally",
+                    "other",
                     "campaign_period_boundary",
                     "official_candidate_list",
                     "sponsorship_deadline",
@@ -472,6 +563,7 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
                 "debate",
                 "candidate_visit",
                 "campaign_launch",
+                "other",
                 "sponsorship_deadline",
                 "official_candidate_list",
                 "campaign_period_boundary",
@@ -614,6 +706,7 @@ class CampaignEventSourceRegistryTests(unittest.TestCase):
             [
                 "interieur-presidential-calendar",
                 "la-lettre-expansion-agenda",
+                "nouvelle-energie-agenda",
                 "rn-agenda",
                 "tf1-lci-debates",
                 "vie-publique-presidential-calendar",

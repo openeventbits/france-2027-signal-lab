@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import unicodedata
@@ -27,6 +28,7 @@ __all__ = [
     "REFRESH_CLASSES",
     "SOURCE_TYPES",
     "load_campaign_event_source_registry",
+    "manual_evidence_source_id",
     "normalize_campaign_event_source_registry",
     "normalize_https_url",
     "validate_campaign_event_source_registry",
@@ -61,6 +63,7 @@ CAMPAIGN_EVENT_TYPES = frozenset(
         "debate",
         "candidate_visit",
         "campaign_launch",
+        "other",
     }
 )
 INSTITUTIONAL_EVENT_TYPES = frozenset(
@@ -156,6 +159,7 @@ _EVENT_TYPE_ORDER = {
             "debate",
             "candidate_visit",
             "campaign_launch",
+            "other",
             "sponsorship_deadline",
             "official_candidate_list",
             "campaign_period_boundary",
@@ -232,6 +236,30 @@ def normalize_https_url(value: Any, context: str = "url") -> str:
         _fail(f"{context} hostname is invalid")
 
     return urlunsplit(("https", canonical_host, parsed.path, parsed.query, ""))
+
+
+def manual_evidence_source_id(
+    source_type: Any,
+    source_publisher: Any,
+    source_url: Any,
+) -> str:
+    """Return the deterministic identity for inline manually curated evidence."""
+
+    if not isinstance(source_type, str) or source_type not in SOURCE_TYPES:
+        _fail(f"source_type is not allowed: {source_type!r}")
+    publisher = _require_trimmed_text(source_publisher, "source_publisher")
+    canonical_publisher = " ".join(publisher.split())
+    if publisher != canonical_publisher:
+        _fail("source_publisher must use canonical internal whitespace")
+    canonical_url = normalize_https_url(source_url, "source_url")
+    hostname = urlsplit(canonical_url).hostname
+    if hostname is None:  # Defensive; normalize_https_url already requires it.
+        _fail("source_url must contain a canonical hostname")
+    identity = (
+        f"campaign-events:manual-evidence:v1\0{source_type}\0"
+        f"{publisher.casefold()}\0{hostname}"
+    ).encode("utf-8")
+    return "manual-" + hashlib.sha256(identity).hexdigest()[:16]
 
 
 def _candidate_registry_by_id(
@@ -341,9 +369,24 @@ def _normalize_collection(
         )
     if uses_custom_step and collector_family is None:
         _fail(f"{context} custom collection requires collector_family")
-    if not uses_custom_step and collector_family is not None:
+    is_linked_ics_collection = (
+        collector_family == "linked-ics"
+        and discovery_method == "linked_event_pages"
+        and parser_family == "ics"
+    )
+    if collector_family == "linked-ics" and not is_linked_ics_collection:
         _fail(
-            f"{context}.collector_family is only allowed for custom collection"
+            f"{context}.collector_family linked-ics requires "
+            "linked_event_pages discovery and ics parsing"
+        )
+    if (
+        not uses_custom_step
+        and collector_family is not None
+        and not is_linked_ics_collection
+    ):
+        _fail(
+            f"{context}.collector_family is only allowed for custom collection "
+            "or the linked-ics collection architecture"
         )
 
     normalized = {

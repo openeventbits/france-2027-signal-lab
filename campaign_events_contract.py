@@ -23,6 +23,7 @@ from campaign_event_sources import (
     SOURCE_TYPES,
     CampaignEventSourceRegistryError,
     load_campaign_event_source_registry,
+    manual_evidence_source_id,
     normalize_https_url,
 )
 
@@ -40,9 +41,11 @@ class CampaignEventsContractError(ValueError):
     """Raised when a Campaign Events artifact violates its contract."""
 
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 CAMPAIGN_EVENTS_LANE = "campaign_events"
 INSTITUTIONAL_MILESTONES_LANE = "institutional_milestones"
+EVENT_WATCH_LANE = "event_watch"
+UPDATE_TYPES = frozenset({"NEW", "CONFIRMED", "UPDATED", "POSTPONED", "CANCELLED"})
 TIMEZONE = "Europe/Paris"
 TIME_PRECISIONS = frozenset({"date", "datetime"})
 STATUSES = frozenset({"scheduled", "postponed", "cancelled", "completed"})
@@ -70,6 +73,7 @@ _TOP_LEVEL_KEYS = frozenset(
         "data_as_of",
         CAMPAIGN_EVENTS_LANE,
         INSTITUTIONAL_MILESTONES_LANE,
+        EVENT_WATCH_LANE,
     }
 )
 _REQUIRED_EVENT_KEYS = frozenset(
@@ -97,6 +101,7 @@ _OPTIONAL_EVENT_KEYS = frozenset(
         "location_name",
         "locality",
         "department",
+        "participants",
     }
 )
 _REQUIRED_EVIDENCE_KEYS = frozenset(
@@ -111,6 +116,7 @@ _REQUIRED_EVIDENCE_KEYS = frozenset(
 _OPTIONAL_EVIDENCE_KEYS = frozenset({"source_published_at"})
 _KEBAB_CASE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z", re.ASCII)
 _EVENT_ID = re.compile(r"ce-[0-9a-f]{24}\Z", re.ASCII)
+_UPDATE_ID = re.compile(r"cew-[0-9a-f]{24}\Z", re.ASCII)
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}\Z", re.ASCII)
 _UTC_TIMESTAMP = re.compile(
     r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z",
@@ -142,6 +148,7 @@ _EVENT_TYPE_ORDER = {
             "debate",
             "candidate_visit",
             "campaign_launch",
+            "other",
             "sponsorship_deadline",
             "official_candidate_list",
             "campaign_period_boundary",
@@ -325,8 +332,6 @@ def _normalize_candidates(
         _fail(f"{context}.candidate_ids and candidate_names must be lists")
     if len(candidate_ids) != len(candidate_names):
         _fail(f"{context}.candidate_ids and candidate_names must be parallel")
-    if lane == CAMPAIGN_EVENTS_LANE and not candidate_ids:
-        _fail(f"{context} Campaign Events require at least one candidate")
     if lane == INSTITUTIONAL_MILESTONES_LANE and (
         candidate_ids or candidate_names
     ):
@@ -356,6 +361,29 @@ def _normalize_candidates(
     return [pair[0] for pair in pairs], [pair[1] for pair in pairs]
 
 
+def _normalize_participants(
+    event: dict[str, Any],
+    *,
+    lane: str,
+    context: str,
+) -> list[str] | None:
+    if "participants" not in event:
+        return None
+    if lane != CAMPAIGN_EVENTS_LANE:
+        _fail(f"{context}.participants is only allowed for Campaign Events")
+
+    supplied = event["participants"]
+    if not isinstance(supplied, list) or not supplied:
+        _fail(f"{context}.participants must be a non-empty list")
+    participants = [
+        _require_trimmed_text(value, f"{context}.participants[{index}]")
+        for index, value in enumerate(supplied)
+    ]
+    if len(set(participants)) != len(participants):
+        _fail(f"{context}.participants must not contain duplicates")
+    return sorted(participants, key=lambda value: (value.casefold(), value))
+
+
 def _normalize_evidence(
     value: Any,
     *,
@@ -371,6 +399,7 @@ def _normalize_evidence(
     normalized: list[dict[str, Any]] = []
     full_records: set[tuple[Any, ...]] = set()
     source_urls: set[str] = set()
+    has_validated_manual_evidence = False
 
     for index, evidence in enumerate(value):
         context = f"{event_context}.evidence[{index}]"
@@ -441,7 +470,7 @@ def _normalize_evidence(
         }
         if source_published_at is not None:
             normalized_record["source_published_at"] = source_published_at
-        registered_source = _validate_evidence_registry_parity(
+        validated_source, is_manual_evidence = _validate_evidence_registry_parity(
             normalized_record,
             lane=lane,
             event_type=event_type,
@@ -449,9 +478,10 @@ def _normalize_evidence(
             source_by_id=source_by_id,
             context=context,
         )
-        normalized_record["source_id"] = registered_source["source_id"]
-        normalized_record["source_publisher"] = registered_source["publisher"]
-        normalized_record["source_type"] = registered_source["source_type"]
+        normalized_record["source_id"] = validated_source["source_id"]
+        normalized_record["source_publisher"] = validated_source["publisher"]
+        normalized_record["source_type"] = validated_source["source_type"]
+        has_validated_manual_evidence |= is_manual_evidence
         normalized.append(normalized_record)
 
     normalized.sort(key=_evidence_sort_key)
@@ -460,6 +490,7 @@ def _normalize_evidence(
             normalized,
             lane=lane,
             context=event_context,
+            has_validated_manual_evidence=has_validated_manual_evidence,
         )
     return normalized
 
@@ -472,11 +503,35 @@ def _validate_evidence_registry_parity(
     event_candidate_ids: list[str],
     source_by_id: dict[str, dict[str, Any]],
     context: str,
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], bool]:
     source_id = evidence["source_id"]
     registered = source_by_id.get(source_id)
     if registered is None:
-        _fail(f"{context}.source_id is not in the approved source registry")
+        if not source_id.startswith("manual-"):
+            _fail(f"{context}.source_id is not in the approved source registry")
+        if lane != CAMPAIGN_EVENTS_LANE:
+            _fail(f"{context}.manual source IDs are only allowed for campaign_events")
+        try:
+            expected_source_id = manual_evidence_source_id(
+                evidence["source_type"],
+                evidence["source_publisher"],
+                evidence["source_url"],
+            )
+        except CampaignEventSourceRegistryError as error:
+            raise CampaignEventsContractError(str(error)) from error
+        if source_id != expected_source_id:
+            _fail(
+                f"{context}.source_id does not match the derived manual "
+                "evidence identity"
+            )
+        return (
+            {
+                "source_id": expected_source_id,
+                "publisher": evidence["source_publisher"],
+                "source_type": evidence["source_type"],
+            },
+            True,
+        )
     if not registered["enabled"]:
         _fail(f"{context}.source_id is disabled in the approved source registry")
     if evidence["source_type"] != registered["source_type"]:
@@ -510,7 +565,7 @@ def _validate_evidence_registry_parity(
             _fail(
                 f"{context}.source_id is unrelated to every event candidate"
             )
-    return registered
+    return registered, False
 
 
 def _evidence_sort_key(evidence: dict[str, Any]) -> tuple[Any, ...]:
@@ -529,6 +584,7 @@ def _validate_evidence_sufficiency(
     *,
     lane: str,
     context: str,
+    has_validated_manual_evidence: bool,
 ) -> None:
     explicit_types = {"explicit_schedule", "explicit_status_update"}
     if lane == INSTITUTIONAL_MILESTONES_LANE:
@@ -541,6 +597,10 @@ def _validate_evidence_sufficiency(
         )
         if not qualifying:
             _fail(f"{context} requires qualifying official evidence")
+        return
+    if has_validated_manual_evidence and any(
+        record["evidence_type"] in explicit_types for record in evidence
+    ):
         return
 
     has_first_party = any(
@@ -648,6 +708,11 @@ def _normalize_event(
         candidate_by_id=candidate_by_id,
         context=context,
     )
+    participants = _normalize_participants(
+        value,
+        lane=lane,
+        context=context,
+    )
     scheduled_start, scheduled_end = _normalize_scheduled_values(
         value,
         context=context,
@@ -693,6 +758,8 @@ def _normalize_event(
         "candidate_names": candidate_names,
         "scheduled_start": scheduled_start,
     }
+    if participants is not None:
+        normalized["participants"] = participants
     if scheduled_end is not None:
         normalized["scheduled_end"] = scheduled_end
     normalized.update(
@@ -789,6 +856,61 @@ def _event_sort_key(event: dict[str, Any]) -> tuple[Any, ...]:
     )
 
 
+def _normalize_event_watch_record(
+    record: Any,
+    *,
+    index: int,
+    campaign_event_ids: set[str],
+) -> dict[str, Any]:
+    context = f"event_watch[{index}]"
+    required = frozenset({"update_id", "event_id", "update_type", "headline", "observed_at", "evidence"})
+    _require_exact_keys(record, required, frozenset(), context)
+    update_id = record["update_id"]
+    if not isinstance(update_id, str) or not _UPDATE_ID.fullmatch(update_id):
+        _fail(f"{context}.update_id is invalid")
+    event_id = record["event_id"]
+    if not isinstance(event_id, str) or not _EVENT_ID.fullmatch(event_id):
+        _fail(f"{context}.event_id is invalid")
+    if event_id not in campaign_event_ids:
+        _fail(f"{context}.event_id must reference campaign_events")
+    update_type = record["update_type"]
+    if not isinstance(update_type, str) or update_type not in UPDATE_TYPES:
+        _fail(f"{context}.update_type is invalid")
+    headline = _require_trimmed_text(
+        record["headline"],
+        f"{context}.headline",
+    )
+    _require_utc_timestamp(
+        record["observed_at"],
+        f"{context}.observed_at",
+    )
+    observed_at = record["observed_at"]
+    evidence = record["evidence"]
+    if not isinstance(evidence, list) or not evidence:
+        _fail(f"{context}.evidence must be a non-empty list")
+    normalized_evidence = []
+    keys = frozenset({"source_id", "source_url", "source_publisher", "source_type"})
+    for evidence_index, item in enumerate(evidence):
+        evidence_context = f"{context}.evidence[{evidence_index}]"
+        _require_exact_keys(item, keys, frozenset(), evidence_context)
+        publisher = _require_trimmed_text(
+            item["source_publisher"],
+            f"{evidence_context}.source_publisher",
+        )
+        source_type = item["source_type"]
+        if not isinstance(source_type, str) or source_type not in SOURCE_TYPES:
+            _fail(f"{evidence_context}.source_type is invalid")
+        source_url = normalize_https_url(item["source_url"], f"{evidence_context}.source_url")
+        source_id = manual_evidence_source_id(source_type, publisher, source_url)
+        if item["source_id"] != source_id:
+            _fail(f"{evidence_context}.source_id is invalid")
+        normalized_evidence.append({"source_id": source_id, "source_url": source_url, "source_publisher": publisher, "source_type": source_type})
+    if len({item["source_id"] for item in normalized_evidence}) != len(normalized_evidence):
+        _fail(f"{context}.evidence must be unique")
+    normalized_evidence.sort(key=lambda item: (item["source_id"], item["source_url"]))
+    return {"update_id": update_id, "event_id": event_id, "update_type": update_type, "headline": headline, "observed_at": observed_at, "evidence": normalized_evidence}
+
+
 def normalize_campaign_events_artifact(
     payload: Any,
     *,
@@ -801,7 +923,7 @@ def normalize_campaign_events_artifact(
         _fail("payload must be a plain dict")
     _require_exact_keys(payload, _TOP_LEVEL_KEYS, frozenset(), "payload")
     if payload["schema_version"] != SCHEMA_VERSION:
-        _fail("schema_version must be exactly '1.0'")
+        _fail(f"schema_version must be exactly '{SCHEMA_VERSION}'")
     _require_utc_timestamp(payload["generated_at"], "generated_at")
     _require_utc_timestamp(payload["data_as_of"], "data_as_of")
     candidate_by_id = _candidate_registry_by_id(candidate_registry_path)
@@ -839,14 +961,26 @@ def normalize_campaign_events_artifact(
         normalized_records.sort(key=_event_sort_key)
         normalized_lanes[lane] = normalized_records
 
+    campaign_event_ids = {record["event_id"] for record in normalized_lanes[CAMPAIGN_EVENTS_LANE]}
+    records = payload[EVENT_WATCH_LANE]
+    if not isinstance(records, list):
+        _fail("event_watch must be a list")
+    event_watch = [_normalize_event_watch_record(record, index=index, campaign_event_ids=campaign_event_ids) for index, record in enumerate(records)]
+    if len({record["update_id"] for record in event_watch}) != len(event_watch):
+        _fail("duplicate event_watch update_id")
+    event_watch.sort(key=lambda record: record["update_id"])
+    event_watch.sort(key=lambda record: record["observed_at"], reverse=True)
+    timestamps = [record["last_verified_at"] for lane in normalized_lanes.values() for record in lane] + [record["observed_at"] for record in event_watch]
+    data_as_of = max(timestamps) if timestamps else payload["generated_at"]
+    if payload["data_as_of"] != data_as_of:
+        _fail("data_as_of must equal the latest event timestamp")
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": payload["generated_at"],
-        "data_as_of": payload["data_as_of"],
+        "data_as_of": data_as_of,
         CAMPAIGN_EVENTS_LANE: normalized_lanes[CAMPAIGN_EVENTS_LANE],
-        INSTITUTIONAL_MILESTONES_LANE: normalized_lanes[
-            INSTITUTIONAL_MILESTONES_LANE
-        ],
+        INSTITUTIONAL_MILESTONES_LANE: normalized_lanes[INSTITUTIONAL_MILESTONES_LANE],
+        EVENT_WATCH_LANE: event_watch,
     }
 
 

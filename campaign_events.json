@@ -1,13 +1,13 @@
 {
-  "schema_version": "1.0",
-  "generated_at": "2026-08-09T06:47:49Z",
-  "data_as_of": "2026-08-09T06:47:49Z",
+  "schema_version": "1.1",
+  "generated_at": "2026-08-12T11:22:25Z",
+  "data_as_of": "2026-08-12T11:19:30Z",
   "campaign_events": [
     {
-      "event_key": "campaign-debate-2026-08-27-1645-medef",
-      "event_id": "ce-81756d141d9a24480dd5bc1c",
+      "event_key": "manual-f7496cc269eb4abbbaafeba0545af3aa",
+      "event_id": "ce-d8bf3fade27762440560b322",
       "event_type": "debate",
-      "title": "Grand débat de la campagne présidentielle sur LCI",
+      "title": "Grand débat de la campagne présidentielle 2027 sur LCI",
       "candidate_ids": [
         "bruno-retailleau",
         "gabriel-attal",
@@ -27,24 +27,26 @@
         "Édouard Philippe"
       ],
       "scheduled_start": "2026-08-27T16:45:00+02:00",
+      "participants": [
+        "Bruno Retailleau",
+        "Gabriel Attal",
+        "Jean-Luc Mélenchon",
+        "Marine Le Pen",
+        "Marine Tondelier",
+        "Raphaël Glucksmann",
+        "Édouard Philippe"
+      ],
       "time_precision": "datetime",
       "timezone": "Europe/Paris",
       "organization": "MEDEF",
       "location_name": "Court Philippe-Chatrier, Roland-Garros",
       "status": "scheduled",
-      "status_as_of": "2026-08-09",
+      "status_as_of": "2026-08-12",
       "evidence_status": "verified",
-      "last_verified_at": "2026-08-09T06:47:49Z",
+      "last_verified_at": "2026-08-12T11:19:30Z",
       "evidence": [
         {
-          "source_id": "rn-agenda",
-          "source_url": "https://rassemblementnational.fr/agenda",
-          "source_publisher": "Rassemblement National",
-          "source_type": "party_first_party",
-          "evidence_type": "explicit_schedule"
-        },
-        {
-          "source_id": "tf1-lci-debates",
+          "source_id": "manual-321b1eaed55fd0b5",
           "source_url": "https://www.tf1info.fr/politique/election-presidentielle-2027-lci-organisera-le-27-aout-un-grand-debat-avec-sept-candidats-declares-ou-pressentis-2455591.html",
           "source_publisher": "TF1 Info",
           "source_type": "reliable_media",
@@ -53,8 +55,8 @@
       ]
     },
     {
-      "event_key": "campaign-debate-2026-08-29-1645-laboratoire-de-la-republique",
-      "event_id": "ce-7298b5524e2c85a858fd9811",
+      "event_key": "manual-9e9dd0bf1f86414eb9728fda83754269",
+      "event_id": "ce-7b1e5744be76c31edf84e8b2",
       "event_type": "debate",
       "title": "Débat entre François Hollande et Édouard Philippe sur LCI",
       "candidate_ids": [
@@ -66,24 +68,21 @@
         "Édouard Philippe"
       ],
       "scheduled_start": "2026-08-29T16:45:00+02:00",
+      "participants": [
+        "François Hollande",
+        "Édouard Philippe"
+      ],
       "time_precision": "datetime",
       "timezone": "Europe/Paris",
       "organization": "Laboratoire de la République",
       "locality": "Sens",
       "status": "scheduled",
-      "status_as_of": "2026-08-09",
+      "status_as_of": "2026-08-12",
       "evidence_status": "verified",
-      "last_verified_at": "2026-08-09T06:47:49Z",
+      "last_verified_at": "2026-08-12T11:19:30Z",
       "evidence": [
         {
-          "source_id": "la-lettre-expansion-agenda",
-          "source_url": "https://www.lalettredelexpansion.com/article/71583/agenda",
-          "source_publisher": "La Lettre de l'Expansion",
-          "source_type": "reliable_media",
-          "evidence_type": "explicit_schedule"
-        },
-        {
-          "source_id": "tf1-lci-debates",
+          "source_id": "manual-321b1eaed55fd0b5",
           "source_url": "https://www.tf1info.fr/politique/election-presidentielle-2027-lci-organisera-le-27-aout-un-grand-debat-avec-sept-candidats-declares-ou-pressentis-2455591.html",
           "source_publisher": "TF1 Info",
           "source_type": "reliable_media",
@@ -152,6 +151,38 @@
           "source_publisher": "Vie publique",
           "source_type": "official_unstructured",
           "evidence_type": "official_rule_derivation"
+        }
+      ]
+    }
+  ],
+  "event_watch": [
+    {
+      "update_id": "cew-cb331787ad9327cf063b6c53",
+      "event_id": "ce-7b1e5744be76c31edf84e8b2",
+      "update_type": "NEW",
+      "headline": "Débat entre François Hollande et Édouard Philippe sur LCI",
+      "observed_at": "2026-08-12T11:19:30Z",
+      "evidence": [
+        {
+          "source_id": "manual-321b1eaed55fd0b5",
+          "source_url": "https://www.tf1info.fr/politique/election-presidentielle-2027-lci-organisera-le-27-aout-un-grand-debat-avec-sept-candidats-declares-ou-pressentis-2455591.html",
+          "source_publisher": "TF1 Info",
+          "source_type": "reliable_media"
+        }
+      ]
+    },
+    {
+      "update_id": "cew-e237fd61a1418d61dadac732",
+      "event_id": "ce-d8bf3fade27762440560b322",
+      "update_type": "NEW",
+      "headline": "Grand débat de la campagne présidentielle 2027 sur LCI",
+      "observed_at": "2026-08-12T11:19:30Z",
+      "evidence": [
+        {
+          "source_id": "manual-321b1eaed55fd0b5",
+          "source_url": "https://www.tf1info.fr/politique/election-presidentielle-2027-lci-organisera-le-27-aout-un-grand-debat-avec-sept-candidats-declares-ou-pressentis-2455591.html",
+          "source_publisher": "TF1 Info",
+          "source_type": "reliable_media"
         }
       ]
     }

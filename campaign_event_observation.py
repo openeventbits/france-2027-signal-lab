@@ -79,6 +79,7 @@ _PUBLIC_OPTIONAL_KEYS = frozenset(
         "location_name",
         "locality",
         "department",
+        "participants",
     }
 )
 _EXCLUDED_SEQUENCES = (
@@ -160,6 +161,7 @@ class ClassifiedCampaignEvent:
         "debate",
         "candidate_visit",
         "campaign_launch",
+        "other",
     ]
 
     def __post_init__(self) -> None:
@@ -459,6 +461,18 @@ def _validate_attribution_source_compatibility(
     event: AttributedStructuredEvent,
     source: dict[str, Any],
 ) -> None:
+    if not event.candidate_ids:
+        if (
+            source["source_type"]
+            not in {"party_first_party", "organizer_first_party"}
+            or source["collection"]["attribution_policy"]
+            != "explicit_participant"
+        ):
+            raise CampaignEventObservationConfigurationError(
+                "unlinked attribution requires an explicit-participant "
+                "party or organizer first-party source"
+            )
+        return
     source_is_candidate_owned = (
         source["collection"]["attribution_policy"]
         == "candidate_owned_campaign"
@@ -529,7 +543,6 @@ def _source_owned_event_key(
         "event_type": classified.event_type,
         "scheduled_start": structured.scheduled_start,
         "time_precision": structured.time_precision,
-        "candidate_ids": attributed.candidate_ids,
         "anchor": anchor,
     }
     encoded = json.dumps(
@@ -594,6 +607,8 @@ def _raw_observation(
     }
     if structured.scheduled_end is not None:
         observation["scheduled_end"] = structured.scheduled_end
+    if structured.participants:
+        observation["participants"] = list(structured.participants)
     for field in ("organization", "location_name", "locality"):
         value = getattr(structured, field)
         if value is not None:
@@ -634,6 +649,17 @@ def build_campaign_event_observations(
             )
         _validate_attribution_source_compatibility(event, normalized_source)
         classified = classify_campaign_event(event)
+        if (
+            classified is None
+            and normalized_source["source_type"]
+            in {
+                "candidate_first_party",
+                "party_first_party",
+                "organizer_first_party",
+            }
+            and "other" in normalized_source["allowed_event_types"]
+        ):
+            classified = ClassifiedCampaignEvent(event, "other")
         if classified is None:
             rejected_records += 1
             continue

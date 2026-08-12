@@ -41,6 +41,34 @@
       }
     },
     {
+      "source_id": "nouvelle-energie-agenda",
+      "publisher": "Nouvelle Énergie",
+      "source_type": "party_first_party",
+      "url": "https://www.unenouvelleenergie.fr/agenda/",
+      "allowed_lanes": [
+        "campaign_events"
+      ],
+      "allowed_event_types": [
+        "rally",
+        "public_meeting",
+        "debate",
+        "candidate_visit",
+        "campaign_launch",
+        "other"
+      ],
+      "enabled": true,
+      "required": false,
+      "refresh_class": "daily",
+      "zero_result_valid": true,
+      "organization": "Nouvelle Énergie",
+      "collection": {
+        "discovery_method": "linked_event_pages",
+        "parser_family": "ics",
+        "attribution_policy": "explicit_participant",
+        "collector_family": "linked-ics"
+      }
+    },
+    {
       "source_id": "rn-agenda",
       "publisher": "Rassemblement National",
       "source_type": "party_first_party",

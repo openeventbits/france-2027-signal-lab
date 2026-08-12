@@ -40,6 +40,7 @@ def structured_event(
     description: str | None = None,
     organization: str | None = None,
     event_url: str | None = None,
+    participants: tuple[str, ...] = (),
 ) -> StructuredEventRecord:
     return StructuredEventRecord(
         title=title,
@@ -50,6 +51,7 @@ def structured_event(
         description=description,
         organization=organization,
         event_url=event_url,
+        participants=participants,
     )
 
 
@@ -110,6 +112,143 @@ class CampaignEventAttributionTests(unittest.TestCase):
         )
         self.assertEqual(attributed.candidate_names, ("Édouard Philippe",))
         self.assertEqual(attributed.attribution_basis, "explicit_participant")
+
+    def test_canonical_match_precedes_unlinked_participant_fallback(self):
+        attributed = self.assert_candidate_ids(
+            structured_event(
+                "Meeting avec Édouard Philippe",
+                participants=("Unknown Political Actor",),
+            ),
+            ("edouard-philippe",),
+        )
+        self.assertEqual(attributed.candidate_names, ("Édouard Philippe",))
+        self.assertEqual(attributed.attribution_basis, "explicit_participant")
+
+    def test_canonical_structured_participant_links_generic_event(self):
+        attributed = self.assert_candidate_ids(
+            structured_event(
+                "Meeting public",
+                participants=("David Lisnard",),
+            ),
+            ("david-lisnard",),
+        )
+        self.assertEqual(attributed.candidate_names, ("David Lisnard",))
+        self.assertEqual(attributed.attribution_basis, "explicit_participant")
+
+    def test_multiple_canonical_structured_participants_link_deterministically(self):
+        attributed = self.assert_candidate_ids(
+            structured_event(
+                "Meeting public",
+                participants=("Édouard Philippe", "David Lisnard"),
+            ),
+            ("david-lisnard", "edouard-philippe"),
+        )
+        self.assertEqual(
+            attributed.candidate_names,
+            ("David Lisnard", "Édouard Philippe"),
+        )
+        self.assertEqual(attributed.attribution_basis, "explicit_participant")
+
+    def test_mixed_known_and_unknown_structured_participants_link_known_only(self):
+        attributed = self.assert_candidate_ids(
+            structured_event(
+                "Meeting public",
+                participants=("David Lisnard", "Unknown Political Actor"),
+            ),
+            ("david-lisnard",),
+        )
+        self.assertEqual(attributed.candidate_names, ("David Lisnard",))
+        self.assertEqual(attributed.attribution_basis, "explicit_participant")
+
+    def test_surname_only_structured_participant_does_not_link_candidate(self):
+        attributed = self.attribute(
+            structured_event(
+                "Meeting public",
+                participants=("Lisnard",),
+            )
+        )
+        self.assertIsNotNone(attributed)
+        assert attributed is not None
+        self.assertEqual(attributed.candidate_ids, ())
+        self.assertEqual(attributed.candidate_names, ())
+        self.assertIsNone(attributed.attribution_basis)
+
+    def test_party_first_party_unknown_participant_is_unlinked(self):
+        attributed = self.attribute(
+            structured_event(
+                "Meeting public",
+                participants=("Unknown Political Actor",),
+            )
+        )
+        self.assertIsNotNone(attributed)
+        assert attributed is not None
+        self.assertEqual(attributed.candidate_ids, ())
+        self.assertEqual(attributed.candidate_names, ())
+        self.assertIsNone(attributed.attribution_basis)
+
+    def test_organizer_first_party_unknown_participant_is_unlinked(self):
+        attributed = self.attribute(
+            structured_event(
+                "Meeting public",
+                participants=("Unknown Political Actor",),
+            ),
+            source(
+                "explicit_participant",
+                source_type="organizer_first_party",
+            ),
+        )
+        self.assertIsNotNone(attributed)
+        assert attributed is not None
+        self.assertEqual(attributed.candidate_ids, ())
+        self.assertEqual(attributed.candidate_names, ())
+        self.assertIsNone(attributed.attribution_basis)
+
+    def test_reliable_media_unknown_participant_remains_rejected(self):
+        self.assertIsNone(
+            self.attribute(
+                structured_event(
+                    "Meeting public",
+                    participants=("Unknown Political Actor",),
+                ),
+                source(
+                    "explicit_participant",
+                    source_type="reliable_media",
+                ),
+            )
+        )
+
+    def test_first_party_no_match_without_participants_remains_rejected(self):
+        self.assertIsNone(self.attribute(structured_event("Meeting public")))
+
+    def test_attributed_event_state_combinations_fail_closed(self):
+        unlinked = structured_event(
+            "Meeting public",
+            participants=("Unknown Political Actor",),
+        )
+        cases = (
+            (structured_event("Meeting public"), (), (), None),
+            (unlinked, (), (), "explicit_participant"),
+            (unlinked, ("david-lisnard",), ("David Lisnard",), None),
+            (
+                unlinked,
+                ("david-lisnard", "bruno-retailleau"),
+                ("David Lisnard",),
+                "explicit_participant",
+            ),
+        )
+        for event, candidate_ids, candidate_names, basis in cases:
+            with self.subTest(
+                candidate_ids=candidate_ids,
+                candidate_names=candidate_names,
+                basis=basis,
+            ):
+                with self.assertRaises(CandidateAttributionConfigurationError):
+                    AttributedStructuredEvent(
+                        structured_event=event,
+                        candidate_ids=candidate_ids,
+                        candidate_names=candidate_names,
+                        attribution_basis=basis,
+                    )
 
     def test_case_accent_and_hyphen_normalization_are_deterministic(self):
         cases = (
