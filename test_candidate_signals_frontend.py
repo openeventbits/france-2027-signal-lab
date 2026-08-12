@@ -242,6 +242,7 @@ def dynamic_schema_12_payload(tiers=("main", "main", "secondary", "hidden")):
         row["candidacy"]["status"] = status_by_tier[tier]
         row["candidacy"]["display_tier"] = tier
         row["candidacy"]["active_field_eligible"] = tier != "hidden"
+        row["candidacy"].pop("upstream_presence", None)
         candidates.append(row)
 
     field = {
@@ -316,6 +317,8 @@ def dynamic_schema_12_payload(tiers=("main", "main", "secondary", "hidden")):
         }
 
     payload = json.loads(json.dumps(source))
+    payload["schema_version"] = "1.2"
+    payload.pop("active_monitoring_field", None)
     payload["candidate_universe"] = {
         "source": "candidate_candidacy_status.json",
         "rule": "Dynamic frontend fixture",
@@ -1050,24 +1053,20 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
             self.assertIsNone(candidate[field])
         self.assertNotIn(0, candidate.values())
 
-    def test_schema_12_normalizes_complete_presidential_field(self):
+    def test_schema_13_normalizes_complete_presidential_and_active_fields(self):
         payload = json.loads(
             (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
         )
         state = run_candidate_module("api.normalize(input.payload)", payload)
         self.assertEqual(state["status"], "ready")
-        self.assertEqual(len(state["candidates"]), 20)
-        field = state["metadata"]["presidentialField"]
-        self.assertEqual(field["counts"], {
-            "main": 11,
-            "secondary": 7,
-            "hidden": 2,
-            "active": 18,
-            "total": 20,
-        })
         self.assertEqual(
-            field["hidden"],
-            ["sarah-knafo", "sebastien-lecornu"],
+            len(state["candidates"]),
+            payload["candidate_universe"]["count"],
+        )
+        field = state["metadata"]["presidentialField"]
+        self.assertEqual(
+            field,
+            payload["presidential_field"],
         )
         self.assertTrue(
             all(candidate["candidacy"] for candidate in state["candidates"])
@@ -1076,12 +1075,22 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
             [candidate["candidate_id"] for candidate in state["candidates"]],
             [candidate["candidate_id"] for candidate in payload["candidates"]],
         )
+        monitoring = state["metadata"]["activeMonitoringField"]
+        self.assertEqual(
+            monitoring,
+            payload["active_monitoring_field"],
+        )
+        self.assertEqual(
+            monitoring["counts"]["active"],
+            len(monitoring["main"]) + len(monitoring["secondary"]),
+        )
+
         active = state["metadata"]["activeFieldVisibility"]
         self.assertEqual(active, payload["active_field_visibility"])
         self.assertEqual(active["method"], "share_of_active_candidate_linked_records")
         self.assertEqual(
             active["denominator_scope"],
-            "records_linked_to_at_least_one_main_or_secondary_candidate",
+            "records_linked_to_at_least_one_active_monitoring_candidate",
         )
         for scope_name in ("primary", "general"):
             scope = active[scope_name]
@@ -1162,9 +1171,7 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
                 self.assertEqual(state["reason"], "invalid_payload")
 
     def test_schema_12_rejects_invalid_tier_membership_counts_and_eligibility(self):
-        base = json.loads(
-            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
-        )
+        base = dynamic_schema_12_payload()
         cases = []
         duplicate = json.loads(json.dumps(base))
         duplicate["presidential_field"]["secondary"].append(
@@ -1209,9 +1216,7 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
                 self.assertEqual(state["reason"], "invalid_payload")
 
     def test_schema_12_rejects_malformed_active_projection(self):
-        base = json.loads(
-            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
-        )
+        base = dynamic_schema_12_payload()
         cases = []
         hidden = json.loads(json.dumps(base))
         hidden["active_field_visibility"]["primary"]["secondary"][0][
@@ -1274,8 +1279,25 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
         )
         payload["schema_version"] = "1.1"
         payload.pop("active_field_visibility")
+        payload.pop("active_monitoring_field")
+
+        payload["presidential_field"]["counts"]["active"] = (
+            len(payload["presidential_field"]["main"])
+            + len(payload["presidential_field"]["secondary"])
+        )
+
+        for candidate in payload["candidates"]:
+            candidate["candidacy"].pop(
+                "upstream_presence",
+                None,
+            )
+            candidate["candidacy"]["active_field_eligible"] = (
+                candidate["candidacy"]["display_tier"] != "hidden"
+            )
+
         state = run_candidate_module("api.normalize(input.payload)", payload)
         self.assertEqual(state["status"], "ready")
+        self.assertIsNone(state["metadata"]["activeMonitoringField"])
         self.assertIsNone(state["metadata"]["activeFieldVisibility"])
 
     def test_schema_10_retains_evidence_without_fabricating_active_field(self):

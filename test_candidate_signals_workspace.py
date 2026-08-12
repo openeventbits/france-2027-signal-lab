@@ -597,8 +597,8 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         result = run_workspace(published)
 
         active_ids = {
-            *published["presidential_field"]["main"],
-            *published["presidential_field"]["secondary"],
+            *published["active_monitoring_field"]["main"],
+            *published["active_monitoring_field"]["secondary"],
         }
         source_active = [
             candidate
@@ -612,7 +612,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
 
         self.assertEqual(
             len(result["candidateOrder"]),
-            published["presidential_field"]["counts"]["active"],
+            published["active_monitoring_field"]["counts"]["active"],
         )
         self.assertEqual(set(result["candidateOrder"]), active_ids)
 
@@ -749,8 +749,8 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             CANDIDATE_JSON.read_text(encoding="utf-8")
         )
         active_set = {
-            *published["presidential_field"]["main"],
-            *published["presidential_field"]["secondary"],
+            *published["active_monitoring_field"]["main"],
+            *published["active_monitoring_field"]["secondary"],
         }
         active_ids = [
             candidate["candidate_id"]
@@ -765,7 +765,10 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         invalid = run_workspace(published, "missing")
 
         self.assertEqual(preserved["resolved"], preserved_id)
-        self.assertEqual(len(preserved["pressed"]), 18)
+        self.assertEqual(
+            len(preserved["pressed"]),
+            published["active_monitoring_field"]["counts"]["active"],
+        )
         self.assertEqual(
             hidden["resolved"],
             hidden["candidateOrder"][0],
