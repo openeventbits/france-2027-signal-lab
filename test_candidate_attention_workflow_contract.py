@@ -211,14 +211,22 @@ class CandidateAttentionWorkflowContractTests(
             self.workflow,
         )
 
-    def test_new_artifact_uses_current_parity_but_existing_is_intrinsic(self):
-        self.assertGreaterEqual(
+    def test_registry_input_and_schema_aware_active_parity_are_explicit(self):
+        self.assertEqual(
             self.workflow.count(
-                "expected_candidates=candidacy"
-                '["candidates"]'
+                "--candidacy-status candidate_candidacy_status.json"
             ),
-            4,
+            2,
         )
+        self.assertGreaterEqual(
+            self.workflow.count("active_candidate_records(candidacy)"),
+            5,
+        )
+        self.assertGreaterEqual(
+            self.workflow.count('schema_version"] == "1.0"'),
+            5,
+        )
+        self.assertIn("test_candidate_attention_registry_v2", self.workflow)
         self.assertEqual(
             self.workflow.count(
                 "validate_candidate_attention(\n"

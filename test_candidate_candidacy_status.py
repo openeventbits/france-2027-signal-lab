@@ -578,7 +578,7 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
             with self.subTest(filename=filename):
                 source = (ROOT / filename).read_text(encoding="utf-8")
                 self.assertIn("candidate_candidacy_status.json", source)
-                self.assertEqual(
+                self.assertGreaterEqual(
                     source.count(validation_marker),
                     source.count(build_marker),
                 )
@@ -607,6 +607,8 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
                     self.assertTrue(
                         "load_candidate_candidacy_status" in line
                         or build_marker in line
+                        or "--candidacy-status candidate_candidacy_status.json" in line
+                        or line == '"candidate_candidacy_status.json"'
                     )
                     for prohibited in (
                         "git add",

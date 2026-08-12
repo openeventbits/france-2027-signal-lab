@@ -5,6 +5,7 @@ from pathlib import Path
 
 import candidate_identity
 from candidate_candidacy_status import (
+    active_candidate_names,
     load_candidate_candidacy_status,
     validate_candidate_candidacy_status,
 )
@@ -157,14 +158,10 @@ class CandidateIdentityContractTests(unittest.TestCase):
         roster = active_news_candidate_roster(registry)
         self.assertEqual(
             roster,
-            [
-                candidate["candidate_name"]
-                for candidate in registry["candidates"]
-                if candidate["display_tier"] in {"main", "secondary"}
-            ],
+            active_candidate_names(registry),
         )
         source = inspect.getsource(active_news_candidate_roster)
-        self.assertIn("validate_candidate_candidacy_status", source)
+        self.assertIn("active_candidate_names", source)
         self.assertNotIn("poll", source.casefold())
 
     def test_registry_has_exact_identity_parity_with_candidate_signals(self):

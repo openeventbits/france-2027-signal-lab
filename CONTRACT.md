@@ -39,6 +39,24 @@
 8. No polling averages. No forecasts. No voting advice. No sentiment/ideological
    scoring. Descriptive only — the dashboard reports what was published, nothing more.
 
+## Candidate universe authority
+
+`candidate_candidacy_status.json` is the sole authority for canonical candidate identity
+and candidacy status. Its complete universe retains stored `main`, `secondary`, and
+`hidden` identities. Current active monitoring is the shared registry projection of
+`present` candidates whose stored display tier is `main` or `secondary`; consumers must
+use `active_candidate_records()`, `active_candidate_ids()`, or
+`active_candidate_names()` rather than reproducing that rule.
+
+Evidence remains source-derived. Poll ingestion preserves every clean candidate reported
+by a poll source, regardless of Registry membership. Candidate Attention covers the
+current active field and distinguishes observed Pageviews from
+`unavailable_no_personal_article` without inventing zero views. Claims queries the
+current active field, while accepted reviews and frontend filters remain evidence-oriented
+and may retain historical canonical candidate associations. Candidate Signals preserves
+the complete canonical identity universe separately from its effective active-monitoring
+projection.
+
 ## Recent Changes Ledger (`recent_changes.json`)
 
 The ledger is a generated view over the existing public datasets and the configured
