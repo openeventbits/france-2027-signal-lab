@@ -29,6 +29,204 @@ def candidate_signals_payload():
     )
 
 
+
+def legacy_candidate_attention_payload():
+    """Return a deterministic, self-contained schema-1.0 fixture."""
+
+    from datetime import date, timedelta
+
+    from candidate_attention_contract import (
+        METHODOLOGY_INTERPRETATION,
+        METHODOLOGY_LABEL,
+        METHODOLOGY_NOT_MEASURES,
+        METHODOLOGY_REDIRECT_LIMITATION,
+        METHODOLOGY_WEEKLY_COMPARISON,
+    )
+
+    start = date(2026, 5, 9)
+    dates = [
+        start + timedelta(days=offset)
+        for offset in range(90)
+    ]
+
+    def percentage_change(current, previous):
+        if previous == 0:
+            return None
+        return round(
+            ((current - previous) / previous) * 100.0,
+            1,
+        )
+
+    def candidate_payload(
+        candidate_id,
+        candidate_name,
+        article_slug,
+        daily_views,
+    ):
+        series = [
+            {
+                "date": day.isoformat(),
+                "views": daily_views,
+            }
+            for day in dates
+        ]
+
+        latest_7 = series[-7:]
+        previous_7 = series[-14:-7]
+        latest_28 = series[-28:]
+        previous_28 = series[-56:-28]
+
+        latest_7_views = sum(
+            item["views"]
+            for item in latest_7
+        )
+        previous_7_views = sum(
+            item["views"]
+            for item in previous_7
+        )
+        latest_28_views = sum(
+            item["views"]
+            for item in latest_28
+        )
+        previous_28_views = sum(
+            item["views"]
+            for item in previous_28
+        )
+
+        latest_peak = max(
+            latest_7,
+            key=lambda item: item["views"],
+        )
+        previous_peak = max(
+            previous_7,
+            key=lambda item: item["views"],
+        )
+        period_peak = max(
+            series,
+            key=lambda item: item["views"],
+        )
+
+        current_without_peak = (
+            latest_7_views
+            - latest_peak["views"]
+        )
+        previous_without_peak = (
+            previous_7_views
+            - previous_peak["views"]
+        )
+
+        return {
+            "candidate_id": candidate_id,
+            "candidate_name": candidate_name,
+            "canonical_article": candidate_name,
+            "article_url": (
+                "https://fr.wikipedia.org/wiki/"
+                f"{article_slug}"
+            ),
+            "latest_7_views": latest_7_views,
+            "previous_7_views": previous_7_views,
+            "change_7_pct": percentage_change(
+                latest_7_views,
+                previous_7_views,
+            ),
+            "latest_28_views": latest_28_views,
+            "previous_28_views": previous_28_views,
+            "change_28_pct": percentage_change(
+                latest_28_views,
+                previous_28_views,
+            ),
+            "latest_7_peak_date": (
+                latest_peak["date"]
+            ),
+            "latest_7_peak_views": (
+                latest_peak["views"]
+            ),
+            "latest_7_peak_share": round(
+                latest_peak["views"]
+                / latest_7_views,
+                4,
+            ),
+            "change_7_peak_removed_pct": (
+                percentage_change(
+                    current_without_peak,
+                    previous_without_peak,
+                )
+            ),
+            "period_peak_date": (
+                period_peak["date"]
+            ),
+            "period_peak_views": (
+                period_peak["views"]
+            ),
+            "interpretation_flag": "stable",
+            "daily_series": series,
+        }
+
+    end = dates[-1]
+
+    candidates = [
+        candidate_payload(
+            "candidate-a",
+            "Candidate A",
+            "Candidate_A",
+            10,
+        ),
+        candidate_payload(
+            "candidate-b",
+            "Candidate B",
+            "Candidate_B",
+            20,
+        ),
+    ]
+
+    return {
+        "schema_version": "1.0",
+        "generated_at": "2026-08-07T04:42:05Z",
+        "source": {
+            "project": "fr.wikipedia.org",
+            "api": "Wikimedia Analytics API",
+            "metric": "pageviews",
+            "access": "all-access",
+            "agent": "user",
+            "granularity": "daily",
+        },
+        "period": {
+            "start_date": start.isoformat(),
+            "end_date": end.isoformat(),
+            "days": 90,
+            "data_as_of": end.isoformat(),
+        },
+        "candidate_universe": {
+            "source": "candidate_candidacy_status.json",
+            "status_as_of": "2026-07-30",
+            "count": 2,
+        },
+        "methodology": {
+            "label": METHODOLOGY_LABEL,
+            "interpretation": (
+                METHODOLOGY_INTERPRETATION
+            ),
+            "not_measures": list(
+                METHODOLOGY_NOT_MEASURES
+            ),
+            "weekly_comparison": (
+                METHODOLOGY_WEEKLY_COMPARISON
+            ),
+            "redirect_limitation": (
+                METHODOLOGY_REDIRECT_LIMITATION
+            ),
+        },
+        "validation": {
+            "status": "pass",
+            "candidate_count": 2,
+            "expected_days_per_candidate": 90,
+            "missing_dates": 0,
+            "duplicate_dates": 0,
+        },
+        "candidates": candidates,
+    }
+
+
 def serialized_manifest(payload):
     return (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode(
         "utf-8"
@@ -786,6 +984,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         self.assertNotEqual(first, self.build()["snapshot_id"])
 
+
     def test_candidate_attention_lane_metadata(self):
         manifest = self.build()
         lane = manifest["lanes"]["candidate_attention"]
@@ -802,7 +1001,11 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertTrue(lane["valid"])
         self.assertEqual(
             lane["schema_version"],
-            "1.0",
+            payload["schema_version"],
+        )
+        self.assertEqual(
+            lane["schema_version"],
+            "1.1",
         )
         self.assertEqual(
             lane["generated_at"],
@@ -823,10 +1026,6 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertEqual(
             lane["record_count"],
             len(payload["candidates"]),
-        )
-        self.assertEqual(
-            lane["record_count"],
-            20,
         )
         self.assertEqual(
             lane["sha256"],
@@ -910,12 +1109,10 @@ class PublicationManifestTests(unittest.TestCase):
         ):
             self.build()
 
+
     def test_legacy_candidate_attention_name_parity_is_deferred_under_registry_v2(self):
         path = self.root / "candidate_attention.json"
-
-        payload = json.loads(
-            path.read_text(encoding="utf-8")
-        )
+        payload = legacy_candidate_attention_payload()
 
         payload["candidates"][0][
             "candidate_name"
@@ -932,34 +1129,46 @@ class PublicationManifestTests(unittest.TestCase):
             manifest["lanes"]["candidate_attention"]["valid"]
         )
 
+
     def test_legacy_attention_is_intrinsic_during_registry_v2_migration(self):
         registry = json.loads(
-            (self.root / "candidate_candidacy_status.json").read_text(encoding="utf-8")
+            (
+                self.root
+                / "candidate_candidacy_status.json"
+            ).read_text(encoding="utf-8")
         )
+
         registry["schema_version"] = "2.0"
+
+        # Deliberately invalid current-registry metadata: legacy
+        # Attention schema 1.0 is intrinsic during Registry-v2
+        # migration and must return before current-registry parity.
         registry["source"] = {
             "publisher": "French Wikipedia",
-            "page_title": "Élection présidentielle française de 2027",
-            "page_url": "https://fr.wikipedia.org/wiki/Élection_présidentielle_française_de_2027",
+            "page_title": (
+                "Élection présidentielle française de 2027"
+            ),
+            "page_url": (
+                "https://fr.wikipedia.org/wiki/"
+                "Élection_présidentielle_française_de_2027"
+            ),
             "revision_id": 1,
             "revision_timestamp": "2026-08-01T00:00:00Z",
-            "revision_url": "https://fr.wikipedia.org/w/index.php?oldid=1",
+            "revision_url": (
+                "https://fr.wikipedia.org/w/index.php?oldid=1"
+            ),
         }
-        for candidate in registry["candidates"]:
-            candidate["upstream_presence"] = "present"
-            candidate["wikipedia_article"] = None
-            candidate["previous_names"] = []
-        attention = json.loads(
-            (self.root / "candidate_attention.json").read_text(encoding="utf-8")
+
+        attention = legacy_candidate_attention_payload()
+
+        manifest_builder._validate_candidate_attention_parity(
+            registry,
+            attention,
         )
-        manifest_builder._validate_candidate_attention_parity(registry, attention)
+
 
     def test_legacy_candidate_attention_id_parity_is_deferred_under_registry_v2(self):
-        path = self.root / "candidate_attention.json"
-
-        payload = json.loads(
-            path.read_text(encoding="utf-8")
-        )
+        payload = legacy_candidate_attention_payload()
 
         payload["candidates"][0][
             "candidate_id"
@@ -976,12 +1185,9 @@ class PublicationManifestTests(unittest.TestCase):
             manifest["lanes"]["candidate_attention"]["valid"]
         )
 
-    def test_legacy_candidate_attention_order_parity_is_deferred_under_registry_v2(self):
-        path = self.root / "candidate_attention.json"
 
-        payload = json.loads(
-            path.read_text(encoding="utf-8")
-        )
+    def test_legacy_candidate_attention_order_parity_is_deferred_under_registry_v2(self):
+        payload = legacy_candidate_attention_payload()
 
         payload["candidates"][0], payload["candidates"][1] = (
             payload["candidates"][1],
@@ -999,6 +1205,7 @@ class PublicationManifestTests(unittest.TestCase):
             manifest["lanes"]["candidate_attention"]["valid"]
         )
 
+
     def test_candidate_attention_parity_ignores_candidacy_state(self):
         registry = json.loads(
             (
@@ -1009,14 +1216,7 @@ class PublicationManifestTests(unittest.TestCase):
             )
         )
 
-        attention = json.loads(
-            (
-                self.root
-                / "candidate_attention.json"
-            ).read_text(
-                encoding="utf-8"
-            )
-        )
+        attention = legacy_candidate_attention_payload()
 
         registry["candidates"][0][
             "status"
@@ -1030,8 +1230,8 @@ class PublicationManifestTests(unittest.TestCase):
             "status_as_of"
         ] = "2030-01-01"
 
-        # Legacy Attention schema 1.0 is intrinsic during the
-        # Registry 2.0 migration; candidacy state is not cross-validated.
+        # This assertion is specifically about the legacy
+        # schema-1.0 Registry-v2 migration bypass.
         manifest_builder._validate_candidate_attention_parity(
             registry,
             attention,
