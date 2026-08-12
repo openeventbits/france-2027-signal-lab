@@ -1012,11 +1012,23 @@ class NewsWireRelevanceTests(unittest.TestCase):
             payload["counts"]["successful_sources"],
             direct_source_count,
         )
+        candidate_count = len(payload["candidate_roster"]["names"])
+        candidate_query_count = (candidate_count + 3) // 4
+        enabled_static_query_count = sum(
+            bool(query.get("enabled", True))
+            for query in DISCOVERY_QUERIES
+        )
+        expected_discovery_query_count = (
+            enabled_static_query_count + candidate_query_count
+        )
         self.assertEqual(
             payload["discovery"]["configured_queries"],
-            len(DISCOVERY_QUERIES) + 5,
+            expected_discovery_query_count,
         )
-        self.assertEqual(payload["discovery"]["successful_queries"], 10)
+        self.assertEqual(
+            payload["discovery"]["successful_queries"],
+            payload["discovery"]["configured_queries"],
+        )
         self.assertEqual(
             payload["discovery"]["quarantined_items"],
             sum(
@@ -1026,7 +1038,10 @@ class NewsWireRelevanceTests(unittest.TestCase):
         )
         coverage = payload["feed_coverage"]
         self.assertEqual(coverage["direct_feeds"], direct_source_count)
-        self.assertEqual(coverage["shared_discovery_feeds"], 10)
+        self.assertEqual(
+            coverage["shared_discovery_feeds"],
+            payload["discovery"]["configured_queries"],
+        )
         self.assertEqual(coverage["publisher_site_feeds"], 180)
         self.assertEqual(
             coverage["configured_feeds"],

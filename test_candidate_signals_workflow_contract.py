@@ -55,7 +55,13 @@ class CandidateSignalsWorkflowContractTests(unittest.TestCase):
         payload = json.loads(
             (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(payload["schema_version"], "1.2")
+        self.assertEqual(payload["schema_version"], "1.3")
+        monitoring = payload["active_monitoring_field"]
+        self.assertEqual(
+            monitoring["counts"]["active"],
+            len(monitoring["main"]) + len(monitoring["secondary"]),
+        )
+
         active = payload["active_field_visibility"]
         self.assertEqual(
             active["method"],
@@ -63,7 +69,7 @@ class CandidateSignalsWorkflowContractTests(unittest.TestCase):
         )
         self.assertEqual(
             active["denominator_scope"],
-            "records_linked_to_at_least_one_main_or_secondary_candidate",
+            "records_linked_to_at_least_one_active_monitoring_candidate",
         )
         self.assertEqual(
             active["status_as_of"],

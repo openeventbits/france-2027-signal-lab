@@ -25,6 +25,7 @@ from build_candidate_attention import (
     CandidateAttentionBuildError,
     atomic_write_bytes,
     build_candidate_attention_payload,
+    build_fetch_plan,
     calculate_candidate_metrics,
     interpretation_flag,
     percentage_change,
@@ -65,6 +66,27 @@ DATA_AS_OF = date(
     8,
     6,
 )
+
+CANDIDACY_BY_ID = {
+    candidate["candidate_id"]: candidate
+    for candidate in CANDIDACY["candidates"]
+}
+
+FETCH_PLAN = build_fetch_plan(
+    candidacy_payload=CANDIDACY,
+    legacy_registry_payload=REGISTRY,
+)
+
+ACTIVE_CANDIDATES = [
+    CANDIDACY_BY_ID[item["candidate_id"]]
+    for item in FETCH_PLAN
+]
+
+ARTICLE_ELIGIBLE_IDS = [
+    item["candidate_id"]
+    for item in FETCH_PLAN
+    if item["wikipedia_article"] is not None
+]
 
 
 def series_from_views(
@@ -108,10 +130,8 @@ def complete_observations(
     value=100,
 ):
     return {
-        candidate["candidate_id"]:
-            constant_series(value)
-        for candidate
-        in CANDIDACY["candidates"]
+        candidate_id: constant_series(value)
+        for candidate_id in ARTICLE_ELIGIBLE_IDS
     }
 
 
@@ -514,13 +534,13 @@ class CandidateAttentionPayloadTests(
         validate_candidate_attention(
             payload,
             expected_candidates=(
-                CANDIDACY["candidates"]
+                ACTIVE_CANDIDATES
             ),
         )
 
         self.assertEqual(
             len(payload["candidates"]),
-            20,
+            len(ACTIVE_CANDIDATES),
         )
 
     def test_candidate_order_is_candidacy_order_not_attention_order(self):
@@ -531,11 +551,11 @@ class CandidateAttentionPayloadTests(
         candidate_ids = [
             candidate["candidate_id"]
             for candidate
-            in CANDIDACY["candidates"]
+            in ACTIVE_CANDIDATES
         ]
 
         observations[
-            candidate_ids[-1]
+            ARTICLE_ELIGIBLE_IDS[-1]
         ] = constant_series(9999)
 
         payload = (
@@ -634,9 +654,7 @@ class CandidateAttentionPayloadTests(
         )
 
         first_id = (
-            CANDIDACY[
-                "candidates"
-            ][0]["candidate_id"]
+            ARTICLE_ELIGIBLE_IDS[0]
         )
 
         observations[
@@ -1623,15 +1641,9 @@ class CandidateAttentionPageviewCollectionTests(
             )
         )
 
-        expected_ids = [
-            candidate[
-                "candidate_id"
-            ]
-            for candidate
-            in CANDIDACY[
-                "candidates"
-            ]
-        ]
+        expected_ids = list(
+            ARTICLE_ELIGIBLE_IDS
+        )
 
         self.assertEqual(
             list(
@@ -1640,21 +1652,25 @@ class CandidateAttentionPageviewCollectionTests(
             expected_ids,
         )
 
-        # 20 canonical checks
-        # + Olivier requested title check
-        # + 20 pageview calls
-        self.assertEqual(
-            len(
-                calls
-            ),
-            41,
+        expected_request_count = len(
+            ARTICLE_ELIGIBLE_IDS
         )
 
         self.assertEqual(
-            len(
-                sleeps
-            ),
-            40,
+            len(calls),
+            expected_request_count,
+        )
+
+        self.assertEqual(
+            len(sleeps),
+            max(expected_request_count - 1, 0),
+        )
+
+        self.assertTrue(
+            all(
+                "/w/api.php?" not in url
+                for url in calls
+            )
         )
 
         source = (
@@ -1751,7 +1767,7 @@ class CandidateAttentionAvailabilityFallbackTests(
         )
         self.assertEqual(
             pageview_dates,
-            [DATA_AS_OF] * 20,
+            [DATA_AS_OF] * len(ARTICLE_ELIGIBLE_IDS),
         )
 
     def test_pageviews_404_rebuilds_complete_previous_date(
@@ -1785,27 +1801,40 @@ class CandidateAttentionAvailabilityFallbackTests(
 
         self.assertEqual(
             pageview_dates,
-            [DATA_AS_OF] * 3 + [previous] * 20,
+            [DATA_AS_OF] * 3
+            + [previous] * len(ARTICLE_ELIGIBLE_IDS),
         )
         self.assertEqual(
             verification_calls,
-            22,
+            0,
         )
         self.assertEqual(
             payload["candidate_universe"]["count"],
-            20,
+            len(ACTIVE_CANDIDATES),
+        )
+        self.assertEqual(
+            payload["candidate_universe"]["article_eligible_count"],
+            len(ARTICLE_ELIGIBLE_IDS),
         )
         self.assertEqual(
             len(payload["candidates"]),
-            20,
+            len(ACTIVE_CANDIDATES),
         )
         self.assertEqual(
             payload["period"]["data_as_of"],
             previous.isoformat(),
         )
+        article_eligible = set(
+            ARTICLE_ELIGIBLE_IDS
+        )
         self.assertTrue(
             all(
-                len(candidate["daily_series"]) == 90
+                len(candidate["daily_series"])
+                == (
+                    90
+                    if candidate["candidate_id"] in article_eligible
+                    else 0
+                )
                 for candidate in payload["candidates"]
             )
         )
@@ -1899,7 +1928,7 @@ class CandidateAttentionAvailabilityFallbackTests(
             [DATA_AS_OF] * 3,
         )
 
-    def test_verification_404_does_not_trigger_fallback(
+    def test_registry_v2_pageview_404_uses_bounded_fallback(
         self,
     ):
         calls = []
@@ -1913,11 +1942,23 @@ class CandidateAttentionAvailabilityFallbackTests(
                 attempts=1,
             )
 
-        with self.assertRaises(WikimediaFetchError):
+        with self.assertRaises(
+            WikimediaPageviewsNotFoundError
+        ):
             self._run_build(fetcher)
 
-        self.assertEqual(len(calls), 1)
-        self.assertIn("/w/api.php?", calls[0])
+        # Three bounded attempts on the preferred date,
+        # then three on the one-day fallback date.
+        self.assertEqual(
+            len(calls),
+            6,
+        )
+        self.assertTrue(
+            all(
+                "/w/api.php?" not in url
+                for url in calls
+            )
+        )
 
     def test_non_404_pageviews_failures_do_not_trigger_fallback(
         self,
@@ -2007,13 +2048,28 @@ class CandidateAttentionAvailabilityFallbackTests(
                 )
 
         lines = output.getvalue().splitlines()
+
+        first_article_index, first_article = next(
+            (index, item)
+            for index, item in enumerate(
+                FETCH_PLAN,
+                start=1,
+            )
+            if item["wikipedia_article"] is not None
+        )
+
+        progress = (
+            f"[{first_article_index:02d}/"
+            f"{len(FETCH_PLAN):02d}]"
+        )
+
         self.assertEqual(
             lines,
             [
-                "[01/20] Bruno Retailleau "
-                "(bruno-retailleau) - verify",
-                "[01/20] Bruno Retailleau "
-                "(bruno-retailleau) - pageviews",
+                f"{progress} "
+                f"{first_article['candidate_name']} "
+                f"({first_article['candidate_id']}) "
+                "- pageviews",
             ],
         )
 

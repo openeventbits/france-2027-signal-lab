@@ -1652,8 +1652,14 @@ process.stdout.write(JSON.stringify({
         self.assertEqual(
             quality["record_count_ratio"],
             round(
-                quality["current_record_count"]
-                / quality["prior_record_count"],
+                max(
+                    quality["current_record_count"],
+                    quality["prior_record_count"],
+                )
+                / min(
+                    quality["current_record_count"],
+                    quality["prior_record_count"],
+                ),
                 3,
             ),
         )

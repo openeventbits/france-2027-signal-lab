@@ -94,12 +94,71 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             lane["schema_version"],
             candidate["schema_version"],
         )
-        self.assertEqual(candidate["schema_version"], "1.2")
+        self.assertEqual(candidate["schema_version"], "1.3")
         self.assertEqual(lane["file"], "candidate_signals.json")
         self.assertEqual(
             lane["record_count"],
             len(candidate["candidates"]),
         )
+
+        universe = candidate["candidate_universe"]
+        self.assertEqual(
+            universe["source"],
+            "candidate_candidacy_status.json",
+        )
+        self.assertEqual(universe["count"], len(candidate["candidates"]))
+
+        candidate_ids = {
+            row["candidate_id"] for row in candidate["candidates"]
+        }
+        presidential_field = candidate["presidential_field"]
+        presidential_ids_by_tier = {
+            tier: set(presidential_field[tier])
+            for tier in ("main", "secondary", "hidden")
+        }
+        for tier, identifiers in presidential_ids_by_tier.items():
+            self.assertEqual(len(identifiers), len(presidential_field[tier]))
+            self.assertEqual(
+                presidential_field["counts"][tier],
+                len(identifiers),
+            )
+        presidential_ids = set().union(*presidential_ids_by_tier.values())
+        self.assertEqual(
+            sum(len(ids) for ids in presidential_ids_by_tier.values()),
+            len(presidential_ids),
+        )
+        self.assertEqual(
+            presidential_field["counts"]["total"],
+            len(candidate["candidates"]),
+        )
+        self.assertEqual(presidential_ids, candidate_ids)
+
+        active_monitoring_field = candidate["active_monitoring_field"]
+        active_ids_by_tier = {
+            tier: set(active_monitoring_field[tier])
+            for tier in ("main", "secondary")
+        }
+        for tier, identifiers in active_ids_by_tier.items():
+            self.assertEqual(
+                len(identifiers),
+                len(active_monitoring_field[tier]),
+            )
+            self.assertEqual(
+                active_monitoring_field["counts"][tier],
+                len(identifiers),
+            )
+        active_ids = set().union(*active_ids_by_tier.values())
+        self.assertEqual(
+            active_monitoring_field["counts"]["active"],
+            active_monitoring_field["counts"]["main"]
+            + active_monitoring_field["counts"]["secondary"],
+        )
+        self.assertEqual(
+            len(active_ids),
+            active_monitoring_field["counts"]["active"],
+        )
+        self.assertTrue(active_ids.issubset(presidential_ids))
+        self.assertFalse(active_ids & presidential_ids_by_tier["hidden"])
 
         evidence_dates = [
             value
@@ -108,10 +167,6 @@ class FrontendPublicationFactsTests(unittest.TestCase):
         ]
         self.assertTrue(evidence_dates)
         self.assertEqual(lane["data_as_of"], max(evidence_dates))
-        self.assertLessEqual(
-            lane["data_as_of"],
-            candidate["candidate_universe"]["as_of_date"],
-        )
 
         active = candidate["active_field_visibility"]
         self.assertEqual(

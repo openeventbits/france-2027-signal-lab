@@ -425,7 +425,7 @@ class CandidateUniverseTests(unittest.TestCase):
 
     def test_invalid_registry_fails_closed(self):
         invalid = copy.deepcopy(self.candidacy_status)
-        invalid["candidates"][0]["candidate_id"] = "wrong-id"
+        invalid["candidates"][0]["candidate_id"] = "Wrong-ID"
         with self.assertRaisesRegex(
             builder.CandidateSignalsError,
             "candidacy-status registry is invalid",

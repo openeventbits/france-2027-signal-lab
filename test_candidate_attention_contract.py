@@ -33,11 +33,18 @@ REGISTRY = json.loads(
     )
 )
 
-CONTROLLED_CANDIDATES = CANDIDACY["candidates"]
+CANDIDACY_BY_ID = {
+    record["candidate_id"]: record
+    for record in CANDIDACY["candidates"]
+}
 REGISTRY_BY_ID = {
     record["candidate_id"]: record
     for record in REGISTRY["candidates"]
 }
+CONTROLLED_CANDIDATES = [
+    CANDIDACY_BY_ID[record["candidate_id"]]
+    for record in REGISTRY["candidates"]
+]
 
 
 def percentage_change(current, previous):

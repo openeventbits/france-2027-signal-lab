@@ -138,38 +138,69 @@ class ElectionCoverageModalTests(
             self.modal_js,
         )
 
-    def test_hidden_field_candidates_remain_in_source_evidence_and_filters(self):
+    def test_hidden_field_candidates_are_not_filters_and_feed_stays_source_driven(self):
         wire = json.loads(
             (ROOT / "news_wire.json").read_text(encoding="utf-8")
         )
+        registry = json.loads(
+            (ROOT / "candidate_candidacy_status.json").read_text(
+                encoding="utf-8"
+            )
+        )
+
         election_rows = wire["election_news"]
         watch_rows = wire["candidate_watch"]
-        self.assertEqual(len(election_rows), wire["counts"]["election_news"])
+
+        self.assertEqual(
+            len(election_rows),
+            wire["counts"]["election_news"],
+        )
         self.assertEqual(
             len({row["id"] for row in election_rows}),
             len(election_rows),
         )
+
+        hidden_names = {
+            candidate["candidate_name"]
+            for candidate in registry["candidates"]
+            if candidate["display_tier"] == "hidden"
+        }
+        self.assertTrue(hidden_names)
+
+        election_candidate_names = {
+            candidate
+            for row in election_rows
+            for candidate in row["candidates"]
+        }
+        watch_candidate_names = {
+            match["candidate"]
+            for row in watch_rows
+            for match in row["candidate_matches"]
+        }
+
+        self.assertTrue(
+            hidden_names.isdisjoint(election_candidate_names)
+        )
+        self.assertTrue(
+            hidden_names.isdisjoint(watch_candidate_names)
+        )
+
         media_model = self.dashboard[
             self.dashboard.index("function buildMediaViewModel()"):
             self.dashboard.index("function buildAgendaViewModel()")
         ]
-        self.assertIn("const feedItems = newestNewsItems(\n      electionItems", media_model)
-        self.assertNotIn("activePrimary.main", media_model[
-            media_model.index("const feedItems"):
-            media_model.index("const generatedKey")
-        ])
-        for candidate in ("Sarah Knafo", "Sébastien Lecornu"):
-            self.assertTrue(
-                any(candidate in row["candidates"] for row in election_rows),
-                candidate,
-            )
-            self.assertTrue(
-                any(
-                    candidate in [match["candidate"] for match in row["candidate_matches"]]
-                    for row in watch_rows
-                ),
-                candidate,
-            )
+        self.assertIn(
+            "const feedItems = newestNewsItems(\n      electionItems",
+            media_model,
+        )
+        self.assertNotIn(
+            "activePrimary.main",
+            media_model[
+                media_model.index("const feedItems"):
+                media_model.index("const generatedKey")
+            ],
+        )
+
         self.assertIn("item?.candidate_names", self.modal_js)
 
     def test_search_and_filters_exist(self):
