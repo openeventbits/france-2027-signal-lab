@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-"""Collect recent professional fact-check reviews for poll-active candidates."""
+"""Collect professional fact-check reviews for the active candidate registry."""
 
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
-import math
 import os
 import re
 import sys
@@ -21,9 +20,18 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
+from candidate_candidacy_status import (
+    CandidateCandidacyStatusError,
+    active_candidate_ids,
+    active_candidate_names,
+    active_candidate_records,
+    load_candidate_candidacy_status,
+    validate_candidate_candidacy_status,
+)
 
-SCHEMA_VERSION = 1
-DEFAULT_CANDIDATE_WINDOW_DAYS = 45
+
+SCHEMA_VERSION = 2
+LEGACY_SCHEMA_VERSION = 1
 DEFAULT_ARCHIVE_WINDOW_DAYS = 365
 API_RETRIEVAL_BUFFER_DAYS = 380
 API_PAGE_SIZE = 100
@@ -45,10 +53,12 @@ PUBLISHER_HOST_ALIASES = {
     "www.franceinfo.fr": "www.franceinfo.fr",
 }
 
-# Complete claimant aliases only. Extend this map only with reviewed, proven forms.
-CLAIMANT_ALIASES = {
-    "François Ruffin": ("Le député François Ruffin",),
+# Collector-specific aliases are search/matching assistance, never membership.
+# Keep these keyed by the stable registry candidate ID.
+CLAIMANT_ALIASES_BY_ID = {
+    "francois-ruffin": ("Le député François Ruffin",),
 }
+FACT_CHECK_QUERY_ALIASES_BY_ID = CLAIMANT_ALIASES_BY_ID
 
 AMBIGUOUS_CLAIMANTS = {
     "unknown",
@@ -61,7 +71,9 @@ AMBIGUOUS_CLAIMANTS = {
     "anonyme",
 }
 
-TOP_LEVEL_FIELDS = {
+# Temporary read compatibility for the tracked schema-1 production snapshot.
+# These fields are validated only; they never drive current query membership.
+LEGACY_TOP_LEVEL_FIELDS = {
     "schema_version",
     "generated_at",
     "candidate_window_days",
@@ -70,12 +82,28 @@ TOP_LEVEL_FIELDS = {
     "counts",
     "reviews",
 }
-ROSTER_FIELDS = {"count", "candidates"}
-CANDIDATE_FIELDS = {
+LEGACY_ROSTER_FIELDS = {"count", "candidates"}
+LEGACY_CANDIDATE_FIELDS = {
     "candidate_id",
     "candidate_name",
     "last_qualifying_poll_date",
     "eligibility_basis",
+}
+TOP_LEVEL_FIELDS = {
+    "schema_version",
+    "generated_at",
+    "archive_window_days",
+    "candidate_query",
+    "counts",
+    "reviews",
+}
+CANDIDATE_QUERY_FIELDS = {
+    "source",
+    "rule",
+    "status_as_of",
+    "count",
+    "candidate_ids",
+    "candidate_names",
 }
 COUNTS_FIELDS = {
     "reviews",
@@ -128,113 +156,72 @@ def parse_review_date(value: Any) -> date | None:
     return parsed.date()
 
 
-def candidate_slug(name: str) -> str:
-    decomposed = unicodedata.normalize("NFKD", name)
-    ascii_text = "".join(
-        character
-        for character in decomposed
-        if not unicodedata.combining(character) and character.isascii()
-    ).lower()
-    return re.sub(r"[^a-z0-9]+", "-", ascii_text).strip("-")
+def load_candidacy_status(path: Path) -> dict[str, Any]:
+    """Load the one canonical candidate authority with safe collector errors."""
+
+    try:
+        return load_candidate_candidacy_status(path)
+    except OSError as error:
+        raise CollectorError(
+            f"could not read candidacy registry {path}: "
+            f"{error.strerror or 'I/O error'}"
+        ) from None
+    except json.JSONDecodeError as error:
+        raise CollectorError(
+            f"could not parse candidacy registry {path}: "
+            f"line {error.lineno}, column {error.colno}"
+        ) from None
+    except CandidateCandidacyStatusError as error:
+        raise CollectorError(f"invalid candidacy registry: {error}") from None
 
 
-def _is_numeric_score(value: Any) -> bool:
+def candidate_query_records(payload: Any) -> list[dict[str, Any]]:
+    """Return the active query universe via the canonical shared helper."""
+
+    try:
+        return list(active_candidate_records(payload))
+    except CandidateCandidacyStatusError as error:
+        raise CollectorError(f"invalid candidacy registry: {error}") from None
+
+
+def build_candidate_query(payload: Any) -> dict[str, Any]:
+    """Describe the active query field without turning it into evidence."""
+
+    records = candidate_query_records(payload)
+    try:
+        identifiers = active_candidate_ids(payload)
+        names = active_candidate_names(payload)
+    except CandidateCandidacyStatusError as error:
+        raise CollectorError(f"invalid candidacy registry: {error}") from None
+    if identifiers != [record["candidate_id"] for record in records] or names != [
+        record["candidate_name"] for record in records
+    ]:
+        raise CollectorError("shared active candidate projections are inconsistent")
+    return {
+        "source": "candidate_candidacy_status.json",
+        "rule": "active_monitoring_field",
+        "status_as_of": payload["status_as_of"],
+        "count": len(records),
+        "candidate_ids": identifiers,
+        "candidate_names": names,
+    }
+
+
+def candidate_identity_names(candidate: dict[str, Any]) -> tuple[str, ...]:
     return (
-        isinstance(value, (int, float))
-        and not isinstance(value, bool)
-        and math.isfinite(float(value))
+        candidate["candidate_name"],
+        *tuple(candidate.get("previous_names", [])),
     )
 
 
-def build_candidate_roster(
-    polls: Any, as_of: date, candidate_window_days: int
-) -> list[dict[str, str]]:
-    if not isinstance(polls, list):
-        raise CollectorError("polls.json must contain a top-level array")
-    if candidate_window_days < 0:
-        raise CollectorError("candidate window must be nonnegative")
+def fact_check_query_terms(candidate: dict[str, Any]) -> tuple[str, ...]:
+    """Return reviewed API terms without affecting candidate membership."""
 
-    latest: dict[str, tuple[date, str]] = {}
-    for event_index, event in enumerate(polls):
-        if not isinstance(event, dict):
-            raise CollectorError(f"poll event {event_index} is not an object")
-        round_name = event.get("round")
-        if round_name == "second_round":
-            continue
-        if round_name != "first_round":
-            raise CollectorError(f"poll event {event_index} has an invalid round")
-
-        candidates = event.get("candidates")
-        if not isinstance(candidates, list):
-            raise CollectorError(
-                f"first-round poll event {event_index} candidates must be an array"
-            )
-        for candidate_index, candidate in enumerate(candidates):
-            if not isinstance(candidate, dict):
-                raise CollectorError(
-                    f"poll event {event_index} candidate {candidate_index} is not an object"
-                )
-
-        publication_date = parse_iso_date(event.get("publication_date"))
-        if publication_date is not None:
-            qualifying_date = publication_date
-            basis = "publication_date"
-        else:
-            qualifying_date = parse_iso_date(event.get("fieldwork_end"))
-            basis = "fieldwork_end"
-        if qualifying_date is None:
-            raise CollectorError(f"first-round poll event {event_index} has no valid date")
-
-        age_days = (as_of - qualifying_date).days
-        if age_days < 0 or age_days > candidate_window_days:
-            continue
-
-        for candidate in candidates:
-            name = candidate.get("name")
-            score = candidate.get("score")
-            if not isinstance(name, str) or not name.strip() or not _is_numeric_score(score):
-                continue
-            name = name.strip()
-            previous = latest.get(name)
-            if previous is None or qualifying_date > previous[0] or (
-                qualifying_date == previous[0]
-                and basis == "publication_date"
-                and previous[1] != "publication_date"
-            ):
-                latest[name] = (qualifying_date, basis)
-
-    roster: list[dict[str, str]] = []
-    ids: dict[str, str] = {}
-    for name, (qualifying_date, basis) in latest.items():
-        identifier = candidate_slug(name)
-        if not identifier:
-            raise CollectorError(f"candidate name cannot form an ASCII id: {name!r}")
-        if identifier in ids and ids[identifier] != name:
-            raise CollectorError(
-                "candidate id collision between "
-                f"{ids[identifier]!r} and {name!r}: {identifier}"
-            )
-        ids[identifier] = name
-        roster.append(
-            {
-                "candidate_id": identifier,
-                "candidate_name": name,
-                "last_qualifying_poll_date": qualifying_date.isoformat(),
-                "eligibility_basis": basis,
-            }
-        )
-    return sorted(roster, key=lambda item: (item["candidate_name"].casefold(), item["candidate_id"]))
-
-
-def load_polls(path: Path) -> Any:
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except OSError as error:
-        raise CollectorError(f"could not read polls file {path}: {error.strerror or 'I/O error'}") from None
-    except json.JSONDecodeError as error:
-        raise CollectorError(
-            f"could not parse polls file {path}: line {error.lineno}, column {error.colno}"
-        ) from None
+    terms = (
+        candidate["candidate_name"],
+        *FACT_CHECK_QUERY_ALIASES_BY_ID.get(candidate["candidate_id"], ()),
+    )
+    return tuple(dict.fromkeys(term.strip() for term in terms if term.strip()))
 
 
 def normalize_comparison(value: str) -> str:
@@ -286,7 +273,7 @@ NORMALIZED_AMBIGUOUS_CLAIMANTS = {
 def classify_candidate_associations(
     claim_text: str,
     claimant: str,
-    roster: Iterable[dict[str, str]],
+    candidates: Iterable[dict[str, Any]],
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     claimant_normalized = normalize_comparison(claimant)
     claimant_usable = bool(claimant_normalized) and (
@@ -295,12 +282,15 @@ def classify_candidate_associations(
     associations: list[dict[str, str]] = []
     unresolved: list[dict[str, str]] = []
 
-    for candidate in roster:
+    for candidate in candidates:
         candidate_name = candidate["candidate_name"]
-        accepted_claimants = {normalize_comparison(candidate_name)}
+        identity_names = candidate_identity_names(candidate)
+        accepted_claimants = {
+            normalize_comparison(identity_name) for identity_name in identity_names
+        }
         accepted_claimants.update(
             normalize_comparison(alias)
-            for alias in CLAIMANT_ALIASES.get(candidate_name, ())
+            for alias in CLAIMANT_ALIASES_BY_ID.get(candidate["candidate_id"], ())
         )
         if claimant_normalized in accepted_claimants:
             associations.append(
@@ -312,7 +302,10 @@ def classify_candidate_associations(
             )
             continue
 
-        if not contains_complete_name(claim_text, candidate_name):
+        if not any(
+            contains_complete_name(claim_text, identity_name)
+            for identity_name in identity_names
+        ):
             continue
         if not claimant_usable:
             unresolved.append(
@@ -323,7 +316,10 @@ def classify_candidate_associations(
                 }
             )
             continue
-        if contains_complete_name(claimant, candidate_name):
+        if any(
+            contains_complete_name(claimant, identity_name)
+            for identity_name in identity_names
+        ):
             unresolved.append(
                 {
                     "candidate_id": candidate["candidate_id"],
@@ -480,7 +476,7 @@ def _diagnostic_review(reference: str, reason: str, **extra: Any) -> dict[str, A
 
 def flatten_claims(
     claims: Iterable[dict[str, Any]],
-    roster: list[dict[str, str]],
+    candidates: list[dict[str, Any]],
     as_of: date,
     archive_window_days: int,
     diagnostics: dict[str, Any],
@@ -529,7 +525,7 @@ def flatten_claims(
             instance_age_days = (as_of - parsed_review_date).days
             if 0 <= instance_age_days <= archive_window_days:
                 _associations, instance_unresolved = classify_candidate_associations(
-                    claim_text, claimant, roster
+                    claim_text, claimant, candidates
                 )
                 for item in instance_unresolved:
                     diagnostics["unresolved_associations"].append(
@@ -578,7 +574,7 @@ def flatten_claims(
             )
             continue
         associations, _unresolved = classify_candidate_associations(
-            record["claim_text"], record["claimant"], roster
+            record["claim_text"], record["claimant"], candidates
         )
         missing = [
             field for field in ("claim_text", "claimant", "rating") if not record[field]
@@ -646,18 +642,16 @@ def generated_at_value(as_of_argument: str | None) -> str:
 
 
 def build_public_bundle(
-    roster: list[dict[str, str]],
+    candidacy_payload: Any,
     reviews: list[dict[str, Any]],
-    candidate_window_days: int,
     archive_window_days: int,
     generated_at: str,
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
-        "candidate_window_days": candidate_window_days,
         "archive_window_days": archive_window_days,
-        "candidate_roster": {"count": len(roster), "candidates": roster},
+        "candidate_query": build_candidate_query(candidacy_payload),
         "counts": compute_counts(reviews),
         "reviews": reviews,
     }
@@ -672,67 +666,23 @@ def _require_exact_fields(value: dict[str, Any], expected: set[str], context: st
         )
 
 
-def validate_public_bundle(
-    bundle: Any,
-    expected_candidate_window_days: int = DEFAULT_CANDIDATE_WINDOW_DAYS,
-    expected_archive_window_days: int = DEFAULT_ARCHIVE_WINDOW_DAYS,
-) -> None:
-    if not isinstance(bundle, dict):
-        raise CollectorError("public output must be an object")
-    _require_exact_fields(bundle, TOP_LEVEL_FIELDS, "top-level")
-    if type(bundle["schema_version"]) is not int or bundle["schema_version"] != SCHEMA_VERSION:
-        raise CollectorError("schema_version must equal 1")
-    if (
-        type(bundle["candidate_window_days"]) is not int
-        or bundle["candidate_window_days"] != expected_candidate_window_days
-    ):
-        raise CollectorError("candidate_window_days has an unexpected value")
-    if (
-        type(bundle["archive_window_days"]) is not int
-        or bundle["archive_window_days"] != expected_archive_window_days
-    ):
-        raise CollectorError("archive_window_days has an unexpected value")
-    generated_at = bundle["generated_at"]
-    if not isinstance(generated_at, str):
+def _validate_generated_at(value: Any) -> None:
+    if not isinstance(value, str):
         raise CollectorError("generated_at must be an ISO-8601 UTC string")
     try:
-        parsed_generated_at = datetime.fromisoformat(generated_at.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
         raise CollectorError("generated_at must be an ISO-8601 UTC string") from None
-    if parsed_generated_at.tzinfo is None or parsed_generated_at.utcoffset() != timezone.utc.utcoffset(None):
+    if parsed.tzinfo is None or parsed.utcoffset() != timezone.utc.utcoffset(None):
         raise CollectorError("generated_at must use UTC")
 
-    roster_wrapper = bundle["candidate_roster"]
-    if not isinstance(roster_wrapper, dict):
-        raise CollectorError("candidate_roster must be an object")
-    _require_exact_fields(roster_wrapper, ROSTER_FIELDS, "candidate_roster")
-    roster = roster_wrapper["candidates"]
-    if not isinstance(roster, list):
-        raise CollectorError("candidate_roster.candidates must be an array")
-    if type(roster_wrapper["count"]) is not int or roster_wrapper["count"] != len(roster):
-        raise CollectorError("candidate roster count does not match its array")
 
-    roster_lookup: dict[str, str] = {}
-    for index, candidate in enumerate(roster):
-        if not isinstance(candidate, dict):
-            raise CollectorError(f"candidate roster item {index} must be an object")
-        _require_exact_fields(candidate, CANDIDATE_FIELDS, f"candidate roster item {index}")
-        candidate_id = candidate["candidate_id"]
-        candidate_name = candidate["candidate_name"]
-        if not isinstance(candidate_id, str) or not candidate_id:
-            raise CollectorError(f"candidate roster item {index} has an empty id")
-        if not isinstance(candidate_name, str) or not candidate_name.strip():
-            raise CollectorError(f"candidate roster item {index} has an empty name")
-        if candidate_id != candidate_slug(candidate_name):
-            raise CollectorError(f"candidate roster item {index} id is not its stable slug")
-        if candidate_id in roster_lookup:
-            raise CollectorError(f"duplicate candidate id: {candidate_id}")
-        if parse_iso_date(candidate["last_qualifying_poll_date"]) is None:
-            raise CollectorError(f"candidate roster item {index} has an invalid date")
-        if candidate["eligibility_basis"] not in {"publication_date", "fieldwork_end"}:
-            raise CollectorError(f"candidate roster item {index} has an invalid basis")
-        roster_lookup[candidate_id] = candidate_name
-
+def _validate_reviews(
+    bundle: dict[str, Any],
+    *,
+    association_lookup: dict[str, str] | None,
+    association_error: str,
+) -> None:
     counts = bundle["counts"]
     if not isinstance(counts, dict):
         raise CollectorError("counts must be an object")
@@ -795,10 +745,17 @@ def validate_public_bundle(
             candidate_id = association["candidate_id"]
             candidate_name = association["candidate_name"]
             relationship = association["relationship"]
+            if not isinstance(candidate_id, str) or not candidate_id:
+                raise CollectorError("associated candidate id must be nonempty")
+            if not isinstance(candidate_name, str) or not candidate_name.strip():
+                raise CollectorError("associated candidate name must be nonempty")
             if relationship not in {"by", "about"}:
                 raise CollectorError("public relationship must be by or about")
-            if roster_lookup.get(candidate_id) != candidate_name:
-                raise CollectorError("associated candidate is not in the eligible roster")
+            if (
+                association_lookup is not None
+                and association_lookup.get(candidate_id) != candidate_name
+            ):
+                raise CollectorError(association_error)
             if candidate_id in seen_candidate_ids:
                 raise CollectorError("a review cannot associate the same candidate twice")
             seen_candidate_ids.add(candidate_id)
@@ -810,9 +767,227 @@ def validate_public_bundle(
 
     if expected_order != sorted(expected_order):
         raise CollectorError("reviews are not deterministically sorted")
-    expected_counts = compute_counts(reviews)
-    if counts != expected_counts:
+    if counts != compute_counts(reviews):
         raise CollectorError("declared counts do not match public records")
+
+
+def _validate_legacy_public_bundle(
+    bundle: dict[str, Any],
+    expected_candidate_window_days: int | None,
+    expected_archive_window_days: int,
+) -> None:
+    _require_exact_fields(bundle, LEGACY_TOP_LEVEL_FIELDS, "top-level")
+    candidate_window_days = bundle["candidate_window_days"]
+    if type(candidate_window_days) is not int or candidate_window_days < 0:
+        raise CollectorError("candidate_window_days must be a nonnegative integer")
+    if (
+        expected_candidate_window_days is not None
+        and candidate_window_days != expected_candidate_window_days
+    ):
+        raise CollectorError("candidate_window_days has an unexpected value")
+    if bundle["archive_window_days"] != expected_archive_window_days:
+        raise CollectorError("archive_window_days has an unexpected value")
+    _validate_generated_at(bundle["generated_at"])
+
+    roster_wrapper = bundle["candidate_roster"]
+    if not isinstance(roster_wrapper, dict):
+        raise CollectorError("candidate_roster must be an object")
+    _require_exact_fields(roster_wrapper, LEGACY_ROSTER_FIELDS, "candidate_roster")
+    roster = roster_wrapper["candidates"]
+    if not isinstance(roster, list):
+        raise CollectorError("candidate_roster.candidates must be an array")
+    if type(roster_wrapper["count"]) is not int or roster_wrapper["count"] != len(roster):
+        raise CollectorError("candidate roster count does not match its array")
+
+    roster_lookup: dict[str, str] = {}
+    for index, candidate in enumerate(roster):
+        if not isinstance(candidate, dict):
+            raise CollectorError(f"candidate roster item {index} must be an object")
+        _require_exact_fields(
+            candidate, LEGACY_CANDIDATE_FIELDS, f"candidate roster item {index}"
+        )
+        candidate_id = candidate["candidate_id"]
+        candidate_name = candidate["candidate_name"]
+        if not isinstance(candidate_id, str) or not candidate_id:
+            raise CollectorError(f"candidate roster item {index} has an empty id")
+        if not isinstance(candidate_name, str) or not candidate_name.strip():
+            raise CollectorError(f"candidate roster item {index} has an empty name")
+        if candidate_id in roster_lookup:
+            raise CollectorError(f"duplicate candidate id: {candidate_id}")
+        if parse_iso_date(candidate["last_qualifying_poll_date"]) is None:
+            raise CollectorError(f"candidate roster item {index} has an invalid date")
+        if candidate["eligibility_basis"] not in {"publication_date", "fieldwork_end"}:
+            raise CollectorError(f"candidate roster item {index} has an invalid basis")
+        roster_lookup[candidate_id] = candidate_name
+    _validate_reviews(
+        bundle,
+        association_lookup=roster_lookup,
+        association_error="associated candidate is not in the eligible legacy roster",
+    )
+
+
+def validate_public_bundle(
+    bundle: Any,
+    expected_candidate_window_days: int | None = 45,
+    expected_archive_window_days: int = DEFAULT_ARCHIVE_WINDOW_DAYS,
+    candidacy_payload: Any | None = None,
+) -> None:
+    if not isinstance(bundle, dict):
+        raise CollectorError("public output must be an object")
+    schema_version = bundle.get("schema_version")
+    if schema_version == LEGACY_SCHEMA_VERSION:
+        _validate_legacy_public_bundle(
+            bundle,
+            expected_candidate_window_days,
+            expected_archive_window_days,
+        )
+        return
+    if type(schema_version) is not int or schema_version != SCHEMA_VERSION:
+        raise CollectorError("schema_version must equal 1 or 2")
+
+    _require_exact_fields(bundle, TOP_LEVEL_FIELDS, "top-level")
+    if bundle["archive_window_days"] != expected_archive_window_days:
+        raise CollectorError("archive_window_days has an unexpected value")
+    _validate_generated_at(bundle["generated_at"])
+    query = bundle["candidate_query"]
+    if not isinstance(query, dict):
+        raise CollectorError("candidate_query must be an object")
+    _require_exact_fields(query, CANDIDATE_QUERY_FIELDS, "candidate_query")
+    if query["source"] != "candidate_candidacy_status.json":
+        raise CollectorError("candidate_query.source is not canonical")
+    if query["rule"] != "active_monitoring_field":
+        raise CollectorError("candidate_query.rule is not canonical")
+    if parse_iso_date(query["status_as_of"]) is None:
+        raise CollectorError("candidate_query.status_as_of is invalid")
+    identifiers = query["candidate_ids"]
+    names = query["candidate_names"]
+    if not isinstance(identifiers, list) or not isinstance(names, list):
+        raise CollectorError("candidate query identities must be arrays")
+    if any(not isinstance(value, str) or not value for value in identifiers):
+        raise CollectorError("candidate query ids must be nonempty strings")
+    if any(not isinstance(value, str) or not value.strip() for value in names):
+        raise CollectorError("candidate query names must be nonempty strings")
+    if len(set(identifiers)) != len(identifiers):
+        raise CollectorError("candidate query ids must be unique")
+    if type(query["count"]) is not int or query["count"] != len(identifiers):
+        raise CollectorError("candidate query count does not match candidate ids")
+    if len(names) != query["count"]:
+        raise CollectorError("candidate query names do not match candidate count")
+
+    association_lookup: dict[str, str] | None = None
+    if candidacy_payload is not None:
+        try:
+            validate_candidate_candidacy_status(candidacy_payload)
+            expected_query = build_candidate_query(candidacy_payload)
+        except CandidateCandidacyStatusError as error:
+            raise CollectorError(f"invalid candidacy registry: {error}") from None
+        if query != expected_query:
+            raise CollectorError("candidate query does not match active registry projection")
+        association_lookup = {
+            candidate["candidate_id"]: candidate["candidate_name"]
+            for candidate in candidacy_payload["candidates"]
+        }
+    _validate_reviews(
+        bundle,
+        association_lookup=association_lookup,
+        association_error="associated candidate is not in the canonical registry",
+    )
+
+
+def _canonicalize_existing_review(
+    review: dict[str, Any],
+    candidacy_payload: dict[str, Any],
+) -> dict[str, Any]:
+    by_id = {
+        candidate["candidate_id"]: candidate
+        for candidate in candidacy_payload["candidates"]
+    }
+    canonical_associations: list[dict[str, str]] = []
+    for association in review["candidate_associations"]:
+        candidate = by_id.get(association["candidate_id"])
+        if candidate is None:
+            raise CollectorError(
+                "existing claim association candidate is absent from canonical registry"
+            )
+        allowed_names = {
+            normalize_comparison(name) for name in candidate_identity_names(candidate)
+        }
+        if normalize_comparison(association["candidate_name"]) not in allowed_names:
+            raise CollectorError(
+                "existing claim association conflicts with canonical registry identity"
+            )
+        canonical_associations.append(
+            {
+                "candidate_id": candidate["candidate_id"],
+                "candidate_name": candidate["candidate_name"],
+                "relationship": association["relationship"],
+            }
+        )
+    canonical_associations.sort(
+        key=lambda item: (
+            0 if item["relationship"] == "by" else 1,
+            item["candidate_name"].casefold(),
+            item["candidate_id"],
+        )
+    )
+    return {**review, "candidate_associations": canonical_associations}
+
+
+# Claims is an evidence archive, not the candidate authority: accepted reviews
+# survive query-universe lifecycle changes while their registry identity remains valid.
+def load_existing_reviews(
+    path: Path | None,
+    candidacy_payload: dict[str, Any],
+    as_of: date,
+    archive_window_days: int,
+) -> list[dict[str, Any]]:
+    if path is None or not path.exists():
+        return []
+    try:
+        bundle = json.loads(path.read_text(encoding="utf-8"))
+    except OSError as error:
+        raise CollectorError(
+            f"could not read existing claims file {path}: {error.strerror or 'I/O error'}"
+        ) from None
+    except json.JSONDecodeError as error:
+        raise CollectorError(
+            f"could not parse existing claims file {path}: "
+            f"line {error.lineno}, column {error.colno}"
+        ) from None
+    validate_public_bundle(
+        bundle,
+        expected_candidate_window_days=None,
+        expected_archive_window_days=archive_window_days,
+        candidacy_payload=None,
+    )
+    retained: list[dict[str, Any]] = []
+    for review in bundle["reviews"]:
+        review_date = date.fromisoformat(review["review_date"])
+        age_days = (as_of - review_date).days
+        if age_days < 0:
+            raise CollectorError("existing claim review date is in the future")
+        if age_days <= archive_window_days:
+            retained.append(_canonicalize_existing_review(review, candidacy_payload))
+    return retained
+
+
+def merge_reviews(
+    existing_reviews: Iterable[dict[str, Any]],
+    fetched_reviews: Iterable[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Merge evidence by canonical URL; newly fetched evidence wins."""
+
+    merged = {review["review_url"]: review for review in existing_reviews}
+    merged.update({review["review_url"]: review for review in fetched_reviews})
+    result = list(merged.values())
+    result.sort(
+        key=lambda item: (
+            -date.fromisoformat(item["review_date"]).toordinal(),
+            item["publisher_name"],
+            item["review_url"],
+        )
+    )
+    return result
 
 
 def semantic_public_content(bundle: dict[str, Any]) -> dict[str, Any]:
@@ -838,24 +1013,50 @@ def atomic_write_json(path: Path, payload: Any) -> None:
 
 
 def collect(
-    polls_path: Path,
+    candidacy_status_path: Path,
     output_path: Path,
     diagnostics_path: Path,
-    candidate_window_days: int,
     archive_window_days: int,
     as_of: date,
     as_of_argument: str | None,
+    existing_claims_path: Path | None = None,
 ) -> dict[str, Any]:
-    resolved_polls = polls_path.resolve()
+    resolved_candidacy = candidacy_status_path.resolve()
     resolved_output = output_path.resolve()
     resolved_diagnostics = diagnostics_path.resolve()
-    if len({resolved_polls, resolved_output, resolved_diagnostics}) != 3:
-        raise CollectorError("polls, public output, and diagnostics paths must be distinct")
-    polls = load_polls(polls_path)
-    roster = build_candidate_roster(polls, as_of, candidate_window_days)
+    if len({resolved_candidacy, resolved_output, resolved_diagnostics}) != 3:
+        raise CollectorError(
+            "candidacy registry, public output, and diagnostics paths must be distinct"
+        )
+    if existing_claims_path is not None and (
+        existing_claims_path.resolve() == resolved_candidacy
+        or existing_claims_path.resolve() == resolved_diagnostics
+    ):
+        raise CollectorError(
+            "existing claims must be distinct from candidacy and diagnostics paths"
+        )
+    if archive_window_days < 0:
+        raise CollectorError("archive window must be nonnegative")
+
+    candidacy = load_candidacy_status(candidacy_status_path)
+    active_candidates = candidate_query_records(candidacy)
+    candidate_query = build_candidate_query(candidacy)
+    identity_candidates = candidacy["candidates"]
+    existing_reviews = load_existing_reviews(
+        existing_claims_path,
+        candidacy,
+        as_of,
+        archive_window_days,
+    )
     diagnostics: dict[str, Any] = {
         "as_of": as_of.isoformat(),
-        "eligible_roster": roster,
+        "candidate_source": candidate_query["source"],
+        "candidate_rule": candidate_query["rule"],
+        "candidate_status_as_of": candidate_query["status_as_of"],
+        "candidate_query_count": candidate_query["count"],
+        "candidate_query_ids": candidate_query["candidate_ids"],
+        "candidate_query_names": candidate_query["candidate_names"],
+        "candidate_source_provenance": candidacy.get("source"),
         "query_status": [],
         "excluded_unknown_hosts": [],
         "invalid_reviews": [],
@@ -864,23 +1065,40 @@ def collect(
             "canonical_reviews_seen": 0,
             "duplicate_instances_merged": 0,
         },
+        "historical_evidence": {
+            "retained_existing_reviews": len(existing_reviews),
+            "fetched_reviews": 0,
+            "merged_reviews": 0,
+        },
         "final_counts": None,
     }
 
     all_claims: list[dict[str, Any]] = []
-    if roster:
+    if active_candidates:
         api_key = os.environ.get("GOOGLE_FACTCHECK_API_KEY")
         if not api_key:
             diagnostics["failure"] = "GOOGLE_FACTCHECK_API_KEY is not configured"
             atomic_write_json(diagnostics_path, diagnostics)
-            raise CollectorError("GOOGLE_FACTCHECK_API_KEY is required for a nonempty roster")
-        for candidate in roster:
-            candidate_name = candidate["candidate_name"]
+            raise CollectorError(
+                "GOOGLE_FACTCHECK_API_KEY is required for a nonempty active query field"
+            )
+        for candidate in active_candidates:
+            query_terms = fact_check_query_terms(candidate)
+            candidate_claims: list[dict[str, Any]] = []
+            pages = 0
             try:
-                claims, pages = fetch_candidate_claims(candidate_name, api_key)
+                for query_term in query_terms:
+                    claims, query_pages = fetch_candidate_claims(query_term, api_key)
+                    candidate_claims.extend(claims)
+                    pages += query_pages
             except CollectorError as error:
                 diagnostics["query_status"].append(
-                    {"candidate_id": candidate["candidate_id"], "status": "failed"}
+                    {
+                        "candidate_id": candidate["candidate_id"],
+                        "candidate_name": candidate["candidate_name"],
+                        "query_terms": list(query_terms),
+                        "status": "failed",
+                    }
                 )
                 diagnostics["failure"] = str(error)
                 atomic_write_json(diagnostics_path, diagnostics)
@@ -888,24 +1106,39 @@ def collect(
             diagnostics["query_status"].append(
                 {
                     "candidate_id": candidate["candidate_id"],
+                    "candidate_name": candidate["candidate_name"],
+                    "query_terms": list(query_terms),
                     "status": "ok",
                     "pages": pages,
-                    "claims": len(claims),
+                    "claims": len(candidate_claims),
                 }
             )
-            all_claims.extend(claims)
+            all_claims.extend(candidate_claims)
 
-    reviews = flatten_claims(
-        all_claims, roster, as_of, archive_window_days, diagnostics
+    fetched_reviews = flatten_claims(
+        all_claims,
+        identity_candidates,
+        as_of,
+        archive_window_days,
+        diagnostics,
     )
+    reviews = merge_reviews(existing_reviews, fetched_reviews)
+    diagnostics["historical_evidence"] = {
+        "retained_existing_reviews": len(existing_reviews),
+        "fetched_reviews": len(fetched_reviews),
+        "merged_reviews": len(reviews),
+    }
     bundle = build_public_bundle(
-        roster,
+        candidacy,
         reviews,
-        candidate_window_days,
         archive_window_days,
         generated_at_value(as_of_argument),
     )
-    validate_public_bundle(bundle, candidate_window_days, archive_window_days)
+    validate_public_bundle(
+        bundle,
+        expected_archive_window_days=archive_window_days,
+        candidacy_payload=candidacy,
+    )
     diagnostics["final_counts"] = bundle["counts"]
     atomic_write_json(diagnostics_path, diagnostics)
     atomic_write_json(output_path, bundle)
@@ -915,19 +1148,24 @@ def collect(
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Collect Google Fact Check Tools publisher reviews for candidates with "
-            "numeric first-round poll scores in the rolling eligibility window."
+            "Collect Google Fact Check Tools publisher reviews for the canonical "
+            "active candidate registry."
         )
     )
-    parser.add_argument("--polls", type=Path, default=Path("polls.json"))
     parser.add_argument(
-        "--output", type=Path, default=Path("claims_under_scrutiny.json")
+        "--candidacy-status",
+        type=Path,
+        default=Path("candidate_candidacy_status.json"),
     )
+    parser.add_argument(
+        "--existing-claims",
+        type=Path,
+        default=Path("claims_under_scrutiny.json"),
+        help="Existing accepted evidence to retain within the archive window",
+    )
+    parser.add_argument("--output", type=Path, default=Path("claims_under_scrutiny.json"))
     parser.add_argument(
         "--diagnostics-output", type=Path, default=Path("diagnostics.json")
-    )
-    parser.add_argument(
-        "--candidate-window-days", type=int, default=DEFAULT_CANDIDATE_WINDOW_DAYS
     )
     parser.add_argument(
         "--archive-window-days", type=int, default=DEFAULT_ARCHIVE_WINDOW_DAYS
@@ -950,20 +1188,20 @@ def main(argv: list[str] | None = None) -> int:
         as_of = datetime.now(ZoneInfo("Europe/Paris")).date()
     try:
         bundle = collect(
-            args.polls,
+            args.candidacy_status,
             args.output,
             args.diagnostics_output,
-            args.candidate_window_days,
             args.archive_window_days,
             as_of,
             args.as_of,
+            args.existing_claims,
         )
     except CollectorError as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
     print(
-        f"Wrote {bundle['counts']['reviews']} reviews for "
-        f"{bundle['candidate_roster']['count']} eligible candidates to {args.output}"
+        f"Wrote {bundle['counts']['reviews']} reviews while querying "
+        f"{bundle['candidate_query']['count']} active candidates to {args.output}"
     )
     return 0
 

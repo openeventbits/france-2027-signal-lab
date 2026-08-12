@@ -13,8 +13,42 @@
     const period = payload?.period;
     const candidates = payload?.candidates;
 
+    const schemaVersion = payload?.schema_version;
+    const validCandidate = candidate => {
+      const common =
+        candidate &&
+        typeof candidate.candidate_id === "string" &&
+        Boolean(candidate.candidate_id) &&
+        typeof candidate.candidate_name === "string" &&
+        Boolean(candidate.candidate_name) &&
+        Array.isArray(candidate.daily_series);
+
+      if (!common) return false;
+
+      if (schemaVersion === "1.0") {
+        return candidate.daily_series.length >= 30;
+      }
+
+      if (
+        candidate.evidence_state ===
+        "unavailable_no_personal_article"
+      ) {
+        return (
+          candidate.wikipedia_article === null &&
+          candidate.daily_series.length === 0
+        );
+      }
+
+      return (
+        candidate.evidence_state === "observed" &&
+        candidate.wikipedia_article &&
+        candidate.daily_series.length === 90
+      );
+    };
+
     const valid =
-      payload?.schema_version === "1.0" &&
+      (schemaVersion === "1.0" ||
+        schemaVersion === "1.1") &&
       period &&
       typeof period === "object" &&
       /^\d{4}-\d{2}-\d{2}$/.test(
@@ -22,15 +56,7 @@
       ) &&
       Array.isArray(candidates) &&
       candidates.length > 0 &&
-      candidates.every(candidate =>
-        candidate &&
-        typeof candidate.candidate_id === "string" &&
-        Boolean(candidate.candidate_id) &&
-        typeof candidate.candidate_name === "string" &&
-        Boolean(candidate.candidate_name) &&
-        Array.isArray(candidate.daily_series) &&
-        candidate.daily_series.length >= 30
-      );
+      candidates.every(validCandidate);
 
     return valid
       ? {

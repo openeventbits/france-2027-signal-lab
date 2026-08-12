@@ -67,6 +67,18 @@ class RecentChangesTests(unittest.TestCase):
             [source["name"] for source in SOURCES],
         )
 
+    def test_runoff_preserves_supplied_stable_candidate_ids(self):
+        runoff = copy.deepcopy(self.runoff)
+        selected = runoff["selected_matchup"]
+        selected["candidate_ids"] = ["stable-left-id", "stable-right-id"]
+        entries = runoff_entry(
+            runoff, self.second_round, {}, FIXED_CLOCK, Counter()
+        )
+        self.assertEqual(
+            entries[0]["candidate_ids"],
+            ["stable-left-id", "stable-right-id"],
+        )
+
     def test_historical_polls_use_fieldwork_end_not_generator_date(self):
         diagnostics = Counter()
         entries = poll_entries(
@@ -185,6 +197,8 @@ class RecentChangesTests(unittest.TestCase):
             '" configured routes"',
             "feeds_due_this_run",
             "feeds_successful_this_run",
+            "failed <= 1",
+            "1 due route unavailable",
             "Automatically updated from the source registry",
         )
 
@@ -966,6 +980,23 @@ class RecentChangesTests(unittest.TestCase):
             {"campaign-hollande-prepares", "legal-philippe-legal"},
         )
         self.assertEqual(diagnostics["omitted_candidate_watch_non_material"], 1)
+
+    def test_news_preserves_supplied_stable_candidate_id(self):
+        item = {
+            "id": "renamed-candidate",
+            "published_at": "2026-07-20T12:00:00Z",
+            "publisher": "Public Sénat",
+            "url": "https://example.test/renamed-candidate",
+            "headline": "Présidentielle 2027: Nouveau Nom annonce sa candidature",
+            "candidates": ["Nouveau Nom"],
+            "candidate_ids": ["stable-registry-id"],
+            "explicit_election": True,
+        }
+        entries = news_entries(
+            {"generated_at": "2026-07-22T09:00:00Z", "election_news": [item], "candidate_watch": []},
+            {}, FIXED_CLOCK, Counter(),
+        )
+        self.assertEqual(entries[0]["candidate_ids"], ["stable-registry-id"])
 
     def test_duplicate_item_across_news_lanes_is_not_repeated(self):
         item = {

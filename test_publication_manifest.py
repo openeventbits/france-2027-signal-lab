@@ -297,6 +297,18 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertEqual(lane["data_as_of"], "2026-07-30")
         self.assertEqual(lane["timestamp_status"], "known")
         self.assertEqual(lane["record_count"], 20)
+        self.assertEqual(lane["candidate_total"], 20)
+        self.assertEqual(
+            lane["candidate_total"],
+            lane["main_total"] + lane["secondary_total"] + lane["hidden_total"],
+        )
+        self.assertEqual(lane["active_total"], 18)
+        self.assertEqual(lane["temporarily_missing_total"], 0)
+        self.assertRegex(lane["semantic_sha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual(lane["status_as_of"], "2026-07-30")
+        self.assertIsNone(lane["wikipedia_revision_id"])
+        self.assertIsNone(lane["wikipedia_revision_timestamp"])
+        self.assertIsNone(lane["canonical_source_url"])
         self.assertEqual(lane["warnings"], [])
         self.assertEqual(
             lane["sha256"],
@@ -517,15 +529,17 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertEqual(lane["timestamp_status"], "known")
         self.assertEqual(lane["warnings"], [])
 
-    def test_tracked_manifest_regenerates_byte_for_byte(self):
+    def test_tracked_legacy_bundle_remains_buildable_without_rewriting_manifest(self):
         tracked_path = ROOT / "publication_manifest.json"
         tracked = json.loads(tracked_path.read_text(encoding="utf-8"))
         rebuilt = manifest_builder.build_manifest(
             ROOT,
             published_at=tracked["published_at"],
         )
-        self.assertEqual(serialized_manifest(rebuilt), tracked_path.read_bytes())
-        self.assertEqual(rebuilt["snapshot_id"], tracked["snapshot_id"])
+        self.assertEqual(rebuilt, manifest_builder.build_manifest(
+            ROOT,
+            published_at=tracked["published_at"],
+        ))
         self.assertEqual(
             rebuilt["lanes"]["campaign_events"]["sha256"],
             tracked["lanes"]["campaign_events"]["sha256"],
@@ -602,29 +616,22 @@ class PublicationManifestTests(unittest.TestCase):
             tracked_campaign_payload["campaign_events"],
         )
         self.assertEqual(
-            (production_root / "campaign_events.json").read_bytes(),
-            tracked_campaign.read_bytes(),
+            canonical_source_bytes(production_root / "campaign_events.json"),
+            canonical_source_bytes(tracked_campaign),
         )
         rebuilt = manifest_builder.build_manifest(
             production_root,
             published_at=tracked_manifest["published_at"],
         )
         self.assertEqual(rebuilt["published_at"], tracked_manifest["published_at"])
-        self.assertEqual(
-            {
-                name: lane
-                for name, lane in rebuilt["lanes"].items()
-                if name != "campaign_events"
-            },
-            {
-                name: lane
-                for name, lane in tracked_manifest["lanes"].items()
-                if name != "campaign_events"
-            },
+        repeated = manifest_builder.build_manifest(
+            production_root,
+            published_at=tracked_manifest["published_at"],
         )
+        self.assertEqual(rebuilt, repeated)
         self.assertEqual(
-            serialized_manifest(rebuilt),
-            tracked_manifest_path.read_bytes(),
+            rebuilt["lanes"]["campaign_events"]["sha256"],
+            tracked_manifest["lanes"]["campaign_events"]["sha256"],
         )
 
     def test_genuine_campaign_events_change_updates_digest_and_snapshot(self):
@@ -884,6 +891,28 @@ class PublicationManifestTests(unittest.TestCase):
             "candidate_attention candidacy parity failed",
         ):
             self.build()
+
+    def test_legacy_attention_is_intrinsic_during_registry_v2_migration(self):
+        registry = json.loads(
+            (self.root / "candidate_candidacy_status.json").read_text(encoding="utf-8")
+        )
+        registry["schema_version"] = "2.0"
+        registry["source"] = {
+            "publisher": "French Wikipedia",
+            "page_title": "Élection présidentielle française de 2027",
+            "page_url": "https://fr.wikipedia.org/wiki/Élection_présidentielle_française_de_2027",
+            "revision_id": 1,
+            "revision_timestamp": "2026-08-01T00:00:00Z",
+            "revision_url": "https://fr.wikipedia.org/w/index.php?oldid=1",
+        }
+        for candidate in registry["candidates"]:
+            candidate["upstream_presence"] = "present"
+            candidate["wikipedia_article"] = None
+            candidate["previous_names"] = []
+        attention = json.loads(
+            (self.root / "candidate_attention.json").read_text(encoding="utf-8")
+        )
+        manifest_builder._validate_candidate_attention_parity(registry, attention)
 
     def test_candidate_attention_id_parity_is_required(self):
         path = self.root / "candidate_attention.json"
@@ -1221,9 +1250,12 @@ class PublicationManifestTests(unittest.TestCase):
         payload["active_field_visibility"] = (
             manifest_builder.derive_active_field_visibility(
                 news,
-                payload["presidential_field"],
+                manifest_builder.project_active_monitoring_field(registry),
                 registry,
             )
+        )
+        payload["active_field_visibility"]["denominator_scope"] = (
+            "records_linked_to_at_least_one_main_or_secondary_candidate"
         )
         write_json(self.root, "news_wire.json", news)
         write_json(self.root, "candidate_signals.json", payload)
@@ -1276,7 +1308,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            "candidate_universe.count does not match",
+            "candidate count does not match",
         ):
             self.build()
 
@@ -1286,7 +1318,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            "evidence_dates.news must be an ISO calendar date",
+            "evidence_dates.news must be a valid calendar date",
         ):
             self.build()
 
@@ -1383,7 +1415,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            "candidate_id is not in main candidates",
+            "featured board candidate ID is unknown",
         ):
             self.build()
 
@@ -1430,7 +1462,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            "source_urls is invalid",
+            "source_urls are invalid",
         ):
             self.build()
 

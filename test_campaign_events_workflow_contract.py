@@ -42,6 +42,10 @@ class CampaignEventsWorkflowContractTests(unittest.TestCase):
         self.assertNotIn("pip install", self.lower)
         self.assertNotIn("requirements", self.lower)
         self.assertIn("build_campaign_events.py", self.text)
+        self.assertIn(
+            "--candidates candidate_candidacy_status.json",
+            self.text,
+        )
         self.assertIn("validate_campaign_events_artifact", self.text)
         self.assertIn("build_publication_manifest.py", self.text)
         self.assertIn("--check", self.text)

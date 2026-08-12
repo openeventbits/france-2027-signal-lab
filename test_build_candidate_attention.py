@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import copy
+import io
 import json
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from datetime import date, datetime, timedelta
 from urllib.error import HTTPError, URLError
-from datetime import date, timedelta
+from urllib.parse import parse_qs, urlsplit
 from pathlib import Path
 
 from candidate_attention_contract import (
@@ -28,6 +31,7 @@ from build_candidate_attention import (
     serialize_semantic_payload,
     validate_daily_series,
     WikimediaFetchError,
+    WikimediaPageviewsNotFoundError,
     collect_wikimedia_observations,
     fetch_json,
     fetch_pageview_series,
@@ -1249,6 +1253,132 @@ class CandidateAttentionTitleTests(
 class CandidateAttentionPageviewCollectionTests(
     unittest.TestCase
 ):
+    def test_first_attempt_success_has_no_retry_sleep(
+        self,
+    ):
+        calls = []
+        sleeps = []
+
+        def fetcher(url):
+            calls.append(url)
+            return pageview_payload(value=123)
+
+        series = fetch_pageview_series(
+            "Gabriel Attal",
+            data_as_of=DATA_AS_OF,
+            fetcher=fetcher,
+            sleeper=sleeps.append,
+        )
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(sleeps, [])
+        self.assertEqual(len(series), 90)
+
+    def test_one_404_retries_same_url_then_succeeds(
+        self,
+    ):
+        calls = []
+        sleeps = []
+
+        def fetcher(url):
+            calls.append(url)
+
+            if len(calls) == 1:
+                raise WikimediaFetchError(
+                    "http_4xx",
+                    "HTTP 404",
+                    status=404,
+                    attempts=1,
+                )
+
+            return pageview_payload(value=123)
+
+        with redirect_stdout(io.StringIO()):
+            series = fetch_pageview_series(
+                "Gabriel Attal",
+                data_as_of=DATA_AS_OF,
+                fetcher=fetcher,
+                sleeper=sleeps.append,
+            )
+
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(set(calls)), 1)
+        self.assertEqual(sleeps, [1.0])
+        self.assertEqual(len(series), 90)
+
+    def test_two_404s_retry_same_url_then_succeed(
+        self,
+    ):
+        calls = []
+        sleeps = []
+
+        def fetcher(url):
+            calls.append(url)
+
+            if len(calls) < 3:
+                raise WikimediaFetchError(
+                    "http_4xx",
+                    "HTTP 404",
+                    status=404,
+                    attempts=1,
+                )
+
+            return pageview_payload(value=123)
+
+        with redirect_stdout(io.StringIO()):
+            series = fetch_pageview_series(
+                "Gabriel Attal",
+                data_as_of=DATA_AS_OF,
+                fetcher=fetcher,
+                sleeper=sleeps.append,
+            )
+
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(len(set(calls)), 1)
+        self.assertEqual(sleeps, [1.0, 2.0])
+        self.assertEqual(len(series), 90)
+
+    def test_three_404s_raise_after_bounded_retries_with_diagnostics(
+        self,
+    ):
+        calls = []
+        sleeps = []
+        output = io.StringIO()
+
+        def fetcher(url):
+            calls.append(url)
+            raise WikimediaFetchError(
+                "http_4xx",
+                "HTTP 404",
+                status=404,
+                attempts=1,
+            )
+
+        with self.assertRaises(
+            WikimediaPageviewsNotFoundError
+        ) as context:
+            with redirect_stdout(output):
+                fetch_pageview_series(
+                    "Gabriel Attal",
+                    data_as_of=DATA_AS_OF,
+                    fetcher=fetcher,
+                    sleeper=sleeps.append,
+                )
+
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(len(set(calls)), 1)
+        self.assertEqual(sleeps, [1.0, 2.0])
+        self.assertEqual(context.exception.attempts, 3)
+        self.assertEqual(
+            output.getvalue().splitlines(),
+            [
+                "Pageviews HTTP 404; retrying same "
+                "request (2/3) after 1s.",
+                "Pageviews HTTP 404; retrying same "
+                "request (3/3) after 2s.",
+            ],
+        )
+
     def test_exact_ninety_day_series_is_accepted(
         self,
     ):
@@ -1346,6 +1476,13 @@ class CandidateAttentionPageviewCollectionTests(
             10
         )
 
+        calls = []
+        sleeps = []
+
+        def fetcher(url):
+            calls.append(url)
+            return payload
+
         with self.assertRaises(
             CandidateAttentionBuildError
         ):
@@ -1355,10 +1492,15 @@ class CandidateAttentionPageviewCollectionTests(
                     DATA_AS_OF
                 ),
                 fetcher=(
-                    lambda _:
-                    payload
+                    fetcher
+                ),
+                sleeper=(
+                    sleeps.append
                 ),
             )
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(sleeps, [])
 
     def test_duplicate_day_is_rejected(
         self,
@@ -1531,6 +1673,349 @@ class CandidateAttentionPageviewCollectionTests(
                 forbidden,
                 source,
             )
+
+
+class CandidateAttentionAvailabilityFallbackTests(
+    unittest.TestCase
+):
+    @staticmethod
+    def _request_data_as_of(
+        url,
+    ):
+        return datetime.strptime(
+            url.rstrip("/").rsplit("/", 1)[-1],
+            "%Y%m%d",
+        ).date()
+
+    @classmethod
+    def _success_for_url(
+        cls,
+        url,
+        *,
+        value=137,
+    ):
+        if "/w/api.php?" in url:
+            title = parse_qs(
+                urlsplit(url).query
+            )["titles"][0]
+            return action_payload(title)
+
+        return pageview_payload(
+            data_as_of=cls._request_data_as_of(url),
+            value=value,
+        )
+
+    def _run_build(
+        self,
+        fetcher,
+        *,
+        fallback_days=1,
+    ):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "candidate_attention.json"
+
+            with redirect_stdout(io.StringIO()):
+                return run_build(
+                    candidacy_path=(
+                        ROOT / "candidate_candidacy_status.json"
+                    ),
+                    registry_path=(
+                        ROOT / "wikimedia_candidate_articles.json"
+                    ),
+                    output_path=output,
+                    data_as_of=DATA_AS_OF.isoformat(),
+                    generated_at="2026-08-07T05:00:00Z",
+                    fallback_days=fallback_days,
+                    delay_seconds=0,
+                    fetcher=fetcher,
+                    sleeper=lambda _: None,
+                )
+
+    def test_preferred_date_success_does_not_fallback(
+        self,
+    ):
+        pageview_dates = []
+
+        def fetcher(url):
+            if "/w/api.php?" not in url:
+                pageview_dates.append(
+                    self._request_data_as_of(url)
+                )
+            return self._success_for_url(url)
+
+        payload = self._run_build(fetcher)
+
+        self.assertEqual(
+            payload["period"]["data_as_of"],
+            DATA_AS_OF.isoformat(),
+        )
+        self.assertEqual(
+            pageview_dates,
+            [DATA_AS_OF] * 20,
+        )
+
+    def test_pageviews_404_rebuilds_complete_previous_date(
+        self,
+    ):
+        previous = DATA_AS_OF - timedelta(days=1)
+        pageview_dates = []
+        verification_calls = 0
+
+        def fetcher(url):
+            nonlocal verification_calls
+
+            if "/w/api.php?" in url:
+                verification_calls += 1
+                return self._success_for_url(url)
+
+            requested_date = self._request_data_as_of(url)
+            pageview_dates.append(requested_date)
+
+            if requested_date == DATA_AS_OF:
+                raise WikimediaFetchError(
+                    "http_4xx",
+                    "HTTP 404",
+                    status=404,
+                    attempts=1,
+                )
+
+            return self._success_for_url(url)
+
+        payload = self._run_build(fetcher)
+
+        self.assertEqual(
+            pageview_dates,
+            [DATA_AS_OF] * 3 + [previous] * 20,
+        )
+        self.assertEqual(
+            verification_calls,
+            22,
+        )
+        self.assertEqual(
+            payload["candidate_universe"]["count"],
+            20,
+        )
+        self.assertEqual(
+            len(payload["candidates"]),
+            20,
+        )
+        self.assertEqual(
+            payload["period"]["data_as_of"],
+            previous.isoformat(),
+        )
+        self.assertTrue(
+            all(
+                len(candidate["daily_series"]) == 90
+                for candidate in payload["candidates"]
+            )
+        )
+        self.assertTrue(
+            all(
+                observation["views"] == 137
+                for candidate in payload["candidates"]
+                for observation in candidate["daily_series"]
+            )
+        )
+
+    def test_pageviews_404_on_both_dates_fails_closed(
+        self,
+    ):
+        requested_dates = []
+
+        def fetcher(url):
+            if "/w/api.php?" in url:
+                return self._success_for_url(url)
+
+            requested_dates.append(
+                self._request_data_as_of(url)
+            )
+            raise WikimediaFetchError(
+                "http_4xx",
+                "HTTP 404",
+                status=404,
+                attempts=1,
+            )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "candidate_attention.json"
+            target.write_bytes(b"last-good\n")
+
+            with self.assertRaises(WikimediaFetchError):
+                with redirect_stdout(io.StringIO()):
+                    run_build(
+                        candidacy_path=(
+                            ROOT / "candidate_candidacy_status.json"
+                        ),
+                        registry_path=(
+                            ROOT / "wikimedia_candidate_articles.json"
+                        ),
+                        output_path=target,
+                        data_as_of=DATA_AS_OF.isoformat(),
+                        generated_at="2026-08-07T05:00:00Z",
+                        fallback_days=1,
+                        delay_seconds=0,
+                        fetcher=fetcher,
+                        sleeper=lambda _: None,
+                    )
+
+            self.assertEqual(
+                target.read_bytes(),
+                b"last-good\n",
+            )
+
+        self.assertEqual(
+            requested_dates,
+            [DATA_AS_OF] * 3
+            + [DATA_AS_OF - timedelta(days=1)] * 3,
+        )
+
+    def test_pageviews_fallback_is_disabled_by_default(
+        self,
+    ):
+        pageview_dates = []
+
+        def fetcher(url):
+            if "/w/api.php?" in url:
+                return self._success_for_url(url)
+
+            pageview_dates.append(
+                self._request_data_as_of(url)
+            )
+            raise WikimediaFetchError(
+                "http_4xx",
+                "HTTP 404",
+                status=404,
+                attempts=1,
+            )
+
+        with self.assertRaises(WikimediaFetchError):
+            self._run_build(
+                fetcher,
+                fallback_days=0,
+            )
+
+        self.assertEqual(
+            pageview_dates,
+            [DATA_AS_OF] * 3,
+        )
+
+    def test_verification_404_does_not_trigger_fallback(
+        self,
+    ):
+        calls = []
+
+        def fetcher(url):
+            calls.append(url)
+            raise WikimediaFetchError(
+                "http_4xx",
+                "HTTP 404",
+                status=404,
+                attempts=1,
+            )
+
+        with self.assertRaises(WikimediaFetchError):
+            self._run_build(fetcher)
+
+        self.assertEqual(len(calls), 1)
+        self.assertIn("/w/api.php?", calls[0])
+
+    def test_non_404_pageviews_failures_do_not_trigger_fallback(
+        self,
+    ):
+        cases = (
+            ("network_error", None),
+            ("timeout", None),
+            ("rate_limited", 429),
+            ("http_5xx", 503),
+        )
+
+        for category, status in cases:
+            with self.subTest(category=category):
+                pageview_dates = []
+
+                def fetcher(url):
+                    if "/w/api.php?" in url:
+                        return self._success_for_url(url)
+
+                    pageview_dates.append(
+                        self._request_data_as_of(url)
+                    )
+                    raise WikimediaFetchError(
+                        category,
+                        "simulated failure",
+                        status=status,
+                        attempts=4,
+                    )
+
+                with self.assertRaises(WikimediaFetchError):
+                    self._run_build(fetcher)
+
+                self.assertEqual(
+                    pageview_dates,
+                    [DATA_AS_OF],
+                )
+
+    def test_incomplete_pageviews_payload_does_not_fallback(
+        self,
+    ):
+        pageview_dates = []
+
+        def fetcher(url):
+            if "/w/api.php?" in url:
+                return self._success_for_url(url)
+
+            requested_date = self._request_data_as_of(url)
+            pageview_dates.append(requested_date)
+            payload = pageview_payload(
+                data_as_of=requested_date
+            )
+            payload["items"].pop()
+            return payload
+
+        with self.assertRaises(CandidateAttentionBuildError):
+            self._run_build(fetcher)
+
+        self.assertEqual(
+            pageview_dates,
+            [DATA_AS_OF],
+        )
+
+    def test_failure_diagnostics_end_with_candidate_and_phase(
+        self,
+    ):
+        output = io.StringIO()
+
+        def fetcher(url):
+            if "/w/api.php?" in url:
+                return self._success_for_url(url)
+
+            raise WikimediaFetchError(
+                "network_error",
+                "offline",
+                attempts=4,
+            )
+
+        with self.assertRaises(WikimediaFetchError):
+            with redirect_stdout(output):
+                collect_wikimedia_observations(
+                    candidacy_payload=CANDIDACY,
+                    registry_payload=REGISTRY,
+                    data_as_of=DATA_AS_OF,
+                    fetcher=fetcher,
+                    delay_seconds=0,
+                    sleeper=lambda _: None,
+                )
+
+        lines = output.getvalue().splitlines()
+        self.assertEqual(
+            lines,
+            [
+                "[01/20] Bruno Retailleau "
+                "(bruno-retailleau) - verify",
+                "[01/20] Bruno Retailleau "
+                "(bruno-retailleau) - pageviews",
+            ],
+        )
 
 
 class CandidateAttentionOutputSafetyTests(

@@ -12,6 +12,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,8 +26,13 @@ from build_candidate_signals import (
 )
 from candidate_candidacy_status import (
     CandidateCandidacyStatusError,
+    active_candidate_ids,
+    active_candidate_names,
+    active_candidate_records,
     candidacy_status_by_id,
+    project_active_monitoring_field,
     project_display_tiers,
+    semantic_sha256 as candidacy_semantic_sha256,
     validate_candidate_candidacy_status,
 )
 from candidate_attention_contract import (
@@ -36,6 +42,10 @@ from candidate_attention_contract import (
 from campaign_events_contract import (
     CampaignEventsContractError,
     validate_campaign_events_artifact,
+)
+from fetch_claims_under_scrutiny import (
+    CollectorError as ClaimsCollectorError,
+    validate_public_bundle as validate_claims_bundle,
 )
 from source_health import (
     SourceHealthError,
@@ -418,12 +428,21 @@ def _validate_featured_poll_board_public(
 
 
 def _validate_candidate_signals_public(payload: Any) -> int:
-    try:
-        validate_candidate_signals(payload)
-    except CandidateSignalsError as error:
+    schema_version = payload.get("schema_version") if isinstance(payload, dict) else None
+    if schema_version == "1.3":
+        try:
+            validate_candidate_signals(payload)
+        except CandidateSignalsError as error:
+            raise ManifestError(
+                f"candidate_signals invalid structure: {error}"
+            ) from error
+        return payload["candidate_universe"]["count"]
+    if schema_version != "1.2":
         raise ManifestError(
-            f"candidate_signals invalid structure: {error}"
-        ) from error
+            "candidate_signals.schema_version must equal 1.2 or 1.3"
+        )
+
+    # Temporary migration compatibility for the tracked schema-1.2 artifact.
     value = _required_object(
         payload,
         field="candidate_signals",
@@ -440,11 +459,6 @@ def _validate_candidate_signals_public(payload: Any) -> int:
             "candidates",
         },
     )
-    if value["schema_version"] != "1.2":
-        raise ManifestError(
-            "candidate_signals.schema_version must equal 1.2"
-        )
-
     universe = _required_object(
         value["candidate_universe"],
         field="candidate_signals.candidate_universe",
@@ -726,28 +740,38 @@ def _validate_candidate_attention_parity(
     registry: Any,
     candidate_attention: Any,
 ) -> None:
-    """Require exact candidate ID/name/order parity with candidacy registry."""
-
-    if not isinstance(registry, dict):
-        raise ManifestError(
-            "candidate_attention candidacy parity failed: "
-            "controlled candidacy registry is not an object"
-        )
-
-    expected_candidates = registry.get("candidates")
-
-    if not isinstance(expected_candidates, list):
-        raise ManifestError(
-            "candidate_attention candidacy parity failed: "
-            "controlled candidacy candidate list is unavailable"
-        )
+    """Validate current parity while allowing an older published projection."""
 
     try:
+        validate_candidate_attention(candidate_attention)
+        attention_schema = candidate_attention.get("schema_version")
+        if attention_schema == "1.0" and isinstance(registry, dict) and registry.get("schema_version") == "2.0":
+            # First Registry-v2 publication: legacy Attention converges later.
+            return
+        if attention_schema == "1.0":
+            if not isinstance(registry, dict) or not isinstance(
+                registry.get("candidates"), list
+            ):
+                raise CandidateAttentionContractError(
+                    "controlled candidacy candidate list is unavailable"
+                )
+            expected_candidates = registry["candidates"]
+        else:
+            validate_candidate_candidacy_status(registry)
+            projection_date = candidate_attention["candidate_universe"]["status_as_of"]
+            registry_date = registry["status_as_of"]
+            if projection_date < registry_date:
+                return
+            if projection_date > registry_date:
+                raise CandidateAttentionContractError(
+                    "candidate universe is newer than the candidacy registry"
+                )
+            expected_candidates = active_candidate_records(registry)
         validate_candidate_attention(
             candidate_attention,
             expected_candidates=expected_candidates,
         )
-    except CandidateAttentionContractError as error:
+    except (CandidateCandidacyStatusError, CandidateAttentionContractError) as error:
         raise ManifestError(
             f"candidate_attention candidacy parity failed: {error}"
         ) from error
@@ -772,21 +796,39 @@ def _validate_candidacy_status_parity(
         )
         registry_by_id = candidacy_status_by_id(registry)
         expected_field = project_display_tiers(registry)
+        expected_active = project_active_monitoring_field(registry)
+        active_ids = set(active_candidate_ids(registry))
     except CandidateCandidacyStatusError as error:
         raise ManifestError(
             f"candidacy_status registry parity failed: {error}"
         ) from error
 
+    schema_version = candidate_signals.get("schema_version")
+    if schema_version == "1.2":
+        expected_field = {
+            **expected_field,
+            "counts": {
+                **expected_field["counts"],
+                "active": len(active_ids),
+            },
+        }
     if candidate_signals["presidential_field"] != expected_field:
         raise ManifestError(
             "candidate_signals presidential_field does not match registry"
         )
+    if schema_version == "1.3" and (
+        candidate_signals.get("active_monitoring_field") != expected_active
+    ):
+        raise ManifestError(
+            "candidate_signals active_monitoring_field does not match registry"
+        )
+
     for candidate in candidates:
         source = registry_by_id[candidate["candidate_id"]]
         expected_candidacy = {
             "status": source["status"],
             "display_tier": source["display_tier"],
-            "active_field_eligible": source["display_tier"] != "hidden",
+            "active_field_eligible": candidate["candidate_id"] in active_ids,
             "status_as_of": source["status_as_of"],
             "source_date": source["source_date"],
             "source_url": source["source_url"],
@@ -794,11 +836,75 @@ def _validate_candidacy_status_parity(
             "source_publisher": source["source_publisher"],
             "status_note": source["status_note"],
         }
+        if schema_version == "1.3":
+            expected_candidacy["upstream_presence"] = source.get(
+                "upstream_presence", "present"
+            )
         if candidate["candidacy"] != expected_candidacy:
             raise ManifestError(
                 "candidate_signals candidacy does not match registry for "
                 f"{candidate['candidate_id']}"
             )
+
+
+def _validate_claims_public(payload: Any, registry: Any | None = None) -> int:
+    if not isinstance(payload, dict) or payload.get("schema_version") not in {1, 2}:
+        raise ManifestError("claims.schema_version must equal integer 1 or 2")
+    if payload.get("schema_version") == 1:
+        reviews = payload.get("reviews")
+        if not isinstance(reviews, list):
+            raise ManifestError("claims.reviews must be an array")
+        return len(reviews)
+    try:
+        validate_claims_bundle(payload)
+        if registry is not None:
+            query_date = payload["candidate_query"]["status_as_of"]
+            registry_date = registry["status_as_of"]
+            if query_date > registry_date:
+                raise ClaimsCollectorError(
+                    "candidate_query is newer than the candidacy registry"
+                )
+            if query_date == registry_date:
+                validate_claims_bundle(payload, candidacy_payload=registry)
+    except ClaimsCollectorError as error:
+        raise ManifestError(f"claims invalid structure: {error}") from error
+    return len(payload["reviews"])
+
+
+def _validate_news_active_parity(registry: Any, news: Any) -> None:
+    roster = news.get("candidate_roster") if isinstance(news, dict) else None
+    if not isinstance(roster, dict):
+        return
+    if roster.get("source") != "candidate_candidacy_status.json":
+        # Legacy tracked News metadata remains valid during migration.
+        return
+    roster_date = roster.get("status_as_of")
+    registry_date = registry["status_as_of"]
+    if roster_date < registry_date:
+        # Evidence collectors converge on their next independent schedule.
+        return
+    if roster_date > registry_date:
+        raise ManifestError("news candidate roster is newer than the registry")
+    expected_names = active_candidate_names(registry)
+    if (
+        roster.get("rule") != "active_monitoring_field"
+        or roster.get("count") != len(expected_names)
+        or roster.get("names") != expected_names
+    ):
+        raise ManifestError("news candidate roster does not match active registry")
+
+
+def _validate_campaign_event_identity_parity(registry: Any, events: Any) -> None:
+    registry_ids = set(candidacy_status_by_id(registry))
+    if not isinstance(events, dict):
+        return
+    for field in ("campaign_events", "institutional_milestones"):
+        for index, record in enumerate(events.get(field, [])):
+            candidate_ids = record.get("candidate_ids", [])
+            if any(identifier not in registry_ids for identifier in candidate_ids):
+                raise ManifestError(
+                    f"{field}[{index}] references a candidate outside the registry"
+                )
 
 
 def _validate_active_field_visibility_parity(
@@ -809,9 +915,13 @@ def _validate_active_field_visibility_parity(
     try:
         expected = derive_active_field_visibility(
             news,
-            candidate_signals["presidential_field"],
+            project_active_monitoring_field(registry),
             registry,
         )
+        if candidate_signals.get("schema_version") == "1.2":
+            expected["denominator_scope"] = (
+                "records_linked_to_at_least_one_main_or_secondary_candidate"
+            )
     except CandidateSignalsError as error:
         raise ManifestError(
             f"candidate_signals active visibility source validation failed: {error}"
@@ -920,6 +1030,12 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
         return True
     if lane_name == "candidate_signals":
         _validate_candidate_signals_public(payload)
+        return True
+    if lane_name == "claims":
+        try:
+            _validate_claims_public(payload)
+        except ManifestError:
+            return False
         return True
     if lane_name == "campaign_events":
         try:
@@ -1087,9 +1203,41 @@ def _build_lane(
                 f"{lane_name}: no valid lane-local evidence date is available"
             )
         if lane_name == "candidacy_status":
-            lane["record_count"] = len(primary["payload"]["candidates"])
+            registry = primary["payload"]
+            candidates = registry["candidates"]
+            tiers = project_display_tiers(registry)
+            active = active_candidate_records(registry)
+            source = registry.get("source", {})
+            lane.update(
+                {
+                    "record_count": len(candidates),
+                    "semantic_sha256": candidacy_semantic_sha256(registry),
+                    "status_as_of": registry["status_as_of"],
+                    "candidate_total": len(candidates),
+                    "main_total": tiers["counts"]["main"],
+                    "secondary_total": tiers["counts"]["secondary"],
+                    "hidden_total": tiers["counts"]["hidden"],
+                    "active_total": len(active),
+                    "temporarily_missing_total": sum(
+                        candidate.get("upstream_presence") == "temporarily_missing"
+                        for candidate in candidates
+                    ),
+                    "wikipedia_revision_id": source.get("revision_id"),
+                    "wikipedia_revision_timestamp": source.get("revision_timestamp"),
+                    "canonical_source_url": source.get("page_url"),
+                }
+            )
         if lane_name == "candidate_attention":
-            lane["record_count"] = len(primary["payload"]["candidates"])
+            attention = primary["payload"]
+            lane["record_count"] = len(attention["candidates"])
+            if attention.get("schema_version") == "1.1":
+                lane.update(
+                    {
+                        "candidate_count": attention["validation"]["candidate_count"],
+                        "observed_candidate_count": attention["validation"]["observed_candidate_count"],
+                        "unavailable_candidate_count": attention["validation"]["unavailable_candidate_count"],
+                    }
+                )
         if lane_name == "candidate_signals":
             lane["record_count"] = primary["payload"][
                 "candidate_universe"
@@ -1099,6 +1247,19 @@ def _build_lane(
                 len(primary["payload"][field])
                 for field in ("campaign_events", "institutional_milestones")
             )
+        if lane_name == "claims":
+            claims = primary["payload"]
+            lane["record_count"] = len(claims["reviews"])
+            if claims.get("schema_version") == 2:
+                query = claims["candidate_query"]
+                lane.update(
+                    {
+                        "candidate_query_source": query["source"],
+                        "candidate_query_rule": query["rule"],
+                        "candidate_query_status_as_of": query["status_as_of"],
+                        "candidate_query_count": query["count"],
+                    }
+                )
 
     return lane, sources
 
@@ -1231,6 +1392,23 @@ def build_manifest(
         candidate_attention_payload,
     )
 
+    registry_payload = lane_sources["candidacy_status"][0]["payload"]
+    if lanes["claims"]["valid"]:
+        _validate_claims_public(
+            lane_sources["claims"][0]["payload"],
+            registry_payload,
+        )
+    if lanes["news"]["valid"]:
+        _validate_news_active_parity(
+            registry_payload,
+            lane_sources["news"][0]["payload"],
+        )
+    if lanes["campaign_events"]["valid"]:
+        _validate_campaign_event_identity_parity(
+            registry_payload,
+            lane_sources["campaign_events"][0]["payload"],
+        )
+
     warnings = [
         warning
         for lane_name in sorted(lanes)
@@ -1303,6 +1481,49 @@ def validate_manifest(manifest: Any) -> None:
             )
         if not isinstance(lane["warnings"], list):
             raise ManifestError(f"{lane_name} warnings must be an array")
+        if lane_name == "candidacy_status" and lane["valid"]:
+            for field in (
+                "semantic_sha256",
+                "status_as_of",
+                "candidate_total",
+                "main_total",
+                "secondary_total",
+                "hidden_total",
+                "active_total",
+                "temporarily_missing_total",
+                "wikipedia_revision_id",
+                "wikipedia_revision_timestamp",
+                "canonical_source_url",
+            ):
+                if field not in lane:
+                    raise ManifestError(f"candidacy_status lane is missing {field}")
+            for field in (
+                "candidate_total",
+                "main_total",
+                "secondary_total",
+                "hidden_total",
+                "active_total",
+                "temporarily_missing_total",
+            ):
+                _required_count(lane[field], field=f"candidacy_status lane {field}")
+            if lane["candidate_total"] != (
+                lane["main_total"] + lane["secondary_total"] + lane["hidden_total"]
+            ):
+                raise ManifestError("candidacy_status tier totals do not reconcile")
+            semantic = lane["semantic_sha256"]
+            if not isinstance(semantic, str) or not re.fullmatch(r"[0-9a-f]{64}", semantic):
+                raise ManifestError("candidacy_status semantic_sha256 is invalid")
+        if lane_name == "candidate_attention" and lane["valid"] and lane["schema_version"] == "1.1":
+            for field in (
+                "candidate_count",
+                "observed_candidate_count",
+                "unavailable_candidate_count",
+            ):
+                _required_count(lane.get(field), field=f"candidate_attention lane {field}")
+            if lane["candidate_count"] != (
+                lane["observed_candidate_count"] + lane["unavailable_candidate_count"]
+            ):
+                raise ManifestError("candidate_attention validation counts do not reconcile")
         if lane_name in {
             "candidacy_status",
             "candidate_attention",
@@ -1312,6 +1533,23 @@ def validate_manifest(manifest: Any) -> None:
                 lane.get("record_count"),
                 field=f"{lane_name} lane record_count",
             )
+        if lane_name == "claims" and lane["valid"] and lane["schema_version"] == 2:
+            for field in (
+                "candidate_query_source",
+                "candidate_query_rule",
+                "candidate_query_status_as_of",
+                "candidate_query_count",
+            ):
+                if field not in lane:
+                    raise ManifestError(f"claims lane is missing {field}")
+            _required_count(
+                lane["candidate_query_count"],
+                field="claims lane candidate_query_count",
+            )
+            if lane["candidate_query_source"] != "candidate_candidacy_status.json":
+                raise ManifestError("claims lane candidate query source is invalid")
+            if lane["candidate_query_rule"] != "active_monitoring_field":
+                raise ManifestError("claims lane candidate query rule is invalid")
         if lane_name == "campaign_events":
             if lane["available"]:
                 _required_count(

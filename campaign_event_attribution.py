@@ -9,9 +9,8 @@ from typing import Any, Iterable, Literal
 
 from candidate_candidacy_status import (
     CandidateCandidacyStatusError,
-    candidacy_status_by_id,
+    active_candidate_records,
     load_candidate_candidacy_status,
-    project_display_tiers,
 )
 from candidate_identity import CandidateIdentityError, normalized_candidate_key
 from campaign_event_sources import ATTRIBUTION_POLICIES, SOURCE_TYPES
@@ -175,27 +174,18 @@ def _load_active_candidates(
 ) -> tuple[tuple[_Candidate, ...], dict[str, _Candidate]]:
     try:
         registry = load_candidate_candidacy_status(path)
-        registry_by_id = candidacy_status_by_id(registry)
-        tiers = project_display_tiers(registry)
+        active_records = active_candidate_records(registry)
     except (OSError, json.JSONDecodeError, CandidateCandidacyStatusError) as error:
         raise CandidateAttributionConfigurationError(
             f"candidate registry is unavailable or invalid: {error}"
         ) from error
 
-    active_ids = set(tiers["main"]) | set(tiers["secondary"])
-    hidden_ids = set(tiers["hidden"])
-    if active_ids & hidden_ids:
-        raise CandidateAttributionConfigurationError(
-            "candidate registry active and hidden tiers overlap"
-        )
-
     candidates: list[_Candidate] = []
     try:
-        for candidate_id in active_ids:
-            entry = registry_by_id[candidate_id]
+        for entry in active_records:
             candidates.append(
                 _Candidate(
-                    candidate_id=candidate_id,
+                    candidate_id=entry["candidate_id"],
                     candidate_name=entry["candidate_name"],
                     name_tokens=tuple(
                         normalized_candidate_key(

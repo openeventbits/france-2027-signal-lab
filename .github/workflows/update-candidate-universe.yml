@@ -1,0 +1,502 @@
+name: Update candidate universe
+
+on:
+  schedule:
+    - cron: "5 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: production-data-update
+  cancel-in-progress: false
+
+jobs:
+  update-candidate-universe:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Run candidate-universe publication tests
+        run: |
+          python -B -m unittest -v \
+            test_fetch_candidate_candidacy_status \
+            test_candidate_candidacy_status \
+            test_candidate_registry_v2 \
+            test_candidate_active_monitoring_phase3a1 \
+            test_candidate_universe_phase2 \
+            test_build_candidate_signals \
+            test_publication_manifest \
+            test_publication_manifest_registry_v2 \
+            test_candidate_universe_workflow_contract \
+            test_candidate_attention_workflow_contract \
+            test_claims_workflow_contract \
+            test_news_workflow_contract \
+            test_campaign_events_workflow_contract \
+            test_candidate_signals_workflow_contract
+
+      - name: Fetch and reconcile exact Wikipedia revision
+        id: fetch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! python -B fetch_candidate_candidacy_status.py \
+            --previous candidate_candidacy_status.json \
+            --output /tmp/candidate_candidacy_status.json \
+            > /tmp/candidate-universe-fetch.json \
+            2> /tmp/candidate-universe-error.txt
+          then
+            echo "Candidate Registry generation failed."
+            cat /tmp/candidate-universe-error.txt
+            exit 1
+          fi
+
+          python -B - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(
+              Path("/tmp/candidate-universe-fetch.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+          print(f"revision_id={report['revision_id']}")
+          print(f"revision_timestamp={report['revision_timestamp']}")
+          PY
+
+      - name: Validate candidate and promote semantic change atomically
+        id: registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec 2> >(tee /tmp/candidate-universe-error.txt >&2)
+          python -B - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          from candidate_candidacy_status import (
+              active_candidate_records,
+              load_candidate_candidacy_status,
+              project_display_tiers,
+              semantic_sha256,
+              validate_candidate_candidacy_status,
+          )
+          from fetch_candidate_candidacy_status import write_payload_atomic
+
+          previous_path = Path("candidate_candidacy_status.json")
+          candidate_path = Path("/tmp/candidate_candidacy_status.json")
+          previous_bytes = previous_path.read_bytes()
+          previous = load_candidate_candidacy_status(previous_path)
+          candidate = load_candidate_candidacy_status(candidate_path)
+          fetch_report = json.loads(
+              Path("/tmp/candidate-universe-fetch.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+
+          if candidate["schema_version"] != "2.0":
+              raise SystemExit("generated Candidate Registry is not schema 2.0")
+          validate_candidate_candidacy_status(candidate)
+          active = active_candidate_records(candidate)
+          if not active:
+              raise SystemExit("generated Candidate Registry has an empty active field")
+
+          previous_sha = semantic_sha256(previous)
+          candidate_sha = semantic_sha256(candidate)
+          semantic_changed = previous_sha != candidate_sha
+          previous_by_id = {
+              row["candidate_id"]: row for row in previous["candidates"]
+          }
+          candidate_by_id = {
+              row["candidate_id"]: row for row in candidate["candidates"]
+          }
+
+          new_ids = [
+              identifier for identifier in candidate_by_id
+              if identifier not in previous_by_id
+          ]
+          preserved_ids = [
+              identifier for identifier in candidate_by_id
+              if identifier in previous_by_id
+          ]
+          transitions = []
+          missing_transitions = []
+          returned = []
+          renames = []
+          for identifier in preserved_ids:
+              old = previous_by_id[identifier]
+              new = candidate_by_id[identifier]
+              old_presence = old.get("upstream_presence", "present")
+              new_presence = new.get("upstream_presence", "present")
+              if (old["status"], old["display_tier"]) != (
+                  new["status"], new["display_tier"]
+              ):
+                  transitions.append({
+                      "candidate_id": identifier,
+                      "candidate_name": new["candidate_name"],
+                      "from_status": old["status"],
+                      "to_status": new["status"],
+                      "from_tier": old["display_tier"],
+                      "to_tier": new["display_tier"],
+                  })
+              if old_presence != "temporarily_missing" and new_presence == "temporarily_missing":
+                  missing_transitions.append({
+                      "candidate_id": identifier,
+                      "candidate_name": new["candidate_name"],
+                  })
+              if old_presence == "temporarily_missing" and new_presence == "present":
+                  returned.append({
+                      "candidate_id": identifier,
+                      "candidate_name": new["candidate_name"],
+                  })
+              if old["candidate_name"] != new["candidate_name"]:
+                  renames.append({
+                      "candidate_id": identifier,
+                      "previous_name": old["candidate_name"],
+                      "candidate_name": new["candidate_name"],
+                  })
+
+          tiers = project_display_tiers(candidate)["counts"]
+          summary = {
+              "revision_id": candidate["source"]["revision_id"],
+              "revision_timestamp": candidate["source"]["revision_timestamp"],
+              "previous_schema": previous["schema_version"],
+              "candidate_schema": candidate["schema_version"],
+              "raw_candidate_count": fetch_report["raw_candidate_count"],
+              "previous_semantic_sha256": previous_sha,
+              "candidate_semantic_sha256": candidate_sha,
+              "semantic_changed": semantic_changed,
+              "candidate_total": len(candidate["candidates"]),
+              "main_total": tiers["main"],
+              "secondary_total": tiers["secondary"],
+              "hidden_total": tiers["hidden"],
+              "active_total": len(active),
+              "temporarily_missing_total": sum(
+                  row["upstream_presence"] == "temporarily_missing"
+                  for row in candidate["candidates"]
+              ),
+              "new_candidates": [
+                  {
+                      "candidate_id": identifier,
+                      "candidate_name": candidate_by_id[identifier]["candidate_name"],
+                  }
+                  for identifier in new_ids
+              ],
+              "preserved_candidate_count": len(preserved_ids),
+              "status_tier_transitions": transitions,
+              "temporarily_missing_transitions": missing_transitions,
+              "returned_candidates": returned,
+              "renamed_identities": renames,
+              "candidate_signals_rebuilt": False,
+              "manifest_rebuilt": False,
+              "published_commit": None,
+          }
+          Path("/tmp/candidate-universe-summary.json").write_text(
+              json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+
+          if semantic_changed:
+              write_payload_atomic(candidate, previous_path)
+              promoted = load_candidate_candidacy_status(previous_path)
+              if semantic_sha256(promoted) != candidate_sha:
+                  raise SystemExit("atomic Candidate Registry promotion did not verify")
+          elif previous_path.read_bytes() != previous_bytes:
+              raise SystemExit("semantic no-op changed the tracked Candidate Registry")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"changed={'true' if semantic_changed else 'false'}\n")
+          PY
+
+      - name: Rebuild Candidate Signals on registry change
+        id: candidate_signals
+        if: steps.registry.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec 2> >(tee /tmp/candidate-universe-error.txt >&2)
+          python -B build_candidate_signals.py \
+            --polls polls.json \
+            --news news_wire.json \
+            --claims claims_under_scrutiny.json \
+            --candidacy-status candidate_candidacy_status.json \
+            --output /tmp/candidate_signals.json
+
+          python -B - <<'PY'
+          import json
+          from pathlib import Path
+
+          from build_candidate_signals import (
+              atomic_write,
+              load_inputs,
+              validate_candidate_signals,
+          )
+
+          candidate = json.loads(
+              Path("/tmp/candidate_signals.json").read_text(encoding="utf-8")
+          )
+          polls, news, claims, registry = load_inputs(
+              "polls.json",
+              "news_wire.json",
+              "claims_under_scrutiny.json",
+              "candidate_candidacy_status.json",
+          )
+          validate_candidate_signals(
+              candidate,
+              polls=polls,
+              news=news,
+              claims=claims,
+              candidacy_status=registry,
+          )
+          if candidate["schema_version"] != "1.3":
+              raise SystemExit("Candidate Signals is not schema 1.3")
+          atomic_write(
+              "candidate_signals.json",
+              Path("/tmp/candidate_signals.json").read_bytes(),
+          )
+          promoted = json.loads(
+              Path("candidate_signals.json").read_text(encoding="utf-8")
+          )
+          validate_candidate_signals(
+              promoted,
+              polls=polls,
+              news=news,
+              claims=claims,
+              candidacy_status=registry,
+          )
+          summary_path = Path("/tmp/candidate-universe-summary.json")
+          summary = json.loads(summary_path.read_text(encoding="utf-8"))
+          summary["candidate_signals_rebuilt"] = True
+          summary_path.write_text(
+              json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Rebuild publication manifest on registry change
+        id: manifest
+        if: steps.registry.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec 2> >(tee /tmp/candidate-universe-error.txt >&2)
+          python -B - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          from build_publication_manifest import (
+              atomic_write_json,
+              build_manifest,
+              validate_manifest,
+          )
+
+          published_at = datetime.now(timezone.utc).replace(
+              microsecond=0
+          ).isoformat().replace("+00:00", "Z")
+          candidate = build_manifest(Path.cwd(), published_at=published_at)
+          validate_manifest(candidate)
+          temporary = Path("/tmp/publication_manifest.json")
+          atomic_write_json(temporary, candidate)
+          reloaded = json.loads(temporary.read_text(encoding="utf-8"))
+          validate_manifest(reloaded)
+          atomic_write_json(Path("publication_manifest.json"), reloaded)
+          validate_manifest(json.loads(
+              Path("publication_manifest.json").read_text(encoding="utf-8")
+          ))
+          summary_path = Path("/tmp/candidate-universe-summary.json")
+          summary = json.loads(summary_path.read_text(encoding="utf-8"))
+          summary["manifest_rebuilt"] = True
+          summary_path.write_text(
+              json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Verify bounded generated-file scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec 2> >(tee /tmp/candidate-universe-error.txt >&2)
+          unexpected="$(
+            git status --porcelain=v1 --untracked-files=all \
+              | sed -E 's/^...//' \
+              | grep -Ev '^(candidate_candidacy_status|candidate_signals|publication_manifest)\.json$' \
+              || true
+          )"
+          if [[ -n "$unexpected" ]]; then
+            echo "Unexpected generated files changed:"
+            echo "$unexpected"
+            exit 1
+          fi
+          if [[ "${{ steps.registry.outputs.changed }}" != "true" ]] \
+            && [[ -n "$(git status --porcelain=v1 --untracked-files=all)" ]]
+          then
+            echo "Semantic no-op left repository changes."
+            git status --short
+            exit 1
+          fi
+
+      - name: Commit, rebase, validate, and push candidate universe
+        id: commit
+        if: steps.registry.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec 2> >(tee /tmp/candidate-universe-error.txt >&2)
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -- \
+            candidate_candidacy_status.json \
+            candidate_signals.json \
+            publication_manifest.json
+          git diff --cached --check
+          git commit -m "Update candidate universe" -- \
+            candidate_candidacy_status.json \
+            candidate_signals.json \
+            publication_manifest.json
+
+          git fetch origin main
+          git rebase origin/main
+
+          python -B - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          from build_candidate_signals import atomic_write, build_from_paths
+          from build_publication_manifest import (
+              atomic_write_json,
+              build_manifest,
+              validate_manifest,
+          )
+          from candidate_candidacy_status import load_candidate_candidacy_status
+
+          load_candidate_candidacy_status("candidate_candidacy_status.json")
+          build_from_paths(
+              candidacy_status_path="candidate_candidacy_status.json",
+              output_path="/tmp/candidate_signals-rebase.json",
+          )
+          atomic_write(
+              "candidate_signals.json",
+              Path("/tmp/candidate_signals-rebase.json").read_bytes(),
+          )
+          published_at = datetime.now(timezone.utc).replace(
+              microsecond=0
+          ).isoformat().replace("+00:00", "Z")
+          rebuilt = build_manifest(Path.cwd(), published_at=published_at)
+          validate_manifest(rebuilt)
+          atomic_write_json(Path("publication_manifest.json"), rebuilt)
+          PY
+
+          if ! git diff --quiet -- \
+            candidate_signals.json publication_manifest.json
+          then
+            git add -- candidate_signals.json publication_manifest.json
+            git diff --cached --check
+            git commit --amend --no-edit
+          fi
+
+          unexpected="$(
+            git status --porcelain=v1 --untracked-files=all \
+              | sed -E 's/^...//' \
+              | grep -Ev '^(candidate_candidacy_status|candidate_signals|publication_manifest)\.json$' \
+              || true
+          )"
+          if [[ -n "$unexpected" ]]; then
+            echo "Unexpected files after rebase validation:"
+            echo "$unexpected"
+            exit 1
+          fi
+          git diff --exit-code -- \
+            candidate_candidacy_status.json \
+            candidate_signals.json \
+            publication_manifest.json
+          git push origin HEAD:main
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Write candidate-universe summary
+        if: success()
+        env:
+          PUBLISHED_SHA: ${{ steps.commit.outputs.sha }}
+        shell: bash
+        run: |
+          python -B - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          summary = json.loads(
+              Path("/tmp/candidate-universe-summary.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+          summary["published_commit"] = os.environ.get("PUBLISHED_SHA") or None
+
+          def render(value):
+              if not value:
+                  return "none"
+              if isinstance(value, list):
+                  return "; ".join(
+                      ", ".join(f"{key}={item[key]}" for key in item)
+                      if isinstance(item, dict) else str(item)
+                      for item in value
+                  )
+              return str(value)
+
+          lines = [
+              "## Candidate Universe update",
+              "",
+              f"- Checked Wikipedia revision: `{summary['revision_id']}`",
+              f"- Revision timestamp: `{summary['revision_timestamp']}`",
+              f"- Semantic changed: `{str(summary['semantic_changed']).lower()}`",
+              f"- Previous semantic SHA: `{summary['previous_semantic_sha256']}`",
+              f"- Candidate semantic SHA: `{summary['candidate_semantic_sha256']}`",
+              f"- Schemas: `{summary['previous_schema']} → {summary['candidate_schema']}`",
+              f"- Candidates: total={summary['candidate_total']}, main={summary['main_total']}, secondary={summary['secondary_total']}, hidden={summary['hidden_total']}, active={summary['active_total']}, temporarily_missing={summary['temporarily_missing_total']}",
+              f"- Raw extracted total: `{summary['raw_candidate_count']}`",
+              f"- Preserved identities: `{summary['preserved_candidate_count']}`",
+              f"- New identities: {render(summary['new_candidates'])}",
+              f"- Status/tier transitions: {render(summary['status_tier_transitions'])}",
+              f"- Temporarily missing: {render(summary['temporarily_missing_transitions'])}",
+              f"- Returned candidates: {render(summary['returned_candidates'])}",
+              f"- Renamed identities: {render(summary['renamed_identities'])}",
+              f"- Candidate Signals rebuilt: `{str(summary['candidate_signals_rebuilt']).lower()}`",
+              f"- Manifest rebuilt: `{str(summary['manifest_rebuilt']).lower()}`",
+              f"- Published commit: `{summary['published_commit'] or 'none'}`",
+          ]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as output:
+              output.write("\n".join(lines) + "\n")
+          PY
+
+      - name: Write failure summary
+        if: failure()
+        shell: bash
+        run: |
+          {
+            echo "## Candidate Universe update failed"
+            echo
+            if [[ -s /tmp/candidate-universe-error.txt ]]; then
+              echo '```text'
+              tail -n 20 /tmp/candidate-universe-error.txt
+              echo '```'
+            else
+              echo "The workflow failed closed during validation, derived-artifact rebuild, generated-file scope checking, rebase, or push. The tracked last-good publication was not pushed."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

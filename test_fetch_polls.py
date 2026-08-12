@@ -3,14 +3,19 @@ import unittest
 
 from fetch_polls import (
     SOURCE_URL,
+    SECOND_ROUND,
+    canonical_candidate_name,
+    canonical_matchup_candidate,
     canonical_pollster_name,
     discover_first_round_tables,
     parse_wikipedia_first_round_html,
+    validate_second_round_event,
 )
 from poll_contract import (
     PollContractError,
     apply_completeness_contract,
     make_event_id,
+    make_scenario_key,
     validate_poll_event,
 )
 
@@ -44,6 +49,61 @@ def polling_table(
 
 def first_round_page(*tables):
     return "<html><body><h2>First round</h2>" + "".join(tables) + "</body></html>"
+
+
+class CandidateNameEvidenceTests(unittest.TestCase):
+    def test_reviewed_aliases_and_corrupted_accents_still_normalize(self):
+        self.assertEqual(canonical_candidate_name("Edouard Philippe"), "Édouard Philippe")
+        self.assertEqual(
+            canonical_candidate_name("Rapha�l GLUCKSMANN", strict=True),
+            "Raphaël Glucksmann",
+        )
+
+    def test_unknown_clean_first_round_candidate_passes_through(self):
+        page = first_round_page(
+            polling_table(
+                candidates=(
+                    ("Nouvelle Personne", "20"),
+                    ("Edouard Philippe", "30"),
+                    ("Eric Zemmour", "50"),
+                )
+            )
+        )
+        events, skipped = parse_wikipedia_first_round_html(page)
+        self.assertEqual(skipped, [])
+        self.assertEqual(
+            [row["name"] for row in events[0]["candidates"]],
+            ["Nouvelle Personne", "Édouard Philippe", "Éric Zemmour"],
+        )
+
+    def test_unknown_clean_second_round_candidate_is_valid_source_evidence(self):
+        names = ["Nouvelle Personne", "Édouard Philippe"]
+        event = {
+            "event_id": make_event_id(
+                "Ifop", "2026-07-01", "2026-07-02", "Nouvelle Personne vs Édouard Philippe",
+                "https://example.test/runoff", round_name=SECOND_ROUND,
+            ),
+            "round": SECOND_ROUND,
+            "pollster": "Ifop",
+            "fieldwork_start": "2026-07-01",
+            "fieldwork_end": "2026-07-02",
+            "hypothesis": "Nouvelle Personne vs Édouard Philippe",
+            "source_url": "https://example.test/runoff",
+            "source_scope": "current_tested",
+            "matchup_key": make_scenario_key(names, round_name=SECOND_ROUND),
+            "margin": 4,
+            "candidates": [
+                {"name": "Nouvelle Personne", "score": 52},
+                {"name": "Édouard Philippe", "score": 48},
+            ],
+        }
+        validate_second_round_event(event)
+        self.assertEqual(canonical_matchup_candidate("Nouvelle Personne"), "Nouvelle Personne")
+
+    def test_second_round_still_requires_exactly_two_candidates(self):
+        event = {"candidates": [{"name": "Nouvelle Personne", "score": 100}]}
+        with self.assertRaisesRegex(ValueError, "exactly two"):
+            validate_second_round_event(event)
 
 
 class SemanticFirstRoundDiscoveryTests(unittest.TestCase):

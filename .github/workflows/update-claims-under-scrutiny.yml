@@ -30,17 +30,20 @@ jobs:
           python-version: "3.12"
 
       - name: Run deterministic collector tests
-        run: python -m unittest -v test_fetch_claims_under_scrutiny.py
+        run: |
+          python -m unittest -v \
+            test_fetch_claims_under_scrutiny.py \
+            test_claims_workflow_contract.py
 
       - name: Fetch Claims Under Scrutiny into temporary files
         env:
           GOOGLE_FACTCHECK_API_KEY: ${{ secrets.GOOGLE_FACTCHECK_API_KEY }}
         run: |
           python fetch_claims_under_scrutiny.py \
-            --polls polls.json \
+            --candidacy-status candidate_candidacy_status.json \
+            --existing-claims claims_under_scrutiny.json \
             --output /tmp/claims_under_scrutiny.json \
             --diagnostics-output /tmp/claims_under_scrutiny_diagnostics.json \
-            --candidate-window-days 45 \
             --archive-window-days 365
 
       - name: Validate and atomically stage fetched public data
@@ -52,6 +55,7 @@ jobs:
           import os
           from pathlib import Path
 
+          from candidate_candidacy_status import load_candidate_candidacy_status
           from fetch_claims_under_scrutiny import (
               CollectorError,
               atomic_write_json,
@@ -71,12 +75,15 @@ jobs:
               except (OSError, json.JSONDecodeError) as error:
                   fail(f"could not read {path}: {error}")
 
+          candidacy = load_candidate_candidacy_status(
+              "candidate_candidacy_status.json"
+          )
           fetched = load_json(fetched_path)
           try:
               validate_public_bundle(
                   fetched,
-                  expected_candidate_window_days=45,
                   expected_archive_window_days=365,
+                  candidacy_payload=candidacy,
               )
           except CollectorError as error:
               fail(str(error))
@@ -86,8 +93,8 @@ jobs:
               try:
                   validate_public_bundle(
                       current,
-                      expected_candidate_window_days=45,
                       expected_archive_window_days=365,
+                      candidacy_payload=candidacy,
                   )
               except CollectorError as error:
                   fail(f"existing public file is malformed; preserving it: {error}")
@@ -106,7 +113,7 @@ jobs:
           print(
               "Validated and atomically staged "
               f"{fetched['counts']['reviews']} reviews for "
-              f"{fetched['candidate_roster']['count']} eligible candidates."
+              f"{fetched['candidate_query']['count']} active query candidates."
           )
           PY
 
