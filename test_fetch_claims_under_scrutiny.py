@@ -486,10 +486,12 @@ class LifecycleCollectionTests(unittest.TestCase):
 
 
 class DownstreamCompatibilityTests(unittest.TestCase):
-    def test_legacy_frontend_accepts_schema_two_and_filters_from_evidence(self):
+    def test_legacy_frontend_accepts_schema_two_and_uses_validated_evidence(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("payload.candidate_query", source)
-        self.assertIn("const evidenceCandidateNames = new Set(validReviews.flatMap", source)
+        self.assertIn("const evidenceCandidateNames = new Set(reviews.flatMap", source)
+        self.assertNotIn("validReviews", source)
+        self.assertNotIn("skippedReviews", source)
         self.assertNotIn("trackedCandidateNames", source)
         self.assertIn("const candidates = [...metrics.candidates.entries()]", source)
         self.assertNotIn("rolling 45-day polling eligibility rule", source)

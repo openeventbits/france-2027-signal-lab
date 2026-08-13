@@ -8889,6 +8889,7 @@
 
     function validateClaimsPayload(payload) {
       if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new Error("Claims archive is not an object");
+      if (![1, 2].includes(payload.schema_version)) throw new Error("Claims archive has an unsupported schema");
       if (!Array.isArray(payload.reviews)) throw new Error("Claims archive reviews are malformed");
       const legacyCandidates = Array.isArray(payload.candidate_roster?.candidates)
         ? payload.candidate_roster.candidates
@@ -8898,10 +8899,17 @@
         Array.isArray(registryQuery.candidate_ids) && Array.isArray(registryQuery.candidate_names) &&
         Number.isInteger(registryQuery.count) && registryQuery.count === registryQuery.candidate_ids.length &&
         registryQuery.count === registryQuery.candidate_names.length;
-      if (!legacyCandidates && !validRegistryQuery) {
+      if ((payload.schema_version === 1 && !legacyCandidates) ||
+          (payload.schema_version === 2 && !validRegistryQuery)) {
         throw new Error("Claims archive candidate query metadata is missing");
       }
       if (!payload.counts || typeof payload.counts !== "object") throw new Error("Claims archive counts are missing");
+      if (!Number.isInteger(payload.counts.reviews) || payload.counts.reviews < 0) {
+        throw new Error("Claims archive review count is malformed");
+      }
+      if (payload.counts.reviews !== payload.reviews.length) {
+        throw new Error("Claims archive review count is inconsistent");
+      }
       if (!payload.generated_at || !Number.isFinite(new Date(payload.generated_at).getTime())) throw new Error("Claims archive update date is malformed");
       if (legacyCandidates && (!Number.isInteger(payload.candidate_roster.count) || payload.candidate_roster.count !== legacyCandidates.length)) {
         throw new Error("Claims archive candidate roster count is inconsistent");
@@ -8910,17 +8918,16 @@
         throw new Error("Claims archive candidate roster entries are malformed");
       }
 
-      const validReviews = payload.reviews.filter(isValidClaimReview);
-      if (payload.reviews.length && !validReviews.length) throw new Error("No claim reviews can be rendered safely");
-      const evidenceCandidateNames = new Set(validReviews.flatMap(review =>
+      if (!payload.reviews.every(isValidClaimReview)) throw new Error("Claim reviews cannot be rendered safely");
+      const reviews = [...payload.reviews];
+      const evidenceCandidateNames = new Set(reviews.flatMap(review =>
         review.candidate_associations.map(association => association.candidate_name)
       ));
       return {
         generatedAt: payload.generated_at,
         rosterCount: validRegistryQuery ? registryQuery.count : legacyCandidates.length,
         evidenceCandidateNames,
-        reviews: validReviews.sort((a, b) => b.review_date.localeCompare(a.review_date) || a.id.localeCompare(b.id)),
-        skippedReviews: payload.reviews.length - validReviews.length
+        reviews: reviews.sort((a, b) => b.review_date.localeCompare(a.review_date) || a.id.localeCompare(b.id))
       };
     }
 

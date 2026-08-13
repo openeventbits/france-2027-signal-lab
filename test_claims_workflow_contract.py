@@ -51,6 +51,58 @@ class ClaimsWorkflowContractTests(unittest.TestCase):
         self.assertIn("git rebase origin/", self.text)
         self.assertNotIn("--force", self.text)
 
+    def test_post_rebase_regenerates_recent_changes_before_final_validation(self):
+        rebase_start = self.text.index("git rebase origin/main")
+        push_start = self.text.index("git push origin HEAD:main", rebase_start)
+        post_rebase = self.text[rebase_start:push_start]
+        recent_changes_start = post_rebase.index("python generate_recent_changes.py")
+        candidate_signals_start = post_rebase.index("python -B build_candidate_signals.py")
+        manifest_start = post_rebase.index("python -B build_publication_manifest.py")
+        final_validation_start = post_rebase.index("git diff --exit-code")
+        self.assertLess(recent_changes_start, candidate_signals_start)
+        self.assertLess(recent_changes_start, manifest_start)
+        self.assertLess(recent_changes_start, final_validation_start)
+        self.assertIn("--news news_wire.json", post_rebase)
+        self.assertIn("--claims claims_under_scrutiny.json", post_rebase)
+        self.assertIn("--output recent_changes.json", post_rebase)
+        reconciliation_start = post_rebase.index("if ! git diff --quiet")
+        reconciliation_end = post_rebase.index(
+            "if git diff --quiet origin/main..HEAD",
+            reconciliation_start,
+        )
+        reconciliation = post_rebase[reconciliation_start:reconciliation_end]
+        self.assertGreaterEqual(reconciliation.count("recent_changes.json"), 2)
+        final_validation = post_rebase[final_validation_start:]
+        self.assertIn("recent_changes.json", final_validation)
+
+    def test_collector_diagnostics_are_summarized_without_publication(self):
+        summary_start = self.text.index("- name: Summarize Claims collector diagnostics")
+        validation_start = self.text.index(
+            "- name: Validate and atomically stage fetched public data",
+            summary_start,
+        )
+        summary = self.text[summary_start:validation_start]
+        self.assertIn("if: always()", summary)
+        self.assertIn("continue-on-error: true", summary)
+        self.assertIn("/tmp/claims_under_scrutiny_diagnostics.json", summary)
+        self.assertIn("diagnostics_path.exists()", summary)
+        self.assertIn('os.environ["GITHUB_STEP_SUMMARY"]', summary)
+        self.assertIn("candidate_query_count", summary)
+        self.assertIn("query_status", summary)
+        self.assertIn("excluded_unknown_hosts", summary)
+        self.assertIn("invalid_reviews", summary)
+        self.assertIn("unresolved_associations", summary)
+        self.assertIn("deduplication", summary)
+        self.assertIn("historical_evidence", summary)
+        self.assertIn("final_counts", summary)
+        self.assertIn('payload.get("failure")', summary)
+        self.assertNotIn("upload-artifact", summary)
+        commit_start = self.text.index("- name: Commit changed Claims Under Scrutiny data")
+        self.assertNotIn(
+            "claims_under_scrutiny_diagnostics.json",
+            self.text[commit_start:],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

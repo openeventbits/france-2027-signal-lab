@@ -46,6 +46,76 @@ jobs:
             --diagnostics-output /tmp/claims_under_scrutiny_diagnostics.json \
             --archive-window-days 365
 
+      - name: Summarize Claims collector diagnostics
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from collections import Counter
+          from pathlib import Path
+
+          diagnostics_path = Path("/tmp/claims_under_scrutiny_diagnostics.json")
+          lines = ["## Claims collector diagnostics", ""]
+          try:
+              if not diagnostics_path.exists():
+                  lines.append("Diagnostics file was not created.")
+              else:
+                  payload = json.loads(diagnostics_path.read_text(encoding="utf-8"))
+                  query_status = payload.get("query_status", [])
+                  status_counts = Counter(
+                      item.get("status", "unknown")
+                      for item in query_status
+                      if isinstance(item, dict)
+                  )
+                  deduplication = payload.get("deduplication", {})
+                  historical = payload.get("historical_evidence", {})
+                  final_counts = payload.get("final_counts")
+                  lines.extend(
+                      [
+                          f"- Candidate query count: {payload.get('candidate_query_count', 'unavailable')}",
+                          "- Query status: " + (
+                              ", ".join(
+                                  f"{status}={count}"
+                                  for status, count in sorted(status_counts.items())
+                              ) or "none"
+                          ),
+                          f"- Unknown publisher hosts: {len(payload.get('excluded_unknown_hosts', []))}",
+                          f"- Invalid reviews: {len(payload.get('invalid_reviews', []))}",
+                          f"- Unresolved associations: {len(payload.get('unresolved_associations', []))}",
+                          "- Deduplication: "
+                          f"seen={deduplication.get('canonical_reviews_seen', 0)}, "
+                          f"merged={deduplication.get('duplicate_instances_merged', 0)}",
+                          "- Historical evidence: "
+                          f"retained={historical.get('retained_existing_reviews', 0)}, "
+                          f"fetched={historical.get('fetched_reviews', 0)}, "
+                          f"merged={historical.get('merged_reviews', 0)}",
+                          "- Final counts: " + (
+                              ", ".join(
+                                  f"{key}={value}"
+                                  for key, value in sorted(final_counts.items())
+                              ) if isinstance(final_counts, dict) else "unavailable"
+                          ),
+                      ]
+                  )
+                  if payload.get("failure"):
+                      lines.append(f"- Failure: {payload['failure']}")
+          except Exception as error:
+              lines.append(f"Diagnostics summary unavailable: {error}")
+
+          summary = "\n".join(lines)
+          print(summary)
+          try:
+              with Path(os.environ["GITHUB_STEP_SUMMARY"]).open(
+                  "a", encoding="utf-8"
+              ) as output:
+                  output.write(summary + "\n")
+          except Exception as error:
+              print(f"Could not write GitHub step summary: {error}")
+          PY
+
       - name: Validate and atomically stage fetched public data
         id: validate
         shell: bash
@@ -210,19 +280,26 @@ jobs:
           git rebase origin/main
 
           post_rebase_published_at="$(python -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
+          python generate_recent_changes.py \
+            --news news_wire.json \
+            --polls polls.json \
+            --runoff closest_tested_runoff.json \
+            --second-round second_round_polls.json \
+            --claims claims_under_scrutiny.json \
+            --output recent_changes.json
           python -B -c 'from candidate_candidacy_status import load_candidate_candidacy_status; load_candidate_candidacy_status("candidate_candidacy_status.json")'
           python -B build_candidate_signals.py --candidacy-status candidate_candidacy_status.json
           python -B build_publication_manifest.py \
             --published-at "$post_rebase_published_at"
 
           if ! git diff --quiet -- \
-            candidate_signals.json publication_manifest.json
+            recent_changes.json candidate_signals.json publication_manifest.json
           then
             post_rebase_published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
             python -B build_publication_manifest.py \
               --published-at "$post_rebase_published_at"
             git add -- \
-              candidate_signals.json publication_manifest.json
+              recent_changes.json candidate_signals.json publication_manifest.json
             git commit --amend --no-edit
           fi
 
@@ -244,7 +321,7 @@ jobs:
             --check \
             --published-at "$final_published_at"
           git diff --exit-code -- \
-            candidate_signals.json publication_manifest.json
+            recent_changes.json candidate_signals.json publication_manifest.json
 
           git push origin HEAD:main
           echo "changed=true" >> "$GITHUB_OUTPUT"
