@@ -4823,21 +4823,13 @@
         campaignEventHorizonCategory(event.event_type).key
       )
     );
-    const labelByKey = {
-      debate: "DEBATE",
-      rally: "RALLY / MEETING",
-      visit: "VISIT",
-      launch: "LAUNCH",
-      media: "MEDIA",
-      other: "OTHER"
-    };
     return [
       { key: "all", label: "ALL" },
       ...campaignEventHorizonCategories
         .filter(category => present.has(category.key))
         .map(category => ({
           key: category.key,
-          label: labelByKey[category.key] || category.label
+          label: campaignEventHorizonCategoryLabel(category.key)
         }))
     ];
   }
@@ -4857,8 +4849,8 @@
     const status = campaignEventStatusPresentation(event);
     if (status.key !== "scheduled") return status.label;
     const evidenceState = campaignEventEvidencePresentation(event);
-    if (evidenceState.key === "verified") return evidenceState.label;
-    return status.label;
+    if (evidenceState.key !== "verified") return evidenceState.label;
+    return "";
   }
 
   function buildCampaignEventStreamGroups(events) {
@@ -4906,49 +4898,125 @@
     return { date: label, time: "" };
   }
 
-  function renderOperationsHorizonMarker(event, model) {
-    const selected = model.selectedEvent?.event_id === event.event_id;
-    const participantCount = campaignEventParticipantCount(event);
-    return `<button
-      type="button"
-      class="hybrid-events-ops-marker${selected ? " is-selected" : ""}"
-      data-hybrid-event-id="${escapeAttribute(event.event_id)}"
-      data-hybrid-event-week="${escapeAttribute(campaignEventWeekStartKey(campaignEventDateKey(event)))}"
-      data-event-type="${escapeAttribute(event.event_type)}"
-      aria-label="${escapeAttribute(event.title)}"
-      title="${escapeAttribute(event.title)}"
-    ><span>${escapeHtml(campaignEventTypeCode(event.event_type))}</span>${participantCount > 1 ? `<small>×${participantCount}</small>` : ""}</button>`;
+  function campaignEventObservedMinuteKey(value) {
+    const date = new Date(String(value || ""));
+    return Number.isFinite(date.getTime())
+      ? date.toISOString().slice(0, 16)
+      : String(value || "DATE UNAVAILABLE");
+  }
+
+  function groupCampaignEventAdditions(eventWatch) {
+    const groups = new Map();
+    eventWatch
+      .filter(update => String(update.update_type || "").toUpperCase() === "NEW")
+      .forEach(update => {
+        const key = campaignEventObservedMinuteKey(update.observed_at);
+        if (!groups.has(key)) {
+          groups.set(key, { key, observedAt: update.observed_at, updates: [] });
+        }
+        groups.get(key).updates.push(update);
+      });
+    return [...groups.values()];
+  }
+
+  function campaignEventHorizonCategoryLabel(key) {
+    const labels = {
+      debate: "DEBATE",
+      rally: "RALLY / MEETING",
+      visit: "VISIT",
+      launch: "LAUNCH",
+      media: "MEDIA",
+      other: "OTHER"
+    };
+    return labels[key] || "OTHER";
+  }
+
+  function campaignEventHorizonTypeGroups(events) {
+    return campaignEventHorizonCategories
+      .map(category => {
+        const count = events.filter(event =>
+          campaignEventHorizonCategory(event.event_type).key === category.key
+        ).length;
+        return count ? {
+          key: category.key,
+          eventType: category.types[0],
+          count,
+          label: campaignEventHorizonCategoryLabel(category.key)
+        } : null;
+      })
+      .filter(Boolean);
+  }
+
+  function renderOperationsHorizonComposition(events) {
+    return campaignEventHorizonTypeGroups(events).map(group => `<span
+      class="hybrid-events-ops-marker is-type-presence"
+      data-event-type="${escapeAttribute(group.eventType)}"
+      aria-hidden="true"
+    ></span>`).join("");
+  }
+
+  function renderOperationsHorizonLegend(model) {
+    const present = new Set(
+      model.upcomingEvents.map(event =>
+        campaignEventHorizonCategory(event.event_type).key
+      )
+    );
+    const categories = campaignEventHorizonCategories.filter(category =>
+      present.has(category.key)
+    );
+    return `<div class="hybrid-events-ops-legend" aria-label="Event type color legend">${categories.map(category => `<span class="hybrid-events-ops-legend-item"><i class="hybrid-events-ops-legend-swatch" data-event-type="${escapeAttribute(category.types[0])}" aria-hidden="true"></i><span>${escapeHtml(campaignEventHorizonCategoryLabel(category.key))}</span></span>`).join("")}</div>`;
+  }
+
+  function campaignEventScheduleMetricIcon(name) {
+    const paths = {
+      calendar: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 9.5h17"/>',
+      clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/>',
+      people: '<circle cx="9" cy="8" r="2.6"/><circle cx="16.5" cy="9" r="2.1"/><path d="M3.5 19c.4-3.8 2.2-5.7 5.5-5.7s5.1 1.9 5.5 5.7M13 14c2.7-.2 4.6 1.4 5 5"/>'
+    };
+    const body = paths[name] || paths.calendar;
+    return `<svg class="hybrid-events-ops-metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
   }
 
   function renderOperationsScheduleRail(model) {
     const horizon = model.horizon;
+    const monthStarts = new Set(horizon.monthGroups.map(group => group.start - 1));
     const months = horizon.monthGroups.map(group => `<span style="grid-column:${group.start} / span ${group.span}">${escapeHtml(group.label)}</span>`).join("");
-    const weeks = horizon.weekBins.map(bin => {
+    const weeks = horizon.weekBins.map((bin, index) => {
       const selected = model.selectedWeek?.startKey === bin.startKey;
-      return `<div class="hybrid-events-ops-week${selected ? " is-selected" : ""}">
-        <button type="button" class="hybrid-events-ops-week-select" data-hybrid-week-select="${escapeAttribute(bin.startKey)}" aria-label="Navigate to week ${escapeAttribute(bin.label)}">
-          <span>${escapeHtml(bin.label)}</span><strong>${bin.count}</strong>
+      const current = model.todayKey >= bin.startKey && model.todayKey <= bin.endKey;
+      const monthStart = index > 0 && monthStarts.has(index);
+      const countLabel = String(bin.count);
+      const typeGroups = campaignEventHorizonTypeGroups(bin.events);
+      const breakdown = typeGroups.length
+        ? typeGroups.map(group => `${group.label}: ${group.count}`).join("; ")
+        : "No scheduled events";
+      const weekSummary = `${bin.label}. ${bin.count} scheduled ${bin.count === 1 ? "event" : "events"}. ${breakdown}.`;
+      return `<div class="hybrid-events-ops-week${selected ? " is-selected" : ""}${current ? " is-current" : ""}${monthStart ? " is-month-start" : ""}" title="${escapeAttribute(weekSummary)}">
+        <button type="button" class="hybrid-events-ops-week-select" data-hybrid-week-select="${escapeAttribute(bin.startKey)}" aria-label="${escapeAttribute(`Navigate to week ${weekSummary}`)}"${current ? ' aria-current="date"' : ""}>
+          <span>${escapeHtml(bin.label)}</span><strong class="hybrid-events-ops-week-count${bin.count ? " has-events" : " is-empty"}">${escapeHtml(countLabel)}</strong>
         </button>
-        <div class="hybrid-events-ops-week-markers">${bin.events.map(event => renderOperationsHorizonMarker(event, model)).join("")}</div>
+        <div class="hybrid-events-ops-week-markers" aria-hidden="true">${renderOperationsHorizonComposition(bin.events)}</div>
       </div>`;
     }).join("");
-    const watchCounts = campaignEventWatchCounts(model.eventWatch);
-    const operationalUpdates = ["CANCELLED", "POSTPONED", "UPDATED", "CONFIRMED", "NEW"]
-      .filter(key => watchCounts[key] > 0)
-      .slice(0, 3)
-      .map(key => [key, watchCounts[key]]);
     const metrics = [
-      ["UPCOMING", model.upcomingCount],
-      ["NEXT 14D", model.next14Count],
-      ["MULTI-CANDIDATE", model.multiCandidateCount],
-      ...operationalUpdates
+      { label: "UPCOMING", value: model.upcomingCount, icon: "calendar", tone: "cyan" },
+      { label: "NEXT 14D", value: model.next14Count, icon: "clock", tone: "violet" },
+      { label: "MULTI-CANDIDATE", value: model.multiCandidateCount, icon: "people", tone: "cyan" }
     ];
     const filters = campaignEventFilterOptions(model);
+    const dataAsOf = campaignEventObservedLabel(model.dataAsOf);
+    const scheduleInfo = `Curated high-signal calendar. Empty weeks do not imply no campaign activity. Past scheduled events are not treated as completed without explicit occurrence evidence. Data as of: ${dataAsOf}.`;
 
     return `<section class="hybrid-events-ops-rail" aria-labelledby="hybrid-events-ops-rail-title">
       <div class="hybrid-events-ops-rail-head">
-        <div><h3 id="hybrid-events-ops-rail-title">12-WEEK SCHEDULE</h3><span>CURATED HIGH-SIGNAL CALENDAR</span></div>
-        <span>${escapeHtml(model.upcomingCount)} UPCOMING · ${escapeHtml(model.watchCount)} WATCH RECORDS</span>
+        <div class="hybrid-events-ops-titleline">
+          <h3 id="hybrid-events-ops-rail-title">12-WEEK SCHEDULE</h3>
+          <span class="hybrid-events-ops-info" tabindex="0" role="note" aria-label="${escapeAttribute(scheduleInfo)}" title="${escapeAttribute(scheduleInfo)}">i</span>
+        </div>
+        <div class="hybrid-events-ops-head-controls">
+          <div class="hybrid-events-ops-metrics" aria-label="Campaign schedule summary">${metrics.map(metric => `<span class="hybrid-events-ops-metric is-${escapeAttribute(metric.tone)}">${campaignEventScheduleMetricIcon(metric.icon)}<strong>${escapeHtml(metric.value)}</strong><small>${escapeHtml(metric.label)}</small></span>`).join("")}</div>
+          <div class="hybrid-events-ops-filters" aria-label="Filter campaign events by type">${filters.map(filter => `<button type="button" class="hybrid-events-filter${model.eventTypeFilter === filter.key ? " is-active" : ""}" data-event-type="${escapeAttribute(filter.key)}" data-hybrid-events-filter="${escapeAttribute(filter.key)}" aria-pressed="${String(model.eventTypeFilter === filter.key)}">${escapeHtml(filter.label)}</button>`).join("")}</div>
+        </div>
       </div>
       <div class="hybrid-events-ops-horizon-scroll">
         <div class="hybrid-events-ops-horizon">
@@ -4956,10 +5024,7 @@
           <div class="hybrid-events-ops-weeks">${weeks}</div>
         </div>
       </div>
-      <div class="hybrid-events-ops-toolbar">
-        <div class="hybrid-events-ops-metrics">${metrics.map(([label, value]) => `<span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(label)}</small></span>`).join("")}</div>
-        <div class="hybrid-events-ops-filters" aria-label="Filter campaign events by type">${filters.map(filter => `<button type="button" class="hybrid-events-filter${model.eventTypeFilter === filter.key ? " is-active" : ""}" data-hybrid-events-filter="${escapeAttribute(filter.key)}" aria-pressed="${String(model.eventTypeFilter === filter.key)}">${escapeHtml(filter.label)}</button>`).join("")}</div>
-      </div>
+      ${renderOperationsHorizonLegend(model)}
     </section>`;
   }
 
@@ -4984,7 +5049,7 @@
       <span class="hybrid-events-upcoming-time">${escapeHtml(campaignEventTimeLabel(event))}</span>
       ${renderEventTypeBadge(event.event_type, participantCount > 1 ? `×${participantCount}` : "")}
       <span class="hybrid-events-upcoming-copy"><strong lang="fr">${escapeHtml(event.title)}</strong><small>${place ? escapeHtml(place) : ""}${place && people ? " · " : ""}${people ? escapeHtml(people) : ""}</small></span>
-      <span class="hybrid-events-upcoming-right">${escapeHtml(rightLabel)}</span>
+      ${rightLabel ? `<span class="hybrid-events-upcoming-right">${escapeHtml(rightLabel)}</span>` : ""}
     </button>`;
   }
 
@@ -5002,17 +5067,18 @@
       : `${visible.length} OF ${model.upcomingCount}`;
 
     return `<section class="hybrid-events-upcoming" aria-labelledby="hybrid-events-upcoming-title">
-      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-upcoming-title">UPCOMING</h3><span>${escapeHtml(filteredMeta)}</span></div>
+      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-upcoming-title">UPCOMING EVENTS</h3><span>${escapeHtml(filteredMeta)}</span></div>
       <div class="hybrid-events-upcoming-list">${content}</div>
-      <div class="hybrid-events-upcoming-foot"><span>CURATED SCHEDULE</span><span>SELECT → DOSSIER</span></div>
     </section>`;
   }
 
   function renderDossierEventDetails(event) {
     const organizer = String(event.organization || "").trim() || "Not published";
     const precision = event.time_precision === "date" ? "Date only" : "Date + time";
+    const format = campaignEventTypeDisplayLabel(event.event_type);
     return `<section class="hybrid-events-dossier-context"><h4>EVENT DETAILS</h4><dl>
       <div><dt>Organiser</dt><dd>${escapeHtml(organizer)}</dd></div>
+      <div><dt>Format</dt><dd>${escapeHtml(format)}</dd></div>
       <div><dt>Time precision</dt><dd>${escapeHtml(precision)}</dd></div>
       <div><dt>Timezone</dt><dd>${escapeHtml(event.timezone || "Europe/Paris")}</dd></div>
     </dl></section>`;
@@ -5024,7 +5090,16 @@
       : Array.isArray(event.participants)
         ? event.participants.filter(Boolean)
         : [];
-    return `<section class="hybrid-events-dossier-participants"><h4>PARTICIPANTS${participants.length ? ` (${participants.length})` : ""}</h4>${participants.length ? `<div>${participants.map(name => `<span>${escapeHtml(name)}</span>`).join("")}</div>` : '<p>No participant list is published.</p>'}</section>`;
+    if (participants.length <= 1) {
+      const lead = participants[0] || String(event.organization || "").trim() || "No named participant is published.";
+      const note = participants.length === 1
+        ? "SOLO APPEARANCE"
+        : event.organization
+          ? "ORGANISATION-LED"
+          : "NO NAMED PARTICIPANT";
+      return `<section class="hybrid-events-dossier-involvement"><h4>INVOLVEMENT</h4><strong>${escapeHtml(lead)}</strong><small>${escapeHtml(note)}</small></section>`;
+    }
+    return `<section class="hybrid-events-dossier-participants"><h4>PARTICIPANTS · ${participants.length}</h4><div>${participants.map(name => `<span>${escapeHtml(name)}</span>`).join("")}</div></section>`;
   }
 
   function renderDossierEvidence(event) {
@@ -5044,10 +5119,15 @@
 
   function renderDossierHistory(model) {
     const updates = model.selectedUpdates.slice(0, 8);
-    const rows = updates.length
-      ? updates.map(update => `<article class="hybrid-events-history-item" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}"><i aria-hidden="true"></i><time datetime="${escapeAttribute(update.observed_at)}">${escapeHtml(campaignEventObservedLabel(update.observed_at))}</time><span class="hybrid-events-watch-type" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(String(update.update_type || "UPDATED").toUpperCase())}</span><small>${escapeHtml(campaignEventUpdateCopy(update))}</small></article>`).join("")
-      : '<span class="hybrid-events-history-empty">No published calendar changes for this event.</span>';
-    return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4>SCHEDULE HISTORY</h4><span>${updates.length ? `${updates.length} RECORD${updates.length === 1 ? "" : "S"}` : "NO CHANGES"}</span></div><div>${rows}</div></section>`;
+    if (!updates.length) {
+      return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4>SCHEDULE HISTORY</h4><span>NO RECORDS</span></div><div class="hybrid-events-history-empty-state"><strong>NO PUBLISHED SCHEDULE HISTORY</strong><span>No calendar update is currently linked to this event.</span></div></section>`;
+    }
+    const hasMaterialUpdate = updates.some(update => String(update.update_type || "").toUpperCase() !== "NEW");
+    const rows = updates.map(update => `<article class="hybrid-events-history-item" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}"><i aria-hidden="true"></i><time datetime="${escapeAttribute(update.observed_at)}">${escapeHtml(campaignEventObservedLabel(update.observed_at))}</time><span class="hybrid-events-watch-type" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(String(update.update_type || "UPDATED").toUpperCase())}</span><small>${escapeHtml(campaignEventUpdateCopy(update))}</small></article>`).join("");
+    const quietState = hasMaterialUpdate
+      ? ""
+      : `<div class="hybrid-events-history-empty-state"><strong>NO FURTHER SCHEDULE CHANGES</strong><span>No later confirmed, updated, postponed or cancelled schedule change is published for this event.</span></div>`;
+    return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4>SCHEDULE HISTORY</h4><span>${updates.length} RECORD${updates.length === 1 ? "" : "S"}</span></div><div class="hybrid-events-history-list">${rows}</div>${quietState}</section>`;
   }
 
   function renderEventDossier(model) {
@@ -5058,17 +5138,14 @@
     const status = campaignEventStatusPresentation(event);
     const evidenceState = campaignEventEvidencePresentation(event);
     const participantCount = campaignEventParticipantCount(event);
-    const place = campaignEventPlaceLabel(event) || "Not published";
+    const place = campaignEventPlaceLabel(event) || "Location not published";
+    const when = `${campaignEventLongDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}`;
 
     return `<section class="hybrid-events-dossier" aria-labelledby="hybrid-events-dossier-title">
       <div class="hybrid-events-panel-head"><h3 id="hybrid-events-dossier-title">EVENT DOSSIER</h3><span>SOURCE-LINKED EVIDENCE</span></div>
       <div class="hybrid-events-dossier-body">
         <div class="hybrid-events-dossier-title">${renderEventTypeBadge(event.event_type, participantCount > 1 ? `×${participantCount}` : "")}<div><h4 lang="fr">${escapeHtml(event.title)}</h4><div><span class="hybrid-events-status" data-event-status="${escapeAttribute(status.key)}">${escapeHtml(status.label)}</span><span class="hybrid-events-evidence-chip" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span></div></div></div>
-        <div class="hybrid-events-dossier-summary">
-          <span><small>DATE / TIME</small><strong>${escapeHtml(campaignEventLongDate(event.scheduled_start))}</strong><em>${escapeHtml(campaignEventTimeLabel(event))}</em></span>
-          <span><small>VENUE</small><strong>${escapeHtml(place)}</strong></span>
-          <span><small>PARTICIPANTS</small><strong>${escapeHtml(participantCount || "—")}</strong><em>${escapeHtml(campaignEventInvolvementLabel(event))}</em></span>
-        </div>
+        <div class="hybrid-events-dossier-lede"><div><small>DATE / TIME</small><strong>${escapeHtml(when)}</strong></div><div><small>VENUE</small><strong>${escapeHtml(place)}</strong></div></div>
         <div class="hybrid-events-dossier-grid">
           <div class="hybrid-events-dossier-left">${renderDossierParticipants(event)}${renderDossierEventDetails(event)}</div>
           ${renderDossierEvidence(event)}
@@ -5079,38 +5156,51 @@
     </section>`;
   }
 
-  function renderScheduleWatchItem(update, model) {
+  function renderScheduleWatchMaterialItem(update, model) {
+    const event = update.event;
+    const observed = campaignEventObservedParts(update.observed_at);
+    const weekStart = event ? campaignEventWeekStartKey(campaignEventDateKey(event)) : "";
+    const title = event?.title || update.headline || "Campaign calendar update";
+    const schedule = event ? `${campaignEventShortDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}` : "Schedule unavailable";
+    const selected = model.selectedEvent?.event_id === update.event_id;
+    return `<button type="button" class="hybrid-events-watch-material-item${selected ? " is-selected" : ""}" data-hybrid-event-id="${escapeAttribute(update.event_id)}" ${weekStart ? `data-hybrid-event-week="${escapeAttribute(weekStart)}"` : ""}>
+      <span class="hybrid-events-watch-type" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(String(update.update_type || "UPDATED").toUpperCase())}</span>
+      <span class="hybrid-events-watch-material-copy"><strong lang="fr">${escapeHtml(title)}</strong><small>${escapeHtml(schedule)} · ${escapeHtml(campaignEventUpdateCopy(update))}</small></span>
+      <time datetime="${escapeAttribute(update.observed_at)}"><strong>${escapeHtml(observed.time || "—")}</strong><span>${escapeHtml(observed.date)}</span></time>
+    </button>`;
+  }
+
+  function renderScheduleWatchAddition(update, model) {
     const event = update.event;
     const evidence = campaignEventPrimaryEvidence(update);
-    const observed = campaignEventObservedParts(update.observed_at);
-    const weekStart = event
-      ? campaignEventWeekStartKey(campaignEventDateKey(event))
-      : "";
-    const title = event?.title || update.headline || "Campaign calendar update";
-    const publisher = String(evidence?.source_publisher || "").trim();
-    return `<button
-      type="button"
-      class="hybrid-events-schedule-watch-item${model.selectedEvent?.event_id === update.event_id ? " is-selected" : ""}"
-      data-hybrid-event-id="${escapeAttribute(update.event_id)}"
-      ${weekStart ? `data-hybrid-event-week="${escapeAttribute(weekStart)}"` : ""}
-    >
-      <time datetime="${escapeAttribute(update.observed_at)}"><strong>${escapeHtml(observed.time || "—")}</strong><span>${escapeHtml(observed.date)}</span></time>
-      <i aria-hidden="true"></i>
-      <span class="hybrid-events-watch-type" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(String(update.update_type || "UPDATED").toUpperCase())}</span>
-      <span class="hybrid-events-schedule-watch-copy"><strong lang="fr">${escapeHtml(title)}</strong><small>${escapeHtml(campaignEventUpdateCopy(update))}${publisher ? ` · ${escapeHtml(publisher)}` : ""}</small></span>
+    const publisher = String(evidence?.source_publisher || "Source").trim();
+    const weekStart = event ? campaignEventWeekStartKey(campaignEventDateKey(event)) : "";
+    const title = event?.title || update.headline || "Campaign calendar addition";
+    const schedule = event ? `${campaignEventShortDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}` : "Schedule unavailable";
+    const selected = model.selectedEvent?.event_id === update.event_id;
+    return `<button type="button" class="hybrid-events-watch-addition${selected ? " is-selected" : ""}" data-hybrid-event-id="${escapeAttribute(update.event_id)}" ${weekStart ? `data-hybrid-event-week="${escapeAttribute(weekStart)}"` : ""}>
+      <strong lang="fr">${escapeHtml(title)}</strong><small>${escapeHtml(schedule)} · ${escapeHtml(publisher)}</small>
     </button>`;
   }
 
   function renderScheduleWatch(model) {
-    const updates = model.eventWatch.slice(0, 6);
-    const counts = campaignEventWatchCounts(model.eventWatch);
-    const summaryTypes = ["NEW", "UPDATED", "CONFIRMED", "POSTPONED", "CANCELLED"];
+    const materialUpdates = model.eventWatch.filter(update => String(update.update_type || "").toUpperCase() !== "NEW");
+    const additionGroups = groupCampaignEventAdditions(model.eventWatch);
+    const materialContent = materialUpdates.length
+      ? materialUpdates.map(update => renderScheduleWatchMaterialItem(update, model)).join("")
+      : `<div class="hybrid-events-watch-empty"><strong>NO MATERIAL CHANGES</strong><span>No confirmed, updated, postponed or cancelled calendar change is published.</span></div>`;
+    const additions = additionGroups.length
+      ? additionGroups.map(group => {
+          const observed = campaignEventObservedParts(group.observedAt);
+          return `<section class="hybrid-events-watch-addition-group"><div class="hybrid-events-watch-addition-head"><span>${escapeHtml(observed.date)}${observed.time ? ` · ${escapeHtml(observed.time)}` : ""}</span><strong>+${group.updates.length} NEW</strong></div><div>${group.updates.map(update => renderScheduleWatchAddition(update, model)).join("")}</div></section>`;
+        }).join("")
+      : '<div class="hybrid-events-watch-empty"><strong>NO RECENT ADDITIONS</strong><span>No newly published event is recorded in the current watch log.</span></div>';
+
     return `<section class="hybrid-events-schedule-watch" aria-labelledby="hybrid-events-schedule-watch-title">
-      <div class="hybrid-events-panel-head"><div><h3 id="hybrid-events-schedule-watch-title">SCHEDULE WATCH</h3><span>LATEST CHANGES</span></div><span>${model.watchCount} RECORDS</span></div>
-      <div class="hybrid-events-schedule-watch-list">${updates.length ? updates.map(update => renderScheduleWatchItem(update, model)).join("") : '<div class="hybrid-state is-compact">No campaign calendar updates are published.</div>'}</div>
-      <div class="hybrid-events-watch-summary">
-        <h4>UPDATE TYPES</h4>
-        <div>${summaryTypes.map(key => `<span><small>${escapeHtml(key)}</small><strong>${escapeHtml(counts[key])}</strong></span>`).join("")}</div>
+      <div class="hybrid-events-panel-head"><div><h3 id="hybrid-events-schedule-watch-title">SCHEDULE WATCH</h3><span>CALENDAR ACTIVITY</span></div><span>${model.watchCount} RECORDS</span></div>
+      <div class="hybrid-events-schedule-watch-body">
+        <section class="hybrid-events-watch-section is-material"><div class="hybrid-events-watch-section-head"><h4>MATERIAL CHANGES</h4><span>${materialUpdates.length}</span></div>${materialContent}</section>
+        <section class="hybrid-events-watch-section is-additions"><div class="hybrid-events-watch-section-head"><h4>RECENT ADDITIONS</h4><span>${model.eventWatch.length - materialUpdates.length}</span></div>${additions}</section>
       </div>
     </section>`;
   }
@@ -5119,7 +5209,7 @@
     if (model.state !== "ready") {
       return summaryState(model);
     }
-    return `<div class="hybrid-events-workspace" aria-label="Campaign Events operations console">
+    return `<div class="hybrid-events-workspace" aria-label="Campaign Events temporal operations desk">
       ${renderOperationsScheduleRail(model)}
       <div class="hybrid-events-ops-main">
         ${renderUpcomingPanel(model)}

@@ -300,7 +300,7 @@ class CampaignEventsFrontendTests(unittest.TestCase):
         self.assertIsNone(emptied["model"]["selectedEventId"])
         self.assertEqual(emptied["state"]["selectedCampaignEventId"], "")
 
-    def test_events_view_model_and_operations_console_are_wired(self):
+    def test_events_view_model_and_temporal_ops_desk_are_wired(self):
         self.assertIn("function buildEventsViewModel()", self.dashboard)
         self.assertIn(
             'viewModelState("campaignEvents")',
@@ -315,14 +315,15 @@ class CampaignEventsFrontendTests(unittest.TestCase):
             self.dashboard,
         )
         for heading in (
-            "Campaign Events operations console",
+            "Campaign Events temporal operations desk",
             "12-WEEK SCHEDULE",
-            "UPCOMING",
+            "UPCOMING EVENTS",
             "EVENT DOSSIER",
             "SOURCE EVIDENCE",
             "SCHEDULE HISTORY",
             "SCHEDULE WATCH",
-            "LATEST CHANGES",
+            "MATERIAL CHANGES",
+            "RECENT ADDITIONS",
         ):
             with self.subTest(heading=heading):
                 self.assertIn(heading, self.dashboard)
@@ -336,7 +337,34 @@ class CampaignEventsFrontendTests(unittest.TestCase):
         self.assertIn("hybrid-events-upcoming-row", self.dashboard)
         self.assertIn("hybrid-events-upcoming-week", self.dashboard)
         self.assertIn("hybrid-events-ops-marker", self.dashboard)
-        self.assertIn("hybrid-events-schedule-watch-item", self.dashboard)
+        self.assertIn("campaignEventHorizonCategoryLabel", self.dashboard)
+        self.assertIn("campaignEventHorizonTypeGroups", self.dashboard)
+        self.assertIn("renderOperationsHorizonComposition", self.dashboard)
+        self.assertIn("renderOperationsHorizonLegend", self.dashboard)
+        self.assertIn("hybrid-events-ops-legend", self.dashboard)
+        self.assertIn("hybrid-events-ops-legend-swatch", self.dashboard)
+        self.assertIn("is-type-presence", self.dashboard)
+        self.assertNotIn("hybrid-events-ops-marker-label", self.dashboard)
+        self.assertIn("hybrid-events-ops-week-count", self.dashboard)
+        self.assertIn("hybrid-events-ops-info", self.dashboard)
+        self.assertIn("Campaign schedule summary", self.dashboard)
+        self.assertIn("hybrid-events-ops-head-controls", self.dashboard)
+        self.assertIn('data-event-type="${escapeAttribute(filter.key)}"', self.dashboard)
+        self.assertNotIn("hybrid-events-ops-toolbar", self.dashboard)
+        self.assertIn("is-month-start", self.dashboard)
+        self.assertIn("Curated high-signal calendar", self.dashboard)
+        self.assertIn("Data as of:", self.dashboard)
+        self.assertNotIn("hybrid-events-ops-asof", self.dashboard)
+        composition_start = self.dashboard.index("function renderOperationsHorizonComposition(")
+        composition_end = self.dashboard.index("function campaignEventScheduleMetricIcon(", composition_start)
+        composition = self.dashboard[composition_start:composition_end]
+        self.assertNotIn("campaignEventParticipantCount", composition)
+        self.assertNotIn("data-hybrid-event-id", composition)
+        self.assertIn('aria-hidden="true"', composition)
+        self.assertNotIn("×", composition)
+        self.assertIn("hybrid-events-watch-material-item", self.dashboard)
+        self.assertIn("hybrid-events-watch-addition-group", self.dashboard)
+        self.assertIn("groupCampaignEventAdditions", self.dashboard)
         self.assertIn("EVENT DETAILS", self.dashboard)
         self.assertIn("PARTICIPANTS", self.dashboard)
         for forbidden in (
@@ -358,6 +386,7 @@ class CampaignEventsFrontendTests(unittest.TestCase):
             "TENTATIVE",
             "Reliability HIGH",
             "CALENDAR UPDATES",
+            "UPDATE TYPES",
         ):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, self.dashboard)
@@ -405,6 +434,18 @@ class CampaignEventsFrontendTests(unittest.TestCase):
         ):
             with self.subTest(selector=selector):
                 self.assertIn(selector, events_css)
+        self.assertIn(
+            "grid-template-columns: minmax(0, 31fr) minmax(0, 34.5fr) minmax(0, 34.5fr)",
+            events_css,
+        )
+        self.assertIn("grid-template-rows: 122px minmax(0, 1fr)", events_css)
+        self.assertIn("grid-template-rows: 30px minmax(0, 1fr) 22px", events_css)
+        self.assertIn("grid-row: 1 / -1", events_css)
+        self.assertIn("pointer-events: none", events_css)
+        self.assertIn("grid-template-columns: auto minmax(24px, 1fr) auto", events_css)
+        self.assertIn(".hybrid-events-ops-week.is-month-start", events_css)
+        self.assertIn(".hybrid-events-ops-week-count.is-empty", events_css)
+        self.assertIn("-webkit-line-clamp: 2", events_css)
 
     def test_events_typography_uses_audited_readability_floor(self):
         events_marker = self.css.index("/* CAMPAIGN EVENTS WORKSPACE V1 */")

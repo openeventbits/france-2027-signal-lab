@@ -4137,17 +4137,14 @@
   --hybrid-events-micro: 8.5px;
   box-sizing: border-box;
   display: grid;
-  grid-template-rows: auto minmax(520px, auto);
-  align-content: start;
+  grid-template-rows: 122px minmax(0, 1fr);
+  align-content: stretch;
   gap: 8px;
   width: 100%;
   height: 100%;
   min-width: 0;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(53, 213, 255, .34) transparent;
+  overflow: hidden;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-rail,
@@ -4155,11 +4152,13 @@
 .hybrid-panel#signal-events-panel .hybrid-events-dossier,
 .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
   min-width: 0;
+  min-height: 0;
   overflow: hidden;
   border: 1px solid var(--hybrid-events-line);
   border-radius: 8px;
   background: var(--hybrid-events-surface);
   box-shadow: inset 0 1px 0 rgba(112, 195, 229, .025);
+  grid-template-rows: 30px minmax(0, 1fr) 22px;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-panel-head {
@@ -4261,9 +4260,31 @@
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-type-badge[data-event-type],
-.hybrid-panel#signal-events-panel .hybrid-events-ops-marker[data-event-type] {
+.hybrid-panel#signal-events-panel .hybrid-events-ops-marker[data-event-type],
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend-swatch[data-event-type] {
   border-color: var(--hybrid-event-border, #35627b);
   color: var(--hybrid-event-tone, #a9c2d2);
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 1px;
+  min-height: 22px;
+  gap: 18px;
+  padding: 0 14px;
+  display: flex;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  justify-items: center;
+  min-width: 8px;
+  box-shadow: none;
+  pointer-events: none;
+  justify-content: space-between;
+  overflow: visible;
+  border-top: 1px solid rgba(35, 86, 114, .22);
+  background: rgba(4, 18, 30, .13);
+  font-size: 10px;
+  font-weight: 540;
+  line-height: 1;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-status,
@@ -4309,27 +4330,60 @@
   color: #a3b4bf;
 }
 
-/* 12-WEEK SCHEDULE RAIL */
+/* TEMPORAL RIBBON */
 .hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
-  min-height: 154px;
+  display: grid;
+  grid-template-rows: 30px minmax(0, 1fr) 22px;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-rail-head {
-  min-height: 38px;
-  display: flex;
+  min-height: 30px;
+  display: grid;
+  grid-template-columns: auto minmax(24px, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 0 11px;
-  border-bottom: 1px solid rgba(35, 86, 114, .62);
-  background: rgba(6, 24, 39, .48);
+  gap: 10px;
+  padding: 0 10px;
+  border-bottom: 1px solid rgba(35, 86, 114, .42);
+  background: rgba(6, 24, 39, .30);
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-ops-rail-head > div {
+.hybrid-panel#signal-events-panel .hybrid-events-ops-titleline {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
+  grid-column: 3;
   min-width: 0;
   display: flex;
-  align-items: baseline;
-  gap: 9px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-info {
+  width: 15px;
+  height: 15px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(53, 213, 255, .38);
+  border-radius: 50%;
+  color: #7fb4c9;
+  font-size: var(--hybrid-events-meta-size);
+  font-weight: 760;
+  font-style: normal;
+  line-height: 1;
+  cursor: help;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-info:hover,
+.hybrid-panel#signal-events-panel .hybrid-events-ops-info:focus-visible {
+  border-color: rgba(53, 213, 255, .70);
+  color: var(--cyan);
+  outline: none;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-horizon-scroll {
@@ -4337,126 +4391,302 @@
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
-  scrollbar-color: rgba(53, 213, 255, .24) transparent;
+  scrollbar-color: rgba(53, 213, 255, .22) transparent;
+  padding: 2px 8px 1px;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-horizon {
   min-width: 990px;
-  padding: 6px 8px 5px;
+  height: 100%;
+  padding: 4px 7px 3px;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-months {
   display: grid;
   grid-template-columns: repeat(12, minmax(72px, 1fr));
-  min-height: 17px;
+  min-height: 16px;
   color: #91adbc;
-  font-size: var(--hybrid-events-meta-size);
-  font-weight: 730;
+  font-size: 10.5px;
+  font-weight: 650;
   line-height: 1;
-  letter-spacing: .06em;
+  letter-spacing: .07em;
   text-align: center;
   text-transform: uppercase;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months > span {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months > span::before,
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months > span::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59, 105, 130, .34));
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months > span::after {
+  background: linear-gradient(90deg, rgba(59, 105, 130, .34), transparent);
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-weeks {
   display: grid;
   grid-template-columns: repeat(12, minmax(72px, 1fr));
-  min-height: 52px;
-  border-top: 1px solid rgba(35, 86, 114, .48);
-  border-bottom: 1px solid rgba(35, 86, 114, .48);
+  min-height: 49px;
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+  grid-template-rows: 23px 15px;
+  align-content: start;
+  padding: 2px 7px 2px;
+  cursor: pointer;
+  border-top: 1px solid rgba(35, 86, 114, .24);
+  border-bottom: 1px solid rgba(35, 86, 114, .24);
+  border-left: 1px solid rgba(35, 86, 114, .13);
+  background: rgba(3, 15, 26, .035);
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-week {
+  position: relative;
   min-width: 0;
   display: grid;
-  grid-template-rows: 27px minmax(22px, auto);
-  align-content: start;
-  padding: 2px 4px 3px;
-  border-left: 1px solid rgba(35, 86, 114, .34);
-  background: rgba(3, 15, 26, .20);
+  grid-template-rows: 22px minmax(22px, 1fr);
+  align-content: stretch;
+  padding: 2px 7px 3px;
+  border-left: 1px solid rgba(35, 86, 114, .20);
+  background: rgba(3, 15, 26, .08);
+  transition: background-color .14s ease, box-shadow .14s ease;
+}
+
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week:not(.is-selected):hover {
+  background: rgba(8, 34, 52, .34);
+  box-shadow: inset 0 1px 0 rgba(53, 213, 255, .10);
+}
+
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week:not(.is-selected):hover {
+  background: rgba(8, 34, 52, .18);
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-week:first-child {
   border-left: 0;
 }
 
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-month-start {
+  border-left-color: rgba(53, 213, 255, .28);
+  box-shadow: inset 1px 0 0 rgba(53, 213, 255, .045);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-current::after {
+  content: none;
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  width: 1px;
+  height: 12px;
+  background: var(--cyan);
+  box-shadow: none;
+  transform: translateX(-50%);
+  opacity: .92;
+  pointer-events: none;
+  display: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-current::before {
+  content: none;
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--cyan);
+  transform: translateX(-50%);
+  box-shadow: none;
+  pointer-events: none;
+  display: none;
+}
+
 .hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-selected {
-  background: linear-gradient(180deg, rgba(79, 66, 170, .18), rgba(30, 91, 128, .09));
-  box-shadow: inset 0 2px 0 #a68dff;
+  background: linear-gradient(180deg, rgba(91, 70, 176, .13), rgba(41, 37, 79, .035));
+  box-shadow: inset 0 2px 0 rgba(170, 143, 255, .90);
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-week-select {
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
   gap: 5px;
-  padding: 0;
+  padding: 5px 7px 0;
   border: 0;
   background: transparent;
-  color: #93adbc;
+  color: #8fa9b8;
   font: inherit;
-  font-size: var(--hybrid-events-micro);
+  font-size: 11.5px;
+  line-height: 1.1;
+  text-align: left;
   cursor: pointer;
+  grid-row: 1 / -1;
+  grid-column: 1;
+  height: 100%;
+  align-content: start;
+  position: absolute;
+  z-index: 2;
+  inset: 0;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-ops-week-select strong {
-  min-width: 19px;
-  min-height: 19px;
-  display: inline-grid;
-  place-items: center;
-  border: 1px solid rgba(53, 213, 255, .38);
-  border-radius: 50%;
-  color: #d8edf5;
-  font-size: var(--hybrid-events-meta-size);
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-select > span {
+  min-width: 0;
+  overflow: hidden;
+  color: #acc4d0;
+  font-weight: 640;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: .005em;
+  font-size: 11.5px;
+  line-height: 1.1;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-selected .hybrid-events-ops-week-select > span {
+  color: #e5deff;
+  font-weight: 680;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-count {
+  width: auto;
+  height: auto;
+  display: block;
+border: 0;
+  border-radius: 0;
+  color: #7f9aa9;
+  background: transparent;
+  font-size: 11.5px;
+  font-weight: 620;
+  line-height: 1.1;
+  min-width: 10px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: .015em;
+  min-height: 0;
+  place-items: unset;
+  box-shadow: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-count.has-events {
+  border-color: rgba(53, 213, 255, .38);
+  color: #cae4ee;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-selected .hybrid-events-ops-week-count.has-events {
+  border-color: rgba(174, 150, 255, .62);
+  color: #cbbaff;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-count.is-empty {
+  border-color: rgba(91, 126, 148, .16);
+  color: #4d6978;
+  background: transparent;
+  border: 0;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-week-markers {
-  min-height: 22px;
+  min-height: 8px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 4px;
-  flex-wrap: wrap;
+  padding: 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  grid-row: 2;
+  grid-column: 1;
+  margin-top: 1px;
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  left: 7px;
+  top: 27px;
+  align-content: center;
+  margin: 0;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-marker {
-  min-width: 26px;
-  min-height: 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 1px 4px;
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  box-sizing: border-box;
   border: 1px solid var(--hybrid-event-border, #35627b);
-  border-radius: 3px;
-  background: rgba(5, 22, 36, .92);
-  color: var(--hybrid-event-tone, #a9c2d2);
-  font: inherit;
-  font-size: var(--hybrid-events-micro);
-  font-weight: 760;
-  cursor: pointer;
+  border-radius: 1px;
+  background: var(--hybrid-event-tone, #a9c2d2);
+  box-shadow: 0 0 5px rgba(53, 213, 255, .08);
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-ops-marker small {
-  color: currentColor;
-  font-size: var(--hybrid-events-micro);
-  line-height: 1;
+.hybrid-panel#signal-events-panel .hybrid-events-ops-marker.is-type-presence {
+  cursor: default;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-ops-marker.is-selected {
-  border-color: var(--cyan);
-  background: rgba(11, 76, 105, .44);
-  box-shadow: 0 0 0 1px rgba(53, 213, 255, .12);
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-selected .hybrid-events-ops-marker {
+  filter: brightness(1.12);
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-ops-toolbar {
-  min-height: 38px;
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend {
+  min-width: 0;
+  min-height: 22px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 4px 9px 5px;
+  justify-content: flex-start;
+  gap: 18px;
+  padding: 0 10px;
+  border-top: 1px solid rgba(35, 86, 114, .34);
+  color: #7f9bac;
+  background: rgba(4, 18, 30, .24);
+  font-size: var(--hybrid-events-meta-size);
+  font-weight: 540;
+  line-height: 1;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend::-webkit-scrollbar {
+  display: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend-item {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  justify-content: center;
+  width: auto;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend-swatch {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--hybrid-event-border, #35627b);
+  border-radius: 1px;
+  background: var(--hybrid-event-tone, #a9c2d2);
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-metrics,
@@ -4464,85 +4694,114 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 5px;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-metrics {
-  flex-wrap: wrap;
+  gap: 0;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-ops-metrics > span {
-  min-height: 26px;
+.hybrid-panel#signal-events-panel .hybrid-events-ops-filters {
+  gap: 3px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-metric {
+  min-height: 22px;
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 5px;
-  padding: 4px 8px;
-  border-left: 1px solid rgba(35, 86, 114, .54);
+  padding: 0 14px;
+  border-right: 1px solid rgba(91, 126, 148, .34);
+  background: transparent;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-ops-metrics > span:first-child {
-  border-left: 0;
+.hybrid-panel#signal-events-panel .hybrid-events-ops-metric:first-child {
+  padding-left: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-metric:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-metric-icon {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  color: var(--cyan);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-metric.is-violet .hybrid-events-ops-metric-icon {
+  color: #a98bff;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-metrics strong {
-  color: #edf7fb;
-  font-size: 15px;
-  font-weight: 760;
+  color: var(--cyan);
+  font-size: 13px;
+  font-weight: 600;
   line-height: 1;
 }
 
+.hybrid-panel#signal-events-panel .hybrid-events-ops-metric.is-violet strong {
+  color: #a98bff;
+}
+
 .hybrid-panel#signal-events-panel .hybrid-events-ops-metrics small {
-  color: #809dad;
-  font-size: var(--hybrid-events-micro);
-  font-weight: 720;
-  letter-spacing: .04em;
+  color: #8aa7b7;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: .035em;
+  line-height: 1;
   text-transform: uppercase;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-filter {
-  min-height: 25px;
-  padding: 0 8px;
-  border: 1px solid rgba(45, 87, 111, .72);
-  border-radius: 3px;
-  background: rgba(4, 19, 32, .70);
-  color: #8ca7b7;
+  min-height: 22px;
+  padding: 0 7px;
+  border: 1px solid rgba(45, 87, 111, .30);
+  border-radius: 4px;
+  background: rgba(4, 19, 32, .20);
+  color: #7893a3;
   font: inherit;
-  font-size: var(--hybrid-events-micro);
-  font-weight: 700;
+  font-size: var(--hybrid-events-meta-size);
+  font-weight: 660;
   cursor: pointer;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-filter:hover,
-.hybrid-panel#signal-events-panel .hybrid-events-filter.is-active {
-  border-color: rgba(166, 141, 255, .72);
-  color: #ded6ff;
-  background: rgba(94, 71, 174, .20);
+.hybrid-panel#signal-events-panel .hybrid-events-filter:hover {
+  border-color: rgba(112, 154, 178, .50);
+  color: #b6ceda;
+  background: rgba(9, 28, 43, .40);
 }
 
-/* THREE SUBSTANTIVE PANELS */
+.hybrid-panel#signal-events-panel .hybrid-events-filter.is-active {
+  border-color: rgba(166, 141, 255, .78);
+  color: #eee9ff;
+  background: rgba(94, 71, 174, .24);
+  box-shadow: inset 0 0 0 1px rgba(166, 141, 255, .08);
+}
+
+/* THREE CONNECTED LOWER SURFACES */
 .hybrid-panel#signal-events-panel .hybrid-events-ops-main {
   min-width: 0;
-  min-height: 520px;
+  min-height: 0;
+  height: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 29fr) minmax(0, 46fr) minmax(0, 25fr);
+  grid-template-columns: minmax(0, 31fr) minmax(0, 34.5fr) minmax(0, 34.5fr);
   gap: 8px;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming,
 .hybrid-panel#signal-events-panel .hybrid-events-dossier,
 .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
-  min-height: 520px;
+  height: 100%;
+  min-height: 0;
   display: grid;
   grid-template-rows: 42px minmax(0, 1fr);
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-upcoming {
-  grid-template-rows: 42px minmax(0, 1fr) 30px;
-}
-
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-list,
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-body,
-.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-list {
+.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-body {
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
@@ -4551,16 +4810,17 @@
   scrollbar-color: rgba(53, 213, 255, .34) transparent;
 }
 
+/* UPCOMING EVENTS */
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-week-head {
-  min-height: 28px;
+  min-height: 27px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   padding: 0 9px;
   border-top: 1px solid rgba(35, 86, 114, .54);
-  border-bottom: 1px solid rgba(35, 86, 114, .44);
-  background: rgba(6, 24, 39, .38);
+  border-bottom: 1px solid rgba(35, 86, 114, .40);
+  background: rgba(6, 24, 39, .36);
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-week:first-child .hybrid-events-upcoming-week-head {
@@ -4583,14 +4843,14 @@
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row {
   position: relative;
   width: 100%;
-  min-height: 61px;
+  min-height: 72px;
   display: grid;
-  grid-template-columns: 57px 45px 40px minmax(0, 1fr) auto;
+  grid-template-columns: 55px 43px 39px minmax(0, 1fr) auto;
   align-items: center;
   gap: 7px;
-  padding: 5px 9px 5px 8px;
+  padding: 7px 9px 7px 8px;
   border: 0;
-  border-bottom: 1px solid rgba(35, 86, 114, .44);
+  border-bottom: 1px solid rgba(35, 86, 114, .42);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -4599,11 +4859,11 @@
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row:hover {
-  background: rgba(8, 33, 51, .60);
+  background: rgba(8, 33, 51, .58);
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row.is-selected {
-  background: linear-gradient(90deg, rgba(9, 74, 101, .28), rgba(5, 26, 42, .35));
+  background: linear-gradient(90deg, rgba(9, 74, 101, .31), rgba(5, 26, 42, .30));
   box-shadow: inset 3px 0 0 var(--cyan);
 }
 
@@ -4647,18 +4907,19 @@
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-copy {
   min-width: 0;
   display: grid;
-  gap: 3px;
+  gap: 4px;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-copy strong {
   min-width: 0;
+  display: -webkit-box;
   overflow: hidden;
   color: #f2f7fa;
   font-size: var(--hybrid-events-primary);
-  font-weight: 680;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 690;
+  line-height: 1.24;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-copy small {
@@ -4674,7 +4935,7 @@
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-right {
   min-width: max-content;
   padding: 3px 6px;
-  border: 1px solid rgba(53, 213, 255, .46);
+  border: 1px solid rgba(53, 213, 255, .42);
   border-radius: 2px;
   color: #63ddff;
   font-size: var(--hybrid-events-micro);
@@ -4683,21 +4944,9 @@
   text-transform: uppercase;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-upcoming-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 0 9px;
-  border-top: 1px solid rgba(35, 86, 114, .54);
-  color: #7897aa;
-  font-size: var(--hybrid-events-micro);
-  font-weight: 650;
-}
-
 /* EVENT DOSSIER */
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-body {
-  padding: 9px;
+  padding: 10px;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-title {
@@ -4705,8 +4954,8 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 0 0 9px;
-  border-bottom: 1px solid rgba(35, 86, 114, .56);
+  padding-bottom: 9px;
+  border-bottom: 1px solid rgba(35, 86, 114, .50);
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-title > div {
@@ -4718,7 +4967,7 @@
   color: #f2f8fb;
   font-size: 15px;
   font-weight: 760;
-  line-height: 1.18;
+  line-height: 1.2;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-title > div > div {
@@ -4729,35 +4978,33 @@
   flex-wrap: wrap;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-dossier-summary {
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-lede {
   display: grid;
-  grid-template-columns: 1.15fr 1.3fr .9fr;
-  margin-top: 8px;
-  border: 1px solid rgba(35, 86, 114, .64);
-  border-radius: 3px;
-  overflow: hidden;
-  background: rgba(3, 15, 26, .48);
-}
-
-.hybrid-panel#signal-events-panel .hybrid-events-dossier-summary > span {
+  grid-template-columns: 1fr 1.35fr;
   min-width: 0;
-  min-height: 68px;
-  display: grid;
-  align-content: center;
-  gap: 4px;
-  padding: 8px 10px;
-  border-left: 1px solid rgba(35, 86, 114, .50);
+  margin-top: 8px;
+  border-bottom: 1px solid rgba(35, 86, 114, .50);
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-dossier-summary > span:first-child {
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-lede > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 7px 10px 9px;
+  border-left: 1px solid rgba(35, 86, 114, .44);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-lede > div:first-child {
+  padding-left: 0;
   border-left: 0;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-dossier-summary small,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-lede small,
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-context h4,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement h4,
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-participants h4,
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-section-head h4,
-.hybrid-panel#signal-events-panel .hybrid-events-watch-summary h4 {
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section-head h4 {
   margin: 0;
   color: var(--cyan);
   font-size: var(--hybrid-events-meta-size);
@@ -4767,45 +5014,55 @@
   text-transform: uppercase;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-dossier-summary strong {
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-lede strong {
   min-width: 0;
   color: #edf7fb;
-  font-size: 12px;
+  font-size: var(--hybrid-events-primary);
   font-weight: 720;
-  line-height: 1.2;
+  line-height: 1.25;
   overflow-wrap: anywhere;
-}
-
-.hybrid-panel#signal-events-panel .hybrid-events-dossier-summary em {
-  color: #8ba5b5;
-  font-size: var(--hybrid-events-meta-size);
-  font-style: normal;
-  line-height: 1.2;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-grid {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
-  gap: 7px;
-  margin-top: 7px;
+  grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr);
+  gap: 9px;
+  margin-top: 9px;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-left {
   min-width: 0;
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 7px;
+  align-content: start;
+  gap: 9px;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-context,
-.hybrid-panel#signal-events-panel .hybrid-events-dossier-participants,
-.hybrid-panel#signal-events-panel .hybrid-events-dossier-evidence {
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-participants {
   min-width: 0;
-  padding: 9px;
-  border: 1px solid rgba(35, 86, 114, .62);
-  border-radius: 3px;
-  background: rgba(3, 15, 26, .50);
+  padding: 2px 0 9px;
+  border-bottom: 1px solid rgba(35, 86, 114, .44);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement {
+  display: grid;
+  gap: 5px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement strong {
+  margin-top: 3px;
+  color: #e7f1f5;
+  font-size: var(--hybrid-events-body);
+  font-weight: 680;
+  line-height: 1.3;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement small {
+  color: #809cab;
+  font-size: var(--hybrid-events-micro);
+  font-weight: 680;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-context dl {
@@ -4816,7 +5073,7 @@
 
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-context dl div {
   display: grid;
-  grid-template-columns: 86px minmax(0, 1fr);
+  grid-template-columns: 78px minmax(0, 1fr);
   gap: 7px;
 }
 
@@ -4843,22 +5100,31 @@
   margin-top: 8px;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-dossier-participants span,
-.hybrid-panel#signal-events-panel .hybrid-events-dossier-participants p {
-  margin: 0;
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-participants span {
   color: #dbe8ee;
   font-size: var(--hybrid-events-body);
   line-height: 1.3;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-dossier-section-head {
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-evidence {
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid rgba(53, 213, 255, .34);
+  border-radius: 4px;
+  background: linear-gradient(145deg, rgba(7, 29, 46, .82), rgba(3, 16, 28, .66));
+  box-shadow: inset 3px 0 0 rgba(53, 213, 255, .16);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-section-head,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-dossier-section-head > span {
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-section-head > span,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section-head > span {
   color: #809dac;
   font-size: var(--hybrid-events-micro);
   font-weight: 650;
@@ -4916,24 +5182,20 @@
   text-decoration: none;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-dossier-source:hover {
-  color: #8cecff;
-}
-
 .hybrid-panel#signal-events-panel .hybrid-events-history {
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: 10px;
+  padding-top: 9px;
   border-top: 1px solid rgba(35, 86, 114, .54);
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-history > div:last-child {
+.hybrid-panel#signal-events-panel .hybrid-events-history-list {
   position: relative;
   display: grid;
   margin-top: 7px;
   padding-left: 18px;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-history > div:last-child::before {
+.hybrid-panel#signal-events-panel .hybrid-events-history-list::before {
   content: "";
   position: absolute;
   left: 5px;
@@ -4947,12 +5209,12 @@
   position: relative;
   min-width: 0;
   display: grid;
-  grid-template-columns: 130px 78px minmax(0, 1fr);
+  grid-template-columns: 132px 78px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   min-height: 38px;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(35, 86, 114, .36);
+  border-bottom: 1px solid rgba(35, 86, 114, .34);
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-history-item i {
@@ -4967,10 +5229,26 @@
 
 .hybrid-panel#signal-events-panel .hybrid-events-history-item time,
 .hybrid-panel#signal-events-panel .hybrid-events-history-item small,
-.hybrid-panel#signal-events-panel .hybrid-events-history-empty {
+.hybrid-panel#signal-events-panel .hybrid-events-history-empty-state span {
   color: #8ca6b6;
   font-size: var(--hybrid-events-body);
   line-height: 1.25;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-history-empty-state {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 8px 9px;
+  border-left: 2px solid rgba(82, 125, 147, .46);
+  background: rgba(4, 18, 30, .34);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-history-empty-state strong {
+  color: #9db3bf;
+  font-size: var(--hybrid-events-meta-size);
+  font-weight: 720;
+  letter-spacing: .04em;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-disclosure {
@@ -4980,37 +5258,53 @@
   line-height: 1.35;
 }
 
-/* GLOBAL SCHEDULE WATCH */
-.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
-  grid-template-rows: 42px minmax(0, 1fr) auto;
+/* SCHEDULE WATCH */
+.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-body {
+  padding: 0 9px 8px;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-list {
-  position: relative;
-  padding: 2px 8px 0 16px;
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section {
+  padding-top: 9px;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-list::before {
-  content: "";
-  position: absolute;
-  left: 22px;
-  top: 12px;
-  bottom: 12px;
-  width: 1px;
-  background: rgba(70, 124, 151, .54);
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section + .hybrid-events-watch-section {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(35, 86, 114, .48);
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-item {
-  position: relative;
-  width: 100%;
-  min-height: 67px;
+.hybrid-panel#signal-events-panel .hybrid-events-watch-empty {
   display: grid;
-  grid-template-columns: 56px 14px 64px minmax(0, 1fr);
+  gap: 5px;
+  margin-top: 8px;
+  padding: 9px;
+  border-left: 2px solid rgba(82, 125, 147, .46);
+  background: rgba(4, 18, 30, .34);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-empty strong {
+  color: #9fb5c0;
+  font-size: var(--hybrid-events-meta-size);
+  font-weight: 720;
+  letter-spacing: .04em;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-empty span {
+  color: #7f9aa9;
+  font-size: var(--hybrid-events-body);
+  line-height: 1.35;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr) 54px;
   align-items: center;
-  gap: 6px;
-  padding: 7px 0;
+  gap: 7px;
+  padding: 8px 3px;
   border: 0;
-  border-bottom: 1px solid rgba(35, 86, 114, .42);
+  border-bottom: 1px solid rgba(35, 86, 114, .38);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -5018,100 +5312,98 @@
   cursor: pointer;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-item:hover,
-.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-item.is-selected {
-  background: rgba(8, 34, 52, .44);
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item:hover,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item.is-selected,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition:hover,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition.is-selected {
+  background: rgba(8, 34, 52, .48);
+  box-shadow: inset 2px 0 0 var(--cyan);
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-item > time {
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-copy,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition {
+  min-width: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-copy {
   display: grid;
   gap: 3px;
-  color: #8da7b6;
-  font-size: var(--hybrid-events-meta-size);
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-item > time strong {
-  color: #dcecf3;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-item > i {
-  position: relative;
-  z-index: 1;
-  width: 8px;
-  height: 8px;
-  border: 1px solid #8e76dc;
-  border-radius: 50%;
-  background: #8e73de;
-}
-
-.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-copy {
-  min-width: 0;
-  display: grid;
-  gap: 4px;
-}
-
-.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-copy strong {
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-copy strong,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition strong {
   min-width: 0;
   overflow: hidden;
-  color: #edf6fa;
+  color: #eaf4f8;
   font-size: var(--hybrid-events-body);
   font-weight: 680;
-  line-height: 1.25;
+  line-height: 1.28;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-copy small {
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-copy small,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition small {
   min-width: 0;
   overflow: hidden;
-  color: #819dab;
+  color: #819cab;
   font-size: var(--hybrid-events-meta-size);
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-watch-summary {
-  padding: 10px;
-  border-top: 1px solid rgba(35, 86, 114, .54);
-  background: rgba(3, 15, 26, .34);
-}
-
-.hybrid-panel#signal-events-panel .hybrid-events-watch-summary > div {
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item > time {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  margin-top: 9px;
-  border: 1px solid rgba(35, 86, 114, .50);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.hybrid-panel#signal-events-panel .hybrid-events-watch-summary > div > span {
-  min-width: 0;
-  min-height: 46px;
-  display: grid;
-  place-items: center;
-  gap: 4px;
-  padding: 5px 2px;
-  border-left: 1px solid rgba(35, 86, 114, .42);
-}
-
-.hybrid-panel#signal-events-panel .hybrid-events-watch-summary > div > span:first-child {
-  border-left: 0;
-}
-
-.hybrid-panel#signal-events-panel .hybrid-events-watch-summary small {
-  color: #7e9baa;
+  gap: 2px;
+  color: #7897a8;
   font-size: var(--hybrid-events-micro);
+  text-align: right;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item > time strong {
+  color: #cbdde5;
+  font-size: var(--hybrid-events-meta-size);
   font-weight: 700;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-watch-summary strong {
-  color: #edf7fb;
-  font-size: 15px;
-  font-weight: 760;
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-group {
+  margin-top: 8px;
+  border-top: 1px solid rgba(35, 86, 114, .34);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-group:first-of-type {
+  border-top: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-head {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #8ba6b5;
+  font-size: var(--hybrid-events-meta-size);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-head strong {
+  color: #b9abff;
+  font-size: var(--hybrid-events-meta-size);
+  font-weight: 740;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition {
+  width: 100%;
+  display: grid;
+  gap: 3px;
+  padding: 7px 7px 7px 9px;
+  border: 0;
+  border-bottom: 1px solid rgba(35, 86, 114, .30);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .hybrid-panel#signal-events-panel button:focus-visible,
@@ -5122,7 +5414,7 @@
 
 @media (max-width: 1260px) {
   .hybrid-panel#signal-events-panel .hybrid-events-ops-main {
-    grid-template-columns: minmax(0, 31fr) minmax(0, 44fr) minmax(0, 25fr);
+    grid-template-columns: minmax(0, 32fr) minmax(0, 34fr) minmax(0, 34fr);
   }
 
   .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row {
@@ -5134,17 +5426,13 @@
     width: fit-content;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-item {
-    grid-template-columns: 50px 12px minmax(0, 1fr);
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-item {
+    grid-template-columns: 64px minmax(0, 1fr);
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-item .hybrid-events-watch-type {
-    grid-column: 3;
-    width: fit-content;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-copy {
-    grid-column: 3;
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-item > time {
+    grid-column: 2;
+    text-align: left;
   }
 }
 
@@ -5155,27 +5443,42 @@
 
   .hybrid-panel#signal-events-panel .hybrid-events-workspace {
     height: auto;
+    grid-template-rows: auto auto;
     overflow: visible;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
+    min-height: 126px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
+    gap: 5px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-metric {
+    padding-inline: 10px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-filter {
+    padding-inline: 5px;
   }
 
   .hybrid-panel#signal-events-panel .hybrid-events-ops-main {
     grid-template-columns: 1fr 1fr;
+    height: auto;
     min-height: 0;
   }
 
   .hybrid-panel#signal-events-panel .hybrid-events-upcoming,
   .hybrid-panel#signal-events-panel .hybrid-events-dossier,
   .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
+    height: auto;
     min-height: 470px;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-dossier {
-    grid-column: 2;
   }
 
   .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
     grid-column: 1 / -1;
-    min-height: 380px;
+    min-height: 390px;
   }
 }
 
@@ -5190,24 +5493,32 @@
     grid-template-columns: 1fr;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-rail-head,
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
+    grid-template-rows: auto minmax(60px, auto) 22px;
   }
 
   .hybrid-panel#signal-events-panel .hybrid-events-ops-rail-head {
-    padding: 8px 10px;
+    min-height: 58px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "title"
+      "controls";
+    row-gap: 5px;
+    padding: 6px 9px;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-toolbar {
-    display: grid;
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-titleline {
+    grid-area: title;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-filters {
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
+    grid-area: controls;
+    grid-column: auto;
+    justify-content: flex-start;
     overflow-x: auto;
     padding-bottom: 2px;
   }
+
 
   .hybrid-panel#signal-events-panel .hybrid-events-upcoming,
   .hybrid-panel#signal-events-panel .hybrid-events-dossier,
@@ -5236,17 +5547,18 @@
     width: fit-content;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-dossier-summary,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-lede,
   .hybrid-panel#signal-events-panel .hybrid-events-dossier-grid {
     grid-template-columns: 1fr;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-dossier-summary > span {
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-lede > div {
+    padding-left: 0;
     border-left: 0;
-    border-top: 1px solid rgba(35, 86, 114, .48);
+    border-top: 1px solid rgba(35, 86, 114, .42);
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-dossier-summary > span:first-child {
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-lede > div:first-child {
     border-top: 0;
   }
 
@@ -5255,8 +5567,8 @@
     gap: 5px;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-item {
-    grid-template-columns: 52px 14px minmax(0, 1fr);
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-item {
+    grid-template-columns: 1fr;
   }
 }
 
