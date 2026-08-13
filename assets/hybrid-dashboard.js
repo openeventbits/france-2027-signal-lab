@@ -2330,34 +2330,42 @@
       events.map(event => [event.event_id, event])
     );
 
-    const isUpcoming = event => {
+    const isActiveUpcoming = event => {
       const dateKey = campaignEventDateKey(event);
-      return (
-        dateKey >= todayKey &&
-        !["completed", "cancelled"].includes(event.status)
-      );
+      return event.status === "scheduled" && dateKey >= todayKey;
     };
 
-    const upcomingEvents = events
-      .filter(isUpcoming)
+    const activeUpcomingEvents = events
+      .filter(isActiveUpcoming)
       .sort(compareCampaignEvents);
+
+    const pastScheduledEvents = events
+      .filter(event =>
+        event.status === "scheduled" &&
+        campaignEventDateKey(event) < todayKey
+      )
+      .sort((a, b) => compareCampaignEvents(a, b, -1));
+
+    const inactiveEvents = events
+      .filter(event => event.status !== "scheduled")
+      .sort((a, b) => compareCampaignEvents(a, b, -1));
+
+    const nonActiveEvents = [
+      ...pastScheduledEvents,
+      ...inactiveEvents
+    ].sort((a, b) => compareCampaignEvents(a, b, -1));
 
     const requestedEventTypeFilter = state.campaignEventTypeFilter || "all";
     const eventTypeFilter = requestedEventTypeFilter === "all" ||
-      upcomingEvents.some(event =>
+      activeUpcomingEvents.some(event =>
         campaignEventMatchesTypeFilter(event, requestedEventTypeFilter)
       )
       ? requestedEventTypeFilter
       : "all";
     state.campaignEventTypeFilter = eventTypeFilter;
-    const filteredUpcomingEvents = upcomingEvents.filter(event =>
+    const filteredUpcomingEvents = activeUpcomingEvents.filter(event =>
       campaignEventMatchesTypeFilter(event, eventTypeFilter)
     );
-
-    const pastEvents = events
-      .filter(event => !isUpcoming(event))
-      .sort((a, b) => compareCampaignEvents(a, b, -1));
-
     const eventWatch = watch
       .map(update => ({
         ...update,
@@ -2384,7 +2392,7 @@
     const selectedEvent =
       (requestedEventMatchesFilter ? requestedEvent : null) ||
       filteredUpcomingEvents[0] ||
-      (eventTypeFilter === "all" ? pastEvents[0] : null) ||
+      (eventTypeFilter === "all" ? nonActiveEvents[0] : null) ||
       null;
 
     state.selectedCampaignEventId = selectedEvent?.event_id || "";
@@ -2409,14 +2417,14 @@
     }
 
     const next14EndKey = campaignEventOffsetDateKey(todayKey, 13);
-    const next14Count = upcomingEvents.filter(event =>
+    const next14Count = activeUpcomingEvents.filter(event =>
       campaignEventDateKey(event) <= next14EndKey
     ).length;
-    const multiCandidateCount = upcomingEvents.filter(event =>
+    const multiCandidateCount = activeUpcomingEvents.filter(event =>
       Array.isArray(event.candidate_names) &&
       event.candidate_names.filter(Boolean).length > 1
     ).length;
-    const verifiedCount = upcomingEvents.filter(event =>
+    const verifiedCount = activeUpcomingEvents.filter(event =>
       event.evidence_status === "verified"
     ).length;
 
@@ -2453,10 +2461,12 @@
       generatedAt: payload.generated_at,
       dataAsOf: payload.data_as_of,
       todayKey,
-      upcomingEvents,
+      upcomingEvents: activeUpcomingEvents,
       filteredUpcomingEvents,
       eventTypeFilter,
-      pastEvents,
+      pastScheduledEvents,
+      inactiveEvents,
+      nonActiveEvents,
       eventWatch,
       milestones,
       horizon,
@@ -2465,8 +2475,9 @@
       selectedWeek,
       organizationRows,
       eventCount: events.length,
-      upcomingCount: upcomingEvents.length,
-      pastCount: pastEvents.length,
+      upcomingCount: activeUpcomingEvents.length,
+      pastCount: pastScheduledEvents.length,
+      inactiveCount: inactiveEvents.length,
       watchCount: eventWatch.length,
       milestoneCount: milestones.length,
       next14Count,

@@ -96,7 +96,7 @@ process.stdout.write(JSON.stringify({
     eventTypeFilter: model.eventTypeFilter,
     selectedEventId: model.selectedEvent?.event_id || null,
     upcomingIds: model.upcomingEvents.map(event => event.event_id),
-    pastIds: model.pastEvents.map(event => event.event_id)
+    pastIds: model.nonActiveEvents.map(event => event.event_id)
   },
   invalidDateAccepted: Boolean(context.campaignEventDateFromKey("2099-02-30"))
 }));

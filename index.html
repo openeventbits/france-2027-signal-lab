@@ -9326,6 +9326,36 @@
         throw new Error("campaign_events.json publication timestamps are malformed");
       }
 
+      const generatedAtMs = new Date(payload.generated_at).getTime();
+      if (new Date(payload.data_as_of).getTime() > generatedAtMs) {
+        throw new Error("campaign_events.json data_as_of exceeds generated_at");
+      }
+
+      const parisDateKeyForUtcTimestamp = value => {
+        const parsed = new Date(value);
+        if (!Number.isFinite(parsed.getTime())) return "";
+        const parts = Object.fromEntries(
+          new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Europe/Paris",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit"
+          })
+            .formatToParts(parsed)
+            .filter(part => ["year", "month", "day"].includes(part.type))
+            .map(part => [part.type, part.value])
+        );
+        return `${parts.year}-${parts.month}-${parts.day}`;
+      };
+
+      const scheduledBeforeVerification = event => {
+        if (event.time_precision === "date") {
+          return event.scheduled_start <
+            parisDateKeyForUtcTimestamp(event.last_verified_at);
+        }
+        return new Date(event.scheduled_start).getTime() <
+          new Date(event.last_verified_at).getTime();
+      };
       const validParisDatetime = value => {
         if (typeof value !== "string") return false;
         const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})[+-]\d{2}:\d{2}$/.exec(value);
@@ -9432,6 +9462,18 @@
             `campaign_events.json ${lane}[${index}] is malformed`
           );
         }
+        if (new Date(event.last_verified_at).getTime() > generatedAtMs) {
+          throw new Error(
+            `campaign_events.json ${lane}[${index}] verification exceeds generation time`
+          );
+        }
+        if (event.evidence_status === "past_unconfirmed" &&
+            (event.status !== "scheduled" ||
+              !scheduledBeforeVerification(event))) {
+          throw new Error(
+            `campaign_events.json ${lane}[${index}] has inconsistent past_unconfirmed lifecycle`
+          );
+        }
         allEventIds.add(event.event_id);
       };
 
@@ -9457,6 +9499,11 @@
             !validEvidence(update.evidence, false)) {
           throw new Error(
             `campaign_events.json event_watch[${index}] is malformed`
+          );
+        }
+        if (new Date(update.observed_at).getTime() > generatedAtMs) {
+          throw new Error(
+            `campaign_events.json event_watch[${index}] observation exceeds generation time`
           );
         }
         updateIds.add(update.update_id);
