@@ -60,18 +60,29 @@ try {
     return run_node_json(script, payload)
 
 
-def build_events_view_model(payload, state):
+def build_events_view_model(payload, state, now=None):
     script = r'''
 const fs = require("fs");
 const vm = require("vm");
 const source = fs.readFileSync("assets/hybrid-dashboard.js", "utf8")
   .replace(/\r\n?/g, "\n");
 const input = JSON.parse(fs.readFileSync(0, "utf8"));
+const RealDate = Date;
+class FixedDate extends RealDate {
+  constructor(...args) {
+    super(...(args.length ? args : [input.now || RealDate.now()]));
+  }
+  static now() {
+    return input.now
+      ? new RealDate(input.now).getTime()
+      : RealDate.now();
+  }
+}
 const start = source.indexOf("  function parisTodayKey(");
 const end = source.indexOf("\n\n  function ratingDisplay(", start);
 if (start < 0 || end < 0) throw new Error("Could not extract Events view model");
 const context = {
-  Date,
+  Date: FixedDate,
   Intl,
   Map,
   Set,
@@ -96,13 +107,62 @@ process.stdout.write(JSON.stringify({
     eventTypeFilter: model.eventTypeFilter,
     selectedEventId: model.selectedEvent?.event_id || null,
     upcomingIds: model.upcomingEvents.map(event => event.event_id),
-    pastIds: model.nonActiveEvents.map(event => event.event_id)
+    filteredUpcomingIds: model.filteredUpcomingEvents.map(event => event.event_id),
+    pastScheduledIds: model.pastScheduledEvents.map(event => event.event_id),
+    inactiveIds: model.inactiveEvents.map(event => event.event_id),
+    nonActiveIds: model.nonActiveEvents.map(event => event.event_id),
+    horizonIds: model.horizon.events.map(event => event.event_id),
+    upcomingCount: model.upcomingCount,
+    pastCount: model.pastCount,
+    inactiveCount: model.inactiveCount,
+    next14Count: model.next14Count,
+    multiCandidateCount: model.multiCandidateCount,
+    verifiedCount: model.verifiedCount
   },
   invalidDateAccepted: Boolean(context.campaignEventDateFromKey("2099-02-30"))
 }));
 '''
-    return run_node_json(script, {"payload": payload, "state": state})
+    return run_node_json(script, {"payload": payload, "state": state, "now": now})
 
+
+
+
+def campaign_event_date_only_display_label(value, timezone):
+    script = r'''
+const fs = require("fs");
+const vm = require("vm");
+const input = JSON.parse(fs.readFileSync(0, "utf8"));
+process.env.TZ = input.timezone;
+
+const source = fs.readFileSync("assets/hybrid-dashboard.js", "utf8")
+  .replace(/\r\n?/g, "\n");
+
+const start = source.indexOf("  function campaignEventDateFromKey(");
+const end = source.indexOf(
+  "\n\n  function campaignEventMonthLong(",
+  start
+);
+
+if (start < 0 || end < 0) {
+  throw new Error("Could not extract Campaign Events date-only helpers");
+}
+
+const context = { Date };
+vm.runInNewContext(source.slice(start, end), context);
+
+const date = context.campaignEventDateFromKey(input.value);
+if (!date) {
+  throw new Error("Date-only fixture was rejected");
+}
+
+process.stdout.write(JSON.stringify({
+  label: `${date.getUTCDate()} ${context.campaignEventMonthShort(input.value)}`
+}));
+'''
+    return run_node_json(
+        script,
+        {"value": value, "timezone": timezone},
+    )["label"]
 
 class CampaignEventsFrontendTests(unittest.TestCase):
     @classmethod
@@ -212,10 +272,53 @@ class CampaignEventsFrontendTests(unittest.TestCase):
         bad_observed_at["event_watch"][0]["observed_at"] = "2026-08-12"
         mutations["noncanonical watch timestamp"] = bad_observed_at
 
+        future_data_as_of = copy.deepcopy(self.artifact)
+        future_data_as_of["data_as_of"] = "2099-01-01T00:00:00Z"
+        mutations["data_as_of after generated_at"] = future_data_as_of
+
+        future_verification = copy.deepcopy(self.artifact)
+        future_verification["campaign_events"][0]["last_verified_at"] = (
+            "2099-01-01T00:00:00Z"
+        )
+        mutations["verification after generated_at"] = future_verification
+
+        future_observation = copy.deepcopy(self.artifact)
+        future_observation["event_watch"][0]["observed_at"] = (
+            "2099-01-01T00:00:00Z"
+        )
+        mutations["observation after generated_at"] = future_observation
+
+        invalid_past_status = copy.deepcopy(self.artifact)
+        invalid_past_status["campaign_events"][0]["evidence_status"] = (
+            "past_unconfirmed"
+        )
+        invalid_past_status["campaign_events"][0]["status"] = "postponed"
+        mutations["past_unconfirmed non-scheduled"] = invalid_past_status
+
+        invalid_past_timing = copy.deepcopy(self.artifact)
+        timing_event = invalid_past_timing["campaign_events"][0]
+        timing_event["status"] = "scheduled"
+        timing_event["evidence_status"] = "past_unconfirmed"
+        timing_event["scheduled_start"] = "2099-08-23"
+        timing_event["time_precision"] = "date"
+        timing_event.pop("scheduled_end", None)
+        mutations["past_unconfirmed schedule not past"] = invalid_past_timing
+
         for label, payload in mutations.items():
             with self.subTest(label=label):
                 result = validate_frontend_payload(payload)
                 self.assertFalse(result["valid"], result)
+
+        valid_past_unconfirmed = copy.deepcopy(self.artifact)
+        valid_past_event = valid_past_unconfirmed["campaign_events"][0]
+        valid_past_event["status"] = "scheduled"
+        valid_past_event["evidence_status"] = "past_unconfirmed"
+        valid_past_event["scheduled_start"] = "2000-01-01"
+        valid_past_event["time_precision"] = "date"
+        valid_past_event["last_verified_at"] = valid_past_unconfirmed["generated_at"]
+        valid_past_event.pop("scheduled_end", None)
+        valid_result = validate_frontend_payload(valid_past_unconfirmed)
+        self.assertTrue(valid_result["valid"], valid_result["error"])
 
     def test_events_view_model_sort_and_selection_are_refresh_safe(self):
         def event(event_id, scheduled_start, *, event_type="rally", precision="datetime"):
@@ -300,6 +403,150 @@ class CampaignEventsFrontendTests(unittest.TestCase):
         self.assertIsNone(emptied["model"]["selectedEventId"])
         self.assertEqual(emptied["state"]["selectedCampaignEventId"], "")
 
+    def test_events_view_model_enforces_active_schedule_lifecycle_matrix(self):
+        def event(
+            event_id,
+            scheduled_start,
+            *,
+            status="scheduled",
+            event_type="rally",
+            candidate_names=None,
+        ):
+            names = list(candidate_names or [])
+            return {
+                "event_key": event_id,
+                "event_id": event_id,
+                "event_type": event_type,
+                "title": event_id,
+                "candidate_ids": [
+                    f"candidate-{index}"
+                    for index in range(len(names))
+                ],
+                "candidate_names": names,
+                "scheduled_start": scheduled_start,
+                "time_precision": "date",
+                "status": status,
+                "evidence_status": "verified",
+            }
+
+        events = [
+            event(
+                "future-scheduled",
+                "2026-08-14",
+                status="scheduled",
+                event_type="debate",
+            ),
+            event(
+                "future-postponed",
+                "2026-08-15",
+                status="postponed",
+                event_type="rally",
+                candidate_names=["Alpha", "Beta"],
+            ),
+            event(
+                "future-cancelled",
+                "2026-08-16",
+                status="cancelled",
+            ),
+            event(
+                "future-completed",
+                "2026-08-17",
+                status="completed",
+            ),
+            event(
+                "past-scheduled",
+                "2026-08-12",
+                status="scheduled",
+            ),
+        ]
+
+        payload = {
+            "generated_at": "2026-08-13T10:00:00Z",
+            "data_as_of": "2026-08-13T09:59:00Z",
+            "campaign_events": events,
+            "institutional_milestones": [],
+            "event_watch": [],
+        }
+
+        result = build_events_view_model(
+            payload,
+            {
+                "selectedCampaignEventId": "future-postponed",
+                "selectedCampaignEventWeekStart": "",
+                "campaignEventTypeFilter": "rally",
+            },
+            now="2026-08-13T10:00:00Z",
+        )
+
+        model = result["model"]
+
+        self.assertEqual(
+            model["upcomingIds"],
+            ["future-scheduled"],
+        )
+        self.assertEqual(
+            model["filteredUpcomingIds"],
+            ["future-scheduled"],
+        )
+        self.assertEqual(
+            model["horizonIds"],
+            ["future-scheduled"],
+        )
+        self.assertEqual(
+            model["pastScheduledIds"],
+            ["past-scheduled"],
+        )
+        self.assertEqual(
+            set(model["inactiveIds"]),
+            {
+                "future-postponed",
+                "future-cancelled",
+                "future-completed",
+            },
+        )
+        self.assertEqual(
+            set(model["nonActiveIds"]),
+            {
+                "future-postponed",
+                "future-cancelled",
+                "future-completed",
+                "past-scheduled",
+            },
+        )
+
+        self.assertEqual(model["upcomingCount"], 1)
+        self.assertEqual(model["pastCount"], 1)
+        self.assertEqual(model["inactiveCount"], 3)
+        self.assertEqual(model["next14Count"], 1)
+        self.assertEqual(model["multiCandidateCount"], 0)
+        self.assertEqual(model["verifiedCount"], 1)
+
+        # The inactive rally cannot keep the active schedule filtered to rally.
+        self.assertEqual(model["eventTypeFilter"], "all")
+        self.assertEqual(
+            result["state"]["campaignEventTypeFilter"],
+            "all",
+        )
+
+        # But a valid inactive dossier selection may survive refresh.
+        self.assertEqual(
+            model["selectedEventId"],
+            "future-postponed",
+        )
+
+    def test_date_only_display_is_machine_timezone_independent(self):
+        labels = [
+            campaign_event_date_only_display_label(
+                "2027-04-18",
+                "America/Los_Angeles",
+            ),
+            campaign_event_date_only_display_label(
+                "2027-04-18",
+                "Pacific/Kiritimati",
+            ),
+        ]
+
+        self.assertEqual(labels, ["18 APR", "18 APR"])
     def test_events_view_model_and_temporal_ops_desk_are_wired(self):
         self.assertIn("function buildEventsViewModel()", self.dashboard)
         self.assertIn(

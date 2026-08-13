@@ -543,6 +543,7 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
             hash_value,
             """api.renderFocusWorkspace({
               runoff: { state: "empty", message: "runoff" },
+              events: { state: "empty", message: "events" },
               agenda: { state: "empty", message: "agenda" },
               claims: { state: "empty", message: "claims" }
             })""",
@@ -661,7 +662,7 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
         )
 
 
-    def test_events_has_real_tab_and_explicit_unavailable_panel(self):
+    def test_events_has_real_tab_and_model_driven_empty_panel(self):
         workspace = self.render_workspace()
         self.assertRegex(
             workspace,
@@ -673,8 +674,10 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
             r'id="signal-events-panel" role="tabpanel" '
             r'aria-labelledby="signal-events-tab"[^>]* hidden',
         )
-        self.assertIn("CAMPAIGN EVENTS", workspace)
-        self.assertIn("Campaign Events is not yet available.", workspace)
+        self.assertIn(
+            '<span class="hybrid-state is-compact">events</span>', workspace
+        )
+        self.assertNotIn("Campaign Events is not yet available.", workspace)
 
     def test_poll_compare_is_real_tab_controlling_existing_panel(self):
         workspace = self.render_workspace()
@@ -1377,6 +1380,7 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
             "",
             """api.renderFocusWorkspace({
               runoff: { state: "empty", message: "runoff" },
+              events: { state: "empty", message: "events" },
               agenda: { state: "empty", message: "agenda" },
               claims: { state: "empty", message: "claims" }
             })""",
