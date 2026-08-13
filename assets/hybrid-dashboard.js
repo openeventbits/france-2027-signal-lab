@@ -2042,7 +2042,11 @@
       Number(match[2]) - 1,
       Number(match[3])
     ));
-    return Number.isFinite(date.getTime()) ? date : null;
+    return date.getUTCFullYear() === Number(match[1]) &&
+      date.getUTCMonth() === Number(match[2]) - 1 &&
+      date.getUTCDate() === Number(match[3])
+      ? date
+      : null;
   }
 
   function campaignEventOffsetDateKey(value, offsetDays) {
@@ -2050,13 +2054,6 @@
     if (!date) return "";
     date.setUTCDate(date.getUTCDate() + offsetDays);
     return utcDateKey(date);
-  }
-
-  function campaignEventDayDistance(fromKey, toKey) {
-    const from = campaignEventDateFromKey(fromKey);
-    const to = campaignEventDateFromKey(toKey);
-    if (!from || !to) return null;
-    return Math.round((to.getTime() - from.getTime()) / 86400000);
   }
 
   function campaignEventWeekStartKey(value) {
@@ -2099,6 +2096,58 @@
     return `${startDay} ${startMonth}–${endDay} ${endMonth}`;
   }
 
+  const campaignEventTypeOrder = new Map([
+    "rally",
+    "public_meeting",
+    "debate",
+    "candidate_visit",
+    "campaign_launch",
+    "other",
+    "sponsorship_deadline",
+    "official_candidate_list",
+    "campaign_period_boundary",
+    "first_round",
+    "second_round"
+  ].map((value, index) => [value, index]));
+
+  function compareCampaignEvents(left, right, dateDirection = 1) {
+    const leftDate = campaignEventDateKey(left);
+    const rightDate = campaignEventDateKey(right);
+    const dateComparison = leftDate.localeCompare(rightDate);
+    if (dateComparison) return dateComparison * dateDirection;
+
+    const leftPrecision = left.time_precision === "datetime" ? 0 : 1;
+    const rightPrecision = right.time_precision === "datetime" ? 0 : 1;
+    if (leftPrecision !== rightPrecision) {
+      return leftPrecision - rightPrecision;
+    }
+
+    const timeComparison = String(left.scheduled_start).slice(11, 19)
+      .localeCompare(String(right.scheduled_start).slice(11, 19));
+    if (timeComparison) return timeComparison * dateDirection;
+
+    const typeComparison =
+      (campaignEventTypeOrder.get(left.event_type) ?? Number.MAX_SAFE_INTEGER) -
+      (campaignEventTypeOrder.get(right.event_type) ?? Number.MAX_SAFE_INTEGER);
+    if (typeComparison) return typeComparison;
+
+    const candidateComparison = (Array.isArray(left.candidate_ids)
+      ? left.candidate_ids.join("\u0000")
+      : ""
+    ).localeCompare(
+      Array.isArray(right.candidate_ids)
+        ? right.candidate_ids.join("\u0000")
+        : ""
+    );
+    if (candidateComparison) return candidateComparison;
+
+    return String(left.event_key || "").localeCompare(
+      String(right.event_key || "")
+    ) || String(left.event_id || "").localeCompare(
+      String(right.event_id || "")
+    );
+  }
+
   function buildCampaignEventHorizon(upcomingEvents, todayKey, weekCount = 12) {
     const horizonStartKey = campaignEventWeekStartKey(todayKey);
     const horizonDays = weekCount * 7;
@@ -2111,6 +2160,16 @@
       const dateKey = campaignEventDateKey(event);
       return dateKey >= todayKey && dateKey <= horizonEndKey;
     });
+    const eventsByWeek = new Map();
+    rawHorizonEvents.forEach(event => {
+      const weekStartKey = campaignEventWeekStartKey(
+        campaignEventDateKey(event)
+      );
+      if (!eventsByWeek.has(weekStartKey)) {
+        eventsByWeek.set(weekStartKey, []);
+      }
+      eventsByWeek.get(weekStartKey).push(event);
+    });
 
     const weekBins = Array.from({ length: weekCount }, (_, index) => {
       const startKey = campaignEventOffsetDateKey(
@@ -2118,15 +2177,9 @@
         index * 7
       );
       const endKey = campaignEventOffsetDateKey(startKey, 6);
-      const events = rawHorizonEvents
-        .filter(event => {
-          const eventKey = campaignEventDateKey(event);
-          return eventKey >= startKey && eventKey <= endKey;
-        })
-        .sort((a, b) =>
-          String(a.scheduled_start).localeCompare(String(b.scheduled_start)) ||
-          String(a.title).localeCompare(String(b.title), "fr")
-        );
+      const events = (eventsByWeek.get(startKey) || [])
+        .slice()
+        .sort(compareCampaignEvents);
       return {
         index,
         startKey,
@@ -2252,34 +2305,6 @@
     };
   }
 
-  function buildCampaignEventWatchPulses(eventWatch) {
-    const pulses = [];
-    const batchByKey = new Map();
-
-    eventWatch.forEach((update, sourceIndex) => {
-      const minuteKey = String(update.observed_at || "").slice(0, 16);
-      const batchKey = update.update_type === "NEW"
-        ? `NEW|${minuteKey}`
-        : `ROW|${sourceIndex}`;
-      let pulse = batchByKey.get(batchKey);
-      if (!pulse) {
-        pulse = {
-          key: batchKey,
-          updateType: update.update_type,
-          observedAt: update.observed_at,
-          items: []
-        };
-        batchByKey.set(batchKey, pulse);
-        pulses.push(pulse);
-      }
-      pulse.items.push(update);
-    });
-
-    return pulses.sort((a, b) =>
-      String(b.observedAt).localeCompare(String(a.observedAt))
-    );
-  }
-
   function buildEventsViewModel() {
     const unavailable = viewModelState("campaignEvents");
     if (unavailable) {
@@ -2315,26 +2340,23 @@
 
     const upcomingEvents = events
       .filter(isUpcoming)
-      .sort((a, b) =>
-        String(a.scheduled_start).localeCompare(
-          String(b.scheduled_start)
-        ) ||
-        String(a.title).localeCompare(String(b.title), "fr")
-      );
+      .sort(compareCampaignEvents);
 
-    const eventTypeFilter = state.campaignEventTypeFilter || "all";
+    const requestedEventTypeFilter = state.campaignEventTypeFilter || "all";
+    const eventTypeFilter = requestedEventTypeFilter === "all" ||
+      upcomingEvents.some(event =>
+        campaignEventMatchesTypeFilter(event, requestedEventTypeFilter)
+      )
+      ? requestedEventTypeFilter
+      : "all";
+    state.campaignEventTypeFilter = eventTypeFilter;
     const filteredUpcomingEvents = upcomingEvents.filter(event =>
       campaignEventMatchesTypeFilter(event, eventTypeFilter)
     );
 
     const pastEvents = events
       .filter(event => !isUpcoming(event))
-      .sort((a, b) =>
-        String(b.scheduled_start).localeCompare(
-          String(a.scheduled_start)
-        ) ||
-        String(a.title).localeCompare(String(b.title), "fr")
-      );
+      .sort((a, b) => compareCampaignEvents(a, b, -1));
 
     const eventWatch = watch
       .map(update => ({
@@ -2346,11 +2368,7 @@
         String(a.update_id).localeCompare(String(b.update_id))
       );
 
-    milestones.sort((a, b) =>
-      String(a.scheduled_start).localeCompare(
-        String(b.scheduled_start)
-      )
-    );
+    milestones.sort(compareCampaignEvents);
 
     const horizon = buildCampaignEventHorizon(
       filteredUpcomingEvents,
@@ -2359,17 +2377,17 @@
     );
 
     const requestedSelected = state.selectedCampaignEventId;
+    const requestedEvent = eventById.get(requestedSelected) || null;
+    const requestedEventMatchesFilter = requestedEvent &&
+      (eventTypeFilter === "all" ||
+        campaignEventMatchesTypeFilter(requestedEvent, eventTypeFilter));
     const selectedEvent =
-      filteredUpcomingEvents.find(event => event.event_id === requestedSelected) ||
+      (requestedEventMatchesFilter ? requestedEvent : null) ||
       filteredUpcomingEvents[0] ||
-      upcomingEvents.find(event => event.event_id === requestedSelected) ||
-      upcomingEvents[0] ||
-      pastEvents[0] ||
+      (eventTypeFilter === "all" ? pastEvents[0] : null) ||
       null;
 
-    if (selectedEvent) {
-      state.selectedCampaignEventId = selectedEvent.event_id;
-    }
+    state.selectedCampaignEventId = selectedEvent?.event_id || "";
 
     const selectedUpdates = selectedEvent
       ? eventWatch.filter(update => update.event_id === selectedEvent.event_id)
@@ -4633,31 +4651,43 @@
       : null;
   }
 
+  function campaignEventDisplayDate(value) {
+    const raw = String(value || "");
+    const dateOnly = campaignEventDateFromKey(raw);
+    if (dateOnly) {
+      return { date: dateOnly, timeZone: "UTC" };
+    }
+    const date = new Date(raw);
+    return Number.isFinite(date.getTime())
+      ? { date, timeZone: "Europe/Paris" }
+      : null;
+  }
+
   function campaignEventShortDate(value) {
-    const date = new Date(String(value || ""));
-    if (!Number.isFinite(date.getTime())) return "DATE UNAVAILABLE";
+    const parsed = campaignEventDisplayDate(value);
+    if (!parsed) return "DATE UNAVAILABLE";
     return new Intl.DateTimeFormat(
       "en-GB",
       {
-        timeZone: "Europe/Paris",
+        timeZone: parsed.timeZone,
         day: "2-digit",
         month: "short"
       }
-    ).format(date).toUpperCase();
+    ).format(parsed.date).toUpperCase();
   }
 
   function campaignEventLongDate(value) {
-    const date = new Date(String(value || ""));
-    if (!Number.isFinite(date.getTime())) return "DATE UNAVAILABLE";
+    const parsed = campaignEventDisplayDate(value);
+    if (!parsed) return "DATE UNAVAILABLE";
     return new Intl.DateTimeFormat(
       "en-GB",
       {
-        timeZone: "Europe/Paris",
+        timeZone: parsed.timeZone,
         day: "2-digit",
         month: "short",
         year: "numeric"
       }
-    ).format(date).toUpperCase();
+    ).format(parsed.date).toUpperCase();
   }
 
   function campaignEventSourceTypeLabel(value) {
@@ -4717,12 +4747,12 @@
   }
 
   function campaignEventWeekdayLabel(value) {
-    const parsed = new Date(String(value || ""));
-    if (!Number.isFinite(parsed.getTime())) return "";
+    const parsed = campaignEventDisplayDate(value);
+    if (!parsed) return "";
     return new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Europe/Paris",
+      timeZone: parsed.timeZone,
       weekday: "short"
-    }).format(parsed).toUpperCase();
+    }).format(parsed.date).toUpperCase();
   }
 
   function renderEventTypeBadge(eventType, extra = "") {
