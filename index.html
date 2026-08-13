@@ -6806,8 +6806,17 @@
       runoff: null,
       news: null,
       claims: null,
+      campaignEvents: null,
       recentChanges: null,
-      loadState: { manifest: "loading", polls: "loading", runoff: "loading", news: "loading", claims: "loading", recentChanges: "loading" },
+      loadState: {
+        manifest: "loading",
+        polls: "loading",
+        runoff: "loading",
+        news: "loading",
+        claims: "loading",
+        campaignEvents: "loading",
+        recentChanges: "loading"
+      },
       updatedAt: {}
     };
 
@@ -9225,6 +9234,143 @@
         });
     }
 
+    function validateCampaignEventsPayload(payload) {
+      if (!payload || typeof payload !== "object" || payload.schema_version !== "1.1") {
+        throw new Error("campaign_events.json has an unsupported schema");
+      }
+      if (!Number.isFinite(new Date(payload.generated_at).getTime()) ||
+          !Number.isFinite(new Date(payload.data_as_of).getTime())) {
+        throw new Error("campaign_events.json publication timestamps are malformed");
+      }
+
+      const campaignEvents = payload.campaign_events;
+      const milestones = payload.institutional_milestones;
+      const eventWatch = payload.event_watch;
+
+      if (!Array.isArray(campaignEvents) ||
+          !Array.isArray(milestones) ||
+          !Array.isArray(eventWatch)) {
+        throw new Error("campaign_events.json lanes are malformed");
+      }
+
+      const statuses = new Set([
+        "scheduled",
+        "postponed",
+        "cancelled",
+        "completed"
+      ]);
+      const precisions = new Set(["date", "datetime"]);
+      const updateTypes = new Set([
+        "NEW",
+        "CONFIRMED",
+        "UPDATED",
+        "POSTPONED",
+        "CANCELLED"
+      ]);
+
+      const validScheduledStart = value => {
+        if (typeof value !== "string") return false;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          return Number.isFinite(new Date(value + "T00:00:00Z").getTime());
+        }
+        return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/.test(value) &&
+          Number.isFinite(new Date(value).getTime());
+      };
+
+      const validEvidence = evidence =>
+        Array.isArray(evidence) &&
+        evidence.length > 0 &&
+        evidence.every(item =>
+          item &&
+          typeof item === "object" &&
+          typeof item.source_publisher === "string" &&
+          Boolean(item.source_publisher.trim()) &&
+          safeSourceUrl(item.source_url).startsWith("https://")
+        );
+
+      const allEventIds = new Set();
+      const campaignEventIds = new Set();
+
+      const validateEvent = (event, lane, index) => {
+        if (!event || typeof event !== "object" ||
+            typeof event.event_id !== "string" || !event.event_id ||
+            allEventIds.has(event.event_id) ||
+            typeof event.event_type !== "string" || !event.event_type.trim() ||
+            typeof event.title !== "string" || !event.title.trim() ||
+            !Array.isArray(event.candidate_names) ||
+            !event.candidate_names.every(name =>
+              typeof name === "string" && Boolean(name.trim())
+            ) ||
+            !validScheduledStart(event.scheduled_start) ||
+            !precisions.has(event.time_precision) ||
+            event.timezone !== "Europe/Paris" ||
+            !statuses.has(event.status) ||
+            typeof event.evidence_status !== "string" ||
+            !event.evidence_status.trim() ||
+            !validEvidence(event.evidence)) {
+          throw new Error(
+            `campaign_events.json ${lane}[${index}] is malformed`
+          );
+        }
+        allEventIds.add(event.event_id);
+      };
+
+      campaignEvents.forEach((event, index) => {
+        validateEvent(event, "campaign_events", index);
+        campaignEventIds.add(event.event_id);
+      });
+
+      milestones.forEach((event, index) => {
+        validateEvent(event, "institutional_milestones", index);
+      });
+
+      const updateIds = new Set();
+      eventWatch.forEach((update, index) => {
+        if (!update || typeof update !== "object" ||
+            typeof update.update_id !== "string" || !update.update_id ||
+            updateIds.has(update.update_id) ||
+            !campaignEventIds.has(update.event_id) ||
+            !updateTypes.has(update.update_type) ||
+            typeof update.headline !== "string" || !update.headline.trim() ||
+            !Number.isFinite(new Date(update.observed_at).getTime()) ||
+            !validEvidence(update.evidence)) {
+          throw new Error(
+            `campaign_events.json event_watch[${index}] is malformed`
+          );
+        }
+        updateIds.add(update.update_id);
+      });
+
+      return payload;
+    }
+
+    function loadCampaignEvents() {
+      return fetch("campaign_events.json", { cache: "no-store" })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(
+              "campaign_events.json returned HTTP " + response.status
+            );
+          }
+          return response.json();
+        })
+        .then(validateCampaignEventsPayload)
+        .then(payload => {
+          markDataset(
+            "campaignEvents",
+            "loaded",
+            payload,
+            payload.data_as_of
+          );
+          return payload;
+        })
+        .catch(error => {
+          console.warn("Campaign Events unavailable.", error);
+          markDataset("campaignEvents", "error");
+          return null;
+        });
+    }
+
     function renderAgreedRunoff(payload) {
       const selected = payload.selected_matchup;
       const [candidateA, candidateB] = selected.candidates;
@@ -10948,6 +11094,7 @@
     loadClosestRunoff();
     loadNewsWire().then(loadRecentChanges);
     loadClaimsUnderScrutiny();
+    loadCampaignEvents();
 
     fetch("polls.json", { cache: "no-store" })
       .then(response => {
