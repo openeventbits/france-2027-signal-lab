@@ -1028,6 +1028,37 @@ class ScrutinyTests(unittest.TestCase):
             builder.project_scrutiny(self.candidates, second),
         )
 
+    def test_successive_generated_dates_advance_latest_window(self):
+        reviews = [
+            review(
+                "same-review",
+                "2026-07-15",
+                [association("Candidate A", "by")],
+            )
+        ]
+        first = claims_fixture(
+            generated_at="2026-07-20T23:59:00Z",
+            reviews=copy.deepcopy(reviews),
+        )
+        second = claims_fixture(
+            generated_at="2026-07-21T00:01:00Z",
+            reviews=copy.deepcopy(reviews),
+        )
+
+        first_window, _first_projection, _first_evidence = builder.project_scrutiny(
+            self.candidates,
+            first,
+        )
+        second_window, _second_projection, _second_evidence = builder.project_scrutiny(
+            self.candidates,
+            second,
+        )
+
+        self.assertEqual(first_window["latest_start_date"], "2026-07-07")
+        self.assertEqual(first_window["latest_end_date"], "2026-07-20")
+        self.assertEqual(second_window["latest_start_date"], "2026-07-08")
+        self.assertEqual(second_window["latest_end_date"], "2026-07-21")
+
     def test_future_review_date_fails(self):
         claims = claims_fixture(
             generated_at="2026-07-20T12:00:00Z",

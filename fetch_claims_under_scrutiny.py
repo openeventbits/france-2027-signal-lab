@@ -991,7 +991,7 @@ def merge_reviews(
 
 
 def semantic_public_content(bundle: dict[str, Any]) -> dict[str, Any]:
-    return {key: value for key, value in bundle.items() if key != "generated_at"}
+    return {**bundle, "generated_at": bundle["generated_at"][:10]}
 
 
 def atomic_write_json(path: Path, payload: Any) -> None:
