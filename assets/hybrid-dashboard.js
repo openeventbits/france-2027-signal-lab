@@ -1106,17 +1106,23 @@
     const topPublishers =
       publisherRanking.slice(0, 5);
 
-    const agendaTopics =
+    const rawAgendaTopics =
       Array.isArray(
         payload.campaign_agenda
           ?.topics
       )
         ? payload.campaign_agenda
             .topics
-            .filter(
-              topic =>
-                topic.display_eligible
-            )
+        : [];
+
+    const agendaTopics =
+      isValidAgendaBaseTopics(
+        rawAgendaTopics
+      )
+        ? rawAgendaTopics.filter(
+            topic =>
+              topic.display_eligible
+          )
         : [];
 
     const specificAgendaTopics =
@@ -1461,12 +1467,230 @@
     );
   }
 
+  function isAgendaNonNegativeInteger(value) {
+    return Number.isInteger(value) && value >= 0;
+  }
+
+  function isValidAgendaBaseTopics(topics) {
+    if (!Array.isArray(topics)) return false;
+
+    const topicIds = new Set();
+
+    return topics.every(topic => {
+      if (
+        !topic ||
+        typeof topic !== "object" ||
+        typeof topic.id !== "string" ||
+        !topic.id ||
+        topicIds.has(topic.id) ||
+        typeof topic.label !== "string" ||
+        !topic.label ||
+        !isAgendaNonNegativeInteger(topic.item_count) ||
+        !isAgendaNonNegativeInteger(topic.publisher_count) ||
+        !isAgendaNonNegativeInteger(topic.source_day_count) ||
+        !isAgendaNonNegativeInteger(topic.active_day_count) ||
+        typeof topic.display_eligible !== "boolean" ||
+        !isAgendaNonNegativeInteger(topic.supporting_item_count) ||
+        !isAgendaNonNegativeInteger(topic.omitted_item_count) ||
+        !Array.isArray(topic.publisher_names) ||
+        !Array.isArray(topic.supporting_items)
+      ) {
+        return false;
+      }
+
+      topicIds.add(topic.id);
+      return true;
+    });
+  }
+
+  function agendaDateValue(dateKey) {
+    if (
+      typeof dateKey !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)
+    ) {
+      return null;
+    }
+
+    const value = new Date(`${dateKey}T00:00:00Z`);
+
+    if (
+      Number.isNaN(value.getTime()) ||
+      value.toISOString().slice(0, 10) !== dateKey
+    ) {
+      return null;
+    }
+
+    return value;
+  }
+
+  function shiftAgendaDate(dateKey, dayDelta) {
+    const value = agendaDateValue(dateKey);
+    if (!value) return "";
+
+    value.setUTCDate(value.getUTCDate() + dayDelta);
+    return value.toISOString().slice(0, 10);
+  }
+
+  function isValidAgendaEvolution(evolution, baseTopics) {
+    if (
+      !evolution ||
+      typeof evolution !== "object" ||
+      evolution.period_days !== 30 ||
+      evolution.comparison_days !== 7 ||
+      typeof evolution.period_end_partial !== "boolean" ||
+      !Array.isArray(evolution.topics) ||
+      !Array.isArray(baseTopics) ||
+      !baseTopics.length
+    ) {
+      return false;
+    }
+
+    const dateFields = [
+      "period_start",
+      "period_end",
+      "latest_start",
+      "latest_end",
+      "previous_start",
+      "previous_end"
+    ];
+
+    if (
+      dateFields.some(
+        field => !agendaDateValue(evolution[field])
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      shiftAgendaDate(
+        evolution.period_start,
+        evolution.period_days - 1
+      ) !== evolution.period_end ||
+      shiftAgendaDate(
+        evolution.period_end,
+        -1
+      ) !== evolution.latest_end ||
+      shiftAgendaDate(
+        evolution.latest_end,
+        -(evolution.comparison_days - 1)
+      ) !== evolution.latest_start ||
+      shiftAgendaDate(
+        evolution.latest_start,
+        -1
+      ) !== evolution.previous_end ||
+      shiftAgendaDate(
+        evolution.previous_end,
+        -(evolution.comparison_days - 1)
+      ) !== evolution.previous_start
+    ) {
+      return false;
+    }
+
+    const baseById = new Map();
+
+    for (const topic of baseTopics) {
+      if (
+        !topic ||
+        typeof topic.id !== "string" ||
+        !topic.id ||
+        typeof topic.label !== "string" ||
+        !topic.label ||
+        baseById.has(topic.id)
+      ) {
+        return false;
+      }
+
+      baseById.set(topic.id, topic);
+    }
+
+    if (
+      evolution.topics.length !== baseById.size
+    ) {
+      return false;
+    }
+
+    const seenEvolutionIds = new Set();
+
+    for (const topic of evolution.topics) {
+      if (
+        !topic ||
+        typeof topic !== "object" ||
+        typeof topic.id !== "string" ||
+        !baseById.has(topic.id) ||
+        seenEvolutionIds.has(topic.id) ||
+        topic.label !== baseById.get(topic.id).label ||
+        !isAgendaNonNegativeInteger(topic.item_count) ||
+        !isAgendaNonNegativeInteger(topic.publisher_count) ||
+        !isAgendaNonNegativeInteger(topic.source_day_count) ||
+        !isAgendaNonNegativeInteger(topic.active_day_count) ||
+        typeof topic.display_eligible !== "boolean" ||
+        !Array.isArray(topic.daily_activity) ||
+        topic.daily_activity.length !== evolution.period_days ||
+        !Array.isArray(topic.matched_term_counts)
+      ) {
+        return false;
+      }
+
+      let itemTotal = 0;
+      let sourceDayTotal = 0;
+      let activeDayTotal = 0;
+
+      for (
+        let index = 0;
+        index < topic.daily_activity.length;
+        index += 1
+      ) {
+        const day = topic.daily_activity[index];
+        const expectedDate = shiftAgendaDate(
+          evolution.period_start,
+          index
+        );
+
+        if (
+          !day ||
+          typeof day !== "object" ||
+          day.date !== expectedDate ||
+          !isAgendaNonNegativeInteger(day.item_count) ||
+          !isAgendaNonNegativeInteger(day.source_day_count) ||
+          day.source_day_count > day.item_count
+        ) {
+          return false;
+        }
+
+        itemTotal += day.item_count;
+        sourceDayTotal += day.source_day_count;
+        activeDayTotal += day.item_count > 0 ? 1 : 0;
+      }
+
+      if (
+        itemTotal !== topic.item_count ||
+        sourceDayTotal !== topic.source_day_count ||
+        activeDayTotal !== topic.active_day_count
+      ) {
+        return false;
+      }
+
+      seenEvolutionIds.add(topic.id);
+    }
+
+    return seenEvolutionIds.size === baseById.size;
+  }
+
   function buildAgendaViewModel() {
     const unavailable = viewModelState("news");
     if (unavailable) return { domain: "agenda", ...unavailable };
 
     const agenda = dashboardState.news.campaign_agenda;
     const allTopics = Array.isArray(agenda?.topics) ? agenda.topics : [];
+
+    if (!isValidAgendaBaseTopics(allTopics)) {
+      return {
+        domain: "agenda",
+        state: "invalid",
+        message: "Campaign Agenda is unavailable because its topic contract is malformed."
+      };
+    }
 
     /*
      * Keep the legacy topic collection unchanged here.
@@ -1484,9 +1708,7 @@
       topic => topic.display_eligible
     );
 
-    const selectable = eligible.length
-      ? eligible
-      : sorted;
+    const selectable = eligible;
 
     if (
       !selectable.some(
@@ -1513,16 +1735,11 @@
         ? evolution.topics
         : [];
 
-    const evolutionReady = Boolean(
-      evolution &&
-      number(evolution.period_days) === 30 &&
-      rawEvolutionTopics.length &&
-      rawEvolutionTopics.every(
-        topic =>
-          Array.isArray(topic.daily_activity) &&
-          topic.daily_activity.length === 30
-      )
-    );
+    const evolutionReady =
+      isValidAgendaEvolution(
+        evolution,
+        allTopics
+      );
 
     const baseModel = {
       domain: "agenda",
@@ -1584,10 +1801,11 @@
         topic => topic.display_eligible
       );
 
-    evolutionTopics =
-      evolutionEligible.length
-        ? evolutionEligible
-        : evolutionTopics;
+    evolutionTopics = evolutionEligible;
+
+    if (!evolutionTopics.length) {
+      return baseModel;
+    }
 
     const latestDenominator =
       evolutionTopics.reduce(
