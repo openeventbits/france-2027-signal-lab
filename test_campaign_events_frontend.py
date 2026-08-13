@@ -1,3 +1,4 @@
+import copy
 import json
 import re
 import shutil
@@ -12,6 +13,95 @@ INDEX = ROOT / "index.html"
 DASHBOARD = ROOT / "assets" / "hybrid-dashboard.js"
 CSS = ROOT / "assets" / "hybrid-dashboard.css"
 ARTIFACT = ROOT / "campaign_events.json"
+
+
+def run_node_json(script, payload):
+    node = shutil.which("node")
+    if node is None:
+        raise unittest.SkipTest("Node.js is required for frontend behavior tests")
+    completed = subprocess.run(
+        [node, "-e", script],
+        cwd=ROOT,
+        input=json.dumps(payload),
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+    return json.loads(completed.stdout)
+
+
+def validate_frontend_payload(payload):
+    script = r'''
+const fs = require("fs");
+const vm = require("vm");
+const source = fs.readFileSync("index.html", "utf8").replace(/\r\n?/g, "\n");
+const payload = JSON.parse(fs.readFileSync(0, "utf8"));
+const extract = (startMarker, endMarker) => {
+  const start = source.indexOf(startMarker);
+  const end = source.indexOf(endMarker, start);
+  if (start < 0 || end < 0) throw new Error(`Could not extract ${startMarker}`);
+  return source.slice(start, end);
+};
+const context = { URL, Date, Intl, Set, Number };
+vm.runInNewContext([
+  extract("    function safeSourceUrl(", "\n\n    const dashboardState"),
+  extract(
+    "    function validateCampaignEventsPayload(",
+    "\n\n    function loadCampaignEvents("
+  )
+].join("\n"), context);
+try {
+  context.validateCampaignEventsPayload(payload);
+  process.stdout.write(JSON.stringify({ valid: true, error: null }));
+} catch (error) {
+  process.stdout.write(JSON.stringify({ valid: false, error: error.message }));
+}
+'''
+    return run_node_json(script, payload)
+
+
+def build_events_view_model(payload, state):
+    script = r'''
+const fs = require("fs");
+const vm = require("vm");
+const source = fs.readFileSync("assets/hybrid-dashboard.js", "utf8")
+  .replace(/\r\n?/g, "\n");
+const input = JSON.parse(fs.readFileSync(0, "utf8"));
+const start = source.indexOf("  function parisTodayKey(");
+const end = source.indexOf("\n\n  function ratingDisplay(", start);
+if (start < 0 || end < 0) throw new Error("Could not extract Events view model");
+const context = {
+  Date,
+  Intl,
+  Map,
+  Set,
+  Number,
+  dashboardState: {
+    campaignEvents: input.payload,
+    loadState: { campaignEvents: "loaded" }
+  },
+  state: input.state,
+  viewModelState() { return null; },
+  utcDateKey(date) { return date.toISOString().slice(0, 10); },
+  campaignEventMatchesTypeFilter(event, filterKey) {
+    return !filterKey || filterKey === "all" || event.event_type === filterKey;
+  }
+};
+vm.runInNewContext(source.slice(start, end), context);
+const model = context.buildEventsViewModel();
+process.stdout.write(JSON.stringify({
+  state: input.state,
+  model: {
+    state: model.state,
+    eventTypeFilter: model.eventTypeFilter,
+    selectedEventId: model.selectedEvent?.event_id || null,
+    upcomingIds: model.upcomingEvents.map(event => event.event_id),
+    pastIds: model.pastEvents.map(event => event.event_id)
+  },
+  invalidDateAccepted: Boolean(context.campaignEventDateFromKey("2099-02-30"))
+}));
+'''
+    return run_node_json(script, {"payload": payload, "state": state})
 
 
 class CampaignEventsFrontendTests(unittest.TestCase):
@@ -77,6 +167,138 @@ class CampaignEventsFrontendTests(unittest.TestCase):
         ):
             with self.subTest(value=value):
                 self.assertIn(value, validator)
+
+    def test_frontend_validator_accepts_current_public_artifact(self):
+        result = validate_frontend_payload(self.artifact)
+        self.assertTrue(result["valid"], result["error"])
+
+    def test_frontend_validator_rejects_runtime_unsafe_contract_defects(self):
+        mutations = {}
+
+        generated_millis = copy.deepcopy(self.artifact)
+        generated_millis["generated_at"] = "2026-08-12T17:01:29.000Z"
+        mutations["noncanonical generated_at"] = generated_millis
+
+        invalid_date = copy.deepcopy(self.artifact)
+        invalid_date["campaign_events"][0]["scheduled_start"] = "2099-02-30"
+        invalid_date["campaign_events"][0]["time_precision"] = "date"
+        mutations["impossible calendar date"] = invalid_date
+
+        wrong_precision = copy.deepcopy(self.artifact)
+        wrong_precision["campaign_events"][0]["time_precision"] = "date"
+        mutations["precision mismatch"] = wrong_precision
+
+        wrong_paris_offset = copy.deepcopy(self.artifact)
+        wrong_paris_offset["campaign_events"][0]["scheduled_start"] = (
+            "2026-08-23T10:00:00+01:00"
+        )
+        mutations["invalid Paris offset"] = wrong_paris_offset
+
+        parallel_candidates = copy.deepcopy(self.artifact)
+        parallel_candidates["campaign_events"][0]["candidate_ids"] = []
+        mutations["nonparallel candidates"] = parallel_candidates
+
+        unknown_evidence_status = copy.deepcopy(self.artifact)
+        unknown_evidence_status["campaign_events"][0]["evidence_status"] = "likely"
+        mutations["unknown evidence status"] = unknown_evidence_status
+
+        unsafe_source = copy.deepcopy(self.artifact)
+        unsafe_source["campaign_events"][0]["evidence"][0]["source_url"] = (
+            "https://example.com/source#fragment"
+        )
+        mutations["unsafe source URL"] = unsafe_source
+
+        bad_observed_at = copy.deepcopy(self.artifact)
+        bad_observed_at["event_watch"][0]["observed_at"] = "2026-08-12"
+        mutations["noncanonical watch timestamp"] = bad_observed_at
+
+        for label, payload in mutations.items():
+            with self.subTest(label=label):
+                result = validate_frontend_payload(payload)
+                self.assertFalse(result["valid"], result)
+
+    def test_events_view_model_sort_and_selection_are_refresh_safe(self):
+        def event(event_id, scheduled_start, *, event_type="rally", precision="datetime"):
+            return {
+                "event_key": event_id,
+                "event_id": event_id,
+                "event_type": event_type,
+                "title": event_id,
+                "candidate_ids": [],
+                "candidate_names": [],
+                "scheduled_start": scheduled_start,
+                "time_precision": precision,
+                "status": "scheduled",
+            }
+
+        events = [
+            event("date-only", "2099-08-23", precision="date"),
+            event("later-time", "2099-08-23T10:00:00+02:00"),
+            event("earlier-time", "2099-08-23T09:00:00+02:00", event_type="debate"),
+            event("past", "2000-01-01", precision="date"),
+        ]
+        payload = {
+            "generated_at": "2026-08-12T17:01:29Z",
+            "data_as_of": "2026-08-12T17:01:26Z",
+            "campaign_events": events,
+            "institutional_milestones": [],
+            "event_watch": [],
+        }
+
+        first = build_events_view_model(
+            payload,
+            {
+                "selectedCampaignEventId": "past",
+                "selectedCampaignEventWeekStart": "",
+                "campaignEventTypeFilter": "all",
+            },
+        )
+        reversed_result = build_events_view_model(
+            {**payload, "campaign_events": list(reversed(events))},
+            {
+                "selectedCampaignEventId": "past",
+                "selectedCampaignEventWeekStart": "",
+                "campaignEventTypeFilter": "all",
+            },
+        )
+
+        expected = ["earlier-time", "later-time", "date-only"]
+        self.assertEqual(first["model"]["upcomingIds"], expected)
+        self.assertEqual(reversed_result["model"]["upcomingIds"], expected)
+        self.assertEqual(first["model"]["selectedEventId"], "past")
+        self.assertFalse(first["invalidDateAccepted"])
+
+        filtered = build_events_view_model(
+            payload,
+            {
+                "selectedCampaignEventId": "later-time",
+                "selectedCampaignEventWeekStart": "",
+                "campaignEventTypeFilter": "debate",
+            },
+        )
+        self.assertEqual(filtered["model"]["selectedEventId"], "earlier-time")
+
+        stale_filter = build_events_view_model(
+            payload,
+            {
+                "selectedCampaignEventId": "later-time",
+                "selectedCampaignEventWeekStart": "",
+                "campaignEventTypeFilter": "visit",
+            },
+        )
+        self.assertEqual(stale_filter["model"]["eventTypeFilter"], "all")
+        self.assertEqual(stale_filter["state"]["campaignEventTypeFilter"], "all")
+
+        emptied = build_events_view_model(
+            {**payload, "campaign_events": []},
+            {
+                "selectedCampaignEventId": "later-time",
+                "selectedCampaignEventWeekStart": "2099-08-17",
+                "campaignEventTypeFilter": "all",
+            },
+        )
+        self.assertIsNone(emptied["model"]["selectedEventId"])
+        self.assertEqual(emptied["state"]["selectedCampaignEventId"], "")
 
     def test_events_view_model_and_operations_console_are_wired(self):
         self.assertIn("function buildEventsViewModel()", self.dashboard)
