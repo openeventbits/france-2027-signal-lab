@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "generated_at": "2026-08-12T17:01:29Z",
-  "data_as_of": "2026-08-12T17:01:26Z",
+  "generated_at": "2026-08-13T11:11:17Z",
+  "data_as_of": "2026-08-13T11:11:15Z",
   "campaign_events": [
     {
       "event_key": "manual-fcaf86ca87c2433e90d5714e2981bb95",
@@ -215,6 +215,38 @@
       ]
     },
     {
+      "event_key": "manual-b2d4c9c26194478ca470f453809246cf",
+      "event_id": "ce-706e4aeca0e9326b9972293c",
+      "event_type": "campaign_launch",
+      "title": "Entrée en campagne de Fabien Roussel à la Fête de l’Humanité",
+      "candidate_ids": [
+        "fabien-roussel"
+      ],
+      "candidate_names": [
+        "Fabien Roussel"
+      ],
+      "scheduled_start": "2026-09-12",
+      "participants": [
+        "Fabien Roussel"
+      ],
+      "time_precision": "date",
+      "timezone": "Europe/Paris",
+      "location_name": "Grande scène de la Fête de l’Humanité",
+      "status": "scheduled",
+      "status_as_of": "2026-08-13",
+      "evidence_status": "verified",
+      "last_verified_at": "2026-08-13T11:11:15Z",
+      "evidence": [
+        {
+          "source_id": "manual-2a9af4fb17a55b5f",
+          "source_url": "https://www.lemonde.fr/politique/article/2026/07/24/presidentielle-2027-pendant-l-ete-une-periode-de-precampagne-difficile-a-ignorer-pour-les-candidats_6731416_823448.html",
+          "source_publisher": "Le Monde",
+          "source_type": "reliable_media",
+          "evidence_type": "explicit_schedule"
+        }
+      ]
+    },
+    {
       "event_key": "manual-3ff83eeef24844a9a4f93bf39adc466f",
       "event_id": "ce-5edc1b962a3e94b684f2a9e3",
       "event_type": "rally",
@@ -242,6 +274,33 @@
           "source_url": "https://attalpresident.fr/actualites/gabriel-attal-annonce-un-grand-meeting-regional-10-octobre-a-lyon",
           "source_publisher": "Attal Président",
           "source_type": "candidate_first_party",
+          "evidence_type": "explicit_schedule"
+        }
+      ]
+    },
+    {
+      "event_key": "manual-9df2075177a64b719b9bdf2f3f1c8beb",
+      "event_id": "ce-38ba9ac747cdb5ec6ce867b9",
+      "event_type": "other",
+      "title": "XIXe Congrès du Rassemblement National",
+      "candidate_ids": [],
+      "candidate_names": [],
+      "scheduled_start": "2026-10-24T12:00:00+02:00",
+      "time_precision": "datetime",
+      "timezone": "Europe/Paris",
+      "organization": "Rassemblement National",
+      "location_name": "Zénith Orléans",
+      "locality": "Orléans",
+      "status": "scheduled",
+      "status_as_of": "2026-08-13",
+      "evidence_status": "verified",
+      "last_verified_at": "2026-08-13T11:11:15Z",
+      "evidence": [
+        {
+          "source_id": "manual-777553be01aefef5",
+          "source_url": "https://billetterie.rassemblementnational.fr/19e-congres-du-rassemblement-national",
+          "source_publisher": "Rassemblement National",
+          "source_type": "party_first_party",
           "evidence_type": "explicit_schedule"
         }
       ]
@@ -339,6 +398,36 @@
     }
   ],
   "event_watch": [
+    {
+      "update_id": "cew-19f65aab296daa605259cdd1",
+      "event_id": "ce-38ba9ac747cdb5ec6ce867b9",
+      "update_type": "NEW",
+      "headline": "XIXe Congrès du Rassemblement National",
+      "observed_at": "2026-08-13T11:11:15Z",
+      "evidence": [
+        {
+          "source_id": "manual-777553be01aefef5",
+          "source_url": "https://billetterie.rassemblementnational.fr/19e-congres-du-rassemblement-national",
+          "source_publisher": "Rassemblement National",
+          "source_type": "party_first_party"
+        }
+      ]
+    },
+    {
+      "update_id": "cew-51b4a1ce14390cbfe266e617",
+      "event_id": "ce-706e4aeca0e9326b9972293c",
+      "update_type": "NEW",
+      "headline": "Entrée en campagne de Fabien Roussel à la Fête de l’Humanité",
+      "observed_at": "2026-08-13T11:11:15Z",
+      "evidence": [
+        {
+          "source_id": "manual-2a9af4fb17a55b5f",
+          "source_url": "https://www.lemonde.fr/politique/article/2026/07/24/presidentielle-2027-pendant-l-ete-une-periode-de-precampagne-difficile-a-ignorer-pour-les-candidats_6731416_823448.html",
+          "source_publisher": "Le Monde",
+          "source_type": "reliable_media"
+        }
+      ]
+    },
     {
       "update_id": "cew-9b4616511dcaf56f1bad173d",
       "event_id": "ce-b1b21909671f7fc5728e549b",
