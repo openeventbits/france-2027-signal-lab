@@ -9238,10 +9238,6 @@
       if (!payload || typeof payload !== "object" || payload.schema_version !== "1.1") {
         throw new Error("campaign_events.json has an unsupported schema");
       }
-      if (!Number.isFinite(new Date(payload.generated_at).getTime()) ||
-          !Number.isFinite(new Date(payload.data_as_of).getTime())) {
-        throw new Error("campaign_events.json publication timestamps are malformed");
-      }
 
       const campaignEvents = payload.campaign_events;
       const milestones = payload.institutional_milestones;
@@ -9260,6 +9256,11 @@
         "completed"
       ]);
       const precisions = new Set(["date", "datetime"]);
+      const evidenceStatuses = new Set([
+        "verified",
+        "stale",
+        "past_unconfirmed"
+      ]);
       const updateTypes = new Set([
         "NEW",
         "CONFIRMED",
@@ -9267,47 +9268,166 @@
         "POSTPONED",
         "CANCELLED"
       ]);
+      const campaignEventTypes = new Set([
+        "rally",
+        "public_meeting",
+        "debate",
+        "candidate_visit",
+        "campaign_launch",
+        "other"
+      ]);
+      const institutionalEventTypes = new Set([
+        "sponsorship_deadline",
+        "official_candidate_list",
+        "campaign_period_boundary",
+        "first_round",
+        "second_round"
+      ]);
+      const sourceTypes = new Set([
+        "official_structured",
+        "official_unstructured",
+        "candidate_first_party",
+        "party_first_party",
+        "organizer_first_party",
+        "reliable_media"
+      ]);
+      const evidenceTypes = new Set([
+        "explicit_schedule",
+        "explicit_status_update",
+        "official_rule_derivation"
+      ]);
 
-      const validScheduledStart = value => {
-        if (typeof value !== "string") return false;
-        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-          return Number.isFinite(new Date(value + "T00:00:00Z").getTime());
-        }
-        return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/.test(value) &&
-          Number.isFinite(new Date(value).getTime());
+      const validDateKey = value => {
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+        if (!match) return false;
+        const parsed = new Date(Date.UTC(
+          Number(match[1]),
+          Number(match[2]) - 1,
+          Number(match[3])
+        ));
+        return parsed.getUTCFullYear() === Number(match[1]) &&
+          parsed.getUTCMonth() === Number(match[2]) - 1 &&
+          parsed.getUTCDate() === Number(match[3]);
       };
 
-      const validEvidence = evidence =>
+      const validUtcTimestamp = value => {
+        if (typeof value !== "string" ||
+            !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(value) ||
+            !validDateKey(value.slice(0, 10))) {
+          return false;
+        }
+        const parsed = new Date(value);
+        return Number.isFinite(parsed.getTime()) &&
+          parsed.toISOString() === value.replace(/Z$/, ".000Z");
+      };
+
+      if (!validUtcTimestamp(payload.generated_at) ||
+          !validUtcTimestamp(payload.data_as_of)) {
+        throw new Error("campaign_events.json publication timestamps are malformed");
+      }
+
+      const validParisDatetime = value => {
+        if (typeof value !== "string") return false;
+        const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})[+-]\d{2}:\d{2}$/.exec(value);
+        if (!match || !validDateKey(value.slice(0, 10))) return false;
+        const parsed = new Date(value);
+        if (!Number.isFinite(parsed.getTime())) return false;
+        const parts = Object.fromEntries(
+          new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Europe/Paris",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hourCycle: "h23"
+          })
+            .formatToParts(parsed)
+            .filter(part => part.type !== "literal")
+            .map(part => [part.type, part.value])
+        );
+        return [
+          parts.year,
+          parts.month,
+          parts.day,
+          parts.hour,
+          parts.minute,
+          parts.second
+        ].join("") === match.slice(1, 7).join("");
+      };
+
+      const validScheduledValue = (value, precision) => {
+        if (!precisions.has(precision)) return false;
+        return precision === "date"
+          ? typeof value === "string" && validDateKey(value)
+          : validParisDatetime(value);
+      };
+
+      const validHttpsSourceUrl = value => {
+        const safe = safeSourceUrl(value);
+        if (!safe) return false;
+        const parsed = new URL(safe);
+        return parsed.protocol === "https:" &&
+          !parsed.username &&
+          !parsed.password &&
+          !parsed.port &&
+          !parsed.hash;
+      };
+
+      const validEvidence = (evidence, requireEvidenceType) =>
         Array.isArray(evidence) &&
         evidence.length > 0 &&
         evidence.every(item =>
           item &&
           typeof item === "object" &&
+          typeof item.source_id === "string" &&
+          Boolean(item.source_id.trim()) &&
           typeof item.source_publisher === "string" &&
           Boolean(item.source_publisher.trim()) &&
-          safeSourceUrl(item.source_url).startsWith("https://")
+          sourceTypes.has(item.source_type) &&
+          validHttpsSourceUrl(item.source_url) &&
+          (!requireEvidenceType || evidenceTypes.has(item.evidence_type)) &&
+          (item.source_published_at === undefined ||
+            validUtcTimestamp(item.source_published_at))
         );
 
       const allEventIds = new Set();
       const campaignEventIds = new Set();
 
       const validateEvent = (event, lane, index) => {
+        const allowedEventTypes = lane === "campaign_events"
+          ? campaignEventTypes
+          : institutionalEventTypes;
+        const candidateIds = event?.candidate_ids;
+        const candidateNames = event?.candidate_names;
         if (!event || typeof event !== "object" ||
-            typeof event.event_id !== "string" || !event.event_id ||
+            typeof event.event_id !== "string" ||
+            !/^ce-[0-9a-f]{24}$/.test(event.event_id) ||
             allEventIds.has(event.event_id) ||
-            typeof event.event_type !== "string" || !event.event_type.trim() ||
+            !allowedEventTypes.has(event.event_type) ||
             typeof event.title !== "string" || !event.title.trim() ||
-            !Array.isArray(event.candidate_names) ||
-            !event.candidate_names.every(name =>
+            !Array.isArray(candidateIds) ||
+            !Array.isArray(candidateNames) ||
+            candidateIds.length !== candidateNames.length ||
+            !candidateIds.every(id =>
+              typeof id === "string" &&
+              /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)
+            ) ||
+            !candidateNames.every(name =>
               typeof name === "string" && Boolean(name.trim())
             ) ||
-            !validScheduledStart(event.scheduled_start) ||
-            !precisions.has(event.time_precision) ||
+            !validScheduledValue(event.scheduled_start, event.time_precision) ||
+            (event.scheduled_end !== undefined &&
+              (!validScheduledValue(event.scheduled_end, event.time_precision) ||
+                new Date(event.scheduled_end).getTime() <
+                  new Date(event.scheduled_start).getTime())) ||
             event.timezone !== "Europe/Paris" ||
             !statuses.has(event.status) ||
-            typeof event.evidence_status !== "string" ||
-            !event.evidence_status.trim() ||
-            !validEvidence(event.evidence)) {
+            !validDateKey(event.status_as_of) ||
+            !evidenceStatuses.has(event.evidence_status) ||
+            !validUtcTimestamp(event.last_verified_at) ||
+            !validEvidence(event.evidence, true)) {
           throw new Error(
             `campaign_events.json ${lane}[${index}] is malformed`
           );
@@ -9327,13 +9447,14 @@
       const updateIds = new Set();
       eventWatch.forEach((update, index) => {
         if (!update || typeof update !== "object" ||
-            typeof update.update_id !== "string" || !update.update_id ||
+            typeof update.update_id !== "string" ||
+            !/^cew-[0-9a-f]{24}$/.test(update.update_id) ||
             updateIds.has(update.update_id) ||
             !campaignEventIds.has(update.event_id) ||
             !updateTypes.has(update.update_type) ||
             typeof update.headline !== "string" || !update.headline.trim() ||
-            !Number.isFinite(new Date(update.observed_at).getTime()) ||
-            !validEvidence(update.evidence)) {
+            !validUtcTimestamp(update.observed_at) ||
+            !validEvidence(update.evidence, false)) {
           throw new Error(
             `campaign_events.json event_watch[${index}] is malformed`
           );
