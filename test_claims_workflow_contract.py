@@ -30,9 +30,19 @@ class ClaimsWorkflowContractTests(unittest.TestCase):
 
     def test_fetched_claims_validate_against_registry(self):
         self.assertIn("load_candidate_candidacy_status", self.text)
-        self.assertGreaterEqual(self.text.count("candidacy_payload=candidacy"), 2)
+        fetched_start = self.text.index("fetched = load_json(fetched_path)")
+        current_start = self.text.index("if current_path.exists():", fetched_start)
+        fetched_validation = self.text[fetched_start:current_start]
+        self.assertIn("candidacy_payload=candidacy", fetched_validation)
         self.assertIn("fetched['candidate_query']['count']", self.text)
         self.assertIn("test_claims_workflow_contract.py", self.text)
+
+    def test_existing_claims_validate_as_historical_snapshot(self):
+        current_start = self.text.index("if current_path.exists():")
+        comparison_start = self.text.index("changed = semantic_public_content", current_start)
+        current_validation = self.text[current_start:comparison_start]
+        self.assertIn("candidacy_payload=None", current_validation)
+        self.assertNotIn("candidacy_payload=candidacy", current_validation)
 
     def test_publication_safety_contract_is_preserved(self):
         self.assertIn("semantic_public_content", self.text)

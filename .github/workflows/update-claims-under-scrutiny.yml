@@ -94,7 +94,7 @@ jobs:
                   validate_public_bundle(
                       current,
                       expected_archive_window_days=365,
-                      candidacy_payload=candidacy,
+                      candidacy_payload=None,
                   )
               except CollectorError as error:
                   fail(f"existing public file is malformed; preserving it: {error}")
@@ -106,7 +106,7 @@ jobs:
               output.write(f"changed={str(changed).lower()}\n")
 
           if not changed:
-              print("No semantic public data change was detected; generated_at is ignored.")
+              print("No semantic public data change was detected for this UTC date.")
               raise SystemExit(0)
 
           atomic_write_json(current_path, fetched)

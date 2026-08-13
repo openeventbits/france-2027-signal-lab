@@ -255,7 +255,7 @@ class ReviewAndContractTests(unittest.TestCase):
         bundle = collector.build_public_bundle(payload, [review], 365, "2026-08-11T00:00:00Z")
         collector.validate_public_bundle(bundle, candidacy_payload=payload)
 
-    def test_registry_query_change_is_semantic_but_timestamp_is_not(self):
+    def test_same_utc_date_generated_time_is_not_semantic(self):
         first = collector.build_public_bundle(v2_registry(), [], 365, "2026-08-11T00:00:00Z")
         later = copy.deepcopy(first)
         later["generated_at"] = "2026-08-11T12:00:00Z"
@@ -263,6 +263,18 @@ class ReviewAndContractTests(unittest.TestCase):
             collector.semantic_public_content(first),
             collector.semantic_public_content(later),
         )
+
+    def test_next_utc_date_generated_time_is_semantic(self):
+        first = collector.build_public_bundle(v2_registry(), [], 365, "2026-08-11T12:00:00Z")
+        later = copy.deepcopy(first)
+        later["generated_at"] = "2026-08-12T00:00:00Z"
+        self.assertNotEqual(
+            collector.semantic_public_content(first),
+            collector.semantic_public_content(later),
+        )
+
+    def test_registry_query_change_is_semantic(self):
+        first = collector.build_public_bundle(v2_registry(), [], 365, "2026-08-11T00:00:00Z")
         changed = collector.build_public_bundle(
             v2_registry("alice-observee"), [], 365, "2026-08-11T12:00:00Z"
         )
@@ -360,6 +372,72 @@ class LifecycleCollectionTests(unittest.TestCase):
             retained[0]["candidate_associations"][0]["candidate_id"],
             "alice-observee",
         )
+
+    def test_historical_query_transition_accepts_old_and_requires_new_projection(self):
+        previous = v2_registry()
+        existing = collector.build_public_bundle(
+            previous,
+            [one_review(previous)],
+            365,
+            "2026-08-10T00:00:00Z",
+        )
+        current = copy.deepcopy(previous)
+        candidate = next(
+            item for item in current["candidates"]
+            if item["candidate_id"] == "alice-observee"
+        )
+        candidate["status"] = "withdrawn"
+        candidate["display_tier"] = "hidden"
+
+        collector.validate_public_bundle(
+            existing,
+            expected_archive_window_days=365,
+            candidacy_payload=None,
+        )
+        path = mock.Mock(spec=Path)
+        path.exists.return_value = True
+        path.read_text.return_value = json.dumps(existing, ensure_ascii=False)
+        retained = collector.load_existing_reviews(path, current, AS_OF, 365)
+        generated = collector.build_public_bundle(
+            current,
+            retained,
+            365,
+            "2026-08-11T00:00:00Z",
+        )
+
+        collector.validate_public_bundle(generated, candidacy_payload=current)
+        self.assertNotEqual(existing["candidate_query"], generated["candidate_query"])
+        self.assertEqual(
+            generated["candidate_query"],
+            collector.build_candidate_query(current),
+        )
+        self.assertEqual(
+            generated["reviews"][0]["candidate_associations"][0]["candidate_id"],
+            "alice-observee",
+        )
+
+    def test_historical_review_for_deleted_identity_is_rejected(self):
+        previous = v2_registry()
+        existing = collector.build_public_bundle(
+            previous,
+            [one_review(previous)],
+            365,
+            "2026-08-10T00:00:00Z",
+        )
+        current = copy.deepcopy(previous)
+        current["candidates"] = [
+            candidate for candidate in current["candidates"]
+            if candidate["candidate_id"] != "alice-observee"
+        ]
+        path = mock.Mock(spec=Path)
+        path.exists.return_value = True
+        path.read_text.return_value = json.dumps(existing, ensure_ascii=False)
+
+        with self.assertRaisesRegex(
+            collector.CollectorError,
+            "absent from canonical registry",
+        ):
+            collector.load_existing_reviews(path, current, AS_OF, 365)
 
     def test_active_to_hidden_stops_query_and_preserves_review(self):
         active = v2_registry()
