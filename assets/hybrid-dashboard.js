@@ -4942,17 +4942,27 @@
     return labels[key] || "OTHER";
   }
 
+  const campaignEventHorizonDotCategories = [
+    { key: "debate", eventType: "debate", label: "DEBATE", horizonKeys: ["debate"] },
+    { key: "rally", eventType: "rally", label: "RALLY / MEETING", horizonKeys: ["rally"] },
+    { key: "visit", eventType: "candidate_visit", label: "VISIT", horizonKeys: ["visit"] },
+    { key: "launch", eventType: "campaign_launch", label: "LAUNCH", horizonKeys: ["launch"] },
+    { key: "other", eventType: "other", label: "OTHER", horizonKeys: ["media", "other"] }
+  ];
+
   function campaignEventHorizonTypeGroups(events) {
-    return campaignEventHorizonCategories
+    return campaignEventHorizonDotCategories
       .map(category => {
         const count = events.filter(event =>
-          campaignEventHorizonCategory(event.event_type).key === category.key
+          category.horizonKeys.includes(
+            campaignEventHorizonCategory(event.event_type).key
+          )
         ).length;
         return count ? {
           key: category.key,
-          eventType: category.types[0],
+          eventType: category.eventType,
           count,
-          label: campaignEventHorizonCategoryLabel(category.key)
+          label: category.label
         } : null;
       })
       .filter(Boolean);
@@ -4967,15 +4977,10 @@
   }
 
   function renderOperationsHorizonLegend(model) {
-    const present = new Set(
-      model.upcomingEvents.map(event =>
-        campaignEventHorizonCategory(event.event_type).key
-      )
-    );
-    const categories = campaignEventHorizonCategories.filter(category =>
-      present.has(category.key)
-    );
-    return `<div class="hybrid-events-ops-legend" aria-label="Event type color legend">${categories.map(category => `<span class="hybrid-events-ops-legend-item"><i class="hybrid-events-ops-legend-swatch" data-event-type="${escapeAttribute(category.types[0])}" aria-hidden="true"></i><span>${escapeHtml(campaignEventHorizonCategoryLabel(category.key))}</span></span>`).join("")}</div>`;
+    const legendCategories = ["debate", "rally", "visit", "launch", "other"]
+      .map(key => campaignEventHorizonCategories.find(category => category.key === key))
+      .filter(Boolean);
+    return `<footer class="hybrid-events-ops-legend" aria-label="Event type color legend"><div>${legendCategories.map(category => `<span class="hybrid-events-ops-legend-item"><i class="hybrid-events-ops-legend-swatch" data-event-type="${escapeAttribute(category.types[0])}" aria-hidden="true"></i><span>${escapeHtml(campaignEventHorizonCategoryLabel(category.key))} [${escapeHtml(campaignEventTypeCode(category.types[0]))}]</span></span>`).join("")}</div><p>Descriptive polling data from public sources · no model · no averages · no forecast · no voting advice.</p><p>Candidate portraits are AI-generated illustrations for visual identification.</p></footer>`;
   }
 
   function campaignEventScheduleMetricIcon(name) {
@@ -5003,17 +5008,12 @@
         : "No scheduled events";
       const weekSummary = `${bin.label}. ${bin.count} scheduled ${bin.count === 1 ? "event" : "events"}. ${breakdown}.`;
       return `<div class="hybrid-events-ops-week${selected ? " is-selected" : ""}${current ? " is-current" : ""}${monthStart ? " is-month-start" : ""}" title="${escapeAttribute(weekSummary)}">
-        <button type="button" class="hybrid-events-ops-week-select" data-hybrid-week-select="${escapeAttribute(bin.startKey)}" aria-label="${escapeAttribute(`Navigate to week ${weekSummary}`)}"${current ? ' aria-current="date"' : ""}>
+        <button type="button" class="hybrid-events-ops-week-select" data-hybrid-week-select="${escapeAttribute(bin.startKey)}" aria-label="${escapeAttribute(`Navigate to week ${weekSummary}`)}" aria-pressed="${String(selected)}"${current ? ' aria-current="date"' : ""}>
           <span>${escapeHtml(bin.label)}</span><strong class="hybrid-events-ops-week-count${bin.count ? " has-events" : " is-empty"}">${escapeHtml(countLabel)}</strong>
         </button>
         <div class="hybrid-events-ops-week-markers" aria-hidden="true">${renderOperationsHorizonComposition(bin.events)}</div>
       </div>`;
     }).join("");
-    const metrics = [
-      { label: "UPCOMING", value: model.upcomingCount, icon: "calendar", tone: "cyan" },
-      { label: "NEXT 14D", value: model.next14Count, icon: "clock", tone: "violet" },
-      { label: "MULTI-CANDIDATE", value: model.multiCandidateCount, icon: "people", tone: "cyan" }
-    ];
     const filters = campaignEventFilterOptions(model);
     const dataAsOf = campaignEventObservedLabel(model.dataAsOf);
     const scheduleInfo = `Curated high-signal calendar. Empty weeks do not imply no campaign activity. Past scheduled events are not treated as completed without explicit occurrence evidence. Data as of: ${dataAsOf}.`;
@@ -5025,7 +5025,6 @@
           <span class="hybrid-events-ops-info" tabindex="0" role="note" aria-label="${escapeAttribute(scheduleInfo)}" title="${escapeAttribute(scheduleInfo)}">i</span>
         </div>
         <div class="hybrid-events-ops-head-controls">
-          <div class="hybrid-events-ops-metrics" aria-label="Campaign schedule summary">${metrics.map(metric => `<span class="hybrid-events-ops-metric is-${escapeAttribute(metric.tone)}">${campaignEventScheduleMetricIcon(metric.icon)}<strong>${escapeHtml(metric.value)}</strong><small>${escapeHtml(metric.label)}</small></span>`).join("")}</div>
           <div class="hybrid-events-ops-filters" aria-label="Filter campaign events by type">${filters.map(filter => `<button type="button" class="hybrid-events-filter${model.eventTypeFilter === filter.key ? " is-active" : ""}" data-event-type="${escapeAttribute(filter.key)}" data-hybrid-events-filter="${escapeAttribute(filter.key)}" aria-pressed="${String(model.eventTypeFilter === filter.key)}">${escapeHtml(filter.label)}</button>`).join("")}</div>
         </div>
       </div>
@@ -5035,7 +5034,6 @@
           <div class="hybrid-events-ops-weeks">${weeks}</div>
         </div>
       </div>
-      ${renderOperationsHorizonLegend(model)}
     </section>`;
   }
 
@@ -5052,14 +5050,14 @@
     return `<button
       class="hybrid-events-upcoming-row${selected ? " is-selected" : ""}${compact ? " is-compact" : ""}"
       type="button"
+      data-event-type="${escapeAttribute(event.event_type)}"
       data-hybrid-event-id="${escapeAttribute(event.event_id)}"
       data-hybrid-event-week="${escapeAttribute(weekStart)}"
       aria-pressed="${String(selected)}"
     >
       <time datetime="${escapeAttribute(event.scheduled_start)}"><strong>${escapeHtml(dateParts[0] || "")}</strong><span>${escapeHtml(dateParts.slice(1).join(" "))}</span><em>${escapeHtml(weekday)}</em></time>
-      <span class="hybrid-events-upcoming-time">${escapeHtml(campaignEventTimeLabel(event))}</span>
       ${renderEventTypeBadge(event.event_type, participantCount > 1 ? `×${participantCount}` : "")}
-      <span class="hybrid-events-upcoming-copy"><strong lang="fr">${escapeHtml(event.title)}</strong><small>${place ? escapeHtml(place) : ""}${place && people ? " · " : ""}${people ? escapeHtml(people) : ""}</small></span>
+      <span class="hybrid-events-upcoming-copy"><strong lang="fr">${escapeHtml(event.title)}</strong><small>${campaignEventTimeLabel(event) !== "—" ? `<b class="hybrid-events-upcoming-meta-time">${escapeHtml(campaignEventTimeLabel(event))}</b>` : ""}${campaignEventTimeLabel(event) !== "—" && (place || people) ? " · " : ""}${place ? escapeHtml(place) : ""}${place && people ? " · " : ""}${people ? escapeHtml(people) : ""}</small></span>
       ${rightLabel ? `<span class="hybrid-events-upcoming-right">${escapeHtml(rightLabel)}</span>` : ""}
     </button>`;
   }
@@ -5121,10 +5119,11 @@
     }
     return `<section class="hybrid-events-dossier-evidence"><div class="hybrid-events-dossier-section-head"><h4>SOURCE EVIDENCE</h4><span>PRIMARY</span></div>
       <div class="hybrid-events-evidence-primary">
-        <div><strong>${escapeHtml(evidence.source_publisher || "Source")}</strong><span>${escapeHtml(campaignEventSourceTypeLabel(evidence.source_type))}</span><small>${escapeHtml(campaignEventEvidenceTypeLabel(evidence.evidence_type))}</small></div>
+        <div><strong>${escapeHtml(evidence.source_publisher || "Source")}</strong><span>${escapeHtml(campaignEventSourceTypeLabel(evidence.source_type))}</span></div>
         <time datetime="${escapeAttribute(event.last_verified_at || "")}">${escapeHtml(campaignEventObservedLabel(event.last_verified_at))}</time>
       </div>
-      <div class="hybrid-events-evidence-actions"><span class="hybrid-events-evidence-chip" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span>${sourceLink(evidence.source_url, "OPEN SOURCE ↗", "hybrid-events-dossier-source", `Open source for ${event.title}`)}</div>
+      <p>${escapeHtml(campaignEventEvidenceTypeLabel(evidence.evidence_type))}</p>
+      <div class="hybrid-events-evidence-actions"><span class="hybrid-events-evidence-chip" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span>${sourceLink(evidence.source_url, "OPEN SOURCE", "hybrid-events-dossier-source", `Open source for ${event.title}`)}</div>
     </section>`;
   }
 
@@ -5151,18 +5150,22 @@
     const participantCount = campaignEventParticipantCount(event);
     const place = campaignEventPlaceLabel(event) || "Location not published";
     const when = `${campaignEventLongDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}`;
+    const format = campaignEventTypeDisplayLabel(event.event_type);
 
     return `<section class="hybrid-events-dossier" aria-labelledby="hybrid-events-dossier-title">
-      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-dossier-title">EVENT DOSSIER</h3><span>SOURCE-LINKED EVIDENCE</span></div>
+      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-dossier-title">EVENT DOSSIER</h3><span class="hybrid-events-dossier-head-meta">SOURCE-LINKED EVIDENCE <i class="hybrid-events-dossier-info" tabindex="0" role="img" aria-label="Past scheduled events remain scheduled until explicit occurrence evidence confirms they took place." title="Past scheduled events remain scheduled until explicit occurrence evidence confirms they took place.">i</i></span></div>
       <div class="hybrid-events-dossier-body">
         <div class="hybrid-events-dossier-title">${renderEventTypeBadge(event.event_type, participantCount > 1 ? `×${participantCount}` : "")}<div><h4 lang="fr">${escapeHtml(event.title)}</h4><div><span class="hybrid-events-status" data-event-status="${escapeAttribute(status.key)}">${escapeHtml(status.label)}</span><span class="hybrid-events-evidence-chip" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span></div></div></div>
-        <div class="hybrid-events-dossier-lede"><div><small>DATE / TIME</small><strong>${escapeHtml(when)}</strong></div><div><small>VENUE</small><strong>${escapeHtml(place)}</strong></div></div>
+        <div class="hybrid-events-dossier-lede">
+          <div><small>DATE / TIME</small><strong>${escapeHtml(when)}</strong></div>
+          <div><small>VENUE</small><strong>${escapeHtml(place)}</strong></div>
+          <div><small>FORMAT</small><strong>${escapeHtml(format)}</strong></div>
+        </div>
         <div class="hybrid-events-dossier-grid">
           <div class="hybrid-events-dossier-left">${renderDossierParticipants(event)}${renderDossierEventDetails(event)}</div>
           ${renderDossierEvidence(event)}
         </div>
-        ${renderDossierHistory(model)}
-        <p class="hybrid-events-disclosure">Past scheduled rows are not treated as completed without explicit occurrence evidence.</p>
+
       </div>
     </section>`;
   }
@@ -5189,7 +5192,8 @@
     const title = event?.title || update.headline || "Campaign calendar addition";
     const schedule = event ? `${campaignEventShortDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}` : "Schedule unavailable";
     const selected = model.selectedEvent?.event_id === update.event_id;
-    return `<button type="button" class="hybrid-events-watch-addition${selected ? " is-selected" : ""}" data-hybrid-event-id="${escapeAttribute(update.event_id)}" ${weekStart ? `data-hybrid-event-week="${escapeAttribute(weekStart)}"` : ""}>
+    return `<button type="button" class="hybrid-events-watch-addition${selected ? " is-selected" : ""}" data-event-type="${escapeAttribute(event?.event_type || "other")}" data-hybrid-event-id="${escapeAttribute(update.event_id)}" ${weekStart ? `data-hybrid-event-week="${escapeAttribute(weekStart)}"` : ""}>
+      <i class="hybrid-events-watch-event-node" aria-hidden="true"></i>
       <strong lang="fr">${escapeHtml(title)}</strong><small>${escapeHtml(schedule)} · ${escapeHtml(publisher)}</small>
     </button>`;
   }
@@ -5199,19 +5203,19 @@
     const additionGroups = groupCampaignEventAdditions(model.eventWatch);
     const materialContent = materialUpdates.length
       ? materialUpdates.map(update => renderScheduleWatchMaterialItem(update, model)).join("")
-      : `<div class="hybrid-events-watch-empty"><strong>NO MATERIAL CHANGES</strong><span>No confirmed, updated, postponed or cancelled calendar change is published.</span></div>`;
+      : `<div class="hybrid-events-watch-empty"><i aria-hidden="true">✓</i><strong>MATERIAL CHANGES 0</strong></div>`;
     const additions = additionGroups.length
       ? additionGroups.map(group => {
           const observed = campaignEventObservedParts(group.observedAt);
-          return `<section class="hybrid-events-watch-addition-group"><div class="hybrid-events-watch-addition-head"><span>${escapeHtml(observed.date)}${observed.time ? ` · ${escapeHtml(observed.time)}` : ""}</span><strong>+${group.updates.length} NEW</strong></div><div>${group.updates.map(update => renderScheduleWatchAddition(update, model)).join("")}</div></section>`;
+          return `<section class="hybrid-events-watch-addition-group"><i class="hybrid-events-watch-group-node" aria-hidden="true"></i><div class="hybrid-events-watch-addition-head"><span>${escapeHtml(observed.date)}${observed.time ? ` · ${escapeHtml(observed.time)}` : ""}</span><strong>+${group.updates.length} NEW</strong></div><div>${group.updates.map(update => renderScheduleWatchAddition(update, model)).join("")}</div></section>`;
         }).join("")
       : '<div class="hybrid-events-watch-empty"><strong>NO RECENT ADDITIONS</strong><span>No newly published event is recorded in the current watch log.</span></div>';
 
     return `<section class="hybrid-events-schedule-watch" aria-labelledby="hybrid-events-schedule-watch-title">
       <div class="hybrid-events-panel-head"><div><h3 id="hybrid-events-schedule-watch-title">SCHEDULE WATCH</h3><span>CALENDAR ACTIVITY</span></div><span>${model.watchCount} RECORDS</span></div>
       <div class="hybrid-events-schedule-watch-body">
-        <section class="hybrid-events-watch-section is-material"><div class="hybrid-events-watch-section-head"><h4>MATERIAL CHANGES</h4><span>${materialUpdates.length}</span></div>${materialContent}</section>
-        <section class="hybrid-events-watch-section is-additions"><div class="hybrid-events-watch-section-head"><h4>RECENT ADDITIONS</h4><span>${model.eventWatch.length - materialUpdates.length}</span></div>${additions}</section>
+        <section class="hybrid-events-watch-section is-material">${materialContent}</section>
+        <section class="hybrid-events-watch-section is-additions"><div class="hybrid-events-watch-section-head"><h4>RECENT ADDITIONS</h4><span>${model.eventWatch.length - materialUpdates.length}</span></div><div class="hybrid-events-watch-timeline">${additions}</div></section>
       </div>
     </section>`;
   }
@@ -5227,6 +5231,7 @@
         ${renderEventDossier(model)}
         ${renderScheduleWatch(model)}
       </div>
+      ${renderOperationsHorizonLegend(model)}
     </div>`;
   }
 

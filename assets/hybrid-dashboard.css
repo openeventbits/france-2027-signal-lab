@@ -1708,7 +1708,7 @@
   }
 }
 
-/* AGENDA WORKSPACE — LOCKED CANONICAL PRESENTATION */
+/* AGENDA WORKSPACE ΓÇö LOCKED CANONICAL PRESENTATION */
 
 .hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-workspace {
   box-sizing: border-box;
@@ -4137,7 +4137,7 @@
   --hybrid-events-micro: 8.5px;
   box-sizing: border-box;
   display: grid;
-  grid-template-rows: 122px minmax(0, 1fr);
+  grid-template-rows: 96px minmax(0, 1fr) 22px;
   align-content: stretch;
   gap: 8px;
   width: 100%;
@@ -4158,7 +4158,6 @@
   border-radius: 8px;
   background: var(--hybrid-events-surface);
   box-shadow: inset 0 1px 0 rgba(112, 195, 229, .025);
-  grid-template-rows: 30px minmax(0, 1fr) 22px;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-panel-head {
@@ -4235,7 +4234,8 @@
   --hybrid-event-border: rgba(157, 140, 255, .68);
 }
 .hybrid-panel#signal-events-panel [data-event-type="rally"],
-.hybrid-panel#signal-events-panel [data-event-type="public_meeting"] {
+.hybrid-panel#signal-events-panel [data-event-type="public_meeting"],
+.hybrid-panel#signal-events-panel [data-event-type="speech"] {
   --hybrid-event-tone: #35d5ff;
   --hybrid-event-border: rgba(53, 213, 255, .58);
 }
@@ -4245,23 +4245,21 @@
 }
 .hybrid-panel#signal-events-panel [data-event-type="campaign_launch"],
 .hybrid-panel#signal-events-panel [data-event-type="candidacy_announcement"],
-.hybrid-panel#signal-events-panel [data-event-type="program_launch"] {
+.hybrid-panel#signal-events-panel [data-event-type="program_launch"],
+.hybrid-panel#signal-events-panel [data-event-type="primary"] {
   --hybrid-event-tone: #ffca64;
   --hybrid-event-border: rgba(255, 191, 75, .62);
 }
-.hybrid-panel#signal-events-panel [data-event-type="media_appearance"] {
-  --hybrid-event-tone: #ff6fae;
-  --hybrid-event-border: rgba(255, 111, 174, .58);
-}
+.hybrid-panel#signal-events-panel [data-event-type="media_appearance"],
 .hybrid-panel#signal-events-panel [data-event-type="press_conference"],
+.hybrid-panel#signal-events-panel [data-event-type="party_event"],
 .hybrid-panel#signal-events-panel [data-event-type="other"] {
   --hybrid-event-tone: #a7b7c2;
   --hybrid-event-border: rgba(142, 165, 179, .55);
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-type-badge[data-event-type],
-.hybrid-panel#signal-events-panel .hybrid-events-ops-marker[data-event-type],
-.hybrid-panel#signal-events-panel .hybrid-events-ops-legend-swatch[data-event-type] {
+.hybrid-panel#signal-events-panel .hybrid-events-ops-type-dot[data-event-type] {
   border-color: var(--hybrid-event-border, #35627b);
   color: var(--hybrid-event-tone, #a9c2d2);
 }
@@ -4791,12 +4789,12 @@ border: 0;
 
 /* UPCOMING EVENTS */
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-week-head {
-  min-height: 27px;
+  min-height: 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 0 9px;
+  padding: 0 9px 0 12px;
   border-top: 1px solid rgba(35, 86, 114, .54);
   border-bottom: 1px solid rgba(35, 86, 114, .40);
   background: rgba(6, 24, 39, .36);
@@ -4822,12 +4820,12 @@ border: 0;
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row {
   position: relative;
   width: 100%;
-  min-height: 72px;
+  min-height: 66px;
   display: grid;
-  grid-template-columns: 55px 43px 39px minmax(0, 1fr) auto;
+  grid-template-columns: 58px 38px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 7px;
-  padding: 7px 9px 7px 8px;
+  gap: 8px;
+  padding: 5px 8px 5px 12px;
   border: 0;
   border-bottom: 1px solid rgba(35, 86, 114, .42);
   background: transparent;
@@ -4837,13 +4835,24 @@ border: 0;
   cursor: pointer;
 }
 
+.hybrid-panel#signal-events-panel .hybrid-events-upcoming-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  background: var(--hybrid-event-tone, #7898aa);
+  opacity: .86;
+}
+
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row:hover {
   background: rgba(8, 33, 51, .58);
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row.is-selected {
-  background: linear-gradient(90deg, rgba(9, 74, 101, .31), rgba(5, 26, 42, .30));
-  box-shadow: inset 3px 0 0 var(--cyan);
+  background: rgba(100, 75, 184, .11);
+  box-shadow: inset 0 0 0 1px rgba(169, 137, 255, .16);
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row > time {
@@ -4855,7 +4864,7 @@ border: 0;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row > time strong {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 760;
   line-height: 1;
 }
@@ -4877,16 +4886,18 @@ border: 0;
   line-height: 1;
 }
 
-.hybrid-panel#signal-events-panel .hybrid-events-upcoming-time {
-  color: #a9c0cd;
-  font-size: var(--hybrid-events-body);
-  font-weight: 620;
+.hybrid-panel#signal-events-panel .hybrid-events-upcoming-row > .hybrid-events-type-badge {
+  min-width: 34px;
+  min-height: 21px;
+  padding: 1px 4px;
+  justify-self: start;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-copy {
   min-width: 0;
+  margin-left: 2px;
   display: grid;
-  gap: 4px;
+  gap: 3px;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-copy strong {
@@ -4910,15 +4921,21 @@ border: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.hybrid-panel#signal-events-panel .hybrid-events-upcoming-meta-time {
+  color: #92adbb;
+  font: inherit;
+  font-weight: 640;
+  white-space: nowrap;
+}
 
 .hybrid-panel#signal-events-panel .hybrid-events-upcoming-right {
   min-width: max-content;
-  padding: 3px 6px;
-  border: 1px solid rgba(53, 213, 255, .42);
+  padding: 2px 5px;
+  border: 1px solid rgba(53, 213, 255, .18);
   border-radius: 2px;
-  color: #63ddff;
+  color: #68bed3;
   font-size: var(--hybrid-events-micro);
-  font-weight: 740;
+  font-weight: 680;
   line-height: 1;
   text-transform: uppercase;
 }
@@ -4944,7 +4961,7 @@ border: 0;
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-title h4 {
   margin: 0;
   color: #f2f8fb;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 760;
   line-height: 1.2;
 }
@@ -4959,9 +4976,9 @@ border: 0;
 
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-lede {
   display: grid;
-  grid-template-columns: 1fr 1.35fr;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .9fr) minmax(0, .75fr);
   min-width: 0;
-  margin-top: 8px;
+  margin-top: 7px;
   border-bottom: 1px solid rgba(35, 86, 114, .50);
 }
 
@@ -4969,7 +4986,7 @@ border: 0;
   min-width: 0;
   display: grid;
   gap: 4px;
-  padding: 7px 10px 9px;
+  padding: 7px 9px 8px;
   border-left: 1px solid rgba(35, 86, 114, .44);
 }
 
@@ -5005,8 +5022,8 @@ border: 0;
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-grid {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr);
-  gap: 9px;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, .92fr);
+  gap: 11px;
   margin-top: 9px;
 }
 
@@ -5014,7 +5031,7 @@ border: 0;
   min-width: 0;
   display: grid;
   align-content: start;
-  gap: 9px;
+  gap: 8px;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-context,
@@ -5046,8 +5063,8 @@ border: 0;
 
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-context dl {
   display: grid;
-  gap: 5px;
-  margin: 8px 0 0;
+  gap: 4px;
+  margin: 7px 0 0;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-context dl div {
@@ -5087,11 +5104,11 @@ border: 0;
 
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-evidence {
   min-width: 0;
-  padding: 10px 11px;
-  border: 1px solid rgba(53, 213, 255, .34);
+  padding: 9px 10px;
+  border: 1px solid rgba(53, 213, 255, .24);
   border-radius: 4px;
-  background: linear-gradient(145deg, rgba(7, 29, 46, .82), rgba(3, 16, 28, .66));
-  box-shadow: inset 3px 0 0 rgba(53, 213, 255, .16);
+  background: rgba(5, 24, 39, .78);
+  box-shadow: inset 2px 0 0 rgba(53, 213, 255, .12);
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-dossier-section-head,
@@ -5137,6 +5154,13 @@ border: 0;
   color: #8ba6b5;
   font-size: var(--hybrid-events-body);
   line-height: 1.25;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-evidence > p {
+  margin: 10px 0 0;
+  color: #a9bfca;
+  font-size: var(--hybrid-events-body);
+  line-height: 1.35;
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-evidence-primary time {
@@ -5238,6 +5262,962 @@ border: 0;
 }
 
 /* SCHEDULE WATCH */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier,
+.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
+  --hybrid-events-body: 11px;
+  --hybrid-events-meta-size: 10px;
+  --hybrid-events-micro: 9.5px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
+  --hybrid-events-body: 11.5px;
+  --hybrid-events-meta-size: 10.5px;
+  --hybrid-events-micro: 10px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-body {
+  padding: 0 11px 8px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section {
+  padding-top: 9px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section + .hybrid-events-watch-section {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(35, 86, 114, .48);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-empty {
+  display: grid;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 9px;
+  border-left: 2px solid rgba(82, 125, 147, .46);
+  background: rgba(4, 18, 30, .34);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-empty strong {
+  color: #9fb5c0;
+  font-size: var(--hybrid-events-meta-size);
+  font-weight: 720;
+  letter-spacing: .04em;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-empty span {
+  color: #7f9aa9;
+  font-size: var(--hybrid-events-body);
+  line-height: 1.35;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section.is-material.is-empty {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 10px;
+  min-height: 36px;
+  padding-top: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section.is-material.is-empty + .hybrid-events-watch-section {
+  margin-top: 0;
+  padding-top: 8px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-empty.is-compact {
+  min-height: 0;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-empty.is-compact span {
+  color: #91aab7;
+  font-size: 10.5px;
+  font-weight: 560;
+  line-height: 1.25;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section.is-material.is-empty .hybrid-events-watch-section-head {
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-healthy {
+  width: 16px;
+  height: 16px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(82, 229, 163, .78);
+  border-radius: 50%;
+  color: #52e5a3;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr) 54px;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 3px 8px 14px;
+  border: 0;
+  border-bottom: 1px solid rgba(35, 86, 114, .38);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item:hover,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item.is-selected,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition:hover,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition.is-selected {
+  background: rgba(8, 34, 52, .48);
+  box-shadow: inset 2px 0 0 var(--cyan);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-node {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: -18px;
+  width: 8px;
+  height: 8px;
+  border: 1px solid rgba(3, 17, 29, .92);
+  border-radius: 50%;
+  background: var(--hybrid-event-tone, #7898aa);
+  box-shadow: 0 0 0 1px var(--hybrid-event-border, rgba(142, 165, 179, .55));
+  transform: translateY(-50%);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item > .hybrid-events-watch-node {
+  left: 3px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-copy,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition {
+  min-width: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-copy strong,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #eaf4f8;
+  font-size: 12px;
+  font-weight: 680;
+  line-height: 1.28;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-copy small,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition small {
+  min-width: 0;
+  overflow: hidden;
+  color: #819cab;
+  font-size: 10.5px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item > time {
+  display: grid;
+  gap: 2px;
+  color: #7897a8;
+  font-size: var(--hybrid-events-micro);
+  text-align: right;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item > time strong {
+  color: #cbdde5;
+  font-size: var(--hybrid-events-meta-size);
+  font-weight: 700;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-group {
+  position: relative;
+  margin-top: 7px;
+  padding-left: 22px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-group::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  bottom: -8px;
+  left: 8px;
+  width: 1px;
+  background: rgba(72, 158, 190, .68);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-group:last-of-type::before {
+  bottom: 13px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-group:first-of-type {
+  margin-top: 3px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-head {
+  min-height: 28px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #8ba6b5;
+  font-size: 10.5px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-head > i {
+  position: absolute;
+  z-index: 2;
+  left: 4px;
+  top: 10px;
+  width: 9px;
+  height: 9px;
+  border: 1px solid #67cce8;
+  border-radius: 50%;
+  background: #061b2c;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-head strong {
+  color: #b9abff;
+  font-size: 10.5px;
+  font-weight: 740;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition {
+  position: relative;
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  padding: 8px 7px 8px 9px;
+  border: 0;
+  border-bottom: 1px solid rgba(35, 86, 114, .30);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hybrid-panel#signal-events-panel button:focus-visible,
+.hybrid-panel#signal-events-panel a:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1260px) {
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-main {
+    grid-template-columns: minmax(0, 30fr) minmax(0, 40fr) minmax(0, 30fr);
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row {
+    grid-template-columns: 58px 38px minmax(0, 1fr);
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-right {
+    grid-column: 3;
+    width: fit-content;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-item {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-item > time {
+    grid-column: 2;
+    text-align: left;
+  }
+}
+
+@media (max-width: 1100px) {
+  .hybrid-panel#signal-events-panel {
+    overflow-y: auto;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-workspace {
+    height: auto;
+    grid-template-rows: auto auto 22px;
+    overflow: visible;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
+    min-height: 104px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
+    gap: 5px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-filter {
+    padding-inline: 5px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-main {
+    grid-template-columns: 1fr 1fr;
+    height: auto;
+    min-height: 0;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier,
+  .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
+    height: auto;
+    min-height: 470px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
+    grid-column: 1 / -1;
+    min-height: 390px;
+  }
+}
+
+@media (max-width: 760px) {
+  .hybrid-panel#signal-events-panel {
+    padding: 6px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-workspace,
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-main {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
+    grid-template-rows: auto minmax(60px, auto);
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-rail-head {
+    min-height: 58px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "title"
+      "controls";
+    row-gap: 5px;
+    padding: 6px 9px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-titleline {
+    grid-area: title;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
+    grid-area: controls;
+    grid-column: auto;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier,
+  .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
+    grid-column: 1;
+    min-height: 440px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row {
+    grid-template-columns: 58px 38px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row > .hybrid-events-type-badge {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-copy {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-right {
+    grid-column: 3;
+    width: fit-content;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-lede,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-lede > div {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid rgba(35, 86, 114, .42);
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-lede > div:first-child {
+    border-top: 0;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-history-item {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-item {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* EVENT DOSSIER METHODOLOGY INFO */
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-head-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-info {
+  width: 14px;
+  height: 14px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 14px;
+  border: 1px solid rgba(53, 213, 255, .30);
+  border-radius: 50%;
+  color: #7899ad;
+  font-size: 9px;
+  font-weight: 760;
+  font-style: normal;
+  line-height: 1;
+  cursor: help;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-info:hover,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-info:focus-visible {
+  border-color: rgba(53, 213, 255, .64);
+  color: var(--cyan);
+  outline: none;
+}
+/* TYPOGRAPHY DETAILS */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-lede small,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-context h4,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement h4,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-participants h4,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-section-head h4,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section-head h4 {
+  font-family: inherit;
+  font-size: 9.5px;
+  font-weight: 720;
+  line-height: 1;
+  letter-spacing: .5px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-upcoming-row > time span {
+  font-family: inherit;
+  font-size: 9.5px;
+  font-weight: 720;
+  line-height: 1;
+  letter-spacing: .04em;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-upcoming-row > time em {
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months {
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: .045em;
+}
+
+.hybrid-panel#signal-events-panel
+  .hybrid-events-schedule-watch
+  > .hybrid-events-panel-head
+  > div
+  > span,
+.hybrid-panel#signal-events-panel
+  .hybrid-events-schedule-watch
+  > .hybrid-events-panel-head
+  > span {
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: .035em;
+}
+
+.hybrid-panel#signal-events-panel
+  .hybrid-events-schedule-watch
+  .hybrid-events-watch-section-head h4 {
+  font-size: 10px;
+  font-weight: 720;
+  line-height: 1;
+  letter-spacing: .5px;
+}
+
+.hybrid-panel#signal-events-panel
+  .hybrid-events-schedule-watch
+  .hybrid-events-watch-section-head > span {
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.hybrid-panel#signal-events-panel
+  .hybrid-events-schedule-watch
+  .hybrid-events-watch-material-item > time {
+  font-size: 10px;
+  line-height: 1.15;
+}
+
+.hybrid-panel#signal-events-panel
+  .hybrid-events-schedule-watch
+  .hybrid-events-watch-material-item > time strong {
+  font-size: 10.5px;
+  font-weight: 700;
+}
+/* EVENTS MOCKUP TIMELINE WATCH TRANSPLANT V1 — START */
+.hybrid-panel#signal-events-panel .hybrid-events-type-badge[data-event-type],
+.hybrid-panel#signal-events-panel .hybrid-events-ops-marker[data-event-type],
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend-swatch[data-event-type] {
+  border-color: var(--hybrid-event-border, #35627b);
+  color: var(--hybrid-event-tone, #a9c2d2);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-status,
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-chip,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  padding: 2px 6px;
+  border: 1px solid #346079;
+  border-radius: 2px;
+  color: #aac4d3;
+  font-size: var(--hybrid-events-micro);
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-status[data-event-status="postponed"],
+.hybrid-panel#signal-events-panel .hybrid-events-watch-type[data-update-type="postponed"] {
+  border-color: rgba(255, 191, 75, .58);
+  color: #ffca64;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-status[data-event-status="cancelled"],
+.hybrid-panel#signal-events-panel .hybrid-events-watch-type[data-update-type="cancelled"] {
+  border-color: rgba(255, 124, 138, .58);
+  color: #ff9ba7;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
+  display: grid;
+  grid-template-rows: 30px minmax(0, 1fr) 22px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-rail-head {
+  min-height: 30px;
+  display: grid;
+  grid-template-columns: auto minmax(24px, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border-bottom: 1px solid rgba(35, 86, 114, .42);
+  background: rgba(6, 24, 39, .30);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-titleline {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
+  grid-column: 3;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-info {
+  width: 15px;
+  height: 15px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(53, 213, 255, .38);
+  border-radius: 50%;
+  color: #7fb4c9;
+  font-size: var(--hybrid-events-meta-size);
+  font-weight: 760;
+  font-style: normal;
+  line-height: 1;
+  cursor: help;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-info:hover,
+.hybrid-panel#signal-events-panel .hybrid-events-ops-info:focus-visible {
+  border-color: rgba(53, 213, 255, .70);
+  color: var(--cyan);
+  outline: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-horizon-scroll {
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(53, 213, 255, .22) transparent;
+  padding: 2px 8px 1px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-horizon {
+  min-width: 990px;
+  height: 100%;
+  padding: 4px 7px 3px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(72px, 1fr));
+  min-height: 16px;
+  color: #91adbc;
+  font-size: 10.5px;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: .07em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months > span {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months > span::before,
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months > span::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59, 105, 130, .34));
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months > span::after {
+  background: linear-gradient(90deg, rgba(59, 105, 130, .34), transparent);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-weeks {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(72px, 1fr));
+  min-height: 49px;
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+  grid-template-rows: 23px 15px;
+  align-content: start;
+  padding: 2px 7px 2px;
+  cursor: pointer;
+  border-top: 1px solid rgba(35, 86, 114, .24);
+  border-bottom: 1px solid rgba(35, 86, 114, .24);
+  border-left: 1px solid rgba(35, 86, 114, .13);
+  background: rgba(3, 15, 26, .035);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 22px minmax(22px, 1fr);
+  align-content: stretch;
+  padding: 2px 7px 3px;
+  border-left: 1px solid rgba(35, 86, 114, .20);
+  background: rgba(3, 15, 26, .08);
+  transition: background-color .14s ease, box-shadow .14s ease;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week:not(.is-selected):hover {
+  background: rgba(8, 34, 52, .34);
+  box-shadow: inset 0 1px 0 rgba(53, 213, 255, .10);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week:not(.is-selected):hover {
+  background: rgba(8, 34, 52, .18);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week:first-child {
+  border-left: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-month-start {
+  border-left-color: rgba(53, 213, 255, .28);
+  box-shadow: inset 1px 0 0 rgba(53, 213, 255, .045);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-current::after {
+  content: none;
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  width: 1px;
+  height: 12px;
+  background: var(--cyan);
+  box-shadow: none;
+  transform: translateX(-50%);
+  opacity: .92;
+  pointer-events: none;
+  display: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-current::before {
+  content: none;
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--cyan);
+  transform: translateX(-50%);
+  box-shadow: none;
+  pointer-events: none;
+  display: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-selected {
+  background: linear-gradient(180deg, rgba(91, 70, 176, .13), rgba(41, 37, 79, .035));
+  box-shadow: inset 0 2px 0 rgba(170, 143, 255, .90);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-select {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 5px;
+  padding: 5px 7px 0;
+  border: 0;
+  background: transparent;
+  color: #8fa9b8;
+  font: inherit;
+  font-size: 11.5px;
+  line-height: 1.1;
+  text-align: left;
+  cursor: pointer;
+  grid-row: 1 / -1;
+  grid-column: 1;
+  height: 100%;
+  align-content: start;
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-select > span {
+  min-width: 0;
+  overflow: hidden;
+  color: #acc4d0;
+  font-weight: 640;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: .005em;
+  font-size: 11.5px;
+  line-height: 1.1;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-selected .hybrid-events-ops-week-select > span {
+  color: #e5deff;
+  font-weight: 680;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-count {
+  width: auto;
+  height: auto;
+  display: block;
+border: 0;
+  border-radius: 0;
+  color: #7f9aa9;
+  background: transparent;
+  font-size: 11.5px;
+  font-weight: 620;
+  line-height: 1.1;
+  min-width: 10px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: .015em;
+  min-height: 0;
+  place-items: unset;
+  box-shadow: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-count.has-events {
+  border-color: rgba(53, 213, 255, .38);
+  color: #cae4ee;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-selected .hybrid-events-ops-week-count.has-events {
+  border-color: rgba(174, 150, 255, .62);
+  color: #cbbaff;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-count.is-empty {
+  border-color: rgba(91, 126, 148, .16);
+  color: #4d6978;
+  background: transparent;
+  border: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-markers {
+  min-height: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  grid-row: 2;
+  grid-column: 1;
+  margin-top: 1px;
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  left: 7px;
+  top: 27px;
+  align-content: center;
+  margin: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-marker {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--hybrid-event-border, #35627b);
+  border-radius: 1px;
+  background: var(--hybrid-event-tone, #a9c2d2);
+  box-shadow: 0 0 5px rgba(53, 213, 255, .08);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-marker.is-type-presence {
+  cursor: default;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-selected .hybrid-events-ops-marker {
+  filter: brightness(1.12);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend {
+  min-width: 0;
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 18px;
+  padding: 0 10px;
+  border-top: 1px solid rgba(35, 86, 114, .34);
+  color: #7f9bac;
+  background: rgba(4, 18, 30, .24);
+  font-size: var(--hybrid-events-meta-size);
+  font-weight: 540;
+  line-height: 1;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend::-webkit-scrollbar {
+  display: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend-item {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  justify-content: center;
+  width: auto;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend-swatch {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--hybrid-event-border, #35627b);
+  border-radius: 1px;
+  background: var(--hybrid-event-tone, #a9c2d2);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-metrics,
+.hybrid-panel#signal-events-panel .hybrid-events-ops-filters {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-filters {
+  gap: 3px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-filter {
+  min-height: 22px;
+  padding: 0 7px;
+  border: 1px solid rgba(45, 87, 111, .30);
+  border-radius: 4px;
+  background: rgba(4, 19, 32, .20);
+  color: #7893a3;
+  font: inherit;
+  font-size: var(--hybrid-events-meta-size);
+  font-weight: 660;
+  cursor: pointer;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-filter:hover {
+  border-color: rgba(112, 154, 178, .50);
+  color: #b6ceda;
+  background: rgba(9, 28, 43, .40);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-filter.is-active {
+  border-color: rgba(166, 141, 255, .78);
+  color: #eee9ff;
+  background: rgba(94, 71, 174, .24);
+  box-shadow: inset 0 0 0 1px rgba(166, 141, 255, .08);
+}
+
 .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-body {
   padding: 0 9px 8px;
 }
@@ -5385,98 +6365,44 @@ border: 0;
   cursor: pointer;
 }
 
-.hybrid-panel#signal-events-panel button:focus-visible,
-.hybrid-panel#signal-events-panel a:focus-visible {
-  outline: 2px solid var(--cyan);
-  outline-offset: 2px;
-}
-
 @media (max-width: 1260px) {
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-main {
-    grid-template-columns: minmax(0, 32fr) minmax(0, 34fr) minmax(0, 34fr);
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row {
-    grid-template-columns: 53px 40px 38px minmax(0, 1fr);
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-right {
-    grid-column: 4;
-    width: fit-content;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-item {
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item {
     grid-template-columns: 64px minmax(0, 1fr);
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-item > time {
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item > time {
     grid-column: 2;
     text-align: left;
   }
+
 }
 
 @media (max-width: 1100px) {
-  .hybrid-panel#signal-events-panel {
-    overflow-y: auto;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-workspace {
-    height: auto;
-    grid-template-rows: auto auto;
-    overflow: visible;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
+.hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
     min-height: 126px;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
+.hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
     gap: 5px;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-metric {
-    padding-inline: 10px;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-filter {
+.hybrid-panel#signal-events-panel .hybrid-events-filter {
     padding-inline: 5px;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-main {
-    grid-template-columns: 1fr 1fr;
-    height: auto;
-    min-height: 0;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-upcoming,
-  .hybrid-panel#signal-events-panel .hybrid-events-dossier,
-  .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
-    height: auto;
-    min-height: 470px;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
+.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
     grid-column: 1 / -1;
     min-height: 390px;
   }
+
 }
 
 @media (max-width: 760px) {
-  .hybrid-panel#signal-events-panel {
-    padding: 6px;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-workspace,
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-main {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
+.hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
     grid-template-rows: auto minmax(60px, auto) 22px;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-rail-head {
+.hybrid-panel#signal-events-panel .hybrid-events-ops-rail-head {
     min-height: 58px;
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
@@ -5486,11 +6412,11 @@ border: 0;
     padding: 6px 9px;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-titleline {
+.hybrid-panel#signal-events-panel .hybrid-events-ops-titleline {
     grid-area: title;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
+.hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
     grid-area: controls;
     grid-column: auto;
     justify-content: flex-start;
@@ -5498,60 +6424,1428 @@ border: 0;
     padding-bottom: 2px;
   }
 
-
-  .hybrid-panel#signal-events-panel .hybrid-events-upcoming,
-  .hybrid-panel#signal-events-panel .hybrid-events-dossier,
-  .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
-    grid-column: 1;
-    min-height: 440px;
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item {
+    grid-template-columns: 1fr;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row {
-    grid-template-columns: 52px 42px minmax(0, 1fr);
-    gap: 6px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
+  display: grid;
+  grid-template-rows: 34px minmax(0, 1fr);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-rail-head {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0 12px;
+  border-bottom: 1px solid #192d40;
+  background: rgba(5, 18, 31, .35);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-titleline {
+  gap: 7px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-info {
+  width: 15px;
+  height: 15px;
+  border-color: #52677f;
+  color: #91a7c1;
+  font-size: 9px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
+  display: flex;
+  margin-left: auto;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-filters {
+  display: flex;
+  gap: 7px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-filter {
+  min-height: 23px;
+  padding: 0 8px;
+  border-color: #1a3044;
+  border-radius: 5px;
+  color: #a7b8ce;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 550;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-filter.is-active {
+  border-color: #8d61cc;
+  color: #fff;
+  background: rgba(104, 64, 163, .34);
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-horizon-scroll {
+  padding: 0 14px;
+  overflow-x: auto;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-horizon {
+  min-width: 1120px;
+  height: 100%;
+  padding: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months {
+  height: 21px;
+  min-height: 21px;
+  grid-template-columns: repeat(12, minmax(84px, 1fr));
+  align-items: end;
+  padding-bottom: 1px;
+  color: #b5c5d9;
+  font-size: 10px;
+  font-weight: 520;
+  letter-spacing: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months > span {
+  gap: 10px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months > span:nth-child(1) {
+  transform: translateX(-54px);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months > span:nth-child(2) {
+  transform: translateX(49px);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months > span:nth-child(3) {
+  transform: translateX(58px);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months > span::before,
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months > span::after {
+  background: #172a3c;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-weeks {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(84px, 1fr));
+  grid-template-rows: 51px;
+  min-height: 51px;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-weeks::before {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  left: 0;
+  top: 39.5px;
+  height: 1px;
+  background: #91a4b8;
+  content: "";
+  pointer-events: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week {
+  position: relative;
+  z-index: 2;
+  height: 51px;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-month-start {
+  border: 0;
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week:not(.is-selected):hover {
+  border-radius: 6px;
+  background: rgba(13, 37, 55, .45);
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-selected {
+  margin: -1px 4px 0;
+  border: 1px solid #7543b3;
+  border-radius: 7px;
+  background: linear-gradient(180deg, rgba(123, 68, 205, .44), rgba(69, 35, 116, .26));
+  box-shadow: inset 0 0 20px rgba(126, 72, 215, .10);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-select {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  width: 100%;
+  height: 32px;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 18px 14px;
+  align-items: center;
+  justify-items: center;
+  gap: 0;
+  padding: 0;
+  color: #c5d1df;
+  text-align: center;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-select > span {
+  width: 100%;
+  color: #c7d3e1;
+  font-size: 11px;
+  font-weight: 520;
+  text-align: center;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-selected .hybrid-events-ops-week-select > span,
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week.is-selected .hybrid-events-ops-week-count.has-events {
+  color: #fff;
+  font-weight: 720;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-count,
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-count.has-events,
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-count.is-empty {
+  color: #aebcd0;
+  font-size: 11px;
+  font-weight: 520;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-markers {
+  position: absolute;
+  top: 27.5px;
+  right: 0;
+  left: 0;
+  z-index: 3;
+  height: 24px;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0;
+  overflow: visible;
+}
+
+@media (min-width: 1101px) {
+.hybrid-panel#signal-events-panel .hybrid-events-ops-horizon-scroll {
+    overflow-x: hidden;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row .hybrid-events-type-badge {
-    grid-column: 2;
-    grid-row: 2;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-marker {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  border-radius: 50%;
+  background: var(--hybrid-event-tone, #91a4b8);
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-markers:empty::before {
+  width: 12px;
+  height: 12px;
+  border: 1px solid #65768b;
+  border-radius: 50%;
+  background: #071421;
+  content: "";
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch-body {
+  padding: 0 11px 20px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section {
+  padding: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section + .hybrid-events-watch-section {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-empty {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid #182b3c;
+  background: transparent;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-empty > i {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 18px;
+  border: 1px solid #45dd85;
+  border-radius: 50%;
+  color: #45dd85;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-empty strong {
+  color: #43cfd7;
+  font-size: 10px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-empty span {
+  color: #a6b4c7;
+  font-size: 10px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section-head {
+  min-height: 40px;
+  padding-top: 8px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section-head h4 {
+  color: #10c6fa;
+  font-size: 12px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section-head > span {
+  display: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-timeline {
+  position: relative;
+  padding-left: 29px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-timeline::before {
+  position: absolute;
+  top: 6px;
+  bottom: 22px;
+  left: 8px;
+  width: 1px;
+  background: #67c6e3;
+  content: "";
+  pointer-events: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-group {
+  position: relative;
+  margin: 0;
+  padding: 0 0 13px;
+  border: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-group-node {
+  position: absolute;
+  top: 4px;
+  left: -25px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #63a7cf;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-group::before {
+  position: absolute;
+  top: 25px;
+  left: -29px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid #a97bff;
+  border-radius: 50%;
+  background: #091826;
+  content: "";
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-head {
+  min-height: 28px;
+  color: #91a4bb;
+  font-size: 10px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-head strong {
+  color: #bd7dff;
+  font-size: 11px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition {
+  position: relative;
+  display: grid;
+  grid-template-columns: 13px minmax(0, 1fr);
+  gap: 3px 8px;
+  margin-bottom: 9px;
+  padding: 0;
+  border: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition:hover,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition.is-selected {
+  background: rgba(8, 34, 52, .42);
+  box-shadow: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-event-node {
+  grid-row: 1;
+  width: 9px;
+  height: 9px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: var(--hybrid-event-tone, #91a4b8);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition strong,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition small {
+  grid-column: 2;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition strong {
+  color: #f0f4f8;
+  font-size: 11.5px;
+  line-height: 16px;
+  white-space: normal;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition small {
+  color: #a1afc2;
+  font-size: 10px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend {
+  height: 24px;
+  min-height: 24px;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: 18px;
+  margin: 0;
+  padding: 0 8px;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: #7689a5;
+  font-size: 10px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend > div {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend-item {
+  gap: 8px;
+  color: #9aaac0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend-swatch {
+  width: 12px;
+  height: 12px;
+  flex-basis: 12px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--hybrid-event-tone, #91a4b8);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend p {
+  display: none;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend p:last-child {
+  text-align: right;
+}
+
+@media (max-width: 1260px) and (min-width: 1101px) {
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend {
+    grid-template-columns: auto minmax(0, 1fr);
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-copy {
-    grid-column: 3;
-    grid-row: 1 / span 2;
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend p:last-child {
+    display: none;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-right {
-    grid-column: 3;
-    width: fit-content;
+}
+
+@media (max-width: 1100px) {
+.hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
+    min-height: 158px;
   }
 
-  .hybrid-panel#signal-events-panel .hybrid-events-dossier-lede,
+.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
+    grid-column: 1 / -1;
+  }
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend {
+    grid-template-columns: 1fr;
+    height: auto;
+    padding-block: 12px;
+  }
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend p {
+    display: none;
+  }
+
+}
+
+@media (max-width: 760px) {
+.hybrid-panel#signal-events-panel .hybrid-events-ops-rail-head {
+    align-items: flex-start;
+    flex-direction: column;
+    padding-block: 8px;
+  }
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-legend > div {
+    overflow-x: auto;
+  }
+
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-count {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-weeks::before {
+  bottom: 28px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-markers {
+  bottom: 24px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-select {
+  grid-template-rows: 18px minmax(0, 1fr);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-horizon {
+  transform: translateY(-13px);
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-months {
+  visibility: hidden;
+}
+/* EVENTS MOCKUP TIMELINE WATCH TRANSPLANT V1 — END */
+
+/* EVENTS MOCKUP TIMELINE FINAL AUTHORITY V2 — START */
+/* EVENTS TIMELINE MICRO-POLISH V1 */
+
+/*
+ * Keep exact weekly counts in the DOM / accessible week summary,
+ * but remove them from the visual timeline.
+ * Raise the rail and its nodes into the centre of the available space.
+ */
+
+/* Visually suppress weekly 0 / 1 / 2 counts without changing event logic. */
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-count {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+}
+
+/* Lift the continuous timeline rail. */
+.hybrid-panel#signal-events-panel .hybrid-events-ops-weeks::before {
+  bottom: 28px;
+}
+
+/* Keep node centres exactly on the raised rail. */
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-markers {
+  bottom: 24px;
+}
+
+/* With the visible count gone, centre the week label more cleanly above the rail. */
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-select {
+  grid-template-rows: 18px minmax(0, 1fr);
+}
+
+/* EVENTS TIMELINE BLOCK POSITION V1 */
+/* Move month labels + week labels + temporal rail together. */
+.hybrid-panel#signal-events-panel .hybrid-events-ops-horizon {
+  transform: translateY(-13px);
+}
+
+/* EVENTS ↔ AGENDA MAIN HEADING PARITY */
+/*
+ * Exact match to Agenda workspace panel-heading typography:
+ * 13px / 760 / 1 / .035em / uppercase.
+ */
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-titleline h3,
+.hybrid-panel#signal-events-panel .hybrid-events-panel-head h3 {
+  margin: 0;
+  color: #f2f8fb;
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+/* EVENTS MOCKUP TIMELINE FINAL AUTHORITY V2 — END */
+
+/* EVENTS TIMELINE FINAL NUDGE V1 */
+/* Presentation only: lift the complete temporal system slightly. */
+.hybrid-panel#signal-events-panel .hybrid-events-ops-horizon {
+  position: relative;
+  top: -9px;
+}
+
+/* EVENTS TAB — REMOVE ACTIVE UNDERLINE */
+#signal-events-tab[aria-selected="true"] {
+  border-bottom-color: transparent !important;
+  box-shadow: none !important;
+}
+
+#signal-events-tab[aria-selected="true"]::before,
+#signal-events-tab[aria-selected="true"]::after {
+  display: none !important;
+}
+
+/* EVENTS MOCKUP WEEK VERTICAL GEOMETRY V1 */
+/*
+ * Preserve the mockup's three-level rhythm:
+ * label → reserved count space → node/rail.
+ * Counts remain visually hidden.
+ */
+.hybrid-panel#signal-events-panel .hybrid-events-ops-weeks {
+  position: relative;
+  align-items: stretch;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week {
+  position: relative;
+  min-height: 52px;
+  padding-top: 2px;
+  padding-bottom: 19px;
+  align-content: start;
+}
+
+/* Reserve the former count row without displaying the number. */
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-count {
+  position: static !important;
+  width: auto !important;
+  height: 13px !important;
+  margin: 2px 0 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  visibility: hidden !important;
+  clip: auto !important;
+  clip-path: none !important;
+  white-space: nowrap !important;
+}
+
+/* Nodes belong to the bottom level of each week cell. */
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-markers {
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  transform: translateX(-50%);
+  margin: 0;
+}
+
+/* Rail runs through the node centres, not through the labels/card copy. */
+.hybrid-panel#signal-events-panel .hybrid-events-ops-weeks::before {
+  top: auto;
+  bottom: 8px;
+  transform: none;
+}
+
+/* EVENTS WEEK STRIP HEADER GAP V1 */
+/* Move the complete week system away from the upper header divider. */
+.hybrid-panel#signal-events-panel .hybrid-events-ops-weeks {
+  transform: translateY(6px);
+}
+
+/* EVENTS TIMELINE RAIL FINAL NUDGE V1 */
+/* Raise rail + nodes together; keep dates and selected week fixed. */
+.hybrid-panel#signal-events-panel .hybrid-events-ops-weeks::before {
+  bottom: 11px;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-week-markers {
+  bottom: 6px;
+}
+
+/* EVENTS ↔ AGENDA TYPOGRAPHY FINAL V1 */
+/*
+ * Typography only.
+ * Agenda workspace is the canonical visual authority.
+ * No geometry, spacing, scrolling or timeline changes.
+ */
+
+/* ---------------------------------------------------------
+   0. WORKSPACE FONT FAMILY
+   --------------------------------------------------------- */
+
+.hybrid-panel#signal-events-panel {
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+
+/* ---------------------------------------------------------
+   1. PANEL HEADERS — EXACT AGENDA PARITY
+   --------------------------------------------------------- */
+
+.hybrid-panel#signal-events-panel .hybrid-events-ops-titleline h3,
+.hybrid-panel#signal-events-panel .hybrid-events-panel-head h3 {
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+  color: #f2f8fb;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-panel-head > span,
+.hybrid-panel#signal-events-panel .hybrid-events-panel-head > div > span,
+.hybrid-panel#signal-events-panel .hybrid-events-ops-rail-head span {
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 13.5px;
+  letter-spacing: .15px;
+  color: #8ba6b6;
+}
+
+
+/* ---------------------------------------------------------
+   2. CYAN EYEBROWS / MODULE HEADS
+   --------------------------------------------------------- */
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-lede small,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-context h4,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement h4,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-participants h4,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-section-head h4,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section-head h4 {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+
+
+/* ---------------------------------------------------------
+   3. PANEL 1 — UPCOMING EVENTS
+   Agenda Monitor-style hierarchy
+   --------------------------------------------------------- */
+
+/* Week separators */
+.hybrid-panel#signal-events-panel .hybrid-events-upcoming-week-head strong {
+  font-size: 9.5px;
+  font-weight: 720;
+  line-height: 1;
+  letter-spacing: .035em;
+  color: #9ab2be;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-upcoming-week-head span {
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  color: #7898aa;
+}
+
+/* Primary event title */
+.hybrid-panel#signal-events-panel .hybrid-events-upcoming-copy strong {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 680;
+  line-height: 14px;
+  letter-spacing: 0;
+  color: #edf6fa;
+}
+
+/* Secondary event metadata */
+.hybrid-panel#signal-events-panel .hybrid-events-upcoming-copy small {
+  font-family: inherit;
+  font-size: 9.5px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: #8ba6b6;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-upcoming-meta-time {
+  font-weight: 650;
+  color: #9ab2be;
+}
+
+/* Date signal: still stronger than prose, but contained */
+.hybrid-panel#signal-events-panel .hybrid-events-upcoming-row > time strong {
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 760;
+  line-height: 1;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-upcoming-row > time span {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: .02em;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-upcoming-row > time em {
+  font-family: inherit;
+  font-size: 8.5px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+/* Event/type pills */
+.hybrid-panel#signal-events-panel .hybrid-events-type-badge strong {
+  font-family: inherit;
+  font-size: 8.5px;
+  font-weight: 760;
+  line-height: 1;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-upcoming-right {
+  font-family: inherit;
+  font-size: 8.5px;
+  font-weight: 720;
+  line-height: 1;
+  letter-spacing: .02em;
+}
+
+
+/* ---------------------------------------------------------
+   4. PANEL 2 — EVENT DOSSIER
+   --------------------------------------------------------- */
+
+/* Keep event title as the visual hero, but use same family */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-title h4 {
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 760;
+  line-height: 1.16;
+  letter-spacing: 0;
+  color: #f2f8fb;
+}
+
+/* Primary dossier values */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-lede strong,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement strong {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 660;
+  line-height: 1.22;
+  color: #e8f1f5;
+}
+
+/* Context labels */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-context dt {
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #7f9cab;
+}
+
+/* Context values */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-context dd {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #e8f1f5;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement small,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-participants span {
+  font-family: inherit;
+  font-size: 9px;
+  line-height: 1.2;
+  color: #819cab;
+}
+
+/* Evidence */
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary strong {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 660;
+  line-height: 1.22;
+  color: #e8f1f5;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary span,
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary small,
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary time,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-evidence > p {
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: #7f9cab;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-source {
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+/* ---------------------------------------------------------
+   5. PANEL 3 — SCHEDULE WATCH
+   Same Agenda evidence hierarchy
+   --------------------------------------------------------- */
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-copy strong,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition strong {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 660;
+  line-height: 1.22;
+  color: #e8f1f5;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-copy small,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition small {
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.15;
+  color: #7f9cab;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-head {
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: #8ba6b6;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-head strong {
+  font-size: 9.5px;
+  font-weight: 760;
+  color: #b9a7ff;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-empty strong {
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-watch-empty span {
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* UI/status tokens remain intentionally smaller than prose */
+.hybrid-panel#signal-events-panel .hybrid-events-status,
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-chip,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-type {
+  font-family: inherit;
+  font-size: 8.5px;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: .045em;
+}
+
+/* EVENTS PANELS 2–3 PRIMARY TEXT PARITY V1 */
+/*
+ * Match primary white content to Panel 1's 12.5px text scale.
+ * Do not alter cyan eyebrows, metadata, chips, or Dossier hero title.
+ */
+
+/* PANEL 2 — EVENT DOSSIER */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-lede strong,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement strong,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-context dd,
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary strong {
+  font-size: 12.5px;
+  font-weight: 680;
+  line-height: 14px;
+}
+
+/* PANEL 3 — SCHEDULE WATCH */
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-copy strong,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition strong {
+  font-size: 12.5px;
+  font-weight: 680;
+  line-height: 14px;
+}
+
+/* EVENTS PANEL 3 EYEBROW PARITY V1 */
+/* Match Schedule Watch cyan section labels exactly to Event Dossier eyebrows. */
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section-head h4,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-section-head strong,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-label,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-label strong {
+  font-family: inherit !important;
+  font-size: 11px !important;
+  font-weight: 760 !important;
+  line-height: 1 !important;
+  letter-spacing: .5px !important;
+  text-transform: uppercase !important;
+  color: var(--cyan) !important;
+}
+
+/* EVENTS MATERIAL CHANGES TYPOGRAPHY PARITY V1 */
+/* Healthy-state heading matches the visible Schedule Watch eyebrow scale. */
+.hybrid-panel#signal-events-panel .hybrid-events-watch-healthy {
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 760 !important;
+  line-height: 1 !important;
+  letter-spacing: .5px !important;
+}
+
+/* EVENTS WATCH PURPLE RINGS REMOVED FINAL */
+/* Purple rings are generated by the addition-group pseudo-element. */
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-group::before {
+  display: none !important;
+  content: none !important;
+}
+/* EVENTS PANELS 2-3 GREY METADATA SCALE V1 */
+/* Enlarge secondary grey metadata only. */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement small,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-context dt,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-section-head > span,
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary span,
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary small,
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary time,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-evidence > p,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition-head,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-addition small,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-copy small,
+.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item > time {
+  font-size: 10.5px !important;
+  line-height: 1.2 !important;
+}
+
+/* EVENTS SOURCE EVIDENCE MOCKUP STYLE COMPACT V1 */
+/*
+ * Mockup visual language, scaled for the current 30/40/30 workspace.
+ * Evidence card only. No dossier-grid or panel geometry changes.
+ */
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-evidence {
+  padding: 12px 13px 11px !important;
+  border: 1px solid rgba(46, 221, 215, .78) !important;
+  border-radius: 9px !important;
+  background:
+    linear-gradient(
+      155deg,
+      rgba(6, 31, 42, .98),
+      rgba(3, 21, 31, .96)
+    ) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(46, 221, 215, .025) !important;
+}
+
+/* Card heading */
+.hybrid-panel#signal-events-panel
+.hybrid-events-dossier-evidence
+.hybrid-events-dossier-section-head {
+  min-height: 18px;
+  align-items: center;
+}
+
+.hybrid-panel#signal-events-panel
+.hybrid-events-dossier-evidence
+.hybrid-events-dossier-section-head h4 {
+  font-size: 11px !important;
+  font-weight: 760 !important;
+  letter-spacing: .5px !important;
+}
+
+.hybrid-panel#signal-events-panel
+.hybrid-events-dossier-evidence
+.hybrid-events-dossier-section-head > span {
+  font-size: 10px !important;
+  font-weight: 720 !important;
+  letter-spacing: .02em;
+  color: #91a8b7 !important;
+}
+
+/* Stack evidence exactly like the mockup */
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary {
+  display: block !important;
+  margin-top: 13px !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary > div {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0 !important;
+}
+
+/* Source name */
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary strong {
+  display: block;
+  color: #f2f7fa !important;
+  font-size: 15px !important;
+  font-weight: 760 !important;
+  line-height: 1.15 !important;
+}
+
+/* Verification timestamp */
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary time {
+  display: block;
+  margin-top: 9px;
+  color: #9aaebe !important;
+  font-size: 10.5px !important;
+  font-weight: 500 !important;
+  line-height: 1.15 !important;
+  white-space: nowrap;
+}
+
+/* Source classification */
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary span {
+  display: block;
+  margin-top: 12px;
+  color: #9bafbd !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+  letter-spacing: .015em;
+  text-transform: uppercase;
+}
+
+/* Evidence statement */
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary small {
+  display: block;
+  margin-top: 9px;
+  color: #9eb2bf !important;
+  font-size: 10.5px !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+}
+
+/* Mockup-style lower rule and actions */
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-actions {
+  margin-top: 12px !important;
+  padding-top: 10px !important;
+  border-top: 1px solid rgba(65, 117, 137, .42) !important;
+}
+
+.hybrid-panel#signal-events-panel
+.hybrid-events-dossier-evidence
+.hybrid-events-evidence-chip {
+  min-height: 22px;
+  padding: 2px 7px;
+  font-size: 9px !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-source {
+  font-size: 10px !important;
+  font-weight: 720 !important;
+}
+
+/* EVENTS DOSSIER BALANCED CARDS FINAL V1 */
+/*
+ * Hybrid between compact frontend and richer mockup.
+ * CSS only. No renderer or panel-dimension changes.
+ */
+
+/* ---------------------------------------------------------
+   TWO BALANCED CARDS
+   --------------------------------------------------------- */
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-grid {
+  align-items: stretch !important;
+  gap: 11px !important;
+}
+
+@media (min-width: 1101px) {
   .hybrid-panel#signal-events-panel .hybrid-events-dossier-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-dossier-lede > div {
-    padding-left: 0;
-    border-left: 0;
-    border-top: 1px solid rgba(35, 86, 114, .42);
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-dossier-lede > div:first-child {
-    border-top: 0;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-history-item {
-    grid-template-columns: 1fr;
-    gap: 5px;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-item {
-    grid-template-columns: 1fr;
+    grid-template-columns:
+      minmax(0, 1.12fr)
+      minmax(0, .88fr) !important;
   }
 }
 
-/* RUNOFF WORKSPACE REDESIGN V1 — scoped to the owned Runoff panel. */
+/* Left analytical card */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-left {
+  box-sizing: border-box;
+  height: 100%;
+  padding: 10px 11px !important;
+  gap: 9px !important;
+  align-content: start !important;
+  border: 1px solid rgba(53, 91, 116, .62);
+  border-radius: 7px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(8, 25, 41, .72),
+      rgba(5, 18, 31, .58)
+    );
+}
+
+/* Right evidence card — keep cyan authority but make it compact */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-evidence {
+  box-sizing: border-box;
+  height: 100%;
+  padding: 10px 11px 9px !important;
+  border-radius: 7px !important;
+}
+
+/* ---------------------------------------------------------
+   INVOLVEMENT / PARTICIPANTS
+   --------------------------------------------------------- */
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-participants {
+  padding: 1px 0 9px !important;
+  border-bottom: 1px solid rgba(48, 91, 116, .48) !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement strong {
+  font-size: 12.5px !important;
+  line-height: 1.2 !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement small {
+  font-size: 10px !important;
+  line-height: 1.15 !important;
+}
+
+/* Larger, readable participant names */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-participants > div {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 6px 15px !important;
+  margin-top: 8px !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-participants span {
+  position: relative;
+  min-width: 0;
+  padding-left: 13px;
+  color: #b7c7d1 !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  line-height: 1.25 !important;
+  overflow-wrap: anywhere;
+}
+
+/* Mockup-like participant node, scaled down */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-participants span::before {
+  position: absolute;
+  top: .42em;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #a879ff;
+  content: "";
+}
+
+/* ---------------------------------------------------------
+   EVENT DETAILS — COMPACT 2 × 2
+   --------------------------------------------------------- */
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-context {
+  padding: 1px 0 0 !important;
+  border-bottom: 0 !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-context dl {
+  display: grid !important;
+  grid-template-columns:
+    minmax(0, 1.12fr)
+    minmax(0, .88fr) !important;
+  gap: 6px 13px !important;
+  margin: 8px 0 0 !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-context dl > div {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) !important;
+  align-items: baseline;
+  gap: 6px !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-context dt {
+  font-size: 10px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-context dd {
+  min-width: 0;
+  font-size: 11.5px !important;
+  font-weight: 680 !important;
+  line-height: 1.2 !important;
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------
+   SOURCE EVIDENCE — RETAIN MOCKUP LANGUAGE, REDUCE HEIGHT
+   --------------------------------------------------------- */
+
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary {
+  margin-top: 10px !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary strong {
+  font-size: 14px !important;
+  line-height: 1.12 !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary time {
+  margin-top: 7px !important;
+  font-size: 10.5px !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary span {
+  margin-top: 9px !important;
+  font-size: 10px !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary small {
+  margin-top: 7px !important;
+  font-size: 10.5px !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-actions {
+  margin-top: 9px !important;
+  padding-top: 9px !important;
+}
+
+/* EVENTS DOSSIER COMPACT LAYOUT FIX V2 */
+/*
+ * Give analytical content more room while preserving
+ * the compact mockup-inspired evidence card.
+ */
+
+/* Better left/right balance */
+@media (min-width: 1101px) {
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-grid {
+    grid-template-columns:
+      minmax(0, 1.20fr)
+      minmax(0, .80fr) !important;
+  }
+}
+
+/* Both cards remain exactly the same rendered height */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-left,
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-evidence {
+  align-self: stretch !important;
+  height: 100% !important;
+  min-height: 0;
+}
+
+/* Event Details: two genuinely equal columns */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-context dl {
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr)) !important;
+  column-gap: 18px !important;
+  row-gap: 7px !important;
+}
+
+/* Label + value stay compact inside each cell */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-context dl > div {
+  grid-template-columns:
+    max-content minmax(0, 1fr) !important;
+  gap: 7px !important;
+  min-width: 0;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-context dt {
+  font-size: 10px !important;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-context dd {
+  font-size: 11.5px !important;
+  line-height: 1.2 !important;
+  min-width: 0;
+}
+
+/* These values should never break across lines */
+.hybrid-panel#signal-events-panel
+.hybrid-events-dossier-context dl > div:nth-child(2) dd,
+.hybrid-panel#signal-events-panel
+.hybrid-events-dossier-context dl > div:nth-child(3) dd,
+.hybrid-panel#signal-events-panel
+.hybrid-events-dossier-context dl > div:nth-child(4) dd {
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+
+/* Organiser may wrap naturally, but never split words awkwardly */
+.hybrid-panel#signal-events-panel
+.hybrid-events-dossier-context dl > div:first-child dd {
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+
+/* Keep participants prominent */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-participants span {
+  font-size: 11.5px !important;
+  font-weight: 520 !important;
+}
+
+/* Slightly tighten the evidence card vertically */
+.hybrid-panel#signal-events-panel .hybrid-events-dossier-evidence {
+  padding: 10px 11px 9px !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary {
+  margin-top: 9px !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary time {
+  margin-top: 6px !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary span {
+  margin-top: 8px !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-primary small {
+  margin-top: 6px !important;
+}
+
+.hybrid-panel#signal-events-panel .hybrid-events-evidence-actions {
+  margin-top: 8px !important;
+  padding-top: 8px !important;
+}
+
+/* RUNOFF WORKSPACE REDESIGN V1 ΓÇö scoped to the owned Runoff panel. */
 .hybrid-panel#signal-runoff-panel {
   --hybrid-runoff-line: rgba(29, 75, 103, .68);
   --hybrid-runoff-surface: rgba(4, 17, 29, .82);
@@ -6744,7 +9038,7 @@ border: 0;
     min-height: 0;
   }
 }
-/* RUNOFF BOUNDED STRUCTURAL POLISH V2 — owned panel only. */
+/* RUNOFF BOUNDED STRUCTURAL POLISH V2 ΓÇö owned panel only. */
 .hybrid-panel#signal-runoff-panel {
   --hybrid-runoff-line-strong: rgba(35, 86, 115, .78);
   --hybrid-runoff-line-medium: rgba(35, 86, 115, .54);
@@ -9902,7 +12196,7 @@ border: 0;
 */
 
 /* ================================================================
-   Panel 1 — replace the protruding margin card with a status rule
+   Panel 1 ΓÇö replace the protruding margin card with a status rule
    ================================================================ */
 
 .hybrid-panel#signal-runoff-panel .hybrid-runoff-closest {
@@ -9943,7 +12237,7 @@ border: 0;
 }
 
 /* ================================================================
-   Panel 2 — contain the legend inside the panel
+   Panel 2 ΓÇö contain the legend inside the panel
    ================================================================ */
 
 .hybrid-panel#signal-runoff-panel .hybrid-runoff-common {
@@ -9961,7 +12255,7 @@ border: 0;
 }
 
 /* ================================================================
-   Other Tested Matchups — terminal records, not miniature cards
+   Other Tested Matchups ΓÇö terminal records, not miniature cards
    ================================================================ */
 
 .hybrid-panel#signal-runoff-panel .hybrid-runoff-others {
@@ -10102,7 +12396,7 @@ border: 0;
 }
 
 /* ================================================================
-   Selected Matchup History — wider, clearer scrolling observations
+   Selected Matchup History ΓÇö wider, clearer scrolling observations
    ================================================================ */
 
 .hybrid-panel#signal-runoff-panel .hybrid-runoff-history {
@@ -10384,7 +12678,7 @@ border: 0;
 */
 
 /* ================================================================
-   Panel 1 — contained, centred narrowest-margin status band
+   Panel 1 ΓÇö contained, centred narrowest-margin status band
    ================================================================ */
 
 .hybrid-panel#signal-runoff-panel .hybrid-runoff-closest {
@@ -10455,7 +12749,7 @@ border: 0;
 }
 
 /* ================================================================
-   Panel 3 — vertically centred terminal records
+   Panel 3 ΓÇö vertically centred terminal records
    ================================================================ */
 
 .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
@@ -10546,7 +12840,7 @@ border: 0;
 }
 
 /* ================================================================
-   Panel 4 — source arrow beside pollster; no bottom micro-notes
+   Panel 4 ΓÇö source arrow beside pollster; no bottom micro-notes
    ================================================================ */
 
 .hybrid-panel#signal-runoff-panel
@@ -11300,7 +13594,7 @@ border: 0;
   .hybrid-panel#signal-runoff-panel
     *:has(> .hybrid-runoff-other-card)::after {
     right: 28px;
-    content: "LATEST RESULT · BALANCE";
+    content: "LATEST RESULT ┬╖ BALANCE";
     text-align: right;
   }
 }
