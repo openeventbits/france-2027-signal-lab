@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.3",
+  "schema_version": "1.4",
   "candidate_universe": {
     "source": "candidate_candidacy_status.json",
     "rule": "Complete controlled candidacy registry: main, secondary, and hidden",
@@ -142,39 +142,43 @@
     }
   },
   "active_field_visibility": {
-    "method": "share_of_active_candidate_linked_records",
-    "denominator_scope": "records_linked_to_at_least_one_active_monitoring_candidate",
+    "method": "share_of_active_candidate_publisher_story_race_exposures",
+    "denominator_scope": "publisher_story_race_exposures_linked_by_article_local_matches_to_at_least_one_active_monitoring_candidate",
     "status_as_of": "2026-08-06",
-    "primary": {
+    "race_attention": {
       "current_period": {
         "start_date": "2026-08-08",
         "end_date": "2026-08-14",
-        "record_count": 238,
-        "publisher_count": 65
+        "record_count": 202,
+        "exposure_count": 107,
+        "publisher_count": 51,
+        "story_count": 70
       },
       "prior_period": {
         "start_date": "2026-08-01",
         "end_date": "2026-08-07",
-        "record_count": 284,
-        "publisher_count": 70
+        "record_count": 239,
+        "exposure_count": 142,
+        "publisher_count": 43,
+        "story_count": 119
       },
       "comparison_quality": {
-        "status": "comparable",
-        "reason": "comparable",
-        "current_record_count": 238,
-        "prior_record_count": 284,
-        "current_publisher_count": 65,
-        "prior_publisher_count": 70,
-        "common_publisher_count": 53,
-        "publisher_union_count": 82,
-        "publisher_overlap_ratio": 0.646,
-        "record_count_ratio": 1.193,
+        "status": "not_comparable",
+        "reason": "publisher_panel_changed",
+        "current_exposure_count": 107,
+        "prior_exposure_count": 142,
+        "current_publisher_count": 51,
+        "prior_publisher_count": 43,
+        "common_publisher_count": 27,
+        "publisher_union_count": 67,
+        "publisher_overlap_ratio": 0.403,
+        "exposure_count_ratio": 1.327,
         "thresholds": {
-          "minimum_period_records": 10,
+          "minimum_period_exposures": 10,
           "minimum_period_publishers": 5,
           "minimum_common_publishers": 5,
           "minimum_publisher_overlap_ratio": 0.5,
-          "maximum_record_count_ratio": 2.0
+          "maximum_exposure_count_ratio": 2.0
         }
       },
       "main": [
@@ -183,542 +187,75 @@
           "candidate_name": "Gabriel Attal",
           "status": "declared",
           "display_tier": "main",
-          "current_record_count": 88,
-          "current_share": 0.37,
-          "prior_record_count": 113,
-          "prior_share": 0.398,
-          "share_change": -0.028
-        },
-        {
-          "candidate_id": "marine-tondelier",
-          "candidate_name": "Marine Tondelier",
-          "status": "primary_contender",
-          "display_tier": "main",
-          "current_record_count": 21,
-          "current_share": 0.088,
-          "prior_record_count": 39,
-          "prior_share": 0.137,
-          "share_change": -0.049
-        },
-        {
-          "candidate_id": "marine-le-pen",
-          "candidate_name": "Marine Le Pen",
-          "status": "declared",
-          "display_tier": "main",
-          "current_record_count": 21,
-          "current_share": 0.088,
-          "prior_record_count": 29,
-          "prior_share": 0.102,
-          "share_change": -0.014
+          "current_record_count": 67,
+          "current_exposure_count": 65,
+          "current_share": 0.607,
+          "current_publisher_count": 44,
+          "current_story_count": 34,
+          "current_observation_state": "observed_positive",
+          "prior_record_count": 67,
+          "prior_exposure_count": 66,
+          "prior_share": 0.465,
+          "prior_publisher_count": 25,
+          "prior_story_count": 56,
+          "prior_observation_state": "observed_positive",
+          "share_change": null
         },
         {
           "candidate_id": "edouard-philippe",
           "candidate_name": "Édouard Philippe",
           "status": "declared",
           "display_tier": "main",
-          "current_record_count": 17,
-          "current_share": 0.071,
-          "prior_record_count": 37,
-          "prior_share": 0.13,
-          "share_change": -0.059
+          "current_record_count": 10,
+          "current_exposure_count": 10,
+          "current_share": 0.093,
+          "current_publisher_count": 8,
+          "current_story_count": 8,
+          "current_observation_state": "observed_positive",
+          "prior_record_count": 25,
+          "prior_exposure_count": 25,
+          "prior_share": 0.176,
+          "prior_publisher_count": 20,
+          "prior_story_count": 24,
+          "prior_observation_state": "observed_positive",
+          "share_change": null
         },
         {
-          "candidate_id": "jean-luc-melenchon",
-          "candidate_name": "Jean-Luc Mélenchon",
+          "candidate_id": "marine-le-pen",
+          "candidate_name": "Marine Le Pen",
           "status": "declared",
           "display_tier": "main",
-          "current_record_count": 13,
-          "current_share": 0.055,
-          "prior_record_count": 11,
-          "prior_share": 0.039,
-          "share_change": 0.016
+          "current_record_count": 7,
+          "current_exposure_count": 7,
+          "current_share": 0.065,
+          "current_publisher_count": 5,
+          "current_story_count": 7,
+          "current_observation_state": "observed_positive",
+          "prior_record_count": 16,
+          "prior_exposure_count": 15,
+          "prior_share": 0.106,
+          "prior_publisher_count": 10,
+          "prior_story_count": 15,
+          "prior_observation_state": "observed_positive",
+          "share_change": null
         },
         {
           "candidate_id": "david-lisnard",
           "candidate_name": "David Lisnard",
           "status": "primary_contender",
           "display_tier": "main",
-          "current_record_count": 7,
-          "current_share": 0.029,
-          "prior_record_count": 14,
-          "prior_share": 0.049,
-          "share_change": -0.02
-        },
-        {
-          "candidate_id": "nathalie-arthaud",
-          "candidate_name": "Nathalie Arthaud",
-          "status": "declared",
-          "display_tier": "main",
-          "current_record_count": 7,
-          "current_share": 0.029,
-          "prior_record_count": 1,
-          "prior_share": 0.004,
-          "share_change": 0.025
-        },
-        {
-          "candidate_id": "bruno-retailleau",
-          "candidate_name": "Bruno Retailleau",
-          "status": "declared",
-          "display_tier": "main",
-          "current_record_count": 5,
-          "current_share": 0.021,
-          "prior_record_count": 10,
+          "current_record_count": 4,
+          "current_exposure_count": 4,
+          "current_share": 0.037,
+          "current_publisher_count": 4,
+          "current_story_count": 4,
+          "current_observation_state": "observed_positive",
+          "prior_record_count": 5,
+          "prior_exposure_count": 5,
           "prior_share": 0.035,
-          "share_change": -0.014
-        },
-        {
-          "candidate_id": "philippe-brun",
-          "candidate_name": "Philippe Brun",
-          "status": "primary_contender",
-          "display_tier": "main",
-          "current_record_count": 2,
-          "current_share": 0.008,
-          "prior_record_count": 2,
-          "prior_share": 0.007,
-          "share_change": 0.001
-        },
-        {
-          "candidate_id": "xavier-bertrand",
-          "candidate_name": "Xavier Bertrand",
-          "status": "declared",
-          "display_tier": "main",
-          "current_record_count": 2,
-          "current_share": 0.008,
-          "prior_record_count": 2,
-          "prior_share": 0.007,
-          "share_change": 0.001
-        },
-        {
-          "candidate_id": "jerome-guedj",
-          "candidate_name": "Jérôme Guedj",
-          "status": "declared",
-          "display_tier": "main",
-          "current_record_count": 2,
-          "current_share": 0.008,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.008
-        },
-        {
-          "candidate_id": "segolene-royal",
-          "candidate_name": "Ségolène Royal",
-          "status": "primary_contender",
-          "display_tier": "main",
-          "current_record_count": 1,
-          "current_share": 0.004,
-          "prior_record_count": 2,
-          "prior_share": 0.007,
-          "share_change": -0.003
-        },
-        {
-          "candidate_id": "francois-ruffin",
-          "candidate_name": "François Ruffin",
-          "status": "primary_contender",
-          "display_tier": "main",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 2,
-          "prior_share": 0.007,
-          "share_change": -0.007
-        },
-        {
-          "candidate_id": "anasse-kazib",
-          "candidate_name": "Anasse Kazib",
-          "status": "declared",
-          "display_tier": "main",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "bernard-cazeneuve",
-          "candidate_name": "Bernard Cazeneuve",
-          "status": "declared",
-          "display_tier": "main",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "delphine-batho",
-          "candidate_name": "Delphine Batho",
-          "status": "declared",
-          "display_tier": "main",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "florian-philippot",
-          "candidate_name": "Florian Philippot",
-          "status": "declared",
-          "display_tier": "main",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "francois-asselineau",
-          "candidate_name": "François Asselineau",
-          "status": "declared",
-          "display_tier": "main",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "karim-bouamrane",
-          "candidate_name": "Karim Bouamrane",
-          "status": "declared",
-          "display_tier": "main",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "lydie-massard",
-          "candidate_name": "Lydie Massard",
-          "status": "primary_contender",
-          "display_tier": "main",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "nicolas-dupont-aignan",
-          "candidate_name": "Nicolas Dupont-Aignan",
-          "status": "declared",
-          "display_tier": "main",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "selma-labib",
-          "candidate_name": "Selma Labib",
-          "status": "declared",
-          "display_tier": "main",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        }
-      ],
-      "secondary": [
-        {
-          "candidate_id": "gerald-darmanin",
-          "candidate_name": "Gérald Darmanin",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 28,
-          "current_share": 0.118,
-          "prior_record_count": 1,
-          "prior_share": 0.004,
-          "share_change": 0.114
-        },
-        {
-          "candidate_id": "raphael-glucksmann",
-          "candidate_name": "Raphaël Glucksmann",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 26,
-          "current_share": 0.109,
-          "prior_record_count": 76,
-          "prior_share": 0.268,
-          "share_change": -0.159
-        },
-        {
-          "candidate_id": "francois-hollande",
-          "candidate_name": "François Hollande",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 11,
-          "current_share": 0.046,
-          "prior_record_count": 3,
-          "prior_share": 0.011,
-          "share_change": 0.035
-        },
-        {
-          "candidate_id": "eric-zemmour",
-          "candidate_name": "Éric Zemmour",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 1,
-          "current_share": 0.004,
-          "prior_record_count": 2,
-          "prior_share": 0.007,
-          "share_change": -0.003
-        },
-        {
-          "candidate_id": "dominique-de-villepin",
-          "candidate_name": "Dominique de Villepin",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 1,
-          "current_share": 0.004,
-          "prior_record_count": 1,
-          "prior_share": 0.004,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "fabien-roussel",
-          "candidate_name": "Fabien Roussel",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 1,
-          "current_share": 0.004,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.004
-        },
-        {
-          "candidate_id": "francois-baroin",
-          "candidate_name": "François Baroin",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 1,
-          "current_share": 0.004,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.004
-        },
-        {
-          "candidate_id": "michel-barnier",
-          "candidate_name": "Michel Barnier",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 1,
-          "current_share": 0.004,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.004
-        },
-        {
-          "candidate_id": "philippe-de-villiers",
-          "candidate_name": "Philippe de Villiers",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 1,
-          "current_share": 0.004,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.004
-        },
-        {
-          "candidate_id": "teddy-riner",
-          "candidate_name": "Teddy Riner",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 1,
-          "current_share": 0.004,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.004
-        },
-        {
-          "candidate_id": "carole-delga",
-          "candidate_name": "Carole Delga",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 1,
-          "prior_share": 0.004,
-          "share_change": -0.004
-        },
-        {
-          "candidate_id": "valerie-pecresse",
-          "candidate_name": "Valérie Pécresse",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 1,
-          "prior_share": 0.004,
-          "share_change": -0.004
-        },
-        {
-          "candidate_id": "aurore-berge",
-          "candidate_name": "Aurore Bergé",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "bruno-le-maire",
-          "candidate_name": "Bruno Le Maire",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "jean-lassalle",
-          "candidate_name": "Jean Lassalle",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "jean-noel-barrot",
-          "candidate_name": "Jean-Noël Barrot",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "manuel-valls",
-          "candidate_name": "Manuel Valls",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "matthieu-pigasse",
-          "candidate_name": "Matthieu Pigasse",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "olivier-becht",
-          "candidate_name": "Olivier Becht",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "robert-menard",
-          "candidate_name": "Robert Ménard",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "sandrine-rousseau",
-          "candidate_name": "Sandrine Rousseau",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "yannick-jadot",
-          "candidate_name": "Yannick Jadot",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        },
-        {
-          "candidate_id": "elisabeth-borne",
-          "candidate_name": "Élisabeth Borne",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": 0.0
-        }
-      ]
-    },
-    "general": {
-      "current_period": {
-        "start_date": "2026-08-08",
-        "end_date": "2026-08-14",
-        "record_count": 30,
-        "publisher_count": 19
-      },
-      "prior_period": {
-        "start_date": "2026-08-01",
-        "end_date": "2026-08-07",
-        "record_count": 18,
-        "publisher_count": 11
-      },
-      "comparison_quality": {
-        "status": "not_comparable",
-        "reason": "publisher_panel_changed",
-        "current_record_count": 30,
-        "prior_record_count": 18,
-        "current_publisher_count": 19,
-        "prior_publisher_count": 11,
-        "common_publisher_count": 7,
-        "publisher_union_count": 23,
-        "publisher_overlap_ratio": 0.304,
-        "record_count_ratio": 1.667,
-        "thresholds": {
-          "minimum_period_records": 10,
-          "minimum_period_publishers": 5,
-          "minimum_common_publishers": 5,
-          "minimum_publisher_overlap_ratio": 0.5,
-          "maximum_record_count_ratio": 2.0
-        }
-      },
-      "main": [
-        {
-          "candidate_id": "marine-tondelier",
-          "candidate_name": "Marine Tondelier",
-          "status": "primary_contender",
-          "display_tier": "main",
-          "current_record_count": 5,
-          "current_share": 0.167,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
+          "prior_publisher_count": 3,
+          "prior_story_count": 5,
+          "prior_observation_state": "observed_positive",
           "share_change": null
         },
         {
@@ -727,64 +264,17 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 4,
-          "current_share": 0.133,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": null
-        },
-        {
-          "candidate_id": "gabriel-attal",
-          "candidate_name": "Gabriel Attal",
-          "status": "declared",
-          "display_tier": "main",
-          "current_record_count": 3,
-          "current_share": 0.1,
-          "prior_record_count": 8,
-          "prior_share": 0.444,
-          "share_change": null
-        },
-        {
-          "candidate_id": "david-lisnard",
-          "candidate_name": "David Lisnard",
-          "status": "primary_contender",
-          "display_tier": "main",
-          "current_record_count": 2,
-          "current_share": 0.067,
-          "prior_record_count": 2,
-          "prior_share": 0.111,
-          "share_change": null
-        },
-        {
-          "candidate_id": "bernard-cazeneuve",
-          "candidate_name": "Bernard Cazeneuve",
-          "status": "declared",
-          "display_tier": "main",
-          "current_record_count": 2,
-          "current_share": 0.067,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": null
-        },
-        {
-          "candidate_id": "marine-le-pen",
-          "candidate_name": "Marine Le Pen",
-          "status": "declared",
-          "display_tier": "main",
-          "current_record_count": 2,
-          "current_share": 0.067,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": null
-        },
-        {
-          "candidate_id": "segolene-royal",
-          "candidate_name": "Ségolène Royal",
-          "status": "primary_contender",
-          "display_tier": "main",
-          "current_record_count": 2,
-          "current_share": 0.067,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
+          "current_exposure_count": 4,
+          "current_share": 0.037,
+          "current_publisher_count": 4,
+          "current_story_count": 4,
+          "current_observation_state": "observed_positive",
+          "prior_record_count": 5,
+          "prior_exposure_count": 5,
+          "prior_share": 0.035,
+          "prior_publisher_count": 5,
+          "prior_story_count": 5,
+          "prior_observation_state": "observed_positive",
           "share_change": null
         },
         {
@@ -792,21 +282,75 @@
           "candidate_name": "Bruno Retailleau",
           "status": "declared",
           "display_tier": "main",
-          "current_record_count": 1,
-          "current_share": 0.033,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
+          "current_record_count": 3,
+          "current_exposure_count": 3,
+          "current_share": 0.028,
+          "current_publisher_count": 3,
+          "current_story_count": 3,
+          "current_observation_state": "observed_positive",
+          "prior_record_count": 3,
+          "prior_exposure_count": 3,
+          "prior_share": 0.021,
+          "prior_publisher_count": 3,
+          "prior_story_count": 3,
+          "prior_observation_state": "observed_positive",
           "share_change": null
         },
         {
-          "candidate_id": "edouard-philippe",
-          "candidate_name": "Édouard Philippe",
+          "candidate_id": "marine-tondelier",
+          "candidate_name": "Marine Tondelier",
+          "status": "primary_contender",
+          "display_tier": "main",
+          "current_record_count": 2,
+          "current_exposure_count": 2,
+          "current_share": 0.019,
+          "current_publisher_count": 2,
+          "current_story_count": 2,
+          "current_observation_state": "observed_positive",
+          "prior_record_count": 21,
+          "prior_exposure_count": 20,
+          "prior_share": 0.141,
+          "prior_publisher_count": 13,
+          "prior_story_count": 15,
+          "prior_observation_state": "observed_positive",
+          "share_change": null
+        },
+        {
+          "candidate_id": "philippe-brun",
+          "candidate_name": "Philippe Brun",
+          "status": "primary_contender",
+          "display_tier": "main",
+          "current_record_count": 1,
+          "current_exposure_count": 1,
+          "current_share": 0.009,
+          "current_publisher_count": 1,
+          "current_story_count": 1,
+          "current_observation_state": "observed_positive",
+          "prior_record_count": 2,
+          "prior_exposure_count": 2,
+          "prior_share": 0.014,
+          "prior_publisher_count": 2,
+          "prior_story_count": 2,
+          "prior_observation_state": "observed_positive",
+          "share_change": null
+        },
+        {
+          "candidate_id": "xavier-bertrand",
+          "candidate_name": "Xavier Bertrand",
           "status": "declared",
           "display_tier": "main",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 4,
-          "prior_share": 0.222,
+          "current_record_count": 1,
+          "current_exposure_count": 1,
+          "current_share": 0.009,
+          "current_publisher_count": 1,
+          "current_story_count": 1,
+          "current_observation_state": "observed_positive",
+          "prior_record_count": 2,
+          "prior_exposure_count": 2,
+          "prior_share": 0.014,
+          "prior_publisher_count": 2,
+          "prior_story_count": 2,
+          "prior_observation_state": "observed_positive",
           "share_change": null
         },
         {
@@ -815,9 +359,36 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
+          "share_change": null
+        },
+        {
+          "candidate_id": "bernard-cazeneuve",
+          "candidate_name": "Bernard Cazeneuve",
+          "status": "declared",
+          "display_tier": "main",
+          "current_record_count": 0,
+          "current_exposure_count": 0,
+          "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
+          "prior_record_count": 0,
+          "prior_exposure_count": 0,
+          "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -826,9 +397,17 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -837,9 +416,17 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -848,9 +435,17 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -859,9 +454,17 @@
           "status": "primary_contender",
           "display_tier": "main",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -870,9 +473,17 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -881,9 +492,17 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -892,9 +511,17 @@
           "status": "primary_contender",
           "display_tier": "main",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -903,9 +530,17 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
+          "prior_record_count": 1,
+          "prior_exposure_count": 1,
+          "prior_share": 0.007,
+          "prior_publisher_count": 1,
+          "prior_story_count": 1,
+          "prior_observation_state": "observed_positive",
           "share_change": null
         },
         {
@@ -914,20 +549,17 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
-          "share_change": null
-        },
-        {
-          "candidate_id": "philippe-brun",
-          "candidate_name": "Philippe Brun",
-          "status": "primary_contender",
-          "display_tier": "main",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -936,33 +568,57 @@
           "status": "declared",
           "display_tier": "main",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
-          "candidate_id": "xavier-bertrand",
-          "candidate_name": "Xavier Bertrand",
-          "status": "declared",
+          "candidate_id": "segolene-royal",
+          "candidate_name": "Ségolène Royal",
+          "status": "primary_contender",
           "display_tier": "main",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
+          "prior_record_count": 2,
+          "prior_exposure_count": 2,
+          "prior_share": 0.014,
+          "prior_publisher_count": 2,
+          "prior_story_count": 2,
+          "prior_observation_state": "observed_positive",
           "share_change": null
         }
       ],
       "secondary": [
         {
-          "candidate_id": "gerald-darmanin",
-          "candidate_name": "Gérald Darmanin",
+          "candidate_id": "raphael-glucksmann",
+          "candidate_name": "Raphaël Glucksmann",
           "status": "active_potential",
           "display_tier": "secondary",
-          "current_record_count": 9,
-          "current_share": 0.3,
-          "prior_record_count": 3,
-          "prior_share": 0.167,
+          "current_record_count": 17,
+          "current_exposure_count": 17,
+          "current_share": 0.159,
+          "current_publisher_count": 11,
+          "current_story_count": 13,
+          "current_observation_state": "observed_positive",
+          "prior_record_count": 35,
+          "prior_exposure_count": 35,
+          "prior_share": 0.246,
+          "prior_publisher_count": 22,
+          "prior_story_count": 26,
+          "prior_observation_state": "observed_positive",
           "share_change": null
         },
         {
@@ -971,31 +627,36 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 3,
-          "current_share": 0.1,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
+          "current_exposure_count": 3,
+          "current_share": 0.028,
+          "current_publisher_count": 3,
+          "current_story_count": 3,
+          "current_observation_state": "observed_positive",
+          "prior_record_count": 2,
+          "prior_exposure_count": 2,
+          "prior_share": 0.014,
+          "prior_publisher_count": 2,
+          "prior_story_count": 2,
+          "prior_observation_state": "observed_positive",
           "share_change": null
         },
         {
-          "candidate_id": "raphael-glucksmann",
-          "candidate_name": "Raphaël Glucksmann",
+          "candidate_id": "dominique-de-villepin",
+          "candidate_name": "Dominique de Villepin",
           "status": "active_potential",
           "display_tier": "secondary",
-          "current_record_count": 2,
-          "current_share": 0.067,
-          "prior_record_count": 6,
-          "prior_share": 0.333,
-          "share_change": null
-        },
-        {
-          "candidate_id": "manuel-valls",
-          "candidate_name": "Manuel Valls",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 2,
-          "current_share": 0.067,
+          "current_record_count": 1,
+          "current_exposure_count": 1,
+          "current_share": 0.009,
+          "current_publisher_count": 1,
+          "current_story_count": 1,
+          "current_observation_state": "observed_positive",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -1004,9 +665,17 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -1015,9 +684,17 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -1026,20 +703,17 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
-          "share_change": null
-        },
-        {
-          "candidate_id": "dominique-de-villepin",
-          "candidate_name": "Dominique de Villepin",
-          "status": "active_potential",
-          "display_tier": "secondary",
-          "current_record_count": 0,
-          "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
+          "prior_record_count": 1,
+          "prior_exposure_count": 1,
+          "prior_share": 0.007,
+          "prior_publisher_count": 1,
+          "prior_story_count": 1,
+          "prior_observation_state": "observed_positive",
           "share_change": null
         },
         {
@@ -1048,9 +722,17 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -1059,9 +741,36 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
+          "share_change": null
+        },
+        {
+          "candidate_id": "gerald-darmanin",
+          "candidate_name": "Gérald Darmanin",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_exposure_count": 0,
+          "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
+          "prior_record_count": 0,
+          "prior_exposure_count": 0,
+          "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -1070,9 +779,17 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -1081,9 +798,36 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
+          "share_change": null
+        },
+        {
+          "candidate_id": "manuel-valls",
+          "candidate_name": "Manuel Valls",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_exposure_count": 0,
+          "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
+          "prior_record_count": 0,
+          "prior_exposure_count": 0,
+          "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -1092,9 +836,17 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -1103,9 +855,17 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -1114,9 +874,17 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -1125,9 +893,17 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -1136,9 +912,17 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -1147,9 +931,17 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -1158,9 +950,17 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -1169,9 +969,17 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
-          "prior_record_count": 0,
-          "prior_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
+          "prior_record_count": 1,
+          "prior_exposure_count": 1,
+          "prior_share": 0.007,
+          "prior_publisher_count": 1,
+          "prior_story_count": 1,
+          "prior_observation_state": "observed_positive",
           "share_change": null
         },
         {
@@ -1180,9 +988,17 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -1191,9 +1007,17 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         },
         {
@@ -1202,9 +1026,17 @@
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
+          "current_exposure_count": 0,
           "current_share": 0.0,
+          "current_publisher_count": 0,
+          "current_story_count": 0,
+          "current_observation_state": "observed_zero",
           "prior_record_count": 0,
+          "prior_exposure_count": 0,
           "prior_share": 0.0,
+          "prior_publisher_count": 0,
+          "prior_story_count": 0,
+          "prior_observation_state": "observed_zero",
           "share_change": null
         }
       ]
@@ -1316,41 +1148,41 @@
     ]
   },
   "visibility": {
-    "method": "share_of_candidate_linked_records",
-    "primary_scopes": [
-      "election",
-      "campaign"
-    ],
-    "secondary_scope": "general",
+    "method": "share_of_active_candidate_publisher_story_race_exposures",
+    "story_model_version": "race-story-lexical-complete-link-v1",
+    "authoritative_corpus": "relevant_news",
+    "denominator_scope": "publisher_story_race_exposures_linked_by_article_local_matches_to_at_least_one_active_monitoring_candidate",
     "current_period": {
       "start_date": "2026-08-08",
       "end_date": "2026-08-14",
-      "record_count": 238,
-      "publisher_count": 65
+      "record_count": 202,
+      "exposure_count": 107,
+      "publisher_count": 51,
+      "story_count": 70
     },
     "general_current_period": {
       "start_date": "2026-08-08",
       "end_date": "2026-08-14",
-      "record_count": 30,
-      "publisher_count": 19
+      "record_count": 160,
+      "publisher_count": 53
     },
     "comparison_quality": {
-      "status": "comparable",
-      "reason": "comparable",
-      "current_record_count": 238,
-      "prior_record_count": 284,
-      "current_publisher_count": 65,
-      "prior_publisher_count": 70,
-      "common_publisher_count": 53,
-      "publisher_union_count": 82,
-      "publisher_overlap_ratio": 0.646,
-      "record_count_ratio": 1.193,
+      "status": "not_comparable",
+      "reason": "publisher_panel_changed",
+      "current_exposure_count": 107,
+      "prior_exposure_count": 142,
+      "current_publisher_count": 51,
+      "prior_publisher_count": 43,
+      "common_publisher_count": 27,
+      "publisher_union_count": 67,
+      "publisher_overlap_ratio": 0.403,
+      "exposure_count_ratio": 1.327,
       "thresholds": {
-        "minimum_period_records": 10,
+        "minimum_period_exposures": 10,
         "minimum_period_publishers": 5,
         "minimum_common_publishers": 5,
         "minimum_publisher_overlap_ratio": 0.5,
-        "maximum_record_count_ratio": 2.0
+        "maximum_exposure_count_ratio": 2.0
       }
     }
   },
@@ -1390,28 +1222,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -1463,28 +1284,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -1536,28 +1346,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -1609,34 +1408,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "reported",
         "record_count": 2,
-        "share": 0.067,
-        "publisher_count": 2,
-        "active_day_count": 2,
-        "headline_match_count": 2,
-        "summary_only_match_count": 0,
-        "story_cluster_count": 2,
-        "concentration": {
-          "leading_publisher": "Le Télégramme",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 0.5,
-          "leading_story_record_count": 1,
-          "leading_story_share": 0.5
-        }
+        "publisher_count": 2
       },
       "scrutiny": {
         "latest_14_days": {
@@ -1688,28 +1470,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -1761,48 +1532,17 @@
         "selected_hypothesis_rank": 4
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 5,
-        "share": 0.021,
-        "publisher_count": 4,
-        "active_day_count": 3,
-        "headline_match_count": 5,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 2,
-          "campaign": 3,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.4,
-          "campaign": 0.6,
-          "general": 0.0
-        },
-        "story_cluster_count": 5,
-        "concentration": {
-          "leading_publisher": "La Tribune",
-          "leading_publisher_record_count": 2,
-          "leading_publisher_share": 0.4,
-          "leading_story_record_count": 1,
-          "leading_story_share": 0.2
-        }
+        "observation_state": "observed_positive",
+        "record_count": 3,
+        "exposure_count": 3,
+        "share": 0.028,
+        "publisher_count": 3,
+        "story_count": 3
       },
       "general_visibility": {
         "evidence_state": "reported",
-        "record_count": 1,
-        "share": 0.033,
-        "publisher_count": 1,
-        "active_day_count": 1,
-        "headline_match_count": 0,
-        "summary_only_match_count": 1,
-        "story_cluster_count": 1,
-        "concentration": {
-          "leading_publisher": "Mediapart — Articles",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 1.0,
-          "leading_story_record_count": 1,
-          "leading_story_share": 1.0
-        }
+        "record_count": 3,
+        "publisher_count": 3
       },
       "scrutiny": {
         "latest_14_days": {
@@ -1854,28 +1594,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -1927,28 +1656,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -2000,28 +1718,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -2073,28 +1780,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -2146,28 +1842,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -2219,48 +1904,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 7,
-        "share": 0.029,
-        "publisher_count": 6,
-        "active_day_count": 4,
-        "headline_match_count": 7,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 4,
-          "campaign": 3,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.571,
-          "campaign": 0.429,
-          "general": 0.0
-        },
-        "story_cluster_count": 6,
-        "concentration": {
-          "leading_publisher": "Le JDD",
-          "leading_publisher_record_count": 2,
-          "leading_publisher_share": 0.286,
-          "leading_story_record_count": 2,
-          "leading_story_share": 0.286
-        }
+        "observation_state": "observed_positive",
+        "record_count": 4,
+        "exposure_count": 4,
+        "share": 0.037,
+        "publisher_count": 4,
+        "story_count": 4
       },
       "general_visibility": {
         "evidence_state": "reported",
-        "record_count": 2,
-        "share": 0.067,
-        "publisher_count": 2,
-        "active_day_count": 2,
-        "headline_match_count": 2,
-        "summary_only_match_count": 0,
-        "story_cluster_count": 2,
-        "concentration": {
-          "leading_publisher": "CNEWS",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 0.5,
-          "leading_story_record_count": 1,
-          "leading_story_share": 0.5
-        }
+        "record_count": 5,
+        "publisher_count": 5
       },
       "scrutiny": {
         "latest_14_days": {
@@ -2280,12 +1934,12 @@
       },
       "latest_development": {
         "evidence_state": "reported",
-        "id": "60065a4eaa083419d30f",
-        "published_at": "2026-08-11T09:12:50Z",
-        "publisher": "Atlantico",
-        "headline": "David Lisnard et la fin de l’État-Providence : un diagnostic radical, mais quelles solutions ?",
-        "url": "https://news.google.com/rss/articles/CBMilgJBVV95cUxOa2hOcnkxMjZMMzJILXI0OWdmYUkzdm5kalMyVjFfbjZ3N25ON3pGMGFMWWlvSUZjSWczSkdPcWRkSDdUb2RrTXpkTnNFUUhQN3FLallpb0xnMHdWLURDRFVIdVkzU3NYR3g2ZDhVcWVFeGozRnJidkpvVTJKd21FZmM4QlRXMG5UY0tCcDFJdWpmalRQakZrM1FHZ3lsVGdUcXBWalNwLTNzOW9OR21vUjJUNDNDZVNEcVM1RGlLZnJCd2NORzRuVU5YeVFrMlNfQ01nV0N5M0FKOUs0Q2VRQmZLbFZ1NkVHUVYzVVZ2UEFXQjdoT2o3eXg2MVJPMG1QY3FNV3FaM3FpSmZZX2ZmeDNyQ1lqQQ?oc=5",
-        "coverage_scope": "campaign"
+        "id": "618eac9d2d3207163245",
+        "published_at": "2026-08-10T11:43:10Z",
+        "publisher": "actu.fr",
+        "headline": "Sénatoriales, présidentielle, communes ou économie, David Lisnard, en déplacement dans l'Hérault, mise sur le local",
+        "url": "https://news.google.com/rss/articles/CBMi9wFBVV95cUxOYTJQV0dMUVV3c09OLUdPd3hiZWk4X2w3RFRMNGtwZjhVTVpZanhHV3ZTWVp4U1BENkVCeVdoM2M2Qk81RUxpN0hhMDRTLUhQWXhqWTF5UTRnV01OTnJZNFBNR1gzMkNXX3Q2S2kwZGxpbDNMb01hb253MENOMW4zQXB4Z3R6Q29YaTRTMzdWWlMza2lKRkNHdkphdlJxUnc2VE1Obmc4VG5DV29rYXRnY0ZIZmRXMFk0bjBneF91MEIzV293eEhmSC1CUjZZRWJ0OTFVdklYRHA0N1hicDZSQThwNUY1ekJQaTZhUVoxTXlkS1JjS1Ew?oc=5",
+        "coverage_scope": "election"
       }
     },
     {
@@ -2312,28 +1966,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -2385,42 +2028,17 @@
         "selected_hypothesis_rank": 7
       },
       "campaign_attention": {
-        "evidence_state": "reported",
+        "observation_state": "observed_positive",
         "record_count": 1,
-        "share": 0.004,
+        "exposure_count": 1,
+        "share": 0.009,
         "publisher_count": 1,
-        "active_day_count": 1,
-        "headline_match_count": 1,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 1,
-          "campaign": 0,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 1.0,
-          "campaign": 0.0,
-          "general": 0.0
-        },
-        "story_cluster_count": 1,
-        "concentration": {
-          "leading_publisher": "Libération",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 1.0,
-          "leading_story_record_count": 1,
-          "leading_story_share": 1.0
-        }
+        "story_count": 1
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -2472,42 +2090,17 @@
         "selected_hypothesis_rank": 7
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 1,
-        "share": 0.004,
-        "publisher_count": 1,
-        "active_day_count": 1,
-        "headline_match_count": 1,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 0,
-          "campaign": 1,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.0,
-          "campaign": 1.0,
-          "general": 0.0
-        },
-        "story_cluster_count": 1,
-        "concentration": {
-          "leading_publisher": "RTL",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 1.0,
-          "leading_story_record_count": 1,
-          "leading_story_share": 1.0
-        }
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "evidence_state": "reported",
+        "record_count": 1,
+        "publisher_count": 1
       },
       "scrutiny": {
         "latest_14_days": {
@@ -2526,13 +2119,13 @@
         }
       },
       "latest_development": {
-        "evidence_state": "reported",
-        "id": "09946546ec99584949b3",
-        "published_at": "2026-08-13T05:30:00Z",
-        "publisher": "RTL",
-        "headline": "\"C'est un mec de droite infiltré pour tuer le PCF\" : Fabien Roussel, une candidature qui risque encore plus de diviser la gauche ?",
-        "url": "https://news.google.com/rss/articles/CBMijwJBVV95cUxPRHE1ellhRnRqMWdBcFNLSlBkbzBReGlCb0h1Y2lzMlFsbjdQcElNXzhiVlVyVU0xT1Z1UFJfbkVzVTVxTTlpZGRWdTYxZWFONTlvajlMaHMyR3NITldYeUFwbEJwNzNFbTNSZUdIUXR1UEVzT2RmVFBzZEt2Tm1yZFlaQ2tIN0ZmVmE0aU5qbUI0QTFkWk5vb2lHaWFmM203S3M4UFE3MmtuY1VjMkNESlpiT09TMUZPMlNMOEt4dktJNmlIeW1LY05va0QwT3RmeXJYeE8xeDhqUlRsMjYtWlZVRnA1NlM5ZldwXzhPaTRKUW9YLXE0azl5d19FY2w3Vk1JSkJzcDZyWi1nU1Fr?oc=5",
-        "coverage_scope": "campaign"
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
       }
     },
     {
@@ -2559,28 +2152,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -2632,28 +2214,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -2705,42 +2276,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 1,
-        "share": 0.004,
-        "publisher_count": 1,
-        "active_day_count": 1,
-        "headline_match_count": 1,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 0,
-          "campaign": 1,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.0,
-          "campaign": 1.0,
-          "general": 0.0
-        },
-        "story_cluster_count": 1,
-        "concentration": {
-          "leading_publisher": "Public Sénat",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 1.0,
-          "leading_story_record_count": 1,
-          "leading_story_share": 1.0
-        }
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "evidence_state": "reported",
+        "record_count": 1,
+        "publisher_count": 1
       },
       "scrutiny": {
         "latest_14_days": {
@@ -2759,13 +2305,13 @@
         }
       },
       "latest_development": {
-        "evidence_state": "reported",
-        "id": "15cba6ffcf8474df7412",
-        "published_at": "2026-08-09T07:00:00Z",
-        "publisher": "Public Sénat",
-        "headline": "François Baroin ou les hésitations du destin",
-        "url": "https://news.google.com/rss/articles/CBMinAFBVV95cUxNXzMtYXZNb2JQenE1YjJFV0RMdDFtMWFfQkFXUWQ3Qm12R2FPd2Vvc1V2Wk5IUXV4bk5DcG9lN2kyel9kN1RoU0dHdjJheWtrYW9HNlpESFRUcm5jdGNMQkZWdWJ5MGFsSkg2TG1STjVadFVWZlRsYkVsTGpjb3hiUTE1NzVCeXVtMlRManpNaC1TN3hDaUxIdm5ndHU?oc=5",
-        "coverage_scope": "campaign"
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
       }
     },
     {
@@ -2792,28 +2338,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -2865,48 +2400,17 @@
         "selected_hypothesis_rank": 4
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 11,
-        "share": 0.046,
-        "publisher_count": 9,
-        "active_day_count": 4,
-        "headline_match_count": 9,
-        "summary_only_match_count": 2,
-        "scope_counts": {
-          "election": 4,
-          "campaign": 7,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.364,
-          "campaign": 0.636,
-          "general": 0.0
-        },
-        "story_cluster_count": 10,
-        "concentration": {
-          "leading_publisher": "Libération",
-          "leading_publisher_record_count": 3,
-          "leading_publisher_share": 0.273,
-          "leading_story_record_count": 2,
-          "leading_story_share": 0.182
-        }
+        "observation_state": "observed_positive",
+        "record_count": 3,
+        "exposure_count": 3,
+        "share": 0.028,
+        "publisher_count": 3,
+        "story_count": 3
       },
       "general_visibility": {
         "evidence_state": "reported",
-        "record_count": 3,
-        "share": 0.1,
-        "publisher_count": 2,
-        "active_day_count": 3,
-        "headline_match_count": 1,
-        "summary_only_match_count": 2,
-        "story_cluster_count": 3,
-        "concentration": {
-          "leading_publisher": "LCP — Actualités",
-          "leading_publisher_record_count": 2,
-          "leading_publisher_share": 0.667,
-          "leading_story_record_count": 1,
-          "leading_story_share": 0.333
-        }
+        "record_count": 11,
+        "publisher_count": 7
       },
       "scrutiny": {
         "latest_14_days": {
@@ -2926,12 +2430,12 @@
       },
       "latest_development": {
         "evidence_state": "reported",
-        "id": "f41010a8cc0bddccbc33",
-        "published_at": "2026-08-13T13:36:50Z",
-        "publisher": "Le Parisien",
-        "headline": "72 ans de François Hollande : un anniversaire très politique",
-        "url": "https://news.google.com/rss/articles/CBMi0gFBVV95cUxPMjhlaTd1c1ZRQ2dneTIyenk1a2dyMFh2VDNLaHJRYy15S1hZV3p1U2pDUlZtTlhmOHJqYklOb2s0aVV4UXl3cDZjbHhKLS1mR3RrdnBIQmdOeDQyTjl3YnB3SWRHWHpPTnVXbFVWd0NzZG12bmIwUk5PWENwVTlPYjktMloxVmdCOG9xUjlhamRheG1uOEpvZjJIYmN5T0NhTGN4WXZUTGxqM0k1LTNEbGUxUVprQ1B6WGFwUXpBbUVyYzMyWTNCdDRSSnBqeVBKUmc?oc=5",
-        "coverage_scope": "campaign"
+        "id": "71a332da0d627963f5bd",
+        "published_at": "2026-08-12T17:44:04Z",
+        "publisher": "Le Figaro",
+        "headline": "Présidentielle : pour François Hollande, un été studieux de « quasi-candidat » avant une rentrée sur les chapeaux de roues",
+        "url": "https://news.google.com/rss/articles/CBMihAJBVV95cUxON2VFell1OW5lMGF1WGxCNXVpcmZWWW1HXzNuOFlBLWR5aGkybm1YYUtLcUpURDVrSGVnRFJzUzc5UkhEVmNGd1ZDWm8wbTRyUE5ZVU9hMHF0ZnJUMEdjR0ZmRmlwZWgxclA3MWI2SFRXLWk2N2VNenZteTJ3Q2FyaVloc2prSFhRNFZSWktGMktmaVd0RGJhZ2ZnV3dpbndKWGJadDBJRTM2eW1PZy1oNW5hakVQd3ZWbGlISm1FVlJDMEdGYjMxS2VyWkhmSUJVTkpEQmlobFBDOW45MFV6NHIzdWYyNnBFWG5kX0l0elIwTTRvcl9jOUhYcEo3em11WUJEVw?oc=5",
+        "coverage_scope": "election"
       }
     },
     {
@@ -2958,28 +2462,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -2999,12 +2492,12 @@
       },
       "latest_development": {
         "evidence_state": "reported",
-        "id": "7c3890386f25a6add1be",
-        "published_at": "2026-08-06T06:44:49Z",
-        "publisher": "L'Express",
-        "headline": "\"Sur l'immigration, la stratégie de François Ruffin est relativement marginale en France\" : l'analyse de Pierre-Nicolas Baudot",
-        "url": "https://news.google.com/rss/articles/CBMi7AFBVV95cUxPOVBXdFZsN3M0R21pV2MyM0NmRWZ1YjZfaE5iU0o3TWoyY2tTRU02QzFDSzFNSDVHVmk5V25ldG5LblpZNFRUOGlsSi1jZE9ONXN6MndwbVdkWGxHS3UzX1F6bU9nVXBWV3dBMTYyY1IzdkxveG9DcGJBTGFFanJibUJvWVBNbHFlcHVmRmo4c2EtWG95cWFWRklrdEp1UjRGekNnUlZSSTlSejl2S3kwVWZGSVFPeWFtYm9NaDI2SFhhRUFRbDhYS0hCcjB5bVpuVjkzYi1qSExxbXhEYzdnSzVUMDFQUW1MTk9fTw?oc=5",
-        "coverage_scope": "campaign"
+        "id": "bf8ef4db4122c60e7505",
+        "published_at": "2026-07-27T18:30:03Z",
+        "publisher": "Le Télégramme",
+        "headline": "L’Alréenne Françoise Charpentier référente de François Ruffin, candidat à l’élection présidentielle",
+        "url": "https://news.google.com/rss/articles/CBMi7gFBVV95cUxNOVpiT2c4aTN0RzRCbE03ZC1UVlNZd29Na0Z0ZFluYlFrUGxrdGxZQTJZaFlPNVhISVJ6cEg1U21yZnlPclFTZU56YjR6bmVlUnAtbXFlMkx6OF9MOEJiUW4zSnUydTRILXBYekRud0Rvc0VOeFV2OGhCdmF2UUFOMzE5MFBVQk01bkhvSGJyVldQTDFrR05QeVNZcng2SFFWVGhMUWE5Z1lXT0NjajNSY2gzQzRwQzgzbXZDTnJQemNQcXowc3psYTI5Qm94ZEJWdWlYS1V2YVNpSkZPSEtGOW1XaGZQSHdUOFBGbDFR?oc=5",
+        "coverage_scope": "election"
       }
     },
     {
@@ -3031,48 +2524,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 88,
-        "share": 0.37,
-        "publisher_count": 52,
-        "active_day_count": 7,
-        "headline_match_count": 87,
-        "summary_only_match_count": 1,
-        "scope_counts": {
-          "election": 47,
-          "campaign": 41,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.534,
-          "campaign": 0.466,
-          "general": 0.0
-        },
-        "story_cluster_count": 45,
-        "concentration": {
-          "leading_publisher": "BFMTV — Politique",
-          "leading_publisher_record_count": 11,
-          "leading_publisher_share": 0.125,
-          "leading_story_record_count": 32,
-          "leading_story_share": 0.364
-        }
+        "observation_state": "observed_positive",
+        "record_count": 67,
+        "exposure_count": 65,
+        "share": 0.607,
+        "publisher_count": 44,
+        "story_count": 34
       },
       "general_visibility": {
         "evidence_state": "reported",
-        "record_count": 3,
-        "share": 0.1,
-        "publisher_count": 3,
-        "active_day_count": 3,
-        "headline_match_count": 3,
-        "summary_only_match_count": 0,
-        "story_cluster_count": 3,
-        "concentration": {
-          "leading_publisher": "BFMTV — Politique",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 0.333,
-          "leading_story_record_count": 1,
-          "leading_story_share": 0.333
-        }
+        "record_count": 24,
+        "publisher_count": 18
       },
       "scrutiny": {
         "latest_14_days": {
@@ -3092,12 +2554,12 @@
       },
       "latest_development": {
         "evidence_state": "reported",
-        "id": "ba5d3a6628abe23ee852",
-        "published_at": "2026-08-14T09:30:08Z",
-        "publisher": "Le Nouvel Obs — Politique",
-        "headline": "Cet été, Gabriel Attal dégaine la stratégie du cow-boy",
-        "url": "https://www.nouvelobs.com/politique/20260814.OBS117395/cet-ete-gabriel-attal-degaine-la-strategie-du-cow-boy.html",
-        "coverage_scope": "campaign"
+        "id": "274ddfaea91e01a266d5",
+        "published_at": "2026-08-13T17:42:52Z",
+        "publisher": "Ici",
+        "headline": "Présidentielle 2027 : la tournée d'été de Gabriel Attal, en campagne, est passée par La Grande-Motte",
+        "url": "https://news.google.com/rss/articles/CBMixwFBVV95cUxPU1lPRVpUZmoycmYzaXZ1SFZWQzlMM2lxck1zWFRBMEVISmVNQ01MSng5U1ZGd0hPanJNREZzTlIxVllJMVBGbW45bjltNHNMbTJRaEVlYkZnMG1wX0ZvTVo4SzYyMDNzQ25zUjBfeEtxUXFQalRwYkdKckRlZGh5dzVjZV9wTUJPdHk3c2k5UWhTSjk4aU5GQUJ3ZTZpWUdQeWt3NDR1ZkozX1Uwa3BXWU5ZQXpYVnNzeU1PQ1phYllNNl9JRE1F?oc=5",
+        "coverage_scope": "election"
       }
     },
     {
@@ -3124,48 +2586,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 28,
-        "share": 0.118,
-        "publisher_count": 14,
-        "active_day_count": 7,
-        "headline_match_count": 28,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 0,
-          "campaign": 28,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.0,
-          "campaign": 1.0,
-          "general": 0.0
-        },
-        "story_cluster_count": 24,
-        "concentration": {
-          "leading_publisher": "CNEWS",
-          "leading_publisher_record_count": 4,
-          "leading_publisher_share": 0.143,
-          "leading_story_record_count": 4,
-          "leading_story_share": 0.143
-        }
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "reported",
-        "record_count": 9,
-        "share": 0.3,
-        "publisher_count": 7,
-        "active_day_count": 3,
-        "headline_match_count": 4,
-        "summary_only_match_count": 5,
-        "story_cluster_count": 8,
-        "concentration": {
-          "leading_publisher": "BFMTV — Politique",
-          "leading_publisher_record_count": 2,
-          "leading_publisher_share": 0.222,
-          "leading_story_record_count": 2,
-          "leading_story_share": 0.222
-        }
+        "record_count": 37,
+        "publisher_count": 17
       },
       "scrutiny": {
         "latest_14_days": {
@@ -3184,13 +2615,13 @@
         }
       },
       "latest_development": {
-        "evidence_state": "reported",
-        "id": "9192a7a3b88e1e9e968c",
-        "published_at": "2026-08-14T06:44:54Z",
-        "publisher": "Sud Ouest",
-        "headline": "Violences sexuelles sur mineurs : Laurent Nuñez répondra « point par point » à la note de Gérald Darmanin",
-        "url": "https://news.google.com/rss/articles/CBMiggJBVV95cUxOTmdraHlyemRRWW1jOV96aHpOZVJwLWUwUDlqSDgzeWN3c2t0aDhuemkyd1FzS2VDVi1PSnpSTmxKUGk1S3AzYlhOVzBKUTBVc3FodTJCTHotUmFtcTVDNVA0NWhjck1LYy1yUzh0a1ZBeTc1UWhnYndmWTIwdWJKNnpPRm1kMWF5d2ZkZWJCNGVTTlJDeE00d2JhTEIyS01XT3JiZ0UzamRrbllTUWpDN0Y1Qjdmb1otWHoxTW1Ec0plYlJiSEJmMjk1OW42Zm9SS3hOTnVNT3o4VEZkbXc0T0xhQ01xZ0x6bllBVmZZMG1aVXJLMERoSkN6cDJkN0VVbmc?oc=5",
-        "coverage_scope": "campaign"
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
       }
     },
     {
@@ -3217,28 +2648,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -3290,28 +2710,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -3363,48 +2772,17 @@
         "selected_hypothesis_rank": 3
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 13,
-        "share": 0.055,
-        "publisher_count": 10,
-        "active_day_count": 6,
-        "headline_match_count": 13,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 3,
-          "campaign": 10,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.231,
-          "campaign": 0.769,
-          "general": 0.0
-        },
-        "story_cluster_count": 12,
-        "concentration": {
-          "leading_publisher": "Europe 1",
-          "leading_publisher_record_count": 2,
-          "leading_publisher_share": 0.154,
-          "leading_story_record_count": 2,
-          "leading_story_share": 0.154
-        }
+        "observation_state": "observed_positive",
+        "record_count": 4,
+        "exposure_count": 4,
+        "share": 0.037,
+        "publisher_count": 4,
+        "story_count": 4
       },
       "general_visibility": {
         "evidence_state": "reported",
-        "record_count": 4,
-        "share": 0.133,
-        "publisher_count": 4,
-        "active_day_count": 3,
-        "headline_match_count": 2,
-        "summary_only_match_count": 2,
-        "story_cluster_count": 4,
-        "concentration": {
-          "leading_publisher": "Europe 1",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 0.25,
-          "leading_story_record_count": 1,
-          "leading_story_share": 0.25
-        }
+        "record_count": 13,
+        "publisher_count": 8
       },
       "scrutiny": {
         "latest_14_days": {
@@ -3424,11 +2802,11 @@
       },
       "latest_development": {
         "evidence_state": "reported",
-        "id": "c28447fb965a632b2ba3",
-        "published_at": "2026-08-14T15:00:01Z",
-        "publisher": "Valeurs actuelles",
-        "headline": "« Place à la nouvelle France ! » : si Jean-Luc Mélenchon devenait président",
-        "url": "https://news.google.com/rss/articles/CBMi6wFBVV95cUxPcl9JYUxVZTZtdS16XzlUXzNFZnVUc3E2cVd3azM2MjNCbXRISHcyZG84NENTOGRuRVlEcjdySENqMTFCZ19XYnRjZzB2VmV4a3hHN25neGwwWHBIdnlJV2c2b3pMMUtEXzQwT2l6SUlucGRFMjVrNzk2WmNraXF2OWNrTmdmNzJYMGFfbWcyRG9UZElkMk5oVzdkV0NndmdDbTZVdUxYZWV1aEc1LUNUUS1KTW5VRTlvYVA3MTA2aDlBTUY2amhDUW9xQjJBbUpWOHZvOFA4djRFYlJSV3E5VXVRdFdRYzlwVmhZ?oc=5",
+        "id": "eebd0ccade547d709d19",
+        "published_at": "2026-08-13T13:03:46Z",
+        "publisher": "BFMTV — Politique",
+        "headline": "Dette française: Gabriel Attal affirme que Jean-Luc Mélenchon veut \"ruiner\" le pays",
+        "url": "https://www.bfmtv.com/politique/elections/presidentielle/video-dette-francaise-gabriel-attal-affirme-que-jean-luc-melenchon-veut-ruiner-le-pays_VN-202608130357.html",
         "coverage_scope": "campaign"
       }
     },
@@ -3456,28 +2834,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -3529,28 +2896,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -3602,42 +2958,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 2,
-        "share": 0.008,
-        "publisher_count": 2,
-        "active_day_count": 1,
-        "headline_match_count": 2,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 0,
-          "campaign": 2,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.0,
-          "campaign": 1.0,
-          "general": 0.0
-        },
-        "story_cluster_count": 2,
-        "concentration": {
-          "leading_publisher": "L'Opinion",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 0.5,
-          "leading_story_record_count": 1,
-          "leading_story_share": 0.5
-        }
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "evidence_state": "reported",
+        "record_count": 2,
+        "publisher_count": 2
       },
       "scrutiny": {
         "latest_14_days": {
@@ -3656,13 +2987,13 @@
         }
       },
       "latest_development": {
-        "evidence_state": "reported",
-        "id": "cda5a8ccfc39e9bcfd1e",
-        "published_at": "2026-08-13T16:56:21Z",
-        "publisher": "Le Figaro",
-        "headline": "PS : le député Jérôme Guedj ouvert à une sous-indexation des retraites, à certaines conditions",
-        "url": "https://news.google.com/rss/articles/CBMizwFBVV95cUxQQjdIM2VOSzlLVUNhSVRqaE9YU2JHd3hMaWdybTl1N3NwSFlwd1N4aERyMDBCOHhobk9LZ3FlUC1fc2Q4QjF4MTI5NGYwa2RtMEhHVEd4UFlNSnVEWWRidmd3NnMtSVA0N1lNMVdZR0V1UXBuVml1M0t0cFlxODVvZmdMZjg1ekNjTWk5UFJ3TWxGSWhCSE1mZG0wa3JtSlVoaFEzRXNIWG9WOUN5ZVU4S25Fd0NGT3d6WUthQmJvVURjZE95Zm1lQ1FCMEdmUmM?oc=5",
-        "coverage_scope": "campaign"
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
       }
     },
     {
@@ -3689,28 +3020,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -3762,28 +3082,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -3835,28 +3144,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -3908,28 +3206,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -3981,28 +3268,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -4054,34 +3330,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "reported",
         "record_count": 2,
-        "share": 0.067,
-        "publisher_count": 1,
-        "active_day_count": 2,
-        "headline_match_count": 0,
-        "summary_only_match_count": 2,
-        "story_cluster_count": 2,
-        "concentration": {
-          "leading_publisher": "LCP — Actualités",
-          "leading_publisher_record_count": 2,
-          "leading_publisher_share": 1.0,
-          "leading_story_record_count": 1,
-          "leading_story_share": 0.5
-        }
+        "publisher_count": 1
       },
       "scrutiny": {
         "latest_14_days": {
@@ -4133,48 +3392,17 @@
         "selected_hypothesis_rank": 1
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 21,
-        "share": 0.088,
-        "publisher_count": 14,
-        "active_day_count": 7,
-        "headline_match_count": 20,
-        "summary_only_match_count": 1,
-        "scope_counts": {
-          "election": 7,
-          "campaign": 14,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.333,
-          "campaign": 0.667,
-          "general": 0.0
-        },
-        "story_cluster_count": 17,
-        "concentration": {
-          "leading_publisher": "Franceinfo Politique",
-          "leading_publisher_record_count": 5,
-          "leading_publisher_share": 0.238,
-          "leading_story_record_count": 5,
-          "leading_story_share": 0.238
-        }
+        "observation_state": "observed_positive",
+        "record_count": 7,
+        "exposure_count": 7,
+        "share": 0.065,
+        "publisher_count": 5,
+        "story_count": 7
       },
       "general_visibility": {
         "evidence_state": "reported",
-        "record_count": 2,
-        "share": 0.067,
-        "publisher_count": 2,
-        "active_day_count": 2,
-        "headline_match_count": 1,
-        "summary_only_match_count": 1,
-        "story_cluster_count": 2,
-        "concentration": {
-          "leading_publisher": "LCP — Actualités",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 0.5,
-          "leading_story_record_count": 1,
-          "leading_story_share": 0.5
-        }
+        "record_count": 16,
+        "publisher_count": 12
       },
       "scrutiny": {
         "latest_14_days": {
@@ -4194,12 +3422,12 @@
       },
       "latest_development": {
         "evidence_state": "reported",
-        "id": "73a0686989118168c592",
-        "published_at": "2026-08-14T09:32:19Z",
-        "publisher": "Village de la Justice",
-        "headline": "[Point de vue] Marine Le Pen, mal jugée, mais bien servie. Par Oscar Le Moine-Durand, Avocat.",
-        "url": "https://news.google.com/rss/articles/CBMikwFBVV95cUxQQmxNV2xhTlVFTWdibFJia24tbDYyd1ZlNE81Q0VJb3pnZEVWS3hHVmZjYkxWNVJJVUhGUDBwUmJuZ1dFSTlOU3QycVp5Qkt6N0ZZS3RmQzRaaWhoLVhnWlR2N1g1V0JLZF9RRml3bGpsdXFoWjhtbzBaTEF1VDdtMzVUZEl4U0FiOHBVNHF2X19FM1U?oc=5",
-        "coverage_scope": "campaign"
+        "id": "cfad621da2cb6ff8d2b8",
+        "published_at": "2026-08-12T16:00:00Z",
+        "publisher": "La Nouvelle République",
+        "headline": "Présidentielle 2027 : Marine Le Pen, un clan au-dessus des autres",
+        "url": "https://news.google.com/rss/articles/CBMiugFBVV95cUxNNFJQMm9LN082V3JfREV5a1IxOG1SZnZTellYTnRIczdHWnZHS1BndkVQM3lwYkw5WEFoTjZBeXlpVzZFNHdadmlFd3lyVVEzT0JlQk5ScHowbDQ5WDFubVh0MDNPbTJ6TmZoVGpaNi00M3pDZnd0ZjVMQ1ktRkpEbmR2eEpLdUN5b0lJTUs5ZVYxTVF0UkZpSUF0Q1F2SXB2UklUSW8tSmRBb2VFVi1scDZiTUJpR1VRaWc?oc=5",
+        "coverage_scope": "election"
       }
     },
     {
@@ -4226,48 +3454,17 @@
         "selected_hypothesis_rank": 6
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 21,
-        "share": 0.088,
-        "publisher_count": 20,
-        "active_day_count": 5,
-        "headline_match_count": 21,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 1,
-          "campaign": 20,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.048,
-          "campaign": 0.952,
-          "general": 0.0
-        },
-        "story_cluster_count": 8,
-        "concentration": {
-          "leading_publisher": "RTL",
-          "leading_publisher_record_count": 2,
-          "leading_publisher_share": 0.095,
-          "leading_story_record_count": 8,
-          "leading_story_share": 0.381
-        }
+        "observation_state": "observed_positive",
+        "record_count": 2,
+        "exposure_count": 2,
+        "share": 0.019,
+        "publisher_count": 2,
+        "story_count": 2
       },
       "general_visibility": {
         "evidence_state": "reported",
-        "record_count": 5,
-        "share": 0.167,
-        "publisher_count": 4,
-        "active_day_count": 2,
-        "headline_match_count": 4,
-        "summary_only_match_count": 1,
-        "story_cluster_count": 5,
-        "concentration": {
-          "leading_publisher": "BFMTV — Politique",
-          "leading_publisher_record_count": 2,
-          "leading_publisher_share": 0.4,
-          "leading_story_record_count": 1,
-          "leading_story_share": 0.2
-        }
+        "record_count": 25,
+        "publisher_count": 22
       },
       "scrutiny": {
         "latest_14_days": {
@@ -4287,12 +3484,12 @@
       },
       "latest_development": {
         "evidence_state": "reported",
-        "id": "b4836749b6c480e02999",
-        "published_at": "2026-08-12T17:00:00Z",
-        "publisher": "L'Opinion",
-        "headline": "Marine Tondelier, l’éclipse et l’Etat-nounou",
-        "url": "https://news.google.com/rss/articles/CBMigAFBVV95cUxQTk5BLS04dEV3SUVuU1d6TnNaSms4LU9IQkF0MEJZeGZOYm4tX0pLb3hRaXNMLW40N2I2Wk9HRldFUkI5MTFnSWd0clNSUTV5Skt0aXkxTU03MHhJVzJ3bTZ0UjdzYk5rV3F5ZlR1S203Wm5TVmVMNEp1U01YeEwzbg?oc=5",
-        "coverage_scope": "campaign"
+        "id": "8c7ad9370c1c5c764815",
+        "published_at": "2026-08-09T06:16:00Z",
+        "publisher": "La Dépêche du Midi",
+        "headline": "Ingérences : Marine Tondelier veut \"couper X\" durant la présidentielle 2027, mais est-ce vraiment possible ? \"Une mesure plus symbolique que juridiquement applicable\"",
+        "url": "https://news.google.com/rss/articles/CBMioAJBVV95cUxOYXoyaWpKamV6UDBUTUZzY0xIRlIxUnZQTDlCclFhQlJIdHBkaUViME81VnlVbmNLcTM5Q1FhNThxcktFOGpVcFZpc2NnTDJ4WF9nT2p2ZkVMMFZmSmhUYk4wLVd6NEFZMzE2NHV0VmlGNHdfVkVUa2luZnlEVHlNaUFkQjB6QnVHd2xnMXRHOGFoa2Jjc2FBNDhvcm9iRlo5bzFzVFh1MTNJeTc0WUhUZ01fLVJHWHZ2aEo1LU5FbjVHUzlSUmZScTNhVUl6TUQzdVgyRkMtVFpNSzh4RXdmZWFqbkpQMXdLQmpsQWxiNmdHY0RkNWRFSV9Zc1psR1Y3aDBqM25vU1JYZExtVU4yMkRKVWtkVW1tdkhnN0E3dzM?oc=5",
+        "coverage_scope": "election"
       }
     },
     {
@@ -4319,28 +3516,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -4392,28 +3578,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -4465,42 +3640,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 1,
-        "share": 0.004,
-        "publisher_count": 1,
-        "active_day_count": 1,
-        "headline_match_count": 1,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 0,
-          "campaign": 1,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.0,
-          "campaign": 1.0,
-          "general": 0.0
-        },
-        "story_cluster_count": 1,
-        "concentration": {
-          "leading_publisher": "TF1 Info",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 1.0,
-          "leading_story_record_count": 1,
-          "leading_story_share": 1.0
-        }
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "evidence_state": "reported",
+        "record_count": 1,
+        "publisher_count": 1
       },
       "scrutiny": {
         "latest_14_days": {
@@ -4519,13 +3669,13 @@
         }
       },
       "latest_development": {
-        "evidence_state": "reported",
-        "id": "e944e0cf2551f89546f5",
-        "published_at": "2026-08-13T05:02:02Z",
-        "publisher": "TF1 Info",
-        "headline": "Michel Barnier : Actualités et Biographie",
-        "url": "https://news.google.com/rss/articles/CBMiZEFVX3lxTE9TcGZvZXF3YzNEdlozQWROWnlGM0hnd0FnNWxmWlNPa2RKR0stWFlJbGk3dmZLUTFlbDVJMjluUi1rVm1OQmFlaDM5RWRCU095eG14U081XzRyejBPN0Q0UzJ6anE?oc=5",
-        "coverage_scope": "campaign"
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
       }
     },
     {
@@ -4552,28 +3702,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -4625,42 +3764,17 @@
         "selected_hypothesis_rank": 10
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 7,
-        "share": 0.029,
-        "publisher_count": 7,
-        "active_day_count": 1,
-        "headline_match_count": 7,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 0,
-          "campaign": 7,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.0,
-          "campaign": 1.0,
-          "general": 0.0
-        },
-        "story_cluster_count": 1,
-        "concentration": {
-          "leading_publisher": "L'Yonne Républicaine",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 0.143,
-          "leading_story_record_count": 7,
-          "leading_story_share": 1.0
-        }
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "evidence_state": "reported",
+        "record_count": 7,
+        "publisher_count": 7
       },
       "scrutiny": {
         "latest_14_days": {
@@ -4680,12 +3794,12 @@
       },
       "latest_development": {
         "evidence_state": "reported",
-        "id": "0c0bed6a1ccaf0df7d17",
-        "published_at": "2026-08-11T13:14:00Z",
-        "publisher": "La Montagne",
-        "headline": "30 millions de lunettes en 1999, pénurie en 2026 : Marine Tondelier et Nathalie Arthaud s’indignent avant l'éclipse",
-        "url": "https://news.google.com/rss/articles/CBMigAJBVV95cUxOSzYzZmtWbjFpTTZNbTRoSnJKd3NFSVB2TGJyN0tWZFdBS3ZuWXlMZXNpN0J1ekZKaWh3N3N0eUlneHN0WFNqcWRwTVQ4OWtPQmxWY3JmQ25wcGs2R0ZHNDFIMzlmRVFPWXZKMjUxN3lpQXhheDZlR1hGV3h2N2hjaGNyYm9fczNvRktlampXSm41Q3c2ME5NNEZmU0JBc3Fqb3Fockh0dG5FcWlHdXE1UXQ5dThvVS1qNy1zbms3QXZrU1NFNEFibEd6YXJBdm1qd2h1ckhlWmpIWHB2R0tiTTZ2RkVVNzRjZXJmQWh0NS1fMFJjMzRrY3NST0ExWnJI?oc=5",
-        "coverage_scope": "campaign"
+        "id": "122ad812e31070017d28",
+        "published_at": "2026-08-07T05:15:00Z",
+        "publisher": "RTL",
+        "headline": "Renverser le système capitaliste et mettre en place la révolution des travailleurs : l'exercice rodé pour Nathalie Arthaud, candidate pour la 4e fois à la présidentielle",
+        "url": "https://news.google.com/rss/articles/CBMivwJBVV95cUxNdHV3SEJpc0lIdGFKNkFiRHBmeGJOLWN2RkhROTY5NXVwTG4tWmtuNjQ5dGd3Y1pKTVlVajNyeEp0M3c1ZFJ6TXItc2Yzb2ZWS2wtVUpuaE5UYm1IUFZUUjZ3ZjE3aEM0dkFQdXk2b3VGcFZjaXFKdWtzV0ZYN0plQXRlM2swN293RkN2V2FHMWxYMzdfWFhDZURzYzRxT05KQ0NvNVNLSU1zay03cVltbkw3MncwWkdjSUJhSnQ0b0J2VklyOXdnWnduVEhIbVpnVGtfNHEzdm5GUzdIV1pDRGpQXzdDVzFTQnBHVlRRTDhZTXU5SHZ6YlZXTTRYMXZjbi1zZ0MyTGJPTEFsWko0NUVNaklpalFkbFRLb3Z2b2J2aEYza3JudVAwTlJjRGo5SGNfQzZUZ3hoanJkX2tv?oc=5",
+        "coverage_scope": "election"
       }
     },
     {
@@ -4712,28 +3826,17 @@
         "selected_hypothesis_rank": 11
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -4785,28 +3888,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -4858,28 +3950,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -4931,42 +4012,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 2,
-        "share": 0.008,
-        "publisher_count": 2,
-        "active_day_count": 2,
-        "headline_match_count": 2,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 0,
-          "campaign": 2,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.0,
-          "campaign": 1.0,
-          "general": 0.0
-        },
-        "story_cluster_count": 2,
-        "concentration": {
-          "leading_publisher": "BFMTV — Politique",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 0.5,
-          "leading_story_record_count": 1,
-          "leading_story_share": 0.5
-        }
+        "observation_state": "observed_positive",
+        "record_count": 1,
+        "exposure_count": 1,
+        "share": 0.009,
+        "publisher_count": 1,
+        "story_count": 1
       },
       "general_visibility": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "evidence_state": "reported",
+        "record_count": 1,
+        "publisher_count": 1
       },
       "scrutiny": {
         "latest_14_days": {
@@ -5018,42 +4074,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 1,
-        "share": 0.004,
-        "publisher_count": 1,
-        "active_day_count": 1,
-        "headline_match_count": 1,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 0,
-          "campaign": 1,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.0,
-          "campaign": 1.0,
-          "general": 0.0
-        },
-        "story_cluster_count": 1,
-        "concentration": {
-          "leading_publisher": "Valeurs actuelles",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 1.0,
-          "leading_story_record_count": 1,
-          "leading_story_share": 1.0
-        }
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "evidence_state": "reported",
+        "record_count": 1,
+        "publisher_count": 1
       },
       "scrutiny": {
         "latest_14_days": {
@@ -5072,13 +4103,13 @@
         }
       },
       "latest_development": {
-        "evidence_state": "reported",
-        "id": "c2bb2f2b6c3fbac19de0",
-        "published_at": "2026-08-10T16:00:19Z",
-        "publisher": "Valeurs actuelles",
-        "headline": "Du triomphe de 1994 au naufrage du MPF, le pari de Philippe de Villiers",
-        "url": "https://news.google.com/rss/articles/CBMi-gFBVV95cUxQVV9wdV9IWlAweC1SOFZXeXl3OEk5bXdpcUxRbnV1Zjg4cVZ0UnpTWUpZc2JLQVI5eWV1UTVjZWtxMzgxRUlBQ01rVUszVlFiZ2EzMndoNHVqMzlTLWFTTTk4R2dRcWNxU2ozR2RZcWlWZjB5YUF4SmhDaGhyT2c2SmZBWTl6NGlWRXd2OTNjaC11eXhkQ2draHZ2TWRfR1hhN005VTUwbnZqVFdsLUx0bE1rSEppR0VrZUwxTnJUVHJhMkVUSEhsM0Z0U3U2Ni1VWUxZd1pGZDlBME5FSDI5Q2Z5Vlh3YThhQVJfNVJRWkVWZXF3QkpoaFR3?oc=5",
-        "coverage_scope": "campaign"
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
       }
     },
     {
@@ -5105,28 +4136,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -5178,48 +4198,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 26,
-        "share": 0.109,
-        "publisher_count": 17,
-        "active_day_count": 6,
-        "headline_match_count": 24,
-        "summary_only_match_count": 2,
-        "scope_counts": {
-          "election": 14,
-          "campaign": 12,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.538,
-          "campaign": 0.462,
-          "general": 0.0
-        },
-        "story_cluster_count": 15,
-        "concentration": {
-          "leading_publisher": "Le Figaro",
-          "leading_publisher_record_count": 4,
-          "leading_publisher_share": 0.154,
-          "leading_story_record_count": 7,
-          "leading_story_share": 0.269
-        }
+        "observation_state": "observed_positive",
+        "record_count": 17,
+        "exposure_count": 17,
+        "share": 0.159,
+        "publisher_count": 11,
+        "story_count": 13
       },
       "general_visibility": {
         "evidence_state": "reported",
-        "record_count": 2,
-        "share": 0.067,
-        "publisher_count": 2,
-        "active_day_count": 2,
-        "headline_match_count": 2,
-        "summary_only_match_count": 0,
-        "story_cluster_count": 2,
-        "concentration": {
-          "leading_publisher": "Le Figaro",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 0.5,
-          "leading_story_record_count": 1,
-          "leading_story_share": 0.5
-        }
+        "record_count": 11,
+        "publisher_count": 11
       },
       "scrutiny": {
         "latest_14_days": {
@@ -5239,12 +4228,12 @@
       },
       "latest_development": {
         "evidence_state": "reported",
-        "id": "2bc4bbad7e614989fdb2",
-        "published_at": "2026-08-13T17:35:23Z",
-        "publisher": "Le Parisien",
-        "headline": "« Il s’améliore » : dans l’Aude, Raphaël Glucksmann cherche à rassurer les ruraux",
-        "url": "https://news.google.com/rss/articles/CBMi5AFBVV95cUxNblZ2ekVxbnNwRERRYWJtOFljLVl0NHJJM2xPeFJETWRUTTZzOXFYVk1CMlFNdTFiak55VENURWNiZGdjNm1uWTl6WGhma2lweDB0bkwtOHpjbHlEellHb3QwcHZrcnlGUmRFMWQxQWZEYXc0TFRYcWZQdjFvR1lqQnR0X19JLXFOa1lmcHhHOHpfbVpodFYzRXRWWHpfOVJmdDQtYW1YWDFfYXNPR2dHWFRpU2RQZ3Z0eEs1elF3dzk4b3UxNno1RnRPWFVzZk1VWHk0WE1QY0xYT01oQlpSUFN3RjQ?oc=5",
-        "coverage_scope": "campaign"
+        "id": "69b02ee0ef33884a884a",
+        "published_at": "2026-08-12T16:38:41Z",
+        "publisher": "Le Figaro",
+        "headline": "Présidentielle : dans l’Aude, Raphaël Glucksmann au contact des victimes des « mégafeux »",
+        "url": "https://news.google.com/rss/articles/CBMiwwFBVV95cUxOWDlFUk4yMnRiem91bXVRTjVrUlFjZFh5dW4tbkRNR2N1M3MxcFFPQ280MVlHaFg2ZDQ4T0Z6cmNRbVpKZ0pHelFiTDVhOWt2d1N2QzhON0VBME5nOWtHTk5tNUo0LXVJa2JqUHVzRnBCLTRub011cGE5QVBYWHhIV2xXczJjNHNWQlo0dnp6c1dBalMxWmYwQkRzbVFlRVR2T21QenU0S19tWWZvNmFuVFZfZVRDQVAxWmpBSXZaSlB1VXM?oc=5",
+        "coverage_scope": "election"
       }
     },
     {
@@ -5271,28 +4260,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -5344,28 +4322,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -5417,28 +4384,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -5490,28 +4446,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -5563,28 +4508,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -5636,48 +4570,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 1,
-        "share": 0.004,
-        "publisher_count": 1,
-        "active_day_count": 1,
-        "headline_match_count": 1,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 0,
-          "campaign": 1,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.0,
-          "campaign": 1.0,
-          "general": 0.0
-        },
-        "story_cluster_count": 1,
-        "concentration": {
-          "leading_publisher": "LCP — Actualités",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 1.0,
-          "leading_story_record_count": 1,
-          "leading_story_share": 1.0
-        }
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "reported",
-        "record_count": 2,
-        "share": 0.067,
-        "publisher_count": 1,
-        "active_day_count": 2,
-        "headline_match_count": 0,
-        "summary_only_match_count": 2,
-        "story_cluster_count": 2,
-        "concentration": {
-          "leading_publisher": "LCP — Actualités",
-          "leading_publisher_record_count": 2,
-          "leading_publisher_share": 1.0,
-          "leading_story_record_count": 1,
-          "leading_story_share": 0.5
-        }
+        "record_count": 3,
+        "publisher_count": 1
       },
       "scrutiny": {
         "latest_14_days": {
@@ -5697,11 +4600,11 @@
       },
       "latest_development": {
         "evidence_state": "reported",
-        "id": "9d1bae086357c1f3261e",
-        "published_at": "2026-08-12T05:50:02Z",
+        "id": "7d10165e8c12f9196838",
+        "published_at": "2026-08-05T09:43:49Z",
         "publisher": "LCP — Actualités",
-        "headline": "L'été d'avant présidentielle: 2006 et le désir d'avenir de Ségolène Royal",
-        "url": "https://lcp.fr/actualites/l-ete-d-avant-presidentielle-2006-et-le-desir-d-avenir-de-segolene-royal-439772",
+        "headline": "Primaire du PS et de l'espace social-démocrate: le tarif de la discorde",
+        "url": "https://lcp.fr/actualites/primaire-du-ps-et-de-l-espace-social-democrate-le-tarif-de-la-discorde-440219",
         "coverage_scope": "campaign"
       }
     },
@@ -5729,42 +4632,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 1,
-        "share": 0.004,
-        "publisher_count": 1,
-        "active_day_count": 1,
-        "headline_match_count": 1,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 0,
-          "campaign": 1,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.0,
-          "campaign": 1.0,
-          "general": 0.0
-        },
-        "story_cluster_count": 1,
-        "concentration": {
-          "leading_publisher": "Midi Libre",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 1.0,
-          "leading_story_record_count": 1,
-          "leading_story_share": 1.0
-        }
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "evidence_state": "reported",
+        "record_count": 1,
+        "publisher_count": 1
       },
       "scrutiny": {
         "latest_14_days": {
@@ -5783,13 +4661,13 @@
         }
       },
       "latest_development": {
-        "evidence_state": "reported",
-        "id": "bc3d0ee8ae1be0c7d803",
-        "published_at": "2026-08-12T14:15:00Z",
-        "publisher": "Midi Libre",
-        "headline": "Nouveau coup dur pour Teddy Riner : le champion renonce de nouveau à son grand retour à la compétition après sa blessure à l’épaule",
-        "url": "https://news.google.com/rss/articles/CBMiiAJBVV95cUxPZzVlRzVQSTRXWmtqZ0ZLVE9uMXZHZjd1U21zZjc3bjkzMjBNdzBPcUQtNmhCeGRDbHp3SVpMWTFxb080Z0x0dUJ2YTlPR2tfdlNJQklBMUdFX3JCNWhtQ3ctZFkwaXhJaG5uMTJBMk02SHlvOHhDVTVTcElub2FaVWhCV0lwb0pjZ21TOVltUVBJV04xMksxS09aSFpQRFN4WkNHLWVuYXBrYmRPZ1dRMDNYNGEyQnhqLWs1ZEx4MmNUeWxOQ2NxUU9FUUg4NGdHSXJaU0hfeThiMm03RlZ6YkVzZnl2aFZSZ2l0MGxiTTR2RU95eVZfTHF0LWtOVmdfVUdfZkxvMlU?oc=5",
-        "coverage_scope": "campaign"
+        "evidence_state": "none",
+        "id": null,
+        "published_at": null,
+        "publisher": null,
+        "headline": null,
+        "url": null,
+        "coverage_scope": null
       }
     },
     {
@@ -5816,28 +4694,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -5889,42 +4756,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 2,
-        "share": 0.008,
-        "publisher_count": 2,
-        "active_day_count": 2,
-        "headline_match_count": 2,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 1,
-          "campaign": 1,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.5,
-          "campaign": 0.5,
-          "general": 0.0
-        },
-        "story_cluster_count": 2,
-        "concentration": {
-          "leading_publisher": "Franceinfo Politique",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 0.5,
-          "leading_story_record_count": 1,
-          "leading_story_share": 0.5
-        }
+        "observation_state": "observed_positive",
+        "record_count": 1,
+        "exposure_count": 1,
+        "share": 0.009,
+        "publisher_count": 1,
+        "story_count": 1
       },
       "general_visibility": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "evidence_state": "reported",
+        "record_count": 1,
+        "publisher_count": 1
       },
       "scrutiny": {
         "latest_14_days": {
@@ -5976,28 +4818,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -6049,28 +4880,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -6122,42 +4942,17 @@
         "selected_hypothesis_rank": 2
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 17,
-        "share": 0.071,
-        "publisher_count": 12,
-        "active_day_count": 6,
-        "headline_match_count": 15,
-        "summary_only_match_count": 2,
-        "scope_counts": {
-          "election": 7,
-          "campaign": 10,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.412,
-          "campaign": 0.588,
-          "general": 0.0
-        },
-        "story_cluster_count": 15,
-        "concentration": {
-          "leading_publisher": "BFMTV — Politique",
-          "leading_publisher_record_count": 3,
-          "leading_publisher_share": 0.176,
-          "leading_story_record_count": 3,
-          "leading_story_share": 0.176
-        }
+        "observation_state": "observed_positive",
+        "record_count": 10,
+        "exposure_count": 10,
+        "share": 0.093,
+        "publisher_count": 8,
+        "story_count": 8
       },
       "general_visibility": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "evidence_state": "reported",
+        "record_count": 7,
+        "publisher_count": 6
       },
       "scrutiny": {
         "latest_14_days": {
@@ -6177,12 +4972,12 @@
       },
       "latest_development": {
         "evidence_state": "reported",
-        "id": "ba5d3a6628abe23ee852",
-        "published_at": "2026-08-14T09:30:08Z",
-        "publisher": "Le Nouvel Obs — Politique",
-        "headline": "Cet été, Gabriel Attal dégaine la stratégie du cow-boy",
-        "url": "https://www.nouvelobs.com/politique/20260814.OBS117395/cet-ete-gabriel-attal-degaine-la-strategie-du-cow-boy.html",
-        "coverage_scope": "campaign"
+        "id": "6f23a4a5c61d36a4ac34",
+        "published_at": "2026-08-12T04:31:00Z",
+        "publisher": "La Dépêche du Midi",
+        "headline": "Présidentielle 2027 : Édouard Philippe et Gabriel Attal face au piège de l'héritage",
+        "url": "https://news.google.com/rss/articles/CBMiyAFBVV95cUxPQ1gxa0dVUm0zOHZSSjBYa0ZpU19GUS1VM0NIOWFmSzlsQU9TUzhISXVPUl9xYXdhU2l5bGZMVXpCQW9Tb1VoMzlYWThub1FRb0RVdlJkQzJNNnNmMkZfOVUydjdrX254bUxJWnJ6QVRKTE04VlM4NklHQnVIWm9GbVVTdm1xZ2MxQjRBdkEtSVI4RnlBOEdKSmZvS1JLdUJEX3BNd1FLR1pKX0VPbHRCM1RaQnlPdXI3cHlmeTNvTmtkLW9BZ2RKdw?oc=5",
+        "coverage_scope": "election"
       }
     },
     {
@@ -6209,28 +5004,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -6282,28 +5066,17 @@
         "selected_hypothesis_rank": null
       },
       "campaign_attention": {
-        "evidence_state": "not_observed",
+        "observation_state": "unavailable",
         "record_count": null,
+        "exposure_count": null,
         "share": null,
         "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "scope_counts": null,
-        "scope_shares": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "story_count": null
       },
       "general_visibility": {
         "evidence_state": "not_observed",
         "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "publisher_count": null
       },
       "scrutiny": {
         "latest_14_days": {
@@ -6355,42 +5128,17 @@
         "selected_hypothesis_rank": 7
       },
       "campaign_attention": {
-        "evidence_state": "reported",
-        "record_count": 1,
-        "share": 0.004,
-        "publisher_count": 1,
-        "active_day_count": 1,
-        "headline_match_count": 1,
-        "summary_only_match_count": 0,
-        "scope_counts": {
-          "election": 0,
-          "campaign": 1,
-          "general": 0
-        },
-        "scope_shares": {
-          "election": 0.0,
-          "campaign": 1.0,
-          "general": 0.0
-        },
-        "story_cluster_count": 1,
-        "concentration": {
-          "leading_publisher": "TF1 Info",
-          "leading_publisher_record_count": 1,
-          "leading_publisher_share": 1.0,
-          "leading_story_record_count": 1,
-          "leading_story_share": 1.0
-        }
+        "observation_state": "observed_zero",
+        "record_count": 0,
+        "exposure_count": 0,
+        "share": 0.0,
+        "publisher_count": 0,
+        "story_count": 0
       },
       "general_visibility": {
-        "evidence_state": "not_observed",
-        "record_count": null,
-        "share": null,
-        "publisher_count": null,
-        "active_day_count": null,
-        "headline_match_count": null,
-        "summary_only_match_count": null,
-        "story_cluster_count": null,
-        "concentration": null
+        "evidence_state": "reported",
+        "record_count": 1,
+        "publisher_count": 1
       },
       "scrutiny": {
         "latest_14_days": {
@@ -6410,12 +5158,12 @@
       },
       "latest_development": {
         "evidence_state": "reported",
-        "id": "da5385f68f888af162be",
-        "published_at": "2026-08-11T07:09:39Z",
-        "publisher": "TF1 Info",
-        "headline": "Éric Zemmour : Actualités et Biographie",
-        "url": "https://news.google.com/rss/articles/CBMiYkFVX3lxTE5aekxGTWxrai1vLTRNVWdyLUR3Y2gzOHM5eHNrbjdtaHcxTXNmRElDVGt5OUoxMmFGMFhWNzJQT0RzVDdNREx5SVVab2gxSmtKUVZFdnF0aUhzS3g2VDA5UFRB?oc=5",
-        "coverage_scope": "campaign"
+        "id": "a8baa591c257ec736d2f",
+        "published_at": "2026-07-23T16:00:17Z",
+        "publisher": "Valeurs actuelles",
+        "headline": "[Roman de l'été] « Sarah Knafo éclate en sanglots » : Si Éric Zemmour gagnait l'élection présidentielle 2027",
+        "url": "https://news.google.com/rss/articles/CBMi6AFBVV95cUxPTVJkSlVZRmFzbUtJTWxROHEyRGhkSm5hYkZUMWlHTW14ZjVDTFpud2NkaGQ4c0N2bm5vVlhSR1BtV19XSi11Q1Y3WExkRmFuMXNHR2pxcDlUVlU4bGRlWjBEUDhpRkVoMlRkLTZPVG5rMmM3YUROUl9yMHp4SkRmOTQ1bC1WRTZEbk1CSXZDMGx2QXBrNzdPUEtYQU5NWm80eUJrazdWRE9uZ1R2Y1lxRjE4b3U1OFJjNmZmWkhlNFM0TzVpcW04aktpQ2NuRV9DSXFhOFFIeC1Ka29pZjRQUW04ZExadklv?oc=5",
+        "coverage_scope": "election"
       }
     }
   ]
