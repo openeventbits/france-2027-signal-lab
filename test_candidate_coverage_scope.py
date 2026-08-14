@@ -106,7 +106,7 @@ class CandidateCoverageScopeTests(unittest.TestCase):
 
     def test_electoral_support_visibility_keeps_campaign_scope(self) -> None:
         headline = normalize(
-            "François Hollande annonce son soutien à la candidature de "
+            "François Hollande annonce son soutien à la candidature présidentielle de "
             "Raphaël Glucksmann"
         )
         candidates = ["François Hollande", "Raphaël Glucksmann"]
@@ -181,6 +181,184 @@ class CandidateCoverageScopeTests(unittest.TestCase):
         )
 
         self.assertEqual(scope, "general")
+
+    def test_candidate_identity_does_not_create_race_scope(self) -> None:
+        cases = [
+            "Gérald Darmanin ouvre une enquête sur les défaillances dans l'affaire Lyhanna",
+            "Gérald Darmanin fait le point sur les menaces contre le maire d'Alès",
+            "Gérald Darmanin présente sa réforme des tribunaux pour mineurs",
+            "Gérald Darmanin détaille son plan contre le narcotrafic et la surpopulation carcérale",
+            "Gérald Darmanin annonce une nouvelle mesure du ministère de la Justice",
+            "Entretien avec Gérald Darmanin sur la surpopulation carcérale",
+            "Portrait de Marine Le Pen",
+            "Édouard Philippe analyse la situation politique française",
+            "Visé par une enquête, Édouard Philippe échoue à faire annuler le statut de la lanceuse d'alerte",
+            "Jérôme Karsenti : Marine Le Pen a bafoué les principes démocratiques",
+            "Marine Le Pen réagit à l'élection présidentielle américaine",
+            "Réduction du nombre de parlementaires : Gabriel Attal reprend une promesse de campagne de 2017",
+            "Pour son anniversaire, les proches de François Hollande lui offrent une campagne d'affichage",
+            "Jordan Bardella seul candidat à sa réélection à la tête du Rassemblement national",
+            "Sur l'immigration, la stratégie de François Ruffin est marginale en France",
+            "Raphaël Glucksmann visé par une campagne de désinformation russe",
+            "Gérald Darmanin annonce deux nouvelles prisons en 2027",
+            "Marine Tondelier dénonce la pénurie de lunettes pour l'éclipse solaire",
+            "Marine Tondelier critiquée par la droite pendant la canicule",
+            "Marine Le Pen candidate au Sénat",
+            "François Hollande revient sur la présidentielle de 2012",
+        ]
+        candidates = [
+            "Gérald Darmanin",
+            "Gabriel Attal",
+            "François Hollande",
+            "François Ruffin",
+            "Jordan Bardella",
+            "Marine Le Pen",
+            "Raphaël Glucksmann",
+            "Marine Tondelier",
+            "Édouard Philippe",
+        ]
+
+        for headline_value in cases:
+            headline = normalize(headline_value)
+            matches = match_news_candidates(headline, "", candidates)
+            matched_candidates = [
+                match["candidate"] for match in matches
+            ]
+            relevance = classify_relevant_news(
+                headline,
+                "",
+                matched_candidates,
+                matches,
+            )
+            development = classify_notable_development(
+                headline,
+                matched_candidates,
+                {"politics_specific": True},
+                headline,
+                matches,
+            )
+
+            with self.subTest(headline=headline_value):
+                self.assertTrue(matches)
+                self.assertIsNone(relevance)
+                self.assertIsNone(development)
+                self.assertEqual(
+                    classify_candidate_coverage_scope(
+                        is_election_news=False,
+                        relevance=relevance,
+                        development=development,
+                    ),
+                    "general",
+                )
+
+    def test_melenchon_boundary_probes_lock_general_campaign_election(self) -> None:
+        headline = "Attal critique la politique économique de Mélenchon"
+        candidates = ["Gabriel Attal", "Jean-Luc Mélenchon"]
+        cases = [
+            (
+                headline,
+                "Les deux responsables politiques pourraient être candidats "
+                "en 2027.",
+                "general",
+            ),
+            (
+                headline,
+                "Les deux candidats à la présidentielle de 2027 "
+                "s'opposent sur la dette.",
+                "campaign",
+            ),
+            (
+                "Présidentielle 2027 : Attal attaque Mélenchon sur la dette",
+                "",
+                "election",
+            ),
+        ]
+
+        for headline_value, summary, expected_scope in cases:
+            relevance = classify_relevant_news(
+                headline_value,
+                summary,
+                candidates,
+            )
+            scope = classify_candidate_coverage_scope(
+                is_election_news=explicit_election_match(
+                    normalize(headline_value)
+                ),
+                relevance=relevance,
+                development=None,
+            )
+            with self.subTest(expected_scope=expected_scope):
+                self.assertEqual(scope, expected_scope)
+
+    def test_true_presidential_evidence_remains_race_qualified(self) -> None:
+        cases = [
+            "Présidentielle 2027 : Gabriel Attal annonce sa candidature",
+            "Gérald Darmanin dit envisager une candidature en 2027",
+            "Marine Le Pen se retire de la course à l'Élysée",
+            "Le parti désigne Gabriel Attal comme candidat à la présidentielle",
+            "Marine Le Pen remporte la primaire présidentielle",
+            "François Hollande soutient la candidature présidentielle de Gabriel Attal",
+            "Gabriel Attal dévoile son programme présidentiel",
+            "Gabriel Attal explique ce qu'il ferait sur l'immigration s'il était élu président",
+            "Marine Le Pen en tête dans un nouveau sondage présidentiel",
+            "Enquête sur le financement de la campagne présidentielle de Marine Le Pen",
+            "Une ingérence étrangère cible la présidentielle française de 2027",
+        ]
+        candidates = [
+            "Gabriel Attal",
+            "Gérald Darmanin",
+            "Marine Le Pen",
+            "François Hollande",
+        ]
+
+        for headline_value in cases:
+            headline = normalize(headline_value)
+            matches = match_news_candidates(headline, "", candidates)
+            matched_candidates = [
+                match["candidate"] for match in matches
+            ]
+            relevance = classify_relevant_news(
+                headline,
+                "",
+                matched_candidates,
+                matches,
+            )
+
+            with self.subTest(headline=headline_value):
+                self.assertIsNotNone(relevance)
+
+    def test_eligibility_consequences_remain_campaign_developments(self) -> None:
+        cases = [
+            "Édouard Philippe reste éligible à la présidentielle après la décision de justice",
+            "Marine Le Pen devient inéligible et ne peut plus être candidate",
+        ]
+        candidates = ["Édouard Philippe", "Marine Le Pen"]
+
+        for headline_value in cases:
+            headline = normalize(headline_value)
+            matches = match_news_candidates(headline, "", candidates)
+            matched_candidates = [
+                match["candidate"] for match in matches
+            ]
+            development = classify_notable_development(
+                headline,
+                matched_candidates,
+                {"politics_specific": True},
+                headline,
+                matches,
+            )
+
+            with self.subTest(headline=headline_value):
+                self.assertIsNotNone(development)
+                self.assertEqual(development["id"], "legal_eligibility")
+                self.assertEqual(
+                    classify_candidate_coverage_scope(
+                        is_election_news=False,
+                        relevance=None,
+                        development=development,
+                    ),
+                    "campaign",
+                )
 
 
 class CandidateVisibilityMetricTests(unittest.TestCase):
