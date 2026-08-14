@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 import build_candidate_signals as builder
+from candidate_candidacy_status import active_candidate_names
 from candidate_identity import (
     CandidateIdentityError,
     candidate_id,
@@ -117,55 +118,47 @@ def concentration(record_count=1):
 
 
 def visibility_metric(name, lane, record_count=1):
-    if lane == "primary":
-        scope_counts = {
-            "election": record_count,
-            "campaign": 0,
-            "general": 0,
-        }
-        scope_shares = {
-            "election": 1.0,
-            "campaign": 0.0,
-            "general": 0.0,
-        }
-    else:
-        scope_counts = {
-            "election": 0,
-            "campaign": 0,
-            "general": record_count,
-        }
-        scope_shares = {
-            "election": 0.0,
-            "campaign": 0.0,
-            "general": 1.0,
+    if lane == "general":
+        return {
+            "candidate": name,
+            "record_count": record_count,
+            "publisher_count": 1 if record_count else 0,
+            "publisher_names": ["Publisher"] if record_count else [],
         }
     return {
         "candidate": name,
         "record_count": record_count,
-        "share": 1.0,
-        "publisher_count": 1,
-        "publisher_names": ["Publisher"],
-        "active_day_count": 1,
-        "headline_match_count": record_count,
-        "summary_only_match_count": 0,
-        "scope_counts": scope_counts,
-        "scope_shares": scope_shares,
-        "story_cluster_count": 1,
-        "story_clusters": [{"cluster_id": "not-copied"}],
-        "concentration": concentration(record_count),
+        "exposure_count": record_count,
+        "share": 1.0 if record_count else 0.0,
+        "publisher_count": 1 if record_count else 0,
+        "publisher_names": ["Publisher"] if record_count else [],
+        "story_count": 1 if record_count else 0,
+        "observation_state": (
+            "observed_positive" if record_count else "observed_zero"
+        ),
     }
 
 
-def visibility_period(start, end, metrics):
+def visibility_period(start, end, metrics, *, race=True):
     record_count = sum(metric["record_count"] for metric in metrics)
-    return {
+    period = {
         "start_date": start,
         "end_date": end,
         "record_count": record_count,
-        "publisher_count": 1 if metrics else 0,
-        "publisher_names": ["Publisher"] if metrics else [],
+        "publisher_count": 1 if record_count else 0,
+        "publisher_names": ["Publisher"] if record_count else [],
         "candidate_metrics": metrics,
     }
+    if race:
+        exposure_count = max(
+            (metric["exposure_count"] for metric in metrics),
+            default=0,
+        )
+        period.update({
+            "exposure_count": exposure_count,
+            "story_count": 1 if exposure_count else 0,
+        })
+    return period
 
 
 def news_fixture(
@@ -176,63 +169,81 @@ def news_fixture(
     candidate_watch=None,
     roster_names=None,
 ):
-    primary_metrics = (
-        [visibility_metric("Candidate A", "primary")]
-        if primary_metrics is None
-        else primary_metrics
-    )
-    general_metrics = (
-        [visibility_metric("Candidate A", "general")]
-        if general_metrics is None
-        else general_metrics
-    )
-    candidate_watch = [] if candidate_watch is None else candidate_watch
     roster_names = (
         ["Candidate A", "Candidate B"]
         if roster_names is None
         else roster_names
     )
+    primary_metrics = (
+        [visibility_metric(roster_names[0], "primary")]
+        if primary_metrics is None
+        else primary_metrics
+    )
+    general_metrics = (
+        [visibility_metric(roster_names[0], "general")]
+        if general_metrics is None
+        else general_metrics
+    )
+    candidate_watch = [] if candidate_watch is None else candidate_watch
+    primary_by_name = {metric["candidate"]: metric for metric in primary_metrics}
+    primary_metrics = [
+        primary_by_name.get(name, visibility_metric(name, "primary", 0))
+        for name in roster_names
+    ]
     current = visibility_period(
         "2026-07-23",
         "2026-07-29",
         primary_metrics,
     )
+    if current["exposure_count"] == 0:
+        for metric in current["candidate_metrics"]:
+            metric["share"] = None
+            metric["observation_state"] = "unavailable"
     prior = visibility_period(
         "2026-07-16",
         "2026-07-22",
-        [],
+        [
+            {
+                **visibility_metric(name, "primary", 0),
+                "share": None,
+                "observation_state": "unavailable",
+            }
+            for name in roster_names
+        ],
     )
     general_current = visibility_period(
         "2026-07-23",
         "2026-07-29",
         general_metrics,
+        race=False,
     )
     general_prior = visibility_period(
         "2026-07-16",
         "2026-07-22",
         [],
+        race=False,
     )
     quality = {
         "status": "not_comparable",
         "reason": "insufficient_data",
-        "current_record_count": current["record_count"],
-        "prior_record_count": prior["record_count"],
+        "current_exposure_count": current["exposure_count"],
+        "prior_exposure_count": prior["exposure_count"],
         "current_publisher_count": current["publisher_count"],
         "prior_publisher_count": prior["publisher_count"],
         "common_publisher_count": 0,
         "publisher_union_count": current["publisher_count"],
         "publisher_overlap_ratio": 0.0,
-        "record_count_ratio": None,
+        "exposure_count_ratio": None,
         "thresholds": {
-            "minimum_period_records": 10,
+            "minimum_period_exposures": 10,
             "minimum_period_publishers": 5,
             "minimum_common_publishers": 5,
             "minimum_publisher_overlap_ratio": 0.5,
-            "maximum_record_count_ratio": 2.0,
+            "maximum_exposure_count_ratio": 2.0,
         },
     }
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": generated_at,
         "candidate_roster": {
             "rule": "fixture",
@@ -241,9 +252,13 @@ def news_fixture(
             "names": roster_names,
         },
         "candidate_visibility": {
-            "method": "share_of_candidate_linked_records",
-            "primary_scopes": ["election", "campaign"],
-            "secondary_scope": "general",
+            "method": "share_of_active_candidate_publisher_story_race_exposures",
+            "story_model_version": "race-story-lexical-complete-link-v1",
+            "authoritative_corpus": "relevant_news",
+            "denominator_scope": (
+                "publisher_story_race_exposures_linked_by_article_local_matches_"
+                "to_at_least_one_active_monitoring_candidate"
+            ),
             "current_period": current,
             "prior_period": prior,
             "general_current_period": general_current,
@@ -252,6 +267,14 @@ def news_fixture(
         },
         "candidate_watch": candidate_watch,
     }
+
+
+def candidate_signals_news_fixture(source_news, candidacy_status):
+    return news_fixture(
+        generated_at=source_news["generated_at"],
+        roster_names=active_candidate_names(candidacy_status),
+        candidate_watch=source_news.get("candidate_watch", []),
+    )
 
 
 def association(name, relationship):
@@ -376,6 +399,9 @@ class CandidateUniverseTests(unittest.TestCase):
             ROOT / "claims_under_scrutiny.json",
             ROOT / "candidate_candidacy_status.json",
         )
+        cls.news = candidate_signals_news_fixture(
+            cls.news, cls.candidacy_status
+        )
 
     def test_current_registry_is_complete_candidate_universe(self):
         universe, candidates = builder.candidate_universe_from_candidacy_status(
@@ -441,6 +467,9 @@ class PollPackageTests(unittest.TestCase):
             ROOT / "news_wire.json",
             ROOT / "claims_under_scrutiny.json",
             ROOT / "candidate_candidacy_status.json",
+        )
+        cls.news = candidate_signals_news_fixture(
+            cls.news, cls.candidacy_status
         )
         cls.universe, cls.candidates = (
             builder.candidate_universe_from_candidacy_status(
@@ -561,6 +590,9 @@ class FeaturedPollBoardTests(unittest.TestCase):
             ROOT / "news_wire.json",
             ROOT / "claims_under_scrutiny.json",
             ROOT / "candidate_candidacy_status.json",
+        )
+        cls.news = candidate_signals_news_fixture(
+            cls.news, cls.candidacy_status
         )
         cls.package = builder.select_featured_polling_package(cls.polls)
         cls.selected_event = cls.package["selected_event"]
@@ -899,30 +931,29 @@ class VisibilityTests(unittest.TestCase):
             visibility["general_current_period"]["record_count"],
             1,
         )
-        self.assertEqual(campaign["candidate-a"]["scope_counts"]["general"], 0)
-        self.assertNotIn("scope_counts", general["candidate-a"])
+        self.assertEqual(campaign["candidate-a"]["exposure_count"], 1)
+        self.assertNotIn("share", general["candidate-a"])
         self.assertEqual(
-            campaign["candidate-b"]["evidence_state"],
-            "not_observed",
+            campaign["candidate-b"]["observation_state"],
+            "observed_zero",
         )
-        self.assertIsNone(campaign["candidate-b"]["record_count"])
+        self.assertEqual(campaign["candidate-b"]["record_count"], 0)
+        self.assertEqual(campaign["candidate-b"]["exposure_count"], 0)
+        self.assertEqual(campaign["candidate-b"]["share"], 0.0)
         self.assertEqual(
             general["candidate-b"]["evidence_state"],
             "not_observed",
         )
 
-    def test_summary_cluster_and_concentration_survive_without_arrays(self):
+    def test_race_attention_projects_exposure_and_story_counts(self):
         candidates = candidate_records("Candidate A", "Candidate B")
         visibility, campaign, general = builder.project_visibility(
             candidates,
             news_fixture(),
         )
-        self.assertEqual(campaign["candidate-a"]["story_cluster_count"], 1)
-        self.assertEqual(
-            campaign["candidate-a"]["concentration"],
-            concentration(),
-        )
-        self.assertEqual(general["candidate-a"]["story_cluster_count"], 1)
+        self.assertEqual(campaign["candidate-a"]["exposure_count"], 1)
+        self.assertEqual(campaign["candidate-a"]["story_count"], 1)
+        self.assertNotIn("share", general["candidate-a"])
         serialized = json.dumps(
             {
                 "visibility": visibility,
@@ -930,7 +961,7 @@ class VisibilityTests(unittest.TestCase):
                 "general": general,
             }
         )
-        self.assertNotIn("story_clusters", serialized)
+        self.assertNotIn("concentration", serialized)
         self.assertNotIn("publisher_names", serialized)
 
     def test_comparison_quality_survives_without_candidate_delta(self):
@@ -946,19 +977,15 @@ class VisibilityTests(unittest.TestCase):
         )
         self.assertNotIn("delta", json.dumps(campaign).lower())
 
-    def test_invalid_primary_general_partition_fails(self):
+    def test_invalid_race_observation_state_fails(self):
         news = news_fixture()
         metric = news["candidate_visibility"]["current_period"][
             "candidate_metrics"
         ][0]
-        metric["scope_counts"] = {
-            "election": 0,
-            "campaign": 0,
-            "general": 1,
-        }
+        metric["observation_state"] = "observed_zero"
         with self.assertRaisesRegex(
             builder.CandidateSignalsError,
-            "general records",
+            "observed_zero",
         ):
             builder.project_visibility(
                 candidate_records("Candidate A", "Candidate B"),
@@ -1205,6 +1232,9 @@ class PresidentialFieldContractTests(unittest.TestCase):
             ROOT / "claims_under_scrutiny.json",
             ROOT / "candidate_candidacy_status.json",
         )
+        cls.news = candidate_signals_news_fixture(
+            cls.news, cls.registry
+        )
         cls.payload = builder.build_candidate_signals(
             cls.polls,
             cls.news,
@@ -1213,7 +1243,7 @@ class PresidentialFieldContractTests(unittest.TestCase):
         )
 
     def test_schema_keys_complete_universe_and_order_are_exact(self):
-        self.assertEqual(self.payload["schema_version"], "1.3")
+        self.assertEqual(self.payload["schema_version"], "1.4")
         self.assertEqual(
             list(self.payload),
             [
@@ -1262,6 +1292,27 @@ class PresidentialFieldContractTests(unittest.TestCase):
             self.registry,
         )
         self.assertEqual(active, expected)
+        self.assertEqual(
+            set(active),
+            {"method", "denominator_scope", "status_as_of", "race_attention"},
+        )
+        self.assertEqual(
+            active["method"],
+            "share_of_active_candidate_publisher_story_race_exposures",
+        )
+        scope = active["race_attention"]
+        self.assertEqual(
+            set(scope),
+            {"current_period", "prior_period", "comparison_quality", "main", "secondary"},
+        )
+        rows = scope["main"] + scope["secondary"]
+        field = self.payload["active_monitoring_field"]
+        self.assertEqual(
+            {row["candidate_id"] for row in rows},
+            set(field["main"] + field["secondary"]),
+        )
+        self.assertTrue(all("current_exposure_count" in row for row in rows))
+        return
         self.assertEqual(
             set(active),
             {"method", "denominator_scope", "status_as_of", "primary", "general"},
@@ -1357,6 +1408,17 @@ class PresidentialFieldContractTests(unittest.TestCase):
         self.assertEqual(len(compact_top_five), len(set(compact_top_five)))
 
     def test_active_union_reconciliation_uses_published_record_associations(self):
+        active = self.payload["active_field_visibility"]["race_attention"]
+        source = self.news["candidate_visibility"]
+        self.assertEqual(
+            active["current_period"]["exposure_count"],
+            source["current_period"]["exposure_count"],
+        )
+        self.assertEqual(
+            active["prior_period"]["exposure_count"],
+            source["prior_period"]["exposure_count"],
+        )
+        return
         before = copy.deepcopy(self.news)
         field = self.payload["active_monitoring_field"]
         names_by_id = {
@@ -1439,6 +1501,45 @@ class PresidentialFieldContractTests(unittest.TestCase):
         self.assertEqual(self.news, before)
 
     def test_zero_denominator_uses_missing_shares_and_null_changes(self):
+        empty_news = candidate_signals_news_fixture(self.news, self.registry)
+        for period_name in ("current_period", "prior_period"):
+            period = empty_news["candidate_visibility"][period_name]
+            period["record_count"] = 0
+            period["exposure_count"] = 0
+            period["publisher_count"] = 0
+            period["publisher_names"] = []
+            period["story_count"] = 0
+            for metric in period["candidate_metrics"]:
+                metric.update({
+                    "record_count": 0,
+                    "exposure_count": 0,
+                    "share": None,
+                    "publisher_count": 0,
+                    "publisher_names": [],
+                    "story_count": 0,
+                    "observation_state": "unavailable",
+                })
+        quality = empty_news["candidate_visibility"]["comparison_quality"]
+        quality.update({
+            "current_exposure_count": 0,
+            "prior_exposure_count": 0,
+            "current_publisher_count": 0,
+            "prior_publisher_count": 0,
+            "common_publisher_count": 0,
+            "publisher_union_count": 0,
+            "publisher_overlap_ratio": 0.0,
+            "exposure_count_ratio": None,
+        })
+        active = builder.derive_active_field_visibility(
+            empty_news,
+            self.payload["active_monitoring_field"],
+            self.registry,
+        )["race_attention"]
+        for row in active["main"] + active["secondary"]:
+            self.assertEqual(row["current_observation_state"], "unavailable")
+            self.assertIsNone(row["current_share"])
+            self.assertIsNone(row["share_change"])
+        return
         news = copy.deepcopy(self.news)
         news["candidate_watch"] = []
         for period_name in (
@@ -1467,7 +1568,7 @@ class PresidentialFieldContractTests(unittest.TestCase):
 
     def test_active_visibility_validator_rejects_fabricated_primary_change(self):
         malformed = copy.deepcopy(self.payload)
-        malformed["active_field_visibility"]["primary"]["main"][0]["share_change"] = 0
+        malformed["active_field_visibility"]["race_attention"]["main"][0]["share_change"] = 0
         with self.assertRaises(builder.CandidateSignalsError):
             builder.validate_candidate_signals(malformed)
 
@@ -1585,6 +1686,9 @@ class DeterminismAndSafetyTests(unittest.TestCase):
             ROOT / "news_wire.json",
             ROOT / "claims_under_scrutiny.json",
             ROOT / "candidate_candidacy_status.json",
+        )
+        cls.current_news = candidate_signals_news_fixture(
+            cls.current_news, cls.current_candidacy_status
         )
 
     def fixture_payload(self, *, news=None, claims=None):

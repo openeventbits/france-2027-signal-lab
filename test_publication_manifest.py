@@ -1495,11 +1495,7 @@ class PublicationManifestTests(unittest.TestCase):
             (self.root / "candidate_candidacy_status.json").read_text(encoding="utf-8")
         )
         payload["active_field_visibility"] = (
-            manifest_builder.derive_active_field_visibility(
-                news,
-                manifest_builder.project_active_monitoring_field(registry),
-                registry,
-            )
+            manifest_builder._legacy_active_field_visibility(registry, news)
         )
         write_json(self.root, "news_wire.json", news)
         write_json(self.root, "candidate_signals.json", payload)
@@ -1552,7 +1548,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            "candidate_universe.count does not match candidates",
+            "candidate count does not match candidates",
         ):
             self.build()
 
@@ -1562,7 +1558,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            "evidence_dates.news must be an ISO calendar date",
+            "evidence_dates.news must be a valid calendar date",
         ):
             self.build()
 
@@ -1659,7 +1655,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            "candidate_id is not in main candidates",
+            "candidate ID is unknown",
         ):
             self.build()
 
@@ -1706,7 +1702,7 @@ class PublicationManifestTests(unittest.TestCase):
         write_json(self.root, "candidate_signals.json", payload)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            "featured_poll_board.source_urls is invalid",
+            "featured_poll_board source_urls are invalid",
         ):
             self.build()
 

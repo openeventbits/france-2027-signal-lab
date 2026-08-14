@@ -57,6 +57,39 @@ and may retain historical canonical candidate associations. Candidate Signals pr
 the complete canonical identity universe separately from its effective active-monitoring
 projection.
 
+## Race Coverage and Race Attention
+
+`news_wire.json` schema 2 keeps `relevant_news` as the sole authoritative France 2027
+Race Coverage corpus. Every record has qualification provenance: `direct` means the
+unchanged Phase 1C classifier qualified the article; `cluster_confirmed` means the
+article independently matched the identified `qualification_anchor_id`, which must be
+a direct record. A cluster-confirmed record can never qualify another record.
+
+Story identity uses `race-story-lexical-complete-link-v1`: fixed French function,
+reporting, race-boilerplate, and all monitored-candidate name tokens are removed from
+normalized headlines; records must be within 48 hours and pass fixed shared-token,
+Jaccard, overlap, and event/entity-evidence thresholds. Candidate-free or
+candidate-disjoint pairs use stricter thresholds. There are no corpus-relative rarity
+features. Complete-link assignment guarantees that every pair in a story independently
+passes the relation, and deterministic sorting makes assignments input-order
+independent.
+
+Current Race Attention is an observational trailing-seven-day share. One unique
+`(publisher, story_id)` Race Coverage exposure is one unit. The denominator contains
+only exposures whose article-local candidate union includes at least one active
+monitoring candidate. A candidate numerator is the number of denominator exposures
+whose same-publisher articles locally match that candidate; candidates never propagate
+between publishers or story members. Multi-candidate exposures count once in the
+denominator and once for each locally matched candidate, so shares need not sum to
+100 percent. `record_count` remains descriptive and is never the numerator.
+
+When the denominator is positive, candidates with exposures are `observed_positive`
+and candidates without exposures are `observed_zero` with share `0.0`. When the
+denominator is unusable (zero), every share is `null` and the state is `unavailable`.
+Comparison quality is separate from the current observation and is gated on exposure
+counts plus publisher-panel overlap. General Political Coverage remains count-only and
+has no peer share or historical series.
+
 ## Recent Changes Ledger (`recent_changes.json`)
 
 The ledger is a generated view over the existing public datasets and the configured

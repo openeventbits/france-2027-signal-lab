@@ -30,6 +30,11 @@ from http_fetch import (
     HttpFetchResult,
     fetch_news_route,
 )
+from race_coverage import (
+    STORY_MODEL_VERSION,
+    publisher_story_exposures,
+    qualify_race_coverage,
+)
 from source_health import (
     load_source_health,
     update_source_health,
@@ -65,15 +70,17 @@ FETCH_WORKERS = 12
 GOOGLE_NEWS_WORKERS = 4
 GOOGLE_NEWS_SEMAPHORE = BoundedSemaphore(GOOGLE_NEWS_WORKERS)
 
-CANDIDATE_VISIBILITY_METHOD = "share_of_candidate_linked_records"
+CANDIDATE_VISIBILITY_METHOD = (
+    "share_of_active_candidate_publisher_story_race_exposures"
+)
 CANDIDACY_STATUS_SOURCE = "candidate_candidacy_status.json"
 ACTIVE_CANDIDATE_ROSTER_RULE = "active_monitoring_field"
 CANDIDATE_VISIBILITY_THRESHOLDS = {
-    "minimum_period_records": 10,
+    "minimum_period_exposures": 10,
     "minimum_period_publishers": 5,
     "minimum_common_publishers": 5,
     "minimum_publisher_overlap_ratio": 0.5,
-    "maximum_record_count_ratio": 2.0,
+    "maximum_exposure_count_ratio": 2.0,
 }
 
 CANDIDATE_COVERAGE_SCOPES = (
@@ -222,11 +229,19 @@ CANDIDATE_MATCH_LOCATIONS = ("headline", "summary")
 
 ELECTION_PATTERNS = (
     re.compile(r"\bpresidentielle(?:\s+francaise)?(?:\s+de)?\s+2027\b"),
-    re.compile(r"\belection\s+presidentielle\b"),
+    re.compile(
+        r"\b(?:election\s+presidentielle|elections\s+presidentielles)\b"
+    ),
+    re.compile(r"\bcandidat(?:e|s|es)?\s+aux\s+presidentielles\b"),
+    re.compile(
+        r"\b(?:prochain\s+scrutin\s+presidentiel|"
+        r"scrutin\s+presidentiel(?:\s+a\s+venir)?)\b"
+    ),
     re.compile(r"\bprochaine\s+presidentielle\b"),
     re.compile(r"\bcourse\s+a\s+l\s+elysee\b"),
     re.compile(r"\belysee\s+2027\b"),
     re.compile(r"\bcandidat(?:e|ure)?\s+a\s+l\s+election\s+presidentielle\b"),
+    re.compile(r"\bsondages?\s+presidentiels?\b"),
 )
 
 CAMPAIGN_AGENDA_TOPICS = (
@@ -418,7 +433,15 @@ STRICT_NOTABLE_TERMS = {
         "mise en examen",
         "ouvre une enquete",
         "reste eligible",
+        "demeure eligible",
+        "est eligible",
         "devient ineligible",
+        "est ineligible",
+        "ne peut plus etre candidat",
+        "ne peut plus etre candidate",
+        "peut toujours se presenter",
+        "menace sa candidature",
+        "compromet sa candidature",
     ),
     "selection_strategy": (
         "primaire fermee",
@@ -496,6 +519,7 @@ NON_PRESIDENTIAL_ELECTION_TERMS = (
     "europeennes",
     "regionales",
     "departementales",
+    "senat",
 )
 
 # Broad article-level relevance is intentionally less strict than the
@@ -503,19 +527,28 @@ NON_PRESIDENTIAL_ELECTION_TERMS = (
 # "president", or a bare year must never establish race relevance.
 RELEVANT_PRESIDENTIAL_TERMS = (
     "presidentielle",
+    "presidentielles",
     "election presidentielle",
+    "elections presidentielles",
     "prochaine presidentielle",
+    "scrutin presidentiel",
+    "prochain scrutin presidentiel",
     "course a l elysee",
     "elysee 2027",
     "500 signatures",
     "parrainage presidentiel",
     "parrainages presidentiels",
+    "sondage presidentiel",
+    "sondages presidentiels",
 )
 
 RELEVANT_CAMPAIGN_TERMS = (
     "candidature",
+    "candidatures",
     "candidat",
+    "candidats",
     "candidate",
+    "candidates",
     "campagne",
     "primaire",
     "investiture",
@@ -552,9 +585,41 @@ SUMMARY_HIGH_SPECIFICITY_SELECTION_TERMS = (
 SUMMARY_PASSAGE_BOUNDARY_PATTERN = re.compile(
     r"(?:\r?\n+|(?<=[.!?;])\s+)"
 )
-SUMMARY_ELYSEE_2027_PATTERN = re.compile(
-    r"(?:\belysee\b(?:\s+[a-z0-9]+){0,4}\s+\b2027\b"
-    r"|\b2027\b(?:\s+[a-z0-9]+){0,4}\s+\belysee\b)"
+ELYSEE_2027_OUTCOME_PATTERN = re.compile(
+    r"\b(?:accede|acceder|accedera|accedait|parvient|parviendra)"
+    r"\s+a\s+l\s+elysee(?:\s+en)?\s+2027\b"
+)
+ASSERTED_PRESIDENTIAL_CANDIDATE_PATTERN = re.compile(
+    r"\b(?:(?:le|la|les|ces|un|une)\s+(?:deux\s+)?)?"
+    r"candidat(?:e|s|es)?"
+    r"(?:\s+[a-z0-9]+){0,3}\s+(?:a|pour)\s+(?:(?:l|la|le)\s+)?"
+    r"(?:election\s+)?presidentielle(?:s)?(?:\s+de\s+2027)?\b"
+)
+COLLECTIVE_PRESIDENTIAL_CANDIDATE_PATTERN = re.compile(
+    r"\bles\s+deux\s+candidat(?:e|s|es)?"
+    r"(?:\s+[a-z0-9]+){0,3}\s+(?:a|pour)\s+(?:(?:l|la|le)\s+)?"
+    r"(?:election\s+)?presidentielle(?:s)?(?:\s+de\s+2027)?\b"
+)
+SPECULATIVE_CANDIDACY_PATTERN = re.compile(
+    r"\b(?:pourrait|pourraient|serait|seraient)\s+"
+    r"(?:etre\s+)?candidat(?:e|s|es)?\b|"
+    r"\b(?:pourrait|pourraient)\s+se\s+presenter\b"
+)
+SUMMARY_ANAPHORIC_ACTOR_PATTERN = re.compile(
+    r"\b(?:le|la|les)\s+candidat(?:e|s|es)?\b|"
+    r"\b(?:il|elle|ils|elles|ce\s+dernier|cette\s+derniere)\b"
+)
+SUMMARY_ACTOR_ACTION_TAIL_PATTERN = re.compile(
+    r"^(?:\s+[a-z0-9]+){0,6}\s+\b(?:propose|menace|veut|annonce|"
+    r"affirme|demande|denonce|appelle|ecrit|accuse|evoque|envisage|"
+    r"avait\s+(?:evoque|envisage)|s\s+oppose)\b"
+)
+SUMMARY_PARTY_ACTOR_ACTION_PATTERN = re.compile(
+    r"\b(?:patron|patronne|chef|cheffe|leader)\s+"
+    r"(?:du|de\s+la|des)\s+(?:parti|ecologistes|rn|renaissance|"
+    r"horizons|ps|lr|lfi)\b(?:\s+[a-z0-9]+){0,6}\s+"
+    r"\b(?:propose|menace|veut|annonce|affirme|demande|denonce|"
+    r"appelle|ecrit|s\s+oppose)\b"
 )
 SUMMARY_CANDIDATE_SELECTION_PATTERN = re.compile(
     r"\b(?:designe|designer|nomme|nommer|choisit|choisir|selectionne|"
@@ -573,7 +638,8 @@ SUMMARY_HEADLINE_CANDIDATE_REFERENCE_PATTERN = re.compile(
 )
 SUMMARY_ELECTORAL_CAMPAIGN_PATTERN = re.compile(
     r"\b(?:campagne\s+(?:presidentielle|electorale)"
-    r"|campagne\s+(?:de|pour)\s+(?:l\s+)?(?:election\s+)?presidentielle"
+    r"|campagne\s+(?:de|des|pour)\s+(?:l\s+)?"
+    r"(?:election\s+presidentielle|elections\s+presidentielles)"
     r"|campagne\s+(?:de|pour)\s+2027"
     r"|en\s+campagne(?:\s+[a-z0-9]+){0,4}\s+(?:presidentielle|2027))\b"
 )
@@ -592,8 +658,6 @@ RELEVANT_HEADLINE_SUPPORT_TERMS = (
     "ultimatum",
     "strategie",
     "positionnement",
-    "entretien",
-    "interview",
     "candidature",
     "candidat",
     "candidate",
@@ -605,6 +669,12 @@ RELEVANT_HEADLINE_SUPPORT_TERMS = (
     "coalition",
     "sondage",
     "parrainage",
+    "propose",
+    "presente",
+    "promet",
+    "explique",
+    "detaille",
+    "defend",
 )
 
 RELEVANT_ROUTINE_EXCLUSION_TERMS = (
@@ -644,7 +714,83 @@ RELEVANT_LIFESTYLE_EXCLUSION_TERMS = (
 )
 
 HISTORICAL_PRESIDENTIAL_YEAR_PATTERN = re.compile(
-    r"\b(?:election\s+)?presidentielle(?:\s+francaise)?(?:\s+de)?\s+((?:19|20)\d{2})\b"
+    r"\b(?:presidentielles?|election\s+presidentielle|"
+    r"elections\s+presidentielles|scrutin\s+presidentiel)"
+    r"(?:\s+francais(?:e|es)?)?"
+    r"(?:\s+(?:de|en))?\s+((?:19|20)\d{2})\b"
+)
+HISTORICAL_RETROSPECTIVE_SUBJECT_PATTERN = re.compile(
+    r"\b(?:aujourd\s+hui|retour\s+sur|archives?|souvenir)\b"
+    r"(?:\s+[a-z0-9]+){0,8}\s+\b(?:l\s+)?election\s+de\s+"
+    r"(?:19\d{2}|20(?:0\d|1\d|2[0-6]))\b"
+)
+
+RACE_QUALIFIED_LEGAL_ELIGIBILITY_PATTERN = re.compile(
+    r"\b(?:"
+    r"ineligibilite|"
+    r"(?:reste|demeure|est|devient)\s+(?:in)?eligible|"
+    r"ne\s+(?:peut|pourra)\s+plus\s+(?:etre\s+)?candidat(?:e)?|"
+    r"peut\s+toujours\s+se\s+presenter|"
+    r"(?:menace|compromet|empeche|preserve)\s+sa\s+candidature"
+    r")\b"
+)
+ELECTED_PRESIDENT_POSITIONING_PATTERN = re.compile(
+    r"\b(?:s\s+il|si\s+elle)\s+(?:etait|est)\s+elu(?:e)?\s+president(?:e)?\b"
+)
+RACE_YEAR_CAMPAIGN_PATTERN = re.compile(
+    r"(?:"
+    r"\b2027\b(?:\s+[a-z0-9]+){0,8}\s+"
+    r"\b(?:candidat|candidate|candidature|campagne|primaire|investiture|"
+    r"programme|sondage|sondages|course)\b|"
+    r"\b(?:candidat|candidate|candidature|campagne|primaire|investiture|"
+    r"programme|sondage|sondages|course)\b"
+    r"(?:\s+[a-z0-9]+){0,8}\s+\b2027\b"
+    r")"
+)
+PRESIDENTIAL_CANDIDACY_PATTERN = re.compile(
+    r"\b(?:"
+    r"candidat(?:e)?\s+(?:a|pour)\s+(?:l\s+)?elysee|"
+    r"candidature\s+(?:a|pour)\s+(?:l\s+)?elysee|"
+    r"candidat(?:e)?\s+(?:a|pour)\s+(?:la\s+)?"
+    r"presidence\s+de\s+la\s+republique|"
+    r"(?:ambition|ambitions)\s+presidentielle(?:s)?|"
+    r"(?:candidat|candidate)\s+(?:de|pour)\s+(?:son|mon|notre|leur|le|la)\s+camp"
+    r")\b"
+)
+PRESIDENTIAL_PROGRAMME_PATTERN = re.compile(
+    r"\bprogramme\s+(?:presidentiel|presidentielle|electoral|electorale)\b"
+)
+PRE_PRESIDENTIAL_ACTIVITY_PATTERN = re.compile(
+    r"(?:"
+    r"\b(?:tour|tournee|deplacement|campagne|meeting|terrain)\b"
+    r"(?:\s+[a-z0-9]+){0,6}\s+\bpre\s+presidentiel(?:le)?\b|"
+    r"\bpre\s+presidentiel(?:le)?\b(?:\s+[a-z0-9]+){0,6}\s+"
+    r"\b(?:tour|tournee|deplacement|campagne|meeting|terrain)\b"
+    r")"
+)
+PARTY_LEADERSHIP_ELECTION_PATTERN = re.compile(
+    r"\b(?:reelection|succession)\b|"
+    r"\b(?:president|presidente|tete)\s+(?:du|de\s+la|des)\s+"
+    r"(?:parti|rassemblement\s+national|rn|renaissance|horizons|ps|lr|lfi)\b"
+)
+ORDINARY_LEGAL_HEADLINE_PATTERN = re.compile(
+    r"\b(?:"
+    r"enquete|assigne|justice|deboute|faire\s+appel|porte\s+plainte|"
+    r"depose\s+plainte|parquet|condamne|condamnee|condamnation|"
+    r"lanceuse\s+d\s+alerte|mis\s+en\s+examen|mise\s+en\s+examen"
+    r")\b"
+)
+ELECTION_INTEGRITY_HEADLINE_PATTERN = re.compile(
+    r"\b(?:ingerence|ingerences|desinformation|interference|"
+    r"election\s+(?:peut\s+etre\s+)?faussee|scrutin\s+fausse)\b"
+)
+SUMMARY_ELECTION_INTEGRITY_PATTERN = re.compile(
+    r"\b(?:ingerence|ingerences|desinformation|interference|"
+    r"operation\s+de\s+destabilisation|fausse\s+enquete|"
+    r"(?:influencer|fausser|voler)\s+(?:la\s+)?(?:couverture|election|scrutin))\b"
+)
+PRESIDENTIAL_CAMPAIGN_FINANCE_PATTERN = re.compile(
+    r"\bfinancement\s+(?:de\s+)?(?:la\s+)?campagne\s+presidentielle\b"
 )
 
 STATIC_ENTITY_ROLE_SUFFIXES = (
@@ -2002,6 +2148,8 @@ def summary_campaign_context_evidence(
     headline_party_matches: list[str],
     matched_candidates: list[str],
     candidate_matches: list[dict[str, Any]],
+    headline_election_integrity: bool = False,
+    headline_supports_summary_relationship: bool = False,
 ) -> list[str]:
     """Return campaign evidence confined to qualifying summary passages."""
 
@@ -2012,11 +2160,22 @@ def summary_campaign_context_evidence(
         summary,
         flags=re.IGNORECASE,
     )
-    passages = [
+    base_passages = [
         normalized
         for passage in SUMMARY_PASSAGE_BOUNDARY_PATTERN.split(summary)
         if (normalized := normalize(passage))
     ]
+    passages = list(base_passages)
+    # A short adjacent sentence may carry an anaphoric actor reference, as in
+    # "Marine Tondelier ... présidentielle. La candidate ... campagne".
+    # Only those explicitly linked pairs are joined; arbitrary neighboring
+    # presidential sentences cannot rescue an unrelated article subject.
+    for left, right in zip(base_passages, base_passages[1:]):
+        if (
+            SUMMARY_ANAPHORIC_ACTOR_PATTERN.search(right)
+            and len(left.split()) + len(right.split()) <= 80
+        ):
+            passages.append(f"{left} {right}")
     candidate_aliases = sorted({
         alias
         for match in candidate_matches
@@ -2038,11 +2197,49 @@ def summary_campaign_context_evidence(
             passage,
             campaign_terms,
         )
-        if not passage_campaign_matches:
+        passage_integrity = bool(
+            SUMMARY_ELECTION_INTEGRITY_PATTERN.search(passage)
+        )
+        passage_presidential_anchors = set(
+            current_presidential_matches(passage)
+        )
+        asserted_candidate_match = (
+            ASSERTED_PRESIDENTIAL_CANDIDATE_PATTERN.search(passage)
+        )
+        asserted_candidate_relationship = bool(
+            asserted_candidate_match
+            and not SPECULATIVE_CANDIDACY_PATTERN.search(passage)
+        )
+        asserted_candidate_subject = bool(
+            asserted_candidate_relationship
+            and asserted_candidate_match
+            and SUMMARY_ACTOR_ACTION_TAIL_PATTERN.search(
+                passage[asserted_candidate_match.end():]
+            )
+        )
+        party_actor_subject = bool(
+            SUMMARY_PARTY_ACTOR_ACTION_PATTERN.search(passage)
+        )
+        elysee_outcome = bool(
+            ELYSEE_2027_OUTCOME_PATTERN.search(passage)
+        )
+        if not (
+            passage_campaign_matches
+            or passage_integrity
+            or asserted_candidate_relationship
+            or elysee_outcome
+            or (
+                headline_election_integrity
+                and passage_presidential_anchors
+            )
+        ):
             continue
-        if campaign_agenda_term_matches(
-            passage,
-            NON_PRESIDENTIAL_ELECTION_TERMS,
+        if (
+            not passage_presidential_anchors
+            and campaign_agenda_term_matches(
+                passage,
+                NON_PRESIDENTIAL_ELECTION_TERMS,
+            )
         ):
             continue
         historical_years = {
@@ -2068,17 +2265,54 @@ def summary_campaign_context_evidence(
             for alias in candidate_aliases
         )
         actor_evidence = set(local_headline_parties)
-        if local_candidate:
+        if local_candidate and (
+            candidate_in_headline or local_headline_parties
+        ):
             actor_evidence.add("candidate_in_summary")
+        if (
+            candidate_in_headline
+            and asserted_candidate_relationship
+            and (
+                headline_election_integrity
+                or headline_supports_summary_relationship
+                or asserted_candidate_subject
+            )
+        ):
+            actor_evidence.add("headline_candidate_race_relationship")
+        if candidate_in_headline and party_actor_subject:
+            actor_evidence.add("headline_party_actor_relationship")
+        if (
+            len(matched_candidates) >= 2
+            and COLLECTIVE_PRESIDENTIAL_CANDIDATE_PATTERN.search(passage)
+            and not SPECULATIVE_CANDIDACY_PATTERN.search(passage)
+        ):
+            actor_evidence.add("collective_headline_actors")
 
-        presidential_anchors = set(current_presidential_matches(passage))
-        if SUMMARY_ELYSEE_2027_PATTERN.search(passage):
-            presidential_anchors.add("elysee_2027")
+        presidential_anchors = set(passage_presidential_anchors)
+        if elysee_outcome:
+            presidential_anchors.add("elysee_2027_outcome")
+        if PRESIDENTIAL_CANDIDACY_PATTERN.search(passage):
+            presidential_anchors.add("presidential_candidacy")
 
         candidacy_matches = campaign_agenda_term_matches(
             passage,
-            ("candidat", "candidate", "candidature"),
+            (
+                "candidat",
+                "candidats",
+                "candidate",
+                "candidates",
+                "candidature",
+                "candidatures",
+            ),
         )
+        if (
+            local_candidate
+            and candidacy_matches
+            and presidential_anchors
+            and SUMMARY_ANAPHORIC_ACTOR_PATTERN.search(passage)
+            and not SPECULATIVE_CANDIDACY_PATTERN.search(passage)
+        ):
+            actor_evidence.add("bounded_summary_candidate_relationship")
         high_specificity_matches = campaign_agenda_term_matches(
             passage,
             SUMMARY_HIGH_SPECIFICITY_SELECTION_TERMS,
@@ -2096,6 +2330,7 @@ def summary_campaign_context_evidence(
             candidate_in_headline
             and local_party_matches
             and SUMMARY_PARTY_LEADER_CANDIDACY_PATTERN.search(passage)
+            and presidential_anchors
         )
         withdrawal = bool(SUMMARY_WITHDRAWAL_PATTERN.search(passage))
         electoral_support = classify_structured_electoral_support(
@@ -2119,7 +2354,10 @@ def summary_campaign_context_evidence(
         if actor_evidence and (
             high_specificity_matches
             or candidate_selection
-            or (electoral_support and candidacy_matches)
+            or (
+                electoral_support
+                and presidential_anchors
+            )
         ):
             passage_evidence.update(high_specificity_matches)
             if candidate_selection:
@@ -2134,9 +2372,28 @@ def summary_campaign_context_evidence(
                 *local_party_matches,
             })
 
-        if actor_evidence and candidacy_matches and presidential_anchors:
+        if (
+            actor_evidence
+            and candidacy_matches
+            and presidential_anchors
+            and not SPECULATIVE_CANDIDACY_PATTERN.search(passage)
+        ):
             passage_evidence.update(candidacy_matches)
             passage_evidence.update(presidential_anchors)
+
+        if (
+            presidential_anchors
+            and headline_election_integrity
+        ):
+            passage_evidence.update(presidential_anchors)
+            passage_evidence.add("election_integrity")
+
+        if actor_evidence and passage_integrity and presidential_anchors:
+            passage_evidence.update(presidential_anchors)
+            passage_evidence.add("election_integrity")
+
+        if actor_evidence and elysee_outcome:
+            passage_evidence.add("elysee_2027_outcome")
 
         generic_campaign_matches = sorted(
             set(passage_campaign_matches)
@@ -2153,7 +2410,7 @@ def summary_campaign_context_evidence(
             if locally_electoral_campaign:
                 passage_evidence.update(presidential_anchors)
 
-        if actor_evidence and withdrawal:
+        if actor_evidence and withdrawal and presidential_anchors:
             passage_evidence.update(
                 term
                 for term in passage_campaign_matches
@@ -2174,6 +2431,56 @@ def summary_campaign_context_evidence(
             qualifying_evidence.update(passage_evidence)
 
     return sorted(qualifying_evidence)
+
+
+def headline_campaign_context_evidence(
+    headline: str,
+    headline_party_matches: list[str],
+) -> list[str]:
+    """Return high-specificity France 2027 evidence from a headline."""
+
+    campaign_matches = campaign_agenda_term_matches(
+        headline,
+        RELEVANT_CAMPAIGN_TERMS,
+    )
+    evidence: set[str] = set()
+
+    if RACE_YEAR_CAMPAIGN_PATTERN.search(headline):
+        evidence.update(campaign_matches)
+        evidence.add("race_year_relationship")
+
+    if PRESIDENTIAL_CANDIDACY_PATTERN.search(headline):
+        evidence.update(
+            term
+            for term in campaign_matches
+            if term in {"candidat", "candidate", "candidature"}
+        )
+        evidence.add("presidential_candidacy")
+
+    if PRESIDENTIAL_PROGRAMME_PATTERN.search(headline):
+        evidence.add("presidential_programme")
+
+    if ELECTED_PRESIDENT_POSITIONING_PATTERN.search(headline):
+        evidence.add("elected_president_positioning")
+
+    if ELYSEE_2027_OUTCOME_PATTERN.search(headline):
+        evidence.add("elysee_2027_outcome")
+
+    if PRE_PRESIDENTIAL_ACTIVITY_PATTERN.search(headline):
+        evidence.add("pre_presidential_activity")
+
+    selection_matches = sorted(
+        set(campaign_matches)
+        & {"primaire", "investiture", "designation", "vote des adherents"}
+    )
+    if (
+        selection_matches
+        and headline_party_matches
+        and not PARTY_LEADERSHIP_ELECTION_PATTERN.search(headline)
+    ):
+        evidence.update(selection_matches)
+
+    return sorted(evidence)
 
 
 def classify_relevant_news(
@@ -2200,6 +2507,19 @@ def classify_relevant_news(
 
     headline = normalize(headline_value)
     summary = normalize(summary_value)
+    headline_historical_years = {
+        match.group(1)
+        for match in HISTORICAL_PRESIDENTIAL_YEAR_PATTERN.finditer(
+            headline
+        )
+    }
+    if headline_historical_years and "2027" not in headline_historical_years:
+        return None
+    if (
+        HISTORICAL_RETROSPECTIVE_SUBJECT_PATTERN.search(summary)
+        and not current_presidential_matches(headline)
+    ):
+        return None
     if candidate_matches is None:
         candidate_matches = match_news_candidates(
             headline,
@@ -2223,6 +2543,10 @@ def classify_relevant_news(
         headline,
         RELEVANT_CAMPAIGN_TERMS,
     )
+    headline_campaign_evidence = headline_campaign_context_evidence(
+        headline,
+        headline_party_matches,
+    )
     summary_campaign_matches = campaign_agenda_term_matches(
         summary,
         tuple(dict.fromkeys((
@@ -2242,8 +2566,16 @@ def classify_relevant_news(
         headline,
         RELEVANT_HEADLINE_SUPPORT_TERMS,
     )
+    headline_election_integrity = bool(
+        ELECTION_INTEGRITY_HEADLINE_PATTERN.search(headline)
+    )
     headline_presidential_matches = current_presidential_matches(headline)
     summary_presidential_matches = current_presidential_matches(summary)
+    summary_collective_candidate_relationship = bool(
+        len(matched_candidates) >= 2
+        and COLLECTIVE_PRESIDENTIAL_CANDIDATE_PATTERN.search(summary)
+        and not SPECULATIVE_CANDIDACY_PATTERN.search(summary)
+    )
     other_election_matches = campaign_agenda_term_matches(
         headline,
         NON_PRESIDENTIAL_ELECTION_TERMS,
@@ -2295,13 +2627,33 @@ def classify_relevant_news(
 
     # Routine government and ordinary legislative headlines remain out
     # unless the headline itself explicitly frames them around the race.
-    if routine_matches:
+    if (
+        routine_matches
+        and not headline_campaign_evidence
+        and not headline_election_integrity
+    ):
+        return None
+
+    if (
+        ORDINARY_LEGAL_HEADLINE_PATTERN.search(headline)
+        and not RACE_QUALIFIED_LEGAL_ELIGIBILITY_PATTERN.search(headline)
+        and not headline_election_integrity
+        and not PRESIDENTIAL_CAMPAIGN_FINANCE_PATTERN.search(headline)
+        and not SUMMARY_ELECTORAL_CAMPAIGN_PATTERN.search(summary)
+    ):
         return None
 
     # Structured electoral support is sufficient campaign evidence. A
     # candidate name elsewhere in the headline cannot convert an ordinary
     # support destination into an endorsement.
-    if headline_electoral_support["matched_terms"]:
+    headline_race_relationship = bool(
+        headline_presidential_matches
+        or headline_campaign_evidence
+    )
+    if (
+        headline_electoral_support["matched_terms"]
+        and headline_race_relationship
+    ):
         return {
             "reason": "campaign_or_selection_context",
             "matched_terms": sorted(
@@ -2312,38 +2664,27 @@ def classify_relevant_news(
             ),
         }
 
-    # The summary can confirm current presidential relevance only when
-    # the headline already contains a candidate, named party, or clear
-    # campaign/selection cue.
-    if summary_presidential_matches and (
-        candidate_in_headline
-        or headline_party_matches
-        or headline_support_matches
-    ):
+    # Counterfactual policy explicitly tied to taking presidential office is
+    # electoral positioning, unlike an ordinary policy statement by the same
+    # monitored politician.
+    if candidate_in_headline and headline_campaign_evidence:
         return {
-            "reason": "summary_confirmed_presidential_context",
-            "matched_terms": sorted(
-                set([
-                    *summary_presidential_matches,
-                    *headline_party_matches,
-                    *headline_support_matches,
-                ])
-            ),
+            "reason": "campaign_or_selection_context",
+            "matched_terms": sorted(set([
+                *headline_campaign_evidence,
+                "candidate_in_headline",
+            ])),
         }
 
     # Campaign evidence in the headline remains sufficient when the article
     # subject is a monitored candidate or named political formation. Evidence
     # provenance stays confined to that headline.
-    if headline_campaign_matches and (
-        candidate_in_headline or headline_party_matches
-    ):
+    if headline_campaign_evidence and headline_party_matches:
         actor_evidence = list(headline_party_matches)
-        if candidate_in_headline:
-            actor_evidence.append("candidate_in_headline")
         return {
             "reason": "campaign_or_selection_context",
             "matched_terms": sorted(set([
-                *headline_campaign_matches,
+                *headline_campaign_evidence,
                 *actor_evidence,
             ])),
         }
@@ -2351,30 +2692,47 @@ def classify_relevant_news(
     # Summary-only vocabulary must form qualifying evidence inside one raw,
     # bounded passage. An attempted but unqualified campaign interpretation
     # cannot fall through and relabel the same article as candidate coverage.
-    if summary_campaign_matches and (
-        candidate_in_headline or headline_party_matches
+    if (summary_campaign_matches or summary_presidential_matches) and (
+        candidate_in_headline
+        or headline_party_matches
+        or headline_support_matches
+        or headline_election_integrity
+        or headline_electoral_support["matched_terms"]
+        or summary_collective_candidate_relationship
     ):
         summary_evidence = summary_campaign_context_evidence(
             summary_value,
             headline_party_matches,
             matched_candidates,
             candidate_matches,
+            headline_election_integrity,
+            bool(headline_support_matches),
         )
+        if (
+            not summary_evidence
+            and summary_presidential_matches
+            and headline_support_matches
+        ):
+            summary_evidence = sorted(set([
+                *summary_presidential_matches,
+                *headline_support_matches,
+                *headline_party_matches,
+            ]))
         if not summary_evidence:
             return None
         return {
-            "reason": "campaign_or_selection_context",
+            "reason": (
+                "summary_confirmed_presidential_context"
+                if summary_presidential_matches
+                else "campaign_or_selection_context"
+            ),
             "matched_terms": summary_evidence,
         }
 
-    # Candidate profiles, interviews, commentary, legal coverage, and
-    # substantive political positioning remain valid in this broad lane.
-    if candidate_in_headline:
-        return {
-            "reason": "candidate_political_coverage",
-            "matched_terms": ["candidate_in_headline"],
-        }
-
+    # Candidate identity establishes linkage, not France 2027 relevance.
+    # Profiles, interviews, commentary, office activity, policy positions,
+    # and legal coverage therefore fall through unless an independent branch
+    # above found deterministic presidential-race evidence.
     return None
 
 
@@ -2559,12 +2917,31 @@ def classify_notable_development(
         "matched_terms": strict_matches,
     }
 
-    if topic_id == "legal_eligibility":
-        # Candidate-specific legal consequences may matter without the word
-        # "presidential", but the monitored figure must be in the headline.
-        return result if has_candidate_in_headline else None
-
     if has_other_election_context and not has_presidential_context:
+        return None
+
+    if topic_id == "legal_eligibility":
+        # A generic investigation, complaint, prosecution, or civil dispute
+        # is not a presidential development. The headline itself must state
+        # an eligibility or candidacy consequence for the monitored figure.
+        return result if (
+            has_candidate_in_headline
+            and RACE_QUALIFIED_LEGAL_ELIGIBILITY_PATTERN.search(
+                headline_text
+            )
+        ) else None
+
+    # Every non-legal development must independently satisfy the same
+    # authoritative article-level race qualification. This prevents a broad
+    # topic word from recreating relevance after the main classifier rejects
+    # an ordinary political or party story.
+    headline_relevance = classify_relevant_news(
+        headline_text,
+        "",
+        matched_candidates,
+        candidate_matches,
+    )
+    if headline_relevance is None:
         return None
 
     if topic_id == "selection_strategy":
@@ -3514,6 +3891,113 @@ def classify_candidate_coverage_scope(
     return "general"
 
 
+CLUSTER_INHERITANCE_CRIME_SECURITY_PATTERN = re.compile(
+    r"\b(?:assassinat|crime|criminel|drogue|meurtre|narcotrafic|prison|"
+    r"securite|terrorisme|viol|violence)\w*\b"
+)
+CLUSTER_CANDIDATE_FREE_ROUTINE_GOVERNANCE_PATTERN = re.compile(
+    r"(?=.*\b(?:assemblee|parlement|gouvernement)\b)"
+    r"(?=.*\b(?:gouverner|legislatif|legislative|travaux)\b)"
+)
+
+
+def race_inheritance_hard_veto(record: dict[str, Any]) -> bool:
+    """Preserve Phase 1C subject vetoes for non-direct inheritance.
+
+    This guard is used only for prospective ``cluster_confirmed`` peers.  It
+    cannot broaden or alter the authoritative Phase 1C direct decision.
+    """
+
+    headline_value = record.get("headline")
+    summary_value = record.get("summary")
+    headline = normalize(headline_value)
+    summary = normalize(summary_value)
+    matched_candidates = list(record.get("candidate_names") or [])
+    presidential_matches = current_presidential_matches(headline)
+    election_integrity = bool(
+        ELECTION_INTEGRITY_HEADLINE_PATTERN.search(headline)
+        or SUMMARY_ELECTION_INTEGRITY_PATTERN.search(summary)
+    )
+    if PARTY_LEADERSHIP_ELECTION_PATTERN.search(headline) or re.search(
+        r"\b(?:conserver|reelu|reelue|reelection)\w*\b.{0,45}"
+        r"\b(?:parti|rassemblement national|tete)\b",
+        headline,
+    ):
+        return True
+    historical_years = {
+        match.group(1)
+        for match in HISTORICAL_PRESIDENTIAL_YEAR_PATTERN.finditer(headline)
+    }
+    if historical_years and "2027" not in historical_years:
+        return True
+    if (
+        HISTORICAL_RETROSPECTIVE_SUBJECT_PATTERN.search(summary)
+        and not presidential_matches
+    ):
+        return True
+    if unanchored_presidential_context(
+        headline_value,
+        summary_value,
+        matched_candidates,
+    ):
+        return True
+    if is_static_entity_page(
+        headline_value,
+        record.get("url") or "",
+        matched_candidates,
+    ):
+        return True
+    if campaign_agenda_term_matches(
+        headline,
+        RELEVANT_LIFESTYLE_EXCLUSION_TERMS,
+    ):
+        return True
+    if (
+        campaign_agenda_term_matches(headline, NON_PRESIDENTIAL_ELECTION_TERMS)
+        and not presidential_matches
+    ):
+        return True
+    if (
+        campaign_agenda_term_matches(headline, RELEVANT_ROUTINE_EXCLUSION_TERMS)
+        and not election_integrity
+    ):
+        return True
+    if (
+        not matched_candidates
+        and not presidential_matches
+        and CLUSTER_CANDIDATE_FREE_ROUTINE_GOVERNANCE_PATTERN.search(headline)
+    ):
+        return True
+    if (
+        ORDINARY_LEGAL_HEADLINE_PATTERN.search(headline)
+        and not election_integrity
+        and not RACE_QUALIFIED_LEGAL_ELIGIBILITY_PATTERN.search(headline)
+        and not PRESIDENTIAL_CAMPAIGN_FINANCE_PATTERN.search(headline)
+    ):
+        return True
+    if (
+        re.search(
+            r"\b(?:audition libre|statuette|statuettes|cadeau|cadeaux)\b",
+            headline,
+        )
+        and not election_integrity
+        and not RACE_QUALIFIED_LEGAL_ELIGIBILITY_PATTERN.search(headline)
+    ):
+        return True
+    if (
+        CLUSTER_INHERITANCE_CRIME_SECURITY_PATTERN.search(headline)
+        and not election_integrity
+    ):
+        return True
+    support = classify_structured_electoral_support(
+        headline,
+        matched_candidates,
+    )
+    if support["has_support_language"] and not support["matched_terms"]:
+        return True
+    return False
+
+
 def public_item(
     entry: dict[str, Any],
     candidate_matches: list[dict[str, Any]],
@@ -3564,6 +4048,35 @@ def public_relevant_item(
     return item
 
 
+def public_race_coverage_item(record: dict[str, Any]) -> dict[str, Any]:
+    """Project one qualified internal record into ``relevant_news``."""
+
+    direct = record.get("direct_qualification")
+    evidence = record.get("qualification_evidence")
+    if record["qualification"] == "direct":
+        relevance_reason = direct["reason"]
+        relevance_terms = list(direct["matched_terms"])
+    else:
+        relevance_reason = "cluster_confirmed"
+        relevance_terms = list(evidence["shared_tokens"])
+    return {
+        "id": record["id"],
+        "publisher": record["publisher"],
+        "published_at": record["published_at"],
+        "headline": record["headline"],
+        "url": record["url"],
+        "explicit_election": record["explicit_election"],
+        "candidates": list(record["candidates"]),
+        "candidate_matches": [dict(match) for match in record["candidate_matches"]],
+        "relevance_reason": relevance_reason,
+        "relevance_terms": relevance_terms,
+        "story_id": record["story_id"],
+        "story_model_version": STORY_MODEL_VERSION,
+        "qualification": record["qualification"],
+        "qualification_anchor_id": record["qualification_anchor_id"],
+    }
+
+
 def public_notable_item(
     entry: dict[str, Any],
     candidate_matches: list[dict[str, Any]],
@@ -3592,18 +4105,18 @@ def round_candidate_visibility_ratio(value: float) -> float:
 
 def candidate_visibility_gate(
     *,
-    current_record_count: int,
-    prior_record_count: int,
+    current_exposure_count: int,
+    prior_exposure_count: int,
     current_publisher_count: int,
     prior_publisher_count: int,
     common_publisher_count: int,
     publisher_overlap_ratio: float,
-    record_count_ratio: float | None,
+    exposure_count_ratio: float | None,
 ) -> tuple[str, str]:
     thresholds = CANDIDATE_VISIBILITY_THRESHOLDS
     if (
-        current_record_count < thresholds["minimum_period_records"]
-        or prior_record_count < thresholds["minimum_period_records"]
+        current_exposure_count < thresholds["minimum_period_exposures"]
+        or prior_exposure_count < thresholds["minimum_period_exposures"]
         or current_publisher_count
         < thresholds["minimum_period_publishers"]
         or prior_publisher_count
@@ -3616,9 +4129,9 @@ def candidate_visibility_gate(
     if (
         publisher_overlap_ratio
         < thresholds["minimum_publisher_overlap_ratio"]
-        or record_count_ratio is None
-        or record_count_ratio
-        > thresholds["maximum_record_count_ratio"]
+        or exposure_count_ratio is None
+        or exposure_count_ratio
+        > thresholds["maximum_exposure_count_ratio"]
     ):
         return "not_comparable", "publisher_panel_changed"
 
@@ -3946,144 +4459,200 @@ def build_candidate_visibility_metrics(
     return metrics
 
 
+def build_race_attention_period(
+    relevant_news: list[dict[str, Any]],
+    active_candidates: list[str],
+    start_date: date,
+    end_date: date,
+) -> dict[str, Any]:
+    """Build one seven-day publisher × story Race Attention observation."""
+
+    records = [
+        item
+        for item in relevant_news
+        if (
+            (published := parse_feed_datetime(item.get("published_at")))
+            is not None
+            and start_date <= published.date() <= end_date
+        )
+    ]
+    active_set = set(active_candidates)
+    all_exposures = publisher_story_exposures(records)
+    denominator = [
+        exposure
+        for exposure in all_exposures
+        if set(exposure["candidate_names"]) & active_set
+    ]
+    denominator_count = len(denominator)
+    publishers = sorted({exposure["publisher"] for exposure in denominator})
+    stories = {exposure["story_id"] for exposure in denominator}
+    metrics: list[dict[str, Any]] = []
+    for candidate in active_candidates:
+        candidate_records = [
+            item for item in records if candidate in item.get("candidates", [])
+        ]
+        candidate_exposures = [
+            exposure
+            for exposure in denominator
+            if candidate in exposure["candidate_names"]
+        ]
+        exposure_count = len(candidate_exposures)
+        if denominator_count == 0:
+            observation_state = "unavailable"
+            share = None
+        elif exposure_count == 0:
+            observation_state = "observed_zero"
+            share = 0.0
+        else:
+            observation_state = "observed_positive"
+            share = round_candidate_visibility_ratio(
+                exposure_count / denominator_count
+            )
+        candidate_publishers = sorted({
+            exposure["publisher"] for exposure in candidate_exposures
+        })
+        candidate_stories = {
+            exposure["story_id"] for exposure in candidate_exposures
+        }
+        metrics.append({
+            "candidate": candidate,
+            "record_count": len(candidate_records),
+            "exposure_count": exposure_count,
+            "share": share,
+            "publisher_count": len(candidate_publishers),
+            "publisher_names": candidate_publishers,
+            "story_count": len(candidate_stories),
+            "observation_state": observation_state,
+        })
+    metrics.sort(
+        key=lambda metric: (
+            -metric["exposure_count"],
+            metric["candidate"].casefold(),
+        )
+    )
+    return {
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+        "record_count": len(records),
+        "exposure_count": denominator_count,
+        "publisher_count": len(publishers),
+        "publisher_names": publishers,
+        "story_count": len(stories),
+        "candidate_metrics": metrics,
+    }
+
+
+def build_general_coverage_period(
+    candidate_watch: list[dict[str, Any]],
+    start_date: date,
+    end_date: date,
+) -> dict[str, Any]:
+    """Build count-only General Political Coverage (never a peer share)."""
+
+    records = [
+        item
+        for item in candidate_watch
+        if (
+            item.get("coverage_scope") == CANDIDATE_VISIBILITY_SECONDARY_SCOPE
+            and (published := parse_feed_datetime(item.get("published_at")))
+            is not None
+            and start_date <= published.date() <= end_date
+        )
+    ]
+    publishers = sorted({
+        str(item.get("publisher") or "").strip()
+        for item in records
+        if str(item.get("publisher") or "").strip()
+    })
+    metrics = []
+    candidates = sorted({
+        candidate
+        for item in records
+        for candidate in item.get("candidates", [])
+    })
+    for candidate in candidates:
+        candidate_records = [
+            item for item in records if candidate in item.get("candidates", [])
+        ]
+        candidate_publishers = sorted({
+            str(item.get("publisher") or "").strip()
+            for item in candidate_records
+            if str(item.get("publisher") or "").strip()
+        })
+        metrics.append({
+            "candidate": candidate,
+            "record_count": len(candidate_records),
+            "publisher_count": len(candidate_publishers),
+            "publisher_names": candidate_publishers,
+        })
+    metrics.sort(key=lambda value: (-value["record_count"], value["candidate"].casefold()))
+    return {
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+        "record_count": len(records),
+        "publisher_count": len(publishers),
+        "publisher_names": publishers,
+        "candidate_metrics": metrics,
+    }
+
+
 def build_candidate_visibility(
+    relevant_news: list[dict[str, Any]],
     candidate_watch: list[dict[str, Any]],
     generated_at: datetime,
+    active_candidates: list[str],
 ) -> dict[str, Any]:
-    """Build race visibility and general political visibility separately."""
+    """Build Race Attention and separate count-only general coverage."""
 
     anchor = generated_at.astimezone(timezone.utc).date()
     current_start = anchor - timedelta(days=6)
     prior_end = current_start - timedelta(days=1)
     prior_start = prior_end - timedelta(days=6)
-
-    primary_records: list[dict[str, Any]] = []
-    general_records: list[dict[str, Any]] = []
-
-    for item in candidate_watch:
-        coverage_scope = item.get("coverage_scope")
-
-        if coverage_scope not in CANDIDATE_COVERAGE_SCOPES:
-            raise RuntimeError(
-                "candidate visibility record has invalid coverage_scope"
-            )
-
-        if coverage_scope in CANDIDATE_VISIBILITY_PRIMARY_SCOPES:
-            primary_records.append(item)
-        elif coverage_scope == CANDIDATE_VISIBILITY_SECONDARY_SCOPE:
-            general_records.append(item)
-
-    def period(
-        source_records: list[dict[str, Any]],
-        start_date: date,
-        end_date: date,
-    ) -> dict[str, Any]:
-        records = []
-
-        for item in source_records:
-            published = parse_feed_datetime(
-                item.get("published_at")
-            )
-
-            if (
-                published is not None
-                and start_date <= published.date() <= end_date
-            ):
-                records.append(item)
-
-        publishers = sorted(
-            {
-                str(item.get("publisher") or "").strip()
-                for item in records
-                if str(item.get("publisher") or "").strip()
-            }
-        )
-
-        return {
-            "start_date": start_date.isoformat(),
-            "end_date": end_date.isoformat(),
-            "record_count": len(records),
-            "publisher_count": len(publishers),
-            "publisher_names": publishers,
-            "candidate_metrics": (
-                build_candidate_visibility_metrics(records)
-            ),
-        }
-
-    current_period = period(
-        primary_records,
-        current_start,
-        anchor,
+    current_period = build_race_attention_period(
+        relevant_news, active_candidates, current_start, anchor
     )
-    prior_period = period(
-        primary_records,
-        prior_start,
-        prior_end,
+    prior_period = build_race_attention_period(
+        relevant_news, active_candidates, prior_start, prior_end
     )
-    general_current_period = period(
-        general_records,
-        current_start,
-        anchor,
+    general_current_period = build_general_coverage_period(
+        candidate_watch, current_start, anchor
     )
-    general_prior_period = period(
-        general_records,
-        prior_start,
-        prior_end,
+    general_prior_period = build_general_coverage_period(
+        candidate_watch, prior_start, prior_end
     )
-
-    current_publishers = set(
-        current_period["publisher_names"]
+    current_publishers = set(current_period["publisher_names"])
+    prior_publishers = set(prior_period["publisher_names"])
+    common_publisher_count = len(current_publishers & prior_publishers)
+    publisher_union_count = len(current_publishers | prior_publishers)
+    publisher_overlap_ratio = round_candidate_visibility_ratio(
+        common_publisher_count / publisher_union_count
+        if publisher_union_count else 0.0
     )
-    prior_publishers = set(
-        prior_period["publisher_names"]
-    )
-    common_publisher_count = len(
-        current_publishers & prior_publishers
-    )
-    publisher_union_count = len(
-        current_publishers | prior_publishers
-    )
-    publisher_overlap_ratio = (
+    current_exposure_count = current_period["exposure_count"]
+    prior_exposure_count = prior_period["exposure_count"]
+    exposure_count_ratio = (
         round_candidate_visibility_ratio(
-            common_publisher_count / publisher_union_count
-            if publisher_union_count
-            else 0.0
+            max(current_exposure_count, prior_exposure_count)
+            / min(current_exposure_count, prior_exposure_count)
         )
+        if current_exposure_count and prior_exposure_count else None
     )
-
-    current_record_count = current_period["record_count"]
-    prior_record_count = prior_period["record_count"]
-
-    record_count_ratio = (
-        round_candidate_visibility_ratio(
-            max(current_record_count, prior_record_count)
-            / min(current_record_count, prior_record_count)
-        )
-        if current_record_count and prior_record_count
-        else None
-    )
-
     status, reason = candidate_visibility_gate(
-        current_record_count=current_record_count,
-        prior_record_count=prior_record_count,
-        current_publisher_count=current_period[
-            "publisher_count"
-        ],
-        prior_publisher_count=prior_period[
-            "publisher_count"
-        ],
+        current_exposure_count=current_exposure_count,
+        prior_exposure_count=prior_exposure_count,
+        current_publisher_count=current_period["publisher_count"],
+        prior_publisher_count=prior_period["publisher_count"],
         common_publisher_count=common_publisher_count,
         publisher_overlap_ratio=publisher_overlap_ratio,
-        record_count_ratio=record_count_ratio,
+        exposure_count_ratio=exposure_count_ratio,
     )
-
     return {
         "method": CANDIDATE_VISIBILITY_METHOD,
-        "primary_scopes": list(
-            CANDIDATE_VISIBILITY_PRIMARY_SCOPES
-        ),
-        "secondary_scope": (
-            CANDIDATE_VISIBILITY_SECONDARY_SCOPE
+        "story_model_version": STORY_MODEL_VERSION,
+        "authoritative_corpus": "relevant_news",
+        "denominator_scope": (
+            "publisher_story_race_exposures_linked_by_article_local_matches_"
+            "to_at_least_one_active_monitoring_candidate"
         ),
         "current_period": current_period,
         "prior_period": prior_period,
@@ -4092,36 +4661,38 @@ def build_candidate_visibility(
         "comparison_quality": {
             "status": status,
             "reason": reason,
-            "current_record_count": current_record_count,
-            "prior_record_count": prior_record_count,
-            "current_publisher_count": current_period[
-                "publisher_count"
-            ],
-            "prior_publisher_count": prior_period[
-                "publisher_count"
-            ],
-            "common_publisher_count": (
-                common_publisher_count
-            ),
-            "publisher_union_count": (
-                publisher_union_count
-            ),
-            "publisher_overlap_ratio": (
-                publisher_overlap_ratio
-            ),
-            "record_count_ratio": record_count_ratio,
-            "thresholds": dict(
-                CANDIDATE_VISIBILITY_THRESHOLDS
-            ),
+            "current_exposure_count": current_exposure_count,
+            "prior_exposure_count": prior_exposure_count,
+            "current_publisher_count": current_period["publisher_count"],
+            "prior_publisher_count": prior_period["publisher_count"],
+            "common_publisher_count": common_publisher_count,
+            "publisher_union_count": publisher_union_count,
+            "publisher_overlap_ratio": publisher_overlap_ratio,
+            "exposure_count_ratio": exposure_count_ratio,
+            "thresholds": dict(CANDIDATE_VISIBILITY_THRESHOLDS),
         },
     }
 
 
 def validate_candidate_visibility(
     candidate_visibility: Any,
+    relevant_news: list[dict[str, Any]],
     candidate_watch: list[dict[str, Any]],
     generated_at: datetime,
+    active_candidates: list[str],
 ) -> None:
+    expected = build_candidate_visibility(
+        relevant_news,
+        candidate_watch,
+        generated_at,
+        active_candidates,
+    )
+    if candidate_visibility != expected:
+        raise RuntimeError(
+            "candidate_visibility does not match Race Attention derivation"
+        )
+    return
+
     top_level_keys = {
         "method",
         "primary_scopes",
@@ -5694,8 +6265,10 @@ def validate_output(payload: dict[str, Any]) -> None:
         raise RuntimeError("feed_coverage requires a valid generated_at")
     validate_candidate_visibility(
         payload.get("candidate_visibility"),
+        relevant_news,
         candidate_watch,
         generated_at,
+        payload.get("candidate_roster", {}).get("names", []),
     )
     expected_site_feeds_due = sum(
         publisher_site_feed_due(feed, generated_at)
@@ -5951,6 +6524,10 @@ def validate_output(payload: dict[str, Any]) -> None:
             "candidate_matches",
             "relevance_reason",
             "relevance_terms",
+            "story_id",
+            "story_model_version",
+            "qualification",
+            "qualification_anchor_id",
         }
         if not isinstance(item, dict) or set(item) != required:
             raise RuntimeError("relevant_news item has unexpected fields")
@@ -5965,9 +6542,40 @@ def validate_output(payload: dict[str, Any]) -> None:
             or not isinstance(item["relevance_terms"], list)
         ):
             raise RuntimeError("relevant_news lacks relevance provenance")
+        if item["story_model_version"] != STORY_MODEL_VERSION:
+            raise RuntimeError("relevant_news story model version is invalid")
+        if (
+            not isinstance(item["story_id"], str)
+            or not item["story_id"].startswith("story-")
+        ):
+            raise RuntimeError("relevant_news story identity is invalid")
+        if item["qualification"] not in {"direct", "cluster_confirmed"}:
+            raise RuntimeError("relevant_news qualification is invalid")
+        if item["qualification"] == "direct":
+            if item["qualification_anchor_id"] is not None:
+                raise RuntimeError("direct Race Coverage cannot have an anchor")
+        elif (
+            not isinstance(item["qualification_anchor_id"], str)
+            or not item["qualification_anchor_id"]
+        ):
+            raise RuntimeError("cluster-confirmed Race Coverage lacks an anchor")
         if item["id"] in relevant_ids:
             raise RuntimeError("relevant_news contains duplicate item ids")
         relevant_ids.add(item["id"])
+
+    direct_ids = {
+        item["id"]
+        for item in relevant_news
+        if item["qualification"] == "direct"
+    }
+    if any(
+        item["qualification"] == "cluster_confirmed"
+        and item["qualification_anchor_id"] not in direct_ids
+        for item in relevant_news
+    ):
+        raise RuntimeError(
+            "cluster-confirmed Race Coverage must reference a direct anchor"
+        )
 
     if not isinstance(notable_developments, list):
         raise RuntimeError("notable_developments is not a list")
@@ -6013,6 +6621,10 @@ def validate_output(payload: dict[str, Any]) -> None:
         "election_news": len(election_news),
         "notable_developments": len(notable_developments),
         "relevant_news": len(relevant_news),
+        "direct_race_coverage": len(direct_ids),
+        "cluster_confirmed_race_coverage": (
+            len(relevant_news) - len(direct_ids)
+        ),
         "candidate_watch": len(candidate_watch),
     }
     for field, expected in expected_counts.items():
@@ -6437,6 +7049,7 @@ def build_wire(
     notable_developments: list[dict[str, Any]] = []
     relevant_news: list[dict[str, Any]] = []
     candidate_watch: list[dict[str, Any]] = []
+    race_model_records: list[dict[str, Any]] = []
     current_inventory_identities = {
         inventory_identity(entry) for entry in all_entries
     }
@@ -6460,9 +7073,19 @@ def build_wire(
         combined_text = normalize(
             f"{entry['headline']} {entry.get('summary') or ''}"
         )
+        inventory_candidate_matches = [
+            {
+                key: list(value) if isinstance(value, list) else value
+                for key, value in match.items()
+            }
+            for match in entry.get("candidate_matches", [])
+        ]
+        inventory_matched_candidates = candidate_names_from_matches(
+            inventory_candidate_matches
+        )
         candidate_matches = [
             match
-            for match in entry.get("candidate_matches", [])
+            for match in inventory_candidate_matches
             if match.get("candidate") in candidate_set
         ]
         matched_candidates = candidate_names_from_matches(
@@ -6472,35 +7095,38 @@ def build_wire(
         normalized_summary = normalize(entry.get("summary") or "")
 
         # Retained inventory provenance cannot bypass current scope rules.
-        # The record remains in the raw rolling inventory for continuity,
-        # but an unanchored foreign presidential story enters no public lane.
-        if unanchored_presidential_context(
+        # Foreign presidential context suppresses the France 2027 lanes but
+        # does not erase observational candidate linkage from Candidate Watch.
+        outside_french_presidential_scope = unanchored_presidential_context(
             normalized_headline,
             normalized_summary,
-            matched_candidates,
-        ):
-            continue
+            inventory_matched_candidates,
+        )
 
         # Topic/profile directory pages remain in the raw inventory but do not
         # enter Candidate Watch, Relevant News, Election News, or the ledger.
         if is_static_entity_page(
             entry["headline"],
             entry.get("url") or "",
-            matched_candidates,
+            inventory_matched_candidates,
         ):
             continue
 
         source = source_by_id.get(entry.get("source_id"), {})
-        development = classify_notable_development(
-            combined_text,
-            matched_candidates,
-            source,
-            normalized_headline,
-            candidate_matches,
-        )
+        development = None
+        if not outside_french_presidential_scope:
+            development = classify_notable_development(
+                combined_text,
+                matched_candidates,
+                source,
+                normalized_headline,
+                candidate_matches,
+            )
 
         relevance = None
-        if entry.get("relevance_reason"):
+        if outside_french_presidential_scope:
+            relevance = None
+        elif entry.get("relevance_reason"):
             relevance = {
                 "reason": entry["relevance_reason"],
                 "matched_terms": list(entry.get("relevance_terms", [])),
@@ -6509,8 +7135,8 @@ def build_wire(
             relevance = classify_relevant_news(
                 entry["headline"],
                 entry.get("summary") or "",
-                matched_candidates,
-                candidate_matches,
+                inventory_matched_candidates,
+                inventory_candidate_matches,
             )
 
         # Election News is a current-race headline lane. Historical election
@@ -6524,6 +7150,11 @@ def build_wire(
         base_item = public_item(
             entry,
             candidate_matches,
+            is_election_news,
+        )
+        race_base_item = public_item(
+            entry,
+            inventory_candidate_matches,
             is_election_news,
         )
 
@@ -6549,15 +7180,13 @@ def build_wire(
                 "matched_terms": development["matched_terms"],
             }
 
-        if relevance is not None:
-            relevant_news.append(
-                public_relevant_item(
-                    entry,
-                    candidate_matches,
-                    is_election_news,
-                    relevance,
-                )
-            )
+        race_model_record = dict(race_base_item)
+        race_model_record.update({
+            "summary": entry.get("summary") or "",
+            "candidate_names": list(inventory_matched_candidates),
+            "direct_qualification": relevance,
+        })
+        race_model_records.append(race_model_record)
 
         if matched_candidates:
             candidate_item = dict(base_item)
@@ -6569,6 +7198,27 @@ def build_wire(
                 )
             )
             candidate_watch.append(candidate_item)
+
+    qualified_race_records = qualify_race_coverage(
+        race_model_records,
+        candidates,
+        hard_veto=race_inheritance_hard_veto,
+    )
+    relevant_news = [
+        public_race_coverage_item(record)
+        for record in qualified_race_records
+    ]
+    race_by_id = {
+        record["id"]: record
+        for record in qualified_race_records
+    }
+    for item in candidate_watch:
+        race_record = race_by_id.get(item["id"])
+        if (
+            race_record is not None
+            and race_record["qualification"] == "cluster_confirmed"
+        ):
+            item["coverage_scope"] = "campaign"
 
     for items in (
         election_news,
@@ -6685,7 +7335,7 @@ def build_wire(
     )
 
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": (
             generated_at.isoformat().replace("+00:00", "Z")
         ),
@@ -6804,12 +7454,22 @@ def build_wire(
             "election_news": len(election_news),
             "notable_developments": len(notable_developments),
             "relevant_news": len(relevant_news),
+            "direct_race_coverage": sum(
+                item["qualification"] == "direct"
+                for item in relevant_news
+            ),
+            "cluster_confirmed_race_coverage": sum(
+                item["qualification"] == "cluster_confirmed"
+                for item in relevant_news
+            ),
             "candidate_watch": len(candidate_watch),
         },
         "campaign_agenda": campaign_agenda,
         "candidate_visibility": build_candidate_visibility(
+            relevant_news,
             candidate_watch,
             generated_at,
+            candidates,
         ),
         "election_news": election_news,
         "notable_developments": notable_developments,

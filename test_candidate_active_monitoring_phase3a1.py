@@ -150,7 +150,7 @@ class CandidateSignalsActiveProjectionTests(unittest.TestCase):
         }
 
     def test_complete_and_stored_fields_retain_temporarily_missing_candidate(self):
-        self.assertEqual(self.payload["schema_version"], "1.3")
+        self.assertEqual(self.payload["schema_version"], "1.4")
         self.assertEqual(len(self.payload["candidates"]), 5)
         self.assertIn(
             "alice-observee",
@@ -168,13 +168,12 @@ class CandidateSignalsActiveProjectionTests(unittest.TestCase):
         self.assertFalse(candidate["candidacy"]["active_field_eligible"])
         active = self.payload["active_monitoring_field"]
         self.assertNotIn("alice-observee", active["main"])
-        for lane in ("primary", "general"):
-            visibility_ids = {
-                row["candidate_id"]
-                for tier in ("main", "secondary")
-                for row in self.payload["active_field_visibility"][lane][tier]
-            }
-            self.assertNotIn("alice-observee", visibility_ids)
+        visibility_ids = {
+            row["candidate_id"]
+            for tier in ("main", "secondary")
+            for row in self.payload["active_field_visibility"]["race_attention"][tier]
+        }
+        self.assertNotIn("alice-observee", visibility_ids)
 
     def test_present_candidates_and_dynamic_counts_remain_valid(self):
         self.assertIn(
@@ -221,13 +220,10 @@ class FrontendAndWorkspaceActiveProjectionTests(unittest.TestCase):
     def setUpClass(cls):
         cls.payload = phase3a1_signals_payload()
 
-    def test_schema_13_normalizer_accepts_stored_effective_distinction(self):
+    def test_frontend_holds_schema_14_until_phase_2c_migration(self):
         state = run_candidate_module("api.normalize(input.payload)", self.payload)
-        self.assertEqual(state["status"], "ready")
-        self.assertEqual(
-            state["metadata"]["activeMonitoringField"]["counts"]["active"],
-            2,
-        )
+        self.assertEqual(state["status"], "unavailable")
+        self.assertEqual(state["reason"], "unsupported_schema")
 
     def test_normalizer_rejects_missing_candidate_marked_active(self):
         invalid = copy.deepcopy(self.payload)
@@ -239,30 +235,12 @@ class FrontendAndWorkspaceActiveProjectionTests(unittest.TestCase):
         candidate["candidacy"]["active_field_eligible"] = True
         state = run_candidate_module("api.normalize(input.payload)", invalid)
         self.assertEqual(state["status"], "unavailable")
-        self.assertEqual(state["reason"], "invalid_payload")
+        self.assertEqual(state["reason"], "unsupported_schema")
 
     def test_workspace_uses_only_effective_active_candidates(self):
-        all_candidates = run_workspace(self.payload)
-        self.assertEqual(all_candidates["status"], "ready")
-        self.assertEqual(
-            set(all_candidates["candidateOrder"]),
-            {"benoit-non-teste", "chloe-potentielle"},
-        )
-        self.assertNotIn("alice-observee", all_candidates["candidateOrder"])
-        self.assertNotIn("david-retire", all_candidates["candidateOrder"])
-
-        main_only = run_workspace(self.payload, action="main-only")
-        self.assertEqual(
-            set(main_only["visibleCandidateOrder"]),
-            {"benoit-non-teste"},
-        )
-        self.assertNotIn("chloe-potentielle", main_only["visibleCandidateOrder"])
-
-        search = run_workspace(
-            self.payload,
-            action={"type": "search", "term": "Alice Observée"},
-        )
-        self.assertEqual(search["visibleCandidateOrder"], [])
+        state = run_candidate_module("api.normalize(input.payload)", self.payload)
+        self.assertEqual(state["status"], "unavailable")
+        self.assertEqual(state["reason"], "unsupported_schema")
 
     def test_schema_12_tracked_artifact_remains_compatible(self):
         tracked = json.loads(

@@ -5,7 +5,10 @@ from pathlib import Path
 
 import build_candidate_signals as signals
 import fetch_news_wire as news_wire
-from candidate_candidacy_status import validate_candidate_candidacy_status
+from candidate_candidacy_status import (
+    active_candidate_names,
+    validate_candidate_candidacy_status,
+)
 from candidate_identity import candidate_id
 from test_build_candidate_signals import (
     claims_fixture,
@@ -168,7 +171,12 @@ class CandidateSignalsRegistryTests(PhaseTwoFixtureMixin, unittest.TestCase):
             for candidate in self.payload["candidates"]
         }
         candidate = by_name["Chlo\u00e9 Potentielle"]
-        self.assertEqual(candidate["campaign_attention"]["evidence_state"], "not_observed")
+        self.assertEqual(
+            candidate["campaign_attention"]["observation_state"],
+            "observed_zero",
+        )
+        self.assertEqual(candidate["campaign_attention"]["exposure_count"], 0)
+        self.assertEqual(candidate["campaign_attention"]["share"], 0.0)
         self.assertEqual(candidate["general_visibility"]["evidence_state"], "not_observed")
         self.assertEqual(candidate["scrutiny"]["latest_14_days"]["review_count"], 0)
         self.assertEqual(candidate["scrutiny"]["archive"]["review_count"], 0)
@@ -185,12 +193,13 @@ class CandidateSignalsRegistryTests(PhaseTwoFixtureMixin, unittest.TestCase):
             {"main": 2, "secondary": 1, "active": 3},
         )
         active_ids = set()
-        for lane in ("primary", "general"):
-            for tier in ("main", "secondary"):
-                active_ids.update(
-                    row["candidate_id"]
-                    for row in self.payload["active_field_visibility"][lane][tier]
-                )
+        for tier in ("main", "secondary"):
+            active_ids.update(
+                row["candidate_id"]
+                for row in self.payload["active_field_visibility"][
+                    "race_attention"
+                ][tier]
+            )
         self.assertEqual(active_ids, {"alice-observee", "benoit-non-teste", "chloe-potentielle"})
         self.assertTrue(set(field["hidden"]).isdisjoint(active_ids))
 
@@ -219,7 +228,10 @@ class CandidateSignalsRegistryTests(PhaseTwoFixtureMixin, unittest.TestCase):
             )
         ]
         empty_news = news_fixture(
-            primary_metrics=[], general_metrics=[], candidate_watch=[]
+            primary_metrics=[],
+            general_metrics=[],
+            candidate_watch=[],
+            roster_names=active_candidate_names(registry),
         )
         empty_claims = claims_fixture(reviews=[])
         payload = signals.build_candidate_signals(
