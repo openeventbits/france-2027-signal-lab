@@ -30,6 +30,11 @@ from http_fetch import (
     HttpFetchResult,
     fetch_news_route,
 )
+from race_coverage import (
+    STORY_MODEL_VERSION,
+    publisher_story_exposures,
+    qualify_race_coverage,
+)
 from source_health import (
     load_source_health,
     update_source_health,
@@ -65,15 +70,17 @@ FETCH_WORKERS = 12
 GOOGLE_NEWS_WORKERS = 4
 GOOGLE_NEWS_SEMAPHORE = BoundedSemaphore(GOOGLE_NEWS_WORKERS)
 
-CANDIDATE_VISIBILITY_METHOD = "share_of_candidate_linked_records"
+CANDIDATE_VISIBILITY_METHOD = (
+    "share_of_active_candidate_publisher_story_race_exposures"
+)
 CANDIDACY_STATUS_SOURCE = "candidate_candidacy_status.json"
 ACTIVE_CANDIDATE_ROSTER_RULE = "active_monitoring_field"
 CANDIDATE_VISIBILITY_THRESHOLDS = {
-    "minimum_period_records": 10,
+    "minimum_period_exposures": 10,
     "minimum_period_publishers": 5,
     "minimum_common_publishers": 5,
     "minimum_publisher_overlap_ratio": 0.5,
-    "maximum_record_count_ratio": 2.0,
+    "maximum_exposure_count_ratio": 2.0,
 }
 
 CANDIDATE_COVERAGE_SCOPES = (
@@ -3884,6 +3891,113 @@ def classify_candidate_coverage_scope(
     return "general"
 
 
+CLUSTER_INHERITANCE_CRIME_SECURITY_PATTERN = re.compile(
+    r"\b(?:assassinat|crime|criminel|drogue|meurtre|narcotrafic|prison|"
+    r"securite|terrorisme|viol|violence)\w*\b"
+)
+CLUSTER_CANDIDATE_FREE_ROUTINE_GOVERNANCE_PATTERN = re.compile(
+    r"(?=.*\b(?:assemblee|parlement|gouvernement)\b)"
+    r"(?=.*\b(?:gouverner|legislatif|legislative|travaux)\b)"
+)
+
+
+def race_inheritance_hard_veto(record: dict[str, Any]) -> bool:
+    """Preserve Phase 1C subject vetoes for non-direct inheritance.
+
+    This guard is used only for prospective ``cluster_confirmed`` peers.  It
+    cannot broaden or alter the authoritative Phase 1C direct decision.
+    """
+
+    headline_value = record.get("headline")
+    summary_value = record.get("summary")
+    headline = normalize(headline_value)
+    summary = normalize(summary_value)
+    matched_candidates = list(record.get("candidate_names") or [])
+    presidential_matches = current_presidential_matches(headline)
+    election_integrity = bool(
+        ELECTION_INTEGRITY_HEADLINE_PATTERN.search(headline)
+        or SUMMARY_ELECTION_INTEGRITY_PATTERN.search(summary)
+    )
+    if PARTY_LEADERSHIP_ELECTION_PATTERN.search(headline) or re.search(
+        r"\b(?:conserver|reelu|reelue|reelection)\w*\b.{0,45}"
+        r"\b(?:parti|rassemblement national|tete)\b",
+        headline,
+    ):
+        return True
+    historical_years = {
+        match.group(1)
+        for match in HISTORICAL_PRESIDENTIAL_YEAR_PATTERN.finditer(headline)
+    }
+    if historical_years and "2027" not in historical_years:
+        return True
+    if (
+        HISTORICAL_RETROSPECTIVE_SUBJECT_PATTERN.search(summary)
+        and not presidential_matches
+    ):
+        return True
+    if unanchored_presidential_context(
+        headline_value,
+        summary_value,
+        matched_candidates,
+    ):
+        return True
+    if is_static_entity_page(
+        headline_value,
+        record.get("url") or "",
+        matched_candidates,
+    ):
+        return True
+    if campaign_agenda_term_matches(
+        headline,
+        RELEVANT_LIFESTYLE_EXCLUSION_TERMS,
+    ):
+        return True
+    if (
+        campaign_agenda_term_matches(headline, NON_PRESIDENTIAL_ELECTION_TERMS)
+        and not presidential_matches
+    ):
+        return True
+    if (
+        campaign_agenda_term_matches(headline, RELEVANT_ROUTINE_EXCLUSION_TERMS)
+        and not election_integrity
+    ):
+        return True
+    if (
+        not matched_candidates
+        and not presidential_matches
+        and CLUSTER_CANDIDATE_FREE_ROUTINE_GOVERNANCE_PATTERN.search(headline)
+    ):
+        return True
+    if (
+        ORDINARY_LEGAL_HEADLINE_PATTERN.search(headline)
+        and not election_integrity
+        and not RACE_QUALIFIED_LEGAL_ELIGIBILITY_PATTERN.search(headline)
+        and not PRESIDENTIAL_CAMPAIGN_FINANCE_PATTERN.search(headline)
+    ):
+        return True
+    if (
+        re.search(
+            r"\b(?:audition libre|statuette|statuettes|cadeau|cadeaux)\b",
+            headline,
+        )
+        and not election_integrity
+        and not RACE_QUALIFIED_LEGAL_ELIGIBILITY_PATTERN.search(headline)
+    ):
+        return True
+    if (
+        CLUSTER_INHERITANCE_CRIME_SECURITY_PATTERN.search(headline)
+        and not election_integrity
+    ):
+        return True
+    support = classify_structured_electoral_support(
+        headline,
+        matched_candidates,
+    )
+    if support["has_support_language"] and not support["matched_terms"]:
+        return True
+    return False
+
+
 def public_item(
     entry: dict[str, Any],
     candidate_matches: list[dict[str, Any]],
@@ -3934,6 +4048,35 @@ def public_relevant_item(
     return item
 
 
+def public_race_coverage_item(record: dict[str, Any]) -> dict[str, Any]:
+    """Project one qualified internal record into ``relevant_news``."""
+
+    direct = record.get("direct_qualification")
+    evidence = record.get("qualification_evidence")
+    if record["qualification"] == "direct":
+        relevance_reason = direct["reason"]
+        relevance_terms = list(direct["matched_terms"])
+    else:
+        relevance_reason = "cluster_confirmed"
+        relevance_terms = list(evidence["shared_tokens"])
+    return {
+        "id": record["id"],
+        "publisher": record["publisher"],
+        "published_at": record["published_at"],
+        "headline": record["headline"],
+        "url": record["url"],
+        "explicit_election": record["explicit_election"],
+        "candidates": list(record["candidates"]),
+        "candidate_matches": [dict(match) for match in record["candidate_matches"]],
+        "relevance_reason": relevance_reason,
+        "relevance_terms": relevance_terms,
+        "story_id": record["story_id"],
+        "story_model_version": STORY_MODEL_VERSION,
+        "qualification": record["qualification"],
+        "qualification_anchor_id": record["qualification_anchor_id"],
+    }
+
+
 def public_notable_item(
     entry: dict[str, Any],
     candidate_matches: list[dict[str, Any]],
@@ -3962,18 +4105,18 @@ def round_candidate_visibility_ratio(value: float) -> float:
 
 def candidate_visibility_gate(
     *,
-    current_record_count: int,
-    prior_record_count: int,
+    current_exposure_count: int,
+    prior_exposure_count: int,
     current_publisher_count: int,
     prior_publisher_count: int,
     common_publisher_count: int,
     publisher_overlap_ratio: float,
-    record_count_ratio: float | None,
+    exposure_count_ratio: float | None,
 ) -> tuple[str, str]:
     thresholds = CANDIDATE_VISIBILITY_THRESHOLDS
     if (
-        current_record_count < thresholds["minimum_period_records"]
-        or prior_record_count < thresholds["minimum_period_records"]
+        current_exposure_count < thresholds["minimum_period_exposures"]
+        or prior_exposure_count < thresholds["minimum_period_exposures"]
         or current_publisher_count
         < thresholds["minimum_period_publishers"]
         or prior_publisher_count
@@ -3986,9 +4129,9 @@ def candidate_visibility_gate(
     if (
         publisher_overlap_ratio
         < thresholds["minimum_publisher_overlap_ratio"]
-        or record_count_ratio is None
-        or record_count_ratio
-        > thresholds["maximum_record_count_ratio"]
+        or exposure_count_ratio is None
+        or exposure_count_ratio
+        > thresholds["maximum_exposure_count_ratio"]
     ):
         return "not_comparable", "publisher_panel_changed"
 
@@ -4316,144 +4459,200 @@ def build_candidate_visibility_metrics(
     return metrics
 
 
+def build_race_attention_period(
+    relevant_news: list[dict[str, Any]],
+    active_candidates: list[str],
+    start_date: date,
+    end_date: date,
+) -> dict[str, Any]:
+    """Build one seven-day publisher × story Race Attention observation."""
+
+    records = [
+        item
+        for item in relevant_news
+        if (
+            (published := parse_feed_datetime(item.get("published_at")))
+            is not None
+            and start_date <= published.date() <= end_date
+        )
+    ]
+    active_set = set(active_candidates)
+    all_exposures = publisher_story_exposures(records)
+    denominator = [
+        exposure
+        for exposure in all_exposures
+        if set(exposure["candidate_names"]) & active_set
+    ]
+    denominator_count = len(denominator)
+    publishers = sorted({exposure["publisher"] for exposure in denominator})
+    stories = {exposure["story_id"] for exposure in denominator}
+    metrics: list[dict[str, Any]] = []
+    for candidate in active_candidates:
+        candidate_records = [
+            item for item in records if candidate in item.get("candidates", [])
+        ]
+        candidate_exposures = [
+            exposure
+            for exposure in denominator
+            if candidate in exposure["candidate_names"]
+        ]
+        exposure_count = len(candidate_exposures)
+        if denominator_count == 0:
+            observation_state = "unavailable"
+            share = None
+        elif exposure_count == 0:
+            observation_state = "observed_zero"
+            share = 0.0
+        else:
+            observation_state = "observed_positive"
+            share = round_candidate_visibility_ratio(
+                exposure_count / denominator_count
+            )
+        candidate_publishers = sorted({
+            exposure["publisher"] for exposure in candidate_exposures
+        })
+        candidate_stories = {
+            exposure["story_id"] for exposure in candidate_exposures
+        }
+        metrics.append({
+            "candidate": candidate,
+            "record_count": len(candidate_records),
+            "exposure_count": exposure_count,
+            "share": share,
+            "publisher_count": len(candidate_publishers),
+            "publisher_names": candidate_publishers,
+            "story_count": len(candidate_stories),
+            "observation_state": observation_state,
+        })
+    metrics.sort(
+        key=lambda metric: (
+            -metric["exposure_count"],
+            metric["candidate"].casefold(),
+        )
+    )
+    return {
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+        "record_count": len(records),
+        "exposure_count": denominator_count,
+        "publisher_count": len(publishers),
+        "publisher_names": publishers,
+        "story_count": len(stories),
+        "candidate_metrics": metrics,
+    }
+
+
+def build_general_coverage_period(
+    candidate_watch: list[dict[str, Any]],
+    start_date: date,
+    end_date: date,
+) -> dict[str, Any]:
+    """Build count-only General Political Coverage (never a peer share)."""
+
+    records = [
+        item
+        for item in candidate_watch
+        if (
+            item.get("coverage_scope") == CANDIDATE_VISIBILITY_SECONDARY_SCOPE
+            and (published := parse_feed_datetime(item.get("published_at")))
+            is not None
+            and start_date <= published.date() <= end_date
+        )
+    ]
+    publishers = sorted({
+        str(item.get("publisher") or "").strip()
+        for item in records
+        if str(item.get("publisher") or "").strip()
+    })
+    metrics = []
+    candidates = sorted({
+        candidate
+        for item in records
+        for candidate in item.get("candidates", [])
+    })
+    for candidate in candidates:
+        candidate_records = [
+            item for item in records if candidate in item.get("candidates", [])
+        ]
+        candidate_publishers = sorted({
+            str(item.get("publisher") or "").strip()
+            for item in candidate_records
+            if str(item.get("publisher") or "").strip()
+        })
+        metrics.append({
+            "candidate": candidate,
+            "record_count": len(candidate_records),
+            "publisher_count": len(candidate_publishers),
+            "publisher_names": candidate_publishers,
+        })
+    metrics.sort(key=lambda value: (-value["record_count"], value["candidate"].casefold()))
+    return {
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+        "record_count": len(records),
+        "publisher_count": len(publishers),
+        "publisher_names": publishers,
+        "candidate_metrics": metrics,
+    }
+
+
 def build_candidate_visibility(
+    relevant_news: list[dict[str, Any]],
     candidate_watch: list[dict[str, Any]],
     generated_at: datetime,
+    active_candidates: list[str],
 ) -> dict[str, Any]:
-    """Build race visibility and general political visibility separately."""
+    """Build Race Attention and separate count-only general coverage."""
 
     anchor = generated_at.astimezone(timezone.utc).date()
     current_start = anchor - timedelta(days=6)
     prior_end = current_start - timedelta(days=1)
     prior_start = prior_end - timedelta(days=6)
-
-    primary_records: list[dict[str, Any]] = []
-    general_records: list[dict[str, Any]] = []
-
-    for item in candidate_watch:
-        coverage_scope = item.get("coverage_scope")
-
-        if coverage_scope not in CANDIDATE_COVERAGE_SCOPES:
-            raise RuntimeError(
-                "candidate visibility record has invalid coverage_scope"
-            )
-
-        if coverage_scope in CANDIDATE_VISIBILITY_PRIMARY_SCOPES:
-            primary_records.append(item)
-        elif coverage_scope == CANDIDATE_VISIBILITY_SECONDARY_SCOPE:
-            general_records.append(item)
-
-    def period(
-        source_records: list[dict[str, Any]],
-        start_date: date,
-        end_date: date,
-    ) -> dict[str, Any]:
-        records = []
-
-        for item in source_records:
-            published = parse_feed_datetime(
-                item.get("published_at")
-            )
-
-            if (
-                published is not None
-                and start_date <= published.date() <= end_date
-            ):
-                records.append(item)
-
-        publishers = sorted(
-            {
-                str(item.get("publisher") or "").strip()
-                for item in records
-                if str(item.get("publisher") or "").strip()
-            }
-        )
-
-        return {
-            "start_date": start_date.isoformat(),
-            "end_date": end_date.isoformat(),
-            "record_count": len(records),
-            "publisher_count": len(publishers),
-            "publisher_names": publishers,
-            "candidate_metrics": (
-                build_candidate_visibility_metrics(records)
-            ),
-        }
-
-    current_period = period(
-        primary_records,
-        current_start,
-        anchor,
+    current_period = build_race_attention_period(
+        relevant_news, active_candidates, current_start, anchor
     )
-    prior_period = period(
-        primary_records,
-        prior_start,
-        prior_end,
+    prior_period = build_race_attention_period(
+        relevant_news, active_candidates, prior_start, prior_end
     )
-    general_current_period = period(
-        general_records,
-        current_start,
-        anchor,
+    general_current_period = build_general_coverage_period(
+        candidate_watch, current_start, anchor
     )
-    general_prior_period = period(
-        general_records,
-        prior_start,
-        prior_end,
+    general_prior_period = build_general_coverage_period(
+        candidate_watch, prior_start, prior_end
     )
-
-    current_publishers = set(
-        current_period["publisher_names"]
+    current_publishers = set(current_period["publisher_names"])
+    prior_publishers = set(prior_period["publisher_names"])
+    common_publisher_count = len(current_publishers & prior_publishers)
+    publisher_union_count = len(current_publishers | prior_publishers)
+    publisher_overlap_ratio = round_candidate_visibility_ratio(
+        common_publisher_count / publisher_union_count
+        if publisher_union_count else 0.0
     )
-    prior_publishers = set(
-        prior_period["publisher_names"]
-    )
-    common_publisher_count = len(
-        current_publishers & prior_publishers
-    )
-    publisher_union_count = len(
-        current_publishers | prior_publishers
-    )
-    publisher_overlap_ratio = (
+    current_exposure_count = current_period["exposure_count"]
+    prior_exposure_count = prior_period["exposure_count"]
+    exposure_count_ratio = (
         round_candidate_visibility_ratio(
-            common_publisher_count / publisher_union_count
-            if publisher_union_count
-            else 0.0
+            max(current_exposure_count, prior_exposure_count)
+            / min(current_exposure_count, prior_exposure_count)
         )
+        if current_exposure_count and prior_exposure_count else None
     )
-
-    current_record_count = current_period["record_count"]
-    prior_record_count = prior_period["record_count"]
-
-    record_count_ratio = (
-        round_candidate_visibility_ratio(
-            max(current_record_count, prior_record_count)
-            / min(current_record_count, prior_record_count)
-        )
-        if current_record_count and prior_record_count
-        else None
-    )
-
     status, reason = candidate_visibility_gate(
-        current_record_count=current_record_count,
-        prior_record_count=prior_record_count,
-        current_publisher_count=current_period[
-            "publisher_count"
-        ],
-        prior_publisher_count=prior_period[
-            "publisher_count"
-        ],
+        current_exposure_count=current_exposure_count,
+        prior_exposure_count=prior_exposure_count,
+        current_publisher_count=current_period["publisher_count"],
+        prior_publisher_count=prior_period["publisher_count"],
         common_publisher_count=common_publisher_count,
         publisher_overlap_ratio=publisher_overlap_ratio,
-        record_count_ratio=record_count_ratio,
+        exposure_count_ratio=exposure_count_ratio,
     )
-
     return {
         "method": CANDIDATE_VISIBILITY_METHOD,
-        "primary_scopes": list(
-            CANDIDATE_VISIBILITY_PRIMARY_SCOPES
-        ),
-        "secondary_scope": (
-            CANDIDATE_VISIBILITY_SECONDARY_SCOPE
+        "story_model_version": STORY_MODEL_VERSION,
+        "authoritative_corpus": "relevant_news",
+        "denominator_scope": (
+            "publisher_story_race_exposures_linked_by_article_local_matches_"
+            "to_at_least_one_active_monitoring_candidate"
         ),
         "current_period": current_period,
         "prior_period": prior_period,
@@ -4462,36 +4661,38 @@ def build_candidate_visibility(
         "comparison_quality": {
             "status": status,
             "reason": reason,
-            "current_record_count": current_record_count,
-            "prior_record_count": prior_record_count,
-            "current_publisher_count": current_period[
-                "publisher_count"
-            ],
-            "prior_publisher_count": prior_period[
-                "publisher_count"
-            ],
-            "common_publisher_count": (
-                common_publisher_count
-            ),
-            "publisher_union_count": (
-                publisher_union_count
-            ),
-            "publisher_overlap_ratio": (
-                publisher_overlap_ratio
-            ),
-            "record_count_ratio": record_count_ratio,
-            "thresholds": dict(
-                CANDIDATE_VISIBILITY_THRESHOLDS
-            ),
+            "current_exposure_count": current_exposure_count,
+            "prior_exposure_count": prior_exposure_count,
+            "current_publisher_count": current_period["publisher_count"],
+            "prior_publisher_count": prior_period["publisher_count"],
+            "common_publisher_count": common_publisher_count,
+            "publisher_union_count": publisher_union_count,
+            "publisher_overlap_ratio": publisher_overlap_ratio,
+            "exposure_count_ratio": exposure_count_ratio,
+            "thresholds": dict(CANDIDATE_VISIBILITY_THRESHOLDS),
         },
     }
 
 
 def validate_candidate_visibility(
     candidate_visibility: Any,
+    relevant_news: list[dict[str, Any]],
     candidate_watch: list[dict[str, Any]],
     generated_at: datetime,
+    active_candidates: list[str],
 ) -> None:
+    expected = build_candidate_visibility(
+        relevant_news,
+        candidate_watch,
+        generated_at,
+        active_candidates,
+    )
+    if candidate_visibility != expected:
+        raise RuntimeError(
+            "candidate_visibility does not match Race Attention derivation"
+        )
+    return
+
     top_level_keys = {
         "method",
         "primary_scopes",
@@ -6064,8 +6265,10 @@ def validate_output(payload: dict[str, Any]) -> None:
         raise RuntimeError("feed_coverage requires a valid generated_at")
     validate_candidate_visibility(
         payload.get("candidate_visibility"),
+        relevant_news,
         candidate_watch,
         generated_at,
+        payload.get("candidate_roster", {}).get("names", []),
     )
     expected_site_feeds_due = sum(
         publisher_site_feed_due(feed, generated_at)
@@ -6321,6 +6524,10 @@ def validate_output(payload: dict[str, Any]) -> None:
             "candidate_matches",
             "relevance_reason",
             "relevance_terms",
+            "story_id",
+            "story_model_version",
+            "qualification",
+            "qualification_anchor_id",
         }
         if not isinstance(item, dict) or set(item) != required:
             raise RuntimeError("relevant_news item has unexpected fields")
@@ -6335,9 +6542,40 @@ def validate_output(payload: dict[str, Any]) -> None:
             or not isinstance(item["relevance_terms"], list)
         ):
             raise RuntimeError("relevant_news lacks relevance provenance")
+        if item["story_model_version"] != STORY_MODEL_VERSION:
+            raise RuntimeError("relevant_news story model version is invalid")
+        if (
+            not isinstance(item["story_id"], str)
+            or not item["story_id"].startswith("story-")
+        ):
+            raise RuntimeError("relevant_news story identity is invalid")
+        if item["qualification"] not in {"direct", "cluster_confirmed"}:
+            raise RuntimeError("relevant_news qualification is invalid")
+        if item["qualification"] == "direct":
+            if item["qualification_anchor_id"] is not None:
+                raise RuntimeError("direct Race Coverage cannot have an anchor")
+        elif (
+            not isinstance(item["qualification_anchor_id"], str)
+            or not item["qualification_anchor_id"]
+        ):
+            raise RuntimeError("cluster-confirmed Race Coverage lacks an anchor")
         if item["id"] in relevant_ids:
             raise RuntimeError("relevant_news contains duplicate item ids")
         relevant_ids.add(item["id"])
+
+    direct_ids = {
+        item["id"]
+        for item in relevant_news
+        if item["qualification"] == "direct"
+    }
+    if any(
+        item["qualification"] == "cluster_confirmed"
+        and item["qualification_anchor_id"] not in direct_ids
+        for item in relevant_news
+    ):
+        raise RuntimeError(
+            "cluster-confirmed Race Coverage must reference a direct anchor"
+        )
 
     if not isinstance(notable_developments, list):
         raise RuntimeError("notable_developments is not a list")
@@ -6383,6 +6621,10 @@ def validate_output(payload: dict[str, Any]) -> None:
         "election_news": len(election_news),
         "notable_developments": len(notable_developments),
         "relevant_news": len(relevant_news),
+        "direct_race_coverage": len(direct_ids),
+        "cluster_confirmed_race_coverage": (
+            len(relevant_news) - len(direct_ids)
+        ),
         "candidate_watch": len(candidate_watch),
     }
     for field, expected in expected_counts.items():
@@ -6807,6 +7049,7 @@ def build_wire(
     notable_developments: list[dict[str, Any]] = []
     relevant_news: list[dict[str, Any]] = []
     candidate_watch: list[dict[str, Any]] = []
+    race_model_records: list[dict[str, Any]] = []
     current_inventory_identities = {
         inventory_identity(entry) for entry in all_entries
     }
@@ -6830,9 +7073,19 @@ def build_wire(
         combined_text = normalize(
             f"{entry['headline']} {entry.get('summary') or ''}"
         )
+        inventory_candidate_matches = [
+            {
+                key: list(value) if isinstance(value, list) else value
+                for key, value in match.items()
+            }
+            for match in entry.get("candidate_matches", [])
+        ]
+        inventory_matched_candidates = candidate_names_from_matches(
+            inventory_candidate_matches
+        )
         candidate_matches = [
             match
-            for match in entry.get("candidate_matches", [])
+            for match in inventory_candidate_matches
             if match.get("candidate") in candidate_set
         ]
         matched_candidates = candidate_names_from_matches(
@@ -6847,7 +7100,7 @@ def build_wire(
         outside_french_presidential_scope = unanchored_presidential_context(
             normalized_headline,
             normalized_summary,
-            matched_candidates,
+            inventory_matched_candidates,
         )
 
         # Topic/profile directory pages remain in the raw inventory but do not
@@ -6855,7 +7108,7 @@ def build_wire(
         if is_static_entity_page(
             entry["headline"],
             entry.get("url") or "",
-            matched_candidates,
+            inventory_matched_candidates,
         ):
             continue
 
@@ -6882,8 +7135,8 @@ def build_wire(
             relevance = classify_relevant_news(
                 entry["headline"],
                 entry.get("summary") or "",
-                matched_candidates,
-                candidate_matches,
+                inventory_matched_candidates,
+                inventory_candidate_matches,
             )
 
         # Election News is a current-race headline lane. Historical election
@@ -6897,6 +7150,11 @@ def build_wire(
         base_item = public_item(
             entry,
             candidate_matches,
+            is_election_news,
+        )
+        race_base_item = public_item(
+            entry,
+            inventory_candidate_matches,
             is_election_news,
         )
 
@@ -6922,15 +7180,13 @@ def build_wire(
                 "matched_terms": development["matched_terms"],
             }
 
-        if relevance is not None:
-            relevant_news.append(
-                public_relevant_item(
-                    entry,
-                    candidate_matches,
-                    is_election_news,
-                    relevance,
-                )
-            )
+        race_model_record = dict(race_base_item)
+        race_model_record.update({
+            "summary": entry.get("summary") or "",
+            "candidate_names": list(inventory_matched_candidates),
+            "direct_qualification": relevance,
+        })
+        race_model_records.append(race_model_record)
 
         if matched_candidates:
             candidate_item = dict(base_item)
@@ -6942,6 +7198,27 @@ def build_wire(
                 )
             )
             candidate_watch.append(candidate_item)
+
+    qualified_race_records = qualify_race_coverage(
+        race_model_records,
+        candidates,
+        hard_veto=race_inheritance_hard_veto,
+    )
+    relevant_news = [
+        public_race_coverage_item(record)
+        for record in qualified_race_records
+    ]
+    race_by_id = {
+        record["id"]: record
+        for record in qualified_race_records
+    }
+    for item in candidate_watch:
+        race_record = race_by_id.get(item["id"])
+        if (
+            race_record is not None
+            and race_record["qualification"] == "cluster_confirmed"
+        ):
+            item["coverage_scope"] = "campaign"
 
     for items in (
         election_news,
@@ -7058,7 +7335,7 @@ def build_wire(
     )
 
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": (
             generated_at.isoformat().replace("+00:00", "Z")
         ),
@@ -7177,12 +7454,22 @@ def build_wire(
             "election_news": len(election_news),
             "notable_developments": len(notable_developments),
             "relevant_news": len(relevant_news),
+            "direct_race_coverage": sum(
+                item["qualification"] == "direct"
+                for item in relevant_news
+            ),
+            "cluster_confirmed_race_coverage": sum(
+                item["qualification"] == "cluster_confirmed"
+                for item in relevant_news
+            ),
             "candidate_watch": len(candidate_watch),
         },
         "campaign_agenda": campaign_agenda,
         "candidate_visibility": build_candidate_visibility(
+            relevant_news,
             candidate_watch,
             generated_at,
+            candidates,
         ),
         "election_news": election_news,
         "notable_developments": notable_developments,

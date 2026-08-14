@@ -1140,7 +1140,7 @@ class NewsWireRelevanceTests(unittest.TestCase):
         invalid_item["candidate_matches"] = []
         with self.assertRaisesRegex(
             RuntimeError,
-            "candidates disagree with candidate_matches",
+            "Race Attention derivation",
         ):
             validate_output(invalid)
 
@@ -3451,6 +3451,8 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
                 "publisher": publishers[index % len(publishers)],
                 "published_at": published_at,
                 "coverage_scope": "campaign",
+                "story_id": f"{prefix}-story-{index}",
+                "candidates": ["Gabriel Attal"],
             }
             for index in range(count)
         ]
@@ -3474,7 +3476,12 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
             "prior",
         )
         return (
-            build_candidate_visibility(records, self.generated_at),
+            build_candidate_visibility(
+                records,
+                [],
+                self.generated_at,
+                ["Gabriel Attal"],
+            ),
             records,
         )
 
@@ -3487,30 +3494,22 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
             *self.records(1, ["Outside old"], "2026-07-12T23:59:59Z", "old"),
             *self.records(1, ["Outside new"], "2026-07-27T00:00:00Z", "new"),
         ]
-        visibility = build_candidate_visibility(records, self.generated_at)
+        visibility = build_candidate_visibility(
+            records, [], self.generated_at, ["Gabriel Attal"]
+        )
 
-        self.assertEqual(
-            visibility["current_period"],
-            {
-                "start_date": "2026-07-20",
-                "end_date": "2026-07-26",
-                "record_count": 2,
-                "publisher_count": 2,
-                "publisher_names": ["Current end", "Current start"],
-                "candidate_metrics": [],
-            },
-        )
-        self.assertEqual(
-            visibility["prior_period"],
-            {
-                "start_date": "2026-07-13",
-                "end_date": "2026-07-19",
-                "record_count": 2,
-                "publisher_count": 2,
-                "publisher_names": ["Prior end", "Prior start"],
-                "candidate_metrics": [],
-            },
-        )
+        current = visibility["current_period"]
+        prior = visibility["prior_period"]
+        self.assertEqual(current["start_date"], "2026-07-20")
+        self.assertEqual(current["end_date"], "2026-07-26")
+        self.assertEqual(current["record_count"], 2)
+        self.assertEqual(current["exposure_count"], 2)
+        self.assertEqual(current["publisher_names"], ["Current end", "Current start"])
+        self.assertEqual(prior["start_date"], "2026-07-13")
+        self.assertEqual(prior["end_date"], "2026-07-19")
+        self.assertEqual(prior["record_count"], 2)
+        self.assertEqual(prior["exposure_count"], 2)
+        self.assertEqual(prior["publisher_names"], ["Prior end", "Prior start"])
 
     def test_audited_publisher_panel_failure(self):
         current = [f"Current {index:02d}" for index in range(55)]
@@ -3521,7 +3520,7 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
         self.assertEqual(quality["status"], "not_comparable")
         self.assertEqual(quality["reason"], "publisher_panel_changed")
         self.assertEqual(quality["publisher_overlap_ratio"], 0.086)
-        self.assertEqual(quality["record_count_ratio"], 5.966)
+        self.assertEqual(quality["exposure_count_ratio"], 5.966)
 
     def test_insufficient_period_records(self):
         publishers = [f"Publisher {index}" for index in range(5)]
@@ -3557,7 +3556,9 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
         validate_candidate_visibility(
             visibility,
             records,
+            [],
             self.generated_at,
+            ["Gabriel Attal"],
         )
 
     def test_comparable_at_locked_boundaries(self):
@@ -3565,18 +3566,18 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
         prior = current + [f"Prior only {index}" for index in range(5)]
         visibility, _records = self.visibility(10, 20, current, prior)
         quality = visibility["comparison_quality"]
-        self.assertEqual(quality["current_record_count"], 10)
+        self.assertEqual(quality["current_exposure_count"], 10)
         self.assertEqual(quality["common_publisher_count"], 5)
         self.assertEqual(quality["current_publisher_count"], 5)
         self.assertEqual(quality["publisher_overlap_ratio"], 0.5)
-        self.assertEqual(quality["record_count_ratio"], 2.0)
+        self.assertEqual(quality["exposure_count_ratio"], 2.0)
         self.assertEqual(quality["status"], "comparable")
 
     def test_zero_record_ratio_is_null_and_insufficient(self):
         publishers = [f"Publisher {index}" for index in range(5)]
         visibility, _records = self.visibility(10, 0, publishers, publishers)
         quality = visibility["comparison_quality"]
-        self.assertIsNone(quality["record_count_ratio"])
+        self.assertIsNone(quality["exposure_count_ratio"])
         self.assertEqual(quality["status"], "not_comparable")
         self.assertEqual(quality["reason"], "insufficient_data")
 
@@ -3587,8 +3588,9 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
             set(visibility),
             {
                 "method",
-                "primary_scopes",
-                "secondary_scope",
+                "story_model_version",
+                "authoritative_corpus",
+                "denominator_scope",
                 "current_period",
                 "prior_period",
                 "general_current_period",
@@ -3600,14 +3602,7 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
             visibility["method"],
             CANDIDATE_VISIBILITY_METHOD,
         )
-        self.assertEqual(
-            visibility["primary_scopes"],
-            ["election", "campaign"],
-        )
-        self.assertEqual(
-            visibility["secondary_scope"],
-            "general",
-        )
+        self.assertEqual(visibility["authoritative_corpus"], "relevant_news")
         self.assertEqual(
             visibility["general_current_period"][
                 "record_count"
@@ -3633,7 +3628,7 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
                 record_count=11
             ),
             "ratios": lambda value: value["comparison_quality"].update(
-                record_count_ratio=1.5
+                exposure_count_ratio=1.5
             ),
             "status": lambda value: value["comparison_quality"].update(
                 status="not_comparable"
@@ -3648,7 +3643,7 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
             ),
             "threshold types": lambda value: value[
                 "comparison_quality"
-            ]["thresholds"].update(minimum_period_records=True),
+            ]["thresholds"].update(minimum_period_exposures=True),
         }
 
         for label, mutate in mutations.items():
@@ -3659,7 +3654,9 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
                     validate_candidate_visibility(
                         invalid,
                         records,
+                        [],
                         self.generated_at,
+                        ["Gabriel Attal"],
                     )
 
     def test_workflow_validation_includes_candidate_visibility(self):

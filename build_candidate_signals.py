@@ -36,7 +36,7 @@ from candidate_identity import (
 )
 
 
-SCHEMA_VERSION = "1.3"
+SCHEMA_VERSION = "1.4"
 LATEST_SCRUTINY_DAYS = 14
 FEATURED_POLL_BOARD_DISPLAY_LIMIT = 10
 FEATURED_POLL_BOARD_SELECTION_BASIS = (
@@ -50,17 +50,18 @@ PRIMARY_SCOPES = ("election", "campaign")
 GENERAL_SCOPE = "general"
 VISIBILITY_SCOPES = (*PRIMARY_SCOPES, GENERAL_SCOPE)
 ACTIVE_FIELD_VISIBILITY_METHOD = (
-    "share_of_active_candidate_linked_records"
+    "share_of_active_candidate_publisher_story_race_exposures"
 )
 ACTIVE_FIELD_DENOMINATOR_SCOPE = (
-    "records_linked_to_at_least_one_active_monitoring_candidate"
+    "publisher_story_race_exposures_linked_by_article_local_matches_"
+    "to_at_least_one_active_monitoring_candidate"
 )
 ACTIVE_VISIBILITY_THRESHOLDS = {
-    "minimum_period_records": 10,
+    "minimum_period_exposures": 10,
     "minimum_period_publishers": 5,
     "minimum_common_publishers": 5,
     "minimum_publisher_overlap_ratio": 0.5,
-    "maximum_record_count_ratio": 2.0,
+    "maximum_exposure_count_ratio": 2.0,
 }
 
 
@@ -719,22 +720,21 @@ CONCENTRATION_KEYS = {
 QUALITY_KEYS = {
     "status",
     "reason",
-    "current_record_count",
-    "prior_record_count",
+    "current_exposure_count",
+    "prior_exposure_count",
     "current_publisher_count",
     "prior_publisher_count",
     "common_publisher_count",
     "publisher_union_count",
     "publisher_overlap_ratio",
-    "record_count_ratio",
+    "exposure_count_ratio",
     "thresholds",
 }
 ACTIVE_VISIBILITY_KEYS = {
     "method",
     "denominator_scope",
     "status_as_of",
-    "primary",
-    "general",
+    "race_attention",
 }
 ACTIVE_SCOPE_KEYS = {
     "current_period",
@@ -747,7 +747,9 @@ ACTIVE_PERIOD_KEYS = {
     "start_date",
     "end_date",
     "record_count",
+    "exposure_count",
     "publisher_count",
+    "story_count",
 }
 ACTIVE_ROW_KEYS = {
     "candidate_id",
@@ -755,9 +757,17 @@ ACTIVE_ROW_KEYS = {
     "status",
     "display_tier",
     "current_record_count",
+    "current_exposure_count",
     "current_share",
+    "current_publisher_count",
+    "current_story_count",
+    "current_observation_state",
     "prior_record_count",
+    "prior_exposure_count",
     "prior_share",
+    "prior_publisher_count",
+    "prior_story_count",
+    "prior_observation_state",
     "share_change",
 }
 
@@ -977,30 +987,20 @@ def _campaign_metric_projection(
 ) -> dict[str, Any]:
     if metric is None:
         return {
-            "evidence_state": "not_observed",
+            "observation_state": "unavailable",
             "record_count": None,
+            "exposure_count": None,
             "share": None,
             "publisher_count": None,
-            "active_day_count": None,
-            "headline_match_count": None,
-            "summary_only_match_count": None,
-            "scope_counts": None,
-            "scope_shares": None,
-            "story_cluster_count": None,
-            "concentration": None,
+            "story_count": None,
         }
     return {
-        "evidence_state": "reported",
+        "observation_state": metric["observation_state"],
         "record_count": metric["record_count"],
+        "exposure_count": metric["exposure_count"],
         "share": metric["share"],
         "publisher_count": metric["publisher_count"],
-        "active_day_count": metric["active_day_count"],
-        "headline_match_count": metric["headline_match_count"],
-        "summary_only_match_count": metric["summary_only_match_count"],
-        "scope_counts": copy.deepcopy(metric["scope_counts"]),
-        "scope_shares": copy.deepcopy(metric["scope_shares"]),
-        "story_cluster_count": metric["story_cluster_count"],
-        "concentration": _project_concentration(metric["concentration"]),
+        "story_count": metric["story_count"],
     }
 
 
@@ -1011,24 +1011,12 @@ def _general_metric_projection(
         return {
             "evidence_state": "not_observed",
             "record_count": None,
-            "share": None,
             "publisher_count": None,
-            "active_day_count": None,
-            "headline_match_count": None,
-            "summary_only_match_count": None,
-            "story_cluster_count": None,
-            "concentration": None,
         }
     return {
         "evidence_state": "reported",
         "record_count": metric["record_count"],
-        "share": metric["share"],
         "publisher_count": metric["publisher_count"],
-        "active_day_count": metric["active_day_count"],
-        "headline_match_count": metric["headline_match_count"],
-        "summary_only_match_count": metric["summary_only_match_count"],
-        "story_cluster_count": metric["story_cluster_count"],
-        "concentration": _project_concentration(metric["concentration"]),
     }
 
 
@@ -1041,6 +1029,192 @@ def project_visibility(
     dict[str, dict[str, Any]],
 ]:
     """Validate and separately project primary and general visibility."""
+
+    news_object = _require_object(news, "news")
+    visibility = _require_object(
+        news_object.get("candidate_visibility"),
+        "news.candidate_visibility",
+    )
+    expected_top_keys = {
+        "method",
+        "story_model_version",
+        "authoritative_corpus",
+        "denominator_scope",
+        "current_period",
+        "prior_period",
+        "general_current_period",
+        "general_prior_period",
+        "comparison_quality",
+    }
+    if set(visibility) != expected_top_keys:
+        raise CandidateSignalsError(
+            "news.candidate_visibility has unexpected fields"
+        )
+    if visibility["authoritative_corpus"] != "relevant_news":
+        raise CandidateSignalsError(
+            "news.candidate_visibility authoritative corpus is invalid"
+        )
+    method = _require_text(
+        visibility["method"], "news.candidate_visibility.method"
+    )
+    story_model_version = _require_text(
+        visibility["story_model_version"],
+        "news.candidate_visibility.story_model_version",
+    )
+    denominator_scope = _require_text(
+        visibility["denominator_scope"],
+        "news.candidate_visibility.denominator_scope",
+    )
+
+    def validate_race_period(value: Any, context: str) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+        period = _require_object(value, context)
+        expected = {
+            "start_date", "end_date", "record_count", "exposure_count",
+            "publisher_count", "publisher_names", "story_count",
+            "candidate_metrics",
+        }
+        if set(period) != expected:
+            raise CandidateSignalsError(f"{context} has unexpected fields")
+        start = _parse_date(period["start_date"], f"{context}.start_date")
+        end = _parse_date(period["end_date"], f"{context}.end_date")
+        if start > end or (end - start).days != 6:
+            raise CandidateSignalsError(f"{context} must span exactly seven days")
+        for field in ("record_count", "exposure_count", "publisher_count", "story_count"):
+            _require_non_negative_integer(period[field], f"{context}.{field}")
+        publishers = _require_list(period["publisher_names"], f"{context}.publisher_names")
+        if (
+            publishers != sorted(set(publishers))
+            or period["publisher_count"] != len(publishers)
+        ):
+            raise CandidateSignalsError(f"{context}.publisher_names is invalid")
+        metrics_by_key: dict[str, dict[str, Any]] = {}
+        for index, value in enumerate(_require_list(period["candidate_metrics"], f"{context}.candidate_metrics")):
+            metric_context = f"{context}.candidate_metrics[{index}]"
+            metric = _require_object(value, metric_context)
+            if set(metric) != {
+                "candidate", "record_count", "exposure_count", "share",
+                "publisher_count", "publisher_names", "story_count",
+                "observation_state",
+            }:
+                raise CandidateSignalsError(f"{metric_context} has unexpected fields")
+            name = canonical_candidate_name(metric["candidate"])
+            key = normalized_candidate_key(name)
+            if key in metrics_by_key:
+                raise CandidateSignalsError(f"{context} has duplicate candidate metrics")
+            for field in ("record_count", "exposure_count", "publisher_count", "story_count"):
+                _require_non_negative_integer(metric[field], f"{metric_context}.{field}")
+            metric_publishers = _require_list(metric["publisher_names"], f"{metric_context}.publisher_names")
+            if (
+                metric_publishers != sorted(set(metric_publishers))
+                or metric["publisher_count"] != len(metric_publishers)
+            ):
+                raise CandidateSignalsError(f"{metric_context}.publisher_names is invalid")
+            state = metric["observation_state"]
+            if state == "unavailable":
+                if period["exposure_count"] != 0 or metric["share"] is not None:
+                    raise CandidateSignalsError(f"{metric_context} unavailable state is inconsistent")
+            elif state == "observed_zero":
+                if period["exposure_count"] == 0 or metric["exposure_count"] != 0 or metric["share"] != 0.0:
+                    raise CandidateSignalsError(f"{metric_context} observed_zero state is inconsistent")
+            elif state == "observed_positive":
+                if period["exposure_count"] == 0 or metric["exposure_count"] == 0:
+                    raise CandidateSignalsError(f"{metric_context} positive state is inconsistent")
+                _ratio(metric["share"], f"{metric_context}.share")
+            else:
+                raise CandidateSignalsError(f"{metric_context}.observation_state is invalid")
+            metrics_by_key[key] = metric
+        return period, metrics_by_key
+
+    def validate_general_period(value: Any, context: str) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+        period = _require_object(value, context)
+        if set(period) != {
+            "start_date", "end_date", "record_count", "publisher_count",
+            "publisher_names", "candidate_metrics",
+        }:
+            raise CandidateSignalsError(f"{context} has unexpected fields")
+        start = _parse_date(period["start_date"], f"{context}.start_date")
+        end = _parse_date(period["end_date"], f"{context}.end_date")
+        if start > end or (end - start).days != 6:
+            raise CandidateSignalsError(f"{context} must span exactly seven days")
+        for field in ("record_count", "publisher_count"):
+            _require_non_negative_integer(period[field], f"{context}.{field}")
+        publishers = _require_list(period["publisher_names"], f"{context}.publisher_names")
+        if publishers != sorted(set(publishers)) or len(publishers) != period["publisher_count"]:
+            raise CandidateSignalsError(f"{context}.publisher_names is invalid")
+        metrics_by_key: dict[str, dict[str, Any]] = {}
+        for index, value in enumerate(_require_list(period["candidate_metrics"], f"{context}.candidate_metrics")):
+            metric_context = f"{context}.candidate_metrics[{index}]"
+            metric = _require_object(value, metric_context)
+            if set(metric) != {"candidate", "record_count", "publisher_count", "publisher_names"}:
+                raise CandidateSignalsError(f"{metric_context} has unexpected fields")
+            name = canonical_candidate_name(metric["candidate"])
+            key = normalized_candidate_key(name)
+            if key in metrics_by_key:
+                raise CandidateSignalsError(f"{context} has duplicate candidate metrics")
+            _require_non_negative_integer(metric["record_count"], f"{metric_context}.record_count")
+            _require_non_negative_integer(metric["publisher_count"], f"{metric_context}.publisher_count")
+            names = _require_list(metric["publisher_names"], f"{metric_context}.publisher_names")
+            if names != sorted(set(names)) or len(names) != metric["publisher_count"]:
+                raise CandidateSignalsError(f"{metric_context}.publisher_names is invalid")
+            metrics_by_key[key] = metric
+        return period, metrics_by_key
+
+    current, current_metrics = validate_race_period(
+        visibility["current_period"], "news.candidate_visibility.current_period"
+    )
+    prior, _prior_metrics = validate_race_period(
+        visibility["prior_period"], "news.candidate_visibility.prior_period"
+    )
+    general_current, general_metrics = validate_general_period(
+        visibility["general_current_period"],
+        "news.candidate_visibility.general_current_period",
+    )
+    validate_general_period(
+        visibility["general_prior_period"],
+        "news.candidate_visibility.general_prior_period",
+    )
+    quality = copy.deepcopy(_require_object(
+        visibility["comparison_quality"],
+        "news.candidate_visibility.comparison_quality",
+    ))
+    expected_quality_keys = {
+        "status", "reason", "current_exposure_count", "prior_exposure_count",
+        "current_publisher_count", "prior_publisher_count",
+        "common_publisher_count", "publisher_union_count",
+        "publisher_overlap_ratio", "exposure_count_ratio", "thresholds",
+    }
+    if set(quality) != expected_quality_keys:
+        raise CandidateSignalsError(
+            "news.candidate_visibility.comparison_quality has unexpected fields"
+        )
+    if quality["status"] not in {"comparable", "not_comparable"}:
+        raise CandidateSignalsError("comparison quality status is invalid")
+    if quality["current_exposure_count"] != current["exposure_count"] or quality["prior_exposure_count"] != prior["exposure_count"]:
+        raise CandidateSignalsError("comparison quality exposure counts are inconsistent")
+
+    visibility_projection = {
+        "method": method,
+        "story_model_version": story_model_version,
+        "authoritative_corpus": "relevant_news",
+        "denominator_scope": denominator_scope,
+        "current_period": {
+            field: current[field]
+            for field in ("start_date", "end_date", "record_count", "exposure_count", "publisher_count", "story_count")
+        },
+        "general_current_period": {
+            field: general_current[field]
+            for field in ("start_date", "end_date", "record_count", "publisher_count")
+        },
+        "comparison_quality": quality,
+    }
+    campaign: dict[str, dict[str, Any]] = {}
+    general: dict[str, dict[str, Any]] = {}
+    for candidate in candidates:
+        identifier = candidate["candidate_id"]
+        key = normalized_candidate_key(candidate["candidate_name"])
+        campaign[identifier] = _campaign_metric_projection(current_metrics.get(key))
+        general[identifier] = _general_metric_projection(general_metrics.get(key))
+    return visibility_projection, campaign, general
 
     news_object = _require_object(news, "news")
     visibility = _require_object(
@@ -1414,12 +1588,12 @@ def _round_visibility_ratio(value: float) -> float:
 
 def build_active_comparison_quality(
     *,
-    current_record_count: int,
-    prior_record_count: int,
+    current_exposure_count: int,
+    prior_exposure_count: int,
     current_publishers: set[str],
     prior_publishers: set[str],
 ) -> dict[str, Any]:
-    """Build the collector-compatible gate from one pair of record unions."""
+    """Build the comparison gate from publisher-story exposure unions."""
 
     common_publisher_count = len(
         current_publishers & prior_publishers
@@ -1432,18 +1606,18 @@ def build_active_comparison_quality(
         if publisher_union_count
         else 0.0
     )
-    record_count_ratio = (
+    exposure_count_ratio = (
         _round_visibility_ratio(
-            max(current_record_count, prior_record_count)
-            / min(current_record_count, prior_record_count)
+            max(current_exposure_count, prior_exposure_count)
+            / min(current_exposure_count, prior_exposure_count)
         )
-        if current_record_count and prior_record_count
+        if current_exposure_count and prior_exposure_count
         else None
     )
     thresholds = ACTIVE_VISIBILITY_THRESHOLDS
     if (
-        current_record_count < thresholds["minimum_period_records"]
-        or prior_record_count < thresholds["minimum_period_records"]
+        current_exposure_count < thresholds["minimum_period_exposures"]
+        or prior_exposure_count < thresholds["minimum_period_exposures"]
         or len(current_publishers)
         < thresholds["minimum_period_publishers"]
         or len(prior_publishers)
@@ -1456,9 +1630,9 @@ def build_active_comparison_quality(
     elif (
         publisher_overlap_ratio
         < thresholds["minimum_publisher_overlap_ratio"]
-        or record_count_ratio is None
-        or record_count_ratio
-        > thresholds["maximum_record_count_ratio"]
+        or exposure_count_ratio is None
+        or exposure_count_ratio
+        > thresholds["maximum_exposure_count_ratio"]
     ):
         status = "not_comparable"
         reason = "publisher_panel_changed"
@@ -1469,14 +1643,14 @@ def build_active_comparison_quality(
     return {
         "status": status,
         "reason": reason,
-        "current_record_count": current_record_count,
-        "prior_record_count": prior_record_count,
+        "current_exposure_count": current_exposure_count,
+        "prior_exposure_count": prior_exposure_count,
         "current_publisher_count": len(current_publishers),
         "prior_publisher_count": len(prior_publishers),
         "common_publisher_count": common_publisher_count,
         "publisher_union_count": publisher_union_count,
         "publisher_overlap_ratio": publisher_overlap_ratio,
-        "record_count_ratio": record_count_ratio,
+        "exposure_count_ratio": exposure_count_ratio,
         "thresholds": dict(ACTIVE_VISIBILITY_THRESHOLDS),
     }
 
@@ -1502,6 +1676,117 @@ def derive_active_field_visibility(
     candidacy_status: Any,
 ) -> dict[str, Any]:
     """Derive active-field visibility from published record associations."""
+
+    news_object = _require_object(news, "news")
+    field = _require_plain_object(active_monitoring_field, "active_monitoring_field")
+    try:
+        validate_candidate_candidacy_status(candidacy_status)
+        registry_by_id = candidacy_status_by_id(candidacy_status)
+        expected_field = project_active_monitoring_field(candidacy_status)
+    except CandidateCandidacyStatusError as error:
+        raise CandidateSignalsError(
+            f"candidacy-status registry is invalid: {error}"
+        ) from error
+    if field != expected_field:
+        raise CandidateSignalsError(
+            "active_monitoring_field does not match candidacy registry"
+        )
+    source_visibility = _require_object(
+        news_object.get("candidate_visibility"),
+        "news.candidate_visibility",
+    )
+    current = _require_object(
+        source_visibility.get("current_period"),
+        "news.candidate_visibility.current_period",
+    )
+    prior = _require_object(
+        source_visibility.get("prior_period"),
+        "news.candidate_visibility.prior_period",
+    )
+    quality = copy.deepcopy(_require_object(
+        source_visibility.get("comparison_quality"),
+        "news.candidate_visibility.comparison_quality",
+    ))
+    current_by_key = {
+        normalized_candidate_key(metric["candidate"]): metric
+        for metric in current.get("candidate_metrics", [])
+    }
+    prior_by_key = {
+        normalized_candidate_key(metric["candidate"]): metric
+        for metric in prior.get("candidate_metrics", [])
+    }
+
+    rows_by_tier: dict[str, list[dict[str, Any]]] = {"main": [], "secondary": []}
+    for tier in ("main", "secondary"):
+        for identifier in field[tier]:
+            source = registry_by_id[identifier]
+            key = normalized_candidate_key(source["candidate_name"])
+            current_metric = current_by_key.get(key)
+            prior_metric = prior_by_key.get(key)
+            if current_metric is None or prior_metric is None:
+                raise CandidateSignalsError(
+                    "active candidate is missing an explicit Race Attention observation"
+                )
+            share_change = (
+                _round_visibility_ratio(
+                    current_metric["share"] - prior_metric["share"]
+                )
+                if (
+                    quality.get("status") == "comparable"
+                    and current_metric["share"] is not None
+                    and prior_metric["share"] is not None
+                )
+                else None
+            )
+            rows_by_tier[tier].append({
+                "candidate_id": identifier,
+                "candidate_name": source["candidate_name"],
+                "status": source["status"],
+                "display_tier": tier,
+                "current_record_count": current_metric["record_count"],
+                "current_exposure_count": current_metric["exposure_count"],
+                "current_share": current_metric["share"],
+                "current_publisher_count": current_metric["publisher_count"],
+                "current_story_count": current_metric["story_count"],
+                "current_observation_state": current_metric["observation_state"],
+                "prior_record_count": prior_metric["record_count"],
+                "prior_exposure_count": prior_metric["exposure_count"],
+                "prior_share": prior_metric["share"],
+                "prior_publisher_count": prior_metric["publisher_count"],
+                "prior_story_count": prior_metric["story_count"],
+                "prior_observation_state": prior_metric["observation_state"],
+                "share_change": share_change,
+            })
+        rows_by_tier[tier].sort(
+            key=lambda row: (
+                row["current_share"] is None,
+                -(row["current_share"] or 0),
+                -row["current_exposure_count"],
+                row["candidate_name"].casefold(),
+            )
+        )
+
+    def public_period(period: dict[str, Any]) -> dict[str, Any]:
+        return {
+            field_name: period[field_name]
+            for field_name in (
+                "start_date", "end_date", "record_count", "exposure_count",
+                "publisher_count", "story_count",
+            )
+        }
+
+    return {
+        "method": ACTIVE_FIELD_VISIBILITY_METHOD,
+        "denominator_scope": ACTIVE_FIELD_DENOMINATOR_SCOPE,
+        "status_as_of": candidacy_status["status_as_of"],
+        "race_attention": {
+            "current_period": public_period(current),
+            "prior_period": public_period(prior),
+            "comparison_quality": quality,
+            "main": rows_by_tier["main"],
+            "secondary": rows_by_tier["secondary"],
+        },
+    }
 
     news_object = _require_object(news, "news")
     field = _require_plain_object(
@@ -1733,6 +2018,110 @@ def validate_active_field_visibility(
     status_as_of: str,
 ) -> None:
     """Validate the published active roster, arithmetic, gate, and order."""
+
+    active = _require_plain_object(value, "active_field_visibility")
+    if set(active) != ACTIVE_VISIBILITY_KEYS:
+        raise CandidateSignalsError(
+            "active_field_visibility has unexpected fields"
+        )
+    if active["method"] != ACTIVE_FIELD_VISIBILITY_METHOD:
+        raise CandidateSignalsError("active_field_visibility.method is invalid")
+    if active["denominator_scope"] != ACTIVE_FIELD_DENOMINATOR_SCOPE:
+        raise CandidateSignalsError(
+            "active_field_visibility.denominator_scope is invalid"
+        )
+    if active["status_as_of"] != status_as_of:
+        raise CandidateSignalsError(
+            "active_field_visibility.status_as_of is inconsistent"
+        )
+    scope = _require_plain_object(
+        active["race_attention"], "active_field_visibility.race_attention"
+    )
+    if set(scope) != ACTIVE_SCOPE_KEYS:
+        raise CandidateSignalsError(
+            "active_field_visibility.race_attention has unexpected fields"
+        )
+    periods: dict[str, dict[str, Any]] = {}
+    for period_name in ("current_period", "prior_period"):
+        context = f"active_field_visibility.race_attention.{period_name}"
+        period = _require_plain_object(scope[period_name], context)
+        if set(period) != ACTIVE_PERIOD_KEYS:
+            raise CandidateSignalsError(f"{context} has unexpected fields")
+        start = _parse_date(period["start_date"], f"{context}.start_date")
+        end = _parse_date(period["end_date"], f"{context}.end_date")
+        if start > end or (end - start).days != 6:
+            raise CandidateSignalsError(f"{context} must span exactly seven days")
+        for field_name in ("record_count", "exposure_count", "publisher_count", "story_count"):
+            _require_non_negative_integer(period[field_name], f"{context}.{field_name}")
+        periods[period_name] = period
+    current_start = _parse_date(
+        periods["current_period"]["start_date"], "current start"
+    )
+    prior_end = _parse_date(periods["prior_period"]["end_date"], "prior end")
+    if prior_end != current_start - timedelta(days=1):
+        raise CandidateSignalsError("Race Attention periods are not contiguous")
+    quality = _require_plain_object(
+        scope["comparison_quality"],
+        "active_field_visibility.race_attention.comparison_quality",
+    )
+    if set(quality) != QUALITY_KEYS:
+        raise CandidateSignalsError("Race Attention comparison quality has unexpected fields")
+    if quality["current_exposure_count"] != periods["current_period"]["exposure_count"] or quality["prior_exposure_count"] != periods["prior_period"]["exposure_count"]:
+        raise CandidateSignalsError("Race Attention comparison quality is inconsistent")
+
+    candidates_by_id = {candidate["candidate_id"]: candidate for candidate in candidates}
+    seen: set[str] = set()
+    for tier in ("main", "secondary"):
+        rows = _require_list(scope[tier], f"active_field_visibility.race_attention.{tier}")
+        if len(rows) != len(active_monitoring_field[tier]):
+            raise CandidateSignalsError(f"Race Attention {tier} row count is invalid")
+        for index, row_value in enumerate(rows):
+            context = f"active_field_visibility.race_attention.{tier}[{index}]"
+            row = _require_plain_object(row_value, context)
+            if set(row) != ACTIVE_ROW_KEYS:
+                raise CandidateSignalsError(f"{context} has unexpected fields")
+            identifier = row["candidate_id"]
+            if identifier in seen or identifier not in active_monitoring_field[tier]:
+                raise CandidateSignalsError(f"{context}.candidate_id is invalid")
+            seen.add(identifier)
+            if row["candidate_name"] != candidates_by_id[identifier]["candidate_name"]:
+                raise CandidateSignalsError(f"{context}.candidate_name is inconsistent")
+            for prefix in ("current", "prior"):
+                for suffix in ("record_count", "exposure_count", "publisher_count", "story_count"):
+                    _require_non_negative_integer(row[f"{prefix}_{suffix}"], f"{context}.{prefix}_{suffix}")
+                state = row[f"{prefix}_observation_state"]
+                share = row[f"{prefix}_share"]
+                denominator = periods[f"{prefix}_period"]["exposure_count"]
+                if state == "unavailable":
+                    if denominator != 0 or share is not None:
+                        raise CandidateSignalsError(f"{context} unavailable state is inconsistent")
+                elif state == "observed_zero":
+                    if denominator == 0 or row[f"{prefix}_exposure_count"] != 0 or share != 0.0:
+                        raise CandidateSignalsError(f"{context} observed_zero state is inconsistent")
+                elif state == "observed_positive":
+                    if denominator == 0 or row[f"{prefix}_exposure_count"] == 0:
+                        raise CandidateSignalsError(f"{context} observed_positive state is inconsistent")
+                    _ratio(share, f"{context}.{prefix}_share")
+                else:
+                    raise CandidateSignalsError(f"{context}.{prefix}_observation_state is invalid")
+            if row["share_change"] is not None:
+                _numeric(row["share_change"], f"{context}.share_change")
+            expected_change = (
+                _round_visibility_ratio(
+                    row["current_share"] - row["prior_share"]
+                )
+                if (
+                    quality["status"] == "comparable"
+                    and row["current_share"] is not None
+                    and row["prior_share"] is not None
+                )
+                else None
+            )
+            if row["share_change"] != expected_change:
+                raise CandidateSignalsError(
+                    f"{context}.share_change is inconsistent with comparison quality"
+                )
+    return
 
     active = _require_plain_object(value, "active_field_visibility")
     if set(active) != ACTIVE_VISIBILITY_KEYS:
@@ -2359,21 +2748,17 @@ POLLING_OUTPUT_KEYS = {
     "selected_hypothesis_rank",
 }
 CAMPAIGN_OUTPUT_KEYS = {
-    "evidence_state",
+    "observation_state",
     "record_count",
+    "exposure_count",
     "share",
     "publisher_count",
-    "active_day_count",
-    "headline_match_count",
-    "summary_only_match_count",
-    "scope_counts",
-    "scope_shares",
-    "story_cluster_count",
-    "concentration",
+    "story_count",
 }
-GENERAL_OUTPUT_KEYS = CAMPAIGN_OUTPUT_KEYS - {
-    "scope_counts",
-    "scope_shares",
+GENERAL_OUTPUT_KEYS = {
+    "evidence_state",
+    "record_count",
+    "publisher_count",
 }
 SCRUTINY_COUNT_KEYS = {
     "review_count",
@@ -2441,6 +2826,51 @@ def _validate_projected_metric(
     value = _require_object(metric, context)
     if set(value) != expected_keys:
         raise CandidateSignalsError(f"{context} has unexpected fields")
+    if expected_keys == CAMPAIGN_OUTPUT_KEYS:
+        state = value["observation_state"]
+        if state == "unavailable":
+            count_values = [
+                value[field]
+                for field in (
+                    "record_count",
+                    "exposure_count",
+                    "publisher_count",
+                    "story_count",
+                )
+            ]
+            if value["share"] is not None or not (
+                all(item is None for item in count_values)
+                or all(item == 0 for item in count_values)
+            ):
+                raise CandidateSignalsError(
+                    f"{context} fabricates values for unavailable evidence"
+                )
+            return
+        for field in ("record_count", "exposure_count", "publisher_count", "story_count"):
+            _require_non_negative_integer(value[field], f"{context}.{field}")
+        if state == "observed_zero":
+            if value["exposure_count"] != 0 or value["share"] != 0.0:
+                raise CandidateSignalsError(f"{context} observed_zero is inconsistent")
+        elif state == "observed_positive":
+            if value["exposure_count"] == 0:
+                raise CandidateSignalsError(f"{context} positive exposure is missing")
+            _ratio(value["share"], f"{context}.share")
+        else:
+            raise CandidateSignalsError(f"{context}.observation_state is invalid")
+        return
+    state = value["evidence_state"]
+    if state == "not_observed":
+        if any(value[field] is not None for field in expected_keys - {"evidence_state"}):
+            raise CandidateSignalsError(
+                f"{context} fabricates values for unobserved evidence"
+            )
+        return
+    if state != "reported":
+        raise CandidateSignalsError(f"{context}.evidence_state is invalid")
+    _require_non_negative_integer(value["record_count"], f"{context}.record_count")
+    _require_non_negative_integer(value["publisher_count"], f"{context}.publisher_count")
+    return
+
     state = value["evidence_state"]
     metric_fields = expected_keys - {"evidence_state"}
     if state == "not_observed":
@@ -2748,7 +3178,7 @@ def validate_candidate_signals(
     if set(value) != expected_top_keys:
         raise CandidateSignalsError("payload has unexpected fields")
     if value["schema_version"] != SCHEMA_VERSION:
-        raise CandidateSignalsError("schema_version must equal 1.3")
+        raise CandidateSignalsError("schema_version must equal 1.4")
 
     universe = _require_object(
         value["candidate_universe"],
@@ -2987,29 +3417,33 @@ def validate_candidate_signals(
     visibility = _require_object(value["visibility"], "visibility")
     if set(visibility) != {
         "method",
-        "primary_scopes",
-        "secondary_scope",
+        "story_model_version",
+        "authoritative_corpus",
+        "denominator_scope",
         "current_period",
         "general_current_period",
         "comparison_quality",
     }:
         raise CandidateSignalsError("visibility has unexpected fields")
     _require_text(visibility["method"], "visibility.method")
-    if visibility["primary_scopes"] != list(PRIMARY_SCOPES):
-        raise CandidateSignalsError("visibility.primary_scopes is invalid")
-    if visibility["secondary_scope"] != GENERAL_SCOPE:
-        raise CandidateSignalsError("visibility.secondary_scope is invalid")
+    _require_text(visibility["story_model_version"], "visibility.story_model_version")
+    _require_text(visibility["denominator_scope"], "visibility.denominator_scope")
+    if visibility["authoritative_corpus"] != "relevant_news":
+        raise CandidateSignalsError("visibility.authoritative_corpus is invalid")
     for period_name in ("current_period", "general_current_period"):
         period = _require_object(
             visibility[period_name],
             f"visibility.{period_name}",
         )
-        if set(period) != {
+        expected_period_keys = {
             "start_date",
             "end_date",
             "record_count",
             "publisher_count",
-        }:
+        }
+        if period_name == "current_period":
+            expected_period_keys.update({"exposure_count", "story_count"})
+        if set(period) != expected_period_keys:
             raise CandidateSignalsError(
                 f"visibility.{period_name} has unexpected fields"
             )
@@ -3033,6 +3467,15 @@ def validate_candidate_signals(
             period["publisher_count"],
             f"visibility.{period_name}.publisher_count",
         )
+        if period_name == "current_period":
+            _require_non_negative_integer(
+                period["exposure_count"],
+                f"visibility.{period_name}.exposure_count",
+            )
+            _require_non_negative_integer(
+                period["story_count"],
+                f"visibility.{period_name}.story_count",
+            )
     quality = _require_object(
         visibility["comparison_quality"],
         "visibility.comparison_quality",
