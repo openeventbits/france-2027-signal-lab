@@ -93,6 +93,9 @@
     activeView: hashToView.get(window.location.hash) || defaultView,
     selectedRunoffHistoryKey: "",
     selectedAgendaTopicId: "",
+    selectedCampaignEventId: "",
+    selectedCampaignEventWeekStart: "",
+    campaignEventTypeFilter: "all",
     claimsRelationship: "all",
     claimsCandidateId: "",
     claimsPublisher: "",
@@ -2006,6 +2009,483 @@
     };
   }
 
+  function parisTodayKey(now = new Date()) {
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat(
+        "en-GB",
+        {
+          timeZone: "Europe/Paris",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit"
+        }
+      )
+        .formatToParts(now)
+        .filter(part =>
+          ["year", "month", "day"].includes(part.type)
+        )
+        .map(part => [part.type, part.value])
+    );
+
+    return `${parts.year}-${parts.month}-${parts.day}`;
+  }
+
+  function campaignEventDateKey(event) {
+    return String(event?.scheduled_start || "").slice(0, 10);
+  }
+
+  function campaignEventDateFromKey(value) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+    if (!match) return null;
+    const date = new Date(Date.UTC(
+      Number(match[1]),
+      Number(match[2]) - 1,
+      Number(match[3])
+    ));
+    return date.getUTCFullYear() === Number(match[1]) &&
+      date.getUTCMonth() === Number(match[2]) - 1 &&
+      date.getUTCDate() === Number(match[3])
+      ? date
+      : null;
+  }
+
+  function campaignEventOffsetDateKey(value, offsetDays) {
+    const date = campaignEventDateFromKey(value);
+    if (!date) return "";
+    date.setUTCDate(date.getUTCDate() + offsetDays);
+    return utcDateKey(date);
+  }
+
+  function campaignEventWeekStartKey(value) {
+    const date = campaignEventDateFromKey(value);
+    if (!date) return value;
+    const mondayOffset = (date.getUTCDay() + 6) % 7;
+    date.setUTCDate(date.getUTCDate() - mondayOffset);
+    return utcDateKey(date);
+  }
+
+  function campaignEventMonthShort(value) {
+    const date = campaignEventDateFromKey(value);
+    if (!date) return "";
+    return [
+      "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+      "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
+    ][date.getUTCMonth()];
+  }
+
+  function campaignEventMonthLong(value) {
+    const date = campaignEventDateFromKey(value);
+    if (!date) return "";
+    return [
+      "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+      "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
+    ][date.getUTCMonth()];
+  }
+
+  function campaignEventWeekRangeLabel(startKey, endKey) {
+    const start = campaignEventDateFromKey(startKey);
+    const end = campaignEventDateFromKey(endKey);
+    if (!start || !end) return "";
+    const startDay = start.getUTCDate();
+    const endDay = end.getUTCDate();
+    const startMonth = campaignEventMonthShort(startKey);
+    const endMonth = campaignEventMonthShort(endKey);
+    if (start.getUTCMonth() === end.getUTCMonth()) {
+      return `${startDay}–${endDay} ${endMonth}`;
+    }
+    return `${startDay} ${startMonth}–${endDay} ${endMonth}`;
+  }
+
+  const campaignEventTypeOrder = new Map([
+    "rally",
+    "public_meeting",
+    "debate",
+    "candidate_visit",
+    "campaign_launch",
+    "other",
+    "sponsorship_deadline",
+    "official_candidate_list",
+    "campaign_period_boundary",
+    "first_round",
+    "second_round"
+  ].map((value, index) => [value, index]));
+
+  function compareCampaignEvents(left, right, dateDirection = 1) {
+    const leftDate = campaignEventDateKey(left);
+    const rightDate = campaignEventDateKey(right);
+    const dateComparison = leftDate.localeCompare(rightDate);
+    if (dateComparison) return dateComparison * dateDirection;
+
+    const leftPrecision = left.time_precision === "datetime" ? 0 : 1;
+    const rightPrecision = right.time_precision === "datetime" ? 0 : 1;
+    if (leftPrecision !== rightPrecision) {
+      return leftPrecision - rightPrecision;
+    }
+
+    const timeComparison = String(left.scheduled_start).slice(11, 19)
+      .localeCompare(String(right.scheduled_start).slice(11, 19));
+    if (timeComparison) return timeComparison * dateDirection;
+
+    const typeComparison =
+      (campaignEventTypeOrder.get(left.event_type) ?? Number.MAX_SAFE_INTEGER) -
+      (campaignEventTypeOrder.get(right.event_type) ?? Number.MAX_SAFE_INTEGER);
+    if (typeComparison) return typeComparison;
+
+    const candidateComparison = (Array.isArray(left.candidate_ids)
+      ? left.candidate_ids.join("\u0000")
+      : ""
+    ).localeCompare(
+      Array.isArray(right.candidate_ids)
+        ? right.candidate_ids.join("\u0000")
+        : ""
+    );
+    if (candidateComparison) return candidateComparison;
+
+    return String(left.event_key || "").localeCompare(
+      String(right.event_key || "")
+    ) || String(left.event_id || "").localeCompare(
+      String(right.event_id || "")
+    );
+  }
+
+  function buildCampaignEventHorizon(upcomingEvents, todayKey, weekCount = 12) {
+    const horizonStartKey = campaignEventWeekStartKey(todayKey);
+    const horizonDays = weekCount * 7;
+    const horizonEndKey = campaignEventOffsetDateKey(
+      horizonStartKey,
+      horizonDays - 1
+    );
+
+    const rawHorizonEvents = upcomingEvents.filter(event => {
+      const dateKey = campaignEventDateKey(event);
+      return dateKey >= todayKey && dateKey <= horizonEndKey;
+    });
+    const eventsByWeek = new Map();
+    rawHorizonEvents.forEach(event => {
+      const weekStartKey = campaignEventWeekStartKey(
+        campaignEventDateKey(event)
+      );
+      if (!eventsByWeek.has(weekStartKey)) {
+        eventsByWeek.set(weekStartKey, []);
+      }
+      eventsByWeek.get(weekStartKey).push(event);
+    });
+
+    const weekBins = Array.from({ length: weekCount }, (_, index) => {
+      const startKey = campaignEventOffsetDateKey(
+        horizonStartKey,
+        index * 7
+      );
+      const endKey = campaignEventOffsetDateKey(startKey, 6);
+      const events = (eventsByWeek.get(startKey) || [])
+        .slice()
+        .sort(compareCampaignEvents);
+      return {
+        index,
+        startKey,
+        endKey,
+        label: campaignEventWeekRangeLabel(startKey, endKey),
+        count: events.length,
+        events
+      };
+    });
+
+    const events = [];
+    weekBins.forEach(bin => {
+      bin.events.forEach((event, laneIndex) => {
+        const candidateNames = Array.isArray(event.candidate_names)
+          ? event.candidate_names.filter(Boolean)
+          : [];
+        events.push({
+          ...event,
+          stripWeekIndex: bin.index,
+          stripLane: laneIndex % 3,
+          participantCount: candidateNames.length ||
+            (Array.isArray(event.participants)
+              ? event.participants.filter(Boolean).length
+              : 0),
+          isMultiCandidate: candidateNames.length > 1
+        });
+      });
+    });
+
+    const monthGroups = [];
+    weekBins.forEach(bin => {
+      const midpointKey = campaignEventOffsetDateKey(bin.startKey, 3);
+      const label = campaignEventMonthLong(midpointKey);
+      const previous = monthGroups[monthGroups.length - 1];
+      if (previous && previous.label === label) {
+        previous.span += 1;
+      } else {
+        monthGroups.push({
+          label,
+          start: bin.index + 1,
+          span: 1
+        });
+      }
+    });
+
+    const candidateMap = new Map();
+    events.forEach((event, eventIndex) => {
+      const ids = Array.isArray(event.candidate_ids)
+        ? event.candidate_ids
+        : [];
+      const names = Array.isArray(event.candidate_names)
+        ? event.candidate_names
+        : [];
+      names.filter(Boolean).forEach((name, nameIndex) => {
+        const id = String(ids[nameIndex] || name).trim();
+        if (!candidateMap.has(id)) {
+          candidateMap.set(id, {
+            id,
+            name,
+            count: 0,
+            firstEventIndex: eventIndex,
+            markers: []
+          });
+        }
+        const candidate = candidateMap.get(id);
+        candidate.count += 1;
+        candidate.markers.push(event);
+      });
+    });
+
+    const namedRows = [...candidateMap.values()].sort((a, b) =>
+      b.count - a.count ||
+      a.firstEventIndex - b.firstEventIndex ||
+      a.name.localeCompare(b.name, "fr")
+    );
+    const visibleNamedRows = namedRows.slice(0, 8);
+    const omittedRows = namedRows.slice(8);
+    const matrixRows = visibleNamedRows.map(row => ({
+      ...row,
+      kind: "candidate"
+    }));
+    if (omittedRows.length) {
+      const omittedIds = new Set(omittedRows.map(row => row.id));
+      matrixRows.push({
+        id: "other-linked",
+        name: `OTHER LINKED · ${omittedRows.length}`,
+        kind: "aggregate",
+        count: events.filter(event =>
+          (event.candidate_ids || []).some(id => omittedIds.has(id))
+        ).length,
+        markers: events.filter(event =>
+          (event.candidate_ids || []).some(id => omittedIds.has(id))
+        )
+      });
+    }
+
+    const typeMap = new Map();
+    events.forEach(event => {
+      typeMap.set(
+        event.event_type,
+        (typeMap.get(event.event_type) || 0) + 1
+      );
+    });
+    const eventTypes = [...typeMap.entries()]
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => b.count - a.count || a.type.localeCompare(b.type));
+
+    return {
+      weekCount,
+      horizonDays,
+      horizonStartKey,
+      horizonEndKey,
+      events,
+      weekBins,
+      monthGroups,
+      matrixRows,
+      linkedCandidateCount: candidateMap.size,
+      eventTypes,
+      stripLaneCount: Math.max(
+        1,
+        Math.min(3, ...weekBins.map(bin => Math.max(1, bin.count)))
+      )
+    };
+  }
+
+  function buildEventsViewModel() {
+    const unavailable = viewModelState("campaignEvents");
+    if (unavailable) {
+      return {
+        domain: "events",
+        ...unavailable
+      };
+    }
+
+    const payload = dashboardState.campaignEvents;
+    const events = Array.isArray(payload?.campaign_events)
+      ? payload.campaign_events.slice()
+      : [];
+    const milestones = Array.isArray(payload?.institutional_milestones)
+      ? payload.institutional_milestones.slice()
+      : [];
+    const watch = Array.isArray(payload?.event_watch)
+      ? payload.event_watch.slice()
+      : [];
+
+    const todayKey = parisTodayKey();
+    const eventById = new Map(
+      events.map(event => [event.event_id, event])
+    );
+
+    const isActiveUpcoming = event => {
+      const dateKey = campaignEventDateKey(event);
+      return event.status === "scheduled" && dateKey >= todayKey;
+    };
+
+    const activeUpcomingEvents = events
+      .filter(isActiveUpcoming)
+      .sort(compareCampaignEvents);
+
+    const pastScheduledEvents = events
+      .filter(event =>
+        event.status === "scheduled" &&
+        campaignEventDateKey(event) < todayKey
+      )
+      .sort((a, b) => compareCampaignEvents(a, b, -1));
+
+    const inactiveEvents = events
+      .filter(event => event.status !== "scheduled")
+      .sort((a, b) => compareCampaignEvents(a, b, -1));
+
+    const nonActiveEvents = [
+      ...pastScheduledEvents,
+      ...inactiveEvents
+    ].sort((a, b) => compareCampaignEvents(a, b, -1));
+
+    const requestedEventTypeFilter = state.campaignEventTypeFilter || "all";
+    const eventTypeFilter = requestedEventTypeFilter === "all" ||
+      activeUpcomingEvents.some(event =>
+        campaignEventMatchesTypeFilter(event, requestedEventTypeFilter)
+      )
+      ? requestedEventTypeFilter
+      : "all";
+    state.campaignEventTypeFilter = eventTypeFilter;
+    const filteredUpcomingEvents = activeUpcomingEvents.filter(event =>
+      campaignEventMatchesTypeFilter(event, eventTypeFilter)
+    );
+    const eventWatch = watch
+      .map(update => ({
+        ...update,
+        event: eventById.get(update.event_id) || null
+      }))
+      .sort((a, b) =>
+        String(b.observed_at).localeCompare(String(a.observed_at)) ||
+        String(a.update_id).localeCompare(String(b.update_id))
+      );
+
+    milestones.sort(compareCampaignEvents);
+
+    const horizon = buildCampaignEventHorizon(
+      filteredUpcomingEvents,
+      todayKey,
+      12
+    );
+
+    const requestedSelected = state.selectedCampaignEventId;
+    const requestedEvent = eventById.get(requestedSelected) || null;
+    const requestedEventMatchesFilter = requestedEvent &&
+      (eventTypeFilter === "all" ||
+        campaignEventMatchesTypeFilter(requestedEvent, eventTypeFilter));
+    const selectedEvent =
+      (requestedEventMatchesFilter ? requestedEvent : null) ||
+      filteredUpcomingEvents[0] ||
+      (eventTypeFilter === "all" ? nonActiveEvents[0] : null) ||
+      null;
+
+    state.selectedCampaignEventId = selectedEvent?.event_id || "";
+
+    const selectedUpdates = selectedEvent
+      ? eventWatch.filter(update => update.event_id === selectedEvent.event_id)
+      : [];
+
+    const selectedEventWeekStart = selectedEvent
+      ? campaignEventWeekStartKey(campaignEventDateKey(selectedEvent))
+      : "";
+    const requestedWeekStart = state.selectedCampaignEventWeekStart;
+    const selectedWeek =
+      horizon.weekBins.find(bin => bin.startKey === requestedWeekStart) ||
+      horizon.weekBins.find(bin => bin.startKey === selectedEventWeekStart) ||
+      horizon.weekBins.find(bin => bin.count > 0) ||
+      horizon.weekBins[0] ||
+      null;
+
+    if (selectedWeek) {
+      state.selectedCampaignEventWeekStart = selectedWeek.startKey;
+    }
+
+    const next14EndKey = campaignEventOffsetDateKey(todayKey, 13);
+    const next14Count = activeUpcomingEvents.filter(event =>
+      campaignEventDateKey(event) <= next14EndKey
+    ).length;
+    const multiCandidateCount = activeUpcomingEvents.filter(event =>
+      Array.isArray(event.candidate_names) &&
+      event.candidate_names.filter(Boolean).length > 1
+    ).length;
+    const verifiedCount = activeUpcomingEvents.filter(event =>
+      event.evidence_status === "verified"
+    ).length;
+
+    const organizationMap = new Map();
+    horizon.events.forEach((event, eventIndex) => {
+      const name = String(event.organization || "").trim();
+      if (!name) return;
+      if (!organizationMap.has(name)) {
+        organizationMap.set(name, {
+          name,
+          kind: "organization",
+          count: 0,
+          firstEventIndex: eventIndex,
+          markers: []
+        });
+      }
+      const row = organizationMap.get(name);
+      row.count += 1;
+      row.markers.push(event);
+    });
+
+    const organizationRows = [...organizationMap.values()]
+      .sort((a, b) =>
+        a.firstEventIndex - b.firstEventIndex ||
+        a.name.localeCompare(b.name, "fr")
+      );
+
+    return {
+      domain: "events",
+      state:
+        events.length || milestones.length || watch.length
+          ? "ready"
+          : "empty",
+      generatedAt: payload.generated_at,
+      dataAsOf: payload.data_as_of,
+      todayKey,
+      upcomingEvents: activeUpcomingEvents,
+      filteredUpcomingEvents,
+      eventTypeFilter,
+      pastScheduledEvents,
+      inactiveEvents,
+      nonActiveEvents,
+      eventWatch,
+      milestones,
+      horizon,
+      selectedEvent,
+      selectedUpdates,
+      selectedWeek,
+      organizationRows,
+      eventCount: events.length,
+      upcomingCount: activeUpcomingEvents.length,
+      pastCount: pastScheduledEvents.length,
+      inactiveCount: inactiveEvents.length,
+      watchCount: eventWatch.length,
+      milestoneCount: milestones.length,
+      next14Count,
+      multiCandidateCount,
+      verifiedCount
+    };
+  }
+
   function ratingDisplay(review) {
     const fallback = claimRatingDisplay[review.rating] || { label: "Unclassified", tone: "" };
     return {
@@ -2084,6 +2564,7 @@
     return {
       runoff: safelyBuildViewModel("runoff", buildRunoffViewModel),
       media: safelyBuildViewModel("media", buildMediaViewModel),
+      events: safelyBuildViewModel("events", buildEventsViewModel),
       agenda: safelyBuildViewModel("agenda", buildAgendaViewModel),
       claims: safelyBuildViewModel("claims", buildClaimsViewModel)
     };
@@ -3995,6 +4476,765 @@
     </div>`;
   }
 
+  function campaignEventTypeLabel(value) {
+    const labels = {
+      rally: "RALLY",
+      debate: "DEBATE",
+      candidate_visit: "CANDIDATE VISIT",
+      campaign_launch: "CAMPAIGN LAUNCH",
+      media_appearance: "MEDIA APPEARANCE",
+      press_conference: "PRESS CONFERENCE",
+      public_meeting: "PUBLIC MEETING",
+      speech: "SPEECH",
+      party_event: "PARTY EVENT",
+      primary: "PRIMARY",
+      candidacy_announcement: "CANDIDACY ANNOUNCEMENT",
+      program_launch: "PROGRAM LAUNCH",
+      other: "OTHER",
+      first_round: "FIRST ROUND",
+      second_round: "SECOND ROUND"
+    };
+
+    return labels[value] ||
+      String(value || "EVENT")
+        .replaceAll("_", " ")
+        .toUpperCase();
+  }
+
+  function campaignEventTypeDisplayLabel(value) {
+    return campaignEventTypeLabel(value)
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+      .join(" ");
+  }
+
+  function campaignEventTypeCode(value) {
+    const codes = {
+      rally: "RL",
+      debate: "DB",
+      candidate_visit: "VS",
+      campaign_launch: "LN",
+      media_appearance: "MD",
+      press_conference: "PC",
+      public_meeting: "MT",
+      speech: "SP",
+      party_event: "PT",
+      primary: "PR",
+      candidacy_announcement: "CA",
+      program_launch: "PG",
+      other: "OT",
+      first_round: "1R",
+      second_round: "2R"
+    };
+    return codes[value] || "EV";
+  }
+
+  function campaignEventStatusPresentation(event) {
+    if (
+      event.status === "scheduled" &&
+      event.evidence_status === "past_unconfirmed"
+    ) {
+      return {
+        key: "unconfirmed",
+        label: "PAST · UNCONFIRMED"
+      };
+    }
+
+    const labels = {
+      scheduled: "SCHEDULED",
+      postponed: "POSTPONED",
+      cancelled: "CANCELLED",
+      completed: "COMPLETED"
+    };
+
+    return {
+      key: event.status || "unknown",
+      label: labels[event.status] || "STATUS UNKNOWN"
+    };
+  }
+
+  function campaignEventEvidencePresentation(event) {
+    if (event?.evidence_status === "verified") {
+      return { key: "verified", label: "VERIFIED" };
+    }
+    if (event?.evidence_status === "past_unconfirmed") {
+      return { key: "unconfirmed", label: "UNCONFIRMED" };
+    }
+    const raw = String(event?.evidence_status || "evidence unknown");
+    return {
+      key: raw.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      label: raw.replaceAll("_", " ").toUpperCase()
+    };
+  }
+
+  function campaignEventTimeLabel(event) {
+    if (event.time_precision !== "datetime") {
+      return "—";
+    }
+
+    const date = new Date(event.scheduled_start);
+    if (!Number.isFinite(date.getTime())) {
+      return "—";
+    }
+
+    return new Intl.DateTimeFormat(
+      "en-GB",
+      {
+        timeZone: "Europe/Paris",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23"
+      }
+    ).format(date);
+  }
+
+  function campaignEventObservedLabel(value) {
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) {
+      return "DATE UNAVAILABLE";
+    }
+
+    return new Intl.DateTimeFormat(
+      "en-GB",
+      {
+        timeZone: "Europe/Paris",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23"
+      }
+    )
+      .format(date)
+      .replace(",", " · ")
+      .toUpperCase();
+  }
+
+  function campaignEventPeopleLabel(event) {
+    const candidateNames = Array.isArray(event.candidate_names)
+      ? event.candidate_names.filter(Boolean)
+      : [];
+    const participants = Array.isArray(event.participants)
+      ? event.participants.filter(Boolean)
+      : [];
+
+    const people = candidateNames.length
+      ? candidateNames
+      : participants;
+
+    if (people.length) {
+      return people.join(", ");
+    }
+
+    return String(event.organization || "").trim();
+  }
+
+  function campaignEventCompactPeopleLabel(event) {
+    const candidateNames = Array.isArray(event.candidate_names)
+      ? event.candidate_names.filter(Boolean)
+      : [];
+    if (candidateNames.length > 2) {
+      return `${candidateNames.slice(0, 2).join(", ")} +${candidateNames.length - 2}`;
+    }
+    if (candidateNames.length) return candidateNames.join(", ");
+    return String(event.organization || "").trim();
+  }
+
+  function campaignEventPlaceLabel(event) {
+    const values = [
+      event.location_name,
+      event.locality,
+      event.department
+        ? `DEP. ${event.department}`
+        : ""
+    ]
+      .map(value => String(value || "").trim())
+      .filter(Boolean);
+
+    return [...new Set(values)].join(" · ");
+  }
+
+  function campaignEventPrimaryEvidence(record) {
+    return Array.isArray(record?.evidence)
+      ? record.evidence[0] || null
+      : null;
+  }
+
+  function campaignEventDisplayDate(value) {
+    const raw = String(value || "");
+    const dateOnly = campaignEventDateFromKey(raw);
+    if (dateOnly) {
+      return { date: dateOnly, timeZone: "UTC" };
+    }
+    const date = new Date(raw);
+    return Number.isFinite(date.getTime())
+      ? { date, timeZone: "Europe/Paris" }
+      : null;
+  }
+
+  function campaignEventShortDate(value) {
+    const parsed = campaignEventDisplayDate(value);
+    if (!parsed) return "DATE UNAVAILABLE";
+    return new Intl.DateTimeFormat(
+      "en-GB",
+      {
+        timeZone: parsed.timeZone,
+        day: "2-digit",
+        month: "short"
+      }
+    ).format(parsed.date).toUpperCase();
+  }
+
+  function campaignEventLongDate(value) {
+    const parsed = campaignEventDisplayDate(value);
+    if (!parsed) return "DATE UNAVAILABLE";
+    return new Intl.DateTimeFormat(
+      "en-GB",
+      {
+        timeZone: parsed.timeZone,
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      }
+    ).format(parsed.date).toUpperCase();
+  }
+
+  function campaignEventSourceTypeLabel(value) {
+    const labels = {
+      reliable_media: "RELIABLE MEDIA",
+      organizer_first_party: "ORGANISER FIRST-PARTY",
+      candidate_first_party: "CANDIDATE FIRST-PARTY",
+      party_first_party: "PARTY FIRST-PARTY",
+      official_unstructured: "OFFICIAL SOURCE"
+    };
+    return labels[value] || String(value || "SOURCE").replaceAll("_", " ").toUpperCase();
+  }
+
+  function campaignEventEvidenceTypeLabel(value) {
+    const labels = {
+      explicit_schedule: "Explicit schedule published",
+      official_rule_derivation: "Official calendar derivation"
+    };
+    return labels[value] || String(value || "Evidence published").replaceAll("_", " ");
+  }
+
+  function campaignEventParticipantCount(event) {
+    const candidates = Array.isArray(event?.candidate_names)
+      ? event.candidate_names.filter(Boolean)
+      : [];
+    if (candidates.length) return candidates.length;
+    const participants = Array.isArray(event?.participants)
+      ? event.participants.filter(Boolean)
+      : [];
+    return participants.length;
+  }
+
+  function campaignEventInvolvementLabel(event) {
+    const candidates = Array.isArray(event?.candidate_names)
+      ? event.candidate_names.filter(Boolean)
+      : [];
+    if (candidates.length > 1) return `${candidates.length} CANDIDATES`;
+    if (candidates.length === 1) return "SOLO";
+
+    const participants = Array.isArray(event?.participants)
+      ? event.participants.filter(Boolean)
+      : [];
+    if (participants.length > 1) return `${participants.length} PARTICIPANTS`;
+    if (participants.length === 1) return "SOLO";
+    return "COLLECTIVE";
+  }
+
+  function campaignEventUpdateCopy(update) {
+    const evidence = campaignEventPrimaryEvidence(update);
+    const publisher = String(evidence?.source_publisher || "source").trim();
+    const type = String(update.update_type || "UPDATED").toUpperCase();
+    if (type === "NEW") return `Event added from ${publisher}`;
+    if (type === "CONFIRMED") return `Schedule confirmation published by ${publisher}`;
+    if (type === "POSTPONED") return `Postponement published by ${publisher}`;
+    if (type === "CANCELLED") return `Cancellation published by ${publisher}`;
+    return update.headline || `Calendar update published by ${publisher}`;
+  }
+
+  function campaignEventWeekdayLabel(value) {
+    const parsed = campaignEventDisplayDate(value);
+    if (!parsed) return "";
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: parsed.timeZone,
+      weekday: "short"
+    }).format(parsed.date).toUpperCase();
+  }
+
+  function renderEventTypeBadge(eventType, extra = "") {
+    return `<span class="hybrid-events-type-badge" data-event-type="${escapeAttribute(eventType)}">
+      <strong>${escapeHtml(campaignEventTypeCode(eventType))}</strong>
+      ${extra ? `<small>${escapeHtml(extra)}</small>` : ""}
+    </span>`;
+  }
+
+  function campaignEventRelativeAgeLabel(value, now = new Date()) {
+    const date = new Date(String(value || ""));
+    if (!Number.isFinite(date.getTime())) return "—";
+    const diffMs = Math.max(0, now.getTime() - date.getTime());
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 60) return `${Math.max(1, minutes)}M AGO`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 48) return `${hours}H AGO`;
+    return `${Math.floor(hours / 24)}D AGO`;
+  }
+
+  const campaignEventHorizonCategories = [
+    {
+      key: "debate",
+      label: "DEBATE",
+      types: ["debate"]
+    },
+    {
+      key: "rally",
+      label: "RALLY / MEETING",
+      types: ["rally", "public_meeting", "speech"]
+    },
+    {
+      key: "visit",
+      label: "VISIT",
+      types: ["candidate_visit"]
+    },
+    {
+      key: "launch",
+      label: "LAUNCH / ANNOUNCEMENT",
+      types: ["campaign_launch", "candidacy_announcement", "program_launch", "primary"]
+    },
+    {
+      key: "media",
+      label: "INTERVIEW / MEDIA",
+      types: ["media_appearance"]
+    },
+    {
+      key: "other",
+      label: "PRESS CONF. / OTHER",
+      types: ["press_conference", "party_event", "other"]
+    }
+  ];
+
+  function campaignEventHorizonCategory(eventType) {
+    return campaignEventHorizonCategories.find(category =>
+      category.types.includes(eventType)
+    ) || campaignEventHorizonCategories[campaignEventHorizonCategories.length - 1];
+  }
+
+  function campaignEventMatchesTypeFilter(event, filterKey) {
+    if (!filterKey || filterKey === "all") return true;
+    return campaignEventHorizonCategory(event.event_type).key === filterKey;
+  }
+
+  function campaignEventFilterOptions(model) {
+    const present = new Set(
+      model.upcomingEvents.map(event =>
+        campaignEventHorizonCategory(event.event_type).key
+      )
+    );
+    return [
+      { key: "all", label: "ALL" },
+      ...campaignEventHorizonCategories
+        .filter(category => present.has(category.key))
+        .map(category => ({
+          key: category.key,
+          label: campaignEventHorizonCategoryLabel(category.key)
+        }))
+    ];
+  }
+
+  function campaignEventLatestMaterialUpdate(event, model) {
+    return model.eventWatch.find(update =>
+      update.event_id === event.event_id &&
+      String(update.update_type || "").toUpperCase() !== "NEW"
+    ) || null;
+  }
+
+  function campaignEventStreamRightLabel(event, model) {
+    const materialUpdate = campaignEventLatestMaterialUpdate(event, model);
+    if (materialUpdate) return String(materialUpdate.update_type || "UPDATED").toUpperCase();
+    const participantCount = campaignEventParticipantCount(event);
+    if (participantCount > 1) return `${participantCount} PARTICIPANTS`;
+    const status = campaignEventStatusPresentation(event);
+    if (status.key !== "scheduled") return status.label;
+    const evidenceState = campaignEventEvidencePresentation(event);
+    if (evidenceState.key !== "verified") return evidenceState.label;
+    return "";
+  }
+
+  function buildCampaignEventStreamGroups(events) {
+    const groups = new Map();
+    events.forEach(event => {
+      const startKey = campaignEventWeekStartKey(campaignEventDateKey(event));
+      const endKey = campaignEventOffsetDateKey(startKey, 6);
+      if (!groups.has(startKey)) {
+        groups.set(startKey, {
+          startKey,
+          endKey,
+          label: campaignEventWeekRangeLabel(startKey, endKey),
+          events: []
+        });
+      }
+      groups.get(startKey).events.push(event);
+    });
+    return [...groups.values()].sort((a, b) => a.startKey.localeCompare(b.startKey));
+  }
+
+  function campaignEventWatchCounts(eventWatch) {
+    const counts = {
+      NEW: 0,
+      CONFIRMED: 0,
+      UPDATED: 0,
+      POSTPONED: 0,
+      CANCELLED: 0
+    };
+    eventWatch.forEach(update => {
+      const key = String(update.update_type || "UPDATED").toUpperCase();
+      if (Object.prototype.hasOwnProperty.call(counts, key)) counts[key] += 1;
+    });
+    return counts;
+  }
+
+  function campaignEventObservedParts(value) {
+    const label = campaignEventObservedLabel(value);
+    const pieces = label.split(" · ");
+    if (pieces.length > 1) {
+      return {
+        date: pieces.slice(0, -1).join(" · "),
+        time: pieces[pieces.length - 1]
+      };
+    }
+    return { date: label, time: "" };
+  }
+
+  function campaignEventObservedMinuteKey(value) {
+    const date = new Date(String(value || ""));
+    return Number.isFinite(date.getTime())
+      ? date.toISOString().slice(0, 16)
+      : String(value || "DATE UNAVAILABLE");
+  }
+
+  function groupCampaignEventAdditions(eventWatch) {
+    const groups = new Map();
+    eventWatch
+      .filter(update => String(update.update_type || "").toUpperCase() === "NEW")
+      .forEach(update => {
+        const key = campaignEventObservedMinuteKey(update.observed_at);
+        if (!groups.has(key)) {
+          groups.set(key, { key, observedAt: update.observed_at, updates: [] });
+        }
+        groups.get(key).updates.push(update);
+      });
+    return [...groups.values()];
+  }
+
+  function campaignEventHorizonCategoryLabel(key) {
+    const labels = {
+      debate: "DEBATE",
+      rally: "RALLY / MEETING",
+      visit: "VISIT",
+      launch: "LAUNCH",
+      media: "MEDIA",
+      other: "OTHER"
+    };
+    return labels[key] || "OTHER";
+  }
+
+  const campaignEventHorizonDotCategories = [
+    { key: "debate", eventType: "debate", label: "DEBATE", horizonKeys: ["debate"] },
+    { key: "rally", eventType: "rally", label: "RALLY / MEETING", horizonKeys: ["rally"] },
+    { key: "visit", eventType: "candidate_visit", label: "VISIT", horizonKeys: ["visit"] },
+    { key: "launch", eventType: "campaign_launch", label: "LAUNCH", horizonKeys: ["launch"] },
+    { key: "other", eventType: "other", label: "OTHER", horizonKeys: ["media", "other"] }
+  ];
+
+  function campaignEventHorizonTypeGroups(events) {
+    return campaignEventHorizonDotCategories
+      .map(category => {
+        const count = events.filter(event =>
+          category.horizonKeys.includes(
+            campaignEventHorizonCategory(event.event_type).key
+          )
+        ).length;
+        return count ? {
+          key: category.key,
+          eventType: category.eventType,
+          count,
+          label: category.label
+        } : null;
+      })
+      .filter(Boolean);
+  }
+
+  function renderOperationsHorizonComposition(events) {
+    return campaignEventHorizonTypeGroups(events).map(group => `<span
+      class="hybrid-events-ops-marker is-type-presence"
+      data-event-type="${escapeAttribute(group.eventType)}"
+      aria-hidden="true"
+    ></span>`).join("");
+  }
+
+  function renderOperationsHorizonLegend(model) {
+    const legendCategories = ["debate", "rally", "visit", "launch", "other"]
+      .map(key => campaignEventHorizonCategories.find(category => category.key === key))
+      .filter(Boolean);
+    return `<footer class="hybrid-events-ops-legend" aria-label="Event type color legend"><div>${legendCategories.map(category => `<span class="hybrid-events-ops-legend-item"><i class="hybrid-events-ops-legend-swatch" data-event-type="${escapeAttribute(category.types[0])}" aria-hidden="true"></i><span>${escapeHtml(campaignEventHorizonCategoryLabel(category.key))} [${escapeHtml(campaignEventTypeCode(category.types[0]))}]</span></span>`).join("")}</div><p>Descriptive polling data from public sources · no model · no averages · no forecast · no voting advice.</p><p>Candidate portraits are AI-generated illustrations for visual identification.</p></footer>`;
+  }
+
+  function campaignEventScheduleMetricIcon(name) {
+    const paths = {
+      calendar: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 9.5h17"/>',
+      clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/>',
+      people: '<circle cx="9" cy="8" r="2.6"/><circle cx="16.5" cy="9" r="2.1"/><path d="M3.5 19c.4-3.8 2.2-5.7 5.5-5.7s5.1 1.9 5.5 5.7M13 14c2.7-.2 4.6 1.4 5 5"/>'
+    };
+    const body = paths[name] || paths.calendar;
+    return `<svg class="hybrid-events-ops-metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+  }
+
+  function renderOperationsScheduleRail(model) {
+    const horizon = model.horizon;
+    const monthStarts = new Set(horizon.monthGroups.map(group => group.start - 1));
+    const months = horizon.monthGroups.map(group => `<span style="grid-column:${group.start} / span ${group.span}">${escapeHtml(group.label)}</span>`).join("");
+    const weeks = horizon.weekBins.map((bin, index) => {
+      const selected = model.selectedWeek?.startKey === bin.startKey;
+      const current = model.todayKey >= bin.startKey && model.todayKey <= bin.endKey;
+      const monthStart = index > 0 && monthStarts.has(index);
+      const countLabel = String(bin.count);
+      const typeGroups = campaignEventHorizonTypeGroups(bin.events);
+      const breakdown = typeGroups.length
+        ? typeGroups.map(group => `${group.label}: ${group.count}`).join("; ")
+        : "No scheduled events";
+      const weekSummary = `${bin.label}. ${bin.count} scheduled ${bin.count === 1 ? "event" : "events"}. ${breakdown}.`;
+      return `<div class="hybrid-events-ops-week${selected ? " is-selected" : ""}${current ? " is-current" : ""}${monthStart ? " is-month-start" : ""}" title="${escapeAttribute(weekSummary)}">
+        <button type="button" class="hybrid-events-ops-week-select" data-hybrid-week-select="${escapeAttribute(bin.startKey)}" aria-label="${escapeAttribute(`Navigate to week ${weekSummary}`)}" aria-pressed="${String(selected)}"${current ? ' aria-current="date"' : ""}>
+          <span>${escapeHtml(bin.label)}</span><strong class="hybrid-events-ops-week-count${bin.count ? " has-events" : " is-empty"}">${escapeHtml(countLabel)}</strong>
+        </button>
+        <div class="hybrid-events-ops-week-markers" aria-hidden="true">${renderOperationsHorizonComposition(bin.events)}</div>
+      </div>`;
+    }).join("");
+    const filters = campaignEventFilterOptions(model);
+    const dataAsOf = campaignEventObservedLabel(model.dataAsOf);
+    const scheduleInfo = `Curated high-signal calendar. Empty weeks do not imply no campaign activity. Past scheduled events are not treated as completed without explicit occurrence evidence. Data as of: ${dataAsOf}.`;
+
+    return `<section class="hybrid-events-ops-rail" aria-labelledby="hybrid-events-ops-rail-title">
+      <div class="hybrid-events-ops-rail-head">
+        <div class="hybrid-events-ops-titleline">
+          <h3 id="hybrid-events-ops-rail-title">12-WEEK SCHEDULE</h3>
+          <span class="hybrid-events-ops-info" tabindex="0" role="note" aria-label="${escapeAttribute(scheduleInfo)}" title="${escapeAttribute(scheduleInfo)}">i</span>
+        </div>
+        <div class="hybrid-events-ops-head-controls">
+          <div class="hybrid-events-ops-filters" aria-label="Filter campaign events by type">${filters.map(filter => `<button type="button" class="hybrid-events-filter${model.eventTypeFilter === filter.key ? " is-active" : ""}" data-event-type="${escapeAttribute(filter.key)}" data-hybrid-events-filter="${escapeAttribute(filter.key)}" aria-pressed="${String(model.eventTypeFilter === filter.key)}">${escapeHtml(filter.label)}</button>`).join("")}</div>
+        </div>
+      </div>
+      <div class="hybrid-events-ops-horizon-scroll">
+        <div class="hybrid-events-ops-horizon">
+          <div class="hybrid-events-ops-months">${months}</div>
+          <div class="hybrid-events-ops-weeks">${weeks}</div>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function renderUpcomingEventRow(event, model, compact = false) {
+    const selected = model.selectedEvent?.event_id === event.event_id;
+    const participantCount = campaignEventParticipantCount(event);
+    const people = campaignEventCompactPeopleLabel(event);
+    const place = campaignEventPlaceLabel(event);
+    const rightLabel = campaignEventStreamRightLabel(event, model);
+    const dateParts = campaignEventShortDate(event.scheduled_start).split(" ");
+    const weekday = campaignEventWeekdayLabel(event.scheduled_start);
+    const weekStart = campaignEventWeekStartKey(campaignEventDateKey(event));
+
+    return `<button
+      class="hybrid-events-upcoming-row${selected ? " is-selected" : ""}${compact ? " is-compact" : ""}"
+      type="button"
+      data-event-type="${escapeAttribute(event.event_type)}"
+      data-hybrid-event-id="${escapeAttribute(event.event_id)}"
+      data-hybrid-event-week="${escapeAttribute(weekStart)}"
+      aria-pressed="${String(selected)}"
+    >
+      <time datetime="${escapeAttribute(event.scheduled_start)}"><strong>${escapeHtml(dateParts[0] || "")}</strong><span>${escapeHtml(dateParts.slice(1).join(" "))}</span><em>${escapeHtml(weekday)}</em></time>
+      ${renderEventTypeBadge(event.event_type, participantCount > 1 ? `×${participantCount}` : "")}
+      <span class="hybrid-events-upcoming-copy"><strong lang="fr">${escapeHtml(event.title)}</strong><small>${campaignEventTimeLabel(event) !== "—" ? `<b class="hybrid-events-upcoming-meta-time">${escapeHtml(campaignEventTimeLabel(event))}</b>` : ""}${campaignEventTimeLabel(event) !== "—" && (place || people) ? " · " : ""}${place ? escapeHtml(place) : ""}${place && people ? " · " : ""}${people ? escapeHtml(people) : ""}</small></span>
+      ${rightLabel ? `<span class="hybrid-events-upcoming-right">${escapeHtml(rightLabel)}</span>` : ""}
+    </button>`;
+  }
+
+  function renderUpcomingPanel(model) {
+    const visible = model.filteredUpcomingEvents;
+    const groups = buildCampaignEventStreamGroups(visible);
+    const content = groups.length
+      ? groups.map(group => `<section class="hybrid-events-upcoming-week" data-hybrid-event-week-group="${escapeAttribute(group.startKey)}">
+          <div class="hybrid-events-upcoming-week-head"><strong>${escapeHtml(group.label)}</strong><span>${group.events.length} ${group.events.length === 1 ? "EVENT" : "EVENTS"}</span></div>
+          <div>${group.events.map(event => renderUpcomingEventRow(event, model)).join("")}</div>
+        </section>`).join("")
+      : '<div class="hybrid-state">No upcoming events match this event-type filter.</div>';
+    const filteredMeta = model.eventTypeFilter === "all"
+      ? `${model.upcomingCount} EVENTS`
+      : `${visible.length} OF ${model.upcomingCount}`;
+
+    return `<section class="hybrid-events-upcoming" aria-labelledby="hybrid-events-upcoming-title">
+      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-upcoming-title">UPCOMING EVENTS</h3><span>${escapeHtml(filteredMeta)}</span></div>
+      <div class="hybrid-events-upcoming-list">${content}</div>
+    </section>`;
+  }
+
+  function renderDossierEventDetails(event) {
+    const organizer = String(event.organization || "").trim() || "Not published";
+    const precision = event.time_precision === "date" ? "Date only" : "Date + time";
+    const format = campaignEventTypeDisplayLabel(event.event_type);
+    return `<section class="hybrid-events-dossier-context"><h4>EVENT DETAILS</h4><dl>
+      <div><dt>Organiser</dt><dd>${escapeHtml(organizer)}</dd></div>
+      <div><dt>Format</dt><dd>${escapeHtml(format)}</dd></div>
+      <div><dt>Time precision</dt><dd>${escapeHtml(precision)}</dd></div>
+      <div><dt>Timezone</dt><dd>${escapeHtml(event.timezone || "Europe/Paris")}</dd></div>
+    </dl></section>`;
+  }
+
+  function renderDossierParticipants(event) {
+    const participants = Array.isArray(event.candidate_names) && event.candidate_names.filter(Boolean).length
+      ? event.candidate_names.filter(Boolean)
+      : Array.isArray(event.participants)
+        ? event.participants.filter(Boolean)
+        : [];
+    if (participants.length <= 1) {
+      const lead = participants[0] || String(event.organization || "").trim() || "No named participant is published.";
+      const note = participants.length === 1
+        ? "SOLO APPEARANCE"
+        : event.organization
+          ? "ORGANISATION-LED"
+          : "NO NAMED PARTICIPANT";
+      return `<section class="hybrid-events-dossier-involvement"><h4>INVOLVEMENT</h4><strong>${escapeHtml(lead)}</strong><small>${escapeHtml(note)}</small></section>`;
+    }
+    return `<section class="hybrid-events-dossier-participants"><h4>PARTICIPANTS · ${participants.length}</h4><div>${participants.map(name => `<span>${escapeHtml(name)}</span>`).join("")}</div></section>`;
+  }
+
+  function renderDossierEvidence(event) {
+    const evidence = campaignEventPrimaryEvidence(event);
+    const evidenceState = campaignEventEvidencePresentation(event);
+    if (!evidence) {
+      return `<section class="hybrid-events-dossier-evidence"><h4>SOURCE EVIDENCE</h4><div class="hybrid-state is-compact">Source evidence is unavailable.</div></section>`;
+    }
+    return `<section class="hybrid-events-dossier-evidence"><div class="hybrid-events-dossier-section-head"><h4>SOURCE EVIDENCE</h4><span>PRIMARY</span></div>
+      <div class="hybrid-events-evidence-primary">
+        <div><strong>${escapeHtml(evidence.source_publisher || "Source")}</strong><span>${escapeHtml(campaignEventSourceTypeLabel(evidence.source_type))}</span></div>
+        <time datetime="${escapeAttribute(event.last_verified_at || "")}">${escapeHtml(campaignEventObservedLabel(event.last_verified_at))}</time>
+      </div>
+      <p>${escapeHtml(campaignEventEvidenceTypeLabel(evidence.evidence_type))}</p>
+      <div class="hybrid-events-evidence-actions"><span class="hybrid-events-evidence-chip" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span>${sourceLink(evidence.source_url, "OPEN SOURCE", "hybrid-events-dossier-source", `Open source for ${event.title}`)}</div>
+    </section>`;
+  }
+
+  function renderDossierHistory(model) {
+    const updates = model.selectedUpdates.slice(0, 8);
+    if (!updates.length) {
+      return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4>SCHEDULE HISTORY</h4><span>NO RECORDS</span></div><div class="hybrid-events-history-empty-state"><strong>NO PUBLISHED SCHEDULE HISTORY</strong><span>No calendar update is currently linked to this event.</span></div></section>`;
+    }
+    const hasMaterialUpdate = updates.some(update => String(update.update_type || "").toUpperCase() !== "NEW");
+    const rows = updates.map(update => `<article class="hybrid-events-history-item" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}"><i aria-hidden="true"></i><time datetime="${escapeAttribute(update.observed_at)}">${escapeHtml(campaignEventObservedLabel(update.observed_at))}</time><span class="hybrid-events-watch-type" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(String(update.update_type || "UPDATED").toUpperCase())}</span><small>${escapeHtml(campaignEventUpdateCopy(update))}</small></article>`).join("");
+    const quietState = hasMaterialUpdate
+      ? ""
+      : `<div class="hybrid-events-history-empty-state"><strong>NO FURTHER SCHEDULE CHANGES</strong><span>No later confirmed, updated, postponed or cancelled schedule change is published for this event.</span></div>`;
+    return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4>SCHEDULE HISTORY</h4><span>${updates.length} RECORD${updates.length === 1 ? "" : "S"}</span></div><div class="hybrid-events-history-list">${rows}</div>${quietState}</section>`;
+  }
+
+  function renderEventDossier(model) {
+    const event = model.selectedEvent;
+    if (!event) {
+      return `<section class="hybrid-events-dossier"><div class="hybrid-events-panel-head"><h3>EVENT DOSSIER</h3><span>SOURCE-LINKED EVIDENCE</span></div><div class="hybrid-state">No campaign event is selected.</div></section>`;
+    }
+    const status = campaignEventStatusPresentation(event);
+    const evidenceState = campaignEventEvidencePresentation(event);
+    const participantCount = campaignEventParticipantCount(event);
+    const place = campaignEventPlaceLabel(event) || "Location not published";
+    const when = `${campaignEventLongDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}`;
+    const format = campaignEventTypeDisplayLabel(event.event_type);
+
+    return `<section class="hybrid-events-dossier" aria-labelledby="hybrid-events-dossier-title">
+      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-dossier-title">EVENT DOSSIER</h3><span class="hybrid-events-dossier-head-meta">SOURCE-LINKED EVIDENCE <i class="hybrid-events-dossier-info" tabindex="0" role="img" aria-label="Past scheduled events remain scheduled until explicit occurrence evidence confirms they took place." title="Past scheduled events remain scheduled until explicit occurrence evidence confirms they took place.">i</i></span></div>
+      <div class="hybrid-events-dossier-body">
+        <div class="hybrid-events-dossier-title">${renderEventTypeBadge(event.event_type, participantCount > 1 ? `×${participantCount}` : "")}<div><h4 lang="fr">${escapeHtml(event.title)}</h4><div><span class="hybrid-events-status" data-event-status="${escapeAttribute(status.key)}">${escapeHtml(status.label)}</span><span class="hybrid-events-evidence-chip" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span></div></div></div>
+        <div class="hybrid-events-dossier-lede">
+          <div><small>DATE / TIME</small><strong>${escapeHtml(when)}</strong></div>
+          <div><small>VENUE</small><strong>${escapeHtml(place)}</strong></div>
+          <div><small>FORMAT</small><strong>${escapeHtml(format)}</strong></div>
+        </div>
+        <div class="hybrid-events-dossier-grid">
+          <div class="hybrid-events-dossier-left">${renderDossierParticipants(event)}${renderDossierEventDetails(event)}</div>
+          ${renderDossierEvidence(event)}
+        </div>
+
+      </div>
+    </section>`;
+  }
+
+  function renderScheduleWatchMaterialItem(update, model) {
+    const event = update.event;
+    const observed = campaignEventObservedParts(update.observed_at);
+    const weekStart = event ? campaignEventWeekStartKey(campaignEventDateKey(event)) : "";
+    const title = event?.title || update.headline || "Campaign calendar update";
+    const schedule = event ? `${campaignEventShortDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}` : "Schedule unavailable";
+    const selected = model.selectedEvent?.event_id === update.event_id;
+    return `<button type="button" class="hybrid-events-watch-material-item${selected ? " is-selected" : ""}" data-hybrid-event-id="${escapeAttribute(update.event_id)}" ${weekStart ? `data-hybrid-event-week="${escapeAttribute(weekStart)}"` : ""}>
+      <span class="hybrid-events-watch-type" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(String(update.update_type || "UPDATED").toUpperCase())}</span>
+      <span class="hybrid-events-watch-material-copy"><strong lang="fr">${escapeHtml(title)}</strong><small>${escapeHtml(schedule)} · ${escapeHtml(campaignEventUpdateCopy(update))}</small></span>
+      <time datetime="${escapeAttribute(update.observed_at)}"><strong>${escapeHtml(observed.time || "—")}</strong><span>${escapeHtml(observed.date)}</span></time>
+    </button>`;
+  }
+
+  function renderScheduleWatchAddition(update, model) {
+    const event = update.event;
+    const evidence = campaignEventPrimaryEvidence(update);
+    const publisher = String(evidence?.source_publisher || "Source").trim();
+    const weekStart = event ? campaignEventWeekStartKey(campaignEventDateKey(event)) : "";
+    const title = event?.title || update.headline || "Campaign calendar addition";
+    const schedule = event ? `${campaignEventShortDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}` : "Schedule unavailable";
+    const selected = model.selectedEvent?.event_id === update.event_id;
+    return `<button type="button" class="hybrid-events-watch-addition${selected ? " is-selected" : ""}" data-event-type="${escapeAttribute(event?.event_type || "other")}" data-hybrid-event-id="${escapeAttribute(update.event_id)}" ${weekStart ? `data-hybrid-event-week="${escapeAttribute(weekStart)}"` : ""}>
+      <i class="hybrid-events-watch-event-node" aria-hidden="true"></i>
+      <strong lang="fr">${escapeHtml(title)}</strong><small>${escapeHtml(schedule)} · ${escapeHtml(publisher)}</small>
+    </button>`;
+  }
+
+  function renderScheduleWatch(model) {
+    const materialUpdates = model.eventWatch.filter(update => String(update.update_type || "").toUpperCase() !== "NEW");
+    const additionGroups = groupCampaignEventAdditions(model.eventWatch);
+    const materialContent = materialUpdates.length
+      ? materialUpdates.map(update => renderScheduleWatchMaterialItem(update, model)).join("")
+      : `<div class="hybrid-events-watch-empty"><i aria-hidden="true">✓</i><strong>MATERIAL CHANGES 0</strong></div>`;
+    const additions = additionGroups.length
+      ? additionGroups.map(group => {
+          const observed = campaignEventObservedParts(group.observedAt);
+          return `<section class="hybrid-events-watch-addition-group"><i class="hybrid-events-watch-group-node" aria-hidden="true"></i><div class="hybrid-events-watch-addition-head"><span>${escapeHtml(observed.date)}${observed.time ? ` · ${escapeHtml(observed.time)}` : ""}</span><strong>+${group.updates.length} NEW</strong></div><div>${group.updates.map(update => renderScheduleWatchAddition(update, model)).join("")}</div></section>`;
+        }).join("")
+      : '<div class="hybrid-events-watch-empty"><strong>NO RECENT ADDITIONS</strong><span>No newly published event is recorded in the current watch log.</span></div>';
+
+    return `<section class="hybrid-events-schedule-watch" aria-labelledby="hybrid-events-schedule-watch-title">
+      <div class="hybrid-events-panel-head"><div><h3 id="hybrid-events-schedule-watch-title">SCHEDULE WATCH</h3><span>CALENDAR ACTIVITY</span></div><span>${model.watchCount} RECORDS</span></div>
+      <div class="hybrid-events-schedule-watch-body">
+        <section class="hybrid-events-watch-section is-material">${materialContent}</section>
+        <section class="hybrid-events-watch-section is-additions"><div class="hybrid-events-watch-section-head"><h4>RECENT ADDITIONS</h4><span>${model.eventWatch.length - materialUpdates.length}</span></div><div class="hybrid-events-watch-timeline">${additions}</div></section>
+      </div>
+    </section>`;
+  }
+
+  function renderEventsPanel(model) {
+    if (model.state !== "ready") {
+      return summaryState(model);
+    }
+    return `<div class="hybrid-events-workspace" aria-label="Campaign Events temporal operations desk">
+      ${renderOperationsScheduleRail(model)}
+      <div class="hybrid-events-ops-main">
+        ${renderUpcomingPanel(model)}
+        ${renderEventDossier(model)}
+        ${renderScheduleWatch(model)}
+      </div>
+      ${renderOperationsHorizonLegend(model)}
+    </div>`;
+  }
+
   function filteredClaimReviews(model) {
     const hasAssociationFilter = Boolean(state.claimsCandidateId) || state.claimsRelationship !== "all";
     return model.reviews.filter(review => {
@@ -4094,10 +5334,7 @@
           <div class="candidate-signals-state" role="status" aria-live="polite">Loading candidate evidence…</div>
         </div>
       </section>
-      <section class="hybrid-panel" id="signal-events-panel" role="tabpanel" aria-labelledby="signal-events-tab"${state.activeView === "events" ? "" : " hidden"}>
-        <h2 class="hybrid-section-title">CAMPAIGN EVENTS</h2>
-        <div class="hybrid-state">Campaign Events is not yet available.</div>
-      </section>
+      <section class="hybrid-panel" id="signal-events-panel" role="tabpanel" aria-labelledby="signal-events-tab"${state.activeView === "events" ? "" : " hidden"}>${renderEventsPanel(models.events)}</section>
       <section class="hybrid-panel" id="signal-agenda-panel" role="tabpanel" aria-labelledby="signal-agenda-tab"${state.activeView === "agenda" ? "" : " hidden"}>${renderAgendaPanel(models.agenda)}</section>
       <section class="hybrid-panel" id="signal-claims-panel" role="tabpanel" aria-labelledby="signal-claims-tab"${state.activeView === "claims" ? "" : " hidden"}>${renderClaimsPanel(models.claims)}</section>
     </section>`;
@@ -4259,6 +5496,37 @@
         state.selectedAgendaTopicId = button.dataset.hybridAgendaTopic;
         renderAll();
         document.querySelector(`[data-hybrid-agenda-topic="${CSS.escape(state.selectedAgendaTopicId)}"]`)?.focus();
+      });
+    });
+
+    mount.querySelectorAll("button[data-hybrid-event-id]").forEach(button => {
+      button.addEventListener("click", () => {
+        state.selectedCampaignEventId = button.dataset.hybridEventId;
+        if (button.dataset.hybridEventWeek) {
+          state.selectedCampaignEventWeekStart = button.dataset.hybridEventWeek;
+        }
+        renderAll();
+        mount.querySelector(`button[data-hybrid-event-id="${CSS.escape(state.selectedCampaignEventId)}"]`)?.focus();
+      });
+    });
+
+    mount.querySelectorAll("button[data-hybrid-events-filter]").forEach(button => {
+      button.addEventListener("click", () => {
+        state.campaignEventTypeFilter = button.dataset.hybridEventsFilter || "all";
+        state.selectedCampaignEventId = "";
+        state.selectedCampaignEventWeekStart = "";
+        renderAll();
+        mount.querySelector(`button[data-hybrid-events-filter="${CSS.escape(state.campaignEventTypeFilter)}"]`)?.focus();
+      });
+    });
+
+    mount.querySelectorAll("button[data-hybrid-week-select]").forEach(button => {
+      button.addEventListener("click", () => {
+        state.selectedCampaignEventWeekStart = button.dataset.hybridWeekSelect;
+        renderAll();
+        const target = mount.querySelector(`[data-hybrid-event-week-group="${CSS.escape(state.selectedCampaignEventWeekStart)}"]`);
+        target?.scrollIntoView({ block: "nearest", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+        mount.querySelector(`button[data-hybrid-week-select="${CSS.escape(state.selectedCampaignEventWeekStart)}"]`)?.focus();
       });
     });
 
@@ -5170,6 +6438,7 @@
     deriveAcceptedNewsPublisherMetric,
     buildRunoffViewModel,
     buildMediaViewModel,
+    buildEventsViewModel,
     agendaMovementLabel,
     agendaStructureLabel,
     buildAgendaViewModel,
@@ -5182,6 +6451,7 @@
     renderFocusWorkspace,
     renderRunoffPanel,
     renderMediaPanel,
+    renderEventsPanel,
     renderAgendaPanel,
     renderClaimsPanel,
     setActiveSignalView,
