@@ -4,6 +4,7 @@
   let modal = null;
   let returnFocus = null;
   let records = [];
+  let raceCoverageMode = false;
 
   const state = {
     query: "",
@@ -610,12 +611,55 @@
       </form>
     `;
   };
+  const coveragePanelLabel = () =>
+    raceCoverageMode
+      ? "Race coverage"
+      : "Election coverage";
+
+  const recentCoverageTitle = () =>
+    raceCoverageMode
+      ? "Recent race coverage"
+      : "Recent election coverage";
+
+  const recentCoverageAriaLabel = () =>
+    raceCoverageMode
+      ? "Recent accepted France 2027 race coverage"
+      : "Recent accepted election coverage";
+
+  const modalTitle = () =>
+    raceCoverageMode
+      ? "Media Pulse / Race Coverage"
+      : "Media Pulse / Election Coverage";
+
+  const closeCoverageAriaLabel = () =>
+    raceCoverageMode
+      ? "Close race coverage"
+      : "Close election coverage";
+
+  const applyCoverageTerminology = () => {
+    const title =
+      modal?.querySelector("#ecm-title");
+    const closeButton =
+      modal?.querySelector("[data-ecm-close]");
+
+    if (title) {
+      title.textContent = modalTitle();
+    }
+
+    if (closeButton) {
+      closeButton.setAttribute(
+        "aria-label",
+        closeCoverageAriaLabel()
+      );
+    }
+  };
+
   const renderBody = () => `
     <div class="ecm-shell">
       <section
         class="ecm-tab-panel ecm-coverage-panel"
         id="ecm-coverage-panel"
-        aria-label="Election coverage"
+        aria-label="${escapeAttribute(coveragePanelLabel())}"
       >
         ${renderToolbar()}
 
@@ -626,7 +670,7 @@
           <header class="ecm-feed-header">
             <div class="ecm-feed-heading">
               <h3 id="ecm-feed-title">
-                Recent election coverage
+                ${escapeHtml(recentCoverageTitle())}
               </h3>
 
               <div
@@ -669,7 +713,7 @@
             id="ecm-feed-list"
             data-ecm-feed-list
             role="feed"
-            aria-label="Recent accepted election coverage"
+            aria-label="${escapeAttribute(recentCoverageAriaLabel())}"
             tabindex="0"
           ></div>
         </section>
@@ -844,7 +888,7 @@
             <header class="ecm-header">
               <div class="ecm-heading">
                 <h2 id="ecm-title">
-                  Media Pulse / Election Coverage
+                  Media Pulse / Coverage
                 </h2>
 
                 <p id="ecm-subtitle">
@@ -862,7 +906,7 @@
                 <button
                   class="ecm-close"
                   type="button"
-                  aria-label="Close election coverage"
+                  aria-label="Close coverage"
                   data-ecm-close
                 >
                   ×
@@ -949,7 +993,11 @@
       return;
     }
 
+    raceCoverageMode =
+      model.raceCoverageMode === true;
+
     ensureModal();
+    applyCoverageTerminology();
     resetState();
 
     records =

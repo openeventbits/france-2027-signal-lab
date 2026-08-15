@@ -1294,344 +1294,434 @@ class PublicationManifestTests(unittest.TestCase):
             registry_payload["status_as_of"],
         )
 
-    def test_active_field_projection_matches_news_evidence(self):
-        payload = self.candidate_payload()
-        news = json.loads(
-            (self.root / "news_wire.json").read_text(encoding="utf-8")
-        )
+    def test_legacy_schema_13_active_projection_parity_is_exercised(self):
         registry = json.loads(
-            (self.root / "candidate_candidacy_status.json").read_text(
-                encoding="utf-8"
+            (
+                self.root
+                / "candidate_candidacy_status.json"
+            ).read_text(encoding="utf-8")
+        )
+        news = json.loads(
+            (
+                self.root
+                / "news_wire.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        expected = (
+            manifest_builder._legacy_active_field_visibility(
+                registry,
+                news,
             )
         )
 
-        schema_version = payload["schema_version"]
-        active = payload["active_field_visibility"]
+        legacy_candidate_signals = {
+            "schema_version": "1.3",
+            "active_field_visibility": expected,
+        }
 
-        self.assertIn(schema_version, {"1.3", "1.4"})
+        # This must execute the production 1.3 compatibility
+        # branch without consulting the tracked Candidate
+        # Signals artifact.
+        manifest_builder._validate_active_field_visibility_parity(
+            registry,
+            legacy_candidate_signals,
+            news,
+        )
 
-        if schema_version == "1.4":
-            expected = manifest_builder.derive_active_field_visibility(
-                news,
-                manifest_builder.project_active_monitoring_field(registry),
-                registry,
-            )
-            scope_names = ("race_attention",)
-        else:
-            expected = manifest_builder._legacy_active_field_visibility(
-                registry,
-                news,
-            )
-            scope_names = ("primary", "general")
+        self.assertEqual(
+            expected["method"],
+            "share_of_active_candidate_linked_records",
+        )
+        self.assertEqual(
+            expected["denominator_scope"],
+            (
+                "records_linked_to_at_least_one_"
+                "active_monitoring_candidate"
+            ),
+        )
+        self.assertEqual(
+            set(expected),
+            {
+                "method",
+                "denominator_scope",
+                "status_as_of",
+                "primary",
+                "general",
+            },
+        )
 
-        self.assertEqual(active, expected)
-
-        active_field = payload["active_monitoring_field"]
-        hidden = set(payload["presidential_field"]["hidden"])
-
-        for scope_name in scope_names:
-            scope = active[scope_name]
+        for scope_name in ("primary", "general"):
+            scope = expected[scope_name]
 
             self.assertEqual(
-                {row["candidate_id"] for row in scope["main"]},
-                set(active_field["main"]),
-            )
-            self.assertEqual(
-                {row["candidate_id"] for row in scope["secondary"]},
-                set(active_field["secondary"]),
+                set(scope),
+                {
+                    "current_period",
+                    "prior_period",
+                    "comparison_quality",
+                    "main",
+                    "secondary",
+                },
             )
 
-            rows = scope["main"] + scope["secondary"]
-
-            self.assertFalse(
-                hidden & {row["candidate_id"] for row in rows}
+            rows = (
+                scope["main"]
+                + scope["secondary"]
             )
 
             for prefix, period_name in (
                 ("current", "current_period"),
                 ("prior", "prior_period"),
             ):
-                period = scope[period_name]
+                denominator = scope[
+                    period_name
+                ]["record_count"]
 
-                if schema_version == "1.4":
-                    denominator = period["exposure_count"]
-
-                    self.assertEqual(
-                        scope["comparison_quality"][
-                            f"{prefix}_exposure_count"
-                        ],
-                        denominator,
+                for row in rows:
+                    expected_share = (
+                        round(
+                            row[
+                                f"{prefix}_record_count"
+                            ]
+                            / denominator,
+                            3,
+                        )
+                        if denominator
+                        else None
                     )
 
-                    for row in rows:
-                        exposure_count = row[
-                            f"{prefix}_exposure_count"
-                        ]
-                        share = row[f"{prefix}_share"]
-                        state = row[
-                            f"{prefix}_observation_state"
-                        ]
+                    self.assertEqual(
+                        row[f"{prefix}_share"],
+                        expected_share,
+                    )
 
-                        if denominator == 0:
-                            self.assertEqual(state, "unavailable")
-                            self.assertIsNone(share)
-                        elif exposure_count == 0:
-                            self.assertEqual(
-                                state,
-                                "observed_zero",
-                            )
-                            self.assertEqual(share, 0.0)
-                        else:
-                            self.assertEqual(
-                                state,
-                                "observed_positive",
-                            )
-                            self.assertEqual(
-                                share,
-                                round(
-                                    exposure_count / denominator,
-                                    3,
-                                ),
-                            )
+    def test_legacy_schema_13_active_projection_mismatch_fails(self):
+        registry = json.loads(
+            (
+                self.root
+                / "candidate_candidacy_status.json"
+            ).read_text(encoding="utf-8")
+        )
+        news = json.loads(
+            (
+                self.root
+                / "news_wire.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        active = (
+            manifest_builder._legacy_active_field_visibility(
+                registry,
+                news,
+            )
+        )
+
+        malformed = json.loads(
+            json.dumps(active)
+        )
+
+        malformed[
+            "primary"
+        ][
+            "current_period"
+        ][
+            "record_count"
+        ] += 1
+
+        legacy_candidate_signals = {
+            "schema_version": "1.3",
+            "active_field_visibility": malformed,
+        }
+
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "does not match news evidence",
+        ):
+            manifest_builder._validate_active_field_visibility_parity(
+                registry,
+                legacy_candidate_signals,
+                news,
+            )
+
+    def test_active_field_projection_matches_news_evidence(self):
+        payload = self.candidate_payload()
+        news = json.loads(
+            (
+                self.root
+                / "news_wire.json"
+            ).read_text(encoding="utf-8")
+        )
+        registry = json.loads(
+            (
+                self.root
+                / "candidate_candidacy_status.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(
+            payload["schema_version"],
+            "1.4",
+        )
+
+        active = payload[
+            "active_field_visibility"
+        ]
+
+        expected = (
+            manifest_builder.derive_active_field_visibility(
+                news,
+                manifest_builder.project_active_monitoring_field(
+                    registry
+                ),
+                registry,
+            )
+        )
+
+        self.assertEqual(
+            active,
+            expected,
+        )
+        self.assertEqual(
+            set(active),
+            {
+                "method",
+                "denominator_scope",
+                "status_as_of",
+                "race_attention",
+            },
+        )
+
+        scope = active["race_attention"]
+        active_field = payload[
+            "active_monitoring_field"
+        ]
+        hidden = set(
+            payload[
+                "presidential_field"
+            ]["hidden"]
+        )
+
+        self.assertEqual(
+            {
+                row["candidate_id"]
+                for row in scope["main"]
+            },
+            set(active_field["main"]),
+        )
+        self.assertEqual(
+            {
+                row["candidate_id"]
+                for row in scope["secondary"]
+            },
+            set(active_field["secondary"]),
+        )
+
+        rows = (
+            scope["main"]
+            + scope["secondary"]
+        )
+
+        self.assertFalse(
+            hidden
+            & {
+                row["candidate_id"]
+                for row in rows
+            }
+        )
+
+        for prefix, period_name in (
+            ("current", "current_period"),
+            ("prior", "prior_period"),
+        ):
+            period = scope[period_name]
+            denominator = period[
+                "exposure_count"
+            ]
+
+            self.assertEqual(
+                scope[
+                    "comparison_quality"
+                ][f"{prefix}_exposure_count"],
+                denominator,
+            )
+
+            for row in rows:
+                exposure_count = row[
+                    f"{prefix}_exposure_count"
+                ]
+                share = row[
+                    f"{prefix}_share"
+                ]
+                observation_state = row[
+                    f"{prefix}_observation_state"
+                ]
+
+                if denominator == 0:
+                    self.assertEqual(
+                        observation_state,
+                        "unavailable",
+                    )
+                    self.assertIsNone(
+                        share
+                    )
+                elif exposure_count == 0:
+                    self.assertEqual(
+                        observation_state,
+                        "observed_zero",
+                    )
+                    self.assertEqual(
+                        share,
+                        0.0,
+                    )
                 else:
-                    denominator = period["record_count"]
-
-                    for row in rows:
-                        expected_share = (
-                            round(
-                                row[f"{prefix}_record_count"]
-                                / denominator,
-                                3,
-                            )
-                            if denominator
-                            else None
-                        )
-
-                        self.assertEqual(
-                            row[f"{prefix}_share"],
-                            expected_share,
-                        )
+                    self.assertEqual(
+                        observation_state,
+                        "observed_positive",
+                    )
+                    self.assertEqual(
+                        share,
+                        round(
+                            exposure_count
+                            / denominator,
+                            3,
+                        ),
+                    )
 
     def test_active_projection_structural_mutations_fail(self):
         original = self.candidate_payload()
-        schema_version = original["schema_version"]
 
-        self.assertIn(schema_version, {"1.3", "1.4"})
+        self.assertEqual(
+            original["schema_version"],
+            "1.4",
+        )
 
         def clone():
-            return json.loads(json.dumps(original))
+            return json.loads(
+                json.dumps(original)
+            )
 
         mutations = []
 
-        if schema_version == "1.4":
-            period = clone()
-            period[
-                "active_field_visibility"
-            ][
-                "race_attention"
-            ][
-                "current_period"
-            ][
-                "unexpected"
-            ] = True
-            mutations.append(period)
+        period = clone()
+        period[
+            "active_field_visibility"
+        ][
+            "race_attention"
+        ][
+            "current_period"
+        ][
+            "unexpected"
+        ] = True
+        mutations.append(period)
 
-            quality = clone()
-            quality[
-                "active_field_visibility"
-            ][
-                "race_attention"
-            ][
-                "comparison_quality"
-            ][
-                "unexpected"
-            ] = True
-            mutations.append(quality)
+        quality = clone()
+        quality[
+            "active_field_visibility"
+        ][
+            "race_attention"
+        ][
+            "comparison_quality"
+        ][
+            "unexpected"
+        ] = True
+        mutations.append(quality)
 
-            row_shape = clone()
-            row_shape[
-                "active_field_visibility"
-            ][
-                "race_attention"
-            ][
-                "main"
-            ][0][
-                "unexpected"
-            ] = True
-            mutations.append(row_shape)
+        row_shape = clone()
+        row_shape[
+            "active_field_visibility"
+        ][
+            "race_attention"
+        ][
+            "main"
+        ][0][
+            "unexpected"
+        ] = True
+        mutations.append(row_shape)
 
-            missing_field = clone()
-            missing_field[
-                "active_field_visibility"
-            ][
-                "race_attention"
-            ][
-                "main"
-            ][0].pop("current_exposure_count")
-            mutations.append(missing_field)
+        missing_field = clone()
+        missing_field[
+            "active_field_visibility"
+        ][
+            "race_attention"
+        ][
+            "main"
+        ][0].pop(
+            "current_exposure_count"
+        )
+        mutations.append(missing_field)
 
-            unknown_candidate = clone()
-            unknown_candidate[
-                "active_field_visibility"
-            ][
-                "race_attention"
-            ][
-                "main"
-            ][0][
-                "candidate_id"
-            ] = "unknown-candidate"
-            mutations.append(unknown_candidate)
+        unknown_candidate = clone()
+        unknown_candidate[
+            "active_field_visibility"
+        ][
+            "race_attention"
+        ][
+            "main"
+        ][0][
+            "candidate_id"
+        ] = "unknown-candidate"
+        mutations.append(
+            unknown_candidate
+        )
 
-        else:
-            count = clone()
-            count[
-                "active_field_visibility"
-            ][
-                "primary"
-            ][
-                "current_period"
-            ][
-                "record_count"
-            ] += 1
-            mutations.append(count)
+        source = (
+            self.root
+            / "candidate_signals.json"
+        )
 
-            publishers = clone()
-            publishers[
-                "active_field_visibility"
-            ][
-                "general"
-            ][
-                "prior_period"
-            ][
-                "publisher_count"
-            ] += 1
-            mutations.append(publishers)
-
-            hidden = clone()
-            hidden[
-                "active_field_visibility"
-            ][
-                "primary"
-            ][
-                "main"
-            ][0][
-                "candidate_id"
-            ] = "sebastien-lecornu"
-            mutations.append(hidden)
-
-            tier = clone()
-            tier[
-                "active_field_visibility"
-            ][
-                "primary"
-            ][
-                "secondary"
-            ][0][
-                "display_tier"
-            ] = "main"
-            mutations.append(tier)
-
-            share = clone()
-            share[
-                "active_field_visibility"
-            ][
-                "general"
-            ][
-                "main"
-            ][0][
-                "current_share"
-            ] = 0.999
-            mutations.append(share)
-
-            ordering = clone()
-            ordering[
-                "active_field_visibility"
-            ][
-                "primary"
-            ][
-                "main"
-            ].reverse()
-            mutations.append(ordering)
-
-            quality = clone()
-            current_reason = quality[
-                "active_field_visibility"
-            ][
-                "primary"
-            ][
-                "comparison_quality"
-            ][
-                "reason"
-            ]
-            quality[
-                "active_field_visibility"
-            ][
-                "primary"
-            ][
-                "comparison_quality"
-            ][
-                "reason"
-            ] = (
-                "publisher_panel_changed"
-                if current_reason == "comparable"
-                else "comparable"
-            )
-            mutations.append(quality)
-
-        for index, payload in enumerate(mutations):
-            with self.subTest(mutation=index):
+        try:
+            for malformed in mutations:
                 write_json(
                     self.root,
                     "candidate_signals.json",
-                    payload,
+                    malformed,
                 )
 
                 with self.assertRaises(
                     manifest_builder.ManifestError
                 ):
                     self.build()
-
-                write_json(
-                    self.root,
-                    "candidate_signals.json",
-                    original,
-                )
-
-    def test_active_visibility_source_mismatch_fails(self):
-        news_path = self.root / "news_wire.json"
-        news = json.loads(
-            news_path.read_text(encoding="utf-8")
-        )
-        payload = self.candidate_payload()
-        schema_version = payload["schema_version"]
-
-        self.assertIn(schema_version, {"1.3", "1.4"})
-
-        if schema_version == "1.4":
-            news[
-                "candidate_visibility"
-            ][
-                "current_period"
-            ][
-                "record_count"
-            ] += 1
-        else:
-            active_names = {
-                candidate["candidate_name"]
-                for candidate in payload["candidates"]
-                if candidate["candidacy"]["active_field_eligible"]
-            }
-
-            removed = next(
-                record
-                for record in news["candidate_watch"]
-                if record["coverage_scope"]
-                in {"election", "campaign"}
-                and record["published_at"][:10] >= "2026-07-25"
-                and active_names & set(record["candidates"])
+        finally:
+            write_json(
+                self.root,
+                "candidate_signals.json",
+                original,
             )
 
-            news["candidate_watch"].remove(removed)
+        self.assertEqual(
+            json.loads(
+                source.read_text(
+                    encoding="utf-8"
+                )
+            ),
+            original,
+        )
+
+    def test_active_visibility_source_mismatch_fails(self):
+        news_path = (
+            self.root
+            / "news_wire.json"
+        )
+        news = json.loads(
+            news_path.read_text(
+                encoding="utf-8"
+            )
+        )
+        payload = self.candidate_payload()
+
+        self.assertEqual(
+            payload["schema_version"],
+            "1.4",
+        )
+
+        news[
+            "candidate_visibility"
+        ][
+            "current_period"
+        ][
+            "record_count"
+        ] += 1
 
         write_json(
             self.root,
@@ -1646,11 +1736,18 @@ class PublicationManifestTests(unittest.TestCase):
             self.build()
 
     def test_valid_active_projection_change_changes_snapshot_id(self):
-        first = self.build()["snapshot_id"]
+        first = self.build()[
+            "snapshot_id"
+        ]
 
-        news_path = self.root / "news_wire.json"
+        news_path = (
+            self.root
+            / "news_wire.json"
+        )
         news = json.loads(
-            news_path.read_text(encoding="utf-8")
+            news_path.read_text(
+                encoding="utf-8"
+            )
         )
         payload = self.candidate_payload()
         registry = json.loads(
@@ -1660,55 +1757,30 @@ class PublicationManifestTests(unittest.TestCase):
             ).read_text(encoding="utf-8")
         )
 
-        schema_version = payload["schema_version"]
+        self.assertEqual(
+            payload["schema_version"],
+            "1.4",
+        )
 
-        self.assertIn(schema_version, {"1.3", "1.4"})
+        news[
+            "candidate_visibility"
+        ][
+            "current_period"
+        ][
+            "record_count"
+        ] += 1
 
-        if schema_version == "1.4":
-            news[
-                "candidate_visibility"
-            ][
-                "current_period"
-            ][
-                "record_count"
-            ] += 1
-
-            payload["active_field_visibility"] = (
-                manifest_builder.derive_active_field_visibility(
-                    news,
-                    manifest_builder.project_active_monitoring_field(
-                        registry
-                    ),
-                    registry,
-                )
+        payload[
+            "active_field_visibility"
+        ] = (
+            manifest_builder.derive_active_field_visibility(
+                news,
+                manifest_builder.project_active_monitoring_field(
+                    registry
+                ),
+                registry,
             )
-        else:
-            active_names = {
-                candidate["candidate_name"]
-                for candidate in payload["candidates"]
-                if candidate["candidacy"]["active_field_eligible"]
-            }
-
-            removed = next(
-                record
-                for record in news["candidate_watch"]
-                if record["coverage_scope"] == "general"
-                and (
-                    "2026-07-25"
-                    <= record["published_at"][:10]
-                    <= "2026-07-31"
-                )
-                and active_names & set(record["candidates"])
-            )
-
-            news["candidate_watch"].remove(removed)
-
-            payload["active_field_visibility"] = (
-                manifest_builder._legacy_active_field_visibility(
-                    registry,
-                    news,
-                )
-            )
+        )
 
         write_json(
             self.root,
@@ -1769,7 +1841,17 @@ class PublicationManifestTests(unittest.TestCase):
 
     def test_candidate_count_mismatch_fails(self):
         payload = self.candidate_payload()
-        payload["candidate_universe"]["count"] = 3
+
+        self.assertEqual(
+            payload["schema_version"],
+            "1.4",
+        )
+
+        payload[
+            "candidate_universe"
+        ][
+            "count"
+        ] = 3
 
         write_json(
             self.root,
@@ -1777,21 +1859,25 @@ class PublicationManifestTests(unittest.TestCase):
             payload,
         )
 
-        expected = (
-            r"candidate_universe\.count does not match candidates"
-            if payload["schema_version"] == "1.4"
-            else r"candidate count does not match candidates"
-        )
-
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            expected,
+            r"candidate_universe\.count does not match candidates",
         ):
             self.build()
 
     def test_invalid_candidate_evidence_date_fails(self):
         payload = self.candidate_payload()
-        payload["evidence_dates"]["news"] = "2026-02-30"
+
+        self.assertEqual(
+            payload["schema_version"],
+            "1.4",
+        )
+
+        payload[
+            "evidence_dates"
+        ][
+            "news"
+        ] = "2026-02-30"
 
         write_json(
             self.root,
@@ -1799,15 +1885,9 @@ class PublicationManifestTests(unittest.TestCase):
             payload,
         )
 
-        expected = (
-            r"evidence_dates\.news must be an ISO calendar date"
-            if payload["schema_version"] == "1.4"
-            else r"evidence_dates\.news must be a valid calendar date"
-        )
-
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            expected,
+            r"evidence_dates\.news must be an ISO calendar date",
         ):
             self.build()
 
@@ -1899,6 +1979,11 @@ class PublicationManifestTests(unittest.TestCase):
     def test_unknown_featured_board_candidate_id_fails(self):
         payload = self.candidate_payload()
 
+        self.assertEqual(
+            payload["schema_version"],
+            "1.4",
+        )
+
         payload[
             "featured_poll_board"
         ][
@@ -1913,15 +1998,9 @@ class PublicationManifestTests(unittest.TestCase):
             payload,
         )
 
-        expected = (
-            r"candidate_id is not in main candidates"
-            if payload["schema_version"] == "1.4"
-            else r"candidate ID is unknown"
-        )
-
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            expected,
+            r"candidate_id is not in main candidates",
         ):
             self.build()
 
@@ -1965,11 +2044,18 @@ class PublicationManifestTests(unittest.TestCase):
     def test_invalid_featured_board_source_url_fails(self):
         payload = self.candidate_payload()
 
+        self.assertEqual(
+            payload["schema_version"],
+            "1.4",
+        )
+
         payload[
             "featured_poll_board"
         ][
             "source_urls"
-        ] = ["relative/path"]
+        ] = [
+            "relative/path"
+        ]
 
         write_json(
             self.root,
@@ -1977,24 +2063,28 @@ class PublicationManifestTests(unittest.TestCase):
             payload,
         )
 
-        expected = (
-            r"featured_poll_board\.source_urls is invalid"
-            if payload["schema_version"] == "1.4"
-            else r"featured_poll_board source_urls are invalid"
-        )
-
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
-            expected,
+            r"featured_poll_board\.source_urls is invalid",
         ):
             self.build()
 
     def test_generated_candidate_signals_passes_public_validation(self):
         payload = json.loads(
-            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+            (
+                ROOT
+                / "candidate_signals.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(
+            payload["schema_version"],
+            "1.4",
         )
         self.assertEqual(
-            manifest_builder._validate_candidate_signals_public(payload),
+            manifest_builder._validate_candidate_signals_public(
+                payload
+            ),
             len(payload["candidates"]),
         )
 

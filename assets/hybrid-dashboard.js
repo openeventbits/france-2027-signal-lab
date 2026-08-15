@@ -5614,12 +5614,8 @@
       "comparable";
     const reason =
       model.comparisonQuality?.reason || "";
-    const reasonLabel =
-      reason === "publisher_panel_changed"
-        ? "publisher panel changed"
-        : reason === "insufficient_data"
-          ? "insufficient data"
-          : "comparison unavailable";
+    const raceCoverageMode =
+      model.raceCoverageMode === true;
 
     return {
       available,
@@ -5629,10 +5625,14 @@
           ? "RAW Δ pp"
           : "UNAVAILABLE",
       explanation: available
-        ? "Comparable active-field percentage-point change."
+        ? raceCoverageMode
+          ? "Comparable Race Attention percentage-point change."
+          : "Comparable active-field percentage-point change."
         : model.candidateCoverageAvailable
           ? `Raw arithmetic current-minus-prior differences are displayed because comparison quality is not comparable; reason: ${reason || "unknown"}. These values are descriptive and are not comparable trend estimates.`
-          : "Active-field candidate comparison unavailable."
+          : raceCoverageMode
+            ? "Race Attention candidate comparison unavailable."
+            : "Active-field candidate comparison unavailable."
     };
   }
 
@@ -5753,8 +5753,31 @@
     const candidateComparisonExplanation =
       candidateComparison.explanation;
 
+    const raceCoverageMode =
+      model.raceCoverageMode === true;
+    const coverageHeading =
+      raceCoverageMode
+        ? "Latest race coverage"
+        : "Latest election coverage";
+    const coverageAriaLabel =
+      raceCoverageMode
+        ? "Latest accepted France 2027 race coverage"
+        : "Latest accepted election coverage";
+    const coverageShiftHeading =
+      raceCoverageMode
+        ? "Race Coverage shift"
+        : "Active-field coverage shift";
+    const candidateShareLabel =
+      raceCoverageMode
+        ? "Race-attention share"
+        : "Active-field candidate-linked share";
+    const candidateComparisonUnavailable =
+      raceCoverageMode
+        ? "Race Attention candidate comparison unavailable."
+        : "Active-field candidate comparison unavailable.";
+
     const shiftRows = !model.candidateCoverageAvailable
-      ? `<div class="hybrid-state is-compact">Active-field candidate comparison unavailable.</div>`
+      ? `<div class="hybrid-state is-compact">${escapeHtml(candidateComparisonUnavailable)}</div>`
       : model.candidateCoverageLeaders
           .slice(0, 6)
           .map(item => {
@@ -5816,10 +5839,10 @@
                 aria-expanded="false"
                 aria-label="${escapeAttribute(
                   deltaAvailable
-                    ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent active-field candidate-linked share in the current period, ${previousShareText} percent in the prior period, comparable change ${deltaText}`
+                    ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent ${candidateShareLabel.toLowerCase()} in the current period, ${previousShareText} percent in the prior period, comparable change ${deltaText}`
                     : rawDeltaAvailable
-                      ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent active-field candidate-linked share in the current period, ${previousShareText} percent in the prior period, raw arithmetic difference ${deltaText}. Publisher panels changed, so this is not a comparable trend estimate.`
-                      : `${item.name}, ${item.tierLabel}: ${latestShareText} percent active-field candidate-linked share in the current period, ${previousShareText} percent in the prior period.`
+                      ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent ${candidateShareLabel.toLowerCase()} in the current period, ${previousShareText} percent in the prior period, raw arithmetic difference ${deltaText}. Publisher panels changed, so this is not a comparable trend estimate.`
+                      : `${item.name}, ${item.tierLabel}: ${latestShareText} percent ${candidateShareLabel.toLowerCase()} in the current period, ${previousShareText} percent in the prior period.`
                 )}"
               >
                 <span class="top-media-shift-name">
@@ -5979,7 +6002,7 @@
           hidden
         >
           <div class="top-media-section-heading">
-            <h3>Latest election coverage</h3>
+            <h3>${escapeHtml(coverageHeading)}</h3>
 
             <span>
               ${Math.min(
@@ -5992,7 +6015,7 @@
           <div
             class="top-media-coverage-list"
             role="feed"
-            aria-label="Latest accepted election coverage"
+            aria-label="${escapeAttribute(coverageAriaLabel)}"
           >
             ${coverageRows}
           </div>
@@ -6020,9 +6043,9 @@
           <section class="top-media-shift">
             <div
               class="top-media-section-heading"
-              aria-label="${escapeAttribute(`Active-field coverage shift. ${candidateComparisonExplanation}`)}"
+              aria-label="${escapeAttribute(`${coverageShiftHeading}. ${candidateComparisonExplanation}`)}"
             >
-              <h3>Active-field coverage shift</h3>
+              <h3>${escapeHtml(coverageShiftHeading)}</h3>
 
               <span
                 class="top-media-shift-quality"
@@ -6037,7 +6060,7 @@
             <div
               class="top-media-period-legend"
               aria-label="${escapeAttribute(
-                `Active-field candidate-linked share. Current period ${currentPeriodLabel}; prior period ${priorPeriodLabel}.`
+                `${candidateShareLabel}. Current period ${currentPeriodLabel}; prior period ${priorPeriodLabel}.`
               )}"
             >
               <span class="is-current">

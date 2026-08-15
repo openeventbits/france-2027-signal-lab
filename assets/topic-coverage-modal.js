@@ -8,6 +8,7 @@
   let candidateProjectionAvailable = false;
   let candidateComparisonAvailable = false;
   let candidateComparisonReason = "";
+  let raceCoverageMode = false;
   let publishers = [];
   let dailyActivity = [];
   let generatedAt = "";
@@ -297,6 +298,31 @@
         ? "RAW Δ pp"
         : "UNAVAILABLE";
 
+  const candidateShareLabel = () =>
+    raceCoverageMode
+      ? "Race-attention share"
+      : "Active-field candidate-linked share";
+
+  const coverageShiftTitle = () =>
+    raceCoverageMode
+      ? "Race Coverage shift"
+      : "Active-field coverage shift";
+
+  const candidateComparisonUnavailableLabel = () =>
+    raceCoverageMode
+      ? "Race Attention candidate comparison unavailable."
+      : "Active-field candidate comparison unavailable.";
+
+  const dailyCoverageAriaLabel = () =>
+    raceCoverageMode
+      ? "Daily accepted France 2027 race coverage"
+      : "Daily accepted election coverage";
+
+  const coverageShiftListAriaLabel = () =>
+    raceCoverageMode
+      ? "Complete Race Coverage shift"
+      : "Complete active-field candidate coverage shift";
+
   const renderPeriodLegend = () => {
     const reasonLabel =
       candidateComparisonReason ===
@@ -306,19 +332,22 @@
           "insufficient_data"
           ? "insufficient data"
           : "comparison unavailable";
+
     const qualityExplanation =
       candidateComparisonAvailable
-        ? "Comparable active-field percentage-point change."
+        ? raceCoverageMode
+          ? "Comparable Race Attention percentage-point change."
+          : "Comparable active-field percentage-point change."
         : candidateProjectionAvailable
           ? `Comparison quality is not comparable: ${reasonLabel}. Raw arithmetic differences are current-minus-prior percentage-point values, not comparable trend estimates.`
-          : "Active-field candidate comparison unavailable.";
+          : candidateComparisonUnavailableLabel();
 
     return `
       <div
         class="tcm-period-legend"
         role="group"
         aria-label="${escapeAttribute(
-          `Active-field candidate-linked share. Current period ${latestPeriodLabel}; prior period ${priorPeriodLabel}. ${qualityExplanation}`
+          `${candidateShareLabel()}. Current period ${latestPeriodLabel}; prior period ${priorPeriodLabel}. ${qualityExplanation}`
         )}"
       >
         <span>
@@ -339,7 +368,7 @@
     if (!candidateProjectionAvailable) {
       return `
         <div class="tcm-empty">
-          Active-field candidate comparison unavailable.
+          ${escapeHtml(candidateComparisonUnavailableLabel())}
         </div>
       `;
     }
@@ -391,7 +420,7 @@
             data-tcm-candidate-row="${escapeAttribute(item.name)}"
             title="${escapeAttribute(item.name)}"
             aria-label="${escapeAttribute(
-              `${item.name}. Candidate status ${item.status}. Current active-field share ${latestText}; prior active-field share ${priorText}.${item.changeAvailable ? ` Comparable change ${deltaMarkup}.` : rawDeltaAvailable ? ` Raw arithmetic difference ${deltaMarkup}. Publisher panels changed, so this is not a comparable trend estimate.` : ""}`
+              `${item.name}. Candidate status ${item.status}. Current ${candidateShareLabel().toLowerCase()} ${latestText}; prior ${candidateShareLabel().toLowerCase()} ${priorText}.${item.changeAvailable ? ` Comparable change ${deltaMarkup}.` : rawDeltaAvailable ? ` Raw arithmetic difference ${deltaMarkup}. Publisher panels changed, so this is not a comparable trend estimate.` : ""}`
             )}"
           >
             <strong title="${escapeAttribute(item.name)}">${escapeHtml(item.name)}</strong>
@@ -599,7 +628,7 @@
       <div
         class="tcm-volume-wrap"
         role="img"
-        aria-label="Daily accepted election coverage"
+        aria-label="${escapeAttribute(dailyCoverageAriaLabel())}"
       >
         <div class="tcm-volume-chart">
           ${bars}
@@ -631,13 +660,13 @@
       <div class="tcm-intelligence-grid">
         ${renderModule(
           "tcm-module-shift",
-          "Active-field coverage shift",
+          coverageShiftTitle(),
           candidateComparisonLabel(),
           renderPeriodLegend() +
             `<div
               class="tcm-shift-list tcm-scroll-y"
               tabindex="0"
-              aria-label="Complete active-field candidate coverage shift"
+              aria-label="${escapeAttribute(coverageShiftListAriaLabel())}"
             >${renderCoverageShiftRows()}</div>`
         )}
         ${renderModule(
@@ -835,6 +864,9 @@
   ) => {
     const mediaModel = models?.media || {};
     const agendaModel = models?.agenda || {};
+
+    raceCoverageMode =
+      mediaModel.raceCoverageMode === true;
 
     candidateProjectionAvailable =
       mediaModel.candidateCoverageAvailable === true &&

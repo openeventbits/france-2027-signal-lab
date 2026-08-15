@@ -812,6 +812,43 @@
       return undefined;
     }
 
+    const thresholds = source.thresholds;
+    let expectedStatus;
+    let expectedReason;
+
+    if (
+      source.current_exposure_count <
+        thresholds.minimum_period_exposures ||
+      source.prior_exposure_count <
+        thresholds.minimum_period_exposures ||
+      source.current_publisher_count <
+        thresholds.minimum_period_publishers ||
+      source.prior_publisher_count <
+        thresholds.minimum_period_publishers ||
+      source.common_publisher_count <
+        thresholds.minimum_common_publishers
+    ) {
+      expectedStatus = "not_comparable";
+      expectedReason = "insufficient_data";
+    } else if (
+      overlap < thresholds.minimum_publisher_overlap_ratio ||
+      exposureRatio === null ||
+      exposureRatio > thresholds.maximum_exposure_count_ratio
+    ) {
+      expectedStatus = "not_comparable";
+      expectedReason = "publisher_panel_changed";
+    } else {
+      expectedStatus = "comparable";
+      expectedReason = "comparable";
+    }
+
+    if (
+      source.status !== expectedStatus ||
+      source.reason !== expectedReason
+    ) {
+      return undefined;
+    }
+
     return cloneValue(source);
   }
 
