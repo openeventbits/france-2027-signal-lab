@@ -59,7 +59,7 @@ class TopicCoverageModalTests(unittest.TestCase):
 
     def test_modal_is_a_four_module_terminal(self):
         order = [
-            self.modal_js.index("coverageShiftTitle(),"),
+            self.modal_js.index('"Active-field coverage shift"'),
             self.modal_js.index('"Topic coverage"'),
             self.modal_js.index('"Top publishers"'),
             self.modal_js.index('"Daily volume"'),
@@ -74,53 +74,6 @@ class TopicCoverageModalTests(unittest.TestCase):
             "renderDailyVolume",
         ):
             self.assertIn(contract, self.modal_js)
-
-    def test_race_coverage_terminology_is_mode_aware(self):
-        self.assertIn(
-            "raceCoverageMode =",
-            self.modal_js,
-        )
-        self.assertIn(
-            "mediaModel.raceCoverageMode === true",
-            self.modal_js,
-        )
-
-        for current_label in (
-            "Race-attention share",
-            "Race Coverage shift",
-            "Race Attention candidate comparison unavailable.",
-            "Daily accepted France 2027 race coverage",
-            "Comparable Race Attention percentage-point change.",
-        ):
-            self.assertIn(
-                current_label,
-                self.modal_js,
-            )
-
-        for legacy_label in (
-            "Active-field candidate-linked share",
-            "Active-field coverage shift",
-            "Active-field candidate comparison unavailable.",
-            "Daily accepted election coverage",
-            "Comparable active-field percentage-point change.",
-        ):
-            self.assertIn(
-                legacy_label,
-                self.modal_js,
-            )
-
-        self.assertIn(
-            "coverageShiftTitle(),",
-            self.modal_js,
-        )
-        self.assertIn(
-            "candidateShareLabel().toLowerCase()",
-            self.modal_js,
-        )
-        self.assertIn(
-            "dailyCoverageAriaLabel()",
-            self.modal_js,
-        )
 
     def test_old_reader_controls_and_article_detail_are_removed(self):
         for forbidden in (
@@ -142,7 +95,7 @@ class TopicCoverageModalTests(unittest.TestCase):
 
     def test_complete_model_arrays_feed_scrollable_modules(self):
         for contract in (
-            "mediaModel.candidateCoverage",
+            "mediaModel.activeFieldVisibility?.primary",
             "agendaModel.topics",
             "mediaModel.publisherRanking",
             "mediaModel.dailyActivity",
@@ -176,7 +129,7 @@ class TopicCoverageModalTests(unittest.TestCase):
         ]
 
         legend_start = self.modal_js.index(
-            "const candidateShareLabel"
+            "const renderPeriodLegend"
         )
         legend_end = self.modal_js.index(
             "const renderCoverageShiftRows",
@@ -196,8 +149,9 @@ class TopicCoverageModalTests(unittest.TestCase):
         ]
 
         for contract in (
-            "mediaModel.candidateCoverage.map(normalizeCandidate)",
-            'mediaModel.comparisonQuality?.status === "comparable"',
+            "activePrimary.main.map",
+            "activePrimary.secondary.map",
+            'comparison_quality?.status === "comparable"',
             'renderGroup("main", "MAIN FIELD")',
             'renderGroup("secondary", "SECONDARY FIELD")',
             'const candidateComparisonLabel',
@@ -284,29 +238,9 @@ class TopicCoverageModalTests(unittest.TestCase):
             "item.tierLabel",
             renderer,
         )
-        self.assertIn(
+        self.assertNotIn(
             "mediaModel.candidateCoverage",
             open_block,
-        )
-        self.assertNotIn(
-            "mediaModel.activeFieldVisibility",
-            open_block,
-        )
-        self.assertNotIn(
-            "current_record_count",
-            self.modal_js,
-        )
-        self.assertNotIn(
-            "prior_record_count",
-            self.modal_js,
-        )
-        self.assertNotIn(
-            "current_exposure_count",
-            self.modal_js,
-        )
-        self.assertNotIn(
-            "prior_exposure_count",
-            self.modal_js,
         )
         self.assertNotIn(
             "candidate_watch",
@@ -318,27 +252,17 @@ let candidateProjectionAvailable = true;
 let candidateComparisonAvailable = false;
 let candidateComparisonReason =
   "publisher_panel_changed";
-let raceCoverageMode = false;
 let latestPeriodLabel = "25–31 Jul";
 let priorPeriodLabel = "18–24 Jul";
 const escapeHtml = value => String(value);
 const escapeAttribute = escapeHtml;
 """ + legend_source + r"""
 const invalid = renderPeriodLegend();
-
 candidateComparisonAvailable = true;
 candidateComparisonReason = "comparable";
 const comparable = renderPeriodLegend();
-
-raceCoverageMode = true;
-const raceComparable = renderPeriodLegend();
-
 process.stdout.write(
-  JSON.stringify({
-    invalid,
-    comparable,
-    raceComparable
-  })
+  JSON.stringify({ invalid, comparable })
 );
 """
 
@@ -376,23 +300,6 @@ process.stdout.write(
             "Comparable active-field percentage-point change.",
             rendered["comparable"],
         )
-        self.assertIn(
-            "Active-field candidate-linked share.",
-            rendered["comparable"],
-        )
-
-        self.assertIn(
-            "Comparable Race Attention percentage-point change.",
-            rendered["raceComparable"],
-        )
-        self.assertIn(
-            "Race-attention share.",
-            rendered["raceComparable"],
-        )
-        self.assertNotIn(
-            "Active-field candidate-linked share.",
-            rendered["raceComparable"],
-        )
 
     def test_candidate_projection_fallback_is_module_scoped(self):
         renderer = self.modal_js[
@@ -400,10 +307,7 @@ process.stdout.write(
             self.modal_js.index("const renderTopicRows")
         ]
         self.assertIn("candidateProjectionAvailable", renderer)
-        self.assertIn(
-            "candidateComparisonUnavailableLabel()",
-            renderer,
-        )
+        self.assertIn("Active-field candidate comparison unavailable.", renderer)
         self.assertIn("const renderTopicRows", self.modal_js)
         self.assertIn("const renderPublisherRows", self.modal_js)
         self.assertIn("const renderDailyVolume", self.modal_js)

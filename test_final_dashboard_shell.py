@@ -11,61 +11,21 @@ INDEX = ROOT / "index.html"
 HYBRID_JS = ROOT / "assets" / "hybrid-dashboard.js"
 
 
-def run_media_model_script(
-    payload,
-    expression,
-    candidate_signals=None,
-):
+def run_media_model_script(payload, expression):
     script = r"""
 const fs = require("fs");
 const vm = require("vm");
-
 let source = fs.readFileSync(
   "assets/hybrid-dashboard.js",
   "utf8"
 );
-
 source = source.replace(
   /\s+retainLegacyComparison\(\);\s+renderAll\(\);\s+window\.addEventListener\("hashchange", handleSignalHashChange\);\s+document\.addEventListener\("hybrid:dataset", renderAll\);/,
   ""
 );
-
-const input = JSON.parse(
-  fs.readFileSync(0, "utf8")
-);
-
-/*
- * Candidate Signals normally enters through the asynchronous
- * frontend loader. For this runtime contract test, replace only
- * the initial state value with the supplied already-normalized
- * state.
- */
-const candidateStatePattern =
-  /candidateSignals:\s*\{\s*status:\s*"loading",\s*candidates:\s*\[\],\s*metadata:\s*\{\},\s*reason:\s*null\s*\},/;
-
-if (
-  input.candidateSignals !== null &&
-  !candidateStatePattern.test(source)
-) {
-  throw new Error(
-    "Candidate Signals state injection point not found"
-  );
-}
-
-source = source.replace(
-  candidateStatePattern,
-  `candidateSignals:
-    globalThis.__candidateSignalsTestState || {
-      status: "loading",
-      candidates: [],
-      metadata: {},
-      reason: null
-    },`
-);
-
+const input = JSON.parse(fs.readFileSync(0, "utf8"));
 const payload = input.payload;
 const mount = {};
-
 const context = {
   console,
   URL,
@@ -79,34 +39,18 @@ const context = {
   String,
   JSON,
   Intl,
-
-  __candidateSignalsTestState:
-    input.candidateSignals,
-
-  window: {
-    location: { hash: "" },
-    addEventListener() {}
-  },
-
+  window: { location: { hash: "" }, addEventListener() {} },
   document: {
     getElementById(id) {
-      return id === "hybrid-signal-board"
-        ? mount
-        : null;
+      return id === "hybrid-signal-board" ? mount : null;
     },
     addEventListener() {},
-    querySelector() {
-      return null;
-    }
+    querySelector() { return null; }
   },
-
   dashboardState: {
-    loadState: {
-      news: "ready"
-    },
+    loadState: { news: "ready" },
     news: payload
   },
-
   candidatePortraits: {},
   newestNewsItems: values => values,
   formatScore: value => String(value),
@@ -117,40 +61,23 @@ const context = {
   formatRunoffFieldwork: value => String(value),
   safeSourceUrl: value => String(value)
 };
-
-vm.runInNewContext(
-  source,
-  context
-);
-
-const api =
-  context.window.hybridDashboard;
-
-const result =
-  eval(input.expression);
-
-process.stdout.write(
-  JSON.stringify(result)
-);
+vm.runInNewContext(source, context);
+const api = context.window.hybridDashboard;
+const result = eval(input.expression);
+process.stdout.write(JSON.stringify(result));
 """
-
     completed = subprocess.run(
         ["node", "-e", script],
-        input=json.dumps({
-            "payload": payload,
-            "expression": expression,
-            "candidateSignals": candidate_signals,
-        }),
+        input=json.dumps(
+            {"payload": payload, "expression": expression}
+        ),
         cwd=ROOT,
         text=True,
         encoding="utf-8",
         capture_output=True,
         check=True,
     )
-
-    return json.loads(
-        completed.stdout
-    )
+    return json.loads(completed.stdout)
 
 
 def agenda_evolution_payload():
@@ -1034,63 +961,6 @@ class FinalDashboardShellTests(unittest.TestCase):
             )
 
 
-    def test_top_media_terminology_follows_race_coverage_mode(self):
-        start = self.js.index(
-            "function renderTopMediaPulsePanel("
-        )
-        end = self.js.index(
-            "function renderTopMediaPulse(",
-            start,
-        )
-        renderer = self.js[start:end]
-
-        self.assertIn(
-            "model.raceCoverageMode === true",
-            renderer,
-        )
-
-        for current_label in (
-            "Latest race coverage",
-            "Race Coverage shift",
-            "Race-attention share",
-            "Race Attention candidate comparison unavailable.",
-        ):
-            self.assertIn(
-                current_label,
-                renderer,
-            )
-
-        for legacy_label in (
-            "Latest election coverage",
-            "Active-field coverage shift",
-            "Active-field candidate-linked share",
-            "Active-field candidate comparison unavailable.",
-        ):
-            self.assertIn(
-                legacy_label,
-                renderer,
-            )
-
-        presentation_start = self.js.index(
-            "function topMediaComparisonPresentation("
-        )
-        presentation_end = self.js.index(
-            "function syncTopMediaShiftQualityLabel(",
-            presentation_start,
-        )
-        presentation = self.js[
-            presentation_start:presentation_end
-        ]
-
-        self.assertIn(
-            "Comparable Race Attention percentage-point change.",
-            presentation,
-        )
-        self.assertIn(
-            "Comparable active-field percentage-point change.",
-            presentation,
-        )
-
     def test_top_media_uses_mockup_visual_cues(self):
         self.assertIn(
             "30-day activity · 14-day recent",
@@ -1270,348 +1140,21 @@ class FinalDashboardShellTests(unittest.TestCase):
         )
 
 
-    def test_media_view_model_executes_legacy_13_and_race_14_contracts(self):
-        legacy_news = {
-            "schema_version": "1",
-            "generated_at": "2026-08-01T12:00:00Z",
-            "window_days": 14,
-            "election_news": [
-                {
-                    "id": "legacy-news",
-                    "published_at": "2026-08-01T10:00:00Z",
-                    "publisher": "Legacy Election Publisher",
-                }
-            ],
-            "relevant_news": [
-                {
-                    "id": "wrong-race-source",
-                    "published_at": "2026-08-01T11:00:00Z",
-                    "publisher": "Wrong Race Publisher",
-                }
-            ],
-            "candidate_watch": [],
-            "counts": {
-                "election_news": 1,
-            },
-            "campaign_agenda": {
-                "topics": [],
-            },
-        }
-
-        legacy_primary = {
-            "current_period": {
-                "start_date": "2026-07-26",
-                "end_date": "2026-08-01",
-                "record_count": 10,
-                "publisher_count": 5,
-            },
-            "prior_period": {
-                "start_date": "2026-07-19",
-                "end_date": "2026-07-25",
-                "record_count": 20,
-                "publisher_count": 5,
-            },
-            "comparison_quality": {
-                "status": "comparable",
-                "reason": "comparable",
-            },
-            "main": [
-                {
-                    "candidate_id": "legacy-candidate",
-                    "candidate_name": "Legacy Candidate",
-                    "status": "declared",
-                    "display_tier": "main",
-                    "current_record_count": 3,
-                    "current_share": 0.3,
-                    "prior_record_count": 4,
-                    "prior_share": 0.2,
-                    "share_change": 0.1,
-                }
-            ],
-            "secondary": [],
-        }
-
-        legacy_state = {
-            "status": "ready",
-            "candidates": [],
-            "metadata": {
-                "schema_version": "1.3",
-                "activeFieldVisibility": {
-                    "method": (
-                        "share_of_active_candidate_linked_records"
-                    ),
-                    "denominator_scope": (
-                        "records_linked_to_at_least_one_"
-                        "active_monitoring_candidate"
-                    ),
-                    "status_as_of": "2026-08-01",
-                    "primary": legacy_primary,
-                    "general": {
-                        **legacy_primary,
-                        "main": [],
-                    },
-                },
-            },
-            "reason": None,
-        }
-
-        legacy = run_media_model_script(
-            legacy_news,
-            "api.buildMediaViewModel()",
-            legacy_state,
-        )
-
-        self.assertFalse(
-            legacy["raceCoverageMode"]
-        )
-        self.assertEqual(
-            legacy["candidateCoverageUnit"],
-            "records",
-        )
-        self.assertEqual(
-            legacy["candidateCoverageScopeLabel"],
-            "active-field candidate-linked",
-        )
-        self.assertEqual(
-            legacy["latestCandidateArticleCount"],
-            10,
-        )
-        self.assertEqual(
-            legacy["previousCandidateArticleCount"],
-            20,
-        )
-        self.assertEqual(
-            legacy["candidateCoverage"][0]["latestCount"],
-            3,
-        )
-        self.assertEqual(
-            legacy["candidateCoverage"][0]["previousCount"],
-            4,
-        )
-        self.assertEqual(
-            legacy["candidateCoverage"][0]["latestShare"],
-            30,
-        )
-        self.assertEqual(
-            legacy["candidateCoverage"][0]["previousShare"],
-            20,
-        )
-        self.assertEqual(
-            legacy["candidateCoverage"][0]["delta"],
-            10,
-        )
-        self.assertEqual(
-            legacy["feedItems"][0]["publisher"],
-            "Legacy Election Publisher",
-        )
-
-        race_news = {
-            "schema_version": "2",
-            "generated_at": "2026-08-14T12:00:00Z",
-            "window_days": 14,
-            "election_news": [
-                {
-                    "id": "wrong-legacy-source",
-                    "published_at": "2026-08-14T09:00:00Z",
-                    "publisher": "Wrong Legacy Publisher",
-                }
-            ],
-            "relevant_news": [
-                {
-                    "id": "race-news",
-                    "published_at": "2026-08-14T10:00:00Z",
-                    "publisher": "Race Coverage Publisher",
-                }
-            ],
-            "candidate_watch": [],
-            "counts": {
-                "election_news": 999,
-            },
-            "campaign_agenda": {
-                "topics": [],
-            },
-        }
-
-        race_scope = {
-            "current_period": {
-                "start_date": "2026-08-08",
-                "end_date": "2026-08-14",
-                "record_count": 99,
-                "exposure_count": 10,
-                "publisher_count": 5,
-                "story_count": 8,
-            },
-            "prior_period": {
-                "start_date": "2026-08-01",
-                "end_date": "2026-08-07",
-                "record_count": 88,
-                "exposure_count": 5,
-                "publisher_count": 5,
-                "story_count": 5,
-            },
-            "comparison_quality": {
-                "status": "comparable",
-                "reason": "comparable",
-            },
-            "main": [
-                {
-                    "candidate_id": "race-candidate",
-                    "candidate_name": "Race Candidate",
-                    "status": "declared",
-                    "display_tier": "main",
-
-                    # Deliberately unlike exposure counts.
-                    "current_record_count": 50,
-                    "current_exposure_count": 4,
-                    "current_share": 0.4,
-                    "current_publisher_count": 4,
-                    "current_story_count": 4,
-                    "current_observation_state": (
-                        "observed_positive"
-                    ),
-
-                    "prior_record_count": 40,
-                    "prior_exposure_count": 2,
-                    "prior_share": 0.4,
-                    "prior_publisher_count": 2,
-                    "prior_story_count": 2,
-                    "prior_observation_state": (
-                        "observed_positive"
-                    ),
-
-                    "share_change": 0.0,
-                }
-            ],
-            "secondary": [],
-        }
-
-        race_state = {
-            "status": "ready",
-            "candidates": [],
-            "metadata": {
-                "schema_version": "1.4",
-                "activeFieldVisibility": {
-                    "method": (
-                        "share_of_active_candidate_"
-                        "publisher_story_race_exposures"
-                    ),
-                    "denominator_scope": (
-                        "publisher_story_race_exposures_"
-                        "linked_by_article_local_matches_"
-                        "to_at_least_one_active_monitoring_candidate"
-                    ),
-                    "status_as_of": "2026-08-06",
-                    "race_attention": race_scope,
-                },
-            },
-            "reason": None,
-        }
-
-        race = run_media_model_script(
-            race_news,
-            "api.buildMediaViewModel()",
-            race_state,
-        )
-
-        self.assertTrue(
-            race["raceCoverageMode"]
-        )
-        self.assertEqual(
-            race["candidateCoverageUnit"],
-            "exposures",
-        )
-        self.assertEqual(
-            race["candidateCoverageScopeLabel"],
-            "race-attention",
-        )
-
-        # Must use exposure denominators, not record denominators.
-        self.assertEqual(
-            race["latestCandidateArticleCount"],
-            10,
-        )
-        self.assertEqual(
-            race["previousCandidateArticleCount"],
-            5,
-        )
-
-        # Must use candidate exposure counts, not record counts.
-        self.assertEqual(
-            race["candidateCoverage"][0]["latestCount"],
-            4,
-        )
-        self.assertEqual(
-            race["candidateCoverage"][0]["previousCount"],
-            2,
-        )
-
-        self.assertEqual(
-            race["candidateCoverage"][0]["latestShare"],
-            40,
-        )
-        self.assertEqual(
-            race["candidateCoverage"][0]["previousShare"],
-            40,
-        )
-        self.assertEqual(
-            race["candidateCoverage"][0]["delta"],
-            0,
-        )
-
-        self.assertEqual(
-            race["feedItems"][0]["publisher"],
-            "Race Coverage Publisher",
-        )
-        self.assertEqual(
-            race["electionNewsCount"],
-            1,
-        )
-
-    def test_candidate_coverage_consumes_versioned_active_projection_only(self):
+    def test_candidate_coverage_consumes_active_projection_only(self):
         for contract in (
             "state.candidateSignals.metadata?.activeFieldVisibility",
-            "const usesRaceCoverageV2 =",
-            "activeFieldVisibility?.race_attention || null",
-            "activeFieldVisibility?.primary || null",
+            "const activePrimary = activeFieldVisibility?.primary || null;",
             "...activePrimary.main.map",
             "...activePrimary.secondary.map",
             "candidateCoverageAvailable,",
             "activeFieldVisibility,",
-            "candidateCoverage:",
-            "candidateCoverageShares,",
         ):
             self.assertIn(contract, self.js)
-
         model = self.js[
             self.js.index("function buildMediaViewModel()"):
             self.js.index("function buildAgendaViewModel()")
         ]
-
-        self.assertIn(
-            'String(payload.schema_version || "") === "2"',
-            model,
-        )
-        self.assertIn(
-            'candidateSignalsSchema === "1.4"',
-            model,
-        )
-        self.assertIn(
-            "usesRaceCoverageV2",
-            model,
-        )
-        self.assertIn(
-            "activeFieldVisibility?.race_attention || null",
-            model,
-        )
-        self.assertIn(
-            "activeFieldVisibility?.primary || null",
-            model,
-        )
-
-        self.assertNotIn(
-            "resolveCandidateVisibility(payload)",
-            model,
-        )
+        self.assertNotIn("resolveCandidateVisibility(payload)", model)
 
     def test_active_projection_unavailable_is_scoped_without_raw_fallback(self):
         model = self.js[
@@ -1827,92 +1370,46 @@ class FinalDashboardShellTests(unittest.TestCase):
             {"malformedRejected": True, "status": "comparable"},
         )
 
-    def test_active_race_rows_render_raw_period_differences(self):
+    def test_primary_active_rows_render_raw_period_differences(self):
         payload = json.loads(
             (ROOT / "candidate_signals.json").read_text(
                 encoding="utf-8"
             )
         )
-
-        self.assertEqual(
-            payload["schema_version"],
-            "1.4",
-        )
-
-        scope = payload[
+        primary = payload[
             "active_field_visibility"
-        ]["race_attention"]
+        ]["primary"]
 
-        quality = scope["comparison_quality"]
-        rows = (
-            scope["main"]
-            + scope["secondary"]
-        )
-
+        quality = primary["comparison_quality"]
+        rows = primary["main"] + primary["secondary"]
         self.assertTrue(rows)
-
-        current_count = scope[
-            "current_period"
-        ]["exposure_count"]
-
-        prior_count = scope[
-            "prior_period"
-        ]["exposure_count"]
-
-        round_ratio = lambda value: (
-            int(value * 1000 + 0.5)
-            / 1000
-        )
-
+        current_count = primary["current_period"]["record_count"]
+        prior_count = primary["prior_period"]["record_count"]
+        round_ratio = lambda value: int(value * 1000 + 0.5) / 1000
         for row in rows:
             expected_current = (
-                round_ratio(
-                    row["current_exposure_count"]
-                    / current_count
-                )
+                round_ratio(row["current_record_count"] / current_count)
                 if current_count
                 else None
             )
-
             expected_prior = (
-                round_ratio(
-                    row["prior_exposure_count"]
-                    / prior_count
-                )
+                round_ratio(row["prior_record_count"] / prior_count)
                 if prior_count
                 else None
             )
-
-            self.assertEqual(
-                row["current_share"],
-                expected_current,
-            )
-            self.assertEqual(
-                row["prior_share"],
-                expected_prior,
-            )
-
+            self.assertEqual(row["current_share"], expected_current)
+            self.assertEqual(row["prior_share"], expected_prior)
             if (
                 quality["status"] == "comparable"
                 and expected_current is not None
                 and expected_prior is not None
             ):
-                self.assertIsNotNone(
-                    row["share_change"]
-                )
+                self.assertIsNotNone(row["share_change"])
             else:
-                self.assertIsNone(
-                    row["share_change"]
-                )
-
+                self.assertIsNone(row["share_change"])
         self.assertFalse(
-            set(
-                payload["presidential_field"]["hidden"]
-            )
-            & {
-                row["candidate_id"]
-                for row in rows
-            }
+            set(payload["presidential_field"]["hidden"])
+            & {row["candidate_id"] for row in rows}
         )
 
         renderer = self.js[
@@ -1949,68 +1446,42 @@ class FinalDashboardShellTests(unittest.TestCase):
             sync_start:renderer_start
         ]
 
-        script = (
-            presentation_source
-            + sync_source
-            + r"""
+        script = presentation_source + sync_source + r"""
 const selector =
   ".top-media-shift .top-media-section-heading::after";
-
 const contentRule = {
   selectorText: selector,
   style: { content: '"Δ pp"' }
 };
-
 const layoutRule = {
   selectorText: selector,
   style: { content: "" }
 };
-
 const document = {
   styleSheets: [
-    {
-      cssRules: [
-        contentRule,
-        layoutRule
-      ]
-    }
+    { cssRules: [contentRule, layoutRule] }
   ]
 };
-
-const invalid =
-  topMediaComparisonPresentation({
-    candidateCoverageAvailable: true,
-    comparisonQuality: {
-      status: "not_comparable",
-      reason: "publisher_panel_changed"
-    }
-  });
-
-const comparable =
-  topMediaComparisonPresentation({
-    candidateCoverageAvailable: true,
-    comparisonQuality: {
-      status: "comparable",
-      reason: "comparable"
-    }
-  });
-
+const invalid = topMediaComparisonPresentation({
+  candidateCoverageAvailable: true,
+  comparisonQuality: {
+    status: "not_comparable",
+    reason: "publisher_panel_changed"
+  }
+});
+const comparable = topMediaComparisonPresentation({
+  candidateCoverageAvailable: true,
+  comparisonQuality: {
+    status: "comparable",
+    reason: "comparable"
+  }
+});
 const invalidUpdates =
-  syncTopMediaShiftQualityLabel(
-    invalid.label
-  );
-
-const invalidContent =
-  contentRule.style.content;
-
+  syncTopMediaShiftQualityLabel(invalid.label);
+const invalidContent = contentRule.style.content;
 const comparableUpdates =
-  syncTopMediaShiftQualityLabel(
-    comparable.label
-  );
-
-const comparableContent =
-  contentRule.style.content;
-
+  syncTopMediaShiftQualityLabel(comparable.label);
+const comparableContent = contentRule.style.content;
 process.stdout.write(JSON.stringify({
   invalid,
   comparable,
@@ -2020,7 +1491,6 @@ process.stdout.write(JSON.stringify({
   comparableContent
 }));
 """
-        )
 
         completed = subprocess.run(
             ["node", "-"],
@@ -2044,15 +1514,11 @@ process.stdout.write(JSON.stringify({
         )
         self.assertIn(
             "Raw arithmetic current-minus-prior",
-            presentation[
-                "invalid"
-            ]["explanation"],
+            presentation["invalid"]["explanation"],
         )
         self.assertIn(
             "reason: publisher_panel_changed",
-            presentation[
-                "invalid"
-            ]["explanation"],
+            presentation["invalid"]["explanation"],
         )
         self.assertEqual(
             presentation["invalidUpdates"],
@@ -2063,9 +1529,7 @@ process.stdout.write(JSON.stringify({
             f'"{raw_label}"',
         )
         self.assertEqual(
-            presentation[
-                "comparable"
-            ]["label"],
+            presentation["comparable"]["label"],
             "Δ pp",
         )
         self.assertEqual(
@@ -2078,9 +1542,7 @@ process.stdout.write(JSON.stringify({
         )
 
         self.assertEqual(
-            self.html.count(
-                'content: "Δ pp";'
-            ),
+            self.html.count('content: "Δ pp";'),
             1,
         )
         self.assertIn(
@@ -2124,80 +1586,90 @@ process.stdout.write(JSON.stringify({
             row_renderer,
         )
 
-    def test_general_coverage_contract_matches_schema_generation(self):
+    def test_general_active_rows_suppress_unavailable_change(self):
         payload = json.loads(
             (ROOT / "candidate_signals.json").read_text(
                 encoding="utf-8"
             )
         )
+        general = payload["active_field_visibility"]["general"]
+        quality = general["comparison_quality"]
+        thresholds = quality["thresholds"]
+
+        self.assertEqual(quality["status"], "not_comparable")
+        self.assertEqual(
+            quality["reason"],
+            "publisher_panel_changed",
+        )
+        self.assertEqual(
+            thresholds,
+            {
+                "minimum_period_records": 10,
+                "minimum_period_publishers": 5,
+                "minimum_common_publishers": 5,
+                "minimum_publisher_overlap_ratio": 0.5,
+                "maximum_record_count_ratio": 2.0,
+            },
+        )
+
+        self.assertGreaterEqual(
+            quality["current_record_count"],
+            thresholds["minimum_period_records"],
+        )
+        self.assertGreaterEqual(
+            quality["prior_record_count"],
+            thresholds["minimum_period_records"],
+        )
+        self.assertGreaterEqual(
+            quality["current_publisher_count"],
+            thresholds["minimum_period_publishers"],
+        )
+        self.assertGreaterEqual(
+            quality["prior_publisher_count"],
+            thresholds["minimum_period_publishers"],
+        )
+        self.assertGreaterEqual(
+            quality["common_publisher_count"],
+            thresholds["minimum_common_publishers"],
+        )
+        self.assertLess(
+            quality["publisher_overlap_ratio"],
+            thresholds["minimum_publisher_overlap_ratio"],
+        )
+        self.assertLessEqual(
+            quality["record_count_ratio"],
+            thresholds["maximum_record_count_ratio"],
+        )
 
         self.assertEqual(
-            payload["schema_version"],
-            "1.4",
+            quality["publisher_overlap_ratio"],
+            round(
+                quality["common_publisher_count"]
+                / quality["publisher_union_count"],
+                3,
+            ),
+        )
+        self.assertEqual(
+            quality["record_count_ratio"],
+            round(
+                max(
+                    quality["current_record_count"],
+                    quality["prior_record_count"],
+                )
+                / min(
+                    quality["current_record_count"],
+                    quality["prior_record_count"],
+                ),
+                3,
+            ),
         )
 
-        active = payload[
-            "active_field_visibility"
-        ]
-
-        self.assertNotIn(
-            "general",
-            active,
-        )
-        self.assertIn(
-            "race_attention",
-            active,
+        rows = general["main"] + general["secondary"]
+        self.assertTrue(rows)
+        self.assertTrue(
+            all(row["share_change"] is None for row in rows)
         )
 
-        for candidate in payload["candidates"]:
-            general = candidate[
-                "general_visibility"
-            ]
-
-            self.assertEqual(
-                set(general),
-                {
-                    "evidence_state",
-                    "record_count",
-                    "publisher_count",
-                },
-            )
-            self.assertNotIn(
-                "share",
-                general,
-            )
-
-            if (
-                general["evidence_state"]
-                == "not_observed"
-            ):
-                self.assertIsNone(
-                    general["record_count"]
-                )
-                self.assertIsNone(
-                    general["publisher_count"]
-                )
-            else:
-                self.assertEqual(
-                    general["evidence_state"],
-                    "reported",
-                )
-                self.assertIsInstance(
-                    general["record_count"],
-                    int,
-                )
-                self.assertIsInstance(
-                    general["publisher_count"],
-                    int,
-                )
-                self.assertGreaterEqual(
-                    general["record_count"],
-                    0,
-                )
-                self.assertGreaterEqual(
-                    general["publisher_count"],
-                    0,
-                )
 
 class BoundedTopRowPolishTests(unittest.TestCase):
     @classmethod

@@ -39,7 +39,6 @@ from candidate_attention_contract import (
     CandidateAttentionContractError,
     validate_candidate_attention,
 )
-from candidate_identity import normalized_candidate_key
 from campaign_events_contract import (
     CampaignEventsContractError,
     validate_campaign_events_artifact,
@@ -430,7 +429,7 @@ def _validate_featured_poll_board_public(
 
 def _validate_candidate_signals_public(payload: Any) -> int:
     schema_version = payload.get("schema_version") if isinstance(payload, dict) else None
-    if schema_version == "1.4":
+    if schema_version == "1.3":
         try:
             validate_candidate_signals(payload)
         except CandidateSignalsError as error:
@@ -438,69 +437,49 @@ def _validate_candidate_signals_public(payload: Any) -> int:
                 f"candidate_signals invalid structure: {error}"
             ) from error
         return payload["candidate_universe"]["count"]
-    if schema_version not in {"1.2", "1.3"}:
+    if schema_version != "1.2":
         raise ManifestError(
-            "candidate_signals.schema_version must equal 1.2, 1.3, or 1.4"
+            "candidate_signals.schema_version must equal 1.2 or 1.3"
         )
 
-    # Migration compatibility for tracked schema-1.2/1.3 artifacts. The
-    # authoritative builder validates schema 1.4 above; this frozen path keeps
-    # an already-published bundle buildable without rewriting production JSON.
-    top_keys = {
-        "schema_version",
-        "candidate_universe",
-        "presidential_field",
-        "active_field_visibility",
-        "featured_polling_package",
-        "featured_poll_board",
-        "visibility",
-        "scrutiny_window",
-        "evidence_dates",
-        "candidates",
-    }
-    if schema_version == "1.3":
-        top_keys.add("active_monitoring_field")
+    # Temporary migration compatibility for the tracked schema-1.2 artifact.
     value = _required_object(
         payload,
         field="candidate_signals",
-        keys=top_keys,
-    )
-    universe_keys = (
-        {"source", "rule", "status_as_of", "count"}
-        if schema_version == "1.3"
-        else {"rule", "as_of_date", "cutoff_date", "count"}
+        keys={
+            "schema_version",
+            "candidate_universe",
+            "presidential_field",
+            "active_field_visibility",
+            "featured_polling_package",
+            "featured_poll_board",
+            "visibility",
+            "scrutiny_window",
+            "evidence_dates",
+            "candidates",
+        },
     )
     universe = _required_object(
         value["candidate_universe"],
         field="candidate_signals.candidate_universe",
-        keys=universe_keys,
+        keys={"rule", "as_of_date", "cutoff_date", "count"},
     )
     _required_text(
         universe["rule"],
         field="candidate_signals.candidate_universe.rule",
     )
-    if schema_version == "1.3":
-        _required_text(
-            universe["source"],
-            field="candidate_signals.candidate_universe.source",
+    as_of_date = _calendar_date(
+        universe["as_of_date"],
+        field="candidate_signals.candidate_universe.as_of_date",
+    )
+    cutoff_date = _calendar_date(
+        universe["cutoff_date"],
+        field="candidate_signals.candidate_universe.cutoff_date",
+    )
+    if cutoff_date > as_of_date:
+        raise ManifestError(
+            "candidate_signals.candidate_universe cutoff follows as-of date"
         )
-        _calendar_date(
-            universe["status_as_of"],
-            field="candidate_signals.candidate_universe.status_as_of",
-        )
-    else:
-        as_of_date = _calendar_date(
-            universe["as_of_date"],
-            field="candidate_signals.candidate_universe.as_of_date",
-        )
-        cutoff_date = _calendar_date(
-            universe["cutoff_date"],
-            field="candidate_signals.candidate_universe.cutoff_date",
-        )
-        if cutoff_date > as_of_date:
-            raise ManifestError(
-                "candidate_signals.candidate_universe cutoff follows as-of date"
-            )
     candidate_count = _required_count(
         universe["count"],
         field="candidate_signals.candidate_universe.count",
@@ -837,7 +816,7 @@ def _validate_candidacy_status_parity(
         raise ManifestError(
             "candidate_signals presidential_field does not match registry"
         )
-    if schema_version in {"1.3", "1.4"} and (
+    if schema_version == "1.3" and (
         candidate_signals.get("active_monitoring_field") != expected_active
     ):
         raise ManifestError(
@@ -857,7 +836,7 @@ def _validate_candidacy_status_parity(
             "source_publisher": source["source_publisher"],
             "status_note": source["status_note"],
         }
-        if schema_version in {"1.3", "1.4"}:
+        if schema_version == "1.3":
             expected_candidacy["upstream_presence"] = source.get(
                 "upstream_presence", "present"
             )
@@ -928,197 +907,18 @@ def _validate_campaign_event_identity_parity(registry: Any, events: Any) -> None
                 )
 
 
-LEGACY_ACTIVE_VISIBILITY_THRESHOLDS = {
-    "minimum_period_records": 10,
-    "minimum_period_publishers": 5,
-    "minimum_common_publishers": 5,
-    "minimum_publisher_overlap_ratio": 0.5,
-    "maximum_record_count_ratio": 2.0,
-}
-
-
-def _legacy_active_field_visibility(
-    registry: dict[str, Any],
-    news: dict[str, Any],
-) -> dict[str, Any]:
-    """Reproduce the frozen schema-1.2/1.3 record-share projection."""
-
-    field = project_active_monitoring_field(registry)
-    registry_by_id = candidacy_status_by_id(registry)
-    active_ids = [
-        identifier
-        for tier in ("main", "secondary")
-        for identifier in field[tier]
-    ]
-    active_by_key = {
-        normalized_candidate_key(registry_by_id[identifier]["candidate_name"]): identifier
-        for identifier in active_ids
-    }
-    visibility = news["candidate_visibility"]
-    records = news.get("candidate_watch", [])
-
-    def collect(source: dict[str, Any], scopes: set[str]) -> dict[str, Any]:
-        start = datetime.strptime(source["start_date"], "%Y-%m-%d").date()
-        end = datetime.strptime(source["end_date"], "%Y-%m-%d").date()
-        denominator_ids: set[str] = set()
-        publishers: set[str] = set()
-        candidate_ids = {identifier: set() for identifier in active_ids}
-        for record in records:
-            try:
-                published = datetime.fromisoformat(
-                    record["published_at"].replace("Z", "+00:00")
-                ).date()
-            except (KeyError, TypeError, ValueError):
-                continue
-            if record.get("coverage_scope") not in scopes or not start <= published <= end:
-                continue
-            matched = {
-                active_by_key[key]
-                for name in record.get("candidates", [])
-                if (key := normalized_candidate_key(name)) in active_by_key
-            }
-            if not matched:
-                continue
-            record_id = record.get("id")
-            publisher = record.get("publisher")
-            if not isinstance(record_id, str) or not isinstance(publisher, str):
-                continue
-            denominator_ids.add(record_id)
-            publishers.add(publisher)
-            for identifier in matched:
-                candidate_ids[identifier].add(record_id)
-        return {
-            "start_date": source["start_date"],
-            "end_date": source["end_date"],
-            "record_count": len(denominator_ids),
-            "publisher_count": len(publishers),
-            "publishers": publishers,
-            "candidate_ids": candidate_ids,
-        }
-
-    def quality(current: dict[str, Any], prior: dict[str, Any]) -> dict[str, Any]:
-        current_publishers = current["publishers"]
-        prior_publishers = prior["publishers"]
-        common = len(current_publishers & prior_publishers)
-        union = len(current_publishers | prior_publishers)
-        overlap = round(common / union if union else 0.0, 3)
-        current_count = current["record_count"]
-        prior_count = prior["record_count"]
-        ratio = (
-            round(max(current_count, prior_count) / min(current_count, prior_count), 3)
-            if current_count and prior_count
-            else None
-        )
-        thresholds = LEGACY_ACTIVE_VISIBILITY_THRESHOLDS
-        if (
-            current_count < thresholds["minimum_period_records"]
-            or prior_count < thresholds["minimum_period_records"]
-            or len(current_publishers) < thresholds["minimum_period_publishers"]
-            or len(prior_publishers) < thresholds["minimum_period_publishers"]
-            or common < thresholds["minimum_common_publishers"]
-        ):
-            status, reason = "not_comparable", "insufficient_data"
-        elif (
-            overlap < thresholds["minimum_publisher_overlap_ratio"]
-            or ratio is None
-            or ratio > thresholds["maximum_record_count_ratio"]
-        ):
-            status, reason = "not_comparable", "publisher_panel_changed"
-        else:
-            status, reason = "comparable", "comparable"
-        return {
-            "status": status,
-            "reason": reason,
-            "current_record_count": current_count,
-            "prior_record_count": prior_count,
-            "current_publisher_count": len(current_publishers),
-            "prior_publisher_count": len(prior_publishers),
-            "common_publisher_count": common,
-            "publisher_union_count": union,
-            "publisher_overlap_ratio": overlap,
-            "record_count_ratio": ratio,
-            "thresholds": dict(thresholds),
-        }
-
-    def scope(current_name: str, prior_name: str, scopes: set[str]) -> dict[str, Any]:
-        current = collect(visibility[current_name], scopes)
-        prior = collect(visibility[prior_name], scopes)
-        comparison = quality(current, prior)
-        rows: dict[str, list[dict[str, Any]]] = {"main": [], "secondary": []}
-        for tier in ("main", "secondary"):
-            for identifier in field[tier]:
-                candidate = registry_by_id[identifier]
-                current_count = len(current["candidate_ids"][identifier])
-                prior_count = len(prior["candidate_ids"][identifier])
-                current_share = (
-                    round(current_count / current["record_count"], 3)
-                    if current["record_count"] else None
-                )
-                prior_share = (
-                    round(prior_count / prior["record_count"], 3)
-                    if prior["record_count"] else None
-                )
-                share_change = (
-                    round(current_share - prior_share, 3)
-                    if comparison["status"] == "comparable"
-                    and current_share is not None and prior_share is not None
-                    else None
-                )
-                rows[tier].append({
-                    "candidate_id": identifier,
-                    "candidate_name": candidate["candidate_name"],
-                    "status": candidate["status"],
-                    "display_tier": tier,
-                    "current_record_count": current_count,
-                    "current_share": current_share,
-                    "prior_record_count": prior_count,
-                    "prior_share": prior_share,
-                    "share_change": share_change,
-                })
-            rows[tier].sort(key=lambda row: (
-                row["current_share"] is None,
-                -(row["current_share"] or 0),
-                -row["current_record_count"],
-                row["prior_share"] is None,
-                -(row["prior_share"] or 0),
-                -row["prior_record_count"],
-                row["candidate_name"].casefold(),
-                row["candidate_id"],
-            ))
-        public_fields = ("start_date", "end_date", "record_count", "publisher_count")
-        return {
-            "current_period": {name: current[name] for name in public_fields},
-            "prior_period": {name: prior[name] for name in public_fields},
-            "comparison_quality": comparison,
-            "main": rows["main"],
-            "secondary": rows["secondary"],
-        }
-
-    return {
-        "method": "share_of_active_candidate_linked_records",
-        "denominator_scope": "records_linked_to_at_least_one_active_monitoring_candidate",
-        "status_as_of": registry["status_as_of"],
-        "primary": scope("current_period", "prior_period", {"election", "campaign"}),
-        "general": scope("general_current_period", "general_prior_period", {"general"}),
-    }
-
-
 def _validate_active_field_visibility_parity(
     registry: Any,
     candidate_signals: Any,
     news: Any,
 ) -> None:
     try:
-        schema_version = candidate_signals.get("schema_version")
-        if schema_version in {"1.2", "1.3"}:
-            expected = _legacy_active_field_visibility(registry, news)
-        else:
-            expected = derive_active_field_visibility(
-                news,
-                project_active_monitoring_field(registry),
-                registry,
-            )
-        if schema_version == "1.2":
+        expected = derive_active_field_visibility(
+            news,
+            project_active_monitoring_field(registry),
+            registry,
+        )
+        if candidate_signals.get("schema_version") == "1.2":
             expected["denominator_scope"] = (
                 "records_linked_to_at_least_one_main_or_secondary_candidate"
             )

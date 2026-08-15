@@ -1140,7 +1140,7 @@ class NewsWireRelevanceTests(unittest.TestCase):
         invalid_item["candidate_matches"] = []
         with self.assertRaisesRegex(
             RuntimeError,
-            "Race Attention derivation",
+            "candidates disagree with candidate_matches",
         ):
             validate_output(invalid)
 
@@ -1449,9 +1449,9 @@ class NewsWireRelevanceTests(unittest.TestCase):
         )
         self.assertIsNone(result)
 
-    def test_material_development_gate_rejects_generic_legal_actions(self):
+    def test_material_development_gate_accepts_actions_and_rejects_mentions(self):
         source = {"politics_specific": True}
-        generic_legal = classify_notable_development(
+        accepted = classify_notable_development(
             normalize("Edouard Philippe echoue a faire annuler le statut de la lanceuse d alerte"),
             ["Edouard Philippe"],
             source,
@@ -1461,7 +1461,8 @@ class NewsWireRelevanceTests(unittest.TestCase):
             ["Marine Le Pen", "Jordan Bardella"],
             source,
         )
-        self.assertIsNone(generic_legal)
+        self.assertIsNotNone(accepted)
+        self.assertEqual(accepted["id"], "legal_eligibility")
         self.assertIsNone(rejected)
 
 
@@ -1514,14 +1515,9 @@ class NewsWireRelevanceTests(unittest.TestCase):
                 "candidacies_endorsements",
             ),
             (
-                "Edouard Philippe reste eligible a la presidentielle apres "
-                "la decision de justice",
+                "Vise par une enquete Edouard Philippe echoue a faire annuler "
+                "le statut de la lanceuse d alerte",
                 ["Édouard Philippe"],
-                "legal_eligibility",
-            ),
-            (
-                "Marine Le Pen devient ineligible et ne peut plus etre candidate",
-                ["Marine Le Pen"],
                 "legal_eligibility",
             ),
             (
@@ -1609,21 +1605,21 @@ class NewsWireRelevanceTests(unittest.TestCase):
 
     def test_structured_electoral_support_accepts_electoral_destinations(self):
         cases = [
-            ("François Hollande annonce son soutien à la candidature présidentielle de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
-            ("François Hollande soutient la candidature présidentielle de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
-            ("Le Parti socialiste apporte son soutien au candidat à la présidentielle", []),
+            ("François Hollande annonce son soutien à la candidature de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande soutient la candidature de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le parti apporte son soutien au candidat", []),
             ("François Hollande se rallie à Raphaël Glucksmann pour la présidentielle", ["François Hollande", "Raphaël Glucksmann"]),
-            ("François Hollande officialise son ralliement à Raphaël Glucksmann pour la présidentielle", ["François Hollande", "Raphaël Glucksmann"]),
-            ("François Hollande appelle à voter pour Raphaël Glucksmann au second tour de la présidentielle", ["François Hollande", "Raphaël Glucksmann"]),
-            ("François Hollande soutient Raphaël Glucksmann au second tour de la présidentielle", ["François Hollande", "Raphaël Glucksmann"]),
-            ("Le soutien d'Elon Musk au RN relance la campagne présidentielle de Marine Le Pen", ["Marine Le Pen"]),
-            ('"Marine Le Pen est le dernier espoir de la France": le soutien d\'Elon Musk à la candidature présidentielle de Marine Le Pen provoque des accusations d\'"ingérence étrangère"', ["Marine Le Pen"]),
-            ("Les élus RN de la région dieppoise au soutien de la candidature présidentielle de Marine Le Pen", ["Marine Le Pen"]),
-            ("Le soutien de François Hollande à la candidature présidentielle de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
-            ("Le ralliement de François Hollande à Marine Le Pen pour la présidentielle", ["François Hollande", "Marine Le Pen"]),
+            ("François Hollande officialise son ralliement à Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande appelle à voter pour Raphaël Glucksmann au second tour", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande soutient Raphaël Glucksmann au second tour", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le soutien d'Elon Musk au RN relance la campagne de Marine Le Pen", ["Marine Le Pen"]),
+            ('"Marine Le Pen est le dernier espoir de la France": le soutien d\'Elon Musk au RN provoque des accusations d\'"ingérence étrangère"', ["Marine Le Pen"]),
+            ("Les élus RN de la région dieppoise au soutien de Marine Le Pen", ["Marine Le Pen"]),
+            ("Le soutien de François Hollande à la candidature de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le ralliement de François Hollande à Marine Le Pen", ["François Hollande", "Marine Le Pen"]),
             ("François Hollande apporte son soutien à la campagne présidentielle de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
-            ("François Hollande apporte son soutien à la campagne de Raphaël Glucksmann pour 2027", ["François Hollande", "Raphaël Glucksmann"]),
-            ("Le Parti socialiste apporte son soutien à la campagne présidentielle du candidat", []),
+            ("François Hollande apporte son soutien à la campagne de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le parti apporte son soutien à la campagne du candidat", []),
         ]
 
         for headline, candidates in cases:
@@ -1690,116 +1686,14 @@ class NewsWireRelevanceTests(unittest.TestCase):
             "general",
         )
 
-    def test_broad_relevance_rejects_generic_candidate_commentary(self):
-        headline = normalize("Marine Le Pen ou le trumpisme à la française")
-        matches = match_news_candidates(
-            headline,
-            "",
-            ["Marine Le Pen"],
-        )
+    def test_broad_relevance_accepts_candidate_commentary(self):
         result = classify_relevant_news(
-            headline,
+            normalize("Marine Le Pen ou le trumpisme à la française"),
             normalize("Un éditorial analyse son positionnement politique."),
             ["Marine Le Pen"],
-            matches,
         )
-        self.assertTrue(matches)
-        self.assertIsNone(result)
-
-    def test_summary_candidate_labels_do_not_override_headline_subject(self):
-        cases = [
-            (
-                "Visé par une enquête pour détournement de fonds publics, "
-                "Édouard Philippe échoue à faire annuler le statut de la "
-                "lanceuse d'alerte",
-                "Le candidat à la présidentielle est visé par une enquête "
-                "sans conséquence établie sur son éligibilité.",
-                ["Édouard Philippe"],
-            ),
-            (
-                "L'ancien conseiller de Gabriel Attal révèle son addiction "
-                "passée à la cocaïne",
-                "Le portrait revient sur celui qui a accompagné l'actuel "
-                "candidat à la présidentielle pendant plusieurs années.",
-                ["Gabriel Attal"],
-            ),
-            (
-                "Jérôme Karsenti : Marine Le Pen a bafoué les principes "
-                "démocratiques",
-                "La candidature de la cheffe de file du RN s'inscrit dans "
-                "une époque de banalisation de la corruption.",
-                ["Marine Le Pen"],
-            ),
-        ]
-
-        for headline, summary, candidates in cases:
-            matches = match_news_candidates(headline, summary, candidates)
-            with self.subTest(headline=headline):
-                self.assertTrue(matches)
-                self.assertIsNone(
-                    classify_relevant_news(
-                        headline,
-                        summary,
-                        candidates,
-                        matches,
-                    )
-                )
-
-    def test_summary_cannot_rescue_historical_presidential_subject(self):
-        headline = "L'été d'avant présidentielle : en 1994, Balladur président"
-        summary = (
-            "Ségolène Royal préparait alors sa candidature à l'élection "
-            "présidentielle."
-        )
-        candidates = ["Ségolène Royal"]
-
-        self.assertIsNone(
-            classify_relevant_news(
-                headline,
-                summary,
-                candidates,
-                match_news_candidates(headline, summary, candidates),
-            )
-        )
-
-        self.assertIsNone(
-            classify_relevant_news(
-                "La France pour tous : la campagne où Jacques Chirac "
-                "a croqué la pomme",
-                "Cet été, retour sur les slogans des élections "
-                "présidentielles. Aujourd'hui, l'élection de 1995, "
-                "avec Jacques Chirac.",
-                [],
-            )
-        )
-
-    def test_summary_can_establish_presidential_policy_relationship(self):
-        cases = [
-            (
-                "Gabriel Attal présente un plan massif sur l'eau",
-                "Gabriel Attal, candidat à la présidentielle, explique ce "
-                "qu'il mettrait en œuvre s'il était élu.",
-                ["Gabriel Attal"],
-            ),
-            (
-                "Édouard Philippe propose de limiter les régularisations",
-                "Le candidat à l'élection présidentielle de 2027 inscrit "
-                "cette mesure dans son programme.",
-                ["Édouard Philippe"],
-            ),
-        ]
-
-        for headline, summary, candidates in cases:
-            matches = match_news_candidates(headline, summary, candidates)
-            with self.subTest(headline=headline):
-                self.assertIsNotNone(
-                    classify_relevant_news(
-                        headline,
-                        summary,
-                        candidates,
-                        matches,
-                    )
-                )
+        self.assertIsNotNone(result)
+        self.assertEqual(result["reason"], "candidate_political_coverage")
 
     def test_broad_relevance_rejects_candidate_lifestyle(self):
         result = classify_relevant_news(
@@ -1891,7 +1785,7 @@ class NewsWireRelevanceTests(unittest.TestCase):
                 ["Bernard Cazeneuve"],
             ),
             (
-                "Pour 2027 Jean-Luc Mélenchon tend la main aux Ecologistes",
+                "Pour 2027 Melenchon tend la main aux Ecologistes",
                 "La proposition concerne la prochaine presidentielle.",
                 ["Jean-Luc Mélenchon"],
             ),
@@ -1899,6 +1793,11 @@ class NewsWireRelevanceTests(unittest.TestCase):
                 "Le Parti socialiste arrete son calendrier",
                 "La primaire doit designer son candidat a l election presidentielle de 2027.",
                 [],
+            ),
+            (
+                "Marine Le Pen ou le trumpisme a la francaise",
+                "Un editorial analyse son positionnement politique.",
+                ["Marine Le Pen"],
             ),
         ]
         for headline, summary, candidates in accepted:
@@ -1914,7 +1813,7 @@ class NewsWireRelevanceTests(unittest.TestCase):
     def test_broad_relevance_accepts_campaign_and_party_selection(self):
         accepted = [
             (
-                "Entretien avec François Hollande sur ses ambitions présidentielles pour 2027",
+                "Entretien avec François Hollande sur sa stratégie pour 2027",
                 "",
                 ["François Hollande"],
             ),
@@ -2117,8 +2016,8 @@ class NewsWireRelevanceTests(unittest.TestCase):
             (
                 "Jérôme Karsenti : Marine Le Pen a bafoué les principes "
                 "démocratiques",
-                "La candidature de la cheffe de file du RN à la présidentielle "
-                "s'inscrit dans une époque de banalisation de la corruption.",
+                "La candidature de la cheffe de file du RN s'inscrit dans "
+                "une époque de banalisation de la corruption.",
                 ["Marine Le Pen"],
             ),
             (
@@ -2178,253 +2077,6 @@ class NewsWireRelevanceTests(unittest.TestCase):
         self.assertTrue(
             current_presidential_matches(
                 normalize("Présidentielle 2027: une alliance est proposée")
-            )
-        )
-
-    def test_current_presidential_language_variants_are_supported(self):
-        current = [
-            "Présidentielle 2027 : le débat commence",
-            "Présidentielle de 2027 : le débat commence",
-            "Élection présidentielle 2027 : le débat commence",
-            "Élection présidentielle de 2027 : le débat commence",
-            "Élections présidentielles 2027 : le débat commence",
-            "Élections présidentielles de 2027 : le débat commence",
-            "Le scrutin présidentiel oppose les candidats",
-            "Le scrutin présidentiel à venir oppose les candidats",
-            "Le prochain scrutin présidentiel oppose les candidats",
-        ]
-
-        for headline in current:
-            with self.subTest(headline=headline):
-                self.assertTrue(
-                    current_presidential_matches(normalize(headline))
-                )
-
-        historical = [
-            "Élections présidentielles 2022 : retour sur le duel",
-            "Scrutin présidentiel de 2017 : les archives",
-        ]
-        for headline in historical:
-            with self.subTest(headline=headline):
-                self.assertEqual(
-                    current_presidential_matches(normalize(headline)),
-                    [],
-                )
-
-    def test_elysee_2027_outcome_requires_an_accession_verb(self):
-        accepted = classify_relevant_news(
-            "Gabriel Attal promet une réforme s'il accède à l'Élysée en 2027",
-            "",
-            ["Gabriel Attal"],
-        )
-        rejected = classify_relevant_news(
-            "Macron reçoit Gabriel Attal à l'Élysée en 2027",
-            "",
-            ["Gabriel Attal"],
-        )
-
-        self.assertIsNotNone(accepted)
-        self.assertIn("elysee_2027_outcome", accepted["matched_terms"])
-        self.assertIsNone(rejected)
-
-    def test_collective_presidential_candidate_summary_boundary(self):
-        headline = "Attal critique la politique économique de Mélenchon"
-        candidates = ["Gabriel Attal", "Jean-Luc Mélenchon"]
-        speculative = (
-            "Les deux responsables politiques pourraient être candidats "
-            "en 2027."
-        )
-        asserted = (
-            "Les deux candidats à la présidentielle de 2027 "
-            "s'opposent sur la dette."
-        )
-        speculative_presidential = (
-            "Les deux responsables politiques pourraient être candidats "
-            "à la présidentielle de 2027."
-        )
-
-        self.assertIsNone(
-            classify_relevant_news(headline, speculative, candidates)
-        )
-        self.assertIsNone(
-            classify_relevant_news(
-                headline,
-                speculative_presidential,
-                candidates,
-            )
-        )
-        result = classify_relevant_news(headline, asserted, candidates)
-        self.assertIsNotNone(result)
-        self.assertEqual(
-            result["reason"],
-            "summary_confirmed_presidential_context",
-        )
-        self.assertIn("collective_headline_actors", result["matched_terms"])
-
-    def test_bounded_interference_summary_variants_are_recovered(self):
-        cases = [
-            (
-                "Soupçon d'ingérence russe visant Gabriel Attal : "
-                "l'ancien Premier ministre porte plainte",
-                "Les avocats de Gabriel Attal, candidat à la présidentielle, "
-                "annoncent une plainte pour ingérence étrangère russe.",
-                ["Gabriel Attal"],
-            ),
-            (
-                "Gabriel Attal porte plainte après des soupçons "
-                "d'ingérence russe",
-                "Le candidat Renaissance à l'élection présidentielle a été "
-                "visé par une opération de désinformation pro-russe.",
-                ["Gabriel Attal"],
-            ),
-            (
-                "Passe d'armes sur X entre Marine Tondelier et Elon Musk",
-                "À quelques mois de la présidentielle, Marine Tondelier et "
-                "Elon Musk se sont opposés. La candidate menace de suspendre "
-                "X en cas d'ingérence dans la campagne.",
-                ["Marine Tondelier"],
-            ),
-            (
-                "Porter atteinte à la sincérité du scrutin présidentiel à "
-                "venir : Gabriel Attal porte plainte",
-                "",
-                ["Gabriel Attal"],
-            ),
-            (
-                "Marine Tondelier s'en prend à la plateforme X après "
-                "une passe d'armes avec Elon Musk",
-                "La candidate des Ecologistes à la présidentielle propose "
-                "de menacer d'interdire la plateforme pendant la "
-                "présidentielle, en cas d'ingérences constatées en amont.",
-                ["Marine Tondelier"],
-            ),
-            (
-                "Raphaël Glucksmann et Marine Tondelier pointent le rôle "
-                "des plateformes sociales après des cas d'ingérences "
-                "étrangères",
-                "La patronne des Ecologistes propose même de menacer le "
-                "réseau social X de fermeture pendant l'élection "
-                "présidentielle, s'il ne respectait pas le cadre légal.",
-                ["Raphaël Glucksmann", "Marine Tondelier"],
-            ),
-            (
-                "Marine Tondelier dit vouloir couper X et déclenche un "
-                "duel avec Elon Musk",
-                "La candidate écologiste à la présidentielle avait évoqué "
-                "la possibilité d'interdire X pendant les élections.",
-                ["Marine Tondelier"],
-            ),
-        ]
-
-        for headline, summary, candidates in cases:
-            with self.subTest(headline=headline):
-                self.assertIsNotNone(
-                    classify_relevant_news(
-                        headline,
-                        summary,
-                        candidates,
-                        match_news_candidates(
-                            headline,
-                            summary,
-                            candidates,
-                        ),
-                    )
-                )
-
-        self.assertIsNone(
-            classify_relevant_news(
-                "Raphaël Glucksmann visé par une campagne de "
-                "désinformation russe",
-                "Une opération sans relation électorale établie.",
-                ["Raphaël Glucksmann"],
-            )
-        )
-        self.assertIsNone(
-            classify_relevant_news(
-                "L'ancien conseiller de Gabriel Attal raconte son addiction",
-                "L'actuel candidat à la présidentielle était son employeur.",
-                ["Gabriel Attal"],
-            )
-        )
-
-    def test_explicit_plural_and_pre_presidential_activity_is_relevant(self):
-        cases = [
-            "Élections présidentielles 2027 : Édouard Philippe attendu à Mayotte",
-            "Les Écologistes préparent le terrain pour la campagne des élections présidentielles",
-            "Tour de France pré-présidentiel de Marine Tondelier à Dieppe",
-            "Édouard Philippe visé par une campagne de désinformation russe, une première pour un candidat aux présidentielles",
-            "François Ruffin candidate pour la présidence de la République",
-        ]
-
-        for headline in cases:
-            candidates = [
-                candidate
-                for candidate in (
-                    "Édouard Philippe",
-                    "Marine Tondelier",
-                    "François Ruffin",
-                )
-                if normalize(candidate) in normalize(headline)
-            ]
-            with self.subTest(headline=headline):
-                self.assertIsNotNone(
-                    classify_relevant_news(headline, "", candidates)
-                )
-
-    def test_presidential_alliance_and_campaign_poster_are_bounded(self):
-        alliance_headline = (
-            "Mélenchon acte la rupture avec le PS et presse les "
-            "écologistes de choisir leur camp"
-        )
-        alliance_summary = (
-            "Jean-Luc Mélenchon tend la main aux Écologistes. Il propose "
-            "à ceux qui soutiendraient sa candidature à l'élection "
-            "présidentielle un accord qui se prolongerait lors des "
-            "élections législatives et régionales."
-        )
-        alliance_candidates = ["Jean-Luc Mélenchon", "Marine Tondelier"]
-        self.assertIsNotNone(
-            classify_relevant_news(
-                alliance_headline,
-                alliance_summary,
-                alliance_candidates,
-                match_news_candidates(
-                    alliance_headline,
-                    alliance_summary,
-                    alliance_candidates,
-                ),
-            )
-        )
-
-        poster_headline = (
-            "La renaissance : débouté par la justice sur l'utilisation "
-            "du mot par Le Pen, Attal annonce faire appel"
-        )
-        poster_summary = (
-            "Le tribunal a rejeté la demande de Renaissance d'interdire "
-            "à Marine Le Pen le terme sur sa première affiche de campagne "
-            "présidentielle."
-        )
-        poster_candidates = ["Gabriel Attal", "Marine Le Pen"]
-        self.assertIsNotNone(
-            classify_relevant_news(
-                poster_headline,
-                poster_summary,
-                poster_candidates,
-                match_news_candidates(
-                    poster_headline,
-                    poster_summary,
-                    poster_candidates,
-                ),
-            )
-        )
-
-    def test_foreign_plural_presidential_subject_remains_excluded(self):
-        self.assertIsNone(
-            classify_relevant_news(
-                "Marine Le Pen réagit aux élections présidentielles américaines",
-                "",
-                ["Marine Le Pen"],
             )
         )
 
@@ -2652,7 +2304,7 @@ class NewsWireRelevanceTests(unittest.TestCase):
             "retained-endorsement",
             (
                 "François Hollande annonce son soutien à la candidature "
-                "de Raphaël Glucksmann en 2027"
+                "de Raphaël Glucksmann"
             ),
             "Un choix annoncé publiquement.",
             ["François Hollande", "Raphaël Glucksmann"],
@@ -2782,7 +2434,7 @@ class NewsWireRelevanceTests(unittest.TestCase):
             "genuine-endorsement",
             (
                 "François Hollande annonce son soutien à la candidature "
-                "de Raphaël Glucksmann en 2027"
+                "de Raphaël Glucksmann"
             ),
             "Un choix annoncé publiquement.",
             ["François Hollande", "Raphaël Glucksmann"],
@@ -3216,16 +2868,6 @@ class NewsWireRelevanceTests(unittest.TestCase):
                 "",
                 [],
             ),
-            (
-                "Marine Le Pen réagit à l'élection présidentielle américaine",
-                "",
-                ["Marine Le Pen"],
-            ),
-            (
-                "Marine Le Pen réagit à la présidentielle aux États-Unis",
-                "",
-                ["Marine Le Pen"],
-            ),
         ]
 
         for headline, summary, candidates in rejected:
@@ -3260,24 +2902,6 @@ class NewsWireRelevanceTests(unittest.TestCase):
                 "Le Parti socialiste prépare la présidentielle",
                 "",
                 [],
-            ),
-            (
-                "Présidentielle : Gabriel Attal porte plainte, dénonçant "
-                "une ingérence russe",
-                "",
-                ["Gabriel Attal"],
-            ),
-            (
-                "Soupçons d'ingérence russe dans l'élection présidentielle : "
-                "Raphaël Glucksmann a porté plainte",
-                "",
-                ["Raphaël Glucksmann"],
-            ),
-            (
-                "Une attaque russe pour déstabiliser la présidentielle : "
-                "Raphaël Glucksmann victime d'une vidéo truquée",
-                "",
-                ["Raphaël Glucksmann"],
             ),
         ]
 
@@ -3451,8 +3075,6 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
                 "publisher": publishers[index % len(publishers)],
                 "published_at": published_at,
                 "coverage_scope": "campaign",
-                "story_id": f"{prefix}-story-{index}",
-                "candidates": ["Gabriel Attal"],
             }
             for index in range(count)
         ]
@@ -3476,12 +3098,7 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
             "prior",
         )
         return (
-            build_candidate_visibility(
-                records,
-                [],
-                self.generated_at,
-                ["Gabriel Attal"],
-            ),
+            build_candidate_visibility(records, self.generated_at),
             records,
         )
 
@@ -3494,22 +3111,30 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
             *self.records(1, ["Outside old"], "2026-07-12T23:59:59Z", "old"),
             *self.records(1, ["Outside new"], "2026-07-27T00:00:00Z", "new"),
         ]
-        visibility = build_candidate_visibility(
-            records, [], self.generated_at, ["Gabriel Attal"]
-        )
+        visibility = build_candidate_visibility(records, self.generated_at)
 
-        current = visibility["current_period"]
-        prior = visibility["prior_period"]
-        self.assertEqual(current["start_date"], "2026-07-20")
-        self.assertEqual(current["end_date"], "2026-07-26")
-        self.assertEqual(current["record_count"], 2)
-        self.assertEqual(current["exposure_count"], 2)
-        self.assertEqual(current["publisher_names"], ["Current end", "Current start"])
-        self.assertEqual(prior["start_date"], "2026-07-13")
-        self.assertEqual(prior["end_date"], "2026-07-19")
-        self.assertEqual(prior["record_count"], 2)
-        self.assertEqual(prior["exposure_count"], 2)
-        self.assertEqual(prior["publisher_names"], ["Prior end", "Prior start"])
+        self.assertEqual(
+            visibility["current_period"],
+            {
+                "start_date": "2026-07-20",
+                "end_date": "2026-07-26",
+                "record_count": 2,
+                "publisher_count": 2,
+                "publisher_names": ["Current end", "Current start"],
+                "candidate_metrics": [],
+            },
+        )
+        self.assertEqual(
+            visibility["prior_period"],
+            {
+                "start_date": "2026-07-13",
+                "end_date": "2026-07-19",
+                "record_count": 2,
+                "publisher_count": 2,
+                "publisher_names": ["Prior end", "Prior start"],
+                "candidate_metrics": [],
+            },
+        )
 
     def test_audited_publisher_panel_failure(self):
         current = [f"Current {index:02d}" for index in range(55)]
@@ -3520,7 +3145,7 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
         self.assertEqual(quality["status"], "not_comparable")
         self.assertEqual(quality["reason"], "publisher_panel_changed")
         self.assertEqual(quality["publisher_overlap_ratio"], 0.086)
-        self.assertEqual(quality["exposure_count_ratio"], 5.966)
+        self.assertEqual(quality["record_count_ratio"], 5.966)
 
     def test_insufficient_period_records(self):
         publishers = [f"Publisher {index}" for index in range(5)]
@@ -3556,9 +3181,7 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
         validate_candidate_visibility(
             visibility,
             records,
-            [],
             self.generated_at,
-            ["Gabriel Attal"],
         )
 
     def test_comparable_at_locked_boundaries(self):
@@ -3566,18 +3189,18 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
         prior = current + [f"Prior only {index}" for index in range(5)]
         visibility, _records = self.visibility(10, 20, current, prior)
         quality = visibility["comparison_quality"]
-        self.assertEqual(quality["current_exposure_count"], 10)
+        self.assertEqual(quality["current_record_count"], 10)
         self.assertEqual(quality["common_publisher_count"], 5)
         self.assertEqual(quality["current_publisher_count"], 5)
         self.assertEqual(quality["publisher_overlap_ratio"], 0.5)
-        self.assertEqual(quality["exposure_count_ratio"], 2.0)
+        self.assertEqual(quality["record_count_ratio"], 2.0)
         self.assertEqual(quality["status"], "comparable")
 
     def test_zero_record_ratio_is_null_and_insufficient(self):
         publishers = [f"Publisher {index}" for index in range(5)]
         visibility, _records = self.visibility(10, 0, publishers, publishers)
         quality = visibility["comparison_quality"]
-        self.assertIsNone(quality["exposure_count_ratio"])
+        self.assertIsNone(quality["record_count_ratio"])
         self.assertEqual(quality["status"], "not_comparable")
         self.assertEqual(quality["reason"], "insufficient_data")
 
@@ -3588,9 +3211,8 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
             set(visibility),
             {
                 "method",
-                "story_model_version",
-                "authoritative_corpus",
-                "denominator_scope",
+                "primary_scopes",
+                "secondary_scope",
                 "current_period",
                 "prior_period",
                 "general_current_period",
@@ -3602,7 +3224,14 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
             visibility["method"],
             CANDIDATE_VISIBILITY_METHOD,
         )
-        self.assertEqual(visibility["authoritative_corpus"], "relevant_news")
+        self.assertEqual(
+            visibility["primary_scopes"],
+            ["election", "campaign"],
+        )
+        self.assertEqual(
+            visibility["secondary_scope"],
+            "general",
+        )
         self.assertEqual(
             visibility["general_current_period"][
                 "record_count"
@@ -3628,7 +3257,7 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
                 record_count=11
             ),
             "ratios": lambda value: value["comparison_quality"].update(
-                exposure_count_ratio=1.5
+                record_count_ratio=1.5
             ),
             "status": lambda value: value["comparison_quality"].update(
                 status="not_comparable"
@@ -3643,7 +3272,7 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
             ),
             "threshold types": lambda value: value[
                 "comparison_quality"
-            ]["thresholds"].update(minimum_period_exposures=True),
+            ]["thresholds"].update(minimum_period_records=True),
         }
 
         for label, mutate in mutations.items():
@@ -3654,9 +3283,7 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
                     validate_candidate_visibility(
                         invalid,
                         records,
-                        [],
                         self.generated_at,
-                        ["Gabriel Attal"],
                     )
 
     def test_workflow_validation_includes_candidate_visibility(self):

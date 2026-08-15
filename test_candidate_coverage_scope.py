@@ -8,7 +8,6 @@ from candidate_candidacy_status import (
     project_active_monitoring_field,
     project_display_tiers,
 )
-from test_build_candidate_signals import candidate_signals_news_fixture
 
 from fetch_news_wire import (
     CANDIDATE_COVERAGE_SCOPES,
@@ -107,7 +106,7 @@ class CandidateCoverageScopeTests(unittest.TestCase):
 
     def test_electoral_support_visibility_keeps_campaign_scope(self) -> None:
         headline = normalize(
-            "François Hollande annonce son soutien à la candidature présidentielle de "
+            "François Hollande annonce son soutien à la candidature de "
             "Raphaël Glucksmann"
         )
         candidates = ["François Hollande", "Raphaël Glucksmann"]
@@ -183,184 +182,6 @@ class CandidateCoverageScopeTests(unittest.TestCase):
 
         self.assertEqual(scope, "general")
 
-    def test_candidate_identity_does_not_create_race_scope(self) -> None:
-        cases = [
-            "Gérald Darmanin ouvre une enquête sur les défaillances dans l'affaire Lyhanna",
-            "Gérald Darmanin fait le point sur les menaces contre le maire d'Alès",
-            "Gérald Darmanin présente sa réforme des tribunaux pour mineurs",
-            "Gérald Darmanin détaille son plan contre le narcotrafic et la surpopulation carcérale",
-            "Gérald Darmanin annonce une nouvelle mesure du ministère de la Justice",
-            "Entretien avec Gérald Darmanin sur la surpopulation carcérale",
-            "Portrait de Marine Le Pen",
-            "Édouard Philippe analyse la situation politique française",
-            "Visé par une enquête, Édouard Philippe échoue à faire annuler le statut de la lanceuse d'alerte",
-            "Jérôme Karsenti : Marine Le Pen a bafoué les principes démocratiques",
-            "Marine Le Pen réagit à l'élection présidentielle américaine",
-            "Réduction du nombre de parlementaires : Gabriel Attal reprend une promesse de campagne de 2017",
-            "Pour son anniversaire, les proches de François Hollande lui offrent une campagne d'affichage",
-            "Jordan Bardella seul candidat à sa réélection à la tête du Rassemblement national",
-            "Sur l'immigration, la stratégie de François Ruffin est marginale en France",
-            "Raphaël Glucksmann visé par une campagne de désinformation russe",
-            "Gérald Darmanin annonce deux nouvelles prisons en 2027",
-            "Marine Tondelier dénonce la pénurie de lunettes pour l'éclipse solaire",
-            "Marine Tondelier critiquée par la droite pendant la canicule",
-            "Marine Le Pen candidate au Sénat",
-            "François Hollande revient sur la présidentielle de 2012",
-        ]
-        candidates = [
-            "Gérald Darmanin",
-            "Gabriel Attal",
-            "François Hollande",
-            "François Ruffin",
-            "Jordan Bardella",
-            "Marine Le Pen",
-            "Raphaël Glucksmann",
-            "Marine Tondelier",
-            "Édouard Philippe",
-        ]
-
-        for headline_value in cases:
-            headline = normalize(headline_value)
-            matches = match_news_candidates(headline, "", candidates)
-            matched_candidates = [
-                match["candidate"] for match in matches
-            ]
-            relevance = classify_relevant_news(
-                headline,
-                "",
-                matched_candidates,
-                matches,
-            )
-            development = classify_notable_development(
-                headline,
-                matched_candidates,
-                {"politics_specific": True},
-                headline,
-                matches,
-            )
-
-            with self.subTest(headline=headline_value):
-                self.assertTrue(matches)
-                self.assertIsNone(relevance)
-                self.assertIsNone(development)
-                self.assertEqual(
-                    classify_candidate_coverage_scope(
-                        is_election_news=False,
-                        relevance=relevance,
-                        development=development,
-                    ),
-                    "general",
-                )
-
-    def test_melenchon_boundary_probes_lock_general_campaign_election(self) -> None:
-        headline = "Attal critique la politique économique de Mélenchon"
-        candidates = ["Gabriel Attal", "Jean-Luc Mélenchon"]
-        cases = [
-            (
-                headline,
-                "Les deux responsables politiques pourraient être candidats "
-                "en 2027.",
-                "general",
-            ),
-            (
-                headline,
-                "Les deux candidats à la présidentielle de 2027 "
-                "s'opposent sur la dette.",
-                "campaign",
-            ),
-            (
-                "Présidentielle 2027 : Attal attaque Mélenchon sur la dette",
-                "",
-                "election",
-            ),
-        ]
-
-        for headline_value, summary, expected_scope in cases:
-            relevance = classify_relevant_news(
-                headline_value,
-                summary,
-                candidates,
-            )
-            scope = classify_candidate_coverage_scope(
-                is_election_news=explicit_election_match(
-                    normalize(headline_value)
-                ),
-                relevance=relevance,
-                development=None,
-            )
-            with self.subTest(expected_scope=expected_scope):
-                self.assertEqual(scope, expected_scope)
-
-    def test_true_presidential_evidence_remains_race_qualified(self) -> None:
-        cases = [
-            "Présidentielle 2027 : Gabriel Attal annonce sa candidature",
-            "Gérald Darmanin dit envisager une candidature en 2027",
-            "Marine Le Pen se retire de la course à l'Élysée",
-            "Le parti désigne Gabriel Attal comme candidat à la présidentielle",
-            "Marine Le Pen remporte la primaire présidentielle",
-            "François Hollande soutient la candidature présidentielle de Gabriel Attal",
-            "Gabriel Attal dévoile son programme présidentiel",
-            "Gabriel Attal explique ce qu'il ferait sur l'immigration s'il était élu président",
-            "Marine Le Pen en tête dans un nouveau sondage présidentiel",
-            "Enquête sur le financement de la campagne présidentielle de Marine Le Pen",
-            "Une ingérence étrangère cible la présidentielle française de 2027",
-        ]
-        candidates = [
-            "Gabriel Attal",
-            "Gérald Darmanin",
-            "Marine Le Pen",
-            "François Hollande",
-        ]
-
-        for headline_value in cases:
-            headline = normalize(headline_value)
-            matches = match_news_candidates(headline, "", candidates)
-            matched_candidates = [
-                match["candidate"] for match in matches
-            ]
-            relevance = classify_relevant_news(
-                headline,
-                "",
-                matched_candidates,
-                matches,
-            )
-
-            with self.subTest(headline=headline_value):
-                self.assertIsNotNone(relevance)
-
-    def test_eligibility_consequences_remain_campaign_developments(self) -> None:
-        cases = [
-            "Édouard Philippe reste éligible à la présidentielle après la décision de justice",
-            "Marine Le Pen devient inéligible et ne peut plus être candidate",
-        ]
-        candidates = ["Édouard Philippe", "Marine Le Pen"]
-
-        for headline_value in cases:
-            headline = normalize(headline_value)
-            matches = match_news_candidates(headline, "", candidates)
-            matched_candidates = [
-                match["candidate"] for match in matches
-            ]
-            development = classify_notable_development(
-                headline,
-                matched_candidates,
-                {"politics_specific": True},
-                headline,
-                matches,
-            )
-
-            with self.subTest(headline=headline_value):
-                self.assertIsNotNone(development)
-                self.assertEqual(development["id"], "legal_eligibility")
-                self.assertEqual(
-                    classify_candidate_coverage_scope(
-                        is_election_news=False,
-                        relevance=None,
-                        development=development,
-                    ),
-                    "campaign",
-                )
-
 
 class CandidateVisibilityMetricTests(unittest.TestCase):
     generated_at = datetime(
@@ -382,15 +203,12 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
         locations,
         coverage_scope,
         headline=None,
-        story_id=None,
     ):
         return {
             "id": item_id,
             "publisher": publisher,
             "published_at": published_at,
             "headline": headline or item_id,
-            "story_id": story_id or item_id,
-            "candidates": [candidate],
             "candidate_matches": [
                 {
                     "candidate": candidate,
@@ -447,18 +265,18 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
             ),
         ]
 
-        race_records = [
-            record for record in records
-            if record["coverage_scope"] != "general"
-        ]
-        active_candidates = [
-            "Gabriel Attal", "Édouard Philippe", "Gérald Darmanin"
-        ]
         visibility = build_candidate_visibility(
-            race_records,
             records,
             self.generated_at,
-            active_candidates,
+        )
+
+        self.assertEqual(
+            visibility["primary_scopes"],
+            ["election", "campaign"],
+        )
+        self.assertEqual(
+            visibility["secondary_scope"],
+            "general",
         )
 
         current = visibility["current_period"]
@@ -471,33 +289,45 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
         ]
 
         self.assertEqual(current["record_count"], 2)
-        self.assertEqual(current["exposure_count"], 2)
         self.assertEqual(current["publisher_count"], 2)
         self.assertEqual(
             [
                 metric["candidate"]
                 for metric in current["candidate_metrics"]
             ],
-            ["Gabriel Attal", "Gérald Darmanin", "Édouard Philippe"],
+            ["Gabriel Attal"],
         )
 
         attal = current["candidate_metrics"][0]
 
         self.assertEqual(attal["record_count"], 2)
-        self.assertEqual(attal["exposure_count"], 2)
         self.assertEqual(attal["share"], 1.0)
         self.assertEqual(attal["publisher_count"], 2)
         self.assertEqual(
             attal["publisher_names"],
             ["Le Figaro", "Le Monde"],
         )
-        self.assertEqual(attal["story_count"], 2)
-        self.assertEqual(attal["observation_state"], "observed_positive")
-        darmanin = current["candidate_metrics"][1]
-        self.assertEqual(darmanin["candidate"], "Gérald Darmanin")
-        self.assertEqual(darmanin["exposure_count"], 0)
-        self.assertEqual(darmanin["share"], 0.0)
-        self.assertEqual(darmanin["observation_state"], "observed_zero")
+        self.assertEqual(attal["headline_match_count"], 1)
+        self.assertEqual(
+            attal["summary_only_match_count"],
+            1,
+        )
+        self.assertEqual(
+            attal["scope_counts"],
+            {
+                "election": 1,
+                "campaign": 1,
+                "general": 0,
+            },
+        )
+        self.assertEqual(
+            attal["scope_shares"],
+            {
+                "election": 0.5,
+                "campaign": 0.5,
+                "general": 0.0,
+            },
+        )
 
         self.assertEqual(prior["record_count"], 1)
         self.assertEqual(
@@ -522,6 +352,16 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
             ],
         )
         self.assertEqual(
+            general_current["candidate_metrics"][0][
+                "scope_counts"
+            ],
+            {
+                "election": 0,
+                "campaign": 0,
+                "general": 1,
+            },
+        )
+        self.assertEqual(
             general_prior["record_count"],
             0,
         )
@@ -532,23 +372,21 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
 
         self.assertEqual(
             visibility["comparison_quality"][
-                "current_exposure_count"
+                "current_record_count"
             ],
             2,
         )
         self.assertEqual(
             visibility["comparison_quality"][
-                "prior_exposure_count"
+                "prior_record_count"
             ],
             1,
         )
 
         validate_candidate_visibility(
             visibility,
-            race_records,
             records,
             self.generated_at,
-            active_candidates,
         )
 
     def test_metrics_are_sorted_by_records_then_candidate_name(self):
@@ -572,10 +410,8 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
         ]
 
         metrics = build_candidate_visibility(
-            [],
             records,
             self.generated_at,
-            ["Gabriel Attal", "Édouard Philippe"],
         )["general_current_period"]["candidate_metrics"]
 
         self.assertEqual(
@@ -597,7 +433,6 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
                     "Gabriel Attal propose une primaire ouverte "
                     "à droite"
                 ),
-                story_id="primary-story",
             ),
             self.item(
                 item_id="primary-two",
@@ -610,7 +445,6 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
                     "À droite, Gabriel Attal propose une "
                     "primaire ouverte"
                 ),
-                story_id="primary-story",
             ),
             self.item(
                 item_id="factory",
@@ -624,10 +458,8 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
         ]
 
         visibility = build_candidate_visibility(
-            records[:2],
             records,
             self.generated_at,
-            ["Gabriel Attal"],
         )
 
         metric = visibility[
@@ -635,24 +467,57 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
         ]["candidate_metrics"][0]
 
         self.assertEqual(metric["record_count"], 2)
-        self.assertEqual(metric["exposure_count"], 2)
-        self.assertEqual(metric["story_count"], 1)
-        self.assertEqual(metric["publisher_count"], 2)
-        self.assertEqual(metric["share"], 1.0)
+        self.assertEqual(metric["story_cluster_count"], 1)
+
+        leading_story = metric["story_clusters"][0]
+        self.assertEqual(leading_story["record_count"], 2)
+        self.assertEqual(leading_story["publisher_count"], 2)
+        self.assertEqual(
+            set(leading_story["item_ids"]),
+            {"primary-one", "primary-two"},
+        )
+        self.assertEqual(leading_story["share"], 1.0)
+
+        concentration = metric["concentration"]
+        self.assertEqual(
+            concentration["leading_publisher"],
+            "Le Figaro",
+        )
+        self.assertEqual(
+            concentration["leading_publisher_record_count"],
+            1,
+        )
+        self.assertEqual(
+            concentration["leading_publisher_share"],
+            0.5,
+        )
+        self.assertEqual(
+            concentration["leading_story_record_count"],
+            2,
+        )
+        self.assertEqual(
+            concentration["leading_story_share"],
+            1.0,
+        )
 
         general_metric = visibility[
             "general_current_period"
         ]["candidate_metrics"][0]
 
         self.assertEqual(general_metric["record_count"], 1)
-        self.assertEqual(general_metric["publisher_count"], 1)
+        self.assertEqual(
+            general_metric["story_cluster_count"],
+            1,
+        )
+        self.assertEqual(
+            general_metric["story_clusters"][0]["item_ids"],
+            ["factory"],
+        )
 
         validate_candidate_visibility(
             visibility,
-            records[:2],
             records,
             self.generated_at,
-            ["Gabriel Attal"],
         )
 
     def test_short_unrelated_headlines_do_not_false_cluster(self):
@@ -678,10 +543,8 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
         ]
 
         visibility = build_candidate_visibility(
-            [],
             records,
             self.generated_at,
-            ["Gabriel Attal"],
         )
 
         self.assertEqual(
@@ -689,31 +552,29 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
             0,
         )
         self.assertEqual(
-            visibility["current_period"]["candidate_metrics"][0][
-                "observation_state"
-            ],
-            "unavailable",
+            visibility["current_period"]["candidate_metrics"],
+            [],
         )
 
         metric = visibility[
             "general_current_period"
         ]["candidate_metrics"][0]
 
-        self.assertEqual(metric["record_count"], 2)
-        self.assertEqual(metric["publisher_count"], 2)
+        self.assertEqual(metric["story_cluster_count"], 2)
+        self.assertEqual(
+            metric["concentration"]["leading_story_share"],
+            0.5,
+        )
 
 
 
 class ActiveFieldVisibilityScopeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        source_news = json.loads(
-            (ROOT / "news_wire.json").read_text(encoding="utf-8")
-        )
+        cls.news = json.loads((ROOT / "news_wire.json").read_text(encoding="utf-8"))
         cls.registry = json.loads(
             (ROOT / "candidate_candidacy_status.json").read_text(encoding="utf-8")
         )
-        cls.news = candidate_signals_news_fixture(source_news, cls.registry)
         cls.stored_field = project_display_tiers(cls.registry)
         cls.field = project_active_monitoring_field(cls.registry)
         cls.active = candidate_signals_builder.derive_active_field_visibility(
@@ -722,49 +583,145 @@ class ActiveFieldVisibilityScopeTests(unittest.TestCase):
             cls.registry,
         )
 
-    def test_source_visibility_uses_race_exposure_contract(self):
+    def test_source_wide_visibility_contract_remains_unchanged(self):
         visibility = self.news["candidate_visibility"]
-        self.assertEqual(
-            visibility["method"],
-            "share_of_active_candidate_publisher_story_race_exposures",
-        )
-        self.assertEqual(visibility["authoritative_corpus"], "relevant_news")
-        self.assertIn("exposure_count", visibility["current_period"])
-        self.assertNotIn("share", visibility["general_current_period"])
+        specifications = {
+            "current_period": {"election", "campaign"},
+            "prior_period": {"election", "campaign"},
+            "general_current_period": {"general"},
+            "general_prior_period": {"general"},
+        }
+        for period_name, scopes in specifications.items():
+            period = visibility[period_name]
+            records = [
+                record for record in self.news["candidate_watch"]
+                if period["start_date"] <= record["published_at"][:10] <= period["end_date"]
+                and record["coverage_scope"] in scopes
+            ]
+            self.assertEqual(len(records), len({record["id"] for record in records}))
+            self.assertEqual(len(records), period["record_count"])
+            self.assertEqual(
+                len({record["publisher"] for record in records}),
+                period["publisher_count"],
+            )
 
     def test_active_union_denominators_and_publishers_are_separate(self):
-        rows = self.active["race_attention"]
-        projected_ids = {
-            row["candidate_id"]
-            for tier in ("main", "secondary")
-            for row in rows[tier]
+        registry_by_id = {
+            candidate["candidate_id"]: candidate
+            for candidate in self.registry["candidates"]
         }
-        expected_ids = set(self.field["main"] + self.field["secondary"])
-        self.assertEqual(projected_ids, expected_ids)
-        source_current = self.news["candidate_visibility"]["current_period"]
-        active_current = rows["current_period"]
-        self.assertEqual(
-            active_current["exposure_count"],
-            source_current["exposure_count"],
+        active_names = {
+            registry_by_id[identifier]["candidate_name"]
+            for tier in ("main", "secondary")
+            for identifier in self.field[tier]
+        }
+        visibility = self.news["candidate_visibility"]
+        specifications = (
+            (
+                visibility["current_period"],
+                {"election", "campaign"},
+                self.active["primary"]["current_period"],
+            ),
+            (
+                visibility["prior_period"],
+                {"election", "campaign"},
+                self.active["primary"]["prior_period"],
+            ),
+            (
+                visibility["general_current_period"],
+                {"general"},
+                self.active["general"]["current_period"],
+            ),
+            (
+                visibility["general_prior_period"],
+                {"general"},
+                self.active["general"]["prior_period"],
+            ),
         )
-        self.assertEqual(
-            active_current["publisher_count"],
-            source_current["publisher_count"],
-        )
+        for source_period, scopes, active_period in specifications:
+            records = [
+                record for record in self.news["candidate_watch"]
+                if source_period["start_date"] <= record["published_at"][:10] <= source_period["end_date"]
+                and record["coverage_scope"] in scopes
+                and active_names & set(record["candidates"])
+            ]
+            self.assertEqual(
+                len({record["id"] for record in records}),
+                active_period["record_count"],
+            )
+            self.assertEqual(
+                len({record["publisher"] for record in records}),
+                active_period["publisher_count"],
+            )
+            self.assertLessEqual(
+                active_period["record_count"],
+                source_period["record_count"],
+            )
+            self.assertLessEqual(
+                active_period["publisher_count"],
+                source_period["publisher_count"],
+            )
 
     def test_hidden_only_evidence_remains_in_source_records(self):
-        projected_ids = {
-            row["candidate_id"]
-            for tier in ("main", "secondary")
-            for row in self.active["race_attention"][tier]
+        registry_by_id = {
+            candidate["candidate_id"]: candidate
+            for candidate in self.registry["candidates"]
         }
-        self.assertTrue(set(self.stored_field["hidden"]).isdisjoint(projected_ids))
-        self.assertTrue(all(
-            row["current_observation_state"]
-            in {"observed_positive", "observed_zero", "unavailable"}
+        hidden_names = {
+            registry_by_id[identifier]["candidate_name"]
+            for identifier in self.stored_field["hidden"]
+        }
+        active_names = {
+            registry_by_id[identifier]["candidate_name"]
             for tier in ("main", "secondary")
-            for row in self.active["race_attention"][tier]
-        ))
+            for identifier in self.field[tier]
+        }
+        self.assertTrue(hidden_names)
+        self.assertTrue(hidden_names.isdisjoint(active_names))
+        current_start = self.news["candidate_visibility"]["current_period"]["start_date"]
+        current_end = self.news["candidate_visibility"]["current_period"]["end_date"]
+        scopes = (
+            (
+                [
+                    record for record in self.news["candidate_watch"]
+                    if current_start <= record["published_at"][:10] <= current_end
+                    and record["coverage_scope"] in {"election", "campaign"}
+                ],
+                self.active["primary"]["current_period"],
+            ),
+            (
+                [
+                    record for record in self.news["candidate_watch"]
+                    if current_start <= record["published_at"][:10] <= current_end
+                    and record["coverage_scope"] == "general"
+                ],
+                self.active["general"]["current_period"],
+            ),
+        )
+        for records, projection in scopes:
+            active_records = [
+                record for record in records
+                if active_names & set(record["candidates"])
+            ]
+            hidden_only = [
+                record for record in records
+                if hidden_names & set(record["candidates"])
+                and not active_names & set(record["candidates"])
+            ]
+            mixed = [
+                record for record in records
+                if hidden_names & set(record["candidates"])
+                and active_names & set(record["candidates"])
+            ]
+            active_ids = {record["id"] for record in active_records}
+            hidden_only_ids = {record["id"] for record in hidden_only}
+            mixed_ids = {record["id"] for record in mixed}
+            self.assertEqual(len(active_ids), projection["record_count"])
+            self.assertTrue(hidden_only_ids.isdisjoint(active_ids))
+            self.assertTrue(mixed_ids.issubset(active_ids))
+            self.assertTrue(
+                all(record in self.news["candidate_watch"] for record in hidden_only + mixed)
+            )
 
 if __name__ == "__main__":
     unittest.main()
