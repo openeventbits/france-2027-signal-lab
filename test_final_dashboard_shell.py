@@ -951,7 +951,7 @@ class FinalDashboardShellTests(unittest.TestCase):
 
         for label in (
             "Latest election coverage",
-            "Active-field coverage shift",
+            "Active-field mention rate",
             "Topic coverage",
             "Top publishers",
         ):
@@ -1011,6 +1011,35 @@ class FinalDashboardShellTests(unittest.TestCase):
             renderer.lower(),
         )
 
+
+    def test_candidate_mention_rate_semantics_are_explicit(self):
+        renderer_start = self.js.index(
+            "function renderTopMediaPulsePanel("
+        )
+        renderer_end = self.js.index(
+            "function renderTopMediaPulse(",
+            renderer_start,
+        )
+        renderer = self.js[
+            renderer_start:renderer_end
+        ]
+
+        self.assertIn(
+            "Active-field mention rate",
+            renderer,
+        )
+        self.assertIn(
+            "mention rate among active-field-linked race records",
+            renderer,
+        )
+        self.assertIn(
+            "rates can overlap and need not total 100 percent",
+            renderer,
+        )
+        self.assertNotIn(
+            "active-field candidate-linked share",
+            renderer,
+        )
 
     def test_coverage_shift_uses_adjacent_period_segments(self):
         renderer_start = self.js.index(

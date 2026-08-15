@@ -3244,7 +3244,7 @@
             <div
               class="hybrid-candidate-share-row"
               aria-label="${escapeAttribute(
-                `${item.name}, ${item.tierLabel}: ${latestShareText} percent active-field candidate-linked share in the latest seven days, ${previousShareText} percent in the previous seven days, ${deltaText}; ${item.latestCount} latest records and ${item.previousCount} previous records`
+                `${item.name}, ${item.tierLabel}: ${latestShareText} percent mention rate among active-field-linked race records in the latest seven days, ${previousShareText} percent in the previous seven days, ${deltaText}; ${item.latestCount} latest records and ${item.previousCount} previous records`
               )}"
             >
               <span class="hybrid-candidate-share-name">
@@ -3397,7 +3397,7 @@
         <aside class="hybrid-media-terminal-rail">
           <section class="hybrid-media-terminal-module">
             <h3 class="hybrid-section-title">
-              Coverage shift
+              Active-field mention rate
             </h3>
 
             <div
@@ -5582,10 +5582,10 @@
           ? "RAW Δ pp"
           : "UNAVAILABLE",
       explanation: available
-        ? "Comparable active-field percentage-point change."
+        ? "Comparable change in active-field mention rate, in percentage points."
         : model.candidateCoverageAvailable
-          ? `Raw arithmetic current-minus-prior differences are displayed because comparison quality is not comparable; reason: ${reason || "unknown"}. These values are descriptive and are not comparable trend estimates.`
-          : "Active-field candidate comparison unavailable."
+          ? `Raw arithmetic current-minus-prior mention-rate differences are displayed because comparison quality is not comparable; reason: ${reason || "unknown"}. These values are descriptive and are not comparable trend estimates.`
+          : "Active-field mention-rate comparison unavailable."
     };
   }
 
@@ -5769,10 +5769,10 @@
                 aria-expanded="false"
                 aria-label="${escapeAttribute(
                   deltaAvailable
-                    ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent active-field candidate-linked share in the current period, ${previousShareText} percent in the prior period, comparable change ${deltaText}`
+                    ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent mention rate among active-field-linked race records in the current period, ${previousShareText} percent in the prior period, comparable change ${deltaText}`
                     : rawDeltaAvailable
-                      ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent active-field candidate-linked share in the current period, ${previousShareText} percent in the prior period, raw arithmetic difference ${deltaText}. Publisher panels changed, so this is not a comparable trend estimate.`
-                      : `${item.name}, ${item.tierLabel}: ${latestShareText} percent active-field candidate-linked share in the current period, ${previousShareText} percent in the prior period.`
+                      ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent mention rate among active-field-linked race records in the current period, ${previousShareText} percent in the prior period, raw arithmetic difference ${deltaText}. Publisher panels changed, so this is not a comparable trend estimate.`
+                      : `${item.name}, ${item.tierLabel}: ${latestShareText} percent mention rate among active-field-linked race records in the current period, ${previousShareText} percent in the prior period.`
                 )}"
               >
                 <span class="top-media-shift-name">
@@ -5973,9 +5973,9 @@
           <section class="top-media-shift">
             <div
               class="top-media-section-heading"
-              aria-label="${escapeAttribute(`Active-field coverage shift. ${candidateComparisonExplanation}`)}"
+              aria-label="${escapeAttribute(`Active-field mention rate. Percentage of active-field-linked race records that mention each candidate. One record may mention multiple candidates, so rates can overlap and need not total 100 percent. ${candidateComparisonExplanation}`)}"
             >
-              <h3>Active-field coverage shift</h3>
+              <h3>Active-field mention rate</h3>
 
               <span
                 class="top-media-shift-quality"
@@ -5990,7 +5990,7 @@
             <div
               class="top-media-period-legend"
               aria-label="${escapeAttribute(
-                `Active-field candidate-linked share. Current period ${currentPeriodLabel}; prior period ${priorPeriodLabel}.`
+                `Candidate mention rate among active-field-linked race records. One record may mention multiple candidates, so rates can overlap and need not total 100 percent. Current period ${currentPeriodLabel}; prior period ${priorPeriodLabel}.`
               )}"
             >
               <span class="is-current">
