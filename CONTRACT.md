@@ -60,8 +60,8 @@ projection.
 ## Recent Changes Ledger (`recent_changes.json`)
 
 The ledger is a generated view over the existing public datasets and the configured
-19-feed election-news source universe. `items` contains at most 12 unique
-changes from a 14-day inclusive Paris-date window, newest first.
+election-news source universe. `items` contains every qualifying unique
+change from a 14-day inclusive Paris-date window, newest first.
 
 Each item has a stable `id`, one of `campaign`, `polling`, `runoff`, `fact_check`, or
 `legal`, a source-linked headline and summary, explicit `published_at`, `event_date`,
