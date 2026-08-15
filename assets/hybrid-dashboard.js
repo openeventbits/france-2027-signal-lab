@@ -910,10 +910,26 @@
 
     const payload = dashboardState.news;
 
+    const candidateSignalsSchema =
+      state.candidateSignals.status === "ready"
+        ? String(
+            state.candidateSignals.metadata?.schema_version || ""
+          )
+        : "";
+
+    const usesRaceCoverageV2 =
+      String(payload.schema_version || "") === "2" &&
+      candidateSignalsSchema === "1.4";
+
+    const electionItemsSource =
+      usesRaceCoverageV2
+        ? payload.relevant_news
+        : payload.election_news;
+
     const electionItems = Array.isArray(
-      payload.election_news
+      electionItemsSource
     )
-      ? payload.election_news
+      ? electionItemsSource
       : [];
 
     const coverageItems = Array.isArray(
@@ -926,7 +942,10 @@
       state.candidateSignals.status === "ready"
         ? state.candidateSignals.metadata?.activeFieldVisibility || null
         : null;
-    const activePrimary = activeFieldVisibility?.primary || null;
+    const activePrimary =
+      usesRaceCoverageV2
+        ? activeFieldVisibility?.race_attention || null
+        : activeFieldVisibility?.primary || null;
     const comparisonQuality = activePrimary?.comparison_quality || {
       status: "unavailable",
       reason: "active_field_visibility_unavailable"
@@ -1004,8 +1023,14 @@
     const latestEndKey = activePrimary?.current_period?.end_date || "";
     const previousStartKey = activePrimary?.prior_period?.start_date || "";
     const previousEndKey = activePrimary?.prior_period?.end_date || "";
-    const latestDenominator = activePrimary?.current_period?.record_count ?? null;
-    const previousDenominator = activePrimary?.prior_period?.record_count ?? null;
+    const latestDenominator =
+      usesRaceCoverageV2
+        ? activePrimary?.current_period?.exposure_count ?? null
+        : activePrimary?.current_period?.record_count ?? null;
+    const previousDenominator =
+      usesRaceCoverageV2
+        ? activePrimary?.prior_period?.exposure_count ?? null
+        : activePrimary?.prior_period?.record_count ?? null;
     const candidateCoverageAvailable = Boolean(activePrimary);
     const activeRows = activePrimary
       ? [
@@ -1036,8 +1061,14 @@
           status: row.status,
           tier: row.tier,
           tierLabel: row.tier.toUpperCase(),
-          latestCount: row.current_record_count,
-          previousCount: row.prior_record_count,
+          latestCount:
+            usesRaceCoverageV2
+              ? row.current_exposure_count
+              : row.current_record_count,
+          previousCount:
+            usesRaceCoverageV2
+              ? row.prior_exposure_count
+              : row.prior_record_count,
           latestShare,
           previousShare,
           changeAvailable: delta !== null,
@@ -1224,12 +1255,24 @@
       activityWindowDays,
       activityItemCount,
       electionNewsCount:
-        number(
-          payload.counts
-            ?.election_news
-        ),
+        usesRaceCoverageV2
+          ? electionItems.length
+          : number(
+              payload.counts
+                ?.election_news
+            ),
       candidateWatchCount:
         coverageItems.length,
+      raceCoverageMode:
+        usesRaceCoverageV2,
+      candidateCoverageUnit:
+        usesRaceCoverageV2
+          ? "exposures"
+          : "records",
+      candidateCoverageScopeLabel:
+        usesRaceCoverageV2
+          ? "race-attention"
+          : "active-field candidate-linked",
       acceptedNewsPublisherCount:
         publisherCount,
       topPublishers,
@@ -3244,7 +3287,7 @@
             <div
               class="hybrid-candidate-share-row"
               aria-label="${escapeAttribute(
-                `${item.name}, ${item.tierLabel}: ${latestShareText} percent active-field candidate-linked share in the latest seven days, ${previousShareText} percent in the previous seven days, ${deltaText}; ${item.latestCount} latest records and ${item.previousCount} previous records`
+                `${item.name}, ${item.tierLabel}: ${latestShareText} percent ${model.candidateCoverageScopeLabel} share in the latest seven days, ${previousShareText} percent in the previous seven days, ${deltaText}; ${item.latestCount} latest ${model.candidateCoverageUnit} and ${item.previousCount} previous ${model.candidateCoverageUnit}`
               )}"
             >
               <span class="hybrid-candidate-share-name">
@@ -3376,7 +3419,9 @@
         <section class="hybrid-media-terminal-feed">
           <div class="hybrid-media-terminal-heading">
             <h3 class="hybrid-section-title">
-              Recent election coverage
+              ${model.raceCoverageMode
+                ? "Recent race coverage"
+                : "Recent election coverage"}
             </h3>
 
             <span class="hybrid-media-terminal-status">
@@ -3388,7 +3433,9 @@
           <div
             class="hybrid-media-terminal-list"
             role="feed"
-            aria-label="Recent accepted election coverage"
+            aria-label="${model.raceCoverageMode
+              ? "Recent accepted France 2027 race coverage"
+              : "Recent accepted election coverage"}"
           >
             ${feedRows}
           </div>

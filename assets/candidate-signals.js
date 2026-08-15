@@ -8,7 +8,7 @@
     unavailable: "unavailable"
   });
   const SUPPORTED_SCHEMA_VERSIONS = new Set([
-    "1.0", "1.1", "1.2", "1.3"
+    "1.0", "1.1", "1.2", "1.3", "1.4"
   ]);
   const metadataFields = [
     "candidate_universe",
@@ -142,6 +142,72 @@
     "minimum_period_records", "minimum_period_publishers",
     "minimum_common_publishers", "minimum_publisher_overlap_ratio",
     "maximum_record_count_ratio"
+  ];
+
+  const raceCampaignFields = [
+    "observation_state",
+    "record_count",
+    "exposure_count",
+    "share",
+    "publisher_count",
+    "story_count"
+  ];
+
+  const raceGeneralFields = [
+    "evidence_state",
+    "record_count",
+    "publisher_count"
+  ];
+
+  const raceActivePeriodFields = [
+    "start_date",
+    "end_date",
+    "record_count",
+    "exposure_count",
+    "publisher_count",
+    "story_count"
+  ];
+
+  const raceActiveQualityFields = [
+    "status",
+    "reason",
+    "current_exposure_count",
+    "prior_exposure_count",
+    "current_publisher_count",
+    "prior_publisher_count",
+    "common_publisher_count",
+    "publisher_union_count",
+    "publisher_overlap_ratio",
+    "exposure_count_ratio",
+    "thresholds"
+  ];
+
+  const raceActiveThresholdFields = [
+    "minimum_period_exposures",
+    "minimum_period_publishers",
+    "minimum_common_publishers",
+    "minimum_publisher_overlap_ratio",
+    "maximum_exposure_count_ratio"
+  ];
+
+  const raceActiveRowFields = [
+    "candidate_id",
+    "candidate_name",
+    "status",
+    "display_tier",
+    "current_record_count",
+    "current_exposure_count",
+    "current_share",
+    "current_publisher_count",
+    "current_story_count",
+    "current_observation_state",
+    "prior_record_count",
+    "prior_exposure_count",
+    "prior_share",
+    "prior_publisher_count",
+    "prior_story_count",
+    "prior_observation_state",
+    "share_change"
   ];
 
   function isPlainObject(value) {
@@ -517,6 +583,503 @@
     };
   }
 
+  function isoCalendarDateMillis(value) {
+    if (typeof value !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return null;
+    }
+    const millis = Date.parse(`${value}T00:00:00Z`);
+    if (!Number.isFinite(millis)) return null;
+    return new Date(millis).toISOString().slice(0, 10) === value
+      ? millis
+      : null;
+  }
+
+  function ratioValue(value) {
+    return typeof value === "number" &&
+      Number.isFinite(value) &&
+      value >= 0 &&
+      value <= 1;
+  }
+
+  function normalizeRaceCampaignEvidence(source) {
+    if (!hasExactKeys(source, raceCampaignFields)) {
+      return undefined;
+    }
+
+    const state = source.observation_state;
+    const countFields = [
+      "record_count",
+      "exposure_count",
+      "publisher_count",
+      "story_count"
+    ];
+
+    if (state === "unavailable") {
+      const values = countFields.map(field => source[field]);
+      const allNull = values.every(value => value === null);
+      const allZero = values.every(value => value === 0);
+
+      if (
+        source.share !== null ||
+        (!allNull && !allZero)
+      ) {
+        return undefined;
+      }
+
+      return cloneValue(source);
+    }
+
+    if (countFields.some(
+      field => !nonnegativeInteger(source[field])
+    )) {
+      return undefined;
+    }
+
+    if (
+      source.exposure_count > source.record_count ||
+      source.publisher_count > source.exposure_count ||
+      source.story_count > source.exposure_count
+    ) {
+      return undefined;
+    }
+
+    if (state === "observed_zero") {
+      if (
+        source.exposure_count !== 0 ||
+        source.share !== 0
+      ) {
+        return undefined;
+      }
+    } else if (state === "observed_positive") {
+      if (
+        source.exposure_count === 0 ||
+        !ratioValue(source.share) ||
+        source.share === 0
+      ) {
+        return undefined;
+      }
+    } else {
+      return undefined;
+    }
+
+    return cloneValue(source);
+  }
+
+  function normalizeRaceGeneralEvidence(source) {
+    if (!hasExactKeys(source, raceGeneralFields)) {
+      return undefined;
+    }
+
+    if (source.evidence_state === "not_observed") {
+      return (
+        source.record_count === null &&
+        source.publisher_count === null
+      )
+        ? cloneValue(source)
+        : undefined;
+    }
+
+    if (
+      source.evidence_state !== "reported" ||
+      !nonnegativeInteger(source.record_count) ||
+      !nonnegativeInteger(source.publisher_count) ||
+      source.publisher_count > source.record_count
+    ) {
+      return undefined;
+    }
+
+    return cloneValue(source);
+  }
+
+  function normalizeRaceActivePeriod(source) {
+    if (!hasExactKeys(source, raceActivePeriodFields)) {
+      return undefined;
+    }
+
+    const start = isoCalendarDateMillis(source.start_date);
+    const end = isoCalendarDateMillis(source.end_date);
+
+    if (
+      start === null ||
+      end === null ||
+      end - start !== 6 * 86400000
+    ) {
+      return undefined;
+    }
+
+    for (const field of [
+      "record_count",
+      "exposure_count",
+      "publisher_count",
+      "story_count"
+    ]) {
+      if (!nonnegativeInteger(source[field])) {
+        return undefined;
+      }
+    }
+
+    if (
+      source.exposure_count > source.record_count ||
+      source.publisher_count > source.exposure_count ||
+      source.story_count > source.exposure_count
+    ) {
+      return undefined;
+    }
+
+    return cloneValue(source);
+  }
+
+  function normalizeRaceActiveQuality(source, current, prior) {
+    if (
+      !hasExactKeys(source, raceActiveQualityFields) ||
+      !["comparable", "not_comparable"].includes(source.status) ||
+      ![
+        "comparable",
+        "insufficient_data",
+        "publisher_panel_changed"
+      ].includes(source.reason) ||
+      (source.status === "comparable") !==
+        (source.reason === "comparable") ||
+      !hasExactKeys(
+        source.thresholds,
+        raceActiveThresholdFields
+      )
+    ) {
+      return undefined;
+    }
+
+    const countFields = raceActiveQualityFields.filter(
+      field => field.endsWith("_count")
+    );
+
+    if (
+      countFields.some(
+        field => !nonnegativeInteger(source[field])
+      ) ||
+      raceActiveThresholdFields.some(field =>
+        typeof source.thresholds[field] !== "number" ||
+        !Number.isFinite(source.thresholds[field]) ||
+        source.thresholds[field] < 0
+      )
+    ) {
+      return undefined;
+    }
+
+    if (
+      source.current_exposure_count !== current.exposure_count ||
+      source.prior_exposure_count !== prior.exposure_count ||
+      source.current_publisher_count !== current.publisher_count ||
+      source.prior_publisher_count !== prior.publisher_count ||
+      source.common_publisher_count >
+        Math.min(
+          source.current_publisher_count,
+          source.prior_publisher_count
+        ) ||
+      source.publisher_union_count !==
+        source.current_publisher_count +
+        source.prior_publisher_count -
+        source.common_publisher_count
+    ) {
+      return undefined;
+    }
+
+    const overlap = roundActiveRatio(
+      source.publisher_union_count
+        ? source.common_publisher_count /
+          source.publisher_union_count
+        : 0
+    );
+
+    const exposureRatio =
+      current.exposure_count && prior.exposure_count
+        ? roundActiveRatio(
+            Math.max(
+              current.exposure_count,
+              prior.exposure_count
+            ) /
+            Math.min(
+              current.exposure_count,
+              prior.exposure_count
+            )
+          )
+        : null;
+
+    if (
+      source.publisher_overlap_ratio !== overlap ||
+      source.exposure_count_ratio !== exposureRatio
+    ) {
+      return undefined;
+    }
+
+    return cloneValue(source);
+  }
+
+  function raceActiveRowOrder(left, right) {
+    const leftMissing = left.current_share === null;
+    const rightMissing = right.current_share === null;
+
+    if (leftMissing !== rightMissing) {
+      return leftMissing ? 1 : -1;
+    }
+
+    if (
+      !leftMissing &&
+      left.current_share !== right.current_share
+    ) {
+      return right.current_share - left.current_share;
+    }
+
+    if (
+      left.current_exposure_count !==
+      right.current_exposure_count
+    ) {
+      return (
+        right.current_exposure_count -
+        left.current_exposure_count
+      );
+    }
+
+    const leftName = left.candidate_name.toLowerCase();
+    const rightName = right.candidate_name.toLowerCase();
+
+    if (leftName !== rightName) {
+      return leftName < rightName ? -1 : 1;
+    }
+
+    return left.candidate_id < right.candidate_id
+      ? -1
+      : left.candidate_id > right.candidate_id ? 1 : 0;
+  }
+
+  function normalizeRaceActiveScope(
+    source,
+    field,
+    candidatesById
+  ) {
+    if (!hasExactKeys(source, [
+      "current_period",
+      "prior_period",
+      "comparison_quality",
+      "main",
+      "secondary"
+    ])) {
+      return undefined;
+    }
+
+    const current =
+      normalizeRaceActivePeriod(source.current_period);
+    const prior =
+      normalizeRaceActivePeriod(source.prior_period);
+
+    if (!current || !prior) return undefined;
+
+    if (
+      isoCalendarDateMillis(current.start_date) -
+      isoCalendarDateMillis(prior.end_date) !==
+      86400000
+    ) {
+      return undefined;
+    }
+
+    const quality = normalizeRaceActiveQuality(
+      source.comparison_quality,
+      current,
+      prior
+    );
+
+    if (!quality) return undefined;
+
+    const normalized = {
+      current_period: current,
+      prior_period: prior,
+      comparison_quality: quality,
+      main: [],
+      secondary: []
+    };
+
+    const seen = new Set();
+
+    for (const tier of ["main", "secondary"]) {
+      if (!Array.isArray(source[tier])) {
+        return undefined;
+      }
+
+      for (const row of source[tier]) {
+        const candidate =
+          candidatesById.get(row?.candidate_id);
+
+        if (
+          !hasExactKeys(row, raceActiveRowFields) ||
+          !candidate ||
+          seen.has(row.candidate_id) ||
+          !field[tier].includes(row.candidate_id) ||
+          row.candidate_name !== candidate.candidate_name ||
+          row.status !== candidate.candidacy.status ||
+          row.display_tier !== tier ||
+          candidate.candidacy.display_tier !== tier ||
+          candidate.candidacy.active_field_eligible !== true
+        ) {
+          return undefined;
+        }
+
+        for (const prefix of ["current", "prior"]) {
+          const period =
+            prefix === "current" ? current : prior;
+
+          const recordCount =
+            row[`${prefix}_record_count`];
+          const exposureCount =
+            row[`${prefix}_exposure_count`];
+          const publisherCount =
+            row[`${prefix}_publisher_count`];
+          const storyCount =
+            row[`${prefix}_story_count`];
+
+          if (
+            !nonnegativeInteger(recordCount) ||
+            !nonnegativeInteger(exposureCount) ||
+            !nonnegativeInteger(publisherCount) ||
+            !nonnegativeInteger(storyCount) ||
+            recordCount > period.record_count ||
+            exposureCount > period.exposure_count ||
+            publisherCount > period.publisher_count ||
+            storyCount > period.story_count ||
+            exposureCount > recordCount ||
+            publisherCount > exposureCount ||
+            storyCount > exposureCount
+          ) {
+            return undefined;
+          }
+
+          const expectedShare =
+            period.exposure_count
+              ? roundActiveRatio(
+                  exposureCount /
+                  period.exposure_count
+                )
+              : null;
+
+          const expectedState =
+            period.exposure_count === 0
+              ? "unavailable"
+              : exposureCount === 0
+                ? "observed_zero"
+                : "observed_positive";
+
+          if (
+            row[`${prefix}_share`] !== expectedShare ||
+            row[`${prefix}_observation_state`] !==
+              expectedState
+          ) {
+            return undefined;
+          }
+        }
+
+        const expectedChange =
+          quality.status === "comparable" &&
+          row.current_share !== null &&
+          row.prior_share !== null
+            ? roundActiveRatio(
+                row.current_share - row.prior_share
+              )
+            : null;
+
+        if (row.share_change !== expectedChange) {
+          return undefined;
+        }
+
+        const campaign = candidate.campaign_attention;
+
+        if (
+          !campaign ||
+          campaign.observation_state !==
+            row.current_observation_state ||
+          campaign.record_count !==
+            row.current_record_count ||
+          campaign.exposure_count !==
+            row.current_exposure_count ||
+          campaign.share !== row.current_share ||
+          campaign.publisher_count !==
+            row.current_publisher_count ||
+          campaign.story_count !==
+            row.current_story_count
+        ) {
+          return undefined;
+        }
+
+        seen.add(row.candidate_id);
+        normalized[tier].push(cloneValue(row));
+      }
+
+      const ordered =
+        [...normalized[tier]].sort(raceActiveRowOrder);
+
+      if (
+        normalized[tier].length !== field[tier].length ||
+        normalized[tier].some(
+          (row, index) =>
+            row.candidate_id !==
+            ordered[index].candidate_id
+        )
+      ) {
+        return undefined;
+      }
+    }
+
+    return seen.size === field.counts.active
+      ? normalized
+      : undefined;
+  }
+
+  function normalizeRaceActiveFieldVisibility(
+    source,
+    field,
+    candidates,
+    statusAsOf
+  ) {
+    if (!hasExactKeys(source, [
+      "method",
+      "denominator_scope",
+      "status_as_of",
+      "race_attention"
+    ])) {
+      return undefined;
+    }
+
+    if (
+      source.method !==
+        "share_of_active_candidate_publisher_story_race_exposures" ||
+      source.denominator_scope !==
+        "publisher_story_race_exposures_linked_by_article_local_matches_to_at_least_one_active_monitoring_candidate" ||
+      source.status_as_of !== statusAsOf
+    ) {
+      return undefined;
+    }
+
+    const candidatesById = new Map(
+      candidates.map(candidate => [
+        candidate.candidate_id,
+        candidate
+      ])
+    );
+
+    const raceAttention = normalizeRaceActiveScope(
+      source.race_attention,
+      field,
+      candidatesById
+    );
+
+    if (!raceAttention) return undefined;
+
+    return {
+      method: source.method,
+      denominator_scope: source.denominator_scope,
+      status_as_of: source.status_as_of,
+      race_attention: raceAttention
+    };
+  }
+
   function normalize(payload) {
     if (!isPlainObject(payload)) return unavailable("invalid_payload");
     if (!SUPPORTED_SCHEMA_VERSIONS.has(payload.schema_version)) {
@@ -524,10 +1087,12 @@
     }
     const isVersion12 = payload.schema_version === "1.2";
     const isVersion13 = payload.schema_version === "1.3";
+    const isVersion14 = payload.schema_version === "1.4";
     if (isVersion12 && !hasExactKeys(payload, schema12TopFields)) {
       return unavailable("invalid_payload");
     }
-    if (isVersion13 && !hasExactKeys(payload, schema13TopFields)) {
+    if ((isVersion13 || isVersion14) &&
+        !hasExactKeys(payload, schema13TopFields)) {
       return unavailable("invalid_payload");
     }
     if (!Array.isArray(payload.candidates)) {
@@ -535,14 +1100,15 @@
     }
 
     const hasPresidentialField =
-      payload.schema_version === "1.1" || isVersion12 || isVersion13;
+      payload.schema_version === "1.1" ||
+      isVersion12 || isVersion13 || isVersion14;
     const candidateIds = new Set();
     const candidates = [];
 
     for (const sourceCandidate of payload.candidates) {
       if (!isPlainObject(sourceCandidate)) return unavailable("invalid_payload");
       if (
-        (isVersion12 || isVersion13) &&
+        (isVersion12 || isVersion13 || isVersion14) &&
         !hasExactKeys(sourceCandidate, candidateRecordFields)
       ) {
         return unavailable("invalid_payload");
@@ -565,14 +1131,47 @@
       if (hasPresidentialField) {
         candidate.candidacy = normalizeCandidacy(
           sourceCandidate.candidacy,
-          isVersion13
+          isVersion13 || isVersion14
         );
         if (candidate.candidacy === undefined) return unavailable("invalid_payload");
       }
 
       for (const [field, fields] of Object.entries(candidateEvidenceFields)) {
-        const evidence = copyFields(sourceCandidate[field], fields);
+        const sourceEvidence = sourceCandidate[field];
+
+        if (
+          isVersion14 &&
+          field === "campaign_attention"
+        ) {
+          const evidence =
+            normalizeRaceCampaignEvidence(sourceEvidence);
+
+          if (evidence === undefined) {
+            return unavailable("invalid_payload");
+          }
+
+          candidate[field] = evidence;
+          continue;
+        }
+
+        if (
+          isVersion14 &&
+          field === "general_visibility"
+        ) {
+          const evidence =
+            normalizeRaceGeneralEvidence(sourceEvidence);
+
+          if (evidence === undefined) {
+            return unavailable("invalid_payload");
+          }
+
+          candidate[field] = evidence;
+          continue;
+        }
+
+        const evidence = copyFields(sourceEvidence, fields);
         if (evidence === undefined) return unavailable("invalid_payload");
+
         candidate[field] = evidence;
       }
       candidateIds.add(candidateId);
@@ -592,14 +1191,14 @@
       metadata.presidentialField = normalizePresidentialField(
         payload.presidential_field,
         candidates,
-        isVersion13
+        isVersion13 || isVersion14
       );
       if (metadata.presidentialField === undefined) {
         return unavailable("invalid_payload");
       }
     }
 
-    if (isVersion13) {
+    if (isVersion13 || isVersion14) {
       metadata.activeMonitoringField = normalizeActiveMonitoringField(
         payload.active_monitoring_field,
         candidates
@@ -619,7 +1218,19 @@
       };
     }
 
-    if (isVersion12 || isVersion13) {
+    if (isVersion14) {
+      metadata.activeFieldVisibility =
+        normalizeRaceActiveFieldVisibility(
+          payload.active_field_visibility,
+          metadata.activeMonitoringField,
+          candidates,
+          metadata.presidentialField.status_as_of
+        );
+
+      if (metadata.activeFieldVisibility === undefined) {
+        return unavailable("invalid_payload");
+      }
+    } else if (isVersion12 || isVersion13) {
       metadata.activeFieldVisibility = normalizeActiveFieldVisibility(
         payload.active_field_visibility,
         metadata.activeMonitoringField,

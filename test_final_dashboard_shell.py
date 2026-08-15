@@ -1140,21 +1140,51 @@ class FinalDashboardShellTests(unittest.TestCase):
         )
 
 
-    def test_candidate_coverage_consumes_active_projection_only(self):
+    def test_candidate_coverage_consumes_versioned_active_projection_only(self):
         for contract in (
             "state.candidateSignals.metadata?.activeFieldVisibility",
-            "const activePrimary = activeFieldVisibility?.primary || null;",
+            "const usesRaceCoverageV2 =",
+            "activeFieldVisibility?.race_attention || null",
+            "activeFieldVisibility?.primary || null",
             "...activePrimary.main.map",
             "...activePrimary.secondary.map",
             "candidateCoverageAvailable,",
             "activeFieldVisibility,",
+            "candidateCoverage:",
+            "candidateCoverageShares,",
         ):
             self.assertIn(contract, self.js)
+
         model = self.js[
             self.js.index("function buildMediaViewModel()"):
             self.js.index("function buildAgendaViewModel()")
         ]
-        self.assertNotIn("resolveCandidateVisibility(payload)", model)
+
+        self.assertIn(
+            'String(payload.schema_version || "") === "2"',
+            model,
+        )
+        self.assertIn(
+            'candidateSignalsSchema === "1.4"',
+            model,
+        )
+        self.assertIn(
+            "usesRaceCoverageV2",
+            model,
+        )
+        self.assertIn(
+            "activeFieldVisibility?.race_attention || null",
+            model,
+        )
+        self.assertIn(
+            "activeFieldVisibility?.primary || null",
+            model,
+        )
+
+        self.assertNotIn(
+            "resolveCandidateVisibility(payload)",
+            model,
+        )
 
     def test_active_projection_unavailable_is_scoped_without_raw_fallback(self):
         model = self.js[
@@ -1370,30 +1400,36 @@ class FinalDashboardShellTests(unittest.TestCase):
             {"malformedRejected": True, "status": "comparable"},
         )
 
-    def test_primary_active_rows_render_raw_period_differences(self):
+    def test_active_race_rows_render_raw_period_differences(self):
         payload = json.loads(
             (ROOT / "candidate_signals.json").read_text(
                 encoding="utf-8"
             )
         )
-        primary = payload[
-            "active_field_visibility"
-        ]["primary"]
+        schema_version = payload["schema_version"]
 
-        quality = primary["comparison_quality"]
-        rows = primary["main"] + primary["secondary"]
+        if schema_version == "1.4":
+            scope = payload["active_field_visibility"]["race_attention"]
+            count_name = "exposure_count"
+        else:
+            self.assertEqual(schema_version, "1.3")
+            scope = payload["active_field_visibility"]["primary"]
+            count_name = "record_count"
+
+        quality = scope["comparison_quality"]
+        rows = scope["main"] + scope["secondary"]
         self.assertTrue(rows)
-        current_count = primary["current_period"]["record_count"]
-        prior_count = primary["prior_period"]["record_count"]
+        current_count = scope["current_period"][count_name]
+        prior_count = scope["prior_period"][count_name]
         round_ratio = lambda value: int(value * 1000 + 0.5) / 1000
         for row in rows:
             expected_current = (
-                round_ratio(row["current_record_count"] / current_count)
+                round_ratio(row[f"current_{count_name}"] / current_count)
                 if current_count
                 else None
             )
             expected_prior = (
-                round_ratio(row["prior_record_count"] / prior_count)
+                round_ratio(row[f"prior_{count_name}"] / prior_count)
                 if prior_count
                 else None
             )
@@ -1586,12 +1622,62 @@ process.stdout.write(JSON.stringify({
             row_renderer,
         )
 
-    def test_general_active_rows_suppress_unavailable_change(self):
+    def test_general_coverage_contract_matches_schema_generation(self):
         payload = json.loads(
             (ROOT / "candidate_signals.json").read_text(
                 encoding="utf-8"
             )
         )
+        schema_version = payload["schema_version"]
+
+        if schema_version == "1.4":
+            active = payload["active_field_visibility"]
+
+            self.assertNotIn("general", active)
+            self.assertIn("race_attention", active)
+
+            for candidate in payload["candidates"]:
+                general = candidate["general_visibility"]
+
+                self.assertEqual(
+                    set(general),
+                    {
+                        "evidence_state",
+                        "record_count",
+                        "publisher_count",
+                    },
+                )
+                self.assertNotIn("share", general)
+
+                if general["evidence_state"] == "not_observed":
+                    self.assertIsNone(general["record_count"])
+                    self.assertIsNone(general["publisher_count"])
+                else:
+                    self.assertEqual(
+                        general["evidence_state"],
+                        "reported",
+                    )
+                    self.assertIsInstance(
+                        general["record_count"],
+                        int,
+                    )
+                    self.assertIsInstance(
+                        general["publisher_count"],
+                        int,
+                    )
+                    self.assertGreaterEqual(
+                        general["record_count"],
+                        0,
+                    )
+                    self.assertGreaterEqual(
+                        general["publisher_count"],
+                        0,
+                    )
+
+            return
+
+        self.assertEqual(schema_version, "1.3")
+
         general = payload["active_field_visibility"]["general"]
         quality = general["comparison_quality"]
         thresholds = quality["thresholds"]

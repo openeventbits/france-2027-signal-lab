@@ -227,6 +227,7 @@ def dynamic_schema_12_payload(tiers=("main", "main", "secondary", "hidden")):
         (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
     )
     template = source["candidates"][0]
+    legacy_evidence = candidate_row()
     status_by_tier = {
         "main": "declared",
         "secondary": "active_potential",
@@ -243,6 +244,17 @@ def dynamic_schema_12_payload(tiers=("main", "main", "secondary", "hidden")):
         row["candidacy"]["display_tier"] = tier
         row["candidacy"]["active_field_eligible"] = tier != "hidden"
         row["candidacy"].pop("upstream_presence", None)
+
+        # This helper deliberately publishes schema 1.2. Keep its evidence
+        # projections legacy even when the tracked production artifact has
+        # advanced to a newer schema.
+        row["campaign_attention"] = json.loads(json.dumps(
+            legacy_evidence["campaign_attention"]
+        ))
+        row["general_visibility"] = json.loads(json.dumps(
+            legacy_evidence["general_visibility"]
+        ))
+
         candidates.append(row)
 
     field = {
@@ -264,10 +276,13 @@ def dynamic_schema_12_payload(tiers=("main", "main", "secondary", "hidden")):
         "total": len(candidates),
     }
 
-    thresholds = json.loads(json.dumps(
-        source["active_field_visibility"]["primary"]
-        ["comparison_quality"]["thresholds"]
-    ))
+    thresholds = {
+        "minimum_period_records": 10,
+        "minimum_period_publishers": 5,
+        "minimum_common_publishers": 5,
+        "minimum_publisher_overlap_ratio": 0.5,
+        "maximum_record_count_ratio": 2.0,
+    }
 
     def active_scope():
         rows = {"main": [], "secondary": []}
@@ -1056,7 +1071,7 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
             self.assertIsNone(candidate[field])
         self.assertNotIn(0, candidate.values())
 
-    def test_schema_13_normalizes_complete_presidential_and_active_fields(self):
+    def test_current_schema_normalizes_complete_presidential_and_active_fields(self):
         payload = json.loads(
             (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
         )
@@ -1090,21 +1105,48 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
 
         active = state["metadata"]["activeFieldVisibility"]
         self.assertEqual(active, payload["active_field_visibility"])
-        self.assertEqual(active["method"], "share_of_active_candidate_linked_records")
-        self.assertEqual(
-            active["denominator_scope"],
-            "records_linked_to_at_least_one_active_monitoring_candidate",
-        )
-        for scope_name in ("primary", "general"):
+        schema_version = payload["schema_version"]
+
+        if schema_version == "1.4":
+            self.assertEqual(
+                active["method"],
+                "share_of_active_candidate_publisher_story_race_exposures",
+            )
+            self.assertEqual(
+                active["denominator_scope"],
+                (
+                    "publisher_story_race_exposures_linked_by_article_local_"
+                    "matches_to_at_least_one_active_monitoring_candidate"
+                ),
+            )
+            scope_contracts = (
+                ("race_attention", "exposure_count"),
+            )
+        else:
+            self.assertEqual(schema_version, "1.3")
+            self.assertEqual(
+                active["method"],
+                "share_of_active_candidate_linked_records",
+            )
+            self.assertEqual(
+                active["denominator_scope"],
+                "records_linked_to_at_least_one_active_monitoring_candidate",
+            )
+            scope_contracts = (
+                ("primary", "record_count"),
+                ("general", "record_count"),
+            )
+
+        for scope_name, count_name in scope_contracts:
             scope = active[scope_name]
             quality = scope["comparison_quality"]
             self.assertEqual(
-                quality["current_record_count"],
-                scope["current_period"]["record_count"],
+                quality[f"current_{count_name}"],
+                scope["current_period"][count_name],
             )
             self.assertEqual(
-                quality["prior_record_count"],
-                scope["prior_period"]["record_count"],
+                quality[f"prior_{count_name}"],
+                scope["prior_period"][count_name],
             )
             if quality["status"] == "comparable":
                 self.assertEqual(quality["reason"], "comparable")

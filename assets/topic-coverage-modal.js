@@ -170,28 +170,53 @@
     );
   };
 
-  const normalizeCandidate = (item, tier) => {
-    const latestShare = item?.current_share === null
-      ? null
-      : Number(item?.current_share) * 100;
-    const previousShare = item?.prior_share === null
-      ? null
-      : Number(item?.prior_share) * 100;
-    const changeAvailable = candidateComparisonAvailable &&
-      item?.share_change !== null;
+  const normalizeCandidate = item => {
+    const latestShare =
+      item?.latestShare === null
+        ? null
+        : Number.isFinite(Number(item?.latestShare))
+          ? Number(item.latestShare)
+          : null;
+    const previousShare =
+      item?.previousShare === null
+        ? null
+        : Number.isFinite(Number(item?.previousShare))
+          ? Number(item.previousShare)
+          : null;
+    const delta =
+      item?.delta === null
+        ? null
+        : Number.isFinite(Number(item?.delta))
+          ? Number(item.delta)
+          : null;
+    const changeAvailable =
+      candidateComparisonAvailable &&
+      item?.changeAvailable === true &&
+      delta !== null;
+    const tier = String(item?.tier || "");
+
     return {
-      id: String(item?.candidate_id || ""),
-      name: String(item?.candidate_name || "Unknown candidate").trim() ||
+      id: String(item?.id || ""),
+      name: String(item?.name || "Unknown candidate").trim() ||
         "Unknown candidate",
       tier,
-      tierLabel: tier === "main" ? "MAIN FIELD" : "SECONDARY FIELD",
+      tierLabel: String(
+        item?.tierLabel ||
+        (
+          tier === "main"
+            ? "MAIN FIELD"
+            : tier === "secondary"
+              ? "SECONDARY FIELD"
+              : ""
+        )
+      ),
       status: String(item?.status || ""),
       latestShare,
       previousShare,
-      latestCount: numberOrZero(item?.current_record_count),
-      previousCount: numberOrZero(item?.prior_record_count),
+      latestCount: numberOrZero(item?.latestCount),
+      previousCount: numberOrZero(item?.previousCount),
       changeAvailable,
-      delta: changeAvailable ? Number(item.share_change) * 100 : null
+      delta: changeAvailable ? delta : null
     };
   };
 
@@ -811,24 +836,16 @@
     const mediaModel = models?.media || {};
     const agendaModel = models?.agenda || {};
 
-    const activePrimary = mediaModel.activeFieldVisibility?.primary || null;
-    candidateProjectionAvailable = Boolean(
-      activePrimary &&
-      Array.isArray(activePrimary.main) &&
-      Array.isArray(activePrimary.secondary)
-    );
+    candidateProjectionAvailable =
+      mediaModel.candidateCoverageAvailable === true &&
+      Array.isArray(mediaModel.candidateCoverage);
     candidateComparisonAvailable =
-      activePrimary?.comparison_quality?.status === "comparable";
+      mediaModel.comparisonQuality?.status === "comparable";
     candidateComparisonReason = String(
-      activePrimary?.comparison_quality?.reason || ""
+      mediaModel.comparisonQuality?.reason || ""
     );
     candidates = candidateProjectionAvailable
-      ? [
-          ...activePrimary.main.map(item => normalizeCandidate(item, "main")),
-          ...activePrimary.secondary.map(item =>
-            normalizeCandidate(item, "secondary")
-          )
-        ]
+      ? mediaModel.candidateCoverage.map(normalizeCandidate)
       : [];
 
     topics = Array.isArray(agendaModel?.topics)

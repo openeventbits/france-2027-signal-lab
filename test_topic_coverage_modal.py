@@ -95,7 +95,7 @@ class TopicCoverageModalTests(unittest.TestCase):
 
     def test_complete_model_arrays_feed_scrollable_modules(self):
         for contract in (
-            "mediaModel.activeFieldVisibility?.primary",
+            "mediaModel.candidateCoverage",
             "agendaModel.topics",
             "mediaModel.publisherRanking",
             "mediaModel.dailyActivity",
@@ -149,9 +149,8 @@ class TopicCoverageModalTests(unittest.TestCase):
         ]
 
         for contract in (
-            "activePrimary.main.map",
-            "activePrimary.secondary.map",
-            'comparison_quality?.status === "comparable"',
+            "mediaModel.candidateCoverage.map(normalizeCandidate)",
+            'mediaModel.comparisonQuality?.status === "comparable"',
             'renderGroup("main", "MAIN FIELD")',
             'renderGroup("secondary", "SECONDARY FIELD")',
             'const candidateComparisonLabel',
@@ -238,9 +237,29 @@ class TopicCoverageModalTests(unittest.TestCase):
             "item.tierLabel",
             renderer,
         )
-        self.assertNotIn(
+        self.assertIn(
             "mediaModel.candidateCoverage",
             open_block,
+        )
+        self.assertNotIn(
+            "mediaModel.activeFieldVisibility",
+            open_block,
+        )
+        self.assertNotIn(
+            "current_record_count",
+            self.modal_js,
+        )
+        self.assertNotIn(
+            "prior_record_count",
+            self.modal_js,
+        )
+        self.assertNotIn(
+            "current_exposure_count",
+            self.modal_js,
+        )
+        self.assertNotIn(
+            "prior_exposure_count",
+            self.modal_js,
         )
         self.assertNotIn(
             "candidate_watch",
