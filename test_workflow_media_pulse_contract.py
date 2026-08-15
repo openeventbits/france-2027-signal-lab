@@ -61,9 +61,8 @@ class WorkflowMediaPulseContractTests(unittest.TestCase):
 
     def test_workflow_accepts_partitioned_visibility_schema(self):
         for field in (
-            '"story_model_version",',
-            '"authoritative_corpus",',
-            '"denominator_scope",',
+            '"primary_scopes",',
+            '"secondary_scope",',
             '"general_current_period",',
             '"general_prior_period",',
         ):

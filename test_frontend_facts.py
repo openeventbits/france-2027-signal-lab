@@ -94,7 +94,7 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             lane["schema_version"],
             candidate["schema_version"],
         )
-        self.assertIn(candidate["schema_version"], {"1.3", "1.4"})
+        self.assertEqual(candidate["schema_version"], "1.3")
         self.assertEqual(lane["file"], "candidate_signals.json")
         self.assertEqual(
             lane["record_count"],
@@ -169,64 +169,29 @@ class FrontendPublicationFactsTests(unittest.TestCase):
         self.assertEqual(lane["data_as_of"], max(evidence_dates))
 
         active = candidate["active_field_visibility"]
-        schema_version = candidate["schema_version"]
-
-        if schema_version == "1.4":
-            self.assertEqual(
-                active["method"],
-                "share_of_active_candidate_publisher_story_race_exposures",
-            )
-            self.assertEqual(
-                active["denominator_scope"],
-                (
-                    "publisher_story_race_exposures_linked_by_article_local_"
-                    "matches_to_at_least_one_active_monitoring_candidate"
-                ),
-            )
-            scope_contracts = (
-                ("race_attention", "exposure_count"),
-            )
-        else:
-            self.assertEqual(schema_version, "1.3")
-            self.assertEqual(
-                active["method"],
-                "share_of_active_candidate_linked_records",
-            )
-            scope_contracts = (
-                ("primary", "record_count"),
-                ("general", "record_count"),
-            )
-
-        for scope_name, count_name in scope_contracts:
+        self.assertEqual(
+            active["method"],
+            "share_of_active_candidate_linked_records",
+        )
+        for scope_name in ("primary", "general"):
             scope = active[scope_name]
             quality = scope["comparison_quality"]
-
             for prefix, period_name in (
                 ("current", "current_period"),
                 ("prior", "prior_period"),
             ):
                 period = scope[period_name]
-
-                if schema_version == "1.4":
-                    period_fields = (
-                        "record_count",
-                        "exposure_count",
-                        "publisher_count",
-                        "story_count",
-                    )
-                else:
-                    period_fields = (
-                        "record_count",
-                        "publisher_count",
-                    )
-
-                for field in period_fields:
-                    self.assertIsInstance(period[field], int)
-                    self.assertGreaterEqual(period[field], 0)
-
+                self.assertIsInstance(
+                    period["record_count"],
+                    int,
+                )
+                self.assertGreaterEqual(
+                    period["record_count"],
+                    0,
+                )
                 self.assertEqual(
-                    quality[f"{prefix}_{count_name}"],
-                    period[count_name],
+                    quality[f"{prefix}_record_count"],
+                    period["record_count"],
                 )
                 self.assertEqual(
                     quality[f"{prefix}_publisher_count"],
@@ -237,15 +202,8 @@ class FrontendPublicationFactsTests(unittest.TestCase):
         candidate = json.loads(
             CANDIDATE_SIGNALS_PATH.read_text(encoding="utf-8")
         )
-        schema_version = candidate["schema_version"]
-
-        if schema_version == "1.4":
-            scope = candidate["active_field_visibility"]["race_attention"]
-        else:
-            self.assertEqual(schema_version, "1.3")
-            scope = candidate["active_field_visibility"]["primary"]
-
-        quality = scope["comparison_quality"]
+        primary = candidate["active_field_visibility"]["primary"]
+        quality = primary["comparison_quality"]
         self.assertIn(quality["status"], {"comparable", "not_comparable"})
         if quality["status"] == "comparable":
             self.assertEqual(quality["reason"], "comparable")
@@ -254,7 +212,7 @@ class FrontendPublicationFactsTests(unittest.TestCase):
                 quality["reason"],
                 {"insufficient_data", "publisher_panel_changed"},
             )
-        rows = scope["main"] + scope["secondary"]
+        rows = primary["main"] + primary["secondary"]
         self.assertTrue(rows)
         for row in rows:
             self.assertIn("current_share", row)

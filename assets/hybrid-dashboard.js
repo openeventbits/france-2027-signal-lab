@@ -910,26 +910,10 @@
 
     const payload = dashboardState.news;
 
-    const candidateSignalsSchema =
-      state.candidateSignals.status === "ready"
-        ? String(
-            state.candidateSignals.metadata?.schema_version || ""
-          )
-        : "";
-
-    const usesRaceCoverageV2 =
-      String(payload.schema_version || "") === "2" &&
-      candidateSignalsSchema === "1.4";
-
-    const electionItemsSource =
-      usesRaceCoverageV2
-        ? payload.relevant_news
-        : payload.election_news;
-
     const electionItems = Array.isArray(
-      electionItemsSource
+      payload.election_news
     )
-      ? electionItemsSource
+      ? payload.election_news
       : [];
 
     const coverageItems = Array.isArray(
@@ -942,10 +926,7 @@
       state.candidateSignals.status === "ready"
         ? state.candidateSignals.metadata?.activeFieldVisibility || null
         : null;
-    const activePrimary =
-      usesRaceCoverageV2
-        ? activeFieldVisibility?.race_attention || null
-        : activeFieldVisibility?.primary || null;
+    const activePrimary = activeFieldVisibility?.primary || null;
     const comparisonQuality = activePrimary?.comparison_quality || {
       status: "unavailable",
       reason: "active_field_visibility_unavailable"
@@ -1023,14 +1004,8 @@
     const latestEndKey = activePrimary?.current_period?.end_date || "";
     const previousStartKey = activePrimary?.prior_period?.start_date || "";
     const previousEndKey = activePrimary?.prior_period?.end_date || "";
-    const latestDenominator =
-      usesRaceCoverageV2
-        ? activePrimary?.current_period?.exposure_count ?? null
-        : activePrimary?.current_period?.record_count ?? null;
-    const previousDenominator =
-      usesRaceCoverageV2
-        ? activePrimary?.prior_period?.exposure_count ?? null
-        : activePrimary?.prior_period?.record_count ?? null;
+    const latestDenominator = activePrimary?.current_period?.record_count ?? null;
+    const previousDenominator = activePrimary?.prior_period?.record_count ?? null;
     const candidateCoverageAvailable = Boolean(activePrimary);
     const activeRows = activePrimary
       ? [
@@ -1061,14 +1036,8 @@
           status: row.status,
           tier: row.tier,
           tierLabel: row.tier.toUpperCase(),
-          latestCount:
-            usesRaceCoverageV2
-              ? row.current_exposure_count
-              : row.current_record_count,
-          previousCount:
-            usesRaceCoverageV2
-              ? row.prior_exposure_count
-              : row.prior_record_count,
+          latestCount: row.current_record_count,
+          previousCount: row.prior_record_count,
           latestShare,
           previousShare,
           changeAvailable: delta !== null,
@@ -1255,24 +1224,12 @@
       activityWindowDays,
       activityItemCount,
       electionNewsCount:
-        usesRaceCoverageV2
-          ? electionItems.length
-          : number(
-              payload.counts
-                ?.election_news
-            ),
+        number(
+          payload.counts
+            ?.election_news
+        ),
       candidateWatchCount:
         coverageItems.length,
-      raceCoverageMode:
-        usesRaceCoverageV2,
-      candidateCoverageUnit:
-        usesRaceCoverageV2
-          ? "exposures"
-          : "records",
-      candidateCoverageScopeLabel:
-        usesRaceCoverageV2
-          ? "race-attention"
-          : "active-field candidate-linked",
       acceptedNewsPublisherCount:
         publisherCount,
       topPublishers,
@@ -3287,7 +3244,7 @@
             <div
               class="hybrid-candidate-share-row"
               aria-label="${escapeAttribute(
-                `${item.name}, ${item.tierLabel}: ${latestShareText} percent ${model.candidateCoverageScopeLabel} share in the latest seven days, ${previousShareText} percent in the previous seven days, ${deltaText}; ${item.latestCount} latest ${model.candidateCoverageUnit} and ${item.previousCount} previous ${model.candidateCoverageUnit}`
+                `${item.name}, ${item.tierLabel}: ${latestShareText} percent active-field candidate-linked share in the latest seven days, ${previousShareText} percent in the previous seven days, ${deltaText}; ${item.latestCount} latest records and ${item.previousCount} previous records`
               )}"
             >
               <span class="hybrid-candidate-share-name">
@@ -3419,9 +3376,7 @@
         <section class="hybrid-media-terminal-feed">
           <div class="hybrid-media-terminal-heading">
             <h3 class="hybrid-section-title">
-              ${model.raceCoverageMode
-                ? "Recent race coverage"
-                : "Recent election coverage"}
+              Recent election coverage
             </h3>
 
             <span class="hybrid-media-terminal-status">
@@ -3433,9 +3388,7 @@
           <div
             class="hybrid-media-terminal-list"
             role="feed"
-            aria-label="${model.raceCoverageMode
-              ? "Recent accepted France 2027 race coverage"
-              : "Recent accepted election coverage"}"
+            aria-label="Recent accepted election coverage"
           >
             ${feedRows}
           </div>
@@ -5614,8 +5567,12 @@
       "comparable";
     const reason =
       model.comparisonQuality?.reason || "";
-    const raceCoverageMode =
-      model.raceCoverageMode === true;
+    const reasonLabel =
+      reason === "publisher_panel_changed"
+        ? "publisher panel changed"
+        : reason === "insufficient_data"
+          ? "insufficient data"
+          : "comparison unavailable";
 
     return {
       available,
@@ -5625,14 +5582,10 @@
           ? "RAW Δ pp"
           : "UNAVAILABLE",
       explanation: available
-        ? raceCoverageMode
-          ? "Comparable Race Attention percentage-point change."
-          : "Comparable active-field percentage-point change."
+        ? "Comparable active-field percentage-point change."
         : model.candidateCoverageAvailable
           ? `Raw arithmetic current-minus-prior differences are displayed because comparison quality is not comparable; reason: ${reason || "unknown"}. These values are descriptive and are not comparable trend estimates.`
-          : raceCoverageMode
-            ? "Race Attention candidate comparison unavailable."
-            : "Active-field candidate comparison unavailable."
+          : "Active-field candidate comparison unavailable."
     };
   }
 
@@ -5753,31 +5706,8 @@
     const candidateComparisonExplanation =
       candidateComparison.explanation;
 
-    const raceCoverageMode =
-      model.raceCoverageMode === true;
-    const coverageHeading =
-      raceCoverageMode
-        ? "Latest race coverage"
-        : "Latest election coverage";
-    const coverageAriaLabel =
-      raceCoverageMode
-        ? "Latest accepted France 2027 race coverage"
-        : "Latest accepted election coverage";
-    const coverageShiftHeading =
-      raceCoverageMode
-        ? "Race Coverage shift"
-        : "Active-field coverage shift";
-    const candidateShareLabel =
-      raceCoverageMode
-        ? "Race-attention share"
-        : "Active-field candidate-linked share";
-    const candidateComparisonUnavailable =
-      raceCoverageMode
-        ? "Race Attention candidate comparison unavailable."
-        : "Active-field candidate comparison unavailable.";
-
     const shiftRows = !model.candidateCoverageAvailable
-      ? `<div class="hybrid-state is-compact">${escapeHtml(candidateComparisonUnavailable)}</div>`
+      ? `<div class="hybrid-state is-compact">Active-field candidate comparison unavailable.</div>`
       : model.candidateCoverageLeaders
           .slice(0, 6)
           .map(item => {
@@ -5839,10 +5769,10 @@
                 aria-expanded="false"
                 aria-label="${escapeAttribute(
                   deltaAvailable
-                    ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent ${candidateShareLabel.toLowerCase()} in the current period, ${previousShareText} percent in the prior period, comparable change ${deltaText}`
+                    ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent active-field candidate-linked share in the current period, ${previousShareText} percent in the prior period, comparable change ${deltaText}`
                     : rawDeltaAvailable
-                      ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent ${candidateShareLabel.toLowerCase()} in the current period, ${previousShareText} percent in the prior period, raw arithmetic difference ${deltaText}. Publisher panels changed, so this is not a comparable trend estimate.`
-                      : `${item.name}, ${item.tierLabel}: ${latestShareText} percent ${candidateShareLabel.toLowerCase()} in the current period, ${previousShareText} percent in the prior period.`
+                      ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent active-field candidate-linked share in the current period, ${previousShareText} percent in the prior period, raw arithmetic difference ${deltaText}. Publisher panels changed, so this is not a comparable trend estimate.`
+                      : `${item.name}, ${item.tierLabel}: ${latestShareText} percent active-field candidate-linked share in the current period, ${previousShareText} percent in the prior period.`
                 )}"
               >
                 <span class="top-media-shift-name">
@@ -6002,7 +5932,7 @@
           hidden
         >
           <div class="top-media-section-heading">
-            <h3>${escapeHtml(coverageHeading)}</h3>
+            <h3>Latest election coverage</h3>
 
             <span>
               ${Math.min(
@@ -6015,7 +5945,7 @@
           <div
             class="top-media-coverage-list"
             role="feed"
-            aria-label="${escapeAttribute(coverageAriaLabel)}"
+            aria-label="Latest accepted election coverage"
           >
             ${coverageRows}
           </div>
@@ -6043,9 +5973,9 @@
           <section class="top-media-shift">
             <div
               class="top-media-section-heading"
-              aria-label="${escapeAttribute(`${coverageShiftHeading}. ${candidateComparisonExplanation}`)}"
+              aria-label="${escapeAttribute(`Active-field coverage shift. ${candidateComparisonExplanation}`)}"
             >
-              <h3>${escapeHtml(coverageShiftHeading)}</h3>
+              <h3>Active-field coverage shift</h3>
 
               <span
                 class="top-media-shift-quality"
@@ -6060,7 +5990,7 @@
             <div
               class="top-media-period-legend"
               aria-label="${escapeAttribute(
-                `${candidateShareLabel}. Current period ${currentPeriodLabel}; prior period ${priorPeriodLabel}.`
+                `Active-field candidate-linked share. Current period ${currentPeriodLabel}; prior period ${priorPeriodLabel}.`
               )}"
             >
               <span class="is-current">

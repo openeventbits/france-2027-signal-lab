@@ -44,8 +44,8 @@ class PublicationManifestRegistryV2Tests(unittest.TestCase):
     def setUpClass(cls):
         cls.registry, cls.news, cls.claims, cls.signals = bundle()
 
-    def test_signals_14_complete_and_active_projections_reconcile(self):
-        self.assertEqual(self.signals["schema_version"], "1.4")
+    def test_signals_13_complete_and_active_projections_reconcile(self):
+        self.assertEqual(self.signals["schema_version"], "1.3")
         manifest._validate_candidate_signals_public(self.signals)
         manifest._validate_candidacy_status_parity(self.registry, self.signals)
         self.assertEqual(len(self.signals["candidates"]), 5)
