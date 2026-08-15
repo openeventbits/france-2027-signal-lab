@@ -1,0 +1,38 @@
+name: Validate dashboard PR
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dashboard-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Verify Node.js
+        run: node --version
+
+      - name: Run dashboard integration smoke tests
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python -B -m unittest -v \
+            test_publication_manifest \
+            test_frontend_facts \
+            test_candidate_signals_frontend \
+            test_final_dashboard_shell \
+            test_agenda_frontend_hardening \
+            test_workflow_media_pulse_contract \
+            test_recent_changes
