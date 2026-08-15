@@ -238,9 +238,50 @@
     return group;
   }
 
+  function isRaceAttentionEvidence(evidence) {
+    return [
+      "observed_positive",
+      "observed_zero",
+      "unavailable"
+    ].includes(String(evidence?.observation_state || ""));
+  }
+
+  function hasAttentionObservation(evidence) {
+    if (isRaceAttentionEvidence(evidence)) {
+      return [
+        "observed_positive",
+        "observed_zero"
+      ].includes(String(evidence?.observation_state || ""));
+    }
+
+    return evidence?.evidence_state === "reported";
+  }
+
   function visibilityLines(candidate) {
     const campaign = candidate.campaign_attention;
     const general = candidate.general_visibility;
+
+    if (isRaceAttentionEvidence(campaign)) {
+      return [
+        [
+          "Race records",
+          campaign ? numberText(campaign.record_count) : MISSING
+        ],
+        [
+          "Race exposures",
+          campaign ? numberText(campaign.exposure_count) : MISSING
+        ],
+        [
+          "Race attention share",
+          campaign ? percentageText(campaign.share, true) : MISSING
+        ],
+        [
+          "General political records",
+          general ? numberText(general.record_count) : MISSING
+        ]
+      ];
+    }
+
     return [
       [
         "Campaign/election records",
@@ -510,6 +551,7 @@
       top.append(identity, metric);
 
       const campaign = candidate.campaign_attention;
+      const raceAttention = isRaceAttentionEvidence(campaign);
       const latest = candidate.scrutiny?.latest_14_days;
       const evidence = createElement(
         "span",
@@ -517,16 +559,20 @@
       );
       evidence.append(
         candidateFact(
-          "Attention",
+          raceAttention ? "Race attention" : "Attention",
           campaign
             ? percentageText(campaign.share, true)
             : "Not published",
           "candidate-signals-candidate-attention"
         ),
         candidateFact(
-          "Records",
+          raceAttention ? "Exposures" : "Records",
           campaign
-            ? numberText(campaign.record_count)
+            ? numberText(
+                raceAttention
+                  ? campaign.exposure_count
+                  : campaign.record_count
+              )
             : "Not published",
           "candidate-signals-candidate-records"
         ),
@@ -1123,7 +1169,7 @@
       "div",
       `candidate-signals-attention-row is-${tone}`
     );
-    const reported = evidence?.evidence_state === "reported";
+    const reported = hasAttentionObservation(evidence);
     const share = reported
       ? percentageNumber(evidence.share, true)
       : null;
@@ -1157,20 +1203,35 @@
       )
     );
 
+    const raceAttention = isRaceAttentionEvidence(evidence);
     const compactParts = reported
-      ? [
-        hasValue(evidence.record_count)
-          ? `${numberText(evidence.record_count)} REC`
-          : null,
-        hasValue(evidence.publisher_count)
-          ? `${numberText(evidence.publisher_count)} PUB`
-          : null,
-        hasValue(evidence.active_day_count)
-          ? `${numberText(evidence.active_day_count)} ${
-            Number(evidence.active_day_count) === 1 ? "DAY" : "DAYS"
-          }`
-          : null
-      ].filter(Boolean)
+      ? raceAttention
+        ? [
+          hasValue(evidence.exposure_count)
+            ? `${numberText(evidence.exposure_count)} EXP`
+            : null,
+          hasValue(evidence.publisher_count)
+            ? `${numberText(evidence.publisher_count)} PUB`
+            : null,
+          hasValue(evidence.story_count)
+            ? `${numberText(evidence.story_count)} ${
+              Number(evidence.story_count) === 1 ? "STORY" : "STORIES"
+            }`
+            : null
+        ].filter(Boolean)
+        : [
+          hasValue(evidence.record_count)
+            ? `${numberText(evidence.record_count)} REC`
+            : null,
+          hasValue(evidence.publisher_count)
+            ? `${numberText(evidence.publisher_count)} PUB`
+            : null,
+          hasValue(evidence.active_day_count)
+            ? `${numberText(evidence.active_day_count)} ${
+              Number(evidence.active_day_count) === 1 ? "DAY" : "DAYS"
+            }`
+            : null
+        ].filter(Boolean)
       : [];
 
     const detail = createElement(
@@ -1181,15 +1242,27 @@
     if (reported) {
       detail.setAttribute(
         "aria-label",
-        [
-          counted(evidence.record_count, "record"),
-          hasValue(evidence.publisher_count)
-            ? counted(evidence.publisher_count, "publisher")
-            : null,
-          hasValue(evidence.active_day_count)
-            ? counted(evidence.active_day_count, "active day")
-            : null
-        ].filter(Boolean).join(", ")
+        (
+          raceAttention
+            ? [
+              counted(evidence.exposure_count, "exposure"),
+              hasValue(evidence.publisher_count)
+                ? counted(evidence.publisher_count, "publisher")
+                : null,
+              hasValue(evidence.story_count)
+                ? counted(evidence.story_count, "story")
+                : null
+            ]
+            : [
+              counted(evidence.record_count, "record"),
+              hasValue(evidence.publisher_count)
+                ? counted(evidence.publisher_count, "publisher")
+                : null,
+              hasValue(evidence.active_day_count)
+                ? counted(evidence.active_day_count, "active day")
+                : null
+            ]
+        ).filter(Boolean).join(", ")
       );
     }
 
@@ -1215,15 +1288,40 @@
   }
 
   function attentionSummaryCard(candidate) {
+    const raceAttention = isRaceAttentionEvidence(
+      candidate.campaign_attention
+    );
     const card = summaryCard(
-      "CAMPAIGN ATTENTION",
+      raceAttention ? "RACE ATTENTION" : "CAMPAIGN ATTENTION",
       "candidate-signals-attention-summary"
     );
 
-    const campaignShare = candidate.campaign_attention?.evidence_state ===
-      "reported"
+    const campaignShare = hasAttentionObservation(
+      candidate.campaign_attention
+    )
       ? percentageNumber(candidate.campaign_attention.share, true)
       : null;
+
+    if (raceAttention) {
+      const scaleMaximum = campaignShare !== null
+        ? campaignShare
+        : 0;
+      const visual = createElement(
+        "div",
+        "candidate-signals-attention-visual"
+      );
+      visual.append(
+        attentionVisualRow(
+          "Race attention",
+          candidate.campaign_attention,
+          "primary",
+          scaleMaximum
+        )
+      );
+      card.append(visual);
+      return card;
+    }
+
     const generalShare = candidate.general_visibility?.evidence_state ===
       "reported"
       ? percentageNumber(candidate.general_visibility.share, true)
@@ -1240,13 +1338,15 @@
     );
     visual.append(
       attentionVisualRow(
-        "Campaign / election",
+        raceAttention ? "Race attention" : "Campaign / election",
         candidate.campaign_attention,
         "primary",
         scaleMaximum
       ),
       attentionVisualRow(
-        "General visibility",
+        raceAttention
+          ? "General political coverage"
+          : "General visibility",
         candidate.general_visibility,
         "general",
         scaleMaximum
@@ -1282,10 +1382,34 @@
   }
 
   function scopeCompositionCard(candidate) {
+    const raceAttention = isRaceAttentionEvidence(
+      candidate.campaign_attention
+    );
     const card = summaryCard(
-      "COVERAGE MIX",
+      raceAttention ? "COVERAGE COUNTS" : "COVERAGE MIX",
       "candidate-signals-composition-card"
     );
+
+    if (raceAttention) {
+      const race = candidate.campaign_attention;
+      const general = candidate.general_visibility;
+
+      card.append(
+        createElement(
+          "p",
+          "candidate-signals-card-state",
+          [
+            `${numberText(race?.record_count)} race records`,
+            `${numberText(race?.exposure_count)} race exposures`,
+            `${numberText(race?.story_count)} race stories`,
+            `${numberText(general?.record_count)} general political records`
+          ].join(" · ")
+        )
+      );
+
+      return card;
+    }
+
     const composition = scopeComposition(candidate);
     const [campaign, election, general] = composition.values;
 
@@ -1631,7 +1755,8 @@
       "candidate-signals-evidence-structure"
     );
     const campaign = candidate.campaign_attention;
-    const reported = campaign?.evidence_state === "reported";
+    const raceAttention = isRaceAttentionEvidence(campaign);
+    const reported = hasAttentionObservation(campaign);
 
     const head = createElement(
       "div",
@@ -1645,7 +1770,9 @@
       )
     );
 
-    const period = metadata?.visibility?.current_period;
+    const period = raceAttention
+      ? metadata?.activeFieldVisibility?.race_attention?.current_period
+      : metadata?.visibility?.current_period;
     head.append(
       createElement(
         "span",
@@ -1663,7 +1790,9 @@
         createElement(
           "p",
           "candidate-signals-card-state",
-          "No campaign/election evidence observed in the current period."
+          raceAttention
+            ? "No race attention evidence observed in the current period."
+            : "No campaign/election evidence observed in the current period."
         )
       );
       return section;
@@ -1673,6 +1802,29 @@
       "div",
       "candidate-signals-evidence-structure-stats"
     );
+    if (raceAttention) {
+      stats.append(
+        evidenceStructureStat(
+          "Records",
+          numberText(campaign.record_count)
+        ),
+        evidenceStructureStat(
+          "Exposures",
+          numberText(campaign.exposure_count)
+        ),
+        evidenceStructureStat(
+          "Publishers",
+          numberText(campaign.publisher_count)
+        ),
+        evidenceStructureStat(
+          "Stories",
+          numberText(campaign.story_count)
+        )
+      );
+      section.append(stats);
+      return section;
+    }
+
     stats.append(
       evidenceStructureStat(
         "Records",
@@ -2558,6 +2710,23 @@
   }
 
   function dossierStructureLines(evidence) {
+    if (isRaceAttentionEvidence(evidence)) {
+      return [
+        ["Records", evidence
+          ? numberText(evidence.record_count)
+          : MISSING],
+        ["Exposures", evidence
+          ? numberText(evidence.exposure_count)
+          : MISSING],
+        ["Publishers", evidence
+          ? numberText(evidence.publisher_count)
+          : MISSING],
+        ["Stories", evidence
+          ? numberText(evidence.story_count)
+          : MISSING]
+      ];
+    }
+
     const concentration = evidence?.concentration;
     return [
       ["Publishers", evidence
@@ -2636,12 +2805,25 @@
         dossierPollLines(candidate, metadata)
       ),
       evidenceGroup(
-        "CAMPAIGN / ELECTION STRUCTURE",
+        isRaceAttentionEvidence(candidate.campaign_attention)
+          ? "RACE COVERAGE STRUCTURE"
+          : "CAMPAIGN / ELECTION STRUCTURE",
         dossierStructureLines(candidate.campaign_attention)
       ),
       evidenceGroup(
-        "GENERAL STRUCTURE",
-        dossierStructureLines(candidate.general_visibility)
+        isRaceAttentionEvidence(candidate.campaign_attention)
+          ? "GENERAL POLITICAL COVERAGE"
+          : "GENERAL STRUCTURE",
+        isRaceAttentionEvidence(candidate.campaign_attention)
+          ? [
+            ["Records", candidate.general_visibility
+              ? numberText(candidate.general_visibility.record_count)
+              : MISSING],
+            ["Publishers", candidate.general_visibility
+              ? numberText(candidate.general_visibility.publisher_count)
+              : MISSING]
+          ]
+          : dossierStructureLines(candidate.general_visibility)
       ),
       evidenceGroup(
         "CLAIM SCRUTINY DETAIL",
@@ -2687,6 +2869,10 @@
   }
 
   function dossierVisibilityPanel(candidate) {
+    const campaign = candidate.campaign_attention;
+    const general = candidate.general_visibility;
+    const raceAttention = isRaceAttentionEvidence(campaign);
+
     const card = createElement(
       "section",
       "candidate-signals-dossier-card candidate-signals-dossier-visibility"
@@ -2695,12 +2881,73 @@
       createElement(
         "h3",
         "candidate-signals-dossier-card-title",
-        "VISIBILITY & COMPOSITION"
+        raceAttention
+          ? "RACE & GENERAL COVERAGE"
+          : "VISIBILITY & COMPOSITION"
       )
     );
 
-    const campaign = candidate.campaign_attention;
-    const general = candidate.general_visibility;
+    if (raceAttention) {
+      const campaignReported =
+        hasAttentionObservation(campaign);
+      const generalReported =
+        general?.evidence_state === "reported";
+
+      const totalLine = createElement(
+        "div",
+        "candidate-signals-dossier-visibility-total"
+      );
+      totalLine.append(
+        createElement(
+          "strong",
+          "candidate-signals-dossier-visibility-total-value",
+          campaignReported
+            ? numberText(campaign.exposure_count)
+            : MISSING
+        ),
+        createElement(
+          "span",
+          "candidate-signals-dossier-visibility-total-label",
+          "Race exposures"
+        )
+      );
+      card.append(totalLine);
+
+      const summary = createElement(
+        "div",
+        "candidate-signals-dossier-visibility-summary"
+      );
+      summary.append(
+        summaryMeta(
+          "Race attention",
+          campaignReported
+            ? [
+              counted(campaign.record_count, "record"),
+              counted(campaign.exposure_count, "exposure"),
+              percentageText(campaign.share, true)
+            ].join(" · ")
+            : "No current evidence"
+        ),
+        summaryMeta(
+          "Race stories",
+          campaignReported
+            ? counted(campaign.story_count, "story")
+            : "No current evidence"
+        ),
+        summaryMeta(
+          "General political coverage",
+          generalReported
+            ? [
+              counted(general.record_count, "record"),
+              counted(general.publisher_count, "publisher")
+            ].join(" · ")
+            : "No current evidence"
+        )
+      );
+      card.append(summary);
+      return card;
+    }
+
     const composition = scopeComposition(candidate);
     const [campaignCount, electionCount, generalCount] = composition.values;
 
@@ -2791,7 +3038,7 @@
       "div",
       "candidate-signals-dossier-visibility-summary"
     );
-    const campaignReported = campaign?.evidence_state === "reported";
+    const campaignReported = hasAttentionObservation(campaign);
     const generalReported = general?.evidence_state === "reported";
     summary.append(
       summaryMeta(
@@ -2870,10 +3117,43 @@
     );
 
     const campaign = candidate.campaign_attention;
+    const raceAttention = isRaceAttentionEvidence(campaign);
     const stats = createElement(
       "div",
       "candidate-signals-structure-stats"
     );
+
+    if (raceAttention) {
+      stats.append(
+        dossierStructureStat(
+          "Records",
+          campaign && hasValue(campaign.record_count)
+            ? numberText(campaign.record_count)
+            : MISSING
+        ),
+        dossierStructureStat(
+          "Exposures",
+          campaign && hasValue(campaign.exposure_count)
+            ? numberText(campaign.exposure_count)
+            : MISSING
+        ),
+        dossierStructureStat(
+          "Publishers",
+          campaign && hasValue(campaign.publisher_count)
+            ? numberText(campaign.publisher_count)
+            : MISSING
+        ),
+        dossierStructureStat(
+          "Stories",
+          campaign && hasValue(campaign.story_count)
+            ? numberText(campaign.story_count)
+            : MISSING
+        )
+      );
+      card.append(stats);
+      return card;
+    }
+
     stats.append(
       dossierStructureStat(
         "Records",
@@ -3221,11 +3501,14 @@
     const archive = candidate.scrutiny?.archive;
     const poll = candidate.polling;
     const pollReported = poll?.evidence_state === "reported";
-    const campaignReported = campaign?.evidence_state === "reported";
+    const campaignReported = hasAttentionObservation(campaign);
+    const raceAttention = isRaceAttentionEvidence(campaign);
     const hypothesisCount = pollReported && hasValue(poll.hypothesis_count)
       ? numberText(poll.hypothesis_count)
       : null;
-    const period = metadata?.visibility?.current_period;
+    const period = raceAttention
+      ? metadata?.activeFieldVisibility?.race_attention?.current_period
+      : metadata?.visibility?.current_period;
     const periodText = period
       ? formatDateRange(period.start_date, period.end_date)
       : null;
@@ -3251,13 +3534,19 @@
           : ["Not tested in featured package"]
       ),
       dossierMetric(
-        "CAMPAIGN ATTENTION",
+        raceAttention ? "RACE ATTENTION" : "CAMPAIGN ATTENTION",
         campaignReported ? percentageText(campaign.share, true) : MISSING,
         campaignReported
-          ? [
-            counted(campaign.record_count, "record"),
-            counted(campaign.publisher_count, "publisher")
-          ]
+          ? raceAttention
+            ? [
+              counted(campaign.exposure_count, "exposure"),
+              counted(campaign.story_count, "story"),
+              counted(campaign.publisher_count, "publisher")
+            ]
+            : [
+              counted(campaign.record_count, "record"),
+              counted(campaign.publisher_count, "publisher")
+            ]
           : ["No current evidence"]
       ),
       dossierMetric(
@@ -3276,12 +3565,26 @@
         "is-composite"
       ),
       dossierMetric(
-        "ACTIVE DAYS",
-        campaignReported && hasValue(campaign.active_day_count)
-          ? numberText(campaign.active_day_count)
+        raceAttention ? "RACE EXPOSURES" : "ACTIVE DAYS",
+        campaignReported && hasValue(
+          raceAttention
+            ? campaign.exposure_count
+            : campaign.active_day_count
+        )
+          ? numberText(
+            raceAttention
+              ? campaign.exposure_count
+              : campaign.active_day_count
+          )
           : MISSING,
         campaignReported
-          ? ["Current published period", periodText]
+          ? raceAttention
+            ? [
+              counted(campaign.story_count, "story"),
+              "Current published period",
+              periodText
+            ]
+            : ["Current published period", periodText]
           : ["No current evidence", periodText]
       )
     );

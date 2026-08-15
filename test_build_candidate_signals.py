@@ -1572,6 +1572,112 @@ class PresidentialFieldContractTests(unittest.TestCase):
         with self.assertRaises(builder.CandidateSignalsError):
             builder.validate_candidate_signals(malformed)
 
+    def test_project_visibility_rejects_fabricated_comparison_quality(self):
+        news = copy.deepcopy(self.news)
+        quality = news["candidate_visibility"]["comparison_quality"]
+
+        quality["status"] = "comparable"
+        quality["reason"] = "comparable"
+
+        candidates = [
+            {
+                "candidate_id": candidate["candidate_id"],
+                "candidate_name": candidate["candidate_name"],
+            }
+            for candidate in self.payload["candidates"]
+        ]
+
+        with self.assertRaises(builder.CandidateSignalsError):
+            builder.project_visibility(candidates, news)
+
+    def test_active_visibility_validator_rejects_false_comparable_gate(self):
+        malformed = copy.deepcopy(self.payload)
+        scope = malformed["active_field_visibility"]["race_attention"]
+        quality = scope["comparison_quality"]
+
+        self.assertNotEqual(quality["status"], "comparable")
+
+        quality["status"] = "comparable"
+        quality["reason"] = "comparable"
+
+        for tier in ("main", "secondary"):
+            for row in scope[tier]:
+                row["share_change"] = (
+                    builder._round_visibility_ratio(
+                        row["current_share"] - row["prior_share"]
+                    )
+                    if (
+                        row["current_share"] is not None
+                        and row["prior_share"] is not None
+                    )
+                    else None
+                )
+
+        with self.assertRaises(builder.CandidateSignalsError):
+            builder.validate_candidate_signals(malformed)
+
+    def test_active_visibility_validator_rejects_false_not_comparable_gate(self):
+        malformed = copy.deepcopy(self.payload)
+        active = malformed["active_field_visibility"]
+        scope = active["race_attention"]
+        quality = scope["comparison_quality"]
+
+        # Build a self-consistent comparison that the authoritative
+        # gate must classify as comparable.
+        for period_name in ("current_period", "prior_period"):
+            scope[period_name].update({
+                "record_count": 10,
+                "exposure_count": 10,
+                "publisher_count": 5,
+                "story_count": 10,
+            })
+
+        quality.update({
+            "status": "not_comparable",
+            "reason": "publisher_panel_changed",
+            "current_exposure_count": 10,
+            "prior_exposure_count": 10,
+            "current_publisher_count": 5,
+            "prior_publisher_count": 5,
+            "common_publisher_count": 5,
+            "publisher_union_count": 5,
+            "publisher_overlap_ratio": 1.0,
+            "exposure_count_ratio": 1.0,
+            "thresholds": {
+                "minimum_period_exposures": 10,
+                "minimum_period_publishers": 5,
+                "minimum_common_publishers": 5,
+                "minimum_publisher_overlap_ratio": 0.5,
+                "maximum_exposure_count_ratio": 2.0,
+            },
+        })
+
+        # Keep every row independently valid under the forged
+        # not-comparable state. The previous validator therefore
+        # would have accepted this payload.
+        for tier in ("main", "secondary"):
+            for row in scope[tier]:
+                for prefix in ("current", "prior"):
+                    row[f"{prefix}_record_count"] = 0
+                    row[f"{prefix}_exposure_count"] = 0
+                    row[f"{prefix}_share"] = 0.0
+                    row[f"{prefix}_publisher_count"] = 0
+                    row[f"{prefix}_story_count"] = 0
+                    row[f"{prefix}_observation_state"] = "observed_zero"
+
+                row["share_change"] = None
+
+        with self.assertRaisesRegex(
+            builder.CandidateSignalsError,
+            "comparison quality gate is inconsistent",
+        ):
+            builder.validate_active_field_visibility(
+                active,
+                malformed["active_monitoring_field"],
+                malformed["candidates"],
+                malformed["presidential_field"]["status_as_of"],
+            )
+
     def test_candidacy_and_presidential_field_are_exact_registry_projections(self):
         registry_by_id = {
             candidate["candidate_id"]: candidate

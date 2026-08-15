@@ -220,10 +220,47 @@ class FrontendAndWorkspaceActiveProjectionTests(unittest.TestCase):
     def setUpClass(cls):
         cls.payload = phase3a1_signals_payload()
 
-    def test_frontend_holds_schema_14_until_phase_2c_migration(self):
-        state = run_candidate_module("api.normalize(input.payload)", self.payload)
-        self.assertEqual(state["status"], "unavailable")
-        self.assertEqual(state["reason"], "unsupported_schema")
+    def test_schema_14_normalizer_accepts_stored_effective_distinction(self):
+        state = run_candidate_module(
+            "api.normalize(input.payload)",
+            self.payload,
+        )
+        self.assertEqual(state["status"], "ready")
+        self.assertEqual(state["metadata"]["schema_version"], "1.4")
+        self.assertEqual(
+            state["metadata"]["activeMonitoringField"]["counts"]["active"],
+            2,
+        )
+        self.assertEqual(
+            set(state["metadata"]["activeFieldVisibility"]),
+            {
+                "method",
+                "denominator_scope",
+                "status_as_of",
+                "race_attention",
+            },
+        )
+
+        for candidate in state["candidates"]:
+            self.assertEqual(
+                set(candidate["campaign_attention"]),
+                {
+                    "observation_state",
+                    "record_count",
+                    "exposure_count",
+                    "share",
+                    "publisher_count",
+                    "story_count",
+                },
+            )
+            self.assertEqual(
+                set(candidate["general_visibility"]),
+                {
+                    "evidence_state",
+                    "record_count",
+                    "publisher_count",
+                },
+            )
 
     def test_normalizer_rejects_missing_candidate_marked_active(self):
         invalid = copy.deepcopy(self.payload)
@@ -233,20 +270,100 @@ class FrontendAndWorkspaceActiveProjectionTests(unittest.TestCase):
             if row["candidate_id"] == "alice-observee"
         )
         candidate["candidacy"]["active_field_eligible"] = True
-        state = run_candidate_module("api.normalize(input.payload)", invalid)
+
+        state = run_candidate_module(
+            "api.normalize(input.payload)",
+            invalid,
+        )
+
         self.assertEqual(state["status"], "unavailable")
-        self.assertEqual(state["reason"], "unsupported_schema")
+        self.assertEqual(state["reason"], "invalid_payload")
+
+    def test_schema_14_rejects_invalid_campaign_observation_state(self):
+        invalid = copy.deepcopy(self.payload)
+        candidate = next(
+            row
+            for row in invalid["candidates"]
+            if row["candidate_id"] == "benoit-non-teste"
+        )
+        candidate["campaign_attention"]["observation_state"] = "banana"
+
+        state = run_candidate_module(
+            "api.normalize(input.payload)",
+            invalid,
+        )
+
+        self.assertEqual(state["status"], "unavailable")
+        self.assertEqual(state["reason"], "invalid_payload")
+
+    def test_schema_14_rejects_invalid_race_attention_arithmetic(self):
+        invalid = copy.deepcopy(self.payload)
+        scope = invalid["active_field_visibility"]["race_attention"]
+        rows = scope["main"] or scope["secondary"]
+        row = rows[0]
+
+        row["current_share"] = (
+            0.123
+            if row["current_share"] != 0.123
+            else 0.456
+        )
+
+        state = run_candidate_module(
+            "api.normalize(input.payload)",
+            invalid,
+        )
+
+        self.assertEqual(state["status"], "unavailable")
+        self.assertEqual(state["reason"], "invalid_payload")
 
     def test_workspace_uses_only_effective_active_candidates(self):
-        state = run_candidate_module("api.normalize(input.payload)", self.payload)
-        self.assertEqual(state["status"], "unavailable")
-        self.assertEqual(state["reason"], "unsupported_schema")
-
-    def test_schema_12_tracked_artifact_remains_compatible(self):
-        tracked = json.loads(
-            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+        all_candidates = run_workspace(self.payload)
+        self.assertEqual(all_candidates["status"], "ready")
+        self.assertEqual(
+            set(all_candidates["candidateOrder"]),
+            {"benoit-non-teste", "chloe-potentielle"},
         )
-        state = run_candidate_module("api.normalize(input.payload)", tracked)
+        self.assertNotIn(
+            "alice-observee",
+            all_candidates["candidateOrder"],
+        )
+        self.assertNotIn(
+            "david-retire",
+            all_candidates["candidateOrder"],
+        )
+
+        main_only = run_workspace(
+            self.payload,
+            action="main-only",
+        )
+        self.assertEqual(
+            set(main_only["visibleCandidateOrder"]),
+            {"benoit-non-teste"},
+        )
+        self.assertNotIn(
+            "chloe-potentielle",
+            main_only["visibleCandidateOrder"],
+        )
+
+        search = run_workspace(
+            self.payload,
+            action={
+                "type": "search",
+                "term": "Alice Observée",
+            },
+        )
+        self.assertEqual(search["visibleCandidateOrder"], [])
+
+    def test_tracked_artifact_remains_compatible(self):
+        tracked = json.loads(
+            (ROOT / "candidate_signals.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        state = run_candidate_module(
+            "api.normalize(input.payload)",
+            tracked,
+        )
         self.assertEqual(state["status"], "ready")
 
 

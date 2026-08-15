@@ -1187,10 +1187,17 @@ def project_visibility(
         raise CandidateSignalsError(
             "news.candidate_visibility.comparison_quality has unexpected fields"
         )
-    if quality["status"] not in {"comparable", "not_comparable"}:
-        raise CandidateSignalsError("comparison quality status is invalid")
-    if quality["current_exposure_count"] != current["exposure_count"] or quality["prior_exposure_count"] != prior["exposure_count"]:
-        raise CandidateSignalsError("comparison quality exposure counts are inconsistent")
+
+    expected_quality = build_active_comparison_quality(
+        current_exposure_count=current["exposure_count"],
+        prior_exposure_count=prior["exposure_count"],
+        current_publishers=set(current["publisher_names"]),
+        prior_publishers=set(prior["publisher_names"]),
+    )
+    if quality != expected_quality:
+        raise CandidateSignalsError(
+            "news.candidate_visibility.comparison_quality is inconsistent"
+        )
 
     visibility_projection = {
         "method": method,
@@ -2065,11 +2072,159 @@ def validate_active_field_visibility(
         "active_field_visibility.race_attention.comparison_quality",
     )
     if set(quality) != QUALITY_KEYS:
-        raise CandidateSignalsError("Race Attention comparison quality has unexpected fields")
-    if quality["current_exposure_count"] != periods["current_period"]["exposure_count"] or quality["prior_exposure_count"] != periods["prior_period"]["exposure_count"]:
-        raise CandidateSignalsError("Race Attention comparison quality is inconsistent")
+        raise CandidateSignalsError(
+            "Race Attention comparison quality has unexpected fields"
+        )
 
-    candidates_by_id = {candidate["candidate_id"]: candidate for candidate in candidates}
+    count_fields = (
+        "current_exposure_count",
+        "prior_exposure_count",
+        "current_publisher_count",
+        "prior_publisher_count",
+        "common_publisher_count",
+        "publisher_union_count",
+    )
+    for field_name in count_fields:
+        _require_non_negative_integer(
+            quality[field_name],
+            f"Race Attention comparison quality.{field_name}",
+        )
+
+    thresholds = _require_plain_object(
+        quality["thresholds"],
+        "Race Attention comparison quality.thresholds",
+    )
+    if set(thresholds) != set(ACTIVE_VISIBILITY_THRESHOLDS):
+        raise CandidateSignalsError(
+            "Race Attention comparison quality thresholds have unexpected fields"
+        )
+
+    for field_name in (
+        "minimum_period_exposures",
+        "minimum_period_publishers",
+        "minimum_common_publishers",
+    ):
+        _require_non_negative_integer(
+            thresholds[field_name],
+            f"Race Attention comparison quality.thresholds.{field_name}",
+        )
+
+    for field_name in (
+        "minimum_publisher_overlap_ratio",
+        "maximum_exposure_count_ratio",
+    ):
+        value_number = thresholds[field_name]
+        if (
+            isinstance(value_number, bool)
+            or not isinstance(value_number, (int, float))
+            or not math.isfinite(value_number)
+            or value_number < 0
+        ):
+            raise CandidateSignalsError(
+                "Race Attention comparison quality thresholds are invalid"
+            )
+
+    current = periods["current_period"]
+    prior = periods["prior_period"]
+
+    if (
+        quality["current_exposure_count"] != current["exposure_count"]
+        or quality["prior_exposure_count"] != prior["exposure_count"]
+        or quality["current_publisher_count"] != current["publisher_count"]
+        or quality["prior_publisher_count"] != prior["publisher_count"]
+    ):
+        raise CandidateSignalsError(
+            "Race Attention comparison quality is inconsistent"
+        )
+
+    if quality["common_publisher_count"] > min(
+        quality["current_publisher_count"],
+        quality["prior_publisher_count"],
+    ):
+        raise CandidateSignalsError(
+            "Race Attention comparison quality publisher counts are inconsistent"
+        )
+
+    expected_union = (
+        quality["current_publisher_count"]
+        + quality["prior_publisher_count"]
+        - quality["common_publisher_count"]
+    )
+    if quality["publisher_union_count"] != expected_union:
+        raise CandidateSignalsError(
+            "Race Attention comparison quality publisher union is inconsistent"
+        )
+
+    expected_overlap = _round_visibility_ratio(
+        quality["common_publisher_count"] / expected_union
+        if expected_union
+        else 0.0
+    )
+    expected_exposure_ratio = (
+        _round_visibility_ratio(
+            max(
+                quality["current_exposure_count"],
+                quality["prior_exposure_count"],
+            )
+            / min(
+                quality["current_exposure_count"],
+                quality["prior_exposure_count"],
+            )
+        )
+        if (
+            quality["current_exposure_count"]
+            and quality["prior_exposure_count"]
+        )
+        else None
+    )
+
+    if (
+        quality["publisher_overlap_ratio"] != expected_overlap
+        or quality["exposure_count_ratio"] != expected_exposure_ratio
+    ):
+        raise CandidateSignalsError(
+            "Race Attention comparison quality ratios are inconsistent"
+        )
+
+    if (
+        quality["current_exposure_count"]
+        < thresholds["minimum_period_exposures"]
+        or quality["prior_exposure_count"]
+        < thresholds["minimum_period_exposures"]
+        or quality["current_publisher_count"]
+        < thresholds["minimum_period_publishers"]
+        or quality["prior_publisher_count"]
+        < thresholds["minimum_period_publishers"]
+        or quality["common_publisher_count"]
+        < thresholds["minimum_common_publishers"]
+    ):
+        expected_status = "not_comparable"
+        expected_reason = "insufficient_data"
+    elif (
+        expected_overlap
+        < thresholds["minimum_publisher_overlap_ratio"]
+        or expected_exposure_ratio is None
+        or expected_exposure_ratio
+        > thresholds["maximum_exposure_count_ratio"]
+    ):
+        expected_status = "not_comparable"
+        expected_reason = "publisher_panel_changed"
+    else:
+        expected_status = "comparable"
+        expected_reason = "comparable"
+
+    if (
+        quality["status"] != expected_status
+        or quality["reason"] != expected_reason
+    ):
+        raise CandidateSignalsError(
+            "Race Attention comparison quality gate is inconsistent"
+        )
+
+    candidates_by_id = {
+        candidate["candidate_id"]: candidate
+        for candidate in candidates
+    }
     seen: set[str] = set()
     for tier in ("main", "secondary"):
         rows = _require_list(scope[tier], f"active_field_visibility.race_attention.{tier}")

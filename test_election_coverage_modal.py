@@ -313,10 +313,53 @@ class ElectionCoverageModalTests(
                 readable_css,
             )
 
+    def test_coverage_terminology_follows_race_coverage_mode(self):
+        self.assertIn(
+            "model.raceCoverageMode === true",
+            self.modal_js,
+        )
+        self.assertIn(
+            "applyCoverageTerminology();",
+            self.modal_js,
+        )
+
+        for current_label in (
+            "Race coverage",
+            "Recent race coverage",
+            "Recent accepted France 2027 race coverage",
+            "Media Pulse / Race Coverage",
+            "Close race coverage",
+        ):
+            self.assertIn(
+                current_label,
+                self.modal_js,
+            )
+
+        for legacy_label in (
+            "Election coverage",
+            "Recent election coverage",
+            "Recent accepted election coverage",
+            "Media Pulse / Election Coverage",
+            "Close election coverage",
+        ):
+            self.assertIn(
+                legacy_label,
+                self.modal_js,
+            )
+
+        self.assertIn(
+            'aria-label="${escapeAttribute(coveragePanelLabel())}"',
+            self.modal_js,
+        )
+        self.assertIn(
+            'aria-label="${escapeAttribute(recentCoverageAriaLabel())}"',
+            self.modal_js,
+        )
+
     def test_modal_uses_single_coverage_view(self):
         for contract in (
             'class="ecm-tab-panel ecm-coverage-panel"',
-            'aria-label="Election coverage"',
+            'aria-label="${escapeAttribute(coveragePanelLabel())}"',
             'class="ecm-feed-meta"',
             "renderToolbar()",
             "updateFeed()",

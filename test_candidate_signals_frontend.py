@@ -220,30 +220,146 @@ def candidate_row(candidate_id="alpha", candidate_name="Alpha"):
     }
 
 
-def dynamic_schema_12_payload(tiers=("main", "main", "secondary", "hidden")):
-    """Return a small internally consistent schema 1.2 frontend fixture."""
+def legacy_candidate_record(
+    candidate_id,
+    candidate_name,
+    tier,
+    *,
+    schema_version,
+):
+    """Return one native legacy Candidate Signals record."""
 
-    source = json.loads(
-        (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
-    )
-    template = source["candidates"][0]
+    if tier not in {"main", "secondary", "hidden"}:
+        raise ValueError(f"unsupported fixture tier: {tier}")
+
     status_by_tier = {
         "main": "declared",
         "secondary": "active_potential",
         "hidden": "withdrawn",
     }
-    candidates = []
-    for index, tier in enumerate(tiers, start=1):
-        if tier not in status_by_tier:
-            raise ValueError(f"unsupported fixture tier: {tier}")
-        row = json.loads(json.dumps(template))
-        row["candidate_id"] = f"dynamic-candidate-{index:02d}"
-        row["candidate_name"] = f"Dynamic Candidate {index:02d}"
-        row["candidacy"]["status"] = status_by_tier[tier]
-        row["candidacy"]["display_tier"] = tier
-        row["candidacy"]["active_field_eligible"] = tier != "hidden"
-        row["candidacy"].pop("upstream_presence", None)
-        candidates.append(row)
+
+    row = candidate_row(candidate_id, candidate_name)
+
+    candidacy = {
+        "status": status_by_tier[tier],
+        "display_tier": tier,
+        "active_field_eligible": tier != "hidden",
+        "status_as_of": "2026-08-01",
+        "source_date": "2026-08-01",
+        "source_url": (
+            "https://example.test/candidacy/"
+            + candidate_id
+        ),
+        "source_title": "Legacy candidacy fixture",
+        "source_publisher": "Fixture Publisher",
+        "status_note": "Native legacy compatibility fixture.",
+    }
+
+    if schema_version == "1.3":
+        candidacy = {
+            "status": candidacy["status"],
+            "display_tier": candidacy["display_tier"],
+            "upstream_presence": "present",
+            "active_field_eligible": candidacy[
+                "active_field_eligible"
+            ],
+            "status_as_of": candidacy["status_as_of"],
+            "source_date": candidacy["source_date"],
+            "source_url": candidacy["source_url"],
+            "source_title": candidacy["source_title"],
+            "source_publisher": candidacy["source_publisher"],
+            "status_note": candidacy["status_note"],
+        }
+
+    row["candidacy"] = candidacy
+    return row
+
+
+def legacy_active_scope(candidates):
+    """Return a native schema-1.2/1.3 record-share scope."""
+
+    rows = {
+        "main": [],
+        "secondary": [],
+    }
+
+    for candidate in candidates:
+        tier = candidate["candidacy"]["display_tier"]
+
+        if tier == "hidden":
+            continue
+
+        rows[tier].append({
+            "candidate_id": candidate["candidate_id"],
+            "candidate_name": candidate["candidate_name"],
+            "status": candidate["candidacy"]["status"],
+            "display_tier": tier,
+            "current_record_count": 0,
+            "current_share": None,
+            "prior_record_count": 0,
+            "prior_share": None,
+            "share_change": None,
+        })
+
+    thresholds = {
+        "minimum_period_records": 10,
+        "minimum_period_publishers": 5,
+        "minimum_common_publishers": 5,
+        "minimum_publisher_overlap_ratio": 0.5,
+        "maximum_record_count_ratio": 2.0,
+    }
+
+    return {
+        "current_period": {
+            "start_date": "2026-07-26",
+            "end_date": "2026-08-01",
+            "record_count": 0,
+            "publisher_count": 0,
+        },
+        "prior_period": {
+            "start_date": "2026-07-19",
+            "end_date": "2026-07-25",
+            "record_count": 0,
+            "publisher_count": 0,
+        },
+        "comparison_quality": {
+            "status": "not_comparable",
+            "reason": "insufficient_data",
+            "current_record_count": 0,
+            "prior_record_count": 0,
+            "current_publisher_count": 0,
+            "prior_publisher_count": 0,
+            "common_publisher_count": 0,
+            "publisher_union_count": 0,
+            "publisher_overlap_ratio": 0.0,
+            "record_count_ratio": None,
+            "thresholds": thresholds,
+        },
+        "main": rows["main"],
+        "secondary": rows["secondary"],
+    }
+
+
+def native_legacy_schema_payload(
+    schema_version,
+    tiers=("main", "secondary", "hidden"),
+):
+    """Build Candidate Signals 1.1/1.2/1.3 without production data."""
+
+    if schema_version not in {"1.1", "1.2", "1.3"}:
+        raise ValueError(
+            f"unsupported legacy schema fixture: {schema_version}"
+        )
+
+    candidates = [
+        legacy_candidate_record(
+            f"legacy-candidate-{index:02d}",
+            f"Legacy Candidate {index:02d}",
+            tier,
+            schema_version=schema_version,
+        )
+        for index, tier in enumerate(tiers, start=1)
+    ]
 
     field = {
         "status_as_of": "2026-08-01",
@@ -252,90 +368,211 @@ def dynamic_schema_12_payload(tiers=("main", "main", "secondary", "hidden")):
         "hidden": [],
         "counts": {},
     }
+
     for candidate in candidates:
-        field[candidate["candidacy"]["display_tier"]].append(
-            candidate["candidate_id"]
-        )
+        tier = candidate["candidacy"]["display_tier"]
+        field[tier].append(candidate["candidate_id"])
+
     field["counts"] = {
         "main": len(field["main"]),
         "secondary": len(field["secondary"]),
         "hidden": len(field["hidden"]),
-        "active": len(field["main"]) + len(field["secondary"]),
         "total": len(candidates),
     }
 
-    thresholds = json.loads(json.dumps(
-        source["active_field_visibility"]["primary"]
-        ["comparison_quality"]["thresholds"]
-    ))
+    if schema_version != "1.3":
+        field["counts"]["active"] = (
+            len(field["main"])
+            + len(field["secondary"])
+        )
 
-    def active_scope():
-        rows = {"main": [], "secondary": []}
-        for candidate in candidates:
-            tier = candidate["candidacy"]["display_tier"]
-            if tier == "hidden":
-                continue
-            rows[tier].append({
-                "candidate_id": candidate["candidate_id"],
-                "candidate_name": candidate["candidate_name"],
-                "status": candidate["candidacy"]["status"],
-                "display_tier": tier,
-                "current_record_count": 0,
-                "current_share": None,
-                "prior_record_count": 0,
-                "prior_share": None,
-                "share_change": None,
-            })
-        return {
-            "current_period": {
-                "start_date": "2026-07-26",
-                "end_date": "2026-08-01",
-                "record_count": 0,
-                "publisher_count": 0,
-            },
-            "prior_period": {
-                "start_date": "2026-07-19",
-                "end_date": "2026-07-25",
-                "record_count": 0,
-                "publisher_count": 0,
-            },
-            "comparison_quality": {
-                "status": "not_comparable",
-                "reason": "insufficient_data",
-                "current_record_count": 0,
-                "prior_record_count": 0,
-                "current_publisher_count": 0,
-                "prior_publisher_count": 0,
-                "common_publisher_count": 0,
-                "publisher_union_count": 0,
-                "publisher_overlap_ratio": 0.0,
-                "record_count_ratio": None,
-                "thresholds": thresholds,
-            },
-            "main": rows["main"],
-            "secondary": rows["secondary"],
-        }
-
-    payload = json.loads(json.dumps(source))
-    payload["schema_version"] = "1.2"
-    payload.pop("active_monitoring_field", None)
-    payload["candidate_universe"] = {
-        "source": "candidate_candidacy_status.json",
-        "rule": "Dynamic frontend fixture",
-        "status_as_of": "2026-08-01",
-        "count": len(candidates),
+    payload = {
+        "schema_version": schema_version,
+        "candidate_universe": {
+            "source": "fixture",
+            "rule": "Native immutable legacy fixture",
+            "status_as_of": "2026-08-01",
+            "count": len(candidates),
+        },
+        "presidential_field": field,
+        "candidates": candidates,
     }
-    payload["candidates"] = candidates
-    payload["presidential_field"] = field
-    payload["active_field_visibility"] = {
+
+    # Schema 1.1 predates the published active projection.
+    if schema_version == "1.1":
+        return payload
+
+    payload.update({
+        "featured_polling_package": {
+            "fixture": "legacy",
+        },
+        "featured_poll_board": {
+            "fixture": "legacy",
+        },
+        "visibility": {
+            "fixture": "legacy",
+        },
+        "scrutiny_window": {
+            "fixture": "legacy",
+        },
+        "evidence_dates": {
+            "polling": "2026-07-10",
+            "news": "2026-08-01",
+            "scrutiny": "2026-07-31",
+        },
+    })
+
+    active = {
         "method": "share_of_active_candidate_linked_records",
         "denominator_scope": (
+            "records_linked_to_at_least_one_active_monitoring_candidate"
+            if schema_version == "1.3"
+            else
             "records_linked_to_at_least_one_main_or_secondary_candidate"
         ),
         "status_as_of": field["status_as_of"],
-        "primary": active_scope(),
-        "general": active_scope(),
+        "primary": legacy_active_scope(candidates),
+        "general": legacy_active_scope(candidates),
     }
+
+    payload["active_field_visibility"] = active
+
+    if schema_version == "1.3":
+        payload["active_monitoring_field"] = {
+            "main": list(field["main"]),
+            "secondary": list(field["secondary"]),
+            "counts": {
+                "main": len(field["main"]),
+                "secondary": len(field["secondary"]),
+                "active": (
+                    len(field["main"])
+                    + len(field["secondary"])
+                ),
+            },
+        }
+
+        # Schema-1.3 has a strict exact top-level contract.
+        payload = {
+            "schema_version": payload["schema_version"],
+            "candidate_universe": payload["candidate_universe"],
+            "presidential_field": payload["presidential_field"],
+            "active_monitoring_field": payload[
+                "active_monitoring_field"
+            ],
+            "active_field_visibility": payload[
+                "active_field_visibility"
+            ],
+            "featured_polling_package": payload[
+                "featured_polling_package"
+            ],
+            "featured_poll_board": payload[
+                "featured_poll_board"
+            ],
+            "visibility": payload["visibility"],
+            "scrutiny_window": payload["scrutiny_window"],
+            "evidence_dates": payload["evidence_dates"],
+            "candidates": payload["candidates"],
+        }
+    else:
+        # Schema-1.2 also has a strict exact top-level contract.
+        payload = {
+            "schema_version": payload["schema_version"],
+            "candidate_universe": payload["candidate_universe"],
+            "presidential_field": payload["presidential_field"],
+            "active_field_visibility": payload[
+                "active_field_visibility"
+            ],
+            "featured_polling_package": payload[
+                "featured_polling_package"
+            ],
+            "featured_poll_board": payload[
+                "featured_poll_board"
+            ],
+            "visibility": payload["visibility"],
+            "scrutiny_window": payload["scrutiny_window"],
+            "evidence_dates": payload["evidence_dates"],
+            "candidates": payload["candidates"],
+        }
+
+    return payload
+
+
+def dynamic_schema_12_payload(
+    tiers=("main", "main", "secondary", "hidden"),
+):
+    """Return an independent dynamic schema-1.2 frontend fixture.
+
+    The immutable native legacy fixture remains the compatibility
+    baseline. This helper changes candidate identities so workspace
+    tests can exercise dynamic field membership without depending on
+    generated publication artifacts.
+    """
+
+    payload = native_legacy_schema_payload(
+        "1.2",
+        tiers=tiers,
+    )
+
+    candidates = payload["candidates"]
+    identity_map = {}
+
+    for index, candidate in enumerate(
+        candidates,
+        start=1,
+    ):
+        old_id = candidate["candidate_id"]
+
+        new_id = (
+            f"dynamic-candidate-{index:02d}"
+        )
+        new_name = (
+            f"Dynamic Candidate {index:02d}"
+        )
+
+        identity_map[old_id] = (
+            new_id,
+            new_name,
+        )
+
+        candidate["candidate_id"] = new_id
+        candidate["candidate_name"] = new_name
+
+    field = payload["presidential_field"]
+
+    for tier in (
+        "main",
+        "secondary",
+        "hidden",
+    ):
+        field[tier] = [
+            identity_map[candidate_id][0]
+            for candidate_id in field[tier]
+        ]
+
+    active = payload[
+        "active_field_visibility"
+    ]
+
+    for scope_name in (
+        "primary",
+        "general",
+    ):
+        scope = active[scope_name]
+
+        for tier in (
+            "main",
+            "secondary",
+        ):
+            for row in scope[tier]:
+                old_id = row["candidate_id"]
+
+                new_id, new_name = (
+                    identity_map[old_id]
+                )
+
+                row["candidate_id"] = new_id
+                row["candidate_name"] = new_name
+
     return payload
 
 
@@ -1056,70 +1293,222 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
             self.assertIsNone(candidate[field])
         self.assertNotIn(0, candidate.values())
 
-    def test_schema_13_normalizes_complete_presidential_and_active_fields(self):
+    def test_current_schema_normalizes_complete_presidential_and_active_fields(self):
         payload = json.loads(
-            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+            (ROOT / "candidate_signals.json").read_text(
+                encoding="utf-8"
+            )
         )
-        state = run_candidate_module("api.normalize(input.payload)", payload)
+
+        self.assertEqual(payload["schema_version"], "1.4")
+
+        state = run_candidate_module(
+            "api.normalize(input.payload)",
+            payload,
+        )
+
         self.assertEqual(state["status"], "ready")
         self.assertEqual(
             len(state["candidates"]),
             payload["candidate_universe"]["count"],
         )
-        field = state["metadata"]["presidentialField"]
+
         self.assertEqual(
-            field,
+            state["metadata"]["presidentialField"],
             payload["presidential_field"],
         )
-        self.assertTrue(
-            all(candidate["candidacy"] for candidate in state["candidates"])
-        )
         self.assertEqual(
-            [candidate["candidate_id"] for candidate in state["candidates"]],
-            [candidate["candidate_id"] for candidate in payload["candidates"]],
-        )
-        monitoring = state["metadata"]["activeMonitoringField"]
-        self.assertEqual(
-            monitoring,
+            state["metadata"]["activeMonitoringField"],
             payload["active_monitoring_field"],
-        )
-        self.assertEqual(
-            monitoring["counts"]["active"],
-            len(monitoring["main"]) + len(monitoring["secondary"]),
         )
 
         active = state["metadata"]["activeFieldVisibility"]
-        self.assertEqual(active, payload["active_field_visibility"])
-        self.assertEqual(active["method"], "share_of_active_candidate_linked_records")
+
+        self.assertEqual(
+            active,
+            payload["active_field_visibility"],
+        )
+        self.assertEqual(
+            active["method"],
+            "share_of_active_candidate_publisher_story_race_exposures",
+        )
+        self.assertEqual(
+            active["denominator_scope"],
+            (
+                "publisher_story_race_exposures_linked_by_article_local_"
+                "matches_to_at_least_one_active_monitoring_candidate"
+            ),
+        )
+
+        scope = active["race_attention"]
+        quality = scope["comparison_quality"]
+
+        self.assertEqual(
+            quality["current_exposure_count"],
+            scope["current_period"]["exposure_count"],
+        )
+        self.assertEqual(
+            quality["prior_exposure_count"],
+            scope["prior_period"]["exposure_count"],
+        )
+
+        if quality["status"] == "comparable":
+            self.assertEqual(quality["reason"], "comparable")
+        else:
+            self.assertIn(
+                quality["reason"],
+                {
+                    "insufficient_data",
+                    "publisher_panel_changed",
+                },
+            )
+            self.assertTrue(
+                all(
+                    row["share_change"] is None
+                    for tier in ("main", "secondary")
+                    for row in scope[tier]
+                )
+            )
+
+    def test_schema_13_normalizes_native_legacy_contract(self):
+        payload = native_legacy_schema_payload(
+            "1.3",
+            ("main", "secondary", "hidden"),
+        )
+
+        state = run_candidate_module(
+            "api.normalize(input.payload)",
+            payload,
+        )
+
+        self.assertEqual(state["status"], "ready")
+        self.assertEqual(
+            state["metadata"]["schema_version"],
+            "1.3",
+        )
+        self.assertEqual(
+            state["metadata"]["presidentialField"],
+            payload["presidential_field"],
+        )
+        self.assertEqual(
+            state["metadata"]["activeMonitoringField"],
+            payload["active_monitoring_field"],
+        )
+
+        active = state["metadata"]["activeFieldVisibility"]
+
+        self.assertEqual(
+            active,
+            payload["active_field_visibility"],
+        )
+        self.assertEqual(
+            active["method"],
+            "share_of_active_candidate_linked_records",
+        )
         self.assertEqual(
             active["denominator_scope"],
             "records_linked_to_at_least_one_active_monitoring_candidate",
         )
-        for scope_name in ("primary", "general"):
-            scope = active[scope_name]
-            quality = scope["comparison_quality"]
-            self.assertEqual(
-                quality["current_record_count"],
-                scope["current_period"]["record_count"],
-            )
-            self.assertEqual(
-                quality["prior_record_count"],
-                scope["prior_period"]["record_count"],
-            )
-            if quality["status"] == "comparable":
-                self.assertEqual(quality["reason"], "comparable")
-            else:
-                self.assertIn(
-                    quality["reason"],
-                    {"insufficient_data", "publisher_panel_changed"},
-                )
-                self.assertTrue(
-                    all(
-                        row["share_change"] is None
-                        for tier in ("main", "secondary")
-                        for row in scope[tier]
+        self.assertEqual(
+            set(active),
+            {
+                "method",
+                "denominator_scope",
+                "status_as_of",
+                "primary",
+                "general",
+            },
+        )
+
+        self.assertEqual(
+            active["primary"]["comparison_quality"]["status"],
+            "not_comparable",
+        )
+        self.assertEqual(
+            active["primary"]["comparison_quality"]["reason"],
+            "insufficient_data",
+        )
+
+        candidate = state["candidates"][0]
+
+        self.assertEqual(
+            candidate["candidacy"]["upstream_presence"],
+            "present",
+        )
+        self.assertEqual(
+            candidate["campaign_attention"]["evidence_state"],
+            "reported",
+        )
+        self.assertIn(
+            "story_cluster_count",
+            candidate["campaign_attention"],
+        )
+        self.assertIn(
+            "share",
+            candidate["general_visibility"],
+        )
+
+    def test_schema_14_rejects_comparison_quality_gate_mismatch(self):
+        original = json.loads(
+            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(original["schema_version"], "1.4")
+
+        false_comparable = json.loads(json.dumps(original))
+        scope = false_comparable[
+            "active_field_visibility"
+        ]["race_attention"]
+        quality = scope["comparison_quality"]
+
+        self.assertNotEqual(quality["status"], "comparable")
+
+        quality["status"] = "comparable"
+        quality["reason"] = "comparable"
+
+        for tier in ("main", "secondary"):
+            for row in scope[tier]:
+                row["share_change"] = (
+                    round(
+                        row["current_share"] - row["prior_share"],
+                        3,
                     )
+                    if (
+                        row["current_share"] is not None
+                        and row["prior_share"] is not None
+                    )
+                    else None
                 )
+
+        state = run_candidate_module(
+            "api.normalize(input.payload)",
+            false_comparable,
+        )
+        self.assertEqual(state["status"], "unavailable")
+        self.assertEqual(state["reason"], "invalid_payload")
+
+        false_not_comparable = json.loads(json.dumps(original))
+        quality = false_not_comparable[
+            "active_field_visibility"
+        ]["race_attention"]["comparison_quality"]
+
+        self.assertIsNotNone(quality["exposure_count_ratio"])
+
+        quality["thresholds"].update({
+            "minimum_period_exposures": 0,
+            "minimum_period_publishers": 0,
+            "minimum_common_publishers": 0,
+            "minimum_publisher_overlap_ratio": 0.0,
+            "maximum_exposure_count_ratio": 999.0,
+        })
+        quality["status"] = "not_comparable"
+        quality["reason"] = "publisher_panel_changed"
+
+        state = run_candidate_module(
+            "api.normalize(input.payload)",
+            false_not_comparable,
+        )
+        self.assertEqual(state["status"], "unavailable")
+        self.assertEqual(state["reason"], "invalid_payload")
 
     def test_schema_12_accepts_dynamic_candidate_and_tier_counts(self):
         tier_sets = (
@@ -1277,31 +1666,47 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
                 self.assertEqual(state["reason"], "invalid_payload")
 
     def test_schema_11_does_not_fabricate_active_projection(self):
-        payload = json.loads(
-            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
-        )
-        payload["schema_version"] = "1.1"
-        payload.pop("active_field_visibility")
-        payload.pop("active_monitoring_field")
+        payload = native_legacy_schema_payload("1.1")
 
-        payload["presidential_field"]["counts"]["active"] = (
-            len(payload["presidential_field"]["main"])
-            + len(payload["presidential_field"]["secondary"])
+        state = run_candidate_module(
+            "api.normalize(input.payload)",
+            payload,
         )
 
-        for candidate in payload["candidates"]:
-            candidate["candidacy"].pop(
-                "upstream_presence",
-                None,
-            )
-            candidate["candidacy"]["active_field_eligible"] = (
-                candidate["candidacy"]["display_tier"] != "hidden"
-            )
-
-        state = run_candidate_module("api.normalize(input.payload)", payload)
         self.assertEqual(state["status"], "ready")
-        self.assertIsNone(state["metadata"]["activeMonitoringField"])
-        self.assertIsNone(state["metadata"]["activeFieldVisibility"])
+        self.assertEqual(
+            state["metadata"]["schema_version"],
+            "1.1",
+        )
+        self.assertIsNone(
+            state["metadata"]["activeMonitoringField"]
+        )
+        self.assertIsNone(
+            state["metadata"]["activeFieldVisibility"]
+        )
+
+        candidate = state["candidates"][0]
+
+        self.assertEqual(
+            candidate["campaign_attention"],
+            payload["candidates"][0]["campaign_attention"],
+        )
+        self.assertEqual(
+            candidate["campaign_attention"]["evidence_state"],
+            "reported",
+        )
+        self.assertEqual(
+            candidate["campaign_attention"]["record_count"],
+            3,
+        )
+        self.assertEqual(
+            candidate["campaign_attention"]["story_cluster_count"],
+            2,
+        )
+        self.assertEqual(
+            candidate["general_visibility"]["evidence_state"],
+            "not_observed",
+        )
 
     def test_schema_10_retains_evidence_without_fabricating_active_field(self):
         payload = candidate_payload([candidate_row()], schema_version="1.0")

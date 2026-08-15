@@ -8,6 +8,7 @@
   let candidateProjectionAvailable = false;
   let candidateComparisonAvailable = false;
   let candidateComparisonReason = "";
+  let raceCoverageMode = false;
   let publishers = [];
   let dailyActivity = [];
   let generatedAt = "";
@@ -170,28 +171,53 @@
     );
   };
 
-  const normalizeCandidate = (item, tier) => {
-    const latestShare = item?.current_share === null
-      ? null
-      : Number(item?.current_share) * 100;
-    const previousShare = item?.prior_share === null
-      ? null
-      : Number(item?.prior_share) * 100;
-    const changeAvailable = candidateComparisonAvailable &&
-      item?.share_change !== null;
+  const normalizeCandidate = item => {
+    const latestShare =
+      item?.latestShare === null
+        ? null
+        : Number.isFinite(Number(item?.latestShare))
+          ? Number(item.latestShare)
+          : null;
+    const previousShare =
+      item?.previousShare === null
+        ? null
+        : Number.isFinite(Number(item?.previousShare))
+          ? Number(item.previousShare)
+          : null;
+    const delta =
+      item?.delta === null
+        ? null
+        : Number.isFinite(Number(item?.delta))
+          ? Number(item.delta)
+          : null;
+    const changeAvailable =
+      candidateComparisonAvailable &&
+      item?.changeAvailable === true &&
+      delta !== null;
+    const tier = String(item?.tier || "");
+
     return {
-      id: String(item?.candidate_id || ""),
-      name: String(item?.candidate_name || "Unknown candidate").trim() ||
+      id: String(item?.id || ""),
+      name: String(item?.name || "Unknown candidate").trim() ||
         "Unknown candidate",
       tier,
-      tierLabel: tier === "main" ? "MAIN FIELD" : "SECONDARY FIELD",
+      tierLabel: String(
+        item?.tierLabel ||
+        (
+          tier === "main"
+            ? "MAIN FIELD"
+            : tier === "secondary"
+              ? "SECONDARY FIELD"
+              : ""
+        )
+      ),
       status: String(item?.status || ""),
       latestShare,
       previousShare,
-      latestCount: numberOrZero(item?.current_record_count),
-      previousCount: numberOrZero(item?.prior_record_count),
+      latestCount: numberOrZero(item?.latestCount),
+      previousCount: numberOrZero(item?.previousCount),
       changeAvailable,
-      delta: changeAvailable ? Number(item.share_change) * 100 : null
+      delta: changeAvailable ? delta : null
     };
   };
 
@@ -272,6 +298,31 @@
         ? "RAW Δ pp"
         : "UNAVAILABLE";
 
+  const candidateShareLabel = () =>
+    raceCoverageMode
+      ? "Race-attention share"
+      : "Active-field candidate-linked share";
+
+  const coverageShiftTitle = () =>
+    raceCoverageMode
+      ? "Race Coverage shift"
+      : "Active-field coverage shift";
+
+  const candidateComparisonUnavailableLabel = () =>
+    raceCoverageMode
+      ? "Race Attention candidate comparison unavailable."
+      : "Active-field candidate comparison unavailable.";
+
+  const dailyCoverageAriaLabel = () =>
+    raceCoverageMode
+      ? "Daily accepted France 2027 race coverage"
+      : "Daily accepted election coverage";
+
+  const coverageShiftListAriaLabel = () =>
+    raceCoverageMode
+      ? "Complete Race Coverage shift"
+      : "Complete active-field candidate coverage shift";
+
   const renderPeriodLegend = () => {
     const reasonLabel =
       candidateComparisonReason ===
@@ -281,19 +332,22 @@
           "insufficient_data"
           ? "insufficient data"
           : "comparison unavailable";
+
     const qualityExplanation =
       candidateComparisonAvailable
-        ? "Comparable active-field percentage-point change."
+        ? raceCoverageMode
+          ? "Comparable Race Attention percentage-point change."
+          : "Comparable active-field percentage-point change."
         : candidateProjectionAvailable
           ? `Comparison quality is not comparable: ${reasonLabel}. Raw arithmetic differences are current-minus-prior percentage-point values, not comparable trend estimates.`
-          : "Active-field candidate comparison unavailable.";
+          : candidateComparisonUnavailableLabel();
 
     return `
       <div
         class="tcm-period-legend"
         role="group"
         aria-label="${escapeAttribute(
-          `Active-field candidate-linked share. Current period ${latestPeriodLabel}; prior period ${priorPeriodLabel}. ${qualityExplanation}`
+          `${candidateShareLabel()}. Current period ${latestPeriodLabel}; prior period ${priorPeriodLabel}. ${qualityExplanation}`
         )}"
       >
         <span>
@@ -314,7 +368,7 @@
     if (!candidateProjectionAvailable) {
       return `
         <div class="tcm-empty">
-          Active-field candidate comparison unavailable.
+          ${escapeHtml(candidateComparisonUnavailableLabel())}
         </div>
       `;
     }
@@ -366,7 +420,7 @@
             data-tcm-candidate-row="${escapeAttribute(item.name)}"
             title="${escapeAttribute(item.name)}"
             aria-label="${escapeAttribute(
-              `${item.name}. Candidate status ${item.status}. Current active-field share ${latestText}; prior active-field share ${priorText}.${item.changeAvailable ? ` Comparable change ${deltaMarkup}.` : rawDeltaAvailable ? ` Raw arithmetic difference ${deltaMarkup}. Publisher panels changed, so this is not a comparable trend estimate.` : ""}`
+              `${item.name}. Candidate status ${item.status}. Current ${candidateShareLabel().toLowerCase()} ${latestText}; prior ${candidateShareLabel().toLowerCase()} ${priorText}.${item.changeAvailable ? ` Comparable change ${deltaMarkup}.` : rawDeltaAvailable ? ` Raw arithmetic difference ${deltaMarkup}. Publisher panels changed, so this is not a comparable trend estimate.` : ""}`
             )}"
           >
             <strong title="${escapeAttribute(item.name)}">${escapeHtml(item.name)}</strong>
@@ -574,7 +628,7 @@
       <div
         class="tcm-volume-wrap"
         role="img"
-        aria-label="Daily accepted election coverage"
+        aria-label="${escapeAttribute(dailyCoverageAriaLabel())}"
       >
         <div class="tcm-volume-chart">
           ${bars}
@@ -606,13 +660,13 @@
       <div class="tcm-intelligence-grid">
         ${renderModule(
           "tcm-module-shift",
-          "Active-field coverage shift",
+          coverageShiftTitle(),
           candidateComparisonLabel(),
           renderPeriodLegend() +
             `<div
               class="tcm-shift-list tcm-scroll-y"
               tabindex="0"
-              aria-label="Complete active-field candidate coverage shift"
+              aria-label="${escapeAttribute(coverageShiftListAriaLabel())}"
             >${renderCoverageShiftRows()}</div>`
         )}
         ${renderModule(
@@ -811,24 +865,19 @@
     const mediaModel = models?.media || {};
     const agendaModel = models?.agenda || {};
 
-    const activePrimary = mediaModel.activeFieldVisibility?.primary || null;
-    candidateProjectionAvailable = Boolean(
-      activePrimary &&
-      Array.isArray(activePrimary.main) &&
-      Array.isArray(activePrimary.secondary)
-    );
+    raceCoverageMode =
+      mediaModel.raceCoverageMode === true;
+
+    candidateProjectionAvailable =
+      mediaModel.candidateCoverageAvailable === true &&
+      Array.isArray(mediaModel.candidateCoverage);
     candidateComparisonAvailable =
-      activePrimary?.comparison_quality?.status === "comparable";
+      mediaModel.comparisonQuality?.status === "comparable";
     candidateComparisonReason = String(
-      activePrimary?.comparison_quality?.reason || ""
+      mediaModel.comparisonQuality?.reason || ""
     );
     candidates = candidateProjectionAvailable
-      ? [
-          ...activePrimary.main.map(item => normalizeCandidate(item, "main")),
-          ...activePrimary.secondary.map(item =>
-            normalizeCandidate(item, "secondary")
-          )
-        ]
+      ? mediaModel.candidateCoverage.map(normalizeCandidate)
       : [];
 
     topics = Array.isArray(agendaModel?.topics)
