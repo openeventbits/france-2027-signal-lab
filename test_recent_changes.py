@@ -14,6 +14,7 @@ from generate_recent_changes import (
     compose_recent_changes,
     fact_check_entries,
     news_entries,
+    news_entries_match,
     normalized_title,
     parse_datetime,
     poll_entries,
@@ -330,6 +331,109 @@ class RecentChangesTests(unittest.TestCase):
                 for source in cazeneuve[0]["supporting_sources"]
             },
         )
+
+    def test_same_candidate_complaint_clusters_across_publishers(self):
+        reports = [
+            (
+                "glucksmann-bfmtv",
+                "BFMTV — Politique",
+                "2026-08-12T09:38:18Z",
+                "Ingérences russes: Raphaël Glucksmann annonce avoir porté plainte",
+            ),
+            (
+                "glucksmann-figaro",
+                "Le Figaro",
+                "2026-08-12T11:19:53Z",
+                "Raphaël Glucksmann confirme avoir porté plainte après une ingérence russe le visant",
+            ),
+            (
+                "glucksmann-ouest-france",
+                "Ouest-France",
+                "2026-08-12T12:28:41Z",
+                "Soupçons d’ingérence russe dans l’élection présidentielle : Raphaël Glucksmann a porté plainte",
+            ),
+        ]
+        items = [
+            {
+                "id": item_id,
+                "publisher": publisher,
+                "published_at": published_at,
+                "headline": headline,
+                "summary": "",
+                "url": f"https://example.com/{item_id}",
+                "explicit_election": True,
+                "candidates": ["Raphaël Glucksmann"],
+            }
+            for item_id, publisher, published_at, headline in reports
+        ]
+
+        entries = news_entries(
+            {
+                "generated_at": "2026-08-15T10:43:47Z",
+                "election_news": items,
+                "notable_developments": [],
+                "candidate_watch": [],
+            },
+            {},
+            FIXED_CLOCK,
+            Counter(),
+        )
+
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["category"], "legal")
+        self.assertEqual(entries[0]["candidate_ids"], ["raphael-glucksmann"])
+        self.assertEqual(entries[0]["supporting_source_count"], 2)
+
+    def test_same_complaint_can_cluster_across_midnight_within_twelve_hours(self):
+        left = {
+            "category": "legal",
+            "headline": (
+                'Gabriel Attal porte plainte contre une "ingérence étrangère" '
+                "russe : la présidentielle 2027 visée par les deepfakes"
+            ),
+            "trusted_change_at": "2026-08-07T21:43:00Z",
+            "primary_source": {"url": "https://example.com/left"},
+            "candidate_ids": ["gabriel-attal"],
+            "_entities": {"gabriel attal"},
+        }
+        right = {
+            "category": "legal",
+            "headline": (
+                "Présidentielle: Gabriel Attal porte plainte, dénonçant "
+                "une ingérence russe"
+            ),
+            "trusted_change_at": "2026-08-08T01:47:47Z",
+            "primary_source": {"url": "https://example.com/right"},
+            "candidate_ids": ["gabriel-attal"],
+            "_entities": {"gabriel attal"},
+        }
+
+        self.assertTrue(news_entries_match(left, right))
+
+    def test_complaint_clustering_does_not_cross_dates(self):
+        left = {
+            "category": "legal",
+            "headline": (
+                "Ingérences russes: Raphaël Glucksmann annonce avoir porté plainte"
+            ),
+            "trusted_change_at": "2026-08-12T09:38:18Z",
+            "primary_source": {"url": "https://example.com/left"},
+            "candidate_ids": ["raphael-glucksmann"],
+            "_entities": {"raphael glucksmann"},
+        }
+        right = {
+            "category": "legal",
+            "headline": (
+                "Soupçons d’ingérence russe dans l’élection présidentielle : "
+                "Raphaël Glucksmann a porté plainte"
+            ),
+            "trusted_change_at": "2026-08-13T12:28:41Z",
+            "primary_source": {"url": "https://example.com/right"},
+            "candidate_ids": ["raphael-glucksmann"],
+            "_entities": {"raphael glucksmann"},
+        }
+
+        self.assertFalse(news_entries_match(left, right))
 
     def test_distinct_ps_events_are_not_clustered_as_support(self):
         shared_candidates = [

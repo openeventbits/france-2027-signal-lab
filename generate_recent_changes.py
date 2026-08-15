@@ -798,6 +798,33 @@ def news_entries_match(left: dict[str, Any], right: dict[str, Any]) -> bool:
         set(left.get("_entities", set()))
         & set(right.get("_entities", set()))
     )
+
+    # Complaints are high-volume publisher stories. Merge them only when
+    # they describe the same actor's complaint within a short publication
+    # window. This permits normal coverage that crosses local midnight
+    # without merging distinct complaints published a day or more apart.
+    complaint_terms = ("porte plainte", "depose plainte")
+    left_time = parse_datetime(left["trusted_change_at"])
+    right_time = parse_datetime(right["trusted_change_at"])
+    complaint_time_gap = (
+        abs(left_time - right_time)
+        if left_time is not None and right_time is not None
+        else None
+    )
+    same_candidate_complaint = (
+        left["category"] == "legal"
+        and complaint_time_gap is not None
+        and complaint_time_gap <= timedelta(hours=12)
+        and bool(shared_entities)
+        and all(
+            any(term in text for term in complaint_terms)
+            for text in (left_text, right_text)
+        )
+        and similarity >= 0.30
+    )
+    if same_candidate_complaint:
+        return True
+
     shared_actions = (
         action_groups(left["headline"])
         & action_groups(right["headline"])
