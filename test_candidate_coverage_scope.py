@@ -104,7 +104,9 @@ class CandidateCoverageScopeTests(unittest.TestCase):
             "general",
         )
 
-    def test_electoral_support_visibility_keeps_campaign_scope(self) -> None:
+    def test_bare_candidate_support_without_race_evidence_is_general(
+        self,
+    ) -> None:
         headline = normalize(
             "François Hollande annonce son soutien à la candidature de "
             "Raphaël Glucksmann"
@@ -118,14 +120,15 @@ class CandidateCoverageScopeTests(unittest.TestCase):
             matches,
         )
 
-        self.assertIsNotNone(relevance)
+        self.assertTrue(matches)
+        self.assertIsNone(relevance)
         self.assertEqual(
             classify_candidate_coverage_scope(
                 is_election_news=False,
                 relevance=relevance,
                 development=None,
             ),
-            "campaign",
+            "general",
         )
 
     def test_later_electoral_context_does_not_create_support_scope(self) -> None:

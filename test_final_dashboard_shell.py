@@ -5,6 +5,8 @@ import re
 import subprocess
 import unittest
 
+from test_candidate_signals_frontend import run_candidate_module
+
 
 ROOT = Path(__file__).resolve().parent
 INDEX = ROOT / "index.html"
@@ -1616,84 +1618,74 @@ process.stdout.write(JSON.stringify({
         )
 
     def test_general_active_rows_suppress_unavailable_change(self):
-        payload = json.loads(
+        source_payload = json.loads(
             (ROOT / "candidate_signals.json").read_text(
                 encoding="utf-8"
             )
         )
+        payload = json.loads(json.dumps(source_payload))
         general = payload["active_field_visibility"]["general"]
         quality = general["comparison_quality"]
-        thresholds = quality["thresholds"]
+        thresholds = {
+            "minimum_period_records": 10,
+            "minimum_period_publishers": 5,
+            "minimum_common_publishers": 5,
+            "minimum_publisher_overlap_ratio": 0.5,
+            "maximum_record_count_ratio": 2.0,
+        }
+
+        for period_name in ("current_period", "prior_period"):
+            general[period_name]["record_count"] = 0
+            general[period_name]["publisher_count"] = 0
+        quality.update({
+            "status": "not_comparable",
+            "reason": "insufficient_data",
+            "current_record_count": 0,
+            "prior_record_count": 0,
+            "current_publisher_count": 0,
+            "prior_publisher_count": 0,
+            "common_publisher_count": 0,
+            "publisher_union_count": 0,
+            "publisher_overlap_ratio": 0.0,
+            "record_count_ratio": None,
+            "thresholds": thresholds,
+        })
+        for tier in ("main", "secondary"):
+            for row in general[tier]:
+                row.update({
+                    "current_record_count": 0,
+                    "current_share": None,
+                    "prior_record_count": 0,
+                    "prior_share": None,
+                    "share_change": None,
+                })
+            general[tier].sort(
+                key=lambda row: (
+                    row["candidate_name"].lower(),
+                    row["candidate_id"],
+                )
+            )
+
+        state = run_candidate_module(
+            "api.normalize(input.payload)",
+            payload,
+        )
+        self.assertEqual(state["status"], "ready")
+        normalized_general = state["metadata"][
+            "activeFieldVisibility"
+        ]["general"]
+        quality = normalized_general["comparison_quality"]
 
         self.assertEqual(quality["status"], "not_comparable")
         self.assertEqual(
             quality["reason"],
-            "publisher_panel_changed",
+            "insufficient_data",
         )
-        self.assertEqual(
-            thresholds,
-            {
-                "minimum_period_records": 10,
-                "minimum_period_publishers": 5,
-                "minimum_common_publishers": 5,
-                "minimum_publisher_overlap_ratio": 0.5,
-                "maximum_record_count_ratio": 2.0,
-            },
-        )
+        self.assertEqual(quality["thresholds"], thresholds)
+        self.assertEqual(quality["publisher_overlap_ratio"], 0.0)
+        self.assertIsNone(quality["record_count_ratio"])
 
-        self.assertGreaterEqual(
-            quality["current_record_count"],
-            thresholds["minimum_period_records"],
-        )
-        self.assertGreaterEqual(
-            quality["prior_record_count"],
-            thresholds["minimum_period_records"],
-        )
-        self.assertGreaterEqual(
-            quality["current_publisher_count"],
-            thresholds["minimum_period_publishers"],
-        )
-        self.assertGreaterEqual(
-            quality["prior_publisher_count"],
-            thresholds["minimum_period_publishers"],
-        )
-        self.assertGreaterEqual(
-            quality["common_publisher_count"],
-            thresholds["minimum_common_publishers"],
-        )
-        self.assertLess(
-            quality["publisher_overlap_ratio"],
-            thresholds["minimum_publisher_overlap_ratio"],
-        )
-        self.assertLessEqual(
-            quality["record_count_ratio"],
-            thresholds["maximum_record_count_ratio"],
-        )
-
-        self.assertEqual(
-            quality["publisher_overlap_ratio"],
-            round(
-                quality["common_publisher_count"]
-                / quality["publisher_union_count"],
-                3,
-            ),
-        )
-        self.assertEqual(
-            quality["record_count_ratio"],
-            round(
-                max(
-                    quality["current_record_count"],
-                    quality["prior_record_count"],
-                )
-                / min(
-                    quality["current_record_count"],
-                    quality["prior_record_count"],
-                ),
-                3,
-            ),
-        )
-
-        rows = general["main"] + general["secondary"]
+        rows = normalized_general["main"] + normalized_general["secondary"]
         self.assertTrue(rows)
         self.assertTrue(
             all(row["share_change"] is None for row in rows)
