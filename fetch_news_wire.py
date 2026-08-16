@@ -222,11 +222,19 @@ CANDIDATE_MATCH_LOCATIONS = ("headline", "summary")
 
 ELECTION_PATTERNS = (
     re.compile(r"\bpresidentielle(?:\s+francaise)?(?:\s+de)?\s+2027\b"),
-    re.compile(r"\belection\s+presidentielle\b"),
+    re.compile(
+        r"\b(?:election\s+presidentielle|elections\s+presidentielles)\b"
+    ),
+    re.compile(r"\bcandidat(?:e|s|es)?\s+aux\s+presidentielles\b"),
+    re.compile(
+        r"\b(?:prochain\s+scrutin\s+presidentiel|"
+        r"scrutin\s+presidentiel(?:\s+a\s+venir)?)\b"
+    ),
     re.compile(r"\bprochaine\s+presidentielle\b"),
     re.compile(r"\bcourse\s+a\s+l\s+elysee\b"),
     re.compile(r"\belysee\s+2027\b"),
     re.compile(r"\bcandidat(?:e|ure)?\s+a\s+l\s+election\s+presidentielle\b"),
+    re.compile(r"\bsondages?\s+presidentiels?\b"),
 )
 
 CAMPAIGN_AGENDA_TOPICS = (
@@ -401,6 +409,7 @@ STRICT_NOTABLE_TERMS = {
     "legal_eligibility": (
         "parquet national financier",
         "cour de cassation",
+        "bracelet electronique",
         "ineligibilite",
         "condamnation",
         "relaxe",
@@ -496,6 +505,7 @@ NON_PRESIDENTIAL_ELECTION_TERMS = (
     "europeennes",
     "regionales",
     "departementales",
+    "senat",
 )
 
 # Broad article-level relevance is intentionally less strict than the
@@ -503,19 +513,28 @@ NON_PRESIDENTIAL_ELECTION_TERMS = (
 # "president", or a bare year must never establish race relevance.
 RELEVANT_PRESIDENTIAL_TERMS = (
     "presidentielle",
+    "presidentielles",
     "election presidentielle",
+    "elections presidentielles",
     "prochaine presidentielle",
+    "scrutin presidentiel",
+    "prochain scrutin presidentiel",
     "course a l elysee",
     "elysee 2027",
     "500 signatures",
     "parrainage presidentiel",
     "parrainages presidentiels",
+    "sondage presidentiel",
+    "sondages presidentiels",
 )
 
 RELEVANT_CAMPAIGN_TERMS = (
     "candidature",
+    "candidatures",
     "candidat",
+    "candidats",
     "candidate",
+    "candidates",
     "campagne",
     "primaire",
     "investiture",
@@ -552,13 +571,47 @@ SUMMARY_HIGH_SPECIFICITY_SELECTION_TERMS = (
 SUMMARY_PASSAGE_BOUNDARY_PATTERN = re.compile(
     r"(?:\r?\n+|(?<=[.!?;])\s+)"
 )
-SUMMARY_ELYSEE_2027_PATTERN = re.compile(
-    r"(?:\belysee\b(?:\s+[a-z0-9]+){0,4}\s+\b2027\b"
-    r"|\b2027\b(?:\s+[a-z0-9]+){0,4}\s+\belysee\b)"
+ELYSEE_2027_OUTCOME_PATTERN = re.compile(
+    r"\b(?:accede|acceder|accedera|accedait|parvient|parviendra)"
+    r"\s+a\s+l\s+elysee(?:\s+en)?\s+2027\b"
+)
+ASSERTED_PRESIDENTIAL_CANDIDATE_PATTERN = re.compile(
+    r"\b(?:(?:le|la|les|ces|un|une)\s+(?:deux\s+)?)?"
+    r"candidat(?:e|s|es)?"
+    r"(?:\s+[a-z0-9]+){0,3}\s+(?:a|pour)\s+(?:(?:l|la|le)\s+)?"
+    r"(?:election\s+)?presidentielle(?:s)?(?:\s+de\s+2027)?\b"
+)
+COLLECTIVE_PRESIDENTIAL_CANDIDATE_PATTERN = re.compile(
+    r"\bles\s+deux\s+candidat(?:e|s|es)?"
+    r"(?:\s+[a-z0-9]+){0,3}\s+(?:a|pour)\s+(?:(?:l|la|le)\s+)?"
+    r"(?:election\s+)?presidentielle(?:s)?(?:\s+de\s+2027)?\b"
+)
+SPECULATIVE_CANDIDACY_PATTERN = re.compile(
+    r"\b(?:pourrait|pourraient|serait|seraient)\s+"
+    r"(?:etre\s+)?candidat(?:e|s|es)?\b|"
+    r"\b(?:pourrait|pourraient)\s+se\s+presenter\b"
+)
+SUMMARY_ANAPHORIC_ACTOR_PATTERN = re.compile(
+    r"\b(?:le|la|les)\s+candidat(?:e|s|es)?\b|"
+    r"\b(?:il|elle|ils|elles|ce\s+dernier|cette\s+derniere)\b"
+)
+SUMMARY_ACTOR_ACTION_TAIL_PATTERN = re.compile(
+    r"^(?:\s+[a-z0-9]+){0,6}\s+\b(?:propose|menace|veut|annonce|"
+    r"affirme|demande|denonce|appelle|ecrit|accuse|evoque|envisage|"
+    r"entend|inscrit|s\s+exprime|avait\s+(?:evoque|envisage)|"
+    r"s\s+oppose)\b"
+)
+SUMMARY_PARTY_ACTOR_ACTION_PATTERN = re.compile(
+    r"\b(?:patron|patronne|chef|cheffe|leader)\s+"
+    r"(?:du|de\s+la|des)\s+(?:parti|ecologistes|rn|renaissance|"
+    r"horizons|ps|lr|lfi)\b(?:\s+[a-z0-9]+){0,6}\s+"
+    r"\b(?:propose|menace|veut|annonce|affirme|demande|denonce|"
+    r"appelle|ecrit|s\s+oppose)\b"
 )
 SUMMARY_CANDIDATE_SELECTION_PATTERN = re.compile(
-    r"\b(?:designe|designer|nomme|nommer|choisit|choisir|selectionne|"
-    r"selectionner)\b(?:\s+[a-z0-9]+){0,6}\s+\b(?:candidat|candidate)\b"
+    r"\b(?:designe|designer|nomme|nommer|choisit|choisir|prepare|"
+    r"preparer|presente|presenter|selectionne|selectionner)\b"
+    r"(?:\s+[a-z0-9]+){0,6}\s+\b(?:candidat|candidate)\b"
 )
 SUMMARY_PARTY_LEADER_CANDIDACY_PATTERN = re.compile(
     r"\bcandidature\s+d(?:e|u|es)?\s+(?:la\s+|le\s+|l\s+)?"
@@ -573,9 +626,11 @@ SUMMARY_HEADLINE_CANDIDATE_REFERENCE_PATTERN = re.compile(
 )
 SUMMARY_ELECTORAL_CAMPAIGN_PATTERN = re.compile(
     r"\b(?:campagne\s+(?:presidentielle|electorale)"
-    r"|campagne\s+(?:de|pour)\s+(?:l\s+)?(?:election\s+)?presidentielle"
+    r"|campagne\s+(?:de|des|pour)\s+(?:l\s+)?"
+    r"(?:election\s+presidentielle|elections\s+presidentielles)"
     r"|campagne\s+(?:de|pour)\s+2027"
-    r"|en\s+campagne(?:\s+[a-z0-9]+){0,4}\s+(?:presidentielle|2027))\b"
+    r"|en\s+campagne(?:\s+[a-z0-9]+){0,4}\s+(?:presidentielle|2027)"
+    r"|deplacement\s+de\s+campagne)\b"
 )
 SUMMARY_WITHDRAWAL_PATTERN = re.compile(
     r"\b(?:renonce|renoncer|se\s+retire|retire|retrait)\b"
@@ -592,8 +647,6 @@ RELEVANT_HEADLINE_SUPPORT_TERMS = (
     "ultimatum",
     "strategie",
     "positionnement",
-    "entretien",
-    "interview",
     "candidature",
     "candidat",
     "candidate",
@@ -605,6 +658,12 @@ RELEVANT_HEADLINE_SUPPORT_TERMS = (
     "coalition",
     "sondage",
     "parrainage",
+    "propose",
+    "presente",
+    "promet",
+    "explique",
+    "detaille",
+    "defend",
 )
 
 RELEVANT_ROUTINE_EXCLUSION_TERMS = (
@@ -644,7 +703,198 @@ RELEVANT_LIFESTYLE_EXCLUSION_TERMS = (
 )
 
 HISTORICAL_PRESIDENTIAL_YEAR_PATTERN = re.compile(
-    r"\b(?:election\s+)?presidentielle(?:\s+francaise)?(?:\s+de)?\s+((?:19|20)\d{2})\b"
+    r"\b(?:presidentielles?|election\s+presidentielle|"
+    r"elections\s+presidentielles|scrutin\s+presidentiel)"
+    r"(?:\s+francais(?:e|es)?)?"
+    r"(?:\s+(?:de|en))?\s+((?:19|20)\d{2})\b"
+)
+HISTORICAL_RETROSPECTIVE_SUBJECT_PATTERN = re.compile(
+    r"(?:"
+    r"\b(?:aujourd\s+hui|retour\s+sur|archives?|souvenir)\b"
+    r"(?:\s+[a-z0-9]+){0,8}\s+\b(?:l\s+)?election\s+de\s+"
+    r"(?:19\d{2}|20(?:0\d|1\d|2[0-6]))\b|"
+    r"\b(?:aujourd\s+hui\s+)?retour\s+en\s+"
+    r"(?:19\d{2}|20(?:0\d|1\d|2[0-6]))\b"
+    r")"
+)
+HISTORICAL_RETROSPECTIVE_HEADLINE_PATTERN = re.compile(
+    r"(?:"
+    r"\bretour\s+sur\s+(?:les\s+)?campagnes?\s+presidentielles?\b|"
+    r"\bvisites?\s+presidentielles?\b"
+    r"(?:\s+[a-z0-9]+){0,12}\s+\b(?:menait|mener)\s+campagne\b|"
+    r"\bquels\s+etaient\s+les\s+resultats\b"
+    r"(?:\s+[a-z0-9]+){0,8}\s+\b(?:19|20)\d{2}\b"
+    r")"
+)
+FOREIGN_ELECTION_SUBJECT_PATTERN = re.compile(
+    r"(?:"
+    r"\b(?:bresil|madagascar|roumanie|iowa|etats\s+unis)\b|"
+    r"\b(?:iowa|etats\s+unis|americain|americaine|americains|americaines|"
+    r"bresil|bresilien|bresilienne|roumanie|roumain|roumaine)\b"
+    r"(?:\s+[a-z0-9]+){0,12}\s+"
+    r"\b(?:democrate|republicain|gouverneur|election|candidat|candidate)\b|"
+    r"\b(?:democrate|republicain|gouverneur|election|candidat|candidate)\b"
+    r"(?:\s+[a-z0-9]+){0,12}\s+"
+    r"\b(?:iowa|etats\s+unis|americain|americaine|americains|americaines|"
+    r"bresil|bresilien|bresilienne|roumanie|roumain|roumaine)\b"
+    r")"
+)
+EXPLICIT_FRENCH_RACE_HEADLINE_PATTERN = re.compile(
+    r"\b(?:presidentielle|election\s+presidentielle)\s+francaise\b|"
+    r"\b(?:presidentielle|election\s+presidentielle|elysee)"
+    r"(?:\s+[a-z0-9]+){0,8}\s+2027\b|"
+    r"\b2027\b(?:\s+[a-z0-9]+){0,8}\s+"
+    r"\b(?:presidentielle|election\s+presidentielle|elysee)\b"
+)
+
+RACE_QUALIFIED_LEGAL_ELIGIBILITY_PATTERN = re.compile(
+    r"\b(?:"
+    r"ineligibilite|"
+    r"(?:reste|demeure|est|devient)\s+(?:in)?eligible|"
+    r"ne\s+(?:peut|pourra)\s+plus\s+(?:etre\s+)?candidat(?:e)?|"
+    r"peut\s+toujours\s+se\s+presenter|"
+    r"(?:menace|compromet|empeche|preserve)\s+sa\s+candidature|"
+    r"(?:menace\s+(?:du\s+)?|sous\s+)?bracelet\s+electronique"
+    r"(?:\s+[a-z0-9]+){0,8}\s+\b(?:avant|pour|en)\s+2027"
+    r")\b"
+)
+ELECTED_PRESIDENT_POSITIONING_PATTERN = re.compile(
+    r"\b(?:"
+    r"(?:s\s+il|si\s+elle)\s+(?:etait|est|sera|serait)\s+elu(?:e)?"
+    r"(?:\s+president(?:e)?)?(?:\s+en\s+2027)?|"
+    r"(?:devenait|deviendrait|devient|deviendra)\s+president(?:e)?|"
+    r"serait\s+(?:le|la)\s+president(?:e)?"
+    r")\b"
+)
+PROGRAMMATIC_POSITIONING_PATTERN = re.compile(
+    r"\b(?:promet|propose|souhaite|veut|assure|affirme|annonce|presente|"
+    r"detaille|defend|plan|programme|projet|reforme|referendum|mesure)\b|"
+    r"\b(?:mettrait|mettra|mettre)\s+en\s+(?:oeuvre|uvre)\b"
+)
+DIRECT_PRESIDENTIAL_OFFICE_POSITIONING_PATTERN = re.compile(
+    r"\b(?:devenait|deviendrait|devient|deviendra)\s+president(?:e)?\b|"
+    r"\bserait\s+(?:le|la)\s+president(?:e)?\b|"
+    r"\b(?:s\s+il|si\s+elle)\s+(?:etait|est|sera|serait)\s+"
+    r"elu(?:e)?\s+president(?:e)?\b"
+)
+RACE_YEAR_CAMPAIGN_PATTERN = re.compile(
+    r"(?:"
+    r"\b2027\b(?:\s+[a-z0-9]+){0,8}\s+"
+    r"\b(?:candidat|candidate|candidature|campagne|primaire|investiture|"
+    r"programme|sondage|sondages|course)\b|"
+    r"\b(?:candidat|candidate|candidature|campagne|primaire|investiture|"
+    r"programme|sondage|sondages|course)\b"
+    r"(?:\s+[a-z0-9]+){0,8}\s+\b2027\b"
+    r")"
+)
+PRESIDENTIAL_CANDIDACY_PATTERN = re.compile(
+    r"\b(?:"
+    r"(?:candidat(?:e)?|candidature)\s+(?:a|pour)\s+(?:la\s+)?"
+    r"(?:election\s+)?presidentielle|"
+    r"se\s+presente\s+(?:a|pour)\s+(?:la\s+)?"
+    r"(?:election\s+)?presidentielle|"
+    r"candidat(?:e)?\s+(?:a|pour)\s+(?:l\s+)?elysee|"
+    r"candidature\s+(?:a|pour)\s+(?:l\s+)?elysee|"
+    r"(?:candidat(?:e)?|candidature)\s+(?:a|pour)\s+(?:la\s+)?"
+    r"presidence\s+de\s+la\s+republique|"
+    r"(?:ambition|ambitions)\s+presidentielle(?:s)?|"
+    r"(?:candidat|candidate)\s+(?:de|pour)\s+(?:son|mon|notre|leur|le|la)\s+camp|"
+    r"candidat(?:e)?\b(?:\s+[a-z0-9]+){0,10}\s+"
+    r"\b(?:arriver|acceder|entrer|viser|conquerir)\s+a\s+l\s+elysee"
+    r")\b"
+)
+PRESIDENTIAL_PROGRAMME_PATTERN = re.compile(
+    r"\bprogramme\s+(?:presidentiel|presidentielle|electoral|electorale)\b"
+)
+PRESIDENTIAL_FIELD_PATTERN = re.compile(
+    r"\b(?:pretendant|pretendants|pretendante|pretendantes|"
+    r"candidat|candidats|candidate|candidates)\b"
+    r"(?:\s+[a-z0-9]+){0,4}\s+a\s+la\s+presidentielle\b"
+)
+PRE_PRESIDENTIAL_ACTIVITY_PATTERN = re.compile(
+    r"(?:"
+    r"\b(?:tour|tournee|deplacement|campagne|meeting|terrain)\b"
+    r"(?:\s+[a-z0-9]+){0,6}\s+\bpre\s+presidentiel(?:le)?\b|"
+    r"\bpre\s+presidentiel(?:le)?\b(?:\s+[a-z0-9]+){0,6}\s+"
+    r"\b(?:tour|tournee|deplacement|campagne|meeting|terrain)\b"
+    r")"
+)
+EXPLICIT_CAMPAIGN_ACTIVITY_PATTERN = re.compile(
+    r"(?:"
+    r"\b(?:accelere|lance|entame|poursuit|continue|reprend|clot|clore|"
+    r"boucle)\b\s+(?:sa|la|une)\s+campagne\b|"
+    r"\bdirecteur\s+de\s+campagne\b|"
+    r"\b(?:va\s+)?dirig(?:e|er|era)\b(?:\s+[a-z0-9]+){0,4}\s+"
+    r"\b(?:la|sa|une)\s+campagne\b|"
+    r"\bdans\s+la\s+campagne\s+(?:de|du|d)\b|"
+    r"\bfaire\s+campagne\b(?!\s+pour\s+(?:la|le|une|un)?\s*"
+    r"(?:vaccination|sensibilisation|sante))|"
+    r"\b(?:tour|tournee|deplacement|escale|tro\s+breizh)\b"
+    r"(?:\s+[a-z0-9]+){0,8}\s+\b(?:de|en)\s+campagne\b|"
+    r"\ben\s+campagne\b(?!\s+(?:de|pour)\s+(?:la|le|une|un)?\s*"
+    r"(?:vaccination|sensibilisation|publicite|sante))"
+    r")"
+)
+IMPLICIT_2027_POSITIONING_PATTERN = re.compile(
+    r"\b(?:pret|prete)\b(?:\s+[a-z0-9]+){0,4}\s+\ba\s+etre\s+"
+    r"(?:le|la|un|une)\s+recours\b(?:\s+[a-z0-9]+){0,3}\s+\b2027\b"
+)
+CAMPAIGN_POLLING_RELATIONSHIP_PATTERN = re.compile(
+    r"(?:"
+    r"\bcampagne\b(?:\s+[a-z0-9]+){0,10}\s+\bsondages?\b|"
+    r"\bsondages?\b(?:\s+[a-z0-9]+){0,10}\s+\bcampagne\b|"
+    r"\bsondage\s+exclusif\b(?:\s+[a-z0-9]+){0,16}\s+"
+    r"\b(?:coude\s+a\s+coude|intentions?\s+de\s+vote|second\s+tour)\b"
+    r")"
+)
+CANDIDACY_RACE_CONSEQUENCE_PATTERN = re.compile(
+    r"\bcandidature\b(?:\s+[a-z0-9]+){0,12}\s+"
+    r"\b(?:rebat\s+les\s+cartes|francais\s+auront\s+le\s+dernier\s+mot)\b"
+)
+PARTY_LEADERSHIP_ELECTION_PATTERN = re.compile(
+    r"\b(?:reelection|succession)\b|"
+    r"\b(?:president|presidente|tete)\s+(?:du|de\s+la|des)\s+"
+    r"(?:parti|rassemblement\s+national|rn|renaissance|horizons|ps|lr|lfi)\b"
+)
+ORDINARY_LEGAL_HEADLINE_PATTERN = re.compile(
+    r"\b(?:"
+    r"enquete|assigne|justice|deboute|faire\s+appel|porte\s+plainte|"
+    r"depose\s+plainte|parquet|condamne|condamnee|condamnation|"
+    r"lanceuse\s+d\s+alerte|mis\s+en\s+examen|mise\s+en\s+examen"
+    r")\b"
+)
+LEGAL_TEMPORAL_PRESIDENTIAL_FRAME_PATTERN = re.compile(
+    r"\ba\s+(?:[a-z0-9]+\s+){0,2}(?:mois|an|ans)\s+de\s+la\s+"
+    r"presidentielle\b"
+)
+ELECTION_INTEGRITY_HEADLINE_PATTERN = re.compile(
+    r"\b(?:ingerence|ingerences|desinformation|interference|"
+    r"faux\s+comptes|campagne\s+de\s+manipulation|"
+    r"election\s+(?:peut\s+etre\s+)?faussee|scrutin\s+fausse)\b"
+)
+SUMMARY_ELECTION_INTEGRITY_PATTERN = re.compile(
+    r"\b(?:ingerence|ingerences|desinformation|interference|"
+    r"operation\s+de\s+destabilisation|fausse\s+enquete|"
+    r"(?:influencer|fausser|voler)\s+(?:la\s+)?(?:couverture|election|scrutin))\b"
+)
+FRENCH_ELECTION_INTEGRITY_PATTERN = re.compile(
+    r"\b(?:voler|fausser)\s+(?:l\s+)?election\s+aux\s+francais\b|"
+    r"\bsincerite\s+du\s+scrutin\s+presidentiel\b"
+)
+CURRENT_PRESIDENTIAL_TIMING_PATTERN = re.compile(
+    r"\b(?:a|environ|moins\s+de)\s+[a-z0-9]+\s+mois\s+"
+    r"(?:(?:de|avant)\s+(?:la|l)\s+"
+    r"(?:election\s+)?presidentielle|du\s+scrutin)\b|"
+    r"\b(?:avant|en\s+vue\s+de)\s+(?:la|l)\s+"
+    r"(?:election\s+)?presidentielle\b"
+)
+FRENCH_RACE_INSTITUTION_PATTERN = re.compile(
+    r"\bmatignon\b|\b500\s+parrainages\b"
+)
+PRESIDENTIAL_CAMPAIGN_FINANCE_PATTERN = re.compile(
+    r"\bfinancement\s+(?:de\s+)?(?:la\s+)?campagne\s+presidentielle\b|"
+    r"\bfinanc(?:er|ement)\b(?:\s+[a-z0-9]+){0,8}\s+"
+    r"\b(?:campagne\s+presidentielle|candidat|candidats|candidate|candidates)\b"
 )
 
 STATIC_ENTITY_ROLE_SUFFIXES = (
@@ -2002,6 +2252,8 @@ def summary_campaign_context_evidence(
     headline_party_matches: list[str],
     matched_candidates: list[str],
     candidate_matches: list[dict[str, Any]],
+    headline_election_integrity: bool = False,
+    headline_supports_summary_relationship: bool = False,
 ) -> list[str]:
     """Return campaign evidence confined to qualifying summary passages."""
 
@@ -2012,11 +2264,22 @@ def summary_campaign_context_evidence(
         summary,
         flags=re.IGNORECASE,
     )
-    passages = [
+    base_passages = [
         normalized
         for passage in SUMMARY_PASSAGE_BOUNDARY_PATTERN.split(summary)
         if (normalized := normalize(passage))
     ]
+    passages = list(base_passages)
+    # A short adjacent sentence may carry an anaphoric actor reference, as in
+    # "Marine Tondelier ... présidentielle. La candidate ... campagne".
+    # Only those explicitly linked pairs are joined; arbitrary neighboring
+    # presidential sentences cannot rescue an unrelated article subject.
+    for left, right in zip(base_passages, base_passages[1:]):
+        if (
+            SUMMARY_ANAPHORIC_ACTOR_PATTERN.search(right)
+            and len(left.split()) + len(right.split()) <= 80
+        ):
+            passages.append(f"{left} {right}")
     candidate_aliases = sorted({
         alias
         for match in candidate_matches
@@ -2038,11 +2301,49 @@ def summary_campaign_context_evidence(
             passage,
             campaign_terms,
         )
-        if not passage_campaign_matches:
+        passage_integrity = bool(
+            SUMMARY_ELECTION_INTEGRITY_PATTERN.search(passage)
+        )
+        passage_presidential_anchors = set(
+            current_presidential_matches(passage)
+        )
+        asserted_candidate_match = (
+            ASSERTED_PRESIDENTIAL_CANDIDATE_PATTERN.search(passage)
+        )
+        asserted_candidate_relationship = bool(
+            asserted_candidate_match
+            and not SPECULATIVE_CANDIDACY_PATTERN.search(passage)
+        )
+        asserted_candidate_subject = bool(
+            asserted_candidate_relationship
+            and asserted_candidate_match
+            and SUMMARY_ACTOR_ACTION_TAIL_PATTERN.search(
+                passage[asserted_candidate_match.end():]
+            )
+        )
+        party_actor_subject = bool(
+            SUMMARY_PARTY_ACTOR_ACTION_PATTERN.search(passage)
+        )
+        elysee_outcome = bool(
+            ELYSEE_2027_OUTCOME_PATTERN.search(passage)
+        )
+        if not (
+            passage_campaign_matches
+            or passage_integrity
+            or asserted_candidate_relationship
+            or elysee_outcome
+            or (
+                headline_election_integrity
+                and passage_presidential_anchors
+            )
+        ):
             continue
-        if campaign_agenda_term_matches(
-            passage,
-            NON_PRESIDENTIAL_ELECTION_TERMS,
+        if (
+            not passage_presidential_anchors
+            and campaign_agenda_term_matches(
+                passage,
+                NON_PRESIDENTIAL_ELECTION_TERMS,
+            )
         ):
             continue
         historical_years = {
@@ -2068,17 +2369,60 @@ def summary_campaign_context_evidence(
             for alias in candidate_aliases
         )
         actor_evidence = set(local_headline_parties)
-        if local_candidate:
+        if local_candidate and (
+            candidate_in_headline or local_headline_parties
+        ):
             actor_evidence.add("candidate_in_summary")
+        if (
+            candidate_in_headline
+            and asserted_candidate_relationship
+            and (
+                headline_election_integrity
+                or headline_supports_summary_relationship
+                or asserted_candidate_subject
+            )
+        ):
+            actor_evidence.add("headline_candidate_race_relationship")
+        if (
+            candidate_in_headline
+            and SUMMARY_ANAPHORIC_ACTOR_PATTERN.search(passage)
+            and SUMMARY_ELECTORAL_CAMPAIGN_PATTERN.search(passage)
+        ):
+            actor_evidence.add("headline_candidate_race_relationship")
+        if candidate_in_headline and party_actor_subject:
+            actor_evidence.add("headline_party_actor_relationship")
+        if (
+            len(matched_candidates) >= 2
+            and COLLECTIVE_PRESIDENTIAL_CANDIDATE_PATTERN.search(passage)
+            and not SPECULATIVE_CANDIDACY_PATTERN.search(passage)
+        ):
+            actor_evidence.add("collective_headline_actors")
 
-        presidential_anchors = set(current_presidential_matches(passage))
-        if SUMMARY_ELYSEE_2027_PATTERN.search(passage):
-            presidential_anchors.add("elysee_2027")
+        presidential_anchors = set(passage_presidential_anchors)
+        if elysee_outcome:
+            presidential_anchors.add("elysee_2027_outcome")
+        if PRESIDENTIAL_CANDIDACY_PATTERN.search(passage):
+            presidential_anchors.add("presidential_candidacy")
 
         candidacy_matches = campaign_agenda_term_matches(
             passage,
-            ("candidat", "candidate", "candidature"),
+            (
+                "candidat",
+                "candidats",
+                "candidate",
+                "candidates",
+                "candidature",
+                "candidatures",
+            ),
         )
+        if (
+            local_candidate
+            and candidacy_matches
+            and presidential_anchors
+            and SUMMARY_ANAPHORIC_ACTOR_PATTERN.search(passage)
+            and not SPECULATIVE_CANDIDACY_PATTERN.search(passage)
+        ):
+            actor_evidence.add("bounded_summary_candidate_relationship")
         high_specificity_matches = campaign_agenda_term_matches(
             passage,
             SUMMARY_HIGH_SPECIFICITY_SELECTION_TERMS,
@@ -2096,6 +2440,7 @@ def summary_campaign_context_evidence(
             candidate_in_headline
             and local_party_matches
             and SUMMARY_PARTY_LEADER_CANDIDACY_PATTERN.search(passage)
+            and presidential_anchors
         )
         withdrawal = bool(SUMMARY_WITHDRAWAL_PATTERN.search(passage))
         electoral_support = classify_structured_electoral_support(
@@ -2119,7 +2464,10 @@ def summary_campaign_context_evidence(
         if actor_evidence and (
             high_specificity_matches
             or candidate_selection
-            or (electoral_support and candidacy_matches)
+            or (
+                electoral_support
+                and presidential_anchors
+            )
         ):
             passage_evidence.update(high_specificity_matches)
             if candidate_selection:
@@ -2134,9 +2482,45 @@ def summary_campaign_context_evidence(
                 *local_party_matches,
             })
 
-        if actor_evidence and candidacy_matches and presidential_anchors:
+        if (
+            actor_evidence
+            and candidacy_matches
+            and presidential_anchors
+            and not SPECULATIVE_CANDIDACY_PATTERN.search(passage)
+            and (
+                asserted_candidate_subject
+                or headline_candidate_reference
+                or SUMMARY_ELECTORAL_CAMPAIGN_PATTERN.search(passage)
+                or party_leader_candidacy
+                or withdrawal
+            )
+        ):
             passage_evidence.update(candidacy_matches)
             passage_evidence.update(presidential_anchors)
+
+        if (
+            presidential_anchors
+            and headline_election_integrity
+        ):
+            passage_evidence.update(presidential_anchors)
+            passage_evidence.add("election_integrity")
+
+        if actor_evidence and passage_integrity and presidential_anchors:
+            passage_evidence.update(presidential_anchors)
+            passage_evidence.add("election_integrity")
+
+        if actor_evidence and elysee_outcome:
+            passage_evidence.add("elysee_2027_outcome")
+
+        if (
+            actor_evidence
+            and ELECTED_PRESIDENT_POSITIONING_PATTERN.search(passage)
+            and PROGRAMMATIC_POSITIONING_PATTERN.search(passage)
+        ):
+            passage_evidence.update({
+                "elected_president_positioning",
+                *presidential_anchors,
+            })
 
         generic_campaign_matches = sorted(
             set(passage_campaign_matches)
@@ -2153,7 +2537,7 @@ def summary_campaign_context_evidence(
             if locally_electoral_campaign:
                 passage_evidence.update(presidential_anchors)
 
-        if actor_evidence and withdrawal:
+        if actor_evidence and withdrawal and presidential_anchors:
             passage_evidence.update(
                 term
                 for term in passage_campaign_matches
@@ -2176,6 +2560,235 @@ def summary_campaign_context_evidence(
     return sorted(qualifying_evidence)
 
 
+def headline_campaign_context_evidence(
+    headline: str,
+    headline_party_matches: list[str],
+    candidate_in_headline: bool = False,
+) -> list[str]:
+    """Return high-specificity France 2027 evidence from a headline."""
+
+    campaign_matches = campaign_agenda_term_matches(
+        headline,
+        RELEVANT_CAMPAIGN_TERMS,
+    )
+    evidence: set[str] = set()
+
+    if RACE_YEAR_CAMPAIGN_PATTERN.search(headline):
+        race_year_terms = set(campaign_matches)
+        polling_relationship = bool(
+            race_year_terms & {"sondage", "sondages", "intentions de vote"}
+        )
+        presidential_relationship = bool(
+            current_presidential_matches(headline)
+            or PRESIDENTIAL_CANDIDACY_PATTERN.search(headline)
+            or ELECTION_INTEGRITY_HEADLINE_PATTERN.search(headline)
+        )
+        actor_relationship = bool(
+            candidate_in_headline or headline_party_matches
+        )
+        if (
+            polling_relationship
+            or presidential_relationship
+            or (actor_relationship and race_year_terms)
+        ):
+            evidence.update(campaign_matches)
+            evidence.add("race_year_relationship")
+
+    if PRESIDENTIAL_CANDIDACY_PATTERN.search(headline):
+        evidence.update(
+            term
+            for term in campaign_matches
+            if term in {"candidat", "candidate", "candidature"}
+        )
+        evidence.add("presidential_candidacy")
+
+    if PRESIDENTIAL_PROGRAMME_PATTERN.search(headline):
+        evidence.add("presidential_programme")
+
+    elected_positioning = ELECTED_PRESIDENT_POSITIONING_PATTERN.search(
+        headline
+    )
+    if elected_positioning and (
+        DIRECT_PRESIDENTIAL_OFFICE_POSITIONING_PATTERN.search(headline)
+        or PROGRAMMATIC_POSITIONING_PATTERN.search(headline)
+    ):
+        evidence.add("elected_president_positioning")
+
+    if ELYSEE_2027_OUTCOME_PATTERN.search(headline):
+        evidence.add("elysee_2027_outcome")
+
+    if PRE_PRESIDENTIAL_ACTIVITY_PATTERN.search(headline):
+        evidence.add("pre_presidential_activity")
+
+    if (
+        candidate_in_headline
+        and EXPLICIT_CAMPAIGN_ACTIVITY_PATTERN.search(headline)
+    ):
+        evidence.add("explicit_campaign_activity")
+
+    if (
+        candidate_in_headline
+        and IMPLICIT_2027_POSITIONING_PATTERN.search(headline)
+    ):
+        evidence.add("implicit_2027_positioning")
+
+    if CAMPAIGN_POLLING_RELATIONSHIP_PATTERN.search(headline):
+        evidence.add("campaign_polling_relationship")
+
+    if CANDIDACY_RACE_CONSEQUENCE_PATTERN.search(headline):
+        evidence.add("candidacy_race_consequence")
+
+    integrity_evidence = election_integrity_race_evidence(headline)
+    evidence.update(integrity_evidence)
+    if (
+        candidate_in_headline
+        and ELECTION_INTEGRITY_HEADLINE_PATTERN.search(headline)
+        and re.search(r"\b2027\b", headline)
+    ):
+        evidence.update({"election_integrity", "race_year_relationship"})
+
+    if RACE_QUALIFIED_LEGAL_ELIGIBILITY_PATTERN.search(headline):
+        evidence.add("legal_eligibility_consequence")
+
+    selection_matches = sorted(
+        set(campaign_matches)
+        & {"primaire", "investiture", "designation", "vote des adherents"}
+    )
+    if (
+        selection_matches
+        and headline_party_matches
+        and not PARTY_LEADERSHIP_ELECTION_PATTERN.search(headline)
+    ):
+        evidence.update(selection_matches)
+
+    return sorted(evidence)
+
+
+def election_integrity_race_evidence(
+    normalized_text: str,
+) -> list[str]:
+    """Return bounded French presidential-election integrity evidence."""
+
+    text = normalize(normalized_text)
+    if not (
+        ELECTION_INTEGRITY_HEADLINE_PATTERN.search(text)
+        or SUMMARY_ELECTION_INTEGRITY_PATTERN.search(text)
+        or FRENCH_ELECTION_INTEGRITY_PATTERN.search(text)
+    ):
+        return []
+
+    presidential_matches = current_presidential_matches(text)
+    has_race_year_relationship = bool(
+        re.search(r"\b2027\b", text)
+        and re.search(
+            r"\b(?:candidat|candidate|candidats|candidates|"
+            r"election|scrutin|campagne)\b",
+            text,
+        )
+    )
+    has_french_election_relationship = bool(
+        FRENCH_ELECTION_INTEGRITY_PATTERN.search(text)
+    )
+    if not (
+        presidential_matches
+        or has_race_year_relationship
+        or has_french_election_relationship
+    ):
+        return []
+
+    evidence = {"election_integrity"}
+    evidence.update(presidential_matches)
+    if has_race_year_relationship:
+        evidence.add("race_year_relationship")
+    if has_french_election_relationship:
+        evidence.add("french_election_relationship")
+    return sorted(evidence)
+
+
+def bounded_current_french_race_context(
+    headline_value: Any,
+    summary_value: Any,
+) -> bool:
+    """Return a bounded local anchor for the current French race."""
+
+    normalized_headline = normalize(headline_value)
+    combined = normalize(
+        " ".join(
+            part
+            for part in (
+                str(headline_value or ""),
+                str(summary_value or ""),
+            )
+            if part
+        )
+    )
+    return bool(
+        EXPLICIT_FRENCH_RACE_HEADLINE_PATTERN.search(normalized_headline)
+        or PRESIDENTIAL_CANDIDACY_PATTERN.search(normalized_headline)
+        or RACE_YEAR_CAMPAIGN_PATTERN.search(normalized_headline)
+        or CURRENT_PRESIDENTIAL_TIMING_PATTERN.search(combined)
+        or (
+            ELECTION_INTEGRITY_HEADLINE_PATTERN.search(normalized_headline)
+            and current_presidential_matches(combined)
+        )
+        or (
+            PRESIDENTIAL_CAMPAIGN_FINANCE_PATTERN.search(combined)
+            and current_presidential_matches(normalized_headline)
+        )
+        or (
+            FRENCH_RACE_INSTITUTION_PATTERN.search(normalized_headline)
+            and (
+                current_presidential_matches(normalized_headline)
+                or election_integrity_race_evidence(combined)
+            )
+        )
+        or (
+            election_integrity_race_evidence(combined)
+            and (
+                re.search(r"\b2027\b", combined)
+                or CURRENT_PRESIDENTIAL_TIMING_PATTERN.search(combined)
+            )
+        )
+    )
+
+
+def legal_race_qualification_evidence(
+    headline: str,
+    combined_text: str,
+) -> list[str]:
+    """Return independent race evidence for a headline legal event."""
+
+    normalized_headline = normalize(headline)
+    normalized_combined = normalize(combined_text)
+    evidence: set[str] = set()
+
+    if RACE_QUALIFIED_LEGAL_ELIGIBILITY_PATTERN.search(
+        normalized_combined
+    ):
+        evidence.add("legal_eligibility_consequence")
+    if PRESIDENTIAL_CAMPAIGN_FINANCE_PATTERN.search(normalized_combined):
+        evidence.add("presidential_campaign_finance")
+
+    headline_presidential = current_presidential_matches(
+        normalized_headline
+    )
+    if not LEGAL_TEMPORAL_PRESIDENTIAL_FRAME_PATTERN.search(
+        normalized_headline
+    ):
+        evidence.update(headline_presidential)
+
+    integrity_evidence = election_integrity_race_evidence(
+        normalized_combined
+    )
+    if integrity_evidence:
+        evidence.update(integrity_evidence)
+
+    if SUMMARY_ELECTORAL_CAMPAIGN_PATTERN.search(normalized_combined):
+        evidence.add("presidential_campaign_relationship")
+
+    return sorted(evidence)
+
+
 def classify_relevant_news(
     headline_value: Any,
     summary_value: Any,
@@ -2189,23 +2802,64 @@ def classify_relevant_news(
     ordinary legislation, lifestyle coverage, or a historical election
     into current-race news.
     """
-    # Generic presidential language is not sufficient: the
-    # article must also contain a deterministic French-race anchor.
-    if unanchored_presidential_context(
-        headline_value,
-        summary_value,
-        matched_candidates,
-    ):
-        return None
-
     headline = normalize(headline_value)
     summary = normalize(summary_value)
+    bounded_french_race_context = bounded_current_french_race_context(
+        headline_value,
+        summary_value,
+    )
+    # Generic presidential language is not sufficient: the article must
+    # also contain a deterministic French-race anchor. A current-timing
+    # election-integrity relationship is itself such an anchor; foreign
+    # election subjects are still rejected below.
+    if (
+        unanchored_presidential_context(
+            headline_value,
+            summary_value,
+            matched_candidates,
+        )
+        and not bounded_french_race_context
+    ):
+        return None
+    if (
+        HISTORICAL_RETROSPECTIVE_HEADLINE_PATTERN.search(headline)
+        and "2027" not in headline
+    ):
+        return None
+    if (
+        FOREIGN_ELECTION_SUBJECT_PATTERN.search(headline)
+        and not EXPLICIT_FRENCH_RACE_HEADLINE_PATTERN.search(headline)
+    ):
+        return None
+    headline_historical_years = {
+        match.group(1)
+        for match in HISTORICAL_PRESIDENTIAL_YEAR_PATTERN.finditer(
+            headline
+        )
+    }
+    if headline_historical_years and "2027" not in headline_historical_years:
+        return None
+    if (
+        HISTORICAL_RETROSPECTIVE_SUBJECT_PATTERN.search(summary)
+        and not current_presidential_matches(headline)
+    ):
+        return None
     if candidate_matches is None:
         candidate_matches = match_news_candidates(
             headline,
             summary,
             matched_candidates,
         )
+
+    if (
+        ORDINARY_LEGAL_HEADLINE_PATTERN.search(headline)
+        and LEGAL_TEMPORAL_PRESIDENTIAL_FRAME_PATTERN.search(headline)
+        and not RACE_QUALIFIED_LEGAL_ELIGIBILITY_PATTERN.search(headline)
+        and not ELECTION_INTEGRITY_HEADLINE_PATTERN.search(headline)
+        and not PRESIDENTIAL_CAMPAIGN_FINANCE_PATTERN.search(headline)
+        and not SUMMARY_ELECTORAL_CAMPAIGN_PATTERN.search(summary)
+    ):
+        return None
 
     candidate_in_headline = candidate_has_match_location(
         candidate_matches,
@@ -2222,6 +2876,11 @@ def classify_relevant_news(
     headline_campaign_matches = campaign_agenda_term_matches(
         headline,
         RELEVANT_CAMPAIGN_TERMS,
+    )
+    headline_campaign_evidence = headline_campaign_context_evidence(
+        headline,
+        headline_party_matches,
+        candidate_in_headline,
     )
     summary_campaign_matches = campaign_agenda_term_matches(
         summary,
@@ -2242,8 +2901,16 @@ def classify_relevant_news(
         headline,
         RELEVANT_HEADLINE_SUPPORT_TERMS,
     )
+    headline_election_integrity = bool(
+        ELECTION_INTEGRITY_HEADLINE_PATTERN.search(headline)
+    )
     headline_presidential_matches = current_presidential_matches(headline)
     summary_presidential_matches = current_presidential_matches(summary)
+    summary_collective_candidate_relationship = bool(
+        len(matched_candidates) >= 2
+        and COLLECTIVE_PRESIDENTIAL_CANDIDATE_PATTERN.search(summary)
+        and not SPECULATIVE_CANDIDACY_PATTERN.search(summary)
+    )
     other_election_matches = campaign_agenda_term_matches(
         headline,
         NON_PRESIDENTIAL_ELECTION_TERMS,
@@ -2252,14 +2919,33 @@ def classify_relevant_news(
         headline,
         RELEVANT_ROUTINE_EXCLUSION_TERMS,
     )
+    if re.search(r"\b(?:ex|ancien)\s+premier\s+ministre\b", headline):
+        routine_matches = [
+            term
+            for term in routine_matches
+            if term not in {"ministre", "premier ministre"}
+        ]
     lifestyle_matches = campaign_agenda_term_matches(
         headline,
         RELEVANT_LIFESTYLE_EXCLUSION_TERMS,
     )
+    if re.search(r"\bcahiers?\s+de\s+vacances\b", headline):
+        lifestyle_matches = [
+            term for term in lifestyle_matches if term != "vacances"
+        ]
+    if re.search(r"\bmode\s+operatoire\b", headline):
+        lifestyle_matches = [
+            term for term in lifestyle_matches if term != "mode"
+        ]
+    if candidate_in_headline and PRESIDENTIAL_FIELD_PATTERN.search(headline):
+        lifestyle_matches = []
 
     # Headline subject exclusions are authoritative. A summary cannot
     # rescue lifestyle coverage or another type of election.
-    if lifestyle_matches:
+    if lifestyle_matches and not (
+        headline_presidential_matches
+        and re.search(r"\b2027\b", headline)
+    ):
         return None
     if other_election_matches and not headline_presidential_matches:
         return None
@@ -2288,20 +2974,79 @@ def classify_relevant_news(
     # for analysis or commentary. Historical 2002/2007/2012 retrospectives
     # fail current_presidential_matches().
     if headline_presidential_matches:
+        presidential_evidence = set(headline_presidential_matches)
+        if election_integrity_race_evidence(headline):
+            presidential_evidence.add("election_integrity")
         return {
             "reason": "presidential_context",
-            "matched_terms": headline_presidential_matches,
+            "matched_terms": sorted(presidential_evidence),
         }
+
+    bounded_summary_evidence = summary_campaign_context_evidence(
+        summary_value,
+        headline_party_matches,
+        matched_candidates,
+        candidate_matches,
+        headline_election_integrity,
+        bool(headline_support_matches),
+    )
+    if not bounded_summary_evidence and summary_presidential_matches:
+        headline_support_set = set(headline_support_matches)
+        bounded_party_selection = bool(
+            SUMMARY_CANDIDATE_SELECTION_PATTERN.search(summary)
+            and "primaire" in summary_campaign_matches
+            and (
+                headline_party_matches
+                or {"parti", "calendrier"}.issubset(
+                    headline_support_set
+                )
+            )
+        )
+        bounded_race_year_actor = bool(
+            candidate_in_headline
+            and "2027" in headline_support_set
+        )
+        if bounded_party_selection or bounded_race_year_actor:
+            bounded_summary_evidence = sorted(set([
+                *summary_presidential_matches,
+                *headline_party_matches,
+                *(
+                    ["candidate_selection", "primaire"]
+                    if bounded_party_selection
+                    else ["race_year_relationship"]
+                ),
+            ]))
 
     # Routine government and ordinary legislative headlines remain out
     # unless the headline itself explicitly frames them around the race.
-    if routine_matches:
+    if (
+        routine_matches
+        and not headline_campaign_evidence
+        and not headline_election_integrity
+    ):
+        return None
+
+    if (
+        ORDINARY_LEGAL_HEADLINE_PATTERN.search(headline)
+        and not RACE_QUALIFIED_LEGAL_ELIGIBILITY_PATTERN.search(headline)
+        and not headline_election_integrity
+        and not PRESIDENTIAL_CAMPAIGN_FINANCE_PATTERN.search(headline)
+        and not SUMMARY_ELECTORAL_CAMPAIGN_PATTERN.search(summary)
+        and not headline_campaign_evidence
+    ):
         return None
 
     # Structured electoral support is sufficient campaign evidence. A
     # candidate name elsewhere in the headline cannot convert an ordinary
     # support destination into an endorsement.
-    if headline_electoral_support["matched_terms"]:
+    headline_race_relationship = bool(
+        headline_presidential_matches
+        or headline_campaign_evidence
+    )
+    if (
+        headline_electoral_support["matched_terms"]
+        and headline_race_relationship
+    ):
         return {
             "reason": "campaign_or_selection_context",
             "matched_terms": sorted(
@@ -2312,38 +3057,55 @@ def classify_relevant_news(
             ),
         }
 
-    # The summary can confirm current presidential relevance only when
-    # the headline already contains a candidate, named party, or clear
-    # campaign/selection cue.
-    if summary_presidential_matches and (
-        candidate_in_headline
-        or headline_party_matches
-        or headline_support_matches
+    # A race term explicitly bound to 2027 is independent electoral
+    # evidence; the year alone remains insufficient. This covers polling,
+    # candidacy and campaign relationships whose headline need not repeat
+    # the word "presidential". Structured endorsements above keep their
+    # more specific evidence provenance.
+    if "race_year_relationship" in headline_campaign_evidence:
+        return {
+            "reason": "campaign_or_selection_context",
+            "matched_terms": headline_campaign_evidence,
+        }
+
+    # Candidacy for the Élysée or the presidency of the Republic is already
+    # office-specific. It does not depend on a monitored-name match.
+    if "presidential_candidacy" in headline_campaign_evidence:
+        return {
+            "reason": "campaign_or_selection_context",
+            "matched_terms": headline_campaign_evidence,
+        }
+
+    # Counterfactual policy explicitly tied to taking presidential office is
+    # electoral positioning, unlike an ordinary policy statement by the same
+    # monitored politician.
+    if candidate_in_headline and headline_campaign_evidence:
+        return {
+            "reason": "campaign_or_selection_context",
+            "matched_terms": sorted(set([
+                *headline_campaign_evidence,
+                "candidate_in_headline",
+            ])),
+        }
+
+    if (
+        headline_election_integrity
+        and "election_integrity" in headline_campaign_evidence
     ):
         return {
-            "reason": "summary_confirmed_presidential_context",
-            "matched_terms": sorted(
-                set([
-                    *summary_presidential_matches,
-                    *headline_party_matches,
-                    *headline_support_matches,
-                ])
-            ),
+            "reason": "campaign_or_selection_context",
+            "matched_terms": headline_campaign_evidence,
         }
 
     # Campaign evidence in the headline remains sufficient when the article
     # subject is a monitored candidate or named political formation. Evidence
     # provenance stays confined to that headline.
-    if headline_campaign_matches and (
-        candidate_in_headline or headline_party_matches
-    ):
+    if headline_campaign_evidence and headline_party_matches:
         actor_evidence = list(headline_party_matches)
-        if candidate_in_headline:
-            actor_evidence.append("candidate_in_headline")
         return {
             "reason": "campaign_or_selection_context",
             "matched_terms": sorted(set([
-                *headline_campaign_matches,
+                *headline_campaign_evidence,
                 *actor_evidence,
             ])),
         }
@@ -2351,30 +3113,30 @@ def classify_relevant_news(
     # Summary-only vocabulary must form qualifying evidence inside one raw,
     # bounded passage. An attempted but unqualified campaign interpretation
     # cannot fall through and relabel the same article as candidate coverage.
-    if summary_campaign_matches and (
-        candidate_in_headline or headline_party_matches
+    if (summary_campaign_matches or summary_presidential_matches) and (
+        candidate_in_headline
+        or headline_party_matches
+        or headline_support_matches
+        or headline_election_integrity
+        or headline_electoral_support["matched_terms"]
+        or summary_collective_candidate_relationship
     ):
-        summary_evidence = summary_campaign_context_evidence(
-            summary_value,
-            headline_party_matches,
-            matched_candidates,
-            candidate_matches,
-        )
+        summary_evidence = bounded_summary_evidence
         if not summary_evidence:
             return None
         return {
-            "reason": "campaign_or_selection_context",
+            "reason": (
+                "summary_confirmed_presidential_context"
+                if summary_presidential_matches
+                else "campaign_or_selection_context"
+            ),
             "matched_terms": summary_evidence,
         }
 
-    # Candidate profiles, interviews, commentary, legal coverage, and
-    # substantive political positioning remain valid in this broad lane.
-    if candidate_in_headline:
-        return {
-            "reason": "candidate_political_coverage",
-            "matched_terms": ["candidate_in_headline"],
-        }
-
+    # Candidate identity establishes linkage, not France 2027 relevance.
+    # Profiles, interviews, commentary, office activity, policy positions,
+    # and legal coverage therefore fall through unless an independent branch
+    # above found deterministic presidential-race evidence.
     return None
 
 
@@ -2560,9 +3322,20 @@ def classify_notable_development(
     }
 
     if topic_id == "legal_eligibility":
-        # Candidate-specific legal consequences may matter without the word
-        # "presidential", but the monitored figure must be in the headline.
-        return result if has_candidate_in_headline else None
+        # A legal action involving a monitored figure is not presidential
+        # news by itself. The text must independently establish an eligibility,
+        # campaign-finance, election-integrity, or other race consequence.
+        legal_race_evidence = legal_race_qualification_evidence(
+            headline_text,
+            normalized_text,
+        )
+        if not has_candidate_in_headline or not legal_race_evidence:
+            return None
+        result["matched_terms"] = sorted(set([
+            *strict_matches,
+            *legal_race_evidence,
+        ]))
+        return result
 
     if has_other_election_context and not has_presidential_context:
         return None
@@ -6474,10 +7247,16 @@ def build_wire(
         # Retained inventory provenance cannot bypass current scope rules.
         # The record remains in the raw rolling inventory for continuity,
         # but an unanchored foreign presidential story enters no public lane.
-        if unanchored_presidential_context(
-            normalized_headline,
-            normalized_summary,
-            matched_candidates,
+        if (
+            unanchored_presidential_context(
+                normalized_headline,
+                normalized_summary,
+                matched_candidates,
+            )
+            and not bounded_current_french_race_context(
+                normalized_headline,
+                normalized_summary,
+            )
         ):
             continue
 

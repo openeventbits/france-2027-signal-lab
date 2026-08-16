@@ -1452,8 +1452,11 @@ class NewsWireRelevanceTests(unittest.TestCase):
     def test_material_development_gate_accepts_actions_and_rejects_mentions(self):
         source = {"politics_specific": True}
         accepted = classify_notable_development(
-            normalize("Edouard Philippe echoue a faire annuler le statut de la lanceuse d alerte"),
-            ["Edouard Philippe"],
+            normalize(
+                "Marine Le Pen reste eligible pour la presidentielle "
+                "apres la decision de la Cour de cassation"
+            ),
+            ["Marine Le Pen"],
             source,
         )
         rejected = classify_notable_development(
@@ -1515,9 +1518,9 @@ class NewsWireRelevanceTests(unittest.TestCase):
                 "candidacies_endorsements",
             ),
             (
-                "Vise par une enquete Edouard Philippe echoue a faire annuler "
-                "le statut de la lanceuse d alerte",
-                ["Édouard Philippe"],
+                "Marine Le Pen reste eligible pour la presidentielle apres "
+                "la decision de la Cour de cassation",
+                ["Marine Le Pen"],
                 "legal_eligibility",
             ),
             (
@@ -1605,21 +1608,21 @@ class NewsWireRelevanceTests(unittest.TestCase):
 
     def test_structured_electoral_support_accepts_electoral_destinations(self):
         cases = [
-            ("François Hollande annonce son soutien à la candidature de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
-            ("François Hollande soutient la candidature de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
-            ("Le parti apporte son soutien au candidat", []),
+            ("François Hollande annonce son soutien à la candidature présidentielle de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande soutient la candidature présidentielle de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le Parti socialiste apporte son soutien au candidat à la présidentielle", []),
             ("François Hollande se rallie à Raphaël Glucksmann pour la présidentielle", ["François Hollande", "Raphaël Glucksmann"]),
-            ("François Hollande officialise son ralliement à Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
-            ("François Hollande appelle à voter pour Raphaël Glucksmann au second tour", ["François Hollande", "Raphaël Glucksmann"]),
-            ("François Hollande soutient Raphaël Glucksmann au second tour", ["François Hollande", "Raphaël Glucksmann"]),
-            ("Le soutien d'Elon Musk au RN relance la campagne de Marine Le Pen", ["Marine Le Pen"]),
-            ('"Marine Le Pen est le dernier espoir de la France": le soutien d\'Elon Musk au RN provoque des accusations d\'"ingérence étrangère"', ["Marine Le Pen"]),
-            ("Les élus RN de la région dieppoise au soutien de Marine Le Pen", ["Marine Le Pen"]),
-            ("Le soutien de François Hollande à la candidature de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
-            ("Le ralliement de François Hollande à Marine Le Pen", ["François Hollande", "Marine Le Pen"]),
+            ("François Hollande officialise son ralliement à Raphaël Glucksmann pour la présidentielle", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande appelle à voter pour Raphaël Glucksmann au second tour de la présidentielle", ["François Hollande", "Raphaël Glucksmann"]),
+            ("François Hollande soutient Raphaël Glucksmann au second tour de la présidentielle", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le soutien d'Elon Musk au RN relance la campagne présidentielle de Marine Le Pen", ["Marine Le Pen"]),
+            ('"Marine Le Pen est le dernier espoir de la France": le soutien d\'Elon Musk à la candidature présidentielle de Marine Le Pen provoque des accusations d\'"ingérence étrangère"', ["Marine Le Pen"]),
+            ("Les élus RN de la région dieppoise au soutien de la candidature présidentielle de Marine Le Pen", ["Marine Le Pen"]),
+            ("Le soutien de François Hollande à la candidature présidentielle de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le ralliement de François Hollande à Marine Le Pen pour la présidentielle", ["François Hollande", "Marine Le Pen"]),
             ("François Hollande apporte son soutien à la campagne présidentielle de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
-            ("François Hollande apporte son soutien à la campagne de Raphaël Glucksmann", ["François Hollande", "Raphaël Glucksmann"]),
-            ("Le parti apporte son soutien à la campagne du candidat", []),
+            ("François Hollande apporte son soutien à la campagne de Raphaël Glucksmann pour 2027", ["François Hollande", "Raphaël Glucksmann"]),
+            ("Le Parti socialiste apporte son soutien à la campagne présidentielle du candidat", []),
         ]
 
         for headline, candidates in cases:
@@ -1686,14 +1689,819 @@ class NewsWireRelevanceTests(unittest.TestCase):
             "general",
         )
 
-    def test_broad_relevance_accepts_candidate_commentary(self):
-        result = classify_relevant_news(
-            normalize("Marine Le Pen ou le trumpisme à la française"),
-            normalize("Un éditorial analyse son positionnement politique."),
+    def test_broad_relevance_rejects_generic_candidate_commentary(self):
+        headline = normalize("Marine Le Pen ou le trumpisme à la française")
+        matches = match_news_candidates(
+            headline,
+            "",
             ["Marine Le Pen"],
         )
+        result = classify_relevant_news(
+            headline,
+            normalize("Un éditorial analyse son positionnement politique."),
+            ["Marine Le Pen"],
+            matches,
+        )
+        self.assertTrue(matches)
+        self.assertIsNone(result)
+
+    def test_bounded_counterfactual_presidential_positioning(self):
+        accepted = [
+            (
+                "Gabriel Attal promet un plan massif sur l'eau s'il est élu",
+                ["Gabriel Attal"],
+            ),
+            (
+                "Gabriel Attal souhaite réformer les institutions s'il est "
+                "élu en 2027",
+                ["Gabriel Attal"],
+            ),
+            (
+                "Décentralisation, justice, immigration : Gabriel Attal "
+                "promet la plus grande réforme institutionnelle depuis "
+                "1958 s'il est élu",
+                ["Gabriel Attal"],
+            ),
+            (
+                "Marine Tondelier détaille son programme si elle est élue",
+                ["Marine Tondelier"],
+            ),
+            (
+                "Marine Tondelier propose un référendum si elle est élue "
+                "en 2027",
+                ["Marine Tondelier"],
+            ),
+            (
+                "Place à la nouvelle France : si Jean-Luc Mélenchon "
+                "devenait président",
+                ["Jean-Luc Mélenchon"],
+            ),
+            (
+                "Édouard Philippe assure qu'il serait le président d'une "
+                "France qui maîtrise son destin",
+                ["Édouard Philippe"],
+            ),
+            (
+                "Pour sa rentrée, François Hollande veut prouver qu'il est "
+                "prêt à être le recours en 2027",
+                ["François Hollande"],
+            ),
+        ]
+        rejected = [
+            (
+                "Municipales : Gabriel Attal promet un plan s'il est élu",
+                ["Gabriel Attal"],
+            ),
+            (
+                "Gabriel Attal rencontre les élus de Bretagne",
+                ["Gabriel Attal"],
+            ),
+            (
+                "Gabriel Attal raconte ses vacances s'il est élu par le jury",
+                ["Gabriel Attal"],
+            ),
+            (
+                "François Hollande évoque un recours en justice en 2027",
+                ["François Hollande"],
+            ),
+        ]
+
+        for headline, candidates in accepted:
+            matches = match_news_candidates(headline, "", candidates)
+            with self.subTest(headline=headline):
+                result = classify_relevant_news(
+                    headline,
+                    "",
+                    candidates,
+                    matches,
+                )
+                self.assertIsNotNone(result)
+                self.assertTrue(
+                    {
+                        "elected_president_positioning",
+                        "implicit_2027_positioning",
+                    }
+                    & set(result["matched_terms"])
+                )
+
+        for headline, candidates in rejected:
+            matches = match_news_candidates(headline, "", candidates)
+            with self.subTest(headline=headline):
+                self.assertIsNone(
+                    classify_relevant_news(
+                        headline,
+                        "",
+                        candidates,
+                        matches,
+                    )
+                )
+
+    def test_high_specificity_campaign_relationships_are_bounded(self):
+        accepted = [
+            (
+                "Gabriel Attal accélère sa campagne, mais patine dans les "
+                "sondages",
+                ["Gabriel Attal"],
+            ),
+            (
+                "Il y a une part de sacrifice : Franck Robine va diriger "
+                "la campagne de Bruno Retailleau",
+                ["Bruno Retailleau"],
+            ),
+            (
+                "Quel rôle pour Jordan Bardella dans la campagne de Marine "
+                "Le Pen ?",
+                ["Marine Le Pen"],
+            ),
+            (
+                "Gabriel Attal en escale à Vannes pour clore son Tro Breizh "
+                "de campagne",
+                ["Gabriel Attal"],
+            ),
+            (
+                "François Ruffin, le candidat qui rêvait d'arriver à "
+                "l'Élysée en auto-stop",
+                ["François Ruffin"],
+            ),
+            (
+                "Au RN, la candidature de Marine Le Pen rebat les cartes",
+                ["Marine Le Pen"],
+            ),
+            (
+                "SONDAGE EXCLUSIF - Édouard Philippe et Gabriel Attal au "
+                "coude-à-coude dans l'opinion",
+                ["Édouard Philippe", "Gabriel Attal"],
+            ),
+            (
+                "Gabriel Attal dévoile son programme présidentiel",
+                ["Gabriel Attal"],
+            ),
+            (
+                "L'idée, c'est vraiment de faire campagne : Gabriel Attal, "
+                "un été pied au plancher",
+                ["Gabriel Attal"],
+            ),
+            (
+                "L'édito du 10 août. En campagne, Gabriel Attal joue les "
+                "acrobates",
+                ["Gabriel Attal"],
+            ),
+        ]
+        rejected = [
+            (
+                "Gabriel Attal commente une campagne de vaccination",
+                ["Gabriel Attal"],
+            ),
+            (
+                "Gabriel Attal est en campagne de sensibilisation à la "
+                "vaccination",
+                ["Gabriel Attal"],
+            ),
+            (
+                "Sondage de popularité : Gabriel Attal reste apprécié",
+                ["Gabriel Attal"],
+            ),
+            (
+                "La stratégie de Jean-Luc Mélenchon sur la dette",
+                ["Jean-Luc Mélenchon"],
+            ),
+            (
+                "Le directeur de cabinet de Bruno Retailleau est nommé",
+                ["Bruno Retailleau"],
+            ),
+            (
+                "Marie-Claire Carrère-Gée : la droite doit faire campagne "
+                "sur le gaullisme social",
+                [],
+            ),
+            (
+                "Réduction du nombre de parlementaires : Gabriel Attal "
+                "reprend une promesse de campagne d'Emmanuel Macron faite "
+                "en 2017",
+                ["Gabriel Attal"],
+            ),
+        ]
+
+        for headline, candidates in accepted:
+            matches = match_news_candidates(headline, "", candidates)
+            with self.subTest(headline=headline):
+                self.assertIsNotNone(
+                    classify_relevant_news(
+                        headline,
+                        "",
+                        candidates,
+                        matches,
+                    )
+                )
+
+        for headline, candidates in rejected:
+            matches = match_news_candidates(headline, "", candidates)
+            with self.subTest(headline=headline):
+                self.assertIsNone(
+                    classify_relevant_news(
+                        headline,
+                        "",
+                        candidates,
+                        matches,
+                    )
+                )
+
+    def test_election_interference_requires_a_bounded_race_relationship(self):
+        accepted = [
+            (
+                "Il faut s'attendre à une ingérence du Kremlin pour certains "
+                "candidats en 2027, affirme Gabriel Attal",
+                ["Gabriel Attal"],
+            ),
+            (
+                "Interventions russes en 2027 : il y aura de l'ingérence "
+                "pour certains candidats, affirme Gabriel Attal",
+                ["Gabriel Attal"],
+            ),
+            (
+                "Gabriel Attal accuse Moscou de vouloir voler l'élection "
+                "aux Français",
+                ["Gabriel Attal"],
+            ),
+            (
+                "En 2027, les ingérences seront massives, prévient Raphaël "
+                "Glucksmann",
+                ["Raphaël Glucksmann"],
+            ),
+            (
+                "Les ingérences russes s'invitent dans la campagne de 2027 "
+                ": faut-il médiatiser les fake news visant les candidats ?",
+                [],
+            ),
+            (
+                "Face aux ingérences étrangères, que proposent les partis "
+                "politiques, à huit mois de l'élection présidentielle ?",
+                [],
+            ),
+        ]
+        rejected = [
+            (
+                "Raphaël Glucksmann visé par une opération de "
+                "désinformation russe",
+                ["Raphaël Glucksmann"],
+            ),
+            (
+                "Ingérence russe dans une élection américaine en 2028",
+                [],
+            ),
+        ]
+
+        for headline, candidates in accepted:
+            matches = match_news_candidates(headline, "", candidates)
+            with self.subTest(headline=headline):
+                result = classify_relevant_news(
+                    headline,
+                    "",
+                    candidates,
+                    matches,
+                )
+                self.assertIsNotNone(result)
+                self.assertIn("election_integrity", result["matched_terms"])
+
+        for headline, candidates in rejected:
+            matches = match_news_candidates(headline, "", candidates)
+            with self.subTest(headline=headline):
+                self.assertIsNone(
+                    classify_relevant_news(
+                        headline,
+                        "",
+                        candidates,
+                        matches,
+                    )
+                )
+
+    def test_legal_developments_require_independent_race_qualification(self):
+        rejected = [
+            (
+                "Affaire des statuettes : Dominique de Villepin entendu par "
+                "le parquet national financier",
+                "",
+                ["Dominique de Villepin"],
+            ),
+            (
+                "Visé par une enquête pour détournement de fonds publics, "
+                "Édouard Philippe échoue à faire annuler le statut de la "
+                "lanceuse d'alerte",
+                "Le candidat à la présidentielle est visé par une enquête.",
+                ["Édouard Philippe"],
+            ),
+            (
+                "Raphaël Glucksmann confirme avoir porté plainte après une "
+                "ingérence russe",
+                "Une plainte a été déposée.",
+                ["Raphaël Glucksmann"],
+            ),
+            (
+                "Enquête financière sur les statuettes de Napoléon : "
+                "Dominique de Villepin dans la tourmente à un an de la "
+                "présidentielle",
+                "",
+                ["Dominique de Villepin"],
+            ),
+        ]
+        accepted = [
+            (
+                "Marine Le Pen se pourvoit en cassation, la menace du "
+                "bracelet électronique s'éloigne avant 2027",
+                "",
+                ["Marine Le Pen"],
+            ),
+            (
+                "Gabriel Attal porte plainte après des ingérences étrangères",
+                "La plainte vise des manipulations susceptibles de porter "
+                "atteinte à la sincérité du scrutin présidentiel à venir.",
+                ["Gabriel Attal"],
+            ),
+        ]
+
+        for headline, summary, candidates in rejected:
+            matches = match_news_candidates(headline, summary, candidates)
+            combined = normalize(f"{headline} {summary}")
+            with self.subTest(headline=headline):
+                self.assertIsNone(
+                    classify_notable_development(
+                        combined,
+                        candidates,
+                        {"politics_specific": True},
+                        normalize(headline),
+                        matches,
+                    )
+                )
+
+        for headline, summary, candidates in accepted:
+            matches = match_news_candidates(headline, summary, candidates)
+            combined = normalize(f"{headline} {summary}")
+            with self.subTest(headline=headline):
+                result = classify_notable_development(
+                    combined,
+                    candidates,
+                    {"politics_specific": True},
+                    normalize(headline),
+                    matches,
+                )
+                self.assertIsNotNone(result)
+                self.assertEqual(result["id"], "legal_eligibility")
+
+    def test_historical_and_foreign_subject_guards_are_bounded(self):
+        rejected = [
+            (
+                "Retour sur les campagnes présidentielles",
+                "Retour sur les campagnes présidentielles.",
+            ),
+            (
+                "Visites présidentielles à Aix-en-Provence : quand VGE "
+                "menait campagne pour sa réélection",
+                "Une page d'histoire locale.",
+            ),
+            (
+                "Giscard à la barre : une campagne qui impose un nouveau "
+                "style en politique",
+                "Mémoire avant l'élection de 2027. Aujourd'hui, retour en "
+                "1974 avec Valéry Giscard d'Estaing.",
+            ),
+            (
+                "Rob Sand, le démocrate qui veut reprendre l'Iowa au Parti "
+                "républicain",
+                "L'Iowa a voté Trump aux trois dernières élections "
+                "présidentielles; Rob Sand vise le poste de gouverneur.",
+            ),
+            (
+                "Élection présidentielle : quels étaient les résultats en "
+                "2022 en France et dans votre commune",
+                "Une page de résultats historiques.",
+            ),
+        ]
+        accepted = [
+            (
+                "Présidentielle 2027 : les leçons de la campagne de 1974",
+                "Une comparaison historique avec la course actuelle.",
+            ),
+            (
+                "Ce que la victoire américaine pourrait changer pour la "
+                "présidentielle française de 2027",
+                "Une analyse de la campagne française.",
+            ),
+            (
+                "Ingérences étrangères : faut-il interdire la plateforme X ?",
+                "Une campagne de désinformation vise des personnalités en "
+                "lice pour la présidentielle française de 2027.",
+            ),
+        ]
+
+        for headline, summary in rejected:
+            with self.subTest(headline=headline):
+                self.assertIsNone(
+                    classify_relevant_news(headline, summary, [])
+                )
+
+        for headline, summary in accepted:
+            with self.subTest(headline=headline):
+                self.assertIsNotNone(
+                    classify_relevant_news(headline, summary, [])
+                )
+
+    def test_race_year_timing_and_french_institution_anchors_are_bounded(self):
+        accepted = [
+            (
+                "Sondages 2027 : Le Pen solide et possible percée à gauche",
+                "",
+            ),
+            (
+                "Renaissance cherche une candidature unique pour 2027",
+                "",
+            ),
+            (
+                "Présidentielle : le premier débat pour 2027 aura lieu en "
+                "septembre",
+                "",
+            ),
+            (
+                "À neuf mois de la présidentielle, qui sont les candidats "
+                "à gauche ?",
+                "",
+            ),
+            (
+                "Présidentielle : faut-il rendre anonymes les 500 "
+                "parrainages ?",
+                "",
+            ),
+            (
+                "Banque de la démocratie : comment Matignon veut lutter "
+                "contre les ingérences dans la campagne présidentielle",
+                "",
+            ),
+            (
+                "Storm-1516 : ingérence en vue de la campagne de 2027, "
+                "quel mode opératoire ?",
+                "",
+            ),
+            (
+                "Présidentielle : l'ingérence russe, alibi ou vraie "
+                "menace ?",
+                "",
+            ),
+            (
+                "Des faux comptes pilotés depuis l'Iran amplifient les "
+                "fractures politiques françaises",
+                "Ces opérations de désinformation visent l'élection "
+                "présidentielle.",
+            ),
+            (
+                "Xavier Bertrand défend sa candidature à l'Élysée",
+                "",
+            ),
+            (
+                "Bruno Le Maire ne ferme pas la porte à une candidature "
+                "à la présidentielle",
+                "",
+            ),
+            (
+                "Présidentielle : le gouvernement négocie avec les banques "
+                "pour faciliter le financement des candidats",
+                "Les banques françaises cherchent à financer la campagne "
+                "présidentielle des candidats.",
+            ),
+        ]
+        rejected = [
+            ("Budget 2027 : les arbitrages commencent", ""),
+            (
+                "Aircalin dévoile son programme de vols pour 2026/2027",
+                "",
+            ),
+            (
+                "Ouverture de l'appel à candidature pour la saison 2027",
+                "",
+            ),
+            (
+                "Le col du Granon candidat pour une étape en 2027",
+                "",
+            ),
+            (
+                "Vers une campagne antiraciste pour 2027",
+                "",
+            ),
+            ("Une campagne de publicité adopte un nouveau mode", ""),
+            (
+                "Donald Trump relance sa campagne présidentielle",
+                "",
+            ),
+            (
+                "Rob Sand veut reprendre l'Iowa au Parti républicain",
+                "Les élections présidentielles américaines sont évoquées.",
+            ),
+            (
+                "Brésil : à trois mois de la présidentielle, la campagne "
+                "se tend",
+                "",
+            ),
+            (
+                "Roumanie : des faux comptes visent l'élection "
+                "présidentielle",
+                "",
+            ),
+            (
+                "Brésil : Flavio Bolsonaro annonce sa candidature à la "
+                "présidentielle",
+                "",
+            ),
+            (
+                "Raphaël Glucksmann visé par des fake news russes",
+                "Le candidat était en déplacement sans lien électoral.",
+            ),
+        ]
+
+        for headline, summary in accepted:
+            with self.subTest(headline=headline):
+                self.assertIsNotNone(
+                    classify_relevant_news(headline, summary, [])
+                )
+
+        for headline, summary in rejected:
+            with self.subTest(headline=headline):
+                self.assertIsNone(
+                    classify_relevant_news(headline, summary, [])
+                )
+
+        festival_headline = (
+            "Politique : Avignon, le festival aussi des prétendants à la "
+            "présidentielle, dont Dominique de Villepin"
+        )
+        festival_result = classify_relevant_news(
+            festival_headline,
+            "",
+            ["Dominique de Villepin"],
+            match_news_candidates(
+                festival_headline,
+                "",
+                ["Dominique de Villepin"],
+            ),
+        )
+        self.assertIsNotNone(festival_result)
+
+        self.assertIsNone(
+            classify_relevant_news(
+                "Dominique de Villepin assiste au Festival d'Avignon",
+                "",
+                ["Dominique de Villepin"],
+                match_news_candidates(
+                    "Dominique de Villepin assiste au Festival d'Avignon",
+                    "",
+                    ["Dominique de Villepin"],
+                ),
+            )
+        )
+
+    def test_current_campaign_material_is_not_a_lifestyle_false_negative(self):
+        headline = (
+            "À quelques mois de l'élection présidentielle, Renaissance et "
+            "LFI misent sur les cahiers de vacances pour faire campagne"
+        )
+        summary = (
+            "Le PC et le PS ont déjà tenté l'expérience par le passé."
+        )
+        result = classify_relevant_news(headline, summary, [], [])
         self.assertIsNotNone(result)
-        self.assertEqual(result["reason"], "candidate_political_coverage")
+        self.assertEqual(result["reason"], "presidential_context")
+
+        explicit_2027 = classify_relevant_news(
+            "Présidentielle 2027 : un ancien joueur de l'équipe de France "
+            "de football se rapproche de David Lisnard",
+            "",
+            ["David Lisnard"],
+            match_news_candidates(
+                "Présidentielle 2027 : un ancien joueur de l'équipe de "
+                "France de football se rapproche de David Lisnard",
+                "",
+                ["David Lisnard"],
+            ),
+        )
+        self.assertIsNotNone(explicit_2027)
+
+    def test_routine_title_can_use_bounded_strategy_summary(self):
+        headline = (
+            "Pour l'ex-Premier ministre Gabriel Attal, l'occasion manquée "
+            "d'un duel avec Jordan Bardella"
+        )
+        summary = (
+            "Marine Le Pen va porter les couleurs du Rassemblement national "
+            "à la présidentielle de 2027, Jordan Bardella reprenant son rôle "
+            "de numéro 2 dans la campagne. Ce n'est pas une bonne nouvelle "
+            "pour Gabriel Attal, qui espérait un duel."
+        )
+        candidates = ["Gabriel Attal", "Marine Le Pen"]
+        result = classify_relevant_news(
+            headline,
+            summary,
+            candidates,
+            match_news_candidates(headline, summary, candidates),
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(
+            result["reason"],
+            "summary_confirmed_presidential_context",
+        )
+
+        label_only = classify_relevant_news(
+            "Gabriel Attal appelle les distributeurs à plafonner les prix "
+            "des carburants",
+            "Gabriel Attal, candidat Renaissance à l'élection "
+            "présidentielle et ancien Premier ministre, était en direct.",
+            ["Gabriel Attal"],
+            match_news_candidates(
+                "Gabriel Attal appelle les distributeurs à plafonner les "
+                "prix des carburants",
+                "Gabriel Attal, candidat Renaissance à l'élection "
+                "présidentielle et ancien Premier ministre, était en direct.",
+                ["Gabriel Attal"],
+            ),
+        )
+        self.assertIsNone(label_only)
+
+        campaign_trip = classify_relevant_news(
+            "Salaires : Gabriel Attal alerte sur un nouveau mouvement des "
+            "Gilets jaunes",
+            "Le candidat à la présidentielle 2027 s'exprime lors d'un "
+            "déplacement de campagne à Landerneau.",
+            ["Gabriel Attal"],
+            match_news_candidates(
+                "Salaires : Gabriel Attal alerte sur un nouveau mouvement "
+                "des Gilets jaunes",
+                "Le candidat à la présidentielle 2027 s'exprime lors d'un "
+                "déplacement de campagne à Landerneau.",
+                ["Gabriel Attal"],
+            ),
+        )
+        self.assertIsNotNone(campaign_trip)
+
+        campaign_finance = classify_relevant_news(
+            "Pourquoi Sébastien Lecornu s'intéresse au financement de la "
+            "campagne de Marine Le Pen",
+            "Les banques évoquent le financement de la campagne "
+            "présidentielle de la candidate du Rassemblement national.",
+            ["Marine Le Pen"],
+            match_news_candidates(
+                "Pourquoi Sébastien Lecornu s'intéresse au financement de "
+                "la campagne de Marine Le Pen",
+                "Les banques évoquent le financement de la campagne "
+                "présidentielle de la candidate du Rassemblement national.",
+                ["Marine Le Pen"],
+            ),
+        )
+        self.assertIsNotNone(campaign_finance)
+
+
+    def test_summary_candidate_labels_do_not_override_headline_subject(self):
+        cases = [
+            (
+                "Visé par une enquête pour détournement de fonds publics, "
+                "Édouard Philippe échoue à faire annuler le statut de la "
+                "lanceuse d'alerte",
+                "Le candidat à la présidentielle est visé par une enquête "
+                "sans conséquence établie sur son éligibilité.",
+                ["Édouard Philippe"],
+            ),
+            (
+                "L'ancien conseiller de Gabriel Attal révèle son addiction "
+                "passée à la cocaïne",
+                "Le portrait revient sur celui qui a accompagné l'actuel "
+                "candidat à la présidentielle pendant plusieurs années.",
+                ["Gabriel Attal"],
+            ),
+            (
+                "Jérôme Karsenti : Marine Le Pen a bafoué les principes "
+                "démocratiques",
+                "La candidature de la cheffe de file du RN s'inscrit dans "
+                "une époque de banalisation de la corruption.",
+                ["Marine Le Pen"],
+            ),
+        ]
+
+        for headline, summary, candidates in cases:
+            matches = match_news_candidates(headline, summary, candidates)
+            with self.subTest(headline=headline):
+                self.assertTrue(matches)
+                self.assertIsNone(
+                    classify_relevant_news(
+                        headline,
+                        summary,
+                        candidates,
+                        matches,
+                    )
+                )
+
+
+    def test_summary_cannot_rescue_historical_presidential_subject(self):
+        headline = "L'été d'avant présidentielle : en 1994, Balladur président"
+        summary = (
+            "Ségolène Royal préparait alors sa candidature à l'élection "
+            "présidentielle."
+        )
+        candidates = ["Ségolène Royal"]
+
+        self.assertIsNone(
+            classify_relevant_news(
+                headline,
+                summary,
+                candidates,
+                match_news_candidates(headline, summary, candidates),
+            )
+        )
+
+        self.assertIsNone(
+            classify_relevant_news(
+                "La France pour tous : la campagne où Jacques Chirac "
+                "a croqué la pomme",
+                "Cet été, retour sur les slogans des élections "
+                "présidentielles. Aujourd'hui, l'élection de 1995, "
+                "avec Jacques Chirac.",
+                [],
+            )
+        )
+
+
+    def test_summary_can_establish_presidential_policy_relationship(self):
+        cases = [
+            (
+                "Gabriel Attal présente un plan massif sur l'eau",
+                "Gabriel Attal, candidat à la présidentielle, explique ce "
+                "qu'il mettrait en œuvre s'il était élu.",
+                ["Gabriel Attal"],
+            ),
+            (
+                "Édouard Philippe propose de limiter les régularisations",
+                "Le candidat à l'élection présidentielle de 2027 inscrit "
+                "cette mesure dans son programme.",
+                ["Édouard Philippe"],
+            ),
+        ]
+
+        for headline, summary, candidates in cases:
+            matches = match_news_candidates(headline, summary, candidates)
+            with self.subTest(headline=headline):
+                self.assertIsNotNone(
+                    classify_relevant_news(
+                        headline,
+                        summary,
+                        candidates,
+                        matches,
+                    )
+                )
+
+
+    def test_current_corpus_candidate_identity_only_does_not_create_race_relevance(self):
+        cases = [
+            (
+                "Enquêtes pour violences sexuelles sur mineurs : "
+                "Libération publie la note qui met Gérald Darmanin dans l'embarras",
+                ["Gérald Darmanin"],
+            ),
+            (
+                "Pénurie de lunettes pour l'éclipse : "
+                "Marine Tondelier dénonce un fiasco de santé publique",
+                ["Marine Tondelier"],
+            ),
+            (
+                "Jean-Luc Mélenchon, l'apprenti sorcier de la dette",
+                ["Jean-Luc Mélenchon"],
+            ),
+            (
+                "David Lisnard et la fin de l'État-Providence : "
+                "un diagnostic radical, mais quelles solutions ?",
+                ["David Lisnard"],
+            ),
+            (
+                "Crise migratoire : pourquoi Xavier Bertrand veut "
+                "un traité de Calais pour l'Europe ?",
+                ["Xavier Bertrand"],
+            ),
+            (
+                "30 millions de lunettes en 1999, pénurie en 2026 : "
+                "Marine Tondelier et Nathalie Arthaud s'indignent avant l'éclipse",
+                ["Marine Tondelier", "Nathalie Arthaud"],
+            ),
+        ]
+
+        for headline, candidates in cases:
+            matches = match_news_candidates(
+                headline,
+                "",
+                candidates,
+            )
+            with self.subTest(headline=headline):
+                self.assertTrue(matches)
+                self.assertIsNone(
+                    classify_relevant_news(
+                        headline,
+                        "",
+                        candidates,
+                        matches,
+                    )
+                )
 
     def test_broad_relevance_rejects_candidate_lifestyle(self):
         result = classify_relevant_news(
@@ -1785,7 +2593,7 @@ class NewsWireRelevanceTests(unittest.TestCase):
                 ["Bernard Cazeneuve"],
             ),
             (
-                "Pour 2027 Melenchon tend la main aux Ecologistes",
+                "Pour 2027 Jean-Luc Mélenchon tend la main aux Ecologistes",
                 "La proposition concerne la prochaine presidentielle.",
                 ["Jean-Luc Mélenchon"],
             ),
@@ -1793,11 +2601,6 @@ class NewsWireRelevanceTests(unittest.TestCase):
                 "Le Parti socialiste arrete son calendrier",
                 "La primaire doit designer son candidat a l election presidentielle de 2027.",
                 [],
-            ),
-            (
-                "Marine Le Pen ou le trumpisme a la francaise",
-                "Un editorial analyse son positionnement politique.",
-                ["Marine Le Pen"],
             ),
         ]
         for headline, summary, candidates in accepted:
@@ -1813,7 +2616,7 @@ class NewsWireRelevanceTests(unittest.TestCase):
     def test_broad_relevance_accepts_campaign_and_party_selection(self):
         accepted = [
             (
-                "Entretien avec François Hollande sur sa stratégie pour 2027",
+                "Entretien avec François Hollande sur ses ambitions présidentielles pour 2027",
                 "",
                 ["François Hollande"],
             ),
@@ -2016,8 +2819,8 @@ class NewsWireRelevanceTests(unittest.TestCase):
             (
                 "Jérôme Karsenti : Marine Le Pen a bafoué les principes "
                 "démocratiques",
-                "La candidature de la cheffe de file du RN s'inscrit dans "
-                "une époque de banalisation de la corruption.",
+                "La candidature de la cheffe de file du RN à la présidentielle "
+                "s'inscrit dans une époque de banalisation de la corruption.",
                 ["Marine Le Pen"],
             ),
             (
@@ -2304,7 +3107,7 @@ class NewsWireRelevanceTests(unittest.TestCase):
             "retained-endorsement",
             (
                 "François Hollande annonce son soutien à la candidature "
-                "de Raphaël Glucksmann"
+                "de Raphaël Glucksmann en 2027"
             ),
             "Un choix annoncé publiquement.",
             ["François Hollande", "Raphaël Glucksmann"],
@@ -2434,7 +3237,7 @@ class NewsWireRelevanceTests(unittest.TestCase):
             "genuine-endorsement",
             (
                 "François Hollande annonce son soutien à la candidature "
-                "de Raphaël Glucksmann"
+                "de Raphaël Glucksmann en 2027"
             ),
             "Un choix annoncé publiquement.",
             ["François Hollande", "Raphaël Glucksmann"],
