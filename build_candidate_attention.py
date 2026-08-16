@@ -753,9 +753,19 @@ WIKIMEDIA_USER_AGENT = (
 
 WIKIMEDIA_TITLE_API = "https://fr.wikipedia.org/w/api.php"
 
-WIKIMEDIA_PAGEVIEWS_BASE = (
+WIKIMEDIA_PAGEVIEWS_PER_ARTICLE_BASE = (
     "https://wikimedia.org/api/rest_v1/"
     "metrics/pageviews/per-article"
+)
+
+WIKIMEDIA_PAGEVIEWS_AGGREGATE_BASE = (
+    "https://wikimedia.org/api/rest_v1/"
+    "metrics/pageviews/aggregate"
+)
+
+# Backwards-compatible internal alias.
+WIKIMEDIA_PAGEVIEWS_BASE = (
+    WIKIMEDIA_PAGEVIEWS_PER_ARTICLE_BASE
 )
 
 DEFAULT_HTTP_TIMEOUT_SECONDS = 20
@@ -805,7 +815,7 @@ class WikimediaPageviewsNotFoundError(WikimediaFetchError):
 class WikimediaPageviewsAvailabilityLagError(
     CandidateAttentionBuildError
 ):
-    """A valid Pageviews response is missing a trailing date suffix."""
+    """The requested Pageviews source window is not completely available."""
 
 
 def _http_failure_category(
@@ -1495,7 +1505,7 @@ def pageview_request_url(
     )
 
     return (
-        f"{WIKIMEDIA_PAGEVIEWS_BASE}/"
+        f"{WIKIMEDIA_PAGEVIEWS_PER_ARTICLE_BASE}/"
         f"{SOURCE_PROJECT}/"
         f"{SOURCE_ACCESS}/"
         f"{SOURCE_AGENT}/"
@@ -1504,6 +1514,227 @@ def pageview_request_url(
         f"{start.strftime('%Y%m%d')}/"
         f"{data_as_of.strftime('%Y%m%d')}"
     )
+
+
+def project_pageview_request_url(
+    *,
+    data_as_of: date,
+) -> str:
+    start = (
+        data_as_of
+        - timedelta(
+            days=(
+                EXPECTED_DAYS
+                - 1
+            )
+        )
+    )
+
+    return (
+        f"{WIKIMEDIA_PAGEVIEWS_AGGREGATE_BASE}/"
+        f"{SOURCE_PROJECT}/"
+        f"{SOURCE_ACCESS}/"
+        f"{SOURCE_AGENT}/"
+        f"{SOURCE_GRANULARITY}/"
+        f"{start.strftime('%Y%m%d00')}/"
+        f"{data_as_of.strftime('%Y%m%d00')}"
+    )
+
+
+def verify_project_pageview_window(
+    *,
+    data_as_of: date,
+    fetcher: Callable[
+        [str],
+        dict[str, Any],
+    ] = fetch_json,
+    sleeper: Callable[
+        [float],
+        None,
+    ] = time.sleep,
+) -> None:
+    request_url = (
+        project_pageview_request_url(
+            data_as_of=data_as_of,
+        )
+    )
+
+    total_attempts = (
+        len(
+            PAGEVIEWS_404_RETRY_DELAYS
+        )
+        + 1
+    )
+
+    for attempt in range(
+        1,
+        total_attempts + 1,
+    ):
+        try:
+            payload = fetcher(
+                request_url
+            )
+            break
+        except WikimediaFetchError as error:
+            if error.status != 404:
+                raise
+
+            if attempt == total_attempts:
+                raise WikimediaPageviewsNotFoundError(
+                    error.category,
+                    "Project Pageviews HTTP 404",
+                    status=error.status,
+                    attempts=attempt,
+                ) from error
+
+            delay = (
+                PAGEVIEWS_404_RETRY_DELAYS[
+                    attempt - 1
+                ]
+            )
+
+            print(
+                "Project Pageviews HTTP 404; retrying same request "
+                f"({attempt + 1}/{total_attempts}) after "
+                f"{delay:g}s.",
+                flush=True,
+            )
+
+            sleeper(
+                delay
+            )
+
+    items = payload.get(
+        "items"
+    )
+
+    if not isinstance(
+        items,
+        list,
+    ):
+        _fail(
+            "Wikimedia project Pageviews response has no items list"
+        )
+
+    records: dict[
+        str,
+        int,
+    ] = {}
+
+    for index, item in enumerate(
+        items
+    ):
+        field = (
+            f"Wikimedia project items[{index}]"
+        )
+
+        if not isinstance(
+            item,
+            dict,
+        ):
+            _fail(
+                f"{field} must be an object"
+            )
+
+        timestamp = item.get(
+            "timestamp"
+        )
+
+        views = item.get(
+            "views"
+        )
+
+        if (
+            not isinstance(
+                timestamp,
+                str,
+            )
+            or len(
+                timestamp
+            ) != 10
+            or not timestamp.endswith(
+                "00"
+            )
+        ):
+            _fail(
+                f"{field}.timestamp is invalid"
+            )
+
+        try:
+            observation_date = (
+                datetime.strptime(
+                    timestamp,
+                    "%Y%m%d00",
+                )
+                .date()
+                .isoformat()
+            )
+        except ValueError as error:
+            raise CandidateAttentionBuildError(
+                f"{field}.timestamp is invalid"
+            ) from error
+
+        if (
+            not isinstance(
+                views,
+                int,
+            )
+            or isinstance(
+                views,
+                bool,
+            )
+            or views < 0
+        ):
+            _fail(
+                f"{field}.views must be a non-negative integer"
+            )
+
+        if (
+            observation_date
+            in records
+        ):
+            _fail(
+                "Wikimedia project Pageviews returned duplicate daily dates"
+            )
+
+        records[
+            observation_date
+        ] = views
+
+    required_dates = (
+        expected_dates(
+            data_as_of
+        )
+    )
+
+    required_set = set(
+        required_dates
+    )
+
+    missing = [
+        observed_date
+        for observed_date
+        in required_dates
+        if observed_date
+        not in records
+    ]
+
+    extras = sorted(
+        set(records)
+        - required_set
+    )
+
+    if extras:
+        _fail(
+            "Wikimedia project Pageviews window has unexpected dates; "
+            f"extra={extras}"
+        )
+
+    if missing:
+        raise WikimediaPageviewsAvailabilityLagError(
+            "Wikimedia project Pageviews window is not yet complete; "
+            f"missing={missing}"
+        )
 
 
 def fetch_pageview_series(
@@ -1518,7 +1749,16 @@ def fetch_pageview_series(
         [float],
         None,
     ] = time.sleep,
+    source_window_verified: bool = False,
 ) -> list[dict[str, Any]]:
+    if not isinstance(
+        source_window_verified,
+        bool,
+    ):
+        _fail(
+            "source_window_verified must be boolean"
+        )
+
     request_url = pageview_request_url(
         canonical_article,
         data_as_of=(
@@ -1697,7 +1937,10 @@ def fetch_pageview_series(
             f"missing={missing}; extra={extras}"
         )
 
-    if missing:
+    if (
+        missing
+        and not source_window_verified
+    ):
         trailing_suffix = (
             required_dates[
                 -len(missing):
@@ -1718,9 +1961,10 @@ def fetch_pageview_series(
     return [
         {
             "date": observed_date,
-            "views": records[
-                observed_date
-            ],
+            "views": records.get(
+                observed_date,
+                0,
+            ),
         }
         for observed_date
         in required_dates
@@ -1735,6 +1979,7 @@ def collect_wikimedia_observations(
     fetcher: Callable[[str], dict[str, Any]] = fetch_json,
     delay_seconds: float = DEFAULT_REQUEST_DELAY_SECONDS,
     sleeper: Callable[[float], None] = time.sleep,
+    verify_source_window: bool = False,
 ) -> dict[str, list[dict[str, Any]]]:
     if (
         not isinstance(delay_seconds, (int, float))
@@ -1743,6 +1988,14 @@ def collect_wikimedia_observations(
         or delay_seconds < 0
     ):
         _fail("delay_seconds must be a finite non-negative number")
+
+    if not isinstance(
+        verify_source_window,
+        bool,
+    ):
+        _fail(
+            "verify_source_window must be boolean"
+        )
 
     plan = build_fetch_plan(
         candidacy_payload=candidacy_payload,
@@ -1760,6 +2013,17 @@ def collect_wikimedia_observations(
         result = fetcher(url)
         logical_request_count += 1
         return result
+
+    if verify_source_window:
+        print(
+            "French Wikipedia project Pageviews - availability",
+            flush=True,
+        )
+        verify_project_pageview_window(
+            data_as_of=data_as_of,
+            fetcher=paced_fetch,
+            sleeper=sleeper,
+        )
 
     observations: dict[str, list[dict[str, Any]]] = {}
 
@@ -1804,6 +2068,9 @@ def collect_wikimedia_observations(
             data_as_of=data_as_of,
             fetcher=paced_fetch,
             sleeper=sleeper,
+            source_window_verified=(
+                verify_source_window
+            ),
         )
 
     return observations
@@ -2032,6 +2299,7 @@ def run_build(
                     sleeper=(
                         sleeper
                     ),
+                    verify_source_window=True,
                 )
             )
             break
@@ -2052,7 +2320,7 @@ def run_build(
                     error,
                     WikimediaPageviewsNotFoundError,
                 )
-                else "trailing observation lag"
+                else "source-window availability lag"
             )
 
             print(
@@ -2158,9 +2426,9 @@ def _parser() -> argparse.ArgumentParser:
         choices=(0, 1, 2, 3),
         default=0,
         help=(
-            "On Pageviews source availability only (HTTP 404 or a "
-            "structurally valid trailing observation lag), retry the "
-            "complete collection up to this many previous calendar "
+            "On Pageviews source availability only (HTTP 404 or an "
+            "incomplete verified project availability window), retry "
+            "the complete collection up to this many previous calendar "
             "days (0-3)."
         ),
     )

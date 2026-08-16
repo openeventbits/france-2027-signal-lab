@@ -30,6 +30,7 @@ from build_candidate_attention import (
     calculate_candidate_metrics,
     interpretation_flag,
     percentage_change,
+    project_pageview_request_url,
     serialize_semantic_payload,
     validate_daily_series,
     WikimediaFetchError,
@@ -40,6 +41,7 @@ from build_candidate_attention import (
     fetch_pageview_series,
     run_build,
     verify_article_mapping,
+    verify_project_pageview_window,
 )
 
 
@@ -1270,6 +1272,241 @@ class CandidateAttentionTitleTests(
             )
 
 
+class CandidateAttentionProjectAvailabilityTests(
+    unittest.TestCase
+):
+    def test_project_pageview_url_uses_exact_dimensions_and_window(
+        self,
+    ):
+        self.assertEqual(
+            project_pageview_request_url(
+                data_as_of=DATA_AS_OF,
+            ),
+            (
+                "https://wikimedia.org/api/rest_v1/"
+                "metrics/pageviews/aggregate/"
+                "fr.wikipedia.org/all-access/user/daily/"
+                "2026050900/2026080600"
+            ),
+        )
+
+    def test_complete_project_window_passes(
+        self,
+    ):
+        calls = []
+        sleeps = []
+
+        def fetcher(url):
+            calls.append(url)
+            return pageview_payload()
+
+        verify_project_pageview_window(
+            data_as_of=DATA_AS_OF,
+            fetcher=fetcher,
+            sleeper=sleeps.append,
+        )
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(sleeps, [])
+
+    def test_project_missing_newest_day_is_availability_lag(
+        self,
+    ):
+        payload = pageview_payload()
+        payload["items"].pop()
+
+        with self.assertRaises(
+            WikimediaPageviewsAvailabilityLagError
+        ):
+            verify_project_pageview_window(
+                data_as_of=DATA_AS_OF,
+                fetcher=lambda _: payload,
+            )
+
+    def test_project_internal_missing_day_is_availability_lag(
+        self,
+    ):
+        payload = pageview_payload()
+        payload["items"].pop(10)
+
+        with self.assertRaises(
+            WikimediaPageviewsAvailabilityLagError
+        ):
+            verify_project_pageview_window(
+                data_as_of=DATA_AS_OF,
+                fetcher=lambda _: payload,
+            )
+
+    def test_project_missing_items_list_fails_hard(
+        self,
+    ):
+        with self.assertRaises(
+            CandidateAttentionBuildError
+        ) as context:
+            verify_project_pageview_window(
+                data_as_of=DATA_AS_OF,
+                fetcher=lambda _: {},
+            )
+
+        self.assertIs(
+            type(context.exception),
+            CandidateAttentionBuildError,
+        )
+
+    def test_project_non_object_item_fails_hard(
+        self,
+    ):
+        payload = pageview_payload()
+        payload["items"][10] = None
+
+        with self.assertRaises(
+            CandidateAttentionBuildError
+        ) as context:
+            verify_project_pageview_window(
+                data_as_of=DATA_AS_OF,
+                fetcher=lambda _: payload,
+            )
+
+        self.assertIs(
+            type(context.exception),
+            CandidateAttentionBuildError,
+        )
+
+    def test_project_duplicate_day_fails_hard(
+        self,
+    ):
+        payload = pageview_payload()
+        payload["items"][11]["timestamp"] = (
+            payload["items"][10]["timestamp"]
+        )
+
+        with self.assertRaises(
+            CandidateAttentionBuildError
+        ) as context:
+            verify_project_pageview_window(
+                data_as_of=DATA_AS_OF,
+                fetcher=lambda _: payload,
+            )
+
+        self.assertIs(
+            type(context.exception),
+            CandidateAttentionBuildError,
+        )
+
+    def test_project_unexpected_extra_day_fails_hard(
+        self,
+    ):
+        payload = pageview_payload()
+        payload["items"].append(
+            {
+                "timestamp": (
+                    DATA_AS_OF
+                    + timedelta(days=1)
+                ).strftime(
+                    "%Y%m%d00"
+                ),
+                "views": 100,
+            }
+        )
+
+        with self.assertRaises(
+            CandidateAttentionBuildError
+        ) as context:
+            verify_project_pageview_window(
+                data_as_of=DATA_AS_OF,
+                fetcher=lambda _: payload,
+            )
+
+        self.assertIs(
+            type(context.exception),
+            CandidateAttentionBuildError,
+        )
+
+    def test_project_malformed_timestamp_fails_hard(
+        self,
+    ):
+        payload = pageview_payload()
+        payload["items"][10]["timestamp"] = "bad"
+
+        with self.assertRaises(
+            CandidateAttentionBuildError
+        ) as context:
+            verify_project_pageview_window(
+                data_as_of=DATA_AS_OF,
+                fetcher=lambda _: payload,
+            )
+
+        self.assertIs(
+            type(context.exception),
+            CandidateAttentionBuildError,
+        )
+
+    def test_project_invalid_views_fail_hard(
+        self,
+    ):
+        for invalid in (
+            -1,
+            True,
+            1.5,
+        ):
+            with self.subTest(
+                views=invalid
+            ):
+                payload = pageview_payload()
+                payload["items"][10]["views"] = invalid
+
+                with self.assertRaises(
+                    CandidateAttentionBuildError
+                ) as context:
+                    verify_project_pageview_window(
+                        data_as_of=DATA_AS_OF,
+                        fetcher=lambda _: payload,
+                    )
+
+                self.assertIs(
+                    type(context.exception),
+                    CandidateAttentionBuildError,
+                )
+
+    def test_project_404_is_bounded_and_typed(
+        self,
+    ):
+        calls = []
+        sleeps = []
+
+        def fetcher(url):
+            calls.append(url)
+            raise WikimediaFetchError(
+                "http_4xx",
+                "HTTP 404",
+                status=404,
+                attempts=1,
+            )
+
+        with self.assertRaises(
+            WikimediaPageviewsNotFoundError
+        ) as context:
+            with redirect_stdout(
+                io.StringIO()
+            ):
+                verify_project_pageview_window(
+                    data_as_of=DATA_AS_OF,
+                    fetcher=fetcher,
+                    sleeper=sleeps.append,
+                )
+
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(len(set(calls)), 1)
+        self.assertEqual(
+            sleeps,
+            [1.0, 2.0],
+        )
+        self.assertEqual(
+            context.exception.attempts,
+            3,
+        )
+
+
 class CandidateAttentionPageviewCollectionTests(
     unittest.TestCase
 ):
@@ -1646,6 +1883,221 @@ class CandidateAttentionPageviewCollectionTests(
             CandidateAttentionBuildError,
         )
 
+    def test_verified_missing_candidate_day_becomes_zero(
+        self,
+    ):
+        payload = pageview_payload(
+            value=123
+        )
+        missing = payload["items"].pop(
+            10
+        )
+
+        series = fetch_pageview_series(
+            "Gabriel Attal",
+            data_as_of=DATA_AS_OF,
+            fetcher=lambda _: payload,
+            source_window_verified=True,
+        )
+
+        self.assertEqual(
+            len(series),
+            90,
+        )
+        self.assertEqual(
+            series[10],
+            {
+                "date": datetime.strptime(
+                    missing["timestamp"],
+                    "%Y%m%d00",
+                ).date().isoformat(),
+                "views": 0,
+            },
+        )
+
+    def test_verified_non_contiguous_candidate_gaps_become_zero(
+        self,
+    ):
+        payload = pageview_payload(
+            value=123
+        )
+
+        payload["items"].pop(80)
+        payload["items"].pop(10)
+
+        series = fetch_pageview_series(
+            "Gabriel Attal",
+            data_as_of=DATA_AS_OF,
+            fetcher=lambda _: payload,
+            source_window_verified=True,
+        )
+
+        self.assertEqual(
+            len(series),
+            90,
+        )
+        self.assertEqual(
+            series[10]["views"],
+            0,
+        )
+        self.assertEqual(
+            series[80]["views"],
+            0,
+        )
+        self.assertEqual(
+            series[11]["views"],
+            123,
+        )
+
+    def test_verified_trailing_candidate_gaps_become_zero(
+        self,
+    ):
+        payload = pageview_payload(
+            value=123
+        )
+
+        payload["items"].pop()
+        payload["items"].pop()
+
+        series = fetch_pageview_series(
+            "Gabriel Attal",
+            data_as_of=DATA_AS_OF,
+            fetcher=lambda _: payload,
+            source_window_verified=True,
+        )
+
+        self.assertEqual(
+            series[-2:],
+            [
+                {
+                    "date": (
+                        DATA_AS_OF
+                        - timedelta(days=1)
+                    ).isoformat(),
+                    "views": 0,
+                },
+                {
+                    "date": DATA_AS_OF.isoformat(),
+                    "views": 0,
+                },
+            ],
+        )
+
+    def test_verified_returned_zero_and_nonzero_are_preserved(
+        self,
+    ):
+        payload = pageview_payload(
+            value=123
+        )
+        payload["items"][10]["views"] = 0
+
+        series = fetch_pageview_series(
+            "Gabriel Attal",
+            data_as_of=DATA_AS_OF,
+            fetcher=lambda _: payload,
+            source_window_verified=True,
+        )
+
+        self.assertEqual(
+            series[10]["views"],
+            0,
+        )
+        self.assertEqual(
+            series[11]["views"],
+            123,
+        )
+
+    def test_verified_mode_preserves_hard_article_validation(
+        self,
+    ):
+        def add_extra(payload):
+            payload["items"].append(
+                {
+                    "timestamp": (
+                        DATA_AS_OF
+                        + timedelta(days=1)
+                    ).strftime(
+                        "%Y%m%d00"
+                    ),
+                    "views": 100,
+                }
+            )
+
+        def duplicate(payload):
+            payload["items"][11]["timestamp"] = (
+                payload["items"][10]["timestamp"]
+            )
+
+        def malformed_timestamp(payload):
+            payload["items"][10]["timestamp"] = "bad"
+
+        def negative_views(payload):
+            payload["items"][10]["views"] = -1
+
+        def non_integer_views(payload):
+            payload["items"][10]["views"] = 1.5
+
+        for name, mutate in (
+            ("extra", add_extra),
+            ("duplicate", duplicate),
+            ("timestamp", malformed_timestamp),
+            ("negative", negative_views),
+            ("non_integer", non_integer_views),
+        ):
+            with self.subTest(
+                case=name
+            ):
+                payload = pageview_payload()
+                mutate(payload)
+
+                with self.assertRaises(
+                    CandidateAttentionBuildError
+                ) as context:
+                    fetch_pageview_series(
+                        "Gabriel Attal",
+                        data_as_of=DATA_AS_OF,
+                        fetcher=lambda _: payload,
+                        source_window_verified=True,
+                    )
+
+                self.assertIs(
+                    type(context.exception),
+                    CandidateAttentionBuildError,
+                )
+
+    def test_verified_mode_does_not_turn_article_404_into_zeros(
+        self,
+    ):
+        calls = []
+
+        def fetcher(url):
+            calls.append(url)
+            raise WikimediaFetchError(
+                "http_4xx",
+                "HTTP 404",
+                status=404,
+                attempts=1,
+            )
+
+        with self.assertRaises(
+            WikimediaPageviewsNotFoundError
+        ):
+            with redirect_stdout(
+                io.StringIO()
+            ):
+                fetch_pageview_series(
+                    "Gabriel Attal",
+                    data_as_of=DATA_AS_OF,
+                    fetcher=fetcher,
+                    sleeper=lambda _: None,
+                    source_window_verified=True,
+                )
+
+        self.assertEqual(
+            len(calls),
+            3,
+        )
+
     def test_duplicate_day_is_rejected(
         self,
     ):
@@ -1705,6 +2157,80 @@ class CandidateAttentionPageviewCollectionTests(
                     payload
                 ),
             )
+
+    def test_verified_collection_preflights_before_candidates(
+        self,
+    ):
+        calls = []
+
+        def fetcher(url):
+            calls.append(url)
+            return pageview_payload()
+
+        result = collect_wikimedia_observations(
+            candidacy_payload=CANDIDACY,
+            registry_payload=REGISTRY,
+            data_as_of=DATA_AS_OF,
+            fetcher=fetcher,
+            delay_seconds=0,
+            sleeper=lambda _: None,
+            verify_source_window=True,
+        )
+
+        self.assertEqual(
+            list(result),
+            ARTICLE_ELIGIBLE_IDS,
+        )
+        self.assertEqual(
+            len(calls),
+            len(ARTICLE_ELIGIBLE_IDS) + 1,
+        )
+        self.assertIn(
+            "/metrics/pageviews/aggregate/",
+            calls[0],
+        )
+        self.assertTrue(
+            all(
+                "/metrics/pageviews/per-article/"
+                in url
+                for url
+                in calls[1:]
+            )
+        )
+
+    def test_failed_project_preflight_makes_no_candidate_requests(
+        self,
+    ):
+        calls = []
+
+        def fetcher(url):
+            calls.append(url)
+            payload = pageview_payload()
+            payload["items"].pop(10)
+            return payload
+
+        with self.assertRaises(
+            WikimediaPageviewsAvailabilityLagError
+        ):
+            collect_wikimedia_observations(
+                candidacy_payload=CANDIDACY,
+                registry_payload=REGISTRY,
+                data_as_of=DATA_AS_OF,
+                fetcher=fetcher,
+                delay_seconds=0,
+                sleeper=lambda _: None,
+                verify_source_window=True,
+            )
+
+        self.assertEqual(
+            len(calls),
+            1,
+        )
+        self.assertIn(
+            "/metrics/pageviews/aggregate/",
+            calls[0],
+        )
+
 
     def test_collection_is_sequential_and_ordered(
         self,
@@ -1824,9 +2350,26 @@ class CandidateAttentionAvailabilityFallbackTests(
     def _request_data_as_of(
         url,
     ):
+        segment = (
+            url.rstrip("/")
+            .rsplit("/", 1)[-1]
+        )
+
+        if (
+            len(segment) == 10
+            and segment.endswith("00")
+        ):
+            pattern = "%Y%m%d00"
+        elif len(segment) == 8:
+            pattern = "%Y%m%d"
+        else:
+            raise AssertionError(
+                f"unexpected Pageviews date segment: {segment!r}"
+            )
+
         return datetime.strptime(
-            url.rstrip("/").rsplit("/", 1)[-1],
-            "%Y%m%d",
+            segment,
+            pattern,
         ).date()
 
     @classmethod
@@ -1893,10 +2436,11 @@ class CandidateAttentionAvailabilityFallbackTests(
         )
         self.assertEqual(
             pageview_dates,
-            [DATA_AS_OF] * len(ARTICLE_ELIGIBLE_IDS),
+            [DATA_AS_OF]
+            * (len(ARTICLE_ELIGIBLE_IDS) + 1),
         )
 
-    def test_pageviews_404_rebuilds_complete_previous_date(
+    def test_project_404_rebuilds_complete_previous_date(
         self,
     ):
         previous = DATA_AS_OF - timedelta(days=1)
@@ -1928,7 +2472,8 @@ class CandidateAttentionAvailabilityFallbackTests(
         self.assertEqual(
             pageview_dates,
             [DATA_AS_OF] * 3
-            + [previous] * len(ARTICLE_ELIGIBLE_IDS),
+            + [previous]
+            * (len(ARTICLE_ELIGIBLE_IDS) + 1),
         )
         self.assertEqual(
             verification_calls,
@@ -1970,6 +2515,70 @@ class CandidateAttentionAvailabilityFallbackTests(
                 for candidate in payload["candidates"]
                 for observation in candidate["daily_series"]
             )
+        )
+
+    def test_candidate_404_after_verified_window_rebuilds_previous_date(
+        self,
+    ):
+        previous = (
+            DATA_AS_OF
+            - timedelta(days=1)
+        )
+        project_dates = []
+        candidate_dates = []
+
+        def fetcher(url):
+            if "/w/api.php?" in url:
+                return self._success_for_url(url)
+
+            requested_date = (
+                self._request_data_as_of(url)
+            )
+
+            if (
+                "/metrics/pageviews/aggregate/"
+                in url
+            ):
+                project_dates.append(
+                    requested_date
+                )
+                return self._success_for_url(url)
+
+            candidate_dates.append(
+                requested_date
+            )
+
+            if requested_date == DATA_AS_OF:
+                raise WikimediaFetchError(
+                    "http_4xx",
+                    "HTTP 404",
+                    status=404,
+                    attempts=1,
+                )
+
+            return self._success_for_url(url)
+
+        payload = self._run_build(
+            fetcher,
+            fallback_days=1,
+        )
+
+        self.assertEqual(
+            project_dates,
+            [
+                DATA_AS_OF,
+                previous,
+            ],
+        )
+        self.assertEqual(
+            candidate_dates,
+            [DATA_AS_OF] * 3
+            + [previous]
+            * len(ARTICLE_ELIGIBLE_IDS),
+        )
+        self.assertEqual(
+            payload["period"]["data_as_of"],
+            previous.isoformat(),
         )
 
     def test_pageviews_404_fallback_exhaustion_fails_closed(
@@ -2133,7 +2742,7 @@ class CandidateAttentionAvailabilityFallbackTests(
                     [DATA_AS_OF],
                 )
 
-    def test_trailing_availability_lag_rebuilds_complete_previous_date(
+    def test_project_availability_lag_rebuilds_complete_previous_date(
         self,
     ):
         previous = (
@@ -2173,7 +2782,7 @@ class CandidateAttentionAvailabilityFallbackTests(
             pageview_dates,
             [DATA_AS_OF]
             + [previous]
-            * len(ARTICLE_ELIGIBLE_IDS),
+            * (len(ARTICLE_ELIGIBLE_IDS) + 1),
         )
         self.assertEqual(
             payload[
@@ -2210,7 +2819,7 @@ class CandidateAttentionAvailabilityFallbackTests(
             )
         )
 
-    def test_fallback_can_move_back_two_days_before_succeeding(
+    def test_project_lag_can_move_back_two_days_before_succeeding(
         self,
     ):
         previous = (
@@ -2260,7 +2869,7 @@ class CandidateAttentionAvailabilityFallbackTests(
                 previous,
             ]
             + [two_days_back]
-            * len(ARTICLE_ELIGIBLE_IDS),
+            * (len(ARTICLE_ELIGIBLE_IDS) + 1),
         )
         self.assertEqual(
             payload[
@@ -2300,7 +2909,7 @@ class CandidateAttentionAvailabilityFallbackTests(
         self.assertEqual(
             pageview_dates,
             [DATA_AS_OF]
-            * len(ARTICLE_ELIGIBLE_IDS),
+            * (len(ARTICLE_ELIGIBLE_IDS) + 1),
         )
 
     def test_invalid_fallback_days_are_rejected(
@@ -2350,7 +2959,7 @@ class CandidateAttentionAvailabilityFallbackTests(
             fallback_action.help,
         )
         self.assertIn(
-            "trailing observation lag",
+            "project availability window",
             fallback_action.help,
         )
 
@@ -2388,30 +2997,95 @@ class CandidateAttentionAvailabilityFallbackTests(
                             ]
                         )
 
-    def test_incomplete_pageviews_payload_does_not_fallback(
+    def test_verified_sparse_candidate_payload_is_publicly_valid(
         self,
     ):
-        pageview_dates = []
+        def fetcher(url):
+            if "/w/api.php?" in url:
+                return self._success_for_url(url)
+
+            requested_date = (
+                self._request_data_as_of(url)
+            )
+
+            payload = pageview_payload(
+                data_as_of=requested_date,
+                value=137,
+            )
+
+            if (
+                "/metrics/pageviews/aggregate/"
+                not in url
+            ):
+                payload["items"].pop(
+                    10
+                )
+
+            return payload
+
+        payload = self._run_build(
+            fetcher,
+            fallback_days=0,
+        )
+
+        validate_candidate_attention(
+            payload,
+            expected_candidates=ACTIVE_CANDIDATES,
+        )
+
+        article_eligible = set(
+            ARTICLE_ELIGIBLE_IDS
+        )
+
+        for candidate in payload["candidates"]:
+            if (
+                candidate["candidate_id"]
+                not in article_eligible
+            ):
+                continue
+
+            self.assertEqual(
+                len(candidate["daily_series"]),
+                90,
+            )
+            self.assertEqual(
+                candidate[
+                    "daily_series"
+                ][10]["views"],
+                0,
+            )
+
+    def test_malformed_candidate_payload_does_not_fallback(
+        self,
+    ):
+        project_dates = []
+        candidate_dates = []
 
         def fetcher(url):
             if "/w/api.php?" in url:
                 return self._success_for_url(url)
 
-            requested_date = self._request_data_as_of(url)
-            pageview_dates.append(requested_date)
+            requested_date = (
+                self._request_data_as_of(url)
+            )
+
+            if (
+                "/metrics/pageviews/aggregate/"
+                in url
+            ):
+                project_dates.append(
+                    requested_date
+                )
+                return self._success_for_url(url)
+
+            candidate_dates.append(
+                requested_date
+            )
 
             payload = pageview_payload(
                 data_as_of=requested_date
             )
-
-            # Internal gap: hard validation failure, not
-            # Wikimedia trailing publication latency.
-            payload[
-                "items"
-            ].pop(
-                10
-            )
-
+            payload["items"][10]["views"] = -1
             return payload
 
         with self.assertRaises(
@@ -2427,7 +3101,11 @@ class CandidateAttentionAvailabilityFallbackTests(
             CandidateAttentionBuildError,
         )
         self.assertEqual(
-            pageview_dates,
+            project_dates,
+            [DATA_AS_OF],
+        )
+        self.assertEqual(
+            candidate_dates,
             [DATA_AS_OF],
         )
 
