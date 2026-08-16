@@ -5,7 +5,7 @@ import io
 import json
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import date, datetime, timedelta
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlsplit
@@ -23,6 +23,7 @@ from build_candidate_attention import (
     LOW_BASE_7D_VIEWS,
     SUSTAINED_CHANGE_MIN_PCT,
     CandidateAttentionBuildError,
+    _parser,
     atomic_write_bytes,
     build_candidate_attention_payload,
     build_fetch_plan,
@@ -32,6 +33,7 @@ from build_candidate_attention import (
     serialize_semantic_payload,
     validate_daily_series,
     WikimediaFetchError,
+    WikimediaPageviewsAvailabilityLagError,
     WikimediaPageviewsNotFoundError,
     collect_wikimedia_observations,
     fetch_json,
@@ -1503,7 +1505,7 @@ class CandidateAttentionPageviewCollectionTests(
 
         with self.assertRaises(
             CandidateAttentionBuildError
-        ):
+        ) as context:
             fetch_pageview_series(
                 "Gabriel Attal",
                 data_as_of=(
@@ -1517,8 +1519,132 @@ class CandidateAttentionPageviewCollectionTests(
                 ),
             )
 
+        self.assertIs(
+            type(context.exception),
+            CandidateAttentionBuildError,
+        )
         self.assertEqual(len(calls), 1)
         self.assertEqual(sleeps, [])
+
+    def test_one_trailing_missing_day_is_availability_lag(
+        self,
+    ):
+        payload = (
+            pageview_payload()
+        )
+        payload[
+            "items"
+        ].pop()
+
+        with self.assertRaises(
+            WikimediaPageviewsAvailabilityLagError
+        ):
+            fetch_pageview_series(
+                "Gabriel Attal",
+                data_as_of=DATA_AS_OF,
+                fetcher=(
+                    lambda _:
+                    payload
+                ),
+            )
+
+    def test_two_trailing_missing_days_are_availability_lag(
+        self,
+    ):
+        payload = (
+            pageview_payload()
+        )
+        payload[
+            "items"
+        ].pop()
+        payload[
+            "items"
+        ].pop()
+
+        with self.assertRaises(
+            WikimediaPageviewsAvailabilityLagError
+        ):
+            fetch_pageview_series(
+                "Gabriel Attal",
+                data_as_of=DATA_AS_OF,
+                fetcher=(
+                    lambda _:
+                    payload
+                ),
+            )
+
+    def test_non_contiguous_missing_days_are_hard_failure(
+        self,
+    ):
+        payload = (
+            pageview_payload()
+        )
+
+        payload[
+            "items"
+        ].pop(
+            80
+        )
+        payload[
+            "items"
+        ].pop(
+            10
+        )
+
+        with self.assertRaises(
+            CandidateAttentionBuildError
+        ) as context:
+            fetch_pageview_series(
+                "Gabriel Attal",
+                data_as_of=DATA_AS_OF,
+                fetcher=(
+                    lambda _:
+                    payload
+                ),
+            )
+
+        self.assertIs(
+            type(context.exception),
+            CandidateAttentionBuildError,
+        )
+
+    def test_unexpected_extra_day_is_hard_failure(
+        self,
+    ):
+        payload = (
+            pageview_payload()
+        )
+
+        payload[
+            "items"
+        ].append(
+            {
+                "timestamp": (
+                    DATA_AS_OF
+                    + timedelta(days=1)
+                ).strftime(
+                    "%Y%m%d00"
+                ),
+                "views": 100,
+            }
+        )
+
+        with self.assertRaises(
+            CandidateAttentionBuildError
+        ) as context:
+            fetch_pageview_series(
+                "Gabriel Attal",
+                data_as_of=DATA_AS_OF,
+                fetcher=(
+                    lambda _:
+                    payload
+                ),
+            )
+
+        self.assertIs(
+            type(context.exception),
+            CandidateAttentionBuildError,
+        )
 
     def test_duplicate_day_is_rejected(
         self,
@@ -1846,7 +1972,7 @@ class CandidateAttentionAvailabilityFallbackTests(
             )
         )
 
-    def test_pageviews_404_on_both_dates_fails_closed(
+    def test_pageviews_404_fallback_exhaustion_fails_closed(
         self,
     ):
         requested_dates = []
@@ -1869,7 +1995,9 @@ class CandidateAttentionAvailabilityFallbackTests(
             target = Path(temporary) / "candidate_attention.json"
             target.write_bytes(b"last-good\n")
 
-            with self.assertRaises(WikimediaFetchError):
+            with self.assertRaises(
+                WikimediaPageviewsNotFoundError
+            ):
                 with redirect_stdout(io.StringIO()):
                     run_build(
                         candidacy_path=(
@@ -1881,7 +2009,7 @@ class CandidateAttentionAvailabilityFallbackTests(
                         output_path=target,
                         data_as_of=DATA_AS_OF.isoformat(),
                         generated_at="2026-08-07T05:00:00Z",
-                        fallback_days=1,
+                        fallback_days=3,
                         delay_seconds=0,
                         fetcher=fetcher,
                         sleeper=lambda _: None,
@@ -1892,10 +2020,19 @@ class CandidateAttentionAvailabilityFallbackTests(
                 b"last-good\n",
             )
 
+        expected_requested_dates = []
+
+        for offset in range(4):
+            expected_requested_dates.extend(
+                [
+                    DATA_AS_OF
+                    - timedelta(days=offset)
+                ] * 3
+            )
+
         self.assertEqual(
             requested_dates,
-            [DATA_AS_OF] * 3
-            + [DATA_AS_OF - timedelta(days=1)] * 3,
+            expected_requested_dates,
         )
 
     def test_pageviews_fallback_is_disabled_by_default(
@@ -1996,6 +2133,261 @@ class CandidateAttentionAvailabilityFallbackTests(
                     [DATA_AS_OF],
                 )
 
+    def test_trailing_availability_lag_rebuilds_complete_previous_date(
+        self,
+    ):
+        previous = (
+            DATA_AS_OF
+            - timedelta(days=1)
+        )
+        pageview_dates = []
+
+        def fetcher(url):
+            if "/w/api.php?" in url:
+                return self._success_for_url(url)
+
+            requested_date = (
+                self._request_data_as_of(url)
+            )
+            pageview_dates.append(
+                requested_date
+            )
+
+            payload = pageview_payload(
+                data_as_of=requested_date
+            )
+
+            if requested_date == DATA_AS_OF:
+                payload[
+                    "items"
+                ].pop()
+
+            return payload
+
+        payload = self._run_build(
+            fetcher,
+            fallback_days=1,
+        )
+
+        self.assertEqual(
+            pageview_dates,
+            [DATA_AS_OF]
+            + [previous]
+            * len(ARTICLE_ELIGIBLE_IDS),
+        )
+        self.assertEqual(
+            payload[
+                "period"
+            ][
+                "data_as_of"
+            ],
+            previous.isoformat(),
+        )
+
+        article_eligible = set(
+            ARTICLE_ELIGIBLE_IDS
+        )
+        observed = [
+            candidate
+            for candidate
+            in payload["candidates"]
+            if candidate["candidate_id"]
+            in article_eligible
+        ]
+
+        self.assertEqual(
+            len(observed),
+            len(ARTICLE_ELIGIBLE_IDS),
+        )
+        self.assertTrue(
+            all(
+                candidate[
+                    "daily_series"
+                ][-1]["date"]
+                == previous.isoformat()
+                for candidate
+                in observed
+            )
+        )
+
+    def test_fallback_can_move_back_two_days_before_succeeding(
+        self,
+    ):
+        previous = (
+            DATA_AS_OF
+            - timedelta(days=1)
+        )
+        two_days_back = (
+            DATA_AS_OF
+            - timedelta(days=2)
+        )
+        pageview_dates = []
+
+        def fetcher(url):
+            if "/w/api.php?" in url:
+                return self._success_for_url(url)
+
+            requested_date = (
+                self._request_data_as_of(url)
+            )
+            pageview_dates.append(
+                requested_date
+            )
+
+            payload = pageview_payload(
+                data_as_of=requested_date
+            )
+
+            if requested_date in {
+                DATA_AS_OF,
+                previous,
+            }:
+                payload[
+                    "items"
+                ].pop()
+
+            return payload
+
+        payload = self._run_build(
+            fetcher,
+            fallback_days=2,
+        )
+
+        self.assertEqual(
+            pageview_dates,
+            [
+                DATA_AS_OF,
+                previous,
+            ]
+            + [two_days_back]
+            * len(ARTICLE_ELIGIBLE_IDS),
+        )
+        self.assertEqual(
+            payload[
+                "period"
+            ][
+                "data_as_of"
+            ],
+            two_days_back.isoformat(),
+        )
+
+    def test_fallback_days_three_is_valid(
+        self,
+    ):
+        pageview_dates = []
+
+        def fetcher(url):
+            if "/w/api.php?" not in url:
+                pageview_dates.append(
+                    self._request_data_as_of(url)
+                )
+
+            return self._success_for_url(url)
+
+        payload = self._run_build(
+            fetcher,
+            fallback_days=3,
+        )
+
+        self.assertEqual(
+            payload[
+                "period"
+            ][
+                "data_as_of"
+            ],
+            DATA_AS_OF.isoformat(),
+        )
+        self.assertEqual(
+            pageview_dates,
+            [DATA_AS_OF]
+            * len(ARTICLE_ELIGIBLE_IDS),
+        )
+
+    def test_invalid_fallback_days_are_rejected(
+        self,
+    ):
+        for value in (
+            -1,
+            True,
+            4,
+            1.5,
+        ):
+            with self.subTest(
+                fallback_days=value
+            ):
+                def unexpected_fetcher(_):
+                    self.fail(
+                        "fetcher must not run for invalid fallback_days"
+                    )
+
+                with self.assertRaises(
+                    CandidateAttentionBuildError
+                ):
+                    self._run_build(
+                        unexpected_fetcher,
+                        fallback_days=value,
+                    )
+
+    def test_cli_fallback_days_accepts_zero_through_three_only(
+        self,
+    ):
+        parser = _parser()
+
+        fallback_action = next(
+            action
+            for action
+            in parser._actions
+            if action.dest
+            == "fallback_days"
+        )
+
+        self.assertEqual(
+            fallback_action.choices,
+            (0, 1, 2, 3),
+        )
+        self.assertIn(
+            "HTTP 404",
+            fallback_action.help,
+        )
+        self.assertIn(
+            "trailing observation lag",
+            fallback_action.help,
+        )
+
+        for value in range(4):
+            args = parser.parse_args(
+                [
+                    "--fallback-days",
+                    str(value),
+                ]
+            )
+
+            self.assertEqual(
+                args.fallback_days,
+                value,
+            )
+
+        for value in (
+            "-1",
+            "4",
+            "1.5",
+        ):
+            with self.subTest(
+                cli_value=value
+            ):
+                with redirect_stderr(
+                    io.StringIO()
+                ):
+                    with self.assertRaises(
+                        SystemExit
+                    ):
+                        parser.parse_args(
+                            [
+                                "--fallback-days",
+                                value,
+                            ]
+                        )
+
     def test_incomplete_pageviews_payload_does_not_fallback(
         self,
     ):
@@ -2007,15 +2399,33 @@ class CandidateAttentionAvailabilityFallbackTests(
 
             requested_date = self._request_data_as_of(url)
             pageview_dates.append(requested_date)
+
             payload = pageview_payload(
                 data_as_of=requested_date
             )
-            payload["items"].pop()
+
+            # Internal gap: hard validation failure, not
+            # Wikimedia trailing publication latency.
+            payload[
+                "items"
+            ].pop(
+                10
+            )
+
             return payload
 
-        with self.assertRaises(CandidateAttentionBuildError):
-            self._run_build(fetcher)
+        with self.assertRaises(
+            CandidateAttentionBuildError
+        ) as context:
+            self._run_build(
+                fetcher,
+                fallback_days=3,
+            )
 
+        self.assertIs(
+            type(context.exception),
+            CandidateAttentionBuildError,
+        )
         self.assertEqual(
             pageview_dates,
             [DATA_AS_OF],
