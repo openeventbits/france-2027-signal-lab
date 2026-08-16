@@ -802,6 +802,12 @@ class WikimediaPageviewsNotFoundError(WikimediaFetchError):
     """A Pageviews request returned HTTP 404."""
 
 
+class WikimediaPageviewsAvailabilityLagError(
+    CandidateAttentionBuildError
+):
+    """A valid Pageviews response is missing a trailing date suffix."""
+
+
 def _http_failure_category(
     status: int,
 ) -> str:
@@ -1685,7 +1691,25 @@ def fetch_pageview_series(
         - required_set
     )
 
-    if missing or extras:
+    if extras:
+        _fail(
+            "Wikimedia daily pageview sequence is incomplete; "
+            f"missing={missing}; extra={extras}"
+        )
+
+    if missing:
+        trailing_suffix = (
+            required_dates[
+                -len(missing):
+            ]
+        )
+
+        if missing == trailing_suffix:
+            raise WikimediaPageviewsAvailabilityLagError(
+                "Wikimedia daily pageview sequence is not yet complete; "
+                f"missing trailing dates={missing}"
+            )
+
         _fail(
             "Wikimedia daily pageview sequence is incomplete; "
             f"missing={missing}; extra={extras}"
@@ -1921,10 +1945,11 @@ def run_build(
             fallback_days,
             bool,
         )
-        or fallback_days not in (0, 1)
+        or fallback_days < 0
+        or fallback_days > 3
     ):
         _fail(
-            "fallback_days must be 0 or 1"
+            "fallback_days must be an integer from 0 through 3"
         )
 
     try:
@@ -1973,68 +1998,75 @@ def run_build(
         else default_generated_at()
     )
 
-    resolved_date = end_date
+    availability_errors = (
+        WikimediaPageviewsNotFoundError,
+        WikimediaPageviewsAvailabilityLagError,
+    )
 
-    try:
-        observations = (
-            collect_wikimedia_observations(
-                candidacy_payload=(
-                    candidacy_payload
-                ),
-                registry_payload=(
-                    registry_payload
-                ),
-                data_as_of=(
-                    resolved_date
-                ),
-                fetcher=(
-                    fetcher
-                ),
-                delay_seconds=(
-                    delay_seconds
-                ),
-                sleeper=(
-                    sleeper
-                ),
-            )
-        )
-    except WikimediaPageviewsNotFoundError:
-        if fallback_days == 0:
-            raise
-
+    for offset in range(
+        fallback_days + 1
+    ):
         resolved_date = (
             end_date
-            - timedelta(days=1)
+            - timedelta(days=offset)
         )
 
-        print(
-            "Preferred Pageviews date unavailable; "
-            "retrying complete collection for "
-            f"{resolved_date.isoformat()}.",
-            flush=True,
-        )
-
-        observations = (
-            collect_wikimedia_observations(
-                candidacy_payload=(
-                    candidacy_payload
-                ),
-                registry_payload=(
-                    registry_payload
-                ),
-                data_as_of=(
-                    resolved_date
-                ),
-                fetcher=(
-                    fetcher
-                ),
-                delay_seconds=(
-                    delay_seconds
-                ),
-                sleeper=(
-                    sleeper
-                ),
+        try:
+            observations = (
+                collect_wikimedia_observations(
+                    candidacy_payload=(
+                        candidacy_payload
+                    ),
+                    registry_payload=(
+                        registry_payload
+                    ),
+                    data_as_of=(
+                        resolved_date
+                    ),
+                    fetcher=(
+                        fetcher
+                    ),
+                    delay_seconds=(
+                        delay_seconds
+                    ),
+                    sleeper=(
+                        sleeper
+                    ),
+                )
             )
+            break
+        except availability_errors as error:
+            if offset == fallback_days:
+                raise
+
+            next_date = (
+                end_date
+                - timedelta(
+                    days=offset + 1
+                )
+            )
+
+            reason = (
+                "HTTP 404"
+                if isinstance(
+                    error,
+                    WikimediaPageviewsNotFoundError,
+                )
+                else "trailing observation lag"
+            )
+
+            print(
+                "Pageviews availability failure "
+                f"({reason}) for "
+                f"{resolved_date.isoformat()}; "
+                "retrying complete collection for "
+                f"{next_date.isoformat()}.",
+                flush=True,
+            )
+    else:
+        raise AssertionError(
+            "bounded Pageviews date fallback loop "
+            "exhausted unexpectedly"
         )
 
     payload = (
@@ -2123,11 +2155,13 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--fallback-days",
         type=int,
-        choices=(0, 1),
+        choices=(0, 1, 2, 3),
         default=0,
         help=(
-            "On a Pageviews HTTP 404 only, retry the complete "
-            "collection for one previous calendar day."
+            "On Pageviews source availability only (HTTP 404 or a "
+            "structurally valid trailing observation lag), retry the "
+            "complete collection up to this many previous calendar "
+            "days (0-3)."
         ),
     )
 

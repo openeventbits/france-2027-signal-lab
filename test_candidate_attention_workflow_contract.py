@@ -91,21 +91,31 @@ class CandidateAttentionWorkflowContractTests(
             1,
         )
 
-    def test_only_initial_build_enables_one_day_fallback(self):
+    def test_only_initial_build_enables_three_day_fallback(self):
         self.assertEqual(
-            self.workflow.count("--fallback-days 1"),
+            self.workflow.count("--fallback-days 3"),
             1,
         )
+        self.assertEqual(
+            self.workflow.count("--fallback-days"),
+            1,
+        )
+        self.assertNotIn(
+            "--fallback-days 1",
+            self.workflow,
+        )
+
         initial_build = self.workflow.index(
             "python -B build_candidate_attention.py"
         )
         fallback = self.workflow.index(
-            "--fallback-days 1"
+            "--fallback-days 3"
         )
         second_build = self.workflow.index(
             "python -B build_candidate_attention.py",
             initial_build + 1,
         )
+
         self.assertLess(initial_build, fallback)
         self.assertLess(fallback, second_build)
 
@@ -115,14 +125,32 @@ class CandidateAttentionWorkflowContractTests(
             self.workflow,
         )
         self.assertIn(
-            "date.fromisoformat(preferred_data_as_of)",
+            "preferred_date = date.fromisoformat(",
             self.workflow,
         )
         self.assertIn(
-            "- timedelta(days=1)",
+            "earliest_allowed_data_as_of = (",
             self.workflow,
         )
         self.assertIn(
+            "- timedelta(days=3)",
+            self.workflow,
+        )
+        self.assertIn(
+            "resolved_date = date.fromisoformat(",
+            self.workflow,
+        )
+        self.assertIn(
+            "earliest_allowed_data_as_of\n"
+            "              <= resolved_date\n"
+            "              <= preferred_date",
+            self.workflow,
+        )
+        self.assertNotIn(
+            "previous_data_as_of",
+            self.workflow,
+        )
+        self.assertNotIn(
             "resolved_data_as_of not in {",
             self.workflow,
         )
