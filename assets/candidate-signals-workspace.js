@@ -238,6 +238,26 @@
     return group;
   }
 
+  function evidenceStateGroup(title, message) {
+    const group = createElement(
+      "div",
+      "candidate-signals-evidence-group"
+    );
+    group.append(
+      createElement(
+        "h4",
+        "candidate-signals-evidence-group-title",
+        title
+      ),
+      createElement(
+        "p",
+        "candidate-signals-development-empty",
+        message
+      )
+    );
+    return group;
+  }
+
   function visibilityLines(candidate) {
     const campaign = candidate.campaign_attention;
     const general = candidate.general_visibility;
@@ -351,13 +371,21 @@
   function candidateSecondary(candidate) {
     const campaign = candidate.campaign_attention;
     const general = candidate.general_visibility;
-    if (!campaign && !general) return MISSING;
-    return [
-      `Campaign / election ${campaign
-        ? numberText(campaign.record_count)
-        : MISSING}`,
-      `General ${general ? numberText(general.record_count) : MISSING}`
-    ].join(" · ");
+    const parts = [];
+
+    if (campaign?.evidence_state === "reported") {
+      parts.push(
+        `Campaign / election ${numberText(campaign.record_count)}`
+      );
+    }
+
+    if (general?.evidence_state === "reported") {
+      parts.push(`General ${numberText(general.record_count)}`);
+    }
+
+    return parts.length
+      ? parts.join(" · ")
+      : "No current coverage evidence";
   }
 
   function candidateFact(label, value, className = "") {
@@ -511,37 +539,44 @@
 
       const campaign = candidate.campaign_attention;
       const latest = candidate.scrutiny?.latest_14_days;
+      const campaignReported =
+        campaign?.evidence_state === "reported";
       const evidence = createElement(
         "span",
         "candidate-signals-candidate-evidence"
       );
-      evidence.append(
-        candidateFact(
-          "Attention",
-          campaign
-            ? percentageText(campaign.share, true)
-            : "Not published",
-          "candidate-signals-candidate-attention"
-        ),
-        candidateFact(
-          "Records",
-          campaign
-            ? numberText(campaign.record_count)
-            : "Not published",
-          "candidate-signals-candidate-records"
-        ),
-        candidateFact(
-          "Scrutiny · 14 days",
-          latest
-            ? `${numberText(latest.about_count)} about · ${numberText(
-              latest.by_count
-            )} by`
-            : "Not published",
-          "candidate-signals-candidate-scrutiny"
-        )
-      );
 
-      button.append(top, evidence);
+      if (campaignReported) {
+        evidence.append(
+          candidateFact(
+            "Attention",
+            percentageText(campaign.share, true),
+            "candidate-signals-candidate-attention"
+          ),
+          candidateFact(
+            "Records",
+            numberText(campaign.record_count),
+            "candidate-signals-candidate-records"
+          )
+        );
+      }
+
+      if (latest) {
+        evidence.append(
+          candidateFact(
+            "Scrutiny · 14 days",
+            `${numberText(latest.about_count)} about · ${numberText(
+              latest.by_count
+            )} by`,
+            "candidate-signals-candidate-scrutiny"
+          )
+        );
+      }
+
+      button.append(top);
+      if (evidence.children.length) {
+        button.append(evidence);
+      }
       button.addEventListener("click", () => {
         chooseCandidate(candidate.candidate_id, true);
       });
@@ -852,7 +887,11 @@
   }
 
   function scopeComposition(candidate) {
-    const counts = candidate.campaign_attention?.scope_counts;
+    const counts = (
+      candidate.campaign_attention?.evidence_state === "reported"
+    )
+      ? candidate.campaign_attention.scope_counts
+      : null;
     const values = ["campaign", "election", "general"].map(key => {
       const value = counts?.[key];
       if (!hasValue(value)) return null;
@@ -1124,9 +1163,36 @@
       `candidate-signals-attention-row is-${tone}`
     );
     const reported = evidence?.evidence_state === "reported";
-    const share = reported
-      ? percentageNumber(evidence.share, true)
-      : null;
+
+    if (!reported) {
+      row.className += " is-unavailable";
+
+      const head = createElement(
+        "div",
+        "candidate-signals-attention-row-head"
+      );
+      head.append(
+        createElement(
+          "span",
+          "candidate-signals-attention-label",
+          label
+        )
+      );
+
+      row.append(
+        head,
+        createElement(
+          "span",
+          "candidate-signals-attention-detail",
+          tone === "general"
+            ? "No current general visibility evidence."
+            : "No current campaign/election evidence."
+        )
+      );
+      return row;
+    }
+
+    const share = percentageNumber(evidence.share, true);
     const comparativeWidth = (
       share === null ||
       !Number.isFinite(Number(scaleMaximum)) ||
@@ -1153,45 +1219,43 @@
         `candidate-signals-attention-share${
           share === null ? " is-unpublished" : ""
         }`,
-        share === null ? MISSING : percentageText(evidence.share, true)
+        share === null
+          ? MISSING
+          : percentageText(evidence.share, true)
       )
     );
 
-    const compactParts = reported
-      ? [
-        hasValue(evidence.record_count)
-          ? `${numberText(evidence.record_count)} REC`
-          : null,
-        hasValue(evidence.publisher_count)
-          ? `${numberText(evidence.publisher_count)} PUB`
-          : null,
-        hasValue(evidence.active_day_count)
-          ? `${numberText(evidence.active_day_count)} ${
-            Number(evidence.active_day_count) === 1 ? "DAY" : "DAYS"
-          }`
-          : null
-      ].filter(Boolean)
-      : [];
+    const compactParts = [
+      hasValue(evidence.record_count)
+        ? `${numberText(evidence.record_count)} REC`
+        : null,
+      hasValue(evidence.publisher_count)
+        ? `${numberText(evidence.publisher_count)} PUB`
+        : null,
+      hasValue(evidence.active_day_count)
+        ? `${numberText(evidence.active_day_count)} ${
+          Number(evidence.active_day_count) === 1 ? "DAY" : "DAYS"
+        }`
+        : null
+    ].filter(Boolean);
 
     const detail = createElement(
       "span",
       "candidate-signals-attention-detail",
-      reported ? compactParts.join(" · ") : "No current evidence"
+      compactParts.join(" · ")
     );
-    if (reported) {
-      detail.setAttribute(
-        "aria-label",
-        [
-          counted(evidence.record_count, "record"),
-          hasValue(evidence.publisher_count)
-            ? counted(evidence.publisher_count, "publisher")
-            : null,
-          hasValue(evidence.active_day_count)
-            ? counted(evidence.active_day_count, "active day")
-            : null
-        ].filter(Boolean).join(", ")
-      );
-    }
+    detail.setAttribute(
+      "aria-label",
+      [
+        counted(evidence.record_count, "record"),
+        hasValue(evidence.publisher_count)
+          ? counted(evidence.publisher_count, "publisher")
+          : null,
+        hasValue(evidence.active_day_count)
+          ? counted(evidence.active_day_count, "active day")
+          : null
+      ].filter(Boolean).join(", ")
+    );
 
     const track = createElement(
       "span",
@@ -1200,16 +1264,18 @@
       }`
     );
     track.setAttribute("aria-hidden", "true");
+
     const fill = createElement(
       "span",
       "candidate-signals-attention-fill"
     );
     fill.style.width = `${comparativeWidth}%`;
+
     if (share !== null && share > 0) {
       fill.className += " has-value";
     }
-    track.append(fill);
 
+    track.append(fill);
     row.append(head, detail, track);
     return row;
   }
@@ -1220,14 +1286,29 @@
       "candidate-signals-attention-summary"
     );
 
-    const campaignShare = candidate.campaign_attention?.evidence_state ===
-      "reported"
+    const campaignReported =
+      candidate.campaign_attention?.evidence_state === "reported";
+    const generalReported =
+      candidate.general_visibility?.evidence_state === "reported";
+
+    if (!campaignReported && !generalReported) {
+      card.append(
+        createElement(
+          "p",
+          "candidate-signals-card-state",
+          "No current campaign/election or general visibility evidence."
+        )
+      );
+      return card;
+    }
+
+    const campaignShare = campaignReported
       ? percentageNumber(candidate.campaign_attention.share, true)
       : null;
-    const generalShare = candidate.general_visibility?.evidence_state ===
-      "reported"
+    const generalShare = generalReported
       ? percentageNumber(candidate.general_visibility.share, true)
       : null;
+
     const publishedShares = [campaignShare, generalShare]
       .filter(value => value !== null);
     const scaleMaximum = publishedShares.length
@@ -1252,6 +1333,7 @@
         scaleMaximum
       )
     );
+
     card.append(visual);
     return card;
   }
@@ -1435,57 +1517,86 @@
       "candidate-signals-scrutiny-matrix"
     );
     matrix.append(
-      createElement("span", "candidate-signals-scrutiny-corner", ""),
-      createElement("span", "candidate-signals-scrutiny-column", "ABOUT"),
-      createElement("span", "candidate-signals-scrutiny-column", "BY"),
-      createElement("span", "candidate-signals-scrutiny-column", "REVIEWS"),
       createElement(
         "span",
-        "candidate-signals-scrutiny-row-label is-current",
-        "14 DAYS"
-      ),
-      scrutinyMatrixCell(
-        latest ? latest.about_count : null,
-        "is-current"
-      ),
-      scrutinyMatrixCell(
-        latest ? latest.by_count : null,
-        "is-current"
-      ),
-      scrutinyMatrixCell(
-        latest ? latest.review_count : null,
-        "is-current"
+        "candidate-signals-scrutiny-corner",
+        ""
       ),
       createElement(
         "span",
-        "candidate-signals-scrutiny-row-label is-archive",
-        "ARCHIVE"
+        "candidate-signals-scrutiny-column",
+        "ABOUT"
       ),
-      scrutinyMatrixCell(
-        archive ? archive.about_count : null,
-        "is-archive"
+      createElement(
+        "span",
+        "candidate-signals-scrutiny-column",
+        "BY"
       ),
-      scrutinyMatrixCell(
-        archive ? archive.by_count : null,
-        "is-archive"
-      ),
-      scrutinyMatrixCell(
-        archive ? archive.review_count : null,
-        "is-archive"
+      createElement(
+        "span",
+        "candidate-signals-scrutiny-column",
+        "REVIEWS"
       )
     );
+
+    if (latest) {
+      matrix.append(
+        createElement(
+          "span",
+          "candidate-signals-scrutiny-row-label is-current",
+          "14 DAYS"
+        ),
+        scrutinyMatrixCell(
+          latest.about_count,
+          "is-current"
+        ),
+        scrutinyMatrixCell(
+          latest.by_count,
+          "is-current"
+        ),
+        scrutinyMatrixCell(
+          latest.review_count,
+          "is-current"
+        )
+      );
+    }
+
+    if (archive) {
+      matrix.append(
+        createElement(
+          "span",
+          "candidate-signals-scrutiny-row-label is-archive",
+          "ARCHIVE"
+        ),
+        scrutinyMatrixCell(
+          archive.about_count,
+          "is-archive"
+        ),
+        scrutinyMatrixCell(
+          archive.by_count,
+          "is-archive"
+        ),
+        scrutinyMatrixCell(
+          archive.review_count,
+          "is-archive"
+        )
+      );
+    }
+
     card.append(matrix);
 
-    const newestDate = latest?.newest_review_date || archive?.newest_review_date;
-    card.append(
-      createElement(
-        "span",
-        "candidate-signals-scrutiny-foot",
-        `LATEST REVIEW · ${
-          newestDate ? formatDisplayDate(newestDate) : MISSING
-        }`
-      )
-    );
+    const newestDate =
+      latest?.newest_review_date || archive?.newest_review_date;
+
+    if (newestDate) {
+      card.append(
+        createElement(
+          "span",
+          "candidate-signals-scrutiny-foot",
+          `LATEST REVIEW · ${formatDisplayDate(newestDate)}`
+        )
+      );
+    }
 
     return card;
   }
@@ -2593,27 +2704,32 @@
     const newestDate = (
       latest?.newest_review_date || archive?.newest_review_date
     );
-    return [
-      ["14 days · ABOUT", latest
-        ? numberText(latest.about_count)
-        : MISSING],
-      ["14 days · BY", latest
-        ? numberText(latest.by_count)
-        : MISSING],
-      ["14 days · Reviews", latest
-        ? numberText(latest.review_count)
-        : MISSING],
-      ["Archive · ABOUT", archive
-        ? numberText(archive.about_count)
-        : MISSING],
-      [translate("candidate.scrutiny.archive_by", "Archive · BY"), archive
-        ? numberText(archive.by_count)
-        : MISSING],
-      ["Archive · Reviews", archive
-        ? numberText(archive.review_count)
-        : MISSING],
-      ["Newest review", formatDisplayDate(newestDate)]
-    ];
+    const lines = [];
+
+    if (latest) {
+      lines.push(
+        ["14 days · ABOUT", numberText(latest.about_count)],
+        ["14 days · BY", numberText(latest.by_count)],
+        ["14 days · Reviews", numberText(latest.review_count)]
+      );
+    }
+
+    if (archive) {
+      lines.push(
+        ["Archive · ABOUT", numberText(archive.about_count)],
+        [
+          translate("candidate.scrutiny.archive_by", "Archive · BY"),
+          numberText(archive.by_count)
+        ],
+        ["Archive · Reviews", numberText(archive.review_count)]
+      );
+    }
+
+    if (newestDate) {
+      lines.push(["Newest review", formatDisplayDate(newestDate)]);
+    }
+
+    return lines;
   }
 
   function compactEvidenceDetails(candidate, metadata) {
@@ -2630,24 +2746,48 @@
       "div",
       "candidate-signals-dossier-details-content"
     );
+
+    const campaignReported =
+      candidate.campaign_attention?.evidence_state === "reported";
+    const generalReported =
+      candidate.general_visibility?.evidence_state === "reported";
+    const latest = candidate.scrutiny?.latest_14_days;
+    const archive = candidate.scrutiny?.archive;
+
     content.append(
       evidenceGroup(
         "POLL EVIDENCE & SOURCE DETAILS",
         dossierPollLines(candidate, metadata)
       ),
-      evidenceGroup(
-        "CAMPAIGN / ELECTION STRUCTURE",
-        dossierStructureLines(candidate.campaign_attention)
-      ),
-      evidenceGroup(
-        "GENERAL STRUCTURE",
-        dossierStructureLines(candidate.general_visibility)
-      ),
-      evidenceGroup(
-        "CLAIM SCRUTINY DETAIL",
-        dossierScrutinyLines(candidate)
-      )
+      campaignReported
+        ? evidenceGroup(
+          "CAMPAIGN / ELECTION STRUCTURE",
+          dossierStructureLines(candidate.campaign_attention)
+        )
+        : evidenceStateGroup(
+          "CAMPAIGN / ELECTION STRUCTURE",
+          "No current campaign/election evidence."
+        ),
+      generalReported
+        ? evidenceGroup(
+          "GENERAL STRUCTURE",
+          dossierStructureLines(candidate.general_visibility)
+        )
+        : evidenceStateGroup(
+          "GENERAL STRUCTURE",
+          "No current general visibility evidence."
+        ),
+      latest || archive
+        ? evidenceGroup(
+          "CLAIM SCRUTINY DETAIL",
+          dossierScrutinyLines(candidate)
+        )
+        : evidenceStateGroup(
+          "CLAIM SCRUTINY DETAIL",
+          "No scrutiny evidence currently published."
+        )
     );
+
     details.append(summary, content);
     return details;
   }
@@ -2701,118 +2841,141 @@
 
     const campaign = candidate.campaign_attention;
     const general = candidate.general_visibility;
-    const composition = scopeComposition(candidate);
-    const [campaignCount, electionCount, generalCount] = composition.values;
+    const campaignReported =
+      campaign?.evidence_state === "reported";
+    const generalReported =
+      general?.evidence_state === "reported";
 
-    const totalLine = createElement(
-      "div",
-      "candidate-signals-dossier-visibility-total"
-    );
-    const totalText = composition.complete
-      ? numberText(composition.total)
-      : composition.anyPublished
-        ? "Incomplete"
-        : "No current evidence";
-    totalLine.append(
-      createElement(
-        "strong",
-        `candidate-signals-dossier-visibility-total-value${
-          composition.complete ? "" : " is-textual"
-        }`,
-        totalText
-      )
-    );
-    if (composition.anyPublished || composition.complete) {
+    if (!campaignReported && !generalReported) {
+      card.append(
+        createElement(
+          "p",
+          "candidate-signals-card-state",
+          "No current campaign/election or general visibility evidence."
+        )
+      );
+      return card;
+    }
+
+    const composition = scopeComposition(candidate);
+    const [campaignCount, electionCount, generalCount] =
+      composition.values;
+
+    if (campaignReported && composition.anyPublished) {
+      const totalLine = createElement(
+        "div",
+        "candidate-signals-dossier-visibility-total"
+      );
+      const totalText = composition.complete
+        ? numberText(composition.total)
+        : "Incomplete";
+
       totalLine.append(
+        createElement(
+          "strong",
+          `candidate-signals-dossier-visibility-total-value${
+            composition.complete ? "" : " is-textual"
+          }`,
+          totalText
+        ),
         createElement(
           "span",
           "candidate-signals-dossier-visibility-total-label",
           "Published records"
         )
       );
-    }
-    card.append(totalLine);
+      card.append(totalLine);
 
-    const stack = createElement(
-      "div",
-      `candidate-signals-dossier-composition-stack${
-        composition.complete ? "" : " is-incomplete"
-      }`
-    );
-    stack.setAttribute("aria-hidden", "true");
-
-    [
-      [campaignCount, "campaign"],
-      [electionCount, "election"],
-      [generalCount, "general"]
-    ].forEach(([count, tone]) => {
-      const segment = createElement(
-        "span",
-        `candidate-signals-dossier-composition-segment is-${tone}`
+      const stack = createElement(
+        "div",
+        `candidate-signals-dossier-composition-stack${
+          composition.complete ? "" : " is-incomplete"
+        }`
       );
-      const width = (
-        composition.complete && composition.total > 0 && count !== null
-      ) ? (count / composition.total) * 100 : 0;
-      segment.style.width = `${Math.max(0, Math.min(100, width))}%`;
-      stack.append(segment);
-    });
-    card.append(stack);
+      stack.setAttribute("aria-hidden", "true");
 
-    const scopeGrid = createElement(
-      "div",
-      "candidate-signals-dossier-scope-grid"
-    );
-    scopeGrid.append(
-      dossierScopeCell(
-        "Campaign",
-        campaignCount,
-        composition.total,
-        "campaign",
-        composition.complete
-      ),
-      dossierScopeCell(
-        "Election",
-        electionCount,
-        composition.total,
-        "election",
-        composition.complete
-      ),
-      dossierScopeCell(
-        "General",
-        generalCount,
-        composition.total,
-        "general",
-        composition.complete
-      )
-    );
-    card.append(scopeGrid);
+      [
+        [campaignCount, "campaign"],
+        [electionCount, "election"],
+        [generalCount, "general"]
+      ].forEach(([count, tone]) => {
+        const segment = createElement(
+          "span",
+          `candidate-signals-dossier-composition-segment is-${tone}`
+        );
+        const width = (
+          composition.complete &&
+          composition.total > 0 &&
+          count !== null
+        )
+          ? (count / composition.total) * 100
+          : 0;
+
+        segment.style.width =
+          `${Math.max(0, Math.min(100, width))}%`;
+        stack.append(segment);
+      });
+      card.append(stack);
+
+      const scopeGrid = createElement(
+        "div",
+        "candidate-signals-dossier-scope-grid"
+      );
+      scopeGrid.append(
+        dossierScopeCell(
+          "Campaign",
+          campaignCount,
+          composition.total,
+          "campaign",
+          composition.complete
+        ),
+        dossierScopeCell(
+          "Election",
+          electionCount,
+          composition.total,
+          "election",
+          composition.complete
+        ),
+        dossierScopeCell(
+          "General",
+          generalCount,
+          composition.total,
+          "general",
+          composition.complete
+        )
+      );
+      card.append(scopeGrid);
+    }
 
     const summary = createElement(
       "div",
       "candidate-signals-dossier-visibility-summary"
     );
-    const campaignReported = campaign?.evidence_state === "reported";
-    const generalReported = general?.evidence_state === "reported";
-    summary.append(
-      summaryMeta(
-        "Campaign / election",
-        campaignReported
-          ? `${counted(campaign.record_count, "record")} · ${percentageText(
+
+    if (campaignReported) {
+      summary.append(
+        summaryMeta(
+          "Campaign / election",
+          `${counted(campaign.record_count, "record")} · ${percentageText(
             campaign.share,
             true
           )}`
-          : "No current evidence"
-      ),
-      summaryMeta(
-        "General visibility",
-        generalReported
-          ? `${counted(general.record_count, "record")} · ${percentageText(
+        )
+      );
+    }
+
+    if (generalReported) {
+      summary.append(
+        summaryMeta(
+          "General visibility",
+          `${counted(general.record_count, "record")} · ${percentageText(
             general.share,
             true
           )}`
-          : "No current evidence"
-      )
-    );
+        )
+      );
+    }
+
     card.append(summary);
     return card;
   }
@@ -2870,6 +3033,19 @@
     );
 
     const campaign = candidate.campaign_attention;
+    const reported = campaign?.evidence_state === "reported";
+
+    if (!reported) {
+      card.append(
+        createElement(
+          "p",
+          "candidate-signals-card-state",
+          "No campaign/election evidence observed in the current period."
+        )
+      );
+      return card;
+    }
+
     const stats = createElement(
       "div",
       "candidate-signals-structure-stats"
@@ -3026,6 +3202,18 @@
 
     const latest = candidate.scrutiny?.latest_14_days;
     const archive = candidate.scrutiny?.archive;
+
+    if (!latest && !archive) {
+      card.append(
+        createElement(
+          "p",
+          "candidate-signals-card-state",
+          "No scrutiny evidence is currently published."
+        )
+      );
+      return card;
+    }
+
     const newestDate = (
       latest?.newest_review_date || archive?.newest_review_date
     );
@@ -3033,33 +3221,52 @@
       "div",
       "candidate-signals-dossier-scrutiny-grid"
     );
-    grid.append(
-      dossierScrutinyPeriod("14 DAYS", latest, "is-current"),
-      dossierScrutinyPeriod("ARCHIVE", archive, "is-archive")
-    );
 
-    const review = createElement(
-      "section",
-      "candidate-signals-dossier-scrutiny-block is-review"
-    );
-    review.append(
-      createElement(
-        "h4",
-        "candidate-signals-scrutiny-period-title",
-        "LATEST REVIEW"
-      ),
-      createElement(
-        "strong",
-        "candidate-signals-dossier-review-date",
-        formatDisplayDate(newestDate)
-      ),
-      createElement(
-        "span",
-        "candidate-signals-dossier-review-note",
-        "Published review date"
-      )
-    );
-    grid.append(review);
+    if (latest) {
+      grid.append(
+        dossierScrutinyPeriod(
+          "14 DAYS",
+          latest,
+          "is-current"
+        )
+      );
+    }
+
+    if (archive) {
+      grid.append(
+        dossierScrutinyPeriod(
+          "ARCHIVE",
+          archive,
+          "is-archive"
+        )
+      );
+    }
+
+    if (newestDate) {
+      const review = createElement(
+        "section",
+        "candidate-signals-dossier-scrutiny-block is-review"
+      );
+      review.append(
+        createElement(
+          "h4",
+          "candidate-signals-scrutiny-period-title",
+          "LATEST REVIEW"
+        ),
+        createElement(
+          "strong",
+          "candidate-signals-dossier-review-date",
+          formatDisplayDate(newestDate)
+        ),
+        createElement(
+          "span",
+          "candidate-signals-dossier-review-note",
+          "Published review date"
+        )
+      );
+      grid.append(review);
+    }
+
     card.append(grid);
     return card;
   }
@@ -3237,54 +3444,73 @@
       "div",
       "candidate-signals-dossier-metrics"
     );
-    metrics.append(
-      dossierMetric(
-        "POLL EVIDENCE",
-        pollValue(candidate),
-        pollReported
-          ? [
-            rangeText(poll.range_min, poll.range_max),
-            hypothesisCount
-              ? `${hypothesisCount} hypotheses`
-              : null
-          ]
-          : ["Not tested in featured package"]
-      ),
-      dossierMetric(
-        "CAMPAIGN ATTENTION",
-        campaignReported ? percentageText(campaign.share, true) : MISSING,
-        campaignReported
-          ? [
+
+    const pollMetric = dossierMetric(
+      "POLL EVIDENCE",
+      pollValue(candidate),
+      pollReported
+        ? [
+          rangeText(poll.range_min, poll.range_max),
+          hypothesisCount
+            ? `${hypothesisCount} hypotheses`
+            : null
+        ]
+        : ["Not tested in featured package"]
+    );
+
+    const scrutinyMetric = latest
+      ? dossierMetric(
+        "SCRUTINY · 14 DAYS",
+        `${numberText(latest.about_count)} about · ${numberText(
+          latest.by_count
+        )} by`,
+        [
+          counted(latest.review_count, "review"),
+          newestDate
+            ? `Latest review · ${formatDisplayDate(newestDate)}`
+            : null
+        ],
+        "is-composite"
+      )
+      : dossierMetric(
+        "SCRUTINY · 14 DAYS",
+        "No current scrutiny evidence.",
+        [],
+        "is-composite is-empty"
+      );
+
+    if (campaignReported) {
+      metrics.append(
+        pollMetric,
+        dossierMetric(
+          "CAMPAIGN ATTENTION",
+          percentageText(campaign.share, true),
+          [
             counted(campaign.record_count, "record"),
             counted(campaign.publisher_count, "publisher")
           ]
-          : ["No current evidence"]
-      ),
-      dossierMetric(
-        "SCRUTINY · 14 DAYS",
-        latest
-          ? `${numberText(latest.about_count)} about · ${numberText(
-            latest.by_count
-          )} by`
-          : MISSING,
-        latest
-          ? [
-            counted(latest.review_count, "review"),
-            `Latest review · ${formatDisplayDate(newestDate)}`
-          ]
-          : ["No current evidence"],
-        "is-composite"
-      ),
-      dossierMetric(
-        "ACTIVE DAYS",
-        campaignReported && hasValue(campaign.active_day_count)
-          ? numberText(campaign.active_day_count)
-          : MISSING,
-        campaignReported
-          ? ["Current published period", periodText]
-          : ["No current evidence", periodText]
-      )
-    );
+        ),
+        scrutinyMetric,
+        dossierMetric(
+          "ACTIVE DAYS",
+          hasValue(campaign.active_day_count)
+            ? numberText(campaign.active_day_count)
+            : MISSING,
+          ["Current published period", periodText]
+        )
+      );
+    } else {
+      metrics.append(
+        pollMetric,
+        scrutinyMetric,
+        dossierMetric(
+          "CAMPAIGN / ELECTION EVIDENCE",
+          "No current campaign/election evidence.",
+          periodText ? [periodText] : [],
+          "is-empty is-wide"
+        )
+      );
+    }
 
     const grid = createElement("div", "candidate-signals-dossier-grid");
     grid.append(

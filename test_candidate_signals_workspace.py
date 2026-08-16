@@ -445,6 +445,49 @@ function details() {
     dossierCardTitles:
       mount.querySelectorAll(".candidate-signals-dossier-card-title")
         .map(node => node.textContent),
+    monitorButtonTexts:
+      buttons.map(button => button.textContent),
+    monitorEvidenceCounts:
+      buttons.map(
+        button =>
+          button.querySelectorAll(
+            ".candidate-signals-candidate-evidence"
+          ).length
+      ),
+    analysisCardTexts:
+      mount.querySelectorAll(".candidate-signals-analysis-card")
+        .map(node => node.textContent),
+    attentionRowTexts:
+      mount.querySelectorAll(".candidate-signals-attention-row")
+        .map(node => node.textContent),
+    attentionTrackCount:
+      mount.querySelectorAll(".candidate-signals-attention-track").length,
+    scrutinyCellCount:
+      mount.querySelectorAll(".candidate-signals-scrutiny-cell").length,
+    dossierMetricTexts:
+      mount.querySelectorAll(".candidate-signals-dossier-metric")
+        .map(node => node.textContent),
+    dossierCardTexts:
+      mount.querySelectorAll(".candidate-signals-dossier-card")
+        .map(node => node.textContent),
+    evidenceGroupTexts:
+      mount.querySelectorAll(".candidate-signals-evidence-group")
+        .map(node => node.textContent),
+    cardStateTexts:
+      mount.querySelectorAll(".candidate-signals-card-state")
+        .map(node => node.textContent),
+    dossierScopeCellCount:
+      mount.querySelectorAll(".candidate-signals-dossier-scope-cell").length,
+    dossierStructureStatCount:
+      mount.querySelectorAll(".candidate-signals-structure-stat").length,
+    dossierStructureRatioCount:
+      mount.querySelectorAll(
+        ".candidate-signals-dossier-structure-ratio"
+      ).length,
+    dossierScrutinyMetricCount:
+      mount.querySelectorAll(
+        ".candidate-signals-dossier-scrutiny-metric"
+      ).length,
     candidacyStatus:
       mount.querySelectorAll(".candidate-signals-candidacy-status")
         .map(node => node.textContent),
@@ -1016,18 +1059,37 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             self.workspace_js,
         )
 
-    def test_unpublished_fields_are_not_zero_and_published_zero_remains(self):
+    def test_absent_general_visibility_is_not_zero_or_not_published(self):
         source = payload(self.rows)
         selected_id = source["candidates"][0]["candidate_id"]
         source["candidates"][0]["general_visibility"] = None
+
         result = run_workspace(source, selected_id)
 
         self.assertEqual(result["resolved"], selected_id)
-        self.assertIn("Not published", result["text"])
         self.assertIn("Point estimate0%", result["text"])
         self.assertIn(
             "Campaign / election0 records · 0%",
             result["text"],
+        )
+        self.assertIn(
+            "No current general visibility evidence.",
+            result["analysisCardTexts"][1],
+        )
+        self.assertEqual(result["attentionTrackCount"], 1)
+
+        visibility = result["dossierCardTexts"][0]
+        self.assertIn("Campaign / election0 records · 0%", visibility)
+        self.assertNotIn("General visibilityNot published", visibility)
+
+        general_group = next(
+            text
+            for text in result["evidenceGroupTexts"]
+            if text.startswith("GENERAL STRUCTURE")
+        )
+        self.assertEqual(
+            general_group,
+            "GENERAL STRUCTURENo current general visibility evidence.",
         )
 
         range_only = payload(self.rows)
@@ -1051,6 +1113,273 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         self.assertIn(
             "Point estimateRange only",
             range_result["text"],
+        )
+
+    def test_absent_campaign_keeps_real_general_visibility_only(self):
+        source = payload(self.rows)
+        selected_id = source["candidates"][0]["candidate_id"]
+        source["candidates"][0]["campaign_attention"] = None
+
+        result = run_workspace(source, selected_id)
+
+        attention = result["analysisCardTexts"][1]
+        self.assertIn(
+            "No current campaign/election evidence.",
+            attention,
+        )
+        self.assertIn("General visibility25%", attention)
+        self.assertEqual(result["attentionTrackCount"], 1)
+
+        coverage = result["analysisCardTexts"][2]
+        self.assertIn(
+            "No campaign/election evidence observed in the current period.",
+            coverage,
+        )
+
+        visibility = result["dossierCardTexts"][0]
+        self.assertIn("General visibility1 record · 25%", visibility)
+        self.assertNotIn("Campaign / electionNot published", visibility)
+        self.assertEqual(result["dossierScopeCellCount"], 0)
+
+        structure = result["dossierCardTexts"][1]
+        self.assertIn(
+            "No campaign/election evidence observed in the current period.",
+            structure,
+        )
+        self.assertEqual(result["dossierStructureStatCount"], 0)
+        self.assertEqual(result["dossierStructureRatioCount"], 0)
+
+        self.assertEqual(len(result["dossierMetricTexts"]), 3)
+        self.assertTrue(
+            any(
+                "CAMPAIGN / ELECTION EVIDENCE"
+                "No current campaign/election evidence."
+                in text
+                for text in result["dossierMetricTexts"]
+            )
+        )
+        self.assertFalse(
+            any(
+                text.startswith("ACTIVE DAYS")
+                for text in result["dossierMetricTexts"]
+            )
+        )
+
+    def test_both_visibility_dimensions_collapse_to_one_state(self):
+        source = payload(self.rows)
+        selected_id = source["candidates"][0]["candidate_id"]
+        source["candidates"][0]["campaign_attention"] = None
+        source["candidates"][0]["general_visibility"] = None
+
+        result = run_workspace(source, selected_id)
+
+        expected = (
+            "No current campaign/election or general visibility evidence."
+        )
+
+        self.assertIn(expected, result["analysisCardTexts"][1])
+        self.assertEqual(result["attentionTrackCount"], 0)
+
+        self.assertIn(expected, result["dossierCardTexts"][0])
+        self.assertEqual(result["dossierScopeCellCount"], 0)
+
+        self.assertIn(
+            "No campaign/election evidence observed in the current period.",
+            result["analysisCardTexts"][2],
+        )
+        self.assertIn(
+            "No campaign/election evidence observed in the current period.",
+            result["dossierCardTexts"][1],
+        )
+
+        campaign_group = next(
+            text
+            for text in result["evidenceGroupTexts"]
+            if text.startswith("CAMPAIGN / ELECTION STRUCTURE")
+        )
+        general_group = next(
+            text
+            for text in result["evidenceGroupTexts"]
+            if text.startswith("GENERAL STRUCTURE")
+        )
+
+        self.assertEqual(
+            campaign_group,
+            "CAMPAIGN / ELECTION STRUCTURE"
+            "No current campaign/election evidence.",
+        )
+        self.assertEqual(
+            general_group,
+            "GENERAL STRUCTURE"
+            "No current general visibility evidence.",
+        )
+
+    def test_unreported_campaign_object_does_not_leak_stale_counts(self):
+        source = payload(self.rows)
+        selected_id = source["candidates"][0]["candidate_id"]
+        campaign = source["candidates"][0]["campaign_attention"]
+
+        # Keep deliberately stale populated fields behind a non-reported state.
+        campaign["evidence_state"] = "not_reported"
+        campaign["record_count"] = 99
+        campaign["share"] = 0.99
+        campaign["scope_counts"] = {
+            "campaign": 40,
+            "election": 30,
+            "general": 29,
+        }
+
+        result = run_workspace(source, selected_id)
+
+        self.assertIn(
+            "No current campaign/election evidence.",
+            result["analysisCardTexts"][1],
+        )
+        self.assertNotIn("99 REC", result["analysisCardTexts"][1])
+
+        self.assertIn(
+            "No campaign/election evidence observed in the current period.",
+            result["analysisCardTexts"][2],
+        )
+
+        self.assertEqual(result["dossierScopeCellCount"], 0)
+        self.assertEqual(result["dossierStructureStatCount"], 0)
+        self.assertEqual(result["dossierStructureRatioCount"], 0)
+
+        selected_monitor = next(
+            text
+            for text in result["monitorButtonTexts"]
+            if "Zeta Candidate" in text
+        )
+        self.assertNotIn("Campaign / election 99", selected_monitor)
+        self.assertNotIn("Attention99%", selected_monitor)
+
+    def test_scrutiny_absence_and_published_zero_are_distinct(self):
+        absent = payload(self.rows)
+        selected_id = absent["candidates"][0]["candidate_id"]
+        absent["candidates"][0]["scrutiny"] = None
+
+        absent_result = run_workspace(absent, selected_id)
+
+        self.assertIn(
+            "No scrutiny evidence is currently published.",
+            absent_result["analysisCardTexts"][3],
+        )
+        self.assertIn(
+            "No scrutiny evidence is currently published.",
+            absent_result["dossierCardTexts"][2],
+        )
+        self.assertEqual(absent_result["scrutinyCellCount"], 0)
+        self.assertEqual(absent_result["dossierScrutinyMetricCount"], 0)
+        self.assertTrue(
+            any(
+                "SCRUTINY · 14 DAYSNo current scrutiny evidence."
+                in text
+                for text in absent_result["dossierMetricTexts"]
+            )
+        )
+
+        scrutiny_group = next(
+            text
+            for text in absent_result["evidenceGroupTexts"]
+            if text.startswith("CLAIM SCRUTINY DETAIL")
+        )
+        self.assertEqual(
+            scrutiny_group,
+            "CLAIM SCRUTINY DETAIL"
+            "No scrutiny evidence currently published.",
+        )
+
+        zero = payload(self.rows)
+        zero_selected_id = zero["candidates"][0]["candidate_id"]
+
+        for period in ("latest_14_days", "archive"):
+            zero_period = zero["candidates"][0]["scrutiny"][period]
+            zero_period["review_count"] = 0
+            zero_period["by_count"] = 0
+            zero_period["about_count"] = 0
+
+        zero_result = run_workspace(zero, zero_selected_id)
+
+        self.assertEqual(zero_result["scrutinyCellCount"], 6)
+        self.assertEqual(zero_result["dossierScrutinyMetricCount"], 6)
+        self.assertNotIn(
+            "No scrutiny evidence is currently published.",
+            zero_result["analysisCardTexts"][3],
+        )
+        self.assertNotIn(
+            "No scrutiny evidence is currently published.",
+            zero_result["dossierCardTexts"][2],
+        )
+        self.assertIn(
+            "SCRUTINY · 14 DAYS0 about · 0 by",
+            "".join(zero_result["dossierMetricTexts"]),
+        )
+
+    def test_monitor_no_data_candidate_has_no_placeholder_fact_strip(self):
+        rows = json.loads(json.dumps(self.rows))
+        rows[0]["campaign_attention"] = None
+        rows[0]["general_visibility"] = None
+        rows[0]["scrutiny"] = None
+
+        result = run_workspace(payload(rows), "zeta")
+
+        selected_index = result["candidateOrder"].index("zeta")
+        selected_text = result["monitorButtonTexts"][selected_index]
+
+        self.assertIn("No current coverage evidence", selected_text)
+        self.assertNotIn("Not published", selected_text)
+        self.assertEqual(
+            result["monitorEvidenceCounts"][selected_index],
+            0,
+        )
+
+        # Other populated candidates retain their fact strips.
+        self.assertTrue(
+            any(
+                count == 1
+                for index, count in enumerate(result["monitorEvidenceCounts"])
+                if index != selected_index
+            )
+        )
+
+    def test_populated_empty_state_redesign_preserves_existing_semantics(self):
+        result = run_workspace(payload(self.rows), "zeta")
+
+        self.assertEqual(len(result["analysisCardTexts"]), 4)
+        self.assertEqual(len(result["dossierMetricTexts"]), 4)
+        self.assertEqual(len(result["dossierCardTexts"]), 4)
+
+        self.assertEqual(result["attentionTrackCount"], 2)
+        self.assertEqual(result["dossierScopeCellCount"], 3)
+        self.assertEqual(result["dossierStructureStatCount"], 4)
+        self.assertEqual(result["dossierStructureRatioCount"], 2)
+        self.assertEqual(result["scrutinyCellCount"], 6)
+        self.assertEqual(result["dossierScrutinyMetricCount"], 6)
+        self.assertEqual(len(result["evidenceGroupTexts"]), 4)
+
+        self.assertIn("Point estimate0%", result["text"])
+        self.assertIn("0 REC · 2 PUB · 3 DAYS", result["text"])
+        self.assertIn(
+            "Campaign / election0 records · 0%",
+            result["text"],
+        )
+        self.assertIn("General visibility1 record · 25%", result["text"])
+        self.assertIn("SCRUTINY · 14 DAYS", result["text"])
+
+        self.assertFalse(
+            any(
+                "No current campaign/election or general visibility evidence."
+                in text
+                for text in result["analysisCardTexts"]
+            )
+        )
+        self.assertFalse(
+            any(
+                "No scrutiny evidence is currently published."
+                in text
+                for text in result["dossierCardTexts"]
+            )
         )
 
     def test_visibility_composition_and_scrutiny_dimensions_remain_separate(self):
@@ -1658,9 +1987,13 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             "function candidacyEvidence(candidate)",
             "candidate-signals-composition-visual",
             "const complete = values.every(value => value !== null);",
-            "composition.complete && composition.total > 0",
         ):
             self.assertIn(required, self.workspace_js)
+
+        self.assertRegex(
+            self.workspace_js,
+            r"composition\.complete\s*&&\s*composition\.total > 0",
+        )
 
         for required in (
             "min-height: 120px;",
@@ -1669,6 +2002,22 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             "width: 78px;",
             "width: 118px;",
             "min-height: 132px;",
+        ):
+            self.assertIn(required, self.css)
+
+    def test_empty_state_visual_contract(self):
+        for required in (
+            ".candidate-signals-attention-row.is-unavailable\n"
+            "  .candidate-signals-attention-detail {",
+            ".candidate-signals-dossier-metric.is-empty {",
+            ".candidate-signals-dossier-metric.is-wide {",
+            ".candidate-signals-dossier-card > "
+            ".candidate-signals-card-state {",
+            "grid-auto-flow: column;",
+            "grid-auto-columns: minmax(0, 1fr);",
+            ".candidate-signals-dossier-details-content\n"
+            "  .candidate-signals-evidence-group\n"
+            "  > .candidate-signals-development-empty {",
         ):
             self.assertIn(required, self.css)
 
