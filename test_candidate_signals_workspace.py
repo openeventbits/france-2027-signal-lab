@@ -1351,7 +1351,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         self.assertEqual(len(result["dossierCardTexts"]), 4)
 
         self.assertEqual(result["attentionTrackCount"], 2)
-        self.assertEqual(result["dossierScopeCellCount"], 3)
+        self.assertEqual(result["dossierScopeCellCount"], 2)
         self.assertEqual(result["dossierStructureStatCount"], 4)
         self.assertEqual(result["dossierStructureRatioCount"], 2)
         self.assertEqual(result["scrutinyCellCount"], 6)
@@ -1390,13 +1390,22 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             "General visibility",
             "Campaign",
             "Election",
-            "General",
             "14 days · BY",
             "14 days · ABOUT",
             "Archive · BY",
             "Archive · ABOUT",
         ):
             self.assertIn(label, text)
+
+        race_mix = result["analysisCardTexts"][2]
+        self.assertIn("Campaign", race_mix)
+        self.assertIn("Election", race_mix)
+        self.assertNotIn("General", race_mix)
+
+        self.assertIn(
+            "General visibility",
+            result["dossierCardTexts"][0],
+        )
         self.assertNotIn("claim row", self.workspace_js.lower())
 
     def test_selected_analysis_has_exact_four_cards(self):
@@ -1407,7 +1416,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             [
                 "POLL EVIDENCE",
                 "CAMPAIGN ATTENTION",
-                "COVERAGE MIX",
+                "RACE COVERAGE MIX",
                 "SCRUTINY",
             ],
         )
@@ -1981,6 +1990,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         for required in (
             "function candidateFact(label, value, className = \"\")",
             "function scopeComposition(candidate)",
+            'const values = ["campaign", "election"].map(key => {',
             "function analysisLatestDevelopment(candidate)",
             "function dossierLatestDevelopment(candidate)",
             "function evidenceStructureBreakdown(candidate, metadata)",

@@ -892,7 +892,7 @@
     )
       ? candidate.campaign_attention.scope_counts
       : null;
-    const values = ["campaign", "election", "general"].map(key => {
+    const values = ["campaign", "election"].map(key => {
       const value = counts?.[key];
       if (!hasValue(value)) return null;
       const number = Number(value);
@@ -1365,11 +1365,11 @@
 
   function scopeCompositionCard(candidate) {
     const card = summaryCard(
-      "COVERAGE MIX",
+      "RACE COVERAGE MIX",
       "candidate-signals-composition-card"
     );
     const composition = scopeComposition(candidate);
-    const [campaign, election, general] = composition.values;
+    const [campaign, election] = composition.values;
 
     if (!composition.anyPublished) {
       card.append(
@@ -1415,10 +1415,10 @@
     stack.setAttribute(
       "aria-label",
       composition.complete
-        ? `Coverage composition: ${numberText(campaign)} campaign, ${
+        ? `Race coverage composition: ${numberText(campaign)} campaign, ${
           numberText(election)
-        } election, ${numberText(general)} general`
-        : "Coverage composition is incomplete"
+        } election`
+        : "Race coverage composition is incomplete"
     );
     stack.append(
       compositionSegment(
@@ -1430,12 +1430,6 @@
       compositionSegment(
         "election",
         election,
-        composition.total,
-        composition.complete
-      ),
-      compositionSegment(
-        "general",
-        general,
         composition.total,
         composition.complete
       )
@@ -1460,13 +1454,6 @@
         election,
         composition.total,
         "election",
-        composition.complete
-      ),
-      scopeLegendRow(
-        "General",
-        general,
-        composition.total,
-        "general",
         composition.complete
       )
     );
@@ -2858,7 +2845,7 @@
     }
 
     const composition = scopeComposition(candidate);
-    const [campaignCount, electionCount, generalCount] =
+    const [campaignCount, electionCount] =
       composition.values;
 
     if (campaignReported && composition.anyPublished) {
@@ -2881,7 +2868,7 @@
         createElement(
           "span",
           "candidate-signals-dossier-visibility-total-label",
-          "Published records"
+          "Race records"
         )
       );
       card.append(totalLine);
@@ -2896,8 +2883,7 @@
 
       [
         [campaignCount, "campaign"],
-        [electionCount, "election"],
-        [generalCount, "general"]
+        [electionCount, "election"]
       ].forEach(([count, tone]) => {
         const segment = createElement(
           "span",
@@ -2934,13 +2920,6 @@
           electionCount,
           composition.total,
           "election",
-          composition.complete
-        ),
-        dossierScopeCell(
-          "General",
-          generalCount,
-          composition.total,
-          "general",
           composition.complete
         )
       );
