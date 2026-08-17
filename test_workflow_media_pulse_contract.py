@@ -14,7 +14,10 @@ class WorkflowMediaPulseContractTests(unittest.TestCase):
         for filename in (
             "test_candidate_coverage_scope.py",
             "test_candidate_identity_contract.py",
+            "test_candidate_visibility_history_contract.py",
+            "test_build_candidate_visibility_history.py",
             "test_campaign_agenda_evidence.py",
+            "test_news_workflow_contract.py",
             "test_workflow_media_pulse_contract.py",
         ):
             with self.subTest(filename=filename):
@@ -86,6 +89,44 @@ class WorkflowMediaPulseContractTests(unittest.TestCase):
         )
         self.assertLess(fetch, finalized)
         self.assertLess(finalized, derived)
+
+    def test_candidate_visibility_history_stays_downstream_of_news(self):
+        history_build = self.workflow.index(
+            "python -B build_candidate_visibility_history.py"
+        )
+
+        promotion = self.workflow.index(
+            "- name: Validate and promote generated data"
+        )
+
+        self.assertLess(
+            history_build,
+            promotion,
+        )
+
+        self.assertIn(
+            "--news /tmp/news_wire.json",
+            self.workflow,
+        )
+        self.assertIn(
+            "--output /tmp/candidate_visibility_history.json",
+            self.workflow,
+        )
+        self.assertIn(
+            "validate_candidate_visibility_history(",
+            self.workflow,
+        )
+
+        collector = (
+            ROOT
+            / "fetch_news_wire.py"
+        ).read_text(encoding="utf-8")
+
+        self.assertNotIn(
+            "candidate_visibility_history",
+            collector,
+        )
+
 
     def test_source_wide_candidate_visibility_contract_is_not_weakened(self):
         self.assertIn('"candidate_visibility": payload.get(', self.workflow)

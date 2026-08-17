@@ -8303,7 +8303,7 @@
     }
 
     function validatePublicationManifestPayload(payload) {
-      if (!payload || payload.schema_version !== "1.3") {
+      if (!payload || payload.schema_version !== "1.4") {
         throw new Error("publication_manifest.json has an unsupported schema");
       }
       if (!/^[0-9a-f]{64}$/.test(payload.snapshot_id || "")) {
@@ -11447,6 +11447,7 @@
   <script src="assets/candidate-signals.js"></script>
   <script src="assets/candidate-signals-workspace.js"></script>
   <script src="assets/candidate-attention.js"></script>
+  <script src="assets/candidate-visibility-history.js"></script>
     <script src="assets/hybrid-dashboard.js"></script>
 </body>
 </html>

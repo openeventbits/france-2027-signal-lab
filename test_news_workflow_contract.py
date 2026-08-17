@@ -35,6 +35,9 @@ class NewsWorkflowContractTests(unittest.TestCase):
         candidate_signals = post_rebase.index(
             "python -B build_candidate_signals.py"
         )
+        history = post_rebase.index(
+            "python -B build_candidate_visibility_history.py"
+        )
         manifest = post_rebase.index(
             "python -B build_publication_manifest.py"
         )
@@ -45,6 +48,10 @@ class NewsWorkflowContractTests(unittest.TestCase):
         )
         self.assertLess(
             candidate_signals,
+            history,
+        )
+        self.assertLess(
+            history,
             manifest,
         )
 
@@ -66,7 +73,7 @@ class NewsWorkflowContractTests(unittest.TestCase):
             )
 
         self.assertIn(
-            "recent_changes.json candidate_signals.json publication_manifest.json",
+            "recent_changes.json candidate_signals.json candidate_visibility_history.json publication_manifest.json",
             reconciliation,
         )
 
@@ -81,8 +88,77 @@ class NewsWorkflowContractTests(unittest.TestCase):
             final_validation,
         )
         self.assertIn(
-            "recent_changes.json candidate_signals.json publication_manifest.json",
+            "recent_changes.json candidate_signals.json candidate_visibility_history.json publication_manifest.json",
             final_validation,
+        )
+
+
+    def test_history_is_built_from_temporary_wire_before_promotion(self):
+        build = self.text.index(
+            "python -B build_candidate_visibility_history.py"
+        )
+        promotion = self.text.index(
+            "- name: Validate and promote generated data"
+        )
+
+        self.assertLess(
+            build,
+            promotion,
+        )
+
+        temporary_build = self.text[
+            build:promotion
+        ]
+
+        self.assertIn(
+            "--news /tmp/news_wire.json",
+            temporary_build,
+        )
+        self.assertIn(
+            "--candidacy-status candidate_candidacy_status.json",
+            temporary_build,
+        )
+        self.assertIn(
+            "--output /tmp/candidate_visibility_history.json",
+            temporary_build,
+        )
+
+        promotion_text = self.text[
+            promotion:
+        ]
+
+        self.assertIn(
+            "validate_candidate_visibility_history(",
+            promotion_text,
+        )
+        self.assertIn(
+            "current_history != history",
+            promotion_text,
+        )
+        self.assertIn(
+            "TEMP_HISTORY",
+            promotion_text,
+        )
+        self.assertIn(
+            "CURRENT_HISTORY",
+            promotion_text,
+        )
+
+
+    def test_history_is_committed_with_news_derived_outputs(self):
+        commit = self.text[
+            self.text.index(
+                "- name: Commit changed rolling news data"
+            ):
+        ]
+
+        self.assertIn(
+            "candidate_visibility_history.json",
+            commit,
+        )
+        self.assertIn(
+            "python -B build_candidate_visibility_history.py",
+            commit,
         )
 
 
