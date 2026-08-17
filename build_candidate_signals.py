@@ -1393,6 +1393,91 @@ def _validated_candidate_watch(
             raise CandidateSignalsError(
                 f"{context}.candidates contains duplicates"
             )
+
+        candidate_matches = _require_list(
+            item.get("candidate_matches"),
+            f"{context}.candidate_matches",
+        )
+        matched_candidates: list[str] = []
+        headline_candidate_keys: list[str] = []
+        approved_match_keys = {
+            "candidate",
+            "matched_aliases",
+            "locations",
+        }
+        approved_locations = {"headline", "summary"}
+
+        for match_index, match_value in enumerate(candidate_matches):
+            match_context = (
+                f"{context}.candidate_matches[{match_index}]"
+            )
+            match = _require_object(match_value, match_context)
+            if set(match) != approved_match_keys:
+                raise CandidateSignalsError(
+                    f"{match_context} has unexpected fields"
+                )
+
+            match_candidate = match["candidate"]
+            if (
+                not isinstance(match_candidate, str)
+                or not match_candidate.strip()
+            ):
+                raise CandidateSignalsError(
+                    f"{match_context}.candidate must be non-empty"
+                )
+
+            try:
+                match_key = normalized_candidate_key(
+                    canonical_candidate_name(match_candidate)
+                )
+            except CandidateIdentityError as error:
+                raise CandidateSignalsError(
+                    f"{match_context}.candidate: {error}"
+                ) from error
+
+            matched_aliases = match["matched_aliases"]
+            if (
+                not isinstance(matched_aliases, list)
+                or not matched_aliases
+                or any(
+                    not isinstance(alias, str) or not alias.strip()
+                    for alias in matched_aliases
+                )
+                or len(matched_aliases) != len(set(matched_aliases))
+            ):
+                raise CandidateSignalsError(
+                    f"{match_context}.matched_aliases is invalid"
+                )
+
+            locations = match["locations"]
+            if (
+                not isinstance(locations, list)
+                or not locations
+                or any(
+                    location not in approved_locations
+                    for location in locations
+                )
+                or len(locations) != len(set(locations))
+            ):
+                raise CandidateSignalsError(
+                    f"{match_context}.locations is invalid"
+                )
+
+            matched_candidates.append(match_candidate)
+
+            if "headline" in locations:
+                headline_candidate_keys.append(match_key)
+
+        if len(matched_candidates) != len(set(matched_candidates)):
+            raise CandidateSignalsError(
+                f"{context}.candidate_matches contains duplicates"
+            )
+
+        if sorted(matched_candidates) != sorted(candidates):
+            raise CandidateSignalsError(
+                f"{context}.candidates and candidate_matches disagree"
+            )
+
         url = item.get("url")
         validated.append(
             {
@@ -1405,6 +1490,7 @@ def _validated_candidate_watch(
                 "_usable_url": _usable_url(url),
                 "coverage_scope": coverage_scope,
                 "_candidate_keys": candidate_keys,
+                "_headline_candidate_keys": headline_candidate_keys,
             }
         )
     return validated
@@ -2049,7 +2135,7 @@ def select_latest_development(
     matches = [
         item
         for item in items
-        if key in item["_candidate_keys"]
+        if key in item["_headline_candidate_keys"]
         and item["coverage_scope"] in PRIMARY_SCOPES
         and item["_usable_url"]
     ]
@@ -2086,7 +2172,7 @@ def project_latest_developments(
         matches = [
             item
             for item in items
-            if key in item["_candidate_keys"]
+            if key in item["_headline_candidate_keys"]
             and item["coverage_scope"] in PRIMARY_SCOPES
             and item["_usable_url"]
         ]
