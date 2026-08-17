@@ -206,7 +206,156 @@ def candidate_attention_state(rows):
     }
 
 
-def run_workspace(input_payload, selected_id=None, action=None, candidate_attention=None):
+
+
+def candidate_visibility_history_state(
+    rows,
+    campaign_zero=False,
+    general_gap_index=10,
+):
+    start = date(2026, 7, 19)
+    day_values = [
+        (
+            start
+            + timedelta(days=offset)
+        ).isoformat()
+        for offset in range(29)
+    ]
+
+    campaign_denominators = [
+        {
+            "date": current_date,
+            "record_count": 4,
+            "publisher_count": 3,
+        }
+        for current_date in day_values
+    ]
+
+    general_denominators = [
+        {
+            "date": current_date,
+            "record_count": (
+                0
+                if index == general_gap_index
+                else 3
+            ),
+            "publisher_count": (
+                0
+                if index == general_gap_index
+                else 3
+            ),
+        }
+        for index, current_date
+        in enumerate(day_values)
+    ]
+
+    candidates = []
+
+    for candidate_index, row in enumerate(rows):
+        campaign_count = (
+            0
+            if campaign_zero
+            else candidate_index + 1
+        )
+
+        campaign_series = []
+        general_series = []
+
+        for day_index, current_date in enumerate(
+            day_values
+        ):
+            campaign_series.append(
+                {
+                    "date": current_date,
+                    "record_count": campaign_count,
+                    "share": round(
+                        campaign_count / 4,
+                        3,
+                    ),
+                    "publisher_count": min(
+                        campaign_count,
+                        2,
+                    ),
+                }
+            )
+
+            if day_index == general_gap_index:
+                general_series.append(
+                    {
+                        "date": current_date,
+                        "record_count": 0,
+                        "share": None,
+                        "publisher_count": 0,
+                    }
+                )
+            else:
+                general_count = min(
+                    candidate_index + 1,
+                    3,
+                )
+
+                general_series.append(
+                    {
+                        "date": current_date,
+                        "record_count": general_count,
+                        "share": round(
+                            general_count / 3,
+                            3,
+                        ),
+                        "publisher_count": min(
+                            general_count,
+                            2,
+                        ),
+                    }
+                )
+
+        candidates.append(
+            {
+                "candidate_id": row["candidate_id"],
+                "candidate_name": row["candidate_name"],
+                "campaign_attention": {
+                    "daily_series": campaign_series,
+                },
+                "general_visibility": {
+                    "daily_series": general_series,
+                },
+            }
+        )
+
+    return {
+        "status": "ready",
+        "reason": None,
+        "payload": {
+            "schema_version": "1.0",
+            "period": {
+                "start_date": day_values[0],
+                "end_date": day_values[-1],
+                "days": 29,
+                "data_as_of": day_values[-1],
+                "day_boundary": "UTC",
+                "current_utc_day_excluded": True,
+            },
+            "lanes": {
+                "campaign_attention": {
+                    "daily_denominators":
+                        campaign_denominators,
+                },
+                "general_visibility": {
+                    "daily_denominators":
+                        general_denominators,
+                },
+            },
+            "candidates": candidates,
+        },
+    }
+
+def run_workspace(
+    input_payload,
+    selected_id=None,
+    action=None,
+    candidate_attention=None,
+    candidate_visibility_history=None,
+):
     script = r"""
 const fs = require("fs");
 const vm = require("vm");
@@ -332,6 +481,8 @@ function renderCurrent() {
   return api.render(mount, state, {
     selectedCandidateId: selected,
     candidateAttention: input.candidateAttention,
+    candidateVisibilityHistory:
+      input.candidateVisibilityHistory,
     onSelect(candidateId) {
       selectCalls.push(candidateId);
       selected = candidateId;
@@ -462,6 +613,47 @@ function details() {
         .map(node => node.textContent),
     attentionTrackCount:
       mount.querySelectorAll(".candidate-signals-attention-track").length,
+    historyChartCount:
+      mount.querySelectorAll(
+        ".candidate-signals-history-mini"
+      ).length,
+    historyLineCount:
+      mount.querySelectorAll(
+        ".candidate-signals-history-line"
+      ).length,
+    historyLineClasses:
+      mount.querySelectorAll(
+        ".candidate-signals-history-line"
+      ).map(node => node.className),
+    historyLinePoints:
+      mount.querySelectorAll(
+        ".candidate-signals-history-line"
+      ).map(node => node.getAttribute("points")),
+    historyPointCount:
+      mount.querySelectorAll(
+        ".candidate-signals-history-point"
+      ).length,
+    historyPointTitles:
+      mount.querySelectorAll(
+        ".candidate-signals-history-point"
+      ).map(node => {
+        const title = node.querySelector("title");
+        return title ? title.textContent : null;
+      }),
+    historySvgAria:
+      mount.querySelectorAll(
+        ".candidate-signals-history-chart"
+      ).map(
+        node => node.getAttribute("aria-label")
+      ),
+    historyMetaTexts:
+      mount.querySelectorAll(
+        ".candidate-signals-history-meta"
+      ).map(node => node.textContent),
+    historyStateTexts:
+      mount.querySelectorAll(
+        ".candidate-signals-history-state"
+      ).map(node => node.textContent),
     scrutinyCellCount:
       mount.querySelectorAll(".candidate-signals-scrutiny-cell").length,
     dossierMetricTexts:
@@ -517,6 +709,8 @@ process.stdout.write(JSON.stringify(details()));
                 "selectedId": selected_id,
                 "action": action,
                 "candidateAttention": candidate_attention,
+                "candidateVisibilityHistory":
+                    candidate_visibility_history,
             }
         ),
         cwd=ROOT,
@@ -540,6 +734,210 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             candidate("alpha", "Alpha Candidate"),
             candidate("middle", "Middle Candidate"),
         ]
+
+
+    def test_visibility_history_renders_two_independent_daily_share_charts(self):
+        history = candidate_visibility_history_state(
+            self.rows
+        )
+
+        result = run_workspace(
+            payload(self.rows),
+            candidate_visibility_history=history,
+        )
+
+        self.assertEqual(
+            result["historyChartCount"],
+            2,
+        )
+
+        # Campaign: one continuous segment.
+        # General: one denominator-zero gap => two segments.
+        self.assertEqual(
+            result["historyLineCount"],
+            3,
+        )
+
+        primary_lines = [
+            value
+            for value in result[
+                "historyLineClasses"
+            ]
+            if "is-primary" in value
+        ]
+
+        general_lines = [
+            value
+            for value in result[
+                "historyLineClasses"
+            ]
+            if "is-general" in value
+        ]
+
+        self.assertEqual(
+            len(primary_lines),
+            1,
+        )
+
+        self.assertEqual(
+            len(general_lines),
+            2,
+        )
+
+        self.assertEqual(
+            result["historyPointCount"],
+            57,
+        )
+
+        self.assertEqual(
+            len(result["historyMetaTexts"]),
+            2,
+        )
+
+        for meta in result["historyMetaTexts"]:
+            self.assertIn(
+                "29D DAILY SHARE",
+                meta,
+            )
+            self.assertIn(
+                "THROUGH 16 AUG 2026",
+                meta,
+            )
+
+        self.assertEqual(
+            len(result["historySvgAria"]),
+            2,
+        )
+
+        for label in result["historySvgAria"]:
+            self.assertIn(
+                "daily share of lane coverage",
+                label,
+            )
+            self.assertIn(
+                "Gaps mark days with no lane denominator.",
+                label,
+            )
+
+        titles = [
+            value
+            for value in result[
+                "historyPointTitles"
+            ]
+            if value
+        ]
+
+        self.assertTrue(titles)
+
+        for required in (
+            "daily share",
+            "candidate ",
+            "publisher",
+            "lane denominator",
+        ):
+            self.assertTrue(
+                all(
+                    required in value
+                    for value in titles
+                )
+            )
+
+    def test_all_zero_daily_share_remains_visible_on_baseline(self):
+        history = candidate_visibility_history_state(
+            self.rows,
+            campaign_zero=True,
+        )
+
+        result = run_workspace(
+            payload(self.rows),
+            candidate_visibility_history=history,
+        )
+
+        primary = [
+            points
+            for class_name, points in zip(
+                result["historyLineClasses"],
+                result["historyLinePoints"],
+            )
+            if "is-primary" in class_name
+        ]
+
+        self.assertEqual(
+            len(primary),
+            1,
+        )
+
+        coordinates = primary[0].split()
+
+        self.assertEqual(
+            len(coordinates),
+            29,
+        )
+
+        y_values = {
+            coordinate.split(",")[1]
+            for coordinate in coordinates
+        }
+
+        self.assertEqual(
+            len(y_values),
+            1,
+        )
+
+    def test_history_unavailable_does_not_remove_snapshot_metrics(self):
+        history = {
+            "status": "unavailable",
+            "payload": None,
+            "reason": "fetch_failed",
+        }
+
+        result = run_workspace(
+            payload(self.rows),
+            candidate_visibility_history=history,
+        )
+
+        self.assertEqual(
+            result["attentionTrackCount"],
+            2,
+        )
+
+        self.assertEqual(
+            result["historyChartCount"],
+            2,
+        )
+
+        self.assertEqual(
+            result["historyLineCount"],
+            0,
+        )
+
+        self.assertEqual(
+            result["historyStateTexts"],
+            [
+                "29-day daily-share history unavailable.",
+                "29-day daily-share history unavailable.",
+            ],
+        )
+
+        self.assertTrue(
+            any(
+                "Campaign / election"
+                in value
+                for value in result[
+                    "attentionRowTexts"
+                ]
+            )
+        )
+
+        self.assertTrue(
+            any(
+                "General visibility"
+                in value
+                for value in result[
+                    "attentionRowTexts"
+                ]
+            )
+        )
 
     def test_workspace_assets_exist_and_load_in_required_order(self):
         self.assertTrue(WORKSPACE_JS.is_file())
@@ -1422,7 +1820,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         )
         for required in (
             "function pollSummaryCard(candidate, metadata)",
-            "function attentionSummaryCard(candidate)",
+            "function attentionSummaryCard(candidate, historyState)",
             "function scopeCompositionCard(candidate)",
             "function scrutinySummaryCard(candidate)",
             "function evidenceStructureBreakdown(candidate, metadata)",
@@ -1939,7 +2337,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
 
         for required in (
             "function pollSummaryCard(candidate, metadata)",
-            "function attentionSummaryCard(candidate)",
+            "function attentionSummaryCard(candidate, historyState)",
             "function scopeCompositionCard(candidate)",
             "function scrutinySummaryCard(candidate)",
             "function evidenceStructureBreakdown(candidate, metadata)",

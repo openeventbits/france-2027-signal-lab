@@ -39,6 +39,10 @@ from candidate_attention_contract import (
     CandidateAttentionContractError,
     validate_candidate_attention,
 )
+from candidate_visibility_history_contract import (
+    CandidateVisibilityHistoryContractError,
+    validate_candidate_visibility_history,
+)
 from campaign_events_contract import (
     CampaignEventsContractError,
     validate_campaign_events_artifact,
@@ -54,7 +58,7 @@ from source_health import (
 )
 
 
-SCHEMA_VERSION = "1.3"
+SCHEMA_VERSION = "1.4"
 OUTPUT_NAME = "publication_manifest.json"
 TIMESTAMP_STATUSES = {"known", "unknown", "missing", "invalid"}
 LANE_FILES = {
@@ -62,6 +66,9 @@ LANE_FILES = {
     "campaign_events": ("campaign_events.json",),
     "candidate_attention": ("candidate_attention.json",),
     "candidate_signals": ("candidate_signals.json",),
+    "candidate_visibility_history": (
+        "candidate_visibility_history.json",
+    ),
     "claims": ("claims_under_scrutiny.json",),
     "news": ("news_wire.json",),
     "polls": ("polls.json",),
@@ -736,6 +743,44 @@ def _validate_candidate_attention_public(payload: Any) -> int:
     return len(payload["candidates"])
 
 
+def _validate_candidate_visibility_history_public(
+    payload: Any,
+) -> int:
+    """Validate the intrinsic Candidate Visibility History contract."""
+
+    try:
+        validate_candidate_visibility_history(payload)
+    except CandidateVisibilityHistoryContractError as error:
+        raise ManifestError(
+            "candidate_visibility_history invalid structure: "
+            f"{error}"
+        ) from error
+
+    return len(payload["candidates"])
+
+
+def _validate_candidate_visibility_history_parity(
+    registry: Any,
+    history: Any,
+) -> None:
+    """Require exact complete-registry identity parity."""
+
+    try:
+        validate_candidate_candidacy_status(registry)
+        validate_candidate_visibility_history(
+            history,
+            expected_candidates=registry["candidates"],
+        )
+    except (
+        CandidateCandidacyStatusError,
+        CandidateVisibilityHistoryContractError,
+    ) as error:
+        raise ManifestError(
+            "candidate_visibility_history candidacy parity failed: "
+            f"{error}"
+        ) from error
+
+
 def _validate_candidate_attention_parity(
     registry: Any,
     candidate_attention: Any,
@@ -1028,6 +1073,12 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
         except CandidateAttentionContractError:
             return False
         return True
+    if lane_name == "candidate_visibility_history":
+        try:
+            validate_candidate_visibility_history(payload)
+        except CandidateVisibilityHistoryContractError:
+            return False
+        return True
     if lane_name == "candidate_signals":
         _validate_candidate_signals_public(payload)
         return True
@@ -1076,6 +1127,8 @@ def _evidence_values(lane_name: str, payload: Any) -> list[Any]:
     if lane_name == "candidacy_status":
         return [payload["status_as_of"]]
     if lane_name == "candidate_attention":
+        return [payload["period"]["data_as_of"]]
+    if lane_name == "candidate_visibility_history":
         return [payload["period"]["data_as_of"]]
     if lane_name == "candidate_signals":
         evidence_dates = payload["evidence_dates"]
@@ -1138,6 +1191,7 @@ def _build_lane(
         "candidacy_status",
         "candidate_attention",
         "candidate_signals",
+        "candidate_visibility_history",
     }:
         source_error = sources[0]["error"]
         if source_error is not None:
@@ -1169,7 +1223,10 @@ def _build_lane(
         ),
         "warnings": lane_warnings,
     }
-    if lane_name == "campaign_events":
+    if lane_name in {
+        "campaign_events",
+        "candidate_visibility_history",
+    }:
         lane["byte_size"] = primary["byte_size"]
     if len(file_names) > 1:
         lane["related_files"] = [
@@ -1238,6 +1295,10 @@ def _build_lane(
                         "unavailable_candidate_count": attention["validation"]["unavailable_candidate_count"],
                     }
                 )
+        if lane_name == "candidate_visibility_history":
+            lane["record_count"] = len(
+                primary["payload"]["candidates"]
+            )
         if lane_name == "candidate_signals":
             lane["record_count"] = primary["payload"][
                 "candidate_universe"
@@ -1397,6 +1458,18 @@ def build_manifest(
     )
 
     registry_payload = lane_sources["candidacy_status"][0]["payload"]
+
+    history_payload = (
+        lane_sources["candidate_visibility_history"][0]["payload"]
+    )
+    _validate_candidate_visibility_history_public(
+        history_payload
+    )
+    _validate_candidate_visibility_history_parity(
+        registry_payload,
+        history_payload,
+    )
+
     if lanes["claims"]["valid"]:
         _validate_claims_public(
             lane_sources["claims"][0]["payload"],
@@ -1451,7 +1524,7 @@ def validate_manifest(manifest: Any) -> None:
     if not isinstance(manifest, dict):
         raise ManifestError("manifest must be a JSON object")
     if manifest.get("schema_version") != SCHEMA_VERSION:
-        raise ManifestError("schema_version must equal 1.3")
+        raise ManifestError("schema_version must equal 1.4")
     snapshot_id = manifest.get("snapshot_id")
     if (
         not isinstance(snapshot_id, str)
@@ -1463,7 +1536,7 @@ def validate_manifest(manifest: Any) -> None:
 
     lanes = manifest.get("lanes")
     if not isinstance(lanes, dict) or set(lanes) != set(LANE_FILES):
-        raise ManifestError("manifest lanes do not match the version 1.3 contract")
+        raise ManifestError("manifest lanes do not match the version 1.4 contract")
     for lane_name, lane in lanes.items():
         if not isinstance(lane, dict):
             raise ManifestError(f"{lane_name} lane must be an object")
@@ -1532,6 +1605,7 @@ def validate_manifest(manifest: Any) -> None:
             "candidacy_status",
             "candidate_attention",
             "candidate_signals",
+            "candidate_visibility_history",
         }:
             _required_count(
                 lane.get("record_count"),
@@ -1554,6 +1628,21 @@ def validate_manifest(manifest: Any) -> None:
                 raise ManifestError("claims lane candidate query source is invalid")
             if lane["candidate_query_rule"] != "active_monitoring_field":
                 raise ManifestError("claims lane candidate query rule is invalid")
+        if lane_name == "candidate_visibility_history":
+            if lane["available"]:
+                _required_count(
+                    lane.get("byte_size"),
+                    field=(
+                        "candidate_visibility_history "
+                        "lane byte_size"
+                    ),
+                )
+            elif lane.get("byte_size") is not None:
+                raise ManifestError(
+                    "candidate_visibility_history lane "
+                    "byte_size must be null when missing"
+                )
+
         if lane_name == "campaign_events":
             if lane["available"]:
                 _required_count(
@@ -1644,7 +1733,7 @@ def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Build publication_manifest.json version 1.3"
+        description="Build publication_manifest.json version 1.4"
     )
     parser.add_argument(
         "--check",

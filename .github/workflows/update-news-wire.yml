@@ -39,7 +39,10 @@ jobs:
             test_news_wire_relevance.py \
             test_candidate_coverage_scope.py \
             test_candidate_identity_contract.py \
+            test_candidate_visibility_history_contract.py \
+            test_build_candidate_visibility_history.py \
             test_campaign_agenda_evidence.py \
+            test_news_workflow_contract.py \
             test_workflow_media_pulse_contract.py \
             test_recent_changes.py \
             test_publication_manifest.py \
@@ -61,6 +64,11 @@ jobs:
             --output /tmp/news_wire.json \
             --window-days 30 \
             --max-items 0
+
+          python -B build_candidate_visibility_history.py \
+            --news /tmp/news_wire.json \
+            --candidacy-status candidate_candidacy_status.json \
+            --output /tmp/candidate_visibility_history.json
 
           python generate_recent_changes.py \
             --news /tmp/news_wire.json \
@@ -119,6 +127,9 @@ jobs:
               INVENTORY_SCHEMA_VERSION,
               validate_output,
           )
+          from candidate_visibility_history_contract import (
+              validate_candidate_visibility_history,
+          )
           from source_health import (
               has_substantive_change,
               validate_source_health,
@@ -129,12 +140,21 @@ jobs:
           CURRENT_WIRE = Path("news_wire.json")
           CURRENT_LEDGER = Path("recent_changes.json")
           CURRENT_HEALTH = Path("source_health.json")
+          CURRENT_HISTORY = Path(
+              "candidate_visibility_history.json"
+          )
+          CURRENT_CANDIDACY = Path(
+              "candidate_candidacy_status.json"
+          )
           SOURCE_CONFIG = Path("news_sources.json")
 
           TEMP_INVENTORY = Path("/tmp/news_inventory.json")
           TEMP_WIRE = Path("/tmp/news_wire.json")
           TEMP_LEDGER = Path("/tmp/recent_changes.json")
           TEMP_HEALTH = Path("/tmp/source_health.json")
+          TEMP_HISTORY = Path(
+              "/tmp/candidate_visibility_history.json"
+          )
 
 
           def fail(message: str) -> None:
@@ -161,11 +181,14 @@ jobs:
           current_wire = load_json(CURRENT_WIRE)
           current_ledger = load_json(CURRENT_LEDGER)
           current_health = load_json(CURRENT_HEALTH)
+          current_history = load_json(CURRENT_HISTORY)
+          candidacy = load_json(CURRENT_CANDIDACY)
 
           inventory = load_json(TEMP_INVENTORY)
           wire = load_json(TEMP_WIRE)
           ledger = load_json(TEMP_LEDGER)
           health = load_json(TEMP_HEALTH)
+          history = load_json(TEMP_HISTORY)
           try:
               configured_sources = json.loads(
                   SOURCE_CONFIG.read_text(encoding="utf-8")
@@ -179,6 +202,14 @@ jobs:
           validate_output(wire)
           validate_source_health(current_health)
           validate_source_health(health)
+          validate_candidate_visibility_history(
+              current_history,
+              expected_candidates=candidacy["candidates"],
+          )
+          validate_candidate_visibility_history(
+              history,
+              expected_candidates=candidacy["candidates"],
+          )
 
 
           # Rolling inventory contract.
@@ -564,12 +595,16 @@ jobs:
               current_health,
               health,
           )
+          history_changed = (
+              current_history != history
+          )
 
           changed = (
               inventory_changed
               or wire_changed
               or ledger_changed
               or health_changed
+              or history_changed
           )
 
           if changed:
@@ -588,6 +623,10 @@ jobs:
               shutil.copyfile(
                   TEMP_HEALTH,
                   CURRENT_HEALTH,
+              )
+              shutil.copyfile(
+                  TEMP_HISTORY,
+                  CURRENT_HISTORY,
               )
 
           output_path = Path(os.environ["GITHUB_OUTPUT"])
@@ -626,7 +665,9 @@ jobs:
               f"inventory={inventory_changed}, "
               f"wire={wire_changed}, "
               f"ledger={ledger_changed}, "
-              f"source_health={health_changed}"
+              f"source_health={health_changed}, "
+              f"candidate_visibility_history="
+              f"{history_changed}"
           )
           PY
 
@@ -697,6 +738,7 @@ jobs:
             recent_changes.json \
             source_health.json \
             candidate_signals.json \
+            candidate_visibility_history.json \
             publication_manifest.json \
             source_icons.json \
             assets/source-icons
@@ -732,30 +774,38 @@ jobs:
             --output recent_changes.json
           python -B -c 'from candidate_candidacy_status import load_candidate_candidacy_status; load_candidate_candidacy_status("candidate_candidacy_status.json")'
           python -B build_candidate_signals.py --candidacy-status candidate_candidacy_status.json
+          python -B build_candidate_visibility_history.py \
+            --news news_wire.json \
+            --candidacy-status candidate_candidacy_status.json \
+            --output candidate_visibility_history.json
           python -B build_publication_manifest.py \
             --published-at "$post_rebase_published_at"
 
           if ! git diff --quiet -- \
-            recent_changes.json candidate_signals.json publication_manifest.json
+            recent_changes.json candidate_signals.json candidate_visibility_history.json publication_manifest.json
           then
             post_rebase_published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
             python -B build_publication_manifest.py \
               --published-at "$post_rebase_published_at"
             git add -- \
-              recent_changes.json candidate_signals.json publication_manifest.json
+              recent_changes.json candidate_signals.json candidate_visibility_history.json publication_manifest.json
             git commit --amend --no-edit
           fi
 
           final_published_at="$(python -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
           python -B -c 'from candidate_candidacy_status import load_candidate_candidacy_status; load_candidate_candidacy_status("candidate_candidacy_status.json")'
           python -B build_candidate_signals.py --candidacy-status candidate_candidacy_status.json
+          python -B build_candidate_visibility_history.py \
+            --news news_wire.json \
+            --candidacy-status candidate_candidacy_status.json \
+            --output candidate_visibility_history.json
           python -B build_publication_manifest.py \
             --published-at "$final_published_at"
           python -B build_publication_manifest.py \
             --check \
             --published-at "$final_published_at"
           git diff --exit-code -- \
-            recent_changes.json candidate_signals.json publication_manifest.json
+            recent_changes.json candidate_signals.json candidate_visibility_history.json publication_manifest.json
           git push origin "HEAD:$target_branch"
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
