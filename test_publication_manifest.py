@@ -30,6 +30,15 @@ def candidate_signals_payload():
 
 
 
+def candidate_visibility_history_payload():
+    return json.loads(
+        (
+            ROOT
+            / "candidate_visibility_history.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
 def legacy_candidate_attention_payload():
     """Return a deterministic, self-contained schema-1.0 fixture."""
 
@@ -266,6 +275,11 @@ def complete_inputs(root):
     )
     write_json(
         root,
+        "candidate_visibility_history.json",
+        candidate_visibility_history_payload(),
+    )
+    write_json(
+        root,
         "campaign_events.json",
         {
             "schema_version": "1.1",
@@ -446,7 +460,7 @@ class PublicationManifestTests(unittest.TestCase):
 
     def test_valid_complete_inputs(self):
         manifest = self.build()
-        self.assertEqual(manifest["schema_version"], "1.3")
+        self.assertEqual(manifest["schema_version"], "1.4")
         self.assertEqual(manifest["published_at"], PUBLISHED_AT)
         self.assertEqual(
             set(manifest["lanes"]),
@@ -455,6 +469,7 @@ class PublicationManifestTests(unittest.TestCase):
                 "campaign_events",
                 "candidate_attention",
                 "candidate_signals",
+                "candidate_visibility_history",
                 "polls",
                 "runoff",
                 "news",
@@ -468,6 +483,109 @@ class PublicationManifestTests(unittest.TestCase):
             self.assertTrue(lane["available"])
             self.assertTrue(lane["valid"])
             self.assertRegex(lane["sha256"], r"^[0-9a-f]{64}$")
+
+
+    def test_candidate_visibility_history_lane_metadata(self):
+        manifest = self.build()
+
+        lane = manifest["lanes"][
+            "candidate_visibility_history"
+        ]
+
+        source = (
+            self.root
+            / "candidate_visibility_history.json"
+        )
+
+        source_payload = json.loads(
+            source.read_text(
+                encoding="utf-8"
+            )
+        )
+
+        canonical = canonical_source_bytes(
+            source
+        )
+
+        self.assertEqual(
+            lane["file"],
+            "candidate_visibility_history.json",
+        )
+
+        self.assertTrue(
+            lane["available"]
+        )
+
+        self.assertTrue(
+            lane["valid"]
+        )
+
+        self.assertEqual(
+            lane["schema_version"],
+            "1.0",
+        )
+
+        self.assertEqual(
+            lane["data_as_of"],
+            source_payload[
+                "period"
+            ]["data_as_of"],
+        )
+
+        self.assertEqual(
+            lane["timestamp_status"],
+            "unknown",
+        )
+
+        self.assertEqual(
+            lane["record_count"],
+            len(
+                source_payload[
+                    "candidates"
+                ]
+            ),
+        )
+
+        self.assertEqual(
+            lane["byte_size"],
+            len(canonical),
+        )
+
+        self.assertEqual(
+            lane["sha256"],
+            hashlib.sha256(
+                canonical
+            ).hexdigest(),
+        )
+
+
+    def test_candidate_visibility_history_candidacy_parity(self):
+        source = (
+            self.root
+            / "candidate_visibility_history.json"
+        )
+
+        payload = json.loads(
+            source.read_text(
+                encoding="utf-8"
+            )
+        )
+
+        payload["candidates"][0][
+            "candidate_name"
+        ] += " Changed"
+
+        write_json(
+            self.root,
+            "candidate_visibility_history.json",
+            payload,
+        )
+
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "candidate_visibility_history candidacy parity",
+        ):
+            self.build()
 
 
     def test_candidacy_status_lane_metadata(self):
@@ -484,6 +602,7 @@ class PublicationManifestTests(unittest.TestCase):
                 "candidacy_status",
                 "candidate_attention",
                 "candidate_signals",
+                "candidate_visibility_history",
                 "claims",
                 "news",
                 "polls",
@@ -871,7 +990,79 @@ class PublicationManifestTests(unittest.TestCase):
         )
 
         self.assertEqual(rebuilt, repeated)
-        self.assertEqual(rebuilt, tracked_manifest)
+
+        if (
+            tracked_manifest["schema_version"]
+            == manifest_builder.SCHEMA_VERSION
+        ):
+            self.assertEqual(
+                rebuilt,
+                tracked_manifest,
+            )
+        else:
+            # Bounded publication-manifest 1.3 -> 1.4 migration:
+            # every existing publication fact must remain unchanged.
+            # Candidate Visibility History is the only permitted new lane.
+            self.assertEqual(
+                tracked_manifest["schema_version"],
+                "1.3",
+            )
+            self.assertEqual(
+                manifest_builder.SCHEMA_VERSION,
+                "1.4",
+            )
+            self.assertEqual(
+                rebuilt["schema_version"],
+                "1.4",
+            )
+            self.assertEqual(
+                rebuilt["published_at"],
+                tracked_manifest["published_at"],
+            )
+
+            self.assertEqual(
+                set(rebuilt["lanes"]),
+                set(tracked_manifest["lanes"])
+                | {"candidate_visibility_history"},
+            )
+
+            for lane_name, tracked_lane in tracked_manifest[
+                "lanes"
+            ].items():
+                with self.subTest(lane=lane_name):
+                    self.assertEqual(
+                        rebuilt["lanes"][lane_name],
+                        tracked_lane,
+                    )
+
+            history_lane = rebuilt["lanes"][
+                "candidate_visibility_history"
+            ]
+
+            self.assertEqual(
+                history_lane["file"],
+                "candidate_visibility_history.json",
+            )
+            self.assertTrue(history_lane["available"])
+            self.assertTrue(history_lane["valid"])
+
+            self.assertEqual(
+                rebuilt["source_network"],
+                tracked_manifest["source_network"],
+            )
+            self.assertEqual(
+                rebuilt["source_health"],
+                tracked_manifest["source_health"],
+            )
+            self.assertEqual(
+                rebuilt["warnings"],
+                tracked_manifest["warnings"],
+            )
+
+            self.assertNotEqual(
+                rebuilt["snapshot_id"],
+                tracked_manifest["snapshot_id"],
+            )
 
     def test_genuine_campaign_events_change_updates_digest_and_snapshot(self):
         production_root = self.production_inputs_root("campaign-change")

@@ -11,6 +11,7 @@ INDEX_PATH = ROOT / "index.html"
 MANIFEST_PATH = ROOT / "publication_manifest.json"
 
 CANDIDATE_SIGNALS_PATH = ROOT / "candidate_signals.json"
+VISIBILITY_HISTORY_PATH = ROOT / "candidate_visibility_history.json"
 
 def function_body(source, function_name, next_function_name):
     start = source.index(f"function {function_name}(")
@@ -71,15 +72,68 @@ class FrontendPublicationFactsTests(unittest.TestCase):
         manifest = json.loads(
             MANIFEST_PATH.read_text(encoding="utf-8")
         )
-        self.assertEqual(manifest["schema_version"], "1.3")
+        self.assertEqual(manifest["schema_version"], "1.4")
         self.assertIn(
-            'payload.schema_version !== "1.3"',
+            'payload.schema_version !== "1.4"',
             validator,
         )
         self.assertNotIn(
             'payload.schema_version !== "1.0"',
             validator,
         )
+
+    def test_publication_manifest_exposes_visibility_history_lane(self):
+        manifest = json.loads(
+            MANIFEST_PATH.read_text(
+                encoding="utf-8"
+            )
+        )
+        history = json.loads(
+            VISIBILITY_HISTORY_PATH.read_text(
+                encoding="utf-8"
+            )
+        )
+
+        lane = manifest["lanes"][
+            "candidate_visibility_history"
+        ]
+
+        self.assertEqual(
+            manifest["schema_version"],
+            "1.4",
+        )
+        self.assertEqual(
+            lane["file"],
+            "candidate_visibility_history.json",
+        )
+        self.assertTrue(
+            lane["available"]
+        )
+        self.assertTrue(
+            lane["valid"]
+        )
+        self.assertEqual(
+            lane["schema_version"],
+            "1.0",
+        )
+        self.assertEqual(
+            lane["data_as_of"],
+            history["period"]["data_as_of"],
+        )
+        self.assertEqual(
+            lane["record_count"],
+            len(history["candidates"]),
+        )
+        self.assertEqual(
+            lane["byte_size"],
+            len(
+                VISIBILITY_HISTORY_PATH
+                .read_bytes()
+                .replace(b"\r\n", b"\n")
+                .replace(b"\r", b"\n")
+            ),
+        )
+
 
     def test_publication_facts_version_active_field_snapshot(self):
         manifest = json.loads(
@@ -89,7 +143,7 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             CANDIDATE_SIGNALS_PATH.read_text(encoding="utf-8")
         )
         lane = manifest["lanes"]["candidate_signals"]
-        self.assertEqual(manifest["schema_version"], "1.3")
+        self.assertEqual(manifest["schema_version"], "1.4")
         self.assertEqual(
             lane["schema_version"],
             candidate["schema_version"],

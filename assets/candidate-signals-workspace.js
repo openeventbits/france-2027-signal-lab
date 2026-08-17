@@ -1280,7 +1280,414 @@
     return row;
   }
 
-  function attentionSummaryCard(candidate) {
+
+  function visibilityHistoryState(message) {
+    return createElement(
+      "div",
+      "candidate-signals-history-state",
+      message
+    );
+  }
+
+  function visibilityHistoryRecord(
+    candidate,
+    historyState
+  ) {
+    if (
+      historyState?.status !== "ready" ||
+      !Array.isArray(
+        historyState.payload?.candidates
+      )
+    ) {
+      return null;
+    }
+
+    return (
+      historyState.payload.candidates.find(
+        item =>
+          item.candidate_id ===
+            candidate.candidate_id
+      ) || null
+    );
+  }
+
+  function visibilityHistoryChart(
+    candidate,
+    historyState,
+    laneName,
+    tone,
+    laneLabel
+  ) {
+    const block = createElement(
+      "div",
+      `candidate-signals-history-mini is-${tone}`
+    );
+
+    block.dataset.historyLane = laneName;
+
+    const meta = createElement(
+      "div",
+      "candidate-signals-history-meta"
+    );
+
+    meta.append(
+      createElement(
+        "span",
+        "candidate-signals-history-kicker",
+        "29D DAILY SHARE"
+      )
+    );
+
+    const period =
+      historyState?.status === "ready"
+        ? historyState.payload?.period
+        : null;
+
+    if (hasValue(period?.data_as_of)) {
+      meta.append(
+        createElement(
+          "span",
+          "candidate-signals-history-asof",
+          `THROUGH ${formatDisplayDate(
+            period.data_as_of
+          ).toUpperCase()}`
+        )
+      );
+    }
+
+    block.append(meta);
+
+    if (historyState?.status === "loading") {
+      block.append(
+        visibilityHistoryState(
+          "Loading 29-day daily share…"
+        )
+      );
+      return block;
+    }
+
+    if (historyState?.status !== "ready") {
+      block.append(
+        visibilityHistoryState(
+          "29-day daily-share history unavailable."
+        )
+      );
+      return block;
+    }
+
+    const record =
+      visibilityHistoryRecord(
+        candidate,
+        historyState
+      );
+
+    const series =
+      record?.[laneName]?.daily_series;
+
+    const denominators =
+      historyState.payload?.lanes?.[
+        laneName
+      ]?.daily_denominators;
+
+    if (
+      !Array.isArray(series) ||
+      series.length !== 29 ||
+      !Array.isArray(denominators) ||
+      denominators.length !== 29
+    ) {
+      block.append(
+        visibilityHistoryState(
+          "Complete 29-day daily-share history unavailable."
+        )
+      );
+      return block;
+    }
+
+    const denominatorByDate =
+      new Map(
+        denominators.map(
+          point => [
+            point.date,
+            point
+          ]
+        )
+      );
+
+    const observedShares =
+      series
+        .filter(
+          point =>
+            point &&
+            point.share !== null &&
+            Number.isFinite(
+              Number(point.share)
+            )
+        )
+        .map(
+          point => Number(point.share)
+        );
+
+    if (!observedShares.length) {
+      block.append(
+        visibilityHistoryState(
+          "No qualifying lane records in this 29-day window."
+        )
+      );
+      return block;
+    }
+
+    const maximum =
+      Math.max(...observedShares);
+
+    const scaleMaximum =
+      maximum > 0
+        ? maximum
+        : 1;
+
+    const width = 260;
+    const height = 42;
+
+    const margin = {
+      top: 3,
+      right: 2,
+      bottom: 3,
+      left: 2
+    };
+
+    const usableWidth =
+      width -
+      margin.left -
+      margin.right;
+
+    const usableHeight =
+      height -
+      margin.top -
+      margin.bottom;
+
+    const xFor = index =>
+      margin.left +
+      (
+        usableWidth *
+        (
+          series.length <= 1
+            ? 0
+            : index /
+              (series.length - 1)
+        )
+      );
+
+    const yFor = share =>
+      margin.top +
+      (
+        usableHeight *
+        (
+          1 -
+          (
+            Number(share) /
+            scaleMaximum
+          )
+        )
+      );
+
+    const svg = wikipediaSvgElement(
+      "svg",
+      "candidate-signals-history-chart"
+    );
+
+    svg.setAttribute(
+      "viewBox",
+      `0 0 ${width} ${height}`
+    );
+
+    svg.setAttribute(
+      "preserveAspectRatio",
+      "none"
+    );
+
+    svg.setAttribute(
+      "role",
+      "img"
+    );
+
+    svg.setAttribute(
+      "aria-label",
+      `${laneLabel} daily share of lane coverage for ${
+        candidate.candidate_name
+      }, ${formatDisplayDate(
+        series[0].date
+      )} through ${formatDisplayDate(
+        series[series.length - 1].date
+      )}. Each point is candidate-linked records divided by all records in this lane. Gaps mark days with no lane denominator.`
+    );
+
+    const baseline = wikipediaSvgElement(
+      "line",
+      "candidate-signals-history-baseline"
+    );
+
+    baseline.setAttribute(
+      "x1",
+      margin.left
+    );
+
+    baseline.setAttribute(
+      "x2",
+      width - margin.right
+    );
+
+    baseline.setAttribute(
+      "y1",
+      height - margin.bottom
+    );
+
+    baseline.setAttribute(
+      "y2",
+      height - margin.bottom
+    );
+
+    baseline.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+
+    svg.append(baseline);
+
+    const segments = [];
+    let currentSegment = [];
+
+    const flushSegment = () => {
+      if (currentSegment.length) {
+        segments.push(
+          currentSegment
+        );
+        currentSegment = [];
+      }
+    };
+
+    series.forEach(
+      (point, index) => {
+        if (
+          point.share === null ||
+          !Number.isFinite(
+            Number(point.share)
+          )
+        ) {
+          flushSegment();
+          return;
+        }
+
+        currentSegment.push({
+          index,
+          point
+        });
+      }
+    );
+
+    flushSegment();
+
+    segments.forEach(segment => {
+      const line = wikipediaSvgElement(
+        "polyline",
+        `candidate-signals-history-line is-${tone}`
+      );
+
+      line.setAttribute(
+        "points",
+        segment.map(
+          item =>
+            `${xFor(
+              item.index
+            ).toFixed(2)},${yFor(
+              item.point.share
+            ).toFixed(2)}`
+        ).join(" ")
+      );
+
+      line.setAttribute(
+        "aria-hidden",
+        "true"
+      );
+
+      svg.append(line);
+    });
+
+    series.forEach(
+      (point, index) => {
+        if (
+          point.share === null ||
+          !Number.isFinite(
+            Number(point.share)
+          )
+        ) {
+          return;
+        }
+
+        const denominator =
+          denominatorByDate.get(
+            point.date
+          );
+
+        const label =
+          `${laneLabel}, ${formatDisplayDate(
+            point.date
+          )}: daily share ${percentageText(
+            point.share,
+            true
+          )}; candidate ${counted(
+            point.record_count,
+            "record"
+          )}; ${counted(
+            point.publisher_count,
+            "publisher"
+          )}; lane denominator ${counted(
+            denominator?.record_count,
+            "record"
+          )}.`;
+
+        const marker = wikipediaSvgElement(
+          "circle",
+          `candidate-signals-history-point is-${tone}`
+        );
+
+        marker.setAttribute(
+          "cx",
+          xFor(index)
+        );
+
+        marker.setAttribute(
+          "cy",
+          yFor(point.share)
+        );
+
+        marker.setAttribute(
+          "r",
+          index === series.length - 1
+            ? 2
+            : 1.35
+        );
+
+        marker.setAttribute(
+          "aria-label",
+          label
+        );
+
+        const title =
+          wikipediaSvgElement(
+            "title"
+          );
+
+        title.textContent = label;
+
+        marker.append(title);
+        svg.append(marker);
+      }
+    );
+
+    block.append(svg);
+    return block;
+  }
+
+  function attentionSummaryCard(candidate, historyState) {
     const card = summaryCard(
       "CAMPAIGN ATTENTION",
       "candidate-signals-attention-summary"
@@ -1299,7 +1706,6 @@
           "No current campaign/election or general visibility evidence."
         )
       );
-      return card;
     }
 
     const campaignShare = campaignReported
@@ -1319,19 +1725,45 @@
       "div",
       "candidate-signals-attention-visual"
     );
-    visual.append(
+    const campaignRow =
       attentionVisualRow(
         "Campaign / election",
         candidate.campaign_attention,
         "primary",
         scaleMaximum
-      ),
+      );
+
+    campaignRow.append(
+      visibilityHistoryChart(
+        candidate,
+        historyState,
+        "campaign_attention",
+        "primary",
+        "Campaign / election"
+      )
+    );
+
+    const generalRow =
       attentionVisualRow(
         "General visibility",
         candidate.general_visibility,
         "general",
         scaleMaximum
+      );
+
+    generalRow.append(
+      visibilityHistoryChart(
+        candidate,
+        historyState,
+        "general_visibility",
+        "general",
+        "General visibility"
       )
+    );
+
+    visual.append(
+      campaignRow,
+      generalRow
     );
 
     card.append(visual);
@@ -2498,7 +2930,12 @@
   }
 
 
-  function selectedAnalysis(candidate, metadata, attentionState) {
+  function selectedAnalysis(
+    candidate,
+    metadata,
+    attentionState,
+    visibilityHistoryState
+  ) {
     const section = createElement(
       "section",
       "candidate-signals-panel candidate-signals-analysis"
@@ -2519,7 +2956,10 @@
     const cards = createElement("div", "candidate-signals-analysis-cards");
     cards.append(
       pollSummaryCard(candidate, metadata),
-      attentionSummaryCard(candidate),
+      attentionSummaryCard(
+        candidate,
+        visibilityHistoryState
+      ),
       scopeCompositionCard(candidate),
       scrutinySummaryCard(candidate)
     );
@@ -3634,7 +4074,11 @@
       } else {
         render(mount, state, {
           selectedCandidateId: candidateId,
-          resolvePortrait: options.resolvePortrait
+          resolvePortrait: options.resolvePortrait,
+          candidateAttention:
+            options.candidateAttention,
+          candidateVisibilityHistory:
+            options.candidateVisibilityHistory
         });
       }
 
@@ -3657,7 +4101,8 @@
       selectedAnalysis(
         selectedCandidate,
         state.metadata || {},
-        options.candidateAttention
+        options.candidateAttention,
+        options.candidateVisibilityHistory
       ),
       candidateDossier(selectedCandidate, state.metadata || {}, options)
     );

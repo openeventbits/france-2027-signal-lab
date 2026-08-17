@@ -111,6 +111,11 @@
       payload: null,
       reason: null
     },
+    candidateVisibilityHistory: {
+      status: "loading",
+      payload: null,
+      reason: null
+    },
     scrollOnNextHash: false
   };
   const runoffArchiveState = {
@@ -174,6 +179,60 @@
         renderCandidateSignalsPanel();
 
         return candidateAttentionState;
+      });
+
+  const candidateVisibilityHistoryRequest =
+    Promise.resolve(candidateSignalsRequest)
+      .then(candidateSignalsState => {
+        if (
+          candidateSignalsState?.status !== "ready" ||
+          !Array.isArray(candidateSignalsState.candidates) ||
+          !candidateSignalsState.candidates.length
+        ) {
+          return {
+            status: "unavailable",
+            payload: null,
+            reason: "candidate_signals_unavailable"
+          };
+        }
+
+        const loader =
+          window.France2027CandidateVisibilityHistory;
+
+        if (!loader) {
+          return {
+            status: "unavailable",
+            payload: null,
+            reason: "history_loader_unavailable"
+          };
+        }
+
+        return loader.load(
+          "candidate_visibility_history.json",
+          candidateSignalsState.candidates
+        );
+      })
+      .then(candidateVisibilityHistoryState => {
+        state.candidateVisibilityHistory =
+          candidateVisibilityHistoryState;
+
+        renderCandidateSignalsPanel();
+
+        return candidateVisibilityHistoryState;
+      })
+      .catch(() => {
+        const candidateVisibilityHistoryState = {
+          status: "unavailable",
+          payload: null,
+          reason: "fetch_failed"
+        };
+
+        state.candidateVisibilityHistory =
+          candidateVisibilityHistoryState;
+
+        renderCandidateSignalsPanel();
+
+        return candidateVisibilityHistoryState;
       });
 
   const number = value => Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -5370,6 +5429,8 @@
         },
         candidateAttention:
           state.candidateAttention,
+        candidateVisibilityHistory:
+          state.candidateVisibilityHistory,
         resolvePortrait:
           resolveCandidateSignalsPortrait
       }
