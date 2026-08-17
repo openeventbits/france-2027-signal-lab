@@ -1241,6 +1241,320 @@ class RecentChangesTests(unittest.TestCase):
         )
 
 
+    def test_same_day_electoral_support_paraphrases_cluster_as_one_event(self):
+        reports = [
+            (
+                "darmanin-lavoix",
+                "La Voix du Nord",
+                "2026-08-17T07:30:00Z",
+                (
+                    "EXCLUSIF. Gérald Darmanin se rallie à Édouard Philippe "
+                    "pour la présidentielle : « J’ai décidé de ne pas "
+                    "rajouter de la division »"
+                ),
+            ),
+            (
+                "darmanin-midi",
+                "Midi Libre",
+                "2026-08-17T08:10:00Z",
+                (
+                    "Présidentielle 2027 : Gérald Darmanin renonce à se "
+                    "présenter seul et se rallie à Édouard Philippe"
+                ),
+            ),
+            (
+                "darmanin-tf1",
+                "TF1 Info",
+                "2026-08-17T08:45:00Z",
+                (
+                    "Présidentielle 2027 : Gérald Darmanin annonce soutenir "
+                    "Édouard Philippe"
+                ),
+            ),
+            (
+                "darmanin-parisien",
+                "Le Parisien",
+                "2026-08-17T09:15:00Z",
+                (
+                    "Présidentielle 2027 : Gérald Darmanin apporte "
+                    "officiellement son soutien à Édouard Philippe"
+                ),
+            ),
+        ]
+
+        items = [
+            {
+                "id": item_id,
+                "publisher": publisher,
+                "published_at": published_at,
+                "headline": headline,
+                "summary": "",
+                "url": f"https://example.test/{item_id}",
+                "explicit_election": True,
+                "candidates": [
+                    "Gérald Darmanin",
+                    "Édouard Philippe",
+                ],
+                "candidate_ids": [
+                    "gerald-darmanin",
+                    "edouard-philippe",
+                ],
+            }
+            for item_id, publisher, published_at, headline in reports
+        ]
+
+        entries = news_entries(
+            {
+                "generated_at": "2026-08-17T12:00:00Z",
+                "election_news": items,
+                "notable_developments": [],
+                "candidate_watch": [],
+            },
+            {},
+            parse_datetime("2026-08-17T12:00:00Z"),
+            Counter(),
+        )
+
+        campaign = [
+            item
+            for item in entries
+            if item["category"] == "campaign"
+        ]
+
+        self.assertEqual(len(campaign), 1)
+        self.assertEqual(
+            campaign[0]["primary_source"]["name"],
+            "La Voix du Nord",
+        )
+        self.assertEqual(campaign[0]["supporting_source_count"], 3)
+        self.assertEqual(
+            campaign[0]["candidate_ids"],
+            [
+                "edouard-philippe",
+                "gerald-darmanin",
+            ],
+        )
+        self.assertEqual(
+            {
+                source["name"]
+                for source in campaign[0]["supporting_sources"]
+            },
+            {
+                "Midi Libre",
+                "TF1 Info",
+                "Le Parisien",
+            },
+        )
+
+    def test_electoral_support_dedup_keeps_different_endorsers_separate(self):
+        items = [
+            {
+                "id": "darmanin-supports-philippe",
+                "publisher": "Publisher A",
+                "published_at": "2026-08-17T08:00:00Z",
+                "headline": (
+                    "Présidentielle 2027 : Gérald Darmanin annonce soutenir "
+                    "Édouard Philippe"
+                ),
+                "summary": "",
+                "url": "https://example.test/darmanin-supports-philippe",
+                "explicit_election": True,
+                "candidates": [
+                    "Gérald Darmanin",
+                    "Édouard Philippe",
+                ],
+                "candidate_ids": [
+                    "gerald-darmanin",
+                    "edouard-philippe",
+                ],
+            },
+            {
+                "id": "attal-supports-philippe",
+                "publisher": "Publisher B",
+                "published_at": "2026-08-17T09:00:00Z",
+                "headline": (
+                    "Présidentielle 2027 : Gabriel Attal annonce soutenir "
+                    "Édouard Philippe"
+                ),
+                "summary": "",
+                "url": "https://example.test/attal-supports-philippe",
+                "explicit_election": True,
+                "candidates": [
+                    "Gabriel Attal",
+                    "Édouard Philippe",
+                ],
+                "candidate_ids": [
+                    "gabriel-attal",
+                    "edouard-philippe",
+                ],
+            },
+        ]
+
+        entries = news_entries(
+            {
+                "generated_at": "2026-08-17T12:00:00Z",
+                "election_news": items,
+                "notable_developments": [],
+                "candidate_watch": [],
+            },
+            {},
+            parse_datetime("2026-08-17T12:00:00Z"),
+            Counter(),
+        )
+
+        self.assertEqual(len(entries), 2)
+
+    def test_electoral_support_dedup_keeps_different_destinations_separate(self):
+        items = [
+            {
+                "id": "darmanin-supports-philippe",
+                "publisher": "Publisher A",
+                "published_at": "2026-08-17T08:00:00Z",
+                "headline": (
+                    "Présidentielle 2027 : Gérald Darmanin annonce soutenir "
+                    "Édouard Philippe"
+                ),
+                "summary": "",
+                "url": "https://example.test/darmanin-supports-philippe",
+                "explicit_election": True,
+                "candidates": [
+                    "Gérald Darmanin",
+                    "Édouard Philippe",
+                ],
+                "candidate_ids": [
+                    "gerald-darmanin",
+                    "edouard-philippe",
+                ],
+            },
+            {
+                "id": "darmanin-supports-attal",
+                "publisher": "Publisher B",
+                "published_at": "2026-08-17T09:00:00Z",
+                "headline": (
+                    "Présidentielle 2027 : Gérald Darmanin annonce soutenir "
+                    "Gabriel Attal"
+                ),
+                "summary": "",
+                "url": "https://example.test/darmanin-supports-attal",
+                "explicit_election": True,
+                "candidates": [
+                    "Gérald Darmanin",
+                    "Gabriel Attal",
+                ],
+                "candidate_ids": [
+                    "gerald-darmanin",
+                    "gabriel-attal",
+                ],
+            },
+        ]
+
+        entries = news_entries(
+            {
+                "generated_at": "2026-08-17T12:00:00Z",
+                "election_news": items,
+                "notable_developments": [],
+                "candidate_watch": [],
+            },
+            {},
+            parse_datetime("2026-08-17T12:00:00Z"),
+            Counter(),
+        )
+
+        self.assertEqual(len(entries), 2)
+
+    def test_electoral_support_dedup_does_not_absorb_process_event(self):
+        support = {
+            "id": "darmanin-supports-philippe",
+            "publisher": "Publisher A",
+            "published_at": "2026-08-17T08:00:00Z",
+            "headline": (
+                "Présidentielle 2027 : Gérald Darmanin annonce soutenir "
+                "Édouard Philippe"
+            ),
+            "summary": "",
+            "url": "https://example.test/darmanin-supports-philippe",
+            "explicit_election": True,
+            "candidates": [
+                "Gérald Darmanin",
+                "Édouard Philippe",
+            ],
+            "candidate_ids": [
+                "gerald-darmanin",
+                "edouard-philippe",
+            ],
+        }
+        process = {
+            "id": "darmanin-philippe-primary-vote",
+            "publisher": "Publisher B",
+            "published_at": "2026-08-17T09:00:00Z",
+            "headline": (
+                "Présidentielle 2027 : Gérald Darmanin annonce un vote "
+                "de primaire avec Édouard Philippe"
+            ),
+            "summary": "",
+            "url": "https://example.test/darmanin-philippe-primary-vote",
+            "explicit_election": True,
+            "candidates": [
+                "Gérald Darmanin",
+                "Édouard Philippe",
+            ],
+            "candidate_ids": [
+                "gerald-darmanin",
+                "edouard-philippe",
+            ],
+        }
+
+        entries = news_entries(
+            {
+                "generated_at": "2026-08-17T12:00:00Z",
+                "election_news": [support, process],
+                "notable_developments": [],
+                "candidate_watch": [],
+            },
+            {},
+            parse_datetime("2026-08-17T12:00:00Z"),
+            Counter(),
+        )
+
+        self.assertEqual(len(entries), 2)
+
+    def test_retrospective_support_roundup_remains_non_material(self):
+        item = {
+            "id": "darmanin-support-retrospective",
+            "publisher": "Publisher A",
+            "published_at": "2026-08-17T10:00:00Z",
+            "headline": (
+                "Présidentielle 2027 : retour sur les soutiens de "
+                "Gérald Darmanin à Édouard Philippe"
+            ),
+            "summary": "",
+            "url": "https://example.test/darmanin-support-retrospective",
+            "explicit_election": True,
+            "candidates": [
+                "Gérald Darmanin",
+                "Édouard Philippe",
+            ],
+            "candidate_ids": [
+                "gerald-darmanin",
+                "edouard-philippe",
+            ],
+        }
+
+        entries = news_entries(
+            {
+                "generated_at": "2026-08-17T12:00:00Z",
+                "election_news": [item],
+                "notable_developments": [],
+                "candidate_watch": [],
+            },
+            {},
+            parse_datetime("2026-08-17T12:00:00Z"),
+            Counter(),
+        )
+
+        self.assertEqual(entries, [])
+
+
     def test_foreign_presidential_article_is_defensively_rejected(self):
         item = {
             "headline": (
