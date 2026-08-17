@@ -116,7 +116,7 @@ def lcp_retrospective_summary() -> str:
 class NewsWireRelevanceTests(unittest.TestCase):
     def test_feed_entry_and_concurrency_limits(self):
         self.assertEqual(DIRECT_ENTRY_LIMIT, 20)
-        self.assertEqual(DISCOVERY_ENTRY_LIMIT, 10)
+        self.assertEqual(DISCOVERY_ENTRY_LIMIT, 20)
         self.assertEqual(PUBLISHER_SITE_ENTRY_LIMIT, 5)
         self.assertLessEqual(FETCH_WORKERS, 12)
         self.assertEqual(GOOGLE_NEWS_WORKERS, 4)
