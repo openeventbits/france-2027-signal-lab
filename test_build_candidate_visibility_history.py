@@ -748,6 +748,21 @@ class CandidateVisibilityHistoryBuildTests(
             current_day_record
         )
 
+        counts = changed_news.get(
+            "counts"
+        )
+
+        self.assertIsInstance(
+            counts,
+            dict,
+        )
+
+        counts[
+            "candidate_watch"
+        ] = len(
+            candidate_watch
+        )
+
         parsed_generated_at = (
             parse_feed_datetime(
                 changed_news[
