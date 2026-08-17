@@ -287,6 +287,14 @@ def claims_fixture(
     }
 
 
+def candidate_match(candidate, *locations):
+    return {
+        "candidate": candidate,
+        "matched_aliases": [candidate],
+        "locations": list(locations),
+    }
+
+
 def watch_item(
     item_id,
     published_at,
@@ -294,7 +302,13 @@ def watch_item(
     *,
     candidate="Candidate A",
     url=None,
+    candidate_matches=None,
 ):
+    if candidate_matches is None:
+        candidate_matches = [
+            candidate_match(candidate, "headline")
+        ]
+
     return {
         "id": item_id,
         "publisher": "Publisher",
@@ -306,8 +320,11 @@ def watch_item(
             else url
         ),
         "explicit_election": scope == "election",
-        "candidates": [candidate],
-        "candidate_matches": [],
+        "candidates": [
+            match["candidate"]
+            for match in candidate_matches
+        ],
+        "candidate_matches": candidate_matches,
         "coverage_scope": scope,
     }
 
@@ -1189,6 +1206,183 @@ class LatestDevelopmentTests(unittest.TestCase):
             items,
         )
         self.assertEqual(selected["id"], "source-linked")
+
+    def test_headline_candidate_remains_eligible(self):
+        selected = builder.select_latest_development(
+            "Candidate A",
+            [
+                watch_item(
+                    "headline-subject",
+                    "2026-07-20T10:00:00Z",
+                    "election",
+                )
+            ],
+        )
+
+        self.assertEqual(selected["evidence_state"], "reported")
+        self.assertEqual(selected["id"], "headline-subject")
+
+    def test_summary_only_contextual_candidate_is_rejected(self):
+        contextual = watch_item(
+            "candidate-b-subject",
+            "2026-07-21T10:00:00Z",
+            "election",
+            candidate_matches=[
+                candidate_match("Candidate B", "headline"),
+                candidate_match("Candidate A", "summary"),
+            ],
+        )
+
+        candidate_a = builder.select_latest_development(
+            "Candidate A",
+            [contextual],
+        )
+        candidate_b = builder.select_latest_development(
+            "Candidate B",
+            [contextual],
+        )
+
+        self.assertEqual(candidate_a["evidence_state"], "none")
+        self.assertIsNone(candidate_a["id"])
+        self.assertEqual(candidate_b["evidence_state"], "reported")
+        self.assertEqual(candidate_b["id"], "candidate-b-subject")
+
+    def test_older_headline_record_beats_newer_summary_only_record(self):
+        items = [
+            watch_item(
+                "candidate-a-direct",
+                "2026-07-20T10:00:00Z",
+                "campaign",
+            ),
+            watch_item(
+                "candidate-b-newer",
+                "2026-07-21T10:00:00Z",
+                "election",
+                candidate_matches=[
+                    candidate_match("Candidate B", "headline"),
+                    candidate_match("Candidate A", "summary"),
+                ],
+            ),
+        ]
+
+        selected = builder.select_latest_development(
+            "Candidate A",
+            items,
+        )
+
+        self.assertEqual(selected["evidence_state"], "reported")
+        self.assertEqual(selected["id"], "candidate-a-direct")
+
+    def test_only_summary_provenance_produces_no_direct_subject_evidence(self):
+        items = [
+            watch_item(
+                "context-one",
+                "2026-07-20T10:00:00Z",
+                "campaign",
+                candidate_matches=[
+                    candidate_match("Candidate B", "headline"),
+                    candidate_match("Candidate A", "summary"),
+                ],
+            ),
+            watch_item(
+                "context-two",
+                "2026-07-21T10:00:00Z",
+                "election",
+                candidate_matches=[
+                    candidate_match("Candidate B", "headline"),
+                    candidate_match("Candidate A", "summary"),
+                ],
+            ),
+        ]
+
+        selected = builder.select_latest_development(
+            "Candidate A",
+            items,
+        )
+
+        self.assertEqual(selected["evidence_state"], "none")
+        self.assertIsNone(selected["id"])
+        self.assertIsNone(selected["published_at"])
+        self.assertIsNone(selected["url"])
+
+    def test_multi_candidate_headline_keeps_both_candidates_eligible(self):
+        shared = watch_item(
+            "shared-headline",
+            "2026-07-20T10:00:00Z",
+            "election",
+            candidate_matches=[
+                candidate_match("Candidate A", "headline"),
+                candidate_match("Candidate B", "headline"),
+            ],
+        )
+
+        candidate_a = builder.select_latest_development(
+            "Candidate A",
+            [shared],
+        )
+        candidate_b = builder.select_latest_development(
+            "Candidate B",
+            [shared],
+        )
+
+        self.assertEqual(candidate_a["id"], "shared-headline")
+        self.assertEqual(candidate_b["id"], "shared-headline")
+
+    def test_project_latest_developments_uses_same_subject_rule(self):
+        candidates = candidate_records(
+            "Candidate A",
+            "Candidate B",
+        )
+        items = [
+            watch_item(
+                "candidate-a-direct",
+                "2026-07-20T10:00:00Z",
+                "campaign",
+            ),
+            watch_item(
+                "candidate-b-newer",
+                "2026-07-22T10:00:00Z",
+                "election",
+                candidate_matches=[
+                    candidate_match("Candidate B", "headline"),
+                    candidate_match("Candidate A", "summary"),
+                ],
+            ),
+        ]
+
+        developments, evidence_date = (
+            builder.project_latest_developments(
+                candidates,
+                items,
+            )
+        )
+
+        self.assertEqual(
+            developments["candidate-a"]["id"],
+            "candidate-a-direct",
+        )
+        self.assertEqual(
+            developments["candidate-b"]["id"],
+            "candidate-b-newer",
+        )
+        self.assertEqual(evidence_date, "2026-07-22")
+
+    def test_malformed_candidate_match_provenance_fails_closed(self):
+        malformed = watch_item(
+            "malformed-provenance",
+            "2026-07-20T10:00:00Z",
+            "election",
+        )
+        malformed["candidate_matches"][0]["locations"] = ["body"]
+
+        with self.assertRaisesRegex(
+            builder.CandidateSignalsError,
+            r"candidate_matches\[0\]\.locations is invalid",
+        ):
+            builder.select_latest_development(
+                "Candidate A",
+                [malformed],
+            )
 
 
 class PresidentialFieldContractTests(unittest.TestCase):
