@@ -741,6 +741,108 @@ def news_entries(
     return cluster_news_entries(entries)
 
 
+def electoral_support_relationship(
+    item: dict[str, Any],
+) -> tuple[str, str] | None:
+    """Return an unambiguous source->destination electoral-support pair.
+
+    This is deliberately narrower than the general support classifier.
+    It requires exactly two monitored candidates to appear by full name
+    in headline order and requires directional support/rally grammar
+    between those names. Ambiguous noun constructions remain on the
+    existing generic clustering path.
+    """
+
+    if item.get("category") != "campaign":
+        return None
+
+    candidate_names = item.get("candidate_names")
+    candidate_ids = item.get("candidate_ids")
+    if (
+        not isinstance(candidate_names, list)
+        or not isinstance(candidate_ids, list)
+        or len(candidate_names) != len(candidate_ids)
+        or len(candidate_names) < 2
+    ):
+        return None
+
+    headline_text = normalized_title(item.get("headline"))
+    if not headline_text:
+        return None
+
+    support = classify_structured_electoral_support(
+        headline_text,
+        [
+            str(name).strip()
+            for name in candidate_names
+            if str(name).strip()
+        ],
+    )
+    if not support.get("matched_terms"):
+        return None
+
+    mentions: list[tuple[int, int, str]] = []
+    for candidate_name, candidate_id in zip(
+        candidate_names,
+        candidate_ids,
+        strict=True,
+    ):
+        normalized_name = normalized_title(candidate_name)
+        clean_id = str(candidate_id or "").strip()
+        if not normalized_name or not clean_id:
+            continue
+
+        match = re.search(
+            rf"(?<![a-z0-9]){re.escape(normalized_name)}(?![a-z0-9])",
+            headline_text,
+        )
+        if match is not None:
+            mentions.append(
+                (
+                    match.start(),
+                    match.end(),
+                    clean_id,
+                )
+            )
+
+    # Stay conservative when the headline contains fewer or more than two
+    # full monitored candidate names. Existing generic clustering still
+    # handles those records.
+    if len(mentions) != 2:
+        return None
+
+    mentions.sort(key=lambda mention: mention[0])
+    source_mention, destination_mention = mentions
+    between = headline_text[
+        source_mention[1]:destination_mention[0]
+    ]
+
+    # These forms are directionally source -> destination. Do not treat
+    # generic noun constructions such as "reçoit le soutien de" as ordered
+    # evidence because their grammatical direction is reversed.
+    directional_patterns = (
+        r"\b(?:annonce\s+)?soutenir\b",
+        r"\bsoutient\b",
+        r"\bse\s+rallie(?:\s+a)?\b",
+        r"\brallie(?:\s+a)?\b",
+        (
+            r"\bapporte(?:\s+[a-z0-9]+){0,4}\s+"
+            r"(?:son\s+)?soutien(?:\s+a)?\b"
+        ),
+    )
+
+    if not any(
+        re.search(pattern, between)
+        for pattern in directional_patterns
+    ):
+        return None
+
+    return (
+        source_mention[2],
+        destination_mention[2],
+    )
+
+
 def news_entries_match(left: dict[str, Any], right: dict[str, Any]) -> bool:
     if left["category"] != right["category"]:
         return False
@@ -765,6 +867,24 @@ def news_entries_match(left: dict[str, Any], right: dict[str, Any]) -> bool:
         set(left.get("candidate_ids", []))
         & set(right.get("candidate_ids", []))
     )
+
+    left_support_relationship = electoral_support_relationship(left)
+    right_support_relationship = electoral_support_relationship(right)
+
+    if (
+        left_support_relationship is not None
+        and right_support_relationship is not None
+    ):
+        # When both headlines provide an unambiguous ordered relationship,
+        # different endorsers or different destinations are distinct events
+        # even if generic title/entity similarity would otherwise merge them.
+        if left_support_relationship != right_support_relationship:
+            return False
+
+        # Support/rally paraphrases describing the same ordered relationship
+        # on the same Paris date are one underlying political development.
+        if left_date == right_date:
+            return True
 
     alliance_terms = (
         "accord",
