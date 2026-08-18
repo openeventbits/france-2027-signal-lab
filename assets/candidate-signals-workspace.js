@@ -16,6 +16,10 @@
     "ABOUT — candidate mentioned in a claim attributed to someone else.";
   const SCRUTINY_BY_SEMANTICS =
     "BY — candidate is the recorded claimant.";
+  const CAMPAIGN_ATTENTION_SEMANTICS =
+    "Share of active-field-linked campaign/election records in the current period. A record may mention more than one candidate.";
+  const RACE_RECORDS_SEMANTICS =
+    "Candidate-linked campaign/election records in the current period.";
   const LATEST_DEVELOPMENT_EXPLANATION =
     "Newest campaign/election record with this candidate matched in the headline.";
   const stateNames = new Set([
@@ -400,17 +404,21 @@
       : "No current coverage evidence";
   }
 
-  function candidateFact(label, value, className = "") {
+  function candidateFact(label, value, className = "", semantics = null) {
     const fact = createElement(
       "span",
       `candidate-signals-candidate-fact${className ? ` ${className}` : ""}`
     );
+    const labelNode = createElement(
+      "span",
+      "candidate-signals-candidate-fact-label",
+      label
+    );
+    if (semantics) {
+      semanticMetadata(labelNode, semantics);
+    }
     fact.append(
-      createElement(
-        "span",
-        "candidate-signals-candidate-fact-label",
-        label
-      ),
+      labelNode,
       createElement(
         "strong",
         "candidate-signals-candidate-fact-value",
@@ -563,12 +571,14 @@
           candidateFact(
             "CAMPAIGN ATTENTION",
             percentageText(campaign.share, true),
-            "candidate-signals-candidate-attention"
+            "candidate-signals-candidate-attention",
+            CAMPAIGN_ATTENTION_SEMANTICS
           ),
           candidateFact(
             "RACE RECORDS",
             numberText(campaign.record_count),
-            "candidate-signals-candidate-records"
+            "candidate-signals-candidate-records",
+            RACE_RECORDS_SEMANTICS
           )
         );
       }

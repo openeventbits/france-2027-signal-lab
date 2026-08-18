@@ -525,6 +525,16 @@ function details() {
         .querySelectorAll(".candidate-signals-candidate-fact-label")
         .map(node => node.textContent)
   );
+  const monitorFactDetails = buttons.flatMap(
+    button =>
+      button
+        .querySelectorAll(".candidate-signals-candidate-fact-label")
+        .map(node => ({
+          text: node.textContent,
+          title: node.getAttribute("title") || null,
+          ariaLabel: node.getAttribute("aria-label") || null
+        }))
+  );
   const scrutinyColumns =
     mount.querySelectorAll(".candidate-signals-scrutiny-column");
   const dossierScrutinyLabels =
@@ -617,6 +627,7 @@ function details() {
     monitorButtonTexts:
       buttons.map(button => button.textContent),
     monitorFactLabels,
+    monitorFactDetails,
     scrutinyColumnDetails:
       scrutinyColumns.map(node => ({
         text: node.textContent,
@@ -1692,11 +1703,64 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
     def test_candidate_monitor_uses_semantically_specific_evidence_labels(self):
         result = run_workspace(payload(self.rows))
         labels = result["monitorFactLabels"]
+        details = result["monitorFactDetails"]
 
         self.assertIn("CAMPAIGN ATTENTION", labels)
         self.assertIn("RACE RECORDS", labels)
+        self.assertNotIn("ATTENTION", labels)
+        self.assertNotIn("RECORDS", labels)
         self.assertNotIn("Attention", labels)
         self.assertNotIn("Records", labels)
+
+        expected = {
+            "CAMPAIGN ATTENTION": (
+                "Share of active-field-linked campaign/election records "
+                "in the current period. A record may mention more than "
+                "one candidate."
+            ),
+            "RACE RECORDS": (
+                "Candidate-linked campaign/election records in the "
+                "current period."
+            ),
+        }
+        semantic_facts = [
+            item
+            for item in details
+            if item["text"] in expected
+        ]
+        self.assertGreaterEqual(len(semantic_facts), 2)
+        self.assertEqual(
+            {item["text"] for item in semantic_facts},
+            set(expected),
+        )
+
+        for item in semantic_facts:
+            semantic = expected[item["text"]]
+            self.assertEqual(item["title"], semantic)
+            self.assertEqual(item["ariaLabel"], semantic)
+
+        attention = expected["CAMPAIGN ATTENTION"]
+        for required in (
+            "active-field-linked",
+            "campaign/election",
+            "current period",
+            "A record may mention more than one candidate.",
+        ):
+            self.assertIn(required, attention)
+
+        for forbidden in (
+            "support",
+            "vote share",
+            "approval",
+            "popularity",
+        ):
+            self.assertNotIn(forbidden, attention.lower())
+
+        race_records = expected["RACE RECORDS"]
+        self.assertEqual(
+            race_records,
+            "Candidate-linked campaign/election records in the current period.",
+        )
 
     def test_scrutiny_compact_labels_expose_semantic_metadata(self):
         result = run_workspace(payload(self.rows))
@@ -2480,7 +2544,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             self.assertNotIn(forbidden, self.workspace_js)
 
         for required in (
-            "function candidateFact(label, value, className = \"\")",
+            "function candidateFact(label, value, className = \"\", semantics = null)",
             "function scopeComposition(candidate)",
             'const values = ["campaign", "election"].map(key => {',
             "function analysisLatestDevelopment(candidate)",
