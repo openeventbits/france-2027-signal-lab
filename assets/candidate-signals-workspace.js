@@ -12,6 +12,12 @@
 
   const MISSING = "Not published";
   const NOT_TESTED = "Not tested";
+  const SCRUTINY_ABOUT_SEMANTICS =
+    "ABOUT — candidate mentioned in a claim attributed to someone else.";
+  const SCRUTINY_BY_SEMANTICS =
+    "BY — candidate is the recorded claimant.";
+  const LATEST_DEVELOPMENT_EXPLANATION =
+    "Newest campaign/election record with this candidate matched in the headline.";
   const stateNames = new Set([
     "loading",
     "ready",
@@ -23,6 +29,12 @@
     const node = document.createElement(tagName);
     if (className) node.className = className;
     if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function semanticMetadata(node, title, ariaLabel = title) {
+    node.setAttribute("title", title);
+    node.setAttribute("aria-label", ariaLabel);
     return node;
   }
 
@@ -549,12 +561,12 @@
       if (campaignReported) {
         evidence.append(
           candidateFact(
-            "Attention",
+            "CAMPAIGN ATTENTION",
             percentageText(campaign.share, true),
             "candidate-signals-candidate-attention"
           ),
           candidateFact(
-            "Records",
+            "RACE RECORDS",
             numberText(campaign.record_count),
             "candidate-signals-candidate-records"
           )
@@ -802,10 +814,14 @@
       "candidate-signals-latest-development"
     );
     section.append(
-      createElement(
-        "h3",
-        "candidate-signals-subsection-title",
-        "LATEST DEVELOPMENT"
+      semanticMetadata(
+        createElement(
+          "h3",
+          "candidate-signals-subsection-title",
+          "LATEST DEVELOPMENT"
+        ),
+        LATEST_DEVELOPMENT_EXPLANATION,
+        `LATEST DEVELOPMENT — ${LATEST_DEVELOPMENT_EXPLANATION}`
       )
     );
 
@@ -871,10 +887,14 @@
       "candidate-signals-dossier-card candidate-signals-dossier-development"
     );
     section.append(
-      createElement(
-        "h3",
-        "candidate-signals-dossier-card-title",
-        "LATEST DEVELOPMENT"
+      semanticMetadata(
+        createElement(
+          "h3",
+          "candidate-signals-dossier-card-title",
+          "LATEST DEVELOPMENT"
+        ),
+        LATEST_DEVELOPMENT_EXPLANATION,
+        `LATEST DEVELOPMENT — ${LATEST_DEVELOPMENT_EXPLANATION}`
       )
     );
     const body = createElement(
@@ -1941,15 +1961,21 @@
         "candidate-signals-scrutiny-corner",
         ""
       ),
-      createElement(
-        "span",
-        "candidate-signals-scrutiny-column",
-        "ABOUT"
+      semanticMetadata(
+        createElement(
+          "span",
+          "candidate-signals-scrutiny-column",
+          "ABOUT"
+        ),
+        SCRUTINY_ABOUT_SEMANTICS
       ),
-      createElement(
-        "span",
-        "candidate-signals-scrutiny-column",
-        "BY"
+      semanticMetadata(
+        createElement(
+          "span",
+          "candidate-signals-scrutiny-column",
+          "BY"
+        ),
+        SCRUTINY_BY_SEMANTICS
       ),
       createElement(
         "span",
@@ -3555,17 +3581,23 @@
     const valueClass = (
       hasValue(value) && Number.isFinite(Number(value)) && Number(value) === 0
     ) ? " is-zero" : "";
+    const labelNode = createElement(
+      "span",
+      "candidate-signals-dossier-scrutiny-label",
+      label
+    );
+    if (label === "ABOUT") {
+      semanticMetadata(labelNode, SCRUTINY_ABOUT_SEMANTICS);
+    } else if (label === "BY") {
+      semanticMetadata(labelNode, SCRUTINY_BY_SEMANTICS);
+    }
     metric.append(
       createElement(
         "strong",
         `candidate-signals-dossier-scrutiny-value${valueClass}`,
         hasValue(value) ? numberText(value) : MISSING
       ),
-      createElement(
-        "span",
-        "candidate-signals-dossier-scrutiny-label",
-        label
-      )
+      labelNode
     );
     return metric;
   }
@@ -3696,10 +3728,14 @@
       "candidate-signals-dossier-card candidate-signals-dossier-development"
     );
     section.append(
-      createElement(
-        "h3",
-        "candidate-signals-dossier-card-title",
-        "LATEST DEVELOPMENT"
+      semanticMetadata(
+        createElement(
+          "h3",
+          "candidate-signals-dossier-card-title",
+          "LATEST DEVELOPMENT"
+        ),
+        LATEST_DEVELOPMENT_EXPLANATION,
+        `LATEST DEVELOPMENT — ${LATEST_DEVELOPMENT_EXPLANATION}`
       )
     );
 
