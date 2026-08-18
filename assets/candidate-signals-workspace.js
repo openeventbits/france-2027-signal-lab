@@ -727,7 +727,9 @@
       statusRow.append(
         createElement(
           "span",
-          "candidate-signals-candidacy-tier",
+          `candidate-signals-candidacy-tier is-${String(
+            candidacy.display_tier
+          ).toLowerCase()}`,
           String(candidacy.display_tier).toUpperCase()
         )
       );
@@ -988,8 +990,11 @@
     return card;
   }
 
-  function summaryMeta(label, value) {
-    const row = createElement("div", "candidate-signals-summary-meta");
+  function summaryMeta(label, value, className = "") {
+    const row = createElement(
+      "div",
+      `candidate-signals-summary-meta${className ? ` ${className}` : ""}`
+    );
     row.append(
       createElement(
         "span",
@@ -3426,7 +3431,8 @@
           `${counted(general.record_count, "record")} · ${percentageText(
             general.share,
             true
-          )}`
+          )}`,
+          "is-general"
         )
       );
     }
@@ -3880,7 +3886,7 @@
       badges.append(
         createElement(
           "span",
-          "candidate-signals-dossier-tier",
+          `candidate-signals-dossier-tier is-${String(tier).toLowerCase()}`,
           String(tier).toUpperCase()
         )
       );
@@ -3953,7 +3959,8 @@
           [
             counted(campaign.record_count, "record"),
             counted(campaign.publisher_count, "publisher")
-          ]
+          ],
+          "is-campaign-attention"
         ),
         scrutinyMetric,
         dossierMetric(

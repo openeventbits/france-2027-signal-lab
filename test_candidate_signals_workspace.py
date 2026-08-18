@@ -716,6 +716,12 @@ function details() {
     cardStateTexts:
       mount.querySelectorAll(".candidate-signals-card-state")
         .map(node => node.textContent),
+    dossierVisibilitySummaryClasses:
+      (
+        mount.querySelector(".candidate-signals-dossier-visibility-summary")
+          ?.querySelectorAll(".candidate-signals-summary-meta")
+          .map(node => node.className)
+      ) || [],
     dossierScopeCellCount:
       mount.querySelectorAll(".candidate-signals-dossier-scope-cell").length,
     dossierStructureStatCount:
@@ -731,6 +737,18 @@ function details() {
     candidacyStatus:
       mount.querySelectorAll(".candidate-signals-candidacy-status")
         .map(node => node.textContent),
+    candidacyStatusClasses:
+      mount.querySelectorAll(".candidate-signals-candidacy-status")
+        .map(node => node.className),
+    candidacyTierClasses:
+      mount.querySelectorAll(".candidate-signals-candidacy-tier")
+        .map(node => node.className),
+    dossierStatusClasses:
+      mount.querySelectorAll(".candidate-signals-dossier-status")
+        .map(node => node.className),
+    dossierTierClasses:
+      mount.querySelectorAll(".candidate-signals-dossier-tier")
+        .map(node => node.className),
     monitorListCount:
       mount.querySelectorAll(".candidate-signals-monitor-list").length,
     latestAnalysisCount:
@@ -783,6 +801,45 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             candidate("middle", "Middle Candidate"),
         ]
 
+
+    def test_general_visibility_uses_active_blue_not_grey(self):
+        fill_selector = (
+            ".candidate-signals-attention-row.is-general\n"
+            "  .candidate-signals-attention-fill {"
+        )
+        line_selector = (
+            ".candidate-signals-history-line.is-general {"
+        )
+        point_selector = (
+            ".candidate-signals-history-point.is-general {"
+        )
+
+        self.assertIn(fill_selector, self.css)
+        self.assertIn(line_selector, self.css)
+        self.assertIn(point_selector, self.css)
+
+        fill_start = self.css.index(fill_selector)
+        fill_rule = self.css[
+            fill_start:self.css.index("}", fill_start)
+        ]
+
+        line_start = self.css.index(line_selector)
+        line_rule = self.css[
+            line_start:self.css.index("}", line_start)
+        ]
+
+        point_start = self.css.index(point_selector)
+        point_rule = self.css[
+            point_start:self.css.index("}", point_start)
+        ]
+
+        self.assertIn("background: #7698c2;", fill_rule)
+        self.assertIn("stroke: #7698c2;", line_rule)
+        self.assertIn("fill: #88add6;", point_rule)
+
+        self.assertNotIn("background: #6d8d9e;", fill_rule)
+        self.assertNotIn("stroke: #7896a7;", line_rule)
+        self.assertNotIn("fill: #89a5b4;", point_rule)
 
     def test_visibility_history_renders_two_independent_daily_share_charts(self):
         history = candidate_visibility_history_state(
@@ -1226,6 +1283,402 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             demoted_main["visibleCandidateOrder"],
             ["dynamic-candidate-03"],
         )
+
+    def test_candidate_monitor_main_secondary_tier_colors(self):
+        self.assertIn(
+            'button.dataset.candidateTier = String(',
+            self.workspace_js,
+        )
+
+        main_selector = (
+            '.candidate-signals-candidate-button'
+            '[data-candidate-tier="main"]\n'
+            '  .candidate-signals-candidate-tier {'
+        )
+        secondary_selector = (
+            '.candidate-signals-candidate-button'
+            '[data-candidate-tier="secondary"]\n'
+            '  .candidate-signals-candidate-tier {'
+        )
+
+        self.assertIn(main_selector, self.css)
+        self.assertIn(secondary_selector, self.css)
+
+        main_start = self.css.index(main_selector)
+        main_rule = self.css[
+            main_start:self.css.index("}", main_start)
+        ]
+
+        secondary_start = self.css.index(secondary_selector)
+        secondary_rule = self.css[
+            secondary_start:self.css.index("}", secondary_start)
+        ]
+
+        self.assertIn(
+            "border-color: rgba(53, 216, 255, 0.56);",
+            main_rule,
+        )
+        self.assertIn(
+            "background: rgba(53, 216, 255, 0.09);",
+            main_rule,
+        )
+        self.assertIn("color: #91ebf9;", main_rule)
+
+        self.assertIn(
+            "border-color: rgba(135, 88, 255, 0.52);",
+            secondary_rule,
+        )
+        self.assertIn(
+            "background: rgba(98, 63, 188, 0.16);",
+            secondary_rule,
+        )
+        self.assertIn("color: #c2b3ff;", secondary_rule)
+
+    def test_candidate_panel_titles_and_status_tier_visual_contract(self):
+        source = dynamic_schema_12_payload(
+            ("main", "secondary", "hidden", "hidden")
+        )
+
+        main = run_workspace(
+            source,
+            selected_id="dynamic-candidate-01",
+        )
+        secondary = run_workspace(
+            source,
+            selected_id="dynamic-candidate-02",
+        )
+
+        self.assertEqual(
+            main["candidacyTierClasses"],
+            ["candidate-signals-candidacy-tier is-main"],
+        )
+        self.assertEqual(
+            main["dossierTierClasses"],
+            ["candidate-signals-dossier-tier is-main"],
+        )
+        self.assertEqual(
+            secondary["candidacyTierClasses"],
+            ["candidate-signals-candidacy-tier is-secondary"],
+        )
+        self.assertEqual(
+            secondary["dossierTierClasses"],
+            ["candidate-signals-dossier-tier is-secondary"],
+        )
+
+        self.assertTrue(main["candidacyStatusClasses"])
+        self.assertTrue(main["dossierStatusClasses"])
+
+        self.assertTrue(
+            all(
+                value == "candidate-signals-candidacy-status"
+                for value in main["candidacyStatusClasses"]
+            )
+        )
+        self.assertTrue(
+            all(
+                value == "candidate-signals-dossier-status"
+                for value in main["dossierStatusClasses"]
+            )
+        )
+
+        monitor_title = """.candidate-signals-monitor .candidate-signals-region-title {
+  color: rgb(238, 246, 250);
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: 0.035em;
+}"""
+
+        analysis_title = """.candidate-signals-analysis .candidate-signals-region-title {
+  color: rgb(238, 246, 250);
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: 0.035em;
+}"""
+
+        dossier_title = """.candidate-signals-dossier .candidate-signals-region-title {
+  color: rgb(238, 246, 250);
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: 0.035em;
+}"""
+
+        self.assertIn(monitor_title, self.css)
+        self.assertIn(analysis_title, self.css)
+        self.assertIn(dossier_title, self.css)
+
+        for selector in (
+            ".candidate-signals-candidacy-tier.is-main {",
+            ".candidate-signals-dossier-tier.is-main {",
+        ):
+            start = self.css.index(selector)
+            rule = self.css[start:self.css.index("}", start)]
+            self.assertIn(
+                "background: rgba(53, 216, 255, 0.09);",
+                rule,
+            )
+            self.assertIn("color: #91ebf9;", rule)
+
+        for selector in (
+            ".candidate-signals-candidacy-tier.is-secondary {",
+            ".candidate-signals-dossier-tier.is-secondary {",
+        ):
+            start = self.css.index(selector)
+            rule = self.css[start:self.css.index("}", start)]
+            self.assertIn(
+                "background: rgba(98, 63, 188, 0.16);",
+                rule,
+            )
+            self.assertIn("color: #c2b3ff;", rule)
+
+        for selector in (
+            ".candidate-signals-candidacy-status {",
+            ".candidate-signals-dossier-status {",
+        ):
+            start = self.css.index(selector)
+            rule = self.css[start:self.css.index("}", start)]
+            self.assertIn("color: #9aadb7;", rule)
+            self.assertIn("font-weight: 700;", rule)
+
+    def test_poll_fact_tiles_use_compact_colored_hierarchy(self):
+        label_selector = ".candidate-signals-poll-fact-label {"
+        value_selector = ".candidate-signals-poll-fact-value {"
+
+        label_start = self.css.index(label_selector)
+        label_rule = self.css[
+            label_start:self.css.index("}", label_start)
+        ]
+
+        value_start = self.css.index(value_selector)
+        value_rule = self.css[
+            value_start:self.css.index("}", value_start)
+        ]
+
+        self.assertIn("font-size: 8px;", label_rule)
+        self.assertIn("font-weight: 700;", label_rule)
+
+        self.assertIn("font-size: 12px;", value_rule)
+        self.assertIn("font-weight: 730;", value_rule)
+        self.assertIn("color: #e5f0f5;", value_rule)
+
+        self.assertIn(
+            """.candidate-signals-poll-fact:nth-child(1)
+  .candidate-signals-poll-fact-value {
+  color: #91ebf9;
+}""",
+            self.css,
+        )
+
+        self.assertIn(
+            """.candidate-signals-poll-fact:nth-child(3)
+  .candidate-signals-poll-fact-value {
+  color: #c2b3ff;
+}""",
+            self.css,
+        )
+
+    def test_dossier_summary_tiles_and_general_visibility_color_contract(self):
+        result = run_workspace(payload(self.rows))
+
+        self.assertIn(
+            "candidate-signals-summary-meta is-general",
+            result["dossierVisibilitySummaryClasses"],
+        )
+
+        self.assertIn(
+            '"is-campaign-attention"',
+            self.workspace_js,
+        )
+        self.assertIn(
+            '"is-general"',
+            self.workspace_js,
+        )
+
+        campaign_selector = (
+            ".candidate-signals-dossier-metric.is-campaign-attention\n"
+            "  .candidate-signals-dossier-metric-value {"
+        )
+
+        campaign_start = self.css.index(campaign_selector)
+        campaign_rule = self.css[
+            campaign_start:self.css.index("}", campaign_start)
+        ]
+
+        self.assertIn(
+            "color: #91ebf9;",
+            campaign_rule,
+        )
+
+        general_label_selector = (
+            ".candidate-signals-dossier-visibility-summary\n"
+            "  .candidate-signals-summary-meta.is-general\n"
+            "  .candidate-signals-summary-meta-label {"
+        )
+
+        general_value_selector = (
+            ".candidate-signals-dossier-visibility-summary\n"
+            "  .candidate-signals-summary-meta.is-general\n"
+            "  .candidate-signals-summary-meta-value {"
+        )
+
+        label_start = self.css.index(general_label_selector)
+        label_rule = self.css[
+            label_start:self.css.index("}", label_start)
+        ]
+
+        value_start = self.css.index(general_value_selector)
+        value_rule = self.css[
+            value_start:self.css.index("}", value_start)
+        ]
+
+        self.assertIn("color: #7698c2;", label_rule)
+        self.assertIn("color: #88add6;", value_rule)
+
+    def test_dossier_evidence_structure_uses_balanced_cyan_purple_hierarchy(self):
+        records_selector = (
+            ".candidate-signals-structure-stat:nth-child(1)\n"
+            "  .candidate-signals-structure-stat-value {"
+        )
+        stories_selector = (
+            ".candidate-signals-structure-stat:nth-child(4)\n"
+            "  .candidate-signals-structure-stat-value {"
+        )
+        story_ratio_selector = (
+            ".candidate-signals-dossier-structure-ratio.is-story\n"
+            "  .candidate-signals-dossier-structure-fill {"
+        )
+
+        records_start = self.css.index(records_selector)
+        records_rule = self.css[
+            records_start:self.css.index("}", records_start)
+        ]
+
+        stories_start = self.css.index(stories_selector)
+        stories_rule = self.css[
+            stories_start:self.css.index("}", stories_start)
+        ]
+
+        story_ratio_start = self.css.index(story_ratio_selector)
+        story_ratio_rule = self.css[
+            story_ratio_start:self.css.index("}", story_ratio_start)
+        ]
+
+        self.assertIn("color: #91ebf9;", records_rule)
+        self.assertIn("color: #c2b3ff;", stories_rule)
+
+        self.assertIn(
+            "background: var(--final-violet, #8758ff);",
+            story_ratio_rule,
+        )
+
+        self.assertNotIn(
+            "background: #6d8d9e;",
+            story_ratio_rule,
+        )
+
+    def test_dossier_empty_states_are_composed_without_semantic_changes(self):
+        card_selector = (
+            ".candidate-signals-dossier-card > "
+            ".candidate-signals-card-state {"
+        )
+        development_selector = (
+            ".candidate-signals-dossier-development\n"
+            "  > .candidate-signals-development-empty {"
+        )
+        metric_selector = ".candidate-signals-dossier-metric.is-empty {"
+
+        card_start = self.css.index(card_selector)
+        card_rule = self.css[
+            card_start:self.css.index("}", card_start)
+        ]
+
+        development_start = self.css.index(development_selector)
+        development_rule = self.css[
+            development_start:self.css.index("}", development_start)
+        ]
+
+        metric_start = self.css.index(metric_selector)
+        metric_rule = self.css[
+            metric_start:self.css.index("}", metric_start)
+        ]
+
+        for required in (
+            "min-height: 72px;",
+            "display: flex;",
+            "align-items: center;",
+            "border: 1px dashed rgba(72, 105, 123, 0.38);",
+            "background: rgba(9, 28, 42, 0.24);",
+            "color: #8ba5b4;",
+        ):
+            self.assertIn(required, card_rule)
+
+        for required in (
+            "min-height: 62px;",
+            "display: flex;",
+            "align-items: center;",
+            "border: 1px dashed rgba(72, 105, 123, 0.38);",
+            "background: rgba(9, 28, 42, 0.24);",
+            "color: #8ba5b4;",
+        ):
+            self.assertIn(required, development_rule)
+
+        self.assertIn(
+            "background: rgba(9, 28, 42, 0.24);",
+            metric_rule,
+        )
+
+        self.assertIn(
+            "No current campaign/election evidence.",
+            self.workspace_js,
+        )
+        self.assertIn(
+            "No current general visibility evidence.",
+            self.workspace_js,
+        )
+        self.assertIn(
+            "No source-linked development is currently published.",
+            self.workspace_js,
+        )
+
+    def test_monitor_empty_search_state_is_compact_and_composed(self):
+        empty_selector = ".candidate-signals-monitor-empty {"
+        empty_start = self.css.index(empty_selector)
+        empty_rule = self.css[
+            empty_start:self.css.index("}", empty_start)
+        ]
+
+        for required in (
+            "min-height: 64px;",
+            "display: flex;",
+            "align-items: center;",
+            "justify-content: center;",
+            "margin: 8px 9px 12px;",
+            "border: 1px dashed rgba(72, 105, 123, 0.38);",
+            "border-radius: 2px;",
+            "background: rgba(9, 28, 42, 0.24);",
+            "color: #8ba5b4;",
+        ):
+            self.assertIn(required, empty_rule)
+
+        filtered_selector = (
+            ".candidate-signals-monitor:has(\n"
+            "  .candidate-signals-monitor-empty:not([hidden])\n"
+            ") .candidate-signals-monitor-list {"
+        )
+
+        filtered_start = self.css.index(filtered_selector)
+        filtered_rule = self.css[
+            filtered_start:self.css.index("}", filtered_start)
+        ]
+
+        self.assertIn("flex: 0 0 auto;", filtered_rule)
+        self.assertIn("min-height: 0;", filtered_rule)
+        self.assertIn("padding-bottom: 0;", filtered_rule)
+
+        # Search/filter behavior itself remains unchanged.
+        self.assertIn("noMatches.hidden = visible !== 0;", self.workspace_js)
 
     def test_all_hidden_dynamic_field_renders_no_monitor_candidates(self):
         result = run_workspace(dynamic_schema_12_payload(("hidden",)))
