@@ -519,6 +519,24 @@ function details() {
   const workspace = mount.querySelector(".candidate-signals-workspace");
   const analysisBody =
     mount.querySelector(".candidate-signals-analysis-body");
+  const monitorFactLabels = buttons.flatMap(
+    button =>
+      button
+        .querySelectorAll(".candidate-signals-candidate-fact-label")
+        .map(node => node.textContent)
+  );
+  const scrutinyColumns =
+    mount.querySelectorAll(".candidate-signals-scrutiny-column");
+  const dossierScrutinyLabels =
+    mount.querySelectorAll(".candidate-signals-dossier-scrutiny-label");
+  const latestDevelopmentHeadings = [
+    mount
+      .querySelector(".candidate-signals-latest-development")
+      ?.querySelector(".candidate-signals-subsection-title") || null,
+    mount
+      .querySelector(".candidate-signals-dossier-development")
+      ?.querySelector(".candidate-signals-dossier-card-title") || null
+  ].filter(Boolean);
   const wikipediaHeading =
     mount
       .querySelectorAll(".candidate-signals-subsection-title")
@@ -598,6 +616,25 @@ function details() {
         .map(node => node.textContent),
     monitorButtonTexts:
       buttons.map(button => button.textContent),
+    monitorFactLabels,
+    scrutinyColumnDetails:
+      scrutinyColumns.map(node => ({
+        text: node.textContent,
+        title: node.getAttribute("title") || null,
+        ariaLabel: node.getAttribute("aria-label") || null
+      })),
+    dossierScrutinyLabelDetails:
+      dossierScrutinyLabels.map(node => ({
+        text: node.textContent,
+        title: node.getAttribute("title") || null,
+        ariaLabel: node.getAttribute("aria-label") || null
+      })),
+    latestDevelopmentHeadingDetails:
+      latestDevelopmentHeadings.map(node => ({
+        text: node.textContent,
+        title: node.getAttribute("title") || null,
+        ariaLabel: node.getAttribute("aria-label") || null
+      })),
     monitorEvidenceCounts:
       buttons.map(
         button =>
@@ -1651,6 +1688,63 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         )
         self.assertNotIn("Campaign / election 99", selected_monitor)
         self.assertNotIn("Attention99%", selected_monitor)
+
+    def test_candidate_monitor_uses_semantically_specific_evidence_labels(self):
+        result = run_workspace(payload(self.rows))
+        labels = result["monitorFactLabels"]
+
+        self.assertIn("CAMPAIGN ATTENTION", labels)
+        self.assertIn("RACE RECORDS", labels)
+        self.assertNotIn("Attention", labels)
+        self.assertNotIn("Records", labels)
+
+    def test_scrutiny_compact_labels_expose_semantic_metadata(self):
+        result = run_workspace(payload(self.rows))
+        expected = {
+            "ABOUT": (
+                "ABOUT — candidate mentioned in a claim attributed to "
+                "someone else."
+            ),
+            "BY": "BY — candidate is the recorded claimant.",
+        }
+
+        analysis = {
+            item["text"]: item
+            for item in result["scrutinyColumnDetails"]
+            if item["text"] in expected
+        }
+        self.assertEqual(set(analysis), set(expected))
+        for label, semantic in expected.items():
+            self.assertEqual(analysis[label]["text"], label)
+            self.assertEqual(analysis[label]["title"], semantic)
+            self.assertEqual(analysis[label]["ariaLabel"], semantic)
+
+        dossier = [
+            item
+            for item in result["dossierScrutinyLabelDetails"]
+            if item["text"] in expected
+        ]
+        self.assertGreaterEqual(len(dossier), 2)
+        self.assertEqual({item["text"] for item in dossier}, set(expected))
+        for item in dossier:
+            label = item["text"]
+            self.assertEqual(item["title"], expected[label])
+            self.assertEqual(item["ariaLabel"], expected[label])
+
+    def test_latest_development_headings_expose_subject_linkage_semantics(self):
+        result = run_workspace(payload(self.rows))
+        explanation = (
+            "Newest campaign/election record with this candidate matched "
+            "in the headline."
+        )
+        headings = result["latestDevelopmentHeadingDetails"]
+
+        self.assertEqual(len(headings), 2)
+        for heading in headings:
+            self.assertEqual(heading["text"], "LATEST DEVELOPMENT")
+            self.assertEqual(heading["title"], explanation)
+            self.assertIn("LATEST DEVELOPMENT", heading["ariaLabel"])
+            self.assertIn(explanation, heading["ariaLabel"])
 
     def test_scrutiny_absence_and_published_zero_are_distinct(self):
         absent = payload(self.rows)
