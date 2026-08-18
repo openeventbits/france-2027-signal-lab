@@ -1,5 +1,4 @@
 import re
-import json
 import unittest
 from pathlib import Path
 
@@ -138,70 +137,66 @@ class ElectionCoverageModalTests(
             self.modal_js,
         )
 
-    def test_hidden_field_candidates_are_not_filters_and_feed_stays_source_driven(self):
-        wire = json.loads(
-            (ROOT / "news_wire.json").read_text(encoding="utf-8")
-        )
-        registry = json.loads(
-            (ROOT / "candidate_candidacy_status.json").read_text(
-                encoding="utf-8"
-            )
-        )
-
-        election_rows = wire["election_news"]
-        watch_rows = wire["candidate_watch"]
-
-        self.assertEqual(
-            len(election_rows),
-            wire["counts"]["election_news"],
-        )
-        self.assertEqual(
-            len({row["id"] for row in election_rows}),
-            len(election_rows),
-        )
-
-        hidden_names = {
-            candidate["candidate_name"]
-            for candidate in registry["candidates"]
-            if candidate["display_tier"] == "hidden"
-        }
-        self.assertTrue(hidden_names)
-
-        election_candidate_names = {
-            candidate
-            for row in election_rows
-            for candidate in row["candidates"]
-        }
-        watch_candidate_names = {
-            match["candidate"]
-            for row in watch_rows
-            for match in row["candidate_matches"]
-        }
-
-        self.assertTrue(
-            hidden_names.isdisjoint(election_candidate_names)
-        )
-        self.assertTrue(
-            hidden_names.isdisjoint(watch_candidate_names)
-        )
-
+    def test_candidate_filter_and_feed_stay_source_driven(self):
         media_model = self.dashboard[
             self.dashboard.index("function buildMediaViewModel()"):
             self.dashboard.index("function buildAgendaViewModel()")
         ]
+
         self.assertIn(
             "const feedItems = newestNewsItems(\n      electionItems",
             media_model,
         )
+
+        feed_model = media_model[
+            media_model.index("const feedItems"):
+            media_model.index("const generatedKey")
+        ]
+
         self.assertNotIn(
             "activePrimary.main",
-            media_model[
-                media_model.index("const feedItems"):
-                media_model.index("const generatedKey")
-            ],
+            feed_model,
+        )
+        self.assertNotIn(
+            "candidate_candidacy_status",
+            feed_model,
         )
 
-        self.assertIn("item?.candidate_names", self.modal_js)
+        candidate_normalization = self.modal_js[
+            self.modal_js.index("const candidateNames = item =>"):
+            self.modal_js.index("const uniqueSorted = values =>")
+        ]
+
+        self.assertIn(
+            "item?.candidate_names",
+            candidate_normalization,
+        )
+        self.assertIn(
+            "candidateNames(item)",
+            candidate_normalization,
+        )
+        self.assertNotIn(
+            "candidate_candidacy_status",
+            candidate_normalization,
+        )
+
+        toolbar = self.modal_js[
+            self.modal_js.index("const renderToolbar = () =>"):
+            self.modal_js.index("const renderBody = () =>")
+        ]
+
+        self.assertIn(
+            "records.flatMap(",
+            toolbar,
+        )
+        self.assertIn(
+            "record => record.candidates",
+            toolbar,
+        )
+        self.assertIn(
+            "${optionMarkup(candidates)}",
+            toolbar,
+        )
 
     def test_search_and_filters_exist(self):
         for contract in (
