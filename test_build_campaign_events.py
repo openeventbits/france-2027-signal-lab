@@ -399,6 +399,159 @@ class BuildCampaignEventsTests(unittest.TestCase):
         self.assertEqual(candidate, existing)
         self.assertEqual(candidate_path.read_bytes(), existing_bytes)
 
+    def test_active_to_hidden_manual_participant_changes_linkage_then_stabilizes(self):
+        registry_payload = {
+            "schema_version": "1.0",
+            "status_as_of": "2026-08-01",
+            "candidates": [
+                {
+                    "candidate_id": "candidate-a",
+                    "candidate_name": "Candidate A",
+                    "status": "active_potential",
+                    "display_tier": "secondary",
+                    "status_as_of": "2026-08-01",
+                    "source_date": "2026-08-01",
+                    "source_url": (
+                        "https://www.france24.com/france/"
+                        "20260801-candidate-a-status"
+                    ),
+                    "source_title": "Fixture candidacy status",
+                    "source_publisher": "Fixture Publisher",
+                    "status_note": "Fixture candidacy state.",
+                }
+            ],
+        }
+
+        active_registry_path = self.write_json(
+            "candidate-a-active.json",
+            registry_payload,
+        )
+        events_path = self.write_manual_events(
+            manual_event(participants=["Candidate A"])
+        )
+
+        active_path = (
+            self.temporary_root
+            / "candidate-a-active-events.json"
+        )
+
+        active = self.build(
+            generated_at="2026-08-01T16:00:00Z",
+            candidate_registry_path=active_registry_path,
+            manual_events_path=events_path,
+            output_path=active_path,
+        )
+
+        active_event = active["campaign_events"][0]
+
+        self.assertEqual(
+            active_event["candidate_ids"],
+            ["candidate-a"],
+        )
+        self.assertEqual(
+            active_event["candidate_names"],
+            ["Candidate A"],
+        )
+        self.assertEqual(
+            active_event["participants"],
+            ["Candidate A"],
+        )
+
+        hidden_registry_payload = json.loads(
+            json.dumps(registry_payload)
+        )
+        hidden_candidate = (
+            hidden_registry_payload["candidates"][0]
+        )
+        hidden_candidate["status"] = "ruled_out"
+        hidden_candidate["display_tier"] = "hidden"
+
+        hidden_registry_path = self.write_json(
+            "candidate-a-hidden.json",
+            hidden_registry_payload,
+        )
+        hidden_path = (
+            self.temporary_root
+            / "candidate-a-hidden-events.json"
+        )
+
+        hidden = self.build(
+            generated_at="2026-08-02T16:00:00Z",
+            candidate_registry_path=hidden_registry_path,
+            manual_events_path=events_path,
+            output_path=hidden_path,
+            preserve_generated_at_from=active_path,
+        )
+
+        hidden_event = hidden["campaign_events"][0]
+
+        self.assertEqual(
+            hidden_event["candidate_ids"],
+            [],
+        )
+        self.assertEqual(
+            hidden_event["candidate_names"],
+            [],
+        )
+        self.assertEqual(
+            hidden_event["participants"],
+            ["Candidate A"],
+        )
+
+        active_without_linkage = {
+            key: value
+            for key, value in active_event.items()
+            if key not in {"candidate_ids", "candidate_names"}
+        }
+        hidden_without_linkage = {
+            key: value
+            for key, value in hidden_event.items()
+            if key not in {"candidate_ids", "candidate_names"}
+        }
+
+        self.assertEqual(
+            hidden_without_linkage,
+            active_without_linkage,
+        )
+        self.assertEqual(
+            hidden["data_as_of"],
+            active["data_as_of"],
+        )
+        self.assertNotEqual(
+            hidden["generated_at"],
+            active["generated_at"],
+        )
+        self.assertEqual(
+            hidden["generated_at"],
+            "2026-08-02T16:00:00Z",
+        )
+
+        repeated_hidden_path = (
+            self.temporary_root
+            / "candidate-a-hidden-repeated-events.json"
+        )
+
+        repeated_hidden = self.build(
+            generated_at="2026-08-03T16:00:00Z",
+            candidate_registry_path=hidden_registry_path,
+            manual_events_path=events_path,
+            output_path=repeated_hidden_path,
+            preserve_generated_at_from=hidden_path,
+        )
+
+        self.assertEqual(
+            repeated_hidden["generated_at"],
+            hidden["generated_at"],
+        )
+        self.assertEqual(
+            repeated_hidden,
+            hidden,
+        )
+        self.assertEqual(
+            repeated_hidden_path.read_bytes(),
+            hidden_path.read_bytes(),
+        )
+
     def test_bootstrap_empty_does_not_require_manual_input(self):
         artifact = self.build(
             seed_path=self.temporary_root / "missing-seeds.json",
