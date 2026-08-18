@@ -95,6 +95,10 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
         )
 
     def test_same_run_derived_builds_are_change_gated_and_temporary_first(self):
+        campaign_events = step_block(
+            self.workflow,
+            "Rebuild Campaign Events on registry change",
+        )
         signals = step_block(
             self.workflow,
             "Rebuild Candidate Signals on registry change",
@@ -103,13 +107,80 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
             self.workflow,
             "Rebuild publication manifest on registry change",
         )
-        self.assertIn("if: steps.registry.outputs.changed == 'true'", signals)
+
+        change_gate = "if: steps.registry.outputs.changed == 'true'"
+
+        self.assertIn(change_gate, campaign_events)
+        self.assertIn("python -B build_campaign_events.py", campaign_events)
+        self.assertIn(
+            "--candidates candidate_candidacy_status.json",
+            campaign_events,
+        )
+        self.assertIn(
+            "--preserve-generated-at-from campaign_events.json",
+            campaign_events,
+        )
+        self.assertIn(
+            "--output /tmp/campaign_events.json",
+            campaign_events,
+        )
+        self.assertIn(
+            "from build_campaign_events import atomic_write",
+            campaign_events,
+        )
+        self.assertIn(
+            'atomic_write(tracked, candidate_bytes)',
+            campaign_events,
+        )
+
+        self.assertIn(change_gate, signals)
         self.assertIn("--output /tmp/candidate_signals.json", signals)
         self.assertIn("validate_candidate_signals", signals)
         self.assertIn("atomic_write(", signals)
-        self.assertIn("if: steps.registry.outputs.changed == 'true'", manifest)
+
+        self.assertIn(change_gate, manifest)
         self.assertIn("/tmp/publication_manifest.json", manifest)
         self.assertIn("validate_manifest", manifest)
+
+        campaign_position = self.workflow.index(
+            "Rebuild Campaign Events on registry change"
+        )
+        signals_position = self.workflow.index(
+            "Rebuild Candidate Signals on registry change"
+        )
+        manifest_position = self.workflow.index(
+            "Rebuild publication manifest on registry change"
+        )
+
+        self.assertLess(campaign_position, signals_position)
+        self.assertLess(signals_position, manifest_position)
+
+    def test_campaign_events_rebuild_preserves_no_churn_semantics(self):
+        campaign_events = step_block(
+            self.workflow,
+            "Rebuild Campaign Events on registry change",
+        )
+
+        self.assertIn(
+            "if: steps.registry.outputs.changed == 'true'",
+            campaign_events,
+        )
+        self.assertIn(
+            '--generated-at "$campaign_events_generated_at"',
+            campaign_events,
+        )
+        self.assertIn(
+            "--preserve-generated-at-from campaign_events.json",
+            campaign_events,
+        )
+        self.assertIn(
+            'summary["campaign_events_rebuilt"] = True',
+            campaign_events,
+        )
+        self.assertIn(
+            'summary["campaign_events_changed"] = (',
+            campaign_events,
+        )
 
     def test_generated_scope_and_stage_scope_are_exact(self):
         scope = step_block(
@@ -118,36 +189,50 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
         )
         allowed_pattern = (
             "^(candidate_candidacy_status|candidate_signals|"
-            "publication_manifest)\\.json$"
+            "campaign_events|publication_manifest)\\.json$"
         )
         self.assertIn(allowed_pattern, scope)
+
         commit = step_block(
             self.workflow,
             "Commit, rebase, validate, and push candidate universe",
         )
-        stage = commit[commit.index("git add --"):commit.index("git commit -m")]
-        self.assertIn("candidate_candidacy_status.json", stage)
-        self.assertIn("candidate_signals.json", stage)
-        self.assertIn("publication_manifest.json", stage)
+        stage = commit[
+            commit.index("git add --"):
+            commit.index("git commit -m")
+        ]
+
+        for required in (
+            "candidate_candidacy_status.json",
+            "campaign_events.json",
+            "candidate_signals.json",
+            "publication_manifest.json",
+        ):
+            self.assertIn(required, stage)
+
         for forbidden in (
             "candidate_attention.json",
             "claims_under_scrutiny.json",
             "news_wire.json",
-            "campaign_events.json",
             "polls.json",
             "recent_changes.json",
             "git add -A",
             "git add --all",
         ):
             self.assertNotIn(forbidden, stage)
+
         self.assertIn("git diff --cached --check", commit)
-        self.assertIn('git commit -m "Update candidate universe"', commit)
+        self.assertIn(
+            'git commit -m "Update candidate universe"',
+            commit,
+        )
 
     def test_rebase_push_is_non_forcing_and_revalidates_derived_artifacts(self):
         commit = step_block(
             self.workflow,
             "Commit, rebase, validate, and push candidate universe",
         )
+
         self.assertIn("git fetch origin main", commit)
         self.assertIn("git rebase origin/main", commit)
         self.assertIn("build_from_paths(", commit)
@@ -155,12 +240,61 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
         self.assertIn("git push origin HEAD:main", commit)
         self.assertNotIn("--force", commit)
 
-    def test_no_downstream_collectors_are_invoked(self):
+        rebase_position = commit.index(
+            "git rebase origin/main"
+        )
+        campaign_position = commit.index(
+            "python -B build_campaign_events.py",
+            rebase_position,
+        )
+        signals_position = commit.index(
+            "build_from_paths(",
+            campaign_position,
+        )
+        manifest_position = commit.index(
+            "build_manifest(",
+            signals_position,
+        )
+
+        self.assertLess(rebase_position, campaign_position)
+        self.assertLess(campaign_position, signals_position)
+        self.assertLess(signals_position, manifest_position)
+
+        post_rebase = commit[campaign_position:]
+
+        self.assertIn(
+            "--candidates candidate_candidacy_status.json",
+            post_rebase,
+        )
+        self.assertIn(
+            "--preserve-generated-at-from campaign_events.json",
+            post_rebase,
+        )
+        self.assertIn(
+            "--output /tmp/campaign_events-rebase.json",
+            post_rebase,
+        )
+        self.assertIn(
+            "campaign_events.json",
+            post_rebase,
+        )
+        self.assertIn(
+            "git commit --amend --no-edit",
+            post_rebase,
+        )
+
+    def test_no_unrelated_downstream_collectors_are_invoked(self):
+        self.assertEqual(
+            self.workflow.count(
+                "python -B build_campaign_events.py"
+            ),
+            2,
+        )
+
         for forbidden in (
             "fetch_news_wire.py",
             "fetch_claims_under_scrutiny.py",
             "build_candidate_attention.py",
-            "build_campaign_events.py",
             "fetch_polls.py",
             "generate_recent_changes.py",
         ):
@@ -209,6 +343,8 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
             "status_tier_transitions",
             "returned_candidates",
             "renamed_identities",
+            "campaign_events_rebuilt",
+            "campaign_events_changed",
             "candidate_signals_rebuilt",
             "manifest_rebuilt",
             "published_commit",
