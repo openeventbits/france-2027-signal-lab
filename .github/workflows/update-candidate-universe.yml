@@ -201,6 +201,8 @@ jobs:
               "temporarily_missing_transitions": missing_transitions,
               "returned_candidates": returned,
               "renamed_identities": renames,
+              "campaign_events_rebuilt": False,
+              "campaign_events_changed": False,
               "candidate_signals_rebuilt": False,
               "manifest_rebuilt": False,
               "published_commit": None,
@@ -220,6 +222,68 @@ jobs:
 
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
               output.write(f"changed={'true' if semantic_changed else 'false'}\n")
+          PY
+
+      - name: Rebuild Campaign Events on registry change
+        id: campaign_events
+        if: steps.registry.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec 2> >(tee /tmp/candidate-universe-error.txt >&2)
+
+          campaign_events_generated_at="$(
+            python -B -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"))'
+          )"
+
+          python -B build_campaign_events.py \
+            --seeds campaign_event_institutional_seeds.json \
+            --sources campaign_event_sources.json \
+            --candidates candidate_candidacy_status.json \
+            --manual-events campaign_events_manual.json \
+            --event-updates campaign_event_updates_manual.json \
+            --generated-at "$campaign_events_generated_at" \
+            --preserve-generated-at-from campaign_events.json \
+            --output /tmp/campaign_events.json
+
+          python -B - <<'PY'
+          import json
+          from pathlib import Path
+
+          from build_campaign_events import atomic_write
+
+          tracked = Path("campaign_events.json")
+          temporary = Path("/tmp/campaign_events.json")
+
+          previous_bytes = tracked.read_bytes()
+          candidate_bytes = temporary.read_bytes()
+
+          atomic_write(tracked, candidate_bytes)
+
+          if tracked.read_bytes() != candidate_bytes:
+              raise SystemExit(
+                  "atomic Campaign Events promotion did not verify"
+              )
+
+          summary_path = Path(
+              "/tmp/candidate-universe-summary.json"
+          )
+          summary = json.loads(
+              summary_path.read_text(encoding="utf-8")
+          )
+          summary["campaign_events_rebuilt"] = True
+          summary["campaign_events_changed"] = (
+              previous_bytes != candidate_bytes
+          )
+          summary_path.write_text(
+              json.dumps(
+                  summary,
+                  ensure_ascii=False,
+                  indent=2,
+              )
+              + "\n",
+              encoding="utf-8",
+          )
           PY
 
       - name: Rebuild Candidate Signals on registry change
@@ -335,7 +399,7 @@ jobs:
           unexpected="$(
             git status --porcelain=v1 --untracked-files=all \
               | sed -E 's/^...//' \
-              | grep -Ev '^(candidate_candidacy_status|candidate_signals|publication_manifest)\.json$' \
+              | grep -Ev '^(candidate_candidacy_status|candidate_signals|campaign_events|publication_manifest)\.json$' \
               || true
           )"
           if [[ -n "$unexpected" ]]; then
@@ -364,16 +428,54 @@ jobs:
 
           git add -- \
             candidate_candidacy_status.json \
+            campaign_events.json \
             candidate_signals.json \
             publication_manifest.json
           git diff --cached --check
           git commit -m "Update candidate universe" -- \
             candidate_candidacy_status.json \
+            campaign_events.json \
             candidate_signals.json \
             publication_manifest.json
 
           git fetch origin main
           git rebase origin/main
+
+          campaign_events_generated_at="$(
+            python -B -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"))'
+          )"
+
+          python -B build_campaign_events.py \
+            --seeds campaign_event_institutional_seeds.json \
+            --sources campaign_event_sources.json \
+            --candidates candidate_candidacy_status.json \
+            --manual-events campaign_events_manual.json \
+            --event-updates campaign_event_updates_manual.json \
+            --generated-at "$campaign_events_generated_at" \
+            --preserve-generated-at-from campaign_events.json \
+            --output /tmp/campaign_events-rebase.json
+
+          python -B - <<'PY'
+          from pathlib import Path
+
+          from build_campaign_events import atomic_write
+
+          temporary = Path(
+              "/tmp/campaign_events-rebase.json"
+          )
+          atomic_write(
+              "campaign_events.json",
+              temporary.read_bytes(),
+          )
+          if (
+              Path("campaign_events.json").read_bytes()
+              != temporary.read_bytes()
+          ):
+              raise SystemExit(
+                  "post-rebase Campaign Events promotion "
+                  "did not verify"
+              )
+          PY
 
           python -B - <<'PY'
           import json
@@ -406,9 +508,14 @@ jobs:
           PY
 
           if ! git diff --quiet -- \
-            candidate_signals.json publication_manifest.json
+            campaign_events.json \
+            candidate_signals.json \
+            publication_manifest.json
           then
-            git add -- candidate_signals.json publication_manifest.json
+            git add -- \
+              campaign_events.json \
+              candidate_signals.json \
+              publication_manifest.json
             git diff --cached --check
             git commit --amend --no-edit
           fi
@@ -416,7 +523,7 @@ jobs:
           unexpected="$(
             git status --porcelain=v1 --untracked-files=all \
               | sed -E 's/^...//' \
-              | grep -Ev '^(candidate_candidacy_status|candidate_signals|publication_manifest)\.json$' \
+              | grep -Ev '^(candidate_candidacy_status|candidate_signals|campaign_events|publication_manifest)\.json$' \
               || true
           )"
           if [[ -n "$unexpected" ]]; then
@@ -426,6 +533,7 @@ jobs:
           fi
           git diff --exit-code -- \
             candidate_candidacy_status.json \
+            campaign_events.json \
             candidate_signals.json \
             publication_manifest.json
           git push origin HEAD:main
@@ -477,6 +585,8 @@ jobs:
               f"- Temporarily missing: {render(summary['temporarily_missing_transitions'])}",
               f"- Returned candidates: {render(summary['returned_candidates'])}",
               f"- Renamed identities: {render(summary['renamed_identities'])}",
+              f"- Campaign Events rebuilt: `{str(summary['campaign_events_rebuilt']).lower()}`",
+              f"- Campaign Events bytes changed: `{str(summary['campaign_events_changed']).lower()}`",
               f"- Candidate Signals rebuilt: `{str(summary['candidate_signals_rebuilt']).lower()}`",
               f"- Manifest rebuilt: `{str(summary['manifest_rebuilt']).lower()}`",
               f"- Published commit: `{summary['published_commit'] or 'none'}`",
