@@ -79,17 +79,69 @@ header {
 }
 
 h1 {
+  width: fit-content;
+  max-width: 100%;
   color: #f1f7fb;
-  font-size: clamp(21px, 1.55vw, 27px);
-  font-weight: 750;
-  letter-spacing: 0.035em;
+  font-size: clamp(22px, 1.5vw, 26px);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: 0.065em;
+}
+
+.masthead h1::after {
+  display: block;
+  width: 100%;
+  height: 2px;
+  margin-top: 6px;
+  background: linear-gradient(
+    90deg,
+    #0055a4 0 33.333%,
+    #ffffff 33.333% 66.666%,
+    #ef4135 66.666% 100%
+  );
+  content: "";
 }
 
 .masthead-tagline {
-  margin-top: 4px;
+  margin-top: 6px;
   color: #94adbd;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.35;
+}
+
+@media (max-width: 520px) {
+  .masthead h1::after {
+    height: 1px;
+    margin-top: 4px;
+  }
+
+  .masthead-tagline {
+    margin-top: 4px;
+  }
+}
+
+/*
+ * Narrow-desktop masthead integration:
+ * preserve the complete brand lockup while allowing
+ * operational metadata to wrap instead of intruding
+ * into the title area.
+ */
+@media (min-width: 720px) and (max-width: 1119px) {
+  .masthead .brand {
+    flex: 0 0 auto;
+  }
+
+  .masthead-data {
+    flex: 1 1 260px;
+    min-width: 0;
+    max-width: 340px;
+    font-size: 9px;
+    line-height: 1.2;
+  }
+
+  .masthead-data span {
+    white-space: normal;
+  }
 }
 
 .masthead-tools {

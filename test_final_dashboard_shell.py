@@ -1983,5 +1983,51 @@ class MockupTopRowGeometryTests(
             )
 
 
+
+class HeroBrandingContractTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.index = Path(
+            "index.html"
+        ).read_text(encoding="utf-8")
+        cls.css = Path(
+            "assets/final-dashboard-shell.css"
+        ).read_text(encoding="utf-8")
+
+    def test_locked_hero_branding_contract(self):
+        self.assertIn(
+            "<h1>FRANCE 2027 <span>SIGNAL LAB</span></h1>",
+            self.index,
+        )
+        self.assertNotIn(
+            'style="color:var(--blue)">SIGNAL LAB',
+            self.index,
+        )
+
+        for contract in (
+            "font-size: clamp(22px, 1.5vw, 26px);",
+            "font-weight: 600;",
+            "letter-spacing: 0.065em;",
+            ".masthead h1::after",
+            "#0055a4 0 33.333%",
+            "#ffffff 33.333% 66.666%",
+            "#ef4135 66.666% 100%",
+            "@media (min-width: 720px) and (max-width: 1119px)",
+            ".masthead-data span",
+            "white-space: normal;",
+        ):
+            self.assertIn(
+                contract,
+                self.css,
+            )
+
+        self.assertIn(
+            """.mark svg {
+      width: 42px;
+      height: 42px;""",
+            self.index,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
