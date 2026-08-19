@@ -299,9 +299,42 @@ class CandidateAttentionWorkflowContractTests(
             "PUBLICATION_MANIFEST_CHANGED:",
             self.workflow,
         )
+
+    def test_final_manifest_validation_uses_builder_schema_authority(
+        self,
+    ):
+        final_validation_start = self.workflow.index(
+            "from build_publication_manifest import (\n"
+            "              validate_manifest,"
+        )
+
+        push = self.workflow.index(
+            "git push origin HEAD:main",
+            final_validation_start,
+        )
+
+        final_validation = self.workflow[
+            final_validation_start:push
+        ]
+
         self.assertIn(
-            'manifest["schema_version"] != "1.3"',
+            "validate_manifest(\n"
+            "              manifest\n"
+            "          )",
+            final_validation,
+        )
+
+        self.assertNotRegex(
             self.workflow,
+            (
+                r"(?:"
+                r"manifest\[\s*[\"']schema_version[\"']\s*\]"
+                r"|"
+                r"manifest\.get\(\s*[\"']schema_version[\"']\s*\)"
+                r")"
+                r"\s*(?:==|!=)\s*"
+                r"[\"'][^\"']+[\"']"
+            ),
         )
 
     def test_complete_generated_scope_is_guarded(self):
