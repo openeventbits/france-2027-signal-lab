@@ -772,6 +772,7 @@ DEFAULT_HTTP_TIMEOUT_SECONDS = 20
 DEFAULT_MAX_RESPONSE_BYTES = 5 * 1024 * 1024
 DEFAULT_REQUEST_DELAY_SECONDS = 0.30
 PAGEVIEWS_404_RETRY_DELAYS = (1.0, 2.0)
+PAGEVIEWS_INCOMPLETE_RETRY_DELAYS = (1.0, 2.0)
 
 MAX_HTTP_ATTEMPTS = 4
 MAX_RETRY_AFTER_SECONDS = 30.0
@@ -1766,148 +1767,6 @@ def fetch_pageview_series(
         ),
     )
 
-    total_attempts = (
-        len(
-            PAGEVIEWS_404_RETRY_DELAYS
-        )
-        + 1
-    )
-
-    for attempt in range(
-        1,
-        total_attempts + 1,
-    ):
-        try:
-            payload = fetcher(
-                request_url
-            )
-            break
-        except WikimediaFetchError as error:
-            if error.status != 404:
-                raise
-
-            if attempt == total_attempts:
-                raise WikimediaPageviewsNotFoundError(
-                    error.category,
-                    "Pageviews HTTP 404",
-                    status=error.status,
-                    attempts=attempt,
-                ) from error
-
-            delay = (
-                PAGEVIEWS_404_RETRY_DELAYS[
-                    attempt - 1
-                ]
-            )
-
-            print(
-                "Pageviews HTTP 404; retrying same request "
-                f"({attempt + 1}/{total_attempts}) after "
-                f"{delay:g}s.",
-                flush=True,
-            )
-
-            sleeper(
-                delay
-            )
-
-    items = payload.get(
-        "items"
-    )
-
-    if not isinstance(
-        items,
-        list,
-    ):
-        _fail(
-            "Wikimedia pageview response has no items list"
-        )
-
-    records: dict[
-        str,
-        int,
-    ] = {}
-
-    for index, item in enumerate(
-        items
-    ):
-        field = (
-            f"Wikimedia items[{index}]"
-        )
-
-        if not isinstance(
-            item,
-            dict,
-        ):
-            _fail(
-                f"{field} must be an object"
-            )
-
-        timestamp = item.get(
-            "timestamp"
-        )
-
-        views = item.get(
-            "views"
-        )
-
-        if (
-            not isinstance(
-                timestamp,
-                str,
-            )
-            or len(
-                timestamp
-            ) != 10
-            or not timestamp.endswith(
-                "00"
-            )
-        ):
-            _fail(
-                f"{field}.timestamp is invalid"
-            )
-
-        try:
-            observation_date = (
-                datetime.strptime(
-                    timestamp,
-                    "%Y%m%d00",
-                )
-                .date()
-                .isoformat()
-            )
-        except ValueError as error:
-            raise CandidateAttentionBuildError(
-                f"{field}.timestamp is invalid"
-            ) from error
-
-        if (
-            not isinstance(
-                views,
-                int,
-            )
-            or isinstance(
-                views,
-                bool,
-            )
-            or views < 0
-        ):
-            _fail(
-                f"{field}.views must be a non-negative integer"
-            )
-
-        if (
-            observation_date
-            in records
-        ):
-            _fail(
-                "Wikimedia returned duplicate daily pageview dates"
-            )
-
-        records[
-            observation_date
-        ] = views
-
     required_dates = (
         expected_dates(
             data_as_of
@@ -1918,45 +1777,229 @@ def fetch_pageview_series(
         required_dates
     )
 
-    missing = [
-        observed_date
-        for observed_date
-        in required_dates
-        if observed_date
-        not in records
-    ]
-
-    extras = sorted(
-        set(records)
-        - required_set
+    http_total_attempts = (
+        len(
+            PAGEVIEWS_404_RETRY_DELAYS
+        )
+        + 1
     )
 
-    if extras:
-        _fail(
-            "Wikimedia daily pageview sequence is incomplete; "
-            f"missing={missing}; extra={extras}"
+    semantic_total_attempts = (
+        len(
+            PAGEVIEWS_INCOMPLETE_RETRY_DELAYS
+        )
+        + 1
+    )
+
+    def fetch_http_200_payload() -> dict[str, Any]:
+        for attempt in range(
+            1,
+            http_total_attempts + 1,
+        ):
+            try:
+                return fetcher(
+                    request_url
+                )
+            except WikimediaFetchError as error:
+                if error.status != 404:
+                    raise
+
+                if attempt == http_total_attempts:
+                    raise WikimediaPageviewsNotFoundError(
+                        error.category,
+                        "Pageviews HTTP 404",
+                        status=error.status,
+                        attempts=attempt,
+                    ) from error
+
+                delay = (
+                    PAGEVIEWS_404_RETRY_DELAYS[
+                        attempt - 1
+                    ]
+                )
+
+                print(
+                    "Pageviews HTTP 404; retrying same request "
+                    f"({attempt + 1}/{http_total_attempts}) after "
+                    f"{delay:g}s.",
+                    flush=True,
+                )
+
+                sleeper(
+                    delay
+                )
+
+        raise AssertionError(
+            "unreachable Pageviews HTTP retry state"
         )
 
-    if (
-        missing
-        and not source_window_verified
+    records: dict[
+        str,
+        int,
+    ] = {}
+
+    missing: list[str] = []
+
+    for semantic_attempt in range(
+        1,
+        semantic_total_attempts + 1,
     ):
-        trailing_suffix = (
-            required_dates[
-                -len(missing):
-            ]
+        payload = fetch_http_200_payload()
+
+        items = payload.get(
+            "items"
         )
 
-        if missing == trailing_suffix:
-            raise WikimediaPageviewsAvailabilityLagError(
-                "Wikimedia daily pageview sequence is not yet complete; "
-                f"missing trailing dates={missing}"
+        if not isinstance(
+            items,
+            list,
+        ):
+            _fail(
+                "Wikimedia pageview response has no items list"
             )
 
-        _fail(
-            "Wikimedia daily pageview sequence is incomplete; "
-            f"missing={missing}; extra={extras}"
+        records = {}
+
+        for index, item in enumerate(
+            items
+        ):
+            field = (
+                f"Wikimedia items[{index}]"
+            )
+
+            if not isinstance(
+                item,
+                dict,
+            ):
+                _fail(
+                    f"{field} must be an object"
+                )
+
+            timestamp = item.get(
+                "timestamp"
+            )
+
+            views = item.get(
+                "views"
+            )
+
+            if (
+                not isinstance(
+                    timestamp,
+                    str,
+                )
+                or len(
+                    timestamp
+                ) != 10
+                or not timestamp.endswith(
+                    "00"
+                )
+            ):
+                _fail(
+                    f"{field}.timestamp is invalid"
+                )
+
+            try:
+                observation_date = (
+                    datetime.strptime(
+                        timestamp,
+                        "%Y%m%d00",
+                    )
+                    .date()
+                    .isoformat()
+                )
+            except ValueError as error:
+                raise CandidateAttentionBuildError(
+                    f"{field}.timestamp is invalid"
+                ) from error
+
+            if (
+                not isinstance(
+                    views,
+                    int,
+                )
+                or isinstance(
+                    views,
+                    bool,
+                )
+                or views < 0
+            ):
+                _fail(
+                    f"{field}.views must be a non-negative integer"
+                )
+
+            if (
+                observation_date
+                in records
+            ):
+                _fail(
+                    "Wikimedia returned duplicate daily pageview dates"
+                )
+
+            records[
+                observation_date
+            ] = views
+
+        missing = [
+            observed_date
+            for observed_date
+            in required_dates
+            if observed_date
+            not in records
+        ]
+
+        extras = sorted(
+            set(records)
+            - required_set
         )
+
+        if extras:
+            _fail(
+                "Wikimedia daily pageview sequence is incomplete; "
+                f"missing={missing}; extra={extras}"
+            )
+
+        if not missing:
+            break
+
+        if semantic_attempt < semantic_total_attempts:
+            delay = (
+                PAGEVIEWS_INCOMPLETE_RETRY_DELAYS[
+                    semantic_attempt - 1
+                ]
+            )
+
+            print(
+                "Pageviews response incomplete for "
+                f"{canonical_article}; retrying same range "
+                f"({semantic_attempt + 1}/{semantic_total_attempts}) "
+                f"after {delay:g}s; missing={missing}",
+                flush=True,
+            )
+
+            sleeper(
+                delay
+            )
+
+            continue
+
+        if not source_window_verified:
+            trailing_suffix = (
+                required_dates[
+                    -len(missing):
+                ]
+            )
+
+            if missing == trailing_suffix:
+                raise WikimediaPageviewsAvailabilityLagError(
+                    "Wikimedia daily pageview sequence is not yet complete; "
+                    f"missing trailing dates={missing}"
+                )
+
+            _fail(
+                "Wikimedia daily pageview sequence is incomplete; "
+                f"missing={missing}; extra={extras}"
+            )
 
     return [
         {
