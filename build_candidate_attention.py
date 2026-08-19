@@ -1979,7 +1979,7 @@ def collect_wikimedia_observations(
     fetcher: Callable[[str], dict[str, Any]] = fetch_json,
     delay_seconds: float = DEFAULT_REQUEST_DELAY_SECONDS,
     sleeper: Callable[[float], None] = time.sleep,
-    verify_source_window: bool = False,
+    source_window_verified: bool = False,
 ) -> dict[str, list[dict[str, Any]]]:
     if (
         not isinstance(delay_seconds, (int, float))
@@ -1990,11 +1990,11 @@ def collect_wikimedia_observations(
         _fail("delay_seconds must be a finite non-negative number")
 
     if not isinstance(
-        verify_source_window,
+        source_window_verified,
         bool,
     ):
         _fail(
-            "verify_source_window must be boolean"
+            "source_window_verified must be boolean"
         )
 
     plan = build_fetch_plan(
@@ -2013,17 +2013,6 @@ def collect_wikimedia_observations(
         result = fetcher(url)
         logical_request_count += 1
         return result
-
-    if verify_source_window:
-        print(
-            "French Wikipedia project Pageviews - availability",
-            flush=True,
-        )
-        verify_project_pageview_window(
-            data_as_of=data_as_of,
-            fetcher=paced_fetch,
-            sleeper=sleeper,
-        )
 
     observations: dict[str, list[dict[str, Any]]] = {}
 
@@ -2069,7 +2058,7 @@ def collect_wikimedia_observations(
             fetcher=paced_fetch,
             sleeper=sleeper,
             source_window_verified=(
-                verify_source_window
+                source_window_verified
             ),
         )
 
@@ -2279,6 +2268,32 @@ def run_build(
         )
 
         try:
+            print(
+                "French Wikipedia project Pageviews - availability",
+                flush=True,
+            )
+
+            try:
+                verify_project_pageview_window(
+                    data_as_of=resolved_date,
+                    fetcher=fetcher,
+                    sleeper=sleeper,
+                )
+            except (
+                WikimediaPageviewsNotFoundError,
+                WikimediaPageviewsAvailabilityLagError,
+            ) as project_error:
+                source_window_verified = False
+                print(
+                    "French Wikipedia project Pageviews could not "
+                    f"verify {resolved_date.isoformat()} "
+                    f"({project_error}); collecting candidate "
+                    "series strictly with zero-fill disabled.",
+                    flush=True,
+                )
+            else:
+                source_window_verified = True
+
             observations = (
                 collect_wikimedia_observations(
                     candidacy_payload=(
@@ -2299,7 +2314,9 @@ def run_build(
                     sleeper=(
                         sleeper
                     ),
-                    verify_source_window=True,
+                    source_window_verified=(
+                        source_window_verified
+                    ),
                 )
             )
             break

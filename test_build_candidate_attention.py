@@ -2158,7 +2158,50 @@ class CandidateAttentionPageviewCollectionTests(
                 ),
             )
 
-    def test_verified_collection_preflights_before_candidates(
+    def test_verified_collection_uses_explicit_zero_fill_authority(
+        self,
+    ):
+        calls = []
+
+        def fetcher(url):
+            calls.append(url)
+            payload = pageview_payload()
+            payload["items"].pop(10)
+            return payload
+
+        result = collect_wikimedia_observations(
+            candidacy_payload=CANDIDACY,
+            registry_payload=REGISTRY,
+            data_as_of=DATA_AS_OF,
+            fetcher=fetcher,
+            delay_seconds=0,
+            sleeper=lambda _: None,
+            source_window_verified=True,
+        )
+
+        self.assertEqual(
+            set(result),
+            set(ARTICLE_ELIGIBLE_IDS),
+        )
+        self.assertEqual(
+            len(calls),
+            len(ARTICLE_ELIGIBLE_IDS),
+        )
+        self.assertFalse(
+            any(
+                "/metrics/pageviews/aggregate/"
+                in url
+                for url in calls
+            )
+        )
+        self.assertTrue(
+            all(
+                series[10]["views"] == 0
+                for series in result.values()
+            )
+        )
+
+    def test_strict_collection_does_not_request_project_aggregate(
         self,
     ):
         calls = []
@@ -2174,61 +2217,23 @@ class CandidateAttentionPageviewCollectionTests(
             fetcher=fetcher,
             delay_seconds=0,
             sleeper=lambda _: None,
-            verify_source_window=True,
+            source_window_verified=False,
         )
 
         self.assertEqual(
-            list(result),
-            ARTICLE_ELIGIBLE_IDS,
+            set(result),
+            set(ARTICLE_ELIGIBLE_IDS),
         )
         self.assertEqual(
             len(calls),
-            len(ARTICLE_ELIGIBLE_IDS) + 1,
+            len(ARTICLE_ELIGIBLE_IDS),
         )
-        self.assertIn(
-            "/metrics/pageviews/aggregate/",
-            calls[0],
-        )
-        self.assertTrue(
-            all(
-                "/metrics/pageviews/per-article/"
+        self.assertFalse(
+            any(
+                "/metrics/pageviews/aggregate/"
                 in url
-                for url
-                in calls[1:]
+                for url in calls
             )
-        )
-
-    def test_failed_project_preflight_makes_no_candidate_requests(
-        self,
-    ):
-        calls = []
-
-        def fetcher(url):
-            calls.append(url)
-            payload = pageview_payload()
-            payload["items"].pop(10)
-            return payload
-
-        with self.assertRaises(
-            WikimediaPageviewsAvailabilityLagError
-        ):
-            collect_wikimedia_observations(
-                candidacy_payload=CANDIDACY,
-                registry_payload=REGISTRY,
-                data_as_of=DATA_AS_OF,
-                fetcher=fetcher,
-                delay_seconds=0,
-                sleeper=lambda _: None,
-                verify_source_window=True,
-            )
-
-        self.assertEqual(
-            len(calls),
-            1,
-        )
-        self.assertIn(
-            "/metrics/pageviews/aggregate/",
-            calls[0],
         )
 
 
@@ -2440,24 +2445,23 @@ class CandidateAttentionAvailabilityFallbackTests(
             * (len(ARTICLE_ELIGIBLE_IDS) + 1),
         )
 
-    def test_project_404_rebuilds_complete_previous_date(
+    def test_project_404_uses_strict_candidates_on_same_date(
         self,
     ):
-        previous = DATA_AS_OF - timedelta(days=1)
-        pageview_dates = []
-        verification_calls = 0
+        project_dates = []
+        candidate_dates = []
 
         def fetcher(url):
-            nonlocal verification_calls
-
             if "/w/api.php?" in url:
-                verification_calls += 1
                 return self._success_for_url(url)
 
             requested_date = self._request_data_as_of(url)
-            pageview_dates.append(requested_date)
 
-            if requested_date == DATA_AS_OF:
+            if (
+                "/metrics/pageviews/aggregate/"
+                in url
+            ):
+                project_dates.append(requested_date)
                 raise WikimediaFetchError(
                     "http_4xx",
                     "HTTP 404",
@@ -2465,56 +2469,26 @@ class CandidateAttentionAvailabilityFallbackTests(
                     attempts=1,
                 )
 
+            candidate_dates.append(requested_date)
             return self._success_for_url(url)
 
-        payload = self._run_build(fetcher)
+        payload = self._run_build(
+            fetcher,
+            fallback_days=1,
+        )
 
         self.assertEqual(
-            pageview_dates,
-            [DATA_AS_OF] * 3
-            + [previous]
-            * (len(ARTICLE_ELIGIBLE_IDS) + 1),
+            project_dates,
+            [DATA_AS_OF] * 3,
         )
         self.assertEqual(
-            verification_calls,
-            0,
-        )
-        self.assertEqual(
-            payload["candidate_universe"]["count"],
-            len(ACTIVE_CANDIDATES),
-        )
-        self.assertEqual(
-            payload["candidate_universe"]["article_eligible_count"],
-            len(ARTICLE_ELIGIBLE_IDS),
-        )
-        self.assertEqual(
-            len(payload["candidates"]),
-            len(ACTIVE_CANDIDATES),
+            candidate_dates,
+            [DATA_AS_OF]
+            * len(ARTICLE_ELIGIBLE_IDS),
         )
         self.assertEqual(
             payload["period"]["data_as_of"],
-            previous.isoformat(),
-        )
-        article_eligible = set(
-            ARTICLE_ELIGIBLE_IDS
-        )
-        self.assertTrue(
-            all(
-                len(candidate["daily_series"])
-                == (
-                    90
-                    if candidate["candidate_id"] in article_eligible
-                    else 0
-                )
-                for candidate in payload["candidates"]
-            )
-        )
-        self.assertTrue(
-            all(
-                observation["views"] == 137
-                for candidate in payload["candidates"]
-                for observation in candidate["daily_series"]
-            )
+            DATA_AS_OF.isoformat(),
         )
 
     def test_candidate_404_after_verified_window_rebuilds_previous_date(
@@ -2581,18 +2555,26 @@ class CandidateAttentionAvailabilityFallbackTests(
             previous.isoformat(),
         )
 
-    def test_pageviews_404_fallback_exhaustion_fails_closed(
+    def test_candidate_404_fallback_exhaustion_fails_closed(
         self,
     ):
-        requested_dates = []
+        project_dates = []
+        candidate_dates = []
 
         def fetcher(url):
             if "/w/api.php?" in url:
                 return self._success_for_url(url)
 
-            requested_dates.append(
-                self._request_data_as_of(url)
-            )
+            requested_date = self._request_data_as_of(url)
+
+            if (
+                "/metrics/pageviews/aggregate/"
+                in url
+            ):
+                project_dates.append(requested_date)
+                return self._success_for_url(url)
+
+            candidate_dates.append(requested_date)
             raise WikimediaFetchError(
                 "http_4xx",
                 "HTTP 404",
@@ -2600,8 +2582,17 @@ class CandidateAttentionAvailabilityFallbackTests(
                 attempts=1,
             )
 
+        attempted_dates = [
+            DATA_AS_OF
+            - timedelta(days=offset)
+            for offset in range(4)
+        ]
+
         with tempfile.TemporaryDirectory() as temporary:
-            target = Path(temporary) / "candidate_attention.json"
+            target = (
+                Path(temporary)
+                / "candidate_attention.json"
+            )
             target.write_bytes(b"last-good\n")
 
             with self.assertRaises(
@@ -2610,14 +2601,20 @@ class CandidateAttentionAvailabilityFallbackTests(
                 with redirect_stdout(io.StringIO()):
                     run_build(
                         candidacy_path=(
-                            ROOT / "candidate_candidacy_status.json"
+                            ROOT
+                            / "candidate_candidacy_status.json"
                         ),
                         registry_path=(
-                            ROOT / "wikimedia_candidate_articles.json"
+                            ROOT
+                            / "wikimedia_candidate_articles.json"
                         ),
                         output_path=target,
-                        data_as_of=DATA_AS_OF.isoformat(),
-                        generated_at="2026-08-07T05:00:00Z",
+                        data_as_of=(
+                            DATA_AS_OF.isoformat()
+                        ),
+                        generated_at=(
+                            "2026-08-07T05:00:00Z"
+                        ),
                         fallback_days=3,
                         delay_seconds=0,
                         fetcher=fetcher,
@@ -2629,58 +2626,40 @@ class CandidateAttentionAvailabilityFallbackTests(
                 b"last-good\n",
             )
 
-        expected_requested_dates = []
-
-        for offset in range(4):
-            expected_requested_dates.extend(
-                [
-                    DATA_AS_OF
-                    - timedelta(days=offset)
-                ] * 3
-            )
-
         self.assertEqual(
-            requested_dates,
-            expected_requested_dates,
+            project_dates,
+            attempted_dates,
+        )
+        self.assertEqual(
+            candidate_dates,
+            [
+                requested_date
+                for requested_date
+                in attempted_dates
+                for _ in range(3)
+            ],
         )
 
-    def test_pageviews_fallback_is_disabled_by_default(
+    def test_candidate_404_fallback_is_disabled_by_default(
         self,
     ):
-        pageview_dates = []
+        project_dates = []
+        candidate_dates = []
 
         def fetcher(url):
             if "/w/api.php?" in url:
                 return self._success_for_url(url)
 
-            pageview_dates.append(
-                self._request_data_as_of(url)
-            )
-            raise WikimediaFetchError(
-                "http_4xx",
-                "HTTP 404",
-                status=404,
-                attempts=1,
-            )
+            requested_date = self._request_data_as_of(url)
 
-        with self.assertRaises(WikimediaFetchError):
-            self._run_build(
-                fetcher,
-                fallback_days=0,
-            )
+            if (
+                "/metrics/pageviews/aggregate/"
+                in url
+            ):
+                project_dates.append(requested_date)
+                return self._success_for_url(url)
 
-        self.assertEqual(
-            pageview_dates,
-            [DATA_AS_OF] * 3,
-        )
-
-    def test_registry_v2_pageview_404_uses_bounded_fallback(
-        self,
-    ):
-        calls = []
-
-        def fetcher(url):
-            calls.append(url)
+            candidate_dates.append(requested_date)
             raise WikimediaFetchError(
                 "http_4xx",
                 "HTTP 404",
@@ -2691,19 +2670,76 @@ class CandidateAttentionAvailabilityFallbackTests(
         with self.assertRaises(
             WikimediaPageviewsNotFoundError
         ):
-            self._run_build(fetcher)
-
-        # Three bounded attempts on the preferred date,
-        # then three on the one-day fallback date.
-        self.assertEqual(
-            len(calls),
-            6,
-        )
-        self.assertTrue(
-            all(
-                "/w/api.php?" not in url
-                for url in calls
+            self._run_build(
+                fetcher,
+                fallback_days=0,
             )
+
+        self.assertEqual(
+            project_dates,
+            [DATA_AS_OF],
+        )
+        self.assertEqual(
+            candidate_dates,
+            [DATA_AS_OF] * 3,
+        )
+
+    def test_registry_v2_candidate_404_uses_bounded_fallback(
+        self,
+    ):
+        previous = (
+            DATA_AS_OF
+            - timedelta(days=1)
+        )
+        project_dates = []
+        candidate_dates = []
+
+        def fetcher(url):
+            if "/w/api.php?" in url:
+                return self._success_for_url(url)
+
+            requested_date = self._request_data_as_of(url)
+
+            if (
+                "/metrics/pageviews/aggregate/"
+                in url
+            ):
+                project_dates.append(requested_date)
+                return self._success_for_url(url)
+
+            candidate_dates.append(requested_date)
+
+            if requested_date == DATA_AS_OF:
+                raise WikimediaFetchError(
+                    "http_4xx",
+                    "HTTP 404",
+                    status=404,
+                    attempts=1,
+                )
+
+            return self._success_for_url(url)
+
+        payload = self._run_build(
+            fetcher,
+            fallback_days=1,
+        )
+
+        self.assertEqual(
+            project_dates,
+            [
+                DATA_AS_OF,
+                previous,
+            ],
+        )
+        self.assertEqual(
+            candidate_dates,
+            [DATA_AS_OF] * 3
+            + [previous]
+            * len(ARTICLE_ELIGIBLE_IDS),
+        )
+        self.assertEqual(
+            payload["period"]["data_as_of"],
+            previous.isoformat(),
         )
 
     def test_non_404_pageviews_failures_do_not_trigger_fallback(
@@ -2742,34 +2778,225 @@ class CandidateAttentionAvailabilityFallbackTests(
                     [DATA_AS_OF],
                 )
 
-    def test_project_availability_lag_rebuilds_complete_previous_date(
+    def test_unverified_project_candidate_internal_gap_fails_closed(
+        self,
+    ):
+        project_dates = []
+        candidate_dates = []
+
+        def fetcher(url):
+            if "/w/api.php?" in url:
+                return self._success_for_url(url)
+
+            requested_date = self._request_data_as_of(url)
+
+            payload = pageview_payload(
+                data_as_of=requested_date,
+                value=137,
+            )
+
+            if (
+                "/metrics/pageviews/aggregate/"
+                in url
+            ):
+                project_dates.append(requested_date)
+                payload["items"].pop(10)
+                return payload
+
+            candidate_dates.append(requested_date)
+            payload["items"].pop(10)
+            return payload
+
+        with tempfile.TemporaryDirectory() as temporary:
+            target = (
+                Path(temporary)
+                / "candidate_attention.json"
+            )
+            target.write_bytes(b"last-good\n")
+
+            with self.assertRaises(
+                CandidateAttentionBuildError
+            ):
+                with redirect_stdout(io.StringIO()):
+                    run_build(
+                        candidacy_path=(
+                            ROOT
+                            / "candidate_candidacy_status.json"
+                        ),
+                        registry_path=(
+                            ROOT
+                            / "wikimedia_candidate_articles.json"
+                        ),
+                        output_path=target,
+                        data_as_of=(
+                            DATA_AS_OF.isoformat()
+                        ),
+                        generated_at=(
+                            "2026-08-07T05:00:00Z"
+                        ),
+                        fallback_days=3,
+                        delay_seconds=0,
+                        fetcher=fetcher,
+                        sleeper=lambda _: None,
+                    )
+
+            self.assertEqual(
+                target.read_bytes(),
+                b"last-good\n",
+            )
+
+        self.assertEqual(
+            project_dates,
+            [DATA_AS_OF],
+        )
+        self.assertEqual(
+            candidate_dates,
+            [DATA_AS_OF],
+        )
+
+    def test_project_internal_gap_with_complete_candidates_keeps_preferred_date(
+        self,
+    ):
+        incident_date = date(2026, 8, 18)
+        project_dates = []
+        candidate_dates = []
+
+        def fetcher(url):
+            if "/w/api.php?" in url:
+                return self._success_for_url(url)
+
+            requested_date = self._request_data_as_of(url)
+
+            payload = pageview_payload(
+                data_as_of=requested_date,
+                value=137,
+            )
+
+            if (
+                "/metrics/pageviews/aggregate/"
+                in url
+            ):
+                project_dates.append(requested_date)
+
+                if requested_date == incident_date:
+                    payload["items"] = [
+                        item
+                        for item in payload["items"]
+                        if item["timestamp"]
+                        != "2026081400"
+                    ]
+
+                return payload
+
+            candidate_dates.append(requested_date)
+
+            if (
+                requested_date == incident_date
+                and "Gabriel_Attal" in url
+            ):
+                for item in payload["items"]:
+                    if (
+                        item["timestamp"]
+                        == "2026081400"
+                    ):
+                        item["views"] = 1535
+
+            return payload
+
+        with tempfile.TemporaryDirectory() as temporary:
+            target = (
+                Path(temporary)
+                / "candidate_attention.json"
+            )
+
+            with redirect_stdout(io.StringIO()):
+                payload = run_build(
+                    candidacy_path=(
+                        ROOT
+                        / "candidate_candidacy_status.json"
+                    ),
+                    registry_path=(
+                        ROOT
+                        / "wikimedia_candidate_articles.json"
+                    ),
+                    output_path=target,
+                    data_as_of=incident_date.isoformat(),
+                    generated_at=(
+                        "2026-08-19T05:00:00Z"
+                    ),
+                    fallback_days=3,
+                    delay_seconds=0,
+                    fetcher=fetcher,
+                    sleeper=lambda _: None,
+                )
+
+        self.assertEqual(
+            project_dates,
+            [incident_date],
+        )
+        self.assertEqual(
+            candidate_dates,
+            [incident_date]
+            * len(ARTICLE_ELIGIBLE_IDS),
+        )
+        self.assertEqual(
+            payload["period"]["data_as_of"],
+            "2026-08-18",
+        )
+
+        attal = next(
+            candidate
+            for candidate in payload["candidates"]
+            if candidate["candidate_id"]
+            == "gabriel-attal"
+        )
+        aug_14 = next(
+            item
+            for item in attal["daily_series"]
+            if item["date"] == "2026-08-14"
+        )
+
+        self.assertEqual(
+            aug_14["views"],
+            1535,
+        )
+
+    def test_unverified_project_candidate_trailing_gap_falls_back(
         self,
     ):
         previous = (
             DATA_AS_OF
             - timedelta(days=1)
         )
-        pageview_dates = []
+        project_dates = []
+        candidate_dates = []
 
         def fetcher(url):
             if "/w/api.php?" in url:
                 return self._success_for_url(url)
 
-            requested_date = (
-                self._request_data_as_of(url)
-            )
-            pageview_dates.append(
-                requested_date
-            )
+            requested_date = self._request_data_as_of(url)
 
             payload = pageview_payload(
-                data_as_of=requested_date
+                data_as_of=requested_date,
+                value=137,
             )
 
+            if (
+                "/metrics/pageviews/aggregate/"
+                in url
+            ):
+                project_dates.append(requested_date)
+
+                if requested_date == DATA_AS_OF:
+                    payload["items"].pop(10)
+
+                return payload
+
+            candidate_dates.append(requested_date)
+
             if requested_date == DATA_AS_OF:
-                payload[
-                    "items"
-                ].pop()
+                payload["items"].pop()
 
             return payload
 
@@ -2779,105 +3006,21 @@ class CandidateAttentionAvailabilityFallbackTests(
         )
 
         self.assertEqual(
-            pageview_dates,
-            [DATA_AS_OF]
-            + [previous]
-            * (len(ARTICLE_ELIGIBLE_IDS) + 1),
-        )
-        self.assertEqual(
-            payload[
-                "period"
-            ][
-                "data_as_of"
-            ],
-            previous.isoformat(),
-        )
-
-        article_eligible = set(
-            ARTICLE_ELIGIBLE_IDS
-        )
-        observed = [
-            candidate
-            for candidate
-            in payload["candidates"]
-            if candidate["candidate_id"]
-            in article_eligible
-        ]
-
-        self.assertEqual(
-            len(observed),
-            len(ARTICLE_ELIGIBLE_IDS),
-        )
-        self.assertTrue(
-            all(
-                candidate[
-                    "daily_series"
-                ][-1]["date"]
-                == previous.isoformat()
-                for candidate
-                in observed
-            )
-        )
-
-    def test_project_lag_can_move_back_two_days_before_succeeding(
-        self,
-    ):
-        previous = (
-            DATA_AS_OF
-            - timedelta(days=1)
-        )
-        two_days_back = (
-            DATA_AS_OF
-            - timedelta(days=2)
-        )
-        pageview_dates = []
-
-        def fetcher(url):
-            if "/w/api.php?" in url:
-                return self._success_for_url(url)
-
-            requested_date = (
-                self._request_data_as_of(url)
-            )
-            pageview_dates.append(
-                requested_date
-            )
-
-            payload = pageview_payload(
-                data_as_of=requested_date
-            )
-
-            if requested_date in {
-                DATA_AS_OF,
-                previous,
-            }:
-                payload[
-                    "items"
-                ].pop()
-
-            return payload
-
-        payload = self._run_build(
-            fetcher,
-            fallback_days=2,
-        )
-
-        self.assertEqual(
-            pageview_dates,
+            project_dates,
             [
                 DATA_AS_OF,
                 previous,
-            ]
-            + [two_days_back]
-            * (len(ARTICLE_ELIGIBLE_IDS) + 1),
+            ],
         )
         self.assertEqual(
-            payload[
-                "period"
-            ][
-                "data_as_of"
-            ],
-            two_days_back.isoformat(),
+            candidate_dates,
+            [DATA_AS_OF]
+            + [previous]
+            * len(ARTICLE_ELIGIBLE_IDS),
+        )
+        self.assertEqual(
+            payload["period"]["data_as_of"],
+            previous.isoformat(),
         )
 
     def test_fallback_days_three_is_valid(
