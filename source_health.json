@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-19T07:10:23.588108Z",
+  "generated_at": "2026-08-19T07:57:37.853072Z",
   "failure_threshold": 3,
   "rolling_attempt_limit": 24,
   "routes": [
@@ -14,15 +14,15 @@
       "schedule_class": "hourly",
       "schedule_slot": null,
       "due_this_run": true,
-      "status": "healthy_zero_yield",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "status": "healthy",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-18T07:09:25.759853Z",
       "consecutive_failures": 0,
-      "latest_http_status": 304,
+      "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 394,
-      "parsed_item_count": 0,
+      "latest_latency_ms": 369,
+      "parsed_item_count": 5,
       "accepted_inventory_count": 0,
       "accepted_election_news_count": 0,
       "rolling_attempt_count": 24,
@@ -30,18 +30,8 @@
       "rolling_parsed_items": 30,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 0,
-          "parsed_item_count": 5,
-          "failure_category": null,
-          "latency_ms": 364,
-          "accepted_election_news_count": 0,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 0,
           "failure_category": null,
@@ -271,13 +261,23 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 5,
+          "accepted_inventory_count": 0,
+          "failure_category": null,
+          "latency_ms": 369,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
-      "latest_not_modified": true,
-      "response_bytes": 0,
+      "latest_not_modified": false,
+      "response_bytes": 5357,
       "etag": null,
-      "last_modified": "Tue, 18 Aug 2026 15:55:44 GMT",
+      "last_modified": "Wed, 19 Aug 2026 07:55:54 GMT",
       "validator_url": "https://www.arcom.fr/rss/decisions"
     },
     {
@@ -290,34 +290,24 @@
       "schedule_class": "hourly",
       "schedule_slot": null,
       "due_this_run": true,
-      "status": "healthy_zero_yield",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "status": "healthy",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-18T07:09:25.759853Z",
       "consecutive_failures": 0,
-      "latest_http_status": 304,
+      "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 648,
-      "parsed_item_count": 0,
-      "accepted_inventory_count": 0,
+      "latest_latency_ms": 809,
+      "parsed_item_count": 5,
+      "accepted_inventory_count": 5,
       "accepted_election_news_count": 0,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 30,
       "rolling_accepted_items": 30,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 5,
-          "parsed_item_count": 5,
-          "failure_category": null,
-          "latency_ms": 638,
-          "accepted_election_news_count": 0,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 0,
           "failure_category": null,
@@ -547,13 +537,23 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 5,
+          "accepted_inventory_count": 5,
+          "failure_category": null,
+          "latency_ms": 809,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
-      "latest_not_modified": true,
-      "response_bytes": 0,
+      "latest_not_modified": false,
+      "response_bytes": 5526,
       "etag": null,
-      "last_modified": "Tue, 18 Aug 2026 15:54:24 GMT",
+      "last_modified": "Wed, 19 Aug 2026 07:56:24 GMT",
       "validator_url": "https://www.arcom.fr/rss/presse"
     },
     {
@@ -567,13 +567,13 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-11T19:29:45.072957Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 1106,
+      "latest_latency_ms": 1003,
       "parsed_item_count": 20,
       "accepted_inventory_count": 0,
       "accepted_election_news_count": 0,
@@ -582,18 +582,8 @@
       "rolling_parsed_items": 480,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 0,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 1126,
-          "accepted_election_news_count": 0,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 0,
           "failure_category": null,
@@ -823,6 +813,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 0,
+          "failure_category": null,
+          "latency_ms": 1003,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -843,13 +843,13 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": null,
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 386,
+      "latest_latency_ms": 355,
       "parsed_item_count": 20,
       "accepted_inventory_count": 20,
       "accepted_election_news_count": 2,
@@ -857,19 +857,9 @@
       "rolling_success_count": 24,
       "rolling_parsed_items": 480,
       "rolling_accepted_items": 478,
-      "rolling_election_news_items": 60,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_election_news_items": 57,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 20,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 338,
-          "accepted_election_news_count": 5,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 2,
           "failure_category": null,
@@ -1099,12 +1089,22 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 2,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 20,
+          "failure_category": null,
+          "latency_ms": 355,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
       "response_bytes": 41880,
-      "etag": "\"C5LITe8WUWTckr625/Bk2WW70b4=\"",
+      "etag": "\"1nkmi2eLj7dTIA63CsozYNZPssA=\"",
       "last_modified": null,
       "validator_url": "https://www.bfmtv.com/rss/politique/"
     },
@@ -1119,13 +1119,13 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": null,
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 879,
+      "latest_latency_ms": 797,
       "parsed_item_count": 10,
       "accepted_inventory_count": 10,
       "accepted_election_news_count": 0,
@@ -1134,18 +1134,8 @@
       "rolling_parsed_items": 230,
       "rolling_accepted_items": 230,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 10,
-          "parsed_item_count": 10,
-          "failure_category": null,
-          "latency_ms": 925,
-          "accepted_election_news_count": 0,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 0,
           "failure_category": null,
@@ -1375,13 +1365,23 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 10,
+          "accepted_inventory_count": 10,
+          "failure_category": null,
+          "latency_ms": 797,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
       "response_bytes": 9080,
-      "etag": "W/\"1787121224-gzip\"",
-      "last_modified": "Wed, 19 Aug 2026 06:33:44 GMT",
+      "etag": "W/\"1787125004-gzip\"",
+      "last_modified": "Wed, 19 Aug 2026 07:36:44 GMT",
       "validator_url": "https://www.economie.gouv.fr/rss/toutesactualites"
     },
     {
@@ -1395,13 +1395,13 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": null,
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 778,
+      "latest_latency_ms": 1985,
       "parsed_item_count": 20,
       "accepted_inventory_count": 20,
       "accepted_election_news_count": 0,
@@ -1410,18 +1410,8 @@
       "rolling_parsed_items": 480,
       "rolling_accepted_items": 480,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 20,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 623,
-          "accepted_election_news_count": 0,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 0,
           "failure_category": null,
@@ -1651,11 +1641,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 20,
+          "failure_category": null,
+          "latency_ms": 1985,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 30333,
+      "response_bytes": 30382,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -1671,13 +1671,13 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": null,
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 382,
+      "latest_latency_ms": 470,
       "parsed_item_count": 20,
       "accepted_inventory_count": 20,
       "accepted_election_news_count": 1,
@@ -1685,19 +1685,9 @@
       "rolling_success_count": 24,
       "rolling_parsed_items": 480,
       "rolling_accepted_items": 480,
-      "rolling_election_news_items": 19,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_election_news_items": 17,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 20,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 626,
-          "accepted_election_news_count": 3,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 3,
           "failure_category": null,
@@ -1927,12 +1917,22 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 1,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 20,
+          "failure_category": null,
+          "latency_ms": 470,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 24749,
-      "etag": "\"01b40a3506f63cd614e26f96764560aa-gzip\"",
+      "response_bytes": 24975,
+      "etag": "\"e0d7ecddc475e98ef647eed91535fddb-gzip\"",
       "last_modified": null,
       "validator_url": "https://www.franceinfo.fr/politique.rss"
     },
@@ -1947,13 +1947,13 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": null,
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 314,
+      "latest_latency_ms": 906,
       "parsed_item_count": 20,
       "accepted_inventory_count": 20,
       "accepted_election_news_count": 0,
@@ -1961,19 +1961,9 @@
       "rolling_success_count": 24,
       "rolling_parsed_items": 480,
       "rolling_accepted_items": 480,
-      "rolling_election_news_items": 5,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_election_news_items": 4,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 20,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 251,
-          "accepted_election_news_count": 1,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 1,
           "failure_category": null,
@@ -2203,13 +2193,23 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 20,
+          "failure_category": null,
+          "latency_ms": 906,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
       "response_bytes": 24316,
       "etag": null,
-      "last_modified": "Wed, 19 Aug 2026 07:01:11 GMT",
+      "last_modified": "Wed, 19 Aug 2026 07:57:38 GMT",
       "validator_url": "https://www.huffingtonpost.fr/rss/all_headline.xml"
     },
     {
@@ -2223,13 +2223,13 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": null,
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 2353,
+      "latest_latency_ms": 2335,
       "parsed_item_count": 20,
       "accepted_inventory_count": 20,
       "accepted_election_news_count": 2,
@@ -2237,19 +2237,9 @@
       "rolling_success_count": 24,
       "rolling_parsed_items": 480,
       "rolling_accepted_items": 480,
-      "rolling_election_news_items": 44,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_election_news_items": 45,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 20,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 1938,
-          "accepted_election_news_count": 1,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 1,
           "failure_category": null,
@@ -2479,13 +2469,23 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 2,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 20,
+          "failure_category": null,
+          "latency_ms": 2335,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
       "response_bytes": 1299516,
-      "etag": "\"1787123413\"",
-      "last_modified": "Wed, 19 Aug 2026 07:10:13 GMT",
+      "etag": "\"1787126123\"",
+      "last_modified": "Wed, 19 Aug 2026 07:55:23 GMT",
       "validator_url": "https://lcp.fr/rss-actualites.xml"
     },
     {
@@ -2514,7 +2514,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 0,
@@ -2772,33 +2772,23 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": null,
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 327,
+      "latest_latency_ms": 582,
       "parsed_item_count": 10,
       "accepted_inventory_count": 9,
       "accepted_election_news_count": 0,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 240,
-      "rolling_accepted_items": 224,
+      "rolling_accepted_items": 223,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 10,
-          "parsed_item_count": 10,
-          "failure_category": null,
-          "latency_ms": 575,
-          "accepted_election_news_count": 0,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 0,
           "failure_category": null,
@@ -3028,6 +3018,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 10,
+          "accepted_inventory_count": 9,
+          "failure_category": null,
+          "latency_ms": 582,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -3048,13 +3048,13 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": null,
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 707,
+      "latest_latency_ms": 888,
       "parsed_item_count": 20,
       "accepted_inventory_count": 20,
       "accepted_election_news_count": 2,
@@ -3063,18 +3063,8 @@
       "rolling_parsed_items": 480,
       "rolling_accepted_items": 480,
       "rolling_election_news_items": 48,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 20,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 475,
-          "accepted_election_news_count": 2,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 2,
           "failure_category": null,
@@ -3304,13 +3294,23 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 2,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 20,
+          "failure_category": null,
+          "latency_ms": 888,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
       "response_bytes": 45819,
-      "etag": "\"05d773bc11b0aabe54b3a922b61d945d\"",
-      "last_modified": "Wed, 19 Aug 2026 07:10:19 GMT",
+      "etag": "\"baa4b5ef27a075da3d206bd7e39f5a8a\"",
+      "last_modified": "Wed, 19 Aug 2026 07:55:18 GMT",
       "validator_url": "https://www.nouvelobs.com/politique/rss.xml"
     },
     {
@@ -3324,13 +3324,13 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy_zero_yield",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": null,
       "consecutive_failures": 0,
       "latest_http_status": 304,
       "latest_failure_category": null,
-      "latest_latency_ms": 758,
+      "latest_latency_ms": 1050,
       "parsed_item_count": 0,
       "accepted_inventory_count": 0,
       "accepted_election_news_count": 0,
@@ -3339,18 +3339,8 @@
       "rolling_parsed_items": 40,
       "rolling_accepted_items": 28,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 304,
-          "success": true,
-          "accepted_inventory_count": 0,
-          "parsed_item_count": 0,
-          "failure_category": null,
-          "latency_ms": 824,
-          "accepted_election_news_count": 0,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 0,
           "failure_category": null,
@@ -3580,6 +3570,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 304,
+          "success": true,
+          "parsed_item_count": 0,
+          "accepted_inventory_count": 0,
+          "failure_category": null,
+          "latency_ms": 1050,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -3600,13 +3600,13 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": null,
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 312,
+      "latest_latency_ms": 439,
       "parsed_item_count": 20,
       "accepted_inventory_count": 20,
       "accepted_election_news_count": 0,
@@ -3615,18 +3615,8 @@
       "rolling_parsed_items": 480,
       "rolling_accepted_items": 480,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 20,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 234,
-          "accepted_election_news_count": 0,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 0,
           "failure_category": null,
@@ -3856,6 +3846,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 20,
+          "failure_category": null,
+          "latency_ms": 439,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -3876,13 +3876,13 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy_zero_yield",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": null,
       "consecutive_failures": 0,
       "latest_http_status": 304,
       "latest_failure_category": null,
-      "latest_latency_ms": 465,
+      "latest_latency_ms": 820,
       "parsed_item_count": 0,
       "accepted_inventory_count": 0,
       "accepted_election_news_count": 0,
@@ -3891,18 +3891,8 @@
       "rolling_parsed_items": 20,
       "rolling_accepted_items": 3,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 304,
-          "success": true,
-          "accepted_inventory_count": 0,
-          "parsed_item_count": 0,
-          "failure_category": null,
-          "latency_ms": 669,
-          "accepted_election_news_count": 0,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 0,
           "failure_category": null,
@@ -4132,6 +4122,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 304,
+          "success": true,
+          "parsed_item_count": 0,
+          "accepted_inventory_count": 0,
+          "failure_category": null,
+          "latency_ms": 820,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -4152,13 +4152,13 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy_zero_yield",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": null,
       "consecutive_failures": 0,
       "latest_http_status": 304,
       "latest_failure_category": null,
-      "latest_latency_ms": 719,
+      "latest_latency_ms": 1197,
       "parsed_item_count": 0,
       "accepted_inventory_count": 0,
       "accepted_election_news_count": 0,
@@ -4167,18 +4167,8 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 304,
-          "success": true,
-          "accepted_inventory_count": 0,
-          "parsed_item_count": 0,
-          "failure_category": null,
-          "latency_ms": 986,
-          "accepted_election_news_count": 0,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 0,
           "failure_category": null,
@@ -4408,6 +4398,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 304,
+          "success": true,
+          "parsed_item_count": 0,
+          "accepted_inventory_count": 0,
+          "failure_category": null,
+          "latency_ms": 1197,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -4428,13 +4428,13 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-19T03:14:04.800495Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 722,
+      "latest_latency_ms": 871,
       "parsed_item_count": 10,
       "accepted_inventory_count": 10,
       "accepted_election_news_count": 0,
@@ -4443,18 +4443,8 @@
       "rolling_parsed_items": 230,
       "rolling_accepted_items": 230,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 10,
-          "parsed_item_count": 10,
-          "failure_category": null,
-          "latency_ms": 615,
-          "accepted_election_news_count": 0,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 0,
           "failure_category": null,
@@ -4684,6 +4674,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 10,
+          "accepted_inventory_count": 10,
+          "failure_category": null,
+          "latency_ms": 871,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -4704,13 +4704,13 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": null,
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 861,
+      "latest_latency_ms": 850,
       "parsed_item_count": 10,
       "accepted_inventory_count": 10,
       "accepted_election_news_count": 0,
@@ -4719,18 +4719,8 @@
       "rolling_parsed_items": 210,
       "rolling_accepted_items": 210,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 10,
-          "parsed_item_count": 10,
-          "failure_category": null,
-          "latency_ms": 724,
-          "accepted_election_news_count": 0,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 0,
           "failure_category": null,
@@ -4960,13 +4950,23 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 10,
+          "accepted_inventory_count": 10,
+          "failure_category": null,
+          "latency_ms": 850,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
       "response_bytes": 14110,
-      "etag": "\"1787119219-gzip\"",
-      "last_modified": "Wed, 19 Aug 2026 06:00:19 GMT",
+      "etag": "\"1787126126-gzip\"",
+      "last_modified": "Wed, 19 Aug 2026 07:55:26 GMT",
       "validator_url": "https://www.vie-publique.fr/discours-feeds.xml"
     },
     {
@@ -4980,13 +4980,13 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": null,
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 644,
+      "latest_latency_ms": 584,
       "parsed_item_count": 20,
       "accepted_inventory_count": 16,
       "accepted_election_news_count": 0,
@@ -4995,18 +4995,8 @@
       "rolling_parsed_items": 420,
       "rolling_accepted_items": 336,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 16,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 563,
-          "accepted_election_news_count": 0,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 0,
           "failure_category": null,
@@ -5236,13 +5226,23 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 16,
+          "failure_category": null,
+          "latency_ms": 584,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
       "response_bytes": 153340,
-      "etag": "\"1787119204-gzip\"",
-      "last_modified": "Wed, 19 Aug 2026 06:00:04 GMT",
+      "etag": "\"1787126150-gzip\"",
+      "last_modified": "Wed, 19 Aug 2026 07:55:50 GMT",
       "validator_url": "https://www.vie-publique.fr/lois-feeds.xml"
     },
     {
@@ -5256,33 +5256,23 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-17T10:51:58.096270Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 392,
+      "latest_latency_ms": 366,
       "parsed_item_count": 20,
-      "accepted_inventory_count": 5,
-      "accepted_election_news_count": 5,
+      "accepted_inventory_count": 6,
+      "accepted_election_news_count": 6,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 480,
-      "rolling_accepted_items": 183,
-      "rolling_election_news_items": 171,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_accepted_items": 177,
+      "rolling_election_news_items": 166,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 12,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 426,
-          "accepted_election_news_count": 11,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 11,
           "failure_category": null,
@@ -5512,11 +5502,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 6,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 6,
+          "failure_category": null,
+          "latency_ms": 366,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 90918,
+      "response_bytes": 90871,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -5532,33 +5532,23 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 398,
+      "latest_latency_ms": 254,
       "parsed_item_count": 17,
       "accepted_inventory_count": 5,
       "accepted_election_news_count": 2,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 435,
-      "rolling_accepted_items": 133,
+      "rolling_accepted_items": 132,
       "rolling_election_news_items": 48,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 6,
-          "parsed_item_count": 17,
-          "failure_category": null,
-          "latency_ms": 354,
-          "accepted_election_news_count": 2,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 2,
           "failure_category": null,
@@ -5788,6 +5778,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 2,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 17,
+          "accepted_inventory_count": 5,
+          "failure_category": null,
+          "latency_ms": 254,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -5808,33 +5808,23 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 329,
+      "latest_latency_ms": 360,
       "parsed_item_count": 20,
       "accepted_inventory_count": 8,
       "accepted_election_news_count": 3,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 480,
-      "rolling_accepted_items": 229,
+      "rolling_accepted_items": 226,
       "rolling_election_news_items": 78,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 11,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 336,
-          "accepted_election_news_count": 3,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 3,
           "failure_category": null,
@@ -6064,11 +6054,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 3,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 8,
+          "failure_category": null,
+          "latency_ms": 360,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 52539,
+      "response_bytes": 51364,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -6084,33 +6084,23 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 257,
+      "latest_latency_ms": 258,
       "parsed_item_count": 12,
       "accepted_inventory_count": 6,
-      "accepted_election_news_count": 4,
+      "accepted_election_news_count": 3,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
-      "rolling_parsed_items": 238,
-      "rolling_accepted_items": 88,
-      "rolling_election_news_items": 40,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_parsed_items": 241,
+      "rolling_accepted_items": 92,
+      "rolling_election_news_items": 43,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 2,
-          "parsed_item_count": 9,
-          "failure_category": null,
-          "latency_ms": 283,
-          "accepted_election_news_count": 0,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 0,
           "failure_category": null,
@@ -6340,11 +6330,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 3,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 12,
+          "accepted_inventory_count": 6,
+          "failure_category": null,
+          "latency_ms": 258,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 19146,
+      "response_bytes": 18818,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -6360,33 +6360,23 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 355,
+      "latest_latency_ms": 341,
       "parsed_item_count": 20,
       "accepted_inventory_count": 12,
       "accepted_election_news_count": 4,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 480,
-      "rolling_accepted_items": 241,
-      "rolling_election_news_items": 81,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_accepted_items": 248,
+      "rolling_election_news_items": 82,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 5,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 325,
-          "accepted_election_news_count": 3,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 3,
           "failure_category": null,
@@ -6616,11 +6606,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 4,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 12,
+          "failure_category": null,
+          "latency_ms": 341,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 53437,
+      "response_bytes": 53452,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -6636,33 +6636,23 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 368,
+      "latest_latency_ms": 403,
       "parsed_item_count": 20,
       "accepted_inventory_count": 10,
-      "accepted_election_news_count": 1,
+      "accepted_election_news_count": 0,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 480,
-      "rolling_accepted_items": 170,
-      "rolling_election_news_items": 21,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_accepted_items": 176,
+      "rolling_election_news_items": 20,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 4,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 387,
-          "accepted_election_news_count": 1,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 1,
           "failure_category": null,
@@ -6892,11 +6882,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 10,
+          "failure_category": null,
+          "latency_ms": 403,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 69079,
+      "response_bytes": 70045,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -6912,39 +6912,29 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 404,
+      "latest_latency_ms": 371,
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 66330,
+      "response_bytes": 66310,
       "etag": null,
       "last_modified": null,
       "validator_url": null,
       "parsed_item_count": 20,
-      "accepted_inventory_count": 8,
+      "accepted_inventory_count": 7,
       "accepted_election_news_count": 2,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 480,
-      "rolling_accepted_items": 140,
+      "rolling_accepted_items": 144,
       "rolling_election_news_items": 47,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 3,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 361,
-          "accepted_election_news_count": 2,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 2,
           "failure_category": null,
@@ -7174,6 +7164,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 2,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 7,
+          "failure_category": null,
+          "latency_ms": 371,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ]
     },
@@ -7188,39 +7188,29 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 340,
+      "latest_latency_ms": 321,
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 39226,
+      "response_bytes": 35969,
       "etag": null,
       "last_modified": null,
       "validator_url": null,
       "parsed_item_count": 20,
-      "accepted_inventory_count": 5,
-      "accepted_election_news_count": 4,
+      "accepted_inventory_count": 6,
+      "accepted_election_news_count": 5,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 480,
-      "rolling_accepted_items": 171,
-      "rolling_election_news_items": 124,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_accepted_items": 169,
+      "rolling_election_news_items": 123,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 8,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 345,
-          "accepted_election_news_count": 6,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 6,
           "failure_category": null,
@@ -7450,6 +7440,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 5,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 6,
+          "failure_category": null,
+          "latency_ms": 321,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ]
     },
@@ -7464,16 +7464,16 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-17T10:51:58.096270Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 257,
+      "latest_latency_ms": 272,
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 12225,
+      "response_bytes": 12237,
       "etag": null,
       "last_modified": null,
       "validator_url": null,
@@ -7482,21 +7482,11 @@
       "accepted_election_news_count": 1,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
-      "rolling_parsed_items": 64,
-      "rolling_accepted_items": 28,
-      "rolling_election_news_items": 6,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_parsed_items": 70,
+      "rolling_accepted_items": 31,
+      "rolling_election_news_items": 7,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 0,
-          "parsed_item_count": 0,
-          "failure_category": null,
-          "latency_ms": 264,
-          "accepted_election_news_count": 0,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 0,
           "failure_category": null,
@@ -7726,6 +7716,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 1,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 6,
+          "accepted_inventory_count": 3,
+          "failure_category": null,
+          "latency_ms": 272,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ]
     },
@@ -7740,39 +7740,29 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-17T10:51:58.096270Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 346,
+      "latest_latency_ms": 323,
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 59906,
+      "response_bytes": 61295,
       "etag": null,
       "last_modified": null,
       "validator_url": null,
       "parsed_item_count": 20,
-      "accepted_inventory_count": 6,
+      "accepted_inventory_count": 5,
       "accepted_election_news_count": 2,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 480,
-      "rolling_accepted_items": 116,
-      "rolling_election_news_items": 32,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_accepted_items": 115,
+      "rolling_election_news_items": 33,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 6,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 366,
-          "accepted_election_news_count": 1,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 1,
           "failure_category": null,
@@ -8002,6 +7992,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 2,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 5,
+          "failure_category": null,
+          "latency_ms": 323,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ]
     },
@@ -8016,16 +8016,16 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-17T10:51:58.096270Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 261,
+      "latest_latency_ms": 260,
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 16976,
+      "response_bytes": 16967,
       "etag": null,
       "last_modified": null,
       "validator_url": null,
@@ -8034,21 +8034,11 @@
       "accepted_election_news_count": 3,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
-      "rolling_parsed_items": 301,
-      "rolling_accepted_items": 162,
-      "rolling_election_news_items": 82,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_parsed_items": 304,
+      "rolling_accepted_items": 165,
+      "rolling_election_news_items": 83,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 3,
-          "parsed_item_count": 7,
-          "failure_category": null,
-          "latency_ms": 269,
-          "accepted_election_news_count": 2,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 2,
           "failure_category": null,
@@ -8278,6 +8268,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 3,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 10,
+          "accepted_inventory_count": 6,
+          "failure_category": null,
+          "latency_ms": 260,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ]
     },
@@ -8292,16 +8292,16 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-17T10:51:58.096270Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 382,
+      "latest_latency_ms": 471,
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 148021,
+      "response_bytes": 148302,
       "etag": null,
       "last_modified": null,
       "validator_url": null,
@@ -8311,20 +8311,10 @@
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 480,
-      "rolling_accepted_items": 97,
-      "rolling_election_news_items": 35,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_accepted_items": 100,
+      "rolling_election_news_items": 36,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 3,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 351,
-          "accepted_election_news_count": 2,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 2,
           "failure_category": null,
@@ -8554,6 +8544,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 3,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 6,
+          "failure_category": null,
+          "latency_ms": 471,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ]
     },
@@ -8589,7 +8589,7 @@
       "rolling_parsed_items": 208,
       "rolling_accepted_items": 60,
       "rolling_election_news_items": 14,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 276,
@@ -8844,33 +8844,23 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-17T10:51:58.096270Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 376,
+      "latest_latency_ms": 419,
       "parsed_item_count": 20,
-      "accepted_inventory_count": 4,
-      "accepted_election_news_count": 2,
+      "accepted_inventory_count": 3,
+      "accepted_election_news_count": 3,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 480,
-      "rolling_accepted_items": 113,
+      "rolling_accepted_items": 110,
       "rolling_election_news_items": 42,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 6,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 327,
-          "accepted_election_news_count": 3,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 3,
           "failure_category": null,
@@ -9100,11 +9090,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 3,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 3,
+          "failure_category": null,
+          "latency_ms": 419,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 98196,
+      "response_bytes": 101956,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -9120,33 +9120,23 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-17T10:51:58.096270Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 453,
+      "latest_latency_ms": 439,
       "parsed_item_count": 20,
       "accepted_inventory_count": 10,
       "accepted_election_news_count": 10,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 480,
-      "rolling_accepted_items": 245,
-      "rolling_election_news_items": 233,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_accepted_items": 246,
+      "rolling_election_news_items": 234,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 9,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 537,
-          "accepted_election_news_count": 9,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 9,
           "failure_category": null,
@@ -9376,11 +9366,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 10,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 10,
+          "failure_category": null,
+          "latency_ms": 439,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 161069,
+      "response_bytes": 160099,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -9396,33 +9396,23 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-17T10:51:58.096270Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 277,
+      "latest_latency_ms": 287,
       "parsed_item_count": 8,
       "accepted_inventory_count": 5,
       "accepted_election_news_count": 4,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
-      "rolling_parsed_items": 163,
-      "rolling_accepted_items": 100,
+      "rolling_parsed_items": 165,
+      "rolling_accepted_items": 101,
       "rolling_election_news_items": 96,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 4,
-          "parsed_item_count": 6,
-          "failure_category": null,
-          "latency_ms": 262,
-          "accepted_election_news_count": 4,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 4,
           "failure_category": null,
@@ -9652,6 +9642,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 4,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 8,
+          "accepted_inventory_count": 5,
+          "failure_category": null,
+          "latency_ms": 287,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -9672,33 +9672,23 @@
       "schedule_slot": null,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 365,
+      "latest_latency_ms": 345,
       "parsed_item_count": 20,
-      "accepted_inventory_count": 4,
-      "accepted_election_news_count": 4,
+      "accepted_inventory_count": 3,
+      "accepted_election_news_count": 3,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 480,
       "rolling_accepted_items": 93,
-      "rolling_election_news_items": 67,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_election_news_items": 70,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "http_status": 200,
-          "success": true,
-          "accepted_inventory_count": 3,
-          "parsed_item_count": 20,
-          "failure_category": null,
-          "latency_ms": 407,
-          "accepted_election_news_count": 0,
-          "attempted_at": "2026-08-18T07:46:11.954200Z"
-        },
         {
           "accepted_election_news_count": 0,
           "failure_category": null,
@@ -9928,11 +9918,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 3,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 20,
+          "accepted_inventory_count": 3,
+          "failure_category": null,
+          "latency_ms": 345,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 81356,
+      "response_bytes": 80178,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -9948,13 +9948,13 @@
       "schedule_slot": 1,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-17T10:51:58.096270Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 386,
+      "latest_latency_ms": 352,
       "parsed_item_count": 5,
       "accepted_inventory_count": 5,
       "accepted_election_news_count": 1,
@@ -9962,19 +9962,9 @@
       "rolling_success_count": 23,
       "rolling_parsed_items": 115,
       "rolling_accepted_items": 113,
-      "rolling_election_news_items": 1,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_election_news_items": 2,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "latency_ms": 646,
-          "parsed_item_count": 5,
-          "accepted_election_news_count": 0,
-          "http_status": 200,
-          "failure_category": null,
-          "success": true,
-          "accepted_inventory_count": 5,
-          "attempted_at": "2026-08-17T04:07:10.737590Z"
-        },
         {
           "latency_ms": 497,
           "accepted_inventory_count": 5,
@@ -10204,11 +10194,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 1,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 5,
+          "accepted_inventory_count": 5,
+          "failure_category": null,
+          "latency_ms": 352,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 120075,
+      "response_bytes": 120058,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -10239,7 +10239,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -10495,7 +10495,7 @@
       "rolling_parsed_items": 6,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 5,
@@ -10756,13 +10756,13 @@
       "schedule_slot": 7,
       "due_this_run": true,
       "status": "healthy_zero_yield",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 179,
+      "latest_latency_ms": 194,
       "parsed_item_count": 0,
       "accepted_inventory_count": 0,
       "accepted_election_news_count": 0,
@@ -10771,18 +10771,8 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "success": true,
-          "latency_ms": 210,
-          "parsed_item_count": 0,
-          "accepted_inventory_count": 0,
-          "http_status": 200,
-          "accepted_election_news_count": 0,
-          "failure_category": null,
-          "attempted_at": "2026-08-08T07:25:06.688443Z"
-        },
         {
           "accepted_inventory_count": 0,
           "success": false,
@@ -11012,6 +11002,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 0,
+          "accepted_inventory_count": 0,
+          "failure_category": null,
+          "latency_ms": 194,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -11047,7 +11047,7 @@
       "rolling_parsed_items": 6,
       "rolling_accepted_items": 6,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "accepted_inventory_count": 1,
@@ -11293,7 +11293,7 @@
       "rolling_parsed_items": 110,
       "rolling_accepted_items": 110,
       "rolling_election_news_items": 2,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -11534,33 +11534,23 @@
       "schedule_slot": 7,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 226,
+      "latest_latency_ms": 210,
       "parsed_item_count": 4,
       "accepted_inventory_count": 1,
       "accepted_election_news_count": 0,
       "rolling_attempt_count": 24,
       "rolling_success_count": 21,
-      "rolling_parsed_items": 75,
-      "rolling_accepted_items": 2,
+      "rolling_parsed_items": 78,
+      "rolling_accepted_items": 3,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "success": true,
-          "latency_ms": 209,
-          "parsed_item_count": 1,
-          "accepted_inventory_count": 0,
-          "http_status": 200,
-          "accepted_election_news_count": 0,
-          "failure_category": null,
-          "attempted_at": "2026-08-08T07:25:06.688443Z"
-        },
         {
           "accepted_inventory_count": 0,
           "success": false,
@@ -11790,6 +11780,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 4,
+          "accepted_inventory_count": 1,
+          "failure_category": null,
+          "latency_ms": 210,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -11825,7 +11825,7 @@
       "rolling_parsed_items": 115,
       "rolling_accepted_items": 81,
       "rolling_election_news_items": 2,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 5,
@@ -12101,7 +12101,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 1,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -12377,7 +12377,7 @@
       "rolling_parsed_items": 42,
       "rolling_accepted_items": 31,
       "rolling_election_news_items": 1,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -12588,33 +12588,23 @@
       "schedule_slot": 1,
       "due_this_run": true,
       "status": "healthy_zero_yield",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-17T10:51:58.096270Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 189,
+      "latest_latency_ms": 194,
       "parsed_item_count": 0,
       "accepted_inventory_count": 0,
       "accepted_election_news_count": 0,
       "rolling_attempt_count": 24,
       "rolling_success_count": 23,
-      "rolling_parsed_items": 1,
-      "rolling_accepted_items": 1,
+      "rolling_parsed_items": 0,
+      "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "latency_ms": 238,
-          "parsed_item_count": 1,
-          "accepted_election_news_count": 0,
-          "http_status": 200,
-          "failure_category": null,
-          "success": true,
-          "accepted_inventory_count": 1,
-          "attempted_at": "2026-08-17T04:07:10.737590Z"
-        },
         {
           "latency_ms": 185,
           "accepted_inventory_count": 0,
@@ -12844,6 +12834,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 0,
+          "accepted_inventory_count": 0,
+          "failure_category": null,
+          "latency_ms": 194,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -12879,7 +12879,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 0,
@@ -13155,7 +13155,7 @@
       "rolling_parsed_items": 32,
       "rolling_accepted_items": 30,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 205,
@@ -13431,7 +13431,7 @@
       "rolling_parsed_items": 115,
       "rolling_accepted_items": 115,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 5,
@@ -13707,7 +13707,7 @@
       "rolling_parsed_items": 20,
       "rolling_accepted_items": 20,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -13983,7 +13983,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 74,
       "rolling_election_news_items": 13,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 438,
@@ -14259,7 +14259,7 @@
       "rolling_parsed_items": 90,
       "rolling_accepted_items": 90,
       "rolling_election_news_items": 12,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 5,
@@ -14475,7 +14475,7 @@
       "rolling_parsed_items": 21,
       "rolling_accepted_items": 6,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 5,
@@ -14751,7 +14751,7 @@
       "rolling_parsed_items": 1,
       "rolling_accepted_items": 1,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 205,
@@ -15027,7 +15027,7 @@
       "rolling_parsed_items": 48,
       "rolling_accepted_items": 30,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 215,
@@ -15303,7 +15303,7 @@
       "rolling_parsed_items": 117,
       "rolling_accepted_items": 117,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 376,
@@ -15579,7 +15579,7 @@
       "rolling_parsed_items": 107,
       "rolling_accepted_items": 89,
       "rolling_election_news_items": 1,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -15835,7 +15835,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "accepted_inventory_count": 0,
@@ -16081,7 +16081,7 @@
       "rolling_parsed_items": 87,
       "rolling_accepted_items": 87,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -16292,13 +16292,13 @@
       "schedule_slot": 1,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 208,
+      "latest_latency_ms": 217,
       "parsed_item_count": 5,
       "accepted_inventory_count": 5,
       "accepted_election_news_count": 0,
@@ -16307,18 +16307,8 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "latency_ms": 258,
-          "parsed_item_count": 5,
-          "accepted_election_news_count": 0,
-          "http_status": 200,
-          "failure_category": null,
-          "success": true,
-          "accepted_inventory_count": 5,
-          "attempted_at": "2026-08-17T04:07:10.737590Z"
-        },
         {
           "latency_ms": 203,
           "accepted_inventory_count": 5,
@@ -16548,6 +16538,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 5,
+          "accepted_inventory_count": 5,
+          "failure_category": null,
+          "latency_ms": 217,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -16583,7 +16583,7 @@
       "rolling_parsed_items": 110,
       "rolling_accepted_items": 103,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -16839,7 +16839,7 @@
       "rolling_parsed_items": 35,
       "rolling_accepted_items": 35,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 3,
@@ -17100,13 +17100,13 @@
       "schedule_slot": 1,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 382,
+      "latest_latency_ms": 373,
       "parsed_item_count": 5,
       "accepted_inventory_count": 5,
       "accepted_election_news_count": 0,
@@ -17115,18 +17115,8 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 7,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "latency_ms": 520,
-          "parsed_item_count": 5,
-          "accepted_election_news_count": 0,
-          "http_status": 200,
-          "failure_category": null,
-          "success": true,
-          "accepted_inventory_count": 5,
-          "attempted_at": "2026-08-17T04:07:10.737590Z"
-        },
         {
           "latency_ms": 412,
           "accepted_inventory_count": 5,
@@ -17356,11 +17346,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 5,
+          "accepted_inventory_count": 5,
+          "failure_category": null,
+          "latency_ms": 373,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 210088,
+      "response_bytes": 210661,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -17376,33 +17376,23 @@
       "schedule_slot": 7,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 236,
+      "latest_latency_ms": 227,
       "parsed_item_count": 3,
       "accepted_inventory_count": 2,
       "accepted_election_news_count": 2,
       "rolling_attempt_count": 24,
       "rolling_success_count": 21,
-      "rolling_parsed_items": 21,
-      "rolling_accepted_items": 12,
-      "rolling_election_news_items": 12,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_parsed_items": 23,
+      "rolling_accepted_items": 14,
+      "rolling_election_news_items": 14,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "success": true,
-          "latency_ms": 193,
-          "parsed_item_count": 1,
-          "accepted_inventory_count": 0,
-          "http_status": 200,
-          "accepted_election_news_count": 0,
-          "failure_category": null,
-          "attempted_at": "2026-08-08T07:25:06.688443Z"
-        },
         {
           "accepted_inventory_count": 0,
           "success": false,
@@ -17632,6 +17622,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 2,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 3,
+          "accepted_inventory_count": 2,
+          "failure_category": null,
+          "latency_ms": 227,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -17667,7 +17667,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 119,
       "rolling_election_news_items": 13,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 5,
@@ -17943,7 +17943,7 @@
       "rolling_parsed_items": 105,
       "rolling_accepted_items": 99,
       "rolling_election_news_items": 5,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "accepted_inventory_count": 5,
@@ -18189,7 +18189,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 23,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -18450,13 +18450,13 @@
       "schedule_slot": 7,
       "due_this_run": true,
       "status": "healthy_zero_yield",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 170,
+      "latest_latency_ms": 212,
       "parsed_item_count": 0,
       "accepted_inventory_count": 0,
       "accepted_election_news_count": 0,
@@ -18465,18 +18465,8 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "success": true,
-          "latency_ms": 194,
-          "parsed_item_count": 0,
-          "accepted_inventory_count": 0,
-          "http_status": 200,
-          "accepted_election_news_count": 0,
-          "failure_category": null,
-          "attempted_at": "2026-08-08T07:25:06.688443Z"
-        },
         {
           "accepted_inventory_count": 0,
           "success": false,
@@ -18706,6 +18696,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 0,
+          "accepted_inventory_count": 0,
+          "failure_category": null,
+          "latency_ms": 212,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -18741,7 +18741,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -18967,7 +18967,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -19193,7 +19193,7 @@
       "rolling_parsed_items": 110,
       "rolling_accepted_items": 109,
       "rolling_election_news_items": 3,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -19449,7 +19449,7 @@
       "rolling_parsed_items": 28,
       "rolling_accepted_items": 28,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -19725,7 +19725,7 @@
       "rolling_parsed_items": 50,
       "rolling_accepted_items": 50,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 197,
@@ -20001,7 +20001,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 203,
@@ -20277,7 +20277,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 117,
       "rolling_election_news_items": 5,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -20553,7 +20553,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 187,
@@ -20829,7 +20829,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 111,
       "rolling_election_news_items": 22,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -21090,13 +21090,13 @@
       "schedule_slot": 1,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 248,
+      "latest_latency_ms": 229,
       "parsed_item_count": 5,
       "accepted_inventory_count": 5,
       "accepted_election_news_count": 0,
@@ -21105,18 +21105,8 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 111,
       "rolling_election_news_items": 29,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "latency_ms": 325,
-          "parsed_item_count": 5,
-          "accepted_election_news_count": 0,
-          "http_status": 200,
-          "failure_category": null,
-          "success": true,
-          "accepted_inventory_count": 5,
-          "attempted_at": "2026-08-17T04:07:10.737590Z"
-        },
         {
           "latency_ms": 244,
           "accepted_inventory_count": 5,
@@ -21346,11 +21336,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 5,
+          "accepted_inventory_count": 5,
+          "failure_category": null,
+          "latency_ms": 229,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 53392,
+      "response_bytes": 53378,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -21381,7 +21381,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 94,
       "rolling_election_news_items": 7,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 5,
@@ -21657,7 +21657,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 198,
@@ -21933,7 +21933,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 236,
@@ -22209,7 +22209,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 68,
       "rolling_election_news_items": 6,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -22485,7 +22485,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 231,
@@ -22761,7 +22761,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -23037,7 +23037,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -23293,7 +23293,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "accepted_inventory_count": 0,
@@ -23539,7 +23539,7 @@
       "rolling_parsed_items": 32,
       "rolling_accepted_items": 32,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 1,
@@ -23800,33 +23800,23 @@
       "schedule_slot": 1,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 358,
+      "latest_latency_ms": 368,
       "parsed_item_count": 5,
       "accepted_inventory_count": 1,
       "accepted_election_news_count": 0,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 120,
-      "rolling_accepted_items": 64,
+      "rolling_accepted_items": 60,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "latency_ms": 515,
-          "parsed_item_count": 5,
-          "accepted_election_news_count": 0,
-          "http_status": 200,
-          "failure_category": null,
-          "success": true,
-          "accepted_inventory_count": 5,
-          "attempted_at": "2026-08-17T04:07:10.737590Z"
-        },
         {
           "latency_ms": 387,
           "accepted_inventory_count": 3,
@@ -24056,11 +24046,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 5,
+          "accepted_inventory_count": 1,
+          "failure_category": null,
+          "latency_ms": 368,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 147835,
+      "response_bytes": 150858,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -24076,33 +24076,23 @@
       "schedule_slot": 1,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 432,
+      "latest_latency_ms": 366,
       "parsed_item_count": 5,
       "accepted_inventory_count": 3,
       "accepted_election_news_count": 0,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 120,
-      "rolling_accepted_items": 84,
+      "rolling_accepted_items": 83,
       "rolling_election_news_items": 1,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "latency_ms": 391,
-          "parsed_item_count": 5,
-          "accepted_election_news_count": 0,
-          "http_status": 200,
-          "failure_category": null,
-          "success": true,
-          "accepted_inventory_count": 4,
-          "attempted_at": "2026-08-17T04:07:10.737590Z"
-        },
         {
           "latency_ms": 306,
           "accepted_inventory_count": 4,
@@ -24332,11 +24322,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 5,
+          "accepted_inventory_count": 3,
+          "failure_category": null,
+          "latency_ms": 366,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 158591,
+      "response_bytes": 158803,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -24367,7 +24367,7 @@
       "rolling_parsed_items": 110,
       "rolling_accepted_items": 110,
       "rolling_election_news_items": 1,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -24623,7 +24623,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -24899,7 +24899,7 @@
       "rolling_parsed_items": 105,
       "rolling_accepted_items": 103,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -25175,7 +25175,7 @@
       "rolling_parsed_items": 97,
       "rolling_accepted_items": 97,
       "rolling_election_news_items": 30,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -25451,7 +25451,7 @@
       "rolling_parsed_items": 94,
       "rolling_accepted_items": 89,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "accepted_inventory_count": 5,
@@ -25697,7 +25697,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 3,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -25973,7 +25973,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 13,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -26249,7 +26249,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -26525,7 +26525,7 @@
       "rolling_parsed_items": 108,
       "rolling_accepted_items": 106,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -26781,7 +26781,7 @@
       "rolling_parsed_items": 110,
       "rolling_accepted_items": 27,
       "rolling_election_news_items": 5,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -27037,7 +27037,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 1,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -27313,7 +27313,7 @@
       "rolling_parsed_items": 64,
       "rolling_accepted_items": 59,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -27539,7 +27539,7 @@
       "rolling_parsed_items": 105,
       "rolling_accepted_items": 105,
       "rolling_election_news_items": 5,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -27815,7 +27815,7 @@
       "rolling_parsed_items": 90,
       "rolling_accepted_items": 90,
       "rolling_election_news_items": 10,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -28041,7 +28041,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -28297,7 +28297,7 @@
       "rolling_parsed_items": 105,
       "rolling_accepted_items": 102,
       "rolling_election_news_items": 12,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -28573,7 +28573,7 @@
       "rolling_parsed_items": 115,
       "rolling_accepted_items": 111,
       "rolling_election_news_items": 2,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 419,
@@ -28849,7 +28849,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -29125,7 +29125,7 @@
       "rolling_parsed_items": 105,
       "rolling_accepted_items": 105,
       "rolling_election_news_items": 13,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -29401,7 +29401,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 112,
       "rolling_election_news_items": 13,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 5,
@@ -29662,13 +29662,13 @@
       "schedule_slot": 1,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 312,
+      "latest_latency_ms": 230,
       "parsed_item_count": 5,
       "accepted_inventory_count": 5,
       "accepted_election_news_count": 0,
@@ -29677,18 +29677,8 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "latency_ms": 269,
-          "parsed_item_count": 5,
-          "accepted_election_news_count": 0,
-          "http_status": 200,
-          "failure_category": null,
-          "success": true,
-          "accepted_inventory_count": 5,
-          "attempted_at": "2026-08-17T04:07:10.737590Z"
-        },
         {
           "latency_ms": 267,
           "accepted_inventory_count": 5,
@@ -29918,6 +29908,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 5,
+          "accepted_inventory_count": 5,
+          "failure_category": null,
+          "latency_ms": 230,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -29953,7 +29953,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 3,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 448,
@@ -30214,33 +30214,23 @@
       "schedule_slot": 1,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 218,
+      "latest_latency_ms": 275,
       "parsed_item_count": 5,
       "accepted_inventory_count": 0,
       "accepted_election_news_count": 0,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 120,
-      "rolling_accepted_items": 23,
+      "rolling_accepted_items": 20,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "latency_ms": 313,
-          "parsed_item_count": 5,
-          "accepted_election_news_count": 0,
-          "http_status": 200,
-          "failure_category": null,
-          "success": true,
-          "accepted_inventory_count": 3,
-          "attempted_at": "2026-08-17T04:07:10.737590Z"
-        },
         {
           "latency_ms": 240,
           "accepted_inventory_count": 3,
@@ -30470,6 +30460,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 5,
+          "accepted_inventory_count": 0,
+          "failure_category": null,
+          "latency_ms": 275,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -30505,7 +30505,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 0,
@@ -30721,7 +30721,7 @@
       "rolling_parsed_items": 105,
       "rolling_accepted_items": 105,
       "rolling_election_news_items": 8,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "accepted_inventory_count": 5,
@@ -30967,7 +30967,7 @@
       "rolling_parsed_items": 115,
       "rolling_accepted_items": 115,
       "rolling_election_news_items": 6,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 234,
@@ -31243,7 +31243,7 @@
       "rolling_parsed_items": 24,
       "rolling_accepted_items": 24,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -31499,7 +31499,7 @@
       "rolling_parsed_items": 115,
       "rolling_accepted_items": 114,
       "rolling_election_news_items": 7,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 397,
@@ -31760,13 +31760,13 @@
       "schedule_slot": 1,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 404,
+      "latest_latency_ms": 466,
       "parsed_item_count": 5,
       "accepted_inventory_count": 5,
       "accepted_election_news_count": 2,
@@ -31774,19 +31774,9 @@
       "rolling_success_count": 24,
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
-      "rolling_election_news_items": 31,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_election_news_items": 32,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "latency_ms": 578,
-          "parsed_item_count": 5,
-          "accepted_election_news_count": 1,
-          "http_status": 200,
-          "failure_category": null,
-          "success": true,
-          "accepted_inventory_count": 5,
-          "attempted_at": "2026-08-17T04:07:10.737590Z"
-        },
         {
           "latency_ms": 481,
           "accepted_inventory_count": 5,
@@ -32016,11 +32006,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 2,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 5,
+          "accepted_inventory_count": 5,
+          "failure_category": null,
+          "latency_ms": 466,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 129064,
+      "response_bytes": 129100,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -32051,7 +32051,7 @@
       "rolling_parsed_items": 110,
       "rolling_accepted_items": 110,
       "rolling_election_news_items": 7,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -32307,7 +32307,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -32583,7 +32583,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 178,
@@ -32859,7 +32859,7 @@
       "rolling_parsed_items": 96,
       "rolling_accepted_items": 35,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 358,
@@ -33135,7 +33135,7 @@
       "rolling_parsed_items": 10,
       "rolling_accepted_items": 10,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -33361,7 +33361,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 0,
@@ -33637,7 +33637,7 @@
       "rolling_parsed_items": 110,
       "rolling_accepted_items": 109,
       "rolling_election_news_items": 10,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -33893,7 +33893,7 @@
       "rolling_parsed_items": 76,
       "rolling_accepted_items": 70,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "accepted_inventory_count": 4,
@@ -34139,7 +34139,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 219,
@@ -34415,7 +34415,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 105,
       "rolling_election_news_items": 7,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 524,
@@ -34691,7 +34691,7 @@
       "rolling_parsed_items": 119,
       "rolling_accepted_items": 112,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 279,
@@ -34952,33 +34952,23 @@
       "schedule_slot": 1,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 456,
+      "latest_latency_ms": 440,
       "parsed_item_count": 5,
       "accepted_inventory_count": 5,
-      "accepted_election_news_count": 0,
+      "accepted_election_news_count": 1,
       "rolling_attempt_count": 24,
       "rolling_success_count": 24,
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
-      "rolling_election_news_items": 2,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_election_news_items": 3,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "latency_ms": 742,
-          "parsed_item_count": 5,
-          "accepted_election_news_count": 0,
-          "http_status": 200,
-          "failure_category": null,
-          "success": true,
-          "accepted_inventory_count": 5,
-          "attempted_at": "2026-08-17T04:07:10.737590Z"
-        },
         {
           "latency_ms": 550,
           "accepted_inventory_count": 5,
@@ -35208,11 +35198,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 1,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 5,
+          "accepted_inventory_count": 5,
+          "failure_category": null,
+          "latency_ms": 440,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 177614,
+      "response_bytes": 177436,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -35243,7 +35243,7 @@
       "rolling_parsed_items": 32,
       "rolling_accepted_items": 15,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 0,
@@ -35519,7 +35519,7 @@
       "rolling_parsed_items": 119,
       "rolling_accepted_items": 93,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 222,
@@ -35795,7 +35795,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -36071,7 +36071,7 @@
       "rolling_parsed_items": 88,
       "rolling_accepted_items": 88,
       "rolling_election_news_items": 4,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -36297,7 +36297,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 117,
       "rolling_election_news_items": 5,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -36573,7 +36573,7 @@
       "rolling_parsed_items": 105,
       "rolling_accepted_items": 100,
       "rolling_election_news_items": 8,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -36849,7 +36849,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 12,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -37125,7 +37125,7 @@
       "rolling_parsed_items": 17,
       "rolling_accepted_items": 17,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -37401,7 +37401,7 @@
       "rolling_parsed_items": 105,
       "rolling_accepted_items": 102,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "accepted_inventory_count": 5,
@@ -37647,7 +37647,7 @@
       "rolling_parsed_items": 90,
       "rolling_accepted_items": 90,
       "rolling_election_news_items": 5,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 5,
@@ -37848,13 +37848,13 @@
       "schedule_slot": 1,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 223,
+      "latest_latency_ms": 218,
       "parsed_item_count": 5,
       "accepted_inventory_count": 5,
       "accepted_election_news_count": 2,
@@ -37862,19 +37862,9 @@
       "rolling_success_count": 24,
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
-      "rolling_election_news_items": 30,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_election_news_items": 31,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "latency_ms": 282,
-          "parsed_item_count": 5,
-          "accepted_election_news_count": 1,
-          "http_status": 200,
-          "failure_category": null,
-          "success": true,
-          "accepted_inventory_count": 5,
-          "attempted_at": "2026-08-17T04:07:10.737590Z"
-        },
         {
           "latency_ms": 252,
           "accepted_inventory_count": 5,
@@ -38104,11 +38094,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 2,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 5,
+          "accepted_inventory_count": 5,
+          "failure_category": null,
+          "latency_ms": 218,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 17399,
+      "response_bytes": 17327,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -38124,13 +38124,13 @@
       "schedule_slot": 1,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 425,
+      "latest_latency_ms": 408,
       "parsed_item_count": 5,
       "accepted_inventory_count": 5,
       "accepted_election_news_count": 0,
@@ -38138,19 +38138,9 @@
       "rolling_success_count": 24,
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
-      "rolling_election_news_items": 14,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "rolling_election_news_items": 13,
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "latency_ms": 575,
-          "parsed_item_count": 5,
-          "accepted_election_news_count": 1,
-          "http_status": 200,
-          "failure_category": null,
-          "success": true,
-          "accepted_inventory_count": 5,
-          "attempted_at": "2026-08-17T04:07:10.737590Z"
-        },
         {
           "latency_ms": 425,
           "accepted_inventory_count": 5,
@@ -38380,11 +38370,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 5,
+          "accepted_inventory_count": 5,
+          "failure_category": null,
+          "latency_ms": 408,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 169326,
+      "response_bytes": 169542,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -38415,7 +38415,7 @@
       "rolling_parsed_items": 115,
       "rolling_accepted_items": 115,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -38691,7 +38691,7 @@
       "rolling_parsed_items": 115,
       "rolling_accepted_items": 101,
       "rolling_election_news_items": 2,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -38967,7 +38967,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -39243,7 +39243,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 3,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 303,
@@ -39519,7 +39519,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 1,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 5,
@@ -39795,7 +39795,7 @@
       "rolling_parsed_items": 76,
       "rolling_accepted_items": 64,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -40071,7 +40071,7 @@
       "rolling_parsed_items": 110,
       "rolling_accepted_items": 109,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -40327,7 +40327,7 @@
       "rolling_parsed_items": 87,
       "rolling_accepted_items": 87,
       "rolling_election_news_items": 5,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 5,
@@ -40543,7 +40543,7 @@
       "rolling_parsed_items": 18,
       "rolling_accepted_items": 18,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "accepted_inventory_count": 2,
@@ -40789,7 +40789,7 @@
       "rolling_parsed_items": 14,
       "rolling_accepted_items": 9,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -41015,7 +41015,7 @@
       "rolling_parsed_items": 52,
       "rolling_accepted_items": 52,
       "rolling_election_news_items": 4,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -41291,7 +41291,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -41567,7 +41567,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -41843,7 +41843,7 @@
       "rolling_parsed_items": 15,
       "rolling_accepted_items": 13,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 196,
@@ -42119,7 +42119,7 @@
       "rolling_parsed_items": 105,
       "rolling_accepted_items": 49,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -42375,7 +42375,7 @@
       "rolling_parsed_items": 58,
       "rolling_accepted_items": 16,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 193,
@@ -42651,7 +42651,7 @@
       "rolling_parsed_items": 30,
       "rolling_accepted_items": 30,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 2,
@@ -42912,13 +42912,13 @@
       "schedule_slot": 1,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 298,
+      "latest_latency_ms": 273,
       "parsed_item_count": 5,
       "accepted_inventory_count": 4,
       "accepted_election_news_count": 0,
@@ -42927,18 +42927,8 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 112,
       "rolling_election_news_items": 14,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "latency_ms": 356,
-          "parsed_item_count": 5,
-          "accepted_election_news_count": 0,
-          "http_status": 200,
-          "failure_category": null,
-          "success": true,
-          "accepted_inventory_count": 4,
-          "attempted_at": "2026-08-17T04:07:10.737590Z"
-        },
         {
           "latency_ms": 268,
           "accepted_inventory_count": 5,
@@ -43168,11 +43158,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 5,
+          "accepted_inventory_count": 4,
+          "failure_category": null,
+          "latency_ms": 273,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 88148,
+      "response_bytes": 88274,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -43203,7 +43203,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "accepted_inventory_count": 0,
@@ -43449,7 +43449,7 @@
       "rolling_parsed_items": 90,
       "rolling_accepted_items": 87,
       "rolling_election_news_items": 1,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 5,
@@ -43665,7 +43665,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 4,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 5,
@@ -43941,7 +43941,7 @@
       "rolling_parsed_items": 6,
       "rolling_accepted_items": 6,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -44217,7 +44217,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 88,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 267,
@@ -44493,7 +44493,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 64,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -44769,7 +44769,7 @@
       "rolling_parsed_items": 118,
       "rolling_accepted_items": 115,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 216,
@@ -45045,7 +45045,7 @@
       "rolling_parsed_items": 20,
       "rolling_accepted_items": 20,
       "rolling_election_news_items": 10,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -45301,7 +45301,7 @@
       "rolling_parsed_items": 92,
       "rolling_accepted_items": 92,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 181,
@@ -45577,7 +45577,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 13,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 587,
@@ -45853,7 +45853,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 4,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -46129,7 +46129,7 @@
       "rolling_parsed_items": 109,
       "rolling_accepted_items": 109,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -46390,33 +46390,23 @@
       "schedule_slot": 7,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 213,
+      "latest_latency_ms": 192,
       "parsed_item_count": 1,
       "accepted_inventory_count": 1,
       "accepted_election_news_count": 0,
       "rolling_attempt_count": 24,
       "rolling_success_count": 21,
-      "rolling_parsed_items": 1,
-      "rolling_accepted_items": 1,
+      "rolling_parsed_items": 2,
+      "rolling_accepted_items": 2,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "success": true,
-          "latency_ms": 180,
-          "parsed_item_count": 0,
-          "accepted_inventory_count": 0,
-          "http_status": 200,
-          "accepted_election_news_count": 0,
-          "failure_category": null,
-          "attempted_at": "2026-08-08T07:25:06.688443Z"
-        },
         {
           "accepted_inventory_count": 0,
           "success": false,
@@ -46646,11 +46636,21 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 1,
+          "accepted_inventory_count": 1,
+          "failure_category": null,
+          "latency_ms": 192,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
       "latest_not_modified": false,
-      "response_bytes": 3001,
+      "response_bytes": 2998,
       "etag": null,
       "last_modified": null,
       "validator_url": null
@@ -46666,33 +46666,23 @@
       "schedule_slot": 7,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 261,
+      "latest_latency_ms": 199,
       "parsed_item_count": 3,
       "accepted_inventory_count": 3,
       "accepted_election_news_count": 0,
       "rolling_attempt_count": 24,
       "rolling_success_count": 21,
-      "rolling_parsed_items": 49,
-      "rolling_accepted_items": 49,
+      "rolling_parsed_items": 47,
+      "rolling_accepted_items": 47,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "success": true,
-          "latency_ms": 212,
-          "parsed_item_count": 5,
-          "accepted_inventory_count": 5,
-          "http_status": 200,
-          "accepted_election_news_count": 0,
-          "failure_category": null,
-          "attempted_at": "2026-08-08T07:25:06.688443Z"
-        },
         {
           "accepted_inventory_count": 0,
           "success": false,
@@ -46922,6 +46912,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 3,
+          "accepted_inventory_count": 3,
+          "failure_category": null,
+          "latency_ms": 199,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -46957,7 +46957,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 213,
@@ -47233,7 +47233,7 @@
       "rolling_parsed_items": 33,
       "rolling_accepted_items": 33,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -47489,7 +47489,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 0,
@@ -47765,7 +47765,7 @@
       "rolling_parsed_items": 67,
       "rolling_accepted_items": 11,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 260,
@@ -48041,7 +48041,7 @@
       "rolling_parsed_items": 2,
       "rolling_accepted_items": 2,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -48267,7 +48267,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 0,
@@ -48483,7 +48483,7 @@
       "rolling_parsed_items": 70,
       "rolling_accepted_items": 55,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 4,
@@ -48699,7 +48699,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 2,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 407,
@@ -48975,7 +48975,7 @@
       "rolling_parsed_items": 115,
       "rolling_accepted_items": 88,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 407,
@@ -49251,7 +49251,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 196,
@@ -49527,7 +49527,7 @@
       "rolling_parsed_items": 26,
       "rolling_accepted_items": 18,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "accepted_inventory_count": 2,
@@ -49773,7 +49773,7 @@
       "rolling_parsed_items": 29,
       "rolling_accepted_items": 29,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -50029,7 +50029,7 @@
       "rolling_parsed_items": 110,
       "rolling_accepted_items": 110,
       "rolling_election_news_items": 11,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -50285,7 +50285,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 114,
       "rolling_election_news_items": 4,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -50561,7 +50561,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 119,
       "rolling_election_news_items": 20,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -50837,7 +50837,7 @@
       "rolling_parsed_items": 1,
       "rolling_accepted_items": 1,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "accepted_inventory_count": 0,
@@ -51068,13 +51068,13 @@
       "schedule_slot": 7,
       "due_this_run": true,
       "status": "healthy_zero_yield",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 210,
+      "latest_latency_ms": 185,
       "parsed_item_count": 0,
       "accepted_inventory_count": 0,
       "accepted_election_news_count": 0,
@@ -51083,18 +51083,8 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "success": true,
-          "latency_ms": 221,
-          "parsed_item_count": 0,
-          "accepted_inventory_count": 0,
-          "http_status": 200,
-          "accepted_election_news_count": 0,
-          "failure_category": null,
-          "attempted_at": "2026-08-08T07:25:06.688443Z"
-        },
         {
           "accepted_inventory_count": 0,
           "success": false,
@@ -51324,6 +51314,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 0,
+          "accepted_inventory_count": 0,
+          "failure_category": null,
+          "latency_ms": 185,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -51359,7 +51359,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 0,
@@ -51635,7 +51635,7 @@
       "rolling_parsed_items": 24,
       "rolling_accepted_items": 21,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -51911,7 +51911,7 @@
       "rolling_parsed_items": 64,
       "rolling_accepted_items": 64,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -52187,7 +52187,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -52463,7 +52463,7 @@
       "rolling_parsed_items": 11,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 1,
@@ -52739,7 +52739,7 @@
       "rolling_parsed_items": 17,
       "rolling_accepted_items": 17,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -53015,7 +53015,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 119,
       "rolling_election_news_items": 7,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 538,
@@ -53291,7 +53291,7 @@
       "rolling_parsed_items": 115,
       "rolling_accepted_items": 114,
       "rolling_election_news_items": 1,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -53567,7 +53567,7 @@
       "rolling_parsed_items": 90,
       "rolling_accepted_items": 45,
       "rolling_election_news_items": 3,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -53843,7 +53843,7 @@
       "rolling_parsed_items": 76,
       "rolling_accepted_items": 74,
       "rolling_election_news_items": 29,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 247,
@@ -54119,7 +54119,7 @@
       "rolling_parsed_items": 9,
       "rolling_accepted_items": 8,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 4,
@@ -54335,7 +54335,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 16,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -54611,7 +54611,7 @@
       "rolling_parsed_items": 48,
       "rolling_accepted_items": 48,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 273,
@@ -54872,33 +54872,23 @@
       "schedule_slot": 7,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 293,
+      "latest_latency_ms": 180,
       "parsed_item_count": 5,
       "accepted_inventory_count": 2,
       "accepted_election_news_count": 0,
       "rolling_attempt_count": 24,
       "rolling_success_count": 21,
-      "rolling_parsed_items": 93,
+      "rolling_parsed_items": 94,
       "rolling_accepted_items": 63,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "success": true,
-          "latency_ms": 282,
-          "parsed_item_count": 4,
-          "accepted_inventory_count": 2,
-          "http_status": 200,
-          "accepted_election_news_count": 0,
-          "failure_category": null,
-          "attempted_at": "2026-08-08T07:25:06.688443Z"
-        },
         {
           "accepted_inventory_count": 0,
           "success": false,
@@ -55128,6 +55118,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 5,
+          "accepted_inventory_count": 2,
+          "failure_category": null,
+          "latency_ms": 180,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -55163,7 +55163,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 73,
       "rolling_election_news_items": 13,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 203,
@@ -55439,7 +55439,7 @@
       "rolling_parsed_items": 110,
       "rolling_accepted_items": 93,
       "rolling_election_news_items": 4,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -55695,7 +55695,7 @@
       "rolling_parsed_items": 114,
       "rolling_accepted_items": 110,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 203,
@@ -55971,7 +55971,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 120,
       "rolling_election_news_items": 9,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -56247,7 +56247,7 @@
       "rolling_parsed_items": 0,
       "rolling_accepted_items": 0,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 215,
@@ -56523,7 +56523,7 @@
       "rolling_parsed_items": 21,
       "rolling_accepted_items": 21,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "failure_category": null,
@@ -56779,7 +56779,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 109,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "latency_ms": 369,
@@ -57040,33 +57040,23 @@
       "schedule_slot": 7,
       "due_this_run": true,
       "status": "healthy",
-      "last_attempt_at": "2026-08-19T07:10:23.588108Z",
-      "last_success_at": "2026-08-19T07:10:23.588108Z",
+      "last_attempt_at": "2026-08-19T07:57:37.853072Z",
+      "last_success_at": "2026-08-19T07:57:37.853072Z",
       "last_failure_at": "2026-08-16T07:48:44.691790Z",
       "consecutive_failures": 0,
       "latest_http_status": 200,
       "latest_failure_category": null,
-      "latest_latency_ms": 269,
+      "latest_latency_ms": 176,
       "parsed_item_count": 4,
       "accepted_inventory_count": 2,
       "accepted_election_news_count": 0,
       "rolling_attempt_count": 24,
       "rolling_success_count": 21,
-      "rolling_parsed_items": 100,
-      "rolling_accepted_items": 64,
+      "rolling_parsed_items": 99,
+      "rolling_accepted_items": 61,
       "rolling_election_news_items": 0,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
-        {
-          "success": true,
-          "latency_ms": 286,
-          "parsed_item_count": 5,
-          "accepted_inventory_count": 5,
-          "http_status": 200,
-          "accepted_election_news_count": 0,
-          "failure_category": null,
-          "attempted_at": "2026-08-08T07:25:06.688443Z"
-        },
         {
           "accepted_inventory_count": 0,
           "success": false,
@@ -57296,6 +57286,16 @@
           "success": true,
           "failure_category": null,
           "attempted_at": "2026-08-19T07:10:23.588108Z"
+        },
+        {
+          "accepted_election_news_count": 0,
+          "http_status": 200,
+          "success": true,
+          "parsed_item_count": 4,
+          "accepted_inventory_count": 2,
+          "failure_category": null,
+          "latency_ms": 176,
+          "attempted_at": "2026-08-19T07:57:37.853072Z"
         }
       ],
       "latest_attempt_count": 1,
@@ -57331,7 +57331,7 @@
       "rolling_parsed_items": 120,
       "rolling_accepted_items": 116,
       "rolling_election_news_items": 16,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "parsed_item_count": 5,
@@ -57607,7 +57607,7 @@
       "rolling_parsed_items": 90,
       "rolling_accepted_items": 80,
       "rolling_election_news_items": 2,
-      "updated_at": "2026-08-19T07:10:23.588108Z",
+      "updated_at": "2026-08-19T07:57:37.853072Z",
       "attempt_history": [
         {
           "success": true,
@@ -57809,14 +57809,14 @@
     }
   ],
   "current_run": {
-    "run_at": "2026-08-19T07:10:23.588108Z",
+    "run_at": "2026-08-19T07:57:37.853072Z",
     "configured_routes": 214,
     "due_routes": 57,
     "attempted_routes": 57,
     "successful_routes": 57,
     "failed_routes": 0,
-    "zero_parsed_routes": 9,
-    "accepted_inventory_routes": 46,
+    "zero_parsed_routes": 7,
+    "accepted_inventory_routes": 47,
     "accepted_election_news_routes": 24,
     "newly_repeated_failure_routes": [],
     "recovered_routes": []
