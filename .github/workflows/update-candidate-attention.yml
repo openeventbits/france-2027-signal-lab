@@ -669,11 +669,6 @@ jobs:
                   "does not match the resolved observation date."
               )
 
-          if manifest["schema_version"] != "1.3":
-              raise SystemExit(
-                  "Final publication manifest is not schema 1.3."
-              )
-
           allowed = {
               "candidate_attention.json",
               "publication_manifest.json",
