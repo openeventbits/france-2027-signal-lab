@@ -1531,6 +1531,254 @@ class CandidateAttentionPageviewCollectionTests(
         self.assertEqual(sleeps, [])
         self.assertEqual(len(series), 90)
 
+    def test_transient_internal_gap_retries_same_range_and_recovers(
+        self,
+    ):
+        incomplete = pageview_payload(
+            value=111
+        )
+        missing_item = incomplete["items"].pop(
+            10
+        )
+        complete = pageview_payload(
+            value=222
+        )
+        calls = []
+        sleeps = []
+        output = io.StringIO()
+
+        def fetcher(url):
+            calls.append(url)
+            if len(calls) == 1:
+                return incomplete
+            return complete
+
+        with redirect_stdout(output):
+            series = fetch_pageview_series(
+                "Gabriel Attal",
+                data_as_of=DATA_AS_OF,
+                fetcher=fetcher,
+                sleeper=sleeps.append,
+            )
+
+        missing_date = datetime.strptime(
+            missing_item["timestamp"],
+            "%Y%m%d00",
+        ).date().isoformat()
+
+        self.assertEqual(
+            len(calls),
+            2,
+        )
+        self.assertEqual(
+            len(set(calls)),
+            1,
+        )
+        self.assertEqual(
+            sleeps,
+            [1.0],
+        )
+        self.assertEqual(
+            len(series),
+            90,
+        )
+        self.assertEqual(
+            series[10]["date"],
+            missing_date,
+        )
+        self.assertEqual(
+            series[10]["views"],
+            222,
+        )
+        self.assertNotIn(
+            0,
+            [
+                item["views"]
+                for item in series
+            ],
+        )
+
+        diagnostic = output.getvalue()
+
+        self.assertIn(
+            "Pageviews response incomplete for Gabriel Attal",
+            diagnostic,
+        )
+        self.assertIn(
+            "retrying same range (2/3) after 1s",
+            diagnostic,
+        )
+        self.assertIn(
+            missing_date,
+            diagnostic,
+        )
+
+    def test_verified_transient_sparse_response_recovers_real_observation(
+        self,
+    ):
+        incomplete = pageview_payload(
+            value=123
+        )
+        missing_item = incomplete["items"].pop(
+            10
+        )
+        complete = pageview_payload(
+            value=123
+        )
+        complete["items"][10]["views"] = 987
+        calls = []
+        sleeps = []
+
+        def fetcher(url):
+            calls.append(url)
+            if len(calls) == 1:
+                return incomplete
+            return complete
+
+        with redirect_stdout(
+            io.StringIO()
+        ):
+            series = fetch_pageview_series(
+                "Gabriel Attal",
+                data_as_of=DATA_AS_OF,
+                fetcher=fetcher,
+                sleeper=sleeps.append,
+                source_window_verified=True,
+            )
+
+        recovered_date = datetime.strptime(
+            missing_item["timestamp"],
+            "%Y%m%d00",
+        ).date().isoformat()
+
+        self.assertEqual(
+            len(calls),
+            2,
+        )
+        self.assertEqual(
+            len(set(calls)),
+            1,
+        )
+        self.assertEqual(
+            sleeps,
+            [1.0],
+        )
+        self.assertEqual(
+            series[10],
+            {
+                "date": recovered_date,
+                "views": 987,
+            },
+        )
+
+    def test_verified_persistent_sparse_response_zero_fills_after_retries(
+        self,
+    ):
+        payload = pageview_payload(
+            value=123
+        )
+        missing_item = payload["items"].pop(
+            10
+        )
+        calls = []
+        sleeps = []
+
+        def fetcher(url):
+            calls.append(url)
+            return payload
+
+        with redirect_stdout(
+            io.StringIO()
+        ):
+            series = fetch_pageview_series(
+                "Gabriel Attal",
+                data_as_of=DATA_AS_OF,
+                fetcher=fetcher,
+                sleeper=sleeps.append,
+                source_window_verified=True,
+            )
+
+        missing_date = datetime.strptime(
+            missing_item["timestamp"],
+            "%Y%m%d00",
+        ).date().isoformat()
+
+        self.assertEqual(
+            len(calls),
+            3,
+        )
+        self.assertEqual(
+            len(set(calls)),
+            1,
+        )
+        self.assertEqual(
+            sleeps,
+            [1.0, 2.0],
+        )
+        self.assertEqual(
+            series[10],
+            {
+                "date": missing_date,
+                "views": 0,
+            },
+        )
+
+    def test_structural_failures_do_not_trigger_semantic_retry(
+        self,
+    ):
+        def duplicate(payload):
+            payload["items"][11]["timestamp"] = (
+                payload["items"][10]["timestamp"]
+            )
+
+        def add_extra(payload):
+            payload["items"].append(
+                {
+                    "timestamp": (
+                        DATA_AS_OF
+                        + timedelta(days=1)
+                    ).strftime(
+                        "%Y%m%d00"
+                    ),
+                    "views": 100,
+                }
+            )
+
+        for name, mutate in (
+            ("duplicate", duplicate),
+            ("extra", add_extra),
+        ):
+            with self.subTest(
+                case=name
+            ):
+                payload = pageview_payload()
+                mutate(payload)
+                calls = []
+                sleeps = []
+
+                def fetcher(url):
+                    calls.append(url)
+                    return payload
+
+                with self.assertRaises(
+                    CandidateAttentionBuildError
+                ):
+                    fetch_pageview_series(
+                        "Gabriel Attal",
+                        data_as_of=DATA_AS_OF,
+                        fetcher=fetcher,
+                        sleeper=sleeps.append,
+                    )
+
+                self.assertEqual(
+                    len(calls),
+                    1,
+                )
+                self.assertEqual(
+                    sleeps,
+                    [],
+                )
+
     def test_one_404_retries_same_url_then_succeeds(
         self,
     ):
@@ -1760,8 +2008,8 @@ class CandidateAttentionPageviewCollectionTests(
             type(context.exception),
             CandidateAttentionBuildError,
         )
-        self.assertEqual(len(calls), 1)
-        self.assertEqual(sleeps, [])
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(sleeps, [1.0, 2.0])
 
     def test_one_trailing_missing_day_is_availability_lag(
         self,
@@ -1783,6 +2031,7 @@ class CandidateAttentionPageviewCollectionTests(
                     lambda _:
                     payload
                 ),
+                sleeper=lambda _: None,
             )
 
     def test_two_trailing_missing_days_are_availability_lag(
@@ -1808,6 +2057,7 @@ class CandidateAttentionPageviewCollectionTests(
                     lambda _:
                     payload
                 ),
+                sleeper=lambda _: None,
             )
 
     def test_non_contiguous_missing_days_are_hard_failure(
@@ -1838,6 +2088,7 @@ class CandidateAttentionPageviewCollectionTests(
                     lambda _:
                     payload
                 ),
+                sleeper=lambda _: None,
             )
 
         self.assertIs(
@@ -1897,6 +2148,7 @@ class CandidateAttentionPageviewCollectionTests(
             "Gabriel Attal",
             data_as_of=DATA_AS_OF,
             fetcher=lambda _: payload,
+            sleeper=lambda _: None,
             source_window_verified=True,
         )
 
@@ -1929,6 +2181,7 @@ class CandidateAttentionPageviewCollectionTests(
             "Gabriel Attal",
             data_as_of=DATA_AS_OF,
             fetcher=lambda _: payload,
+            sleeper=lambda _: None,
             source_window_verified=True,
         )
 
@@ -1963,6 +2216,7 @@ class CandidateAttentionPageviewCollectionTests(
             "Gabriel Attal",
             data_as_of=DATA_AS_OF,
             fetcher=lambda _: payload,
+            sleeper=lambda _: None,
             source_window_verified=True,
         )
 
@@ -2185,7 +2439,7 @@ class CandidateAttentionPageviewCollectionTests(
         )
         self.assertEqual(
             len(calls),
-            len(ARTICLE_ELIGIBLE_IDS),
+            len(ARTICLE_ELIGIBLE_IDS) * 3,
         )
         self.assertFalse(
             any(
@@ -2851,7 +3105,7 @@ class CandidateAttentionAvailabilityFallbackTests(
         )
         self.assertEqual(
             candidate_dates,
-            [DATA_AS_OF],
+            [DATA_AS_OF] * 3,
         )
 
     def test_project_internal_gap_with_complete_candidates_keeps_preferred_date(
@@ -3014,13 +3268,105 @@ class CandidateAttentionAvailabilityFallbackTests(
         )
         self.assertEqual(
             candidate_dates,
-            [DATA_AS_OF]
+            [DATA_AS_OF] * 3
             + [previous]
             * len(ARTICLE_ELIGIBLE_IDS),
         )
         self.assertEqual(
             payload["period"]["data_as_of"],
             previous.isoformat(),
+        )
+
+    def test_transient_trailing_gap_recovers_without_calendar_fallback(
+        self,
+    ):
+        project_dates = []
+        candidate_dates = []
+        candidate_calls = {}
+
+        def fetcher(url):
+            if "/w/api.php?" in url:
+                return self._success_for_url(url)
+
+            requested_date = self._request_data_as_of(url)
+
+            payload = pageview_payload(
+                data_as_of=requested_date,
+                value=137,
+            )
+
+            if (
+                "/metrics/pageviews/aggregate/"
+                in url
+            ):
+                project_dates.append(
+                    requested_date
+                )
+                payload["items"].pop(
+                    10
+                )
+                return payload
+
+            candidate_dates.append(
+                requested_date
+            )
+
+            candidate_calls[url] = (
+                candidate_calls.get(
+                    url,
+                    0,
+                )
+                + 1
+            )
+
+            if (
+                "Gabriel_Attal"
+                in url
+                and candidate_calls[url] == 1
+            ):
+                payload["items"].pop()
+
+            return payload
+
+        payload = self._run_build(
+            fetcher,
+            fallback_days=3,
+        )
+
+        self.assertEqual(
+            project_dates,
+            [DATA_AS_OF],
+        )
+
+        self.assertTrue(
+            all(
+                requested_date == DATA_AS_OF
+                for requested_date
+                in candidate_dates
+            )
+        )
+
+        self.assertEqual(
+            payload["period"]["data_as_of"],
+            DATA_AS_OF.isoformat(),
+        )
+
+        attal_urls = [
+            url
+            for url in candidate_calls
+            if "Gabriel_Attal" in url
+        ]
+
+        self.assertEqual(
+            len(attal_urls),
+            1,
+        )
+
+        self.assertEqual(
+            candidate_calls[
+                attal_urls[0]
+            ],
+            2,
         )
 
     def test_fallback_days_three_is_valid(
