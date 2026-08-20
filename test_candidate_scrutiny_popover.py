@@ -238,13 +238,13 @@ class CandidateScrutinyPopoverTests(unittest.TestCase):
         ):
             self.assertIn(required, HYBRID + CSS)
 
-    def test_global_claim_workspace_and_signal_desk_fact_checks_remain(self):
-        for required in (
+    def test_global_claim_workspace_is_removed_while_signal_desk_fact_checks_remain(self):
+        for removed in (
             'id="signal-claims-panel"',
             "function renderClaimsPanel(",
             "function buildClaimsViewModel(",
         ):
-            self.assertIn(required, HYBRID)
+            self.assertNotIn(removed, HYBRID)
         for required in (
             "function renderFactChecks()",
             "function claimReviewRow(",

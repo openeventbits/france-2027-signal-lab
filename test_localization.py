@@ -269,12 +269,10 @@ class LocalizationFoundationTests(unittest.TestCase):
             hybrid_text: (
                 'translate("signal_board.runoff", "RUNOFF")',
                 'translate("signal_board.candidates_847367c6", "CANDIDATES")',
-                'translate("signal_board.claim_scrutiny", "CLAIM SCRUTINY")',
                 'translate("signal_board.closest_runoff", "Closest Runoff")',
                 'translate("signal_board.candidate_signals", "Candidate Signals")',
                 'translate("signal_board.campaign_events", "Campaign Events")',
                 'translate("signal_board.campaign_agenda", "Campaign Agenda")',
-                'translate("signal_board.claim_scrutiny_da3f82b0", "Claim Scrutiny")',
                 'translate("signal_board.polling_evidence", "Polling Evidence")',
                 'translate("signal_board.poll_compare", "POLL COMPARE")',
             ),
@@ -486,7 +484,6 @@ class LocalizationFoundationTests(unittest.TestCase):
 
         for key in (
             "signal_board.media.latest_accepted_item",
-            "signal_board.claims.latest_review",
         ):
             self.assertEqual(
                 hybrid_text.count(f'"{key}"'),
@@ -499,12 +496,6 @@ class LocalizationFoundationTests(unittest.TestCase):
             ),
             1,
         )
-        self.assertEqual(
-            hybrid_text.count(
-                "dateOrUnavailable: latestReviewValue"
-            ),
-            1,
-        )
         self.assertIn(
             'timeZone: "Europe/Paris"',
             hybrid_text,
@@ -513,13 +504,7 @@ class LocalizationFoundationTests(unittest.TestCase):
             'timeZone: "UTC"',
             hybrid_text,
         )
-        self.assertIn(
-            (
-                "`${String(model.latestReviewDate)"
-                ".slice(0, 10)}T00:00:00Z`"
-            ),
-            hybrid_text,
-        )
+
 
 
 if __name__ == "__main__":

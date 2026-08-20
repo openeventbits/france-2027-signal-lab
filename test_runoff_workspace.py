@@ -942,7 +942,7 @@ class RunoffIsolationAndStaticContractTests(unittest.TestCase):
 
     def test_tab_panel_hash_and_aria_contract_is_stable(self):
         runoff_config = re.search(
-            r"runoff:\s*\{(?P<body>.*?)\n\s*\},\n\s*candidates:",
+            r"runoff:\s*\{(?P<body>.*?)\n\s*\},\n\s*events:",
             self.js,
             re.DOTALL,
         )

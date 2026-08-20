@@ -40,6 +40,13 @@
   if (!mount) return;
 
   const views = Object.freeze({
+    candidates: {
+      label: translate("signal_board.candidates_847367c6", "CANDIDATES"),
+      title: translate("signal_board.candidate_signals", "Candidate Signals"),
+      hash: "#signal-candidates",
+      tabId: "signal-candidates-tab",
+      panelId: "signal-candidates-panel"
+    },
     runoff: {
       label: translate("signal_board.runoff", "RUNOFF"),
       title: translate("signal_board.closest_runoff", "Closest Runoff"),
@@ -47,13 +54,6 @@
       tabId: "signal-runoff-tab",
       panelId: "signal-runoff-panel",
       index: "1"
-    },
-    candidates: {
-      label: translate("signal_board.candidates_847367c6", "CANDIDATES"),
-      title: translate("signal_board.candidate_signals", "Candidate Signals"),
-      hash: "#signal-candidates",
-      tabId: "signal-candidates-tab",
-      panelId: "signal-candidates-panel"
     },
     events: {
       label: "EVENTS",
@@ -69,14 +69,6 @@
       tabId: "signal-agenda-tab",
       panelId: "signal-agenda-panel",
       index: "3"
-    },
-    claims: {
-      label: translate("signal_board.claim_scrutiny", "CLAIM SCRUTINY"),
-      title: translate("signal_board.claim_scrutiny_da3f82b0", "Claim Scrutiny"),
-      hash: "#signal-claims",
-      tabId: "signal-claims-tab",
-      panelId: "signal-claims-panel",
-      index: "4"
     },
     pollCompare: {
       label: translate("signal_board.poll_compare", "POLL COMPARE"),
@@ -96,9 +88,6 @@
     selectedCampaignEventId: "",
     selectedCampaignEventWeekStart: "",
     campaignEventTypeFilter: "all",
-    claimsRelationship: "all",
-    claimsCandidateId: "",
-    claimsPublisher: "",
     selectedCandidateSignalsId: null,
     candidateSignals: {
       status: "loading",
@@ -2546,71 +2535,6 @@
     };
   }
 
-  function ratingDisplay(review) {
-    const fallback = claimRatingDisplay[review.rating] || { label: "Unclassified", tone: "" };
-    return {
-      label: typeof review.rating_display === "string" && review.rating_display.trim()
-        ? review.rating_display.trim()
-        : fallback.label,
-      family: typeof review.rating_family === "string" && review.rating_family.trim()
-        ? review.rating_family.trim()
-        : fallback.tone.replace(/^is-/, "") || "unclassified",
-      original: review.rating
-    };
-  }
-
-  function buildClaimsViewModel() {
-    const unavailable = viewModelState("claims");
-    if (unavailable) return { domain: "claims", ...unavailable };
-
-    const payload = dashboardState.claims;
-    const reviews = Array.isArray(payload.reviews) ? payload.reviews : [];
-    const candidateMap = new Map();
-    const publishers = new Map();
-    let byAssociations = 0;
-    let aboutAssociations = 0;
-
-    reviews.forEach(review => {
-      publishers.set(review.publisher_name, (publishers.get(review.publisher_name) || 0) + 1);
-      review.candidate_associations.forEach(association => {
-        if (!candidateMap.has(association.candidate_id)) {
-          candidateMap.set(association.candidate_id, {
-            id: association.candidate_id,
-            name: association.candidate_name,
-            by: 0,
-            about: 0
-          });
-        }
-        const candidate = candidateMap.get(association.candidate_id);
-        candidate[association.relationship] += 1;
-        if (association.relationship === "by") byAssociations += 1;
-        if (association.relationship === "about") aboutAssociations += 1;
-      });
-    });
-
-    const candidates = [...candidateMap.values()].sort((a, b) =>
-      (b.by + b.about) - (a.by + a.about) || a.name.localeCompare(b.name, "fr")
-    );
-    const publisherNames = [...publishers.keys()].sort((a, b) => a.localeCompare(b, "fr"));
-    const totalAssociations = byAssociations + aboutAssociations;
-    return {
-      domain: "claims",
-      state: reviews.length ? "ready" : "empty",
-      reviews,
-      reviewCount: reviews.length,
-      byAssociations,
-      aboutAssociations,
-      totalAssociations,
-      byPercent: totalAssociations ? byAssociations / totalAssociations * 100 : 0,
-      aboutPercent: totalAssociations ? aboutAssociations / totalAssociations * 100 : 0,
-      candidates,
-      coveredCandidateCount: candidates.length,
-      publisherNames,
-      publisherCount: publisherNames.length,
-      latestReviewDate: reviews[0]?.review_date || ""
-    };
-  }
-
   function safelyBuildViewModel(domain, builder) {
     try {
       return builder();
@@ -2625,8 +2549,7 @@
       runoff: safelyBuildViewModel("runoff", buildRunoffViewModel),
       media: safelyBuildViewModel("media", buildMediaViewModel),
       events: safelyBuildViewModel("events", buildEventsViewModel),
-      agenda: safelyBuildViewModel("agenda", buildAgendaViewModel),
-      claims: safelyBuildViewModel("claims", buildClaimsViewModel)
+      agenda: safelyBuildViewModel("agenda", buildAgendaViewModel)
     };
   }
 
@@ -2786,55 +2709,11 @@
       </span>`, `${model.eligibleTopics.length} recurring topics in the ${model.windowDays}-day source window; top topic has ${number(model.eligibleTopics[0]?.source_day_count)} source-days.`);
   }
 
-  function renderClaimsSummary(model) {
-    if (model.state !== "ready") return cardShell("claims", "Validated publisher reviews", summaryState(model));
-
-    const latestReviewValue =
-      renderStrongDateOrUnavailable(
-        model.latestReviewDate
-          ? new Date(
-              `${String(model.latestReviewDate).slice(0, 10)}T00:00:00Z`
-            )
-          : null,
-        {
-          timeZone: "UTC",
-          day: "numeric",
-          month: "short",
-          year: "numeric"
-        },
-        () => formatDay(
-          model.latestReviewDate
-        )
-      );
-
-    return cardShell("claims", "Candidate associations in validated reviews", `
-      <span class="hybrid-claims-numbers">
-        <span class="hybrid-claims-number"><strong>${model.byAssociations}</strong>BY associations</span>
-        <span class="hybrid-claims-number"><strong>${model.aboutAssociations}</strong>ABOUT associations</span>
-      </span>
-      <span class="hybrid-summary-meta"><strong>${model.reviewCount}</strong> validated reviews · <strong>${model.totalAssociations}</strong> total associations · <strong>${model.coveredCandidateCount}</strong> candidates</span>
-      <span class="hybrid-relation-strip" role="img" aria-label="${model.byAssociations} BY candidate associations and ${model.aboutAssociations} ABOUT candidate associations">
-        <span class="hybrid-relation-by" style="--hybrid-by:${model.byPercent.toFixed(2)}%"></span>
-        <span class="hybrid-relation-about" style="--hybrid-about:${model.aboutPercent.toFixed(2)}%"></span>
-      </span>
-      <span class="hybrid-relation-legend"><span><strong>${model.byPercent.toFixed(0)}%</strong> BY</span><span><strong>${model.aboutPercent.toFixed(0)}%</strong> ABOUT</span></span>
-      <span class="hybrid-summary-meta">${translate(
-        "signal_board.claims.latest_review",
-        "Latest review: " +
-          latestReviewValue,
-        {
-          dateOrUnavailable: latestReviewValue
-        }
-      )}</span>`,
-      `${model.reviewCount} validated reviews; ${model.byAssociations} BY and ${model.aboutAssociations} ABOUT associations, ${model.totalAssociations} candidate associations total; ${model.coveredCandidateCount} distinct candidates covered.`);
-  }
-
   function renderSummaryGrid(models) {
     return `<div class="hybrid-summary-grid">
       ${renderRunoffSummary(models.runoff)}
       ${renderMediaSummary(models.media)}
       ${renderAgendaSummary(models.agenda)}
-      ${renderClaimsSummary(models.claims)}
     </div>`;
   }
 
@@ -2885,7 +2764,6 @@
       candidates: '<circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.5-4.5 2.7-6.8 6.5-6.8s6 2.3 6.5 6.8"/>',
       events: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 9.5h17M8 13h3M8 16.5h5"/>',
       agenda: '<path d="M7 6h12M7 12h12M7 18h12"/><circle cx="4" cy="6" r=".8"/><circle cx="4" cy="12" r=".8"/><circle cx="4" cy="18" r=".8"/>',
-      claims: '<path d="M12 3 19 6v5c0 4.4-2.6 7.4-7 9.5C7.6 18.4 5 15.4 5 11V6l7-3Z"/><path d="m8.7 11.5 2.1 2.1 4.5-5"/>',
       pollCompare: '<path d="M4 7h7M15 7h5M4 17h3M11 17h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>'
     };
 
@@ -5295,90 +5173,6 @@
     </div>`;
   }
 
-  function filteredClaimReviews(model) {
-    const hasAssociationFilter = Boolean(state.claimsCandidateId) || state.claimsRelationship !== "all";
-    return model.reviews.filter(review => {
-      const associationMatches = !hasAssociationFilter || review.candidate_associations.some(item =>
-        (!state.claimsCandidateId || item.candidate_id === state.claimsCandidateId) &&
-        (state.claimsRelationship === "all" || item.relationship === state.claimsRelationship)
-      );
-      return associationMatches && (!state.claimsPublisher || review.publisher_name === state.claimsPublisher);
-    });
-  }
-
-  function renderClaimRows(filteredReviews) {
-    const visibleReviews = filteredReviews.slice(0, 8);
-    if (!visibleReviews.length) return '<div class="hybrid-state is-compact">No validated reviews match these filters.</div>';
-    return visibleReviews.map(review => {
-      const rating = ratingDisplay(review);
-      return `<article class="hybrid-claim-row">
-        <time class="hybrid-claim-date" datetime="${escapeAttribute(review.review_date)}">${formatDay(review.review_date)}</time>
-        <div class="hybrid-claim-associations">${review.candidate_associations.map(item => `<span class="hybrid-claim-association"><b>${item.relationship.toUpperCase()}</b> ${escapeHtml(item.candidate_name)}</span>`).join("")}</div>
-        <div class="hybrid-claim-text" lang="fr">${escapeHtml(review.claim_text)}</div>
-        <div class="hybrid-claim-rating-cell"><span class="hybrid-rating" data-rating-family="${escapeAttribute(rating.family)}">${escapeHtml(rating.label)}</span><span class="hybrid-original-rating" lang="fr">Publisher: ${escapeHtml(rating.original)}</span></div>
-        <div class="hybrid-claim-publisher">${escapeHtml(review.publisher_name)}${sourceLink(review.review_url, "Read review", "hybrid-claim-source", `Read ${review.publisher_name} review dated ${formatDay(review.review_date)}`)}</div>
-      </article>`;
-    }).join("");
-  }
-
-  function renderClaimsPanel(model) {
-    if (model.state !== "ready") return summaryState(model);
-    const filteredReviews = filteredClaimReviews(model);
-    const filteredCount = filteredReviews.length;
-    const visibleCount = Math.min(8, filteredCount);
-    const resultStatus = filteredCount > 8
-      ? `Showing latest ${visibleCount} of ${filteredCount} matching reviews`
-      : `Showing latest ${visibleCount} matching ${visibleCount === 1 ? "review" : "reviews"}`;
-    return `<div class="hybrid-claims-topline">
-      <div class="hybrid-claim-stat"><strong>${model.reviewCount}</strong>validated reviews</div>
-      <div class="hybrid-claim-stat"><strong>${model.byAssociations}</strong>BY associations</div>
-      <div class="hybrid-claim-stat"><strong>${model.aboutAssociations}</strong>ABOUT associations</div>
-      <div class="hybrid-claim-stat"><strong>${model.totalAssociations}</strong>total associations</div>
-      <div class="hybrid-claim-stat"><strong>${model.coveredCandidateCount}</strong>candidates covered</div>
-    </div>
-    <div class="hybrid-claims-strip-wrap">
-      <div>
-        <div class="hybrid-relation-strip" role="img" aria-label="${model.byAssociations} BY associations and ${model.aboutAssociations} ABOUT associations out of ${model.totalAssociations} total candidate associations">
-          <span class="hybrid-relation-by" style="--hybrid-by:${model.byPercent.toFixed(2)}%"></span>
-          <span class="hybrid-relation-about" style="--hybrid-about:${model.aboutPercent.toFixed(2)}%"></span>
-        </div>
-        <div class="hybrid-relation-legend"><span><strong>${model.byPercent.toFixed(0)}%</strong> BY associations</span><span><strong>${model.aboutPercent.toFixed(0)}%</strong> ABOUT associations</span></div>
-      </div>
-      <span class="hybrid-summary-meta">Latest review <strong>${formatDay(model.latestReviewDate)}</strong></span>
-    </div>
-    <div class="hybrid-claims-controls" aria-label="Filter Claim Scrutiny reviews">
-      <div class="hybrid-relationship-filters" role="group" aria-label="Candidate relationship">
-        ${["all", "by", "about"].map(value => `<button class="hybrid-filter-button" type="button" data-hybrid-claims-relationship="${value}" aria-pressed="${String(state.claimsRelationship === value)}">${value === "all" ? "ALL REVIEWS" : value.toUpperCase() + " ASSOCIATIONS"}</button>`).join("")}
-      </div>
-      <label class="hybrid-select-label">Candidate
-        <select class="hybrid-select" data-hybrid-claims-candidate>
-          <option value="">All candidates</option>
-          ${model.candidates.map(item => `<option value="${escapeAttribute(item.id)}"${item.id === state.claimsCandidateId ? " selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}
-        </select>
-      </label>
-      <label class="hybrid-select-label">Publisher
-        <select class="hybrid-select" data-hybrid-claims-publisher>
-          <option value="">All publishers</option>
-          ${model.publisherNames.map(name => `<option value="${escapeAttribute(name)}"${name === state.claimsPublisher ? " selected" : ""}>${escapeHtml(name)}</option>`).join("")}
-        </select>
-      </label>
-      <span class="hybrid-summary-meta hybrid-claims-result-status" aria-live="polite">${resultStatus}</span>
-    </div>
-    <p class="hybrid-filter-scope">Filters affect the review rows below. The candidate matrix shows full-archive association totals.</p>
-    <div class="hybrid-claims-layout">
-      <section class="hybrid-claims-matrix">
-        <h3 class="hybrid-section-title">Candidate association matrix</h3>
-        <div class="hybrid-matrix-head"><span>Candidate</span><span>BY</span><span>ABOUT</span></div>
-        ${model.candidates.map(item => `<div class="hybrid-matrix-row"><span>${escapeHtml(item.name)}</span><span class="hybrid-matrix-value is-by">${item.by}</span><span class="hybrid-matrix-value is-about">${item.about}</span></div>`).join("")}
-      </section>
-      <section class="hybrid-claim-rows">
-        <h3 class="hybrid-section-title">Latest validated review rows</h3>
-        ${renderClaimRows(filteredReviews)}
-      </section>
-    </div>
-    <p class="hybrid-disclosure">The relationship strip denominator is ${model.totalAssociations} candidate associations: ${model.byAssociations} BY plus ${model.aboutAssociations} ABOUT. It is not calculated against review count. Ratings prefer repository English display fields when present and otherwise retain the existing French-to-English normalization fallback; the original publisher rating remains visible.</p>`;
-  }
-
   function renderFocusWorkspace(models) {
     return `<section class="hybrid-workspace" data-hybrid-workspace aria-label="Signal Board focus workspace">
       <div class="hybrid-tabs" role="tablist" aria-label="Lower evidence workspace" aria-orientation="horizontal">
@@ -5396,7 +5190,6 @@
       </section>
       <section class="hybrid-panel" id="signal-events-panel" role="tabpanel" aria-labelledby="signal-events-tab"${state.activeView === "events" ? "" : " hidden"}>${renderEventsPanel(models.events)}</section>
       <section class="hybrid-panel" id="signal-agenda-panel" role="tabpanel" aria-labelledby="signal-agenda-tab"${state.activeView === "agenda" ? "" : " hidden"}>${renderAgendaPanel(models.agenda)}</section>
-      <section class="hybrid-panel" id="signal-claims-panel" role="tabpanel" aria-labelledby="signal-claims-tab"${state.activeView === "claims" ? "" : " hidden"}>${renderClaimsPanel(models.claims)}</section>
     </section>`;
   }
 
@@ -6340,28 +6133,6 @@
       });
     });
 
-    mount.querySelectorAll("[data-hybrid-claims-relationship]").forEach(button => {
-      button.addEventListener("click", () => {
-        state.claimsRelationship = button.dataset.hybridClaimsRelationship;
-        renderAll();
-        document.querySelector(`[data-hybrid-claims-relationship="${state.claimsRelationship}"]`)?.focus();
-      });
-    });
-
-    const candidateFilter = mount.querySelector("[data-hybrid-claims-candidate]");
-    if (candidateFilter) candidateFilter.addEventListener("change", event => {
-      state.claimsCandidateId = event.target.value;
-      renderAll();
-      mount.querySelector("[data-hybrid-claims-candidate]")?.focus();
-    });
-
-    const publisherFilter = mount.querySelector("[data-hybrid-claims-publisher]");
-    if (publisherFilter) publisherFilter.addEventListener("change", event => {
-      state.claimsPublisher = event.target.value;
-      renderAll();
-      mount.querySelector("[data-hybrid-claims-publisher]")?.focus();
-    });
-
     const runoffHistory = mount.querySelector("[data-hybrid-runoff-history]");
     if (runoffHistory) runoffHistory.addEventListener("change", event => {
       state.selectedRunoffHistoryKey = event.target.value;
@@ -7252,18 +7023,15 @@
     agendaMovementLabel,
     agendaStructureLabel,
     buildAgendaViewModel,
-    buildClaimsViewModel,
     renderSummaryGrid,
     renderRunoffSummary,
     renderMediaSummary,
     renderAgendaSummary,
-    renderClaimsSummary,
     renderFocusWorkspace,
     renderRunoffPanel,
     renderMediaPanel,
     renderEventsPanel,
     renderAgendaPanel,
-    renderClaimsPanel,
     setActiveSignalView,
     handleSignalHashChange
   });

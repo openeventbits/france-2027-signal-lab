@@ -12,27 +12,24 @@ CANDIDATE_JS = ROOT / "assets" / "candidate-signals.js"
 SHELL_CSS = ROOT / "assets" / "final-dashboard-shell.css"
 
 VIEW_NAMES = [
-    "runoff",
     "candidates",
+    "runoff",
     "events",
     "agenda",
-    "claims",
     "pollCompare",
 ]
 TAB_IDS = [
-    "signal-runoff-tab",
     "signal-candidates-tab",
+    "signal-runoff-tab",
     "signal-events-tab",
     "signal-agenda-tab",
-    "signal-claims-tab",
     "signal-poll-compare-tab",
 ]
 PANEL_IDS = [
-    "signal-runoff-panel",
     "signal-candidates-panel",
+    "signal-runoff-panel",
     "signal-events-panel",
     "signal-agenda-panel",
-    "signal-claims-panel",
     "polling-evidence-lab",
 ]
 
@@ -47,13 +44,12 @@ source = source.replace(
   ""
 );
 const input = JSON.parse(fs.readFileSync(0, "utf8"));
-const names = ["runoff", "candidates", "events", "agenda", "claims", "pollCompare"];
+const names = ["candidates", "runoff", "events", "agenda", "pollCompare"];
 const panelIds = [
-  "signal-runoff-panel",
   "signal-candidates-panel",
+  "signal-runoff-panel",
   "signal-events-panel",
   "signal-agenda-panel",
-  "signal-claims-panel",
   "polling-evidence-lab"
 ];
 const panels = Object.fromEntries(panelIds.map(id => [id, { id, hidden: true }]));
@@ -549,7 +545,7 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
             })""",
         )
 
-    def test_exact_six_labels_and_hashes_in_locked_order(self):
+    def test_exact_five_labels_and_hashes_in_locked_order(self):
         entries = re.findall(
             r'^    (\w+): \{.*?^      label: (?:translate\("[^"]+", )?"([^"]+)"\)?,'
             r".*?^      hash: \"([^\"]+)\",",
@@ -562,19 +558,17 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
                 zip(
                     VIEW_NAMES,
                     [
-                        "RUNOFF",
                         "CANDIDATES",
+                        "RUNOFF",
                         "EVENTS",
                         "AGENDA",
-                        "CLAIM SCRUTINY",
                         "POLL COMPARE",
                     ],
                     [
-                        "#signal-runoff",
                         "#signal-candidates",
+                        "#signal-runoff",
                         "#signal-events",
                         "#signal-agenda",
-                        "#signal-claims",
                         "#signal-poll-compare",
                     ],
                 )
@@ -597,7 +591,7 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
         self.assertIn('tabindex="0"', candidate_tab)
 
     def test_empty_unknown_and_obsolete_hashes_normalize_with_replace_state(self):
-        for hash_value in ("", "#unknown", "#signal-media"):
+        for hash_value in ("", "#unknown", "#signal-media", "#signal-claims"):
             with self.subTest(hash_value=hash_value):
                 result = run_router_script(
                     hash_value,
@@ -721,7 +715,7 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
         controls = re.findall(
             r'<button class="hybrid-tab"[^>]+>[\s\S]*?</button>', workspace
         )
-        self.assertEqual(len(controls), 6)
+        self.assertEqual(len(controls), 5)
         for index, control in enumerate(controls):
             self.assertIn(f'id="{TAB_IDS[index]}"', control)
             self.assertIn('role="tab"', control)
@@ -754,7 +748,7 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
             if panel_id != "signal-events-panel":
                 self.assertTrue(hidden)
 
-    def test_keyboard_navigation_wraps_and_uses_home_end_across_six_tabs(self):
+    def test_keyboard_navigation_wraps_and_uses_home_end_across_five_tabs(self):
         start = self.js.index("  function bindInteractions()")
         end = self.js.index(
             '    mount.querySelectorAll("[data-hybrid-agenda-topic]")', start
@@ -772,15 +766,14 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
             "setActiveSignalView(next, { focusTab: true })",
         ):
             self.assertIn(contract, keyboard)
-        self.assertEqual(len(VIEW_NAMES), 6)
+        self.assertEqual(len(VIEW_NAMES), 5)
 
     def test_direct_hashes_and_hashchange_activate_recognized_views(self):
         hashes = [
-            "#signal-runoff",
             "#signal-candidates",
+            "#signal-runoff",
             "#signal-events",
             "#signal-agenda",
-            "#signal-claims",
             "#signal-poll-compare",
         ]
         for tab_id, hash_value in zip(TAB_IDS, hashes):
@@ -800,7 +793,7 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
               return {
                 selected: tabs.find(tab => tab.attributes["aria-selected"] === "true").dataset.hybridView,
                 pollHidden: panels["polling-evidence-lab"].hidden,
-                otherPanelsHidden: panelIds.slice(0, 5).every(id => panels[id].hidden),
+                otherPanelsHidden: panelIds.slice(0, 4).every(id => panels[id].hidden),
                 historyCalls
               };
             })()""",
