@@ -273,8 +273,6 @@ class LocalizationFoundationTests(unittest.TestCase):
                 'translate("signal_board.candidate_signals", "Candidate Signals")',
                 'translate("signal_board.campaign_events", "Campaign Events")',
                 'translate("signal_board.campaign_agenda", "Campaign Agenda")',
-                'translate("signal_board.polling_evidence", "Polling Evidence")',
-                'translate("signal_board.poll_compare", "POLL COMPARE")',
             ),
             candidate_text: (
                 'translate('

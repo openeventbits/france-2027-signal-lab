@@ -1707,7 +1707,7 @@
 
 /* AGENDA WORKSPACE ΓÇö LOCKED CANONICAL PRESENTATION */
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-workspace {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-workspace {
   box-sizing: border-box;
   display: grid;
   grid-template-columns: minmax(0, 27fr) minmax(0, 36fr) minmax(0, 37fr);
@@ -1724,7 +1724,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-panel {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-panel {
   min-width: 0;
   min-height: 0;
   display: grid;
@@ -1736,7 +1736,7 @@
   box-shadow: inset 0 1px 0 rgba(112, 195, 229, .025);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-panel-head {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-panel-head {
   min-width: 0;
   min-height: 42px;
   display: flex;
@@ -1749,7 +1749,7 @@
   box-shadow: inset 0 -2px 0 rgba(53, 216, 255, .10);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-panel-head h3 {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-panel-head h3 {
   min-width: 0;
   margin: 0;
   overflow: hidden;
@@ -1763,7 +1763,7 @@
   text-transform: uppercase;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-panel-head-meta {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-panel-head-meta {
   flex: 0 0 auto;
   color: #7899ad;
   font-size: 9.5px;
@@ -1772,21 +1772,21 @@
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-panel-body {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-panel-body {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
 
 /* Info */
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-head-tools {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-head-tools {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   flex: 0 0 auto;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-info {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-info {
   position: relative;
   display: grid;
   width: 17px;
@@ -1804,14 +1804,14 @@
   cursor: help;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-info:hover,
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-info:focus-visible {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-info:hover,
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-info:focus-visible {
   border-color: rgba(53, 216, 255, .82);
   background: rgba(18, 66, 91, .34);
   outline: 0;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-info-tooltip {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-info-tooltip {
   position: absolute;
   z-index: 150;
   top: calc(100% + 8px);
@@ -1835,19 +1835,19 @@
   transition: opacity 120ms ease, visibility 120ms ease, transform 120ms ease;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-info:hover .hybrid-agenda-v6-info-tooltip,
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-info:focus-visible .hybrid-agenda-v6-info-tooltip {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-info:hover .hybrid-agenda-v6-info-tooltip,
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-info:focus-visible .hybrid-agenda-v6-info-tooltip {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
 }
 
 /* Monitor */
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor-body {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor-body {
   display: grid;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-diagnostics {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-diagnostics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
@@ -1857,7 +1857,7 @@
   background: rgba(3, 15, 26, .56);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-diagnostics article {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-diagnostics article {
   min-width: 0;
   display: flex;
   align-items: center;
@@ -1868,15 +1868,15 @@
   border-bottom: 1px solid rgba(35, 86, 114, .52);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-diagnostics article:nth-child(even) {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-diagnostics article:nth-child(even) {
   border-right: 0;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-diagnostics article:nth-child(n + 3) {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-diagnostics article:nth-child(n + 3) {
   border-bottom: 0;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-diagnostics span {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-diagnostics span {
   min-width: 0;
   overflow: hidden;
   color: #7191a4;
@@ -1889,7 +1889,7 @@
   text-transform: uppercase;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-diagnostics strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-diagnostics strong {
   flex: 0 0 auto;
   color: #f1f7fa;
   font-size: 17px;
@@ -1897,11 +1897,11 @@
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-diagnostics article:nth-child(2) strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-diagnostics article:nth-child(2) strong {
   color: #f1f7fa;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-topic-card {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-topic-card {
   position: relative;
   width: 100%;
   min-width: 0;
@@ -1922,26 +1922,26 @@
   transition: border-color 120ms ease, background-color 120ms ease;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-topic-card:hover {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-topic-card:hover {
   border-color: rgba(53, 216, 255, .60);
   background: linear-gradient(105deg, rgba(10, 42, 65, .98), rgba(5, 24, 41, .94));
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-topic-card[aria-pressed="true"] {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-topic-card[aria-pressed="true"] {
   border-color: var(--cyan);
   background: radial-gradient(circle at 18% 40%, rgba(40, 135, 183, .15), transparent 46%),
     linear-gradient(105deg, rgba(10, 48, 74, .99), rgba(5, 26, 44, .98));
   box-shadow: inset 4px 0 0 var(--cyan), 0 0 0 1px rgba(53, 216, 255, .06);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-topic-card:focus-visible,
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-row:focus-visible,
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-evidence-list a:focus-visible {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-topic-card:focus-visible,
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-row:focus-visible,
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-evidence-list a:focus-visible {
   outline: 2px solid var(--cyan);
   outline-offset: -2px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-topic-icon {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-topic-icon {
   grid-row: 1 / span 2;
   display: grid;
   width: 26px;
@@ -1953,7 +1953,7 @@
   color: var(--cyan);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-topic-icon svg {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-topic-icon svg {
   width: 17px;
   height: 17px;
   fill: none;
@@ -1963,12 +1963,12 @@
   stroke-width: 1.25;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-topic-copy {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-topic-copy {
   min-width: 0;
   align-self: end;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-topic-name {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-topic-name {
   display: block;
   min-width: 0;
   overflow: hidden;
@@ -1980,7 +1980,7 @@
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-topic-tags {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-topic-tags {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -1988,7 +1988,7 @@
   min-width: 0;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-badge {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-badge {
   display: inline-flex;
   align-items: center;
   min-width: 0;
@@ -2005,19 +2005,19 @@
   text-transform: uppercase;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-badge[data-movement="fading"] {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-badge[data-movement="fading"] {
   border-color: rgba(157, 140, 255, .40);
   background: rgba(157, 140, 255, .09);
   color: #bcaeff;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-badge[data-movement="stable"] {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-badge[data-movement="stable"] {
   border-color: rgba(95, 128, 148, .45);
   background: rgba(95, 128, 148, .09);
   color: #8da9ba;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-badge.is-structure {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-badge.is-structure {
   max-width: 104px;
   overflow: hidden;
   border-color: rgba(104, 139, 159, .34);
@@ -2026,7 +2026,7 @@
   text-overflow: ellipsis;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-topic-total {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-topic-total {
   grid-row: 1 / span 2;
   grid-column: 3;
   align-self: center;
@@ -2035,7 +2035,7 @@
   text-align: right;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-topic-total strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-topic-total strong {
   display: block;
   color: #f3f8fb;
   font-size: 20px;
@@ -2043,7 +2043,7 @@
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-topic-total span {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-topic-total span {
   display: block;
   margin-top: 3px;
   color: #6e8da0;
@@ -2055,7 +2055,7 @@
   text-transform: uppercase;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-topic-shift {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-topic-shift {
   min-width: 0;
   display: grid;
   grid-template-columns: minmax(50px, auto) minmax(58px, auto) minmax(52px, 1fr);
@@ -2066,13 +2066,13 @@
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-topic-shift strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-topic-shift strong {
   color: #d7e6ed;
   font-size: 9px;
   font-weight: 700;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-topic-shift em {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-topic-shift em {
   justify-self: end;
   color: var(--cyan);
   font-size: 9px;
@@ -2080,19 +2080,19 @@
   font-weight: 730;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-topic-shift em[data-movement="fading"] {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-topic-shift em[data-movement="fading"] {
   color: #b7a6ff;
 }
 
 /* Evolution panel */
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-evolution-body {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-evolution-body {
   display: grid;
   grid-template-rows: minmax(198px, 1.18fr) minmax(156px, .92fr);
   gap: 5px;
   padding: 5px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-module {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-module {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -2101,7 +2101,7 @@
   background: rgba(3, 15, 26, .54);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-module-head {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-module-head {
   min-height: 30px;
   display: flex;
   align-items: center;
@@ -2112,7 +2112,7 @@
   background: rgba(6, 24, 39, .46);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-module-head strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-module-head strong {
   color: var(--cyan);
   font-size: 10px;
   font-weight: 740;
@@ -2121,34 +2121,34 @@
   text-transform: uppercase;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-module-head span {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-module-head span {
   color: #7896a9;
   font-size: 8.5px;
   line-height: 1;
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-head,
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-row {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-head,
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-row {
   display: grid;
   align-items: center;
   gap: 1px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-head {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-head {
   text-align: center;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-head > span:first-child {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-head > span:first-child {
   padding-left: 5px;
   text-align: left;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-period {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-period {
   grid-column: span 5;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-row {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-row {
   width: 100%;
   margin: 0;
   padding: 1px 0;
@@ -2160,65 +2160,65 @@
   cursor: pointer;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-day {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-day {
   display: block;
   min-width: 0;
   border: 1px solid rgba(35, 86, 114, .34);
   background: #071827;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-day[data-agenda-window="older"]:not(.is-zero) {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-day[data-agenda-window="older"]:not(.is-zero) {
   background: rgba(37, 141, 242, var(--agenda-day-alpha));
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-day[data-agenda-window="previous"]:not(.is-zero) {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-day[data-agenda-window="previous"]:not(.is-zero) {
   background: rgba(178, 156, 255, var(--agenda-day-alpha));
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-day[data-agenda-window="latest"]:not(.is-zero) {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-day[data-agenda-window="latest"]:not(.is-zero) {
   background: rgba(53, 213, 255, var(--agenda-day-alpha));
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-day[data-agenda-window="partial"] {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-day[data-agenda-window="partial"] {
   border-color: rgba(53, 213, 255, .56);
   background: rgba(7, 24, 39, .92);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-total {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-total {
   justify-self: end;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-legend {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-legend {
   margin-top: 5px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-pair-track {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-pair-track {
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(35, 86, 114, .38);
   background: #071827;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-pair-track i {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-pair-track i {
   display: block;
   height: 100%;
   width: var(--agenda-width, 0%);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-pair-track.is-latest i {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-pair-track.is-latest i {
   background: linear-gradient(90deg, #258df2, var(--cyan));
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-pair-track.is-prior i {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-pair-track.is-prior i {
   background: linear-gradient(90deg, #775bd7, #a896ff);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-delta[data-movement="fading"] {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-delta[data-movement="fading"] {
   color: #b8a7ff;
 }
 
 /* Dossier */
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-identity {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-identity {
   min-width: 0;
   display: grid;
   align-content: center;
@@ -2229,7 +2229,7 @@
   background: linear-gradient(90deg, rgba(8, 32, 50, .72), rgba(4, 18, 31, .60));
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-kicker {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-kicker {
   color: #6f93a8;
   font-size: 8px;
   font-weight: 730;
@@ -2238,7 +2238,7 @@
   text-transform: uppercase;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-title-line {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-title-line {
   min-width: 0;
   display: flex;
   align-items: center;
@@ -2246,7 +2246,7 @@
   flex-wrap: wrap;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-title-line h4 {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-title-line h4 {
   min-width: 0;
   margin: 0;
   color: #f2f8fb;
@@ -2255,7 +2255,7 @@
   line-height: 1.15;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-metrics {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   overflow: hidden;
@@ -2264,7 +2264,7 @@
   background: rgba(3, 15, 26, .54);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-metrics article {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-metrics article {
   min-width: 0;
   display: grid;
   align-content: center;
@@ -2273,26 +2273,26 @@
   border-left: 1px solid rgba(35, 86, 114, .46);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-metrics article:first-child {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-metrics article:first-child {
   border-left: 0;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-metrics strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-metrics strong {
   color: #f0f7fa;
   font-size: 18px;
   font-weight: 760;
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-metrics article:nth-child(2) strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-metrics article:nth-child(2) strong {
   color: var(--cyan);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-metrics article:nth-child(5) strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-metrics article:nth-child(5) strong {
   color: #bbaaff;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-metrics span {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-metrics span {
   overflow: hidden;
   color: #7391a3;
   font-size: 7.5px;
@@ -2304,8 +2304,8 @@
   text-transform: uppercase;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-activity-module,
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-detail-card {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-activity-module,
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-detail-card {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -2314,12 +2314,12 @@
   background: rgba(3, 15, 26, .54);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-activity-module {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-activity-module {
   display: grid;
   grid-template-rows: 29px minmax(0, 1fr);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-activity-body {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-activity-body {
   min-width: 0;
   min-height: 0;
   display: grid;
@@ -2328,7 +2328,7 @@
   padding: 7px 8px 8px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-bars {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-bars {
   min-width: 0;
   min-height: 0;
   display: grid;
@@ -2339,34 +2339,34 @@
   border-bottom: 1px solid rgba(54, 97, 120, .66);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-bars > span {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-bars > span {
   display: block;
   height: var(--agenda-bar-height, 3px);
   min-height: 3px;
   background: linear-gradient(180deg, #36d7ff, #258df2);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-bars > span[data-agenda-window="previous"] {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-bars > span[data-agenda-window="previous"] {
   background: linear-gradient(180deg, #ad9cff, #775bd7);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-bars > span[data-agenda-window="older"] {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-bars > span[data-agenda-window="older"] {
   background: linear-gradient(180deg, #2f9ce4, #1d608e);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-bars > span[data-agenda-window="partial"] {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-bars > span[data-agenda-window="partial"] {
   min-height: 3px;
   border: 1px solid rgba(53, 216, 255, .70);
   background: transparent;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-bars > span.is-zero {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-bars > span.is-zero {
   height: 2px;
   min-height: 2px;
   background: #153448;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-facts {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-facts {
   min-width: 0;
   display: grid;
   align-content: center;
@@ -2375,7 +2375,7 @@
   border-left: 1px solid rgba(35, 86, 114, .46);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-line span {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-line span {
   color: #7693a6;
   font-size: 7.5px;
   font-weight: 700;
@@ -2383,48 +2383,48 @@
   text-transform: uppercase;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-line i {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-line i {
   height: 6px;
   overflow: hidden;
   border: 1px solid rgba(35, 86, 114, .40);
   background: #071827;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-line i::before {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-line i::before {
   display: block;
   width: var(--agenda-width, 0%);
   height: 100%;
   content: "";
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-line.is-latest i::before {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-line.is-latest i::before {
   background: linear-gradient(90deg, #258df2, var(--cyan));
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-line.is-prior i::before {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-line.is-prior i::before {
   background: linear-gradient(90deg, #775bd7, #a896ff);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-line strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-line strong {
   color: #eef6fa;
   font-size: 9px;
   text-align: right;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-meta {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-meta {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 4px;
   padding-top: 2px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-meta div {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-meta div {
   min-width: 0;
   display: grid;
   gap: 2px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-meta span {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-meta span {
   color: #6f8fa2;
   font-size: 7px;
   font-weight: 700;
@@ -2432,7 +2432,7 @@
   text-transform: uppercase;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-meta strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-meta strong {
   overflow: hidden;
   color: #dce9ef;
   font-size: 8.5px;
@@ -2442,11 +2442,11 @@
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-meta div:first-child strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-meta div:first-child strong {
   color: var(--cyan);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-detail-grid {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-detail-grid {
   min-width: 0;
   min-height: 0;
   display: grid;
@@ -2454,12 +2454,12 @@
   gap: 8px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-detail-card {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-detail-card {
   display: grid;
   grid-template-rows: 29px minmax(0, 1fr);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-detail-head {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-detail-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2470,7 +2470,7 @@
   background: rgba(6, 24, 39, .42);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-detail-head strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-detail-head strong {
   min-width: 0;
   overflow: hidden;
   color: var(--cyan);
@@ -2483,7 +2483,7 @@
   text-transform: uppercase;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-detail-head span {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-detail-head span {
   flex: 0 0 auto;
   color: #738fa1;
   font-size: 7.5px;
@@ -2491,7 +2491,7 @@
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-scroll {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-scroll {
   min-width: 0;
   min-height: 0;
   overflow-x: hidden;
@@ -2500,20 +2500,20 @@
   scrollbar-color: rgba(53, 216, 255, .34) rgba(2, 15, 27, .34);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-signal-list {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-signal-list {
   display: grid;
   align-content: start;
   gap: 7px;
   padding: 8px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-signal-item {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-signal-item {
   min-width: 0;
   display: grid;
   gap: 4px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-signal-head {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-signal-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -2521,7 +2521,7 @@
   min-width: 0;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-signal-head span {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-signal-head span {
   min-width: 0;
   overflow: hidden;
   color: #d8e6ec;
@@ -2531,40 +2531,40 @@
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-signal-head strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-signal-head strong {
   flex: 0 0 auto;
   color: #eef7fa;
   font-size: 9px;
   font-weight: 720;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-signal-track {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-signal-track {
   height: 5px;
   overflow: hidden;
   border: 1px solid rgba(35, 86, 114, .38);
   background: #071827;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-signal-track i {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-signal-track i {
   display: block;
   width: var(--agenda-signal-width, 0%);
   height: 100%;
   background: linear-gradient(90deg, #258df2, var(--cyan));
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-empty {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-empty {
   padding: 12px 9px;
   color: #7895a6;
   font-size: 9px;
   line-height: 1.4;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-evidence-list {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-evidence-list {
   display: grid;
   align-content: start;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-evidence-list a {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-evidence-list a {
   min-width: 0;
   min-height: 48px;
   display: grid;
@@ -2577,28 +2577,28 @@
   text-decoration: none;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-evidence-list a:last-child {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-evidence-list a:last-child {
   border-bottom: 0;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-evidence-list a:hover {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-evidence-list a:hover {
   background: rgba(18, 61, 84, .20);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-source-mark {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-source-mark {
   display: grid;
   place-items: center;
   border: 1px solid rgba(53, 216, 255, .28);
   border-radius: 3px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-evidence-copy {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-evidence-copy {
   min-width: 0;
   display: grid;
   gap: 3px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-evidence-copy strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-evidence-copy strong {
   display: -webkit-box;
   overflow: hidden;
   color: #e6f0f4;
@@ -2609,7 +2609,7 @@
   -webkit-line-clamp: 2;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-evidence-copy small {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-evidence-copy small {
   overflow: hidden;
   color: #718fa2;
   font-size: 8px;
@@ -2618,53 +2618,53 @@
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-evidence-list a > i {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-evidence-list a > i {
   color: var(--cyan);
   font-size: 9px;
   font-style: normal;
 }
 
 @media (max-width: 1100px) {
-  .hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-workspace {
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-workspace {
     grid-template-columns: 1fr;
     grid-auto-rows: minmax(390px, auto);
     overflow-x: hidden;
     overflow-y: auto;
   }
-  .hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-panel {
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-panel {
     min-height: 390px;
   }
 }
 
 @media (max-width: 760px) {
-  .hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-workspace {
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-workspace {
     padding: 8px;
   }
-  .hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier-body {
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier-body {
     grid-template-rows: auto auto 150px minmax(230px, 1fr);
   }
-  .hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-metrics {
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-metrics {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-metrics article {
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-metrics article {
     min-height: 48px;
     border-bottom: 1px solid rgba(35, 86, 114, .46);
   }
-  .hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-detail-grid {
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-detail-grid {
     grid-template-columns: 1fr;
     grid-auto-rows: minmax(180px, 1fr);
     overflow-y: auto;
   }
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-panel-head {
   min-height: 42px;
   flex-basis: 42px;
   padding: 0 11px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-panel-title {
   color: rgb(238, 246, 250);
   font-size: 13px;
@@ -2673,7 +2673,7 @@
   letter-spacing: .035em;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-panel-meta {
   color: #8ba6b6;
   font-size: 9px;
@@ -2682,24 +2682,24 @@
   letter-spacing: .15px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor-body {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor-body {
   grid-template-rows: 68px minmax(0, 1fr);
   gap: 6px;
   padding: 5px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-diagnostics {
   border-color: rgba(43, 99, 128, .78);
   background: linear-gradient(180deg, rgba(6, 25, 41, .82), rgba(3, 16, 28, .72));
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-diagnostics article {
   padding: 0 9px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-diagnostics span {
   color: rgb(154, 178, 190);
   font-size: 9px;
@@ -2708,7 +2708,7 @@
   letter-spacing: .45px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-diagnostics strong {
   color: #f1f7fa;
   font-size: 18px;
@@ -2716,24 +2716,24 @@
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-diagnostics article.is-concentration strong,
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-diagnostics article.is-rising strong {
   color: var(--cyan);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-diagnostics article.is-turnover strong {
   color: #b9a7ff;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-list {
   gap: 6px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-card {
   grid-template-columns: 31px minmax(0, 1fr) 68px;
   grid-template-rows: auto auto 18px;
@@ -2743,13 +2743,13 @@
   background: linear-gradient(105deg, rgba(8, 31, 49, .98), rgba(4, 19, 33, .94));
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-card:hover {
   border-color: rgba(53, 216, 255, .62);
   background: linear-gradient(105deg, rgba(10, 42, 65, .99), rgba(5, 24, 41, .97));
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-card[aria-pressed="true"] {
   border-color: rgba(53, 216, 255, .92);
   background: radial-gradient(
@@ -2762,7 +2762,7 @@
     0 0 0 1px rgba(53, 216, 255, .05);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-icon {
   grid-row: 1 / span 3;
   width: 29px;
@@ -2771,14 +2771,14 @@
   background: linear-gradient(180deg, rgba(10, 47, 72, .76), rgba(5, 27, 44, .72));
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-icon svg {
   width: 17px;
   height: 17px;
   stroke-width: 1.35;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-copy {
   grid-column: 2;
   grid-row: 1 / span 2;
@@ -2786,7 +2786,7 @@
   align-self: center;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-name {
   color: rgb(220, 234, 242);
   font-size: 12.5px;
@@ -2795,13 +2795,13 @@
   letter-spacing: 0;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-tags {
   gap: 5px;
   margin-top: 4px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-badge {
   padding: 2px 5px;
   font-size: 8px;
@@ -2809,14 +2809,14 @@
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-badge.is-structure {
   border-color: rgba(107, 143, 164, .42);
   background: rgba(107, 143, 164, .07);
   color: #9bb2c0;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-total {
   grid-column: 3;
   grid-row: 1 / span 2;
@@ -2826,7 +2826,7 @@
   text-align: right;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-total strong {
   display: block;
   color: #f2f8fb;
@@ -2835,7 +2835,7 @@
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-total > span {
   display: block;
   margin-top: 3px;
@@ -2847,7 +2847,7 @@
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-topic-volume {
   display: block;
   width: 100%;
@@ -2858,7 +2858,7 @@
   background: #071827;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-topic-volume b {
   display: block;
   width: var(--agenda-monitor-volume, 0%);
@@ -2866,7 +2866,7 @@
   background: linear-gradient(90deg, #258df2, var(--cyan));
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-shift {
   grid-column: 2 / 4;
   grid-row: 3;
@@ -2882,7 +2882,7 @@
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-shift > span {
   display: inline-flex;
   align-items: baseline;
@@ -2890,7 +2890,7 @@
   min-width: 0;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-shift small {
   color: #7897a8;
   font-size: 8.5px;
@@ -2899,7 +2899,7 @@
   letter-spacing: .2px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-shift strong {
   color: #e3edf2;
   font-size: 9.5px;
@@ -2907,7 +2907,7 @@
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-shift em {
   justify-self: end;
   color: var(--cyan);
@@ -2918,12 +2918,12 @@
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-shift em[data-movement="fading"] {
   color: #b8a7ff;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-list {
   min-height: 0;
   overflow-x: hidden;
@@ -2935,29 +2935,29 @@
   padding-right: 2px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-list::-webkit-scrollbar {
   width: 5px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-list::-webkit-scrollbar-track {
   background: rgba(2, 15, 27, .28);
   border-radius: 4px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-list::-webkit-scrollbar-thumb {
   background: rgba(53, 216, 255, .38);
   border-radius: 4px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-monitor
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-monitor
   .hybrid-agenda-v6-topic-list::-webkit-scrollbar-thumb:hover {
   background: rgba(53, 216, 255, .56);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-analysis
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-analysis
   .hybrid-agenda-v6-panel-title {
   color: rgb(238, 246, 250);
   font-size: 15px;
@@ -2966,7 +2966,7 @@
   letter-spacing: .3px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-analysis
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-analysis
   .hybrid-agenda-v6-panel-meta {
   color: #8ba6b6;
   font-size: 9px;
@@ -2975,36 +2975,36 @@
   letter-spacing: .15px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-analysis-body {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-analysis-body {
   display: grid;
   grid-template-rows: 205px minmax(0, 1fr);
   gap: 5px;
   padding: 5px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-analysis
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-analysis
   .hybrid-agenda-v6-module-head {
   min-height: 30px;
   padding: 0 9px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-analysis
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-analysis
   .hybrid-agenda-v6-module-head > strong {
   color: var(--cyan);
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-analysis
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-analysis
   .hybrid-agenda-v6-module-head > span {
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-module {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-module {
   display: grid;
   grid-template-rows: 30px minmax(0, 1fr);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-wrap {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-wrap {
   min-width: 0;
   min-height: 0;
   display: grid;
@@ -3017,57 +3017,57 @@
   scrollbar-color: rgba(53, 216, 255, .30) rgba(2, 15, 27, .28);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix {
   min-width: 470px;
   display: grid;
   grid-template-rows: 18px repeat(5, minmax(24px, 1fr));
   gap: 2px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-head {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-head {
   min-height: 18px;
   line-height: 1;
   letter-spacing: .15px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-period {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-period {
   padding-bottom: 4px;
   border-bottom: 1px solid rgba(53, 216, 255, .18);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-row {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-row {
   min-height: 24px;
   border-radius: 3px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-row:hover {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-row:hover {
   background: rgba(20, 72, 97, .14);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-row[aria-pressed="true"] {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-row[aria-pressed="true"] {
   border-color: rgba(53, 216, 255, .58);
   background: linear-gradient(90deg, rgba(53, 216, 255, .08), rgba(10, 31, 47, .04));
   box-shadow: inset 2px 0 0 var(--cyan);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-label {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-label {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-day {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-day {
   height: 19px;
   border-color: rgba(35, 86, 114, .42);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-day.is-period-start {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-day.is-period-start {
   margin-left: 3px;
   box-shadow: -2px 0 0 rgba(88, 131, 154, .20);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-legend {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-legend {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3076,94 +3076,94 @@
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-legend span {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-legend span {
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-legend i {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-legend i {
   border: 1px solid rgba(44, 91, 118, .55);
   background: rgba(37, 141, 242, .72);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-legend [data-window="previous"] {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-legend [data-window="previous"] {
   background: rgba(178, 156, 255, .84);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-legend [data-window="latest"] {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-legend [data-window="latest"] {
   background: rgba(53, 213, 255, .90);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-legend [data-window="partial"] {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-legend [data-window="partial"] {
   background: transparent;
   border-color: rgba(53, 213, 255, .82);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-module {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-module {
   display: grid;
   grid-template-rows: 30px minmax(0, 1fr);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-key {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-key {
   display: inline-flex;
   align-items: center;
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-key > span {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-key > span {
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-key i {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-key i {
   border: 1px solid rgba(44, 91, 118, .50);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-key i.is-prior {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-key i.is-prior {
   background: #9b86ef;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-key i.is-latest {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-key i.is-latest {
   background: var(--cyan);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-list {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-list {
   min-width: 0;
   min-height: 0;
   display: grid;
   align-content: stretch;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-row {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-row {
   min-width: 0;
   display: grid;
   align-items: center;
   border-bottom: 1px solid rgba(38, 82, 107, .46);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-row:last-child {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-row:last-child {
   border-bottom: 0;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-row:hover {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-row:hover {
   background: rgba(18, 61, 84, .10);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-label {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-label {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-pair-bars {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-pair-bars {
   min-width: 0;
   display: grid;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-pair-line {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-pair-line {
   min-width: 0;
   display: grid;
   grid-template-columns: 35px minmax(0, 1fr);
@@ -3171,52 +3171,52 @@
   gap: 4px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-pair-line small {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-pair-line small {
   color: #748f9f;
   font-size: 7.25px;
   font-weight: 680;
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-count {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-count {
   text-align: right;
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-delta {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-delta {
   color: var(--cyan);
   text-align: right;
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-analysis
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-analysis
   .hybrid-agenda-v6-module-head > strong {
   font-size: 11px;
   font-weight: 760;
   letter-spacing: .5px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-analysis
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-analysis
   .hybrid-agenda-v6-module-head > span {
   font-size: 8.75px;
   font-weight: 600;
   color: #8ca6b5;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-head {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-head {
   font-size: 8.75px;
   font-weight: 720;
   color: #8ca6b5;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-head,
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-row {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-head,
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-row {
   grid-template-columns: minmax(145px, 1.42fr)
     repeat(30, minmax(4px, 1fr))
     32px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-label {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-label {
   padding: 0 7px;
   color: #e0edf3;
   font-size: 11.5px;
@@ -3225,20 +3225,20 @@
   letter-spacing: 0;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-total {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-total {
   padding-right: 4px;
   color: #f3f8fb;
   font-size: 11.5px;
   font-weight: 760;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-period {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-period {
   color: #8aa4b3;
   font-size: 8.75px;
   font-weight: 700;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-legend {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-legend {
   gap: 11px;
   min-height: 17px;
   color: #8ba6b6;
@@ -3246,24 +3246,24 @@
   font-weight: 680;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-matrix-legend i {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-matrix-legend i {
   width: 15px;
   height: 6px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-key {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-key {
   gap: 9px;
   color: #8ba6b6;
   font-size: 8.75px;
   font-weight: 680;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-key i {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-key i {
   width: 11px;
   height: 5px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-list {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-list {
   grid-template-rows: repeat(5, minmax(25px, 1fr));
   padding: 2px 8px 2px;
   overflow-y: auto;
@@ -3271,7 +3271,7 @@
   scrollbar-color: rgba(53, 216, 255, .28) rgba(2, 15, 27, .24);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-row {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-row {
   min-height: 25px;
   grid-template-columns: minmax(150px, .92fr)
     minmax(170px, 1.08fr)
@@ -3281,38 +3281,38 @@
   padding: 1px 0;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-label {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-label {
   color: #e0edf3;
   font-size: 11.5px;
   font-weight: 690;
   line-height: 1.08;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-pair-bars {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-pair-bars {
   gap: 4px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-pair-track {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-pair-track {
   height: 6px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-count {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-count {
   color: #b2c6d0;
   font-size: 10px;
   font-weight: 720;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-shift-delta {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-shift-delta {
   font-size: 10.5px;
   font-weight: 770;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-shift-delta[data-movement="fading"] {
   color: #b8a7ff;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-panel-title {
   color: rgb(238, 246, 250);
   font-size: 13px;
@@ -3321,7 +3321,7 @@
   letter-spacing: .035em;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-panel-meta {
   color: #8ba6b6;
   font-size: 9px;
@@ -3330,11 +3330,11 @@
   letter-spacing: .15px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier-body {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier-body {
   display: grid;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-identity {
   min-width: 0;
   display: grid;
@@ -3350,7 +3350,7 @@
   box-shadow: inset 3px 0 0 rgba(53, 216, 255, .70);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier-icon {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier-icon {
   display: grid;
   place-items: center;
   border: 1px solid rgba(53, 216, 255, .34);
@@ -3359,7 +3359,7 @@
   color: var(--cyan);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier-icon svg {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier-icon svg {
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -3367,13 +3367,13 @@
   stroke-width: 1.35;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-identity-copy {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-identity-copy {
   min-width: 0;
   display: grid;
   gap: 5px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-kicker {
   color: #86a4b5;
   font-family: inherit;
@@ -3383,7 +3383,7 @@
   letter-spacing: .5px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-title-line {
   min-width: 0;
   display: flex;
@@ -3391,7 +3391,7 @@
   gap: 6px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-title-line h4 {
   min-width: 0;
   margin: 0;
@@ -3403,30 +3403,30 @@
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-badge {
   flex: 0 0 auto;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-metrics strong {
   color: #f3f8fb;
   font-weight: 770;
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-metrics article:nth-child(2) strong {
   color: var(--cyan);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-metrics article:nth-child(2)
   strong[data-movement="fading"] {
   color: #b8a7ff;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-metrics span {
   color: #819eae;
   font-weight: 700;
@@ -3434,17 +3434,17 @@
   letter-spacing: .28px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-profile-module {
   display: grid;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-module-head {
   padding: 0 9px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-module-head > strong {
   color: var(--cyan);
   font-weight: 760;
@@ -3452,74 +3452,74 @@
   letter-spacing: .5px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-module-head > span {
   color: #89a4b4;
   font-weight: 600;
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-profile-body {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-profile-body {
   min-width: 0;
   min-height: 0;
   display: grid;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-profile-top {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-profile-top {
   min-width: 0;
   min-height: 0;
   display: grid;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-compare {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-compare {
   min-width: 0;
   display: grid;
   align-content: center;
   border-left: 1px solid rgba(35, 86, 114, .48);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-line {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-line {
   min-width: 0;
   display: grid;
   align-items: center;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-line > span {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-line > span {
   color: #819eae;
   font-weight: 700;
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-line > i {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-line > i {
   display: block;
   overflow: hidden;
   border: 1px solid rgba(35, 86, 114, .42);
   background: #071827;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-line > i > b {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-line > i > b {
   display: block;
   width: var(--agenda-width, 0%);
   height: 100%;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-week-line.is-latest > i > b {
   background: linear-gradient(90deg, #258df2, var(--cyan));
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-week-line.is-prior > i > b {
   background: linear-gradient(90deg, #775bd7, #a896ff);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-line > strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-line > strong {
   color: #edf6fa;
   font-weight: 760;
   text-align: right;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-profile-facts {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-profile-facts {
   min-width: 0;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3527,26 +3527,26 @@
   border-top: 1px solid rgba(35, 86, 114, .46);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-profile-facts div {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-profile-facts div {
   min-width: 0;
   display: grid;
   align-content: center;
   border-left: 1px solid rgba(35, 86, 114, .38);
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-profile-facts div:first-child {
   border-left: 0;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-profile-facts span {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-profile-facts span {
   color: #7896a8;
   font-weight: 700;
   line-height: 1;
   letter-spacing: .15px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-profile-facts strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-profile-facts strong {
   min-width: 0;
   overflow: hidden;
   color: #e9f2f6;
@@ -3556,44 +3556,44 @@
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-profile-facts div:nth-child(1) strong,
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-profile-facts div:nth-child(2) strong {
   color: var(--cyan);
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-profile-facts div:nth-child(3) strong {
   color: #c2b5ff;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-detail-head strong {
   color: #dceaf0;
   font-weight: 760;
   letter-spacing: .45px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-detail-head span {
   color: #819dac;
   font-weight: 600;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-signal-head span {
   color: #dce9ef;
   font-weight: 650;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-signal-head strong {
   color: #f0f7fa;
   font-weight: 740;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-source-mark {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-source-mark {
   border-color: rgba(53, 216, 255, .32);
   background: rgba(7, 29, 46, .52);
   color: #a8d2e1;
@@ -3601,128 +3601,128 @@
   letter-spacing: .2px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-copy strong {
   color: #e8f1f5;
   font-weight: 660;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-copy small {
   color: #7f9cab;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-scroll {
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: rgba(53, 216, 255, .34) rgba(2, 15, 27, .32);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier-body {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier-body {
   grid-template-rows: 54px 52px 122px minmax(0, 1fr);
   gap: 5px;
   padding: 5px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-identity {
   grid-template-columns: 36px minmax(0, 1fr);
   gap: 9px;
   padding: 0 9px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier-icon {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier-icon {
   width: 34px;
   height: 34px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier-icon svg {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier-icon svg {
   width: 19px;
   height: 19px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-kicker {
   font-size: 9.5px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-badge {
   font-size: 8.5px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-metrics article {
   padding: 0 10px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-metrics strong {
   font-size: 18px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-metrics span {
   font-size: 9.25px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-profile-module {
   grid-template-rows: 30px minmax(0, 1fr);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-module-head {
   min-height: 30px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-module-head > strong {
   font-size: 11px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-module-head > span {
   font-size: 9.25px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-profile-body {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-profile-body {
   grid-template-rows: minmax(0, 1fr) 40px;
   gap: 4px;
   padding: 5px 8px 6px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-line > i {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-line > i {
   height: 8px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-profile-facts div {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-profile-facts div {
   gap: 3px;
   padding: 4px 8px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-profile-facts span {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-profile-facts span {
   font-size: 9px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-profile-facts strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-profile-facts strong {
   font-size: 11px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-detail-grid {
   grid-template-columns: minmax(0, 41fr) minmax(0, 59fr);
   gap: 5px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-detail-head {
   min-height: 32px;
   padding: 0 8px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-detail-head strong {
   min-width: 0;
   overflow: hidden;
@@ -3731,71 +3731,71 @@
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-detail-head span {
   flex: 0 0 auto;
   font-size: 9px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-signal-list {
   gap: 9px;
   padding: 8px 9px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-signal-head span {
   font-size: 11px;
   line-height: 1.15;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-signal-head strong {
   font-size: 11px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-signal-track {
   height: 7px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-list a {
   grid-template-columns: 31px minmax(0, 1fr) 12px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-source-mark {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-source-mark {
   width: 30px;
   height: 29px;
   font-size: 9px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-copy strong {
   font-size: 11.5px;
   line-height: 1.22;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-copy small {
   font-size: 9px;
   line-height: 1.15;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-list a:hover {
   background: rgba(53, 216, 255, .045);
   border-color: rgba(53, 216, 255, .26);
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-scroll {
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-title-line h4 {
   font-size: 12.5px;
   font-weight: 760;
@@ -3804,43 +3804,43 @@
   text-transform: uppercase;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-profile-top {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-profile-top {
   grid-template-columns: minmax(0, 1.38fr) minmax(190px, .98fr);
   gap: 9px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-compare {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-compare {
   gap: 5px;
   padding-left: 10px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-line {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-line {
   grid-template-columns: 61px minmax(0, 1fr) 28px;
   gap: 7px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-line > span {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-line > span {
   font-size: 9.25px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-line > strong {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-line > strong {
   font-size: 11px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-week-sparkline {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-week-sparkline {
   display: block;
   width: 100%;
   height: 20px;
   overflow: visible;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-spark-baseline {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-spark-baseline {
   stroke: rgba(64, 105, 128, .42);
   stroke-width: .8;
   vector-effect: non-scaling-stroke;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-spark-line {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-spark-line {
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
@@ -3848,61 +3848,61 @@
   vector-effect: non-scaling-stroke;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-week-sparkline[data-tone="latest"]
   .hybrid-agenda-v6-spark-line {
   stroke: #35d8ff;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-week-sparkline[data-tone="prior"]
   .hybrid-agenda-v6-spark-line {
   stroke: #a896ff;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-week-sparkline[data-tone="latest"]
   .hybrid-agenda-v6-spark-points {
   fill: #35d8ff;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-week-sparkline[data-tone="prior"]
   .hybrid-agenda-v6-spark-points {
   fill: #a896ff;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-spark-points circle {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-spark-points circle {
   stroke: rgba(2, 15, 27, .85);
   stroke-width: .55;
   vector-effect: non-scaling-stroke;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-detail-card:first-child
   .hybrid-agenda-v6-detail-head strong {
   overflow: visible;
   text-overflow: clip;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-list a {
   min-height: 54px;
   gap: 8px;
   padding: 7px 8px;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-evidence-row.has-publisher-icon {
   grid-template-columns: minmax(0, 1fr) 12px 30px;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-evidence-row.has-no-publisher-icon {
   grid-template-columns: minmax(0, 1fr) 12px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-publisher-icon {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-publisher-icon {
   width: 28px;
   height: 28px;
   display: grid;
@@ -3913,20 +3913,20 @@
   border-radius: 3px;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-publisher-icon img {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-publisher-icon img {
   display: block;
   width: 28px;
   height: 28px;
   object-fit: contain;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-evidence-row.has-no-publisher-icon
   .hybrid-agenda-v6-evidence-arrow {
   justify-self: end;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-evidence-arrow {
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-evidence-arrow {
   align-self: center;
   justify-self: center;
   color: var(--cyan);
@@ -3935,12 +3935,12 @@
   line-height: 1;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-copy {
   min-width: 0;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-copy strong {
   display: -webkit-box;
   overflow: hidden;
@@ -3950,13 +3950,13 @@
   text-overflow: ellipsis;
 }
 
-.hybrid-panel#signal-agenda-panel .hybrid-agenda-v6-dossier
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-list a:hover
   .hybrid-agenda-v6-publisher-icon {
   filter: brightness(1.08);
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-evidence-row
   .hybrid-agenda-v6-evidence-copy {
   grid-column: 1;
@@ -3965,39 +3965,39 @@
   width: 100%;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-evidence-row
   .hybrid-agenda-v6-evidence-arrow {
   grid-column: 2;
   grid-row: 1;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-evidence-row.has-publisher-icon
   .hybrid-agenda-v6-publisher-icon {
   grid-column: 3;
   grid-row: 1;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-evidence-row.has-no-publisher-icon
   .hybrid-agenda-v6-evidence-copy {
   grid-column: 1;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-evidence-row.has-no-publisher-icon
   .hybrid-agenda-v6-evidence-arrow {
   grid-column: 2;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-evidence-copy strong {
   width: 100%;
   max-width: 100%;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-evidence-copy small {
   display: block;
   width: 100%;
@@ -4007,7 +4007,7 @@
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-list
   a.hybrid-agenda-v6-evidence-row
@@ -4017,7 +4017,7 @@
   width: auto;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-list
   a.hybrid-agenda-v6-evidence-row
@@ -4025,7 +4025,7 @@
   grid-column: 2;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-list
   a.hybrid-agenda-v6-evidence-row.has-publisher-icon
@@ -4033,7 +4033,7 @@
   grid-column: 3;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-copy strong {
   display: -webkit-box;
@@ -4045,7 +4045,7 @@
   line-clamp: 2;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-copy small {
   display: block;
@@ -4056,14 +4056,14 @@
   white-space: nowrap;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-list
   a.hybrid-agenda-v6-evidence-row.has-publisher-icon {
   grid-template-columns: minmax(0, 1fr) 12px 24px;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-publisher-icon {
   width: 22px;
@@ -4076,7 +4076,7 @@
   box-shadow: none;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-publisher-icon img {
   display: block;
@@ -4085,7 +4085,7 @@
   object-fit: contain;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-list a:hover
   .hybrid-agenda-v6-publisher-icon {
@@ -4093,14 +4093,14 @@
   filter: brightness(1.04);
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-dossier
   .hybrid-agenda-v6-evidence-list
   a.hybrid-agenda-v6-evidence-row.has-no-publisher-icon {
   grid-template-columns: minmax(0, 1fr) 12px;
 }
 
-.hybrid-panel#signal-agenda-panel
+:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
   .hybrid-agenda-v6-analysis
   .hybrid-agenda-v6-panel-title {
   color: rgb(238, 246, 250);
@@ -7840,6 +7840,151 @@ border: 0;
 .hybrid-panel#signal-events-panel .hybrid-events-evidence-actions {
   margin-top: 8px !important;
   padding-top: 8px !important;
+}
+
+/* ============================================================
+   POLICY ISSUES — AGENDA V6 SIBLING
+   Uses the same visual grammar intentionally.
+   ============================================================ */
+
+.hybrid-tab[data-hybrid-view="issues"][aria-selected="true"] {
+  color: #e5f4fb;
+}
+
+.hybrid-tab[data-hybrid-view="issues"][aria-selected="true"]::after {
+  background: var(--cyan);
+}
+
+.hybrid-panel#signal-issues-panel .hybrid-issues-leading {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-issues-panel
+  .hybrid-agenda-v6-topic-shift strong {
+  min-width: 36px;
+}
+
+/* ============================================================
+   ISSUES — 30D MATRIX LEGEND FOOTER
+   Reserve real space below the heatmap rows.
+   ============================================================ */
+
+.hybrid-panel#signal-issues-panel
+  .hybrid-agenda-v6-matrix-wrap {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hybrid-panel#signal-issues-panel
+  .hybrid-agenda-v6-matrix {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.hybrid-panel#signal-issues-panel
+  .hybrid-agenda-v6-matrix-legend {
+  position: static;
+  inset: auto;
+  z-index: auto;
+
+  flex: 0 0 auto;
+  margin: 4px 0 0;
+  padding: 4px 8px 1px;
+
+  border-top: 1px solid rgba(35, 86, 114, .45);
+  background: rgba(5, 20, 33, .98);
+}
+
+
+/* ISSUES diagnostic — preserve full label and leading issue name */
+.hybrid-panel#signal-issues-panel
+  .hybrid-agenda-v6-diagnostics
+  article.is-concentration {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: center;
+  gap: 2px;
+}
+
+.hybrid-panel#signal-issues-panel
+  .hybrid-agenda-v6-diagnostics
+  article.is-concentration > span {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.hybrid-panel#signal-issues-panel
+  .hybrid-agenda-v6-diagnostics
+  .hybrid-issues-leading {
+  max-width: 100%;
+  font-size: 10px;
+  line-height: 1.1;
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   WORKSPACE NAVIGATION — LOCKED CONTRACT
+   Existing tabs always divide the full row equally.
+   Icon + label stay together and are centered as one unit.
+   ============================================================ */
+
+.hybrid-workspace > .hybrid-tabs {
+  display: flex !important;
+  width: 100%;
+  grid-template-columns: none !important;
+  grid-auto-columns: unset !important;
+  grid-auto-flow: unset !important;
+}
+
+.hybrid-workspace > .hybrid-tabs > .hybrid-tab {
+  flex: 1 1 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: none !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+
+  padding-inline: 12px;
+
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: .10em;
+}
+
+.hybrid-workspace > .hybrid-tabs > .hybrid-tab .hybrid-tab-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin: 0;
+}
+
+.hybrid-workspace > .hybrid-tabs > .hybrid-tab .hybrid-tab-label {
+  width: auto !important;
+  min-width: 0 !important;
+  flex: 0 0 auto;
+
+  margin: 0;
+  text-align: center;
+  white-space: nowrap;
+
+  font: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
 }
 
 /* RUNOFF WORKSPACE REDESIGN V1 ΓÇö scoped to the owned Runoff panel. */

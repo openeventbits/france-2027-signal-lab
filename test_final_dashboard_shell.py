@@ -764,21 +764,31 @@ class FinalDashboardShellTests(unittest.TestCase):
             self.js,
         )
 
-    def test_module_navigation_includes_routed_poll_compare(self):
+
+    def test_module_navigation_includes_routed_issues(self):
         self.assertIn(
-            'tabId: "signal-poll-compare-tab"',
+            'tabId: "signal-issues-tab"',
             self.js,
         )
         self.assertIn(
-            'label: translate("signal_board.poll_compare", "POLL COMPARE")',
+            'label: "ISSUES"',
             self.js,
         )
         self.assertIn(
-            '"polling-evidence-lab"',
+            'panelId: "signal-issues-panel"',
             self.js,
         )
 
-    def test_three_column_and_six_module_layout_are_locked(self):
+        self.assertNotIn(
+            "signal-poll-compare-tab",
+            self.js,
+        )
+        self.assertNotIn(
+            '"POLL COMPARE"',
+            self.js,
+        )
+
+    def test_three_column_primary_layout_is_locked(self):
         self.assertIn(
             "/* FINAL DASHBOARD V2 SHELL */",
             self.html,
@@ -797,10 +807,6 @@ class FinalDashboardShellTests(unittest.TestCase):
         )
         self.assertIn(
             "minmax(250px, 1.08fr);",
-            self.html,
-        )
-        self.assertIn(
-            "repeat(6, minmax(0, 1fr));",
             self.html,
         )
 

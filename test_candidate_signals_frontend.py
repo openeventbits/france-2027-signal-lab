@@ -16,21 +16,21 @@ VIEW_NAMES = [
     "runoff",
     "events",
     "agenda",
-    "pollCompare",
+    "issues",
 ]
 TAB_IDS = [
     "signal-candidates-tab",
     "signal-runoff-tab",
     "signal-events-tab",
     "signal-agenda-tab",
-    "signal-poll-compare-tab",
+    "signal-issues-tab",
 ]
 PANEL_IDS = [
     "signal-candidates-panel",
     "signal-runoff-panel",
     "signal-events-panel",
     "signal-agenda-panel",
-    "polling-evidence-lab",
+    "signal-issues-panel",
 ]
 
 
@@ -44,13 +44,13 @@ source = source.replace(
   ""
 );
 const input = JSON.parse(fs.readFileSync(0, "utf8"));
-const names = ["candidates", "runoff", "events", "agenda", "pollCompare"];
+const names = ["candidates", "runoff", "events", "agenda", "issues"];
 const panelIds = [
   "signal-candidates-panel",
   "signal-runoff-panel",
   "signal-events-panel",
   "signal-agenda-panel",
-  "polling-evidence-lab"
+  "signal-issues-panel"
 ];
 const panels = Object.fromEntries(panelIds.map(id => [id, { id, hidden: true }]));
 const tabs = names.map((name, index) => ({
@@ -410,17 +410,16 @@ const candidateRoot = {
   setAttribute(key, value) { this.attributes[key] = String(value); }
 };
 const panelIds = [
-  "signal-runoff-panel",
   "signal-candidates-panel",
+  "signal-runoff-panel",
   "signal-events-panel",
   "signal-agenda-panel",
-  "signal-claims-panel",
-  "polling-evidence-lab"
+  "signal-issues-panel"
 ];
 const panels = Object.fromEntries(
   panelIds.map(id => [id, { id, hidden: true }])
 );
-const names = ["runoff", "candidates", "events", "agenda", "claims", "pollCompare"];
+const names = ["candidates", "runoff", "events", "agenda", "issues"];
 const tabs = names.map((name, index) => ({
   dataset: { hybridView: name },
   attributes: { "aria-controls": panelIds[index] },
@@ -525,14 +524,26 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
         cls.html = INDEX.read_text(encoding="utf-8")
         cls.js = HYBRID_JS.read_text(encoding="utf-8")
         cls.css = SHELL_CSS.read_text(encoding="utf-8")
-        start = cls.js.index("  const views = Object.freeze({")
-        end = cls.js.index("  const viewOrder", start)
-        cls.views = cls.js[start:end]
-        workspace_start = cls.js.index("  function renderFocusWorkspace(")
-        workspace_end = cls.js.index(
-            "  function setActiveSignalView(", workspace_start
+
+        start = cls.js.index(
+            "  const views = Object.freeze({"
         )
-        cls.workspace = cls.js[workspace_start:workspace_end]
+        end = cls.js.index(
+            "  const viewOrder",
+            start,
+        )
+        cls.views = cls.js[start:end]
+
+        workspace_start = cls.js.index(
+            "  function renderFocusWorkspace("
+        )
+        workspace_end = cls.js.index(
+            "  function setActiveSignalView(",
+            workspace_start,
+        )
+        cls.workspace = cls.js[
+            workspace_start:workspace_end
+        ]
 
     def render_workspace(self, hash_value=""):
         return run_router_script(
@@ -541,58 +552,96 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
               runoff: { state: "empty", message: "runoff" },
               events: { state: "empty", message: "events" },
               agenda: { state: "empty", message: "agenda" },
+              issues: { state: "empty", message: "issues" },
               claims: { state: "empty", message: "claims" }
             })""",
         )
 
     def test_exact_five_labels_and_hashes_in_locked_order(self):
         entries = re.findall(
-            r'^    (\w+): \{.*?^      label: (?:translate\("[^"]+", )?"([^"]+)"\)?,'
-            r".*?^      hash: \"([^\"]+)\",",
+            r'^    (\w+): \{.*?^      '
+            r'label: (?:translate\("[^"]+", )?'
+            r'"([^"]+)"\)?,'
+            r'.*?^      hash: "([^"]+)",',
             self.views,
             re.MULTILINE | re.DOTALL,
         )
+
         self.assertEqual(
             entries,
-            list(
-                zip(
-                    VIEW_NAMES,
-                    [
-                        "CANDIDATES",
-                        "RUNOFF",
-                        "EVENTS",
-                        "AGENDA",
-                        "POLL COMPARE",
-                    ],
-                    [
-                        "#signal-candidates",
-                        "#signal-runoff",
-                        "#signal-events",
-                        "#signal-agenda",
-                        "#signal-poll-compare",
-                    ],
-                )
-            ),
+            [
+                (
+                    "candidates",
+                    "CANDIDATES",
+                    "#signal-candidates",
+                ),
+                (
+                    "runoff",
+                    "RUNOFF",
+                    "#signal-runoff",
+                ),
+                (
+                    "events",
+                    "EVENTS",
+                    "#signal-events",
+                ),
+                (
+                    "agenda",
+                    "AGENDA",
+                    "#signal-agenda",
+                ),
+                (
+                    "issues",
+                    "ISSUES",
+                    "#signal-issues",
+                ),
+            ],
         )
 
     def test_candidates_is_default_and_active_fallback(self):
-        self.assertIn('const defaultView = "candidates";', self.js)
         self.assertIn(
-            "activeView: hashToView.get(window.location.hash) || defaultView",
+            'const defaultView = "candidates";',
             self.js,
         )
-        self.assertIn("if (!views[view]) view = defaultView;", self.js)
+        self.assertIn(
+            "activeView: "
+            "hashToView.get(window.location.hash) "
+            "|| defaultView",
+            self.js,
+        )
+        self.assertIn(
+            "if (!views[view]) view = defaultView;",
+            self.js,
+        )
+
         workspace = self.render_workspace("")
+
         candidate_tab = re.search(
-            r'<button class="hybrid-tab" id="signal-candidates-tab"[^>]+>',
+            r'<button class="hybrid-tab" '
+            r'id="signal-candidates-tab"[^>]+>',
             workspace,
         ).group(0)
-        self.assertIn('aria-selected="true"', candidate_tab)
-        self.assertIn('tabindex="0"', candidate_tab)
+
+        self.assertIn(
+            'aria-selected="true"',
+            candidate_tab,
+        )
+        self.assertIn(
+            'tabindex="0"',
+            candidate_tab,
+        )
 
     def test_empty_unknown_and_obsolete_hashes_normalize_with_replace_state(self):
-        for hash_value in ("", "#unknown", "#signal-media", "#signal-claims"):
-            with self.subTest(hash_value=hash_value):
+        for hash_value in (
+            "",
+            "#unknown",
+            "#signal-media",
+            "#signal-claims",
+            "#signal-poll-compare",
+        ):
+            with self.subTest(
+                hash_value=hash_value
+            ):
                 result = run_router_script(
                     hash_value,
                     """(() => {
@@ -600,19 +649,47 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
                       return {
                         hash: windowObject.location.hash,
                         historyCalls,
-                        selected: tabs.find(tab => tab.attributes["aria-selected"] === "true").dataset.hybridView
+                        selected:
+                          tabs.find(
+                            tab =>
+                              tab.attributes[
+                                "aria-selected"
+                              ] === "true"
+                          ).dataset.hybridView
                       };
                     })()""",
                 )
-                self.assertEqual(result["hash"], "#signal-candidates")
-                self.assertEqual(result["historyCalls"], ["#signal-candidates"])
-                self.assertEqual(result["selected"], "candidates")
-        self.assertIn("window.history.replaceState(", self.js)
+
+                self.assertEqual(
+                    result["hash"],
+                    "#signal-candidates",
+                )
+                self.assertEqual(
+                    result["historyCalls"],
+                    ["#signal-candidates"],
+                )
+                self.assertEqual(
+                    result["selected"],
+                    "candidates",
+                )
+
+        self.assertIn(
+            "window.history.replaceState(",
+            self.js,
+        )
 
     def test_lower_media_tab_is_absent_but_top_media_pulse_remains(self):
         workspace = self.render_workspace()
-        self.assertNotIn("MEDIA PULSE", workspace)
-        self.assertNotIn("#signal-media", self.views)
+
+        self.assertNotIn(
+            "MEDIA PULSE",
+            workspace,
+        )
+        self.assertNotIn(
+            "#signal-media",
+            self.views,
+        )
+
         for selector in (
             'class="panel top-media-pulse"',
             'id="top-media-pulse-content"',
@@ -620,108 +697,245 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
             'data-top-media-tab="overview"',
             'data-top-media-tab="coverage"',
         ):
-            self.assertIn(selector, self.html + self.js)
-        self.assertIn("function renderMediaPanel(", self.js)
-        self.assertIn("function buildMediaViewModel()", self.js)
+            self.assertIn(
+                selector,
+                self.html + self.js,
+            )
+
+        self.assertIn(
+            "function renderMediaPanel(",
+            self.js,
+        )
+        self.assertIn(
+            "function buildMediaViewModel()",
+            self.js,
+        )
 
     def test_candidates_has_real_tab_panel_and_owned_mount(self):
         workspace = self.render_workspace()
+
         tab = re.search(
-            r'<button class="hybrid-tab" id="signal-candidates-tab"[^>]+>',
+            r'<button class="hybrid-tab" '
+            r'id="signal-candidates-tab"[^>]+>',
             workspace,
         ).group(0)
+
         panel = re.search(
-            r'<section class="hybrid-panel" id="signal-candidates-panel"[^>]+>',
+            r'<section class="hybrid-panel" '
+            r'id="signal-candidates-panel"[^>]+>',
             workspace,
         ).group(0)
-        self.assertIn('role="tab"', tab)
-        self.assertIn('aria-controls="signal-candidates-panel"', tab)
-        self.assertIn('role="tabpanel"', panel)
-        self.assertIn('aria-labelledby="signal-candidates-tab"', panel)
-        self.assertIn('id="candidate-signals-root"', workspace)
+
+        self.assertIn(
+            'role="tab"',
+            tab,
+        )
+        self.assertIn(
+            'aria-controls="signal-candidates-panel"',
+            tab,
+        )
+        self.assertIn(
+            'role="tabpanel"',
+            panel,
+        )
+        self.assertIn(
+            'aria-labelledby="signal-candidates-tab"',
+            panel,
+        )
+        self.assertIn(
+            'id="candidate-signals-root"',
+            workspace,
+        )
 
     def test_stage_b2_replaces_temporary_placeholder(self):
         combined = self.html + self.js
-        self.assertIn("candidate-signals.css", combined)
-        candidate_start = self.workspace.index('id="candidate-signals-root"')
-        candidate_end = self.workspace.index("      </section>", candidate_start)
-        scaffold = self.workspace[candidate_start:candidate_end]
+
+        self.assertIn(
+            "candidate-signals.css",
+            combined,
+        )
+
+        candidate_start = self.workspace.index(
+            'id="candidate-signals-root"'
+        )
+        candidate_end = self.workspace.index(
+            "      </section>",
+            candidate_start,
+        )
+
+        scaffold = self.workspace[
+            candidate_start:candidate_end
+        ]
+
         self.assertNotIn(
-            "Candidate evidence will be rendered in the next implementation stage.",
+            "Candidate evidence will be rendered "
+            "in the next implementation stage.",
             scaffold,
         )
+
         self.assertEqual(
-            re.findall(r"data-candidate-signals-[a-z-]+", scaffold),
+            re.findall(
+                r"data-candidate-signals-[a-z-]+",
+                scaffold,
+            ),
             ["data-candidate-signals-state"],
         )
 
-
     def test_events_has_real_tab_and_model_driven_empty_panel(self):
         workspace = self.render_workspace()
+
         self.assertRegex(
             workspace,
-            r'id="signal-events-tab"[^>]+role="tab"[^>]+'
+            r'id="signal-events-tab"[^>]+'
+            r'role="tab"[^>]+'
             r'aria-controls="signal-events-panel"',
         )
+
         self.assertRegex(
             workspace,
-            r'id="signal-events-panel" role="tabpanel" '
-            r'aria-labelledby="signal-events-tab"[^>]* hidden',
+            r'id="signal-events-panel" '
+            r'role="tabpanel" '
+            r'aria-labelledby="signal-events-tab"'
+            r'[^>]* hidden',
         )
-        self.assertIn(
-            '<span class="hybrid-state is-compact">events</span>', workspace
-        )
-        self.assertNotIn("Campaign Events is not yet available.", workspace)
 
-    def test_poll_compare_is_real_tab_controlling_existing_panel(self):
+        self.assertIn(
+            '<span class="hybrid-state is-compact">'
+            "events</span>",
+            workspace,
+        )
+
+        self.assertNotIn(
+            "Campaign Events is not yet available.",
+            workspace,
+        )
+
+    def test_issues_is_real_tab_controlling_owned_panel(self):
         workspace = self.render_workspace()
-        poll_tab = re.search(
-            r'<button class="hybrid-tab" id="signal-poll-compare-tab"[^>]+>',
+
+        tab = re.search(
+            r'<button class="hybrid-tab" '
+            r'id="signal-issues-tab"[^>]+>',
             workspace,
         ).group(0)
-        self.assertIn('role="tab"', poll_tab)
-        self.assertIn('aria-controls="polling-evidence-lab"', poll_tab)
+
+        panel = re.search(
+            r'<section class="hybrid-panel" '
+            r'id="signal-issues-panel"[^>]+>',
+            workspace,
+        ).group(0)
+
+        self.assertIn(
+            'role="tab"',
+            tab,
+        )
+        self.assertIn(
+            'aria-controls="signal-issues-panel"',
+            tab,
+        )
+        self.assertIn(
+            'role="tabpanel"',
+            panel,
+        )
+        self.assertIn(
+            'aria-labelledby="signal-issues-tab"',
+            panel,
+        )
+
+    def test_legacy_polling_panel_is_hidden_and_not_routed(self):
+        workspace = self.render_workspace()
+
+        self.assertNotIn(
+            'id="polling-evidence-lab"',
+            workspace,
+        )
+
         opening = re.search(
             r'<section class="panel polling-evidence" '
             r'id="polling-evidence-lab"[^>]+>',
             self.html,
         ).group(0)
-        self.assertIn('role="tabpanel"', opening)
-        self.assertIn('aria-labelledby="signal-poll-compare-tab"', opening)
-        self.assertIn(" hidden", opening)
 
-    def test_poll_compare_panel_is_not_generated_or_duplicated(self):
-        workspace = self.render_workspace()
-        self.assertNotIn('id="polling-evidence-lab"', workspace)
-        self.assertEqual(self.html.count('id="polling-evidence-lab"'), 1)
-        self.assertEqual(
-            (self.html + workspace).count('id="polling-evidence-lab"'), 1
+        self.assertIn(
+            " hidden",
+            opening,
+        )
+        self.assertIn(
+            'aria-hidden="true"',
+            opening,
+        )
+        self.assertNotIn(
+            'role="tabpanel"',
+            opening,
+        )
+        self.assertNotIn(
+            "signal-poll-compare-tab",
+            opening,
         )
 
-    def test_no_poll_compare_scroll_shortcut_remains(self):
-        combined = self.html + self.js
-        self.assertNotIn("data-hybrid-poll-compare", combined)
-        self.assertNotIn("bindPollCompareShortcut", combined)
-        self.assertIn('view === "pollCompare"', self.js)
-        self.assertIn('document.getElementById("polling-evidence-lab")', self.js)
+    def test_no_poll_compare_routing_remains(self):
+        self.assertNotIn(
+            'view === "pollCompare"',
+            self.js,
+        )
+        self.assertNotIn(
+            "#signal-poll-compare",
+            self.js,
+        )
+        self.assertNotIn(
+            "signal-poll-compare-tab",
+            self.js,
+        )
+        self.assertNotIn(
+            "data-hybrid-poll-compare",
+            self.html + self.js,
+        )
 
     def test_tablist_and_all_controls_have_required_aria(self):
         workspace = self.render_workspace()
+
         self.assertRegex(
             workspace,
-            r'<div class="hybrid-tabs" role="tablist" '
-            r'aria-label="[^"]+" aria-orientation="horizontal">',
+            r'<div class="hybrid-tabs" '
+            r'role="tablist" '
+            r'aria-label="[^"]+" '
+            r'aria-orientation="horizontal">',
         )
+
         controls = re.findall(
-            r'<button class="hybrid-tab"[^>]+>[\s\S]*?</button>', workspace
+            r'<button class="hybrid-tab"[^>]+>'
+            r'[\s\S]*?</button>',
+            workspace,
         )
-        self.assertEqual(len(controls), 5)
-        for index, control in enumerate(controls):
-            self.assertIn(f'id="{TAB_IDS[index]}"', control)
-            self.assertIn('role="tab"', control)
-            self.assertIn(f'aria-controls="{PANEL_IDS[index]}"', control)
-            self.assertRegex(control, r'aria-selected="(?:true|false)"')
-            self.assertRegex(control, r'tabindex="(?:0|-1)"')
+
+        self.assertEqual(
+            len(controls),
+            5,
+        )
+
+        for index, control in enumerate(
+            controls
+        ):
+            self.assertIn(
+                f'id="{TAB_IDS[index]}"',
+                control,
+            )
+            self.assertIn(
+                'role="tab"',
+                control,
+            )
+            self.assertIn(
+                f'aria-controls="{PANEL_IDS[index]}"',
+                control,
+            )
+            self.assertRegex(
+                control,
+                r'aria-selected="(?:true|false)"',
+            )
+            self.assertRegex(
+                control,
+                r'tabindex="(?:0|-1)"',
+            )
 
     def test_active_state_hides_other_panels_and_roves_tabindex(self):
         result = run_router_script(
@@ -731,29 +945,72 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
               return {
                 tabs: tabs.map(tab => ({
                   name: tab.dataset.hybridView,
-                  selected: tab.attributes["aria-selected"],
+                  selected:
+                    tab.attributes["aria-selected"],
                   tabIndex: tab.tabIndex
                 })),
-                panels: Object.fromEntries(Object.entries(panels).map(([id, panel]) => [id, panel.hidden]))
+                panels:
+                  Object.fromEntries(
+                    Object.entries(panels).map(
+                      ([id, panel]) =>
+                        [id, panel.hidden]
+                    )
+                  )
               };
             })()""",
         )
-        selected = [tab for tab in result["tabs"] if tab["selected"] == "true"]
-        self.assertEqual(selected, [{"name": "events", "selected": "true", "tabIndex": 0}])
+
+        selected = [
+            tab
+            for tab in result["tabs"]
+            if tab["selected"] == "true"
+        ]
+
+        self.assertEqual(
+            selected,
+            [
+                {
+                    "name": "events",
+                    "selected": "true",
+                    "tabIndex": 0,
+                }
+            ],
+        )
+
         for tab in result["tabs"]:
             if tab["name"] != "events":
-                self.assertEqual(tab["tabIndex"], -1)
-        self.assertFalse(result["panels"]["signal-events-panel"])
-        for panel_id, hidden in result["panels"].items():
-            if panel_id != "signal-events-panel":
+                self.assertEqual(
+                    tab["tabIndex"],
+                    -1,
+                )
+
+        self.assertFalse(
+            result["panels"][
+                "signal-events-panel"
+            ]
+        )
+
+        for panel_id, hidden in (
+            result["panels"].items()
+        ):
+            if (
+                panel_id
+                != "signal-events-panel"
+            ):
                 self.assertTrue(hidden)
 
     def test_keyboard_navigation_wraps_and_uses_home_end_across_five_tabs(self):
-        start = self.js.index("  function bindInteractions()")
-        end = self.js.index(
-            '    mount.querySelectorAll("[data-hybrid-agenda-topic]")', start
+        start = self.js.index(
+            "  function bindInteractions()"
         )
+        end = self.js.index(
+            '    mount.querySelectorAll('
+            '"[data-hybrid-agenda-topic]")',
+            start,
+        )
+
         keyboard = self.js[start:end]
+
         for contract in (
             'event.key === "ArrowRight"',
             "(index + 1) % tabs.length",
@@ -763,10 +1020,18 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
             "nextIndex = 0",
             'event.key === "End"',
             "nextIndex = tabs.length - 1",
-            "setActiveSignalView(next, { focusTab: true })",
+            "setActiveSignalView("
+            "next, { focusTab: true })",
         ):
-            self.assertIn(contract, keyboard)
-        self.assertEqual(len(VIEW_NAMES), 5)
+            self.assertIn(
+                contract,
+                keyboard,
+            )
+
+        self.assertEqual(
+            len(VIEW_NAMES),
+            5,
+        )
 
     def test_direct_hashes_and_hashchange_activate_recognized_views(self):
         hashes = [
@@ -774,56 +1039,99 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
             "#signal-runoff",
             "#signal-events",
             "#signal-agenda",
-            "#signal-poll-compare",
+            "#signal-issues",
         ]
-        for tab_id, hash_value in zip(TAB_IDS, hashes):
-            with self.subTest(hash_value=hash_value):
-                workspace = self.render_workspace(hash_value)
+
+        for tab_id, hash_value in zip(
+            TAB_IDS,
+            hashes,
+        ):
+            with self.subTest(
+                hash_value=hash_value
+            ):
+                workspace = self.render_workspace(
+                    hash_value
+                )
+
                 tab = re.search(
-                    rf'<button class="hybrid-tab" id="{tab_id}"[^>]+>',
+                    rf'<button class="hybrid-tab" '
+                    rf'id="{tab_id}"[^>]+>',
                     workspace,
                 ).group(0)
-                self.assertIn('aria-selected="true"', tab)
-                self.assertIn('tabindex="0"', tab)
 
-        result = run_router_script(
-            "#signal-poll-compare",
-            """(() => {
-              api.handleSignalHashChange();
-              return {
-                selected: tabs.find(tab => tab.attributes["aria-selected"] === "true").dataset.hybridView,
-                pollHidden: panels["polling-evidence-lab"].hidden,
-                otherPanelsHidden: panelIds.slice(0, 4).every(id => panels[id].hidden),
-                historyCalls
-              };
-            })()""",
-        )
-        self.assertEqual(result["selected"], "pollCompare")
-        self.assertFalse(result["pollHidden"])
-        self.assertTrue(result["otherPanelsHidden"])
-        self.assertEqual(result["historyCalls"], [])
+                self.assertIn(
+                    'aria-selected="true"',
+                    tab,
+                )
+                self.assertIn(
+                    'tabindex="0"',
+                    tab,
+                )
 
     def test_user_changes_use_hash_navigation_for_browser_history(self):
-        start = self.js.index("  function setViewHash(")
-        end = self.js.index("  function scrollWorkspaceIfNeeded(", start)
+        start = self.js.index(
+            "  function setViewHash("
+        )
+        end = self.js.index(
+            "  function scrollWorkspaceIfNeeded(",
+            start,
+        )
+
         setter = self.js[start:end]
-        self.assertIn("window.location.hash = views[view].hash;", setter)
-        self.assertNotIn("replaceState", setter)
+
         self.assertIn(
-            'window.addEventListener("hashchange", handleSignalHashChange);',
+            "window.location.hash = views[view].hash;",
+            setter,
+        )
+        self.assertNotIn(
+            "replaceState",
+            setter,
+        )
+        self.assertIn(
+            'window.addEventListener('
+            '"hashchange", handleSignalHashChange);',
             self.js,
         )
 
-    def test_six_column_desktop_and_horizontal_narrow_overflow(self):
-        self.assertIn("repeat(6, minmax(0, 1fr));", self.html)
-        self.assertIn("repeat(6, minmax(0, 1fr));", self.css)
-        self.assertIn("repeat(6, minmax(112px, 1fr));", self.css)
-        narrow_index = self.html[self.html.index("@media (max-width: 700px)") :]
-        self.assertIn("overflow-x: auto;", narrow_index)
-        self.assertIn("flex: 0 0 145px;", narrow_index)
-        narrow_shell = self.css[self.css.index("@media (max-width: 860px)") :]
-        self.assertIn("overflow-x: auto;", narrow_shell)
-        self.assertIn("function revealActiveTab(tab)", self.js)
+    def test_five_workspace_navigation_contract_remains(self):
+        self.assertEqual(
+            VIEW_NAMES,
+            [
+                "candidates",
+                "runoff",
+                "events",
+                "agenda",
+                "issues",
+            ],
+        )
+
+        narrow_index = self.html[
+            self.html.index(
+                "@media (max-width: 700px)"
+            ):
+        ]
+
+        self.assertIn(
+            "overflow-x: auto;",
+            narrow_index,
+        )
+
+        narrow_shell = self.css[
+            self.css.index(
+                "@media (max-width: 860px)"
+            ):
+        ]
+
+        self.assertIn(
+            "overflow-x: auto;",
+            narrow_shell,
+        )
+
+        self.assertIn(
+            "function revealActiveTab(tab)",
+            self.js,
+        )
+
 
 class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
     @classmethod
@@ -1375,6 +1683,7 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
               runoff: { state: "empty", message: "runoff" },
               events: { state: "empty", message: "events" },
               agenda: { state: "empty", message: "agenda" },
+              issues: { state: "empty", message: "issues" },
               claims: { state: "empty", message: "claims" }
             })""",
         )

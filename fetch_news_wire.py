@@ -358,6 +358,437 @@ CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS = 2
 CAMPAIGN_AGENDA_EVOLUTION_DAYS = 30
 CAMPAIGN_AGENDA_COMPARISON_DAYS = 7
 
+
+POLICY_AGENDA_TOPICS = (
+    {
+        "id": "economy_public_finances",
+        "label": "Economy & Public Finances",
+        "terms": (
+            "budget",
+            "deficit public",
+            "deficits publics",
+            "dette publique",
+            "finances publiques",
+            "fiscalite",
+            "impot",
+            "impots",
+            "taxation",
+            "taxe",
+            "taxes",
+            "croissance",
+            "reindustrialisation",
+            "industrie",
+            "politique industrielle",
+            "pib",
+        ),
+        "subtopics": {
+            "budget": (
+                "budget",
+                "finances publiques",
+            ),
+            "deficit_debt": (
+                "deficit public",
+                "deficits publics",
+                "dette publique",
+            ),
+            "taxation": (
+                "fiscalite",
+                "impot",
+                "impots",
+                "taxation",
+                "taxe",
+                "taxes",
+            ),
+            "growth_industry": (
+                "croissance",
+                "reindustrialisation",
+                "industrie",
+                "politique industrielle",
+                "pib",
+            ),
+        },
+    },
+    {
+        "id": "work_purchasing_power_pensions",
+        "label": "Work, Purchasing Power & Pensions",
+        "terms": (
+            "pouvoir d achat",
+            "salaire",
+            "salaires",
+            "smic",
+            "emploi",
+            "chomage",
+            "retraite",
+            "retraites",
+            "age legal de depart",
+            "age de depart",
+            "temps de travail",
+            "droit du travail",
+            "cotisations sociales",
+        ),
+        "subtopics": {
+            "purchasing_power": (
+                "pouvoir d achat",
+            ),
+            "wages": (
+                "salaire",
+                "salaires",
+                "smic",
+            ),
+            "employment": (
+                "emploi",
+                "chomage",
+                "temps de travail",
+                "droit du travail",
+            ),
+            "pensions": (
+                "retraite",
+                "retraites",
+                "age legal de depart",
+                "age de depart",
+            ),
+            "social_contributions": (
+                "cotisations sociales",
+            ),
+        },
+    },
+    {
+        "id": "immigration_identity_secularism",
+        "label": "Immigration, Identity & Secularism",
+        "terms": (
+            "immigration",
+            "immigre",
+            "immigres",
+            "migrant",
+            "migrants",
+            "asile",
+            "droit d asile",
+            "nationalite",
+            "integration",
+            "laicite",
+            "identite nationale",
+            "oqtf",
+            "frontieres",
+        ),
+        "subtopics": {
+            "immigration": (
+                "immigration",
+                "immigre",
+                "immigres",
+                "migrant",
+                "migrants",
+                "frontieres",
+            ),
+            "asylum": (
+                "asile",
+                "droit d asile",
+                "oqtf",
+            ),
+            "nationality_integration": (
+                "nationalite",
+                "integration",
+            ),
+            "identity_secularism": (
+                "laicite",
+                "identite nationale",
+            ),
+        },
+    },
+    {
+        "id": "security_justice",
+        "label": "Security & Justice",
+        "terms": (
+            "securite",
+            "police",
+            "gendarmerie",
+            "delinquance",
+            "criminalite",
+            "prison",
+            "prisons",
+            "terrorisme",
+            "narcotrafic",
+            "trafic de drogue",
+            "justice des mineurs",
+            "peines planchers",
+            "magistrats",
+        ),
+        "subtopics": {
+            "security_policing": (
+                "securite",
+                "police",
+                "gendarmerie",
+            ),
+            "crime": (
+                "delinquance",
+                "criminalite",
+                "narcotrafic",
+                "trafic de drogue",
+            ),
+            "prisons_sentencing": (
+                "prison",
+                "prisons",
+                "peines planchers",
+            ),
+            "terrorism": (
+                "terrorisme",
+            ),
+            "justice_system": (
+                "justice des mineurs",
+                "magistrats",
+            ),
+        },
+    },
+    {
+        "id": "health_education_public_services",
+        "label": "Health, Education & Public Services",
+        "terms": (
+            "sante",
+            "hopital",
+            "hopitaux",
+            "medecin",
+            "medecins",
+            "soins",
+            "deserts medicaux",
+            "ecole",
+            "education",
+            "enseignant",
+            "enseignants",
+            "services publics",
+            "fonction publique",
+            "fonctionnaires",
+            "ehpad",
+        ),
+        "subtopics": {
+            "health": (
+                "sante",
+                "hopital",
+                "hopitaux",
+                "medecin",
+                "medecins",
+                "soins",
+                "deserts medicaux",
+                "ehpad",
+            ),
+            "education": (
+                "ecole",
+                "education",
+                "enseignant",
+                "enseignants",
+            ),
+            "public_services": (
+                "services publics",
+                "fonction publique",
+                "fonctionnaires",
+            ),
+        },
+    },
+    {
+        "id": "climate_energy_agriculture",
+        "label": "Climate, Energy & Agriculture",
+        "terms": (
+            "climat",
+            "ecologie",
+            "transition ecologique",
+            "environnement",
+            "energie",
+            "nucleaire",
+            "eolien",
+            "eoliennes",
+            "energies renouvelables",
+            "agriculture",
+            "agriculteur",
+            "agriculteurs",
+            "agricole",
+            "transport",
+            "transports",
+            "zfe",
+        ),
+        "subtopics": {
+            "climate_environment": (
+                "climat",
+                "ecologie",
+                "transition ecologique",
+                "environnement",
+            ),
+            "energy": (
+                "energie",
+                "nucleaire",
+                "eolien",
+                "eoliennes",
+                "energies renouvelables",
+            ),
+            "agriculture": (
+                "agriculture",
+                "agriculteur",
+                "agriculteurs",
+                "agricole",
+            ),
+            "transport": (
+                "transport",
+                "transports",
+                "zfe",
+            ),
+        },
+    },
+    {
+        "id": "europe_defence_foreign_affairs",
+        "label": "Europe, Defence & Foreign Affairs",
+        "terms": (
+            "union europeenne",
+            "commission europeenne",
+            "parlement europeen",
+            "otan",
+            "defense",
+            "armee",
+            "armees",
+            "service militaire",
+            "ukraine",
+            "russie",
+            "gaza",
+            "israel",
+            "diplomatie",
+            "politique etrangere",
+            "relations internationales",
+        ),
+        "subtopics": {
+            "europe": (
+                "union europeenne",
+                "commission europeenne",
+                "parlement europeen",
+            ),
+            "defence": (
+                "otan",
+                "defense",
+                "armee",
+                "armees",
+                "service militaire",
+            ),
+            "ukraine_russia": (
+                "ukraine",
+                "russie",
+            ),
+            "middle_east": (
+                "gaza",
+                "israel",
+            ),
+            "foreign_policy": (
+                "diplomatie",
+                "politique etrangere",
+                "relations internationales",
+            ),
+        },
+    },
+    {
+        "id": "institutions_democracy_territories",
+        "label": "Institutions, Democracy & Territories",
+        "terms": (
+            "constitution",
+            "reforme constitutionnelle",
+            "decentralisation",
+            "collectivites territoriales",
+            "collectivites locales",
+            "communes",
+            "departements",
+            "democratie",
+            "institutions",
+            "assemblee nationale",
+            "proportionnelle",
+            "scrutin proportionnel",
+        ),
+        "subtopics": {
+            "constitution": (
+                "constitution",
+                "reforme constitutionnelle",
+            ),
+            "decentralisation": (
+                "decentralisation",
+                "collectivites territoriales",
+                "collectivites locales",
+                "communes",
+                "departements",
+            ),
+            "democracy": (
+                "democratie",
+                "institutions",
+            ),
+            "parliament": (
+                "assemblee nationale",
+            ),
+            "electoral_reform": (
+                "proportionnelle",
+                "scrutin proportionnel",
+            ),
+        },
+    },
+)
+
+POLICY_AGENDA_SUPPORT_LIMIT = 20
+POLICY_AGENDA_DISPLAY_MIN_SOURCE_DAYS = 2
+POLICY_AGENDA_EVOLUTION_DAYS = 30
+POLICY_AGENDA_COMPARISON_DAYS = 7
+
+
+POLICY_AGENDA_SUMMARY_BOILERPLATE_TERMS = (
+    "france 3 regions",
+    "public senat",
+)
+
+POLICY_AGENDA_HEALTH_PERSONAL_CONTEXT = (
+    "fake news sur sa sante",
+    "fake-news sur sa sante",
+    "etat de sante",
+    "etat de la sante",
+)
+
+POLICY_AGENDA_SECURITY_CIVIL_CONTEXT = (
+    "securite civile",
+    "beauvau de la securite civile",
+)
+
+POLICY_AGENDA_POLITICAL_UNIVERSITY_CONTEXT = (
+    "universite d ete",
+    "universites d ete",
+)
+
+
+POLICY_AGENDA_HEALTH_POLICY_CONTEXT = (
+    "politique de sante",
+    "sante publique",
+    "systeme de sante",
+    "systeme de soins",
+    "assurance maladie",
+    "securite sociale",
+    "hopital",
+    "hopitaux",
+    "medecin",
+    "medecins",
+    "soins",
+    "deserts medicaux",
+    "urgences",
+    "ehpad",
+    "remboursement",
+)
+
+POLICY_AGENDA_EDUCATION_POLICY_CONTEXT = (
+    "education nationale",
+    "politique educative",
+    "systeme educatif",
+    "ecole publique",
+    "ecoles publiques",
+    "enseignement",
+    "enseignant",
+    "enseignants",
+    "eleve",
+    "eleves",
+    "programme scolaire",
+    "programmes scolaires",
+    "classes",
+    "baccalaureat",
+    "parcoursup",
+)
+
+
+
 # These expressions occur frequently in ordinary institutional or
 # legislative reporting. They contribute to Topic Coverage only when the
 # headline itself has already been classified as current presidential news.
@@ -3223,6 +3654,186 @@ def classify_campaign_agenda(
     }
 
 
+
+
+def classify_policy_agenda(
+    headline: str,
+    summary: str = "",
+) -> list[dict[str, Any]]:
+    """Return zero or more deterministic substantive policy labels.
+
+    Policy Agenda is intentionally multi-label. A single accepted
+    presidential-coverage record may legitimately concern several policy
+    domains. The classifier therefore returns every supported root issue
+    rather than forcing a mutually exclusive winner.
+    """
+
+    normalized_text = normalize(
+        f"{headline or ''} {summary or ''}"
+    )
+
+    classifications: list[dict[str, Any]] = []
+
+    for topic in POLICY_AGENDA_TOPICS:
+        matched_terms = sorted(
+            set(
+                campaign_agenda_term_matches(
+                    normalized_text,
+                    topic["terms"],
+                )
+            )
+        )
+
+        # Retained RSS summaries occasionally append publisher names.
+        # Publisher branding must never become substantive policy evidence.
+        for boilerplate in POLICY_AGENDA_SUMMARY_BOILERPLATE_TERMS:
+            if boilerplate in normalized_text:
+                if (
+                    boilerplate == "france 3 regions"
+                    and "regions" in matched_terms
+                ):
+                    matched_terms.remove("regions")
+
+                if (
+                    boilerplate == "public senat"
+                    and "senat" in matched_terms
+                ):
+                    matched_terms.remove("senat")
+
+        # "Universités d'été" are political gatherings, not university
+        # or education-policy coverage.
+        if any(
+            context in normalized_text
+            for context in POLICY_AGENDA_POLITICAL_UNIVERSITY_CONTEXT
+        ):
+            matched_terms = [
+                term
+                for term in matched_terms
+                if term not in {
+                    "universite",
+                    "universites",
+                }
+            ]
+
+        # A politician's or foreign leader's personal health is not
+        # healthcare-policy evidence.
+        if topic["id"] == "health_education_public_services":
+            if (
+                "sante" in matched_terms
+                and any(
+                    context in normalized_text
+                    for context in POLICY_AGENDA_HEALTH_PERSONAL_CONTEXT
+                )
+                and not any(
+                    policy_term in normalized_text
+                    for policy_term in (
+                        "hopital",
+                        "hopitaux",
+                        "medecin",
+                        "medecins",
+                        "soins",
+                        "deserts medicaux",
+                        "ehpad",
+                    )
+                )
+            ):
+                matched_terms.remove("sante")
+
+        # Generic health/education vocabulary only counts when the
+        # surrounding text actually establishes a policy question.
+        #
+        # Examples intentionally excluded:
+        # - fake news about a candidate's personal health
+        # - "l'école, rempart de la démocratie"
+        #
+        # Specific service/system vocabulary remains directly classifiable.
+        if topic["id"] == "health_education_public_services":
+            if (
+                "sante" in matched_terms
+                and not any(
+                    context in normalized_text
+                    for context in POLICY_AGENDA_HEALTH_POLICY_CONTEXT
+                )
+            ):
+                matched_terms.remove("sante")
+
+            generic_education_terms = {
+                "ecole",
+                "education",
+            }
+
+            if (
+                generic_education_terms.intersection(
+                    matched_terms
+                )
+                and not any(
+                    context in normalized_text
+                    for context in POLICY_AGENDA_EDUCATION_POLICY_CONTEXT
+                )
+            ):
+                matched_terms = [
+                    term
+                    for term in matched_terms
+                    if term
+                    not in generic_education_terms
+                ]
+
+        # sécurité civile / wildfire prevention belongs outside the
+        # crime-police-justice root unless independent security evidence exists.
+        if topic["id"] == "security_justice":
+            if (
+                "securite" in matched_terms
+                and any(
+                    context in normalized_text
+                    for context in POLICY_AGENDA_SECURITY_CIVIL_CONTEXT
+                )
+                and not any(
+                    policy_term in normalized_text
+                    for policy_term in (
+                        "police",
+                        "gendarmerie",
+                        "delinquance",
+                        "criminalite",
+                        "prison",
+                        "prisons",
+                        "terrorisme",
+                        "narcotrafic",
+                        "trafic de drogue",
+                    )
+                )
+            ):
+                matched_terms.remove("securite")
+
+        if not matched_terms:
+            continue
+
+        matched_subtopics: list[str] = []
+
+        for subtopic_id, terms in topic[
+            "subtopics"
+        ].items():
+            if set(
+                matched_terms
+            ).intersection(
+                terms
+            ):
+                matched_subtopics.append(
+                    subtopic_id
+                )
+
+        classifications.append(
+            {
+                "id": topic["id"],
+                "label": topic["label"],
+                "matched_terms": matched_terms,
+                "subtopics": sorted(
+                    matched_subtopics
+                ),
+            }
+        )
+
+    return classifications
+
 def classify_notable_development(
     normalized_text: str,
     matched_candidates: list[str],
@@ -3818,6 +4429,754 @@ def build_campaign_agenda(
         "topics": topics,
     }
 
+
+
+
+
+
+def build_policy_analysis_input(
+    relevant_news: list[dict[str, Any]],
+    inventory_entries: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Return accepted public news enriched with retained summaries.
+
+    The public relevant_news contract intentionally omits RSS summaries.
+    Policy classification nevertheless benefits from substantive context,
+    so summaries are reattached only inside the analytical pipeline.
+    """
+
+    summaries_by_id = {
+        str(entry.get("id") or ""): str(
+            entry.get("summary") or ""
+        )
+        for entry in inventory_entries
+        if isinstance(entry, dict)
+        and str(entry.get("id") or "")
+    }
+
+    enriched: list[dict[str, Any]] = []
+
+    for item in relevant_news:
+        analytical_item = dict(item)
+        analytical_item["summary"] = (
+            summaries_by_id.get(
+                str(item.get("id") or ""),
+                "",
+            )
+        )
+        enriched.append(analytical_item)
+
+    return enriched
+
+def policy_agenda_evolution_anchor(
+    relevant_news: list[dict[str, Any]],
+    generated_at: datetime | None,
+) -> datetime:
+    """Return deterministic UTC anchor for Policy Agenda evolution."""
+
+    if generated_at is not None:
+        if (
+            generated_at.tzinfo is None
+            or generated_at.utcoffset() is None
+        ):
+            raise ValueError(
+                "policy agenda generated_at must be timezone-aware"
+            )
+
+        return generated_at.astimezone(
+            timezone.utc
+        )
+
+    published = [
+        parsed
+        for item in relevant_news
+        if (
+            parsed := parse_feed_datetime(
+                item.get("published_at")
+            )
+        )
+        is not None
+    ]
+
+    if published:
+        return max(published).astimezone(
+            timezone.utc
+        )
+
+    return datetime(
+        1970,
+        1,
+        POLICY_AGENDA_EVOLUTION_DAYS,
+        tzinfo=timezone.utc,
+    )
+
+
+def build_policy_agenda_evolution(
+    topic_items: dict[str, list[dict[str, Any]]],
+    topic_labels: dict[str, str],
+    relevant_news: list[dict[str, Any]],
+    generated_at: datetime,
+) -> dict[str, Any]:
+    """Build 30-day issue recurrence and complete-week incidence."""
+
+    anchor = generated_at.astimezone(
+        timezone.utc
+    )
+    period_end = anchor.date()
+    period_start = period_end - timedelta(
+        days=POLICY_AGENDA_EVOLUTION_DAYS - 1
+    )
+
+    calendar_days = [
+        period_start + timedelta(days=offset)
+        for offset in range(
+            POLICY_AGENDA_EVOLUTION_DAYS
+        )
+    ]
+
+    latest_end = period_end - timedelta(
+        days=1
+    )
+    latest_start = latest_end - timedelta(
+        days=POLICY_AGENDA_COMPARISON_DAYS - 1
+    )
+    previous_end = latest_start - timedelta(
+        days=1
+    )
+    previous_start = previous_end - timedelta(
+        days=POLICY_AGENDA_COMPARISON_DAYS - 1
+    )
+
+    accepted_source_days_by_date: dict[
+        str,
+        set[tuple[str, str]],
+    ] = {}
+
+    for item in relevant_news:
+        published_at = str(
+            item.get("published_at") or ""
+        )
+        if len(published_at) < 10:
+            continue
+
+        date_key = published_at[:10]
+
+        if not (
+            period_start.isoformat()
+            <= date_key
+            <= period_end.isoformat()
+        ):
+            continue
+
+        publisher = str(
+            item.get("publisher") or ""
+        )
+        if not publisher:
+            continue
+
+        accepted_source_days_by_date.setdefault(
+            date_key,
+            set(),
+        ).add(
+            (publisher, date_key)
+        )
+
+    accepted_daily_activity = []
+
+    for current_date in calendar_days:
+        date_key = current_date.isoformat()
+        accepted_daily_activity.append(
+            {
+                "date": date_key,
+                "source_day_count": len(
+                    accepted_source_days_by_date.get(
+                        date_key,
+                        set(),
+                    )
+                ),
+            }
+        )
+
+    def accepted_source_days_between(
+        start_date,
+        end_date,
+    ) -> set[tuple[str, str]]:
+        result: set[tuple[str, str]] = set()
+
+        for date_key, source_days in (
+            accepted_source_days_by_date.items()
+        ):
+            if (
+                start_date.isoformat()
+                <= date_key
+                <= end_date.isoformat()
+            ):
+                result.update(source_days)
+
+        return result
+
+    latest_denominator = (
+        accepted_source_days_between(
+            latest_start,
+            latest_end,
+        )
+    )
+    previous_denominator = (
+        accepted_source_days_between(
+            previous_start,
+            previous_end,
+        )
+    )
+
+    evolution_topics: list[
+        dict[str, Any]
+    ] = []
+
+    for topic_id, items in topic_items.items():
+        period_items = [
+            item
+            for item in items
+            if (
+                period_start.isoformat()
+                <= item["published_at"][:10]
+                <= period_end.isoformat()
+            )
+        ]
+
+        items_by_date: dict[
+            str,
+            list[dict[str, Any]],
+        ] = {}
+
+        for item in period_items:
+            date_key = item[
+                "published_at"
+            ][:10]
+            items_by_date.setdefault(
+                date_key,
+                [],
+            ).append(item)
+
+        daily_activity = []
+
+        for current_date in calendar_days:
+            date_key = current_date.isoformat()
+            day_items = items_by_date.get(
+                date_key,
+                [],
+            )
+
+            topic_source_days = {
+                (
+                    item["publisher"],
+                    date_key,
+                )
+                for item in day_items
+            }
+
+            accepted_count = len(
+                accepted_source_days_by_date.get(
+                    date_key,
+                    set(),
+                )
+            )
+            topic_count = len(
+                topic_source_days
+            )
+
+            daily_activity.append(
+                {
+                    "date": date_key,
+                    "item_count": len(
+                        day_items
+                    ),
+                    "source_day_count": (
+                        topic_count
+                    ),
+                    "accepted_source_day_count": (
+                        accepted_count
+                    ),
+                    "incidence": (
+                        round(
+                            topic_count
+                            / accepted_count,
+                            6,
+                        )
+                        if accepted_count
+                        else 0.0
+                    ),
+                }
+            )
+
+        publishers = {
+            item["publisher"]
+            for item in period_items
+        }
+
+        source_days = {
+            (
+                item["publisher"],
+                item["published_at"][:10],
+            )
+            for item in period_items
+        }
+
+        active_days = {
+            item["published_at"][:10]
+            for item in period_items
+        }
+
+        matched_term_counts: dict[
+            str,
+            int,
+        ] = {}
+
+        for item in period_items:
+            for term in sorted(
+                set(
+                    item.get(
+                        "matched_terms",
+                        [],
+                    )
+                )
+            ):
+                matched_term_counts[term] = (
+                    matched_term_counts.get(
+                        term,
+                        0,
+                    )
+                    + 1
+                )
+
+        latest_topic_source_days = {
+            (
+                item["publisher"],
+                item["published_at"][:10],
+            )
+            for item in period_items
+            if (
+                latest_start.isoformat()
+                <= item["published_at"][:10]
+                <= latest_end.isoformat()
+            )
+        }
+
+        previous_topic_source_days = {
+            (
+                item["publisher"],
+                item["published_at"][:10],
+            )
+            for item in period_items
+            if (
+                previous_start.isoformat()
+                <= item["published_at"][:10]
+                <= previous_end.isoformat()
+            )
+        }
+
+        latest_incidence = (
+            len(latest_topic_source_days)
+            / len(latest_denominator)
+            if latest_denominator
+            else 0.0
+        )
+
+        previous_incidence = (
+            len(previous_topic_source_days)
+            / len(previous_denominator)
+            if previous_denominator
+            else 0.0
+        )
+
+        evolution_topics.append(
+            {
+                "id": topic_id,
+                "label": topic_labels[
+                    topic_id
+                ],
+                "item_count": len(
+                    period_items
+                ),
+                "publisher_count": len(
+                    publishers
+                ),
+                "source_day_count": len(
+                    source_days
+                ),
+                "active_day_count": len(
+                    active_days
+                ),
+                "display_eligible": (
+                    len(source_days)
+                    >= POLICY_AGENDA_DISPLAY_MIN_SOURCE_DAYS
+                ),
+                "latest_source_day_count": len(
+                    latest_topic_source_days
+                ),
+                "previous_source_day_count": len(
+                    previous_topic_source_days
+                ),
+                "latest_incidence": round(
+                    latest_incidence,
+                    6,
+                ),
+                "previous_incidence": round(
+                    previous_incidence,
+                    6,
+                ),
+                "incidence_change_pp": round(
+                    (
+                        latest_incidence
+                        - previous_incidence
+                    )
+                    * 100,
+                    3,
+                ),
+                "daily_activity": (
+                    daily_activity
+                ),
+                "matched_term_counts": [
+                    {
+                        "term": term,
+                        "item_count": count,
+                    }
+                    for term, count in sorted(
+                        matched_term_counts.items(),
+                        key=lambda pair: (
+                            -pair[1],
+                            pair[0],
+                        ),
+                    )
+                ],
+            }
+        )
+
+    evolution_topics.sort(
+        key=lambda topic: (
+            -topic["display_eligible"],
+            -topic["source_day_count"],
+            -topic["item_count"],
+            topic["label"],
+        )
+    )
+
+    return {
+        "period_days": (
+            POLICY_AGENDA_EVOLUTION_DAYS
+        ),
+        "period_start": (
+            period_start.isoformat()
+        ),
+        "period_end": (
+            period_end.isoformat()
+        ),
+        "period_end_partial": True,
+        "comparison_days": (
+            POLICY_AGENDA_COMPARISON_DAYS
+        ),
+        "latest_start": (
+            latest_start.isoformat()
+        ),
+        "latest_end": (
+            latest_end.isoformat()
+        ),
+        "previous_start": (
+            previous_start.isoformat()
+        ),
+        "previous_end": (
+            previous_end.isoformat()
+        ),
+        "accepted_daily_activity": (
+            accepted_daily_activity
+        ),
+        "topics": evolution_topics,
+    }
+
+
+def build_policy_agenda(
+    relevant_news: list[dict[str, Any]],
+    window_days: int,
+    generated_at: datetime | None = None,
+) -> dict[str, Any]:
+    """Build deterministic multi-label substantive Policy Agenda."""
+
+    topic_items: dict[
+        str,
+        list[dict[str, Any]],
+    ] = {}
+    topic_labels: dict[str, str] = {}
+
+    classified_item_ids: set[str] = set()
+    label_assignment_count = 0
+
+    for item in relevant_news:
+        classifications = (
+            classify_policy_agenda(
+                str(
+                    item.get("headline")
+                    or ""
+                ),
+                str(
+                    item.get("summary")
+                    or ""
+                ),
+            )
+        )
+
+        if not classifications:
+            continue
+
+        item_id = str(
+            item.get("id") or ""
+        )
+
+        classified_item_ids.add(
+            item_id
+        )
+        label_assignment_count += len(
+            classifications
+        )
+
+        for classification in classifications:
+            topic_id = classification[
+                "id"
+            ]
+            topic_labels[topic_id] = (
+                classification["label"]
+            )
+
+            topic_items.setdefault(
+                topic_id,
+                [],
+            ).append(
+                {
+                    "id": item["id"],
+                    "publisher": item[
+                        "publisher"
+                    ],
+                    "published_at": item[
+                        "published_at"
+                    ],
+                    "headline": item[
+                        "headline"
+                    ],
+                    "url": item["url"],
+                    "candidates": list(
+                        item.get(
+                            "candidates",
+                            [],
+                        )
+                    ),
+                    "matched_terms": list(
+                        classification[
+                            "matched_terms"
+                        ]
+                    ),
+                    "subtopics": list(
+                        classification[
+                            "subtopics"
+                        ]
+                    ),
+                }
+            )
+
+    topics: list[dict[str, Any]] = []
+
+    for topic_id, items in topic_items.items():
+        items.sort(
+            key=campaign_agenda_support_sort_key
+        )
+
+        publishers = sorted(
+            {
+                item["publisher"]
+                for item in items
+            }
+        )
+
+        active_days = {
+            item["published_at"][:10]
+            for item in items
+        }
+
+        source_days = {
+            (
+                item["publisher"],
+                item["published_at"][:10],
+            )
+            for item in items
+        }
+
+        subtopic_counts: dict[
+            str,
+            int,
+        ] = {}
+
+        candidate_counts: dict[
+            str,
+            int,
+        ] = {}
+
+        for item in items:
+            for subtopic in set(
+                item.get(
+                    "subtopics",
+                    [],
+                )
+            ):
+                subtopic_counts[subtopic] = (
+                    subtopic_counts.get(
+                        subtopic,
+                        0,
+                    )
+                    + 1
+                )
+
+            for candidate in set(
+                item.get(
+                    "candidates",
+                    [],
+                )
+            ):
+                candidate_name = str(
+                    candidate
+                ).strip()
+
+                if not candidate_name:
+                    continue
+
+                candidate_counts[
+                    candidate_name
+                ] = (
+                    candidate_counts.get(
+                        candidate_name,
+                        0,
+                    )
+                    + 1
+                )
+
+        supporting_items = items[
+            :POLICY_AGENDA_SUPPORT_LIMIT
+        ]
+
+        topics.append(
+            {
+                "id": topic_id,
+                "label": topic_labels[
+                    topic_id
+                ],
+                "item_count": len(items),
+                "publisher_count": len(
+                    publishers
+                ),
+                "publisher_names": (
+                    publishers
+                ),
+                "source_day_count": len(
+                    source_days
+                ),
+                "active_day_count": len(
+                    active_days
+                ),
+                "display_eligible": (
+                    len(source_days)
+                    >= POLICY_AGENDA_DISPLAY_MIN_SOURCE_DAYS
+                ),
+                "subtopic_counts": [
+                    {
+                        "id": subtopic,
+                        "item_count": count,
+                    }
+                    for subtopic, count in sorted(
+                        subtopic_counts.items(),
+                        key=lambda pair: (
+                            -pair[1],
+                            pair[0],
+                        ),
+                    )
+                ],
+                "candidate_counts": [
+                    {
+                        "candidate": candidate,
+                        "item_count": count,
+                    }
+                    for candidate, count in sorted(
+                        candidate_counts.items(),
+                        key=lambda pair: (
+                            -pair[1],
+                            pair[0].casefold(),
+                        ),
+                    )
+                ],
+                "supporting_item_count": len(
+                    supporting_items
+                ),
+                "omitted_item_count": (
+                    len(items)
+                    - len(supporting_items)
+                ),
+                "supporting_items": (
+                    supporting_items
+                ),
+            }
+        )
+
+    topics.sort(
+        key=lambda topic: (
+            -topic["display_eligible"],
+            -topic["source_day_count"],
+            -topic["item_count"],
+            topic["label"],
+        )
+    )
+
+    evolution_anchor = (
+        policy_agenda_evolution_anchor(
+            relevant_news,
+            generated_at,
+        )
+    )
+
+    evolution = (
+        build_policy_agenda_evolution(
+            topic_items,
+            topic_labels,
+            relevant_news,
+            evolution_anchor,
+        )
+    )
+
+    input_item_count = len(
+        relevant_news
+    )
+    classified_item_count = len(
+        classified_item_ids
+    )
+
+    return {
+        "window_days": window_days,
+        "input_item_count": (
+            input_item_count
+        ),
+        "classified_item_count": (
+            classified_item_count
+        ),
+        "unclassified_item_count": (
+            input_item_count
+            - classified_item_count
+        ),
+        "label_assignment_count": (
+            label_assignment_count
+        ),
+        "method": (
+            "accepted_relevant_news_by_policy_issue_multilabel"
+        ),
+        "display_min_source_days": (
+            POLICY_AGENDA_DISPLAY_MIN_SOURCE_DAYS
+        ),
+        "evolution": evolution,
+        "topics": topics,
+    }
 
 def make_item_id(canonical: str, publisher: str, headline: str) -> str:
     identity = canonical or f"{publisher}|{headline}"
@@ -6274,6 +7633,1228 @@ def validate_campaign_agenda(
         )
 
 
+
+
+def validate_policy_agenda_topic(
+    topic: Any,
+    seen_topic_ids: set[str],
+) -> set[str]:
+    """Validate one multi-label Policy Agenda root."""
+
+    taxonomy = {
+        item["id"]: item
+        for item in POLICY_AGENDA_TOPICS
+    }
+
+    required = {
+        "id",
+        "label",
+        "item_count",
+        "publisher_count",
+        "publisher_names",
+        "source_day_count",
+        "active_day_count",
+        "display_eligible",
+        "subtopic_counts",
+        "candidate_counts",
+        "supporting_item_count",
+        "omitted_item_count",
+        "supporting_items",
+    }
+
+    if (
+        not isinstance(topic, dict)
+        or set(topic) != required
+    ):
+        raise RuntimeError(
+            "policy_agenda topic has unexpected fields"
+        )
+
+    topic_id = topic["id"]
+
+    if (
+        not isinstance(topic_id, str)
+        or topic_id not in taxonomy
+        or topic_id in seen_topic_ids
+    ):
+        raise RuntimeError(
+            "policy_agenda topic id is invalid"
+        )
+
+    definition = taxonomy[topic_id]
+
+    if topic["label"] != definition["label"]:
+        raise RuntimeError(
+            "policy_agenda topic label is invalid"
+        )
+
+    count_fields = (
+        "item_count",
+        "publisher_count",
+        "source_day_count",
+        "active_day_count",
+        "supporting_item_count",
+        "omitted_item_count",
+    )
+
+    if any(
+        type(topic[field]) is not int
+        or topic[field] < 0
+        for field in count_fields
+    ):
+        raise RuntimeError(
+            "policy_agenda topic counts are invalid"
+        )
+
+    if (
+        topic["publisher_count"]
+        > topic["item_count"]
+        or topic["source_day_count"]
+        > topic["item_count"]
+        or topic["active_day_count"]
+        > topic["source_day_count"]
+    ):
+        raise RuntimeError(
+            "policy_agenda topic counts are inconsistent"
+        )
+
+    if (
+        type(topic["display_eligible"]) is not bool
+        or topic["display_eligible"]
+        != (
+            topic["source_day_count"]
+            >= POLICY_AGENDA_DISPLAY_MIN_SOURCE_DAYS
+        )
+    ):
+        raise RuntimeError(
+            "policy_agenda display eligibility is invalid"
+        )
+
+    publisher_names = topic["publisher_names"]
+
+    if (
+        not isinstance(publisher_names, list)
+        or any(
+            not isinstance(name, str)
+            or not name.strip()
+            or name != name.strip()
+            for name in publisher_names
+        )
+        or publisher_names != sorted(
+            publisher_names
+        )
+        or len(publisher_names)
+        != len(set(publisher_names))
+        or topic["publisher_count"]
+        != len(publisher_names)
+    ):
+        raise RuntimeError(
+            "policy_agenda publisher evidence is invalid"
+        )
+
+    subtopic_definitions = set(
+        definition["subtopics"]
+    )
+    subtopic_counts = topic[
+        "subtopic_counts"
+    ]
+
+    if not isinstance(subtopic_counts, list):
+        raise RuntimeError(
+            "policy_agenda subtopic counts are invalid"
+        )
+
+    subtopic_ids: list[str] = []
+    subtopic_order = []
+
+    for item in subtopic_counts:
+        if (
+            not isinstance(item, dict)
+            or set(item)
+            != {"id", "item_count"}
+            or item["id"]
+            not in subtopic_definitions
+            or type(item["item_count"])
+            is not int
+            or item["item_count"] < 1
+            or item["item_count"]
+            > topic["item_count"]
+        ):
+            raise RuntimeError(
+                "policy_agenda subtopic count is invalid"
+            )
+
+        subtopic_ids.append(item["id"])
+        subtopic_order.append(
+            (
+                -item["item_count"],
+                item["id"],
+            )
+        )
+
+    if (
+        len(subtopic_ids)
+        != len(set(subtopic_ids))
+        or subtopic_order
+        != sorted(subtopic_order)
+    ):
+        raise RuntimeError(
+            "policy_agenda subtopic ordering is invalid"
+        )
+
+    candidate_counts = topic[
+        "candidate_counts"
+    ]
+
+    if not isinstance(candidate_counts, list):
+        raise RuntimeError(
+            "policy_agenda candidate counts are invalid"
+        )
+
+    candidate_names: list[str] = []
+    candidate_order = []
+
+    for item in candidate_counts:
+        if (
+            not isinstance(item, dict)
+            or set(item)
+            != {"candidate", "item_count"}
+            or not isinstance(
+                item["candidate"],
+                str,
+            )
+            or not item["candidate"].strip()
+            or item["candidate"]
+            != item["candidate"].strip()
+            or type(item["item_count"])
+            is not int
+            or item["item_count"] < 1
+            or item["item_count"]
+            > topic["item_count"]
+        ):
+            raise RuntimeError(
+                "policy_agenda candidate count is invalid"
+            )
+
+        candidate_names.append(
+            item["candidate"]
+        )
+        candidate_order.append(
+            (
+                -item["item_count"],
+                item["candidate"].casefold(),
+            )
+        )
+
+    if (
+        len(candidate_names)
+        != len(set(candidate_names))
+        or candidate_order
+        != sorted(candidate_order)
+    ):
+        raise RuntimeError(
+            "policy_agenda candidate ordering is invalid"
+        )
+
+    supporting_items = topic[
+        "supporting_items"
+    ]
+
+    if not isinstance(supporting_items, list):
+        raise RuntimeError(
+            "policy_agenda supporting_items is invalid"
+        )
+
+    expected_support_count = min(
+        topic["item_count"],
+        POLICY_AGENDA_SUPPORT_LIMIT,
+    )
+
+    if (
+        topic["supporting_item_count"]
+        != len(supporting_items)
+        or topic["supporting_item_count"]
+        != expected_support_count
+        or topic["omitted_item_count"]
+        != (
+            topic["item_count"]
+            - len(supporting_items)
+        )
+    ):
+        raise RuntimeError(
+            "policy_agenda supporting item count is invalid"
+        )
+
+    allowed_terms = set(
+        definition["terms"]
+    )
+    support_ids: list[str] = []
+
+    expected_item_keys = {
+        "id",
+        "publisher",
+        "published_at",
+        "headline",
+        "url",
+        "candidates",
+        "matched_terms",
+        "subtopics",
+    }
+
+    for item in supporting_items:
+        if (
+            not isinstance(item, dict)
+            or set(item)
+            != expected_item_keys
+        ):
+            raise RuntimeError(
+                "policy_agenda supporting item has unexpected fields"
+            )
+
+        item_id = item["id"]
+
+        if (
+            not isinstance(item_id, str)
+            or not item_id.strip()
+            or not isinstance(
+                item["publisher"],
+                str,
+            )
+            or not item["publisher"].strip()
+            or not isinstance(
+                item["headline"],
+                str,
+            )
+            or not item["headline"].strip()
+            or parse_feed_datetime(
+                item["published_at"]
+            )
+            is None
+            or not isinstance(
+                item["url"],
+                str,
+            )
+            or not item["url"].startswith(
+                ("http://", "https://")
+            )
+        ):
+            raise RuntimeError(
+                "policy_agenda supporting item is invalid"
+            )
+
+        support_ids.append(item_id)
+
+        candidates = item["candidates"]
+
+        if (
+            not isinstance(candidates, list)
+            or any(
+                not isinstance(candidate, str)
+                or not candidate.strip()
+                for candidate in candidates
+            )
+            or len(candidates)
+            != len(set(candidates))
+        ):
+            raise RuntimeError(
+                "policy_agenda candidate provenance is invalid"
+            )
+
+        matched_terms = item[
+            "matched_terms"
+        ]
+
+        if (
+            not isinstance(matched_terms, list)
+            or not matched_terms
+            or matched_terms
+            != sorted(set(matched_terms))
+            or any(
+                term not in allowed_terms
+                for term in matched_terms
+            )
+        ):
+            raise RuntimeError(
+                "policy_agenda matched term provenance is invalid"
+            )
+
+        subtopics = item["subtopics"]
+
+        if (
+            not isinstance(subtopics, list)
+            or subtopics
+            != sorted(set(subtopics))
+            or any(
+                subtopic
+                not in subtopic_definitions
+                for subtopic in subtopics
+            )
+        ):
+            raise RuntimeError(
+                "policy_agenda subtopic provenance is invalid"
+            )
+
+    if (
+        len(support_ids)
+        != len(set(support_ids))
+    ):
+        raise RuntimeError(
+            "policy_agenda supporting items contain duplicate ids"
+        )
+
+    ordering = [
+        campaign_agenda_support_sort_key(
+            item
+        )
+        for item in supporting_items
+    ]
+
+    if ordering != sorted(ordering):
+        raise RuntimeError(
+            "policy_agenda supporting item order is invalid"
+        )
+
+    seen_topic_ids.add(topic_id)
+
+    return set(support_ids)
+
+
+def validate_policy_agenda_evolution(
+    evolution: Any,
+    agenda_topics: list[dict[str, Any]],
+    relevant_news: list[dict[str, Any]],
+) -> None:
+    """Validate exact 30D recurrence and 7D incidence math."""
+
+    taxonomy = {
+        item["id"]: item
+        for item in POLICY_AGENDA_TOPICS
+    }
+
+    required = {
+        "period_days",
+        "period_start",
+        "period_end",
+        "period_end_partial",
+        "comparison_days",
+        "latest_start",
+        "latest_end",
+        "previous_start",
+        "previous_end",
+        "accepted_daily_activity",
+        "topics",
+    }
+
+    if (
+        not isinstance(evolution, dict)
+        or set(evolution) != required
+    ):
+        raise RuntimeError(
+            "policy_agenda evolution has unexpected fields"
+        )
+
+    if (
+        evolution["period_days"]
+        != POLICY_AGENDA_EVOLUTION_DAYS
+        or evolution["comparison_days"]
+        != POLICY_AGENDA_COMPARISON_DAYS
+        or type(
+            evolution["period_end_partial"]
+        )
+        is not bool
+        or not evolution[
+            "period_end_partial"
+        ]
+    ):
+        raise RuntimeError(
+            "policy_agenda evolution window is invalid"
+        )
+
+    try:
+        period_start = date.fromisoformat(
+            evolution["period_start"]
+        )
+        period_end = date.fromisoformat(
+            evolution["period_end"]
+        )
+        latest_start = date.fromisoformat(
+            evolution["latest_start"]
+        )
+        latest_end = date.fromisoformat(
+            evolution["latest_end"]
+        )
+        previous_start = date.fromisoformat(
+            evolution["previous_start"]
+        )
+        previous_end = date.fromisoformat(
+            evolution["previous_end"]
+        )
+    except (TypeError, ValueError) as error:
+        raise RuntimeError(
+            "policy_agenda evolution dates are invalid"
+        ) from error
+
+    if (
+        period_start
+        != period_end
+        - timedelta(
+            days=POLICY_AGENDA_EVOLUTION_DAYS - 1
+        )
+        or latest_end
+        != period_end - timedelta(days=1)
+        or latest_start
+        != latest_end
+        - timedelta(
+            days=POLICY_AGENDA_COMPARISON_DAYS - 1
+        )
+        or previous_end
+        != latest_start - timedelta(days=1)
+        or previous_start
+        != previous_end
+        - timedelta(
+            days=POLICY_AGENDA_COMPARISON_DAYS - 1
+        )
+    ):
+        raise RuntimeError(
+            "policy_agenda evolution date windows are inconsistent"
+        )
+
+    expected_dates = [
+        (
+            period_start
+            + timedelta(days=offset)
+        ).isoformat()
+        for offset in range(
+            POLICY_AGENDA_EVOLUTION_DAYS
+        )
+    ]
+
+    accepted_expected: dict[
+        str,
+        set[tuple[str, str]],
+    ] = {
+        date_key: set()
+        for date_key in expected_dates
+    }
+
+    for item in relevant_news:
+        if not isinstance(item, dict):
+            continue
+
+        published_at = str(
+            item.get("published_at") or ""
+        )
+        publisher = str(
+            item.get("publisher") or ""
+        )
+
+        if (
+            len(published_at) < 10
+            or not publisher
+        ):
+            continue
+
+        date_key = published_at[:10]
+
+        if date_key in accepted_expected:
+            accepted_expected[
+                date_key
+            ].add(
+                (publisher, date_key)
+            )
+
+    accepted_daily = evolution[
+        "accepted_daily_activity"
+    ]
+
+    if (
+        not isinstance(accepted_daily, list)
+        or len(accepted_daily)
+        != POLICY_AGENDA_EVOLUTION_DAYS
+    ):
+        raise RuntimeError(
+            "policy_agenda accepted daily activity is invalid"
+        )
+
+    accepted_by_date: dict[str, int] = {}
+
+    for expected_date, day in zip(
+        expected_dates,
+        accepted_daily,
+    ):
+        if (
+            not isinstance(day, dict)
+            or set(day)
+            != {
+                "date",
+                "source_day_count",
+            }
+            or day["date"]
+            != expected_date
+            or type(
+                day["source_day_count"]
+            )
+            is not int
+            or day["source_day_count"] < 0
+            or day["source_day_count"]
+            != len(
+                accepted_expected[
+                    expected_date
+                ]
+            )
+        ):
+            raise RuntimeError(
+                "policy_agenda accepted daily parity is invalid"
+            )
+
+        accepted_by_date[
+            expected_date
+        ] = day["source_day_count"]
+
+    evolution_topics = evolution[
+        "topics"
+    ]
+
+    if not isinstance(
+        evolution_topics,
+        list,
+    ):
+        raise RuntimeError(
+            "policy_agenda evolution topics is invalid"
+        )
+
+    agenda_ids = {
+        topic["id"]
+        for topic in agenda_topics
+    }
+    evolution_ids: set[str] = set()
+    ordering = []
+
+    for topic in evolution_topics:
+        required_topic = {
+            "id",
+            "label",
+            "item_count",
+            "publisher_count",
+            "source_day_count",
+            "active_day_count",
+            "display_eligible",
+            "latest_source_day_count",
+            "previous_source_day_count",
+            "latest_incidence",
+            "previous_incidence",
+            "incidence_change_pp",
+            "daily_activity",
+            "matched_term_counts",
+        }
+
+        if (
+            not isinstance(topic, dict)
+            or set(topic)
+            != required_topic
+        ):
+            raise RuntimeError(
+                "policy_agenda evolution topic has unexpected fields"
+            )
+
+        topic_id = topic["id"]
+
+        if (
+            topic_id not in taxonomy
+            or topic_id in evolution_ids
+            or topic["label"]
+            != taxonomy[topic_id][
+                "label"
+            ]
+        ):
+            raise RuntimeError(
+                "policy_agenda evolution topic identity is invalid"
+            )
+
+        evolution_ids.add(topic_id)
+
+        for field in (
+            "item_count",
+            "publisher_count",
+            "source_day_count",
+            "active_day_count",
+            "latest_source_day_count",
+            "previous_source_day_count",
+        ):
+            if (
+                type(topic[field]) is not int
+                or topic[field] < 0
+            ):
+                raise RuntimeError(
+                    "policy_agenda evolution counts are invalid"
+                )
+
+        if (
+            topic["publisher_count"]
+            > topic["item_count"]
+            or topic["source_day_count"]
+            > topic["item_count"]
+            or topic["active_day_count"]
+            > topic["source_day_count"]
+        ):
+            raise RuntimeError(
+                "policy_agenda evolution counts are inconsistent"
+            )
+
+        if (
+            type(
+                topic["display_eligible"]
+            )
+            is not bool
+            or topic["display_eligible"]
+            != (
+                topic["source_day_count"]
+                >= POLICY_AGENDA_DISPLAY_MIN_SOURCE_DAYS
+            )
+        ):
+            raise RuntimeError(
+                "policy_agenda evolution eligibility is invalid"
+            )
+
+        for field in (
+            "latest_incidence",
+            "previous_incidence",
+            "incidence_change_pp",
+        ):
+            if (
+                isinstance(
+                    topic[field],
+                    bool,
+                )
+                or not isinstance(
+                    topic[field],
+                    (int, float),
+                )
+                or not math.isfinite(
+                    topic[field]
+                )
+            ):
+                raise RuntimeError(
+                    "policy_agenda incidence metric is invalid"
+                )
+
+        if (
+            not 0
+            <= topic["latest_incidence"]
+            <= 1
+            or not 0
+            <= topic["previous_incidence"]
+            <= 1
+            or not -100
+            <= topic["incidence_change_pp"]
+            <= 100
+        ):
+            raise RuntimeError(
+                "policy_agenda incidence range is invalid"
+            )
+
+        daily_activity = topic[
+            "daily_activity"
+        ]
+
+        if (
+            not isinstance(
+                daily_activity,
+                list,
+            )
+            or len(daily_activity)
+            != POLICY_AGENDA_EVOLUTION_DAYS
+        ):
+            raise RuntimeError(
+                "policy_agenda daily activity is invalid"
+            )
+
+        item_total = 0
+        source_day_total = 0
+        active_day_total = 0
+        latest_topic_total = 0
+        previous_topic_total = 0
+
+        for expected_date, day in zip(
+            expected_dates,
+            daily_activity,
+        ):
+            if (
+                not isinstance(day, dict)
+                or set(day)
+                != {
+                    "date",
+                    "item_count",
+                    "source_day_count",
+                    "accepted_source_day_count",
+                    "incidence",
+                }
+                or day["date"]
+                != expected_date
+                or type(
+                    day["item_count"]
+                )
+                is not int
+                or day["item_count"] < 0
+                or type(
+                    day["source_day_count"]
+                )
+                is not int
+                or day["source_day_count"] < 0
+                or type(
+                    day[
+                        "accepted_source_day_count"
+                    ]
+                )
+                is not int
+                or day[
+                    "accepted_source_day_count"
+                ] < 0
+                or day["source_day_count"]
+                > day["item_count"]
+                or day["source_day_count"]
+                > day[
+                    "accepted_source_day_count"
+                ]
+            ):
+                raise RuntimeError(
+                    "policy_agenda daily value is invalid"
+                )
+
+            accepted_count = (
+                accepted_by_date[
+                    expected_date
+                ]
+            )
+
+            if (
+                day[
+                    "accepted_source_day_count"
+                ]
+                != accepted_count
+            ):
+                raise RuntimeError(
+                    "policy_agenda daily denominator parity is invalid"
+                )
+
+            expected_incidence = (
+                round(
+                    day[
+                        "source_day_count"
+                    ]
+                    / accepted_count,
+                    6,
+                )
+                if accepted_count
+                else 0.0
+            )
+
+            if (
+                isinstance(
+                    day["incidence"],
+                    bool,
+                )
+                or not isinstance(
+                    day["incidence"],
+                    (int, float),
+                )
+                or day["incidence"]
+                != expected_incidence
+            ):
+                raise RuntimeError(
+                    "policy_agenda daily incidence is invalid"
+                )
+
+            item_total += day[
+                "item_count"
+            ]
+            source_day_total += day[
+                "source_day_count"
+            ]
+            active_day_total += (
+                day["item_count"] > 0
+            )
+
+            current_date = date.fromisoformat(
+                expected_date
+            )
+
+            if (
+                latest_start
+                <= current_date
+                <= latest_end
+            ):
+                latest_topic_total += day[
+                    "source_day_count"
+                ]
+
+            if (
+                previous_start
+                <= current_date
+                <= previous_end
+            ):
+                previous_topic_total += day[
+                    "source_day_count"
+                ]
+
+        if (
+            item_total
+            != topic["item_count"]
+            or source_day_total
+            != topic["source_day_count"]
+            or active_day_total
+            != topic["active_day_count"]
+        ):
+            raise RuntimeError(
+                "policy_agenda evolution daily totals are inconsistent"
+            )
+
+        latest_denominator = sum(
+            count
+            for date_key, count
+            in accepted_by_date.items()
+            if (
+                latest_start.isoformat()
+                <= date_key
+                <= latest_end.isoformat()
+            )
+        )
+
+        previous_denominator = sum(
+            count
+            for date_key, count
+            in accepted_by_date.items()
+            if (
+                previous_start.isoformat()
+                <= date_key
+                <= previous_end.isoformat()
+            )
+        )
+
+        latest_ratio = (
+            latest_topic_total
+            / latest_denominator
+            if latest_denominator
+            else 0.0
+        )
+        previous_ratio = (
+            previous_topic_total
+            / previous_denominator
+            if previous_denominator
+            else 0.0
+        )
+
+        if (
+            topic[
+                "latest_source_day_count"
+            ]
+            != latest_topic_total
+            or topic[
+                "previous_source_day_count"
+            ]
+            != previous_topic_total
+            or topic["latest_incidence"]
+            != round(
+                latest_ratio,
+                6,
+            )
+            or topic[
+                "previous_incidence"
+            ]
+            != round(
+                previous_ratio,
+                6,
+            )
+            or topic[
+                "incidence_change_pp"
+            ]
+            != round(
+                (
+                    latest_ratio
+                    - previous_ratio
+                )
+                * 100,
+                3,
+            )
+        ):
+            raise RuntimeError(
+                "policy_agenda comparison incidence is inconsistent"
+            )
+
+        matched_terms = topic[
+            "matched_term_counts"
+        ]
+        allowed_terms = set(
+            taxonomy[topic_id][
+                "terms"
+            ]
+        )
+
+        if not isinstance(
+            matched_terms,
+            list,
+        ):
+            raise RuntimeError(
+                "policy_agenda matched term counts are invalid"
+            )
+
+        names = []
+        matched_order = []
+
+        for item in matched_terms:
+            if (
+                not isinstance(item, dict)
+                or set(item)
+                != {"term", "item_count"}
+                or item["term"]
+                not in allowed_terms
+                or type(
+                    item["item_count"]
+                )
+                is not int
+                or item["item_count"] < 1
+                or item["item_count"]
+                > topic["item_count"]
+            ):
+                raise RuntimeError(
+                    "policy_agenda matched term count is invalid"
+                )
+
+            names.append(item["term"])
+            matched_order.append(
+                (
+                    -item["item_count"],
+                    item["term"],
+                )
+            )
+
+        if (
+            len(names)
+            != len(set(names))
+            or matched_order
+            != sorted(matched_order)
+        ):
+            raise RuntimeError(
+                "policy_agenda matched term ordering is invalid"
+            )
+
+        ordering.append(
+            (
+                not topic[
+                    "display_eligible"
+                ],
+                -topic[
+                    "source_day_count"
+                ],
+                -topic["item_count"],
+                topic["label"],
+            )
+        )
+
+    if evolution_ids != agenda_ids:
+        raise RuntimeError(
+            "policy_agenda evolution topics do not match agenda topics"
+        )
+
+    if ordering != sorted(ordering):
+        raise RuntimeError(
+            "policy_agenda evolution topic order is invalid"
+        )
+
+
+def validate_policy_agenda(
+    policy_agenda: Any,
+    relevant_news: Any,
+) -> None:
+    """Validate the multi-label Policy Agenda public contract."""
+
+    required = {
+        "window_days",
+        "input_item_count",
+        "classified_item_count",
+        "unclassified_item_count",
+        "label_assignment_count",
+        "method",
+        "display_min_source_days",
+        "evolution",
+        "topics",
+    }
+
+    if (
+        not isinstance(
+            policy_agenda,
+            dict,
+        )
+        or set(policy_agenda)
+        != required
+    ):
+        raise RuntimeError(
+            "policy_agenda has unexpected fields"
+        )
+
+    if not isinstance(
+        relevant_news,
+        list,
+    ):
+        raise RuntimeError(
+            "policy_agenda relevant_news input is invalid"
+        )
+
+    if (
+        policy_agenda["method"]
+        != "accepted_relevant_news_by_policy_issue_multilabel"
+    ):
+        raise RuntimeError(
+            "policy_agenda method is invalid"
+        )
+
+    for field in (
+        "window_days",
+        "input_item_count",
+        "classified_item_count",
+        "unclassified_item_count",
+        "label_assignment_count",
+        "display_min_source_days",
+    ):
+        if (
+            type(
+                policy_agenda[field]
+            )
+            is not int
+            or policy_agenda[field] < 0
+        ):
+            raise RuntimeError(
+                "policy_agenda counts are invalid"
+            )
+
+    if (
+        policy_agenda[
+            "window_days"
+        ] < 1
+        or policy_agenda[
+            "display_min_source_days"
+        ]
+        != POLICY_AGENDA_DISPLAY_MIN_SOURCE_DAYS
+        or policy_agenda[
+            "input_item_count"
+        ]
+        != len(relevant_news)
+        or (
+            policy_agenda[
+                "classified_item_count"
+            ]
+            + policy_agenda[
+                "unclassified_item_count"
+            ]
+        )
+        != policy_agenda[
+            "input_item_count"
+        ]
+        or policy_agenda[
+            "classified_item_count"
+        ]
+        > policy_agenda[
+            "input_item_count"
+        ]
+        or policy_agenda[
+            "label_assignment_count"
+        ]
+        < policy_agenda[
+            "classified_item_count"
+        ]
+    ):
+        raise RuntimeError(
+            "policy_agenda coverage counts are inconsistent"
+        )
+
+    topics = policy_agenda[
+        "topics"
+    ]
+
+    if (
+        not isinstance(topics, list)
+        or len(topics)
+        > len(POLICY_AGENDA_TOPICS)
+    ):
+        raise RuntimeError(
+            "policy_agenda topics is invalid"
+        )
+
+    seen_topic_ids: set[str] = set()
+    supporting_ids: set[str] = set()
+    topic_order = []
+
+    for topic in topics:
+        supporting_ids.update(
+            validate_policy_agenda_topic(
+                topic,
+                seen_topic_ids,
+            )
+        )
+
+        topic_order.append(
+            (
+                not topic[
+                    "display_eligible"
+                ],
+                -topic[
+                    "source_day_count"
+                ],
+                -topic["item_count"],
+                topic["label"],
+            )
+        )
+
+    if topic_order != sorted(topic_order):
+        raise RuntimeError(
+            "policy_agenda topic order is invalid"
+        )
+
+    if (
+        sum(
+            topic["item_count"]
+            for topic in topics
+        )
+        != policy_agenda[
+            "label_assignment_count"
+        ]
+    ):
+        raise RuntimeError(
+            "policy_agenda label assignment count is inconsistent"
+        )
+
+    if (
+        policy_agenda[
+            "classified_item_count"
+        ] == 0
+        and policy_agenda[
+            "label_assignment_count"
+        ] != 0
+    ):
+        raise RuntimeError(
+            "policy_agenda empty classification is inconsistent"
+        )
+
+    relevant_ids = {
+        str(item.get("id") or "")
+        for item in relevant_news
+        if isinstance(item, dict)
+        and str(item.get("id") or "")
+    }
+
+    if not supporting_ids.issubset(
+        relevant_ids
+    ):
+        raise RuntimeError(
+            "policy_agenda evidence is not a subset of relevant_news"
+        )
+
+    validate_policy_agenda_evolution(
+        policy_agenda["evolution"],
+        topics,
+        relevant_news,
+    )
+
 def validate_output(payload: dict[str, Any]) -> None:
     sources = payload.get("sources")
     election_news = payload.get("election_news")
@@ -6617,6 +9198,15 @@ def validate_output(payload: dict[str, Any]) -> None:
 
     validate_campaign_agenda(
         campaign_agenda,
+        relevant_news,
+    )
+
+    policy_agenda = payload.get(
+        "policy_agenda"
+    )
+
+    validate_policy_agenda(
+        policy_agenda,
         relevant_news,
     )
 
@@ -7372,6 +9962,19 @@ def build_wire(
         generated_at,
     )
 
+    policy_relevant_news = (
+        build_policy_analysis_input(
+            relevant_news,
+            list(deduplicated.values()),
+        )
+    )
+
+    policy_agenda = build_policy_agenda(
+        policy_relevant_news,
+        window_days,
+        generated_at,
+    )
+
     discovered_publishers_payload = aggregate_discovered_publishers(
         rejected_shared_discovery_entries
         + rejected_publisher_site_entries
@@ -7586,6 +10189,7 @@ def build_wire(
             "candidate_watch": len(candidate_watch),
         },
         "campaign_agenda": campaign_agenda,
+        "policy_agenda": policy_agenda,
         "candidate_visibility": build_candidate_visibility(
             candidate_watch,
             generated_at,
