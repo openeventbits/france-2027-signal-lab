@@ -103,6 +103,10 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
             self.workflow,
             "Rebuild Candidate Signals on registry change",
         )
+        visibility_history = step_block(
+            self.workflow,
+            "Rebuild Candidate Visibility History on registry change",
+        )
         manifest = step_block(
             self.workflow,
             "Rebuild publication manifest on registry change",
@@ -138,6 +142,32 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
         self.assertIn("validate_candidate_signals", signals)
         self.assertIn("atomic_write(", signals)
 
+        self.assertIn(change_gate, visibility_history)
+        self.assertIn(
+            "python -B build_candidate_visibility_history.py",
+            visibility_history,
+        )
+        self.assertIn(
+            "--news news_wire.json",
+            visibility_history,
+        )
+        self.assertIn(
+            "--candidacy-status candidate_candidacy_status.json",
+            visibility_history,
+        )
+        self.assertIn(
+            "--output /tmp/candidate_visibility_history.json",
+            visibility_history,
+        )
+        self.assertIn(
+            "validate_candidate_visibility_history",
+            visibility_history,
+        )
+        self.assertIn(
+            "atomic_write_bytes",
+            visibility_history,
+        )
+
         self.assertIn(change_gate, manifest)
         self.assertIn("/tmp/publication_manifest.json", manifest)
         self.assertIn("validate_manifest", manifest)
@@ -148,12 +178,22 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
         signals_position = self.workflow.index(
             "Rebuild Candidate Signals on registry change"
         )
+        visibility_history_position = self.workflow.index(
+            "Rebuild Candidate Visibility History on registry change"
+        )
         manifest_position = self.workflow.index(
             "Rebuild publication manifest on registry change"
         )
 
         self.assertLess(campaign_position, signals_position)
-        self.assertLess(signals_position, manifest_position)
+        self.assertLess(
+            signals_position,
+            visibility_history_position,
+        )
+        self.assertLess(
+            visibility_history_position,
+            manifest_position,
+        )
 
     def test_campaign_events_rebuild_preserves_no_churn_semantics(self):
         campaign_events = step_block(
@@ -189,7 +229,8 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
         )
         allowed_pattern = (
             "^(candidate_candidacy_status|candidate_signals|"
-            "campaign_events|publication_manifest)\\.json$"
+            "candidate_visibility_history|campaign_events|"
+            "publication_manifest)\\.json$"
         )
         self.assertIn(allowed_pattern, scope)
 
@@ -206,6 +247,7 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
             "candidate_candidacy_status.json",
             "campaign_events.json",
             "candidate_signals.json",
+            "candidate_visibility_history.json",
             "publication_manifest.json",
         ):
             self.assertIn(required, stage)
@@ -236,6 +278,10 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
         self.assertIn("git fetch origin main", commit)
         self.assertIn("git rebase origin/main", commit)
         self.assertIn("build_from_paths(", commit)
+        self.assertIn(
+            "build_visibility_history_from_payloads(",
+            commit,
+        )
         self.assertIn("build_manifest(", commit)
         self.assertIn("git push origin HEAD:main", commit)
         self.assertNotIn("--force", commit)
@@ -251,14 +297,25 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
             "build_from_paths(",
             campaign_position,
         )
+        visibility_history_position = commit.index(
+            "build_visibility_history_from_payloads(",
+            signals_position,
+        )
         manifest_position = commit.index(
             "build_manifest(",
-            signals_position,
+            visibility_history_position,
         )
 
         self.assertLess(rebase_position, campaign_position)
         self.assertLess(campaign_position, signals_position)
-        self.assertLess(signals_position, manifest_position)
+        self.assertLess(
+            signals_position,
+            visibility_history_position,
+        )
+        self.assertLess(
+            visibility_history_position,
+            manifest_position,
+        )
 
         post_rebase = commit[campaign_position:]
 
@@ -279,6 +336,14 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
             post_rebase,
         )
         self.assertIn(
+            "candidate_visibility_history.json",
+            post_rebase,
+        )
+        self.assertIn(
+            "build_visibility_history_from_payloads(",
+            post_rebase,
+        )
+        self.assertIn(
             "git commit --amend --no-edit",
             post_rebase,
         )
@@ -289,6 +354,12 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
                 "python -B build_campaign_events.py"
             ),
             2,
+        )
+        self.assertEqual(
+            self.workflow.count(
+                "python -B build_candidate_visibility_history.py"
+            ),
+            1,
         )
 
         for forbidden in (
@@ -315,6 +386,8 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
             "test_candidate_candidacy_status",
             "test_candidate_registry_v2",
             "test_candidate_active_monitoring_phase3a1",
+            "test_candidate_visibility_history_contract",
+            "test_build_candidate_visibility_history",
             "test_publication_manifest_registry_v2",
             "test_candidate_universe_workflow_contract",
             "test_candidate_attention_workflow_contract",
@@ -346,6 +419,7 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
             "campaign_events_rebuilt",
             "campaign_events_changed",
             "candidate_signals_rebuilt",
+            "candidate_visibility_history_rebuilt",
             "manifest_rebuilt",
             "published_commit",
         ):

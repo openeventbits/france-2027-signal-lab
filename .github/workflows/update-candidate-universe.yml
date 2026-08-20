@@ -37,6 +37,8 @@ jobs:
             test_candidate_candidacy_status \
             test_candidate_registry_v2 \
             test_candidate_active_monitoring_phase3a1 \
+            test_candidate_visibility_history_contract \
+            test_build_candidate_visibility_history \
             test_candidate_universe_phase2 \
             test_build_candidate_signals \
             test_publication_manifest \
@@ -204,6 +206,7 @@ jobs:
               "campaign_events_rebuilt": False,
               "campaign_events_changed": False,
               "candidate_signals_rebuilt": False,
+              "candidate_visibility_history_rebuilt": False,
               "manifest_rebuilt": False,
               "published_commit": None,
           }
@@ -351,6 +354,87 @@ jobs:
           )
           PY
 
+      - name: Rebuild Candidate Visibility History on registry change
+        id: candidate_visibility_history
+        if: steps.registry.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec 2> >(tee /tmp/candidate-universe-error.txt >&2)
+
+          python -B build_candidate_visibility_history.py \
+            --news news_wire.json \
+            --candidacy-status candidate_candidacy_status.json \
+            --output /tmp/candidate_visibility_history.json
+
+          python -B - <<'PY'
+          import json
+          from pathlib import Path
+
+          from build_candidate_visibility_history import (
+              atomic_write_bytes,
+          )
+          from candidate_candidacy_status import (
+              load_candidate_candidacy_status,
+          )
+          from candidate_visibility_history_contract import (
+              validate_candidate_visibility_history,
+          )
+
+          temporary = Path(
+              "/tmp/candidate_visibility_history.json"
+          )
+
+          candidate = json.loads(
+              temporary.read_text(encoding="utf-8")
+          )
+
+          registry = load_candidate_candidacy_status(
+              "candidate_candidacy_status.json"
+          )
+
+          validate_candidate_visibility_history(
+              candidate,
+              expected_candidates=registry["candidates"],
+          )
+
+          atomic_write_bytes(
+              "candidate_visibility_history.json",
+              temporary.read_bytes(),
+          )
+
+          promoted = json.loads(
+              Path(
+                  "candidate_visibility_history.json"
+              ).read_text(encoding="utf-8")
+          )
+
+          validate_candidate_visibility_history(
+              promoted,
+              expected_candidates=registry["candidates"],
+          )
+
+          summary_path = Path(
+              "/tmp/candidate-universe-summary.json"
+          )
+          summary = json.loads(
+              summary_path.read_text(encoding="utf-8")
+          )
+          summary[
+              "candidate_visibility_history_rebuilt"
+          ] = True
+
+          summary_path.write_text(
+              json.dumps(
+                  summary,
+                  ensure_ascii=False,
+                  indent=2,
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Rebuild publication manifest on registry change
         id: manifest
         if: steps.registry.outputs.changed == 'true'
@@ -399,7 +483,7 @@ jobs:
           unexpected="$(
             git status --porcelain=v1 --untracked-files=all \
               | sed -E 's/^...//' \
-              | grep -Ev '^(candidate_candidacy_status|candidate_signals|campaign_events|publication_manifest)\.json$' \
+              | grep -Ev '^(candidate_candidacy_status|candidate_signals|candidate_visibility_history|campaign_events|publication_manifest)\.json$' \
               || true
           )"
           if [[ -n "$unexpected" ]]; then
@@ -430,12 +514,14 @@ jobs:
             candidate_candidacy_status.json \
             campaign_events.json \
             candidate_signals.json \
+            candidate_visibility_history.json \
             publication_manifest.json
           git diff --cached --check
           git commit -m "Update candidate universe" -- \
             candidate_candidacy_status.json \
             campaign_events.json \
             candidate_signals.json \
+            candidate_visibility_history.json \
             publication_manifest.json
 
           git fetch origin main
@@ -483,14 +569,23 @@ jobs:
           from pathlib import Path
 
           from build_candidate_signals import atomic_write, build_from_paths
+          from build_candidate_visibility_history import (
+              atomic_write_bytes as atomic_write_visibility_history,
+              build_from_payloads as build_visibility_history_from_payloads,
+          )
           from build_publication_manifest import (
               atomic_write_json,
               build_manifest,
               validate_manifest,
           )
           from candidate_candidacy_status import load_candidate_candidacy_status
+          from candidate_visibility_history_contract import (
+              serialize_candidate_visibility_history,
+          )
 
-          load_candidate_candidacy_status("candidate_candidacy_status.json")
+          registry = load_candidate_candidacy_status(
+              "candidate_candidacy_status.json"
+          )
           build_from_paths(
               candidacy_status_path="candidate_candidacy_status.json",
               output_path="/tmp/candidate_signals-rebase.json",
@@ -499,6 +594,32 @@ jobs:
               "candidate_signals.json",
               Path("/tmp/candidate_signals-rebase.json").read_bytes(),
           )
+
+          news_payload = json.loads(
+              Path("news_wire.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+
+          visibility_history = (
+              build_visibility_history_from_payloads(
+                  news_payload,
+                  registry,
+              )
+          )
+
+          visibility_history_bytes = (
+              serialize_candidate_visibility_history(
+                  visibility_history,
+                  expected_candidates=registry["candidates"],
+              )
+          )
+
+          atomic_write_visibility_history(
+              "candidate_visibility_history.json",
+              visibility_history_bytes,
+          )
+
           published_at = datetime.now(timezone.utc).replace(
               microsecond=0
           ).isoformat().replace("+00:00", "Z")
@@ -510,11 +631,13 @@ jobs:
           if ! git diff --quiet -- \
             campaign_events.json \
             candidate_signals.json \
+            candidate_visibility_history.json \
             publication_manifest.json
           then
             git add -- \
               campaign_events.json \
               candidate_signals.json \
+              candidate_visibility_history.json \
               publication_manifest.json
             git diff --cached --check
             git commit --amend --no-edit
@@ -523,7 +646,7 @@ jobs:
           unexpected="$(
             git status --porcelain=v1 --untracked-files=all \
               | sed -E 's/^...//' \
-              | grep -Ev '^(candidate_candidacy_status|candidate_signals|campaign_events|publication_manifest)\.json$' \
+              | grep -Ev '^(candidate_candidacy_status|candidate_signals|candidate_visibility_history|campaign_events|publication_manifest)\.json$' \
               || true
           )"
           if [[ -n "$unexpected" ]]; then
@@ -535,6 +658,7 @@ jobs:
             candidate_candidacy_status.json \
             campaign_events.json \
             candidate_signals.json \
+            candidate_visibility_history.json \
             publication_manifest.json
           git push origin HEAD:main
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
@@ -588,6 +712,7 @@ jobs:
               f"- Campaign Events rebuilt: `{str(summary['campaign_events_rebuilt']).lower()}`",
               f"- Campaign Events bytes changed: `{str(summary['campaign_events_changed']).lower()}`",
               f"- Candidate Signals rebuilt: `{str(summary['candidate_signals_rebuilt']).lower()}`",
+              f"- Candidate Visibility History rebuilt: `{str(summary['candidate_visibility_history_rebuilt']).lower()}`",
               f"- Manifest rebuilt: `{str(summary['manifest_rebuilt']).lower()}`",
               f"- Published commit: `{summary['published_commit'] or 'none'}`",
           ]
