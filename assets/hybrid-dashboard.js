@@ -124,6 +124,7 @@
     error: ""
   };
   let runoffArchiveRequest = null;
+  let candidateScrutinyPopover = null;
   const candidateSignalsRequest =
     window.France2027CandidateSignals
       ?.load("candidate_signals.json")
@@ -5408,7 +5409,739 @@
       : null;
   }
 
+
+  function candidateScrutinyCompareText(left, right) {
+    const a = String(left || "");
+    const b = String(right || "");
+    if (a === b) return 0;
+    return a < b ? -1 : 1;
+  }
+
+  function candidateScrutinyReviewEntries(candidate, claimsPayload) {
+    if (
+      !candidate ||
+      !Array.isArray(claimsPayload?.reviews)
+    ) {
+      return [];
+    }
+
+    return claimsPayload.reviews
+      .map(review => {
+        const association =
+          Array.isArray(review?.candidate_associations)
+            ? review.candidate_associations.find(
+              item =>
+                item?.candidate_id ===
+                candidate.candidate_id
+            )
+            : null;
+
+        return association
+          ? {
+            review,
+            relationship:
+              association.relationship
+          }
+          : null;
+      })
+      .filter(Boolean)
+      .sort((left, right) =>
+        candidateScrutinyCompareText(
+          right.review?.review_date,
+          left.review?.review_date
+        ) ||
+        candidateScrutinyCompareText(
+          left.review?.publisher_name,
+          right.review?.publisher_name
+        ) ||
+        candidateScrutinyCompareText(
+          left.review?.id,
+          right.review?.id
+        )
+      );
+  }
+
+  function candidateScrutinyDetailState(candidate) {
+    const loadState =
+      dashboardState.loadState?.claims;
+
+    if (loadState === "loading") {
+      return {
+        state: "loading",
+        reviews: []
+      };
+    }
+
+    if (loadState === "error") {
+      return {
+        state: "unavailable",
+        reviews: []
+      };
+    }
+
+    const claimsPayload =
+      dashboardState.claims;
+
+    if (
+      !claimsPayload ||
+      !Array.isArray(claimsPayload.reviews)
+    ) {
+      return {
+        state: "unavailable",
+        reviews: []
+      };
+    }
+
+    return {
+      state: "ready",
+      reviews:
+        candidateScrutinyReviewEntries(
+          candidate,
+          claimsPayload
+        )
+    };
+  }
+
+  function candidateScrutinyNode(
+    tagName,
+    className = "",
+    text = null
+  ) {
+    const node =
+      document.createElement(tagName);
+
+    if (className) {
+      node.className = className;
+    }
+
+    if (text !== null) {
+      node.textContent = text;
+    }
+
+    return node;
+  }
+
+  function candidateScrutinyReviewRow(entry) {
+    const review = entry.review;
+    const relationship =
+      String(entry.relationship || "")
+        .toLowerCase();
+
+    const row = candidateScrutinyNode(
+      "article",
+      "candidate-signals-scrutiny-review"
+    );
+
+    const meta = candidateScrutinyNode(
+      "div",
+      "candidate-signals-scrutiny-review-meta"
+    );
+
+    const relationshipNode =
+      candidateScrutinyNode(
+        "span",
+        `candidate-signals-scrutiny-relationship is-${relationship}`,
+        relationship.toUpperCase()
+      );
+
+    const dateNode =
+      candidateScrutinyNode(
+        "time",
+        "candidate-signals-scrutiny-review-date",
+        review.review_date
+          ? formatDay(review.review_date)
+          : "DATE UNAVAILABLE"
+      );
+
+    if (review.review_date) {
+      dateNode.setAttribute(
+        "datetime",
+        review.review_date
+      );
+    }
+
+    meta.append(
+      relationshipNode,
+      dateNode,
+      candidateScrutinyNode(
+        "span",
+        "candidate-signals-scrutiny-publisher",
+        String(review.publisher_name || "")
+      )
+    );
+
+    const claim = candidateScrutinyNode(
+      "p",
+      "candidate-signals-scrutiny-claim"
+    );
+
+    const claimText = String(
+      review.claim_text || ""
+    );
+
+    const terminalPunctuation =
+      /^(.*?)(\S+\s+[?!;:])$/s.exec(
+        claimText
+      );
+
+    if (terminalPunctuation) {
+      claim.append(
+        document.createTextNode(
+          terminalPunctuation[1]
+        ),
+        candidateScrutinyNode(
+          "span",
+          "candidate-signals-scrutiny-no-break-tail",
+          terminalPunctuation[2]
+        )
+      );
+    } else {
+      claim.textContent = claimText;
+    }
+
+    const footer = candidateScrutinyNode(
+      "div",
+      "candidate-signals-scrutiny-review-footer"
+    );
+
+    footer.append(
+      candidateScrutinyNode(
+        "span",
+        "candidate-signals-scrutiny-rating",
+        String(review.rating || "")
+      )
+    );
+
+    const sourceUrl =
+      safeSourceUrl(review.review_url);
+
+    if (sourceUrl) {
+      const link = candidateScrutinyNode(
+        "a",
+        "candidate-signals-scrutiny-source",
+        "OPEN SOURCE ↗"
+      );
+
+      link.href = sourceUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.setAttribute(
+        "aria-label",
+        `Open ${review.publisher_name || "publisher"} review source in a new tab`
+      );
+
+      footer.append(link);
+    } else {
+      footer.append(
+        candidateScrutinyNode(
+          "span",
+          "candidate-signals-scrutiny-source is-unavailable",
+          "SOURCE UNAVAILABLE"
+        )
+      );
+    }
+
+    row.append(meta, claim, footer);
+    return row;
+  }
+
+  function candidateScrutinyBody(detailState) {
+    const body = candidateScrutinyNode(
+      "div",
+      "candidate-signals-scrutiny-body"
+    );
+
+    if (detailState.state === "loading") {
+      const state = candidateScrutinyNode(
+        "div",
+        "candidate-signals-scrutiny-state"
+      );
+      state.setAttribute("role", "status");
+      state.setAttribute(
+        "aria-live",
+        "polite"
+      );
+      state.append(
+        candidateScrutinyNode(
+          "strong",
+          "candidate-signals-scrutiny-state-title",
+          "LOADING REVIEWS"
+        ),
+        candidateScrutinyNode(
+          "p",
+          "",
+          "Loading monitored publisher reviews…"
+        )
+      );
+      body.append(state);
+      return body;
+    }
+
+    if (detailState.state !== "ready") {
+      const state = candidateScrutinyNode(
+        "div",
+        "candidate-signals-scrutiny-state"
+      );
+      state.append(
+        candidateScrutinyNode(
+          "strong",
+          "candidate-signals-scrutiny-state-title",
+          "DETAIL UNAVAILABLE"
+        ),
+        candidateScrutinyNode(
+          "p",
+          "",
+          "Candidate scrutiny summary remains available."
+        ),
+        candidateScrutinyNode(
+          "p",
+          "",
+          "Detailed publisher reviews could not be loaded."
+        )
+      );
+      body.append(state);
+      return body;
+    }
+
+    if (!detailState.reviews.length) {
+      const state = candidateScrutinyNode(
+        "div",
+        "candidate-signals-scrutiny-state"
+      );
+      state.append(
+        candidateScrutinyNode(
+          "strong",
+          "candidate-signals-scrutiny-state-title",
+          "NO PUBLISHED REVIEWS"
+        ),
+        candidateScrutinyNode(
+          "p",
+          "",
+          "No monitored publisher review is currently associated with this candidate."
+        )
+      );
+      body.append(state);
+      return body;
+    }
+
+    const list = candidateScrutinyNode(
+      "div",
+      "candidate-signals-scrutiny-review-list"
+    );
+
+    detailState.reviews.forEach(
+      entry => {
+        list.append(
+          candidateScrutinyReviewRow(entry)
+        );
+      }
+    );
+
+    const disclosure = candidateScrutinyNode(
+      "p",
+      "candidate-signals-scrutiny-disclosure",
+      "BY — candidate is the recorded claimant. ABOUT — candidate is mentioned in a checked claim attributed to somebody else."
+    );
+
+    body.append(list, disclosure);
+    return body;
+  }
+
+  function closeCandidateScrutinyPopover(
+    options = {}
+  ) {
+    if (!candidateScrutinyPopover) {
+      return;
+    }
+
+    const active =
+      candidateScrutinyPopover;
+
+    candidateScrutinyPopover = null;
+
+    document.removeEventListener(
+      "pointerdown",
+      active.onOutsidePointerDown,
+      true
+    );
+
+    document.removeEventListener(
+      "keydown",
+      active.onKeyDown,
+      true
+    );
+
+    window.removeEventListener(
+      "resize",
+      active.onViewportChange
+    );
+
+    window.removeEventListener(
+      "scroll",
+      active.onViewportChange,
+      true
+    );
+
+    active.anchor?.setAttribute(
+      "aria-expanded",
+      "false"
+    );
+
+    active.anchor?.removeAttribute(
+      "aria-controls"
+    );
+
+    active.panel?.remove();
+
+    if (
+      options.restoreFocus !== false &&
+      active.anchor &&
+      active.anchor.isConnected !== false &&
+      typeof active.anchor.focus ===
+        "function"
+    ) {
+      active.anchor.focus();
+    }
+  }
+
+  function positionCandidateScrutinyPopover() {
+    const active =
+      candidateScrutinyPopover;
+
+    if (!active) return;
+
+    const {
+      panel,
+      anchor
+    } = active;
+
+    if (
+      anchor.isConnected === false
+    ) {
+      closeCandidateScrutinyPopover({
+        restoreFocus: false
+      });
+      return;
+    }
+
+    const compact =
+      typeof window.matchMedia ===
+        "function"
+        ? window.matchMedia(
+          "(max-width: 640px)"
+        ).matches
+        : window.innerWidth <= 640;
+
+    panel.classList.toggle(
+      "is-sheet",
+      compact
+    );
+
+    panel.style.removeProperty("left");
+    panel.style.removeProperty("top");
+    panel.style.removeProperty("width");
+
+    if (compact) return;
+
+    const margin = 12;
+    const gap = 8;
+    const width = Math.min(
+      440,
+      Math.max(
+        400,
+        window.innerWidth -
+          margin * 2
+      )
+    );
+
+    panel.style.width =
+      `${width}px`;
+
+    const anchorRect =
+      anchor.getBoundingClientRect();
+
+    const panelRect =
+      panel.getBoundingClientRect();
+
+    let left =
+      anchorRect.right - width;
+
+    left = Math.max(
+      margin,
+      Math.min(
+        left,
+        window.innerWidth -
+          width -
+          margin
+      )
+    );
+
+    let top =
+      anchorRect.bottom + gap;
+
+    const roomBelow =
+      window.innerHeight -
+      anchorRect.bottom -
+      margin -
+      gap;
+
+    const roomAbove =
+      anchorRect.top -
+      margin -
+      gap;
+
+    if (
+      panelRect.height > roomBelow &&
+      roomAbove > roomBelow
+    ) {
+      top =
+        anchorRect.top -
+        panelRect.height -
+        gap;
+    }
+
+    top = Math.max(
+      margin,
+      Math.min(
+        top,
+        window.innerHeight -
+          panelRect.height -
+          margin
+      )
+    );
+
+    panel.style.left =
+      `${Math.round(left)}px`;
+
+    panel.style.top =
+      `${Math.round(top)}px`;
+  }
+
+  function openCandidateScrutinyPopover(
+    candidate,
+    anchorElement
+  ) {
+    if (
+      !candidate ||
+      !anchorElement ||
+      !document.body
+    ) {
+      return null;
+    }
+
+    closeCandidateScrutinyPopover({
+      restoreFocus: false
+    });
+
+    const detailState =
+      candidateScrutinyDetailState(
+        candidate
+      );
+
+    const panel =
+      candidateScrutinyNode(
+        "section",
+        "candidate-signals-scrutiny-popover"
+      );
+
+    panel.dataset.candidateScrutinyPopover =
+      "true";
+
+    panel.setAttribute(
+      "role",
+      "dialog"
+    );
+
+    panel.setAttribute(
+      "aria-modal",
+      "false"
+    );
+
+    const safeCandidateId =
+      String(
+        candidate.candidate_id || "candidate"
+      ).replace(/[^a-z0-9_-]+/gi, "-");
+
+    panel.id =
+      `candidate-signals-scrutiny-popover-${safeCandidateId}`;
+
+    const titleId =
+      `${panel.id}-title`;
+
+    const countId =
+      `${panel.id}-count`;
+
+    panel.setAttribute(
+      "aria-labelledby",
+      titleId
+    );
+
+    panel.setAttribute(
+      "aria-describedby",
+      countId
+    );
+
+    const header =
+      candidateScrutinyNode(
+        "header",
+        "candidate-signals-scrutiny-header"
+      );
+
+    const heading =
+      candidateScrutinyNode(
+        "div",
+        "candidate-signals-scrutiny-heading"
+      );
+
+    const title =
+      candidateScrutinyNode(
+        "h2",
+        "candidate-signals-scrutiny-title",
+        `CLAIM SCRUTINY · ${candidate.candidate_name}`
+      );
+
+    title.id = titleId;
+
+    const summaryCount =
+      Number(
+        candidate.scrutiny?.archive
+          ?.review_count
+      );
+
+    const reviewCount =
+      detailState.state === "ready"
+        ? detailState.reviews.length
+        : Number.isFinite(summaryCount)
+          ? summaryCount
+          : 0;
+
+    const count =
+      candidateScrutinyNode(
+        "p",
+        "candidate-signals-scrutiny-count",
+        `${reviewCount} MONITORED PUBLISHER ${
+          reviewCount === 1
+            ? "REVIEW"
+            : "REVIEWS"
+        }`
+      );
+
+    count.id = countId;
+
+    heading.append(title, count);
+
+    const close =
+      candidateScrutinyNode(
+        "button",
+        "candidate-signals-scrutiny-close",
+        "×"
+      );
+
+    close.type = "button";
+    close.setAttribute(
+      "aria-label",
+      `Close claim scrutiny for ${candidate.candidate_name}`
+    );
+
+    header.append(heading, close);
+
+    panel.append(
+      header,
+      candidateScrutinyBody(
+        detailState
+      )
+    );
+
+    document.body.append(panel);
+
+    anchorElement.setAttribute(
+      "aria-expanded",
+      "true"
+    );
+
+    anchorElement.setAttribute(
+      "aria-controls",
+      panel.id
+    );
+
+    const onOutsidePointerDown =
+      event => {
+        if (
+          panel.contains(event.target) ||
+          anchorElement.contains(
+            event.target
+          )
+        ) {
+          return;
+        }
+
+        closeCandidateScrutinyPopover();
+      };
+
+    const onKeyDown =
+      event => {
+        if (event.key !== "Escape") {
+          return;
+        }
+
+        event.preventDefault();
+        closeCandidateScrutinyPopover();
+      };
+
+    const onViewportChange =
+      () => {
+        positionCandidateScrutinyPopover();
+      };
+
+    candidateScrutinyPopover = {
+      panel,
+      anchor: anchorElement,
+      onOutsidePointerDown,
+      onKeyDown,
+      onViewportChange
+    };
+
+    close.addEventListener(
+      "click",
+      () => {
+        closeCandidateScrutinyPopover();
+      }
+    );
+
+    document.addEventListener(
+      "pointerdown",
+      onOutsidePointerDown,
+      true
+    );
+
+    document.addEventListener(
+      "keydown",
+      onKeyDown,
+      true
+    );
+
+    window.addEventListener(
+      "resize",
+      onViewportChange
+    );
+
+    window.addEventListener(
+      "scroll",
+      onViewportChange,
+      true
+    );
+
+    positionCandidateScrutinyPopover();
+    close.focus();
+
+    return panel;
+  }
+
   function renderCandidateSignalsPanel() {
+    closeCandidateScrutinyPopover({
+      restoreFocus: false
+    });
+
     const candidateMount = document.getElementById(
       "candidate-signals-root"
     );
@@ -5427,6 +6160,15 @@
             candidateId;
           renderCandidateSignalsPanel();
         },
+        onOpenScrutiny(
+          candidate,
+          anchorElement
+        ) {
+          openCandidateScrutinyPopover(
+            candidate,
+            anchorElement
+          );
+        },
         candidateAttention:
           state.candidateAttention,
         candidateVisibilityHistory:
@@ -5442,6 +6184,13 @@
 
   function setActiveSignalView(view, options = {}) {
     if (!views[view]) view = defaultView;
+
+    if (view !== "candidates") {
+      closeCandidateScrutinyPopover({
+        restoreFocus: false
+      });
+    }
+
     state.activeView = view;
     mount.querySelectorAll("[data-hybrid-card]").forEach(card => {
       const active = card.dataset.hybridCard === view;
