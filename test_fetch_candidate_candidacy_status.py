@@ -350,6 +350,20 @@ class CandidateExtractionTests(unittest.TestCase):
 
 
 class MediaWikiApiTests(unittest.TestCase):
+    def test_canonical_source_is_dedicated_candidatures_page(self):
+        self.assertEqual(
+            collector.PAGE_TITLE,
+            "Candidatures à l'élection présidentielle française de 2027",
+        )
+
+        fake = FakeFetch()
+        collector.fetch_candidate_candidacy_status(fake)
+
+        self.assertEqual(
+            fake.calls[0]["titles"],
+            "Candidatures à l'élection présidentielle française de 2027",
+        )
+
     def test_revision_metadata_then_exact_oldid_parse(self):
         fake = FakeFetch()
         result = collector.fetch_candidate_candidacy_status(fake)
@@ -368,6 +382,26 @@ class MediaWikiApiTests(unittest.TestCase):
         )
         self.assertEqual(fake.calls[1]["oldid"], str(REVISION_ID))
         self.assertNotIn("page", fake.calls[1])
+
+    def test_post_revision_failure_reports_exact_revision(self):
+        malformed_html = "<h2>Unexpected structure</h2>"
+        fake = FakeFetch(parsed=parse_response(malformed_html))
+
+        with self.assertRaises(
+            collector.CandidateCandidacyFetchError
+        ) as context:
+            collector.fetch_candidate_candidacy_status(fake)
+
+        message = str(context.exception)
+        self.assertIn(
+            f"Wikipedia revision {REVISION_ID}",
+            message,
+        )
+        self.assertIn(REVISION_TIMESTAMP, message)
+        self.assertIn(
+            "required semantic sections are missing",
+            message,
+        )
 
     def test_revision_only_refresh_reports_no_semantic_change(self):
         previous = collector.fetch_candidate_candidacy_status(

@@ -37,7 +37,7 @@ from candidate_identity import (
 )
 
 API_ENDPOINT = "https://fr.wikipedia.org/w/api.php"
-PAGE_TITLE = "Élection présidentielle française de 2027"
+PAGE_TITLE = "Candidatures à l'élection présidentielle française de 2027"
 SOURCE_PUBLISHER = "French Wikipedia"
 PAGE_URL = (
     "https://fr.wikipedia.org/wiki/"
@@ -1270,13 +1270,23 @@ def fetch_candidate_candidacy_status(
     """Fetch metadata, parse its exact revision, and build the registry."""
 
     revision = fetch_current_revision(fetch_json)
-    parsed_html = fetch_parsed_revision(revision.revision_id, fetch_json)
-    details = _build_payload_details(
-        revision,
-        parsed_html,
-        previous_registry=previous_registry,
-        article_fetch_json=fetch_json,
-    )
+    try:
+        parsed_html = fetch_parsed_revision(
+            revision.revision_id,
+            fetch_json,
+        )
+        details = _build_payload_details(
+            revision,
+            parsed_html,
+            previous_registry=previous_registry,
+            article_fetch_json=fetch_json,
+        )
+    except CandidateCandidacyFetchError as error:
+        raise CandidateCandidacyFetchError(
+            "failed to build Candidate Registry from "
+            f"Wikipedia revision {revision.revision_id} "
+            f"({revision.revision_timestamp}): {error}"
+        ) from error
     payload, candidates, preserved, new_ids, name_changes = details
     semantic_changed = (
         previous_registry is None
