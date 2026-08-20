@@ -70,13 +70,13 @@
       panelId: "signal-agenda-panel",
       index: "3"
     },
-    pollCompare: {
-      label: translate("signal_board.poll_compare", "POLL COMPARE"),
-      title: translate("signal_board.polling_evidence", "Polling Evidence"),
-      hash: "#signal-poll-compare",
-      tabId: "signal-poll-compare-tab",
-      panelId: "polling-evidence-lab"
-    }
+    issues: {
+      label: "ISSUES",
+      title: "Policy Issues",
+      hash: "#signal-issues",
+      tabId: "signal-issues-tab",
+      panelId: "signal-issues-panel"
+    },
   });
   const viewOrder = Object.keys(views);
   const hashToView = new Map(viewOrder.map(key => [views[key].hash, key]));
@@ -85,6 +85,7 @@
     activeView: hashToView.get(window.location.hash) || defaultView,
     selectedRunoffHistoryKey: "",
     selectedAgendaTopicId: "",
+    selectedPolicyIssueId: "",
     selectedCampaignEventId: "",
     selectedCampaignEventWeekStart: "",
     campaignEventTypeFilter: "all",
@@ -1729,6 +1730,720 @@
     return seenEvolutionIds.size === baseById.size;
   }
 
+
+  function policyIssueShortLabel(topic) {
+    const labels = {
+      economy_public_finances:
+        "Economy & finances",
+      work_purchasing_power_pensions:
+        "Work & pensions",
+      immigration_identity_secularism:
+        "Immigration & identity",
+      security_justice:
+        "Security & justice",
+      health_education_public_services:
+        "Health & education",
+      climate_energy_agriculture:
+        "Climate & energy",
+      europe_defence_foreign_affairs:
+        "Europe & defence",
+      institutions_democracy_territories:
+        "Institutions & territories"
+    };
+
+    return (
+      labels[topic?.id] ||
+      topic?.label ||
+      "Issue"
+    );
+  }
+
+  function policyIssueCode(topic) {
+    const labels = {
+      economy_public_finances:
+        "ECONOMY",
+      work_purchasing_power_pensions:
+        "WORK & PENSIONS",
+      immigration_identity_secularism:
+        "IMMIGRATION",
+      security_justice:
+        "SECURITY",
+      health_education_public_services:
+        "HEALTH",
+      climate_energy_agriculture:
+        "CLIMATE",
+      europe_defence_foreign_affairs:
+        "EUROPE",
+      institutions_democracy_territories:
+        "INSTITUTIONS"
+    };
+
+    return (
+      labels[topic?.id] ||
+      "ISSUE"
+    );
+  }
+
+  function policySubtopicLabel(value) {
+    return String(value || "")
+      .replaceAll("_", " ")
+      .replace(
+        /\b\w/g,
+        character =>
+          character.toUpperCase()
+      );
+  }
+
+  function isValidPolicyAgendaBaseTopics(
+    topics
+  ) {
+    if (!Array.isArray(topics)) {
+      return false;
+    }
+
+    const ids = new Set();
+
+    return topics.every(topic => {
+      if (
+        !topic ||
+        typeof topic !== "object" ||
+        typeof topic.id !== "string" ||
+        !topic.id ||
+        ids.has(topic.id) ||
+        typeof topic.label !== "string" ||
+        !topic.label ||
+        !isAgendaNonNegativeInteger(
+          topic.item_count
+        ) ||
+        !isAgendaNonNegativeInteger(
+          topic.publisher_count
+        ) ||
+        !isAgendaNonNegativeInteger(
+          topic.source_day_count
+        ) ||
+        !isAgendaNonNegativeInteger(
+          topic.active_day_count
+        ) ||
+        typeof topic.display_eligible !==
+          "boolean" ||
+        !Array.isArray(
+          topic.publisher_names
+        ) ||
+        !Array.isArray(
+          topic.subtopic_counts
+        ) ||
+        !Array.isArray(
+          topic.candidate_counts
+        ) ||
+        !Array.isArray(
+          topic.supporting_items
+        ) ||
+        !isAgendaNonNegativeInteger(
+          topic.supporting_item_count
+        ) ||
+        !isAgendaNonNegativeInteger(
+          topic.omitted_item_count
+        )
+      ) {
+        return false;
+      }
+
+      if (
+        topic.publisher_count !==
+          topic.publisher_names.length ||
+        topic.supporting_item_count !==
+          topic.supporting_items.length ||
+        topic.supporting_item_count >
+          topic.item_count ||
+        topic.omitted_item_count !==
+          topic.item_count -
+            topic.supporting_item_count
+      ) {
+        return false;
+      }
+
+      const subtopicIds =
+        new Set();
+
+      for (
+        const subtopic
+        of topic.subtopic_counts
+      ) {
+        if (
+          !subtopic ||
+          typeof subtopic !== "object" ||
+          typeof subtopic.id !==
+            "string" ||
+          !subtopic.id ||
+          subtopicIds.has(
+            subtopic.id
+          ) ||
+          !isAgendaNonNegativeInteger(
+            subtopic.item_count
+          ) ||
+          subtopic.item_count < 1 ||
+          subtopic.item_count >
+            topic.item_count
+        ) {
+          return false;
+        }
+
+        subtopicIds.add(
+          subtopic.id
+        );
+      }
+
+      const candidates =
+        new Set();
+
+      for (
+        const candidate
+        of topic.candidate_counts
+      ) {
+        if (
+          !candidate ||
+          typeof candidate !==
+            "object" ||
+          typeof candidate.candidate !==
+            "string" ||
+          !candidate.candidate ||
+          candidates.has(
+            candidate.candidate
+          ) ||
+          !isAgendaNonNegativeInteger(
+            candidate.item_count
+          ) ||
+          candidate.item_count < 1 ||
+          candidate.item_count >
+            topic.item_count
+        ) {
+          return false;
+        }
+
+        candidates.add(
+          candidate.candidate
+        );
+      }
+
+      ids.add(topic.id);
+      return true;
+    });
+  }
+
+  function isValidPolicyAgendaEvolution(
+    evolution,
+    baseTopics
+  ) {
+    if (
+      !isValidAgendaEvolution(
+        evolution,
+        baseTopics
+      ) ||
+      !Array.isArray(
+        evolution
+          ?.accepted_daily_activity
+      ) ||
+      evolution
+        .accepted_daily_activity
+        .length !==
+        evolution.period_days
+    ) {
+      return false;
+    }
+
+    for (
+      let index = 0;
+      index <
+        evolution
+          .accepted_daily_activity
+          .length;
+      index += 1
+    ) {
+      const day =
+        evolution
+          .accepted_daily_activity[
+            index
+          ];
+
+      if (
+        !day ||
+        typeof day !== "object" ||
+        day.date !==
+          shiftAgendaDate(
+            evolution.period_start,
+            index
+          ) ||
+        !isAgendaNonNegativeInteger(
+          day.source_day_count
+        )
+      ) {
+        return false;
+      }
+    }
+
+    for (
+      const topic
+      of evolution.topics
+    ) {
+      if (
+        !isAgendaNonNegativeInteger(
+          topic
+            .latest_source_day_count
+        ) ||
+        !isAgendaNonNegativeInteger(
+          topic
+            .previous_source_day_count
+        ) ||
+        !Number.isFinite(
+          Number(
+            topic.latest_incidence
+          )
+        ) ||
+        !Number.isFinite(
+          Number(
+            topic.previous_incidence
+          )
+        ) ||
+        !Number.isFinite(
+          Number(
+            topic.incidence_change_pp
+          )
+        ) ||
+        number(
+          topic.latest_incidence
+        ) < 0 ||
+        number(
+          topic.latest_incidence
+        ) > 1 ||
+        number(
+          topic.previous_incidence
+        ) < 0 ||
+        number(
+          topic.previous_incidence
+        ) > 1
+      ) {
+        return false;
+      }
+
+      for (
+        const day
+        of topic.daily_activity
+      ) {
+        if (
+          !isAgendaNonNegativeInteger(
+            day
+              .accepted_source_day_count
+          ) ||
+          !Number.isFinite(
+            Number(day.incidence)
+          ) ||
+          number(day.incidence) < 0 ||
+          number(day.incidence) > 1 ||
+          number(
+            day.source_day_count
+          ) >
+            number(
+              day
+                .accepted_source_day_count
+            )
+        ) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  function buildPolicyAgendaViewModel() {
+    const unavailable =
+      viewModelState("news");
+
+    if (unavailable) {
+      return {
+        domain: "issues",
+        ...unavailable
+      };
+    }
+
+    const agenda =
+      dashboardState.news
+        ?.policy_agenda;
+
+    if (
+      !agenda ||
+      typeof agenda !== "object"
+    ) {
+      return {
+        domain: "issues",
+        state: "unavailable",
+        message:
+          "Policy Issues are not available in the current news artifact."
+      };
+    }
+
+    const allTopics =
+      Array.isArray(agenda.topics)
+        ? agenda.topics
+        : [];
+
+    if (
+      agenda.method !==
+        "accepted_relevant_news_by_policy_issue_multilabel" ||
+      !isAgendaNonNegativeInteger(
+        agenda.input_item_count
+      ) ||
+      !isAgendaNonNegativeInteger(
+        agenda.classified_item_count
+      ) ||
+      !isAgendaNonNegativeInteger(
+        agenda.unclassified_item_count
+      ) ||
+      !isAgendaNonNegativeInteger(
+        agenda.label_assignment_count
+      ) ||
+      agenda.classified_item_count +
+        agenda.unclassified_item_count !==
+        agenda.input_item_count ||
+      agenda.label_assignment_count <
+        agenda.classified_item_count ||
+      !isValidPolicyAgendaBaseTopics(
+        allTopics
+      )
+    ) {
+      return {
+        domain: "issues",
+        state: "invalid",
+        message:
+          "Policy Issues are unavailable because the policy contract is malformed."
+      };
+    }
+
+    const assignmentTotal =
+      allTopics.reduce(
+        (total, topic) =>
+          total +
+          number(
+            topic.item_count
+          ),
+        0
+      );
+
+    if (
+      assignmentTotal !==
+      agenda.label_assignment_count
+    ) {
+      return {
+        domain: "issues",
+        state: "invalid",
+        message:
+          "Policy Issues are unavailable because multi-label assignment totals are inconsistent."
+      };
+    }
+
+    const eligible =
+      [...allTopics]
+        .filter(
+          topic =>
+            topic.display_eligible
+        )
+        .sort(
+          (a, b) =>
+            number(
+              b.source_day_count
+            ) -
+              number(
+                a.source_day_count
+              ) ||
+            number(
+              b.item_count
+            ) -
+              number(
+                a.item_count
+              ) ||
+            a.label.localeCompare(
+              b.label,
+              "en"
+            )
+        );
+
+    if (!eligible.length) {
+      state.selectedPolicyIssueId =
+        "";
+
+      return {
+        domain: "issues",
+        state: "empty",
+        message:
+          "No policy issue currently meets the publication threshold.",
+        topics: [],
+        selectedIssue: null,
+        evolutionReady: false
+      };
+    }
+
+    const evolution =
+      agenda.evolution;
+
+    if (
+      !isValidPolicyAgendaEvolution(
+        evolution,
+        allTopics
+      )
+    ) {
+      return {
+        domain: "issues",
+        state: "invalid",
+        message:
+          "Policy Issues are unavailable because the evolution contract is malformed."
+      };
+    }
+
+    const baseById =
+      new Map(
+        allTopics.map(
+          topic => [
+            topic.id,
+            topic
+          ]
+        )
+      );
+
+    let evolutionTopics =
+      evolution.topics
+        .filter(
+          topic =>
+            topic.display_eligible
+        )
+        .map(topic => {
+          const base =
+            baseById.get(
+              topic.id
+            );
+
+          const modeled =
+            agendaEvolutionTopicModel(
+              topic,
+              base,
+              evolution
+            );
+
+          const changePp =
+            number(
+              topic
+                .incidence_change_pp
+            );
+
+          return {
+            ...modeled,
+
+            subtopic_counts:
+              base
+                .subtopic_counts
+                .slice(),
+
+            candidate_counts:
+              base
+                .candidate_counts
+                .slice(),
+
+            latestIncidence:
+              number(
+                topic
+                  .latest_incidence
+              ) * 100,
+
+            previousIncidence:
+              number(
+                topic
+                  .previous_incidence
+              ) * 100,
+
+            incidenceChangePp:
+              changePp,
+
+            movement:
+              agendaMovementLabel(
+                number(
+                  topic
+                    .latest_source_day_count
+                ),
+                number(
+                  topic
+                    .previous_source_day_count
+                ),
+                changePp
+              )
+          };
+        });
+
+    evolutionTopics.sort(
+      (a, b) =>
+        number(
+          b.source_day_count
+        ) -
+          number(
+            a.source_day_count
+          ) ||
+        number(
+          b.item_count
+        ) -
+          number(
+            a.item_count
+          ) ||
+        a.label.localeCompare(
+          b.label,
+          "en"
+        )
+    );
+
+    if (
+      !evolutionTopics.some(
+        topic =>
+          topic.id ===
+          state
+            .selectedPolicyIssueId
+      )
+    ) {
+      state.selectedPolicyIssueId =
+        evolutionTopics[0]
+          ?.id || "";
+    }
+
+    const selectedIssue =
+      evolutionTopics.find(
+        topic =>
+          topic.id ===
+          state
+            .selectedPolicyIssueId
+      ) ||
+      evolutionTopics[0] ||
+      null;
+
+    const latestRanked =
+      [...evolutionTopics]
+        .sort(
+          (a, b) =>
+            number(
+              b.latestIncidence
+            ) -
+              number(
+                a.latestIncidence
+              ) ||
+            number(
+              b.latestSourceDays
+            ) -
+              number(
+                a.latestSourceDays
+              ) ||
+            a.label.localeCompare(
+              b.label,
+              "en"
+            )
+        );
+
+    const leadingIssue =
+      latestRanked[0] ||
+      null;
+
+    const policyCoverage =
+      agenda.input_item_count
+        ? (
+            agenda
+              .classified_item_count /
+            agenda
+              .input_item_count
+          ) * 100
+        : 0;
+
+    const diagnostics = {
+      activeIssues:
+        evolutionTopics.filter(
+          topic =>
+            number(
+              topic.latestSourceDays
+            ) > 0
+        ).length,
+
+      leadingIssue,
+
+      risingIssues:
+        evolutionTopics.filter(
+          topic =>
+            topic.movement ===
+            "RISING"
+        ).length,
+
+      policyCoverage
+    };
+
+    const evolutionBins =
+      evolutionTopics[0]
+        ?.bins
+        ?.map(bin => ({
+          start: bin.start,
+          end: bin.end
+        })) || [];
+
+    const heatmapMaxSourceDays =
+      Math.max(
+        1,
+        ...evolutionTopics
+          .flatMap(
+            topic =>
+              topic.daily_activity
+                .map(
+                  day =>
+                    number(
+                      day
+                        .source_day_count
+                    )
+                )
+          )
+      );
+
+    return {
+      domain: "issues",
+      state: "ready",
+      topics:
+        evolutionTopics,
+      selectedIssue,
+      evolutionReady: true,
+      evolution,
+      diagnostics,
+      evolutionBins,
+      heatmapMaxSourceDays,
+
+      inputItemCount:
+        number(
+          agenda.input_item_count
+        ),
+
+      classifiedItemCount:
+        number(
+          agenda
+            .classified_item_count
+        ),
+
+      assignmentCount:
+        number(
+          agenda
+            .label_assignment_count
+        ),
+
+      displayMinimum:
+        number(
+          agenda
+            .display_min_source_days
+        ),
+
+      generatedAt:
+        dashboardState
+          .news
+          .generated_at
+    };
+  }
+
   function buildAgendaViewModel() {
     const unavailable = viewModelState("news");
     if (unavailable) return { domain: "agenda", ...unavailable };
@@ -2549,7 +3264,8 @@
       runoff: safelyBuildViewModel("runoff", buildRunoffViewModel),
       media: safelyBuildViewModel("media", buildMediaViewModel),
       events: safelyBuildViewModel("events", buildEventsViewModel),
-      agenda: safelyBuildViewModel("agenda", buildAgendaViewModel)
+      agenda: safelyBuildViewModel("agenda", buildAgendaViewModel),
+      issues: safelyBuildViewModel("issues", buildPolicyAgendaViewModel)
     };
   }
 
@@ -2764,7 +3480,7 @@
       candidates: '<circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.5-4.5 2.7-6.8 6.5-6.8s6 2.3 6.5 6.8"/>',
       events: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 9.5h17M8 13h3M8 16.5h5"/>',
       agenda: '<path d="M7 6h12M7 12h12M7 18h12"/><circle cx="4" cy="6" r=".8"/><circle cx="4" cy="12" r=".8"/><circle cx="4" cy="18" r=".8"/>',
-      pollCompare: '<path d="M4 7h7M15 7h5M4 17h3M11 17h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>'
+      issues: '<circle cx="7" cy="7" r="2"/><circle cx="17" cy="7" r="2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 7h6M7 9v6M17 9v6M9 17h6"/>',
     };
 
     const body = paths[name] || paths.runoff;
@@ -4398,6 +5114,780 @@
     </section>`;
   }
 
+
+  function policyIssueIcon(issueId) {
+    const icons = {
+      economy_public_finances: `
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <path d="M3 14V8M7 14V5M11 14V9M15 14V3"/>
+          <path d="M2 14.5h14"/>
+        </svg>`,
+
+      work_purchasing_power_pensions: `
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <rect x="3" y="6" width="12" height="8" rx="1"/>
+          <path d="M6.5 6V4h5v2M3 9h12"/>
+        </svg>`,
+
+      immigration_identity_secularism: `
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <path d="M3 9h9M9 5l4 4-4 4"/>
+          <path d="M15 3v12"/>
+        </svg>`,
+
+      security_justice: `
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <path d="M9 2.5 14 5v4c0 3-1.9 5.1-5 6.5C5.9 14.1 4 12 4 9V5l5-2.5Z"/>
+          <path d="M6.5 9 8.3 11 12 6.8"/>
+        </svg>`,
+
+      health_education_public_services: `
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <path d="M9 3v12M3 9h12"/>
+        </svg>`,
+
+      climate_energy_agriculture: `
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <path d="M14.5 3.5C9 3.7 5.5 6.2 4.5 11.5"/>
+          <path d="M4 14c2-4 5-6.5 9.5-8"/>
+          <path d="M9 11c1.5 1 3 1.4 4.7 1.2"/>
+        </svg>`,
+
+      europe_defence_foreign_affairs: `
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <circle cx="9" cy="9" r="6"/>
+          <path d="M3.5 9h11M9 3c1.7 1.8 2.5 3.8 2.5 6S10.7 13.2 9 15M9 3C7.3 4.8 6.5 6.8 6.5 9S7.3 13.2 9 15"/>
+        </svg>`,
+
+      institutions_democracy_territories: `
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <path d="M3 7h12M4 7l5-4 5 4"/>
+          <path d="M5 7v6M9 7v6M13 7v6M3 14h12"/>
+        </svg>`
+    };
+
+    return icons[issueId] || `
+      <svg viewBox="0 0 18 18" aria-hidden="true">
+        <circle cx="9" cy="9" r="5.5"/>
+      </svg>`;
+  }
+
+  function renderIssuesMonitor(model) {
+    const diagnostics =
+      model.diagnostics;
+
+    const selected =
+      model.selectedIssue;
+
+    const maximumSourceDays =
+      Math.max(
+        1,
+        ...model.topics.map(
+          topic =>
+            number(
+              topic.source_day_count
+            )
+        )
+      );
+
+    const rows =
+      model.topics
+        .map(topic => {
+          const selectedRow =
+            topic.id ===
+            selected?.id;
+
+          const movement =
+            String(
+              topic.movement ||
+              "STABLE"
+            ).toLowerCase();
+
+          const glyph =
+            movement === "rising"
+              ? "▲"
+              : movement === "fading"
+                ? "▼"
+                : "•";
+
+          const width =
+            Math.max(
+              4,
+              number(
+                topic.source_day_count
+              ) /
+                maximumSourceDays *
+                100
+            );
+
+          return `<button
+            class="hybrid-agenda-v6-topic-card"
+            type="button"
+            data-hybrid-policy-issue="${escapeAttribute(topic.id)}"
+            data-movement="${escapeAttribute(movement)}"
+            aria-pressed="${String(selectedRow)}"
+          >
+            <span
+              class="hybrid-agenda-v6-topic-icon"
+              aria-hidden="true"
+            >
+              ${policyIssueIcon(topic.id)}
+            </span>
+
+            <span class="hybrid-agenda-v6-topic-copy">
+              <span class="hybrid-agenda-v6-topic-name">
+                ${escapeHtml(topic.label)}
+              </span>
+
+              <span class="hybrid-agenda-v6-topic-tags">
+                <span
+                  class="hybrid-agenda-v6-badge"
+                  data-movement="${escapeAttribute(movement)}"
+                >
+                  ${escapeHtml(topic.movement)}
+                </span>
+
+                <span class="hybrid-agenda-v6-badge is-structure">
+                  ${escapeHtml(topic.structure)}
+                </span>
+              </span>
+            </span>
+
+            <span class="hybrid-agenda-v6-topic-total">
+              <strong>${topic.source_day_count}</strong>
+              <span>SOURCE-DAYS</span>
+
+              <i
+                class="hybrid-agenda-v6-topic-volume"
+                aria-hidden="true"
+              >
+                <b
+                  style="--agenda-monitor-volume:${width.toFixed(1)}%"
+                ></b>
+              </i>
+            </span>
+
+            <span class="hybrid-agenda-v6-topic-shift">
+              <span>
+                <small>PRIOR</small>
+                <strong>${topic.previousIncidence.toFixed(1)}%</strong>
+              </span>
+
+              <span>
+                <small>LATEST</small>
+                <strong>${topic.latestIncidence.toFixed(1)}%</strong>
+              </span>
+
+              <em
+                data-movement="${escapeAttribute(movement)}"
+              >
+                ${glyph}
+                ${escapeHtml(
+                  agendaSignedPp(
+                    topic.incidenceChangePp
+                  )
+                )}
+              </em>
+            </span>
+          </button>`;
+        })
+        .join("");
+
+    return `<section
+      class="hybrid-agenda-v6-panel hybrid-agenda-v6-monitor"
+    >
+      <header class="hybrid-agenda-v6-panel-head">
+        <h3 class="hybrid-agenda-v6-panel-title">
+          POLICY MONITOR
+        </h3>
+
+        <span class="hybrid-agenda-v6-panel-meta">
+          ${model.topics.length}
+          ISSUES · 30D
+        </span>
+      </header>
+
+      <div
+        class="hybrid-agenda-v6-panel-body hybrid-agenda-v6-monitor-body"
+      >
+        <div
+          class="hybrid-agenda-v6-diagnostics"
+          aria-label="Policy issue diagnostics"
+        >
+          <article class="is-active">
+            <span>ACTIVE 7D</span>
+            <strong>
+              ${diagnostics.activeIssues}
+            </strong>
+          </article>
+
+          <article class="is-concentration">
+            <span>LEADING ISSUE</span>
+            <strong class="hybrid-issues-leading">
+              ${escapeHtml(
+                policyIssueCode(
+                  diagnostics.leadingIssue
+                )
+              )}
+            </strong>
+          </article>
+
+          <article class="is-rising">
+            <span>RISING ISSUES</span>
+            <strong>
+              ${diagnostics.risingIssues}
+            </strong>
+          </article>
+
+          <article class="is-turnover">
+            <span>POLICY COVERAGE</span>
+            <strong>
+              ${diagnostics.policyCoverage.toFixed(1)}%
+            </strong>
+          </article>
+        </div>
+
+        <div class="hybrid-agenda-v6-topic-list">
+          ${rows}
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function renderIssuesMatrix(model) {
+    const periodHeaders =
+      model.evolutionBins
+        .map(
+          bin => `
+            <span class="hybrid-agenda-v6-period">
+              ${escapeHtml(
+                agendaPeriodLabel(
+                  bin.start,
+                  bin.end
+                )
+              )}
+            </span>
+          `
+        )
+        .join("");
+
+    const rows =
+      model.topics
+        .map(topic => `
+          <button
+            class="hybrid-agenda-v6-matrix-row"
+            type="button"
+            data-hybrid-policy-issue="${escapeAttribute(topic.id)}"
+            aria-pressed="${String(topic.id === model.selectedIssue?.id)}"
+            title="${escapeAttribute(topic.label)}"
+          >
+            <span class="hybrid-agenda-v6-matrix-label">
+              ${escapeHtml(
+                policyIssueShortLabel(topic)
+              )}
+            </span>
+
+            ${topic.daily_activity
+              .map(
+                (day, index) =>
+                  agendaDailyCellV6(
+                    day,
+                    index,
+                    model.heatmapMaxSourceDays,
+                    model.evolution
+                  )
+              )
+              .join("")}
+
+            <strong class="hybrid-agenda-v6-matrix-total">
+              ${topic.source_day_count}
+            </strong>
+          </button>
+        `)
+        .join("");
+
+    return `<section
+      class="hybrid-agenda-v6-module hybrid-agenda-v6-matrix-module"
+    >
+      <div class="hybrid-agenda-v6-module-head">
+        <strong>30-DAY EVOLUTION</strong>
+
+        <span>
+          ${escapeHtml(
+            agendaCompactDate(
+              model.evolution.period_start
+            )
+          )}
+          →
+          ${escapeHtml(
+            agendaCompactDate(
+              model.evolution.period_end
+            )
+          )}
+        </span>
+      </div>
+
+      <div class="hybrid-agenda-v6-matrix-wrap">
+        <div
+          class="hybrid-agenda-v6-matrix"
+          role="group"
+          aria-label="Thirty-day Policy Issues evolution matrix"
+        >
+          <div
+            class="hybrid-agenda-v6-matrix-head"
+            aria-hidden="true"
+          >
+            <span>ISSUE</span>
+            ${periodHeaders}
+            <span>30D</span>
+          </div>
+
+          ${rows}
+        </div>
+
+        <div
+          class="hybrid-agenda-v6-matrix-legend"
+          aria-label="Policy Issues evolution color key"
+        >
+          <span><i data-window="older"></i>OLDER</span>
+          <span><i data-window="previous"></i>PRIOR 7D</span>
+          <span><i data-window="latest"></i>LATEST 7D</span>
+          <span><i data-window="partial"></i>PARTIAL DAY</span>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function renderIssuesWeekShift(model) {
+    const maximum =
+      Math.max(
+        1,
+        ...model.topics.flatMap(
+          topic => [
+            number(
+              topic.previousIncidence
+            ),
+            number(
+              topic.latestIncidence
+            )
+          ]
+        )
+      );
+
+    const rows =
+      model.topics
+        .map(topic => {
+          const previous =
+            number(
+              topic.previousIncidence
+            );
+
+          const latest =
+            number(
+              topic.latestIncidence
+            );
+
+          const movement =
+            String(
+              topic.movement ||
+              "STABLE"
+            ).toLowerCase();
+
+          const glyph =
+            movement === "rising"
+              ? "▲"
+              : movement === "fading"
+                ? "▼"
+                : "•";
+
+          return `<div
+            class="hybrid-agenda-v6-shift-row"
+            data-movement="${escapeAttribute(movement)}"
+            title="${escapeAttribute(topic.label)}"
+          >
+            <span class="hybrid-agenda-v6-shift-label">
+              ${escapeHtml(
+                policyIssueShortLabel(topic)
+              )}
+            </span>
+
+            <span
+              class="hybrid-agenda-v6-pair-bars"
+              aria-label="Prior ${previous.toFixed(1)} percent; latest ${latest.toFixed(1)} percent issue incidence"
+            >
+              <span
+                class="hybrid-agenda-v6-pair-track is-prior"
+                aria-hidden="true"
+              >
+                <i
+                  style="--agenda-width:${(previous / maximum * 100).toFixed(1)}%"
+                ></i>
+              </span>
+
+              <span
+                class="hybrid-agenda-v6-pair-track is-latest"
+                aria-hidden="true"
+              >
+                <i
+                  style="--agenda-width:${(latest / maximum * 100).toFixed(1)}%"
+                ></i>
+              </span>
+            </span>
+
+            <span class="hybrid-agenda-v6-shift-count">
+              ${previous.toFixed(1)}%
+              →
+              ${latest.toFixed(1)}%
+            </span>
+
+            <strong
+              class="hybrid-agenda-v6-shift-delta"
+              data-movement="${escapeAttribute(movement)}"
+            >
+              ${glyph}
+              ${escapeHtml(
+                agendaSignedPp(
+                  topic.incidenceChangePp
+                )
+              )}
+            </strong>
+          </div>`;
+        })
+        .join("");
+
+    return `<section
+      class="hybrid-agenda-v6-module hybrid-agenda-v6-shift-module"
+    >
+      <div class="hybrid-agenda-v6-module-head">
+        <strong>WEEK SHIFT</strong>
+
+        <span class="hybrid-agenda-v6-shift-key">
+          <span>
+            <i class="is-prior" aria-hidden="true"></i>
+            PRIOR
+          </span>
+
+          <span>
+            <i class="is-latest" aria-hidden="true"></i>
+            LATEST
+          </span>
+        </span>
+      </div>
+
+      <div class="hybrid-agenda-v6-shift-list">
+        ${rows}
+      </div>
+    </section>`;
+  }
+
+  function renderIssuesAnalysis(model) {
+    return `<section
+      class="hybrid-agenda-v6-panel hybrid-agenda-v6-evolution-panel"
+    >
+      <header class="hybrid-agenda-v6-panel-head">
+        <h3>ISSUE EVOLUTION</h3>
+
+        <span class="hybrid-agenda-v6-head-tools">
+          <span class="hybrid-agenda-v6-panel-head-meta">
+            COMPLETE-WEEK COMPARISON
+          </span>
+
+          <button
+            class="hybrid-agenda-v6-info"
+            type="button"
+            aria-label="Policy Issues methodology"
+          >
+            <span aria-hidden="true">i</span>
+
+            <span
+              class="hybrid-agenda-v6-info-tooltip"
+              role="tooltip"
+            >
+              Deterministic multi-label classification of accepted presidential coverage. Source-day = unique publisher × UTC date. Issue incidence = issue source-days divided by all accepted presidential-coverage source-days in the same complete week. Percentages can overlap and need not total 100%. This measures monitored media coverage, not voter priorities.
+            </span>
+          </button>
+        </span>
+      </header>
+
+      <div
+        class="hybrid-agenda-v6-panel-body hybrid-agenda-v6-evolution-body"
+      >
+        ${renderIssuesMatrix(model)}
+        ${renderIssuesWeekShift(model)}
+      </div>
+    </section>`;
+  }
+
+  function renderIssueCandidates(topic) {
+    const candidates =
+      Array.isArray(
+        topic.candidate_counts
+      )
+        ? topic.candidate_counts
+            .slice(0, 8)
+        : [];
+
+    if (!candidates.length) {
+      return `<div
+        class="hybrid-agenda-v6-scroll"
+        data-agenda-scroll-region="issue-candidates"
+      >
+        <div class="hybrid-agenda-v6-empty">
+          No candidate association is supported by the selected issue evidence.
+        </div>
+      </div>`;
+    }
+
+    const maximum =
+      Math.max(
+        1,
+        ...candidates.map(
+          item =>
+            number(
+              item.item_count
+            )
+        )
+      );
+
+    return `<div
+      class="hybrid-agenda-v6-scroll"
+      data-agenda-scroll-region="issue-candidates"
+    >
+      <div class="hybrid-agenda-v6-signal-list">
+        ${candidates
+          .map(item => {
+            const count =
+              number(
+                item.item_count
+              );
+
+            return `<div
+              class="hybrid-agenda-v6-signal-item"
+            >
+              <div class="hybrid-agenda-v6-signal-head">
+                <span>
+                  ${escapeHtml(
+                    item.candidate
+                  )}
+                </span>
+
+                <strong>
+                  ${count}
+                </strong>
+              </div>
+
+              <span
+                class="hybrid-agenda-v6-signal-track"
+                aria-hidden="true"
+              >
+                <i
+                  style="--agenda-signal-width:${(count / maximum * 100).toFixed(1)}%"
+                ></i>
+              </span>
+            </div>`;
+          })
+          .join("")}
+      </div>
+    </div>`;
+  }
+
+  function renderIssueSubtopicBadge(topic) {
+    const lead =
+      Array.isArray(
+        topic.subtopic_counts
+      )
+        ? topic.subtopic_counts[0]
+        : null;
+
+    if (!lead) return "";
+
+    return `<span
+      class="hybrid-agenda-v6-badge is-structure"
+      title="${escapeAttribute(
+        `${policySubtopicLabel(lead.id)} · ${lead.item_count} matched articles`
+      )}"
+    >
+      ${escapeHtml(
+        policySubtopicLabel(
+          lead.id
+        )
+      )}
+    </span>`;
+  }
+
+  function renderIssuesDossier(model) {
+    const topic =
+      model.selectedIssue;
+
+    if (!topic) return "";
+
+    const movement =
+      String(
+        topic.movement ||
+        "STABLE"
+      ).toLowerCase();
+
+    const evidenceCount =
+      Array.isArray(
+        topic.supporting_items
+      )
+        ? topic.supporting_items.length
+        : 0;
+
+    const candidateHits =
+      topic.candidate_counts
+        .reduce(
+          (total, item) =>
+            total +
+            number(
+              item.item_count
+            ),
+          0
+        );
+
+    return `<section
+      class="hybrid-agenda-v6-panel hybrid-agenda-v6-dossier"
+    >
+      <header class="hybrid-agenda-v6-panel-head">
+        <h3 class="hybrid-agenda-v6-panel-title">
+          ISSUE DOSSIER
+        </h3>
+
+        <span class="hybrid-agenda-v6-panel-meta">
+          SOURCE-LINKED EVIDENCE
+        </span>
+      </header>
+
+      <div
+        class="hybrid-agenda-v6-panel-body hybrid-agenda-v6-dossier-body"
+      >
+        <section class="hybrid-agenda-v6-identity">
+          <span
+            class="hybrid-agenda-v6-dossier-icon"
+            aria-hidden="true"
+          >
+            ${policyIssueIcon(topic.id)}
+          </span>
+
+          <div class="hybrid-agenda-v6-identity-copy">
+            <span class="hybrid-agenda-v6-kicker">
+              SELECTED SUBSTANTIVE ISSUE
+            </span>
+
+            <div class="hybrid-agenda-v6-title-line">
+              <h4>
+                ${escapeHtml(topic.label)}
+              </h4>
+
+              <span
+                class="hybrid-agenda-v6-badge"
+                data-movement="${escapeAttribute(movement)}"
+              >
+                ${escapeHtml(
+                  topic.movement
+                )}
+              </span>
+
+              ${renderIssueSubtopicBadge(topic)}
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="hybrid-agenda-v6-metrics"
+          aria-label="Selected issue headline metrics"
+        >
+          <article>
+            <strong>
+              ${topic.source_day_count}
+            </strong>
+            <span>30D SOURCE-DAYS</span>
+          </article>
+
+          <article>
+            <strong>
+              ${topic.latestIncidence.toFixed(1)}%
+            </strong>
+            <span>7D INCIDENCE</span>
+          </article>
+
+          <article>
+            <strong
+              data-movement="${escapeAttribute(movement)}"
+            >
+              ${escapeHtml(
+                agendaSignedPp(
+                  topic.incidenceChangePp
+                )
+              )}
+            </strong>
+            <span>INCIDENCE Δ</span>
+          </article>
+        </section>
+
+        ${renderAgendaV6Activity(
+          topic,
+          model.evolution
+        )}
+
+        <div class="hybrid-agenda-v6-detail-grid">
+          <section class="hybrid-agenda-v6-detail-card">
+            <div class="hybrid-agenda-v6-detail-head">
+              <strong>
+                CANDIDATE ASSOCIATIONS
+              </strong>
+
+              <span>
+                ${candidateHits}
+                hits ·
+                ${topic.candidate_counts.length}
+                candidates
+              </span>
+            </div>
+
+            ${renderIssueCandidates(topic)}
+          </section>
+
+          <section class="hybrid-agenda-v6-detail-card">
+            <div class="hybrid-agenda-v6-detail-head">
+              <strong>
+                RECENT EVIDENCE
+              </strong>
+
+              <span>
+                ${Math.min(
+                  8,
+                  evidenceCount
+                )}
+                of
+                ${evidenceCount}
+              </span>
+            </div>
+
+            ${renderAgendaV6Evidence(topic)}
+          </section>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function renderIssuesPanel(model) {
+    if (
+      model.state !== "ready"
+    ) {
+      return summaryState(model);
+    }
+
+    return `<div
+      class="hybrid-agenda-v6-workspace"
+      aria-label="Policy Issues analytical workspace"
+    >
+      ${renderIssuesMonitor(model)}
+      ${renderIssuesAnalysis(model)}
+      ${renderIssuesDossier(model)}
+    </div>`;
+  }
+
   function renderAgendaPanel(model) {
     if (model.state !== "ready") {
       return summaryState(model);
@@ -5190,6 +6680,7 @@
       </section>
       <section class="hybrid-panel" id="signal-events-panel" role="tabpanel" aria-labelledby="signal-events-tab"${state.activeView === "events" ? "" : " hidden"}>${renderEventsPanel(models.events)}</section>
       <section class="hybrid-panel" id="signal-agenda-panel" role="tabpanel" aria-labelledby="signal-agenda-tab"${state.activeView === "agenda" ? "" : " hidden"}>${renderAgendaPanel(models.agenda)}</section>
+      <section class="hybrid-panel" id="signal-issues-panel" role="tabpanel" aria-labelledby="signal-issues-tab"${state.activeView === "issues" ? "" : " hidden"}>${renderIssuesPanel(models.issues)}</section>
     </section>`;
   }
 
@@ -6021,7 +7512,7 @@
 
   function setViewHash(view, source) {
     if (!views[view]) view = defaultView;
-    state.scrollOnNextHash = source === "card" || (source === "tab" && view === "pollCompare");
+    state.scrollOnNextHash = source === "card";
     if (window.location.hash === views[view].hash) {
       setActiveSignalView(view, { scrollWorkspace: state.scrollOnNextHash });
       state.scrollOnNextHash = false;
@@ -6030,10 +7521,10 @@
     window.location.hash = views[view].hash;
   }
 
-  function scrollWorkspaceIfNeeded(view = state.activeView) {
-    const target = view === "pollCompare"
-      ? document.getElementById("polling-evidence-lab")
-      : mount.querySelector("[data-hybrid-workspace]");
+  function scrollWorkspaceIfNeeded() {
+    const target = mount.querySelector(
+      "[data-hybrid-workspace]"
+    );
     if (!target) return;
     const rect = target.getBoundingClientRect();
     if (rect.top >= 0 && rect.top < window.innerHeight * .82) return;
@@ -6101,6 +7592,29 @@
         document.querySelector(`[data-hybrid-agenda-topic="${CSS.escape(state.selectedAgendaTopicId)}"]`)?.focus();
       });
     });
+
+    mount
+      .querySelectorAll(
+        "[data-hybrid-policy-issue]"
+      )
+      .forEach(button => {
+        button.addEventListener(
+          "click",
+          () => {
+            state.selectedPolicyIssueId =
+              button.dataset
+                .hybridPolicyIssue;
+
+            renderAll();
+
+            mount
+              .querySelector(
+                `[data-hybrid-policy-issue="${CSS.escape(state.selectedPolicyIssueId)}"]`
+              )
+              ?.focus();
+          }
+        );
+      });
 
     mount.querySelectorAll("button[data-hybrid-event-id]").forEach(button => {
       button.addEventListener("click", () => {
@@ -7023,6 +8537,7 @@
     agendaMovementLabel,
     agendaStructureLabel,
     buildAgendaViewModel,
+    buildPolicyAgendaViewModel,
     renderSummaryGrid,
     renderRunoffSummary,
     renderMediaSummary,
@@ -7032,6 +8547,7 @@
     renderMediaPanel,
     renderEventsPanel,
     renderAgendaPanel,
+    renderIssuesPanel,
     setActiveSignalView,
     handleSignalHashChange
   });

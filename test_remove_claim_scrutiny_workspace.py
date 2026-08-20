@@ -34,7 +34,7 @@ class RemoveClaimScrutinyWorkspaceTests(unittest.TestCase):
         )
         self.assertEqual(
             keys,
-            ["candidates", "runoff", "events", "agenda", "pollCompare"],
+            ["candidates", "runoff", "events", "agenda", "issues"],
         )
 
     def test_claims_is_absent_from_view_registry_and_surface(self):
@@ -64,12 +64,23 @@ class RemoveClaimScrutinyWorkspaceTests(unittest.TestCase):
             'id="signal-runoff-panel"',
             'id="signal-events-panel"',
             'id="signal-agenda-panel"',
+            'id="signal-issues-panel"',
         ):
             self.assertIn(required, block)
 
     def test_five_tabs_share_row_evenly(self):
-        self.assertIn("  flex: 1 1 0;", HYBRID_CSS)
-        self.assertNotIn('data-hybrid-view="claims"', HYBRID_CSS)
+        self.assertIn(
+            "WORKSPACE NAVIGATION — LOCKED CONTRACT",
+            HYBRID_CSS,
+        )
+        self.assertIn(
+            "flex: 1 1 0 !important;",
+            HYBRID_CSS,
+        )
+        self.assertNotIn(
+            'data-hybrid-view="claims"',
+            HYBRID_CSS,
+        )
 
     def test_tab_aria_and_keyboard_contract_remains(self):
         for required in (
