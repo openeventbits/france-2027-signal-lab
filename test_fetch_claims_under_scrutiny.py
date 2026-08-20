@@ -496,10 +496,12 @@ class DownstreamCompatibilityTests(unittest.TestCase):
         self.assertIn("const candidates = [...metrics.candidates.entries()]", source)
         self.assertNotIn("rolling 45-day polling eligibility rule", source)
 
-    def test_hybrid_frontend_candidates_are_review_association_derived(self):
+    def test_hybrid_frontend_candidate_scrutiny_is_review_association_derived(self):
         source = (ROOT / "assets" / "hybrid-dashboard.js").read_text(encoding="utf-8")
-        self.assertIn("review.candidate_associations.forEach(association =>", source)
-        self.assertIn("const candidates = [...candidateMap.values()]", source)
+        self.assertIn("function candidateScrutinyReviewEntries(", source)
+        self.assertIn("item?.candidate_id ===", source)
+        self.assertIn("candidate.candidate_id", source)
+        self.assertNotIn("function buildClaimsViewModel(", source)
 
     def test_recent_changes_does_not_filter_claims_by_active_query_roster(self):
         payload = v2_registry()

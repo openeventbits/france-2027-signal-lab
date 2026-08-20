@@ -76,7 +76,6 @@
 
 .hybrid-card-media { --hybrid-card-accent: var(--hybrid-violet); }
 
-.hybrid-card-claims { --hybrid-card-accent: var(--hybrid-amber); }
 
 .hybrid-card-head {
   display: flex;
@@ -368,7 +367,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  flex: 1 0 auto;
+  flex: 1 1 0;
   min-width: 140px;
   padding: 12px 14px;
   border: 0;
@@ -411,8 +410,6 @@
 .hybrid-tab[aria-selected="true"]::after { background: var(--cyan); }
 .hybrid-tab[data-hybrid-view="media"][aria-selected="true"] { color: #cbbcff; }
 .hybrid-tab[data-hybrid-view="media"][aria-selected="true"]::after { background: var(--hybrid-violet); }
-.hybrid-tab[data-hybrid-view="claims"][aria-selected="true"] { color: #ffd477; }
-.hybrid-tab[data-hybrid-view="claims"][aria-selected="true"]::after { background: var(--hybrid-amber); }
 
 .hybrid-panel {
   min-width: 0;

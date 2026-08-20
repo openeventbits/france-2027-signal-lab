@@ -79,7 +79,7 @@ class FixedDate extends RealDate {
   }
 }
 const start = source.indexOf("  function parisTodayKey(");
-const end = source.indexOf("\n\n  function ratingDisplay(", start);
+const end = source.indexOf("\n\n  function safelyBuildViewModel(", start);
 if (start < 0 || end < 0) throw new Error("Could not extract Events view model");
 const context = {
   Date: FixedDate,
@@ -672,7 +672,7 @@ class CampaignEventsFrontendTests(unittest.TestCase):
             "function campaignEventTypeLabel("
         )
         renderer_end = self.dashboard.index(
-            "function filteredClaimReviews(",
+            "function renderFocusWorkspace(models)",
             renderer_start,
         )
         renderer = self.dashboard[renderer_start:renderer_end]
@@ -729,7 +729,7 @@ class CampaignEventsFrontendTests(unittest.TestCase):
         self.assertNotIn("renderOperationsHorizonLegend()", rail_renderer)
 
         panel_start = self.dashboard.index("function renderEventsPanel(")
-        panel_end = self.dashboard.index("function filteredClaimReviews(", panel_start)
+        panel_end = self.dashboard.index("function renderFocusWorkspace(models)", panel_start)
         panel_renderer = self.dashboard[panel_start:panel_end]
         self.assertGreater(
             panel_renderer.index("renderOperationsHorizonLegend(model)"),
