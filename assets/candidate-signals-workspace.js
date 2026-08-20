@@ -975,9 +975,9 @@
     return row;
   }
 
-  function summaryCard(title, className = "") {
+  function summaryCard(title, className = "", tagName = "article") {
     const card = createElement(
-      "article",
+      tagName,
       `candidate-signals-analysis-card${className ? ` ${className}` : ""}`
     );
     card.append(
@@ -1948,10 +1948,36 @@
   }
 
   function scrutinySummaryCard(candidate) {
+    const onOpenScrutiny = arguments[1];
     const card = summaryCard(
       "SCRUTINY",
-      "candidate-signals-scrutiny-summary"
+      "candidate-signals-scrutiny-summary",
+      "div"
     );
+
+    if (typeof onOpenScrutiny === "function") {
+      card.className += " is-operable";
+      card.setAttribute("role", "button");
+      card.setAttribute("tabindex", "0");
+      card.setAttribute("aria-haspopup", "dialog");
+      card.setAttribute("aria-expanded", "false");
+      card.setAttribute(
+        "aria-label",
+        `Open claim scrutiny details for ${candidate.candidate_name}`
+      );
+
+      const openScrutiny = () => {
+        onOpenScrutiny(candidate, card);
+      };
+
+      card.addEventListener("click", openScrutiny);
+      card.addEventListener("keydown", event => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        openScrutiny();
+      });
+    }
+
     const latest = candidate.scrutiny?.latest_14_days;
     const archive = candidate.scrutiny?.archive;
 
@@ -2975,7 +3001,8 @@
     candidate,
     metadata,
     attentionState,
-    visibilityHistoryState
+    visibilityHistoryState,
+    onOpenScrutiny
   ) {
     const section = createElement(
       "section",
@@ -3002,7 +3029,7 @@
         visibilityHistoryState
       ),
       scopeCompositionCard(candidate),
-      scrutinySummaryCard(candidate)
+      scrutinySummaryCard(candidate, onOpenScrutiny)
     );
 
     const lower = createElement("div", "candidate-signals-analysis-lower");
@@ -4131,7 +4158,9 @@
           candidateAttention:
             options.candidateAttention,
           candidateVisibilityHistory:
-            options.candidateVisibilityHistory
+            options.candidateVisibilityHistory,
+          onOpenScrutiny:
+            options.onOpenScrutiny
         });
       }
 
@@ -4155,7 +4184,8 @@
         selectedCandidate,
         state.metadata || {},
         options.candidateAttention,
-        options.candidateVisibilityHistory
+        options.candidateVisibilityHistory,
+        options.onOpenScrutiny
       ),
       candidateDossier(selectedCandidate, state.metadata || {}, options)
     );
