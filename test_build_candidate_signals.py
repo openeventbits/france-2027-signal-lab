@@ -1407,7 +1407,7 @@ class PresidentialFieldContractTests(unittest.TestCase):
         )
 
     def test_schema_keys_complete_universe_and_order_are_exact(self):
-        self.assertEqual(self.payload["schema_version"], "1.3")
+        self.assertEqual(self.payload["schema_version"], "1.4")
         self.assertEqual(
             list(self.payload),
             [
@@ -1445,6 +1445,7 @@ class PresidentialFieldContractTests(unittest.TestCase):
                 "general_visibility",
                 "scrutiny",
                 "latest_development",
+                "agenda_profile",
             },
         )
 
@@ -1891,6 +1892,242 @@ class DeterminismAndSafetyTests(unittest.TestCase):
         self.assertNotIn('"story_clusters"', serialized)
         self.assertNotIn('"publisher_names"', serialized)
         self.assertNotIn('"delta"', serialized)
+
+
+class AgendaProfileContractTests(unittest.TestCase):
+    CANDIDATES = [
+        {
+            "candidate_id": "alice-observee",
+            "candidate_name": "Alice Observée",
+        },
+        {
+            "candidate_id": "benoit-non-teste",
+            "candidate_name": "Benoît Non Testé",
+        },
+    ]
+
+    def news_payload(self, policy_counts=None, relevant_news=None):
+        policy_counts = policy_counts or {}
+        relevant_news = relevant_news or []
+
+        return {
+            "policy_agenda": {
+                "window_days": 30,
+                "evolution": {
+                    "period_start": "2026-07-01",
+                    "period_end": "2026-07-30",
+                },
+                "topics": [
+                    {
+                        "id": definition["id"],
+                        "candidate_counts": (
+                            [{
+                                "candidate": "Alice Observée",
+                                "item_count": policy_counts[definition["id"]],
+                            }]
+                            if policy_counts.get(definition["id"], 0) > 0
+                            else []
+                        ),
+                    }
+                    for definition in builder.POLICY_AGENDA_TOPICS
+                ],
+            },
+            "relevant_news": relevant_news,
+        }
+
+    def campaign_record(
+        self,
+        headline,
+        published_at,
+        candidates=None,
+    ):
+        return {
+            "headline": headline,
+            "published_at": published_at,
+            "candidates": (
+                ["Alice Observée"]
+                if candidates is None
+                else candidates
+            ),
+            "explicit_election": True,
+        }
+
+    def test_three_nonzero_policy_topics_select_policy_wholesale(self):
+        policy_ids = [
+            definition["id"]
+            for definition in builder.POLICY_AGENDA_TOPICS
+        ]
+        news = self.news_payload(
+            policy_counts={
+                policy_ids[0]: 2,
+                policy_ids[1]: 1,
+                policy_ids[2]: 1,
+            },
+            relevant_news=[
+                self.campaign_record(
+                    "Alice Observée annonce sa candidature "
+                    "à l'élection présidentielle",
+                    "2026-07-15T12:00:00Z",
+                ),
+            ],
+        )
+
+        profiles = builder.project_agenda_profiles(
+            self.CANDIDATES,
+            news,
+        )
+        profile = profiles["alice-observee"]
+
+        self.assertEqual(profile["profile_mode"], "policy")
+        self.assertEqual(profile["window_days"], 30)
+        self.assertEqual(profile["period_start"], "2026-07-01")
+        self.assertEqual(profile["period_end"], "2026-07-30")
+        self.assertEqual(profile["association_count"], 4)
+        self.assertEqual(
+            [topic["id"] for topic in profile["topics"]],
+            policy_ids,
+        )
+
+        counts = {
+            topic["id"]: topic["association_count"]
+            for topic in profile["topics"]
+        }
+        self.assertEqual(counts[policy_ids[0]], 2)
+        self.assertEqual(counts[policy_ids[1]], 1)
+        self.assertEqual(counts[policy_ids[2]], 1)
+        self.assertAlmostEqual(
+            sum(topic["share"] for topic in profile["topics"]),
+            1.0,
+            places=6,
+        )
+
+    def test_two_policy_topics_trigger_wholesale_campaign_fallback(self):
+        policy_ids = [
+            definition["id"]
+            for definition in builder.POLICY_AGENDA_TOPICS
+        ]
+        campaign_ids = [
+            definition["id"]
+            for definition in builder.CAMPAIGN_AGENDA_TOPICS
+        ]
+        news = self.news_payload(
+            policy_counts={
+                policy_ids[0]: 7,
+                policy_ids[1]: 5,
+            },
+            relevant_news=[
+                self.campaign_record(
+                    "Alice Observée annonce sa candidature "
+                    "à l'élection présidentielle",
+                    "2026-07-12T09:00:00Z",
+                ),
+                self.campaign_record(
+                    "Alice Observée progresse dans les sondages "
+                    "de la présidentielle",
+                    "2026-07-20T09:00:00Z",
+                ),
+            ],
+        )
+
+        profile = builder.project_agenda_profiles(
+            self.CANDIDATES,
+            news,
+        )["alice-observee"]
+
+        self.assertEqual(profile["profile_mode"], "campaign")
+        self.assertEqual(profile["association_count"], 2)
+        self.assertEqual(
+            [topic["id"] for topic in profile["topics"]],
+            campaign_ids,
+        )
+        self.assertTrue(
+            set(campaign_ids).isdisjoint(policy_ids)
+        )
+
+        counts = {
+            topic["id"]: topic["association_count"]
+            for topic in profile["topics"]
+        }
+        self.assertEqual(counts["candidacies_endorsements"], 1)
+        self.assertEqual(counts["polls_race"], 1)
+        self.assertAlmostEqual(
+            sum(topic["share"] for topic in profile["topics"]),
+            1.0,
+            places=6,
+        )
+
+    def test_campaign_projection_respects_30_day_window_and_dedupes(self):
+        news = self.news_payload(
+            relevant_news=[
+                self.campaign_record(
+                    "Alice Observée annonce sa candidature "
+                    "à l'élection présidentielle",
+                    "2026-07-01T00:00:00Z",
+                    ["Alice Observée", "Alice Observée"],
+                ),
+                self.campaign_record(
+                    "Alice Observée progresse dans les sondages "
+                    "de la présidentielle",
+                    "2026-07-30T23:59:59Z",
+                ),
+                self.campaign_record(
+                    "Alice Observée annonce sa candidature "
+                    "à l'élection présidentielle",
+                    "2026-06-30T23:59:59Z",
+                ),
+                self.campaign_record(
+                    "Alice Observée progresse dans les sondages "
+                    "de la présidentielle",
+                    "2026-07-31T00:00:00Z",
+                ),
+            ],
+        )
+
+        profile = builder.project_agenda_profiles(
+            self.CANDIDATES,
+            news,
+        )["alice-observee"]
+
+        counts = {
+            topic["id"]: topic["association_count"]
+            for topic in profile["topics"]
+        }
+
+        self.assertEqual(profile["profile_mode"], "campaign")
+        self.assertEqual(profile["association_count"], 2)
+        self.assertEqual(counts["candidacies_endorsements"], 1)
+        self.assertEqual(counts["polls_race"], 1)
+
+    def test_every_candidate_receives_a_complete_profile(self):
+        profiles = builder.project_agenda_profiles(
+            self.CANDIDATES,
+            self.news_payload(),
+        )
+
+        self.assertEqual(
+            set(profiles),
+            {"alice-observee", "benoit-non-teste"},
+        )
+
+        for profile in profiles.values():
+            with self.subTest(profile=profile):
+                self.assertEqual(profile["profile_mode"], "campaign")
+                self.assertEqual(profile["window_days"], 30)
+                self.assertEqual(profile["association_count"], 0)
+                self.assertEqual(
+                    [topic["id"] for topic in profile["topics"]],
+                    [
+                        definition["id"]
+                        for definition in builder.CAMPAIGN_AGENDA_TOPICS
+                    ],
+                )
+                self.assertTrue(
+                    all(
+                        topic["association_count"] == 0
+                        and topic["share"] == 0.0
+                        for topic in profile["topics"]
+                    )
+                )
 
 
 if __name__ == "__main__":

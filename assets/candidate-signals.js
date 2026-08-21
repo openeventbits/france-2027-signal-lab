@@ -8,7 +8,7 @@
     unavailable: "unavailable"
   });
   const SUPPORTED_SCHEMA_VERSIONS = new Set([
-    "1.0", "1.1", "1.2", "1.3"
+    "1.0", "1.1", "1.2", "1.3", "1.4"
   ]);
   const metadataFields = [
     "candidate_universe",
@@ -129,6 +129,17 @@
     "scrutiny",
     "latest_development"
   ];
+  const candidateRecordFields14 = [
+    "candidate_id",
+    "candidate_name",
+    "candidacy",
+    "polling",
+    "campaign_attention",
+    "general_visibility",
+    "agenda_profile",
+    "scrutiny",
+    "latest_development"
+  ];
   const activePeriodFields = [
     "start_date", "end_date", "record_count", "publisher_count"
   ];
@@ -143,6 +154,39 @@
     "minimum_common_publishers", "minimum_publisher_overlap_ratio",
     "maximum_record_count_ratio"
   ];
+
+  const agendaProfileFields = [
+    "profile_mode",
+    "window_days",
+    "period_start",
+    "period_end",
+    "association_count",
+    "topics"
+  ];
+  const agendaTopicFields = [
+    "id",
+    "label",
+    "association_count",
+    "share"
+  ];
+  const agendaPolicyTopics = Object.freeze([
+    ["economy_public_finances", "Economy & Public Finances"],
+    ["work_purchasing_power_pensions", "Work, Purchasing Power & Pensions"],
+    ["immigration_identity_secularism", "Immigration, Identity & Secularism"],
+    ["security_justice", "Security & Justice"],
+    ["health_education_public_services", "Health, Education & Public Services"],
+    ["climate_energy_agriculture", "Climate, Energy & Agriculture"],
+    ["europe_defence_foreign_affairs", "Europe, Defence & Foreign Affairs"],
+    ["institutions_democracy_territories", "Institutions, Democracy & Territories"]
+  ]);
+  const agendaCampaignTopics = Object.freeze([
+    ["legal_eligibility", "Legal cases & eligibility"],
+    ["selection_strategy", "Primaries & party strategy"],
+    ["candidacies_endorsements", "Candidacies & endorsements"],
+    ["rules_calendar", "Rules, calendar & campaign mechanics"],
+    ["positioning_integrity", "Positioning & political image"],
+    ["polls_race", "Polling & race narratives"]
+  ]);
 
   function isPlainObject(value) {
     if (value === null || typeof value !== "object") return false;
@@ -517,13 +561,90 @@
     };
   }
 
+  function normalizeAgendaProfile(source) {
+    if (!hasExactKeys(source, agendaProfileFields)) return undefined;
+
+    const mode = source.profile_mode;
+    if (!["policy", "campaign"].includes(mode)) return undefined;
+    if (source.window_days !== 30) return undefined;
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(source.period_start) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(source.period_end)
+    ) return undefined;
+
+    const start = Date.parse(`${source.period_start}T00:00:00Z`);
+    const end = Date.parse(`${source.period_end}T00:00:00Z`);
+    if (
+      !Number.isFinite(start) ||
+      !Number.isFinite(end) ||
+      end - start !== 29 * 86400000
+    ) return undefined;
+
+    if (!nonnegativeInteger(source.association_count)) {
+      return undefined;
+    }
+    if (!Array.isArray(source.topics)) return undefined;
+
+    const definitions = mode === "policy"
+      ? agendaPolicyTopics
+      : agendaCampaignTopics;
+    if (source.topics.length !== definitions.length) return undefined;
+
+    let total = 0;
+    let nonzero = 0;
+    const topics = [];
+
+    for (let index = 0; index < definitions.length; index += 1) {
+      const topic = source.topics[index];
+      const [expectedId, expectedLabel] = definitions[index];
+
+      if (
+        !hasExactKeys(topic, agendaTopicFields) ||
+        topic.id !== expectedId ||
+        topic.label !== expectedLabel ||
+        !nonnegativeInteger(topic.association_count) ||
+        typeof topic.share !== "number" ||
+        !Number.isFinite(topic.share) ||
+        topic.share < 0 ||
+        topic.share > 1
+      ) return undefined;
+
+      total += topic.association_count;
+      if (topic.association_count > 0) nonzero += 1;
+
+      const expectedShare = source.association_count
+        ? Math.round(
+            (topic.association_count / source.association_count) * 1000000
+          ) / 1000000
+        : 0;
+
+      if (topic.share !== expectedShare) return undefined;
+      topics.push(cloneValue(topic));
+    }
+
+    if (total !== source.association_count) return undefined;
+    if (mode === "policy" && nonzero < 3) return undefined;
+
+    return {
+      profile_mode: mode,
+      window_days: source.window_days,
+      period_start: source.period_start,
+      period_end: source.period_end,
+      association_count: source.association_count,
+      topics
+    };
+  }
+
+
   function normalize(payload) {
     if (!isPlainObject(payload)) return unavailable("invalid_payload");
     if (!SUPPORTED_SCHEMA_VERSIONS.has(payload.schema_version)) {
       return unavailable("unsupported_schema");
     }
     const isVersion12 = payload.schema_version === "1.2";
-    const isVersion13 = payload.schema_version === "1.3";
+    const isVersion14 = payload.schema_version === "1.4";
+    const isVersion13 =
+      payload.schema_version === "1.3" || isVersion14;
     if (isVersion12 && !hasExactKeys(payload, schema12TopFields)) {
       return unavailable("invalid_payload");
     }
@@ -542,8 +663,12 @@
     for (const sourceCandidate of payload.candidates) {
       if (!isPlainObject(sourceCandidate)) return unavailable("invalid_payload");
       if (
-        (isVersion12 || isVersion13) &&
-        !hasExactKeys(sourceCandidate, candidateRecordFields)
+        isVersion14
+          ? !hasExactKeys(sourceCandidate, candidateRecordFields14)
+          : (
+              (isVersion12 || isVersion13) &&
+              !hasExactKeys(sourceCandidate, candidateRecordFields)
+            )
       ) {
         return unavailable("invalid_payload");
       }
@@ -575,6 +700,14 @@
         if (evidence === undefined) return unavailable("invalid_payload");
         candidate[field] = evidence;
       }
+
+      candidate.agenda_profile = isVersion14
+        ? normalizeAgendaProfile(sourceCandidate.agenda_profile)
+        : null;
+      if (isVersion14 && candidate.agenda_profile === undefined) {
+        return unavailable("invalid_payload");
+      }
+
       candidateIds.add(candidateId);
       candidates.push(candidate);
     }

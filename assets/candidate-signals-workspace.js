@@ -22,6 +22,26 @@
     "Candidate-linked campaign/election records in the current period.";
   const LATEST_DEVELOPMENT_EXPLANATION =
     "Newest campaign/election record with this candidate matched in the headline.";
+  const POLICY_AGENDA_SEMANTICS =
+    "Candidate × policy-issue coverage associations derived from the published multi-label Policy Issues layer over the 30-day window. These measure media coverage association, not candidate priorities, positions, issue ownership, ideology, or policy support.";
+  const CAMPAIGN_AGENDA_SEMANTICS =
+    "Candidate-linked campaign/election records classified into the published Campaign Agenda themes over the 30-day window. These describe campaign and race-process coverage, not substantive policy priorities or positions.";
+  const AGENDA_PROFILE_LABELS = Object.freeze({
+    economy_public_finances: "Economy / finances",
+    work_purchasing_power_pensions: "Work / purchasing power",
+    immigration_identity_secularism: "Immigration / identity",
+    security_justice: "Security / justice",
+    health_education_public_services: "Health / education",
+    climate_energy_agriculture: "Climate / energy",
+    europe_defence_foreign_affairs: "Europe / defence",
+    institutions_democracy_territories: "Institutions / democracy",
+    legal_eligibility: "Legal / eligibility",
+    selection_strategy: "Primaries / strategy",
+    candidacies_endorsements: "Candidacies / endorsements",
+    rules_calendar: "Rules / calendar",
+    positioning_integrity: "Positioning / image",
+    polls_race: "Polling / race"
+  });
   const stateNames = new Set([
     "loading",
     "ready",
@@ -990,6 +1010,124 @@
     return card;
   }
 
+  function agendaSummaryCard(candidate) {
+    const profile = candidate.agenda_profile;
+    const card = summaryCard(
+      "AGENDA PROFILE",
+      "candidate-signals-agenda-summary"
+    );
+
+    if (!profile) return card;
+
+    const mode = profile.profile_mode === "policy"
+      ? "POLICY"
+      : "CAMPAIGN";
+    const semantics = profile.profile_mode === "policy"
+      ? POLICY_AGENDA_SEMANTICS
+      : CAMPAIGN_AGENDA_SEMANTICS;
+    const period = formatDateRange(
+      profile.period_start,
+      profile.period_end
+    );
+    const metadata = `${mode} · ${profile.window_days}D · ${
+      numberText(profile.association_count)
+    } LINKS · ${period} — ${semantics}`;
+
+    card.setAttribute("title", metadata);
+    card.setAttribute(
+      "aria-label",
+      `AGENDA PROFILE — ${metadata}`
+    );
+
+    const ranked = [];
+
+    for (const topic of profile.topics) {
+      if (
+        !hasValue(topic.association_count) ||
+        Number(topic.association_count) <= 0
+      ) {
+        continue;
+      }
+
+      let inserted = false;
+
+      for (let index = 0; index < ranked.length; index += 1) {
+        if (
+          Number(topic.association_count) >
+          Number(ranked[index].association_count)
+        ) {
+          ranked.splice(index, 0, topic);
+          inserted = true;
+          break;
+        }
+      }
+
+      if (!inserted) {
+        ranked.push(topic);
+      }
+
+      if (ranked.length > 4) {
+        ranked.pop();
+      }
+    }
+
+    if (!ranked.length) {
+      card.append(
+        createElement(
+          "p",
+          "candidate-signals-card-state candidate-signals-agenda-empty",
+          "No classified topic coverage in the current 30-day window."
+        )
+      );
+      return card;
+    }
+
+    const list = createElement(
+      "div",
+      "candidate-signals-agenda-topics"
+    );
+
+    for (const topic of ranked) {
+      const row = createElement(
+        "div",
+        "candidate-signals-agenda-topic"
+      );
+      const line = createElement(
+        "div",
+        "candidate-signals-agenda-topic-line"
+      );
+      const label = createElement(
+        "span",
+        "candidate-signals-agenda-topic-label",
+        AGENDA_PROFILE_LABELS[topic.id] || topic.label
+      );
+      const share = createElement(
+        "strong",
+        "candidate-signals-agenda-topic-share",
+        compactPercentageText(topic.share, true)
+      );
+      const track = createElement(
+        "span",
+        "candidate-signals-agenda-topic-track"
+      );
+      const fill = createElement(
+        "span",
+        "candidate-signals-agenda-topic-fill"
+      );
+
+      const width = percentageNumber(topic.share, true);
+      fill.style.width = `${width === null ? 0 : width}%`;
+      track.append(fill);
+      line.append(label, share);
+      row.append(line, track);
+      list.append(row);
+    }
+
+    card.append(list);
+    return card;
+  }
+
+
   function summaryMeta(label, value, className = "") {
     const row = createElement(
       "div",
@@ -1152,36 +1290,31 @@
     }
 
     if (reported) {
-      const facts = createElement(
-        "div",
-        "candidate-signals-poll-facts"
+      const pollster = pollPackage?.pollster || MISSING;
+      const fieldwork = formatDateRange(
+        pollPackage?.fieldwork_start,
+        pollPackage?.fieldwork_end
       );
-      facts.append(
-        pollFact(
-          "POLLSTER",
-          pollPackage?.pollster || MISSING
-        ),
-        pollFact(
-          "FIELDWORK",
-          formatDateRange(
-            pollPackage?.fieldwork_start,
-            pollPackage?.fieldwork_end
-          )
-        ),
-        pollFact(
-          "HYPOTHESES",
-          hasValue(poll?.hypothesis_count)
-            ? `${numberText(poll.hypothesis_count)} hypotheses`
-            : MISSING
-        ),
-        pollFact(
-          "SAMPLE",
-          hasValue(pollPackage?.sample_size)
-            ? `N=${groupedNumberText(pollPackage.sample_size)}`
-            : MISSING
+      const hypotheses = hasValue(poll?.hypothesis_count)
+        ? `${numberText(poll.hypothesis_count)} hypotheses`
+        : MISSING;
+      const sample = hasValue(pollPackage?.sample_size)
+        ? `N=${groupedNumberText(pollPackage.sample_size)}`
+        : MISSING;
+
+      const note = createElement(
+        "div",
+        "candidate-signals-poll-note"
+      );
+      note.append(
+        createElement(
+          "span",
+          "candidate-signals-poll-note-text",
+          `${pollster} · ${fieldwork} · ${sample} · ${hypotheses}`
         )
       );
-      card.append(facts);
+
+      card.append(note);
     }
 
     return card;
@@ -1849,28 +1982,42 @@
       return card;
     }
 
+    if (composition.complete) {
+      const summary = createElement(
+        "div",
+        "candidate-signals-composition-summary"
+      );
+      const summaryValue = createElement(
+        "span",
+        "candidate-signals-composition-summary-value"
+      );
+      summaryValue.append(
+        createElement(
+          "strong",
+          "candidate-signals-composition-summary-count",
+          numberText(composition.total)
+        ),
+        createElement(
+          "span",
+          "candidate-signals-composition-summary-unit",
+          "REC"
+        )
+      );
+
+      semanticMetadata(
+        summary,
+        `${numberText(
+          composition.total
+        )} candidate-linked campaign/election records`
+      );
+
+      summary.append(summaryValue);
+      card.append(summary);
+    }
+
     const visual = createElement(
       "div",
       "candidate-signals-composition-visual"
-    );
-
-    const totalLine = createElement(
-      "div",
-      "candidate-signals-composition-total-line"
-    );
-    totalLine.append(
-      createElement(
-        "strong",
-        "candidate-signals-composition-total",
-        composition.complete
-          ? numberText(composition.total)
-          : MISSING
-      ),
-      createElement(
-        "span",
-        "candidate-signals-composition-unit",
-        "records"
-      )
     );
 
     const stack = createElement(
@@ -1925,7 +2072,7 @@
       )
     );
 
-    visual.append(totalLine, stack, legend);
+    visual.append(stack, legend);
     card.append(visual);
     return card;
   }
@@ -2018,9 +2165,13 @@
         ),
         SCRUTINY_BY_SEMANTICS
       ),
-      createElement(
-        "span",
-        "candidate-signals-scrutiny-column",
+      semanticMetadata(
+        createElement(
+          "span",
+          "candidate-signals-scrutiny-column",
+          "REV."
+        ),
+        "REVIEWS",
         "REVIEWS"
       )
     );
@@ -2075,13 +2226,18 @@
       latest?.newest_review_date || archive?.newest_review_date;
 
     if (newestDate) {
-      card.append(
-        createElement(
-          "span",
-          "candidate-signals-scrutiny-foot",
-          `LATEST REVIEW · ${formatDisplayDate(newestDate)}`
-        )
+      const title = card.querySelector(
+        ".candidate-signals-analysis-card-title"
       );
+      if (title) {
+        const latestReviewText =
+          `LATEST REVIEW · ${formatDisplayDate(newestDate)}`;
+        semanticMetadata(
+          title,
+          latestReviewText,
+          `SCRUTINY — ${latestReviewText}`
+        );
+      }
     }
 
     return card;
@@ -3022,15 +3178,33 @@
     header.querySelector("h2").id = "candidate-signals-analysis-title";
 
     const cards = createElement("div", "candidate-signals-analysis-cards");
-    cards.append(
-      pollSummaryCard(candidate, metadata),
-      attentionSummaryCard(
-        candidate,
-        visibilityHistoryState
-      ),
-      scopeCompositionCard(candidate),
-      scrutinySummaryCard(candidate, onOpenScrutiny)
-    );
+    const agendaProfile = candidate.agenda_profile
+      ? agendaSummaryCard(candidate)
+      : null;
+
+    if (agendaProfile) {
+      cards.className += " has-agenda-profile";
+      cards.append(
+        pollSummaryCard(candidate, metadata),
+        agendaProfile,
+        attentionSummaryCard(
+          candidate,
+          visibilityHistoryState
+        ),
+        scopeCompositionCard(candidate),
+        scrutinySummaryCard(candidate, onOpenScrutiny)
+      );
+    } else {
+      cards.append(
+        pollSummaryCard(candidate, metadata),
+        attentionSummaryCard(
+          candidate,
+          visibilityHistoryState
+        ),
+        scopeCompositionCard(candidate),
+        scrutinySummaryCard(candidate, onOpenScrutiny)
+      );
+    }
 
     const lower = createElement("div", "candidate-signals-analysis-lower");
     lower.append(

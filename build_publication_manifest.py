@@ -436,7 +436,7 @@ def _validate_featured_poll_board_public(
 
 def _validate_candidate_signals_public(payload: Any) -> int:
     schema_version = payload.get("schema_version") if isinstance(payload, dict) else None
-    if schema_version == "1.3":
+    if schema_version in {"1.3", "1.4"}:
         try:
             validate_candidate_signals(payload)
         except CandidateSignalsError as error:
@@ -446,7 +446,7 @@ def _validate_candidate_signals_public(payload: Any) -> int:
         return payload["candidate_universe"]["count"]
     if schema_version != "1.2":
         raise ManifestError(
-            "candidate_signals.schema_version must equal 1.2 or 1.3"
+            "candidate_signals.schema_version must equal 1.2, 1.3, or 1.4"
         )
 
     # Temporary migration compatibility for the tracked schema-1.2 artifact.
@@ -861,7 +861,7 @@ def _validate_candidacy_status_parity(
         raise ManifestError(
             "candidate_signals presidential_field does not match registry"
         )
-    if schema_version == "1.3" and (
+    if schema_version in {"1.3", "1.4"} and (
         candidate_signals.get("active_monitoring_field") != expected_active
     ):
         raise ManifestError(
@@ -881,7 +881,7 @@ def _validate_candidacy_status_parity(
             "source_publisher": source["source_publisher"],
             "status_note": source["status_note"],
         }
-        if schema_version == "1.3":
+        if schema_version in {"1.3", "1.4"}:
             expected_candidacy["upstream_presence"] = source.get(
                 "upstream_presence", "present"
             )

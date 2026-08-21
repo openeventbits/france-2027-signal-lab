@@ -90,6 +90,21 @@ def phase3a1_signals_payload() -> dict:
         candidate_watch=[],
         roster_names=active_candidate_names(registry),
     )
+    news["policy_agenda"] = {
+        "window_days": 30,
+        "evolution": {
+            "period_start": "2026-06-30",
+            "period_end": "2026-07-29",
+        },
+        "topics": [
+            {
+                "id": definition["id"],
+                "candidate_counts": [],
+            }
+            for definition in fetch_news_wire.POLICY_AGENDA_TOPICS
+        ],
+    }
+    news["relevant_news"] = []
     return signals.build_candidate_signals(
         polls,
         news,
@@ -150,7 +165,7 @@ class CandidateSignalsActiveProjectionTests(unittest.TestCase):
         }
 
     def test_complete_and_stored_fields_retain_temporarily_missing_candidate(self):
-        self.assertEqual(self.payload["schema_version"], "1.3")
+        self.assertEqual(self.payload["schema_version"], "1.4")
         self.assertEqual(len(self.payload["candidates"]), 5)
         self.assertIn(
             "alice-observee",
