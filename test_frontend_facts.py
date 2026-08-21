@@ -148,7 +148,7 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             lane["schema_version"],
             candidate["schema_version"],
         )
-        self.assertEqual(candidate["schema_version"], "1.3")
+        self.assertEqual(candidate["schema_version"], "1.4")
         self.assertEqual(lane["file"], "candidate_signals.json")
         self.assertEqual(
             lane["record_count"],

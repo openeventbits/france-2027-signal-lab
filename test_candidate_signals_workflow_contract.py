@@ -55,7 +55,7 @@ class CandidateSignalsWorkflowContractTests(unittest.TestCase):
         payload = json.loads(
             (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(payload["schema_version"], "1.3")
+        self.assertEqual(payload["schema_version"], "1.4")
         monitoring = payload["active_monitoring_field"]
         self.assertEqual(
             monitoring["counts"]["active"],

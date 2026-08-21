@@ -239,6 +239,7 @@ def dynamic_schema_12_payload(tiers=("main", "main", "secondary", "hidden")):
         row["candidacy"]["display_tier"] = tier
         row["candidacy"]["active_field_eligible"] = tier != "hidden"
         row["candidacy"].pop("upstream_presence", None)
+        row.pop("agenda_profile", None)
         candidates.append(row)
 
     field = {

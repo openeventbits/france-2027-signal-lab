@@ -656,6 +656,15 @@ function details() {
     analysisCardTexts:
       mount.querySelectorAll(".candidate-signals-analysis-card")
         .map(node => node.textContent),
+    agendaTopicTexts:
+      mount.querySelectorAll(".candidate-signals-agenda-topic")
+        .map(node => node.textContent),
+    agendaCardTitle:
+      mount.querySelector(".candidate-signals-agenda-summary")
+        ?.getAttribute("title") || null,
+    agendaCardAria:
+      mount.querySelector(".candidate-signals-agenda-summary")
+        ?.getAttribute("aria-label") || null,
     attentionRowTexts:
       mount.querySelectorAll(".candidate-signals-attention-row")
         .map(node => node.textContent),
@@ -2416,6 +2425,209 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             result["dossierCardTexts"][0],
         )
         self.assertNotIn("claim row", self.workspace_js.lower())
+
+    def test_agenda_profile_policy_renders_locked_top_four_and_metadata(self):
+        published = json.loads(
+            CANDIDATE_JSON.read_text(encoding="utf-8")
+        )
+        selected_id = published["active_monitoring_field"]["main"][0]
+        selected = next(
+            row
+            for row in published["candidates"]
+            if row["candidate_id"] == selected_id
+        )
+
+        selected["agenda_profile"] = {
+            "profile_mode": "policy",
+            "window_days": 30,
+            "period_start": "2026-07-23",
+            "period_end": "2026-08-21",
+            "association_count": 14,
+            "topics": [
+                {
+                    "id": "economy_public_finances",
+                    "label": "Economy & Public Finances",
+                    "association_count": 4,
+                    "share": 0.285714,
+                },
+                {
+                    "id": "work_purchasing_power_pensions",
+                    "label": "Work, Purchasing Power & Pensions",
+                    "association_count": 4,
+                    "share": 0.285714,
+                },
+                {
+                    "id": "immigration_identity_secularism",
+                    "label": "Immigration, Identity & Secularism",
+                    "association_count": 3,
+                    "share": 0.214286,
+                },
+                {
+                    "id": "security_justice",
+                    "label": "Security & Justice",
+                    "association_count": 2,
+                    "share": 0.142857,
+                },
+                {
+                    "id": "health_education_public_services",
+                    "label": "Health, Education & Public Services",
+                    "association_count": 1,
+                    "share": 0.071429,
+                },
+                {
+                    "id": "climate_energy_agriculture",
+                    "label": "Climate, Energy & Agriculture",
+                    "association_count": 0,
+                    "share": 0.0,
+                },
+                {
+                    "id": "europe_defence_foreign_affairs",
+                    "label": "Europe, Defence & Foreign Affairs",
+                    "association_count": 0,
+                    "share": 0.0,
+                },
+                {
+                    "id": "institutions_democracy_territories",
+                    "label": "Institutions, Democracy & Territories",
+                    "association_count": 0,
+                    "share": 0.0,
+                },
+            ],
+        }
+
+        result = run_workspace(published, selected_id)
+
+        self.assertEqual(
+            result["analysisCardTitles"],
+            [
+                "POLL EVIDENCE",
+                "AGENDA PROFILE",
+                "CAMPAIGN ATTENTION",
+                "RACE COVERAGE MIX",
+                "SCRUTINY",
+            ],
+        )
+        self.assertEqual(
+            result["agendaTopicTexts"],
+            [
+                "Economy / finances28.6%",
+                "Work / purchasing power28.6%",
+                "Immigration / identity21.4%",
+                "Security / justice14.3%",
+            ],
+        )
+        self.assertNotIn(
+            "Health / education",
+            "".join(result["agendaTopicTexts"]),
+        )
+        self.assertIn(
+            "POLICY · 30D · 14 LINKS",
+            result["agendaCardTitle"],
+        )
+        self.assertIn(
+            "Candidate × policy-issue coverage associations",
+            result["agendaCardTitle"],
+        )
+        self.assertTrue(
+            result["agendaCardAria"].startswith(
+                "AGENDA PROFILE — POLICY · 30D · 14 LINKS"
+            )
+        )
+
+    def test_agenda_profile_campaign_renders_campaign_taxonomy_only(self):
+        published = json.loads(
+            CANDIDATE_JSON.read_text(encoding="utf-8")
+        )
+        selected_id = published["active_monitoring_field"]["main"][0]
+        selected = next(
+            row
+            for row in published["candidates"]
+            if row["candidate_id"] == selected_id
+        )
+
+        selected["agenda_profile"] = {
+            "profile_mode": "campaign",
+            "window_days": 30,
+            "period_start": "2026-07-23",
+            "period_end": "2026-08-21",
+            "association_count": 15,
+            "topics": [
+                {
+                    "id": "legal_eligibility",
+                    "label": "Legal cases & eligibility",
+                    "association_count": 5,
+                    "share": 0.333333,
+                },
+                {
+                    "id": "selection_strategy",
+                    "label": "Primaries & party strategy",
+                    "association_count": 4,
+                    "share": 0.266667,
+                },
+                {
+                    "id": "candidacies_endorsements",
+                    "label": "Candidacies & endorsements",
+                    "association_count": 3,
+                    "share": 0.2,
+                },
+                {
+                    "id": "rules_calendar",
+                    "label": "Rules, calendar & campaign mechanics",
+                    "association_count": 2,
+                    "share": 0.133333,
+                },
+                {
+                    "id": "positioning_integrity",
+                    "label": "Positioning & political image",
+                    "association_count": 1,
+                    "share": 0.066667,
+                },
+                {
+                    "id": "polls_race",
+                    "label": "Polling & race narratives",
+                    "association_count": 0,
+                    "share": 0.0,
+                },
+            ],
+        }
+
+        result = run_workspace(published, selected_id)
+
+        self.assertEqual(
+            result["analysisCardTitles"],
+            [
+                "POLL EVIDENCE",
+                "AGENDA PROFILE",
+                "CAMPAIGN ATTENTION",
+                "RACE COVERAGE MIX",
+                "SCRUTINY",
+            ],
+        )
+        self.assertEqual(
+            result["agendaTopicTexts"],
+            [
+                "Legal / eligibility33.3%",
+                "Primaries / strategy26.7%",
+                "Candidacies / endorsements20%",
+                "Rules / calendar13.3%",
+            ],
+        )
+        self.assertNotIn(
+            "Positioning / image",
+            "".join(result["agendaTopicTexts"]),
+        )
+        self.assertIn(
+            "CAMPAIGN · 30D · 15 LINKS",
+            result["agendaCardTitle"],
+        )
+        self.assertIn(
+            "Candidate-linked campaign/election records",
+            result["agendaCardTitle"],
+        )
+        self.assertNotIn(
+            "policy-issue",
+            result["agendaCardTitle"],
+        )
 
     def test_selected_analysis_has_exact_four_cards(self):
         result = run_workspace(payload(self.rows))

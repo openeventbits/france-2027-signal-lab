@@ -34,10 +34,21 @@ from candidate_identity import (
     normalized_candidate_key,
     resolve_candidate_name,
 )
+from fetch_news_wire import (
+    CAMPAIGN_AGENDA_TOPICS,
+    POLICY_AGENDA_TOPICS,
+    classify_campaign_agenda,
+    normalize as normalize_news_text,
+)
 
 
-SCHEMA_VERSION = "1.3"
+
+SCHEMA_VERSION = "1.4"
 LATEST_SCRUTINY_DAYS = 14
+AGENDA_PROFILE_WINDOW_DAYS = 30
+AGENDA_PROFILE_POLICY_MIN_TOPICS = 3
+AGENDA_PROFILE_POLICY_MODE = "policy"
+AGENDA_PROFILE_CAMPAIGN_MODE = "campaign"
 FEATURED_POLL_BOARD_DISPLAY_LIMIT = 10
 FEATURED_POLL_BOARD_SELECTION_BASIS = (
     "featured_package_selected_hypothesis"
@@ -2332,6 +2343,241 @@ def _polling_evidence_date(package: dict[str, Any]) -> str:
     ).isoformat()
 
 
+def _agenda_profile_definitions(
+    mode: str,
+) -> tuple[dict[str, Any], ...]:
+    if mode == AGENDA_PROFILE_POLICY_MODE:
+        return POLICY_AGENDA_TOPICS
+    if mode == AGENDA_PROFILE_CAMPAIGN_MODE:
+        return CAMPAIGN_AGENDA_TOPICS
+    raise CandidateSignalsError("agenda profile mode is invalid")
+
+
+def project_agenda_profiles(
+    candidates: list[dict[str, str]],
+    news: Any,
+) -> dict[str, dict[str, Any]]:
+    """Project one mutually exclusive 30-day Agenda Profile per candidate."""
+
+    news_object = _require_object(news, "news")
+    policy_agenda = _require_object(
+        news_object.get("policy_agenda"),
+        "news.policy_agenda",
+    )
+    window_days = _require_positive_integer(
+        policy_agenda.get("window_days"),
+        "news.policy_agenda.window_days",
+    )
+    if window_days != AGENDA_PROFILE_WINDOW_DAYS:
+        raise CandidateSignalsError(
+            "news.policy_agenda.window_days must equal 30"
+        )
+
+    evolution = _require_object(
+        policy_agenda.get("evolution"),
+        "news.policy_agenda.evolution",
+    )
+    period_start = _parse_date(
+        evolution.get("period_start"),
+        "news.policy_agenda.evolution.period_start",
+    )
+    period_end = _parse_date(
+        evolution.get("period_end"),
+        "news.policy_agenda.evolution.period_end",
+    )
+    if period_start != period_end - timedelta(
+        days=AGENDA_PROFILE_WINDOW_DAYS - 1
+    ):
+        raise CandidateSignalsError(
+            "news.policy_agenda evolution period is not 30 days"
+        )
+
+    candidate_id_by_key = {
+        normalized_candidate_key(candidate["candidate_name"]):
+            candidate["candidate_id"]
+        for candidate in candidates
+    }
+
+    policy_definitions = _agenda_profile_definitions(
+        AGENDA_PROFILE_POLICY_MODE
+    )
+    campaign_definitions = _agenda_profile_definitions(
+        AGENDA_PROFILE_CAMPAIGN_MODE
+    )
+    policy_ids = {definition["id"] for definition in policy_definitions}
+    campaign_ids = {
+        definition["id"] for definition in campaign_definitions
+    }
+
+    policy_counts = {
+        candidate["candidate_id"]: {
+            definition["id"]: 0
+            for definition in policy_definitions
+        }
+        for candidate in candidates
+    }
+    campaign_counts = {
+        candidate["candidate_id"]: {
+            definition["id"]: 0
+            for definition in campaign_definitions
+        }
+        for candidate in candidates
+    }
+
+    for topic_index, topic_value in enumerate(
+        _require_list(
+            policy_agenda.get("topics"),
+            "news.policy_agenda.topics",
+        )
+    ):
+        context = f"news.policy_agenda.topics[{topic_index}]"
+        topic = _require_object(topic_value, context)
+        topic_id = _require_text(topic.get("id"), f"{context}.id")
+        if topic_id not in policy_ids:
+            raise CandidateSignalsError(
+                f"{context}.id is not a canonical Policy Agenda topic"
+            )
+
+        for count_index, count_value in enumerate(
+            _require_list(
+                topic.get("candidate_counts"),
+                f"{context}.candidate_counts",
+            )
+        ):
+            count_context = (
+                f"{context}.candidate_counts[{count_index}]"
+            )
+            count = _require_object(count_value, count_context)
+            candidate_name = _require_text(
+                count.get("candidate"),
+                f"{count_context}.candidate",
+            )
+            item_count = _require_non_negative_integer(
+                count.get("item_count"),
+                f"{count_context}.item_count",
+            )
+            try:
+                key = normalized_candidate_key(candidate_name)
+            except CandidateIdentityError as error:
+                raise _error_from_identity(error) from error
+            identifier = candidate_id_by_key.get(key)
+            if identifier is not None:
+                policy_counts[identifier][topic_id] += item_count
+
+    for item_index, item_value in enumerate(
+        _require_list(
+            news_object.get("relevant_news"),
+            "news.relevant_news",
+        )
+    ):
+        context = f"news.relevant_news[{item_index}]"
+        item = _require_object(item_value, context)
+        published_at = _require_text(
+            item.get("published_at"),
+            f"{context}.published_at",
+        )
+        published_day = _parse_timestamp(
+            published_at,
+            f"{context}.published_at",
+        ).date()
+        if not (period_start <= published_day <= period_end):
+            continue
+
+        candidate_names = _require_list(
+            item.get("candidates"),
+            f"{context}.candidates",
+        )
+        if not candidate_names:
+            continue
+
+        classification = classify_campaign_agenda(
+            normalize_news_text(item.get("headline", "")),
+            explicit_election=bool(
+                item.get("explicit_election")
+            ),
+            matched_candidates=[
+                str(candidate_name)
+                for candidate_name in candidate_names
+            ],
+        )
+        if classification is None:
+            continue
+        topic_id = classification["id"]
+
+        if topic_id not in campaign_ids:
+            raise CandidateSignalsError(
+                f"{context} has a non-canonical Campaign Agenda topic"
+            )
+
+        seen_candidate_ids: set[str] = set()
+        for candidate_name in candidate_names:
+            if not isinstance(candidate_name, str):
+                continue
+            try:
+                key = normalized_candidate_key(candidate_name)
+            except CandidateIdentityError as error:
+                raise _error_from_identity(error) from error
+            identifier = candidate_id_by_key.get(key)
+            if (
+                identifier is None
+                or identifier in seen_candidate_ids
+            ):
+                continue
+            seen_candidate_ids.add(identifier)
+            campaign_counts[identifier][topic_id] += 1
+
+    profiles: dict[str, dict[str, Any]] = {}
+    for candidate in candidates:
+        identifier = candidate["candidate_id"]
+        nonzero_policy_topics = sum(
+            1
+            for count in policy_counts[identifier].values()
+            if count > 0
+        )
+        mode = (
+            AGENDA_PROFILE_POLICY_MODE
+            if nonzero_policy_topics
+            >= AGENDA_PROFILE_POLICY_MIN_TOPICS
+            else AGENDA_PROFILE_CAMPAIGN_MODE
+        )
+        definitions = _agenda_profile_definitions(mode)
+        counts = (
+            policy_counts[identifier]
+            if mode == AGENDA_PROFILE_POLICY_MODE
+            else campaign_counts[identifier]
+        )
+        association_count = sum(counts.values())
+
+        topics = []
+        for definition in definitions:
+            topic_id = definition["id"]
+            count = counts[topic_id]
+            share = (
+                round(count / association_count, 6)
+                if association_count
+                else 0.0
+            )
+            topics.append(
+                {
+                    "id": topic_id,
+                    "label": definition["label"],
+                    "association_count": count,
+                    "share": share,
+                }
+            )
+
+        profiles[identifier] = {
+            "profile_mode": mode,
+            "window_days": AGENDA_PROFILE_WINDOW_DAYS,
+            "period_start": period_start.isoformat(),
+            "period_end": period_end.isoformat(),
+            "association_count": association_count,
+            "topics": topics,
+        }
+
+    return profiles
+
+
 def _construct_candidate_signals(
     polls: Any,
     news: Any,
@@ -2367,6 +2613,7 @@ def _construct_candidate_signals(
         claims,
     )
     news_object = _require_object(news, "news")
+    agenda_profiles = project_agenda_profiles(candidates, news_object)
     developments, news_evidence = project_latest_developments(
         candidates,
         news_object.get("candidate_watch"),
@@ -2412,6 +2659,7 @@ def _construct_candidate_signals(
                 "polling": polling[identifier],
                 "campaign_attention": campaign_attention[identifier],
                 "general_visibility": general_visibility[identifier],
+                "agenda_profile": agenda_profiles[identifier],
                 "scrutiny": scrutiny[identifier],
                 "latest_development": developments[identifier],
             }
@@ -2468,6 +2716,21 @@ SCRUTINY_COUNT_KEYS = {
     "newest_review_date",
     "newest_review_url",
 }
+AGENDA_PROFILE_KEYS = {
+    "profile_mode",
+    "window_days",
+    "period_start",
+    "period_end",
+    "association_count",
+    "topics",
+}
+AGENDA_PROFILE_TOPIC_KEYS = {
+    "id",
+    "label",
+    "association_count",
+    "share",
+}
+
 LATEST_DEVELOPMENT_KEYS = {
     "evidence_state",
     "id",
@@ -2834,7 +3097,9 @@ def validate_candidate_signals(
     if set(value) != expected_top_keys:
         raise CandidateSignalsError("payload has unexpected fields")
     if value["schema_version"] != SCHEMA_VERSION:
-        raise CandidateSignalsError("schema_version must equal 1.3")
+        raise CandidateSignalsError(
+            f"schema_version must equal {SCHEMA_VERSION}"
+        )
 
     universe = _require_object(
         value["candidate_universe"],
@@ -3190,6 +3455,7 @@ def validate_candidate_signals(
             "polling",
             "campaign_attention",
             "general_visibility",
+            "agenda_profile",
             "scrutiny",
             "latest_development",
         }:
@@ -3318,6 +3584,127 @@ def validate_candidate_signals(
             f"{context}.general_visibility",
             GENERAL_OUTPUT_KEYS,
         )
+
+        agenda_profile = _require_object(
+            candidate["agenda_profile"],
+            f"{context}.agenda_profile",
+        )
+        if set(agenda_profile) != AGENDA_PROFILE_KEYS:
+            raise CandidateSignalsError(
+                f"{context}.agenda_profile has unexpected fields"
+            )
+
+        profile_mode = agenda_profile["profile_mode"]
+        if profile_mode not in {
+            AGENDA_PROFILE_POLICY_MODE,
+            AGENDA_PROFILE_CAMPAIGN_MODE,
+        }:
+            raise CandidateSignalsError(
+                f"{context}.agenda_profile.profile_mode is invalid"
+            )
+
+        if (
+            _require_positive_integer(
+                agenda_profile["window_days"],
+                f"{context}.agenda_profile.window_days",
+            )
+            != AGENDA_PROFILE_WINDOW_DAYS
+        ):
+            raise CandidateSignalsError(
+                f"{context}.agenda_profile.window_days is invalid"
+            )
+
+        agenda_start = _parse_date(
+            agenda_profile["period_start"],
+            f"{context}.agenda_profile.period_start",
+        )
+        agenda_end = _parse_date(
+            agenda_profile["period_end"],
+            f"{context}.agenda_profile.period_end",
+        )
+        if agenda_start != agenda_end - timedelta(
+            days=AGENDA_PROFILE_WINDOW_DAYS - 1
+        ):
+            raise CandidateSignalsError(
+                f"{context}.agenda_profile period is invalid"
+            )
+
+        association_count = _require_non_negative_integer(
+            agenda_profile["association_count"],
+            f"{context}.agenda_profile.association_count",
+        )
+        agenda_topics = _require_list(
+            agenda_profile["topics"],
+            f"{context}.agenda_profile.topics",
+        )
+        definitions = _agenda_profile_definitions(profile_mode)
+        if len(agenda_topics) != len(definitions):
+            raise CandidateSignalsError(
+                f"{context}.agenda_profile topic count is invalid"
+            )
+
+        counted_associations = 0
+        nonzero_topics = 0
+        for topic_index, (topic_value, definition) in enumerate(
+            zip(agenda_topics, definitions)
+        ):
+            topic_context = (
+                f"{context}.agenda_profile.topics[{topic_index}]"
+            )
+            topic = _require_object(topic_value, topic_context)
+            if set(topic) != AGENDA_PROFILE_TOPIC_KEYS:
+                raise CandidateSignalsError(
+                    f"{topic_context} has unexpected fields"
+                )
+            if (
+                topic["id"] != definition["id"]
+                or topic["label"] != definition["label"]
+            ):
+                raise CandidateSignalsError(
+                    f"{topic_context} taxonomy is invalid"
+                )
+
+            topic_count = _require_non_negative_integer(
+                topic["association_count"],
+                f"{topic_context}.association_count",
+            )
+            counted_associations += topic_count
+            if topic_count > 0:
+                nonzero_topics += 1
+
+            share = topic["share"]
+            if (
+                isinstance(share, bool)
+                or not isinstance(share, (int, float))
+                or not math.isfinite(float(share))
+                or float(share) < 0.0
+                or float(share) > 1.0
+            ):
+                raise CandidateSignalsError(
+                    f"{topic_context}.share is invalid"
+                )
+            expected_share = (
+                round(topic_count / association_count, 6)
+                if association_count
+                else 0.0
+            )
+            if float(share) != expected_share:
+                raise CandidateSignalsError(
+                    f"{topic_context}.share is inconsistent"
+                )
+
+        if counted_associations != association_count:
+            raise CandidateSignalsError(
+                f"{context}.agenda_profile counts are inconsistent"
+            )
+        if (
+            profile_mode == AGENDA_PROFILE_POLICY_MODE
+            and nonzero_topics
+            < AGENDA_PROFILE_POLICY_MIN_TOPICS
+        ):
+            raise CandidateSignalsError(
+                f"{context}.agenda_profile policy threshold is invalid"
+            )
 
         scrutiny = _require_object(candidate["scrutiny"], f"{context}.scrutiny")
         if set(scrutiny) != {"latest_14_days", "archive"}:

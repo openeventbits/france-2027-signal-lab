@@ -33,6 +33,21 @@ def bundle():
     news["candidate_roster"] = fetch_news_wire.candidate_roster_metadata(
         registry
     )
+    news["policy_agenda"] = {
+        "window_days": 30,
+        "evolution": {
+            "period_start": "2026-06-30",
+            "period_end": "2026-07-29",
+        },
+        "topics": [
+            {
+                "id": definition["id"],
+                "candidate_counts": [],
+            }
+            for definition in fetch_news_wire.POLICY_AGENDA_TOPICS
+        ],
+    }
+    news["relevant_news"] = []
     polls = [poll_event(candidates=[("Alice Observée", 60), ("Poll Only Person", 40)])]
     claims = build_public_bundle(registry, [], 365, "2026-08-07T05:00:00Z")
     candidate_signals = signals.build_candidate_signals(polls, news, claims, registry)
@@ -44,8 +59,8 @@ class PublicationManifestRegistryV2Tests(unittest.TestCase):
     def setUpClass(cls):
         cls.registry, cls.news, cls.claims, cls.signals = bundle()
 
-    def test_signals_13_complete_and_active_projections_reconcile(self):
-        self.assertEqual(self.signals["schema_version"], "1.3")
+    def test_signals_14_complete_and_active_projections_reconcile(self):
+        self.assertEqual(self.signals["schema_version"], "1.4")
         manifest._validate_candidate_signals_public(self.signals)
         manifest._validate_candidacy_status_parity(self.registry, self.signals)
         self.assertEqual(len(self.signals["candidates"]), 5)

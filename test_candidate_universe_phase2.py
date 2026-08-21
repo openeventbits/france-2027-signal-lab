@@ -45,6 +45,21 @@ class PhaseTwoFixtureMixin:
             candidate_watch=[],
             roster_names=cls.active_names,
         )
+        cls.news["policy_agenda"] = {
+            "window_days": 30,
+            "evolution": {
+                "period_start": "2026-06-30",
+                "period_end": "2026-07-29",
+            },
+            "topics": [
+                {
+                    "id": definition["id"],
+                    "candidate_counts": [],
+                }
+                for definition in news_wire.POLICY_AGENDA_TOPICS
+            ],
+        }
+        cls.news["relevant_news"] = []
         cls.claims = claims_fixture(reviews=[])
         cls.payload = signals.build_candidate_signals(
             cls.polls,
@@ -221,6 +236,21 @@ class CandidateSignalsRegistryTests(PhaseTwoFixtureMixin, unittest.TestCase):
         empty_news = news_fixture(
             primary_metrics=[], general_metrics=[], candidate_watch=[]
         )
+        empty_news["policy_agenda"] = {
+            "window_days": 30,
+            "evolution": {
+                "period_start": "2026-06-30",
+                "period_end": "2026-07-29",
+            },
+            "topics": [
+                {
+                    "id": definition["id"],
+                    "candidate_counts": [],
+                }
+                for definition in news_wire.POLICY_AGENDA_TOPICS
+            ],
+        }
+        empty_news["relevant_news"] = []
         empty_claims = claims_fixture(reviews=[])
         payload = signals.build_candidate_signals(
             polls,
