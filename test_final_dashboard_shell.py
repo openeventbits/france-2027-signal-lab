@@ -1710,11 +1710,11 @@ class BoundedTopRowPolishTests(unittest.TestCase):
 
     def test_desktop_top_row_ratio_and_height(self):
         for contract in (
-            "/* BOUNDED TOP ROW POLISH - 2026-07 */",
-            "minmax(0, 27fr)",
-            "minmax(0, 30fr)",
-            "minmax(0, 43fr)",
-            "height: 400px !important;",
+            "/* DESKTOP FOUNDATION STABILIZATION V1",
+            "minmax(0, 28fr)",
+            "minmax(0, 35fr)",
+            "minmax(0, 37fr) !important;",
+            "--fr27-desktop-hero-height: 400px;",
         ):
             self.assertIn(contract, self.css)
 
@@ -1822,7 +1822,6 @@ class TopMediaProgressiveDisclosureTests(
             "grid-template-columns:",
             "minmax(0, 1fr) !important;",
             "min-height: 74px;",
-            "repeat(6, minmax(0, 1fr));",
         ):
             self.assertIn(
                 contract,
@@ -1989,6 +1988,466 @@ class MockupTopRowGeometryTests(
             )
 
 
+class DesktopFoundationStabilizationTests(
+    unittest.TestCase
+):
+    @classmethod
+    def setUpClass(cls):
+        cls.index = Path(
+            "index.html"
+        ).read_text(encoding="utf-8")
+        cls.css = Path(
+            "assets/final-dashboard-shell.css"
+        ).read_text(encoding="utf-8")
+        cls.javascript = Path(
+            "assets/hybrid-dashboard.js"
+        ).read_text(encoding="utf-8")
+
+        marker = (
+            "/* DESKTOP FOUNDATION "
+            "STABILIZATION V1"
+        )
+        cls.stabilized_css = cls.css.split(
+            marker,
+            1,
+        )[1]
+
+    def test_runtime_tabs_use_five_equal_tracks(self):
+        tab_rule = re.search(
+            r"#hybrid-signal-board \.hybrid-tabs \{"
+            r"(?P<body>.*?)\}",
+            self.css,
+            re.DOTALL,
+        )
+
+        self.assertIsNotNone(tab_rule)
+        self.assertIn(
+            "repeat(5, minmax(0, 1fr))",
+            tab_rule.group("body"),
+        )
+        self.assertNotIn(
+            "repeat(6, minmax(0, 1fr))",
+            tab_rule.group("body"),
+        )
+
+        self.assertIn(
+            "repeat(5, minmax(0, 1fr));",
+            self.index,
+        )
+
+        for panel_id in (
+            "signal-candidates-panel",
+            "signal-runoff-panel",
+            "signal-events-panel",
+            "signal-agenda-panel",
+            "signal-issues-panel",
+        ):
+            self.assertIn(panel_id, self.javascript)
+
+        self.assertNotIn(
+            "signal-poll-compare-panel",
+            self.javascript,
+        )
+
+    def test_desktop_composition_is_reasserted_once(self):
+        for contract in (
+            "@media (min-width: 1024px)",
+            "minmax(0, 28fr)",
+            "minmax(0, 35fr)",
+            "minmax(0, 37fr) !important;",
+            "grid-column: auto !important;",
+            "repeat(5, minmax(0, 1fr));",
+            "flex-wrap: nowrap;",
+            "--fr27-desktop-hero-height: 400px;",
+            "--fr27-desktop-context-height: 66px;",
+            "--fr27-desktop-tab-height: 44px;",
+            "--fr27-desktop-panel-height: 462px;",
+        ):
+            self.assertIn(
+                contract,
+                self.stabilized_css,
+            )
+
+        self.assertEqual(
+            self.css.count("minmax(0, 28fr)"),
+            1,
+        )
+
+        for obsolete_columns in (
+            "minmax(0, 27fr)",
+            "minmax(0, 30fr)",
+            "minmax(0, 32fr)",
+            "minmax(0, 41fr)",
+            "minmax(0, 43fr)",
+        ):
+            self.assertNotIn(
+                obsolete_columns,
+                self.css,
+            )
+
+        self.assertNotRegex(
+            self.index,
+            r"@media \(max-width: 1350px\) \{\s*"
+            r"\.hero-grid",
+        )
+
+    def test_compact_desktop_uses_shared_density_tokens(self):
+        compact_start = self.stabilized_css.index(
+            "@media (min-width: 1240px) "
+            "and (max-width: 1399px)"
+        )
+        narrow_start = self.stabilized_css.index(
+            "@media (min-width: 1024px) "
+            "and (max-width: 1239px)",
+            compact_start,
+        )
+        compact_tokens = self.stabilized_css[
+            compact_start:narrow_start
+        ]
+
+        for contract in (
+            "--fr27-desktop-shell-inline-padding: 16px;",
+            "--fr27-desktop-mark-size: 46px;",
+            "--fr27-desktop-masthead-title-size: 22px;",
+            "--fr27-desktop-panel-title-size: 14px;",
+            "--fr27-desktop-reading-size: 11.5px;",
+            "--fr27-desktop-action-size: 10px;",
+            "--fr27-desktop-filter-gap: 3px;",
+            "--fr27-desktop-filter-inline-padding: 6px;",
+        ):
+            self.assertIn(
+                contract,
+                compact_tokens,
+            )
+
+        self.assertNotIn(
+            "transform: scale",
+            self.stabilized_css,
+        )
+        self.assertNotRegex(
+            self.stabilized_css,
+            r"(?:^|\s)zoom\s*:",
+        )
+
+        desktop_start = self.stabilized_css.index(
+            "@media (min-width: 1024px) {",
+            narrow_start,
+        )
+        narrow_tokens = self.stabilized_css[
+            narrow_start:desktop_start
+        ]
+        for contract in (
+            "--fr27-desktop-shell-inline-padding: 12px;",
+            "--fr27-desktop-masthead-title-size: 18px;",
+            "--fr27-desktop-reading-size: 10.5px;",
+            "--fr27-workspace-gap: 6px;",
+            "--fr27-workspace-portrait-size: 34px;",
+        ):
+            self.assertIn(contract, narrow_tokens)
+
+    def test_compact_top_row_controls_stay_in_their_panel(self):
+        for contract in (
+            ".changes-ledger-toolbar {",
+            "width: 100%;",
+            "min-width: 0;",
+            "max-width: 100%;",
+            "gap: var(--fr27-desktop-filter-gap);",
+            "padding-right: var("
+            "--fr27-desktop-filter-inline-padding);",
+            "padding-left: var("
+            "--fr27-desktop-filter-inline-padding);",
+        ):
+            self.assertIn(
+                contract,
+                self.stabilized_css,
+        )
+
+
+class DesktopWorkspaceStabilizationTests(
+    unittest.TestCase
+):
+    @classmethod
+    def setUpClass(cls):
+        cls.shell_css = Path(
+            "assets/final-dashboard-shell.css"
+        ).read_text(encoding="utf-8")
+        cls.hybrid_css = Path(
+            "assets/hybrid-dashboard.css"
+        ).read_text(encoding="utf-8")
+        cls.candidate_css = Path(
+            "assets/candidate-signals.css"
+        ).read_text(encoding="utf-8")
+
+        cls.workspace_css = cls.hybrid_css.split(
+            "/* DESKTOP WORKSPACE "
+            "STABILIZATION PASS 2",
+            1,
+        )[1]
+        cls.shared_workspace_css = cls.hybrid_css.split(
+            "/* SHARED DESKTOP WORKSPACE "
+            "DENSITY PASS 2",
+            1,
+        )[1].split(
+            "/* RUNOFF WORKSPACE REDESIGN V1",
+            1,
+        )[0]
+        cls.candidate_workspace_css = (
+            cls.candidate_css.split(
+                "/* DESKTOP WORKSPACE "
+                "STABILIZATION PASS 2",
+                1,
+            )[1]
+        )
+
+    def test_shared_workspace_density_tokens_have_three_desktop_values(self):
+        for wide, compact, narrow in (
+            (
+                "--fr27-workspace-gap: 10px;",
+                "--fr27-workspace-gap: 8px;",
+                "--fr27-workspace-gap: 6px;",
+            ),
+            (
+                "--fr27-workspace-inline-padding: 10px;",
+                "--fr27-workspace-inline-padding: 8px;",
+                "--fr27-workspace-inline-padding: 6px;",
+            ),
+            (
+                "--fr27-workspace-panel-title-size: 13px;",
+                "--fr27-workspace-panel-title-size: 12px;",
+                "--fr27-workspace-panel-title-size: 11px;",
+            ),
+            (
+                "--fr27-workspace-primary-size: 12.5px;",
+                "--fr27-workspace-primary-size: 11.5px;",
+                "--fr27-workspace-primary-size: 10.5px;",
+            ),
+            (
+                "--fr27-workspace-portrait-size: 46px;",
+                "--fr27-workspace-portrait-size: 40px;",
+                "--fr27-workspace-portrait-size: 34px;",
+            ),
+        ):
+            with self.subTest(token=wide.split(":", 1)[0]):
+                self.assertIn(wide, self.shell_css)
+                self.assertIn(compact, self.shell_css)
+                self.assertIn(narrow, self.shell_css)
+
+        self.assertIn(
+            "@media (min-width: 1240px) "
+            "and (max-width: 1399px)",
+            self.shell_css,
+        )
+        self.assertIn(
+            "@media (min-width: 1024px) "
+            "and (max-width: 1239px)",
+            self.shell_css,
+        )
+
+    def test_all_active_workspace_panels_keep_the_462px_contract(self):
+        for contract in (
+            "--fr27-desktop-panel-height: 462px;",
+            "height: var(--fr27-desktop-panel-height);",
+            "min-height: var(--fr27-desktop-panel-height);",
+            "max-height: var(--fr27-desktop-panel-height);",
+        ):
+            self.assertIn(contract, self.shell_css)
+
+        for panel_id in (
+            "signal-candidates-panel",
+            "signal-runoff-panel",
+            "signal-events-panel",
+            "signal-agenda-panel",
+            "signal-issues-panel",
+        ):
+            self.assertIn(panel_id, self.hybrid_css)
+
+    def test_candidates_compact_desktop_keeps_three_columns(self):
+        desktop = self.candidate_css[
+            self.candidate_css.index(
+                "@media (min-width: 1024px)"
+            ):
+            self.candidate_css.index(
+                "/* Legacy tablet layout only."
+            )
+        ]
+
+        for column in (
+            "minmax(0, 27fr)",
+            "minmax(0, 36fr)",
+            "minmax(0, 37fr)",
+        ):
+            self.assertIn(column, desktop)
+
+        self.assertIn(
+            "@media (min-width: 760px) "
+            "and (max-width: 1023px)",
+            self.candidate_css,
+        )
+        self.assertIn(
+            "gap: var(--fr27-workspace-gap);",
+            self.candidate_workspace_css,
+        )
+        self.assertNotIn(
+            "position: sticky;",
+            self.candidate_workspace_css,
+        )
+        self.assertNotIn(
+            "grid-column: 1 / -1;",
+            self.candidate_workspace_css,
+        )
+
+    def test_runoff_compact_tracks_cannot_impose_right_edge_overflow(self):
+        for contract in (
+            "minmax(0, 31.5fr)",
+            "minmax(0, 39fr)",
+            "minmax(0, 29.5fr)",
+            "minmax(88px, 1fr)",
+            "minmax(98px, 1.12fr)",
+            "minmax(112px, 1.28fr)",
+            "minmax(78px, 1fr)",
+            "width: 50px;",
+            "min-width: 50px;",
+            "minmax(0, 30.5fr)",
+            "minmax(0, 40fr)",
+            "minmax(76px, 1fr)",
+            "minmax(70px, 1.1fr)",
+            "width: calc(100% - 2px);",
+        ):
+            self.assertIn(contract, self.workspace_css)
+
+        for contract in (
+            "width: 100%;",
+            "min-width: 0;",
+            "max-width: 88px;",
+        ):
+            self.assertIn(
+                contract,
+                self.hybrid_css.split(
+                    "/* Runoff structural containment.",
+                    1,
+                )[1].split(
+                    "/* DESKTOP WORKSPACE "
+                    "STABILIZATION PASS 2",
+                    1,
+                )[0],
+            )
+
+        self.assertNotIn(
+            "grid-column: 1 / -1;",
+            self.workspace_css,
+        )
+
+    def test_events_compact_desktop_keeps_timeline_and_three_peer_panels(self):
+        events = self.hybrid_css[
+            self.hybrid_css.index(
+                "/* CAMPAIGN EVENTS WORKSPACE V1 */"
+            ):
+            self.hybrid_css.index(
+                "/* RUNOFF WORKSPACE REDESIGN V1"
+            )
+        ]
+
+        self.assertIn(
+            "grid-template-rows: 96px minmax(0, 1fr) 22px;",
+            events,
+        )
+        self.assertIn(
+            "grid-template-columns: minmax(0, 31fr) "
+            "minmax(0, 34.5fr) minmax(0, 34.5fr);",
+            events,
+        )
+        self.assertNotIn(
+            "@media (max-width: 1260px)",
+            self.hybrid_css,
+        )
+        self.assertIn(
+            "@media (max-width: 1023px)",
+            events,
+        )
+        self.assertIn(
+            ".hybrid-events-ops-main",
+            self.shared_workspace_css,
+        )
+
+    def test_agenda_and_issues_keep_the_canonical_three_column_graph(self):
+        agenda = self.hybrid_css[
+            self.hybrid_css.index(
+                "/* AGENDA WORKSPACE"
+            ):
+            self.hybrid_css.index(
+                "/* CAMPAIGN EVENTS WORKSPACE V1 */"
+            )
+        ]
+
+        self.assertIn(
+            "grid-template-columns: minmax(0, 27fr) "
+            "minmax(0, 36fr) minmax(0, 37fr);",
+            agenda,
+        )
+        self.assertIn(
+            "@media (max-width: 1023px)",
+            agenda,
+        )
+        self.assertIn(
+            ":is(#signal-agenda-panel, "
+            "#signal-issues-panel)",
+            self.shared_workspace_css,
+        )
+        self.assertNotIn(
+            "grid-template-columns: 1fr;",
+            self.shared_workspace_css,
+        )
+
+    def test_final_desktop_floor_and_legacy_boundary_are_complementary(self):
+        self.assertIn("@media (min-width: 1024px) {", self.shell_css)
+        self.assertIn(
+            "@media (min-width: 1024px) {",
+            self.candidate_css,
+        )
+        self.assertIn(
+            "@media (min-width: 1024px) {",
+            self.hybrid_css,
+        )
+
+        shell_desktop = self.shell_css.split(
+            "/* DESKTOP FOUNDATION STABILIZATION V1",
+            1,
+        )[1]
+        for contract in (
+            "grid-template-columns:\n      minmax(0, 28fr)",
+            "grid-template-columns:\n      minmax(0, 1.06fr)",
+            "repeat(5, minmax(0, 1fr))",
+            "height: var(--fr27-desktop-panel-height);",
+        ):
+            self.assertIn(contract, shell_desktop)
+
+        runoff = self.hybrid_css.split(
+            "/* RUNOFF WORKSPACE REDESIGN V1",
+            1,
+        )[1]
+        for obsolete in (
+            "max-width: 1179px",
+            "min-width: 1180px",
+            "max-width: 1180px",
+            "max-width: 1250px",
+            "min-width: 1251px",
+            "min-width: 1100px",
+        ):
+            with self.subTest(obsolete=obsolete):
+                self.assertNotIn(obsolete, runoff)
+
+        self.assertIn("max-width: 1023px", runoff)
+        self.assertIn("min-width: 1024px", runoff)
+        self.assertIn("min-width: 1400px", runoff)
+
+    def test_no_desktop_density_regime_scales_the_page(self):
+        desktop_css = "\n".join(
+            (self.shell_css, self.hybrid_css, self.candidate_css)
+        )
+        self.assertNotIn("transform: scale(", desktop_css)
+        self.assertNotRegex(desktop_css, r"(?:^|[;{])\s*zoom\s*:")
+
+
 
 class HeroBrandingContractTests(unittest.TestCase):
     @classmethod
@@ -2018,7 +2477,7 @@ class HeroBrandingContractTests(unittest.TestCase):
             "#0055a4 0 33.333%",
             "#ffffff 33.333% 66.666%",
             "#ef4135 66.666% 100%",
-            "@media (min-width: 720px) and (max-width: 1119px)",
+            "@media (min-width: 720px) and (max-width: 1023px)",
             ".masthead-data span",
             "white-space: normal;",
         ):

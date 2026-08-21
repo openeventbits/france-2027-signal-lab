@@ -2284,7 +2284,7 @@
   overflow-wrap: anywhere;
 }
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   .candidate-signals-workspace {
     grid-template-columns:
       minmax(0, 27fr)
@@ -2349,7 +2349,9 @@
   }
 }
 
-@media (min-width: 760px) and (max-width: 1179px) {
+/* Legacy tablet layout only. Desktop begins at 1024px and always uses the
+   canonical Monitor / Analysis / Dossier three-column composition above. */
+@media (min-width: 760px) and (max-width: 1023px) {
   .candidate-signals-workspace {
     grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
     grid-template-rows: auto auto;
@@ -2653,7 +2655,7 @@
   );
 }
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   .candidate-signals-monitor-list {
     gap: 8px;
     padding: 8px 9px 12px;
@@ -2882,7 +2884,7 @@
 
 /* CANDIDATE MONITOR — FINAL DATA LEGIBILITY */
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   .candidate-signals-candidate-fact-label {
     color: #8aa9bb;
     font-size: 9px;
@@ -3567,4 +3569,152 @@
 
 .candidate-signals-scrutiny-no-break-tail {
   white-space: nowrap;
+}
+
+/* DESKTOP WORKSPACE STABILIZATION PASS 2
+ * Compact desktop uses the Pass-1 shared density tokens without changing
+ * Candidate Monitor / Selected Analysis / Candidate Dossier architecture.
+ */
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .candidate-signals-workspace {
+    gap: var(--fr27-workspace-gap);
+  }
+
+  .candidate-signals-region-header,
+  .candidate-signals-analysis .candidate-signals-region-header,
+  .candidate-signals-dossier .candidate-signals-region-header {
+    gap: var(--fr27-workspace-gap);
+    padding-right: var(--fr27-workspace-inline-padding);
+    padding-left: var(--fr27-workspace-inline-padding);
+  }
+
+  .candidate-signals-region-title,
+  .candidate-signals-dossier .candidate-signals-region-title {
+    font-size: var(--fr27-workspace-primary-size);
+  }
+
+  .candidate-signals-region-note,
+  .candidate-signals-region-action,
+  .candidate-signals-dossier .candidate-signals-region-action {
+    font-size: var(--fr27-workspace-meta-size);
+  }
+
+  .candidate-signals-monitor-tools {
+    padding: 10px var(--fr27-workspace-inline-padding) 7px;
+  }
+
+  .candidate-signals-search-input {
+    min-height: 40px;
+    padding: 9px 11px;
+    font-size: var(--fr27-workspace-primary-size);
+  }
+
+  .candidate-signals-monitor-list {
+    gap: 6px;
+    padding: 6px var(--fr27-workspace-inline-padding) 10px;
+  }
+
+  .candidate-signals-candidate-button {
+    min-height: 86px;
+    height: 86px;
+    grid-template-columns: 52px minmax(0, 1fr) max-content;
+    column-gap: 8px;
+    row-gap: 5px;
+    padding: 7px 9px;
+  }
+
+  .candidate-signals-monitor-portrait {
+    width: 52px;
+    height: 52px;
+  }
+
+  .candidate-signals-candidate-name {
+    font-size: 14px;
+  }
+
+  .candidate-signals-candidate-fact-label {
+    font-size: var(--fr27-workspace-micro-size);
+  }
+
+  .candidate-signals-candidate-fact-value,
+  .candidate-signals-candidate-scrutiny .candidate-signals-candidate-fact-value {
+    font-size: var(--fr27-workspace-body-size);
+  }
+
+  .candidate-signals-dossier-identity {
+    min-height: 116px;
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 10px;
+    padding: 9px 10px;
+  }
+
+  .candidate-signals-dossier .candidate-signals-dossier-portrait {
+    width: 82px;
+    height: 82px;
+  }
+
+  .candidate-signals-dossier-name {
+    font-size: 20px;
+  }
+}
+
+/* Narrow desktop keeps the canonical 27 / 36 / 37 workspace while
+ * reducing card chrome and identity media to fit a 1024px viewport. */
+@media (min-width: 1024px) and (max-width: 1239px) {
+  .candidate-signals-region-header,
+  .candidate-signals-analysis .candidate-signals-region-header,
+  .candidate-signals-dossier .candidate-signals-region-header {
+    min-height: 38px;
+    flex-basis: 38px;
+  }
+
+  .candidate-signals-monitor-tools {
+    padding-top: 7px;
+    padding-bottom: 5px;
+  }
+
+  .candidate-signals-search-input {
+    min-height: 34px;
+    padding: 7px 8px;
+  }
+
+  .candidate-signals-monitor-list {
+    gap: 5px;
+    padding-top: 5px;
+    padding-bottom: 8px;
+  }
+
+  .candidate-signals-candidate-button {
+    min-height: 78px;
+    height: 78px;
+    grid-template-columns: 44px minmax(0, 1fr) max-content;
+    column-gap: 6px;
+    row-gap: 4px;
+    padding: 6px;
+  }
+
+  .candidate-signals-monitor-portrait {
+    width: 44px;
+    height: 44px;
+  }
+
+  .candidate-signals-candidate-name {
+    font-size: 13px;
+  }
+
+  .candidate-signals-dossier-identity {
+    min-height: 104px;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 8px;
+    padding: 7px;
+  }
+
+  .candidate-signals-dossier .candidate-signals-dossier-portrait {
+    width: 72px;
+    height: 72px;
+  }
+
+  .candidate-signals-dossier-name {
+    font-size: 18px;
+  }
 }

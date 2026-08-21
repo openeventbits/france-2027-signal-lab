@@ -1817,10 +1817,10 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         self.assertIn('node.setAttribute("role", "status");', self.workspace_js)
         self.assertNotIn("state.reason", self.workspace_js)
 
-    def test_desktop_tablet_and_mobile_geometry(self):
-        desktop_start = self.css.index("@media (min-width: 1180px)")
+    def test_desktop_legacy_tablet_and_mobile_geometry(self):
+        desktop_start = self.css.index("@media (min-width: 1024px)")
         tablet_start = self.css.index(
-            "@media (min-width: 760px) and (max-width: 1179px)"
+            "@media (min-width: 760px) and (max-width: 1023px)"
         )
         mobile_start = self.css.index("@media (max-width: 759px)")
 
@@ -3108,9 +3108,9 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             self.assertIn(required, self.css)
 
     def test_stage5_compact_scrollable_workspace_height(self):
-        desktop_start = self.css.index("@media (min-width: 1180px)")
+        desktop_start = self.css.index("@media (min-width: 1024px)")
         tablet_start = self.css.index(
-            "@media (min-width: 760px) and (max-width: 1179px)"
+            "@media (min-width: 760px) and (max-width: 1023px)"
         )
         desktop = self.css[desktop_start:tablet_start]
 

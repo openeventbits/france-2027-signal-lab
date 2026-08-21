@@ -686,7 +686,7 @@ class CampaignEventsFrontendTests(unittest.TestCase):
             self.css,
         )
         self.assertIn(".hybrid-events-workspace", self.css)
-        self.assertIn("@media (max-width: 1100px)", self.css)
+        self.assertIn("@media (max-width: 1023px)", self.css)
         self.assertIn("@media (max-width: 760px)", self.css)
         events_marker = self.css.index("/* CAMPAIGN EVENTS WORKSPACE V1 */")
         runoff_marker = self.css.index("/* RUNOFF WORKSPACE REDESIGN V1")

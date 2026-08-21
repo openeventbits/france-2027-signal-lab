@@ -1685,7 +1685,7 @@
 /* SHARED WORKSPACE HEIGHT PARITY V1
    Candidate workspace is the canonical desktop viewport.
    430px internal workspace + 16px top and bottom panel padding. */
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   .hybrid-workspace > .hybrid-panel {
     box-sizing: border-box;
     height: 462px;
@@ -2624,7 +2624,7 @@
   font-style: normal;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1023px) {
   :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-workspace {
     grid-template-columns: 1fr;
     grid-auto-rows: minmax(390px, auto);
@@ -5521,7 +5521,7 @@ border: 0;
   outline-offset: 2px;
 }
 
-@media (max-width: 1260px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-events-panel .hybrid-events-ops-main {
     grid-template-columns: minmax(0, 30fr) minmax(0, 40fr) minmax(0, 30fr);
   }
@@ -5545,7 +5545,7 @@ border: 0;
   }
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-events-panel {
     overflow-y: auto;
   }
@@ -5557,7 +5557,7 @@ border: 0;
   }
 
   .hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
-    min-height: 104px;
+    min-height: 158px;
   }
 
   .hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
@@ -5584,6 +5584,16 @@ border: 0;
   .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
     grid-column: 1 / -1;
     min-height: 390px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-legend {
+    grid-template-columns: 1fr;
+    height: auto;
+    padding-block: 12px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-legend p {
+    display: none;
   }
 }
 
@@ -6362,38 +6372,6 @@ border: 0;
   cursor: pointer;
 }
 
-@media (max-width: 1260px) {
-.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item {
-    grid-template-columns: 64px minmax(0, 1fr);
-  }
-
-.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item > time {
-    grid-column: 2;
-    text-align: left;
-  }
-
-}
-
-@media (max-width: 1100px) {
-.hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
-    min-height: 126px;
-  }
-
-.hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
-    gap: 5px;
-  }
-
-.hybrid-panel#signal-events-panel .hybrid-events-filter {
-    padding-inline: 5px;
-  }
-
-.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
-    grid-column: 1 / -1;
-    min-height: 390px;
-  }
-
-}
-
 @media (max-width: 760px) {
 .hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
     grid-template-rows: auto minmax(60px, auto) 22px;
@@ -6867,38 +6845,6 @@ border: 0;
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-legend p:last-child {
   text-align: right;
-}
-
-@media (max-width: 1260px) and (min-width: 1101px) {
-.hybrid-panel#signal-events-panel .hybrid-events-ops-legend {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-.hybrid-panel#signal-events-panel .hybrid-events-ops-legend p:last-child {
-    display: none;
-  }
-
-}
-
-@media (max-width: 1100px) {
-.hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
-    min-height: 158px;
-  }
-
-.hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
-    grid-column: 1 / -1;
-  }
-
-.hybrid-panel#signal-events-panel .hybrid-events-ops-legend {
-    grid-template-columns: 1fr;
-    height: auto;
-    padding-block: 12px;
-  }
-
-.hybrid-panel#signal-events-panel .hybrid-events-ops-legend p {
-    display: none;
-  }
-
 }
 
 @media (max-width: 760px) {
@@ -7987,6 +7933,84 @@ border: 0;
   letter-spacing: inherit;
 }
 
+/* SHARED DESKTOP WORKSPACE DENSITY PASS 2
+ * Events, Agenda and Issues consume the Pass-1 compact desktop tokens
+ * without changing their canonical module graphs.
+ */
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .hybrid-panel#signal-events-panel .hybrid-events-workspace,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier,
+  .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
+    --hybrid-events-panel-title: var(--fr27-workspace-panel-title-size);
+    --hybrid-events-primary: var(--fr27-workspace-primary-size);
+    --hybrid-events-body: var(--fr27-workspace-body-size);
+    --hybrid-events-meta-size: var(--fr27-workspace-meta-size);
+    --hybrid-events-micro: var(--fr27-workspace-micro-size);
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-workspace,
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-main {
+    gap: var(--fr27-workspace-gap);
+  }
+
+  :is(#signal-agenda-panel, #signal-issues-panel) .hybrid-agenda-v6-workspace {
+    gap: var(--fr27-workspace-gap);
+  }
+
+  :is(#signal-agenda-panel, #signal-issues-panel) .hybrid-agenda-v6-panel-head {
+    padding-right: var(--fr27-workspace-inline-padding);
+    padding-left: var(--fr27-workspace-inline-padding);
+  }
+
+  :is(#signal-agenda-panel, #signal-issues-panel) .hybrid-agenda-v6-panel-head h3 {
+    font-size: var(--fr27-workspace-panel-title-size);
+  }
+
+  :is(#signal-agenda-panel, #signal-issues-panel) .hybrid-agenda-v6-panel-head-meta {
+    font-size: var(--fr27-workspace-meta-size);
+  }
+}
+
+/* Narrow desktop density. The Events timeline and three peer panels, plus
+ * the Agenda and Issues analytical columns, retain their desktop graphs. */
+@media (min-width: 1024px) and (max-width: 1239px) {
+  .hybrid-panel#signal-events-panel .hybrid-events-workspace {
+    grid-template-rows: 96px minmax(0, 1fr) 22px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-main {
+    grid-template-columns: minmax(0, 29fr) minmax(0, 36fr) minmax(0, 35fr);
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-rail-head {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
+    gap: 3px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-filter {
+    padding-inline: 4px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row {
+    grid-template-columns: 52px 32px minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-item {
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  :is(#signal-agenda-panel, #signal-issues-panel) .hybrid-agenda-v6-panel-head {
+    min-height: 38px;
+    flex-basis: 38px;
+  }
+}
+
 /* RUNOFF WORKSPACE REDESIGN V1 ΓÇö scoped to the owned Runoff panel. */
 .hybrid-panel#signal-runoff-panel {
   --hybrid-runoff-line: rgba(29, 75, 103, .68);
@@ -8961,7 +8985,7 @@ border: 0;
   line-height: 11.25px;
 }
 
-@media (max-width: 1179px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel {
     box-sizing: border-box;
     height: 462px;
@@ -9619,7 +9643,7 @@ border: 0;
   background: transparent;
 }
 
-@media (max-width: 1250px) and (min-width: 680px) {
+@media (max-width: 1023px) and (min-width: 680px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation {
     grid-template-columns: 104px minmax(108px, 1fr) 104px 42px;
     gap: 3px;
@@ -9862,7 +9886,7 @@ border: 0;
   height: 17px;
 }
 
-@media (min-width: 1251px) {
+@media (min-width: 1400px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation {
     grid-template-columns:
       minmax(112px, 1fr)
@@ -10189,7 +10213,7 @@ border: 0;
   white-space: nowrap;
 }
 
-@media (max-width: 1250px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-evidence-header {
     grid-template-columns:
       minmax(230px, .82fr)
@@ -10318,7 +10342,7 @@ border: 0;
   padding: 7px 13px;
 }
 
-@media (max-width: 1250px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-status {
     padding: 7px 11px;
     font-size: 12px;
@@ -10371,7 +10395,7 @@ border: 0;
   margin-top: 4px;
 }
 
-@media (max-width: 1250px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block {
     gap: 0;
   }
@@ -10438,7 +10462,7 @@ border: 0;
   color: var(--hybrid-violet);
 }
 
-@media (max-width: 1250px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile {
     min-width: 58px;
     padding-right: 4px;
@@ -10479,10 +10503,10 @@ border: 0;
 .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-head,
 .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row {
   grid-template-columns:
-    minmax(155px, 1.4fr)
-    minmax(118px, 1fr)
-    minmax(118px, 1fr)
-    minmax(62px, .58fr);
+    minmax(140px, 1.4fr)
+    minmax(105px, 1fr)
+    minmax(105px, 1fr)
+    minmax(56px, .58fr);
 }
 
 .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-head {
@@ -10623,7 +10647,7 @@ border: 0;
   background: rgba(19, 71, 96, .11);
 }
 
-@media (max-width: 1250px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-head,
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row {
     grid-template-columns:
@@ -10980,7 +11004,7 @@ border: 0;
   text-transform: lowercase;
 }
 
-@media (max-width: 1250px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result > .hybrid-runoff-compact-rail {
     max-width: 154px;
     height: 11px;
@@ -11103,7 +11127,7 @@ border: 0;
   height: 10px;
 }
 
-@media (max-width: 1250px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
     width: 82px;
     min-width: 82px;
@@ -11174,7 +11198,7 @@ border: 0;
   top: 3px;
 }
 
-@media (max-width: 1250px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins {
     padding-top: 9px;
   }
@@ -11193,7 +11217,7 @@ border: 0;
   top: 5px;
 }
 
-@media (max-width: 1250px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
     top: 4px;
   }
@@ -11208,7 +11232,7 @@ border: 0;
   top: 8px;
 }
 
-@media (max-width: 1250px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
     top: 6px;
   }
@@ -11416,7 +11440,7 @@ border: 0;
   display: none;
 }
 
-@media (max-width: 1250px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint-grid {
     gap: 8px;
   }
@@ -11526,7 +11550,7 @@ border: 0;
   line-height: 10px;
 }
 
-@media (max-width: 1250px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint-grid {
     gap: 12px;
   }
@@ -11714,7 +11738,7 @@ border: 0;
   display: none;
 }
 
-@media (max-width: 1250px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-metric {
     min-height: 80px;
     padding: 8px 4px;
@@ -11790,7 +11814,7 @@ border: 0;
   height: 100%;
 }
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-current-grid {
     height: 271px;
   }
@@ -11957,7 +11981,7 @@ border: 0;
 
 /* Intermediate layout: Panels 1 and 2 remain paired; catalogue spans below. */
 
-@media (max-width: 1179px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-others {
     grid-column: 1 / -1;
     height: 240px;
@@ -12293,7 +12317,7 @@ border: 0;
   white-space: nowrap;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip {
     grid-auto-columns: 168px;
   }
@@ -12652,7 +12676,7 @@ border: 0;
 
 /* Keep observations readable at narrower breakpoints. */
 
-@media (max-width: 1180px) {
+@media (max-width: 1023px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.is-observation-strip {
     grid-auto-columns: 184px;
   }
@@ -13233,7 +13257,7 @@ border: 0;
 /* RUNOFF PANELS 2 AND 3 OPTICAL TYPOGRAPHY PARITY V5
    Preserve candidate-pair typography and slightly reduce only
    the vertical footprint of Panel 3 matchup rows. */
-@media (min-width: 1251px) {
+@media (min-width: 1400px) {
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-matchup strong {
     font-size: 12.5px !important;
     font-weight: 680 !important;
@@ -13260,7 +13284,7 @@ border: 0;
  * Bring the desktop Runoff workspace closer to the compact top-row
  * typography without changing row spacing, padding, grids or dimensions.
  */
-@media (min-width: 1100px) {
+@media (min-width: 1024px) {
   .hybrid-panel#signal-runoff-panel
     .hybrid-runoff-module
     h3 {
@@ -13410,7 +13434,7 @@ border: 0;
  * Reduce excess vertical space between matchup rows without changing
  * names, scores, bars or horizontal alignment.
  */
-@media (min-width: 1100px) {
+@media (min-width: 1024px) {
   .hybrid-panel#signal-runoff-panel
     .hybrid-runoff-common
     .hybrid-runoff-matrix-matchup {
@@ -13448,7 +13472,7 @@ border: 0;
  *
  * Panel 2 typography and spacing remain unchanged.
  */
-@media (min-width: 1100px) {
+@media (min-width: 1024px) {
   /*
    * Workspace header metrics.
    * Both selectors are included because the current header has used
@@ -13548,7 +13572,7 @@ border: 0;
  *
  * Typography, scores, bars and horizontal geometry are unchanged.
  */
-@media (min-width: 1100px) {
+@media (min-width: 1024px) {
   .hybrid-panel#signal-runoff-panel
     *:has(> .hybrid-runoff-other-card) {
     display: flex !important;
@@ -13566,6 +13590,9 @@ border: 0;
     height: 38px !important;
     min-height: 38px !important;
     max-height: 38px !important;
+    /* Supersede the earlier 68px archive row so record content remains
+       inside the fixed desktop row instead of relying on overflow. */
+    grid-template-rows: minmax(0, 1fr) !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
     padding-top: 1px !important;
@@ -13580,7 +13607,7 @@ border: 0;
  * Match Panel 2's matchup-name and result typography exactly.
  * Existing 38px rows and 3px row separation remain unchanged.
  */
-@media (min-width: 1100px) {
+@media (min-width: 1024px) {
   .hybrid-panel#signal-runoff-panel
     .hybrid-runoff-other-card
     h4,
@@ -13621,7 +13648,7 @@ border: 0;
  *
  * No runtime DOM mutation is required.
  */
-@media (min-width: 1100px) {
+@media (min-width: 1024px) {
   .hybrid-panel#signal-runoff-panel
     .hybrid-runoff-other-card {
     box-shadow:
@@ -13701,7 +13728,7 @@ border: 0;
  * Panel 3 represents one latest result per matchup, so its headings
  * intentionally differ from Panel 2's two-pollster matrix headings.
  */
-@media (min-width: 1100px) {
+@media (min-width: 1024px) {
   .hybrid-panel#signal-runoff-panel
     *:has(> .hybrid-runoff-other-card) {
     position: relative !important;
@@ -13751,7 +13778,7 @@ border: 0;
  *
  * Timeline geometry, dots and horizontal distribution are unchanged.
  */
-@media (min-width: 1100px) {
+@media (min-width: 1024px) {
   .hybrid-panel#signal-runoff-panel
     .hybrid-runoff-chronology.is-observation-strip
     .hybrid-runoff-history-position
@@ -13822,7 +13849,7 @@ border: 0;
  * track. Lift the complete source/result stack slightly so each
  * observation reads as one attached chronological unit.
  */
-@media (min-width: 1100px) {
+@media (min-width: 1024px) {
   .hybrid-panel#signal-runoff-panel
     .hybrid-runoff-chronology.is-observation-strip
     .hybrid-runoff-history-entry {
@@ -13860,7 +13887,7 @@ border: 0;
  * - Let the chronology itself become horizontally scrollable as new
  *   source observations are published.
  */
-@media (min-width: 1100px) {
+@media (min-width: 1024px) {
   /*
    * The active RUNOFF tab and analytical modules already identify the
    * workspace. Keep the status-band markup available in the renderer,
@@ -14030,7 +14057,7 @@ overflow-x: hidden !important;
  * - use the same rounded, contained panel language as Candidates;
  * - preserve conditional vertical and horizontal scrolling.
  */
-@media (min-width: 1100px) {
+@media (min-width: 1024px) {
   /*
    * V9 previously placed the desktop top inset on the current grid.
    * Move that inset to the workspace itself so its two rows can divide
@@ -14102,3 +14129,291 @@ overflow-x: hidden !important;
   }
 }
 /* RUNOFF SHELL PARITY V9.3: END */
+
+/* Runoff structural containment.
+ * The result pill follows its fluid matrix track instead of imposing an
+ * 88px minimum that could overflow the right edge between desktop caps. */
+@media (min-width: 1024px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins {
+    min-width: 0;
+    padding-right: 4px;
+    padding-left: 4px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
+    width: 100%;
+    min-width: 0;
+    max-width: 88px;
+    padding-right: 2px;
+    padding-left: 2px;
+  }
+}
+
+/* DESKTOP WORKSPACE STABILIZATION PASS 2
+ *
+ * The Pass-1 desktop contract has one module graph and two density regimes.
+ * This compact regime changes internal dimensions only; it does not stack,
+ * reorder, hide, or move any analytical module.
+ */
+@media (min-width: 1024px) and (max-width: 1399px) {
+  /* Runoff: retain the three upper modules while giving the result matrix
+     enough width for all four structural columns at the 1280px target. */
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-workspace {
+    padding-right: var(--fr27-workspace-inline-padding) !important;
+    padding-left: var(--fr27-workspace-inline-padding) !important;
+    gap: var(--fr27-workspace-gap) !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-current-grid {
+    grid-template-columns:
+      minmax(0, 31.5fr)
+      minmax(0, 39fr)
+      minmax(0, 29.5fr);
+    gap: var(--fr27-workspace-gap) !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-module {
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-module h3 {
+    font-size: var(--fr27-workspace-micro-size);
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation {
+    grid-template-columns:
+      minmax(88px, 1fr)
+      minmax(98px, 1.12fr)
+      minmax(88px, 1fr)
+      54px;
+    gap: 4px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate {
+    grid-template-rows: 13px 40px;
+    gap: 3px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate-result {
+    gap: 4px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate .hybrid-portrait {
+    flex-basis: var(--fr27-workspace-portrait-size);
+    width: var(--fr27-workspace-portrait-size);
+    height: var(--fr27-workspace-portrait-size);
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-instrument {
+    padding: 6px 5px 4px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile {
+    min-width: 54px;
+    padding-right: 3px;
+    padding-left: 3px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile > strong {
+    font-size: 19px;
+    line-height: 19px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile > small {
+    font-size: 11px;
+    line-height: 13px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-head,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend {
+    grid-template-columns:
+      minmax(112px, 1.28fr)
+      minmax(78px, 1fr)
+      minmax(78px, 1fr)
+      54px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-head > span,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row > span {
+    padding-right: 5px;
+    padding-left: 5px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-matchup strong {
+    width: 102px;
+    max-width: 102px;
+    font-size: var(--fr27-workspace-primary-size) !important;
+    line-height: 13px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result {
+    column-gap: 5px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-score {
+    font-size: 14px;
+    line-height: 14px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins {
+    min-width: 0;
+    padding-right: 2px;
+    padding-left: 2px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
+    width: 50px;
+    min-width: 50px;
+    height: 34px;
+    padding: 0 3px;
+    font-size: 14px;
+    line-height: 14px;
+  }
+
+}
+
+/* Narrow desktop Runoff density. Structural tracks become smaller, but all
+ * three upper modules and Selected Matchup History remain in place. */
+@media (min-width: 1024px) and (max-width: 1239px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-current-grid {
+    grid-template-columns:
+      minmax(0, 30.5fr)
+      minmax(0, 40fr)
+      minmax(0, 29.5fr);
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-module {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation {
+    width: calc(100% - 2px);
+    grid-template-columns:
+      minmax(76px, 1fr)
+      minmax(70px, 1.1fr)
+      minmax(76px, 1fr)
+      44px;
+    gap: 2px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation > * {
+    min-width: 0;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate {
+    overflow: hidden;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate {
+    grid-template-rows: 12px 34px;
+    gap: 2px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate-name {
+    font-size: 10px;
+    line-height: 12px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate strong,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate-result strong {
+    font-size: 18px !important;
+    line-height: 19px !important;
+    letter-spacing: -.35px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate-result {
+    gap: 2px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate .hybrid-portrait {
+    flex-basis: 28px;
+    width: 28px;
+    height: 28px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-instrument {
+    padding: 4px 3px 3px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile {
+    min-width: 44px;
+    padding-right: 2px;
+    padding-left: 2px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile > strong {
+    font-size: 17px;
+    line-height: 17px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile > small {
+    font-size: 9px;
+    line-height: 11px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-head,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend {
+    grid-template-columns:
+      minmax(88px, 1.25fr)
+      minmax(58px, 1fr)
+      minmax(58px, 1fr)
+      42px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-head > span,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row > span {
+    padding-right: 3px;
+    padding-left: 3px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-matchup strong {
+    width: 80px;
+    max-width: 80px;
+    font-size: 9.5px !important;
+    line-height: 11px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result {
+    column-gap: 3px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-score {
+    font-size: 12px;
+    line-height: 12px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-margins strong {
+    width: 38px;
+    min-width: 38px;
+    height: 30px;
+    padding: 0 2px;
+    font-size: 12px;
+    line-height: 12px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 > span,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 > small {
+    font-size: 9.5px !important;
+    line-height: 13px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score > strong {
+    font-size: 13px !important;
+    line-height: 14px !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel *:has(> .hybrid-runoff-other-card)::before,
+  .hybrid-panel#signal-runoff-panel *:has(> .hybrid-runoff-other-card)::after {
+    font-size: 7px;
+    letter-spacing: .55px;
+  }
+
+  .hybrid-panel#signal-runoff-panel *:has(> .hybrid-runoff-other-card)::after {
+    right: 12px;
+  }
+}
