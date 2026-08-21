@@ -786,6 +786,41 @@ class RunoffFrontendContractTests(unittest.TestCase):
         self.assertNotIn("EVIDENCE FOOTPRINT", html)
         self.assertIn("OTHER TESTED MATCHUPS", html)
 
+    def test_other_tested_matchups_keep_populated_desktop_rows(self):
+        html = self.render_real()["html"]
+        cards = re.findall(
+            r'<article class="hybrid-runoff-other-card".*?</article>',
+            html,
+            re.DOTALL,
+        )
+
+        self.assertEqual(len(cards), 6)
+        for card in cards:
+            with self.subTest(card=card[:100]):
+                self.assertRegex(
+                    card,
+                    r"<strong>\d+(?:\.\d+)?%</strong>[\s\S]*"
+                    r"<strong>\d+(?:\.\d+)?%</strong>",
+                )
+
+        density = HYBRID_CSS.read_text(encoding="utf-8").split(
+            "/* RUNOFF PANEL 3 DENSITY V4: START */",
+            1,
+        )[1].split(
+            "/* RUNOFF PANEL 3 DENSITY V4: END */",
+            1,
+        )[0]
+        self.assertIn("@media (min-width: 1024px)", density)
+        self.assertIn("flex: 0 0 38px !important;", density)
+        self.assertIn(
+            "grid-template-rows: minmax(0, 1fr) !important;",
+            density,
+        )
+        self.assertNotIn(
+            "grid-template-rows: minmax(68px, 1fr)",
+            density,
+        )
+
     def test_history_window_grouping_is_exact_deterministic_and_non_mutating(self):
         output = run_runoff_script(
             self.derived,

@@ -6,7 +6,7 @@
  * - masthead
  * - three-panel briefing row
  * - context/status strip
- * - six-tab navigation
+ * - five-tab navigation
  * - Media Pulse overview presentation
  *
  * Deliberately unchanged:
@@ -126,7 +126,7 @@ h1 {
  * operational metadata to wrap instead of intruding
  * into the title area.
  */
-@media (min-width: 720px) and (max-width: 1119px) {
+@media (min-width: 720px) and (max-width: 1023px) {
   .masthead .brand {
     flex: 0 0 auto;
   }
@@ -648,7 +648,7 @@ h1 {
 
 
 /* --------------------------------------------------------------------------
-   Six-tab dashboard workspace
+   Five-tab dashboard workspace
    -------------------------------------------------------------------------- */
 
 #hybrid-signal-board {
@@ -657,7 +657,7 @@ h1 {
 
 #hybrid-signal-board .hybrid-tabs {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   min-height: 44px;
   overflow: hidden;
   border: 1px solid var(--final-line);
@@ -761,27 +761,7 @@ h1 {
    Responsive layout
    -------------------------------------------------------------------------- */
 
-@media (min-width: 1180px) {
-  .hero-grid {
-    grid-template-columns:
-      minmax(0, 27fr)
-      minmax(0, 30fr)
-      minmax(0, 43fr);
-  }
-
-  .top-media-pulse {
-    grid-column: auto;
-  }
-
-  .hero-grid > .panel,
-  .hero-grid > .race-glance {
-    height: 432px !important;
-    min-height: 432px !important;
-    max-height: 432px !important;
-  }
-}
-
-@media (min-width: 861px) and (max-width: 1179px) {
+@media (min-width: 861px) and (max-width: 1023px) {
   .hero-grid {
     grid-template-columns:
       minmax(290px, 0.8fr)
@@ -826,7 +806,7 @@ h1 {
   }
 
   #hybrid-signal-board .hybrid-tabs {
-    grid-template-columns: repeat(6, minmax(112px, 1fr));
+    grid-template-columns: repeat(5, minmax(112px, 1fr));
     overflow-x: auto;
   }
 }
@@ -868,18 +848,7 @@ h1 {
   --top-row-cta-height: 32px;
 }
 
-@media (min-width: 1180px) {
-  /*
-   * Locked outer desktop proportions.
-   */
-  .hero-grid {
-    grid-template-columns:
-      minmax(0, 27fr)
-      minmax(0, 30fr)
-      minmax(0, 43fr);
-    align-items: stretch;
-  }
-
+@media (min-width: 1024px) {
   .hero-grid > .panel,
   .hero-grid > .race-glance {
     height: 400px !important;
@@ -1203,7 +1172,7 @@ h1 {
 
 /* TOP MEDIA VISUAL REBALANCE - 2026-07 */
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   /*
    * Structural analysis-column layout:
    * Coverage Shift / supporting evidence /
@@ -1362,7 +1331,7 @@ h1 {
 
 /* COVERAGE SHIFT FINAL STRUCTURE - 2026-07 */
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   /*
    * Strict analysis layout:
    * Coverage Shift / support grid / action.
@@ -1510,7 +1479,7 @@ h1 {
 
 /* MEDIA PULSE HEADER METRIC READABILITY - 2026-07 */
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   /*
    * Improve the readability of the four
    * Media Pulse headline metrics without
@@ -1553,7 +1522,7 @@ h1 {
 
 /* FR27 SHARED READABLE TYPOGRAPHY — TOP ROW — 2026-07 */
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   .hero-grid {
     --fr27-type-panel-title: 15px;
     --fr27-type-reading: 12.5px;
@@ -2016,7 +1985,7 @@ h1 {
  * and reclaim enough vertical space for
  * six complete candidate rows.
  */
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   .race-glance
     .race-glance-head {
     grid-template-columns:
@@ -2242,20 +2211,7 @@ h1 {
 
 /* TOP ROW PROPORTION AND OVERVIEW POLISH — 2026-07 */
 
-@media (min-width: 1180px) {
-  /*
-   * Keep What Changed stable, give Race
-   * slightly more room, and reclaim that
-   * space from Media Pulse.
-   */
-  .hero-grid {
-    grid-template-columns:
-      minmax(0, 27fr)
-      minmax(0, 32fr)
-      minmax(0, 41fr)
-      !important;
-  }
-
+@media (min-width: 1024px) {
   /*
    * Compact, visibly interactive tabs that
    * follow the same visual language as the
@@ -2438,19 +2394,7 @@ h1 {
 
 /* MOCKUP TOP-ROW GEOMETRY AND COVERAGE SHIFT CARD — 2026-07 */
 
-@media (min-width: 1180px) {
-  /*
-   * Relative widths measured from the
-   * approved reference composition.
-   */
-  .hero-grid {
-    grid-template-columns:
-      minmax(0, 28fr)
-      minmax(0, 35fr)
-      minmax(0, 37fr)
-      !important;
-  }
-
+@media (min-width: 1024px) {
   /*
    * The wider Race track should use its
    * space for readable results rather
@@ -2681,7 +2625,7 @@ h1 {
 
 /* OVERVIEW FIXED ANALYTICAL LISTS — 2026-07 */
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   /*
    * Coverage Shift is a six-row summary.
    * Override earlier density rules that
@@ -2806,7 +2750,7 @@ h1 {
 
 /* OVERVIEW FOUR-PUBLISHER SUMMARY — 2026-07 */
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   /*
    * The compact Overview card shows only
    * the four leading publishers. The full
@@ -2840,7 +2784,7 @@ h1 {
 
 /* UNIFIED TOP-ROW CTA TYPOGRAPHY — 2026-07 */
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   /*
    * One typography and alignment contract
    * for Race, Overview and Coverage CTAs.
@@ -2947,7 +2891,7 @@ h1 {
 
 /* FINAL CTA PARITY AND FOUR-ROW SHIFT — 2026-07 */
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   /*
    * One exact action-row contract across
    * Race, Overview and Coverage.
@@ -3104,7 +3048,7 @@ h1 {
 
 /* FR27 WHAT CHANGED TYPE PARITY — MEDIA PULSE — 2026-07 */
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   /*
    * What Changed is the top-row reading reference:
    * 12px primary text, 9px metadata, and
@@ -3226,7 +3170,7 @@ h1 {
 
 /* FR27 MEDIA PULSE READABILITY PASS - 2026-07 */
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   /*
    * Make Media Pulse match What Changed:
    * 12px primary reading text, 10-11px
@@ -3334,7 +3278,7 @@ h1 {
 
 /* MEDIA OVERVIEW FOOTER BREATHING ROOM — 2026-07 */
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   /*
    * Keep the shared footer divider and CTA fixed.
    * Prevent the final analytical rows from
@@ -3369,7 +3313,7 @@ h1 {
 
 /* MEDIA OVERVIEW SUBTITLE REMOVAL AND HEIGHT TRANSFER — 2026-07 */
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   /*
    * Subtitle removed:
    * heading / period legend / candidate list.
@@ -3409,7 +3353,7 @@ h1 {
 
 /* MEDIA COVERAGE TYPE PARITY AND FINAL PUBLISHER ROW — 2026-07 */
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   /*
    * BFMTV — Politique is the fourth and final
    * visible publisher in the compact Overview.
@@ -3486,7 +3430,7 @@ h1 {
 
 /* MEDIA OVERVIEW HEADING-ROW SPACING — 2026-07 */
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   /*
    * Bring the first analytical rows slightly
    * closer to their headings while preserving
@@ -3506,7 +3450,7 @@ h1 {
 
 /* MEDIA COVERAGE FINAL READABILITY — 2026-07 */
 
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
   .top-media-pulse
     #top-media-coverage-panel
     .top-media-section-heading h3 {
@@ -3650,7 +3594,7 @@ h1 {
 
 /* STATUS BAND FINAL V32 */
 
-@media (min-width: 1120px) {
+@media (min-width: 1024px) {
   .context-strip {
     position: relative;
     z-index: 20;
@@ -3867,5 +3811,506 @@ h1 {
     position: relative;
     z-index: 1;
     margin-top: 8px;
+  }
+}
+
+/* DESKTOP FOUNDATION STABILIZATION V1
+ *
+ * Desktop has one composition and three density regimes:
+ * - wide desktop uses the approved Lenovo geometry;
+ * - compact desktop preserves the approved Zenbook geometry;
+ * - narrow desktop carries the same composition to the 1024px floor.
+ *
+ * The compact threshold is based on usable content geometry, not a device
+ * model. Below a 1400px viewport the 28/35/37 reference columns enter the
+ * widths measured on the 1280px Zenbook and need coordinated density relief.
+ */
+
+:root {
+  --fr27-desktop-shell-max-width: 1780px;
+  --fr27-desktop-shell-inline-padding: 24px;
+  --fr27-desktop-masthead-min-height: 78px;
+  --fr27-desktop-masthead-block-padding: 10px;
+  --fr27-desktop-masthead-inline-padding: 13px;
+  --fr27-desktop-masthead-gap: 16px;
+  --fr27-desktop-mark-size: 52px;
+  --fr27-desktop-mark-icon-size: 42px;
+  --fr27-desktop-masthead-title-size: clamp(22px, 1.5vw, 26px);
+  --fr27-desktop-masthead-tagline-size: 12px;
+  --fr27-desktop-masthead-data-size: 10px;
+  --fr27-desktop-countdown-min-width: 206px;
+  --fr27-desktop-countdown-min-height: 52px;
+  --fr27-desktop-countdown-value-size: 29px;
+  --fr27-desktop-hero-gap: 8px;
+  --fr27-desktop-hero-height: 400px;
+  --fr27-desktop-context-height: 66px;
+  --fr27-desktop-context-inline-padding: 14px;
+  --fr27-desktop-context-icon-size: 32px;
+  --fr27-desktop-context-label-size: 9.6px;
+  --fr27-desktop-context-value-size: 13.5px;
+  --fr27-desktop-tab-height: 44px;
+  --fr27-desktop-tab-font-size: 10px;
+  --fr27-desktop-tab-icon-size: 20px;
+  --fr27-desktop-panel-height: 462px;
+  --fr27-desktop-panel-title-size: 15px;
+  --fr27-desktop-reading-size: 12.5px;
+  --fr27-desktop-value-size: 14px;
+  --fr27-desktop-control-size: 10px;
+  --fr27-desktop-action-size: 11px;
+  --fr27-desktop-meta-size: 9px;
+  --fr27-desktop-filter-gap: 4px;
+  --fr27-desktop-filter-inline-padding: 8px;
+  --fr27-workspace-gap: 10px;
+  --fr27-workspace-inline-padding: 10px;
+  --fr27-workspace-panel-title-size: 13px;
+  --fr27-workspace-primary-size: 12.5px;
+  --fr27-workspace-body-size: 10.5px;
+  --fr27-workspace-meta-size: 9.5px;
+  --fr27-workspace-micro-size: 8.5px;
+  --fr27-workspace-portrait-size: 46px;
+}
+
+@media (min-width: 1240px) and (max-width: 1399px) {
+  :root {
+    --fr27-desktop-shell-inline-padding: 16px;
+    --fr27-desktop-masthead-block-padding: 8px;
+    --fr27-desktop-masthead-inline-padding: 11px;
+    --fr27-desktop-masthead-gap: 12px;
+    --fr27-desktop-mark-size: 46px;
+    --fr27-desktop-mark-icon-size: 36px;
+    --fr27-desktop-masthead-title-size: 22px;
+    --fr27-desktop-masthead-tagline-size: 10.5px;
+    --fr27-desktop-masthead-data-size: 8.5px;
+    --fr27-desktop-countdown-min-width: 178px;
+    --fr27-desktop-countdown-min-height: 48px;
+    --fr27-desktop-countdown-value-size: 26px;
+    --fr27-desktop-context-inline-padding: 10px;
+    --fr27-desktop-context-icon-size: 28px;
+    --fr27-desktop-context-label-size: 9px;
+    --fr27-desktop-context-value-size: 12.5px;
+    --fr27-desktop-tab-font-size: 9.5px;
+    --fr27-desktop-tab-icon-size: 18px;
+    --fr27-desktop-panel-title-size: 14px;
+    --fr27-desktop-reading-size: 11.5px;
+    --fr27-desktop-value-size: 13px;
+    --fr27-desktop-control-size: 9.5px;
+    --fr27-desktop-action-size: 10px;
+    --fr27-desktop-meta-size: 8.5px;
+    --fr27-desktop-filter-gap: 3px;
+    --fr27-desktop-filter-inline-padding: 6px;
+    --fr27-workspace-gap: 8px;
+    --fr27-workspace-inline-padding: 8px;
+    --fr27-workspace-panel-title-size: 12px;
+    --fr27-workspace-primary-size: 11.5px;
+    --fr27-workspace-body-size: 10px;
+    --fr27-workspace-meta-size: 8.75px;
+    --fr27-workspace-micro-size: 8px;
+    --fr27-workspace-portrait-size: 40px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1239px) {
+  :root {
+    --fr27-desktop-shell-inline-padding: 12px;
+    --fr27-desktop-masthead-min-height: 76px;
+    --fr27-desktop-masthead-block-padding: 7px;
+    --fr27-desktop-masthead-inline-padding: 8px;
+    --fr27-desktop-masthead-gap: 8px;
+    --fr27-desktop-mark-size: 40px;
+    --fr27-desktop-mark-icon-size: 32px;
+    --fr27-desktop-masthead-title-size: 18px;
+    --fr27-desktop-masthead-tagline-size: 9px;
+    --fr27-desktop-masthead-data-size: 8px;
+    --fr27-desktop-countdown-min-width: 150px;
+    --fr27-desktop-countdown-min-height: 44px;
+    --fr27-desktop-countdown-value-size: 23px;
+    --fr27-desktop-hero-gap: 6px;
+    --fr27-desktop-context-inline-padding: 7px;
+    --fr27-desktop-context-icon-size: 24px;
+    --fr27-desktop-context-label-size: 8.25px;
+    --fr27-desktop-context-value-size: 11.5px;
+    --fr27-desktop-tab-font-size: 9px;
+    --fr27-desktop-tab-icon-size: 16px;
+    --fr27-desktop-panel-title-size: 12.5px;
+    --fr27-desktop-reading-size: 10.5px;
+    --fr27-desktop-value-size: 12px;
+    --fr27-desktop-control-size: 8.5px;
+    --fr27-desktop-action-size: 9.5px;
+    --fr27-desktop-meta-size: 8px;
+    --fr27-desktop-filter-gap: 2px;
+    --fr27-desktop-filter-inline-padding: 4px;
+    --fr27-workspace-gap: 6px;
+    --fr27-workspace-inline-padding: 6px;
+    --fr27-workspace-panel-title-size: 11px;
+    --fr27-workspace-primary-size: 10.5px;
+    --fr27-workspace-body-size: 9.5px;
+    --fr27-workspace-meta-size: 8px;
+    --fr27-workspace-micro-size: 7.5px;
+    --fr27-workspace-portrait-size: 34px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .shell {
+    width: 100%;
+    max-width: var(--fr27-desktop-shell-max-width);
+    padding-right: var(--fr27-desktop-shell-inline-padding);
+    padding-left: var(--fr27-desktop-shell-inline-padding);
+  }
+
+  .masthead {
+    min-height: var(--fr27-desktop-masthead-min-height);
+    flex-wrap: nowrap;
+    gap: var(--fr27-desktop-masthead-gap);
+    padding:
+      var(--fr27-desktop-masthead-block-padding)
+      var(--fr27-desktop-masthead-inline-padding);
+  }
+
+  .masthead .mark {
+    width: var(--fr27-desktop-mark-size);
+    height: var(--fr27-desktop-mark-size);
+  }
+
+  .masthead .mark svg {
+    width: var(--fr27-desktop-mark-icon-size);
+    height: var(--fr27-desktop-mark-icon-size);
+  }
+
+  .masthead h1 {
+    font-size: var(--fr27-desktop-masthead-title-size);
+  }
+
+  .masthead-tagline {
+    font-size: var(--fr27-desktop-masthead-tagline-size);
+  }
+
+  .masthead-tools {
+    min-width: 0;
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+  }
+
+  .masthead-data {
+    min-width: 0;
+    font-size: var(--fr27-desktop-masthead-data-size);
+  }
+
+  .masthead-countdown {
+    min-width: var(--fr27-desktop-countdown-min-width);
+    min-height: var(--fr27-desktop-countdown-min-height);
+  }
+
+  .masthead-countdown .clock-count {
+    font-size: var(--fr27-desktop-countdown-value-size);
+  }
+
+  .hero-grid {
+    --fr27-type-panel-title: var(--fr27-desktop-panel-title-size);
+    --fr27-type-reading: var(--fr27-desktop-reading-size);
+    --fr27-type-value: var(--fr27-desktop-value-size);
+    --fr27-type-control: var(--fr27-desktop-control-size);
+    --fr27-type-action: var(--fr27-desktop-action-size);
+    --fr27-type-meta: var(--fr27-desktop-meta-size);
+    grid-template-columns:
+      minmax(0, 28fr)
+      minmax(0, 35fr)
+      minmax(0, 37fr) !important;
+    gap: var(--fr27-desktop-hero-gap);
+    align-items: stretch;
+  }
+
+  .hero-grid > .panel,
+  .hero-grid > .race-glance,
+  .hero-grid > .top-media-pulse {
+    height: var(--fr27-desktop-hero-height) !important;
+    min-height: var(--fr27-desktop-hero-height) !important;
+    max-height: var(--fr27-desktop-hero-height) !important;
+  }
+
+  .hero-grid > .top-media-pulse {
+    grid-column: auto !important;
+  }
+
+  .changes-ledger-toolbar {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    gap: var(--fr27-desktop-filter-gap);
+  }
+
+  .changes-ledger-filter {
+    padding-right: var(--fr27-desktop-filter-inline-padding);
+    padding-left: var(--fr27-desktop-filter-inline-padding);
+  }
+
+  .context-strip {
+    min-height: var(--fr27-desktop-context-height);
+    grid-template-columns:
+      minmax(0, 1.06fr)
+      minmax(0, 0.94fr)
+      minmax(0, 0.95fr)
+      minmax(0, 1.25fr);
+  }
+
+  .context-cell {
+    min-height: calc(var(--fr27-desktop-context-height) - 2px);
+    padding-right: var(--fr27-desktop-context-inline-padding);
+    padding-left: var(--fr27-desktop-context-inline-padding);
+  }
+
+  .context-icon {
+    width: var(--fr27-desktop-context-icon-size);
+    height: var(--fr27-desktop-context-icon-size);
+  }
+
+  .context-label {
+    font-size: var(--fr27-desktop-context-label-size);
+  }
+
+  .context-value {
+    font-size: var(--fr27-desktop-context-value-size);
+  }
+
+  #hybrid-signal-board .hybrid-tabs {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    min-height: var(--fr27-desktop-tab-height);
+    overflow-x: hidden;
+  }
+
+  #hybrid-signal-board .hybrid-tabs > button {
+    height: var(--fr27-desktop-tab-height);
+    min-height: var(--fr27-desktop-tab-height);
+    font-size: var(--fr27-desktop-tab-font-size);
+  }
+
+  #hybrid-signal-board .hybrid-tab-icon {
+    width: var(--fr27-desktop-tab-icon-size);
+    height: var(--fr27-desktop-tab-icon-size);
+  }
+
+  #hybrid-signal-board
+    .hybrid-workspace
+    > .hybrid-panel {
+    box-sizing: border-box;
+    height: var(--fr27-desktop-panel-height);
+    min-height: var(--fr27-desktop-panel-height);
+    max-height: var(--fr27-desktop-panel-height);
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .masthead .brand {
+    flex: 0 1 auto;
+    gap: 10px;
+  }
+
+  .masthead-tools {
+    gap: 8px;
+  }
+
+  .masthead-data {
+    flex: 1 1 240px;
+    max-width: 300px;
+    line-height: 1.2;
+  }
+
+  .masthead-data span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .masthead-countdown {
+    padding: 6px 10px;
+  }
+
+  .masthead-countdown-label,
+  .masthead-countdown-date {
+    font-size: 8.5px;
+  }
+
+  .what-changed .panel-head,
+  .race-glance .race-glance-head,
+  .top-media-pulse-head {
+    padding-right: 9px;
+    padding-left: 9px;
+  }
+
+  .what-changed .panel-head h2,
+  .race-glance .panel-head h2,
+  .top-media-pulse-head h2 {
+    font-size: var(--fr27-desktop-panel-title-size) !important;
+  }
+
+  .what-changed-headline,
+  .what-changed-item.is-lead .what-changed-headline,
+  .changes-ledger-headline,
+  .race-glance .candidate {
+    font-size: var(--fr27-desktop-reading-size) !important;
+  }
+
+  .what-changed-category,
+  .changes-ledger-category,
+  .what-changed-meta,
+  .changes-ledger-meta,
+  .race-event-detail,
+  .race-heading > .sub,
+  .race-scenario-control .hypothesis-label {
+    font-size: var(--fr27-desktop-meta-size) !important;
+  }
+
+  .what-changed-item,
+  .changes-ledger-entry {
+    min-height: 70px;
+  }
+
+  .race-glance .race-glance-head {
+    grid-template-columns:
+      minmax(122px, 0.72fr)
+      minmax(0, 1.28fr);
+    gap: 6px;
+  }
+
+  .race-glance .race-column-head,
+  .race-glance .bar-row {
+    grid-template-columns:
+      minmax(116px, 1.12fr)
+      minmax(72px, 1.15fr)
+      44px
+      minmax(58px, 0.73fr) !important;
+    column-gap: 5px;
+  }
+
+  .race-glance .score {
+    font-size: var(--fr27-desktop-value-size) !important;
+  }
+
+  .race-change strong,
+  .race-poll-tab,
+  .race-scenario-control #hypothesis-select {
+    font-size: var(--fr27-desktop-control-size) !important;
+  }
+
+  .top-media-pulse .top-media-tabs button,
+  .top-media-pulse .top-media-section-heading h3 {
+    font-size: 10px !important;
+  }
+
+  .top-media-pulse .top-media-shift-name,
+  .top-media-pulse .top-media-coverage-headline {
+    font-size: var(--fr27-desktop-reading-size) !important;
+  }
+
+  .top-media-pulse .top-media-shift-row > strong,
+  .top-media-pulse .top-media-shift-row > b,
+  .top-media-pulse .top-media-shift-prior-value,
+  .top-media-pulse .top-media-topic-row > span,
+  .top-media-pulse .top-media-topic-row > strong,
+  .top-media-pulse .top-media-publisher-row > strong,
+  .top-media-pulse .top-media-publisher-row > b,
+  .top-media-pulse .top-media-coverage-meta,
+  .top-media-pulse .top-media-coverage-meta time,
+  .top-media-pulse .top-media-coverage-meta strong {
+    font-size: var(--fr27-desktop-meta-size) !important;
+  }
+
+  .top-media-pulse .top-media-shift-row {
+    grid-template-columns:
+      minmax(90px, 1.15fr)
+      36px
+      minmax(78px, 1.35fr)
+      34px
+      48px !important;
+    gap: 4px !important;
+  }
+
+  .race-glance .race-footer .media-pulse-dashboard-cta,
+  .race-glance .race-footer a:not(.media-pulse-dashboard-cta),
+  .top-media-pulse .top-media-panel-link,
+  .top-media-pulse .top-media-panel-link .media-pulse-dashboard-cta {
+    font-size: var(--fr27-desktop-action-size) !important;
+  }
+
+  #hybrid-signal-board .hybrid-tabs > button {
+    gap: 6px;
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1239px) {
+  .masthead .brand {
+    gap: 8px;
+  }
+
+  .masthead-tools {
+    gap: 6px;
+  }
+
+  .masthead-data {
+    flex-basis: 180px;
+    max-width: 220px;
+  }
+
+  .masthead-countdown {
+    padding: 5px 7px;
+  }
+
+  .masthead-countdown-label,
+  .masthead-countdown-date {
+    font-size: 7.5px;
+  }
+
+  .what-changed .panel-head,
+  .race-glance .race-glance-head,
+  .top-media-pulse-head {
+    padding-right: 7px;
+    padding-left: 7px;
+  }
+
+  .what-changed-item,
+  .changes-ledger-entry {
+    min-height: 64px;
+  }
+
+  .race-glance .race-glance-head {
+    grid-template-columns:
+      minmax(100px, 0.72fr)
+      minmax(0, 1.28fr);
+    gap: 4px;
+  }
+
+  .race-glance .race-column-head,
+  .race-glance .bar-row {
+    grid-template-columns:
+      minmax(82px, 1.12fr)
+      minmax(55px, 1.15fr)
+      36px
+      minmax(44px, 0.73fr) !important;
+    column-gap: 3px;
+  }
+
+  .top-media-pulse .top-media-tabs button,
+  .top-media-pulse .top-media-section-heading h3 {
+    font-size: 9px !important;
+  }
+
+  .top-media-pulse .top-media-shift-row {
+    grid-template-columns:
+      minmax(70px, 1.15fr)
+      32px
+      minmax(60px, 1.35fr)
+      30px
+      42px !important;
+    gap: 2px !important;
+  }
+
+  #hybrid-signal-board .hybrid-tabs > button {
+    gap: 4px;
+    padding-right: 5px;
+    padding-left: 5px;
   }
 }
