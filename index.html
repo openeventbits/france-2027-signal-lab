@@ -1785,7 +1785,6 @@
       .intelligence-grid .runoff-score-line { grid-column: 1; grid-row: auto; }
       .intelligence-grid .runoff-result-meta { justify-content: space-between; }
     }
-    footer { margin-top: 12px; color: var(--muted); font-size: 11px; text-align: right; }
     @media (max-width: 1119px) {
       header { flex-wrap: wrap; }
       .masthead-tools { flex: 1 1 520px; }
@@ -2013,20 +2012,6 @@
       font-size: 9px;
     }
 
-    footer {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 16px 28px;
-      margin-top: 16px;
-      padding: 15px 2px 0;
-      border-top: 1px solid var(--line);
-      color: var(--muted);
-      font-size: 11px;
-      line-height: 1.55;
-      text-align: left;
-    }
-
     @media (max-width: 1119px) {
       .masthead-tools {
         flex: 1 1 500px;
@@ -2053,9 +2038,6 @@
         margin-left: auto;
       }
 
-      footer {
-        flex-direction: column;
-      }
     }
 
     @media (max-width: 520px) {
@@ -6326,6 +6308,1151 @@
     display: none;
   }
 
+
+  /* ================================================================
+     FR27 APPLICATION HUD — AUTHORITATIVE FOOTER IMPLEMENTATION
+     ================================================================ */
+
+  :root {
+    --fr27-app-hud-height: 81px;
+    --fr27-app-hud-rail-height: 5px;
+    --fr27-app-hud-open-safe: 87px;
+    --fr27-app-hud-closed-safe: 40px;
+  }
+
+  .shell {
+    padding-bottom: var(--fr27-app-hud-open-safe) !important;
+    transition: padding-bottom 220ms cubic-bezier(.22, .8, .24, 1);
+  }
+
+  html {
+    scroll-padding-bottom: var(--fr27-app-hud-open-safe);
+  }
+
+  html.fr27-app-hud-collapsed .shell {
+    padding-bottom: var(--fr27-app-hud-closed-safe) !important;
+  }
+
+  html.fr27-app-hud-collapsed {
+    scroll-padding-bottom: var(--fr27-app-hud-closed-safe);
+  }
+
+  #method-disclosure.fr27-app-hud {
+    position: fixed;
+    z-index: 980;
+    left: var(--fr27-app-hud-left, 0px);
+    right: auto;
+    bottom: 0;
+    display: block !important;
+    width: var(--fr27-app-hud-width, 100%);
+    height: var(--fr27-app-hud-height);
+    margin: 0 !important;
+    padding: 0;
+    border-top: 1px solid var(--line);
+    color: #a7bac6;
+    font-size: 10px;
+    line-height: 1;
+    text-align: left;
+    overflow: visible;
+    transform: translateY(0);
+    filter: drop-shadow(0 -13px 26px rgba(0, 0, 0, .34));
+    transition:
+      transform 230ms cubic-bezier(.22, .8, .24, 1),
+      filter 180ms ease;
+  }
+
+  #method-disclosure.fr27-app-hud[data-expanded="false"] {
+    transform:
+      translateY(
+        calc(
+          var(--fr27-app-hud-height) -
+          var(--fr27-app-hud-rail-height)
+        )
+      );
+    filter: drop-shadow(0 -7px 15px rgba(0, 0, 0, .28));
+  }
+
+  .fr27-app-hud-surface {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid rgba(47, 76, 94, .68);
+    border-bottom: 0;
+    border-radius: 7px 7px 0 0;
+    background: #04111d;
+    box-shadow:
+      inset 0 1px 0 rgba(123, 158, 176, .025),
+      inset 0 -1px 0 rgba(49, 74, 89, .16);
+  }
+
+  .fr27-app-hud-toggle {
+    position: absolute;
+    z-index: 30;
+    top: -9px;
+    left: 50%;
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 18px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid rgba(48, 78, 96, .78);
+    border-bottom-color: rgba(38, 62, 78, .92);
+    clip-path:
+      polygon(
+        9px 0,
+        calc(100% - 9px) 0,
+        100% 100%,
+        0 100%
+      );
+    background: #061522;
+    color: #3dcbed;
+    cursor: pointer;
+    transform: translateX(-50%);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, .28);
+    transition:
+      border-color 140ms ease,
+      background 140ms ease,
+      color 140ms ease;
+  }
+
+  .fr27-app-hud-toggle:hover {
+    border-color: rgba(67, 111, 134, .92);
+    background: #081b2a;
+    color: #70ddf6;
+  }
+
+  .fr27-app-hud-toggle:focus-visible,
+  .fr27-hud-command:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
+  }
+
+  .fr27-app-hud-toggle svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 220ms ease;
+  }
+
+  #method-disclosure.fr27-app-hud[data-expanded="false"]
+    .fr27-app-hud-toggle svg {
+    transform: rotate(180deg);
+  }
+
+  /* Five zones: time | election | infrastructure | scale | utility. */
+  .fr27-app-hud .fr27-app-hud-content.fr27-linear-console {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 13fr)
+      minmax(0, 9.5fr)
+      minmax(0, 39fr)
+      minmax(0, 25.5fr)
+      minmax(0, 13fr);
+    align-items: stretch;
+    width: 100%;
+    height:
+      calc(
+        var(--fr27-app-hud-height) -
+        var(--fr27-app-hud-rail-height)
+      );
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0 8px;
+    overflow: hidden;
+    background: #051420;
+  }
+
+  .fr27-linear-console > * {
+    min-width: 0;
+  }
+
+  .fr27-linear-console > * + * {
+    border-left: 1px solid rgba(55, 80, 95, .52);
+  }
+
+  .fr27-app-hud .fr27-linear-zone {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    height: 100%;
+    padding: 0 12px;
+  }
+
+  .fr27-app-hud .fr27-zone-title {
+    display: none;
+  }
+
+  .fr27-app-hud .fr27-zone-countdown .fr27-zone-title {
+    display: block;
+    align-self: end;
+    grid-row: 1;
+    margin: 0;
+    color: #8da8b6;
+    font-size: 8.5px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: .055em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* Time */
+  .fr27-app-hud .fr27-zone-live,
+  .fr27-app-hud .fr27-zone-countdown {
+    display: grid;
+    grid-template-rows: 9px 25px 10px;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    align-items: start;
+    row-gap: 4px;
+  }
+
+  .fr27-app-hud .fr27-zone-meta {
+    display: flex;
+    align-items: center;
+    align-self: end;
+    gap: 4px;
+    grid-row: 1;
+    margin: 0;
+    color: #8da8b6;
+    font-size: 8.5px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .fr27-app-hud .fr27-zone-meta span:last-child {
+    color: #48b7d3;
+  }
+
+  .fr27-app-hud .fr27-zone-live .fr27-zone-meta::after {
+    width: 5px;
+    height: 5px;
+    margin-left: 1px;
+    border-radius: 50%;
+    content: "";
+    background: #62c9ea;
+    box-shadow: 0 0 5px rgba(98, 201, 234, .24);
+  }
+
+  .fr27-app-hud .fr27-live-main {
+    display: contents;
+  }
+
+  .fr27-app-hud #fr27-hud-paris-time {
+    align-self: center;
+    grid-row: 2;
+    color: #e9f0f3;
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Consolas,
+      "Liberation Mono",
+      monospace;
+    font-size: 24px;
+    font-weight: 400;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.01em;
+    opacity: .92;
+    white-space: nowrap;
+  }
+
+  .fr27-app-hud #fr27-hud-paris-date {
+    align-self: start;
+    grid-row: 3;
+    color: #4ebbd2;
+    font-size: 9.5px;
+    font-weight: 710;
+    line-height: 1;
+    letter-spacing: .045em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* Election */
+  .fr27-app-hud .fr27-countdown-main {
+    display: contents;
+  }
+
+  .fr27-app-hud .fr27-countdown-value-row {
+    display: flex;
+    align-self: center;
+    align-items: baseline;
+    gap: 4px;
+    grid-row: 2;
+    white-space: nowrap;
+  }
+
+  .fr27-app-hud #fr27-hud-countdown-days {
+    color: #39d0ed;
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Consolas,
+      "Liberation Mono",
+      monospace;
+    font-size: 25px;
+    font-weight: 620;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fr27-app-hud .fr27-countdown-unit {
+    margin-top: 3px;
+    color: #8da4b0;
+    font-size: 9px;
+    font-weight: 740;
+    line-height: 1;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+  }
+
+  .fr27-app-hud .fr27-countdown-date {
+    align-self: start;
+    grid-row: 3;
+    color: #9187bd;
+    font-size: 9.5px;
+    font-weight: 710;
+    line-height: 1;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* Open infrastructure, dataset and utility instruments. */
+  .fr27-app-hud .fr27-zone-infra-body,
+  .fr27-app-hud .fr27-zone-scale-body,
+  .fr27-app-hud .fr27-linear-actions {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .fr27-app-hud .fr27-zone-infra-body {
+    display: grid;
+    grid-template-columns: minmax(0, 41fr) minmax(0, 59fr);
+    align-items: stretch;
+    min-width: 0;
+    height: 56px;
+    overflow: hidden;
+  }
+
+  .fr27-app-hud .fr27-zone-source-sub {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    border-right: 1px solid rgba(55, 83, 99, .48);
+  }
+
+  .fr27-app-hud .fr27-sub-title,
+  .fr27-app-hud .fr27-linear-system-kicker {
+    color: #718b9a;
+    font-size: 9.3px;
+    font-weight: 750;
+    line-height: 1;
+    letter-spacing: .055em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .fr27-app-hud .fr27-sub-title {
+    display: none;
+  }
+
+  .fr27-app-hud .fr27-source-main {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    width: 100%;
+    height: 56px;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .fr27-app-hud .fr27-source-stat {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 24px;
+    grid-template-rows: 10px 24px;
+    grid-template-areas:
+      "label label"
+      "value icon";
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+    column-gap: 7px;
+    row-gap: 6px;
+    min-width: 0;
+    padding: 0 7px;
+    white-space: nowrap;
+    text-align: left;
+  }
+
+  .fr27-app-hud .fr27-source-stat:nth-child(2) {
+    justify-self: stretch;
+  }
+
+  .fr27-app-hud .fr27-source-stat:nth-child(2)::before {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 1px;
+    height: 42px;
+    content: '';
+    background: rgba(58, 86, 102, .42);
+    transform: translateY(-50%);
+  }
+
+  .fr27-app-hud .fr27-source-stat > strong {
+    grid-area: value;
+    align-self: center;
+    justify-self: end;
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Consolas,
+      "Liberation Mono",
+      monospace;
+    font-size: 22px;
+    font-weight: 680;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fr27-app-hud .fr27-source-stat:first-child strong {
+    color: #3fcce8;
+  }
+
+  .fr27-app-hud .fr27-source-stat:nth-child(2) strong {
+    color: #a58cf2;
+  }
+
+  .fr27-app-hud
+    .fr27-source-stat > span:not(.fr27-source-icon) {
+    grid-area: label;
+    align-self: end;
+    justify-self: center;
+    color: #8da3af;
+    font-size: 8.5px;
+    font-weight: 710;
+    line-height: 1;
+    letter-spacing: .055em;
+    text-transform: uppercase;
+  }
+
+  .fr27-app-hud .fr27-source-icon {
+    grid-area: icon;
+    display: grid;
+    place-items: center;
+    align-self: center;
+    justify-self: start;
+    width: 20px;
+    height: 20px;
+    border: 0;
+    border-radius: 0;
+    color: #95a7b1;
+    background: transparent;
+  }
+
+  .fr27-app-hud .fr27-source-icon svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.55;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .fr27-app-hud .fr27-zone-method-sub {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 18fr)
+      minmax(0, 23fr)
+      minmax(0, 18fr);
+    align-items: stretch;
+    min-width: 0;
+    padding: 0;
+  }
+
+  .fr27-app-hud .fr27-linear-system-cell {
+    position: relative;
+    display: grid;
+    grid-template-rows: 11px 19px;
+    align-content: center;
+    align-items: start;
+    justify-items: center;
+    row-gap: 8px;
+    min-width: 0;
+    padding: 0 2px;
+    text-align: center;
+  }
+
+  .fr27-app-hud
+    .fr27-linear-system-cell +
+    .fr27-linear-system-cell::before,
+  .fr27-app-hud
+    .fr27-linear-publication-cell +
+    .fr27-linear-publication-cell::before {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 1px;
+    height: 50px;
+    content: "";
+    background: rgba(58, 86, 102, .22);
+    transform: translateY(-50%);
+  }
+
+  .fr27-app-hud
+    .fr27-linear-system-cell +
+    .fr27-linear-system-cell::before {
+    background: rgba(58, 86, 102, .20);
+  }
+
+  .fr27-app-hud .fr27-linear-system-value {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+    margin: 0;
+    font-size: 11.5px;
+    font-weight: 780;
+    line-height: 1;
+    letter-spacing: -.01em;
+    white-space: nowrap;
+  }
+
+  .fr27-app-hud
+    .fr27-linear-system-cell:first-child
+    .fr27-linear-system-value {
+    gap: 2px;
+    letter-spacing: -.08em;
+  }
+
+  .fr27-app-hud .fr27-system-cyan {
+    color: #3ccbe9;
+  }
+
+  .fr27-app-hud .fr27-system-violet {
+    color: #a88df0;
+  }
+
+  .fr27-app-hud .fr27-linear-operational-dot {
+    flex: 0 0 5px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* Dataset scale */
+  .fr27-app-hud .fr27-zone-scale-body {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: stretch;
+    min-width: 0;
+    height: 52px;
+    overflow: hidden;
+  }
+
+  .fr27-app-hud .fr27-linear-publication-cell {
+    position: relative;
+    display: grid;
+    grid-template-rows: 19px 9px;
+    align-content: center;
+    align-items: start;
+    justify-items: center;
+    row-gap: 4px;
+    min-width: 0;
+    padding: 0 2px;
+    text-align: center;
+  }
+
+  .fr27-app-hud .fr27-linear-publication-cell strong {
+    color: #e6eef1;
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Consolas,
+      "Liberation Mono",
+      monospace;
+    font-size: 19px;
+    font-weight: 680;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fr27-app-hud .fr27-linear-publication-cell span {
+    margin: 0;
+    color: #9bafb9;
+    font-size: 8.2px;
+    font-weight: 730;
+    line-height: 1.08;
+    letter-spacing: .015em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* Utility actions */
+  .fr27-app-hud .fr27-zone-utility {
+    align-items: center;
+  }
+
+  .fr27-app-hud .fr27-linear-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    width: max-content;
+    max-width: 100%;
+    height: auto;
+    padding: 0;
+  }
+
+  .fr27-app-hud .fr27-hud-command {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 clamp(34px, 2vw, 36px);
+    width: clamp(34px, 2vw, 36px);
+    height: clamp(34px, 2vw, 36px);
+    margin: 0;
+    padding: 0;
+    border: 1px solid rgba(62, 91, 108, .72);
+    border-radius: 5px;
+    background: #071925;
+    color: #88a9b8;
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      border-color 130ms ease,
+      background 130ms ease,
+      color 130ms ease;
+  }
+
+  .fr27-app-hud
+    a.fr27-hud-command:hover,
+  .fr27-app-hud
+    #fr27-hud-info-toggle:hover {
+    border-color: rgba(59, 179, 207, .72);
+    background: #09202e;
+    color: #43cbe8;
+  }
+
+  .fr27-app-hud .fr27-hud-command.github {
+    color: #b4c4cb;
+  }
+
+  .fr27-app-hud .fr27-hud-command.email {
+    color: #63c9df;
+  }
+
+  .fr27-app-hud .fr27-hud-command.email svg {
+    stroke-width: 1.9;
+  }
+
+  .fr27-app-hud .fr27-hud-command.share {
+    color: #86a9b8;
+  }
+
+  .fr27-app-hud .fr27-hud-command.share:hover {
+    border-color: rgba(59, 179, 207, .72);
+    background: #09202e;
+    color: #43cbe8;
+  }
+
+  .fr27-app-hud #fr27-hud-info-toggle {
+    color: #a993df;
+  }
+
+  .fr27-app-hud #fr27-hud-info-toggle:hover {
+    color: #c0a8f3;
+  }
+
+  .fr27-app-hud #fr27-hud-info-toggle .fr27-info-icon {
+    width: 21px;
+    height: 21px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.55;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .fr27-app-hud .fr27-hud-command svg {
+    width: 21px;
+    height: 21px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .fr27-app-hud .fr27-hud-command.github svg {
+    fill: currentColor;
+    stroke: none;
+    opacity: .96;
+  }
+
+  /* Contact popover */
+  .fr27-hud-contact-popover {
+    position: absolute;
+    z-index: 51;
+    right: 80px;
+    bottom: calc(100% + 10px);
+    width: 248px;
+    padding: 13px 14px 12px;
+    border: 1px solid rgba(51, 83, 103, .74);
+    border-radius: 7px;
+    background: #061724;
+    color: #8ea5b2;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, .46);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(6px);
+    transition:
+      opacity 130ms ease,
+      transform 150ms ease;
+  }
+
+  .fr27-hud-contact-popover::after {
+    position: absolute;
+    right: 46px;
+    bottom: -5px;
+    width: 8px;
+    height: 8px;
+    content: "";
+    background: #061724;
+    border-right: 1px solid rgba(51, 83, 103, .74);
+    border-bottom: 1px solid rgba(51, 83, 103, .74);
+    transform: rotate(45deg);
+    pointer-events: none;
+  }
+
+  .fr27-hud-contact-popover[aria-hidden="false"] {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .fr27-hud-contact-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 9px;
+    border-bottom: 1px solid rgba(45, 70, 85, .52);
+  }
+
+  .fr27-hud-contact-head strong {
+    color: #d6e5eb;
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: .06em;
+  }
+
+  .fr27-hud-contact-head span {
+    color: #58c9df;
+    font-size: 8.5px;
+    font-weight: 750;
+    letter-spacing: .08em;
+  }
+
+  .fr27-hud-contact-address {
+    margin: 12px 0 10px;
+    color: #c8d9e0;
+    font-size: 11.5px;
+    font-weight: 620;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .fr27-hud-contact-copy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 25px;
+    padding: 0 9px;
+    border: 1px solid rgba(56, 157, 181, .62);
+    border-radius: 4px;
+    background: rgba(8, 31, 44, .72);
+    color: #67d3e7;
+    font: inherit;
+    font-size: 8.7px;
+    font-weight: 760;
+    line-height: 1;
+    letter-spacing: .06em;
+    cursor: pointer;
+  }
+
+  .fr27-hud-contact-copy:hover {
+    border-color: rgba(76, 196, 221, .72);
+    background: #09202e;
+    color: #73d8ec;
+  }
+
+  .fr27-hud-contact-copy:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
+  }
+
+  /* Project information popover */
+  .fr27-hud-info-popover {
+    position: absolute;
+    z-index: 50;
+    right: 8px;
+    bottom: calc(100% + 10px);
+    width: min(430px, calc(100vw - 32px));
+    padding: 16px 17px 15px;
+    border: 1px solid rgba(51, 83, 103, .74);
+    border-radius: 7px;
+    background: #061724;
+    color: #8ea5b2;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, .52);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(6px);
+    transition:
+      opacity 130ms ease,
+      transform 150ms ease;
+  }
+
+  .fr27-hud-info-popover::after {
+    position: absolute;
+    right: 19px;
+    bottom: -5px;
+    width: 8px;
+    height: 8px;
+    content: "";
+    background: #061724;
+    border-right: 1px solid rgba(51, 83, 103, .74);
+    border-bottom: 1px solid rgba(51, 83, 103, .74);
+    transform: rotate(45deg);
+    pointer-events: none;
+  }
+
+  .fr27-hud-info-popover[aria-hidden="false"] {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .fr27-hud-info-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(45, 70, 85, .62);
+  }
+
+  .fr27-hud-info-head strong {
+    color: #d6e5eb;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: .09em;
+  }
+
+  .fr27-hud-info-head span {
+    color: #7993a0;
+    font-size: 9.7px;
+    font-weight: 720;
+    line-height: 1.2;
+    letter-spacing: .07em;
+  }
+
+  .fr27-hud-info-popover p {
+    margin: 13px 0;
+    color: #aec0c9;
+    font-size: 11.2px;
+    line-height: 1.5;
+  }
+
+  .fr27-hud-info-rules {
+    display: grid;
+    gap: 7px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(45, 70, 85, .52);
+    font-size: 9.5px;
+    font-weight: 750;
+    line-height: 1.2;
+    letter-spacing: .045em;
+  }
+
+  .fr27-hud-info-rule-line {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+
+  .fr27-hud-info-rule-line span + span::before {
+    margin: 0 7px;
+    content: "·";
+    opacity: .52;
+  }
+
+  .fr27-hud-info-rule-line.primary {
+    color: #54c7df;
+  }
+
+  .fr27-hud-info-rule-line.boundary {
+    color: #9185bd;
+  }
+
+  .fr27-hud-info-note {
+    display: block;
+    margin-top: 11px;
+    color: #78909c;
+    font-size: 9.2px;
+    line-height: 1.45;
+  }
+
+  /* Persistent rail */
+  .fr27-app-hud-rail {
+    position: absolute;
+    z-index: 4;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--fr27-app-hud-rail-height);
+    border-top: 1px solid rgba(43, 66, 81, .18);
+    background: #051420;
+    transition: transform 230ms cubic-bezier(.22, .8, .24, 1);
+  }
+
+  .fr27-app-hud-rail::before,
+  .fr27-app-hud-rail::after {
+    display: none;
+  }
+
+  .fr27-app-hud-rail i {
+    display: none;
+  }
+
+  #method-disclosure.fr27-app-hud[data-expanded="false"]
+    .fr27-app-hud-content {
+    pointer-events: none;
+  }
+
+  #method-disclosure.fr27-app-hud[data-expanded="false"]
+    .fr27-app-hud-rail {
+    transform:
+      translateY(
+        calc(
+          var(--fr27-app-hud-rail-height) -
+          var(--fr27-app-hud-height)
+        )
+      );
+  }
+
+  @media (max-width: 1280px) {
+    .fr27-app-hud
+      .fr27-app-hud-content.fr27-linear-console {
+      padding-inline: 6px;
+    }
+
+    .fr27-app-hud .fr27-linear-zone {
+      padding-inline: 8px;
+    }
+
+    .fr27-app-hud #fr27-hud-paris-time {
+      font-size: 21px;
+    }
+
+    .fr27-app-hud #fr27-hud-paris-date {
+      font-size: 9px;
+    }
+
+    .fr27-app-hud #fr27-hud-countdown-days {
+      font-size: 23.5px;
+    }
+
+    .fr27-app-hud .fr27-countdown-date {
+      font-size: 9px;
+    }
+
+    .fr27-app-hud .fr27-linear-actions {
+      gap: 8px;
+    }
+
+    .fr27-app-hud .fr27-linear-system-value {
+      font-size: 11.5px;
+      letter-spacing: -.035em;
+    }
+
+    .fr27-app-hud .fr27-linear-publication-cell span {
+      font-size: 8px;
+      letter-spacing: -.05em;
+    }
+  }
+
+  @media (max-width: 1100px) {
+    .fr27-app-hud
+      .fr27-app-hud-content.fr27-linear-console {
+      padding-inline: 4px;
+    }
+
+    .fr27-app-hud .fr27-linear-zone {
+      padding-inline: 4px;
+    }
+
+    .fr27-app-hud .fr27-zone-utility {
+      padding-inline: 0;
+    }
+
+    .fr27-app-hud .fr27-zone-live {
+      padding-inline: 0;
+    }
+
+    .fr27-app-hud .fr27-zone-infra,
+    .fr27-app-hud .fr27-zone-scale {
+      padding-inline: 0;
+    }
+
+    .fr27-app-hud .fr27-zone-live,
+    .fr27-app-hud .fr27-zone-countdown {
+      grid-template-rows: 8px 19px 9px;
+    }
+
+    .fr27-app-hud .fr27-zone-meta {
+      font-size: 8px;
+    }
+
+    .fr27-app-hud #fr27-hud-paris-time {
+      font-size: 18.5px;
+    }
+
+    .fr27-app-hud #fr27-hud-paris-date {
+      font-size: 8.5px;
+    }
+
+    .fr27-app-hud #fr27-hud-countdown-days {
+      font-size: 22px;
+    }
+
+    .fr27-app-hud .fr27-countdown-unit {
+      font-size: 8.5px;
+    }
+
+    .fr27-app-hud .fr27-countdown-date {
+      font-size: 8.8px;
+    }
+
+    .fr27-app-hud .fr27-sub-title,
+    .fr27-app-hud .fr27-linear-system-kicker {
+      font-size: 9.3px;
+      letter-spacing: .02em;
+    }
+
+    .fr27-app-hud .fr27-linear-system-cell {
+      padding-inline: 1px;
+    }
+
+    .fr27-app-hud .fr27-linear-system-value {
+      gap: 3px;
+      font-size: 11.2px;
+      letter-spacing: -.03em;
+    }
+
+    .fr27-app-hud
+      .fr27-linear-system-cell:first-child
+      .fr27-linear-system-value {
+      gap: 1px;
+      letter-spacing: -.13em;
+    }
+
+    .fr27-app-hud
+      .fr27-linear-system-cell:nth-child(3)
+      .fr27-linear-system-value {
+      letter-spacing: -.04em;
+    }
+
+    .fr27-app-hud .fr27-linear-operational-dot {
+      flex-basis: 4px;
+      width: 4px;
+      height: 4px;
+    }
+
+    .fr27-app-hud .fr27-linear-publication-cell {
+      padding-inline: 0;
+    }
+
+    .fr27-app-hud .fr27-linear-publication-cell strong {
+      font-size: 18.5px;
+    }
+
+    .fr27-app-hud .fr27-linear-publication-cell span {
+      font-size: 9.5px;
+      letter-spacing: -.07em;
+    }
+
+    .fr27-app-hud .fr27-linear-actions {
+      gap: 5px;
+    }
+
+    .fr27-app-hud .fr27-hud-command {
+      flex-basis: 29px;
+      width: 29px;
+      height: 29px;
+    }
+
+    .fr27-app-hud .fr27-hud-command svg {
+      width: 21px;
+      height: 21px;
+    }
+
+    .fr27-app-hud .fr27-app-hud-toggle {
+      width: 50px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shell,
+    #method-disclosure.fr27-app-hud,
+    .fr27-app-hud-toggle svg,
+    .fr27-app-hud-rail,
+    .fr27-hud-command,
+    .fr27-hud-contact-popover,
+    .fr27-hud-info-popover {
+      transition: none;
+    }
+  }
+
+  @media print {
+    #method-disclosure.fr27-app-hud {
+      display: none !important;
+    }
+
+    .shell {
+      padding-bottom: 34px !important;
+    }
+  }
+
 </style>
   <link rel="stylesheet" href="assets/election-coverage-modal.css">
   <link rel="stylesheet" href="assets/topic-coverage-modal.css">
@@ -6749,9 +7876,356 @@
         </section>
       </div>
     </section>
-    <footer id="method-disclosure">
-      <div>Descriptive polling data from public sources · no model · no averages · no forecast · no voting advice</div>
-      <div class="ai-portrait-note">Candidate portraits are AI-generated illustrations for visual identification.</div>
+    <footer
+      id="method-disclosure"
+      class="fr27-app-hud"
+      data-expanded="true"
+      aria-label="France 2027 Signal Lab system dock"
+    >
+      <button
+        class="fr27-app-hud-toggle"
+        id="fr27-app-hud-toggle"
+        type="button"
+        aria-expanded="true"
+        aria-controls="fr27-app-hud-surface"
+        aria-label="Collapse system dock"
+        title="Collapse system dock"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M6.5 8.5 12 14l5.5-5.5"></path>
+        </svg>
+      </button>
+
+      <div
+        class="fr27-app-hud-surface"
+        id="fr27-app-hud-surface"
+      >
+        <div class="fr27-app-hud-content fr27-linear-console">
+
+          <!-- LIVE TIME -->
+          <section
+            class="fr27-linear-zone fr27-zone-live"
+            aria-label="Live time"
+          >
+            <div class="fr27-zone-title">LIVE TIME</div>
+
+            <div class="fr27-zone-meta">
+              <span>PARIS</span>
+              <span>/ <span id="fr27-hud-paris-zone">UTC+2</span></span>
+            </div>
+
+            <div class="fr27-zone-main fr27-live-main">
+              <strong id="fr27-hud-paris-time">19:38:26</strong>
+              <span id="fr27-hud-paris-date">22 AUG 2026</span>
+            </div>
+          </section>
+
+          <!-- ELECTION COUNTDOWN -->
+          <section
+            class="fr27-linear-zone fr27-zone-countdown"
+            data-clock-target="first"
+            aria-label="Election countdown"
+          >
+            <div class="fr27-zone-title">COUNTDOWN</div>
+
+            <div class="fr27-zone-main fr27-countdown-main">
+              <div class="fr27-countdown-value-row">
+                <strong
+                  class="clock-count"
+                  id="fr27-hud-countdown-days"
+                >239</strong>
+                <span class="clock-unit fr27-countdown-unit">DAYS</span>
+              </div>
+
+              <div class="fr27-countdown-date">
+                18 APR 2027
+              </div>
+            </div>
+          </section>
+
+          <!-- INFRASTRUCTURE / METHODOLOGY -->
+          <section
+            class="fr27-linear-zone fr27-zone-infra"
+            aria-label="Infrastructure and methodology"
+          >
+            <div class="fr27-zone-title">
+              INFRASTRUCTURE / METHODOLOGY
+            </div>
+
+            <div class="fr27-zone-infra-body">
+
+              <section
+                class="fr27-zone-source-sub"
+                aria-label="Source universe"
+              >
+                <div class="fr27-sub-title">
+                  SOURCE UNIVERSE
+                </div>
+
+                <div class="fr27-source-main">
+                  <div class="fr27-source-stat">
+                    <strong id="fr27-hud-domains-value">202</strong>
+                    <span class="fr27-source-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" focusable="false">
+                        <circle cx="12" cy="12" r="8"></circle>
+                        <path d="M4 12h16"></path>
+                        <path d="M12 4c2.2 2.2 3.3 4.9 3.3 8s-1.1 5.8-3.3 8"></path>
+                        <path d="M12 4c-2.2 2.2-3.3 4.9-3.3 8s1.1 5.8 3.3 8"></path>
+                      </svg>
+                    </span>
+                    <span>domains</span>
+                  </div>
+
+                  <div class="fr27-source-stat">
+                    <strong id="fr27-hud-pollsters-value">7</strong>
+                    <span class="fr27-source-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" focusable="false">
+                        <circle cx="9" cy="8.5" r="3"></circle>
+                        <path d="M3.5 19c.6-3.3 2.4-5 5.5-5s4.9 1.7 5.5 5"></path>
+                        <path d="M16 6.5a2.7 2.7 0 0 1 0 5.4"></path>
+                        <path d="M15.5 14c2.7.3 4.2 1.8 4.8 4.5"></path>
+                      </svg>
+                    </span>
+                    <span>pollsters</span>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                class="fr27-linear-system fr27-zone-method-sub"
+                aria-label="System data and approach"
+              >
+                <div class="fr27-linear-system-cell">
+                  <div class="fr27-linear-system-kicker">SYSTEM</div>
+                  <div class="fr27-linear-system-value fr27-system-cyan">
+                    <span class="fr27-linear-operational-dot"></span>
+                    <span>OPERATIONAL</span>
+                  </div>
+                </div>
+
+                <div class="fr27-linear-system-cell">
+                  <div class="fr27-linear-system-kicker">DATA</div>
+                  <div class="fr27-linear-system-value fr27-system-cyan">
+                    <span>SOURCE-LINKED</span>
+                  </div>
+                </div>
+
+                <div class="fr27-linear-system-cell">
+                  <div class="fr27-linear-system-kicker">APPROACH</div>
+                  <div class="fr27-linear-system-value fr27-system-violet">
+                    <span>DESCRIPTIVE</span>
+                  </div>
+                </div>
+              </section>
+
+            </div>
+          </section>
+
+          <!-- DATASET SCALE -->
+          <section
+            class="fr27-linear-zone fr27-zone-scale"
+            aria-label="Dataset scale"
+          >
+            <div class="fr27-zone-title">DATASET SCALE</div>
+
+            <div class="fr27-linear-publication fr27-zone-scale-body">
+
+              <div class="fr27-linear-publication-cell">
+                <strong id="fr27-hud-news-value">941</strong>
+                <span>ACCEPTED NEWS</span>
+              </div>
+
+              <div class="fr27-linear-publication-cell">
+                <strong id="fr27-hud-publishers-value">90</strong>
+                <span>PUBLISHERS</span>
+              </div>
+
+              <div class="fr27-linear-publication-cell">
+                <strong id="fr27-hud-recent-value">510</strong>
+                <span>RECENT 14D</span>
+              </div>
+
+              <div class="fr27-linear-publication-cell">
+                <strong id="fr27-hud-candidate-watch-value">1342</strong>
+                <span>CANDIDATE WATCH</span>
+              </div>
+
+            </div>
+          </section>
+
+          <!-- UTILITY -->
+          <section
+            class="fr27-linear-zone fr27-zone-utility"
+            aria-label="Utility links"
+          >
+            <div class="fr27-zone-title">UTILITY</div>
+
+            <div class="fr27-linear-actions">
+
+              <a
+                class="fr27-hud-command github"
+                href="https://github.com/openeventbits/france-2027-signal-lab"
+                target="_blank"
+                rel="noreferrer"
+                title="Open GitHub repository"
+                aria-label="Open GitHub repository"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.04c-3.34.73-4.04-1.42-4.04-1.42-.55-1.37-1.33-1.73-1.33-1.73-1.09-.74.08-.73.08-.73 1.2.08 1.83 1.21 1.83 1.21 1.08 1.82 2.82 1.29 3.5.99.11-.76.42-1.29.76-1.59-2.67-.3-5.48-1.31-5.48-5.84 0-1.29.47-2.34 1.23-3.16-.12-.3-.53-1.53.12-3.18 0 0 1.01-.32 3.3 1.21a11.6 11.6 0 0 1 6 0c2.29-1.53 3.3-1.21 3.3-1.21.65 1.65.24 2.88.12 3.18.77.82 1.23 1.87 1.23 3.16 0 4.54-2.81 5.54-5.49 5.84.43.37.81 1.09.81 2.19v3.25c0 .32.22.7.83.58A12 12 0 0 0 12 .5Z"
+                  />
+                </svg>
+              </a>
+
+              <button
+                type="button"
+                id="fr27-hud-email-toggle"
+                class="fr27-hud-command email"
+                title="Contact France 2027 Signal Lab"
+                aria-label="Contact France 2027 Signal Lab"
+                aria-haspopup="dialog"
+                aria-controls="fr27-hud-contact-popover"
+                aria-expanded="false"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <rect
+                    x="3.25"
+                    y="5.5"
+                    width="17.5"
+                    height="13"
+                    rx="1.7"
+                  ></rect>
+                  <path d="m4.6 7.1 7.4 5.55 7.4-5.55"></path>
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                id="fr27-hud-share"
+                class="fr27-hud-command share"
+                title="Share current view"
+                aria-label="Share current view"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <circle cx="18" cy="5" r="2.4"></circle>
+                  <circle cx="6" cy="12" r="2.4"></circle>
+                  <circle cx="18" cy="19" r="2.4"></circle>
+                  <path d="M8.1 10.8 15.8 6.3"></path>
+                  <path d="m8.1 13.2 7.7 4.5"></path>
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                id="fr27-hud-info-toggle"
+                class="fr27-hud-command"
+                aria-haspopup="dialog"
+                aria-controls="method-disclosure"
+                aria-expanded="false"
+                title="Project information"
+                aria-label="Project information"
+              >
+                <svg
+                  class="fr27-info-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <circle cx="12" cy="12" r="8.25"></circle>
+                  <path d="M12 10.8v5"></path>
+                  <path d="M12 7.7h.01"></path>
+                </svg>
+              </button>
+
+            </div>
+          </section>
+
+        </div>
+
+        <div class="fr27-app-hud-rail" aria-hidden="true">
+          <i></i>
+        </div>
+      </div>
+
+      <aside
+        class="fr27-hud-contact-popover"
+        id="fr27-hud-contact-popover"
+        aria-hidden="true"
+        aria-label="Contact France 2027 Signal Lab"
+      >
+        <div class="fr27-hud-contact-head">
+          <strong>CONTACT</strong>
+          <span>EMAIL</span>
+        </div>
+
+        <div class="fr27-hud-contact-address">
+          contact@france2027.app
+        </div>
+
+        <button
+          type="button"
+          class="fr27-hud-contact-copy"
+          id="fr27-hud-contact-copy"
+          aria-live="polite"
+        >
+          COPY ADDRESS
+        </button>
+      </aside>
+
+      <aside
+        class="fr27-hud-info-popover"
+        id="fr27-hud-info-popover"
+        aria-hidden="true"
+        aria-label="Project information"
+      >
+        <div class="fr27-hud-info-head">
+          <strong>FRANCE 2027 SIGNAL LAB</strong>
+          <span>PUBLIC MONITORING INTERFACE</span>
+        </div>
+
+        <p>
+          Source-linked monitoring of the French 2027 presidential
+          race using published polling, campaign, media and public
+          evidence.
+        </p>
+
+        <div class="fr27-hud-info-rules">
+          <div class="fr27-hud-info-rule-line primary">
+            <span>PUBLIC EVIDENCE</span>
+            <span>SOURCE-LINKED</span>
+            <span>DESCRIPTIVE</span>
+          </div>
+          <div class="fr27-hud-info-rule-line boundary">
+            <span>NO POLLING AVERAGES</span>
+            <span>NO FORECAST</span>
+            <span>NO VOTING ADVICE</span>
+          </div>
+        </div>
+
+        <small class="fr27-hud-info-note">
+          Candidate portraits are AI-generated illustrations
+          for visual identification.
+        </small>
+      </aside>
+
+      <div class="visually-hidden">
+        Descriptive polling data from public sources.
+        No model. No polling averages. No forecast.
+        No voting advice.
+      </div>
     </footer>
   </main>
 
@@ -11437,5 +12911,729 @@
   <script src="assets/candidate-attention.js"></script>
   <script src="assets/candidate-visibility-history.js"></script>
     <script src="assets/hybrid-dashboard.js"></script>
+<!-- FR27 APPLICATION HUD CONTROLLER -->
+<script>
+(function () {
+  "use strict";
+
+  const hud = document.querySelector(
+    "#method-disclosure.fr27-app-hud"
+  );
+
+  if (!hud) return;
+
+  const shell =
+    hud.closest(".shell") ||
+    document.querySelector(".shell");
+
+  const toggle =
+    hud.querySelector("#fr27-app-hud-toggle");
+
+  const content =
+    hud.querySelector(".fr27-app-hud-content");
+
+  const shareToggle =
+    hud.querySelector("#fr27-hud-share");
+
+  const emailToggle =
+    hud.querySelector("#fr27-hud-email-toggle");
+
+  const contactPopover =
+    hud.querySelector("#fr27-hud-contact-popover");
+
+  const contactCopy =
+    hud.querySelector("#fr27-hud-contact-copy");
+
+  const infoToggle =
+    hud.querySelector("#fr27-hud-info-toggle");
+
+  const infoPopover =
+    hud.querySelector("#fr27-hud-info-popover");
+
+  const root =
+    document.documentElement;
+
+  if (!shell || !toggle || !content) return;
+
+  if (shareToggle) {
+    const copyCurrentUrl = async () => {
+      const url = window.location.href;
+
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+        return;
+      }
+
+      const field = document.createElement("textarea");
+      field.value = url;
+      field.setAttribute("readonly", "");
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.appendChild(field);
+      field.select();
+      document.execCommand("copy");
+      field.remove();
+    };
+
+    shareToggle.addEventListener("click", async () => {
+      try {
+        if (navigator.share) {
+          await navigator.share({
+            title: document.title,
+            url: window.location.href,
+          });
+          return;
+        }
+
+        await copyCurrentUrl();
+
+        const originalTitle = shareToggle.title;
+        const originalLabel = shareToggle.getAttribute("aria-label");
+
+        shareToggle.title = "Link copied";
+        shareToggle.setAttribute("aria-label", "Link copied");
+
+        window.setTimeout(() => {
+          shareToggle.title = originalTitle;
+          shareToggle.setAttribute(
+            "aria-label",
+            originalLabel || "Share current view"
+          );
+        }, 1600);
+      } catch (error) {
+        if (error && error.name === "AbortError") return;
+
+        try {
+          await copyCurrentUrl();
+        } catch (_) {
+          // Leave the control functional without surfacing console noise.
+        }
+      }
+    });
+  }
+
+  let expanded = true;
+
+  /*
+   * Match the actual content box of the dashboard shell.
+   */
+  function syncHudGeometry() {
+    const rect =
+      shell.getBoundingClientRect();
+
+    const style =
+      window.getComputedStyle(shell);
+
+    const paddingLeft =
+      parseFloat(style.paddingLeft) || 0;
+
+    const paddingRight =
+      parseFloat(style.paddingRight) || 0;
+
+    const left =
+      rect.left + paddingLeft;
+
+    const width =
+      Math.max(
+        0,
+        rect.width -
+        paddingLeft -
+        paddingRight
+      );
+
+    hud.style.setProperty(
+      "--fr27-app-hud-left",
+      left.toFixed(2) + "px"
+    );
+
+    hud.style.setProperty(
+      "--fr27-app-hud-width",
+      width.toFixed(2) + "px"
+    );
+  }
+
+  function setInfoOpen(open) {
+    if (!infoToggle || !infoPopover) return;
+
+    infoToggle.setAttribute(
+      "aria-expanded",
+      String(open)
+    );
+
+    infoPopover.setAttribute(
+      "aria-hidden",
+      String(!open)
+    );
+  }
+
+  function closeInfo() {
+    setInfoOpen(false);
+  }
+
+  function setContactOpen(open) {
+    if (!emailToggle || !contactPopover) return;
+
+    emailToggle.setAttribute(
+      "aria-expanded",
+      String(open)
+    );
+
+    contactPopover.setAttribute(
+      "aria-hidden",
+      String(!open)
+    );
+  }
+
+  function closeContact() {
+    setContactOpen(false);
+  }
+
+  function renderHudState() {
+    hud.dataset.expanded =
+      expanded ? "true" : "false";
+
+    root.classList.toggle(
+      "fr27-app-hud-collapsed",
+      !expanded
+    );
+
+    toggle.setAttribute(
+      "aria-expanded",
+      String(expanded)
+    );
+
+    toggle.setAttribute(
+      "aria-label",
+      expanded
+        ? "Collapse system dock"
+        : "Expand system dock"
+    );
+
+    toggle.title =
+      expanded
+        ? "Collapse system dock"
+        : "Expand system dock";
+
+    content.setAttribute(
+      "aria-hidden",
+      String(!expanded)
+    );
+
+    if ("inert" in content) {
+      content.inert = !expanded;
+    }
+
+    if (!expanded) {
+      closeContact();
+      closeInfo();
+    }
+  }
+
+  /*
+   * Paris live clock.
+   */
+  const timeNode =
+    hud.querySelector("#fr27-hud-paris-time");
+
+  const dateNode =
+    hud.querySelector("#fr27-hud-paris-date");
+
+  const zoneNode =
+    hud.querySelector("#fr27-hud-paris-zone");
+
+  function refreshParisClock() {
+    if (!timeNode || !dateNode || !zoneNode) return;
+
+    const now = new Date();
+
+    const timeFormatter =
+      new Intl.DateTimeFormat(
+        "en-GB",
+        {
+          timeZone: "Europe/Paris",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hourCycle: "h23"
+        }
+      );
+
+    const dateFormatter =
+      new Intl.DateTimeFormat(
+        "en-GB",
+        {
+          timeZone: "Europe/Paris",
+          day: "2-digit",
+          month: "short",
+          year: "numeric"
+        }
+      );
+
+    const zoneFormatter =
+      new Intl.DateTimeFormat(
+        "en-GB",
+        {
+          timeZone: "Europe/Paris",
+          timeZoneName: "shortOffset"
+        }
+      );
+
+    timeNode.textContent =
+      timeFormatter.format(now);
+
+    timeNode.dateTime =
+      now.toISOString();
+
+    dateNode.textContent =
+      dateFormatter
+        .format(now)
+        .replace(",", "")
+        .toUpperCase();
+
+    const zonePart =
+      zoneFormatter
+        .formatToParts(now)
+        .find(function (part) {
+          return part.type === "timeZoneName";
+        });
+
+    if (zonePart) {
+      zoneNode.textContent =
+        zonePart.value
+          .replace("GMT+", "UTC+")
+          .replace("GMT-", "UTC-")
+          .replace("GMT", "UTC");
+    }
+  }
+
+  refreshParisClock();
+
+  window.setInterval(
+    refreshParisClock,
+    1000
+  );
+
+  /*
+   * Keep footer values aligned with the values already rendered
+   * elsewhere in the application.
+   */
+
+  function fr27HudExtractMetric(labelText) {
+    const target =
+      String(labelText || "").toLowerCase();
+
+    const candidates =
+      Array.from(
+        document.querySelectorAll(
+          ".context-strip *, .media-pulse *, .media-pulse-shell *"
+        )
+      );
+
+    const matches =
+      candidates
+        .filter(function (node) {
+          if (hud.contains(node)) return false;
+
+          const value =
+            String(node.textContent || "")
+              .replace(/\s+/g, " ")
+              .trim()
+              .toLowerCase();
+
+          return (
+            value.includes(target) &&
+            value.length < 180
+          );
+        })
+        .sort(function (a, b) {
+          return (
+            String(a.textContent || "").length -
+            String(b.textContent || "").length
+          );
+        });
+
+    for (const node of matches) {
+      let current = node;
+
+      for (
+        let depth = 0;
+        depth < 4 && current;
+        depth += 1
+      ) {
+        const value =
+          String(current.textContent || "")
+            .replace(/\u00a0/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+
+        const number =
+          value.match(/\b\d[\d\s,.]*\b/);
+
+        if (number) {
+          const digits =
+            number[0].replace(/[^\d]/g, "");
+
+          if (digits) return digits;
+        }
+
+        current = current.parentElement;
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * Exact-label metric lookup for compact Media Pulse summary values.
+   * This deliberately avoids headings such as "TOP PUBLISHERS".
+   */
+  function fr27HudExtractExactMetric(labelTexts) {
+    const targets =
+      (Array.isArray(labelTexts) ? labelTexts : [labelTexts])
+        .map(function (value) {
+          return String(value || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase();
+        });
+
+    const candidates =
+      Array.from(
+        document.querySelectorAll(
+          ".media-pulse *, .media-pulse-shell *"
+        )
+      );
+
+    for (const target of targets) {
+      const labels =
+        candidates.filter(function (node) {
+          if (hud.contains(node)) return false;
+
+          const value =
+            String(node.textContent || "")
+              .replace(/\u00a0/g, " ")
+              .replace(/\s+/g, " ")
+              .trim()
+              .toLowerCase();
+
+          return value === target;
+        });
+
+      for (const node of labels) {
+        let current = node.parentElement;
+
+        for (
+          let depth = 0;
+          depth < 3 && current;
+          depth += 1
+        ) {
+          const value =
+            String(current.textContent || "")
+              .replace(/\u00a0/g, " ")
+              .replace(/\s+/g, " ")
+              .trim();
+
+          const number =
+            value.match(/\b\d[\d\s,.]*\b/);
+
+          if (number) {
+            const digits =
+              number[0].replace(/[^\d]/g, "");
+
+            if (digits) return digits;
+          }
+
+          current = current.parentElement;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  function fr27HudRefreshMetrics() {
+    const domainsNode =
+      hud.querySelector("#fr27-hud-domains-value");
+
+    const pollstersNode =
+      hud.querySelector("#fr27-hud-pollsters-value");
+
+    const newsNode =
+      hud.querySelector("#fr27-hud-news-value");
+
+    const publishersNode =
+      hud.querySelector("#fr27-hud-publishers-value");
+
+    const recentNode =
+      hud.querySelector("#fr27-hud-recent-value");
+
+    const candidateWatchNode =
+      hud.querySelector("#fr27-hud-candidate-watch-value");
+
+    const domains =
+      fr27HudExtractMetric(
+        "approved publisher domains"
+      );
+
+    const pollsters =
+      fr27HudExtractMetric(
+        "pollsters"
+      );
+
+    const news =
+      fr27HudExtractExactMetric(
+        ["accepted news"]
+      ) ||
+      fr27HudExtractMetric(
+        "accepted news"
+      );
+
+    /*
+     * Exact-only for publishers so TOP PUBLISHERS
+     * cannot accidentally supply an individual outlet count.
+     */
+    const publishers =
+      fr27HudExtractExactMetric(
+        ["publishers"]
+      );
+
+    const recent =
+      fr27HudExtractExactMetric(
+        ["recent 14d", "recent (14d)"]
+      ) ||
+      fr27HudExtractMetric(
+        "recent 14d"
+      );
+
+    const candidateWatch =
+      fr27HudExtractExactMetric(
+        ["candidate-watch", "candidate watch"]
+      ) ||
+      fr27HudExtractMetric(
+        "candidate-watch"
+      );
+
+    if (domains && domainsNode) {
+      domainsNode.textContent = domains;
+    }
+
+    if (pollsters && pollstersNode) {
+      pollstersNode.textContent = pollsters;
+    }
+
+    if (news && newsNode) {
+      newsNode.textContent = news;
+    }
+
+    if (publishers && publishersNode) {
+      publishersNode.textContent = publishers;
+    }
+
+    if (recent && recentNode) {
+      recentNode.textContent = recent;
+    }
+
+    if (candidateWatch && candidateWatchNode) {
+      candidateWatchNode.textContent =
+        candidateWatch;
+    }
+  }
+  fr27HudRefreshMetrics();
+
+  window.setTimeout(
+    fr27HudRefreshMetrics,
+    1000
+  );
+
+  window.setTimeout(
+    fr27HudRefreshMetrics,
+    3000
+  );
+  /*
+   * Manual dock behavior only.
+   */
+  toggle.addEventListener(
+    "click",
+    function () {
+      expanded = !expanded;
+      renderHudState();
+    }
+  );
+
+  /*
+   * Contact popover.
+   */
+  if (emailToggle && contactPopover) {
+    emailToggle.addEventListener(
+      "click",
+      function (event) {
+        event.stopPropagation();
+
+        const open =
+          emailToggle.getAttribute(
+            "aria-expanded"
+          ) === "true";
+
+        closeInfo();
+        setContactOpen(!open);
+      }
+    );
+
+    contactPopover.addEventListener(
+      "click",
+      function (event) {
+        event.stopPropagation();
+      }
+    );
+
+    if (contactCopy) {
+      contactCopy.addEventListener(
+        "click",
+        async function () {
+          const address = "contact@france2027.app";
+
+          try {
+            if (
+              navigator.clipboard &&
+              window.isSecureContext
+            ) {
+              await navigator.clipboard.writeText(address);
+            } else {
+              const field =
+                document.createElement("textarea");
+
+              field.value = address;
+              field.setAttribute("readonly", "");
+              field.style.position = "fixed";
+              field.style.opacity = "0";
+
+              document.body.appendChild(field);
+              field.select();
+              document.execCommand("copy");
+              field.remove();
+            }
+
+            contactCopy.textContent = "COPIED";
+
+            window.setTimeout(
+              function () {
+                contactCopy.textContent = "COPY ADDRESS";
+              },
+              1600
+            );
+          } catch (_) {
+            contactCopy.textContent = "COPY FAILED";
+
+            window.setTimeout(
+              function () {
+                contactCopy.textContent = "COPY ADDRESS";
+              },
+              1600
+            );
+          }
+        }
+      );
+    }
+  }
+
+  /*
+   * Project info popover.
+   */
+  if (infoToggle && infoPopover) {
+    infoToggle.addEventListener(
+      "click",
+      function (event) {
+        event.stopPropagation();
+
+        const open =
+          infoToggle.getAttribute(
+            "aria-expanded"
+          ) === "true";
+
+        closeContact();
+        setInfoOpen(!open);
+      }
+    );
+
+    infoPopover.addEventListener(
+      "click",
+      function (event) {
+        event.stopPropagation();
+      }
+    );
+
+    document.addEventListener(
+      "click",
+      function () {
+        closeContact();
+        closeInfo();
+      }
+    );
+  }
+
+  window.addEventListener(
+    "keydown",
+    function (event) {
+      if (event.key !== "Escape") return;
+
+      if (
+        emailToggle &&
+        emailToggle.getAttribute(
+          "aria-expanded"
+        ) === "true"
+      ) {
+        closeContact();
+
+        emailToggle.focus({
+          preventScroll: true
+        });
+
+        return;
+      }
+
+      if (
+        infoToggle &&
+        infoToggle.getAttribute(
+          "aria-expanded"
+        ) === "true"
+      ) {
+        closeInfo();
+
+        infoToggle.focus({
+          preventScroll: true
+        });
+
+        return;
+      }
+
+      if (expanded) {
+        expanded = false;
+        renderHudState();
+
+        toggle.focus({
+          preventScroll: true
+        });
+      }
+    }
+  );
+
+  renderHudState();
+  syncHudGeometry();
+
+  window.addEventListener(
+    "resize",
+    syncHudGeometry,
+    { passive: true }
+  );
+
+  if ("ResizeObserver" in window) {
+    const observer =
+      new ResizeObserver(syncHudGeometry);
+
+    observer.observe(shell);
+  }
+}());
+</script>
+<!-- /FR27 APPLICATION HUD CONTROLLER -->
 </body>
 </html>
