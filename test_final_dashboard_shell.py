@@ -2398,6 +2398,25 @@ class DesktopWorkspaceStabilizationTests(
             self.shared_workspace_css,
         )
 
+    def test_issue_evolution_matrix_can_shrink_and_scroll_vertically(self):
+        matrix_rules = re.findall(
+            r"\.hybrid-panel#signal-issues-panel\s+"
+            r"\.hybrid-agenda-v6-matrix\s*\{"
+            r"(?P<body>.*?)\}",
+            self.hybrid_css,
+            re.DOTALL,
+        )
+
+        self.assertTrue(
+            any(
+                "min-width: 0" in body
+                and "min-height: 0" in body
+                and "overflow-x: hidden" in body
+                and "overflow-y: auto" in body
+                for body in matrix_rules
+            )
+        )
+
     def test_final_desktop_floor_and_legacy_boundary_are_complementary(self):
         self.assertIn("@media (min-width: 1024px) {", self.shell_css)
         self.assertIn(

@@ -1098,7 +1098,25 @@ class RunoffIsolationAndStaticContractTests(unittest.TestCase):
 
         self.assertEqual(
             self.runoff_css.count("overflow-y: auto"),
-            2,
+            3,
+        )
+
+        common_matrix_rules = re.findall(
+            r"\.hybrid-panel#signal-runoff-panel\s+"
+            r"\.hybrid-runoff-common\s+"
+            r"\.hybrid-runoff-matrix\s*\{"
+            r"(?P<body>.*?)\}",
+            self.runoff_css,
+            re.DOTALL,
+        )
+
+        self.assertTrue(
+            any(
+                "min-height: 0" in body
+                and "overflow-x: hidden" in body
+                and "overflow-y: auto" in body
+                for body in common_matrix_rules
+            )
         )
 
         self.assertNotIn(
