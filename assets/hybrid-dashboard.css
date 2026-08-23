@@ -7830,7 +7830,9 @@ border: 0;
 
 .hybrid-panel#signal-issues-panel
   .hybrid-agenda-v6-matrix {
+  min-width: 0;
   min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -9440,8 +9442,15 @@ border: 0;
   flex-direction: column;
 }
 
-.hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix {
+.hybrid-panel#signal-runoff-panel
+  .hybrid-runoff-common
+  .hybrid-runoff-matrix {
   flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-color: rgba(53, 213, 255, .34) rgba(2, 15, 27, .28);
+  scrollbar-width: thin;
 }
 
 .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-head,
