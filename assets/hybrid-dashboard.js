@@ -3286,6 +3286,9 @@
   }
 
   function summaryState(model) {
+    if (model.state === "loading" && window.FR27UI) {
+      return window.FR27UI.skeletonMarkup("list");
+    }
     const errorClass = model.state === "unavailable" ? " is-error" : "";
     return `<span class="hybrid-state is-compact${errorClass}">${escapeHtml(model.message || "No supported data is available.")}</span>`;
   }
@@ -3549,7 +3552,7 @@
       sampleLabel
     ].filter(Boolean).join(" · ");
 
-    return `<article class="hybrid-observation hybrid-runoff-source-observation" title="${escapeAttribute(tooltip)}" data-runoff-hover="RUNOFF_HOVER_METADATA">
+    return `<article class="hybrid-observation hybrid-runoff-source-observation" tabindex="0" data-fr27-tooltip="${escapeAttribute(tooltip)}" data-runoff-hover="RUNOFF_HOVER_METADATA">
       <div class="hybrid-runoff-candidate">
         <span class="hybrid-runoff-candidate-name">${escapeHtml(candidates[0])}</span>
         <span class="hybrid-runoff-candidate-result">${portraitMarkup(candidates[0])}<strong>${percent(scores[0])}</strong></span>
@@ -3747,7 +3750,7 @@
               <time datetime="${escapeAttribute(event.fieldwork_end)}">${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(event)))}</time>
 
               <div class="hybrid-runoff-history-group">
-                <article class="hybrid-runoff-history-entry" title="${escapeAttribute(`${runoffTitleCaseDate(exactRunoffWindowLabel(event))} · ${event.pollster} · ${percent(scores[0])}–${percent(scores[1])} · Margin ${number(event.margin)} pts · ${runoffSampleLabel(event.sample_size)}`)}" data-runoff-hover="RUNOFF_HOVER_METADATA">
+                <article class="hybrid-runoff-history-entry" tabindex="0" data-fr27-tooltip="${escapeAttribute(`${runoffTitleCaseDate(exactRunoffWindowLabel(event))} · ${event.pollster} · ${percent(scores[0])}–${percent(scores[1])} · Margin ${number(event.margin)} pts · ${runoffSampleLabel(event.sample_size)}`)}" data-runoff-hover="RUNOFF_HOVER_METADATA">
                   <strong class="hybrid-runoff-history-pollster">${escapeHtml(event.pollster)}${runoffCompactSourceLink(
                       event.source_url,
                       `Open ${event.pollster} source for ${candidates.join(" versus ")}`
@@ -3777,12 +3780,18 @@
         const event = matchup.latest;
         const scores = runoffScoresForCandidates(event, matchup.candidates);
         const sourceLabel = `Open ${event.pollster} source for ${matchup.candidates.join(" versus ")}`;
-        return `<article class="hybrid-runoff-other-card" title="${escapeAttribute(`${event.pollster} · ${runoffTitleCaseDate(exactRunoffWindowLabel(event))} · Margin ${number(event.margin)} pts · ${runoffSampleLabel(event.sample_size)}`)}" data-runoff-hover="RUNOFF_HOVER_METADATA"><h4><span>${escapeHtml(matchup.candidates[0])}</span><small>vs ${escapeHtml(matchup.candidates[1])}</small></h4><span class="hybrid-runoff-other-meta">${escapeHtml(event.pollster)} · ${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(event)))}</span><div class="hybrid-runoff-other-score"><strong>${percent(scores[0])}</strong>${runoffCompactRail(event, matchup.candidates)}<strong>${percent(scores[1])}</strong></div><div class="hybrid-runoff-other-foot"><span>MARGIN · ${number(event.margin)} PTS</span><span>${escapeHtml(runoffSampleLabel(event.sample_size))}</span>${runoffCompactSourceLink(event.source_url, sourceLabel)}</div></article>`;
+        return `<article class="hybrid-runoff-other-card" tabindex="0" data-fr27-tooltip="${escapeAttribute(`${event.pollster} · ${runoffTitleCaseDate(exactRunoffWindowLabel(event))} · Margin ${number(event.margin)} pts · ${runoffSampleLabel(event.sample_size)}`)}" data-runoff-hover="RUNOFF_HOVER_METADATA"><h4><span>${escapeHtml(matchup.candidates[0])}</span><small>vs ${escapeHtml(matchup.candidates[1])}</small></h4><span class="hybrid-runoff-other-meta">${escapeHtml(event.pollster)} · ${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(event)))}</span><div class="hybrid-runoff-other-score"><strong>${percent(scores[0])}</strong>${runoffCompactRail(event, matchup.candidates)}<strong>${percent(scores[1])}</strong></div><div class="hybrid-runoff-other-foot"><span>MARGIN · ${number(event.margin)} PTS</span><span>${escapeHtml(runoffSampleLabel(event.sample_size))}</span>${runoffCompactSourceLink(event.source_url, sourceLabel)}</div></article>`;
       }).join("")}</div>
     </section>`;
   }
   function renderRunoffPanel(model) {
     if (model.state !== "ready" && model.status !== "insufficient") {
+      if (model.state === "loading" && window.FR27UI) {
+        return window.FR27UI.skeletonElement(
+          "runoff",
+          "Loading runoff evidence"
+        ).outerHTML;
+      }
       return `<div class="hybrid-runoff-local-state" role="status" aria-live="polite">${escapeHtml(model.message || "Runoff evidence is unavailable.")}</div>`;
     }
     return `<div class="hybrid-runoff-workspace">
@@ -4458,7 +4467,6 @@
       data-agenda-day-cell="true"
       data-agenda-window="${escapeAttribute(role)}"
       style="--agenda-day-alpha:${alpha.toFixed(3)}"
-      title="${escapeAttribute(`${agendaCompactDate(day?.date)} · ${value} source-day${value === 1 ? "" : "s"}`)}"
     ></span>`;
   }
 
@@ -4489,7 +4497,7 @@
         type="button"
         data-hybrid-agenda-topic="${escapeAttribute(topic.id)}"
         aria-pressed="${String(topic.id === selected?.id)}"
-        title="${escapeAttribute(topic.label)}"
+        data-fr27-tooltip="${escapeAttribute(topic.label)}"
       >
         <span class="hybrid-agenda-v6-matrix-label">${escapeHtml(shortLabel)}</span>
 
@@ -4572,7 +4580,6 @@
       return `<div
         class="hybrid-agenda-v6-shift-row"
         data-movement="${escapeAttribute(movement)}"
-        title="${escapeAttribute(topic.label)}"
       >
         <span class="hybrid-agenda-v6-shift-label">${escapeHtml(shortLabel)}</span>
 
@@ -4590,7 +4597,6 @@
 
         <span
           class="hybrid-agenda-v6-shift-count"
-          title="Prior 7D → latest 7D"
         >${previous} → ${latest}</span>
 
         <strong
@@ -4638,11 +4644,8 @@
         <h3>AGENDA EVOLUTION</h3>
         <span class="hybrid-agenda-v6-head-tools">
           <span class="hybrid-agenda-v6-panel-head-meta">COMPLETE-WEEK COMPARISON</span>
-          <button class="hybrid-agenda-v6-info" type="button" aria-label="Agenda methodology">
+          <button class="hybrid-agenda-v6-info fr27-info-glyph" type="button" aria-label="Agenda methodology" data-fr27-tooltip="Source-day = unique publisher × UTC date · exact 30D projection includes the current partial UTC day · movement compares latest 7 complete days with prior 7 · this measures monitored media agenda activity, not voter or public priorities.">
             <span aria-hidden="true">i</span>
-            <span class="hybrid-agenda-v6-info-tooltip" role="tooltip">
-              Source-day = unique publisher × UTC date · exact 30D projection includes the current partial UTC day · movement compares latest 7 complete days with prior 7 · this measures monitored media agenda activity, not voter or public priorities.
-            </span>
           </button>
         </span>
       </header>
@@ -4765,9 +4768,6 @@
                 data-agenda-activity-day="true"
                 data-agenda-window="${escapeAttribute(role)}"
                 style="--agenda-bar-height:${height.toFixed(1)}%"
-                title="${escapeAttribute(
-                  `${agendaCompactDate(day.date)} · ${value} source-day${value === 1 ? "" : "s"}`
-                )}"
               ></span>`;
             }).join("")}
           </div>
@@ -4988,7 +4988,6 @@
           const iconMarkup = iconPath
             ? `<span
                 class="hybrid-agenda-v6-publisher-icon"
-                title="${escapeAttribute(item.publisher)}"
                 aria-hidden="true"
               >
                 <img
@@ -5379,7 +5378,7 @@
             type="button"
             data-hybrid-policy-issue="${escapeAttribute(topic.id)}"
             aria-pressed="${String(topic.id === model.selectedIssue?.id)}"
-            title="${escapeAttribute(topic.label)}"
+            data-fr27-tooltip="${escapeAttribute(topic.label)}"
           >
             <span class="hybrid-agenda-v6-matrix-label">
               ${escapeHtml(
@@ -5503,7 +5502,6 @@
           return `<div
             class="hybrid-agenda-v6-shift-row"
             data-movement="${escapeAttribute(movement)}"
-            title="${escapeAttribute(topic.label)}"
           >
             <span class="hybrid-agenda-v6-shift-label">
               ${escapeHtml(
@@ -5593,18 +5591,12 @@
           </span>
 
           <button
-            class="hybrid-agenda-v6-info"
+            class="hybrid-agenda-v6-info fr27-info-glyph"
             type="button"
             aria-label="Policy Issues methodology"
+            data-fr27-tooltip="Deterministic multi-label classification of accepted presidential coverage. Source-day = unique publisher × UTC date. Issue incidence = issue source-days divided by all accepted presidential-coverage source-days in the same complete week. Percentages can overlap and need not total 100%. This measures monitored media coverage, not voter priorities."
           >
             <span aria-hidden="true">i</span>
-
-            <span
-              class="hybrid-agenda-v6-info-tooltip"
-              role="tooltip"
-            >
-              Deterministic multi-label classification of accepted presidential coverage. Source-day = unique publisher × UTC date. Issue incidence = issue source-days divided by all accepted presidential-coverage source-days in the same complete week. Percentages can overlap and need not total 100%. This measures monitored media coverage, not voter priorities.
-            </span>
           </button>
         </span>
       </header>
@@ -5703,9 +5695,10 @@
 
     return `<span
       class="hybrid-agenda-v6-badge is-structure"
-      title="${escapeAttribute(
+      data-fr27-tooltip="${escapeAttribute(
         `${policySubtopicLabel(lead.id)} · ${lead.item_count} matched articles`
       )}"
+      tabindex="0"
     >
       ${escapeHtml(
         policySubtopicLabel(
@@ -5875,6 +5868,12 @@
     if (
       model.state !== "ready"
     ) {
+      if (model.state === "loading" && window.FR27UI) {
+        return window.FR27UI.skeletonElement(
+          "issues",
+          "Loading policy issues"
+        ).outerHTML;
+      }
       return summaryState(model);
     }
 
@@ -5890,6 +5889,12 @@
 
   function renderAgendaPanel(model) {
     if (model.state !== "ready") {
+      if (model.state === "loading" && window.FR27UI) {
+        return window.FR27UI.skeletonElement(
+          "agenda",
+          "Loading campaign agenda"
+        ).outerHTML;
+      }
       return summaryState(model);
     }
 
@@ -6435,8 +6440,8 @@
         ? typeGroups.map(group => `${group.label}: ${group.count}`).join("; ")
         : "No scheduled events";
       const weekSummary = `${bin.label}. ${bin.count} scheduled ${bin.count === 1 ? "event" : "events"}. ${breakdown}.`;
-      return `<div class="hybrid-events-ops-week${selected ? " is-selected" : ""}${current ? " is-current" : ""}${monthStart ? " is-month-start" : ""}" title="${escapeAttribute(weekSummary)}">
-        <button type="button" class="hybrid-events-ops-week-select" data-hybrid-week-select="${escapeAttribute(bin.startKey)}" aria-label="${escapeAttribute(`Navigate to week ${weekSummary}`)}" aria-pressed="${String(selected)}"${current ? ' aria-current="date"' : ""}>
+      return `<div class="hybrid-events-ops-week${selected ? " is-selected" : ""}${current ? " is-current" : ""}${monthStart ? " is-month-start" : ""}">
+        <button type="button" class="hybrid-events-ops-week-select" data-hybrid-week-select="${escapeAttribute(bin.startKey)}" aria-label="${escapeAttribute(`Navigate to week ${weekSummary}`)}" aria-pressed="${String(selected)}" data-fr27-tooltip="${escapeAttribute(weekSummary)}"${current ? ' aria-current="date"' : ""}>
           <span>${escapeHtml(bin.label)}</span><strong class="hybrid-events-ops-week-count${bin.count ? " has-events" : " is-empty"}">${escapeHtml(countLabel)}</strong>
         </button>
         <div class="hybrid-events-ops-week-markers" aria-hidden="true">${renderOperationsHorizonComposition(bin.events)}</div>
@@ -6450,7 +6455,7 @@
       <div class="hybrid-events-ops-rail-head">
         <div class="hybrid-events-ops-titleline">
           <h3 id="hybrid-events-ops-rail-title">12-WEEK SCHEDULE</h3>
-          <span class="hybrid-events-ops-info" tabindex="0" role="note" aria-label="${escapeAttribute(scheduleInfo)}" title="${escapeAttribute(scheduleInfo)}">i</span>
+          <button class="hybrid-events-ops-info fr27-info-glyph" type="button" aria-label="Schedule methodology" data-fr27-tooltip="${escapeAttribute(scheduleInfo)}">i</button>
         </div>
         <div class="hybrid-events-ops-head-controls">
           <div class="hybrid-events-ops-filters" aria-label="Filter campaign events by type">${filters.map(filter => `<button type="button" class="hybrid-events-filter${model.eventTypeFilter === filter.key ? " is-active" : ""}" data-event-type="${escapeAttribute(filter.key)}" data-hybrid-events-filter="${escapeAttribute(filter.key)}" aria-pressed="${String(model.eventTypeFilter === filter.key)}">${escapeHtml(filter.label)}</button>`).join("")}</div>
@@ -6581,7 +6586,7 @@
     const format = campaignEventTypeDisplayLabel(event.event_type);
 
     return `<section class="hybrid-events-dossier" aria-labelledby="hybrid-events-dossier-title">
-      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-dossier-title">EVENT DOSSIER</h3><span class="hybrid-events-dossier-head-meta">SOURCE-LINKED EVIDENCE <i class="hybrid-events-dossier-info" tabindex="0" role="img" aria-label="Past scheduled events remain scheduled until explicit occurrence evidence confirms they took place." title="Past scheduled events remain scheduled until explicit occurrence evidence confirms they took place.">i</i></span></div>
+      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-dossier-title">EVENT DOSSIER</h3><span class="hybrid-events-dossier-head-meta">SOURCE-LINKED EVIDENCE <button class="hybrid-events-dossier-info fr27-info-glyph" type="button" aria-label="Event evidence methodology" data-fr27-tooltip="Past scheduled events remain scheduled until explicit occurrence evidence confirms they took place.">i</button></span></div>
       <div class="hybrid-events-dossier-body">
         <div class="hybrid-events-dossier-title">${renderEventTypeBadge(event.event_type, participantCount > 1 ? `×${participantCount}` : "")}<div><h4 lang="fr">${escapeHtml(event.title)}</h4><div><span class="hybrid-events-status" data-event-status="${escapeAttribute(status.key)}">${escapeHtml(status.label)}</span><span class="hybrid-events-evidence-chip" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span></div></div></div>
         <div class="hybrid-events-dossier-lede">
@@ -6650,6 +6655,12 @@
 
   function renderEventsPanel(model) {
     if (model.state !== "ready") {
+      if (model.state === "loading" && window.FR27UI) {
+        return window.FR27UI.skeletonElement(
+          "events",
+          "Loading campaign events"
+        ).outerHTML;
+      }
       return summaryState(model);
     }
     return `<div class="hybrid-events-workspace" aria-label="Campaign Events temporal operations desk">
@@ -6675,7 +6686,7 @@
       <section class="hybrid-panel" id="signal-runoff-panel" role="tabpanel" aria-labelledby="signal-runoff-tab"${state.activeView === "runoff" ? "" : " hidden"}>${renderRunoffPanel(models.runoff)}</section>
       <section class="hybrid-panel" id="signal-candidates-panel" role="tabpanel" aria-labelledby="signal-candidates-tab"${state.activeView === "candidates" ? "" : " hidden"}>
         <div id="candidate-signals-root" data-candidate-signals-state="${state.candidateSignals.status}">
-          <div class="candidate-signals-state" role="status" aria-live="polite">Loading candidate evidence…</div>
+          ${window.FR27UI ? window.FR27UI.skeletonElement("candidates", "Loading candidate evidence").outerHTML : '<div class="candidate-signals-state" role="status" aria-label="Loading candidate evidence">—</div>'}
         </div>
       </section>
       <section class="hybrid-panel" id="signal-events-panel" role="tabpanel" aria-labelledby="signal-events-tab"${state.activeView === "events" ? "" : " hidden"}>${renderEventsPanel(models.events)}</section>
@@ -6936,28 +6947,18 @@
     );
 
     if (detailState.state === "loading") {
-      const state = candidateScrutinyNode(
-        "div",
-        "candidate-signals-scrutiny-state"
+      body.append(
+        window.FR27UI
+          ? window.FR27UI.skeletonElement(
+              "list",
+              "Loading monitored publisher reviews"
+            )
+          : candidateScrutinyNode(
+              "div",
+              "candidate-signals-scrutiny-state",
+              "—"
+            )
       );
-      state.setAttribute("role", "status");
-      state.setAttribute(
-        "aria-live",
-        "polite"
-      );
-      state.append(
-        candidateScrutinyNode(
-          "strong",
-          "candidate-signals-scrutiny-state-title",
-          "LOADING REVIEWS"
-        ),
-        candidateScrutinyNode(
-          "p",
-          "",
-          "Loading monitored publisher reviews…"
-        )
-      );
-      body.append(state);
       return body;
     }
 
@@ -7714,6 +7715,12 @@
   function renderTopMediaPulsePanel(model) {
 
     if (model.state !== "ready") {
+      if (model.state === "loading" && window.FR27UI) {
+        return window.FR27UI.skeletonElement(
+          "media",
+          "Loading Media Pulse"
+        ).outerHTML;
+      }
       return summaryState(model);
     }
 
@@ -8074,7 +8081,9 @@
 
               <span
                 class="top-media-shift-quality"
-                title="${escapeAttribute(candidateComparisonExplanation)}"
+                data-fr27-tooltip="${escapeAttribute(candidateComparisonExplanation)}"
+                data-fr27-tooltip-affordance="term"
+                tabindex="0"
                 aria-label="${escapeAttribute(candidateComparisonExplanation)}"
               >
                 ${escapeHtml(candidateComparisonLabel)}
@@ -8434,10 +8443,20 @@
             )
             .join("; ")
         );
+        topMediaMetrics.removeAttribute("aria-busy");
+      } else if (model.state === "loading" && window.FR27UI) {
+        topMediaMetrics.replaceChildren(
+          window.FR27UI.skeletonElement(
+            "metrics",
+            "Loading media metrics"
+          )
+        );
+        topMediaMetrics.setAttribute("aria-busy", "true");
       } else {
         topMediaMetrics.textContent =
           model.message ||
           "Media data unavailable";
+        topMediaMetrics.removeAttribute("aria-busy");
       }
     }
 

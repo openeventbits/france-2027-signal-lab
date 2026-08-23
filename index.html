@@ -20,6 +20,8 @@
   <title>France 2027 Signal Lab — Source-Linked Election Signals</title>
     <script src="locales/en.js"></script>
     <script src="assets/localization.js"></script>
+    <link rel="stylesheet" href="assets/fr27-ui.css">
+    <script src="assets/fr27-ui.js"></script>
   <link rel="stylesheet" href="assets/hybrid-dashboard.css">
   <style>
     :root {
@@ -7477,9 +7479,9 @@
         </div>
       </div>
       <div class="masthead-tools">
-        <div class="masthead-data" aria-live="polite">
-          <span id="masthead-updated">Snapshot publication loading…</span>
-          <span id="masthead-lanes">Lane metadata loading…</span>
+        <div class="masthead-data" aria-live="polite" aria-busy="true">
+          <span id="masthead-updated" aria-label="Loading snapshot publication time"><i class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:150px"></i></span>
+          <span id="masthead-lanes" aria-label="Loading dataset lane metadata"><i class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:220px"></i></span>
         </div>
         <div class="masthead-countdown" data-clock-target="first" data-i18n-aria-label="dashboard.first_round_election_countdown" aria-label="First-round election countdown">
           <span class="masthead-countdown-icon" aria-hidden="true">
@@ -7512,11 +7514,11 @@
             class="changes-ledger-summary"
             id="changes-ledger-summary"
             aria-live="polite"
-           data-i18n="dashboard.source_linked_updates_loading">SOURCE-LINKED UPDATES LOADING</div>
+           aria-label="Loading source-linked updates"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:112px"></span></div>
         </div>
 
-<div class="what-changed-list" id="what-changed-list" aria-live="polite">
-          <div class="what-changed-state" data-i18n="dashboard.checking_for_source_linked_dashboard_signals">Checking for source-linked dashboard signals…</div>
+<div class="what-changed-list" id="what-changed-list" aria-live="polite" aria-busy="true" aria-label="Loading source-linked dashboard changes">
+          <div class="fr27-skeleton-region" aria-hidden="true"><div class="fr27-skeleton-briefing"><span class="fr27-skeleton-row"><span class="fr27-skeleton-block fr27-skeleton-source"></span><span class="fr27-skeleton-row-copy"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:88%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:46%;--fr27-skeleton-height:7px"></span></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block fr27-skeleton-source"></span><span class="fr27-skeleton-row-copy"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:74%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:52%;--fr27-skeleton-height:7px"></span></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block fr27-skeleton-source"></span><span class="fr27-skeleton-row-copy"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:82%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:38%;--fr27-skeleton-height:7px"></span></span></span></div></div>
         </div>
       </article>
 
@@ -7542,8 +7544,8 @@
         >
           <div class="race-event-controls">
             <div class="race-event" aria-live="polite">
-              <div class="race-event-title" id="latest-title">Loading…</div>
-              <div class="race-event-detail" id="latest-sub"></div>
+              <div class="race-event-title" id="latest-title" aria-label="Loading latest poll"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:160px;--fr27-skeleton-height:12px"></span></div>
+              <div class="race-event-detail" id="latest-sub"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:110px;--fr27-skeleton-height:7px"></span></div>
             </div>
 
             <div class="race-scenario-control">
@@ -7569,7 +7571,7 @@
               aria-live="polite"
               aria-label="Reported candidate scores for the selected scenario. Scroll to view all candidates."
               tabindex="0"
-            ><div class="empty" data-i18n="dashboard.loading_candidate_scores">Loading candidate scores…</div></div>
+            ><div class="fr27-skeleton-region" role="status" aria-label="Loading candidate scores"><div class="fr27-skeleton-race" aria-hidden="true"><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span></div></div></div>
             <div
               class="race-scroll-fade"
               id="race-scroll-fade"
@@ -7609,7 +7611,7 @@
             class="top-media-pulse-metrics"
             id="top-media-pulse-metrics"
             aria-live="polite"
-           data-i18n="dashboard.loading_media_metrics">Loading media metrics…</div>
+           aria-label="Loading media metrics"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:118px;--fr27-skeleton-height:18px"></span></div>
         </div>
 
         <div
@@ -7617,9 +7619,7 @@
           id="top-media-pulse-content"
           aria-live="polite"
         >
-          <div class="hybrid-state">
-            Loading Media Pulse…
-          </div>
+          <div class="fr27-skeleton-region" role="status" aria-label="Loading Media Pulse"><div class="fr27-skeleton-media" aria-hidden="true"><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span></div></div>
         </div>
       </article>
     </section>
@@ -7649,8 +7649,8 @@
         </span>
         <div class="context-copy">
           <div class="context-label" data-i18n="dashboard.latest_poll">LATEST POLL</div>
-          <div class="context-value" id="context-poll-value">Loading…</div>
-          <div class="context-meta" id="context-poll-meta">Latest first-round event</div>
+          <div class="context-value" id="context-poll-value" aria-label="Loading latest poll"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:112px;--fr27-skeleton-height:12px"></span></div>
+          <div class="context-meta" id="context-poll-meta" data-fr27-tooltip="The latest published first-round poll event; fieldwork dates describe when respondents were surveyed." data-fr27-tooltip-affordance="term" tabindex="0">Latest first-round event</div>
         </div>
       </article>
 
@@ -7662,7 +7662,7 @@
         </span>
         <div class="context-copy">
           <div class="context-label" data-i18n="dashboard.poll_coverage">POLL COVERAGE</div>
-          <div class="context-value" id="context-coverage-value">Loading…</div>
+          <div class="context-value" id="context-coverage-value" aria-label="Loading poll coverage"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:96px;--fr27-skeleton-height:12px"></span></div>
           <div class="context-meta" id="context-coverage-meta">Target: first round</div>
         </div>
       </article>
@@ -7687,7 +7687,7 @@
       </article>
     </section>
     <section id="hybrid-signal-board" class="hybrid-root" aria-label="Hybrid Signal Board">
-      <div class="hybrid-state" role="status">Preparing the Signal Board…</div>
+      <div class="fr27-skeleton-region" role="status" aria-label="Loading the Signal Board"><div class="fr27-skeleton-workspace" aria-hidden="true"><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:58%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span></section><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:46%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:72%;--fr27-skeleton-height:22px"></span><div class="fr27-skeleton-chart"><span class="fr27-skeleton-block" style="--fr27-skeleton-height:42%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:72%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:58%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:86%"></span></div></section><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:54%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span></section></div></div>
     </section>
     <section class="intelligence-grid" aria-label="Election intelligence">
       <article class="panel closest-runoff runoff-spotlight" aria-labelledby="closest-runoff-title">
@@ -7698,7 +7698,7 @@
           </div>
           <div class="runoff-head-meta">
             <div id="closest-runoff-evidence" class="runoff-evidence" aria-label="Runoff test evidence context">
-              <div class="runoff-evidence-item"><span class="runoff-evidence-label">Fieldwork</span><span class="runoff-evidence-value">Loading…</span></div>
+              <div class="runoff-evidence-item"><span class="runoff-evidence-label" data-fr27-tooltip="Fieldwork is the period when respondents were surveyed." data-fr27-tooltip-affordance="term" tabindex="0">Fieldwork</span><span class="runoff-evidence-value" aria-label="Loading fieldwork dates"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true"></span></span></div>
             </div>
             <div class="runoff-status" id="closest-runoff-status" hidden>LOADING RUNOFF TEST</div>
           </div>
@@ -7706,15 +7706,15 @@
         <div class="runoff-body-scroll" id="runoff-body-scroll" tabindex="0" aria-label="Runoff Spotlight results and tested matchup evidence">
           <div class="runoff-layout" id="closest-runoff-result" aria-live="polite">
           <div class="runoff-hero" id="closest-runoff-hero">
-            <div class="runoff-conclusion">Loading the latest comparable runoff test…</div>
-            <div class="runoff-secondary">Reported poll results will remain separate.</div>
+            <div class="runoff-conclusion" aria-label="Loading the latest comparable runoff test"><span class="fr27-skeleton-block" aria-hidden="true" style="--fr27-skeleton-width:78%;--fr27-skeleton-height:14px"></span></div>
+            <div class="runoff-secondary"><span class="fr27-skeleton-block" aria-hidden="true" style="--fr27-skeleton-width:58%;--fr27-skeleton-height:8px"></span></div>
           </div>
         </div>
         <details class="runoff-details" id="runoff-matchups-details">
           <summary>View all tested matchups →</summary>
           <div class="runoff-context" id="closest-runoff-context" aria-label="Common matchup comparison">
             <h3 class="runoff-context-title">Common matchup evidence</h3>
-            <p class="runoff-context-sub">Loading common matchup comparisons…</p>
+            <div class="fr27-skeleton-rows" role="status" aria-label="Loading common matchup comparisons"><span class="fr27-skeleton-block" aria-hidden="true"></span><span class="fr27-skeleton-block" aria-hidden="true" style="--fr27-skeleton-width:72%"></span></div>
           </div>
         </details>
         </div>
@@ -7746,22 +7746,22 @@
         <div class="signal-content-scroll" id="signal-content-scroll" tabindex="0" aria-label="Signal Desk results and archive">
           <section class="signal-panel" id="signal-panel-election" role="tabpanel" aria-labelledby="signal-tab-election">
           <div class="signal-list" id="election-news-list" aria-live="polite">
-            <div class="signal-state">Loading direct publisher headlines…</div>
+            <div class="fr27-skeleton-region" role="status" aria-label="Loading direct publisher headlines"><div class="fr27-skeleton-rows" aria-hidden="true"><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span></div></div>
           </div>
         </section>
           <section class="signal-panel" id="signal-panel-agenda" role="tabpanel" aria-labelledby="signal-tab-agenda" hidden>
             <div id="campaign-agenda-view" aria-live="polite">
-              <div class="signal-state">Loading campaign themes…</div>
+              <div class="fr27-skeleton-region" role="status" aria-label="Loading campaign themes"><div class="fr27-skeleton-rows" aria-hidden="true"><span class="fr27-skeleton-block" style="--fr27-skeleton-height:32px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:32px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:32px"></span></div></div>
             </div>
           </section>
           <section class="signal-panel" id="signal-panel-candidates" role="tabpanel" aria-labelledby="signal-tab-candidates" hidden>
           <div class="signal-list" id="candidate-coverage-list" aria-live="polite">
-            <div class="signal-state">Loading candidate coverage…</div>
+            <div class="fr27-skeleton-region" role="status" aria-label="Loading candidate coverage"><div class="fr27-skeleton-rows" aria-hidden="true"><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span></div></div>
           </div>
         </section>
           <section class="signal-panel" id="signal-panel-fact-checks" role="tabpanel" aria-labelledby="signal-tab-fact-checks" hidden>
           <div class="signal-list fact-check-list" id="fact-check-list" aria-live="polite">
-            <div class="signal-state">Loading independent fact checks…</div>
+            <div class="fr27-skeleton-region" role="status" aria-label="Loading independent fact checks"><div class="fr27-skeleton-rows" aria-hidden="true"><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span></div></div>
           </div>
         </section>
         <div class="signal-desk-action" id="signal-desk-action" hidden>
@@ -7783,7 +7783,7 @@
               </div>
             </div>
             <div class="archive-scroll" id="archive-pulse-scroll" aria-label="Claims archive overview">
-              <div class="claims-state">Loading archive summary…</div>
+              <div class="fr27-skeleton-region" role="status" aria-label="Loading archive summary"><div class="fr27-skeleton-rows" aria-hidden="true"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:74%"></span></div></div>
             </div>
             <section class="claims-archive-wire" aria-labelledby="claim-wire-title">
               <div class="claims-archive-wire-head">
@@ -7791,16 +7791,16 @@
                   <h3 class="claims-archive-wire-title" id="claim-wire-title">CLAIM WIRE</h3>
                   <div class="claims-archive-wire-sub">Complete validated archive, newest publisher reviews first</div>
                 </div>
-                <div class="claims-match-count" id="claims-match-count">Loading…</div>
+                <div class="claims-match-count" id="claims-match-count" aria-label="Loading review count">—</div>
               </div>
               <div class="claims-scroll" id="claim-wire-scroll" aria-labelledby="claim-wire-title">
-                <div class="claims-state">Loading publisher reviews…</div>
+                <div class="fr27-skeleton-region" role="status" aria-label="Loading publisher reviews"><div class="fr27-skeleton-rows" aria-hidden="true"><span class="fr27-skeleton-block" style="--fr27-skeleton-height:40px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:40px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:40px"></span></div></div>
               </div>
             </section>
           </details>
         </div>
         </div>
-        <div class="signal-desk-note" id="news-wire-source-note" aria-live="polite">Loading source metadata…</div>
+        <div class="signal-desk-note" id="news-wire-source-note" aria-live="polite" aria-label="Loading source metadata"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:180px;--fr27-skeleton-height:7px"></span></div>
       </article>
     </section>
 
@@ -7816,27 +7816,27 @@
         <label class="pe-control" for="pe-figure-a-select">
           <span class="pe-control-label">FIGURE A</span>
           <select class="pe-select" id="pe-figure-a-select" disabled>
-            <option>Loading tested figures…</option>
+            <option>—</option>
           </select>
           <span class="pe-control-meta" id="pe-figure-a-meta"></span>
         </label>
         <label class="pe-control" for="pe-figure-b-select">
           <span class="pe-control-label">FIGURE B</span>
           <select class="pe-select" id="pe-figure-b-select" disabled>
-            <option>Loading tested figures…</option>
+            <option>—</option>
           </select>
           <span class="pe-control-meta" id="pe-figure-b-meta"></span>
         </label>
         <label class="pe-control is-comparison" for="pe-comparison-select">
           <span class="pe-control-label">EXACT SOURCE COMPARISON</span>
           <select class="pe-select" id="pe-comparison-select" disabled>
-            <option>Loading exact comparisons…</option>
+            <option>—</option>
           </select>
           <span class="pe-control-meta" id="pe-comparison-meta"></span>
         </label>
       </div>
 
-      <div id="pe-loading-state" class="pe-state" role="status">Loading source-reported polling hypotheses…</div>
+      <div id="pe-loading-state" class="pe-state" role="status" aria-label="Loading source-reported polling hypotheses"><span class="fr27-skeleton-block" aria-hidden="true" style="--fr27-skeleton-width:74%"></span></div>
       <div id="pe-error-state" class="pe-state error" role="alert" hidden></div>
       <div id="pe-no-match-state" class="pe-state" role="status" hidden></div>
 
@@ -7889,7 +7889,7 @@
         aria-expanded="true"
         aria-controls="fr27-app-hud-surface"
         aria-label="Collapse system dock"
-        title="Collapse system dock"
+        data-fr27-tooltip="Collapse system dock"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <path d="M6.5 8.5 12 14l5.5-5.5"></path>
@@ -7964,7 +7964,7 @@
 
                 <div class="fr27-source-main">
                   <div class="fr27-source-stat">
-                    <strong id="fr27-hud-domains-value">202</strong>
+                    <strong id="fr27-hud-domains-value" class="fr27-hud-metric-loading" aria-label="Loading approved domain count">—</strong>
                     <span class="fr27-source-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24" focusable="false">
                         <circle cx="12" cy="12" r="8"></circle>
@@ -7977,7 +7977,7 @@
                   </div>
 
                   <div class="fr27-source-stat">
-                    <strong id="fr27-hud-pollsters-value">7</strong>
+                    <strong id="fr27-hud-pollsters-value" class="fr27-hud-metric-loading" aria-label="Loading pollster count">—</strong>
                     <span class="fr27-source-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24" focusable="false">
                         <circle cx="9" cy="8.5" r="3"></circle>
@@ -8031,22 +8031,22 @@
             <div class="fr27-linear-publication fr27-zone-scale-body">
 
               <div class="fr27-linear-publication-cell">
-                <strong id="fr27-hud-news-value">941</strong>
+                <strong id="fr27-hud-news-value" class="fr27-hud-metric-loading" aria-label="Loading accepted news count">—</strong>
                 <span>ACCEPTED NEWS</span>
               </div>
 
               <div class="fr27-linear-publication-cell">
-                <strong id="fr27-hud-publishers-value">90</strong>
+                <strong id="fr27-hud-publishers-value" class="fr27-hud-metric-loading" aria-label="Loading publisher count">—</strong>
                 <span>PUBLISHERS</span>
               </div>
 
               <div class="fr27-linear-publication-cell">
-                <strong id="fr27-hud-recent-value">510</strong>
+                <strong id="fr27-hud-recent-value" class="fr27-hud-metric-loading" aria-label="Loading recent news count">—</strong>
                 <span>RECENT 14D</span>
               </div>
 
               <div class="fr27-linear-publication-cell">
-                <strong id="fr27-hud-candidate-watch-value">1342</strong>
+                <strong id="fr27-hud-candidate-watch-value" class="fr27-hud-metric-loading" aria-label="Loading candidate-watch count">—</strong>
                 <span>CANDIDATE WATCH</span>
               </div>
 
@@ -8067,7 +8067,7 @@
                 href="https://github.com/openeventbits/france-2027-signal-lab"
                 target="_blank"
                 rel="noreferrer"
-                title="Open GitHub repository"
+                data-fr27-tooltip="View repository"
                 aria-label="Open GitHub repository"
               >
                 <svg
@@ -8086,7 +8086,7 @@
                 type="button"
                 id="fr27-hud-email-toggle"
                 class="fr27-hud-command email"
-                title="Contact France 2027 Signal Lab"
+                data-fr27-tooltip="Contact"
                 aria-label="Contact France 2027 Signal Lab"
                 aria-haspopup="dialog"
                 aria-controls="fr27-hud-contact-popover"
@@ -8112,7 +8112,7 @@
                 type="button"
                 id="fr27-hud-share"
                 class="fr27-hud-command share"
-                title="Share current view"
+                data-fr27-tooltip="Share dashboard"
                 aria-label="Share current view"
               >
                 <svg
@@ -8135,7 +8135,7 @@
                 aria-haspopup="dialog"
                 aria-controls="method-disclosure"
                 aria-expanded="false"
-                title="Project information"
+                data-fr27-tooltip="About France 2027 Signal Lab"
                 aria-label="Project information"
               >
                 <svg
@@ -8282,6 +8282,27 @@
       updatedAt: {}
     };
 
+    function renderInlineSkeleton(target, label, width = "72px", height = "10px") {
+      const node = typeof target === "string" ? $(target) : target;
+      if (!node) return;
+      const block = document.createElement("span");
+      block.className = "fr27-skeleton-block fr27-skeleton-compact";
+      block.style.setProperty("--fr27-skeleton-width", width);
+      block.style.setProperty("--fr27-skeleton-height", height);
+      block.setAttribute("aria-hidden", "true");
+      node.replaceChildren(block);
+      node.setAttribute("aria-busy", "true");
+      node.setAttribute("aria-label", label);
+    }
+
+    function renderResolvedText(target, text) {
+      const node = typeof target === "string" ? $(target) : target;
+      if (!node) return;
+      node.textContent = text;
+      node.removeAttribute("aria-busy");
+      node.removeAttribute("aria-label");
+    }
+
     function markDataset(name, status, payload = null, updatedAt = "") {
       dashboardState.loadState[name] = status;
       dashboardState[name] = status === "loaded" ? payload : null;
@@ -8405,19 +8426,28 @@
 
     function renderMastheadMetadata() {
       const manifest = dashboardState.manifest;
-      $("#masthead-updated").textContent =
-        manifest && Number.isFinite(dashboardTimestamp(manifest.published_at))
-          ? "Snapshot published " + formatMastheadParisDateTime(manifest.published_at)
-          : dashboardState.loadState.manifest === "loading"
-            ? "Snapshot publication loading…"
-            : "Snapshot publication unavailable";
+      const manifestLoading = dashboardState.loadState.manifest === "loading";
+      if (manifestLoading) {
+        renderInlineSkeleton("#masthead-updated", "Loading snapshot publication time", "150px", "8px");
+      } else {
+        renderResolvedText(
+          "#masthead-updated",
+          manifest && Number.isFinite(dashboardTimestamp(manifest.published_at))
+            ? "Snapshot published " + formatMastheadParisDateTime(manifest.published_at)
+            : "Snapshot publication unavailable"
+        );
+      }
 
       const summaries = mastheadLaneSummaries(manifest);
-      $("#masthead-lanes").textContent = summaries.length
-        ? summaries.join(" · ")
-        : dashboardState.loadState.manifest === "loading"
-          ? "Lane metadata loading…"
-          : "Lane metadata unavailable";
+      if (manifestLoading) {
+        renderInlineSkeleton("#masthead-lanes", "Loading dataset lane metadata", "220px", "8px");
+      } else {
+        renderResolvedText(
+          "#masthead-lanes",
+          summaries.length ? summaries.join(" · ") : "Lane metadata unavailable"
+        );
+      }
+      $(".masthead-data")?.setAttribute("aria-busy", String(manifestLoading));
     }
 
     function pollFieldworkLabel(event) {
@@ -8582,7 +8612,7 @@
           label.length > 10 ? "medium" :
           "short";
         wordmark.textContent = label;
-        wordmark.title = label;
+        wordmark.dataset.fr27Tooltip = label;
         wordmark.setAttribute("aria-label", label + " pollster");
         visual.appendChild(wordmark);
       } else {
@@ -8868,7 +8898,7 @@
       badge.className = "changes-ledger-wordmark";
       badge.textContent =
         entry.visualLabel || entry.sourceName || "Source";
-      badge.title =
+      badge.dataset.fr27Tooltip =
         entry.visualLabel || entry.sourceName || "Source";
       visual.appendChild(badge);
     }
@@ -8893,10 +8923,6 @@
 
       const icon = document.createElement("span");
       icon.className = "changes-ledger-source-icon";
-      icon.title =
-        entry.visualLabel ||
-        entry.sourceName ||
-        "Source";
 
       const image = document.createElement("img");
       image.src = iconRecord.path;
@@ -9123,15 +9149,12 @@
 
       if (summary) {
         if (ledger.loading) {
-          summary.textContent =
-            counts.all +
-            (counts.all === 1 ? " CHANGE" : " CHANGES") +
-            " · LOADING";
+          renderInlineSkeleton(summary, "Loading source-linked update count", "112px", "9px");
         } else {
-          summary.textContent =
+          renderResolvedText(summary,
             counts.all +
             (counts.all === 1 ? " CHANGE" : " CHANGES") +
-            " · LAST 14 DAYS";
+            " · LAST 14 DAYS");
         }
       }
 
@@ -9151,8 +9174,9 @@
           "aria-pressed",
           String(whatChangedLedgerFilter === category.key)
         );
-        button.textContent =
-          category.label + " " + counts[category.key];
+        button.textContent = ledger.loading
+          ? category.label
+          : category.label + " " + counts[category.key];
 
         button.addEventListener("click", () => {
           whatChangedLedgerFilter = category.key;
@@ -9180,12 +9204,18 @@
       );
 
       if (!filteredEntries.length) {
-        appendBriefingText(
-          scroll,
-          "changes-ledger-empty",
-          ledger.loading
-            ? "Source-linked updates are still loading."
-            : "No " +
+        if (ledger.loading && window.FR27UI) {
+          scroll.appendChild(
+            window.FR27UI.skeletonElement(
+              "briefing",
+              "Loading source-linked dashboard changes"
+            )
+          );
+        } else {
+          appendBriefingText(
+            scroll,
+            "changes-ledger-empty",
+            "No " +
               (
                 whatChangedLedgerFilter === "all"
                   ? ""
@@ -9195,7 +9225,8 @@
                     ).label.toLowerCase() + " "
               ) +
               "update was identified in the last 14 days."
-        );
+          );
+        }
       } else {
         let previousDateKey = "";
 
@@ -9412,18 +9443,20 @@
             ? " · n=" + latestSampleValue.toLocaleString("en-GB")
             : "";
 
-        $("#context-poll-value").textContent =
-          latest.pollster + (latestPublication ? " · " + latestPublication : "");
+        renderResolvedText(
+          "#context-poll-value",
+          latest.pollster + (latestPublication ? " · " + latestPublication : "")
+        );
         $("#context-poll-meta").textContent =
           "Fieldwork " + pollFieldworkLabel(latest) + latestSample;
 
         const coverage = derivePollCoverage(dashboardState.polls.events);
 
-        $("#context-coverage-value").textContent = coverage
+        renderResolvedText("#context-coverage-value", coverage
           ? coverage.count + " " +
             (coverage.count === 1 ? "pollster" : "pollsters") +
             " · 6-month window"
-          : "Coverage unavailable";
+          : "Coverage unavailable");
 
         $("#context-coverage-meta").textContent = coverage
           ? "First round · " +
@@ -9433,9 +9466,11 @@
           : "Target: first round";
       } else {
         const pollError = dashboardState.loadState.polls === "error";
-        $("#context-poll-value").textContent = pollError ? "Polling unavailable" : "Loading…";
+        if (pollError) renderResolvedText("#context-poll-value", "Polling unavailable");
+        else renderInlineSkeleton("#context-poll-value", "Loading latest poll", "112px", "12px");
         $("#context-poll-meta").textContent = "Latest first-round event";
-        $("#context-coverage-value").textContent = pollError ? "Polling unavailable" : "Loading…";
+        if (pollError) renderResolvedText("#context-coverage-value", "Polling unavailable");
+        else renderInlineSkeleton("#context-coverage-value", "Loading poll coverage", "96px", "12px");
         $("#context-coverage-meta").textContent = "First-round polling coverage";
       }
 
@@ -9582,7 +9617,11 @@
       } else if (dashboardState.loadState.claims === "error") {
         parts.push("Fact checks unavailable");
       }
-      $("#news-wire-source-note").textContent = parts.length ? parts.join(" · ") : "Loading source metadata…";
+      if (parts.length) {
+        renderResolvedText("#news-wire-source-note", parts.join(" · "));
+      } else {
+        renderInlineSkeleton("#news-wire-source-note", "Loading source metadata", "180px", "7px");
+      }
     }
 
     function signalNewsRow(item, showCandidateLabels) {
@@ -10664,7 +10703,7 @@
         <section class="archive-section"><h4 class="archive-section-title">CHECK VOLUME — 12 MONTHS</h4><div class="archive-chart" role="list" aria-label="Monthly review counts from oldest to newest">${months.map(month => {
           const label = monthName(month.date);
           const height = month.count ? Math.max(8, month.count / maxMonth * 100) : 3;
-          return `<span class="archive-month" role="listitem" title="${escapeAttribute(label)}: ${month.count} ${month.count === 1 ? "review" : "reviews"}" aria-label="${escapeAttribute(label)}: ${month.count} ${month.count === 1 ? "review" : "reviews"}"><span class="archive-bar-wrap" aria-hidden="true"><span class="archive-bar" style="height:${height.toFixed(2)}%"></span></span><span class="archive-month-label">${escapeHtml(new Intl.DateTimeFormat("en-GB", { month: "narrow", timeZone: "UTC" }).format(month.date))}</span></span>`;
+          return `<span class="archive-month" role="listitem" tabindex="0" data-fr27-tooltip="${escapeAttribute(label)}: ${month.count} ${month.count === 1 ? "review" : "reviews"}" aria-label="${escapeAttribute(label)}: ${month.count} ${month.count === 1 ? "review" : "reviews"}"><span class="archive-bar-wrap" aria-hidden="true"><span class="archive-bar" style="height:${height.toFixed(2)}%"></span></span><span class="archive-month-label">${escapeHtml(new Intl.DateTimeFormat("en-GB", { month: "narrow", timeZone: "UTC" }).format(month.date))}</span></span>`;
         }).join("")}</div></section>
         <section class="archive-section"><h4 class="archive-section-title">PUBLISHERS REPRESENTED</h4><div class="archive-publishers">${publishers.length ? publishers.map(([name, count]) => `<div class="archive-publisher"><span>${escapeHtml(name)}</span><span class="archive-publisher-count">${count} ${count === 1 ? "review" : "reviews"}</span></div>`).join("") : '<p class="archive-disclosure">No publishers are represented in this archive.</p>'}</div></section>
         <section class="archive-section"><h4 class="archive-section-title">DISCLOSURE</h4><p class="archive-disclosure">${escapeHtml(claimsDisclosure)}</p></section>`;
@@ -11681,7 +11720,7 @@
         button.setAttribute("aria-selected", "false");
         button.tabIndex = -1;
         button.dataset.racePollKey = pollPackage.key;
-        button.title = fullLabel;
+        button.dataset.fr27Tooltip = fullLabel;
 
         full.className = "race-tab-label-full";
         full.textContent = fullLabel;
@@ -11735,9 +11774,9 @@
       );
 
       if (hasMultipleScenarios) {
-        selector.removeAttribute("title");
+        selector.removeAttribute("data-fr27-tooltip");
       } else {
-        selector.title = "Only reported scenario in this poll event";
+        selector.dataset.fr27Tooltip = "Only reported scenario in this poll event";
       }
 
       staticLabel.hidden = true;
@@ -11876,13 +11915,11 @@
               ${raceCandidateMarker(candidate.name)}
               <div
                 class="candidate"
-                title="${escapeAttribute(candidate.name)}"
               >${escapeHtml(candidate.name)}</div>
             </div>
             <div
               class="track"
               aria-hidden="true"
-              title="Shared scale: 0 to ${escapeAttribute(String(safeScaleMaximum))} percent"
             >
               <div
                 class="fill"
@@ -11892,7 +11929,8 @@
             <div class="score">${escapeHtml(formatScore(candidate.score))}</div>
             <div
               class="race-change ${formattedChange.tone}"
-              title="${escapeAttribute(formattedChange.meta)}"
+              data-fr27-tooltip="${escapeAttribute(formattedChange.meta)}"
+              tabindex="0"
               aria-label="${escapeAttribute(changeAria + ". " + formattedChange.meta)}"
             >
               <strong>${escapeHtml(changeGlyph + formattedChange.value)}</strong>
@@ -12039,9 +12077,7 @@
               "</b></div>"
             : ""
         ) +
-        '<div class="wide" title="' +
-        escapeAttribute(event.hypothesis) +
-        '">Hypothesis: <b>' +
+        '<div class="wide">Hypothesis: <b>' +
         escapeHtml(event.hypothesis) +
         "</b></div>" +
         '<div class="wide">' +
@@ -12720,7 +12756,7 @@
               </div>
               <div class="freshness-age"><b>${candidate.daysSince}</b> ${candidate.daysSince === 1 ? "day" : "days"} ago</div>
               <div class="freshness-sources">${sourceLinks}<div class="freshness-hypotheses">${hypothesisCount} ${hypothesisCount === 1 ? "hypothesis" : "hypotheses"}</div></div>
-              <div class="freshness-change ${formattedChange.tone}" tabindex="0" title="${changeDetailAttribute}" aria-label="${changeDetailAttribute}">
+              <div class="freshness-change ${formattedChange.tone}" tabindex="0" data-fr27-tooltip="${changeDetailAttribute}" aria-label="${changeDetailAttribute}">
                 <div class="freshness-change-label">CHANGE</div>
                 <div class="freshness-change-value">${formattedChange.value}</div>
                 <div class="freshness-change-meta">${formattedChange.meta}</div>
@@ -12987,14 +13023,14 @@
 
         await copyCurrentUrl();
 
-        const originalTitle = shareToggle.title;
+        const originalTooltip = shareToggle.dataset.fr27Tooltip;
         const originalLabel = shareToggle.getAttribute("aria-label");
 
-        shareToggle.title = "Link copied";
+        shareToggle.dataset.fr27Tooltip = "Link copied";
         shareToggle.setAttribute("aria-label", "Link copied");
 
         window.setTimeout(() => {
-          shareToggle.title = originalTitle;
+          shareToggle.dataset.fr27Tooltip = originalTooltip || "Share dashboard";
           shareToggle.setAttribute(
             "aria-label",
             originalLabel || "Share current view"
@@ -13109,7 +13145,7 @@
         : "Expand system dock"
     );
 
-    toggle.title =
+    toggle.dataset.fr27Tooltip =
       expanded
         ? "Collapse system dock"
         : "Expand system dock";
@@ -13413,29 +13449,35 @@
         "candidate-watch"
       );
 
+    const resolveHudMetric = function (node, value) {
+      if (!node || !value) return;
+      node.textContent = value;
+      node.classList.remove("fr27-hud-metric-loading");
+      node.removeAttribute("aria-label");
+    };
+
     if (domains && domainsNode) {
-      domainsNode.textContent = domains;
+      resolveHudMetric(domainsNode, domains);
     }
 
     if (pollsters && pollstersNode) {
-      pollstersNode.textContent = pollsters;
+      resolveHudMetric(pollstersNode, pollsters);
     }
 
     if (news && newsNode) {
-      newsNode.textContent = news;
+      resolveHudMetric(newsNode, news);
     }
 
     if (publishers && publishersNode) {
-      publishersNode.textContent = publishers;
+      resolveHudMetric(publishersNode, publishers);
     }
 
     if (recent && recentNode) {
-      recentNode.textContent = recent;
+      resolveHudMetric(recentNode, recent);
     }
 
     if (candidateWatch && candidateWatchNode) {
-      candidateWatchNode.textContent =
-        candidateWatch;
+      resolveHudMetric(candidateWatchNode, candidateWatch);
     }
   }
   fr27HudRefreshMetrics();

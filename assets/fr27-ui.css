@@ -1,0 +1,280 @@
+/* Shared FR27 explanatory tooltip and loading vocabulary. */
+
+[data-fr27-tooltip] {
+  --fr27-tooltip-delay: 140ms;
+}
+
+[data-fr27-tooltip-affordance="term"] {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: rgba(53, 216, 255, 0.56);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: help;
+}
+
+.fr27-info-glyph {
+  position: relative;
+  display: inline-grid;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(53, 216, 255, 0.44);
+  border-radius: 50%;
+  background: rgba(18, 66, 91, 0.16);
+  color: #35d8ff;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1;
+  cursor: help;
+}
+
+.fr27-info-glyph:hover,
+.fr27-info-glyph:focus-visible {
+  border-color: rgba(53, 216, 255, 0.84);
+  background: rgba(18, 66, 91, 0.34);
+  outline: 0;
+}
+
+.fr27-tooltip {
+  position: fixed;
+  z-index: 10000;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 20px));
+  padding: 9px 10px;
+  border: 1px solid rgba(53, 216, 255, 0.42);
+  border-radius: 4px;
+  background: #061623;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.46);
+  color: #c3d7e2;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 10.5px;
+  font-weight: 430;
+  line-height: 1.36;
+  letter-spacing: 0;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-2px);
+  transition: opacity 90ms ease, visibility 90ms ease, transform 90ms ease;
+}
+
+.fr27-tooltip.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.fr27-skeleton-region {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  color: transparent;
+}
+
+.fr27-skeleton-block,
+.fr27-skeleton-circle {
+  display: block;
+  box-sizing: border-box;
+  border: 1px solid rgba(39, 91, 121, 0.48);
+  background: rgba(22, 52, 72, 0.72);
+  animation: fr27-skeleton-pulse 1.65s ease-in-out infinite;
+}
+
+.fr27-skeleton-block {
+  width: var(--fr27-skeleton-width, 100%);
+  height: var(--fr27-skeleton-height, 9px);
+  border-radius: 3px;
+}
+
+.fr27-skeleton-circle {
+  flex: 0 0 auto;
+  width: var(--fr27-skeleton-size, 28px);
+  height: var(--fr27-skeleton-size, 28px);
+  border-radius: 50%;
+}
+
+.fr27-skeleton-stack,
+.fr27-skeleton-rows,
+.fr27-skeleton-card {
+  display: grid;
+  min-width: 0;
+}
+
+.fr27-skeleton-stack { gap: 7px; }
+.fr27-skeleton-rows { gap: 8px; }
+
+.fr27-skeleton-card {
+  gap: 10px;
+  min-height: 150px;
+  padding: 12px;
+  border: 1px solid rgba(31, 78, 105, 0.66);
+  border-radius: 4px;
+  background: rgba(6, 19, 33, 0.72);
+}
+
+.fr27-skeleton-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+}
+
+.fr27-skeleton-row-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 6px;
+}
+
+.fr27-skeleton-source {
+  width: 42px;
+  height: 15px;
+}
+
+.fr27-skeleton-briefing {
+  display: grid;
+  gap: 10px;
+  padding: 9px 10px 12px;
+}
+
+.fr27-skeleton-briefing .fr27-skeleton-row {
+  padding-bottom: 9px;
+  border-bottom: 1px solid rgba(31, 78, 105, 0.42);
+}
+
+.what-changed-list:has(.fr27-skeleton-region) {
+  align-items: stretch !important;
+}
+
+.changes-ledger-scroll:has(.fr27-skeleton-region)::before {
+  display: none;
+}
+
+.fr27-skeleton-race {
+  display: grid;
+  gap: 9px;
+  padding: 8px 0 0;
+}
+
+.fr27-skeleton-race .fr27-skeleton-row {
+  display: grid;
+  grid-template-columns: 30px minmax(70px, 0.8fr) minmax(90px, 1.4fr) 35px;
+}
+
+.fr27-skeleton-race .fr27-skeleton-circle {
+  --fr27-skeleton-size: 28px;
+}
+
+.fr27-skeleton-media {
+  display: grid;
+  gap: 8px;
+  padding: 8px 10px 10px;
+}
+
+.fr27-skeleton-media .fr27-skeleton-row {
+  display: grid;
+  grid-template-columns: 18px minmax(75px, 0.72fr) minmax(90px, 1.3fr) 34px;
+}
+
+.fr27-skeleton-workspace {
+  display: grid;
+  grid-template-columns: minmax(155px, 0.72fr) minmax(0, 1.15fr) minmax(180px, 0.9fr);
+  gap: 10px;
+  min-height: 430px;
+  padding: 10px;
+}
+
+.fr27-skeleton-workspace .fr27-skeleton-card:first-child .fr27-skeleton-row {
+  min-height: 38px;
+}
+
+.fr27-skeleton-chart {
+  display: flex;
+  min-height: 116px;
+  align-items: end;
+  gap: 5px;
+  padding: 10px 8px 0;
+  border: 1px solid rgba(31, 78, 105, 0.5);
+  border-radius: 3px;
+  background: rgba(3, 15, 26, 0.48);
+}
+
+.fr27-skeleton-chart .fr27-skeleton-block {
+  flex: 1 1 0;
+  height: var(--fr27-skeleton-height, 45%);
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
+}
+
+.fr27-skeleton-compact {
+  display: inline-block;
+  width: var(--fr27-skeleton-width, 54px);
+  height: var(--fr27-skeleton-height, 10px);
+  vertical-align: middle;
+}
+
+.fr27-hud-metric-loading {
+  color: transparent !important;
+}
+
+.fr27-hud-metric-loading::after {
+  display: block;
+  width: 38px;
+  height: 12px;
+  margin: 0 auto;
+  border: 1px solid rgba(39, 91, 121, 0.4);
+  border-radius: 3px;
+  background: rgba(22, 52, 72, 0.66);
+  content: "";
+  animation: fr27-skeleton-pulse 1.65s ease-in-out infinite;
+}
+
+@keyframes fr27-skeleton-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.92; }
+}
+
+@media (max-width: 760px) {
+  .fr27-skeleton-workspace {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fr27-tooltip {
+    transition: none;
+  }
+
+  .fr27-skeleton-block,
+  .fr27-skeleton-circle,
+  .fr27-hud-metric-loading::after {
+    animation: none;
+  }
+}
+
+.fr27-skeleton-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(62px, 1fr));
+  gap: 4px;
+  width: 100%;
+  min-width: 286px;
+}
+
+.fr27-skeleton-metric {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.fr27-skeleton-metric .fr27-skeleton-block {
+  max-width: 100%;
+}

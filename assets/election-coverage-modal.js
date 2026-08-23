@@ -287,9 +287,6 @@
 
       <div
         class="ecm-feed-publisher"
-        title="${escapeAttribute(
-          record.publisher
-        )}"
       >
         ${escapeHtml(record.publisher)}
       </div>
@@ -297,9 +294,6 @@
       <div class="ecm-feed-copy">
         <h4
           lang="fr"
-          title="${escapeAttribute(
-            record.headline
-          )}"
         >
           ${escapeHtml(record.headline)}
         </h4>

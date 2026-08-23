@@ -227,7 +227,7 @@ class TopicCoverageModalTests(unittest.TestCase):
             renderer,
         )
         self.assertIn(
-            '<strong title="${escapeAttribute(item.name)}">${escapeHtml(item.name)}</strong>',
+            '<strong>${escapeHtml(item.name)}</strong>',
             renderer,
         )
         self.assertNotIn(
@@ -356,10 +356,9 @@ process.stdout.write(
             '<span class="tcm-rank">',
             shift_renderer,
         )
-        self.assertIn(
-            'title="${escapeAttribute(item.name)}"',
-            shift_renderer,
-        )
+        self.assertNotIn("data-fr27-tooltip", shift_renderer)
+        self.assertIn('tabindex="0"', shift_renderer)
+        self.assertIn('aria-label="${escapeAttribute(', shift_renderer)
 
     def test_dialog_matches_compact_mockup_geometry(self):
         self.assertRegex(
