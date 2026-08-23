@@ -13225,7 +13225,7 @@
     const candidates =
       Array.from(
         document.querySelectorAll(
-          ".context-strip *, .media-pulse *, .media-pulse-shell *"
+          ".context-strip *, #top-media-pulse-metrics *"
         )
       );
 
@@ -13300,7 +13300,7 @@
     const candidates =
       Array.from(
         document.querySelectorAll(
-          ".media-pulse *, .media-pulse-shell *"
+          "#top-media-pulse-metrics *"
         )
       );
 
@@ -13449,6 +13449,32 @@
     fr27HudRefreshMetrics,
     3000
   );
+
+  /*
+   * Keep HUD dataset metrics synchronized with the live
+   * Media Pulse renderer instead of relying on load timing.
+   */
+  const topMediaMetricsNode =
+    document.getElementById("top-media-pulse-metrics");
+
+  if (
+    topMediaMetricsNode &&
+    "MutationObserver" in window
+  ) {
+    const fr27HudMediaMetricsObserver =
+      new MutationObserver(function () {
+        fr27HudRefreshMetrics();
+      });
+
+    fr27HudMediaMetricsObserver.observe(
+      topMediaMetricsNode,
+      {
+        childList: true,
+        subtree: true,
+        characterData: true
+      }
+    );
+  }
   /*
    * Manual dock behavior only.
    */
