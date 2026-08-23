@@ -277,13 +277,14 @@ class ElectionCoverageModalTests(
             'class="ecm-feed-meta"',
             "Coverage window ·",
             'class="ecm-feed-results"',
-            'title="${escapeAttribute(',
             "list.scrollTop = 0;",
         ):
             self.assertIn(
                 contract,
                 self.modal_js,
             )
+
+        self.assertNotIn("data-fr27-tooltip", self.modal_js)
 
         readable_css = self.modal_css.split(
             "/* FR27 SHARED READABLE TYPOGRAPHY "

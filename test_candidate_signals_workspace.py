@@ -531,7 +531,7 @@ function details() {
         .querySelectorAll(".candidate-signals-candidate-fact-label")
         .map(node => ({
           text: node.textContent,
-          title: node.getAttribute("title") || null,
+          title: node.getAttribute("data-fr27-tooltip") || null,
           ariaLabel: node.getAttribute("aria-label") || null
         }))
   );
@@ -607,10 +607,12 @@ function details() {
         ".candidate-signals-wikipedia-attention"
       ).length,
     wikipediaPointTitles:
-      wikipediaPoints.map(node => {
-        const title = node.querySelector("title");
-        return title ? title.textContent : null;
-      }),
+      wikipediaPoints.map(node =>
+        node.getAttribute("data-fr27-tooltip") || null
+      ),
+    wikipediaChartAriaLabel:
+      mount.querySelector(".candidate-signals-wikipedia-svg")
+        ?.getAttribute("aria-label") || null,
     wikipediaLineCount:
       wikipediaLines.length,
     wikipediaPeakMarkerCount:
@@ -619,7 +621,7 @@ function details() {
       wikipediaLatestPoints.length,
     wikipediaHeadingTooltip:
       wikipediaHeading
-        ? wikipediaHeading.getAttribute("title") || null
+        ? wikipediaHeading.getAttribute("data-fr27-tooltip") || null
         : null,
     dossierCardTitles:
       mount.querySelectorAll(".candidate-signals-dossier-card-title")
@@ -631,19 +633,19 @@ function details() {
     scrutinyColumnDetails:
       scrutinyColumns.map(node => ({
         text: node.textContent,
-        title: node.getAttribute("title") || null,
+        title: node.getAttribute("data-fr27-tooltip") || null,
         ariaLabel: node.getAttribute("aria-label") || null
       })),
     dossierScrutinyLabelDetails:
       dossierScrutinyLabels.map(node => ({
         text: node.textContent,
-        title: node.getAttribute("title") || null,
+        title: node.getAttribute("data-fr27-tooltip") || null,
         ariaLabel: node.getAttribute("aria-label") || null
       })),
     latestDevelopmentHeadingDetails:
       latestDevelopmentHeadings.map(node => ({
         text: node.textContent,
-        title: node.getAttribute("title") || null,
+        title: node.getAttribute("data-fr27-tooltip") || null,
         ariaLabel: node.getAttribute("aria-label") || null
       })),
     monitorEvidenceCounts:
@@ -661,7 +663,7 @@ function details() {
         .map(node => node.textContent),
     agendaCardTitle:
       mount.querySelector(".candidate-signals-agenda-summary")
-        ?.getAttribute("title") || null,
+        ?.getAttribute("data-fr27-tooltip") || null,
     agendaCardAria:
       mount.querySelector(".candidate-signals-agenda-summary")
         ?.getAttribute("aria-label") || null,
@@ -693,10 +695,9 @@ function details() {
     historyPointTitles:
       mount.querySelectorAll(
         ".candidate-signals-history-point"
-      ).map(node => {
-        const title = node.querySelector("title");
-        return title ? title.textContent : null;
-      }),
+      ).map(node =>
+        node.getAttribute("data-fr27-tooltip") || null
+      ),
     historySvgAria:
       mount.querySelectorAll(
         ".candidate-signals-history-chart"
@@ -1822,7 +1823,8 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         ready = run_workspace(payload(self.rows))
         self.assertEqual(ready["status"], "ready")
         self.assertIn("CANDIDATE MONITOR", ready["text"])
-        self.assertIn("Loading candidate evidence…", self.workspace_js)
+        self.assertIn('"Loading candidate evidence"', self.workspace_js)
+        self.assertNotIn("Loading candidate evidence…", self.workspace_js)
         self.assertIn('node.setAttribute("role", "status");', self.workspace_js)
         self.assertNotIn("state.reason", self.workspace_js)
 
@@ -2198,7 +2200,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
 
         for item in semantic_facts:
             semantic = expected[item["text"]]
-            self.assertEqual(item["title"], semantic)
+            self.assertIsNone(item["title"])
             self.assertEqual(item["ariaLabel"], semantic)
 
         attention = expected["CAMPAIGN ATTENTION"]
@@ -2242,7 +2244,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         self.assertEqual(set(analysis), set(expected))
         for label, semantic in expected.items():
             self.assertEqual(analysis[label]["text"], label)
-            self.assertEqual(analysis[label]["title"], semantic)
+            self.assertIsNone(analysis[label]["title"])
             self.assertEqual(analysis[label]["ariaLabel"], semantic)
 
         dossier = [
@@ -2254,7 +2256,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         self.assertEqual({item["text"] for item in dossier}, set(expected))
         for item in dossier:
             label = item["text"]
-            self.assertEqual(item["title"], expected[label])
+            self.assertIsNone(item["title"])
             self.assertEqual(item["ariaLabel"], expected[label])
 
     def test_latest_development_headings_expose_subject_linkage_semantics(self):
@@ -2851,14 +2853,18 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         bars = result["wikipediaPointTitles"]
 
         self.assertEqual(len(bars), 30)
-        self.assertTrue(
-            all(title for title in bars)
+        self.assertTrue(all(title is None for title in bars))
+        self.assertIn(
+            "French Wikipedia daily pageviews",
+            result["wikipediaChartAriaLabel"],
         )
+        self.assertIn("Thirty-day peak", result["wikipediaChartAriaLabel"])
+        self.assertIn(" through ", result["wikipediaChartAriaLabel"])
 
         # The synthetic 99,999-view point is observation 31-from-last.
         # It is the full-period peak but must NOT enter the 30-day module.
         self.assertFalse(
-            any("99,999" in title for title in bars)
+            "99,999" in result["wikipediaChartAriaLabel"]
         )
         self.assertNotIn(
             "99,999",
@@ -2866,16 +2872,14 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         )
 
         # The true peak inside the displayed 30-day window is 3,333.
-        self.assertTrue(
-            any("3,333" in title for title in bars)
-        )
+        self.assertIn("3,333", result["wikipediaChartAriaLabel"])
         self.assertIn(
             "3,333",
             result["text"],
         )
 
 
-    def test_wikipedia_methodology_is_hover_only_and_cta_is_absent(self):
+    def test_wikipedia_methodology_uses_shared_tooltip_and_cta_is_absent(self):
         attention = candidate_attention_state(self.rows)
 
         result = run_workspace(
@@ -2896,7 +2900,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             expected,
         )
 
-        # title= is metadata, not visible textContent.
+        # Shared tooltip metadata is not visible textContent.
         self.assertNotIn(
             expected,
             result["text"],
@@ -2972,10 +2976,8 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             },
         )
 
-        self.assertIn(
-            "Loading published Wikimedia attention…",
-            loading["text"],
-        )
+        self.assertNotIn("Loading published Wikimedia attention…", loading["text"])
+        self.assertIn("Loading published Wikimedia attention", self.workspace_js)
         self.assertEqual(
             loading["wikipediaPointTitles"],
             [],

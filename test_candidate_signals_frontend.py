@@ -1688,7 +1688,8 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
               claims: { state: "empty", message: "claims" }
             })""",
         )
-        self.assertEqual(workspace.count("Loading candidate evidence…"), 1)
+        self.assertEqual(workspace.count('aria-label="Loading candidate evidence"'), 1)
+        self.assertNotIn("Loading candidate evidence…", workspace)
         self.assertNotIn("candidate-signals-header", workspace)
         self.assertNotIn(
             "Candidate evidence will be rendered in the next implementation stage.",

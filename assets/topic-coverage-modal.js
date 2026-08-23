@@ -364,12 +364,12 @@
           <div
             class="tcm-shift-row${displayedDelta === null ? " is-limited" : ""}${highlighted}"
             data-tcm-candidate-row="${escapeAttribute(item.name)}"
-            title="${escapeAttribute(item.name)}"
+            tabindex="0"
             aria-label="${escapeAttribute(
               `${item.name}. Candidate status ${item.status}. Current active-field share ${latestText}; prior active-field share ${priorText}.${item.changeAvailable ? ` Comparable change ${deltaMarkup}.` : rawDeltaAvailable ? ` Raw arithmetic difference ${deltaMarkup}. Publisher panels changed, so this is not a comparable trend estimate.` : ""}`
             )}"
           >
-            <strong title="${escapeAttribute(item.name)}">${escapeHtml(item.name)}</strong>
+            <strong>${escapeHtml(item.name)}</strong>
             <b>${escapeHtml(latestText)}</b>
             <span class="tcm-shift-track" aria-hidden="true">
               <i class="is-current" style="--tcm-current-width:${currentWidth.toFixed(2)}%"></i>

@@ -162,7 +162,8 @@ class CandidateScrutinyPopoverTests(unittest.TestCase):
             "DETAIL UNAVAILABLE",
             "Candidate scrutiny summary remains available.",
             "Detailed publisher reviews could not be loaded.",
-            "LOADING REVIEWS",
+            "Loading monitored publisher reviews",
+            "skeletonElement",
         ):
             self.assertIn(required, HYBRID)
 

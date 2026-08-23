@@ -57,8 +57,15 @@
   }
 
   function semanticMetadata(node, title, ariaLabel = title) {
-    node.setAttribute("title", title);
     node.setAttribute("aria-label", ariaLabel);
+    return node;
+  }
+
+  function explanatoryMetadata(node, title, ariaLabel = title) {
+    semanticMetadata(node, title, ariaLabel);
+    node.setAttribute("data-fr27-tooltip", title);
+    node.setAttribute("data-fr27-tooltip-affordance", "term");
+    node.setAttribute("tabindex", "0");
     return node;
   }
 
@@ -404,6 +411,15 @@
     return node;
   }
 
+  function skeletonPresentation(pattern, label) {
+    if (window.FR27UI?.skeletonElement) {
+      return window.FR27UI.skeletonElement(pattern, label);
+    }
+    const fallback = statePresentation("—", true);
+    fallback.setAttribute("aria-label", label);
+    return fallback;
+  }
+
   function candidateSecondary(candidate) {
     const campaign = candidate.campaign_attention;
     const general = candidate.general_visibility;
@@ -483,7 +499,7 @@
       "aria-label",
       "Show main candidates only"
     );
-    filterButton.title = "Show main candidates only";
+    filterButton.dataset.fr27Tooltip = "Show main candidates only";
 
     const filterGlyph = createElement(
       "span",
@@ -697,7 +713,7 @@
         : "Show main candidates only";
 
       filterButton.setAttribute("aria-label", description);
-      filterButton.title = description;
+      filterButton.dataset.fr27Tooltip = description;
 
       applyFilters();
     });
@@ -846,7 +862,7 @@
       "candidate-signals-latest-development"
     );
     section.append(
-      semanticMetadata(
+      explanatoryMetadata(
         createElement(
           "h3",
           "candidate-signals-subsection-title",
@@ -919,7 +935,7 @@
       "candidate-signals-dossier-card candidate-signals-dossier-development"
     );
     section.append(
-      semanticMetadata(
+      explanatoryMetadata(
         createElement(
           "h3",
           "candidate-signals-dossier-card-title",
@@ -1033,7 +1049,8 @@
       numberText(profile.association_count)
     } LINKS · ${period} — ${semantics}`;
 
-    card.setAttribute("title", metadata);
+    card.setAttribute("data-fr27-tooltip", metadata);
+    card.setAttribute("tabindex", "0");
     card.setAttribute(
       "aria-label",
       `AGENDA PROFILE — ${metadata}`
@@ -1527,8 +1544,9 @@
 
     if (historyState?.status === "loading") {
       block.append(
-        visibilityHistoryState(
-          "Loading 29-day daily share…"
+        skeletonPresentation(
+          "list",
+          "Loading 29-day daily share"
         )
       );
       return block;
@@ -1838,15 +1856,10 @@
           "aria-label",
           label
         );
-
-        const title =
-          wikipediaSvgElement(
-            "title"
-          );
-
-        title.textContent = label;
-
-        marker.append(title);
+        marker.setAttribute(
+          "data-fr27-tooltip",
+          label
+        );
         svg.append(marker);
       }
     );
@@ -2888,22 +2901,7 @@
             : 2.7
       );
 
-      const pointLabel =
-        `${formatDisplayDate(
-          point.date
-        )} · ${groupedNumberText(
-          point.views
-        )} views`;
-
-      marker.setAttribute(
-        "aria-label",
-        pointLabel
-      );
-
-      const pointTitle =
-        wikipediaSvgElement("title");
-      pointTitle.textContent = pointLabel;
-      marker.append(pointTitle);
+      marker.setAttribute("aria-hidden", "true");
 
       svg.append(marker);
     });
@@ -2951,10 +2949,9 @@
     if (attentionState?.status === "loading") {
       section.append(
         head,
-        createElement(
-          "p",
-          "candidate-signals-wikipedia-state",
-          "Loading published Wikimedia attention…"
+        skeletonPresentation(
+          "agenda",
+          "Loading published Wikimedia attention"
         )
       );
       return section;
@@ -2983,10 +2980,7 @@
         }.`
         : interpretation;
 
-    headingTitle.setAttribute(
-      "title",
-      methodologyNote
-    );
+    explanatoryMetadata(headingTitle, methodologyNote);
 
     const record = payload?.candidates?.find(
       item =>
@@ -3945,7 +3939,7 @@
       "candidate-signals-dossier-card candidate-signals-dossier-development"
     );
     section.append(
-      semanticMetadata(
+      explanatoryMetadata(
         createElement(
           "h3",
           "candidate-signals-dossier-card-title",
@@ -4273,7 +4267,12 @@
     mount.replaceChildren();
 
     if (status === "loading") {
-      mount.append(statePresentation("Loading candidate evidence…", true));
+      mount.append(
+        skeletonPresentation(
+          "candidates",
+          "Loading candidate evidence"
+        )
+      );
       return null;
     }
     if (status === "empty") {

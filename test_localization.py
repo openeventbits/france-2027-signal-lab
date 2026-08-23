@@ -101,25 +101,13 @@ class LocalizationFoundationTests(unittest.TestCase):
     def test_first_static_text_batch_is_keyed(self):
         targets = {
             "dashboard.what_changed": "WHAT CHANGED",
-            "dashboard.source_linked_updates_loading": (
-                "SOURCE-LINKED UPDATES LOADING"
-            ),
-            "dashboard.checking_for_source_linked_dashboard_signals": (
-                "Checking for source-linked dashboard signals…"
-            ),
             "dashboard.race_at_a_glance": "RACE AT A GLANCE",
-            "dashboard.loading_candidate_scores": (
-                "Loading candidate scores…"
-            ),
             "dashboard.30_day_activity_14_day_recent": (
                 "30-day activity · 14-day recent"
             ),
-            "dashboard.loading_media_metrics": (
-                "Loading media metrics…"
-            ),
         }
 
-        self.assertEqual(len(targets), 7)
+        self.assertEqual(len(targets), 3)
 
         for key, english in targets.items():
             self.assertEqual(
@@ -127,6 +115,17 @@ class LocalizationFoundationTests(unittest.TestCase):
                 1,
             )
             self.assertEqual(INDEX_TEXT.count(english), 1)
+
+        for retired_loading_key in (
+            "dashboard.source_linked_updates_loading",
+            "dashboard.checking_for_source_linked_dashboard_signals",
+            "dashboard.loading_candidate_scores",
+            "dashboard.loading_media_metrics",
+        ):
+            self.assertNotIn(
+                f'data-i18n="{retired_loading_key}"',
+                INDEX_TEXT,
+            )
 
     def test_first_static_aria_batch_is_keyed(self):
         targets = {
