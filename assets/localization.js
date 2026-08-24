@@ -224,9 +224,32 @@
     });
   };
 
+  const applyTooltipTranslations = () => {
+    if (!global.document || !global.document.querySelectorAll) {
+      return;
+    }
+
+    const elements = global.document.querySelectorAll(
+      "[data-i18n-fr27-tooltip]"
+    );
+
+    elements.forEach(element => {
+      const key = element.getAttribute(
+        "data-i18n-fr27-tooltip"
+      );
+      const fallback = fallbackMessageFor(key);
+      const current = element.getAttribute("data-fr27-tooltip");
+
+      if (fallback !== null && current === fallback) {
+        element.setAttribute("data-fr27-tooltip", t(key));
+      }
+    });
+  };
+
   const applyStaticTranslations = () => {
     applyTextTranslations();
     applyAttributeTranslations();
+    applyTooltipTranslations();
   };
 
   const api = Object.freeze({

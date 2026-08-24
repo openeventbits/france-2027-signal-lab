@@ -87,7 +87,12 @@ class RaceGlanceDefaultTests(unittest.TestCase):
             self.source,
         )
         self.assertIn(
-            '<span class="race-column-head-change">Change vs prev.</span>',
+            '"dashboard.vs_prior_match",',
+            self.source,
+        )
+        self.assertIn('"VS PRIOR MATCH"', self.source)
+        self.assertIn(
+            'data-fr27-tooltip="${escapeAttribute(comparisonExplanation)}"',
             self.source,
         )
 
