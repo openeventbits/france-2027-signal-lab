@@ -308,6 +308,7 @@ jobs:
           from pathlib import Path
 
           from build_candidate_signals import (
+              SCHEMA_VERSION,
               atomic_write,
               load_inputs,
               validate_candidate_signals,
@@ -329,8 +330,10 @@ jobs:
               claims=claims,
               candidacy_status=registry,
           )
-          if candidate["schema_version"] != "1.3":
-              raise SystemExit("Candidate Signals is not schema 1.3")
+          if candidate["schema_version"] != SCHEMA_VERSION:
+              raise SystemExit(
+                  f"Candidate Signals is not schema {SCHEMA_VERSION}"
+              )
           atomic_write(
               "candidate_signals.json",
               Path("/tmp/candidate_signals.json").read_bytes(),

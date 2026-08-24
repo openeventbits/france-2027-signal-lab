@@ -94,6 +94,26 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
             validation.index("write_payload_atomic(candidate, previous_path)"),
         )
 
+    def test_candidate_signals_schema_guard_uses_builder_constant(self):
+        signals = step_block(
+            self.workflow,
+            "Rebuild Candidate Signals on registry change",
+        )
+
+        self.assertIn("SCHEMA_VERSION,", signals)
+        self.assertIn(
+            'candidate["schema_version"] != SCHEMA_VERSION',
+            signals,
+        )
+        self.assertIn(
+            'f"Candidate Signals is not schema {SCHEMA_VERSION}"',
+            signals,
+        )
+        self.assertNotRegex(
+            signals,
+            r'candidate\["schema_version"\]\s*!=\s*["\']\d',
+        )
+
     def test_same_run_derived_builds_are_change_gated_and_temporary_first(self):
         campaign_events = step_block(
             self.workflow,
