@@ -20,8 +20,11 @@ from urllib.request import (
     build_opener,
 )
 
-from lxml import html as lxml_html
-from pypdf import PdfReader
+from commission_notice_coverage import (
+    CommissionCoverageError,
+    synchronize_notice_coverage,
+    validate_notice_coverage,
+)
 
 
 INDEX_URL = "https://www.commission-des-sondages.fr/notices/"
@@ -497,6 +500,8 @@ def extract_document_text(document: FetchResult) -> str:
     content_type = document.content_type.casefold()
     if document.content.startswith(b"%PDF") or content_type == "application/pdf":
         try:
+            from pypdf import PdfReader
+
             reader = PdfReader(io.BytesIO(document.content))
             pages = [
                 page.extract_text() or ""
@@ -514,6 +519,8 @@ def extract_document_text(document: FetchResult) -> str:
         return text
     if content_type in {"text/html", "application/xhtml+xml"}:
         try:
+            from lxml import html as lxml_html
+
             root = lxml_html.fromstring(document.content.decode("utf-8"))
         except (TypeError, ValueError) as error:
             raise CommissionNoticeError(
@@ -706,6 +713,13 @@ def validate_registry(payload: Any) -> None:
                 raise CommissionNoticeError(
                     f"{notice_id}.poll_commissioner must be text or null"
                 )
+        try:
+            validate_notice_coverage(
+                notice,
+                allow_missing_legacy_coverage=True,
+            )
+        except CommissionCoverageError as error:
+            raise CommissionNoticeError(str(error)) from error
 
     expected_order = sorted(
         (notice["notice_id"] for notice in notices),
@@ -892,6 +906,9 @@ def discover_registry(
             record["classification"] = "excluded_non_voting"
             record["classification_reason"] = document_reason
         merged_by_id[notice_id] = record
+
+    for notice in merged_by_id.values():
+        synchronize_notice_coverage(notice)
 
     merged = {
         "schema_version": SCHEMA_VERSION,

@@ -47,6 +47,11 @@ from campaign_events_contract import (
     CampaignEventsContractError,
     validate_campaign_events_artifact,
 )
+from commission_notice_coverage import coverage_summary, coverage_warnings
+from commission_notice_discovery import (
+    CommissionNoticeError,
+    validate_registry as validate_commission_registry,
+)
 from fetch_claims_under_scrutiny import (
     CollectorError as ClaimsCollectorError,
     validate_public_bundle as validate_claims_bundle,
@@ -71,7 +76,7 @@ LANE_FILES = {
     ),
     "claims": ("claims_under_scrutiny.json",),
     "news": ("news_wire.json",),
-    "polls": ("polls.json",),
+    "polls": ("polls.json", "commission_notice_registry.json"),
     "recent_changes": ("recent_changes.json",),
     "runoff": (
         "second_round_polls.json",
@@ -1095,9 +1100,16 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
             return False
         return True
     if lane_name == "polls":
-        return isinstance(payload, list) and all(
-            isinstance(item, dict) for item in payload
-        )
+        if not (
+            isinstance(payload, list)
+            and all(isinstance(item, dict) for item in payload)
+        ):
+            return False
+        try:
+            validate_commission_registry(sources[1]["payload"])
+        except CommissionNoticeError:
+            return False
+        return True
     if not isinstance(payload, dict):
         return False
     if lane_name == "source_health":
@@ -1259,6 +1271,12 @@ def _build_lane(
             lane_warnings.append(
                 f"{lane_name}: no valid lane-local evidence date is available"
             )
+        if lane_name == "polls":
+            commission_registry = sources[1]["payload"]
+            lane["commission_notice_coverage"] = coverage_summary(
+                commission_registry
+            )
+            lane_warnings.extend(coverage_warnings(commission_registry))
         if lane_name == "candidacy_status":
             registry = primary["payload"]
             candidates = registry["candidates"]
@@ -1657,6 +1675,43 @@ def validate_manifest(manifest: Any) -> None:
                 _required_count(
                     lane.get("record_count"),
                     field="campaign_events lane record_count",
+                )
+        if lane_name == "polls" and lane["valid"]:
+            coverage = lane.get("commission_notice_coverage")
+            if not isinstance(coverage, dict) or set(coverage) != {
+                "relevant",
+                "parsed",
+                "reconciled",
+                "unresolved",
+                "unresolved_notice_ids",
+            }:
+                raise ManifestError(
+                    "polls lane Commission coverage summary is invalid"
+                )
+            for field in ("relevant", "parsed", "reconciled", "unresolved"):
+                _required_count(
+                    coverage[field],
+                    field=f"polls lane Commission coverage {field}",
+                )
+            if coverage["relevant"] != (
+                coverage["parsed"]
+                + coverage["reconciled"]
+                + coverage["unresolved"]
+            ):
+                raise ManifestError(
+                    "polls lane Commission coverage counts do not reconcile"
+                )
+            unresolved_ids = coverage["unresolved_notice_ids"]
+            if (
+                not isinstance(unresolved_ids, list)
+                or any(
+                    not isinstance(notice_id, str) or not notice_id
+                    for notice_id in unresolved_ids
+                )
+                or len(unresolved_ids) != coverage["unresolved"]
+            ):
+                raise ManifestError(
+                    "polls lane unresolved Commission inventory is invalid"
                 )
 
     network = manifest.get("source_network")
