@@ -17,7 +17,7 @@ from candidate_identity import (
 
 ROOT = Path(__file__).resolve().parent
 CURRENT_SELECTED_EVENT_ID = (
-    "23257def4547f9cba8fce5b18e5139ba957343b59598b1b929583d20f08b193d"
+    "24242b449a8a17f11a56a346d772ef1d5758158447189399284755bffef8122c"
 )
 CURRENT_MAIN_CANDIDATE_ORDER = [
     "Bruno Retailleau",
@@ -43,18 +43,18 @@ CURRENT_MAIN_CANDIDATE_ORDER = [
 ]
 CURRENT_BOARD_NAMES = [
     "Marine Le Pen",
-    "Édouard Philippe",
     "Jean-Luc Mélenchon",
-    "François Hollande",
+    "Édouard Philippe",
+    "Raphaël Glucksmann",
+    "Gabriel Attal",
     "Bruno Retailleau",
     "Marine Tondelier",
-    "Fabien Roussel",
-    "Dominique de Villepin",
     "Éric Zemmour",
-    "Nathalie Arthaud",
+    "Fabien Roussel",
+    "Nicolas Dupont-Aignan",
 ]
-CURRENT_BOARD_SCORES = [34.5, 18, 15, 8, 8, 4, 3, 3, 3, 2]
-CURRENT_BOARD_SOURCE_POSITIONS = [10, 6, 3, 4, 8, 5, 2, 7, 11, 1]
+CURRENT_BOARD_SCORES = [35.0, 16.0, 14.0, 10.0, 8.0, 6.0, 3.0, 3.0, 2.0, 2.0]
+CURRENT_BOARD_SOURCE_POSITIONS = [10, 3, 7, 4, 6, 8, 5, 11, 2, 9]
 
 
 
@@ -481,19 +481,19 @@ class PollPackageTests(unittest.TestCase):
             '["Alpha","2026-07-09","2026-07-10",1000]',
         )
 
-    def test_current_data_selects_exact_elabe_package(self):
+    def test_current_data_selects_exact_harris_package(self):
         package = builder.select_featured_polling_package(self.polls)
-        self.assertEqual(package["pollster"], "Elabe")
-        self.assertEqual(package["fieldwork_start"], "2026-07-09")
-        self.assertEqual(package["fieldwork_end"], "2026-07-10")
-        self.assertEqual(package["sample_size"], 1503)
-        self.assertEqual(len(package["events"]), 6)
+        self.assertEqual(package["pollster"], "Harris Interactive")
+        self.assertEqual(package["fieldwork_start"], "2026-08-21")
+        self.assertEqual(package["fieldwork_end"], "2026-08-22")
+        self.assertEqual(package["sample_size"], 1582)
+        self.assertEqual(len(package["events"]), 5)
         self.assertEqual(
             package["selected_event"]["event_id"],
             CURRENT_SELECTED_EVENT_ID,
         )
         self.assertTrue(
-            all(event["pollster"] == "Elabe" for event in package["events"])
+            all(event["pollster"] == "Harris Interactive" for event in package["events"])
         )
 
     def test_ranges_use_only_featured_package_and_missing_is_not_zero(self):
@@ -614,10 +614,10 @@ class FeaturedPollBoardTests(unittest.TestCase):
             board["selection_basis"],
             "featured_package_selected_hypothesis",
         )
-        self.assertEqual(board["pollster"], "Elabe")
-        self.assertEqual(board["fieldwork_start"], "2026-07-09")
-        self.assertEqual(board["fieldwork_end"], "2026-07-10")
-        self.assertEqual(board["sample_size"], 1503)
+        self.assertEqual(board["pollster"], "Harris Interactive")
+        self.assertEqual(board["fieldwork_start"], "2026-08-21")
+        self.assertEqual(board["fieldwork_end"], "2026-08-22")
+        self.assertEqual(board["sample_size"], 1582)
         self.assertEqual(board["round"], "first_round")
         self.assertEqual(
             board["scenario_key"],
@@ -628,7 +628,7 @@ class FeaturedPollBoardTests(unittest.TestCase):
             board["hypothesis_label"],
             self.selected_event["hypothesis"],
         )
-        self.assertEqual(board["package_hypothesis_count"], 6)
+        self.assertEqual(board["package_hypothesis_count"], 5)
         self.assertEqual(
             board["source_urls"],
             self.payload["featured_polling_package"]["source_urls"],
@@ -664,9 +664,9 @@ class FeaturedPollBoardTests(unittest.TestCase):
                 start=1,
             )
         }
-        self.assertEqual(selected["Nicolas Dupont-Aignan"], (9, 1.5))
+        self.assertEqual(selected["Nicolas Dupont-Aignan"], (9, 2.0))
         self.assertNotIn(
-            "Nicolas Dupont-Aignan",
+            "Nathalie Arthaud",
             [row["candidate_name"] for row in rows],
         )
 
@@ -714,11 +714,11 @@ class FeaturedPollBoardTests(unittest.TestCase):
         ]
         self.assertEqual(
             names_at_eight,
-            ["François Hollande", "Bruno Retailleau"],
+            ["Gabriel Attal"],
         )
         self.assertEqual(
             names_at_three,
-            ["Fabien Roussel", "Dominique de Villepin", "Éric Zemmour"],
+            ["Marine Tondelier", "Éric Zemmour"],
         )
 
     def test_candidate_id_is_only_the_final_defensive_tie_break(self):
@@ -764,7 +764,7 @@ class FeaturedPollBoardTests(unittest.TestCase):
             )
             for event in self.package["events"]
         ]
-        self.assertEqual(marine["reported_score"], 34.5)
+        self.assertEqual(marine["reported_score"], 35.0)
         self.assertNotEqual(marine["reported_score"], min(package_scores))
         self.assertNotEqual(marine["reported_score"], max(package_scores))
         self.assertNotEqual(
@@ -893,7 +893,7 @@ class FeaturedPollBoardTests(unittest.TestCase):
             "ISO calendar date",
         )
         self.assert_board_rejected(
-            lambda board: board.__setitem__("fieldwork_start", "2026-07-11"),
+            lambda board: board.__setitem__("fieldwork_start", "2026-08-23"),
             "dates are reversed",
         )
         self.assert_board_rejected(
@@ -1888,7 +1888,7 @@ class DeterminismAndSafetyTests(unittest.TestCase):
         )
         self.assertEqual(
             payload["featured_polling_package"]["pollster"],
-            "Elabe",
+            "Harris Interactive",
         )
         serialized = json.dumps(payload)
         self.assertNotIn('"story_clusters"', serialized)
@@ -2134,3 +2134,4 @@ class AgendaProfileContractTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
