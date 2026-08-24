@@ -126,6 +126,35 @@ class RecentChangesTests(unittest.TestCase):
         self.assertIn("contains 6 published hypotheses", elabe[0]["headline"])
         self.assertNotIn("poll events", elabe[0]["headline"].lower())
 
+    def test_same_pollster_same_hypothesis_count_has_unique_wave_headlines(self):
+        source_wave = [
+            copy.deepcopy(event)
+            for event in self.polls
+            if event.get("pollster") == "Harris Interactive"
+            and event.get("fieldwork_end") == "2026-08-22"
+        ]
+        self.assertEqual(len(source_wave), 5)
+
+        older_wave = copy.deepcopy(source_wave)
+        for index, event in enumerate(older_wave):
+            event["fieldwork_start"] = "2026-08-18"
+            event["fieldwork_end"] = "2026-08-19"
+            event["publication_date"] = None
+            event["event_id"] = f"regression-older-harris-{index}"
+
+        entries = poll_entries(
+            source_wave + older_wave,
+            {},
+            FIXED_CLOCK,
+            Counter(),
+        )
+
+        self.assertEqual(len(entries), 2)
+        headlines = [normalized_title(item["headline"]) for item in entries]
+        self.assertEqual(len(headlines), len(set(headlines)))
+        self.assertTrue(any("21 Aug 2026–22 Aug 2026" in item["headline"] for item in entries))
+        self.assertTrue(any("18 Aug 2026–19 Aug 2026" in item["headline"] for item in entries))
+
     def test_detection_time_never_controls_ordering(self):
         first = self.compose()
         previous = {item["id"]: copy.deepcopy(item) for item in first["items"]}

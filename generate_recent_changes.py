@@ -1054,7 +1054,9 @@ def poll_entries(
                 "id": item_id,
                 "category": "polling",
                 "headline": (
-                    f"{pollster} first-round poll contains {hypothesis_count} published "
+                    f"{pollster} first-round poll, fieldwork "
+                    f"{display_date(fieldwork_start)}–{display_date(fieldwork_end)}, "
+                    f"contains {hypothesis_count} published "
                     + ("hypothesis." if hypothesis_count == 1 else "hypotheses.")
                 ),
                 "summary": summary,
