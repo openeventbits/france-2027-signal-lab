@@ -25,6 +25,7 @@ from commission_notice_discovery import (
     load_registry,
     registry_event_notices,
 )
+from commission_notice_coverage import reconcile_commission_notices
 from poll_contract import (
     FIRST_ROUND,
     PollContractError,
@@ -222,6 +223,45 @@ def candidate_name(value: object) -> str:
     name = str(value).strip()
     name = re.sub(r"\s*\([^)]*\)\s*$", "", name)
     return re.sub(r"\s+", " ", name).strip()
+
+
+OFFICIAL_POLL_METADATA_CORRECTIONS: dict[
+    tuple[str, str, str, int | None, str],
+    tuple[str, str],
+] = {
+    # Commission notice 10225 reports the complete Verian fieldwork window.
+    (
+        "verian",
+        "2026-07-09",
+        "2026-07-10",
+        1047,
+        (
+            "https://lhemicycle.com/2026/07/10/"
+            "jordan-bardella-toujours-le-favori-pour-representer-le-rn/"
+        ),
+    ): ("2026-07-08", "2026-07-10"),
+}
+
+
+def apply_official_poll_metadata_correction(
+    pollster: str,
+    fieldwork_start: str,
+    fieldwork_end: str,
+    sample_size: int | None,
+    source_url: str,
+) -> tuple[str, str]:
+    """Correct reviewed source metadata before deterministic event identity."""
+    key = (
+        normalize(pollster),
+        fieldwork_start,
+        fieldwork_end,
+        sample_size,
+        source_url.strip(),
+    )
+    return OFFICIAL_POLL_METADATA_CORRECTIONS.get(
+        key,
+        (fieldwork_start, fieldwork_end),
+    )
 
 
 OFFICIAL_POLL_SOURCE_OVERRIDES: dict[
@@ -546,6 +586,18 @@ def parse_wikipedia_first_round_html(
             source_url = (
                 cell_link(row.iloc[roles["pollster"]]) or SOURCE_URL
             )
+            sample_size = parse_sample_size(
+                cell_text(row.iloc[roles["sample_size"]])
+            )
+            fieldwork_start, fieldwork_end = (
+                apply_official_poll_metadata_correction(
+                    pollster,
+                    fieldwork_start,
+                    fieldwork_end,
+                    sample_size,
+                    source_url,
+                )
+            )
             names = [candidate["name"] for candidate in candidates]
             hypothesis = "First round — " + ", ".join(names)
 
@@ -563,9 +615,7 @@ def parse_wikipedia_first_round_html(
                     "publication_date": None,
                     "fieldwork_start": fieldwork_start,
                     "fieldwork_end": fieldwork_end,
-                    "sample_size": parse_sample_size(
-                        cell_text(row.iloc[roles["sample_size"]])
-                    ),
+                    "sample_size": sample_size,
                     "round": ROUND,
                     "hypothesis": hypothesis,
                     "scenario_key": make_scenario_key(names),
@@ -1742,6 +1792,10 @@ def main() -> None:
     apply_official_poll_sources(events)
     validate_merged_official_waves(events, parsed_notices)
     validate_poll_events(events)
+    coverage_counts = reconcile_commission_notices(
+        discovery.registry,
+        events,
+    )
     second_round_events, second_round_audit = fetch_second_round_events()
     closest_derivation = derive_closest_tested_runoff(second_round_events)
 
@@ -1804,6 +1858,13 @@ def main() -> None:
     )
     print(f"Net new official events: {new_events}")
     print(f"Final merged events: {len(events)}")
+    print(
+        "Commission coverage: "
+        f"{coverage_counts['relevant']} relevant "
+        f"({coverage_counts['parsed']} parsed, "
+        f"{coverage_counts['reconciled']} reconciled, "
+        f"{coverage_counts['unresolved']} unresolved)"
+    )
     print(f"Wrote merged first-round events to {output}")
 
     if events:

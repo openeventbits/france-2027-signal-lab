@@ -180,6 +180,57 @@ class EligibilityTests(unittest.TestCase):
 
 
 class RegistryDiscoveryTests(unittest.TestCase):
+    def test_pre_pass_b_registry_validates_without_mutating_legacy_coverage(
+        self,
+    ):
+        payload = load_registry("commission_notice_registry.json")
+        relevant = [
+            notice
+            for notice in payload["notices"]
+            if notice["classification"] in {"eligible", "unsupported"}
+        ]
+        for notice in relevant:
+            notice.pop("coverage", None)
+
+        validate_registry(payload)
+
+        self.assertTrue(relevant)
+        self.assertTrue(all("coverage" not in notice for notice in relevant))
+
+    def test_malformed_present_coverage_still_fails_registry_validation(self):
+        payload = load_registry("commission_notice_registry.json")
+        relevant = next(
+            notice
+            for notice in payload["notices"]
+            if notice["classification"] in {"eligible", "unsupported"}
+        )
+        relevant["coverage"] = {"state": "unresolved"}
+
+        with self.assertRaisesRegex(
+            CommissionNoticeError,
+            "coverage has an unexpected contract",
+        ):
+            validate_registry(payload)
+
+    def test_irrelevant_notice_cannot_carry_coverage(self):
+        payload = load_registry("commission_notice_registry.json")
+        irrelevant = next(
+            notice
+            for notice in payload["notices"]
+            if notice["classification"] not in {"eligible", "unsupported"}
+        )
+        irrelevant["coverage"] = {
+            "state": "unresolved",
+            "matched_event_ids": [],
+            "method": "not_yet_reconciled",
+        }
+
+        with self.assertRaisesRegex(
+            CommissionNoticeError,
+            "is not relevant and must not have coverage state",
+        ):
+            validate_registry(payload)
+
     def setUp(self):
         self.eligible_url = INDEX_URL + "medias/fichiers/add/2228"
         self.excluded_url = INDEX_URL + "medias/fichiers/add/2241"

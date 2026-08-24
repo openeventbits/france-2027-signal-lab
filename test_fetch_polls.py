@@ -8,6 +8,7 @@ from fetch_polls import (
     canonical_matchup_candidate,
     canonical_pollster_name,
     discover_first_round_tables,
+    parse_fieldwork,
     parse_wikipedia_first_round_html,
     validate_second_round_event,
 )
@@ -25,6 +26,7 @@ def polling_table(
     pollster="Ifop",
     dates="1–2 Jul 2026",
     sample="1,000",
+    source="https://example.test/poll",
     candidates=(
         ("Edouard Philippe", "30"),
         ("Eric Zemmour", "30"),
@@ -40,7 +42,7 @@ def polling_table(
           {headers}
         </tr></thead>
         <tbody><tr>
-          <td><a href="https://example.test/poll">{pollster}</a></td>
+          <td><a href="{source}">{pollster}</a></td>
           <td>{dates}</td><td>{sample}</td>{scores}
         </tr></tbody>
       </table>
@@ -107,6 +109,109 @@ class CandidateNameEvidenceTests(unittest.TestCase):
 
 
 class SemanticFirstRoundDiscoveryTests(unittest.TestCase):
+    VERIAN_LHEMICYCLE_URL = (
+        "https://lhemicycle.com/2026/07/10/"
+        "jordan-bardella-toujours-le-favori-pour-representer-le-rn/"
+    )
+
+    def test_reviewed_verian_wave_is_corrected_before_event_identity(self):
+        events, skipped = parse_wikipedia_first_round_html(
+            first_round_page(
+                polling_table(
+                    pollster="Verian",
+                    dates="9–10 Jul 2026",
+                    sample="1,047",
+                    source=self.VERIAN_LHEMICYCLE_URL,
+                )
+            )
+        )
+
+        self.assertEqual(skipped, [])
+        self.assertEqual(len(events), 1)
+        event = events[0]
+        self.assertEqual(event["fieldwork_start"], "2026-07-08")
+        self.assertEqual(event["fieldwork_end"], "2026-07-10")
+        self.assertEqual(
+            event["event_id"],
+            make_event_id(
+                "Verian",
+                "2026-07-08",
+                "2026-07-10",
+                event["hypothesis"],
+                self.VERIAN_LHEMICYCLE_URL,
+            ),
+        )
+        self.assertNotEqual(
+            event["event_id"],
+            make_event_id(
+                "Verian",
+                "2026-07-09",
+                "2026-07-10",
+                event["hypothesis"],
+                self.VERIAN_LHEMICYCLE_URL,
+            ),
+        )
+
+    def test_verian_metadata_correction_rejects_near_matches(self):
+        cases = (
+            (
+                {
+                    "pollster": "Verian",
+                    "dates": "9–10 Jul 2026",
+                    "sample": "1,048",
+                    "source": self.VERIAN_LHEMICYCLE_URL,
+                },
+                ("2026-07-09", "2026-07-10"),
+            ),
+            (
+                {
+                    "pollster": "Verian",
+                    "dates": "9–10 Jul 2026",
+                    "sample": "1,047",
+                    "source": "https://example.test/different-verian-wave",
+                },
+                ("2026-07-09", "2026-07-10"),
+            ),
+            (
+                {
+                    "pollster": "Verian France",
+                    "dates": "9–10 Jul 2026",
+                    "sample": "1,047",
+                    "source": self.VERIAN_LHEMICYCLE_URL,
+                },
+                ("2026-07-09", "2026-07-10"),
+            ),
+            (
+                {
+                    "pollster": "Verian",
+                    "dates": "9–11 Jul 2026",
+                    "sample": "1,047",
+                    "source": self.VERIAN_LHEMICYCLE_URL,
+                },
+                ("2026-07-09", "2026-07-11"),
+            ),
+        )
+        for attributes, expected_dates in cases:
+            with self.subTest(attributes=attributes):
+                events, _ = parse_wikipedia_first_round_html(
+                    first_round_page(
+                        polling_table(**attributes)
+                    )
+                )
+                self.assertEqual(
+                    (
+                        events[0]["fieldwork_start"],
+                        events[0]["fieldwork_end"],
+                    ),
+                    expected_dates,
+                )
+
+    def test_parse_fieldwork_keeps_source_reported_verian_window(self):
+        self.assertEqual(
+            parse_fieldwork("9–10 Jul 2026"),
+            ("2026-07-09", "2026-07-10"),
+        )
+
     def test_reordered_tables_and_irrelevant_prefix_do_not_change_eligibility(self):
         irrelevant = """
           <table><tr><th>Year</th><th>Winner</th></tr>

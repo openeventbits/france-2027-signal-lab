@@ -23,6 +23,46 @@ def write_json(root, name, payload):
     )
 
 
+def commission_registry(*notices):
+    return {
+        "schema_version": "1.0",
+        "source": "Commission des sondages",
+        "index_url": "https://www.commission-des-sondages.fr/notices/",
+        "notices": list(notices),
+    }
+
+
+def commission_notice(*, classification="unsupported", coverage=None):
+    payload = {
+        "notice_id": "commission:20000",
+        "listed_date": "2026-07-03",
+        "category": "Pres",
+        "title": "20000 Pres IV IFOP 3 juillet",
+        "institute": "Ifop",
+        "commissioner": None,
+        "listed_url": (
+            "https://www.commission-des-sondages.fr/notices/"
+            "medias/fichiers/add/20000"
+        ),
+        "resolved_url": (
+            "https://www.commission-des-sondages.fr/notices/"
+            "medias/fichiers/add/20000"
+        ),
+        "classification": classification,
+        "classification_reason": "test classification",
+        "first_discovered_at": "2026-07-03T00:00:00Z",
+        "content_sha256": None,
+        "confirmed_rounds": (
+            ["first_round"]
+            if classification in {"eligible", "unsupported"}
+            else []
+        ),
+    }
+    if coverage is not None:
+        payload["coverage"] = coverage
+    return payload
+
+
 def candidate_signals_payload():
     return json.loads(
         (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
@@ -298,6 +338,7 @@ def complete_inputs(root):
             {"fieldwork_end": "2026-07-10"},
         ],
     )
+    write_json(root, "commission_notice_registry.json", commission_registry())
     write_json(
         root,
         "second_round_polls.json",
@@ -1920,6 +1961,96 @@ class PublicationManifestTests(unittest.TestCase):
         self.assertEqual(lane["timestamp_status"], "unknown")
         self.assertNotIn("generated_at", lane)
         self.assertNotIn("last_success_at", lane)
+
+    def test_poll_coverage_warns_only_for_unresolved_relevant_notices(self):
+        matched = {
+            "matched_event_ids": ["a" * 64],
+            "method": "test_method",
+        }
+        cases = (
+            (
+                commission_notice(
+                    classification="eligible",
+                    coverage={"state": "parsed", **matched},
+                ),
+                False,
+            ),
+            (
+                commission_notice(
+                    coverage={"state": "reconciled", **matched},
+                ),
+                False,
+            ),
+            (
+                commission_notice(
+                    coverage={
+                        "state": "unresolved",
+                        "matched_event_ids": [],
+                        "method": "no_exact_published_wave",
+                    },
+                ),
+                True,
+            ),
+            (
+                commission_notice(
+                    classification="excluded_non_voting",
+                ),
+                False,
+            ),
+        )
+        for item, expected_warning in cases:
+            with self.subTest(
+                classification=item["classification"],
+                coverage=item.get("coverage"),
+            ):
+                write_json(
+                    self.root,
+                    "commission_notice_registry.json",
+                    commission_registry(item),
+                )
+                manifest = self.build()
+                lane = manifest["lanes"]["polls"]
+                has_warning = any(
+                    "unresolved relevant Commission notice" in warning
+                    for warning in lane["warnings"]
+                )
+                self.assertEqual(has_warning, expected_warning)
+                self.assertEqual(
+                    any(
+                        "unresolved relevant Commission notice" in warning
+                        for warning in manifest["warnings"]
+                    ),
+                    expected_warning,
+                )
+
+    def test_legacy_missing_coverage_keeps_polls_lane_valid_and_warns(self):
+        item = commission_notice()
+        write_json(
+            self.root,
+            "commission_notice_registry.json",
+            commission_registry(item),
+        )
+
+        manifest = self.build()
+        lane = manifest["lanes"]["polls"]
+
+        self.assertTrue(lane["valid"])
+        self.assertEqual(
+            lane["commission_notice_coverage"],
+            {
+                "relevant": 1,
+                "parsed": 0,
+                "reconciled": 0,
+                "unresolved": 1,
+                "unresolved_notice_ids": [item["notice_id"]],
+            },
+        )
+        self.assertTrue(
+            any(
+                "unresolved relevant Commission notice" in warning
+                for warning in lane["warnings"]
+            )
+        )
 
     def test_no_cross_lane_timestamp_inference(self):
         manifest = self.build()

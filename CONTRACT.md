@@ -21,6 +21,21 @@
    parsing numbers (`"34[a]"` → `34`, `"12,5 %"` → `12.5`, `"–"` → missing). If a cell
    can't be parsed cleanly and unambiguously, the field is omitted rather than guessed.
 
+### Commission notice coverage
+
+Every Commission des sondages notice already classified as relevant presidential
+voting-intention evidence has exactly one corpus-coverage state:
+
+- `parsed`: a published event carries the notice's direct `official_notice_id` provenance;
+- `reconciled`: an otherwise unparsed notice has one deterministic published-wave match;
+- `unresolved`: neither condition is satisfied, including ambiguous matches.
+
+Only `unresolved` relevant notices produce poll-coverage warnings. Parser or document
+support remains a separate engineering condition. Reconciliation requires exact normalized
+pollster identity, exact fieldwork start and end dates, and round compatibility; optional
+sample, commissioner, and publication metadata may only disambiguate multiple exact-window
+waves. Irrelevant notices never receive a coverage state.
+
 ## Build rules (non-negotiable)
 
 5. One vertical slice at a time: one widget or capability per increment, smallest
