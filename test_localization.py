@@ -161,6 +161,7 @@ class LocalizationFoundationTests(unittest.TestCase):
             "const fallbackMessageFor =",
             "const applyTextTranslations =",
             "const applyAttributeTranslations =",
+            "const applyTooltipTranslations =",
             "const applyStaticTranslations =",
         ):
             self.assertIn(declaration, RUNTIME_TEXT)
@@ -185,7 +186,7 @@ class LocalizationFoundationTests(unittest.TestCase):
                 "Source-linked signals from the French presidential race."
             ),
             "dashboard.next_milestone": "NEXT MILESTONE",
-            "dashboard.latest_poll": "LATEST POLL",
+            "dashboard.latest_fieldwork": "LATEST FIELDWORK",
             "dashboard.poll_coverage": "POLL COVERAGE",
             "dashboard.source_network": "SOURCE NETWORK",
         }
@@ -201,6 +202,25 @@ class LocalizationFoundationTests(unittest.TestCase):
                 INDEX_TEXT.count(english),
                 1,
             )
+
+    def test_poll_semantics_copy_is_catalogued(self):
+        messages = catalog_messages()
+        self.assertEqual(
+            messages["dashboard.vs_prior_match"],
+            "VS PRIOR MATCH",
+        )
+        self.assertEqual(
+            messages["dashboard.vs_prior_match_explanation"],
+            "Nearest earlier poll from the same pollster testing the same candidate field.",
+        )
+        self.assertEqual(
+            messages["dashboard.latest_fieldwork_explanation"],
+            "Maximum fieldwork end date across published first-round poll events; all pollsters tied on that date are shown.",
+        )
+        self.assertIn(
+            'data-i18n-fr27-tooltip="dashboard.latest_fieldwork_explanation"',
+            INDEX_TEXT,
+        )
 
 
     def test_javascript_generated_headings_use_localization_fallbacks(self):

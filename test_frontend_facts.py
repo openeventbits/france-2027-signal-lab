@@ -37,6 +37,36 @@ def run_comparison_script(index_source, expression):
     return json.loads(result.stdout)
 
 
+def run_poll_semantics_script(index_source, expression):
+    node = shutil.which("node")
+    if node is None:
+        raise unittest.SkipTest("Node.js is required for frontend fact tests")
+    functions = (
+        function_body(
+            index_source,
+            "deriveLatestFieldworkSummary",
+            "derivePollCoverage",
+        )
+        + function_body(
+            index_source,
+            "candidateScore",
+            "formatComparableDelta",
+        )
+        + function_body(
+            index_source,
+            "raceComparableCandidateCount",
+            "rankRacePollPackages",
+        )
+    )
+    result = subprocess.run(
+        [node, "-e", functions + "\nconsole.log(JSON.stringify(" + expression + "));"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return json.loads(result.stdout)
+
+
 class FrontendPublicationFactsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -445,6 +475,80 @@ class FrontendPublicationFactsTests(unittest.TestCase):
                 re.DOTALL,
             ),
         )
+
+    def test_latest_fieldwork_keeps_tied_pollster_with_weaker_comparison_coverage(self):
+        fixtures = """
+          (() => {
+            const currentA = {
+              event_id: "current-a", pollster: "Pollster A",
+              round: "first_round", fieldwork_end: "2026-07-10",
+              scenario_key: "same", candidates: [
+                {name: "Candidate One", score: 20},
+                {name: "Candidate Two", score: 30}
+              ]
+            };
+            const currentB = {
+              event_id: "current-b", pollster: "Pollster B",
+              round: "first_round", fieldwork_end: "2026-07-10",
+              scenario_key: "same", candidates: [
+                {name: "Candidate One", score: 21},
+                {name: "Candidate Two", score: 29}
+              ]
+            };
+            const priorA = {
+              event_id: "prior-a", pollster: "Pollster A",
+              round: "first_round", fieldwork_end: "2026-07-01",
+              scenario_key: "same", candidates: [
+                {name: "Candidate One", score: 18},
+                {name: "Candidate Two", score: 32}
+              ]
+            };
+            const events = [currentA, currentB, priorA];
+            const summary = deriveLatestFieldworkSummary(events);
+            return {
+              summary,
+              formattedDate: formatLatestFieldworkDate(summary.fieldworkEnd),
+              coverageA: raceComparableCandidateCount(currentA, events),
+              coverageB: raceComparableCandidateCount(currentB, events)
+            };
+          })()
+        """
+        result = run_poll_semantics_script(self.index, fixtures)
+        self.assertEqual(result["coverageA"], 2)
+        self.assertEqual(result["coverageB"], 0)
+        self.assertEqual(result["formattedDate"], "10 JUL")
+        self.assertEqual(
+            result["summary"],
+            {
+                "fieldworkEnd": "2026-07-10",
+                "pollsters": ["Pollster A", "Pollster B"],
+            },
+        )
+
+    def test_context_summary_is_independent_of_ranked_latest_package(self):
+        renderer = function_body(
+            self.index,
+            "renderContextStrip",
+            "validateNewsWirePayload",
+        )
+        self.assertIn(
+            "deriveLatestFieldworkSummary(\n"
+            "          dashboardState.polls.events\n"
+            "        )",
+            renderer,
+        )
+        self.assertNotIn("latestPackage", renderer)
+
+    def test_poll_semantic_labels_and_comparison_tooltip_are_updated(self):
+        self.assertIn("LATEST FIELDWORK", self.index)
+        self.assertIn("VS PRIOR MATCH", self.index)
+        self.assertIn(
+            "Nearest earlier poll from the same pollster testing the same candidate field.",
+            self.index,
+        )
+        self.assertNotIn("CHANGE VS PREV", self.index.upper())
+        self.assertNotIn('title="Nearest earlier poll', self.index)
+        self.assertIn('<div class="race-column-head">', self.index)
 
     def test_selected_event_is_anchor_and_cross_pollster_is_unavailable(self):
         fixtures = """

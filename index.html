@@ -2347,7 +2347,7 @@
     }
 
     .race-glance .bars::before {
-      content: "CHANGE VS PREV";
+      content: attr(data-comparison-label);
       display: block;
       height: 13px;
       padding-top: 2px;
@@ -7648,9 +7648,9 @@
           </svg>
         </span>
         <div class="context-copy">
-          <div class="context-label" data-i18n="dashboard.latest_poll">LATEST POLL</div>
-          <div class="context-value" id="context-poll-value" aria-label="Loading latest poll"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:112px;--fr27-skeleton-height:12px"></span></div>
-          <div class="context-meta" id="context-poll-meta" data-fr27-tooltip="The latest published first-round poll event; fieldwork dates describe when respondents were surveyed." data-fr27-tooltip-affordance="term" tabindex="0">Latest first-round event</div>
+          <div class="context-label" data-i18n="dashboard.latest_fieldwork">LATEST FIELDWORK</div>
+          <div class="context-value" id="context-poll-value" aria-label="Loading latest fieldwork"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:112px;--fr27-skeleton-height:12px"></span></div>
+          <div class="context-meta" id="context-poll-meta" data-i18n="dashboard.loading" data-i18n-fr27-tooltip="dashboard.latest_fieldwork_explanation" data-fr27-tooltip="Maximum fieldwork end date across published first-round poll events; all pollsters tied on that date are shown." data-fr27-tooltip-affordance="term" tabindex="0">Loading…</div>
         </div>
       </article>
 
@@ -9265,6 +9265,50 @@
       ].join("-");
     }
 
+    function deriveLatestFieldworkSummary(events) {
+      if (!Array.isArray(events)) return null;
+
+      const eligible = events.filter(event =>
+        event &&
+        event.round === "first_round" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(event.fieldwork_end) &&
+        typeof event.pollster === "string" &&
+        event.pollster.trim()
+      );
+
+      if (!eligible.length) return null;
+
+      const fieldworkEnd = eligible.reduce(
+        (latest, event) =>
+          event.fieldwork_end > latest
+            ? event.fieldwork_end
+            : latest,
+        eligible[0].fieldwork_end
+      );
+      const pollsters = [...new Set(
+        eligible
+          .filter(event => event.fieldwork_end === fieldworkEnd)
+          .map(event => event.pollster.trim())
+      )].sort((a, b) =>
+        a.localeCompare(b, "fr", { sensitivity: "base" }) ||
+        a.localeCompare(b, "fr")
+      );
+
+      return { fieldworkEnd, pollsters };
+    }
+
+    function formatLatestFieldworkDate(value) {
+      const timestamp = Date.parse(`${value}T00:00:00Z`);
+      if (!Number.isFinite(timestamp)) return "";
+
+      const localeTag = globalThis.FR27I18N?.localeTag || "en-GB";
+      return new Intl.DateTimeFormat(localeTag, {
+        day: "numeric",
+        month: "short",
+        timeZone: "UTC"
+      }).format(new Date(timestamp)).toLocaleUpperCase(localeTag);
+    }
+
     function derivePollCoverage(events) {
       const dated = events.map(event => ({
         event,
@@ -9433,22 +9477,22 @@
       }
 
       if (dashboardState.polls) {
-        const latest = dashboardState.polls.latestPackage[0];
-        const latestPublication = latest.publication_date
-          ? formatDate(latest.publication_date)
-          : "";
-        const latestSampleValue = Number(latest.sample_size);
-        const latestSample =
-          Number.isFinite(latestSampleValue) && latestSampleValue > 0
-            ? " · n=" + latestSampleValue.toLocaleString("en-GB")
-            : "";
-
-        renderResolvedText(
-          "#context-poll-value",
-          latest.pollster + (latestPublication ? " · " + latestPublication : "")
+        const latestFieldwork = deriveLatestFieldworkSummary(
+          dashboardState.polls.events
         );
-        $("#context-poll-meta").textContent =
-          "Fieldwork " + pollFieldworkLabel(latest) + latestSample;
+
+        renderResolvedText("#context-poll-value", latestFieldwork
+          ? formatLatestFieldworkDate(latestFieldwork.fieldworkEnd)
+          : translate(
+              "dashboard.fieldwork_date_unavailable",
+              "Fieldwork date unavailable"
+            ));
+        $("#context-poll-meta").textContent = latestFieldwork
+          ? latestFieldwork.pollsters.join(" · ")
+          : translate(
+              "dashboard.polling_unavailable",
+              "Polling unavailable"
+            );
 
         const coverage = derivePollCoverage(dashboardState.polls.events);
 
@@ -9467,8 +9511,10 @@
       } else {
         const pollError = dashboardState.loadState.polls === "error";
         if (pollError) renderResolvedText("#context-poll-value", "Polling unavailable");
-        else renderInlineSkeleton("#context-poll-value", "Loading latest poll", "112px", "12px");
-        $("#context-poll-meta").textContent = "Latest first-round event";
+        else renderInlineSkeleton("#context-poll-value", "Loading latest fieldwork", "112px", "12px");
+        $("#context-poll-meta").textContent = pollError
+          ? translate("dashboard.polling_unavailable", "Polling unavailable")
+          : translate("dashboard.loading", "Loading…");
         if (pollError) renderResolvedText("#context-coverage-value", "Polling unavailable");
         else renderInlineSkeleton("#context-coverage-value", "Loading poll coverage", "96px", "12px");
         $("#context-coverage-meta").textContent = "First-round polling coverage";
@@ -11867,6 +11913,16 @@
       const bars = $("#bars");
       bars.scrollTop = 0;
 
+      const comparisonLabel = translate(
+        "dashboard.vs_prior_match",
+        "VS PRIOR MATCH"
+      );
+      const comparisonExplanation = translate(
+        "dashboard.vs_prior_match_explanation",
+        "Nearest earlier poll from the same pollster testing the same candidate field."
+      );
+      bars.dataset.comparisonLabel = comparisonLabel;
+
       let hasComparableChange = false;
 
       const rows = ordered.map(candidate => {
@@ -11945,11 +12001,16 @@
         hasComparableChange ? "available" : "unavailable";
 
       bars.innerHTML = `
-        <div class="race-column-head" aria-hidden="true">
+        <div class="race-column-head">
           <span class="race-column-head-candidate">Candidate</span>
           <span class="race-column-head-bar">Reported score</span>
           <span class="race-column-head-result">Result</span>
-          <span class="race-column-head-change">Change vs prev.</span>
+          <span
+            class="race-column-head-change"
+            data-fr27-tooltip="${escapeAttribute(comparisonExplanation)}"
+            data-fr27-tooltip-affordance="term"
+            tabindex="0"
+          >${escapeHtml(comparisonLabel)}</span>
         </div>
         ${rows}
       `;
