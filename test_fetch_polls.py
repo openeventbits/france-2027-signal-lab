@@ -8,6 +8,7 @@ from fetch_polls import (
     canonical_matchup_candidate,
     canonical_pollster_name,
     discover_first_round_tables,
+    merge_previous_first_round_events,
     parse_fieldwork,
     parse_wikipedia_first_round_html,
     validate_second_round_event,
@@ -205,6 +206,130 @@ class SemanticFirstRoundDiscoveryTests(unittest.TestCase):
                     ),
                     expected_dates,
                 )
+
+
+    def test_missing_previous_wave_is_retained(self):
+        fresh, _ = parse_wikipedia_first_round_html(
+            first_round_page(
+                polling_table(
+                    pollster="Ifop",
+                    dates="18–19 Aug 2026",
+                    source="https://example.test/current-wave",
+                )
+            )
+        )
+        previous, _ = parse_wikipedia_first_round_html(
+            first_round_page(
+                polling_table(
+                    pollster="Harris Interactive",
+                    dates="21–22 Aug 2026",
+                    source="https://example.test/disappeared-wave",
+                )
+            )
+        )
+
+        merged, retained_events, retained_waves = (
+            merge_previous_first_round_events(fresh, previous)
+        )
+
+        self.assertEqual(retained_events, 1)
+        self.assertEqual(retained_waves, 1)
+        self.assertEqual(len(merged), 2)
+        self.assertEqual(
+            (merged[0]["fieldwork_start"], merged[0]["fieldwork_end"]),
+            ("2026-08-21", "2026-08-22"),
+        )
+
+    def test_fresh_wave_is_authoritative_over_previous_wave(self):
+        fresh, _ = parse_wikipedia_first_round_html(
+            first_round_page(
+                polling_table(
+                    pollster="Harris Interactive",
+                    dates="21–22 Aug 2026",
+                    source="https://example.test/fresh-wave",
+                    candidates=(
+                        ("Edouard Philippe", "35"),
+                        ("Eric Zemmour", "25"),
+                        ("Marine Le Pen", "40"),
+                    ),
+                )
+            )
+        )
+        previous, _ = parse_wikipedia_first_round_html(
+            first_round_page(
+                polling_table(
+                    pollster="Harris Interactive",
+                    dates="21–22 Aug 2026",
+                    source="https://example.test/previous-wave",
+                )
+            )
+        )
+
+        merged, retained_events, retained_waves = (
+            merge_previous_first_round_events(fresh, previous)
+        )
+
+        self.assertEqual(merged, fresh)
+        self.assertEqual(retained_events, 0)
+        self.assertEqual(retained_waves, 0)
+
+    def test_reviewed_metadata_correction_drops_obsolete_previous_identity(self):
+        fresh, _ = parse_wikipedia_first_round_html(
+            first_round_page(
+                polling_table(
+                    pollster="Verian",
+                    dates="9–10 Jul 2026",
+                    sample="1,047",
+                    source=self.VERIAN_LHEMICYCLE_URL,
+                )
+            )
+        )
+        obsolete = copy.deepcopy(fresh[0])
+        obsolete["fieldwork_start"] = "2026-07-09"
+        obsolete["event_id"] = make_event_id(
+            obsolete["pollster"],
+            obsolete["fieldwork_start"],
+            obsolete["fieldwork_end"],
+            obsolete["hypothesis"],
+            obsolete["source_url"],
+        )
+
+        merged, retained_events, retained_waves = (
+            merge_previous_first_round_events(fresh, [obsolete])
+        )
+
+        self.assertEqual(merged, fresh)
+        self.assertEqual(retained_events, 0)
+        self.assertEqual(retained_waves, 0)
+        self.assertEqual(merged[0]["fieldwork_start"], "2026-07-08")
+
+    def test_missing_reviewed_corrected_wave_fails_closed(self):
+        corrected, _ = parse_wikipedia_first_round_html(
+            first_round_page(
+                polling_table(
+                    pollster="Verian",
+                    dates="9–10 Jul 2026",
+                    sample="1,047",
+                    source=self.VERIAN_LHEMICYCLE_URL,
+                )
+            )
+        )
+        obsolete = copy.deepcopy(corrected[0])
+        obsolete["fieldwork_start"] = "2026-07-09"
+        obsolete["event_id"] = make_event_id(
+            obsolete["pollster"],
+            obsolete["fieldwork_start"],
+            obsolete["fieldwork_end"],
+            obsolete["hypothesis"],
+            obsolete["source_url"],
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "reviewed corrected poll wave missing",
+        ):
+            merge_previous_first_round_events([], [obsolete])
+
 
     def test_parse_fieldwork_keeps_source_reported_verian_window(self):
         self.assertEqual(

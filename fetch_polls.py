@@ -1673,6 +1673,85 @@ def merge_events(
     )
 
 
+def _reviewed_correction_target_wave(
+    event: dict,
+) -> tuple[str, str, str] | None:
+    key = (
+        normalize(str(event.get("pollster", ""))),
+        str(event.get("fieldwork_start", "")),
+        str(event.get("fieldwork_end", "")),
+        event.get("sample_size"),
+        str(event.get("source_url", "")).strip(),
+    )
+    corrected_dates = OFFICIAL_POLL_METADATA_CORRECTIONS.get(key)
+    if corrected_dates is None:
+        return None
+    return (
+        normalize(str(event.get("pollster", ""))),
+        corrected_dates[0],
+        corrected_dates[1],
+    )
+
+
+def merge_previous_first_round_events(
+    fresh_events: list[dict],
+    previous_events: list[dict],
+) -> tuple[list[dict], int, int]:
+    """Retain validated missing waves without reviving reviewed bad metadata."""
+    if previous_events:
+        validate_poll_events(previous_events)
+
+    fresh_wave_keys = {poll_wave_key(event) for event in fresh_events}
+    previous_wave_keys = {
+        poll_wave_key(event) for event in previous_events
+    }
+
+    retained: list[dict] = []
+    retained_wave_keys: set[tuple[str, str, str]] = set()
+
+    for event in previous_events:
+        correction_target = _reviewed_correction_target_wave(event)
+        if correction_target is not None:
+            if (
+                correction_target not in fresh_wave_keys
+                and correction_target not in previous_wave_keys
+            ):
+                raise ValueError(
+                    "reviewed corrected poll wave missing: "
+                    f"{correction_target}"
+                )
+            continue
+
+        wave_key = poll_wave_key(event)
+        if wave_key in fresh_wave_keys:
+            continue
+
+        retained.append(event)
+        retained_wave_keys.add(wave_key)
+
+    events = list(fresh_events)
+    events.extend(retained)
+    events.sort(
+        key=lambda event: (
+            -int(event["fieldwork_end"].replace("-", "")),
+            -int(event["fieldwork_start"].replace("-", "")),
+            normalize(event["pollster"]),
+            event["scenario_key"],
+        ),
+    )
+
+    if events:
+        validate_poll_events(events)
+
+    logical_keys = [logical_key(event) for event in events]
+    if len(logical_keys) != len(set(logical_keys)):
+        raise ValueError(
+            "historical persistence produced duplicate logical poll identities"
+        )
+
+    return events, len(retained), len(retained_wave_keys)
+
+
 def validate_merged_official_waves(
     events: list[dict],
     notices: list[dict],
@@ -1713,6 +1792,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--closest-runoff-output", default="closest_tested_runoff.json"
+    )
+    parser.add_argument(
+        "--previous-first-round",
+        help=(
+            "previous validated first-round corpus used only to retain "
+            "temporarily missing historical waves"
+        ),
     )
     parser.add_argument(
         "--commission-registry",
@@ -1789,6 +1875,26 @@ def main() -> None:
     events, exact_overlaps, suppressed_wikipedia_events, new_events = merge_events(
         wikipedia_events, official_events
     )
+
+    retained_events = 0
+    retained_waves = 0
+    if args.previous_first_round:
+        previous_path = Path(args.previous_first_round)
+        try:
+            previous_events = json.loads(
+                previous_path.read_text(encoding="utf-8")
+            )
+            events, retained_events, retained_waves = (
+                merge_previous_first_round_events(
+                    events,
+                    previous_events,
+                )
+            )
+        except (OSError, json.JSONDecodeError, PollContractError, ValueError) as error:
+            parser.error(
+                f"previous first-round corpus is invalid: {error}"
+            )
+
     apply_official_poll_sources(events)
     validate_merged_official_waves(events, parsed_notices)
     validate_poll_events(events)
@@ -1857,6 +1963,10 @@ def main() -> None:
         f"{suppressed_wikipedia_events}"
     )
     print(f"Net new official events: {new_events}")
+    print(
+        "Historical first-round retention: "
+        f"{retained_events} events across {retained_waves} waves"
+    )
     print(f"Final merged events: {len(events)}")
     print(
         "Commission coverage: "
