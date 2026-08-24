@@ -43,6 +43,7 @@ jobs:
       - name: Fetch polls into temporary files
         run: |
           python fetch_polls.py \
+            --previous-first-round polls.json \
             --output /tmp/polls.json \
             --second-round-output /tmp/second_round_polls.json \
             --closest-runoff-output /tmp/closest_tested_runoff.json \

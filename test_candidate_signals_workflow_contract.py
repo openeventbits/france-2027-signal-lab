@@ -175,6 +175,27 @@ class CandidateSignalsWorkflowContractTests(unittest.TestCase):
             )
             self.assertNotIn("candidate_candidacy_status", recent)
 
+
+    def test_poll_fetch_uses_published_first_round_as_history_only(self):
+        fetch_step = step_block(
+            self.workflows["polls"],
+            "Fetch polls into temporary files",
+        )
+
+        self.assertIn(
+            "--previous-first-round polls.json",
+            fetch_step,
+        )
+        self.assertIn(
+            "--output /tmp/polls.json",
+            fetch_step,
+        )
+        self.assertNotIn(
+            "--previous-first-round /tmp/polls.json",
+            fetch_step,
+        )
+
+
     def test_candidate_signals_precedes_publication_manifest(self):
         for name, workflow in self.workflows.items():
             with self.subTest(workflow=name):
