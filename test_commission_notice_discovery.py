@@ -12,6 +12,7 @@ from commission_notice_discovery import (
     confirm_document_eligibility,
     discover_registry,
     empty_registry,
+    extract_official_fieldwork_dates,
     load_registry,
     notice_identity,
     parse_notice_index,
@@ -179,6 +180,74 @@ class EligibilityTests(unittest.TestCase):
         self.assertEqual(rounds, [])
 
 
+class FieldworkExtractionTests(unittest.TestCase):
+    def assert_fieldwork(self, text, start, end):
+        self.assertEqual(
+            extract_official_fieldwork_dates(text),
+            {"fieldwork_start": start, "fieldwork_end": end},
+        )
+
+    def test_normal_date_range(self):
+        self.assert_fieldwork(
+            "Enquête réalisée du 9 au 10 juillet 2026 en ligne.",
+            "2026-07-09",
+            "2026-07-10",
+        )
+
+    def test_standalone_methodology_label_ignores_publication_date(self):
+        self.assert_fieldwork(
+            "Méthodologie. Réalisée du 8 au 10 juillet 2026. "
+            "Enquête réalisée pour L'Hémicycle et publiée le 10 juillet 2026.",
+            "2026-07-08",
+            "2026-07-10",
+        )
+
+    def test_accented_french_month(self):
+        self.assert_fieldwork(
+            "Dates de réalisation : du 18 au 19 août 2026.",
+            "2026-08-18",
+            "2026-08-19",
+        )
+
+    def test_first_day_ordinal(self):
+        self.assert_fieldwork(
+            "Les interviews ont été réalisées du 1er au 6 février 2026.",
+            "2026-02-01",
+            "2026-02-06",
+        )
+
+    def test_single_day_survey(self):
+        self.assert_fieldwork(
+            "Enquête réalisée le 22 mars 2026.",
+            "2026-03-22",
+            "2026-03-22",
+        )
+
+    def test_harris_parenthetical_interruption(self):
+        self.assert_fieldwork(
+            "Enquête réalisée du 7 (après l'annonce des résultats) "
+            "au 8 juillet 2026.",
+            "2026-07-07",
+            "2026-07-08",
+        )
+
+    def test_current_terrain_wins_over_unanchored_previous_wave(self):
+        self.assert_fieldwork(
+            "Rappel : l'enquête précédente couvrait du 2 au 3 juin 2026. "
+            "Dates de réalisation du terrain : du 8 au 10 juillet 2026.",
+            "2026-07-08",
+            "2026-07-10",
+        )
+
+    def test_conflicting_contextual_ranges_fail_closed(self):
+        self.assertIsNone(
+            extract_official_fieldwork_dates(
+                "Dates de réalisation : vague A du 8 au 9 juillet 2026, "
+                "vague B du 9 au 10 juillet 2026."
+            )
+        )
+
+
 class RegistryDiscoveryTests(unittest.TestCase):
     def test_pre_pass_b_registry_validates_without_mutating_legacy_coverage(
         self,
@@ -252,7 +321,8 @@ class RegistryDiscoveryTests(unittest.TestCase):
             body = (
                 "<html><body>Intentions de vote à l'élection "
                 "présidentielle de 2027. Si le 1er tour avait lieu "
-                "dimanche, pour qui voteriez-vous ?</body></html>"
+                "dimanche, pour qui voteriez-vous ? Enquête réalisée "
+                "du 7 au 8 juillet 2026.</body></html>"
             ).encode()
             return FetchResult(
                 body,
@@ -302,6 +372,13 @@ class RegistryDiscoveryTests(unittest.TestCase):
             ["first_round"],
         )
         self.assertEqual(
+            by_id["commission:10223"]["survey_metadata"],
+            {
+                "fieldwork_start": "2026-07-07",
+                "fieldwork_end": "2026-07-08",
+            },
+        )
+        self.assertEqual(
             by_id["commission:10223"]["first_discovered_at"],
             "2026-07-24T12:00:00Z",
         )
@@ -333,6 +410,42 @@ class RegistryDiscoveryTests(unittest.TestCase):
             "ambiguous notice could not be inspected",
         ):
             discover_registry(empty_registry(), fetch=failing_fetch)
+
+    def test_successful_inspection_removes_stale_conflicting_metadata(self):
+        existing = discover_registry(empty_registry(), fetch=self.fetch).registry
+        previous = next(
+            notice
+            for notice in existing["notices"]
+            if notice["notice_id"] == "commission:10223"
+        )
+        self.assertIn("survey_metadata", previous)
+
+        def conflicting_fetch(url, method):
+            if url == INDEX_URL:
+                return FetchResult(self.index, INDEX_URL, "text/html")
+            if url == self.eligible_url:
+                body = (
+                    "<html><body>Intentions de vote à l'élection "
+                    "présidentielle de 2027. Si le 1er tour avait lieu "
+                    "dimanche, pour qui voteriez-vous ? "
+                    "Dates de réalisation : vague A du 8 au 9 juillet 2026, "
+                    "vague B du 9 au 10 juillet 2026.</body></html>"
+                ).encode()
+                return FetchResult(
+                    body,
+                    "http://www.commission-des-sondages.fr/notices/files/"
+                    "notices/2026/juillet/10223-pres-iv.pdf",
+                    "text/html",
+                )
+            raise AssertionError((url, method))
+
+        refreshed = discover_registry(existing, fetch=conflicting_fetch)
+        notice = next(
+            notice
+            for notice in refreshed.registry["notices"]
+            if notice["notice_id"] == "commission:10223"
+        )
+        self.assertNotIn("survey_metadata", notice)
 
     def test_existing_eligible_fetch_failure_fails_discovery(self):
         existing = load_registry("commission_notice_registry.json")

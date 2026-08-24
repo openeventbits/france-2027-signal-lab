@@ -55,6 +55,45 @@ MONTHS = {
     "decembre": 12,
 }
 
+_FRENCH_MONTH_PATTERN = "|".join(MONTHS)
+_FRENCH_WEEKDAY_PATTERN = (
+    r"lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche"
+)
+_FIELDWORK_CONTEXT_PATTERN = re.compile(
+    r"\b(?:"
+    r"enquete\s+(?:a\s+ete\s+)?realisee"
+    r"|dates?\s+(?:de|du)\s+(?:realisation|terrain|recueil)"
+    r"|(?:les\s+)?interviews\s+(?:ont\s+ete\s+)?realisees"
+    r"|periode\s+de\s+realisation"
+    r"|realisee(?=\s+(?:du|le)\b)"
+    r")\b",
+    re.IGNORECASE,
+)
+_FIELDWORK_RANGE_PATTERN = re.compile(
+    rf"\bdu\s+(?:(?:{_FRENCH_WEEKDAY_PATTERN})\s+)?"
+    rf"(?P<start_day>1\s*er|[12]?\d|3[01])"
+    rf"(?:\s+(?P<start_month>{_FRENCH_MONTH_PATTERN}))?"
+    r"(?:\s+(?P<start_year>20\d{2}))?"
+    r"\s*(?:\([^()]{0,240}\)\s*)*"
+    rf"au\s+(?:(?:{_FRENCH_WEEKDAY_PATTERN})\s+)?"
+    rf"(?P<end_day>1\s*er|[12]?\d|3[01])\s+"
+    rf"(?P<end_month>{_FRENCH_MONTH_PATTERN})\s+"
+    r"(?P<end_year>20\d{2})\b",
+    re.IGNORECASE,
+)
+_FIELDWORK_SINGLE_DAY_PATTERN = re.compile(
+    rf"\ble\s+(?:(?:{_FRENCH_WEEKDAY_PATTERN})\s+)?"
+    rf"(?P<day>1\s*er|[12]?\d|3[01])\s+"
+    rf"(?P<month>{_FRENCH_MONTH_PATTERN})\s+"
+    r"(?P<year>20\d{2})\b",
+    re.IGNORECASE,
+)
+_FIELDWORK_CONTEXT_WINDOW = 600
+_NON_FIELDWORK_DATE_BOUNDARY_PATTERN = re.compile(
+    r"\b(?:publication|publiee|diffusee)\b",
+    re.IGNORECASE,
+)
+
 INSTITUTE_PATTERNS = (
     (r"\bTOLUNA\s+HARRIS\s+INTERACTIVE\b", "Harris Interactive"),
     (r"\bHARRIS\s+INTERACTIVE\b", "Harris Interactive"),
@@ -497,6 +536,101 @@ def confirm_document_eligibility(text: str) -> tuple[bool, list[str], str]:
     return False, rounds, "document lacks " + " and ".join(missing)
 
 
+def _fold_document_text(value: str) -> str:
+    """Fold accents while retaining punctuation needed by date expressions."""
+    decomposed = unicodedata.normalize("NFKD", value)
+    unaccented = "".join(
+        character
+        for character in decomposed
+        if not unicodedata.combining(character)
+    )
+    return re.sub(r"\s+", " ", unaccented.casefold()).strip()
+
+
+def _fieldwork_date(day: str, month: str, year: str) -> date | None:
+    try:
+        return date(
+            int(year),
+            MONTHS[month.casefold()],
+            int(re.sub(r"\s*er$", "", day.casefold())),
+        )
+    except (KeyError, ValueError):
+        return None
+
+
+def _fieldwork_range(
+    match: re.Match[str],
+) -> tuple[str, str] | None:
+    end_month = match.group("end_month")
+    end_year = match.group("end_year")
+    start = _fieldwork_date(
+        match.group("start_day"),
+        match.group("start_month") or end_month,
+        match.group("start_year") or end_year,
+    )
+    end = _fieldwork_date(match.group("end_day"), end_month, end_year)
+    if start is None or end is None or start > end:
+        return None
+    return start.isoformat(), end.isoformat()
+
+
+def _single_fieldwork_day(
+    match: re.Match[str],
+) -> tuple[str, str] | None:
+    value = _fieldwork_date(
+        match.group("day"),
+        match.group("month"),
+        match.group("year"),
+    )
+    if value is None:
+        return None
+    return value.isoformat(), value.isoformat()
+
+
+def extract_official_fieldwork_dates(text: str) -> dict[str, str] | None:
+    """Extract one deterministic, survey-context fieldwork window.
+
+    Repeated identical evidence is accepted; conflicting contextual ranges fail
+    closed. Publication dates terminate a context rather than becoming terrain.
+    """
+    folded = _fold_document_text(text)
+    contexts = list(_FIELDWORK_CONTEXT_PATTERN.finditer(folded))
+    candidates: set[tuple[str, str]] = set()
+
+    for index, context in enumerate(contexts):
+        next_context_start = (
+            contexts[index + 1].start()
+            if index + 1 < len(contexts)
+            else len(folded)
+        )
+        end = min(
+            context.end() + _FIELDWORK_CONTEXT_WINDOW,
+            next_context_start,
+        )
+        contextual_text = folded[context.end():end]
+        boundary = _NON_FIELDWORK_DATE_BOUNDARY_PATTERN.search(contextual_text)
+        if boundary is not None:
+            contextual_text = contextual_text[:boundary.start()]
+        for expression in _FIELDWORK_RANGE_PATTERN.finditer(contextual_text):
+            parsed = _fieldwork_range(expression)
+            if parsed is not None:
+                candidates.add(parsed)
+        for expression in _FIELDWORK_SINGLE_DAY_PATTERN.finditer(
+            contextual_text
+        ):
+            parsed = _single_fieldwork_day(expression)
+            if parsed is not None:
+                candidates.add(parsed)
+
+    if len(candidates) != 1:
+        return None
+    start, end = candidates.pop()
+    return {
+        "fieldwork_start": start,
+        "fieldwork_end": end,
+    }
+
+
 def extract_document_text(document: FetchResult) -> str:
     """Extract auditable text without retaining the notice body."""
     content_type = document.content_type.casefold()
@@ -838,6 +972,7 @@ def discover_registry(
             eligible, rounds, document_reason = confirm_document_eligibility(
                 extracted_text
             )
+            survey_metadata = extract_official_fieldwork_dates(extracted_text)
         except Exception as error:
             if (
                 previous
@@ -878,6 +1013,7 @@ def discover_registry(
                 f"{notice_id}: ambiguous notice could not be inspected"
             ) from error
 
+        record.pop("survey_metadata", None)
         record["confirmed_rounds"] = rounds
         if eligible:
             record["classification"] = "eligible"
@@ -907,6 +1043,11 @@ def discover_registry(
         else:
             record["classification"] = "excluded_non_voting"
             record["classification_reason"] = document_reason
+        if (
+            record["classification"] in {"eligible", "unsupported"}
+            and survey_metadata is not None
+        ):
+            record["survey_metadata"] = survey_metadata
         merged_by_id[notice_id] = record
 
     for notice in merged_by_id.values():

@@ -422,10 +422,10 @@ class CurrentCommissionCoverageRegressionTests(unittest.TestCase):
             self.assertEqual(
                 coverage_summary(payload),
                 {
-                    "relevant": 15,
+                    "relevant": 16,
                     "parsed": 0,
                     "reconciled": 0,
-                    "unresolved": 15,
+                    "unresolved": 16,
                     "unresolved_notice_ids": [
                         item["notice_id"] for item in relevant
                     ],
@@ -446,9 +446,9 @@ class CurrentCommissionCoverageRegressionTests(unittest.TestCase):
         self.assertEqual(
             summary,
             {
-                "relevant": 15,
+                "relevant": 16,
                 "parsed": 3,
-                "reconciled": 12,
+                "reconciled": 13,
                 "unresolved": 0,
                 "unresolved_notice_ids": [],
             },
