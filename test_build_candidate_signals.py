@@ -371,17 +371,19 @@ class IdentityTests(unittest.TestCase):
                 with self.assertRaises(CandidateIdentityError):
                     candidate_identity_map(names)
 
-    def test_short_labels_collapse_only_by_unique_suffix(self):
+    def test_short_labels_do_not_infer_candidate_identity(self):
         self.assertEqual(
             canonicalize_candidate_roster(
                 ["Attal", "Gabriel Attal", "Philippe", "Édouard Philippe"]
             ),
-            ["Gabriel Attal", "Édouard Philippe"],
+            ["Attal", "Gabriel Attal", "Philippe", "Édouard Philippe"],
         )
-        with self.assertRaises(CandidateIdentityError):
+        self.assertEqual(
             canonicalize_candidate_roster(
                 ["Martin", "Alice Martin", "Bob Martin"]
-            )
+            ),
+            ["Alice Martin", "Bob Martin", "Martin"],
+        )
 
 
 class CandidateUniverseTests(unittest.TestCase):

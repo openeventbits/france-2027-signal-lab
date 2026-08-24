@@ -129,6 +129,17 @@ CANDIDATE_NORMALIZATION_ALIASES.update(
     }
 )
 
+RUNOFF_HEADING_CANDIDATE_ALIASES = {
+    normalize("Attal"): "Gabriel Attal",
+    normalize("Bardella"): "Jordan Bardella",
+    normalize("Glucksmann"): "Raphaël Glucksmann",
+    normalize("Mélenchon"): "Jean-Luc Mélenchon",
+    normalize("Le Pen"): "Marine Le Pen",
+    normalize("Philippe"): "Édouard Philippe",
+    normalize("Retailleau"): "Bruno Retailleau",
+    normalize("Ruffin"): "François Ruffin",
+}
+
 
 def canonical_candidate_name(value: str, *, strict: bool = False) -> str:
     """Normalize reviewed aliases while preserving clean source-reported names.
@@ -671,21 +682,15 @@ def fetch_mediawiki_parse(parameters: dict[str, str]) -> dict:
 
 
 def canonical_matchup_candidate(value: str) -> str:
-    """Resolve a full name or unique surname-style label to a candidate."""
+    """Resolve a full name or explicitly reviewed runoff-heading alias."""
     raw_name = candidate_name(value)
+    heading_alias = RUNOFF_HEADING_CANDIDATE_ALIASES.get(normalize(raw_name))
+    if heading_alias:
+        return heading_alias
     direct = CANDIDATE_NORMALIZATION_ALIASES.get(normalize(raw_name))
     if direct:
         return direct
-
-    short = normalize(raw_name)
-    matches = [
-        name
-        for name in REVIEWED_CANDIDATE_SPELLINGS
-        if normalize(name) == short or normalize(name).endswith(f" {short}")
-    ]
-    if len(matches) == 1:
-        return matches[0]
-    if not matches and len(raw_name.split()) >= 2 and "�" not in raw_name:
+    if len(raw_name.split()) >= 2 and "�" not in raw_name:
         return raw_name
     raise ValueError(
         f"matchup candidate is not uniquely identifiable: {value!r}"

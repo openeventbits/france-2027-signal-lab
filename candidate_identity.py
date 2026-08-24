@@ -107,68 +107,26 @@ def candidate_identity_map(names: Iterable[str]) -> dict[str, str]:
 
 
 def canonicalize_candidate_roster(names: Iterable[str]) -> list[str]:
-    """Collapse unique surname-style labels onto full canonical source names.
-
-    Public polling can contain both a full display name and a shortened label.
-    A shortened label is collapsed only when its normalized tokens are the
-    unique suffix of one longer name present in the same source-derived roster.
-    No curated or collector-specific aliases are applied.
-    """
+    """Canonicalize a roster without inferring identities from partial names."""
 
     canonical_names = {canonical_candidate_name(value) for value in names}
-    names_by_key: dict[str, list[str]] = {}
-    for name in canonical_names:
-        names_by_key.setdefault(normalized_candidate_key(name), []).append(name)
-    duplicate_keys = {
-        key: values
-        for key, values in names_by_key.items()
-        if len(values) > 1
-    }
-    if duplicate_keys:
-        key, values = sorted(duplicate_keys.items())[0]
-        raise CandidateIdentityError(
-            "normalized candidate identity collision between "
-            f"{sorted(values)!r}: {key!r}"
-        )
-
-    full_names = [
-        (name, normalized_candidate_key(name).split())
-        for name in canonical_names
-        if len(normalized_candidate_key(name).split()) > 1
-    ]
-    resolved: set[str] = set()
-    for name in canonical_names:
-        tokens = normalized_candidate_key(name).split()
-        suffix_matches = [
-            full_name
-            for full_name, full_tokens in full_names
-            if len(full_tokens) > len(tokens)
-            and full_tokens[-len(tokens) :] == tokens
-        ]
-        if len(suffix_matches) > 1:
-            raise CandidateIdentityError(
-                f"candidate short label is ambiguous: {name!r} -> "
-                f"{sorted(suffix_matches)!r}"
-            )
-        resolved.add(suffix_matches[0] if suffix_matches else name)
-
-    candidate_identity_map(resolved)
+    candidate_identity_map(canonical_names)
     return sorted(
-        resolved,
+        canonical_names,
         key=lambda name: (name.casefold(), candidate_id(name)),
     )
 
 
 def resolve_candidate_name(value: str, canonical_names: Iterable[str]) -> str:
-    """Resolve one source label to an exact or unique suffix roster identity."""
+    """Resolve one source label only to an exact normalized roster identity."""
 
     label = canonical_candidate_name(value)
-    label_tokens = normalized_candidate_key(label).split()
+    label_key = normalized_candidate_key(label)
     roster = [canonical_candidate_name(name) for name in canonical_names]
     exact = [
         name
         for name in roster
-        if normalized_candidate_key(name) == " ".join(label_tokens)
+        if normalized_candidate_key(name) == label_key
     ]
     if len(exact) == 1:
         return exact[0]
@@ -176,18 +134,6 @@ def resolve_candidate_name(value: str, canonical_names: Iterable[str]) -> str:
         raise CandidateIdentityError(
             f"candidate label has multiple exact identities: {label!r}"
         )
-
-    suffix_matches = [
-        name
-        for name in roster
-        if (
-            len(normalized_candidate_key(name).split()) > len(label_tokens)
-            and normalized_candidate_key(name).split()[-len(label_tokens) :]
-            == label_tokens
-        )
-    ]
-    if len(suffix_matches) != 1:
-        raise CandidateIdentityError(
-            f"candidate label is not uniquely resolvable: {label!r}"
-        )
-    return suffix_matches[0]
+    raise CandidateIdentityError(
+        f"candidate label is not explicitly resolvable: {label!r}"
+    )
