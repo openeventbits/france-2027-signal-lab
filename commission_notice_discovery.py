@@ -344,6 +344,8 @@ def parse_notice_index(
     index_url: str = INDEX_URL,
 ) -> list[dict[str, Any]]:
     """Parse stable listing records in deterministic document order."""
+    from lxml import html as lxml_html
+
     _require_official_url(index_url)
     try:
         document = lxml_html.fromstring(page_html)
