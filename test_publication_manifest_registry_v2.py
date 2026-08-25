@@ -122,6 +122,42 @@ class PublicationManifestRegistryV2Tests(unittest.TestCase):
                 advanced, attention
             )
 
+    def test_same_day_older_claims_query_is_valid_downstream_lag(self):
+        claims = json.loads(json.dumps(self.claims))
+        claims["generated_at"] = "2026-08-01T03:00:00Z"
+        advanced = build_registry(
+            fixture_html(
+                declared_names=("Alice Observée", "Benoît Non Testé"),
+                primary_names=(),
+                prospective_names=("Chloé Potentielle",),
+                withdrawn_names=("David Retiré",),
+                declined_names=("Élise Déclinée",),
+            ),
+            previous=self.registry,
+            rev=revision(101, 1),
+        )
+        self.assertEqual(
+            manifest._validate_claims_public(claims, advanced),
+            0,
+        )
+
+    def test_same_day_newer_claims_query_requires_exact_parity(self):
+        claims = json.loads(json.dumps(self.claims))
+        claims["generated_at"] = "2026-08-01T05:00:00Z"
+        advanced = build_registry(
+            fixture_html(
+                declared_names=("Alice Observée", "Benoît Non Testé"),
+                primary_names=(),
+                prospective_names=("Chloé Potentielle",),
+                withdrawn_names=("David Retiré",),
+                declined_names=("Élise Déclinée",),
+            ),
+            previous=self.registry,
+            rev=revision(101, 1),
+        )
+        with self.assertRaises(manifest.ManifestError):
+            manifest._validate_claims_public(claims, advanced)
+
     def test_older_claims_2_query_is_valid_downstream_lag(self):
         self.assertEqual(
             manifest._validate_claims_public(
