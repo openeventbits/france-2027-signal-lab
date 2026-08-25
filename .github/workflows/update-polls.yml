@@ -44,6 +44,7 @@ jobs:
         run: |
           python fetch_polls.py \
             --previous-first-round polls.json \
+            --poll-wave-overrides poll_wave_overrides.json \
             --output /tmp/polls.json \
             --second-round-output /tmp/second_round_polls.json \
             --closest-runoff-output /tmp/closest_tested_runoff.json \
@@ -57,9 +58,14 @@ jobs:
           python - <<'PY'
           import json
           import os
+          import tempfile
           from pathlib import Path
 
           from commission_notice_discovery import validate_registry
+          from fetch_polls import (
+              filter_rejected_poll_waves,
+              load_poll_wave_overrides,
+          )
           from poll_contract import PollContractError, validate_poll_events
 
           current_path = Path("polls.json")
@@ -70,6 +76,7 @@ jobs:
           fetched_closest_path = Path("/tmp/closest_tested_runoff.json")
           registry_path = Path("commission_notice_registry.json")
           fetched_registry_path = Path("/tmp/commission_notice_registry.json")
+          overrides_path = Path("poll_wave_overrides.json")
 
           current = json.loads(current_path.read_text(encoding="utf-8"))
           current_second_round = json.loads(
@@ -91,6 +98,7 @@ jobs:
           fetched_registry = json.loads(
               fetched_registry_path.read_text(encoding="utf-8")
           )
+          overrides = load_poll_wave_overrides(overrides_path)
 
           validate_registry(current_registry)
           validate_registry(fetched_registry)
@@ -106,9 +114,22 @@ jobs:
           except PollContractError as error:
               raise SystemExit(f"invalid first-round poll contract: {error}")
 
-          if len(fetched) < len(current):
+          reviewed_current, rejected_current_events, rejected_current_waves = (
+              filter_rejected_poll_waves(current, overrides)
+          )
+          publishable_fetched, rejected_fetched_events, _ = (
+              filter_rejected_poll_waves(fetched, overrides)
+          )
+          if rejected_fetched_events or publishable_fetched != fetched:
               raise SystemExit(
-                  f"refusing dataset shrink: {len(current)} -> {len(fetched)} events"
+                  "fetched polls still contain an explicitly rejected wave"
+              )
+
+          if len(fetched) < len(reviewed_current):
+              raise SystemExit(
+                  "refusing unreviewed dataset shrink: "
+                  f"{len(reviewed_current)} expected publishable -> "
+                  f"{len(fetched)} events"
               )
 
           required = {
@@ -299,16 +320,43 @@ jobs:
               )
               raise SystemExit(0)
 
-          current_path.write_bytes(fetched_path.read_bytes())
-          second_round_path.write_bytes(fetched_second_round_path.read_bytes())
-          closest_path.write_bytes(fetched_closest_path.read_bytes())
-          registry_path.write_bytes(fetched_registry_path.read_bytes())
+          def atomic_write_bytes(path, content):
+              handle = tempfile.NamedTemporaryFile(
+                  mode="wb",
+                  dir=path.parent,
+                  prefix=f".{path.name}.",
+                  suffix=".tmp",
+                  delete=False,
+              )
+              temporary = Path(handle.name)
+              try:
+                  with handle:
+                      handle.write(content)
+                      handle.flush()
+                      os.fsync(handle.fileno())
+                  os.replace(temporary, path)
+              except BaseException:
+                  temporary.unlink(missing_ok=True)
+                  raise
+
+          atomic_write_bytes(current_path, fetched_path.read_bytes())
+          atomic_write_bytes(
+              second_round_path,
+              fetched_second_round_path.read_bytes(),
+          )
+          atomic_write_bytes(
+              closest_path,
+              fetched_closest_path.read_bytes(),
+          )
+          atomic_write_bytes(registry_path, fetched_registry_path.read_bytes())
 
           print(
               f"Validated {len(fetched)} first-round and "
               f"{len(second_events)} second-round events; "
               f"{contract_counts['complete']} complete and "
               f"{contract_counts['partial']} partial first-round events; "
+              f"{rejected_current_waves} reviewed rejected waves removed "
+              f"({rejected_current_events} prior events); "
               f"closest-runoff status {closest['status']}; "
               f"latest first-round fieldwork end {fetched_latest}"
           )

@@ -1,4 +1,7 @@
+import json
 from pathlib import Path
+import shutil
+import subprocess
 import unittest
 
 
@@ -136,10 +139,41 @@ class RaceGlanceDefaultTests(unittest.TestCase):
             initialization,
         )
 
-    def test_poll_tabs_show_pollster_only_with_full_date_context(self):
-        self.assertIn("full.textContent = pollPackage.pollster;", self.source)
+    def test_poll_tabs_show_compact_wave_identity(self):
+        self.assertIn("full.textContent = fullLabel;", self.source)
+        self.assertIn("short.textContent = fullLabel;", self.source)
         self.assertIn("button.setAttribute(\"aria-label\", fullLabel);", self.source)
         self.assertIn("button.dataset.fr27Tooltip = fullLabel;", self.source)
+
+        node = shutil.which("node")
+        if node is None:
+            raise unittest.SkipTest("Node.js is required for Race at a Glance tests")
+        start = self.source.index("function compactRacePollDate(")
+        end = self.source.index("function raceScenarioLabel(", start)
+        helpers = self.source[start:end]
+        packages = [
+            {"pollster": "Harris", "fieldwork_end": "2026-08-19"},
+            {"pollster": "Harris", "fieldwork_end": "2026-08-22"},
+        ]
+        script = (
+            helpers
+            + "\nconsole.log(JSON.stringify("
+            + f"{json.dumps(packages)}.map(racePollTabLabel)"
+            + "));"
+        )
+        result = subprocess.run(
+            [node, "-e", script],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        labels = json.loads(result.stdout)
+        self.assertEqual([label.split()[-2:] for label in labels], [
+            ["19", "Aug"],
+            ["22", "Aug"],
+        ])
+        self.assertTrue(all(label.startswith("Harris") for label in labels))
+        self.assertEqual(len(labels), len(set(labels)))
 
 
 if __name__ == "__main__":

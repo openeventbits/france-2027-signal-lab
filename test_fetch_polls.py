@@ -1,16 +1,23 @@
 import copy
+import json
+from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 from fetch_polls import (
     SOURCE_URL,
     SECOND_ROUND,
+    apply_official_poll_sources,
+    atomic_write_json,
     canonical_candidate_name,
     canonical_matchup_candidate,
     canonical_pollster_name,
     discover_first_round_tables,
+    load_poll_wave_overrides,
     merge_previous_first_round_events,
     parse_fieldwork,
     parse_wikipedia_first_round_html,
+    validate_reporting_source_wave_anomalies,
     validate_second_round_event,
 )
 from poll_contract import (
@@ -114,6 +121,19 @@ class SemanticFirstRoundDiscoveryTests(unittest.TestCase):
         "https://lhemicycle.com/2026/07/10/"
         "jordan-bardella-toujours-le-favori-pour-representer-le-rn/"
     )
+
+    def test_reviewed_wave_control_file_loads_expected_interventions(self):
+        overrides = load_poll_wave_overrides()
+        self.assertEqual(len(overrides), 4)
+        self.assertEqual(
+            overrides[(
+                "harris interactive",
+                "2026-08-21",
+                "2026-08-22",
+                1582,
+            )]["status"],
+            "rejected",
+        )
 
     def test_reviewed_verian_wave_is_corrected_before_event_identity(self):
         events, skipped = parse_wikipedia_first_round_html(
@@ -222,8 +242,9 @@ class SemanticFirstRoundDiscoveryTests(unittest.TestCase):
             first_round_page(
                 polling_table(
                     pollster="Harris Interactive",
-                    dates="21–22 Aug 2026",
-                    source="https://example.test/disappeared-wave",
+                    dates="18–19 Aug 2026",
+                    sample="1,764",
+                    source="https://example.test/validated-disappeared-wave",
                 )
             )
         )
@@ -237,8 +258,87 @@ class SemanticFirstRoundDiscoveryTests(unittest.TestCase):
         self.assertEqual(len(merged), 2)
         self.assertEqual(
             (merged[0]["fieldwork_start"], merged[0]["fieldwork_end"]),
-            ("2026-08-21", "2026-08-22"),
+            ("2026-08-18", "2026-08-19"),
         )
+
+    def test_rejected_previous_wave_is_not_resurrected(self):
+        fresh, _ = parse_wikipedia_first_round_html(
+            first_round_page(
+                polling_table(
+                    pollster="Ifop",
+                    dates="18–19 Aug 2026",
+                    source="https://example.test/current-wave",
+                )
+            )
+        )
+        rejected, _ = parse_wikipedia_first_round_html(
+            first_round_page(
+                polling_table(
+                    pollster="Harris Interactive",
+                    dates="21–22 Aug 2026",
+                    sample="1,582",
+                    source=(
+                        "https://www.rtl.fr/actu/politique/sondage-rtl-"
+                        "presidentielle-2027-marine-le-pen-progresse-dans-les-"
+                        "intentions-de-vote-apres-l-annonce-de-sa-candidature-"
+                        "7900653723"
+                    ),
+                )
+            )
+        )
+
+        merged, retained_events, retained_waves = (
+            merge_previous_first_round_events(fresh, rejected)
+        )
+
+        self.assertEqual(merged, fresh)
+        self.assertEqual(retained_events, 0)
+        self.assertEqual(retained_waves, 0)
+
+    def test_reviewed_official_sources_enrich_without_replacing_reporting_source(self):
+        elabe, _ = parse_wikipedia_first_round_html(
+            first_round_page(
+                polling_table(
+                    pollster="Elabe",
+                    dates="9–10 Jul 2026",
+                    sample="1,503",
+                    source="https://example.test/elabe-reporting-source",
+                )
+            )
+        )
+        reporting_source = elabe[0]["source_url"]
+
+        enriched_waves = apply_official_poll_sources(elabe)
+
+        self.assertEqual(enriched_waves, 1)
+        self.assertEqual(elabe[0]["source_url"], reporting_source)
+        self.assertEqual(
+            elabe[0]["official_source_url"],
+            "https://elabe.fr/presidentielle-2027-iv3/",
+        )
+
+    def test_same_source_same_sample_across_fieldwork_windows_fails_review(self):
+        first, _ = parse_wikipedia_first_round_html(
+            first_round_page(
+                polling_table(
+                    pollster="Example Pollster",
+                    dates="1–2 Jul 2026",
+                    sample="1,000",
+                    source="https://example.test/reused-report",
+                ),
+                polling_table(
+                    pollster="Example Pollster",
+                    dates="3–4 Jul 2026",
+                    sample="1,000",
+                    source="https://example.test/reused-report",
+                ),
+            )
+        )
+        with self.assertRaisesRegex(
+            ValueError,
+            "poll wave anomaly requires reviewed override",
+        ):
+            validate_reporting_source_wave_anomalies(first)
 
     def test_fresh_wave_is_authoritative_over_previous_wave(self):
         fresh, _ = parse_wikipedia_first_round_html(
@@ -652,6 +752,47 @@ class PollEventContractTests(unittest.TestCase):
             (("Edouard Philippe", "30"), ("Eric Zemmour", "30"), ("Glucksmann", "40"))
         )
         self.assertIn(event["source_url"], {"https://example.test/poll", SOURCE_URL})
+
+    def test_repository_harris_repair_keeps_only_verified_wave_identity(self):
+        events = json.loads(
+            Path(__file__).with_name("polls.json").read_text(encoding="utf-8")
+        )
+        rejected = [
+            event
+            for event in events
+            if event.get("pollster") == "Harris Interactive"
+            and event.get("fieldwork_start") == "2026-08-21"
+            and event.get("fieldwork_end") == "2026-08-22"
+            and event.get("sample_size") == 1582
+        ]
+        valid = [
+            event
+            for event in events
+            if event.get("pollster") == "Harris Interactive"
+            and event.get("fieldwork_start") == "2026-08-18"
+            and event.get("fieldwork_end") == "2026-08-19"
+            and event.get("sample_size") == 1764
+        ]
+        self.assertEqual(rejected, [])
+        self.assertEqual(len(valid), 5)
+        self.assertTrue(all("official_source_url" not in event for event in valid))
+
+    def test_atomic_json_write_preserves_last_good_file_on_replace_failure(self):
+        output = Path(__file__).with_name(".test-fetch-polls-atomic.json")
+        temporary_files = list(output.parent.glob(f".{output.name}.*.tmp"))
+        self.assertEqual(temporary_files, [])
+        try:
+            output.write_text("last-good\n", encoding="utf-8")
+            with patch("fetch_polls.os.replace", side_effect=OSError("blocked")):
+                with self.assertRaisesRegex(OSError, "blocked"):
+                    atomic_write_json(output, [{"new": "payload"}])
+            self.assertEqual(output.read_text(encoding="utf-8"), "last-good\n")
+            self.assertEqual(
+                list(output.parent.glob(f".{output.name}.*.tmp")),
+                [],
+            )
+        finally:
+            output.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

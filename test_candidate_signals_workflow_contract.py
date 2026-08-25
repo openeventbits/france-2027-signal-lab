@@ -15,7 +15,7 @@ SCHEDULES = {
     "claims": 'cron: "47 7,17 * * *"',
 }
 AUTHORITATIVE_MARKERS = {
-    "polls": "current_path.write_bytes(fetched_path.read_bytes())",
+    "polls": "atomic_write_bytes(current_path, fetched_path.read_bytes())",
     "news": "shutil.copyfile(\n                  TEMP_WIRE,\n                  CURRENT_WIRE,",
     "claims": "atomic_write_json(current_path, fetched)",
 }
@@ -190,10 +190,25 @@ class CandidateSignalsWorkflowContractTests(unittest.TestCase):
             "--output /tmp/polls.json",
             fetch_step,
         )
+        self.assertIn(
+            "--poll-wave-overrides poll_wave_overrides.json",
+            fetch_step,
+        )
         self.assertNotIn(
             "--previous-first-round /tmp/polls.json",
             fetch_step,
         )
+
+    def test_poll_update_allows_only_reviewed_shrink_and_promotes_atomically(self):
+        validation = step_block(
+            self.workflows["polls"],
+            "Validate and stage fetched data",
+        )
+        self.assertIn("filter_rejected_poll_waves(current, overrides)", validation)
+        self.assertIn("refusing unreviewed dataset shrink", validation)
+        self.assertIn("def atomic_write_bytes(path, content):", validation)
+        self.assertIn("os.replace(temporary, path)", validation)
+        self.assertNotIn("current_path.write_bytes(", validation)
 
 
     def test_candidate_signals_precedes_publication_manifest(self):
