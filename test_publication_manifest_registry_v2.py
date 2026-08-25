@@ -85,6 +85,43 @@ class PublicationManifestRegistryV2Tests(unittest.TestCase):
             self.advanced_registry(), attention
         )
 
+    def test_same_day_older_attention_projection_is_valid_downstream_lag(self):
+        attention = build_payload(self.registry)
+        attention["generated_at"] = "2026-08-01T03:00:00Z"
+        advanced = build_registry(
+            fixture_html(
+                declared_names=("Alice Observée", "Benoît Non Testé"),
+                primary_names=(),
+                prospective_names=("Chloé Potentielle",),
+                withdrawn_names=("David Retiré",),
+                declined_names=("Élise Déclinée",),
+            ),
+            previous=self.registry,
+            rev=revision(101, 1),
+        )
+        manifest._validate_candidate_attention_parity(
+            advanced, attention
+        )
+
+    def test_same_day_newer_attention_projection_requires_exact_parity(self):
+        attention = build_payload(self.registry)
+        attention["generated_at"] = "2026-08-01T05:00:00Z"
+        advanced = build_registry(
+            fixture_html(
+                declared_names=("Alice Observée", "Benoît Non Testé"),
+                primary_names=(),
+                prospective_names=("Chloé Potentielle",),
+                withdrawn_names=("David Retiré",),
+                declined_names=("Élise Déclinée",),
+            ),
+            previous=self.registry,
+            rev=revision(101, 1),
+        )
+        with self.assertRaises(manifest.ManifestError):
+            manifest._validate_candidate_attention_parity(
+                advanced, attention
+            )
+
     def test_older_claims_2_query_is_valid_downstream_lag(self):
         self.assertEqual(
             manifest._validate_claims_public(
