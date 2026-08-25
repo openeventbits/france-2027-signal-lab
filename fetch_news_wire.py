@@ -2310,13 +2310,20 @@ def candidate_roster_metadata(
     """Describe the controlled active roster without poll-window metadata."""
 
     candidates = active_news_candidate_roster(candidacy_payload)
-    return {
+    metadata = {
         "source": CANDIDACY_STATUS_SOURCE,
         "rule": ACTIVE_CANDIDATE_ROSTER_RULE,
         "status_as_of": candidacy_payload["status_as_of"],
         "count": len(candidates),
         "names": candidates,
     }
+    source = candidacy_payload.get("source")
+    if isinstance(source, dict):
+        metadata["source_revision_id"] = source.get("revision_id")
+        metadata["source_revision_timestamp"] = source.get(
+            "revision_timestamp"
+        )
+    return metadata
 
 
 def discovery_rejection_reason(
