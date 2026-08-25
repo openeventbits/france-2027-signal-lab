@@ -23,6 +23,7 @@ from xml.etree import ElementTree as ET
 from candidate_candidacy_status import (
     CandidateCandidacyStatusError,
     active_candidate_names,
+    active_projection_provenance,
     load_candidate_candidacy_status,
 )
 from http_fetch import (
@@ -2317,12 +2318,17 @@ def candidate_roster_metadata(
         "count": len(candidates),
         "names": candidates,
     }
-    source = candidacy_payload.get("source")
-    if isinstance(source, dict):
-        metadata["source_revision_id"] = source.get("revision_id")
-        metadata["source_revision_timestamp"] = source.get(
-            "revision_timestamp"
-        )
+    if candidacy_payload.get("schema_version") == "2.0":
+        try:
+            provenance = active_projection_provenance(candidacy_payload)
+        except CandidateCandidacyStatusError as error:
+            raise RuntimeError(
+                f"Candidate candidacy registry is invalid: {error}"
+            ) from error
+        metadata["source_revision_id"] = provenance["source_revision_id"]
+        metadata["source_revision_timestamp"] = provenance[
+            "source_revision_timestamp"
+        ]
     return metadata
 
 

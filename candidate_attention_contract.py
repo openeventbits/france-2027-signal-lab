@@ -1005,6 +1005,8 @@ def _validate_candidate_attention_v11(
         "payload.candidate_universe",
         keys={
             "source",
+            "source_revision_id",
+            "source_revision_timestamp",
             "status_as_of",
             "rule",
             "count",
@@ -1017,6 +1019,20 @@ def _validate_candidate_attention_v11(
             "payload.candidate_universe.source must equal "
             "candidate_candidacy_status.json"
         )
+    revision_id = universe["source_revision_id"]
+    if (
+        not isinstance(revision_id, int)
+        or isinstance(revision_id, bool)
+        or revision_id <= 0
+    ):
+        _fail(
+            "payload.candidate_universe.source_revision_id "
+            "must be a positive integer"
+        )
+    _utc_timestamp(
+        universe["source_revision_timestamp"],
+        "payload.candidate_universe.source_revision_timestamp",
+    )
     _calendar_date(
         universe["status_as_of"],
         "payload.candidate_universe.status_as_of",
