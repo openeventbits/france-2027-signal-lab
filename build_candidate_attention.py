@@ -17,6 +17,7 @@ from urllib.request import Request, urlopen
 
 from candidate_candidacy_status import (
     active_candidate_records,
+    active_projection_provenance,
     load_candidate_candidacy_status,
 )
 
@@ -652,13 +653,16 @@ def build_candidate_attention_payload(
         }
     else:
         unavailable_count = len(plan) - len(article_eligible_ids)
+        provenance = active_projection_provenance(candidacy_payload)
         payload = {
             "schema_version": SCHEMA_VERSION,
             **common_payload,
             "candidate_universe": {
-                "source": "candidate_candidacy_status.json",
-                "status_as_of": status_as_of,
-                "rule": "active_monitoring_field",
+                "source": provenance["source"],
+                "source_revision_id": provenance["source_revision_id"],
+                "source_revision_timestamp": provenance["source_revision_timestamp"],
+                "status_as_of": provenance["status_as_of"],
+                "rule": provenance["rule"],
                 "count": len(active_candidates),
                 "article_eligible_count": len(article_eligible_ids),
                 "unavailable_no_personal_article_count": (

@@ -25,6 +25,7 @@ from candidate_candidacy_status import (
     active_candidate_ids,
     active_candidate_names,
     active_candidate_records,
+    active_projection_provenance,
     load_candidate_candidacy_status,
     validate_candidate_candidacy_status,
 )
@@ -104,6 +105,10 @@ CANDIDATE_QUERY_FIELDS = {
     "count",
     "candidate_ids",
     "candidate_names",
+}
+CANDIDATE_QUERY_PROVENANCE_FIELDS = {
+    "source_revision_id",
+    "source_revision_timestamp",
 }
 COUNTS_FIELDS = {
     "reviews",
@@ -197,7 +202,7 @@ def build_candidate_query(payload: Any) -> dict[str, Any]:
         record["candidate_name"] for record in records
     ]:
         raise CollectorError("shared active candidate projections are inconsistent")
-    return {
+    query = {
         "source": "candidate_candidacy_status.json",
         "rule": "active_monitoring_field",
         "status_as_of": payload["status_as_of"],
@@ -205,6 +210,14 @@ def build_candidate_query(payload: Any) -> dict[str, Any]:
         "candidate_ids": identifiers,
         "candidate_names": names,
     }
+    if payload.get("schema_version") == "2.0":
+        try:
+            provenance = active_projection_provenance(payload)
+        except CandidateCandidacyStatusError as error:
+            raise CollectorError(f"invalid candidacy registry: {error}") from None
+        query["source_revision_id"] = provenance["source_revision_id"]
+        query["source_revision_timestamp"] = provenance["source_revision_timestamp"]
+    return query
 
 
 def candidate_identity_names(candidate: dict[str, Any]) -> tuple[str, ...]:
@@ -852,7 +865,37 @@ def validate_public_bundle(
     query = bundle["candidate_query"]
     if not isinstance(query, dict):
         raise CollectorError("candidate_query must be an object")
-    _require_exact_fields(query, CANDIDATE_QUERY_FIELDS, "candidate_query")
+    _require_exact_fields(
+        query,
+        CANDIDATE_QUERY_FIELDS | CANDIDATE_QUERY_PROVENANCE_FIELDS,
+        "candidate_query",
+    )
+    revision_id = query["source_revision_id"]
+    if type(revision_id) is not int or revision_id <= 0:
+        raise CollectorError(
+            "candidate_query.source_revision_id must be a positive integer"
+        )
+    revision_timestamp = query["source_revision_timestamp"]
+    if not isinstance(revision_timestamp, str):
+        raise CollectorError(
+            "candidate_query.source_revision_timestamp must be an ISO-8601 UTC string"
+        )
+    try:
+        parsed_revision_timestamp = datetime.fromisoformat(
+            revision_timestamp.replace("Z", "+00:00")
+        )
+    except ValueError:
+        raise CollectorError(
+            "candidate_query.source_revision_timestamp must be an ISO-8601 UTC string"
+        ) from None
+    if (
+        parsed_revision_timestamp.tzinfo is None
+        or parsed_revision_timestamp.utcoffset()
+        != timezone.utc.utcoffset(None)
+    ):
+        raise CollectorError(
+            "candidate_query.source_revision_timestamp must use UTC"
+        )
     if query["source"] != "candidate_candidacy_status.json":
         raise CollectorError("candidate_query.source is not canonical")
     if query["rule"] != "active_monitoring_field":

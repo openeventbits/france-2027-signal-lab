@@ -79,6 +79,26 @@ class PublicationManifestRegistryV2Tests(unittest.TestCase):
             rev=revision(2, 2),
         )
 
+    def same_day_advanced_registry(
+        self,
+        *,
+        revision_id=2,
+        revision_timestamp="2026-08-01T19:27:07Z",
+    ):
+        advanced = build_registry(
+            fixture_html(
+                declared_names=("Alice Observée", "Benoît Non Testé"),
+                primary_names=(),
+                prospective_names=("Chloé Potentielle",),
+                withdrawn_names=("David Retiré",),
+                declined_names=("Élise Déclinée",),
+            ),
+            previous=self.registry,
+            rev=revision(revision_id, 1),
+        )
+        advanced["source"]["revision_timestamp"] = revision_timestamp
+        return advanced
+
     def test_older_attention_11_projection_is_valid_downstream_lag(self):
         attention = build_payload(self.registry)
         manifest._validate_candidate_attention_parity(
@@ -87,76 +107,77 @@ class PublicationManifestRegistryV2Tests(unittest.TestCase):
 
     def test_same_day_older_attention_projection_is_valid_downstream_lag(self):
         attention = build_payload(self.registry)
-        attention["generated_at"] = "2026-08-01T03:00:00Z"
-        advanced = build_registry(
-            fixture_html(
-                declared_names=("Alice Observée", "Benoît Non Testé"),
-                primary_names=(),
-                prospective_names=("Chloé Potentielle",),
-                withdrawn_names=("David Retiré",),
-                declined_names=("Élise Déclinée",),
-            ),
-            previous=self.registry,
-            rev=revision(101, 1),
-        )
+        advanced = self.same_day_advanced_registry()
         manifest._validate_candidate_attention_parity(
             advanced, attention
         )
 
-    def test_same_day_newer_attention_projection_requires_exact_parity(self):
+    def test_same_day_current_attention_snapshot_requires_exact_parity(self):
         attention = build_payload(self.registry)
-        attention["generated_at"] = "2026-08-01T05:00:00Z"
-        advanced = build_registry(
-            fixture_html(
-                declared_names=("Alice Observée", "Benoît Non Testé"),
-                primary_names=(),
-                prospective_names=("Chloé Potentielle",),
-                withdrawn_names=("David Retiré",),
-                declined_names=("Élise Déclinée",),
-            ),
-            previous=self.registry,
-            rev=revision(101, 1),
+        advanced = self.same_day_advanced_registry()
+        attention["candidate_universe"]["source_revision_id"] = (
+            advanced["source"]["revision_id"]
         )
-        with self.assertRaises(manifest.ManifestError):
+        attention["candidate_universe"]["source_revision_timestamp"] = (
+            advanced["source"]["revision_timestamp"]
+        )
+        with self.assertRaisesRegex(manifest.ManifestError, "candidacy parity"):
             manifest._validate_candidate_attention_parity(
                 advanced, attention
             )
 
     def test_same_day_older_claims_query_is_valid_downstream_lag(self):
         claims = json.loads(json.dumps(self.claims))
-        claims["generated_at"] = "2026-08-01T03:00:00Z"
-        advanced = build_registry(
-            fixture_html(
-                declared_names=("Alice Observée", "Benoît Non Testé"),
-                primary_names=(),
-                prospective_names=("Chloé Potentielle",),
-                withdrawn_names=("David Retiré",),
-                declined_names=("Élise Déclinée",),
-            ),
-            previous=self.registry,
-            rev=revision(101, 1),
-        )
+        advanced = self.same_day_advanced_registry()
         self.assertEqual(
             manifest._validate_claims_public(claims, advanced),
             0,
         )
 
-    def test_same_day_newer_claims_query_requires_exact_parity(self):
+    def test_same_day_current_claims_query_requires_exact_parity(self):
         claims = json.loads(json.dumps(self.claims))
-        claims["generated_at"] = "2026-08-01T05:00:00Z"
-        advanced = build_registry(
-            fixture_html(
-                declared_names=("Alice Observée", "Benoît Non Testé"),
-                primary_names=(),
-                prospective_names=("Chloé Potentielle",),
-                withdrawn_names=("David Retiré",),
-                declined_names=("Élise Déclinée",),
-            ),
-            previous=self.registry,
-            rev=revision(101, 1),
+        advanced = self.same_day_advanced_registry()
+        claims["candidate_query"]["source_revision_id"] = (
+            advanced["source"]["revision_id"]
         )
-        with self.assertRaises(manifest.ManifestError):
+        claims["candidate_query"]["source_revision_timestamp"] = (
+            advanced["source"]["revision_timestamp"]
+        )
+        with self.assertRaisesRegex(manifest.ManifestError, "active registry"):
             manifest._validate_claims_public(claims, advanced)
+
+    def test_real_claims_transition_accepts_old_snapshot_after_new_revision(self):
+        claims = json.loads(json.dumps(self.claims))
+        claims["generated_at"] = "2026-08-25T08:24:26Z"
+        claims["candidate_query"]["status_as_of"] = "2026-08-24"
+        claims["candidate_query"]["source_revision_id"] = 238893112
+        claims["candidate_query"]["source_revision_timestamp"] = (
+            "2026-08-24T00:07:22Z"
+        )
+        advanced = self.same_day_advanced_registry(
+            revision_id=238917344,
+            revision_timestamp="2026-08-24T19:27:07Z",
+        )
+        advanced["status_as_of"] = "2026-08-24"
+
+        self.assertEqual(
+            manifest._validate_claims_public(claims, advanced),
+            0,
+        )
+
+    def test_generated_at_does_not_change_older_claims_reconciliation(self):
+        advanced = self.same_day_advanced_registry()
+        for generated_at in (
+            "2026-08-01T03:00:00Z",
+            "2026-08-02T08:24:26Z",
+        ):
+            with self.subTest(generated_at=generated_at):
+                claims = json.loads(json.dumps(self.claims))
+                claims["generated_at"] = generated_at
+                self.assertEqual(
+                    manifest._validate_claims_public(claims, advanced),
+                    0,
+                )
 
     def test_older_claims_2_query_is_valid_downstream_lag(self):
         self.assertEqual(
@@ -238,24 +259,7 @@ class PublicationManifestRegistryV2Tests(unittest.TestCase):
 
     def test_same_day_older_news_registry_snapshot_is_valid_downstream_lag(self):
         news = json.loads(json.dumps(self.news))
-        advanced = build_registry(
-            fixture_html(
-                declared_names=("Alice Observée", "Benoît Non Testé"),
-                primary_names=(),
-                prospective_names=("Chloé Potentielle",),
-                withdrawn_names=("David Retiré",),
-                declined_names=("Élise Déclinée",),
-            ),
-            previous=self.registry,
-            rev=revision(101, 1),
-        )
-        advanced["source"]["revision_timestamp"] = "2026-08-01T19:27:07Z"
-        news["candidate_roster"]["source_revision_id"] = (
-            self.registry["source"]["revision_id"]
-        )
-        news["candidate_roster"]["source_revision_timestamp"] = (
-            self.registry["source"]["revision_timestamp"]
-        )
+        advanced = self.same_day_advanced_registry()
 
         manifest._validate_news_active_parity(advanced, news)
 
@@ -300,6 +304,83 @@ class PublicationManifestRegistryV2Tests(unittest.TestCase):
                         self.registry,
                         changed,
                     )
+
+    def test_revision_provenance_ordering_fails_closed(self):
+        cases = {
+            "same id with different timestamp": (
+                2,
+                "2026-08-01T03:05:00Z",
+                "identity is inconsistent",
+            ),
+            "lower id with later timestamp": (
+                1,
+                "2026-08-01T20:27:07Z",
+                "identity is inconsistent",
+            ),
+            "higher id with earlier timestamp": (
+                3,
+                "2026-08-01T03:05:00Z",
+                "identity is inconsistent",
+            ),
+            "newer id with newer timestamp": (
+                3,
+                "2026-08-01T20:27:07Z",
+                "newer than the registry",
+            ),
+        }
+        registry = self.same_day_advanced_registry()
+        for label, (revision_id, revision_timestamp, message) in cases.items():
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(manifest.ManifestError, message):
+                    manifest._projection_predates_registry_snapshot(
+                        "2026-08-01",
+                        registry,
+                        source_revision_id=revision_id,
+                        source_revision_timestamp=revision_timestamp,
+                    )
+
+    def test_revision_provenance_structure_fails_closed(self):
+        cases = {
+            "missing id": (None, "2026-08-01T04:05:00Z", "include both"),
+            "missing timestamp": (1, None, "include both"),
+            "both missing": (None, None, "is required"),
+            "string id": ("1", "2026-08-01T04:05:00Z", "positive integer"),
+            "boolean id": (True, "2026-08-01T04:05:00Z", "positive integer"),
+            "zero id": (0, "2026-08-01T04:05:00Z", "positive integer"),
+            "negative id": (-1, "2026-08-01T04:05:00Z", "positive integer"),
+            "malformed timestamp": (1, "not-a-timestamp", "UTC ISO-8601"),
+            "non-UTC timestamp": (1, "2026-08-01T05:05:00+01:00", "UTC offset"),
+        }
+        registry = self.same_day_advanced_registry()
+        for label, (revision_id, revision_timestamp, message) in cases.items():
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(manifest.ManifestError, message):
+                    manifest._projection_predates_registry_snapshot(
+                        "2026-08-01",
+                        registry,
+                        source_revision_id=revision_id,
+                        source_revision_timestamp=revision_timestamp,
+                    )
+
+    def test_older_revision_cannot_claim_newer_status_date(self):
+        with self.assertRaisesRegex(manifest.ManifestError, "newer status date"):
+            manifest._projection_predates_registry_snapshot(
+                "2026-08-02",
+                self.same_day_advanced_registry(),
+                source_revision_id=self.registry["source"]["revision_id"],
+                source_revision_timestamp=(
+                    self.registry["source"]["revision_timestamp"]
+                ),
+            )
+
+    def test_news_registry_v1_compatibility_remains_supported(self):
+        registry = json.loads(DYNAMIC_REGISTRY.read_text(encoding="utf-8"))
+        news = json.loads(json.dumps(self.news))
+        news["candidate_roster"] = fetch_news_wire.candidate_roster_metadata(
+            registry
+        )
+
+        manifest._validate_news_active_parity(registry, news)
 
     def test_registry_v2_lane_metadata_is_dynamic_and_provenanced(self):
         source = {

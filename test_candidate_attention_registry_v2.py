@@ -273,6 +273,8 @@ class CandidateAttentionV2EvidenceTests(unittest.TestCase):
             payload["candidate_universe"],
             {
                 "source": "candidate_candidacy_status.json",
+                "source_revision_id": self.candidacy["source"]["revision_id"],
+                "source_revision_timestamp": self.candidacy["source"]["revision_timestamp"],
                 "status_as_of": "2026-08-06",
                 "rule": "active_monitoring_field",
                 "count": 3,

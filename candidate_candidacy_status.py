@@ -656,6 +656,25 @@ def active_candidate_names(payload: Any) -> list[str]:
     ]
 
 
+def active_projection_provenance(payload: Any) -> dict[str, Any]:
+    """Return exact Registry-v2 provenance for downstream active projections."""
+
+    validate_candidate_candidacy_status(payload)
+    if payload.get("schema_version") != "2.0":
+        raise CandidateCandidacyStatusError(
+            "active projection provenance requires Candidate Registry schema 2.0"
+        )
+
+    source = payload["source"]
+    return {
+        "source": "candidate_candidacy_status.json",
+        "source_revision_id": source["revision_id"],
+        "source_revision_timestamp": source["revision_timestamp"],
+        "status_as_of": payload["status_as_of"],
+        "rule": "active_monitoring_field",
+    }
+
+
 def project_display_tiers(payload: Any) -> dict[str, Any]:
     """Project complete stored political/display-tier membership."""
 
