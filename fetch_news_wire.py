@@ -51,6 +51,10 @@ PUBLISHER_POLICY = json.loads(
     PUBLISHER_POLICY_PATH.read_text(encoding="utf-8")
 )
 
+NEWS_EXCLUSIONS_PATH = Path(__file__).with_name(
+    "news_exclusions_manual.json"
+)
+
 GOOGLE_NEWS_SEARCH_URL = "https://news.google.com/rss/search"
 GOOGLE_NEWS_PARAMETERS = {
     "hl": "fr",
@@ -1866,6 +1870,82 @@ def canonical_url(value: Any) -> str:
             "",
         )
     )
+
+
+def load_news_exclusions(
+    path: Path | None = None,
+) -> set[str]:
+    exclusion_path = NEWS_EXCLUSIONS_PATH if path is None else path
+
+    if not exclusion_path.exists():
+        return set()
+
+    try:
+        payload = json.loads(
+            exclusion_path.read_text(encoding="utf-8")
+        )
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            f"Invalid news exclusions file: {exclusion_path}"
+        ) from exc
+
+    if not isinstance(payload, dict):
+        raise RuntimeError("News exclusions payload must be an object")
+
+    if payload.get("schema_version") != 1:
+        raise RuntimeError(
+            "Unsupported news exclusions schema_version"
+        )
+
+    values = payload.get("excluded_urls")
+    if not isinstance(values, list):
+        raise RuntimeError(
+            "News exclusions excluded_urls must be an array"
+        )
+
+    excluded_urls: set[str] = set()
+
+    for value in values:
+        if not isinstance(value, str) or not value.strip():
+            raise RuntimeError(
+                "News exclusion URLs must be non-empty strings"
+            )
+
+        normalized = canonical_url(value)
+        if not normalized:
+            raise RuntimeError(
+                "News exclusion URL could not be canonicalized"
+            )
+
+        excluded_urls.add(normalized)
+
+    return excluded_urls
+
+
+def apply_news_exclusions(
+    existing_inventory: dict[str, Any],
+    current_entries: list[dict[str, Any]],
+    excluded_urls: set[str],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    if not excluded_urls:
+        return existing_inventory, current_entries
+
+    def retained(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [
+            entry
+            for entry in entries
+            if canonical_url(
+                entry.get("canonical_url") or entry.get("url")
+            )
+            not in excluded_urls
+        ]
+
+    filtered_inventory = dict(existing_inventory)
+    filtered_inventory["items"] = retained(
+        list(existing_inventory.get("items") or [])
+    )
+
+    return filtered_inventory, retained(current_entries)
 
 
 def normalize_domain(value: Any) -> str:
@@ -9797,6 +9877,14 @@ def build_wire(
         window_days,
         candidates,
     )
+
+    excluded_urls = load_news_exclusions()
+    existing_inventory, all_entries = apply_news_exclusions(
+        existing_inventory,
+        all_entries,
+        excluded_urls,
+    )
+
     inventory_payload, inventory_entries, inventory_stats = merge_inventory(
         existing_inventory,
         all_entries,

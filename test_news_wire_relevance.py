@@ -25,6 +25,7 @@ from fetch_news_wire import (
     SOURCES,
     accept_discovery_entries,
     aggregate_discovered_publishers,
+    apply_news_exclusions,
     build_candidate_visibility,
     build_source_health_routes,
     build_wire,
@@ -44,6 +45,7 @@ from fetch_news_wire import (
     is_static_entity_page,
     limit_items,
     load_inventory,
+    load_news_exclusions,
     match_news_candidates,
     merge_inventory,
     normalize,
@@ -4095,6 +4097,68 @@ class CandidateVisibilityComparisonTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("validate_output(wire)", workflow)
         self.assertIn("candidate_visibility", workflow)
+
+
+
+
+class ManualNewsExclusionTests(unittest.TestCase):
+    def test_manual_exclusion_blocks_new_entry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "exclusions.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "excluded_urls": [
+                            "https://example.test/story?utm_source=test"
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            excluded = load_news_exclusions(path)
+
+        existing, current = apply_news_exclusions(
+            {"items": []},
+            [
+                {
+                    "headline": "Excluded story",
+                    "url": "https://example.test/story?utm_medium=rss",
+                }
+            ],
+            excluded,
+        )
+
+        self.assertEqual(existing["items"], [])
+        self.assertEqual(current, [])
+
+    def test_manual_exclusion_purges_existing_inventory_item(self):
+        excluded = {"https://example.test/story"}
+
+        existing, current = apply_news_exclusions(
+            {
+                "items": [
+                    {
+                        "headline": "Excluded persisted story",
+                        "canonical_url": (
+                            "https://example.test/story?utm_source=inventory"
+                        ),
+                    },
+                    {
+                        "headline": "Retained story",
+                        "canonical_url": "https://example.test/keep",
+                    },
+                ],
+            },
+            [],
+            excluded,
+        )
+
+        self.assertEqual(
+            [item["headline"] for item in existing["items"]],
+            ["Retained story"],
+        )
+        self.assertEqual(current, [])
 
 
 if __name__ == "__main__":
