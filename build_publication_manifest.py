@@ -786,6 +786,88 @@ def _validate_candidate_visibility_history_parity(
         ) from error
 
 
+def _projection_predates_registry_snapshot(
+    projection_date: str,
+    registry: dict[str, Any],
+    *,
+    generated_at: Any = None,
+    source_revision_id: Any = None,
+    source_revision_timestamp: Any = None,
+    generated_at_field: str = "projection.generated_at",
+    source_revision_timestamp_field: str = (
+        "projection.source_revision_timestamp"
+    ),
+) -> bool:
+    """Return whether a downstream projection provably predates the registry."""
+
+    registry_date = registry["status_as_of"]
+    if projection_date < registry_date:
+        return True
+    if projection_date != registry_date:
+        return False
+
+    registry_source = registry.get("source")
+    if not isinstance(registry_source, dict):
+        return False
+
+    registry_revision_timestamp = registry_source.get("revision_timestamp")
+    if registry_revision_timestamp is None:
+        return False
+
+    registry_revision_at = datetime.fromisoformat(
+        _utc_timestamp(
+            registry_revision_timestamp,
+            field=(
+                "candidate_candidacy_status.source."
+                "revision_timestamp"
+            ),
+        ).replace("Z", "+00:00")
+    )
+
+    has_revision_id = source_revision_id is not None
+    has_revision_timestamp = source_revision_timestamp is not None
+    if has_revision_id != has_revision_timestamp:
+        raise ManifestError(
+            "projection source revision provenance must include both "
+            "revision id and timestamp"
+        )
+
+    if has_revision_id:
+        if type(source_revision_id) is not int or source_revision_id <= 0:
+            raise ManifestError(
+                "projection source revision id must be a positive integer"
+            )
+        projection_revision_at = datetime.fromisoformat(
+            _utc_timestamp(
+                source_revision_timestamp,
+                field=source_revision_timestamp_field,
+            ).replace("Z", "+00:00")
+        )
+        registry_revision_id = registry_source.get("revision_id")
+        if source_revision_id == registry_revision_id:
+            if projection_revision_at != registry_revision_at:
+                raise ManifestError(
+                    "projection source revision identity is inconsistent"
+                )
+            return False
+        if projection_revision_at > registry_revision_at:
+            raise ManifestError(
+                "projection source revision is newer than the registry"
+            )
+        return projection_revision_at < registry_revision_at
+
+    if generated_at is None:
+        return False
+
+    projection_generated_at = datetime.fromisoformat(
+        _utc_timestamp(
+            generated_at,
+            field=generated_at_field,
+        ).replace("Z", "+00:00")
+    )
+    return projection_generated_at < registry_revision_at
+
+
 def _validate_candidate_attention_parity(
     registry: Any,
     candidate_attention: Any,
@@ -810,31 +892,17 @@ def _validate_candidate_attention_parity(
             validate_candidate_candidacy_status(registry)
             projection_date = candidate_attention["candidate_universe"]["status_as_of"]
             registry_date = registry["status_as_of"]
-            if projection_date < registry_date:
-                return
             if projection_date > registry_date:
                 raise CandidateAttentionContractError(
                     "candidate universe is newer than the candidacy registry"
                 )
-
-            revision_timestamp = registry.get("source", {}).get(
-                "revision_timestamp"
-            )
-            if revision_timestamp is not None:
-                attention_generated_at = datetime.fromisoformat(
-                    _utc_timestamp(
-                        candidate_attention["generated_at"],
-                        field="candidate_attention.generated_at",
-                    ).replace("Z", "+00:00")
-                )
-                registry_revision_at = datetime.fromisoformat(
-                    _utc_timestamp(
-                        revision_timestamp,
-                        field="candidate_candidacy_status.source.revision_timestamp",
-                    ).replace("Z", "+00:00")
-                )
-                if attention_generated_at < registry_revision_at:
-                    return
+            if _projection_predates_registry_snapshot(
+                projection_date,
+                registry,
+                generated_at=candidate_attention["generated_at"],
+                generated_at_field="candidate_attention.generated_at",
+            ):
+                return
 
             expected_candidates = active_candidate_records(registry)
         validate_candidate_attention(
@@ -934,29 +1002,14 @@ def _validate_claims_public(payload: Any, registry: Any | None = None) -> int:
                 raise ClaimsCollectorError(
                     "candidate_query is newer than the candidacy registry"
                 )
+            if _projection_predates_registry_snapshot(
+                query_date,
+                registry,
+                generated_at=payload["generated_at"],
+                generated_at_field="claims.generated_at",
+            ):
+                return len(payload["reviews"])
             if query_date == registry_date:
-                revision_timestamp = registry.get("source", {}).get(
-                    "revision_timestamp"
-                )
-                if revision_timestamp is not None:
-                    claims_generated_at = datetime.fromisoformat(
-                        _utc_timestamp(
-                            payload["generated_at"],
-                            field="claims.generated_at",
-                        ).replace("Z", "+00:00")
-                    )
-                    registry_revision_at = datetime.fromisoformat(
-                        _utc_timestamp(
-                            revision_timestamp,
-                            field=(
-                                "candidate_candidacy_status.source."
-                                "revision_timestamp"
-                            ),
-                        ).replace("Z", "+00:00")
-                    )
-                    if claims_generated_at < registry_revision_at:
-                        return len(payload["reviews"])
-
                 validate_claims_bundle(payload, candidacy_payload=registry)
     except ClaimsCollectorError as error:
         raise ManifestError(f"claims invalid structure: {error}") from error
@@ -972,11 +1025,21 @@ def _validate_news_active_parity(registry: Any, news: Any) -> None:
         return
     roster_date = roster.get("status_as_of")
     registry_date = registry["status_as_of"]
-    if roster_date < registry_date:
-        # Evidence collectors converge on their next independent schedule.
-        return
     if roster_date > registry_date:
         raise ManifestError("news candidate roster is newer than the registry")
+    if _projection_predates_registry_snapshot(
+        roster_date,
+        registry,
+        source_revision_id=roster.get("source_revision_id"),
+        source_revision_timestamp=roster.get(
+            "source_revision_timestamp"
+        ),
+        source_revision_timestamp_field=(
+            "news.candidate_roster.source_revision_timestamp"
+        ),
+    ):
+        # Evidence collectors converge on their next independent schedule.
+        return
     expected_names = active_candidate_names(registry)
     if (
         roster.get("rule") != "active_monitoring_field"

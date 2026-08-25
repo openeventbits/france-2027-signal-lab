@@ -236,6 +236,40 @@ class PublicationManifestRegistryV2Tests(unittest.TestCase):
             manifest.active_candidate_names(self.registry),
         )
 
+    def test_same_day_older_news_registry_snapshot_is_valid_downstream_lag(self):
+        news = json.loads(json.dumps(self.news))
+        advanced = build_registry(
+            fixture_html(
+                declared_names=("Alice Observée", "Benoît Non Testé"),
+                primary_names=(),
+                prospective_names=("Chloé Potentielle",),
+                withdrawn_names=("David Retiré",),
+                declined_names=("Élise Déclinée",),
+            ),
+            previous=self.registry,
+            rev=revision(101, 1),
+        )
+        advanced["source"]["revision_timestamp"] = "2026-08-01T19:27:07Z"
+        news["candidate_roster"]["source_revision_id"] = (
+            self.registry["source"]["revision_id"]
+        )
+        news["candidate_roster"]["source_revision_timestamp"] = (
+            self.registry["source"]["revision_timestamp"]
+        )
+
+        manifest._validate_news_active_parity(advanced, news)
+
+    def test_same_day_news_current_snapshot_still_requires_exact_parity(self):
+        news = json.loads(json.dumps(self.news))
+        news["candidate_roster"]["names"] = ["Alice Observée"]
+        news["candidate_roster"]["count"] = 1
+
+        with self.assertRaisesRegex(
+            manifest.ManifestError,
+            "active registry",
+        ):
+            manifest._validate_news_active_parity(self.registry, news)
+
     def test_same_date_news_roster_mutations_remain_strictly_rejected(self):
         mutations = {}
 
