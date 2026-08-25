@@ -935,6 +935,28 @@ def _validate_claims_public(payload: Any, registry: Any | None = None) -> int:
                     "candidate_query is newer than the candidacy registry"
                 )
             if query_date == registry_date:
+                revision_timestamp = registry.get("source", {}).get(
+                    "revision_timestamp"
+                )
+                if revision_timestamp is not None:
+                    claims_generated_at = datetime.fromisoformat(
+                        _utc_timestamp(
+                            payload["generated_at"],
+                            field="claims.generated_at",
+                        ).replace("Z", "+00:00")
+                    )
+                    registry_revision_at = datetime.fromisoformat(
+                        _utc_timestamp(
+                            revision_timestamp,
+                            field=(
+                                "candidate_candidacy_status.source."
+                                "revision_timestamp"
+                            ),
+                        ).replace("Z", "+00:00")
+                    )
+                    if claims_generated_at < registry_revision_at:
+                        return len(payload["reviews"])
+
                 validate_claims_bundle(payload, candidacy_payload=registry)
     except ClaimsCollectorError as error:
         raise ManifestError(f"claims invalid structure: {error}") from error
