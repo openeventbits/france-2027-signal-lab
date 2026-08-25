@@ -816,6 +816,26 @@ def _validate_candidate_attention_parity(
                 raise CandidateAttentionContractError(
                     "candidate universe is newer than the candidacy registry"
                 )
+
+            revision_timestamp = registry.get("source", {}).get(
+                "revision_timestamp"
+            )
+            if revision_timestamp is not None:
+                attention_generated_at = datetime.fromisoformat(
+                    _utc_timestamp(
+                        candidate_attention["generated_at"],
+                        field="candidate_attention.generated_at",
+                    ).replace("Z", "+00:00")
+                )
+                registry_revision_at = datetime.fromisoformat(
+                    _utc_timestamp(
+                        revision_timestamp,
+                        field="candidate_candidacy_status.source.revision_timestamp",
+                    ).replace("Z", "+00:00")
+                )
+                if attention_generated_at < registry_revision_at:
+                    return
+
             expected_candidates = active_candidate_records(registry)
         validate_candidate_attention(
             candidate_attention,
