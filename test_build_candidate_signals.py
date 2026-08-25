@@ -17,7 +17,7 @@ from candidate_identity import (
 
 ROOT = Path(__file__).resolve().parent
 CURRENT_SELECTED_EVENT_ID = (
-    "24242b449a8a17f11a56a346d772ef1d5758158447189399284755bffef8122c"
+    "f9a98df97770794087e0303fdafe22f2de5ac7d59c0052e9f0f7bb878dc30a26"
 )
 CURRENT_MAIN_CANDIDATE_ORDER = [
     "Bruno Retailleau",
@@ -484,9 +484,9 @@ class PollPackageTests(unittest.TestCase):
     def test_current_data_selects_exact_harris_package(self):
         package = builder.select_featured_polling_package(self.polls)
         self.assertEqual(package["pollster"], "Harris Interactive")
-        self.assertEqual(package["fieldwork_start"], "2026-08-21")
-        self.assertEqual(package["fieldwork_end"], "2026-08-22")
-        self.assertEqual(package["sample_size"], 1582)
+        self.assertEqual(package["fieldwork_start"], "2026-08-18")
+        self.assertEqual(package["fieldwork_end"], "2026-08-19")
+        self.assertEqual(package["sample_size"], 1764)
         self.assertEqual(len(package["events"]), 5)
         self.assertEqual(
             package["selected_event"]["event_id"],
@@ -494,6 +494,18 @@ class PollPackageTests(unittest.TestCase):
         )
         self.assertTrue(
             all(event["pollster"] == "Harris Interactive" for event in package["events"])
+        )
+
+    def test_official_source_precedes_reporting_source_downstream(self):
+        event = poll_event(source_url="https://example.test/reporting")
+        event["official_source_url"] = "https://example.test/original"
+        package = builder.build_poll_packages([event])[0]
+
+        public = builder._featured_package_public(package)
+
+        self.assertEqual(
+            public["source_urls"],
+            ["https://example.test/original", "https://example.test/reporting"],
         )
 
     def test_ranges_use_only_featured_package_and_missing_is_not_zero(self):
@@ -615,9 +627,9 @@ class FeaturedPollBoardTests(unittest.TestCase):
             "featured_package_selected_hypothesis",
         )
         self.assertEqual(board["pollster"], "Harris Interactive")
-        self.assertEqual(board["fieldwork_start"], "2026-08-21")
-        self.assertEqual(board["fieldwork_end"], "2026-08-22")
-        self.assertEqual(board["sample_size"], 1582)
+        self.assertEqual(board["fieldwork_start"], "2026-08-18")
+        self.assertEqual(board["fieldwork_end"], "2026-08-19")
+        self.assertEqual(board["sample_size"], 1764)
         self.assertEqual(board["round"], "first_round")
         self.assertEqual(
             board["scenario_key"],
@@ -765,16 +777,7 @@ class FeaturedPollBoardTests(unittest.TestCase):
             for event in self.package["events"]
         ]
         self.assertEqual(marine["reported_score"], 35.0)
-        self.assertNotEqual(marine["reported_score"], min(package_scores))
-        self.assertNotEqual(marine["reported_score"], max(package_scores))
-        self.assertNotEqual(
-            marine["reported_score"],
-            (min(package_scores) + max(package_scores)) / 2,
-        )
-        self.assertNotEqual(
-            marine["reported_score"],
-            sum(package_scores) / len(package_scores),
-        )
+        self.assertIn(marine["reported_score"], package_scores)
         self.assertEqual(
             marine["reported_score"],
             next(

@@ -7,9 +7,13 @@ import hashlib
 import io
 import json
 import math
+import os
 import re
+import tempfile
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlencode, urljoin, urlparse
 from urllib.request import Request, urlopen
 
@@ -47,6 +51,9 @@ SOURCE_PAGE = "Opinion_polling_for_the_2027_French_presidential_election"
 WIKIPEDIA_LICENSE = "CC BY-SA 4.0"
 ROUND = FIRST_ROUND
 SECOND_ROUND = "second_round"
+DEFAULT_POLL_WAVE_OVERRIDES = Path(__file__).with_name(
+    "poll_wave_overrides.json"
+)
 DASHES = {"", "-", "–", "—", "−", "nan", "none"}
 # Reviewed source spellings support normalization and bounded adapters only.
 # This catalog is not a candidate-membership allowlist: clean unknown names pass
@@ -236,22 +243,120 @@ def candidate_name(value: object) -> str:
     return re.sub(r"\s+", " ", name).strip()
 
 
-OFFICIAL_POLL_METADATA_CORRECTIONS: dict[
-    tuple[str, str, str, int | None, str],
-    tuple[str, str],
-] = {
-    # Commission notice 10225 reports the complete Verian fieldwork window.
-    (
-        "verian",
-        "2026-07-09",
-        "2026-07-10",
-        1047,
-        (
-            "https://lhemicycle.com/2026/07/10/"
-            "jordan-bardella-toujours-le-favori-pour-representer-le-rn/"
-        ),
-    ): ("2026-07-08", "2026-07-10"),
-}
+PollWaveKey = tuple[str, str, str, int | None]
+PollWaveOverrides = dict[PollWaveKey, dict[str, Any]]
+
+
+def _override_wave_key(record: dict[str, Any], context: str) -> PollWaveKey:
+    pollster = record.get("pollster")
+    start = record.get("fieldwork_start")
+    end = record.get("fieldwork_end")
+    sample_size = record.get("sample_size")
+    if not isinstance(pollster, str) or not pollster.strip():
+        raise ValueError(f"{context}.pollster must be a non-empty string")
+    for field, value in (("fieldwork_start", start), ("fieldwork_end", end)):
+        if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+            raise ValueError(f"{context}.{field} must use YYYY-MM-DD")
+        try:
+            parsed = datetime.strptime(value, "%Y-%m-%d")
+        except ValueError as error:
+            raise ValueError(f"{context}.{field} must be a valid date") from error
+        if parsed.strftime("%Y-%m-%d") != value:
+            raise ValueError(f"{context}.{field} must use YYYY-MM-DD")
+    if start > end:
+        raise ValueError(f"{context} fieldwork_start must not exceed fieldwork_end")
+    if sample_size is not None and (
+        not isinstance(sample_size, int)
+        or isinstance(sample_size, bool)
+        or sample_size <= 0
+    ):
+        raise ValueError(f"{context}.sample_size must be a positive integer or null")
+    return normalize(pollster), start, end, sample_size
+
+
+@lru_cache(maxsize=None)
+def load_poll_wave_overrides(
+    path: Path | str = DEFAULT_POLL_WAVE_OVERRIDES,
+) -> PollWaveOverrides:
+    """Load the small reviewed wave-level intervention registry."""
+    source = Path(path)
+    try:
+        payload = json.loads(source.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"cannot load poll wave overrides {source}: {error}") from error
+    if not isinstance(payload, dict) or payload.get("schema_version") != "1.0":
+        raise ValueError("poll wave overrides schema_version must equal 1.0")
+    records = payload.get("waves")
+    if not isinstance(records, list):
+        raise ValueError("poll wave overrides waves must be a list")
+
+    overrides: PollWaveOverrides = {}
+    allowed_fields = {
+        "pollster",
+        "fieldwork_start",
+        "fieldwork_end",
+        "sample_size",
+        "status",
+        "official_source_url",
+        "reporting_source_url",
+        "corrections",
+        "reason",
+    }
+    for index, record in enumerate(records):
+        context = f"poll wave overrides waves[{index}]"
+        if not isinstance(record, dict):
+            raise ValueError(f"{context} must be an object")
+        unexpected = set(record) - allowed_fields
+        if unexpected:
+            raise ValueError(f"{context} has unexpected fields: {sorted(unexpected)}")
+        key = _override_wave_key(record, context)
+        if key in overrides:
+            raise ValueError(f"duplicate poll wave override identity: {key}")
+        reason = record.get("reason")
+        if not isinstance(reason, str) or not reason.strip():
+            raise ValueError(f"{context}.reason must be a non-empty string")
+        status = record.get("status")
+        if status not in (None, "rejected"):
+            raise ValueError(f"{context}.status must equal rejected when present")
+        official_url = record.get("official_source_url")
+        reporting_url = record.get("reporting_source_url")
+        for field, value in (
+            ("official_source_url", official_url),
+            ("reporting_source_url", reporting_url),
+        ):
+            if value is not None and (
+                not isinstance(value, str) or not valid_http_url(value)
+            ):
+                raise ValueError(f"{context}.{field} must be an HTTP(S) URL")
+        corrections = record.get("corrections")
+        if corrections is not None:
+            if not isinstance(corrections, dict) or set(corrections) != {
+                "fieldwork_start",
+                "fieldwork_end",
+            }:
+                raise ValueError(
+                    f"{context}.corrections must contain only both fieldwork dates"
+                )
+            corrected_record = {**record, **corrections}
+            _override_wave_key(corrected_record, f"{context}.corrections")
+        interventions = sum(
+            value is not None
+            for value in (status, official_url, corrections)
+        )
+        if interventions != 1:
+            raise ValueError(f"{context} must define exactly one intervention")
+        if reporting_url is not None and corrections is None:
+            raise ValueError(
+                f"{context}.reporting_source_url is only valid for corrections"
+            )
+        overrides[key] = record
+    return overrides
+
+
+def _reviewed_overrides(
+    overrides: PollWaveOverrides | None,
+) -> PollWaveOverrides:
+    return load_poll_wave_overrides() if overrides is None else overrides
 
 
 def apply_official_poll_metadata_correction(
@@ -260,50 +365,28 @@ def apply_official_poll_metadata_correction(
     fieldwork_end: str,
     sample_size: int | None,
     source_url: str,
+    overrides: PollWaveOverrides | None = None,
 ) -> tuple[str, str]:
     """Correct reviewed source metadata before deterministic event identity."""
-    key = (
+    key: PollWaveKey = (
         normalize(pollster),
         fieldwork_start,
         fieldwork_end,
         sample_size,
-        source_url.strip(),
     )
-    return OFFICIAL_POLL_METADATA_CORRECTIONS.get(
-        key,
-        (fieldwork_start, fieldwork_end),
-    )
-
-
-OFFICIAL_POLL_SOURCE_OVERRIDES: dict[
-    tuple[str, str, str, int | None],
-    str,
-] = {
-    (
-        "elabe",
-        "2026-07-09",
-        "2026-07-10",
-        1503,
-    ): (
-        "https://elabe.fr/presidentielle-2027-iv3/"
-    ),
-    (
-        "opinionway",
-        "2026-07-08",
-        "2026-07-09",
-        963,
-    ): (
-        "https://www.opinion-way.com/wp-content/uploads/"
-        "2026/07/"
-        "OpinionWay-pour-Les-Echos-et-Radio-Classique-"
-        "Barometre-Presitrack-2027-Vague-1-Juillet-2026.pdf"
-    ),
-}
+    reviewed = _reviewed_overrides(overrides).get(key)
+    if reviewed is None or "corrections" not in reviewed:
+        return fieldwork_start, fieldwork_end
+    reporting_url = reviewed.get("reporting_source_url")
+    if reporting_url is not None and reporting_url != source_url.strip():
+        return fieldwork_start, fieldwork_end
+    corrections = reviewed["corrections"]
+    return corrections["fieldwork_start"], corrections["fieldwork_end"]
 
 
 def official_poll_source_key(
     event: dict,
-) -> tuple[str, str, str, int | None]:
+) -> PollWaveKey:
     return (
         normalize(str(event.get("pollster", ""))),
         str(event.get("fieldwork_start", "")),
@@ -312,13 +395,17 @@ def official_poll_source_key(
     )
 
 
-def apply_official_poll_sources(events: list[dict]) -> int:
-    applied = 0
+def apply_official_poll_sources(
+    events: list[dict],
+    overrides: PollWaveOverrides | None = None,
+) -> int:
+    enriched_waves: set[PollWaveKey] = set()
+    reviewed = _reviewed_overrides(overrides)
 
     for event in events:
-        official_url = OFFICIAL_POLL_SOURCE_OVERRIDES.get(
-            official_poll_source_key(event)
-        )
+        key = official_poll_source_key(event)
+        entry = reviewed.get(key, {})
+        official_url = entry.get("official_source_url")
 
         if official_url is None:
             existing = str(
@@ -340,9 +427,9 @@ def apply_official_poll_sources(events: list[dict]) -> int:
             )
 
         event["official_source_url"] = official_url
-        applied += 1
+        enriched_waves.add(key)
 
-    return applied
+    return len(enriched_waves)
 
 
 def logical_key(event: dict) -> tuple[str, str, str, str]:
@@ -354,12 +441,63 @@ def logical_key(event: dict) -> tuple[str, str, str, str]:
     )
 
 
-def poll_wave_key(event: dict) -> tuple[str, str, str]:
+def poll_wave_key(event: dict) -> PollWaveKey:
     return (
         normalize(event["pollster"]),
         event["fieldwork_start"],
         event["fieldwork_end"],
+        event.get("sample_size"),
     )
+
+
+def rejected_poll_wave_keys(
+    events: list[dict],
+    overrides: PollWaveOverrides | None = None,
+) -> set[PollWaveKey]:
+    reviewed = _reviewed_overrides(overrides)
+    return {
+        poll_wave_key(event)
+        for event in events
+        if reviewed.get(poll_wave_key(event), {}).get("status") == "rejected"
+    }
+
+
+def filter_rejected_poll_waves(
+    events: list[dict],
+    overrides: PollWaveOverrides | None = None,
+) -> tuple[list[dict], int, int]:
+    """Remove explicitly rejected wave identities from any publication input."""
+    rejected = rejected_poll_wave_keys(events, overrides)
+    retained = [event for event in events if poll_wave_key(event) not in rejected]
+    return retained, len(events) - len(retained), len(rejected)
+
+
+def validate_reporting_source_wave_anomalies(events: list[dict]) -> int:
+    """Fail closed on exact same-sample source reuse across fieldwork windows."""
+    grouped: dict[tuple[str, int, str], set[PollWaveKey]] = {}
+    for event in events:
+        sample_size = event.get("sample_size")
+        source_url = str(event.get("source_url", "")).strip()
+        if (
+            not isinstance(sample_size, int)
+            or isinstance(sample_size, bool)
+            or source_url == SOURCE_URL
+        ):
+            continue
+        key = (normalize(str(event.get("pollster", ""))), sample_size, source_url)
+        grouped.setdefault(key, set()).add(poll_wave_key(event))
+    conflicts = [
+        (key, sorted(waves))
+        for key, waves in grouped.items()
+        if len(waves) > 1
+    ]
+    if conflicts:
+        key, waves = conflicts[0]
+        raise ValueError(
+            "poll wave anomaly requires reviewed override: same pollster, sample "
+            f"and reporting source span different fieldwork identities: {key} -> {waves}"
+        )
+    return 0
 
 
 POLLSTER_HEADERS = {
@@ -514,6 +652,7 @@ def discover_first_round_tables(
 
 def parse_wikipedia_first_round_html(
     page_html: str,
+    overrides: PollWaveOverrides | None = None,
 ) -> tuple[list[dict], list[str]]:
     tables = discover_first_round_tables(page_html)
     if not tables:
@@ -607,6 +746,7 @@ def parse_wikipedia_first_round_html(
                     fieldwork_end,
                     sample_size,
                     source_url,
+                    overrides,
                 )
             )
             names = [candidate["name"] for candidate in candidates]
@@ -653,11 +793,13 @@ def parse_wikipedia_first_round_html(
     return events, skipped
 
 
-def fetch_wikipedia_events() -> tuple[list[dict], list[str]]:
+def fetch_wikipedia_events(
+    overrides: PollWaveOverrides | None = None,
+) -> tuple[list[dict], list[str]]:
     request = Request(SOURCE_URL, headers={"User-Agent": USER_AGENT})
     with urlopen(request, timeout=60) as response:
         page_html = response.read().decode("utf-8")
-    return parse_wikipedia_first_round_html(page_html)
+    return parse_wikipedia_first_round_html(page_html, overrides)
 
 
 def fetch_mediawiki_parse(parameters: dict[str, str]) -> dict:
@@ -1680,31 +1822,40 @@ def merge_events(
 
 def _reviewed_correction_target_wave(
     event: dict,
-) -> tuple[str, str, str] | None:
-    key = (
-        normalize(str(event.get("pollster", ""))),
-        str(event.get("fieldwork_start", "")),
-        str(event.get("fieldwork_end", "")),
-        event.get("sample_size"),
-        str(event.get("source_url", "")).strip(),
-    )
-    corrected_dates = OFFICIAL_POLL_METADATA_CORRECTIONS.get(key)
-    if corrected_dates is None:
+    overrides: PollWaveOverrides | None = None,
+) -> PollWaveKey | None:
+    reviewed = _reviewed_overrides(overrides).get(poll_wave_key(event))
+    if reviewed is None or "corrections" not in reviewed:
         return None
+    reporting_url = reviewed.get("reporting_source_url")
+    if reporting_url is not None and reporting_url != str(
+        event.get("source_url", "")
+    ).strip():
+        return None
+    corrected_dates = reviewed["corrections"]
     return (
         normalize(str(event.get("pollster", ""))),
-        corrected_dates[0],
-        corrected_dates[1],
+        corrected_dates["fieldwork_start"],
+        corrected_dates["fieldwork_end"],
+        event.get("sample_size"),
     )
 
 
 def merge_previous_first_round_events(
     fresh_events: list[dict],
     previous_events: list[dict],
+    overrides: PollWaveOverrides | None = None,
 ) -> tuple[list[dict], int, int]:
     """Retain validated missing waves without reviving reviewed bad metadata."""
     if previous_events:
         validate_poll_events(previous_events)
+
+    fresh_events, _fresh_rejected_events, _fresh_rejected_waves = (
+        filter_rejected_poll_waves(fresh_events, overrides)
+    )
+    previous_events, _previous_rejected_events, _previous_rejected_waves = (
+        filter_rejected_poll_waves(previous_events, overrides)
+    )
 
     fresh_wave_keys = {poll_wave_key(event) for event in fresh_events}
     previous_wave_keys = {
@@ -1712,10 +1863,10 @@ def merge_previous_first_round_events(
     }
 
     retained: list[dict] = []
-    retained_wave_keys: set[tuple[str, str, str]] = set()
+    retained_wave_keys: set[PollWaveKey] = set()
 
     for event in previous_events:
-        correction_target = _reviewed_correction_target_wave(event)
+        correction_target = _reviewed_correction_target_wave(event, overrides)
         if correction_target is not None:
             if (
                 correction_target not in fresh_wave_keys
@@ -1767,6 +1918,7 @@ def validate_merged_official_waves(
             normalize(institute),
             notice["fieldwork_start"],
             notice["fieldwork_end"],
+            notice["sample_size"],
         )
         wave_events = [
             event for event in events if poll_wave_key(event) == expected_wave
@@ -1789,6 +1941,35 @@ def validate_merged_official_waves(
             )
 
 
+def atomic_write_json(path: Path | str, payload: Any) -> None:
+    """Write one validated JSON artifact with atomic replacement."""
+    destination = Path(path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    handle = tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        newline="\n",
+        dir=destination.parent,
+        prefix=f".{destination.name}.",
+        suffix=".tmp",
+        delete=False,
+    )
+    temporary = Path(handle.name)
+    try:
+        with handle:
+            json.dump(payload, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, destination)
+    except BaseException:
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
+        raise
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", default="polls.json")
@@ -1804,6 +1985,11 @@ def main() -> None:
             "previous validated first-round corpus used only to retain "
             "temporarily missing historical waves"
         ),
+    )
+    parser.add_argument(
+        "--poll-wave-overrides",
+        default=str(DEFAULT_POLL_WAVE_OVERRIDES),
+        help="reviewed exceptional first-round wave controls",
     )
     parser.add_argument(
         "--commission-registry",
@@ -1825,6 +2011,11 @@ def main() -> None:
         help="validate discovery without writing any files",
     )
     args = parser.parse_args()
+
+    try:
+        overrides = load_poll_wave_overrides(Path(args.poll_wave_overrides))
+    except ValueError as error:
+        parser.error(f"poll wave overrides are invalid: {error}")
 
     registry_path = Path(args.commission_registry)
     registry_output = Path(
@@ -1873,12 +2064,17 @@ def main() -> None:
     if args.check:
         parser.error("--check requires --discover-commission-notices")
 
-    wikipedia_events, skipped = fetch_wikipedia_events()
+    wikipedia_events, skipped = fetch_wikipedia_events(overrides)
     official_events, official_counts, parsed_notices = fetch_official_events(
         discovery.registry
     )
     events, exact_overlaps, suppressed_wikipedia_events, new_events = merge_events(
         wikipedia_events, official_events
+    )
+    discovered_waves = len({poll_wave_key(event) for event in events})
+    rejected_keys = rejected_poll_wave_keys(events, overrides)
+    events, rejected_fresh_events, _rejected_fresh_waves = (
+        filter_rejected_poll_waves(events, overrides)
     )
 
     retained_events = 0
@@ -1889,10 +2085,17 @@ def main() -> None:
             previous_events = json.loads(
                 previous_path.read_text(encoding="utf-8")
             )
+            rejected_keys.update(
+                rejected_poll_wave_keys(previous_events, overrides)
+            )
+            previous_events, rejected_previous_events, _ = (
+                filter_rejected_poll_waves(previous_events, overrides)
+            )
             events, retained_events, retained_waves = (
                 merge_previous_first_round_events(
                     events,
                     previous_events,
+                    overrides,
                 )
             )
         except (OSError, json.JSONDecodeError, PollContractError, ValueError) as error:
@@ -1900,7 +2103,11 @@ def main() -> None:
                 f"previous first-round corpus is invalid: {error}"
             )
 
-    apply_official_poll_sources(events)
+    official_source_enriched_waves = apply_official_poll_sources(
+        events,
+        overrides,
+    )
+    anomaly_count = validate_reporting_source_wave_anomalies(events)
     validate_merged_official_waves(events, parsed_notices)
     validate_poll_events(events)
     coverage_counts = reconcile_commission_notices(
@@ -1940,18 +2147,9 @@ def main() -> None:
     output = Path(args.output)
     second_round_output = Path(args.second_round_output)
     closest_runoff_output = Path(args.closest_runoff_output)
-    output.write_text(
-        json.dumps(events, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    second_round_output.write_text(
-        json.dumps(second_round_output_data, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    closest_runoff_output.write_text(
-        json.dumps(closest_output_data, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    atomic_write_json(output, events)
+    atomic_write_json(second_round_output, second_round_output_data)
+    atomic_write_json(closest_runoff_output, closest_output_data)
     atomic_write_registry(registry_output, discovery.registry)
 
     print(f"Wikipedia events: {len(wikipedia_events)}")
@@ -1971,6 +2169,18 @@ def main() -> None:
     print(
         "Historical first-round retention: "
         f"{retained_events} events across {retained_waves} waves"
+    )
+    rejected_event_count = rejected_fresh_events + (
+        rejected_previous_events if args.previous_first_round else 0
+    )
+    print(
+        "Poll update summary: "
+        f"{discovered_waves} fresh/discovered waves; "
+        f"{retained_waves} retained historical waves; "
+        f"{len(rejected_keys)} rejected reviewed waves "
+        f"({rejected_event_count} observations); "
+        f"{official_source_enriched_waves} official-source-enriched waves; "
+        f"anomaly/review status clear ({anomaly_count} conflicts)"
     )
     print(f"Final merged events: {len(events)}")
     print(
