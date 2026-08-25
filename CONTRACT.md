@@ -72,6 +72,14 @@ and may retain historical canonical candidate associations. Candidate Signals pr
 the complete canonical identity universe separately from its effective active-monitoring
 projection.
 
+### Candidate discovery
+
+Candidate-universe discovery may use multiple verified source classes, with attributable
+first-party evidence preferred where available. Discovery does not override registry
+authority: stable identity, conservative status transitions, retained last-good records,
+fail-closed ambiguity, and source-linked provenance remain mandatory. Wikipedia may serve
+as fallback or corroborating evidence. Discovery changes must not alter downstream
+active-monitoring semantics.
 ## Recent Changes Ledger (`recent_changes.json`)
 
 The ledger is a generated view over the existing public datasets and the configured

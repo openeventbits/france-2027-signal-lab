@@ -22,6 +22,7 @@ from urllib.request import Request, urlopen
 from candidate_candidacy_status import (
     CandidateCandidacyStatusError,
     active_candidate_ids,
+    display_tier_for_status,
     load_candidate_candidacy_status,
     project_active_monitoring_field,
     project_display_tiers,
@@ -46,6 +47,7 @@ PAGE_URL = (
 USER_AGENT = "FR27CandidateUniverse/2.0 (public MediaWiki collector)"
 SCHEMA_VERSION = "2.0"
 DEFAULT_PREVIOUS_PATH = Path("candidate_candidacy_status.json")
+DEFAULT_SOURCES_PATH = Path("candidate_candidacy_sources.json")
 
 
 class CandidateCandidacyFetchError(ValueError):
@@ -151,6 +153,140 @@ class ExtractedCandidate:
     @property
     def has_personal_article(self) -> bool:
         return self.requested_article_title is not None
+
+
+@dataclass(frozen=True)
+class CuratedCandidacySource:
+    source_id: str
+    candidate_id: str
+    candidate_name: str
+    source_type: str
+    publisher: str
+    url: str
+    source_date: str
+    source_title: str
+    status: str
+    status_as_of: str
+    status_note: str
+
+
+def load_curated_candidacy_sources(
+    path: str | Path = DEFAULT_SOURCES_PATH,
+) -> tuple[CuratedCandidacySource, ...]:
+    """Load validated curated first-party candidacy evidence."""
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise CandidateCandidacyFetchError(
+            f"could not load candidacy source inventory: {error}"
+        ) from error
+
+    if type(payload) is not dict or set(payload) != {"schema_version", "sources"}:
+        _fail("candidacy source inventory must contain schema_version and sources")
+    if payload["schema_version"] != "1.0":
+        _fail("candidacy source inventory schema_version must be exactly '1.0'")
+    if not isinstance(payload["sources"], list):
+        _fail("candidacy source inventory sources must be a list")
+
+    expected_keys = {
+        "source_id",
+        "candidate_id",
+        "candidate_name",
+        "source_type",
+        "publisher",
+        "url",
+        "source_date",
+        "source_title",
+        "status",
+        "status_as_of",
+        "status_note",
+        "enabled",
+    }
+    allowed_source_types = {"candidate_first_party", "party_first_party"}
+    records: list[CuratedCandidacySource] = []
+    seen_source_ids: set[str] = set()
+    seen_candidate_ids: set[str] = set()
+
+    for index, value in enumerate(payload["sources"]):
+        context = f"candidacy source inventory sources[{index}]"
+        if type(value) is not dict or set(value) != expected_keys:
+            _fail(f"{context} has invalid keys")
+        if type(value["enabled"]) is not bool:
+            _fail(f"{context}.enabled must be a boolean")
+        if not value["enabled"]:
+            continue
+
+        for field in (
+            "source_id",
+            "candidate_id",
+            "candidate_name",
+            "publisher",
+            "url",
+            "source_date",
+            "source_title",
+            "status",
+            "status_as_of",
+            "status_note",
+        ):
+            if not isinstance(value[field], str) or not value[field].strip():
+                _fail(f"{context}.{field} must be non-empty text")
+
+        if value["source_type"] not in allowed_source_types:
+            _fail(f"{context}.source_type must be first-party")
+        if not value["url"].startswith("https://"):
+            _fail(f"{context}.url must use HTTPS")
+
+        try:
+            source_date = datetime.strptime(
+                value["source_date"], "%Y-%m-%d"
+            ).date()
+            status_as_of = datetime.strptime(
+                value["status_as_of"], "%Y-%m-%d"
+            ).date()
+        except ValueError as error:
+            raise CandidateCandidacyFetchError(
+                f"{context} has an invalid ISO date"
+            ) from error
+        if status_as_of < source_date:
+            _fail(f"{context}.status_as_of cannot precede source_date")
+
+        try:
+            candidate_id(value["candidate_name"])
+            display_tier_for_status(value["status"])
+        except (CandidateIdentityError, CandidateCandidacyStatusError) as error:
+            raise CandidateCandidacyFetchError(
+                f"{context} is invalid: {error}"
+            ) from error
+        if re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", value["candidate_id"]) is None:
+            _fail(f"{context}.candidate_id must be lowercase ASCII kebab-case")
+
+        if value["source_id"] in seen_source_ids:
+            _fail(f"duplicate candidacy source_id: {value['source_id']}")
+        if value["candidate_id"] in seen_candidate_ids:
+            _fail(
+                "multiple enabled curated candidacy sources for candidate: "
+                f"{value['candidate_id']}"
+            )
+        seen_source_ids.add(value["source_id"])
+        seen_candidate_ids.add(value["candidate_id"])
+
+        records.append(
+            CuratedCandidacySource(
+                source_id=value["source_id"],
+                candidate_id=value["candidate_id"],
+                candidate_name=value["candidate_name"],
+                source_type=value["source_type"],
+                publisher=value["publisher"],
+                url=value["url"],
+                source_date=value["source_date"],
+                source_title=value["source_title"],
+                status=value["status"],
+                status_as_of=value["status_as_of"],
+                status_note=value["status_note"],
+            )
+        )
+
+    return tuple(sorted(records, key=lambda item: item.candidate_id))
 
 
 @dataclass(frozen=True)
@@ -1080,6 +1216,7 @@ def _build_payload_details(
     parsed_html: str,
     *,
     previous_registry: dict[str, Any] | None = None,
+    curated_sources: tuple[CuratedCandidacySource, ...] = (),
     article_resolver: Callable[[str], dict[str, Any]] | None = None,
     article_fetch_json: FetchJson | None = None,
 ) -> tuple[
@@ -1127,6 +1264,7 @@ def _build_payload_details(
     new_ids: list[str] = []
     name_changes: list[tuple[str, str, str]] = []
     present_ids: set[str] = set()
+    curated_by_id = {source.candidate_id: source for source in curated_sources}
 
     for candidate in extracted:
         rule = SECTION_RULES[candidate.section_title]
@@ -1156,13 +1294,50 @@ def _build_payload_details(
                         candidate.candidate_name,
                     )
                 )
-            if (
+            if revision.revision_date < previous["status_as_of"]:
+                rule = SectionRule(
+                    previous["status"],
+                    previous["display_tier"],
+                    previous["status_note"],
+                    "retained",
+                )
+                source_fields = _retained_status_source_fields(previous)
+            elif (
                 previous["status"] != rule.status
                 or previous["display_tier"] != rule.display_tier
             ):
                 source_fields = _status_source_fields(revision, rule)
             else:
                 source_fields = _retained_status_source_fields(previous)
+        curated = curated_by_id.get(identifier)
+        freshness_floor = revision.revision_date
+        if previous is not None:
+            freshness_floor = max(freshness_floor, previous["status_as_of"])
+        if curated is not None and curated.status_as_of < freshness_floor:
+            curated = None
+        if curated is not None:
+            if normalized_candidate_key(curated.candidate_name) != normalized_candidate_key(
+                candidate.candidate_name
+            ):
+                _fail(
+                    "curated candidacy source identity does not match reconciled candidate: "
+                    f"{identifier}"
+                )
+            rule = SectionRule(
+                curated.status,
+                display_tier_for_status(curated.status),
+                curated.status_note,
+                "curated",
+            )
+            source_fields = {
+                "status_as_of": curated.status_as_of,
+                "source_date": curated.source_date,
+                "source_url": curated.url,
+                "source_title": curated.source_title,
+                "source_publisher": curated.publisher,
+                "status_note": curated.status_note,
+            }
+
         present_ids.add(identifier)
         article = candidate.wikipedia_article
         if article is None and previous is not None:
@@ -1216,7 +1391,10 @@ def _build_payload_details(
     )
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
-        "status_as_of": revision.revision_date,
+        "status_as_of": max(
+            [revision.revision_date]
+            + [record["status_as_of"] for record in records]
+        ),
         "source": {
             "publisher": SOURCE_PUBLISHER,
             "page_title": PAGE_TITLE,
@@ -1266,6 +1444,7 @@ def fetch_candidate_candidacy_status(
     fetch_json: FetchJson = _default_fetch_json,
     *,
     previous_registry: dict[str, Any] | None = None,
+    curated_sources: tuple[CuratedCandidacySource, ...] = (),
 ) -> FetchResult:
     """Fetch metadata, parse its exact revision, and build the registry."""
 
@@ -1279,6 +1458,7 @@ def fetch_candidate_candidacy_status(
             revision,
             parsed_html,
             previous_registry=previous_registry,
+            curated_sources=curated_sources,
             article_fetch_json=fetch_json,
         )
     except CandidateCandidacyFetchError as error:
@@ -1352,6 +1532,12 @@ def _parser() -> argparse.ArgumentParser:
         )
     )
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument(
+        "--sources",
+        type=Path,
+        default=DEFAULT_SOURCES_PATH,
+        help="curated first-party candidacy evidence inventory",
+    )
     previous_group = parser.add_mutually_exclusive_group()
     previous_group.add_argument(
         "--previous",
@@ -1380,6 +1566,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     result = fetch_candidate_candidacy_status(
         previous_registry=previous_registry,
+        curated_sources=load_curated_candidacy_sources(args.sources),
     )
     write_payload_atomic(result.payload, args.output)
     counts: dict[str, int] = {}

@@ -421,6 +421,88 @@ class MediaWikiApiTests(unittest.TestCase):
         )
         self.assertFalse(result.semantic_changed)
 
+    def test_curated_first_party_evidence_overrides_wikipedia_status(self):
+        name = "Élodie Déclarée"
+        curated = collector.CuratedCandidacySource(
+            source_id="elodie-official",
+            candidate_id=collector.candidate_id(name),
+            candidate_name=name,
+            source_type="candidate_first_party",
+            publisher="Official campaign",
+            url="https://unit-fixture.fr/elodie-2027",
+            source_date="2026-08-07",
+            source_title="Official candidacy update",
+            status="withdrawn",
+            status_as_of="2026-08-07",
+            status_note="Officially announced withdrawal.",
+        )
+
+        result = collector.fetch_candidate_candidacy_status(
+            FakeFetch(),
+            curated_sources=(curated,),
+        )
+        candidate = next(
+            row for row in result.payload["candidates"]
+            if row["candidate_name"] == name
+        )
+
+        self.assertEqual(candidate["status"], "withdrawn")
+        self.assertEqual(candidate["display_tier"], "hidden")
+        self.assertEqual(candidate["source_publisher"], "Official campaign")
+        self.assertEqual(candidate["source_url"], "https://unit-fixture.fr/elodie-2027")
+        self.assertEqual(result.payload["status_as_of"], "2026-08-07")
+
+    def test_stale_curated_evidence_cannot_rollback_last_good_status(self):
+        name = "Élodie Déclarée"
+        identifier = collector.candidate_id(name)
+        newer = collector.CuratedCandidacySource(
+            source_id="elodie-newer",
+            candidate_id=identifier,
+            candidate_name=name,
+            source_type="candidate_first_party",
+            publisher="Official campaign",
+            url="https://unit-fixture.fr/elodie-newer",
+            source_date="2026-08-08",
+            source_title="Newer official candidacy update",
+            status="withdrawn",
+            status_as_of="2026-08-08",
+            status_note="Officially announced withdrawal.",
+        )
+        previous = collector.fetch_candidate_candidacy_status(
+            FakeFetch(),
+            curated_sources=(newer,),
+        ).payload
+
+        stale = collector.CuratedCandidacySource(
+            source_id="elodie-stale",
+            candidate_id=identifier,
+            candidate_name=name,
+            source_type="candidate_first_party",
+            publisher="Older official page",
+            url="https://unit-fixture.fr/elodie-stale",
+            source_date="2026-08-07",
+            source_title="Older candidacy page",
+            status="declared",
+            status_as_of="2026-08-07",
+            status_note="Previously described as a candidate.",
+        )
+        result = collector.fetch_candidate_candidacy_status(
+            FakeFetch(),
+            previous_registry=previous,
+            curated_sources=(stale,),
+        )
+        candidate = next(
+            row for row in result.payload["candidates"]
+            if row["candidate_name"] == name
+        )
+
+        self.assertEqual(candidate["status"], "withdrawn")
+        self.assertEqual(candidate["display_tier"], "hidden")
+        self.assertEqual(candidate["source_publisher"], "Official campaign")
+        self.assertEqual(candidate["source_url"], "https://unit-fixture.fr/elodie-newer")
+        self.assertEqual(candidate["status_as_of"], "2026-08-08")
+
+
     def test_malformed_api_payload_fails_closed(self):
         for malformed in (None, {}, {"query": {}}, {"query": {"pages": []}}):
             with self.subTest(malformed=malformed):
