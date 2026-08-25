@@ -94,6 +94,16 @@ _STATUS_TO_TIER = {
     "withdrawn": "hidden",
     "historical_poll_only": "hidden",
 }
+def display_tier_for_status(status: str) -> str:
+    """Return the canonical display tier for one candidacy status."""
+    try:
+        return _STATUS_TO_TIER[status]
+    except KeyError as error:
+        raise CandidateCandidacyStatusError(
+            f"unsupported candidacy status: {status!r}"
+        ) from error
+
+
 _DISPLAY_TIERS = frozenset({"main", "secondary", "hidden"})
 _UPSTREAM_PRESENCE = frozenset({"present", "temporarily_missing"})
 _CANDIDATE_ID_PATTERN = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
@@ -393,10 +403,8 @@ def validate_candidate_candidacy_status(
         payload["status_as_of"],
         "status_as_of",
     )
-    if is_v2 and payload["source"]["revision_timestamp"][:10] != (
-        payload["status_as_of"]
-    ):
-        _fail("status_as_of must equal the accepted source revision date")
+    if is_v2 and payload["status_as_of"] < payload["source"]["revision_timestamp"][:10]:
+        _fail("status_as_of cannot precede the accepted source revision date")
     candidates = payload["candidates"]
     if not isinstance(candidates, list) or not candidates:
         _fail("candidates must be a non-empty list")
