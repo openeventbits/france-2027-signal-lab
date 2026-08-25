@@ -136,6 +136,11 @@ class RaceGlanceDefaultTests(unittest.TestCase):
             initialization,
         )
 
+    def test_poll_tabs_show_pollster_only_with_full_date_context(self):
+        self.assertIn("full.textContent = pollPackage.pollster;", self.source)
+        self.assertIn("button.setAttribute(\"aria-label\", fullLabel);", self.source)
+        self.assertIn("button.dataset.fr27Tooltip = fullLabel;", self.source)
+
 
 if __name__ == "__main__":
     unittest.main()
