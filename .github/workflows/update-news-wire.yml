@@ -806,7 +806,21 @@ jobs:
             --published-at "$final_published_at"
           git diff --exit-code -- \
             recent_changes.json candidate_signals.json candidate_visibility_history.json publication_manifest.json
-          git push origin "HEAD:$target_branch"
+          for attempt in 1 2 3; do
+            if push_output="$(git push origin "HEAD:$target_branch" 2>&1)"; then
+              printf '%s\n' "$push_output"
+              break
+            fi
+
+            printf '%s\n' "$push_output" >&2
+
+            if [[ "$push_output" != *"fatal error in commit_refs"* || "$attempt" -eq 3 ]]; then
+              exit 1
+            fi
+
+            echo "GitHub reported transient commit_refs failure; retrying push." >&2
+            sleep $((attempt * 5))
+          done
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
 

@@ -162,6 +162,29 @@ class NewsWorkflowContractTests(unittest.TestCase):
         )
 
 
+    def test_push_retries_only_transient_commit_refs_failure(self):
+        commit = self.text[
+            self.text.index(
+                "- name: Commit changed rolling news data"
+            ):
+        ]
+
+        self.assertIn("for attempt in 1 2 3; do", commit)
+        self.assertEqual(
+            commit.count('git push origin "HEAD:$target_branch"'),
+            1,
+        )
+        self.assertIn(
+            'push_output="$(git push origin "HEAD:$target_branch" 2>&1)"',
+            commit,
+        )
+        self.assertIn(
+            'if [[ "$push_output" != *"fatal error in commit_refs"* || "$attempt" -eq 3 ]]; then',
+            commit,
+        )
+        self.assertIn("exit 1", commit)
+        self.assertIn("sleep $((attempt * 5))", commit)
+
     def test_registry_is_not_published_by_news(self):
         commit = self.text[self.text.index("git add --"):]
         for line in commit.splitlines():
