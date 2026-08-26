@@ -100,11 +100,11 @@ class RehearsalResult:
 
 
 def phase4a_cutover_contract() -> dict[str, Any]:
-    """Prove opt-in capability without scheduled French-source activation.
+    """Prove the explicit French scheduled-source cutover boundary.
 
-    The hashes intentionally cover only logic that Phase 4 must not change.
-    ``fetch_polls.py`` and the workflow are checked semantically because they
-    are the two explicit future production integration points.
+    The parser default remains English while the scheduled workflow explicitly
+    opts into the French source. The hashes intentionally cover logic that the
+    cutover must not change.
     """
 
     actual_source = {
@@ -114,14 +114,14 @@ def phase4a_cutover_contract() -> dict[str, Any]:
     }
     if actual_source != PRODUCTION_ENGLISH_SOURCE:
         raise RehearsalError(
-            "production Wikipedia source changed before the explicit cutover"
+            "default polling source configuration changed"
         )
     workflow = (ROOT / ".github/workflows/update-polls.yml").read_text(
         encoding="utf-8"
     )
     required_workflow_markers = (
         "python fetch_polls.py",
-        "--wikipedia-source english",
+        "--wikipedia-source french",
         "--previous-first-round polls.json",
         "--previous-second-round second_round_polls.json",
         "--second-round-output /tmp/second_round_polls.json",
@@ -133,7 +133,7 @@ def phase4a_cutover_contract() -> dict[str, Any]:
         "rehearse_fr_poll_migration",
     )
     if any(marker in workflow for marker in forbidden_phase4a_markers):
-        raise RehearsalError("scheduled workflow activated French source in Phase 4A")
+        raise RehearsalError("scheduled workflow bypasses the explicit French source selector")
 
     protected_hashes: dict[str, str] = {}
     for relative, expected in PHASE4_PROTECTED_LOGIC_SHA256.items():
@@ -164,8 +164,8 @@ def phase4a_cutover_contract() -> dict[str, Any]:
         raise RehearsalError("make_event_id contract changed")
 
     return {
-        "phase": "4A",
-        "production_source": "english_wikipedia",
+        "phase": "cutover",
+        "production_source": "french_wikipedia_scheduled",
         "production_source_configuration": actual_source,
         "phase4_production_modification_files": list(
             PHASE4_PRODUCTION_MODIFICATION_FILES

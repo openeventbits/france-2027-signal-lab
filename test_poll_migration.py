@@ -414,12 +414,12 @@ class CutoverRehearsalTests(unittest.TestCase):
         with self.assertRaisesRegex(SourceDriftError, "heading hierarchy changed"):
             rehearse_migration(changed)
 
-    def test_phase4a_keeps_the_scheduled_source_and_integration_boundary_explicit(
+    def test_cutover_keeps_the_scheduled_source_and_integration_boundary_explicit(
         self,
     ) -> None:
         contract = phase4a_cutover_contract()
-        self.assertEqual(contract["phase"], "4A")
-        self.assertEqual(contract["production_source"], "english_wikipedia")
+        self.assertEqual(contract["phase"], "cutover")
+        self.assertEqual(contract["production_source"], "french_wikipedia_scheduled")
         self.assertEqual(
             tuple(contract["phase4_production_modification_files"]),
             PHASE4_PRODUCTION_MODIFICATION_FILES,
