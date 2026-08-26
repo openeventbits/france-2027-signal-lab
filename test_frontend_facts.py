@@ -67,6 +67,24 @@ def run_poll_semantics_script(index_source, expression):
     return json.loads(result.stdout)
 
 
+def run_poll_package_script(index_source, expression):
+    node = shutil.which("node")
+    if node is None:
+        raise unittest.SkipTest("Node.js is required for frontend fact tests")
+    functions = function_body(
+        index_source,
+        "racePollEventKey",
+        "calculateRaceScaleMaximum",
+    )
+    result = subprocess.run(
+        [node, "-e", functions + "\nconsole.log(JSON.stringify(" + expression + "));"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return json.loads(result.stdout)
+
+
 class FrontendPublicationFactsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -538,6 +556,72 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             renderer,
         )
         self.assertNotIn("latestPackage", renderer)
+
+    def test_poll_coverage_remains_six_month_distinct_pollster_metric(self):
+        coverage = function_body(
+            self.index,
+            "derivePollCoverage",
+            "sourceNetworkMetrics",
+        )
+        self.assertIn("subtractCalendarMonths(latestDate, 6)", coverage)
+        self.assertIn(".map(item => item.event.pollster)", coverage)
+        self.assertIn(
+            '(coverage.count === 1 ? "pollster" : "pollsters") +',
+            self.index,
+        )
+        self.assertIn('" · 6-month window"', self.index)
+
+    def test_hud_poll_count_uses_full_poll_package_corpus(self):
+        self.assertIn('id="fr27-hud-polls-value"', self.index)
+        self.assertIn("<span>polls</span>", self.index)
+        self.assertNotIn('id="fr27-hud-pollsters-value"', self.index)
+        self.assertIn(
+            "const allPollPackages =\n"
+            "          buildRacePollPackages(validEvents);",
+            self.index,
+        )
+        self.assertIn(
+            "String(allPollPackages.length)",
+            self.index,
+        )
+
+        fixtures = """
+          (() => {
+            const events = [
+              {
+                pollster: "A",
+                fieldwork_start: "2026-08-01",
+                fieldwork_end: "2026-08-03",
+                sample_size: 1000,
+                scenario_key: "scenario-1"
+              },
+              {
+                pollster: "A",
+                fieldwork_start: "2026-08-01",
+                fieldwork_end: "2026-08-03",
+                sample_size: 1000,
+                scenario_key: "scenario-2"
+              },
+              {
+                pollster: "B",
+                fieldwork_start: "2026-08-05",
+                fieldwork_end: "2026-08-07",
+                sample_size: 1200,
+                scenario_key: "scenario-1"
+              }
+            ];
+            const packages = buildRacePollPackages(events);
+            return {
+              eventCount: events.length,
+              packageCount: packages.length,
+              firstPackageHypotheses: packages[0].events.length
+            };
+          })()
+        """
+        result = run_poll_package_script(self.index, fixtures)
+        self.assertEqual(result["eventCount"], 3)
+        self.assertEqual(result["packageCount"], 2)
+        self.assertEqual(result["firstPackageHypotheses"], 2)
 
     def test_poll_semantic_labels_and_comparison_tooltip_are_updated(self):
         self.assertIn("LATEST FIELDWORK", self.index)

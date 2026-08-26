@@ -32,11 +32,19 @@ class RaceGlanceDefaultTests(unittest.TestCase):
             self.source,
         )
         self.assertIn(
+            "const allPollPackages =",
+            self.source,
+        )
+        self.assertIn(
+            "buildRacePollPackages(validEvents);",
+            self.source,
+        )
+        self.assertIn(
             "const pollPackages = rankRacePollPackages(",
             self.source,
         )
         self.assertIn(
-            "buildRacePollPackages(validEvents),",
+            "allPollPackages,",
             self.source,
         )
         self.assertIn(
