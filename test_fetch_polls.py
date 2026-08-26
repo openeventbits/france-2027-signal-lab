@@ -74,6 +74,83 @@ class WikipediaSourceSelectionTests(unittest.TestCase):
             future_fetch_step,
         )
 
+    def test_workflow_official_wave_validation_excludes_fr_t1r45_only_from_evidence(self):
+        workflow = (ROOT / ".github/workflows/update-polls.yml").read_text(
+            encoding="utf-8"
+        )
+        validation_step = workflow.split(
+            "- name: Validate and stage fetched data", 1
+        )[1]
+
+        self.assertIn(
+            'load_migration_registry()["french_additions"][FIRST_ROUND]',
+            validation_step,
+        )
+        self.assertIn(
+            'if event.get("migration_source_locator") not in audited_first_locators',
+            validation_step,
+        )
+        self.assertIn(
+            "for event in official_validation_events",
+            validation_step,
+        )
+
+        previous_first = json.loads(
+            (ROOT / "polls.json").read_text(encoding="utf-8")
+        )
+        previous_second = load_previous_second_round_events(
+            ROOT / "second_round_polls.json"
+        )
+        parsed = load_mediawiki_fixture(FRENCH_FIXTURE, 238906992)
+        migrated, _second, _report, _official = integrate_french_migration_source(
+            parsed,
+            previous_first,
+            previous_second,
+            [],
+        )
+
+        elabe_wave = [
+            event
+            for event in migrated
+            if event["pollster"] == "Elabe"
+            and event["fieldwork_start"] == "2026-03-25"
+            and event["fieldwork_end"] == "2026-03-27"
+        ]
+        self.assertEqual(len(elabe_wave), 7)
+        self.assertEqual(
+            {
+                event.get("migration_source_locator")
+                for event in elabe_wave
+                if event.get("migration_source_locator")
+            },
+            {"FR-T1R45"},
+        )
+
+        audited_locators = {
+            record["source_locator"]
+            for record in load_migration_registry()["french_additions"]["first_round"]
+        }
+        official_elabe_wave = [
+            event
+            for event in elabe_wave
+            if event.get("migration_source_locator") not in audited_locators
+        ]
+        self.assertEqual(len(official_elabe_wave), 6)
+        self.assertTrue(
+            all(
+                event["source_url"]
+                == "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2166"
+                for event in official_elabe_wave
+            )
+        )
+        self.assertIn(
+            "FR-T1R45",
+            {
+                event.get("migration_source_locator")
+                for event in migrated
+            },
+        )
+
     def test_english_source_accepts_prepared_previous_second_round_argument(self):
         class ParsedArguments(RuntimeError):
             pass
