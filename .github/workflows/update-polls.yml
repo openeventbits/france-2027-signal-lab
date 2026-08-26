@@ -37,13 +37,16 @@ jobs:
           test_commission_notice_discovery.py
           test_commission_notice_coverage.py
           test_fetch_polls.py
+          test_poll_migration.py
           test_frontend_facts.py
           test_publication_manifest.PublicationManifestTests.test_poll_coverage_warns_only_for_unresolved_relevant_notices
 
       - name: Fetch polls into temporary files
         run: |
           python fetch_polls.py \
+            --wikipedia-source english \
             --previous-first-round polls.json \
+            --previous-second-round second_round_polls.json \
             --poll-wave-overrides poll_wave_overrides.json \
             --output /tmp/polls.json \
             --second-round-output /tmp/second_round_polls.json \
@@ -66,7 +69,8 @@ jobs:
               filter_rejected_poll_waves,
               load_poll_wave_overrides,
           )
-          from poll_contract import PollContractError, validate_poll_events
+          from poll_contract import FIRST_ROUND, PollContractError, validate_poll_events
+          from poll_migration import load_migration_registry
 
           current_path = Path("polls.json")
           fetched_path = Path("/tmp/polls.json")
@@ -185,6 +189,16 @@ jobs:
                   f"{sorted(missing_notices)}"
               )
 
+          audited_first_locators = {
+              record["source_locator"]
+              for record in load_migration_registry()["french_additions"][FIRST_ROUND]
+          }
+          official_validation_events = [
+              event
+              for event in fetched
+              if event.get("migration_source_locator") not in audited_first_locators
+          ]
+
           official_waves = {
               ("Elabe", "2026-03-25", "2026-03-27"): (
                   "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2166",
@@ -204,7 +218,7 @@ jobs:
           ):
               wave_events = [
                   event
-                  for event in fetched
+                  for event in official_validation_events
                   if event["pollster"] == pollster
                   and event["fieldwork_start"] == start
                   and event["fieldwork_end"] == end
