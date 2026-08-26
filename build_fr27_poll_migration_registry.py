@@ -770,7 +770,7 @@ def canonical_registry_bytes(payload: dict[str, Any]) -> bytes:
 
     validate_migration_registry(payload)
     text = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
-    return text.replace("\n", "\r\n").encode("utf-8")
+    return text.encode("utf-8")
 
 
 def _parser() -> argparse.ArgumentParser:
