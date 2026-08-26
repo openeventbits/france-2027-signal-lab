@@ -45,7 +45,7 @@ ROOT = Path(__file__).parent
 
 
 class WikipediaSourceSelectionTests(unittest.TestCase):
-    def test_default_and_scheduled_source_remain_explicitly_english(self):
+    def test_default_source_remains_english_and_scheduled_source_is_french(self):
         self.assertTrue(SOURCE_URL.startswith("https://en.wikipedia.org/"))
         workflow = (ROOT / ".github/workflows/update-polls.yml").read_text(
             encoding="utf-8"
@@ -54,25 +54,14 @@ class WikipediaSourceSelectionTests(unittest.TestCase):
             "- name: Fetch polls into temporary files", 1
         )[1].split("- name: Validate and stage fetched data", 1)[0]
         required = (
-            "--wikipedia-source english",
+            "--wikipedia-source french",
             "--previous-first-round polls.json",
             "--previous-second-round second_round_polls.json",
         )
         for marker in required:
             self.assertEqual(fetch_step.count(marker), 1)
-        self.assertNotIn("--wikipedia-source french", workflow)
+        self.assertNotIn("--wikipedia-source english", fetch_step)
         self.assertNotIn("fr.wikipedia.org", workflow)
-
-        future_fetch_step = fetch_step.replace(
-            "--wikipedia-source english",
-            "--wikipedia-source french",
-        )
-        self.assertIn("--wikipedia-source french", future_fetch_step)
-        self.assertIn("--previous-first-round polls.json", future_fetch_step)
-        self.assertIn(
-            "--previous-second-round second_round_polls.json",
-            future_fetch_step,
-        )
 
     def test_workflow_official_wave_validation_excludes_fr_t1r45_only_from_evidence(self):
         workflow = (ROOT / ".github/workflows/update-polls.yml").read_text(
