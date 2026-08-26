@@ -46,6 +46,7 @@ jobs:
           python fetch_polls.py \
             --wikipedia-source english \
             --previous-first-round polls.json \
+            --previous-second-round second_round_polls.json \
             --poll-wave-overrides poll_wave_overrides.json \
             --output /tmp/polls.json \
             --second-round-output /tmp/second_round_polls.json \

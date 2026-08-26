@@ -123,12 +123,12 @@ def phase4a_cutover_contract() -> dict[str, Any]:
         "python fetch_polls.py",
         "--wikipedia-source english",
         "--previous-first-round polls.json",
+        "--previous-second-round second_round_polls.json",
         "--second-round-output /tmp/second_round_polls.json",
     )
     if not all(marker in workflow for marker in required_workflow_markers):
         raise RehearsalError("current polling workflow contract changed")
     forbidden_phase4a_markers = (
-        "--previous-second-round",
         "fr.wikipedia.org",
         "rehearse_fr_poll_migration",
     )

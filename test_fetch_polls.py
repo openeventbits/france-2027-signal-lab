@@ -20,6 +20,7 @@ from fetch_polls import (
     integrate_french_migration_source,
     load_poll_wave_overrides,
     load_previous_second_round_events,
+    main as fetch_polls_main,
     merge_previous_first_round_events,
     parse_fieldwork,
     parse_wikipedia_first_round_html,
@@ -49,8 +50,50 @@ class WikipediaSourceSelectionTests(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/update-polls.yml").read_text(
             encoding="utf-8"
         )
-        self.assertIn("--wikipedia-source english", workflow)
+        fetch_step = workflow.split(
+            "- name: Fetch polls into temporary files", 1
+        )[1].split("- name: Validate and stage fetched data", 1)[0]
+        required = (
+            "--wikipedia-source english",
+            "--previous-first-round polls.json",
+            "--previous-second-round second_round_polls.json",
+        )
+        for marker in required:
+            self.assertEqual(fetch_step.count(marker), 1)
         self.assertNotIn("--wikipedia-source french", workflow)
+        self.assertNotIn("fr.wikipedia.org", workflow)
+
+        future_fetch_step = fetch_step.replace(
+            "--wikipedia-source english",
+            "--wikipedia-source french",
+        )
+        self.assertIn("--wikipedia-source french", future_fetch_step)
+        self.assertIn("--previous-first-round polls.json", future_fetch_step)
+        self.assertIn(
+            "--previous-second-round second_round_polls.json",
+            future_fetch_step,
+        )
+
+    def test_english_source_accepts_prepared_previous_second_round_argument(self):
+        class ParsedArguments(RuntimeError):
+            pass
+
+        arguments = [
+            "fetch_polls.py",
+            "--wikipedia-source",
+            "english",
+            "--previous-second-round",
+            "must-not-be-read.json",
+        ]
+        with (
+            patch.object(sys, "argv", arguments),
+            patch(
+                "fetch_polls.load_poll_wave_overrides",
+                side_effect=ParsedArguments,
+            ),
+            self.assertRaises(ParsedArguments),
+        ):
+            fetch_polls_main()
 
     def test_french_source_requires_both_previous_corpora(self):
         result = subprocess.run(

@@ -2209,8 +2209,9 @@ def main() -> None:
             parser.error(str(error))
     elif args.french_fixture:
         parser.error("--french-fixture requires --wikipedia-source french")
-    elif args.previous_second_round:
-        parser.error("--previous-second-round is used only in French source mode")
+    # English mode deliberately carries the last-good runoff path without
+    # consuming it.  A future explicit source change to French can therefore
+    # use the already-wired preservation input without another workflow edit.
 
     try:
         overrides = load_poll_wave_overrides(Path(args.poll_wave_overrides))

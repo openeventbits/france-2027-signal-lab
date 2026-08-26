@@ -44,6 +44,7 @@ from rehearse_fr_poll_migration import (
     EVENT_ID_CONTRACT_PROBES,
     PHASE4_PRODUCTION_MODIFICATION_FILES,
     PHASE4_PROTECTED_LOGIC_SHA256,
+    RehearsalError,
     SourceDriftError,
     phase4a_cutover_contract,
     reconcile_french_production_source,
@@ -439,6 +440,29 @@ class CutoverRehearsalTests(unittest.TestCase):
                 "reconciled_second_round": 50,
             },
         )
+
+        workflow_path = ROOT / ".github/workflows/update-polls.yml"
+        real_read_text = Path.read_text
+
+        def read_without_previous_second_round(
+            path: Path, *args: object, **kwargs: object
+        ) -> str:
+            content = real_read_text(path, *args, **kwargs)
+            if path == workflow_path:
+                return content.replace(
+                    "--previous-second-round second_round_polls.json",
+                    "",
+                )
+            return content
+
+        with (
+            patch.object(Path, "read_text", new=read_without_previous_second_round),
+            self.assertRaisesRegex(
+                RehearsalError,
+                "current polling workflow contract changed",
+            ),
+        ):
+            phase4a_cutover_contract()
 
     def test_valid_post_audit_french_body_row_is_normally_ingested(self) -> None:
         parsed = post_audit_french_row_fixture()
