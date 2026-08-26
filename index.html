@@ -7977,7 +7977,7 @@
                   </div>
 
                   <div class="fr27-source-stat">
-                    <strong id="fr27-hud-pollsters-value" class="fr27-hud-metric-loading" aria-label="Loading pollster count">—</strong>
+                    <strong id="fr27-hud-polls-value" class="fr27-hud-metric-loading" aria-label="Loading poll count">—</strong>
                     <span class="fr27-source-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24" focusable="false">
                         <circle cx="9" cy="8.5" r="3"></circle>
@@ -7986,7 +7986,7 @@
                         <path d="M15.5 14c2.7.3 4.2 1.8 4.8 4.5"></path>
                       </svg>
                     </span>
-                    <span>pollsters</span>
+                    <span>polls</span>
                   </div>
                 </div>
               </section>
@@ -12878,8 +12878,11 @@
           a.pollster.localeCompare(b.pollster)
         );
 
+        const allPollPackages =
+          buildRacePollPackages(validEvents);
+
         const pollPackages = rankRacePollPackages(
-          buildRacePollPackages(validEvents),
+          allPollPackages,
           validEvents
         ).slice(0, 3);
 
@@ -12887,6 +12890,16 @@
           throw new Error(
             "No valid first-round poll packages found"
           );
+        }
+
+        const hudPollsNode = $("#fr27-hud-polls-value");
+        if (hudPollsNode) {
+          hudPollsNode.textContent =
+            String(allPollPackages.length);
+          hudPollsNode.classList.remove(
+            "fr27-hud-metric-loading"
+          );
+          hudPollsNode.removeAttribute("aria-label");
         }
 
         raceGlanceState.events = validEvents;
@@ -13452,9 +13465,6 @@
     const domainsNode =
       hud.querySelector("#fr27-hud-domains-value");
 
-    const pollstersNode =
-      hud.querySelector("#fr27-hud-pollsters-value");
-
     const newsNode =
       hud.querySelector("#fr27-hud-news-value");
 
@@ -13470,11 +13480,6 @@
     const domains =
       fr27HudExtractMetric(
         "approved publisher domains"
-      );
-
-    const pollsters =
-      fr27HudExtractMetric(
-        "pollsters"
       );
 
     const news =
@@ -13519,10 +13524,6 @@
 
     if (domains && domainsNode) {
       resolveHudMetric(domainsNode, domains);
-    }
-
-    if (pollsters && pollstersNode) {
-      resolveHudMetric(pollstersNode, pollsters);
     }
 
     if (news && newsNode) {
