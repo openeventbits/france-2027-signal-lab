@@ -37,12 +37,14 @@ jobs:
           test_commission_notice_discovery.py
           test_commission_notice_coverage.py
           test_fetch_polls.py
+          test_poll_migration.py
           test_frontend_facts.py
           test_publication_manifest.PublicationManifestTests.test_poll_coverage_warns_only_for_unresolved_relevant_notices
 
       - name: Fetch polls into temporary files
         run: |
           python fetch_polls.py \
+            --wikipedia-source english \
             --previous-first-round polls.json \
             --poll-wave-overrides poll_wave_overrides.json \
             --output /tmp/polls.json \

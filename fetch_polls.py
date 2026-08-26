@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import io
 import json
@@ -49,6 +50,12 @@ USER_AGENT = "France2027SignalLab/1.0 (contact: malatazen@gmail.com)"
 MEDIAWIKI_API_URL = "https://en.wikipedia.org/w/api.php"
 SOURCE_PAGE = "Opinion_polling_for_the_2027_French_presidential_election"
 WIKIPEDIA_LICENSE = "CC BY-SA 4.0"
+WIKIPEDIA_SOURCES = ("english", "french")
+FRENCH_SOURCE_URL = (
+    "https://fr.wikipedia.org/wiki/"
+    "Liste_de_sondages_sur_l%27%C3%A9lection_pr%C3%A9sidentielle_"
+    "fran%C3%A7aise_de_2027"
+)
 ROUND = FIRST_ROUND
 SECOND_ROUND = "second_round"
 DEFAULT_POLL_WAVE_OVERRIDES = Path(__file__).with_name(
@@ -1970,8 +1977,172 @@ def atomic_write_json(path: Path | str, payload: Any) -> None:
         raise
 
 
+def load_previous_second_round_events(path: Path | str) -> list[dict]:
+    """Load and strictly validate the last-good runoff archive."""
+
+    source = Path(path)
+    try:
+        payload = json.loads(source.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"cannot load previous second-round corpus: {error}") from error
+    events = payload.get("events") if isinstance(payload, dict) else None
+    if not isinstance(events, list) or not events:
+        raise ValueError("previous second-round corpus must contain events")
+    event_ids: set[str] = set()
+    for event in events:
+        validate_second_round_event(event)
+        if event["event_id"] in event_ids:
+            raise ValueError("previous second-round corpus has duplicate event IDs")
+        event_ids.add(event["event_id"])
+    return events
+
+
+def integrate_french_migration_source(
+    parsed: dict,
+    previous_first: list[dict],
+    previous_second: list[dict],
+    official_events: list[dict],
+    overrides: PollWaveOverrides | None = None,
+) -> tuple[list[dict], list[dict], dict, tuple[int, int, int]]:
+    """Feed migration-aware French discovery into the existing merge path."""
+
+    from rehearse_fr_poll_migration import reconcile_french_production_source
+
+    migration = reconcile_french_production_source(
+        parsed,
+        previous_first,
+        previous_second,
+    )
+    previous_first_ids = {event["event_id"] for event in previous_first}
+    french_additions = [
+        event
+        for event in migration.first_round_events
+        if event["event_id"] not in previous_first_ids
+    ]
+    fresh_events, exact_overlaps, suppressed, net_new = merge_events(
+        french_additions,
+        official_events,
+    )
+    from poll_migration import load_migration_registry
+
+    migration_registry = load_migration_registry()
+    audited_addition_locators = {
+        record["source_locator"]
+        for record in migration_registry["french_additions"][FIRST_ROUND]
+    }
+    audited_additions = [
+        event
+        for event in french_additions
+        if event.get("migration_source_locator") in audited_addition_locators
+    ]
+    previous_wave_keys = {poll_wave_key(event) for event in previous_first}
+    for event in official_events:
+        if (
+            poll_wave_key(event) in previous_wave_keys
+            and event["event_id"] not in previous_first_ids
+        ):
+            raise ValueError(
+                "official wave changed a retained event identity during French migration"
+            )
+    events_by_id = {
+        event["event_id"]: copy.deepcopy(event) for event in previous_first
+    }
+    for event in fresh_events:
+        events_by_id[event["event_id"]] = copy.deepcopy(event)
+    # The official merge remains authoritative for ordinary source rows.  The
+    # one-time registry, however, explicitly reviewed all 29 migration
+    # additions, including a single Elabe scenario not emitted by the current
+    # official parser.  Restore only that finite audited set after the merge.
+    for event in audited_additions:
+        events_by_id[event["event_id"]] = copy.deepcopy(event)
+    for event in events_by_id.values():
+        event.pop("rehearsal_only", None)
+    events = sorted(
+        events_by_id.values(),
+        key=lambda event: (
+            -int(event["fieldwork_end"].replace("-", "")),
+            -int(event["fieldwork_start"].replace("-", "")),
+            normalize(event["pollster"]),
+            event["scenario_key"],
+            event["event_id"],
+        ),
+    )
+    events, rejected_events, _rejected_waves = filter_rejected_poll_waves(
+        events, overrides
+    )
+    if rejected_events:
+        raise ValueError(
+            "French migration output contains an explicitly rejected poll wave"
+        )
+    validate_poll_events(events)
+    for event in migration.second_round_events:
+        validate_second_round_event(event)
+
+    previous_second_ids = {event["event_id"] for event in previous_second}
+    final_first_ids = {event["event_id"] for event in events}
+    final_second_ids = {
+        event["event_id"] for event in migration.second_round_events
+    }
+    missing_first = previous_first_ids - final_first_ids
+    missing_second = previous_second_ids - final_second_ids
+    if missing_first:
+        raise ValueError(
+            f"French migration lost {len(missing_first)} first-round event IDs"
+        )
+    if missing_second:
+        raise ValueError(
+            f"French migration lost {len(missing_second)} second-round event IDs"
+        )
+    if len(final_second_ids) != len(migration.second_round_events):
+        raise ValueError("French migration produced duplicate runoff event IDs")
+    return (
+        events,
+        migration.second_round_events,
+        migration.report,
+        (exact_overlaps, suppressed, net_new),
+    )
+
+
+def validate_french_phase4a_output_paths(args: argparse.Namespace) -> None:
+    """Prevent opt-in French rehearsal mode from replacing tracked artifacts."""
+
+    protected = {
+        (Path(__file__).parent / name).resolve()
+        for name in (
+            "polls.json",
+            "second_round_polls.json",
+            "closest_tested_runoff.json",
+            "commission_notice_registry.json",
+        )
+    }
+    destinations = {
+        "--output": Path(args.output).resolve(),
+        "--second-round-output": Path(args.second_round_output).resolve(),
+        "--closest-runoff-output": Path(args.closest_runoff_output).resolve(),
+        "--commission-registry-output": Path(
+            args.commission_registry_output or args.commission_registry
+        ).resolve(),
+    }
+    collisions = [option for option, path in destinations.items() if path in protected]
+    if collisions:
+        raise ValueError(
+            "French Phase 4A mode requires non-production temporary outputs: "
+            + ", ".join(collisions)
+        )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--wikipedia-source",
+        choices=WIKIPEDIA_SOURCES,
+        default="english",
+        help="structured Wikipedia source; French requires explicit selection",
+    )
+    parser.add_argument(
+        "--french-fixture",
+        help="offline MediaWiki fixture for explicit French-mode validation",
+    )
     parser.add_argument("--output", default="polls.json")
     parser.add_argument(
         "--second-round-output", default="second_round_polls.json"
@@ -1984,6 +2155,13 @@ def main() -> None:
         help=(
             "previous validated first-round corpus used only to retain "
             "temporarily missing historical waves"
+        ),
+    )
+    parser.add_argument(
+        "--previous-second-round",
+        help=(
+            "previous validated second-round archive required to preserve "
+            "runoff history in French mode"
         ),
     )
     parser.add_argument(
@@ -2011,6 +2189,28 @@ def main() -> None:
         help="validate discovery without writing any files",
     )
     args = parser.parse_args()
+
+    if args.wikipedia_source == "french":
+        missing_inputs = [
+            option
+            for option, value in (
+                ("--previous-first-round", args.previous_first_round),
+                ("--previous-second-round", args.previous_second_round),
+            )
+            if not value
+        ]
+        if missing_inputs:
+            parser.error(
+                "French source mode requires " + " and ".join(missing_inputs)
+            )
+        try:
+            validate_french_phase4a_output_paths(args)
+        except ValueError as error:
+            parser.error(str(error))
+    elif args.french_fixture:
+        parser.error("--french-fixture requires --wikipedia-source french")
+    elif args.previous_second_round:
+        parser.error("--previous-second-round is used only in French source mode")
 
     try:
         overrides = load_poll_wave_overrides(Path(args.poll_wave_overrides))
@@ -2064,62 +2264,188 @@ def main() -> None:
     if args.check:
         parser.error("--check requires --discover-commission-notices")
 
-    wikipedia_events, skipped = fetch_wikipedia_events(overrides)
-    official_events, official_counts, parsed_notices = fetch_official_events(
-        discovery.registry
-    )
-    events, exact_overlaps, suppressed_wikipedia_events, new_events = merge_events(
-        wikipedia_events, official_events
-    )
-    discovered_waves = len({poll_wave_key(event) for event in events})
-    rejected_keys = rejected_poll_wave_keys(events, overrides)
-    events, rejected_fresh_events, _rejected_fresh_waves = (
-        filter_rejected_poll_waves(events, overrides)
-    )
-
     retained_events = 0
     retained_waves = 0
-    if args.previous_first_round:
-        previous_path = Path(args.previous_first_round)
+    rejected_previous_events = 0
+    french_report: dict | None = None
+    if args.wikipedia_source == "french":
         try:
             previous_events = json.loads(
-                previous_path.read_text(encoding="utf-8")
+                Path(args.previous_first_round).read_text(encoding="utf-8")
             )
-            rejected_keys.update(
-                rejected_poll_wave_keys(previous_events, overrides)
+            validate_poll_events(previous_events)
+            previous_second_events = load_previous_second_round_events(
+                args.previous_second_round
             )
-            previous_events, rejected_previous_events, _ = (
-                filter_rejected_poll_waves(previous_events, overrides)
+            from poll_migration import load_mediawiki_fixture
+            from rehearse_fr_poll_migration import (
+                FRENCH_REVISION,
+                fetch_live_french_parse,
             )
-            events, retained_events, retained_waves = (
-                merge_previous_first_round_events(
-                    events,
-                    previous_events,
-                    overrides,
+
+            parsed_french = (
+                load_mediawiki_fixture(Path(args.french_fixture), FRENCH_REVISION)
+                if args.french_fixture
+                else fetch_live_french_parse()
+            )
+            official_events, official_counts, parsed_notices = (
+                fetch_official_events(discovery.registry)
+            )
+            (
+                events,
+                second_round_events,
+                french_report,
+                official_merge_counts,
+            ) = integrate_french_migration_source(
+                parsed_french,
+                previous_events,
+                previous_second_events,
+                official_events,
+                overrides,
+            )
+        except (
+            OSError,
+            json.JSONDecodeError,
+            PollContractError,
+            ValueError,
+        ) as error:
+            parser.error(f"French polling migration failed: {error}")
+        exact_overlaps, suppressed_wikipedia_events, new_events = (
+            official_merge_counts
+        )
+        wikipedia_events = events
+        skipped = [
+            f"{french_report['skips']['fail_closed_rows']} fail-closed rows",
+            f"{french_report['skips']['ambiguous_identity_rows']} ambiguous identity rows",
+        ]
+        retained_events = len(previous_events)
+        retained_waves = len({poll_wave_key(event) for event in previous_events})
+        if (len(previous_events), len(previous_second_events)) == (203, 38):
+            expected_baseline = {
+                "first_round": 29,
+                "second_round": 12,
+            }
+            if french_report["audited_additions_introduced"] != expected_baseline:
+                parser.error(
+                    "French migration must introduce every audited 29/12 addition"
                 )
-            )
-        except (OSError, json.JSONDecodeError, PollContractError, ValueError) as error:
-            parser.error(
-                f"previous first-round corpus is invalid: {error}"
-            )
+            if (
+                french_report["source_revision"] == FRENCH_REVISION
+                and (len(events), len(second_round_events)) != (232, 50)
+            ):
+                parser.error(
+                    "French audited revision must reconcile to 232 first-round "
+                    "and 50 second-round events"
+                )
+            if len(events) < 232 or len(second_round_events) < 50:
+                parser.error("French migration fell below the audited 232/50 baseline")
+        second_round_audit = {
+            "revision_id": french_report["source_revision"],
+            "table_count": 11,
+            "excluded_comparison_rows": 0,
+            "source_scope_counts": {
+                scope: sum(
+                    event["source_scope"] == scope
+                    for event in second_round_events
+                )
+                for scope in (
+                    "current_tested",
+                    "source_declined_candidate_section",
+                )
+            },
+        }
+        discovered_waves = len({poll_wave_key(event) for event in events})
+    else:
+        wikipedia_events, skipped = fetch_wikipedia_events(overrides)
+        official_events, official_counts, parsed_notices = fetch_official_events(
+            discovery.registry
+        )
+        (
+            events,
+            exact_overlaps,
+            suppressed_wikipedia_events,
+            new_events,
+        ) = merge_events(wikipedia_events, official_events)
+        rejected_keys = rejected_poll_wave_keys(events, overrides)
+        events, rejected_fresh_events, _rejected_fresh_waves = (
+            filter_rejected_poll_waves(events, overrides)
+        )
+        discovered_waves = len({poll_wave_key(event) for event in events})
+        if args.previous_first_round:
+            previous_path = Path(args.previous_first_round)
+            try:
+                previous_events = json.loads(
+                    previous_path.read_text(encoding="utf-8")
+                )
+                rejected_keys.update(
+                    rejected_poll_wave_keys(previous_events, overrides)
+                )
+                previous_events, rejected_previous_events, _ = (
+                    filter_rejected_poll_waves(previous_events, overrides)
+                )
+                events, retained_events, retained_waves = (
+                    merge_previous_first_round_events(
+                        events,
+                        previous_events,
+                        overrides,
+                    )
+                )
+            except (
+                OSError,
+                json.JSONDecodeError,
+                PollContractError,
+                ValueError,
+            ) as error:
+                parser.error(
+                    f"previous first-round corpus is invalid: {error}"
+                )
+        second_round_events, second_round_audit = fetch_second_round_events()
+
+    if args.wikipedia_source == "french":
+        rejected_keys = rejected_poll_wave_keys(events, overrides)
+        rejected_fresh_events = 0
 
     official_source_enriched_waves = apply_official_poll_sources(
         events,
         overrides,
     )
     anomaly_count = validate_reporting_source_wave_anomalies(events)
-    validate_merged_official_waves(events, parsed_notices)
+    official_validation_events = events
+    commission_validation_events = events
+    if args.wikipedia_source == "french":
+        from poll_migration import load_migration_registry
+
+        audited_first_locators = {
+            record["source_locator"]
+            for record in load_migration_registry()["french_additions"][FIRST_ROUND]
+        }
+        official_validation_events = [
+            event
+            for event in events
+            if event.get("migration_source_locator") not in audited_first_locators
+        ]
+        # Commission coverage is wave-level evidence.  The retained corpus and
+        # ordinary French rows remain in this view; only the finite one-time
+        # addition scenarios are excluded so that their reviewed evidence URLs
+        # cannot masquerade as competing published waves.  The reconciliation
+        # implementation and every event in the generated output remain
+        # unchanged.
+        commission_validation_events = official_validation_events
+    validate_merged_official_waves(official_validation_events, parsed_notices)
     validate_poll_events(events)
     coverage_counts = reconcile_commission_notices(
         discovery.registry,
-        events,
+        commission_validation_events,
     )
-    second_round_events, second_round_audit = fetch_second_round_events()
     closest_derivation = derive_closest_tested_runoff(second_round_events)
 
     generated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     source_metadata = {
-        "page_url": SOURCE_URL,
+        "page_url": (
+            FRENCH_SOURCE_URL
+            if args.wikipedia_source == "french"
+            else SOURCE_URL
+        ),
         "revision_id": str(second_round_audit["revision_id"]),
         "license": WIKIPEDIA_LICENSE,
         "modified": True,

@@ -1,9 +1,13 @@
 import copy
 import json
 from pathlib import Path
+import subprocess
+import sys
 import unittest
 from unittest.mock import patch
 
+from commission_notice_coverage import reconcile_commission_notices
+from commission_notice_discovery import load_registry
 from fetch_polls import (
     SOURCE_URL,
     SECOND_ROUND,
@@ -13,12 +17,19 @@ from fetch_polls import (
     canonical_matchup_candidate,
     canonical_pollster_name,
     discover_first_round_tables,
+    integrate_french_migration_source,
     load_poll_wave_overrides,
+    load_previous_second_round_events,
     merge_previous_first_round_events,
     parse_fieldwork,
     parse_wikipedia_first_round_html,
     validate_reporting_source_wave_anomalies,
     validate_second_round_event,
+)
+from poll_migration import (
+    FRENCH_FIXTURE,
+    load_mediawiki_fixture,
+    load_migration_registry,
 )
 from poll_contract import (
     PollContractError,
@@ -27,6 +38,179 @@ from poll_contract import (
     make_scenario_key,
     validate_poll_event,
 )
+
+
+ROOT = Path(__file__).parent
+
+
+class WikipediaSourceSelectionTests(unittest.TestCase):
+    def test_default_and_scheduled_source_remain_explicitly_english(self):
+        self.assertTrue(SOURCE_URL.startswith("https://en.wikipedia.org/"))
+        workflow = (ROOT / ".github/workflows/update-polls.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("--wikipedia-source english", workflow)
+        self.assertNotIn("--wikipedia-source french", workflow)
+
+    def test_french_source_requires_both_previous_corpora(self):
+        result = subprocess.run(
+            [sys.executable, "-B", "fetch_polls.py", "--wikipedia-source", "french"],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--previous-first-round", result.stderr)
+        self.assertIn("--previous-second-round", result.stderr)
+
+    def test_french_phase4a_mode_refuses_tracked_output_destinations(self):
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-B",
+                "fetch_polls.py",
+                "--wikipedia-source",
+                "french",
+                "--previous-first-round",
+                "polls.json",
+                "--previous-second-round",
+                "second_round_polls.json",
+            ],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("non-production temporary outputs", result.stderr)
+
+    def test_previous_second_round_loader_validates_all_38_events(self):
+        events = load_previous_second_round_events(ROOT / "second_round_polls.json")
+        self.assertEqual(len(events), 38)
+        self.assertEqual(len({event["event_id"] for event in events}), 38)
+
+    def test_french_integration_path_produces_audited_232_50_in_memory(self):
+        previous_first = json.loads((ROOT / "polls.json").read_text(encoding="utf-8"))
+        previous_second = load_previous_second_round_events(
+            ROOT / "second_round_polls.json"
+        )
+        parsed = load_mediawiki_fixture(FRENCH_FIXTURE, 238906992)
+        first, second, report, _official = integrate_french_migration_source(
+            parsed,
+            previous_first,
+            previous_second,
+            [],
+        )
+        self.assertEqual((len(first), len(second)), (232, 50))
+        self.assertEqual(
+            report["audited_additions_introduced"],
+            {"first_round": 29, "second_round": 12},
+        )
+        self.assertTrue(
+            {event["event_id"] for event in previous_first}
+            <= {event["event_id"] for event in first}
+        )
+        self.assertTrue(
+            {event["event_id"] for event in previous_second}
+            <= {event["event_id"] for event in second}
+        )
+
+    def test_audited_french_additions_are_excluded_only_from_commission_evidence(self):
+        protected_paths = (
+            ROOT / "commission_notice_coverage.py",
+            ROOT / "commission_notice_discovery.py",
+        )
+        protected_before = {path: path.read_bytes() for path in protected_paths}
+        previous_first = json.loads(
+            (ROOT / "polls.json").read_text(encoding="utf-8")
+        )
+        previous_second = load_previous_second_round_events(
+            ROOT / "second_round_polls.json"
+        )
+        parsed = load_mediawiki_fixture(FRENCH_FIXTURE, 238906992)
+        migrated, _second, _report, _official = integrate_french_migration_source(
+            parsed,
+            previous_first,
+            previous_second,
+            [],
+        )
+
+        migration_registry = load_migration_registry()
+        audited_locators = {
+            record["source_locator"]
+            for record in migration_registry["french_additions"]["first_round"]
+        }
+        audited_additions = [
+            event
+            for event in migrated
+            if event.get("migration_source_locator") in audited_locators
+        ]
+        self.assertEqual(len(migrated), 232)
+        self.assertEqual(len(audited_additions), 29)
+        self.assertEqual(
+            {event["migration_source_locator"] for event in audited_additions},
+            audited_locators,
+        )
+        self.assertTrue(
+            {event["event_id"] for event in audited_additions}
+            <= {event["event_id"] for event in migrated}
+        )
+
+        unfiltered_registry = load_registry(ROOT / "commission_notice_registry.json")
+        self.assertEqual(
+            reconcile_commission_notices(unfiltered_registry, migrated),
+            {
+                "relevant": 16,
+                "parsed": 3,
+                "reconciled": 9,
+                "unresolved": 4,
+                "unresolved_notice_ids": [
+                    "commission:10223",
+                    "commission:10193",
+                    "commission:10180",
+                    "commission:10165",
+                ],
+            },
+        )
+
+        commission_evidence = [
+            event
+            for event in migrated
+            if event.get("migration_source_locator") not in audited_locators
+        ]
+        retained_ids = {event["event_id"] for event in previous_first}
+        evidence_ids = {event["event_id"] for event in commission_evidence}
+        non_migration_ids = {
+            event["event_id"]
+            for event in migrated
+            if event.get("migration_source_locator") not in audited_locators
+        }
+        self.assertEqual(len(commission_evidence), 203)
+        self.assertEqual(evidence_ids, non_migration_ids)
+        self.assertTrue(retained_ids <= evidence_ids)
+        self.assertTrue(
+            all(
+                event in commission_evidence
+                for event in migrated
+                if event.get("migration_source_locator") not in audited_locators
+            )
+        )
+        filtered_registry = load_registry(ROOT / "commission_notice_registry.json")
+        self.assertEqual(
+            reconcile_commission_notices(filtered_registry, commission_evidence),
+            {
+                "relevant": 16,
+                "parsed": 3,
+                "reconciled": 13,
+                "unresolved": 0,
+                "unresolved_notice_ids": [],
+            },
+        )
+        self.assertEqual(
+            {path: path.read_bytes() for path in protected_paths},
+            protected_before,
+        )
 
 
 def polling_table(
