@@ -29,15 +29,26 @@ jobs:
       - name: Install dependencies
         run: python -m pip install --disable-pip-version-check pandas lxml pypdf
 
-      - name: Test first-round polling contract
+      - name: Test polling production contract
         env:
           PYTHONDONTWRITEBYTECODE: "1"
         run: >-
           python -B -m unittest -v
           test_commission_notice_discovery.py
-          test_commission_notice_coverage.py
-          test_fetch_polls.py
-          test_poll_migration.py
+          test_commission_notice_coverage.CommissionNoticeCoverageTests
+          test_fetch_polls.CandidateNameEvidenceTests
+          test_fetch_polls.PollEventContractTests
+          test_fetch_polls.SemanticFirstRoundDiscoveryTests
+          test_fetch_polls.WikipediaSourceSelectionTests.test_default_source_remains_english_and_scheduled_source_is_french
+          test_fetch_polls.WikipediaSourceSelectionTests.test_english_source_accepts_prepared_previous_second_round_argument
+          test_fetch_polls.WikipediaSourceSelectionTests.test_french_phase4a_mode_refuses_tracked_output_destinations
+          test_fetch_polls.WikipediaSourceSelectionTests.test_french_source_requires_both_previous_corpora
+          test_fetch_polls.WikipediaSourceSelectionTests.test_workflow_official_wave_validation_excludes_fr_t1r45_only_from_evidence
+          test_poll_migration.FrozenFixtureTests
+          test_poll_migration.FactualIdentityTests
+          test_poll_migration.RegistryValidationTests
+          test_poll_migration.ReviewedDecisionTests
+          test_poll_migration.CutoverRehearsalTests.test_cutover_keeps_the_scheduled_source_and_integration_boundary_explicit
           test_frontend_facts.py
           test_publication_manifest.PublicationManifestTests.test_poll_coverage_warns_only_for_unresolved_relevant_notices
 
