@@ -119,6 +119,39 @@ def qualifying_events(
     return events
 
 
+def history_grouping_fixture() -> list[dict]:
+    return [
+        margin_event(
+            "Ifop",
+            PHILIPPE_LE_PEN,
+            2,
+            start="2026-01-01",
+            end="2026-01-02",
+        ),
+        margin_event(
+            "Ifop",
+            PHILIPPE_LE_PEN,
+            4,
+            start="2026-02-03",
+            end="2026-02-04",
+        ),
+        margin_event(
+            "Harris Interactive",
+            PHILIPPE_LE_PEN,
+            6,
+            start="2026-02-03",
+            end="2026-02-04",
+        ),
+        margin_event(
+            "Elabe",
+            PHILIPPE_LE_PEN,
+            8,
+            start="2026-03-05",
+            end="2026-03-06",
+        ),
+    ]
+
+
 def frontend_result(
     pollster: str,
     margin: int | float,
@@ -658,6 +691,7 @@ class RunoffFrontendContractTests(unittest.TestCase):
         cls.derived = json.loads(RUNOFF_DERIVED.read_text(encoding="utf-8"))
         cls.archive_payload = json.loads(RUNOFF_ARCHIVE.read_text(encoding="utf-8"))
         cls.archive_state = {"status": "ready", "events": cls.archive_payload["events"], "error": ""}
+        cls.recomputed = derive_closest_tested_runoff(cls.archive_state["events"])
 
     def build_and_render(
         self,
@@ -676,27 +710,71 @@ class RunoffFrontendContractTests(unittest.TestCase):
     def test_current_comparison_uses_exact_source_separated_evidence(self):
         output = self.render_real()
         html = output["html"]
-        observations = output["model"]["selectedMatchup"]["observations"]
-        self.assertEqual([item["pollster"] for item in observations], ["Harris Interactive", "Ifop"])
-        self.assertEqual([item["sampleSize"] for item in observations], [1582, 984])
-        for exact in (
-            "Édouard Philippe vs Marine Le Pen",
-            "49%",
-            "51%",
-            "46%",
-            "54%",
-            "hybrid-runoff-margin-tile",
-            "NARROWEST OBSERVED MARGIN · 2 PTS",
-            "n=1,582",
-            "n=984",
-            "7–8 Jul 2026",
-            "50 percent centre reference",
-        ):
-            self.assertIn(exact, html)
-        self.assertEqual(html.count('class="hybrid-observation hybrid-runoff-source-observation"'), 2)
-        self.assertEqual(html.count('class="hybrid-runoff-margin-tile"'), 2)
-        self.assertEqual(html.count('target="_blank" rel="noopener noreferrer"'), 16)
-        self.assertEqual(html.count('is-compact is-icon-only'), 16)
+        selected = output["model"]["selectedMatchup"]
+        expected = self.recomputed["selected_matchup"]
+        observations = selected["observations"]
+        event_by_id = {
+            event["event_id"]: event for event in self.archive_state["events"]
+        }
+
+        self.assertEqual(selected["key"], expected["matchup_key"])
+        self.assertEqual(selected["candidates"], expected["candidates"])
+        self.assertEqual(
+            [item["event_id"] for item in observations],
+            [item["event_id"] for item in expected["results"]],
+        )
+        self.assertEqual(
+            len({item["event_id"] for item in observations}),
+            len(observations),
+        )
+        self.assertEqual(selected["observationCount"], len(expected["results"]))
+        self.assertEqual(
+            selected["sourceCount"],
+            sum(
+                str(item.get("source_url", "")).startswith(("http://", "https://"))
+                for item in expected["results"]
+            ),
+        )
+
+        cards = re.findall(
+            r'<article class="hybrid-observation hybrid-runoff-source-observation".*?</article>',
+            html,
+            re.DOTALL,
+        )
+        self.assertEqual(len(cards), len(expected["results"]))
+        for result, observation, card in zip(expected["results"], observations, cards):
+            with self.subTest(event_id=result["event_id"]):
+                raw = event_by_id[result["event_id"]]
+                self.assertEqual(observation["pollster"], result["pollster"])
+                self.assertEqual(observation["candidates"], result["candidates"])
+                self.assertEqual(observation["margin"], result["margin"])
+                self.assertEqual(observation["source_url"], result["source_url"])
+                self.assertEqual(observation["sampleSize"], raw.get("sample_size"))
+                self.assertEqual(observation["fieldwork_start"], raw["fieldwork_start"])
+                self.assertEqual(observation["fieldwork_end"], raw["fieldwork_end"])
+                self.assertTrue(observation["archiveMatched"])
+                self.assertIn(result["pollster"], card)
+                for candidate in result["candidates"]:
+                    self.assertIn(f'{float(candidate["score"]):g}%', card)
+                self.assertEqual(
+                    card.count('target="_blank" rel="noopener noreferrer"'),
+                    int(
+                        str(result.get("source_url", "")).startswith(
+                            ("http://", "https://")
+                        )
+                    ),
+                )
+
+        self.assertIn(expected["candidates"][0] + " vs " + expected["candidates"][1], html)
+        self.assertIn(
+            f'NARROWEST OBSERVED MARGIN · {min(float(item["margin"]) for item in expected["results"]):g} PTS',
+            html,
+        )
+        self.assertEqual(
+            html.count('class="hybrid-runoff-margin-tile"'),
+            len(expected["results"]),
+        )
+        self.assertIn("50 percent centre reference", html)
         self.assertIn('class="hybrid-runoff-title-icon"', html)
         self.assertIn('class="hybrid-runoff-inline-icon"', html)
         self.assertIn("Both pollsters agree this is the closest tested runoff", html)
@@ -737,19 +815,78 @@ class RunoffFrontendContractTests(unittest.TestCase):
 
     def test_current_common_matchups_and_selected_structure_are_exact(self):
         output = self.render_real()
+        model = output["model"]
         html = output["html"]
-        self.assertEqual(len(output["model"]["commonMatchups"]), 3)
-        for matchup in (
-            "Édouard Philippe vs Marine Le Pen",
-            "Gabriel Attal vs Marine Le Pen",
-            "Jean-Luc Mélenchon vs Marine Le Pen",
-        ):
-            self.assertIn(matchup, html)
+        common_matchups = model["commonMatchups"]
+        expected_matchups = self.recomputed["common_matchups"]
+        expected_by_key = {
+            item["matchup_key"]: item for item in expected_matchups
+        }
+        pollsters = [item["pollster"] for item in model["pollsters"]]
+
+        self.assertEqual(model["status"], self.recomputed["status"])
+        self.assertEqual(model["fieldworkWindow"], self.recomputed["fieldwork_window"])
+        self.assertEqual(model["pollsterCount"], self.recomputed["pollster_count"])
+        self.assertEqual(
+            pollsters,
+            [item["pollster"] for item in self.recomputed["pollsters"]],
+        )
+        self.assertEqual(
+            len(common_matchups),
+            self.recomputed["common_matchup_count"],
+        )
+        self.assertEqual(
+            [item["matchup_key"] for item in common_matchups],
+            [item["matchup_key"] for item in expected_matchups],
+        )
+        self.assertEqual(
+            len({item["matchup_key"] for item in common_matchups}),
+            len(common_matchups),
+        )
+        self.assertIn(
+            model["selectedMatchup"]["key"],
+            {item["matchup_key"] for item in common_matchups},
+        )
+        for matchup in common_matchups:
+            with self.subTest(matchup_key=matchup["matchup_key"]):
+                expected = expected_by_key[matchup["matchup_key"]]
+                self.assertEqual(matchup["candidates"], expected["candidates"])
+                self.assertEqual(
+                    [item["event_id"] for item in matchup["results"]],
+                    [item["event_id"] for item in expected["results"]],
+                )
+                self.assertEqual(
+                    [item["pollster"] for item in matchup["results"]],
+                    [item["pollster"] for item in expected["results"]],
+                )
+                self.assertIn(matchup["candidates"][0], html)
+                self.assertIn(matchup["candidates"][1], html)
+                margins = [
+                    next(
+                        result["margin"]
+                        for result in matchup["results"]
+                        if result["pollster"] == pollster
+                    )
+                    for pollster in pollsters
+                ]
+                margin_label = " / ".join(f"{float(value):g}" for value in margins)
+                self.assertIn(
+                    f"<strong>{margin_label}</strong><small>pts</small>",
+                    html,
+                )
+                self.assertEqual(
+                    len({item["event_id"] for item in matchup["results"]}),
+                    len(matchup["results"]),
+                )
+                self.assertTrue(all(item["archiveMatched"] for item in matchup["results"]))
+
         self.assertIn("CLOSEST COMMON MATCHUP", html)
-        self.assertIn("<strong>2 / 8</strong><small>pts</small>", html)
-        self.assertIn("<strong>10 / 10</strong><small>pts</small>", html)
-        self.assertIn("<strong>34 / 40</strong><small>pts</small>", html)
-        self.assertEqual(html.count('class="hybrid-runoff-compact-rail"'), 12)
+        expected_rails = sum(len(item["results"]) for item in common_matchups)
+        expected_rails += len(model["archive"]["otherMatchups"])
+        self.assertEqual(
+            html.count('class="hybrid-runoff-compact-rail"'),
+            expected_rails,
+        )
         for forbidden in ("🏆", "winner", "leader", "favored", "advantage", "Smallest reported margin"):
             self.assertNotIn(forbidden.casefold(), html.casefold())
 
@@ -758,28 +895,65 @@ class RunoffFrontendContractTests(unittest.TestCase):
         model = output["model"]
         html = output["html"]
         footprint = model["archive"]["footprint"]
+        events = self.archive_state["events"]
+        event_ids = [event["event_id"] for event in events]
+        matchup_keys = {event["matchup_key"] for event in events}
+        pollsters = {event["pollster"] for event in events}
+        windows = {
+            (event["fieldwork_start"], event["fieldwork_end"])
+            for event in events
+        }
         self.assertEqual(
             {key: footprint[key] for key in ("observationCount", "matchupCount", "pollsterCount", "windowCount")},
-            {"observationCount": 38, "matchupCount": 9, "pollsterCount": 6, "windowCount": 11},
+            {
+                "observationCount": len(events),
+                "matchupCount": len(matchup_keys),
+                "pollsterCount": len(pollsters),
+                "windowCount": len(windows),
+            },
         )
-        self.assertEqual(model["archive"]["selectedHistoryKey"], self.derived["selected_matchup"]["matchup_key"])
-        self.assertEqual(len(model["archive"]["history"]), 8)
-        self.assertEqual(len(model["archive"]["otherMatchups"]), 6)
-        self.assertIn("31 Jan–1 Feb 2024", html)
-        self.assertIn("7–8 Jul 2026", html)
-        for matchup in (
-            "Édouard Philippe vs Jordan Bardella",
-            "Gabriel Attal vs Jordan Bardella",
-            "Jean-Luc Mélenchon vs Jordan Bardella",
-            "Bruno Retailleau vs Jordan Bardella",
-            "Raphaël Glucksmann vs Jordan Bardella",
-            "François Ruffin vs Marine Le Pen",
-        ):
-            self.assertIn(matchup, html)
+        self.assertEqual(len(event_ids), len(set(event_ids)))
+        self.assertEqual(
+            model["archive"]["selectedHistoryKey"],
+            self.recomputed["selected_matchup"]["matchup_key"],
+        )
+        history = model["archive"]["history"]
+        expected_history_ids = {
+            event["event_id"]
+            for event in events
+            if event["matchup_key"] == model["archive"]["selectedHistoryKey"]
+        }
+        self.assertEqual(
+            {event["event_id"] for event in history},
+            expected_history_ids,
+        )
+        common_keys = {
+            matchup["matchup_key"] for matchup in self.recomputed["common_matchups"]
+        }
+        other_matchups = model["archive"]["otherMatchups"]
+        self.assertEqual(
+            {matchup["key"] for matchup in other_matchups},
+            matchup_keys - common_keys,
+        )
+        for matchup in other_matchups:
+            with self.subTest(matchup_key=matchup["key"]):
+                self.assertEqual(matchup["latest"]["matchup_key"], matchup["key"])
+                self.assertIn(matchup["latest"]["event_id"], event_ids)
+                self.assertIn(matchup["candidates"][0], html)
+                self.assertIn(matchup["candidates"][1], html)
         self.assertIn("SELECTED MATCHUP HISTORY", html)
-        self.assertIn('aria-label="8 exact source observations"', html)
-        self.assertEqual(html.count('class="hybrid-runoff-history-entry"'), 8)
-        self.assertEqual(html.count('class="hybrid-runoff-history-position'), 8)
+        self.assertIn(
+            f'aria-label="{len(history)} exact source observations"',
+            html,
+        )
+        self.assertEqual(
+            html.count('class="hybrid-runoff-history-entry"'),
+            len(history),
+        )
+        self.assertEqual(
+            html.count('class="hybrid-runoff-history-position'),
+            len(history),
+        )
         self.assertEqual(html.count('hybrid-runoff-history-position is-paired'), 0)
         self.assertNotIn("Each mark is a separate source observation · marks are not connected", html)
         self.assertNotIn('<dl class="hybrid-runoff-footprint-grid">', html)
@@ -787,21 +961,30 @@ class RunoffFrontendContractTests(unittest.TestCase):
         self.assertIn("OTHER TESTED MATCHUPS", html)
 
     def test_other_tested_matchups_keep_populated_desktop_rows(self):
-        html = self.render_real()["html"]
+        output = self.render_real()
+        html = output["html"]
         cards = re.findall(
             r'<article class="hybrid-runoff-other-card".*?</article>',
             html,
             re.DOTALL,
         )
 
-        self.assertEqual(len(cards), 6)
-        for card in cards:
-            with self.subTest(card=card[:100]):
+        other_matchups = output["model"]["archive"]["otherMatchups"]
+        event_by_id = {
+            event["event_id"]: event for event in self.archive_state["events"]
+        }
+        self.assertEqual(len(cards), len(other_matchups))
+        for card, matchup in zip(cards, other_matchups):
+            with self.subTest(matchup_key=matchup["key"]):
+                latest = event_by_id[matchup["latest"]["event_id"]]
+                self.assertEqual(latest["matchup_key"], matchup["key"])
                 self.assertRegex(
                     card,
                     r"<strong>\d+(?:\.\d+)?%</strong>[\s\S]*"
                     r"<strong>\d+(?:\.\d+)?%</strong>",
                 )
+                for candidate in latest["candidates"]:
+                    self.assertIn(f'<strong>{float(candidate["score"]):g}%</strong>', card)
 
         density = HYBRID_CSS.read_text(encoding="utf-8").split(
             "/* RUNOFF PANEL 3 DENSITY V4: START */",
@@ -822,16 +1005,34 @@ class RunoffFrontendContractTests(unittest.TestCase):
         )
 
     def test_history_window_grouping_is_exact_deterministic_and_non_mutating(self):
+        fixture = history_grouping_fixture()
+        selected_key = fixture[0]["matchup_key"]
         output = run_runoff_script(
             self.derived,
-            "(() => { const model = api.buildRunoffViewModel(input.archiveState); const before = JSON.stringify(model.archive.history); const groups = api.groupRunoffHistoryWindows(model.archive.history); return { unchanged: before === JSON.stringify(model.archive.history), count: groups.length, sizes: groups.map(group => group.observations.length), keys: groups.map(group => group.key), finalPollsters: groups.at(-1).observations.map(item => item.pollster) }; })()",
-            archive_state=self.archive_state,
+            "(() => { const first = api.buildRunoffArchiveModel(input.archiveState, [], '"
+            + selected_key
+            + "'); const reversed = api.buildRunoffArchiveModel({ ...input.archiveState, events: [...input.archiveState.events].reverse() }, [], '"
+            + selected_key
+            + "'); const before = JSON.stringify(first.history); const groups = api.groupRunoffHistoryWindows(first.history); return { unchanged: before === JSON.stringify(first.history), deterministic: before === JSON.stringify(reversed.history), count: groups.length, sizes: groups.map(group => group.observations.length), keys: groups.map(group => group.key), pollsters: groups.map(group => group.observations.map(item => item.pollster)) }; })()",
+            archive_state={"status": "ready", "events": fixture, "error": ""},
         )
         self.assertTrue(output["unchanged"])
-        self.assertEqual(output["count"], 7)
-        self.assertEqual(output["sizes"], [1, 1, 1, 1, 1, 1, 2])
+        self.assertTrue(output["deterministic"])
+        self.assertEqual(output["count"], 3)
+        self.assertEqual(output["sizes"], [1, 2, 1])
+        self.assertEqual(
+            output["keys"],
+            [
+                "2026-01-01/2026-01-02",
+                "2026-02-03/2026-02-04",
+                "2026-03-05/2026-03-06",
+            ],
+        )
         self.assertEqual(len(output["keys"]), len(set(output["keys"])))
-        self.assertEqual(output["finalPollsters"], ["Harris Interactive", "Ifop"])
+        self.assertEqual(
+            output["pollsters"],
+            [["Ifop"], ["Harris Interactive", "Ifop"], ["Elabe"]],
+        )
     def test_history_accepts_an_exact_matchup_key(self):
         target = "78ee22bdc7b20f010e4240afc3268ceb9f2bdb50e8a49b6be5fccd3c5f8e77f9"
         output = run_runoff_script(
@@ -881,14 +1082,27 @@ class RunoffFrontendContractTests(unittest.TestCase):
             """(async () => { let calls = 0; const fetcher = () => { calls += 1; return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ events: input.archiveState.events }) }); }; const first = api.loadRunoffArchive(fetcher); const second = api.loadRunoffArchive(fetcher); const state = await first; return { calls, sameRequest: first === second, status: state.status, count: state.events.length }; })()""",
             archive_state=self.archive_state,
         )
-        self.assertEqual(loaded, {"calls": 1, "sameRequest": True, "status": "ready", "count": 38})
+        self.assertEqual(
+            loaded,
+            {
+                "calls": 1,
+                "sameRequest": True,
+                "status": "ready",
+                "count": len(self.archive_state["events"]),
+            },
+        )
         malformed = run_runoff_script(
             self.derived,
             """(async () => { const fetcher = () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ events: [{ event_id: 'broken' }] }) }); const state = await api.loadRunoffArchive(fetcher); const model = api.buildRunoffViewModel(state); return { status: state.status, currentStatus: model.status, currentCount: model.selectedMatchup.observations.length, archiveState: model.archive.state }; })()""",
         )
         self.assertEqual(
             malformed,
-            {"status": "unavailable", "currentStatus": "agree", "currentCount": 2, "archiveState": "unavailable"},
+            {
+                "status": "unavailable",
+                "currentStatus": self.recomputed["status"],
+                "currentCount": len(self.recomputed["selected_matchup"]["results"]),
+                "archiveState": "unavailable",
+            },
         )
 
 class RunoffActiveLoadIsolationTests(unittest.TestCase):
