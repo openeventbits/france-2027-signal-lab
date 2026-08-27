@@ -165,7 +165,7 @@ class CandidateSignalsActiveProjectionTests(unittest.TestCase):
         }
 
     def test_complete_and_stored_fields_retain_temporarily_missing_candidate(self):
-        self.assertEqual(self.payload["schema_version"], "1.4")
+        self.assertEqual(self.payload["schema_version"], "1.5")
         self.assertEqual(len(self.payload["candidates"]), 5)
         self.assertIn(
             "alice-observee",
