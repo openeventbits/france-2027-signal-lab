@@ -1,7 +1,7 @@
 {
   "schema_version": "1.4",
-  "snapshot_id": "d7dea052a2c5e68682d1885ada67a8b06837988b7e69800b370fc1845637855e",
-  "published_at": "2026-08-26T23:45:49Z",
+  "snapshot_id": "9572b6b988e2c00007caa3be959467c4c186936da9433d9718598fb0ed12a11c",
+  "published_at": "2026-08-27T05:45:29Z",
   "lanes": {
     "campaign_events": {
       "file": "campaign_events.json",
@@ -57,7 +57,7 @@
       "file": "candidate_signals.json",
       "available": true,
       "valid": true,
-      "sha256": "619b7145cd31d6fc888b1d7e987c63ba6e3ede88559faf99055a0aa49265ff92",
+      "sha256": "10a5e0ff6830b0a533e7f96aa6a72c8f598afa6fb88d5d6fe40aa0890a4cee68",
       "schema_version": "1.4",
       "data_as_of": "2026-08-26",
       "timestamp_status": "unknown",
@@ -107,55 +107,59 @@
       "file": "polls.json",
       "available": true,
       "valid": true,
-      "sha256": "262b1e35b82c20fae1dc7c3387c06200f9a3ea15be6b77efca99ae886207cee8",
+      "sha256": "f6dbcd8f5aeabfb093f2576fb73951848378fadd5be9705f49c8385f73634f58",
       "schema_version": null,
-      "data_as_of": "2026-08-19",
+      "data_as_of": "2026-08-25",
       "timestamp_status": "unknown",
-      "warnings": [],
+      "warnings": [
+        "poll coverage: unresolved relevant Commission notice commission:10242 (10242 Pres Barometre election pres IV V5 IFOP 26 aout)"
+      ],
       "related_files": [
         {
           "file": "commission_notice_registry.json",
           "available": true,
-          "sha256": "bad7e3924f82b60d6972d24537ace73071a73c049fb4b155df7d8cb392f992d9"
+          "sha256": "7ffe21a68998bd07bda5dbc7ddd45962308a70712612d6e51bc337ada1439832"
         }
       ],
       "commission_notice_coverage": {
-        "relevant": 16,
+        "relevant": 17,
         "parsed": 3,
         "reconciled": 13,
-        "unresolved": 0,
-        "unresolved_notice_ids": []
+        "unresolved": 1,
+        "unresolved_notice_ids": [
+          "commission:10242"
+        ]
       }
     },
     "recent_changes": {
       "file": "recent_changes.json",
       "available": true,
       "valid": true,
-      "sha256": "3c011c0866bd5806cc3ddaeb47f51a03e37e716485cbea3ac00bd0c410aa308c",
+      "sha256": "e8e3b41978620b9698c256fee53ae373756a853066ad3ac1c5f384f1abd886db",
       "schema_version": 1,
       "data_as_of": "2026-08-26T14:54:32Z",
       "timestamp_status": "known",
       "warnings": [],
-      "generated_at": "2026-08-26T23:45:47.305355Z",
-      "last_success_at": "2026-08-26T23:45:47.305355Z"
+      "generated_at": "2026-08-27T05:45:27.854738Z",
+      "last_success_at": "2026-08-27T05:45:27.854738Z"
     },
     "runoff": {
       "file": "second_round_polls.json",
       "available": true,
       "valid": true,
-      "sha256": "2b1cd5629b502f3a0b2ceb8ed9065d6bb00b2148bf0fff210e25b1c2b020802a",
+      "sha256": "cac162100b76d6dc923bcc17a1a4751b00f2165f0a2440e9df756527faebad05",
       "schema_version": "1.0",
-      "data_as_of": "2026-08-19",
+      "data_as_of": "2026-08-25",
       "timestamp_status": "known",
       "warnings": [],
       "related_files": [
         {
           "file": "closest_tested_runoff.json",
           "available": true,
-          "sha256": "0299adb7268e2ad235a5c38f1b01be64476f1074db7dc2ae03a7b7bbdf551cef"
+          "sha256": "1740a0854f2ed4a5231deab32c4343670b63a5b2bfdb54021348811af19ae5d9"
         }
       ],
-      "generated_at": "2026-08-26T16:54:38.995694Z"
+      "generated_at": "2026-08-27T05:45:25.714605Z"
     },
     "source_health": {
       "file": "source_health.json",
@@ -187,5 +191,7 @@
     "healthy_zero_yield_routes": 49,
     "recovered_routes": 1
   },
-  "warnings": []
+  "warnings": [
+    "poll coverage: unresolved relevant Commission notice commission:10242 (10242 Pres Barometre election pres IV V5 IFOP 26 aout)"
+  ]
 }
