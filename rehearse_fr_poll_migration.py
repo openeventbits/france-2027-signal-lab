@@ -40,6 +40,7 @@ from poll_contract import (
 )
 from poll_migration import (
     FRENCH_FIXTURE,
+    POST_AUDIT_HOLLANDE_LE_PEN_HEADING,
     candidate_identity,
     exact_factual_key,
     factual_key_from_dict,
@@ -56,6 +57,23 @@ ROOT = Path(__file__).parent
 FRENCH_REVISION = 238906992
 FRENCH_PAGE = "Liste de sondages sur l'élection présidentielle française de 2027"
 FRENCH_API_URL = "https://fr.wikipedia.org/w/api.php"
+POST_AUDIT_HOLLANDE_LE_PEN_TOC_ENTRY = (
+    3,
+    POST_AUDIT_HOLLANDE_LE_PEN_HEADING,
+)
+POST_AUDIT_HOLLANDE_LE_PEN_TABLE_SCHEMA = (
+    (
+        ("sondeur", "3", "1"),
+        ("dates", "3", "1"),
+        ("echantillon", "3", "1"),
+        ("", "1", "1"),
+        ("", "1", "1"),
+    ),
+    (
+        ("hollande ps", "1", "1"),
+        ("le pen rn", "1", "1"),
+    ),
+)
 
 PHASE4_PRODUCTION_MODIFICATION_FILES = (
     "fetch_polls.py",
@@ -229,19 +247,22 @@ def _relevant_heading_fingerprint(parsed: dict[str, Any]) -> tuple[tuple[int, st
         for section in sections
     ]
     first_heading = "sondages concernant le premier tour"
-    last_heading = "hypothese retailleau bardella"
     try:
         start = next(index for index, (_level, line) in enumerate(normalized) if line == first_heading)
-        end = next(
-            index
-            for index, (_level, line) in enumerate(normalized[start:], start=start)
-            if line == last_heading
-        )
     except StopIteration as error:
         raise SourceDriftError(
             "French source lacks the audited first/second-round section boundary"
         ) from error
-    return tuple(normalized[start : end + 1])
+    top_level_sections = [
+        index
+        for index, (level, _line) in enumerate(normalized[start:], start=start)
+        if level == 1
+    ]
+    if len(top_level_sections) < 3:
+        raise SourceDriftError(
+            "French source lacks the audited first/second-round section boundary"
+        )
+    return tuple(normalized[start : top_level_sections[2]])
 
 
 def _record_signature(record: dict[str, Any]) -> tuple[str, str]:
@@ -316,17 +337,29 @@ def _assert_audited_source_footprint(parsed: dict[str, Any]) -> dict[str, Any]:
     return incoming["records"]
 
 
-def _table_schema_fingerprint(parsed: dict[str, Any]) -> tuple[Any, ...]:
+def _semantic_header_text(cell: object) -> str:
+    semantic_cell = copy.deepcopy(cell)
+    for reference in semantic_cell.xpath(
+        ".//sup[contains(concat(' ', normalize-space(@class), ' '), ' reference ')]"
+    ):
+        reference.getparent().remove(reference)
+    return normalize_identity(semantic_cell.text_content())
+
+
+def _table_schema_fingerprint(
+    parsed: dict[str, Any], *, relevant_table_count: int
+) -> tuple[Any, ...]:
     """Describe audited table headers while deliberately ignoring body rows."""
 
     document = lxml_html.fromstring(parsed["text"])
     tables = document.xpath("//table")
-    if len(tables) < 17:
+    if len(tables) < relevant_table_count:
         raise SourceDriftError(
-            f"French source exposes {len(tables)} tables; audited parser requires 17"
+            f"French source exposes {len(tables)} tables; "
+            f"reviewed parser requires {relevant_table_count}"
         )
     schemas: list[tuple[Any, ...]] = []
-    for table_index, table in enumerate(tables[:17]):
+    for table_index, table in enumerate(tables[:relevant_table_count]):
         header_rows: list[tuple[Any, ...]] = []
         for row in table.xpath("./thead/tr | ./tbody/tr | ./tr"):
             if row.xpath("./td"):
@@ -337,7 +370,7 @@ def _table_schema_fingerprint(parsed: dict[str, Any]) -> tuple[Any, ...]:
             header_rows.append(
                 tuple(
                     (
-                        normalize_identity(cell.text_content()),
+                        _semantic_header_text(cell),
                         cell.get("rowspan", "1"),
                         cell.get("colspan", "1"),
                     )
@@ -361,9 +394,28 @@ def _assert_production_source_structure(parsed: dict[str, Any]) -> dict[str, Any
             f"French source revision {revision!r} predates audited revision {FRENCH_REVISION}"
         )
     audited = load_mediawiki_fixture(FRENCH_FIXTURE, FRENCH_REVISION)
-    if _relevant_heading_fingerprint(parsed) != _relevant_heading_fingerprint(audited):
+    audited_headings = _relevant_heading_fingerprint(audited)
+    ruffin_index = audited_headings.index((3, "hypothese ruffin le pen"))
+    reviewed_headings = (
+        audited_headings[: ruffin_index + 1]
+        + (POST_AUDIT_HOLLANDE_LE_PEN_TOC_ENTRY,)
+        + audited_headings[ruffin_index + 1 :]
+    )
+    incoming_headings = _relevant_heading_fingerprint(parsed)
+    if incoming_headings not in {audited_headings, reviewed_headings}:
         raise SourceDriftError("relevant heading hierarchy changed")
-    if _table_schema_fingerprint(parsed) != _table_schema_fingerprint(audited):
+    audited_schema = _table_schema_fingerprint(audited, relevant_table_count=17)
+    if incoming_headings == audited_headings:
+        expected_schema = audited_schema
+    else:
+        expected_schema = (
+            audited_schema[:12]
+            + (POST_AUDIT_HOLLANDE_LE_PEN_TABLE_SCHEMA,)
+            + audited_schema[12:]
+        )
+    if _table_schema_fingerprint(
+        parsed, relevant_table_count=len(expected_schema)
+    ) != expected_schema:
         raise SourceDriftError("French polling table/header schema changed")
     try:
         return parse_french_frozen_fixture(parsed)

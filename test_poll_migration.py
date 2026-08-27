@@ -26,6 +26,7 @@ from poll_contract import FIRST_ROUND, PollContractError, validate_poll_events
 from poll_migration import (
     ENGLISH_FIXTURE,
     FRENCH_FIXTURE,
+    POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR,
     apply_wave_scoped_pollster_alias,
     exact_factual_key,
     load_mediawiki_fixture,
@@ -83,6 +84,68 @@ def post_audit_french_row_fixture() -> dict:
     template.addprevious(new_row)
     parsed["text"] = lxml_html.tostring(document, encoding="unicode")
     parsed["revid"] = 238906993
+    return parsed
+
+
+def post_audit_hollande_runoff_fixture() -> dict:
+    parsed = copy.deepcopy(load_mediawiki_fixture(FRENCH_FIXTURE, 238906992))
+    sections = parsed["tocdata"]["sections"]
+    ruffin_index = next(
+        index
+        for index, section in enumerate(sections)
+        if section["line"] == "Hypothèse Ruffin – Le Pen"
+    )
+    sections.insert(
+        ruffin_index + 1,
+        {
+            "tocLevel": 3,
+            "hLevel": 4,
+            "line": "Hypothèse Hollande – Le Pen",
+            "number": "4.1.7",
+            "index": "17",
+            "anchor": "Hypothèse_Hollande_–_Le_Pen",
+        },
+    )
+
+    document = lxml_html.fromstring(parsed["text"])
+    ruffin_table = document.xpath("//table")[11]
+    heading = lxml_html.fragment_fromstring(
+        '<div class="mw-heading mw-heading4">'
+        '<h4 id="Hypothèse_Hollande_–_Le_Pen">'
+        "Hypothèse Hollande – Le Pen"
+        "</h4></div>"
+    )
+    table = lxml_html.fragment_fromstring(
+        """
+        <table class="wikitable">
+          <tbody>
+            <tr>
+              <th rowspan="3">Sondeur</th>
+              <th rowspan="3">Dates</th>
+              <th rowspan="3">Échantillon</th>
+              <th></th>
+              <th></th>
+            </tr>
+            <tr>
+              <th><a href="/wiki/François_Hollande">Hollande</a> (PS)</th>
+              <th><a href="/wiki/Marine_Le_Pen">Le Pen</a> (RN)</th>
+            </tr>
+            <tr><td></td><td></td></tr>
+            <tr>
+              <td><a href="https://example.test/hollande-le-pen">Ifop</a></td>
+              <td>24 - 25 août 2026</td>
+              <td>1 598</td>
+              <td>46</td>
+              <td>54</td>
+            </tr>
+          </tbody>
+        </table>
+        """
+    )
+    ruffin_table.addnext(heading)
+    heading.addnext(table)
+    parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+    parsed["revid"] = 238978513
     return parsed
 
 
@@ -185,6 +248,190 @@ class FrozenFixtureTests(unittest.TestCase):
                     "FR-R11": 2,
                 }
             ),
+        )
+
+    def test_known_hollande_family_preserves_audited_runoff_locators(self) -> None:
+        parsed = parse_french_frozen_fixture(post_audit_hollande_runoff_fixture())
+        baseline = {
+            record["source_locator"]: record
+            for record in self.fr_parsed["second_round"]
+        }
+        incoming = {
+            record["source_locator"]: record for record in parsed["second_round"]
+        }
+        for locator, record in baseline.items():
+            with self.subTest(locator=locator):
+                self.assertEqual(incoming[locator], record)
+
+        new_locator = f"{POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR}r1"
+        self.assertEqual(set(incoming) - set(baseline), {new_locator})
+        self.assertEqual(
+            incoming[new_locator]["candidates"],
+            [
+                {"name": "François Hollande", "score": 46},
+                {"name": "Marine Le Pen", "score": 54},
+            ],
+        )
+
+    def test_known_hollande_family_is_a_normal_post_audit_addition(self) -> None:
+        previous_first = read_json("polls.json")
+        previous_second = read_json("second_round_polls.json")["events"]
+        result = reconcile_french_production_source(
+            post_audit_hollande_runoff_fixture(),
+            previous_first,
+            previous_second,
+        )
+        self.assertEqual(
+            (len(result.first_round_events), len(result.second_round_events)),
+            (232, 51),
+        )
+        self.assertEqual(
+            result.report["normal_post_audit_additions"],
+            {FIRST_ROUND: 0, SECOND_ROUND: 1},
+        )
+        previous_second_ids = {event["event_id"] for event in previous_second}
+        self.assertTrue(
+            previous_second_ids
+            <= {event["event_id"] for event in result.second_round_events}
+        )
+        added = [
+            event
+            for event in result.second_round_events
+            if event["event_id"] not in previous_second_ids
+        ]
+        self.assertEqual(len(added), 1)
+        self.assertEqual(
+            added[0]["migration_source_locator"],
+            f"{POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR}r1",
+        )
+
+    def test_hollande_family_requires_exact_position_and_table_schema(self) -> None:
+        previous_first = read_json("polls.json")
+        previous_second = read_json("second_round_polls.json")["events"]
+
+        misordered = post_audit_hollande_runoff_fixture()
+        sections = misordered["tocdata"]["sections"]
+        hollande = next(
+            section
+            for section in sections
+            if section["line"] == "Hypothèse Hollande – Le Pen"
+        )
+        sections.remove(hollande)
+        retailleau_bardella = next(
+            index
+            for index, section in enumerate(sections)
+            if section["line"] == "Hypothèse Retailleau – Bardella"
+        )
+        sections.insert(retailleau_bardella + 1, hollande)
+        with self.subTest(drift="position"), self.assertRaisesRegex(
+            SourceDriftError, "heading hierarchy changed"
+        ):
+            reconcile_french_production_source(
+                misordered,
+                previous_first,
+                previous_second,
+            )
+
+        wrong_level = post_audit_hollande_runoff_fixture()
+        next(
+            section
+            for section in wrong_level["tocdata"]["sections"]
+            if section["line"] == "Hypothèse Hollande – Le Pen"
+        )["tocLevel"] = 2
+        with self.subTest(drift="level"), self.assertRaisesRegex(
+            SourceDriftError, "heading hierarchy changed"
+        ):
+            reconcile_french_production_source(
+                wrong_level,
+                previous_first,
+                previous_second,
+            )
+
+        added_heading = post_audit_hollande_runoff_fixture()
+        sections = added_heading["tocdata"]["sections"]
+        hollande_index = next(
+            index
+            for index, section in enumerate(sections)
+            if section["line"] == "Hypothèse Hollande – Le Pen"
+        )
+        sections.insert(
+            hollande_index + 1,
+            {"tocLevel": 3, "line": "Hypothèse non auditée – Le Pen"},
+        )
+        with self.subTest(drift="addition"), self.assertRaisesRegex(
+            SourceDriftError, "heading hierarchy changed"
+        ):
+            reconcile_french_production_source(
+                added_heading,
+                previous_first,
+                previous_second,
+            )
+
+        removed_heading = post_audit_hollande_runoff_fixture()
+        removed_heading["tocdata"]["sections"] = [
+            section
+            for section in removed_heading["tocdata"]["sections"]
+            if section["line"] != "Hypothèse Ruffin – Le Pen"
+        ]
+        with self.subTest(drift="removal"), self.assertRaisesRegex(
+            SourceDriftError, "heading hierarchy changed"
+        ):
+            reconcile_french_production_source(
+                removed_heading,
+                previous_first,
+                previous_second,
+            )
+
+        mutated = post_audit_hollande_runoff_fixture()
+        document = lxml_html.fromstring(mutated["text"])
+        hollande_header = document.xpath("//table")[12].xpath(".//tr[2]/th[1]")[0]
+        hollande_header.clear()
+        hollande_header.text = "Hollande schema mutation"
+        mutated["text"] = lxml_html.tostring(document, encoding="unicode")
+        with self.subTest(drift="schema"), self.assertRaisesRegex(
+            SourceDriftError, "table/header schema changed"
+        ):
+            reconcile_french_production_source(
+                mutated,
+                previous_first,
+                previous_second,
+            )
+
+        missing_table = post_audit_hollande_runoff_fixture()
+        document = lxml_html.fromstring(missing_table["text"])
+        table = document.xpath("//table")[12]
+        table.getparent().remove(table)
+        missing_table["text"] = lxml_html.tostring(document, encoding="unicode")
+        with self.subTest(drift="missing table"), self.assertRaisesRegex(
+            SourceDriftError, "table/header schema changed"
+        ):
+            reconcile_french_production_source(
+                missing_table,
+                previous_first,
+                previous_second,
+            )
+
+    def test_header_reference_marker_does_not_change_semantic_schema(self) -> None:
+        parsed = copy.deepcopy(self.fr)
+        document = lxml_html.fromstring(parsed["text"])
+        attal_header = next(
+            header
+            for header in document.xpath("//table")[0].xpath(".//th")
+            if "Attal" in header.text_content()
+        )
+        reference = lxml_html.Element("sup", {"class": "reference"})
+        reference.text = "c"
+        attal_header.append(reference)
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        parsed["revid"] += 1
+        result = reconcile_french_production_source(
+            parsed,
+            read_json("polls.json"),
+            read_json("second_round_polls.json")["events"],
+        )
+        self.assertEqual(
+            (len(result.first_round_events), len(result.second_round_events)),
+            (232, 50),
         )
 
     def test_august_harris_first_round_wave_is_frozen(self) -> None:
