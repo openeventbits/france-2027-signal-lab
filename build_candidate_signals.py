@@ -43,7 +43,7 @@ from fetch_news_wire import (
 
 
 
-SCHEMA_VERSION = "1.4"
+SCHEMA_VERSION = "1.5"
 LATEST_SCRUTINY_DAYS = 14
 AGENDA_PROFILE_WINDOW_DAYS = 30
 AGENDA_PROFILE_POLICY_MIN_TOPICS = 3
@@ -695,6 +695,104 @@ def project_candidate_polling(
                 "selected_hypothesis_rank": None,
             }
     return projections
+
+
+def project_candidate_poll_history(
+    candidates: list[dict[str, str]],
+    polls: Any,
+) -> dict[str, dict[str, Any]]:
+    """Project descriptive package-level polling history per candidate.
+
+    Every observation reuses the existing package grouping and candidate
+    polling projection. No averaging, smoothing, interpolation, forecasting,
+    or candidate-alias inference is introduced here.
+    """
+
+    packages = sorted(
+        build_poll_packages(polls),
+        key=lambda package: (
+            _parse_date(
+                package["fieldwork_end"],
+                "poll history package fieldwork_end",
+            ).toordinal(),
+            _parse_date(
+                package["fieldwork_start"],
+                "poll history package fieldwork_start",
+            ).toordinal(),
+            french_compatible_sort_key(package["pollster"]),
+            package["package_key"],
+        ),
+    )
+
+    observations_by_id: dict[str, list[dict[str, Any]]] = {
+        candidate["candidate_id"]: []
+        for candidate in candidates
+    }
+
+    for package in packages:
+        package_projection = project_candidate_polling(
+            candidates,
+            package,
+        )
+        public_package = _featured_package_public(package)
+
+        for candidate in candidates:
+            identifier = candidate["candidate_id"]
+            polling = package_projection[identifier]
+
+            if polling["evidence_state"] != "reported":
+                continue
+
+            observations_by_id[identifier].append(
+                {
+                    "package_key": public_package["package_key"],
+                    "pollster": public_package["pollster"],
+                    "fieldwork_start": public_package["fieldwork_start"],
+                    "fieldwork_end": public_package["fieldwork_end"],
+                    "sample_size": public_package["sample_size"],
+                    "hypothesis_count": polling["hypothesis_count"],
+                    "selected_score": polling[
+                        "selected_hypothesis_score"
+                    ],
+                    "range_min": polling["range_min"],
+                    "range_max": polling["range_max"],
+                    "source_urls": list(
+                        public_package["source_urls"]
+                    ),
+                }
+            )
+
+    histories: dict[str, dict[str, Any]] = {}
+
+    for candidate in candidates:
+        identifier = candidate["candidate_id"]
+        observations = observations_by_id[identifier]
+
+        if not observations:
+            histories[identifier] = {
+                "evidence_state": "not_observed",
+                "observation_count": 0,
+                "period_start": None,
+                "period_end": None,
+                "observations": [],
+            }
+            continue
+
+        histories[identifier] = {
+            "evidence_state": "reported",
+            "observation_count": len(observations),
+            "period_start": min(
+                observation["fieldwork_start"]
+                for observation in observations
+            ),
+            "period_end": max(
+                observation["fieldwork_end"]
+                for observation in observations
+            ),
+            "observations": observations,
+        }
+
+    return histories
 
 
 PERIOD_KEYS = {
@@ -2599,6 +2697,7 @@ def _construct_candidate_signals(
         ) from error
     featured_package = select_featured_polling_package(polls)
     polling = project_candidate_polling(candidates, featured_package)
+    poll_history = project_candidate_poll_history(candidates, polls)
     visibility, campaign_attention, general_visibility = project_visibility(
         candidates,
         news,
@@ -2657,6 +2756,7 @@ def _construct_candidate_signals(
                     "status_note": source_candidacy["status_note"],
                 },
                 "polling": polling[identifier],
+                "poll_history": poll_history[identifier],
                 "campaign_attention": campaign_attention[identifier],
                 "general_visibility": general_visibility[identifier],
                 "agenda_profile": agenda_profiles[identifier],
@@ -2691,6 +2791,25 @@ POLLING_OUTPUT_KEYS = {
     "range_max",
     "selected_hypothesis_score",
     "selected_hypothesis_rank",
+}
+POLL_HISTORY_OUTPUT_KEYS = {
+    "evidence_state",
+    "observation_count",
+    "period_start",
+    "period_end",
+    "observations",
+}
+POLL_HISTORY_OBSERVATION_KEYS = {
+    "package_key",
+    "pollster",
+    "fieldwork_start",
+    "fieldwork_end",
+    "sample_size",
+    "hypothesis_count",
+    "selected_score",
+    "range_min",
+    "range_max",
+    "source_urls",
 }
 CAMPAIGN_OUTPUT_KEYS = {
     "evidence_state",
@@ -2780,6 +2899,207 @@ def _audit_forbidden_fields(value: Any, path: str = "payload") -> None:
     elif isinstance(value, list):
         for index, item in enumerate(value):
             _audit_forbidden_fields(item, f"{path}[{index}]")
+
+
+def _validate_poll_history(
+    value: Any,
+    context: str,
+) -> None:
+    history = _require_plain_object(value, context)
+
+    if set(history) != POLL_HISTORY_OUTPUT_KEYS:
+        raise CandidateSignalsError(
+            f"{context} has unexpected fields"
+        )
+
+    state = history["evidence_state"]
+    observation_count = _require_non_negative_integer(
+        history["observation_count"],
+        f"{context}.observation_count",
+    )
+    observations = _require_list(
+        history["observations"],
+        f"{context}.observations",
+    )
+
+    if observation_count != len(observations):
+        raise CandidateSignalsError(
+            f"{context}.observation_count does not match observations"
+        )
+
+    if state == "not_observed":
+        if (
+            observation_count != 0
+            or history["period_start"] is not None
+            or history["period_end"] is not None
+            or observations
+        ):
+            raise CandidateSignalsError(
+                f"{context} fabricates unobserved polling history"
+            )
+        return
+
+    if state != "reported":
+        raise CandidateSignalsError(
+            f"{context}.evidence_state is invalid"
+        )
+
+    if observation_count == 0:
+        raise CandidateSignalsError(
+            f"{context} reported history has no observations"
+        )
+
+    period_start = _parse_date(
+        history["period_start"],
+        f"{context}.period_start",
+    )
+    period_end = _parse_date(
+        history["period_end"],
+        f"{context}.period_end",
+    )
+
+    if period_start > period_end:
+        raise CandidateSignalsError(
+            f"{context} period dates are reversed"
+        )
+
+    previous_order_key = None
+    observed_starts = []
+    observed_ends = []
+
+    for index, observation_value in enumerate(observations):
+        observation_context = f"{context}.observations[{index}]"
+        observation = _require_plain_object(
+            observation_value,
+            observation_context,
+        )
+
+        if set(observation) != POLL_HISTORY_OBSERVATION_KEYS:
+            raise CandidateSignalsError(
+                f"{observation_context} has unexpected fields"
+            )
+
+        package_key = _require_text(
+            observation["package_key"],
+            f"{observation_context}.package_key",
+        )
+        pollster = _require_text(
+            observation["pollster"],
+            f"{observation_context}.pollster",
+        )
+
+        start = _parse_date(
+            observation["fieldwork_start"],
+            f"{observation_context}.fieldwork_start",
+        )
+        end = _parse_date(
+            observation["fieldwork_end"],
+            f"{observation_context}.fieldwork_end",
+        )
+
+        if start > end:
+            raise CandidateSignalsError(
+                f"{observation_context} fieldwork dates are reversed"
+            )
+
+        sample_size = observation["sample_size"]
+        if sample_size is not None:
+            _require_non_negative_integer(
+                sample_size,
+                f"{observation_context}.sample_size",
+            )
+
+        try:
+            parsed_package_key = json.loads(package_key)
+        except json.JSONDecodeError as error:
+            raise CandidateSignalsError(
+                f"{observation_context}.package_key is invalid"
+            ) from error
+
+        if parsed_package_key != [
+            pollster,
+            observation["fieldwork_start"],
+            observation["fieldwork_end"],
+            sample_size,
+        ]:
+            raise CandidateSignalsError(
+                f"{observation_context}.package_key "
+                "does not match package fields"
+            )
+
+        _require_positive_integer(
+            observation["hypothesis_count"],
+            f"{observation_context}.hypothesis_count",
+        )
+
+        range_min = _numeric(
+            observation["range_min"],
+            f"{observation_context}.range_min",
+            non_negative=True,
+        )
+        range_max = _numeric(
+            observation["range_max"],
+            f"{observation_context}.range_max",
+            non_negative=True,
+        )
+
+        if range_min > range_max:
+            raise CandidateSignalsError(
+                f"{observation_context} polling range is reversed"
+            )
+
+        selected_score = observation["selected_score"]
+        if selected_score is not None:
+            selected_score = _numeric(
+                selected_score,
+                f"{observation_context}.selected_score",
+                non_negative=True,
+            )
+            if not range_min <= selected_score <= range_max:
+                raise CandidateSignalsError(
+                    f"{observation_context}.selected_score "
+                    "falls outside package range"
+                )
+
+        source_urls = _require_list(
+            observation["source_urls"],
+            f"{observation_context}.source_urls",
+        )
+        if (
+            not source_urls
+            or any(not _usable_url(url) for url in source_urls)
+            or len(source_urls) != len(set(source_urls))
+        ):
+            raise CandidateSignalsError(
+                f"{observation_context}.source_urls is invalid"
+            )
+
+        order_key = (
+            end.toordinal(),
+            start.toordinal(),
+            french_compatible_sort_key(pollster),
+            package_key,
+        )
+
+        if (
+            previous_order_key is not None
+            and order_key < previous_order_key
+        ):
+            raise CandidateSignalsError(
+                f"{context} observations are not chronological"
+            )
+
+        previous_order_key = order_key
+        observed_starts.append(start)
+        observed_ends.append(end)
+
+    if (
+        min(observed_starts) != period_start
+        or max(observed_ends) != period_end
+    ):
+        raise CandidateSignalsError(
+            f"{context} period does not match observations"
+        )
 
 
 def _validate_projected_metric(
@@ -3453,6 +3773,7 @@ def validate_candidate_signals(
             "candidate_name",
             "candidacy",
             "polling",
+            "poll_history",
             "campaign_attention",
             "general_visibility",
             "agenda_profile",
@@ -3573,6 +3894,11 @@ def validate_candidate_signals(
             raise CandidateSignalsError(
                 f"{context}.polling.evidence_state is invalid"
             )
+
+        _validate_poll_history(
+            candidate["poll_history"],
+            f"{context}.poll_history",
+        )
 
         _validate_projected_metric(
             candidate["campaign_attention"],
