@@ -240,6 +240,7 @@ def dynamic_schema_12_payload(tiers=("main", "main", "secondary", "hidden")):
         row["candidacy"]["active_field_eligible"] = tier != "hidden"
         row["candidacy"].pop("upstream_presence", None)
         row.pop("agenda_profile", None)
+        row.pop("poll_history", None)
         candidates.append(row)
 
     field = {
@@ -362,7 +363,8 @@ const context = {
   Array,
   Set,
   Map,
-  Promise
+  Promise,
+  URL
 };
 vm.runInNewContext(
   fs.readFileSync("assets/candidate-signals.js", "utf8"),
@@ -1358,7 +1360,7 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
             self.assertIsNone(candidate[field])
         self.assertNotIn(0, candidate.values())
 
-    def test_schema_13_normalizes_complete_presidential_and_active_fields(self):
+    def test_current_schema_normalizes_complete_presidential_active_and_poll_history(self):
         payload = json.loads(
             (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
         )
@@ -1422,6 +1424,70 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
                         for row in scope[tier]
                     )
                 )
+
+        self.assertEqual(payload["schema_version"], "1.5")
+        normalized_by_id = {
+            candidate["candidate_id"]: candidate
+            for candidate in state["candidates"]
+        }
+        for source_candidate in payload["candidates"]:
+            self.assertEqual(
+                normalized_by_id[source_candidate["candidate_id"]]["poll_history"],
+                source_candidate["poll_history"],
+            )
+
+    def test_schema_15_rejects_malformed_poll_history(self):
+        base = json.loads(
+            (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
+        )
+        reported_index = next(
+            index
+            for index, candidate in enumerate(base["candidates"])
+            if candidate["poll_history"]["observation_count"] > 1
+        )
+
+        cases = []
+
+        bad_count = json.loads(json.dumps(base))
+        bad_count["candidates"][reported_index]["poll_history"][
+            "observation_count"
+        ] += 1
+        cases.append(("count_mismatch", bad_count))
+
+        bad_range = json.loads(json.dumps(base))
+        observation = bad_range["candidates"][reported_index][
+            "poll_history"
+        ]["observations"][0]
+        observation["selected_score"] = observation["range_max"] + 1
+        cases.append(("selected_score_outside_range", bad_range))
+
+        duplicate_url = json.loads(json.dumps(base))
+        urls = duplicate_url["candidates"][reported_index][
+            "poll_history"
+        ]["observations"][0]["source_urls"]
+        urls.append(urls[0])
+        cases.append(("duplicate_source_url", duplicate_url))
+
+        bad_package = json.loads(json.dumps(base))
+        bad_package["candidates"][reported_index]["poll_history"][
+            "observations"
+        ][0]["package_key"] = "[]"
+        cases.append(("package_key_mismatch", bad_package))
+
+        bad_order = json.loads(json.dumps(base))
+        bad_order["candidates"][reported_index]["poll_history"][
+            "observations"
+        ].reverse()
+        cases.append(("non_chronological", bad_order))
+
+        for label, payload in cases:
+            with self.subTest(case=label):
+                state = run_candidate_module(
+                    "api.normalize(input.payload)",
+                    payload,
+                )
+                self.assertEqual(state["status"], "unavailable")
+                self.assertEqual(state["reason"], "invalid_payload")
 
     def test_schema_12_accepts_dynamic_candidate_and_tier_counts(self):
         tier_sets = (

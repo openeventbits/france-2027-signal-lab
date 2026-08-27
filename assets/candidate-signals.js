@@ -8,7 +8,7 @@
     unavailable: "unavailable"
   });
   const SUPPORTED_SCHEMA_VERSIONS = new Set([
-    "1.0", "1.1", "1.2", "1.3", "1.4"
+    "1.0", "1.1", "1.2", "1.3", "1.4", "1.5"
   ]);
   const metadataFields = [
     "candidate_universe",
@@ -140,6 +140,29 @@
     "scrutiny",
     "latest_development"
   ];
+  const candidateRecordFields15 = [
+    ...candidateRecordFields14,
+    "poll_history"
+  ];
+  const pollHistoryFields = [
+    "evidence_state",
+    "observation_count",
+    "period_start",
+    "period_end",
+    "observations"
+  ];
+  const pollHistoryObservationFields = [
+    "package_key",
+    "pollster",
+    "fieldwork_start",
+    "fieldwork_end",
+    "sample_size",
+    "hypothesis_count",
+    "selected_score",
+    "range_min",
+    "range_max",
+    "source_urls"
+  ];
   const activePeriodFields = [
     "start_date", "end_date", "record_count", "publisher_count"
   ];
@@ -226,6 +249,45 @@
 
   function nonnegativeInteger(value) {
     return Number.isInteger(value) && value >= 0;
+  }
+
+  function positiveInteger(value) {
+    return Number.isInteger(value) && value > 0;
+  }
+
+  function nonnegativeFiniteNumber(value) {
+    return typeof value === "number" && Number.isFinite(value) && value >= 0;
+  }
+
+  function isoCalendarDate(value) {
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return false;
+    }
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return Number.isFinite(parsed.getTime()) &&
+      parsed.toISOString().slice(0, 10) === value;
+  }
+
+  function usableUrl(value) {
+    if (!nonemptyText(value)) return false;
+    try {
+      const parsed = new URL(value);
+      return ["http:", "https:"].includes(parsed.protocol) && !!parsed.host;
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function frenchCompatibleSortKey(value) {
+    const plain = value
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    const normalized = plain
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim()
+      .replace(/\s+/g, " ");
+    return [normalized, value.normalize("NFC").toLowerCase()];
   }
 
   function stateObject(status, candidates = [], metadata = {}, reason = null) {
@@ -561,6 +623,138 @@
     };
   }
 
+  function normalizePollHistory(source) {
+    if (!hasExactKeys(source, pollHistoryFields)) return undefined;
+    if (
+      !nonnegativeInteger(source.observation_count) ||
+      !Array.isArray(source.observations) ||
+      source.observation_count !== source.observations.length
+    ) return undefined;
+
+    if (source.evidence_state === "not_observed") {
+      if (
+        source.observation_count !== 0 ||
+        source.period_start !== null ||
+        source.period_end !== null ||
+        source.observations.length !== 0
+      ) return undefined;
+      return cloneValue(source);
+    }
+
+    if (
+      source.evidence_state !== "reported" ||
+      source.observation_count === 0 ||
+      !isoCalendarDate(source.period_start) ||
+      !isoCalendarDate(source.period_end) ||
+      source.period_start > source.period_end
+    ) return undefined;
+
+    let previousOrderKey = null;
+    let minimumStart = null;
+    let maximumEnd = null;
+    const observations = [];
+
+    for (const observation of source.observations) {
+      if (!hasExactKeys(observation, pollHistoryObservationFields)) {
+        return undefined;
+      }
+      if (
+        !nonemptyText(observation.package_key) ||
+        !nonemptyText(observation.pollster) ||
+        !isoCalendarDate(observation.fieldwork_start) ||
+        !isoCalendarDate(observation.fieldwork_end) ||
+        observation.fieldwork_start > observation.fieldwork_end
+      ) return undefined;
+
+      if (
+        observation.sample_size !== null &&
+        !nonnegativeInteger(observation.sample_size)
+      ) return undefined;
+
+      let parsedPackageKey;
+      try {
+        parsedPackageKey = JSON.parse(observation.package_key);
+      } catch (_error) {
+        return undefined;
+      }
+      const expectedPackageKey = [
+        observation.pollster,
+        observation.fieldwork_start,
+        observation.fieldwork_end,
+        observation.sample_size
+      ];
+      if (
+        !Array.isArray(parsedPackageKey) ||
+        parsedPackageKey.length !== expectedPackageKey.length ||
+        parsedPackageKey.some(
+          (value, index) => value !== expectedPackageKey[index]
+        )
+      ) return undefined;
+
+      if (
+        !positiveInteger(observation.hypothesis_count) ||
+        !nonnegativeFiniteNumber(observation.range_min) ||
+        !nonnegativeFiniteNumber(observation.range_max) ||
+        observation.range_min > observation.range_max
+      ) return undefined;
+
+      if (
+        observation.selected_score !== null &&
+        (
+          !nonnegativeFiniteNumber(observation.selected_score) ||
+          observation.selected_score < observation.range_min ||
+          observation.selected_score > observation.range_max
+        )
+      ) return undefined;
+
+      if (
+        !Array.isArray(observation.source_urls) ||
+        observation.source_urls.length === 0 ||
+        observation.source_urls.some(url => !usableUrl(url)) ||
+        new Set(observation.source_urls).size !== observation.source_urls.length
+      ) return undefined;
+
+      const pollsterKey = frenchCompatibleSortKey(observation.pollster);
+      const orderKey = [
+        observation.fieldwork_end,
+        observation.fieldwork_start,
+        pollsterKey[0],
+        pollsterKey[1],
+        observation.package_key
+      ];
+      if (
+        previousOrderKey !== null &&
+        orderKey.join("\u0000") < previousOrderKey.join("\u0000")
+      ) return undefined;
+      previousOrderKey = orderKey;
+
+      if (
+        minimumStart === null ||
+        observation.fieldwork_start < minimumStart
+      ) minimumStart = observation.fieldwork_start;
+      if (
+        maximumEnd === null ||
+        observation.fieldwork_end > maximumEnd
+      ) maximumEnd = observation.fieldwork_end;
+
+      observations.push(cloneValue(observation));
+    }
+
+    if (
+      minimumStart !== source.period_start ||
+      maximumEnd !== source.period_end
+    ) return undefined;
+
+    return {
+      evidence_state: source.evidence_state,
+      observation_count: source.observation_count,
+      period_start: source.period_start,
+      period_end: source.period_end,
+      observations
+    };
+  }
+
+
   function normalizeAgendaProfile(source) {
     if (!hasExactKeys(source, agendaProfileFields)) return undefined;
 
@@ -642,7 +836,9 @@
       return unavailable("unsupported_schema");
     }
     const isVersion12 = payload.schema_version === "1.2";
-    const isVersion14 = payload.schema_version === "1.4";
+    const isVersion15 = payload.schema_version === "1.5";
+    const isVersion14 =
+      payload.schema_version === "1.4" || isVersion15;
     const isVersion13 =
       payload.schema_version === "1.3" || isVersion14;
     if (isVersion12 && !hasExactKeys(payload, schema12TopFields)) {
@@ -663,11 +859,15 @@
     for (const sourceCandidate of payload.candidates) {
       if (!isPlainObject(sourceCandidate)) return unavailable("invalid_payload");
       if (
-        isVersion14
-          ? !hasExactKeys(sourceCandidate, candidateRecordFields14)
+        isVersion15
+          ? !hasExactKeys(sourceCandidate, candidateRecordFields15)
           : (
-              (isVersion12 || isVersion13) &&
-              !hasExactKeys(sourceCandidate, candidateRecordFields)
+              isVersion14
+                ? !hasExactKeys(sourceCandidate, candidateRecordFields14)
+                : (
+                    (isVersion12 || isVersion13) &&
+                    !hasExactKeys(sourceCandidate, candidateRecordFields)
+                  )
             )
       ) {
         return unavailable("invalid_payload");
@@ -705,6 +905,13 @@
         ? normalizeAgendaProfile(sourceCandidate.agenda_profile)
         : null;
       if (isVersion14 && candidate.agenda_profile === undefined) {
+        return unavailable("invalid_payload");
+      }
+
+      candidate.poll_history = isVersion15
+        ? normalizePollHistory(sourceCandidate.poll_history)
+        : null;
+      if (isVersion15 && candidate.poll_history === undefined) {
         return unavailable("invalid_payload");
       }
 
