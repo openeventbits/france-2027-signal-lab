@@ -30,6 +30,12 @@ from poll_migration import (
 
 ROOT = Path(__file__).parent
 OUTPUT = ROOT / "fr27_poll_migration_registry.json"
+PRE_CUTOVER_FIRST_ROUND = (
+    ROOT / "test_fixtures/fr27_polling/pre_cutover_first_round_203.json"
+)
+PRE_CUTOVER_SECOND_ROUND = (
+    ROOT / "test_fixtures/fr27_polling/pre_cutover_second_round_38.json"
+)
 
 AMBIGUOUS_IDENTITY_LOCATORS = {"FR-T1R9", "FR-T1R10", "FR-T1R11"}
 
@@ -443,8 +449,8 @@ def _runoff_review_key(event: dict[str, Any]) -> tuple[Any, ...]:
 
 
 def build_registry() -> dict[str, Any]:
-    current_first = _read_json(ROOT / "polls.json")
-    current_second = _read_json(ROOT / "second_round_polls.json")["events"]
+    current_first = _read_json(PRE_CUTOVER_FIRST_ROUND)
+    current_second = _read_json(PRE_CUTOVER_SECOND_ROUND)["events"]
     french = parse_french_frozen_fixture(
         load_mediawiki_fixture(FRENCH_FIXTURE, 238906992)
     )

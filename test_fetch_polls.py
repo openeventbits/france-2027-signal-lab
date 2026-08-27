@@ -42,6 +42,15 @@ from poll_contract import (
 
 
 ROOT = Path(__file__).parent
+PRE_CUTOVER_FIRST_ROUND = (
+    ROOT / "test_fixtures/fr27_polling/pre_cutover_first_round_203.json"
+)
+PRE_CUTOVER_SECOND_ROUND = (
+    ROOT / "test_fixtures/fr27_polling/pre_cutover_second_round_38.json"
+)
+PRE_CUTOVER_COMMISSION_REGISTRY = (
+    ROOT / "test_fixtures/fr27_polling/pre_cutover_commission_notice_registry.json"
+)
 
 
 class WikipediaSourceSelectionTests(unittest.TestCase):
@@ -195,14 +204,16 @@ class WikipediaSourceSelectionTests(unittest.TestCase):
         self.assertIn("non-production temporary outputs", result.stderr)
 
     def test_previous_second_round_loader_validates_all_38_events(self):
-        events = load_previous_second_round_events(ROOT / "second_round_polls.json")
+        events = load_previous_second_round_events(PRE_CUTOVER_SECOND_ROUND)
         self.assertEqual(len(events), 38)
         self.assertEqual(len({event["event_id"] for event in events}), 38)
 
     def test_french_integration_path_produces_audited_232_50_in_memory(self):
-        previous_first = json.loads((ROOT / "polls.json").read_text(encoding="utf-8"))
+        previous_first = json.loads(
+            PRE_CUTOVER_FIRST_ROUND.read_text(encoding="utf-8")
+        )
         previous_second = load_previous_second_round_events(
-            ROOT / "second_round_polls.json"
+            PRE_CUTOVER_SECOND_ROUND
         )
         parsed = load_mediawiki_fixture(FRENCH_FIXTURE, 238906992)
         first, second, report, _official = integrate_french_migration_source(
@@ -232,10 +243,10 @@ class WikipediaSourceSelectionTests(unittest.TestCase):
         )
         protected_before = {path: path.read_bytes() for path in protected_paths}
         previous_first = json.loads(
-            (ROOT / "polls.json").read_text(encoding="utf-8")
+            PRE_CUTOVER_FIRST_ROUND.read_text(encoding="utf-8")
         )
         previous_second = load_previous_second_round_events(
-            ROOT / "second_round_polls.json"
+            PRE_CUTOVER_SECOND_ROUND
         )
         parsed = load_mediawiki_fixture(FRENCH_FIXTURE, 238906992)
         migrated, _second, _report, _official = integrate_french_migration_source(
@@ -266,7 +277,7 @@ class WikipediaSourceSelectionTests(unittest.TestCase):
             <= {event["event_id"] for event in migrated}
         )
 
-        unfiltered_registry = load_registry(ROOT / "commission_notice_registry.json")
+        unfiltered_registry = load_registry(PRE_CUTOVER_COMMISSION_REGISTRY)
         self.assertEqual(
             reconcile_commission_notices(unfiltered_registry, migrated),
             {
@@ -305,7 +316,7 @@ class WikipediaSourceSelectionTests(unittest.TestCase):
                 if event.get("migration_source_locator") not in audited_locators
             )
         )
-        filtered_registry = load_registry(ROOT / "commission_notice_registry.json")
+        filtered_registry = load_registry(PRE_CUTOVER_COMMISSION_REGISTRY)
         self.assertEqual(
             reconcile_commission_notices(filtered_registry, commission_evidence),
             {
