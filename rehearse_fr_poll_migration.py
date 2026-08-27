@@ -54,6 +54,12 @@ from poll_migration import (
 
 
 ROOT = Path(__file__).parent
+PRE_CUTOVER_FIRST_ROUND = (
+    ROOT / "test_fixtures/fr27_polling/pre_cutover_first_round_203.json"
+)
+PRE_CUTOVER_SECOND_ROUND = (
+    ROOT / "test_fixtures/fr27_polling/pre_cutover_second_round_38.json"
+)
 FRENCH_REVISION = 238906992
 FRENCH_PAGE = "Liste de sondages sur l'élection présidentielle française de 2027"
 FRENCH_API_URL = "https://fr.wikipedia.org/w/api.php"
@@ -423,18 +429,37 @@ def _assert_production_source_structure(parsed: dict[str, Any]) -> dict[str, Any
         raise SourceDriftError(f"French table structure is not auditable: {error}") from error
 
 
-def _read_current_corpora() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    first = json.loads((ROOT / "polls.json").read_text(encoding="utf-8"))
-    second_payload = json.loads(
-        (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
-    )
+def _read_corpora(
+    first_path: Path,
+    second_path: Path,
+    *,
+    label: str,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    first = json.loads(first_path.read_text(encoding="utf-8"))
+    second_payload = json.loads(second_path.read_text(encoding="utf-8"))
     second = second_payload.get("events") if isinstance(second_payload, dict) else None
     if not isinstance(first, list) or not isinstance(second, list):
-        raise RehearsalError("current polling corpora are malformed")
+        raise RehearsalError(f"{label} polling corpora are malformed")
     validate_poll_events(first)
     for event in second:
         validate_second_round_event(event)
     return first, second
+
+
+def _read_current_corpora() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    return _read_corpora(
+        ROOT / "polls.json",
+        ROOT / "second_round_polls.json",
+        label="current",
+    )
+
+
+def _read_pre_cutover_corpora() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    return _read_corpora(
+        PRE_CUTOVER_FIRST_ROUND,
+        PRE_CUTOVER_SECOND_ROUND,
+        label="frozen pre-cutover",
+    )
 
 
 def _display_pollster(identity: str, reported: str) -> str:
@@ -1192,7 +1217,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--frozen",
         action="store_true",
-        help="use audited revision 238906992 instead of fetching the live page",
+        help=(
+            "use audited revision 238906992 and the frozen pre-cutover "
+            "203/38 polling corpora"
+        ),
     )
     return parser
 
@@ -1200,12 +1228,17 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     arguments = _parser().parse_args(argv)
     try:
-        parsed = (
-            load_mediawiki_fixture(FRENCH_FIXTURE, FRENCH_REVISION)
-            if arguments.frozen
-            else fetch_live_french_parse()
-        )
-        result = rehearse_migration(parsed)
+        if arguments.frozen:
+            parsed = load_mediawiki_fixture(FRENCH_FIXTURE, FRENCH_REVISION)
+            current_first, current_second = _read_pre_cutover_corpora()
+            result = rehearse_migration(
+                parsed,
+                current_first=current_first,
+                current_second=current_second,
+            )
+        else:
+            parsed = fetch_live_french_parse()
+            result = rehearse_migration(parsed)
     except RehearsalError as error:
         print(
             json.dumps(

@@ -54,10 +54,42 @@ from rehearse_fr_poll_migration import (
 
 
 ROOT = Path(__file__).parent
+PRE_CUTOVER_FIRST_ROUND = (
+    ROOT / "test_fixtures/fr27_polling/pre_cutover_first_round_203.json"
+)
+PRE_CUTOVER_SECOND_ROUND = (
+    ROOT / "test_fixtures/fr27_polling/pre_cutover_second_round_38.json"
+)
+PRE_CUTOVER_COMMISSION_REGISTRY = (
+    ROOT / "test_fixtures/fr27_polling/pre_cutover_commission_notice_registry.json"
+)
 
 
 def read_json(name: str) -> object:
     return json.loads((ROOT / name).read_text(encoding="utf-8"))
+
+
+def read_pre_cutover_first_round() -> list[dict]:
+    payload = json.loads(PRE_CUTOVER_FIRST_ROUND.read_text(encoding="utf-8"))
+    if not isinstance(payload, list):
+        raise AssertionError("frozen pre-cutover first-round fixture is malformed")
+    return payload
+
+
+def read_pre_cutover_second_round() -> list[dict]:
+    payload = json.loads(PRE_CUTOVER_SECOND_ROUND.read_text(encoding="utf-8"))
+    events = payload.get("events") if isinstance(payload, dict) else None
+    if not isinstance(events, list):
+        raise AssertionError("frozen pre-cutover second-round fixture is malformed")
+    return events
+
+
+def rehearse_pre_cutover(parsed: dict):
+    return rehearse_migration(
+        parsed,
+        current_first=read_pre_cutover_first_round(),
+        current_second=read_pre_cutover_second_round(),
+    )
 
 
 def post_audit_french_row_fixture() -> dict:
@@ -209,6 +241,9 @@ class FrozenFixtureTests(unittest.TestCase):
         expected = {
             ENGLISH_FIXTURE: "d6f0cfcb0cf33edc04a13e38c0171d917a61b985d49a1f5d863a4027838b2f0a",
             FRENCH_FIXTURE: "62bcad0a3f951a352f7acdb35bdfb5da85bb1aaae3912c61c2d2bc03e197744f",
+            PRE_CUTOVER_FIRST_ROUND: "57d1fbdd08a1133dd7e907e7be71cf572e700a6d010a1f0b5fd070893211b913",
+            PRE_CUTOVER_SECOND_ROUND: "063176c7af66e29c3380dcc5c5e22d2af632ab564b7f79e160678bb7f08f0d34",
+            PRE_CUTOVER_COMMISSION_REGISTRY: "bad7e3924f82b60d6972d24537ace73071a73c049fb4b155df7d8cb392f992d9",
         }
         for path, digest in expected.items():
             with self.subTest(path=path.name):
@@ -274,8 +309,8 @@ class FrozenFixtureTests(unittest.TestCase):
         )
 
     def test_known_hollande_family_is_a_normal_post_audit_addition(self) -> None:
-        previous_first = read_json("polls.json")
-        previous_second = read_json("second_round_polls.json")["events"]
+        previous_first = read_pre_cutover_first_round()
+        previous_second = read_pre_cutover_second_round()
         result = reconcile_french_production_source(
             post_audit_hollande_runoff_fixture(),
             previous_first,
@@ -294,20 +329,18 @@ class FrozenFixtureTests(unittest.TestCase):
             previous_second_ids
             <= {event["event_id"] for event in result.second_round_events}
         )
+        new_locator = f"{POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR}r1"
         added = [
             event
             for event in result.second_round_events
-            if event["event_id"] not in previous_second_ids
+            if event.get("migration_source_locator") == new_locator
         ]
         self.assertEqual(len(added), 1)
-        self.assertEqual(
-            added[0]["migration_source_locator"],
-            f"{POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR}r1",
-        )
+        self.assertEqual(added[0]["migration_source_locator"], new_locator)
 
     def test_hollande_family_requires_exact_position_and_table_schema(self) -> None:
-        previous_first = read_json("polls.json")
-        previous_second = read_json("second_round_polls.json")["events"]
+        previous_first = read_pre_cutover_first_round()
+        previous_second = read_pre_cutover_second_round()
 
         misordered = post_audit_hollande_runoff_fixture()
         sections = misordered["tocdata"]["sections"]
@@ -426,8 +459,8 @@ class FrozenFixtureTests(unittest.TestCase):
         parsed["revid"] += 1
         result = reconcile_french_production_source(
             parsed,
-            read_json("polls.json"),
-            read_json("second_round_polls.json")["events"],
+            read_pre_cutover_first_round(),
+            read_pre_cutover_second_round(),
         )
         self.assertEqual(
             (len(result.first_round_events), len(result.second_round_events)),
@@ -556,7 +589,7 @@ class CutoverRehearsalTests(unittest.TestCase):
     def test_frozen_rehearsal_proves_audited_accounting_without_writes(self) -> None:
         production_paths = (ROOT / "polls.json", ROOT / "second_round_polls.json")
         before = {path: path.read_bytes() for path in production_paths}
-        result = rehearse_migration(copy.deepcopy(self.parsed))
+        result = rehearse_pre_cutover(copy.deepcopy(self.parsed))
         after = {path: path.read_bytes() for path in production_paths}
         self.assertEqual(after, before)
         self.assertEqual(
@@ -590,10 +623,36 @@ class CutoverRehearsalTests(unittest.TestCase):
             },
         )
 
+    def test_frozen_cli_uses_pre_cutover_corpora(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-B",
+                str(ROOT / "rehearse_fr_poll_migration.py"),
+                "--frozen",
+            ],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["status"], "passed")
+        self.assertEqual(
+            report["retained_ids"],
+            {"first_round": 203, "second_round": 38},
+        )
+        self.assertEqual(
+            report["reconciled"],
+            {"first_round": 232, "second_round": 50},
+        )
+        self.assertEqual(report["source_structure_drift"], [])
+
     def test_rehearsal_retains_every_current_id_and_adds_only_audited_rows(self) -> None:
-        result = rehearse_migration(copy.deepcopy(self.parsed))
-        current_first = read_json("polls.json")
-        current_second = read_json("second_round_polls.json")["events"]
+        result = rehearse_pre_cutover(copy.deepcopy(self.parsed))
+        current_first = read_pre_cutover_first_round()
+        current_second = read_pre_cutover_second_round()
         current_first_ids = {event["event_id"] for event in current_first}
         current_second_ids = {event["event_id"] for event in current_second}
         rehearsed_first_ids = {
@@ -631,7 +690,7 @@ class CutoverRehearsalTests(unittest.TestCase):
         )
 
     def test_rehearsal_verifies_august_harris_runoffs_exactly(self) -> None:
-        result = rehearse_migration(copy.deepcopy(self.parsed))
+        result = rehearse_pre_cutover(copy.deepcopy(self.parsed))
         august = {
             event["migration_source_locator"]: {
                 candidate["name"]: candidate["score"]
@@ -713,8 +772,8 @@ class CutoverRehearsalTests(unittest.TestCase):
 
     def test_valid_post_audit_french_body_row_is_normally_ingested(self) -> None:
         parsed = post_audit_french_row_fixture()
-        previous_first = read_json("polls.json")
-        previous_second = read_json("second_round_polls.json")["events"]
+        previous_first = read_pre_cutover_first_round()
+        previous_second = read_pre_cutover_second_round()
         result = reconcile_french_production_source(
             parsed,
             previous_first,
@@ -750,8 +809,8 @@ class CutoverRehearsalTests(unittest.TestCase):
         with self.assertRaisesRegex(SourceDriftError, "table/header schema"):
             reconcile_french_production_source(
                 parsed,
-                read_json("polls.json"),
-                read_json("second_round_polls.json")["events"],
+                read_pre_cutover_first_round(),
+                read_pre_cutover_second_round(),
             )
 
     def test_make_event_id_remains_source_sensitive_while_factual_key_does_not(
@@ -793,7 +852,7 @@ class CutoverRehearsalTests(unittest.TestCase):
     def test_future_fifty_event_runoff_state_has_no_duplicate_factual_matchups(
         self,
     ) -> None:
-        result = rehearse_migration(copy.deepcopy(self.parsed))
+        result = rehearse_pre_cutover(copy.deepcopy(self.parsed))
         keys = [
             exact_factual_key(
                 event, sample_scope=event.get("sample_scope", "reported")
@@ -804,7 +863,7 @@ class CutoverRehearsalTests(unittest.TestCase):
         self.assertEqual(len(set(keys)), 50)
         current_ids = {
             event["event_id"]
-            for event in read_json("second_round_polls.json")["events"]
+            for event in read_pre_cutover_second_round()
         }
         self.assertTrue(
             current_ids
@@ -812,7 +871,7 @@ class CutoverRehearsalTests(unittest.TestCase):
         )
 
     def test_production_validators_reject_mutated_rehearsal_events(self) -> None:
-        result = rehearse_migration(copy.deepcopy(self.parsed))
+        result = rehearse_pre_cutover(copy.deepcopy(self.parsed))
         first = copy.deepcopy(result.first_round_events[-1])
         first["candidates"][0]["score"] = -1
         with self.assertRaises(PollContractError):
@@ -827,8 +886,8 @@ class RegistryAcceptanceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.registry = load_migration_registry()
-        cls.current_first = read_json("polls.json")
-        cls.current_second = read_json("second_round_polls.json")["events"]
+        cls.current_first = read_pre_cutover_first_round()
+        cls.current_second = read_pre_cutover_second_round()
 
     def test_exact_audited_acceptance_table(self) -> None:
         self.assertEqual(
@@ -1169,7 +1228,7 @@ class RunoffPersistenceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.registry = load_migration_registry()
-        cls.current = read_json("second_round_polls.json")["events"]
+        cls.current = read_pre_cutover_second_round()
         cls.fr = parse_french_frozen_fixture(
             load_mediawiki_fixture(FRENCH_FIXTURE, 238906992)
         )["second_round"]
