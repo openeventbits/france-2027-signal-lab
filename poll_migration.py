@@ -48,6 +48,22 @@ FROZEN_FIXTURE_DIRECTORY = Path(__file__).with_name("test_fixtures") / "fr27_pol
 ENGLISH_FIXTURE = FROZEN_FIXTURE_DIRECTORY / "en_mediawiki_1371070883.json"
 FRENCH_FIXTURE = FROZEN_FIXTURE_DIRECTORY / "fr_mediawiki_238906992.json"
 
+AUDITED_FRENCH_RUNOFF_HEADINGS = (
+    "hypothese attal le pen",
+    "hypothese glucksmann le pen",
+    "hypothese melenchon le pen",
+    "hypothese philippe le pen",
+    "hypothese retailleau le pen",
+    "hypothese ruffin le pen",
+    "hypothese attal bardella",
+    "hypothese glucksmann bardella",
+    "hypothese melenchon bardella",
+    "hypothese philippe bardella",
+    "hypothese retailleau bardella",
+)
+POST_AUDIT_HOLLANDE_LE_PEN_HEADING = "hypothese hollande le pen"
+POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR = "FR-POST-HOLLANDE-LE-PEN"
+
 ALLOWED_ROUNDS = {FIRST_ROUND, SECOND_ROUND}
 ALLOWED_SAMPLE_SCOPES = {
     "adult_population",
@@ -1007,6 +1023,47 @@ def _table_default_year(table: object) -> int | None:
     return None
 
 
+def _preceding_heading(table: object) -> str:
+    headings = table.xpath("preceding::*[self::h2 or self::h3 or self::h4]")
+    return normalize_identity(headings[-1].text_content()) if headings else ""
+
+
+def _french_runoff_table_plan(tables: list[object]) -> list[tuple[str, object]]:
+    """Select reviewed runoff families without tying legacy locators to positions."""
+
+    reviewed_headings = set(AUDITED_FRENCH_RUNOFF_HEADINGS) | {
+        POST_AUDIT_HOLLANDE_LE_PEN_HEADING
+    }
+    by_heading: dict[str, object] = {}
+    for table in tables:
+        heading = _preceding_heading(table)
+        if heading not in reviewed_headings:
+            continue
+        if heading in by_heading:
+            raise ValueError(f"French runoff family {heading!r} exposes multiple tables")
+        by_heading[heading] = table
+
+    missing = [
+        heading for heading in AUDITED_FRENCH_RUNOFF_HEADINGS if heading not in by_heading
+    ]
+    if missing:
+        raise ValueError(f"French source lacks audited runoff tables: {missing}")
+
+    plan = [
+        (f"FR-R{family_index}", by_heading[heading])
+        for family_index, heading in enumerate(AUDITED_FRENCH_RUNOFF_HEADINGS, start=1)
+    ]
+    if POST_AUDIT_HOLLANDE_LE_PEN_HEADING in by_heading:
+        plan.insert(
+            6,
+            (
+                POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR,
+                by_heading[POST_AUDIT_HOLLANDE_LE_PEN_HEADING],
+            ),
+        )
+    return plan
+
+
 def _frozen_record(
     *,
     locator: str,
@@ -1145,7 +1202,7 @@ def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
                 )
             )
 
-    for table_index, table in enumerate(tables[6:17], start=6):
+    for family_locator, table in _french_runoff_table_plan(tables):
         frame = pd.read_html(
             io.StringIO(lxml_html.tostring(table, encoding="unicode")),
             extract_links="all",
@@ -1156,9 +1213,11 @@ def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
         ]
         resolved_headers = [name for _, name, generic in candidate_columns if name and not generic]
         if len(candidate_columns) != 2 or len(resolved_headers) != 2:
-            raise ValueError(f"French runoff table {table_index} has ambiguous headers")
+            raise ValueError(
+                f"French runoff table {family_locator} has ambiguous headers"
+            )
         for row_index, row in frame.iterrows():
-            locator = f"FR-R{table_index - 5}r{row_index}"
+            locator = f"{family_locator}r{row_index}"
             pollster = cell_text(row.iloc[0])
             fieldwork = cell_text(row.iloc[1])
             sample_size = parse_sample_size(cell_text(row.iloc[2]))

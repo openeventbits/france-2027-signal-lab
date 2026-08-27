@@ -2278,7 +2278,11 @@ def main() -> None:
             previous_second_events = load_previous_second_round_events(
                 args.previous_second_round
             )
-            from poll_migration import load_mediawiki_fixture
+            from poll_migration import (
+                AUDITED_FRENCH_RUNOFF_HEADINGS,
+                POST_AUDIT_HOLLANDE_LE_PEN_HEADING,
+                load_mediawiki_fixture,
+            )
             from rehearse_fr_poll_migration import (
                 FRENCH_REVISION,
                 fetch_live_french_parse,
@@ -2303,6 +2307,17 @@ def main() -> None:
                 previous_second_events,
                 official_events,
                 overrides,
+            )
+            current_headings = {
+                normalize_identity(str(section.get("line", "")))
+                for section in parsed_french["tocdata"]["sections"]
+            }
+            reviewed_runoff_family_count = sum(
+                heading in current_headings
+                for heading in (
+                    *AUDITED_FRENCH_RUNOFF_HEADINGS,
+                    POST_AUDIT_HOLLANDE_LE_PEN_HEADING,
+                )
             )
         except (
             OSError,
@@ -2342,7 +2357,7 @@ def main() -> None:
                 parser.error("French migration fell below the audited 232/50 baseline")
         second_round_audit = {
             "revision_id": french_report["source_revision"],
-            "table_count": 11,
+            "table_count": reviewed_runoff_family_count,
             "excluded_comparison_rows": 0,
             "source_scope_counts": {
                 scope: sum(
