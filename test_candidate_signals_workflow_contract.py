@@ -46,6 +46,21 @@ class CandidateSignalsWorkflowContractTests(unittest.TestCase):
                     workflow,
                 )
 
+    def test_poll_workflow_is_pinned_to_main(self):
+        workflow = self.workflows["polls"]
+        checkout = step_block(workflow, "Check out repository")
+        commit = step_block(workflow, "Commit changed poll data")
+
+        self.assertIn("uses: actions/checkout@v7", checkout)
+        self.assertIn("with:\n          ref: main", checkout)
+        self.assertIn(
+            "concurrency:\n"
+            "  group: production-data-update\n"
+            "  cancel-in-progress: false",
+            workflow,
+        )
+        self.assertIn("git push origin HEAD:main", commit)
+
     def test_existing_schedules_are_preserved(self):
         for name, expected_schedule in SCHEDULES.items():
             with self.subTest(workflow=name):
