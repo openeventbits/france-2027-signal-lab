@@ -2,6 +2,7 @@ import copy
 import json
 import tempfile
 import unittest
+from datetime import date, timedelta
 from pathlib import Path
 
 import build_candidate_signals as builder
@@ -16,45 +17,6 @@ from candidate_identity import (
 
 
 ROOT = Path(__file__).resolve().parent
-CURRENT_SELECTED_EVENT_ID = (
-    "f9a98df97770794087e0303fdafe22f2de5ac7d59c0052e9f0f7bb878dc30a26"
-)
-CURRENT_MAIN_CANDIDATE_ORDER = [
-    "Bruno Retailleau",
-    "David Lisnard",
-    "Dominique de Villepin",
-    "Fabien Roussel",
-    "François Hollande",
-    "François Ruffin",
-    "Gabriel Attal",
-    "Gérald Darmanin",
-    "Jean-Luc Mélenchon",
-    "Jordan Bardella",
-    "Marine Le Pen",
-    "Marine Tondelier",
-    "Nathalie Arthaud",
-    "Nicolas Dupont-Aignan",
-    "Olivier Faure",
-    "Raphaël Glucksmann",
-    "Sarah Knafo",
-    "Sébastien Lecornu",
-    "Édouard Philippe",
-    "Éric Zemmour",
-]
-CURRENT_BOARD_NAMES = [
-    "Marine Le Pen",
-    "Jean-Luc Mélenchon",
-    "Édouard Philippe",
-    "Raphaël Glucksmann",
-    "Gabriel Attal",
-    "Bruno Retailleau",
-    "Marine Tondelier",
-    "Éric Zemmour",
-    "Fabien Roussel",
-    "Nicolas Dupont-Aignan",
-]
-CURRENT_BOARD_SCORES = [35.0, 16.0, 14.0, 10.0, 8.0, 6.0, 3.0, 3.0, 2.0, 2.0]
-CURRENT_BOARD_SOURCE_POSITIONS = [10, 3, 7, 4, 6, 8, 5, 11, 2, 9]
 
 
 
@@ -339,6 +301,96 @@ def candidate_records(*names):
     ]
 
 
+def expected_featured_board_rows(
+    selected_event,
+    registry_candidates,
+    display_limit,
+):
+    registry_by_name = {
+        candidate["candidate_name"]: candidate
+        for candidate in registry_candidates
+    }
+    registry_names = list(registry_by_name)
+    rows = []
+    for source_position, candidate in enumerate(
+        selected_event["candidates"],
+        start=1,
+    ):
+        resolved_name = builder.resolve_candidate_name(
+            candidate["name"],
+            registry_names,
+        )
+        registry_candidate = registry_by_name[resolved_name]
+        rows.append(
+            {
+                "candidate_id": registry_candidate["candidate_id"],
+                "candidate_name": registry_candidate["candidate_name"],
+                "reported_score": candidate["score"],
+                "source_position": source_position,
+            }
+        )
+    ordered = sorted(rows, key=builder._featured_poll_candidate_sort_key)
+    return [
+        {**row, "display_position": display_position}
+        for display_position, row in enumerate(ordered[:display_limit], start=1)
+    ]
+
+
+def featured_poll_board_fixture():
+    names = [f"Candidate {letter}" for letter in "ABCDEFGHIJKL"]
+    registry = candidate_records(*names)
+    selected_candidates = list(
+        zip(
+            names,
+            [3, 20, 10, 10, 15, 12, 9, 8, 6, 4, 2, 1],
+            strict=True,
+        )
+    )
+    selected = poll_event(
+        pollster="Alpha",
+        sample_size=1200,
+        scenario_key="selected-scenario",
+        event_id="selected-event",
+        candidates=selected_candidates,
+    )
+    alternate_scores = {"Candidate B": 30, "Candidate E": 5}
+    alternate = poll_event(
+        pollster="Alpha",
+        sample_size=1200,
+        scenario_key="alternate-scenario",
+        event_id="alternate-event",
+        candidates=[
+            (name, alternate_scores.get(name, score))
+            for name, score in selected_candidates
+        ],
+    )
+    cross_poll = poll_event(
+        pollster="Beta",
+        sample_size=1200,
+        scenario_key="cross-poll-scenario",
+        event_id="cross-poll-event",
+        candidates=[("Candidate A", 60), ("Candidate B", 40)],
+    )
+    packages = builder.build_poll_packages([selected, alternate, cross_poll])
+    package = next(
+        package
+        for package in packages
+        if package["pollster"] == "Alpha"
+    )
+    public_package = builder._featured_package_public(package)
+    board = builder._featured_poll_board_public(
+        package,
+        registry,
+        public_package["source_urls"],
+    )
+    return {
+        "package": package,
+        "selected_event": selected,
+        "cross_poll_event": cross_poll,
+        "board": board,
+    }
+
+
 class IdentityTests(unittest.TestCase):
     def test_accented_names_keep_display_and_make_ascii_ids(self):
         examples = {
@@ -481,20 +533,82 @@ class PollPackageTests(unittest.TestCase):
             '["Alpha","2026-07-09","2026-07-10",1000]',
         )
 
-    def test_current_data_selects_exact_harris_package(self):
-        package = builder.select_featured_polling_package(self.polls)
-        self.assertEqual(package["pollster"], "Harris Interactive")
-        self.assertEqual(package["fieldwork_start"], "2026-08-18")
-        self.assertEqual(package["fieldwork_end"], "2026-08-19")
-        self.assertEqual(package["sample_size"], 1764)
-        self.assertEqual(len(package["events"]), 5)
+    def test_current_data_selects_documented_winning_package(self):
+        packages = builder.build_poll_packages(self.polls)
+        expected = min(
+            packages,
+            key=lambda package: (
+                -date.fromisoformat(package["fieldwork_end"]).toordinal(),
+                -package["selected_comparable_candidate_count"],
+                builder.french_compatible_sort_key(package["pollster"]),
+                package["original_package_index"],
+            ),
+        )
+        selected = builder.select_featured_polling_package(self.polls)
+
         self.assertEqual(
-            package["selected_event"]["event_id"],
-            CURRENT_SELECTED_EVENT_ID,
+            (
+                selected["package_key"],
+                selected["selected_event"]["event_id"],
+                selected["selected_comparable_candidate_count"],
+            ),
+            (
+                expected["package_key"],
+                expected["selected_event"]["event_id"],
+                expected["selected_comparable_candidate_count"],
+            ),
         )
         self.assertTrue(
-            all(event["pollster"] == "Harris Interactive" for event in package["events"])
+            all(
+                builder._package_key(event)
+                == builder._package_key(selected["selected_event"])
+                for event in selected["events"]
+            )
         )
+
+    def test_newest_package_precedes_more_comparable_older_package(self):
+        prior = poll_event(
+            pollster="Alpha",
+            fieldwork_start="2026-06-01",
+            fieldwork_end="2026-06-02",
+            scenario_key="alpha-scenario",
+            event_id="alpha-prior",
+        )
+        older = poll_event(
+            pollster="Alpha",
+            fieldwork_start="2026-07-01",
+            fieldwork_end="2026-07-02",
+            scenario_key="alpha-scenario",
+            event_id="alpha-older",
+        )
+        newer = poll_event(
+            pollster="Zeta",
+            fieldwork_start="2026-08-01",
+            fieldwork_end="2026-08-02",
+            scenario_key="zeta-scenario",
+            event_id="zeta-newer",
+        )
+
+        polls = [prior, older, newer]
+        packages = builder.build_poll_packages(polls)
+        older_package = next(
+            package
+            for package in packages
+            if package["selected_event"]["event_id"] == "alpha-older"
+        )
+        newer_package = next(
+            package
+            for package in packages
+            if package["selected_event"]["event_id"] == "zeta-newer"
+        )
+        self.assertGreater(
+            older_package["selected_comparable_candidate_count"],
+            newer_package["selected_comparable_candidate_count"],
+        )
+
+        selected = builder.select_featured_polling_package(polls)
+
+        self.assertEqual(selected["selected_event"]["event_id"], "zeta-newer")
 
     def test_official_source_precedes_reporting_source_downstream(self):
         event = poll_event(source_url="https://example.test/reporting")
@@ -848,8 +962,9 @@ class FeaturedPollBoardTests(unittest.TestCase):
         with context:
             builder.validate_candidate_signals(payload)
 
-    def test_current_board_is_exact_selected_event_contract(self):
+    def test_current_board_matches_selected_package_and_event(self):
         board = self.payload["featured_poll_board"]
+        featured_package = self.payload["featured_polling_package"]
         self.assertEqual(
             list(self.payload).index("featured_poll_board"),
             list(self.payload).index("featured_polling_package") + 1,
@@ -858,77 +973,120 @@ class FeaturedPollBoardTests(unittest.TestCase):
             board["selection_basis"],
             "featured_package_selected_hypothesis",
         )
-        self.assertEqual(board["pollster"], "Harris Interactive")
-        self.assertEqual(board["fieldwork_start"], "2026-08-18")
-        self.assertEqual(board["fieldwork_end"], "2026-08-19")
-        self.assertEqual(board["sample_size"], 1764)
-        self.assertEqual(board["round"], "first_round")
         self.assertEqual(
-            board["scenario_key"],
-            self.selected_event["scenario_key"],
+            featured_package,
+            builder._featured_package_public(self.package),
         )
-        self.assertEqual(board["selected_event_id"], CURRENT_SELECTED_EVENT_ID)
-        self.assertEqual(
-            board["hypothesis_label"],
-            self.selected_event["hypothesis"],
+        hypothesis = self.selected_event.get("hypothesis")
+        expected_label = (
+            hypothesis.strip()
+            if isinstance(hypothesis, str) and hypothesis.strip()
+            else None
         )
-        self.assertEqual(board["package_hypothesis_count"], 5)
         self.assertEqual(
-            board["source_urls"],
-            self.payload["featured_polling_package"]["source_urls"],
+            (
+                board["pollster"],
+                board["fieldwork_start"],
+                board["fieldwork_end"],
+                board["sample_size"],
+                board["round"],
+                board["scenario_key"],
+                board["selected_event_id"],
+                board["hypothesis_label"],
+                board["package_hypothesis_count"],
+                board["source_urls"],
+            ),
+            (
+                self.package["pollster"],
+                self.package["fieldwork_start"],
+                self.package["fieldwork_end"],
+                self.package["sample_size"],
+                self.selected_event["round"],
+                self.selected_event["scenario_key"],
+                self.selected_event["event_id"],
+                expected_label,
+                len(self.package["events"]),
+                featured_package["source_urls"],
+            ),
         )
 
-    def test_current_lineup_sort_limit_and_omission_are_exact(self):
+    def test_current_lineup_sort_limit_and_omission_are_dynamic(self):
         board = self.payload["featured_poll_board"]
         rows = board["candidates"]
-        self.assertEqual(board["full_candidate_count"], 11)
+        full_count = len(self.selected_event["candidates"])
+        displayed_count = min(full_count, board["display_limit"])
+        expected_rows = expected_featured_board_rows(
+            self.selected_event,
+            self.candidacy_status["candidates"],
+            board["display_limit"],
+        )
+
+        self.assertEqual(board["full_candidate_count"], full_count)
+        self.assertEqual(board["displayed_candidate_count"], displayed_count)
+        self.assertEqual(
+            board["omitted_candidate_count"],
+            full_count - displayed_count,
+        )
+        self.assertEqual(rows, expected_rows)
+
+    def test_synthetic_lineup_sort_limit_and_omission_are_exact(self):
+        board = featured_poll_board_fixture()["board"]
+        rows = board["candidates"]
+
+        self.assertEqual(board["full_candidate_count"], 12)
         self.assertEqual(board["display_limit"], 10)
         self.assertEqual(board["displayed_candidate_count"], 10)
-        self.assertEqual(board["omitted_candidate_count"], 1)
+        self.assertEqual(board["omitted_candidate_count"], 2)
         self.assertEqual(
-            [row["candidate_name"] for row in rows],
-            CURRENT_BOARD_NAMES,
-        )
-        self.assertEqual(
-            [row["reported_score"] for row in rows],
-            CURRENT_BOARD_SCORES,
-        )
-        self.assertEqual(
-            [row["source_position"] for row in rows],
-            CURRENT_BOARD_SOURCE_POSITIONS,
-        )
-        self.assertEqual(
-            [row["display_position"] for row in rows],
-            list(range(1, 11)),
-        )
-        selected = {
-            candidate["name"]: (index, candidate["score"])
-            for index, candidate in enumerate(
-                self.selected_event["candidates"],
-                start=1,
-            )
-        }
-        self.assertEqual(selected["Nicolas Dupont-Aignan"], (9, 2.0))
-        self.assertNotIn(
-            "Nathalie Arthaud",
-            [row["candidate_name"] for row in rows],
+            [
+                (
+                    row["candidate_name"],
+                    row["reported_score"],
+                    row["source_position"],
+                    row["display_position"],
+                )
+                for row in rows
+            ],
+            [
+                ("Candidate B", 20, 2, 1),
+                ("Candidate E", 15, 5, 2),
+                ("Candidate F", 12, 6, 3),
+                ("Candidate C", 10, 3, 4),
+                ("Candidate D", 10, 4, 5),
+                ("Candidate G", 9, 7, 6),
+                ("Candidate H", 8, 8, 7),
+                ("Candidate I", 6, 9, 8),
+                ("Candidate J", 4, 10, 9),
+                ("Candidate A", 3, 1, 10),
+            ],
         )
 
     def test_every_board_row_comes_from_only_the_selected_event(self):
         board = self.payload["featured_poll_board"]
+        selected_rows = expected_featured_board_rows(
+            self.selected_event,
+            self.candidacy_status["candidates"],
+            len(self.selected_event["candidates"]),
+        )
         selected = {
-            candidate["name"]: (position, candidate["score"])
-            for position, candidate in enumerate(
-                self.selected_event["candidates"],
-                start=1,
+            row["candidate_id"]: (
+                row["candidate_name"],
+                row["source_position"],
+                row["reported_score"],
             )
+            for row in selected_rows
         }
-        self.assertEqual(len(selected), 11)
+
+        self.assertEqual(board["full_candidate_count"], len(selected))
         for row in board["candidates"]:
-            self.assertIn(row["candidate_name"], selected)
+            self.assertIn(row["candidate_id"], selected)
             self.assertEqual(
-                (row["source_position"], row["reported_score"]),
-                selected[row["candidate_name"]],
+                (
+                    row["candidate_name"],
+                    row["source_position"],
+                    row["reported_score"],
+                ),
+                selected[row["candidate_id"]],
             )
         self.assertTrue(
             all(
@@ -945,25 +1103,14 @@ class FeaturedPollBoardTests(unittest.TestCase):
         )
 
     def test_equal_scores_preserve_source_order(self):
-        rows = self.payload["featured_poll_board"]["candidates"]
-        names_at_eight = [
+        rows = featured_poll_board_fixture()["board"]["candidates"]
+        names_at_ten = [
             row["candidate_name"]
             for row in rows
-            if row["reported_score"] == 8
+            if row["reported_score"] == 10
         ]
-        names_at_three = [
-            row["candidate_name"]
-            for row in rows
-            if row["reported_score"] == 3
-        ]
-        self.assertEqual(
-            names_at_eight,
-            ["Gabriel Attal"],
-        )
-        self.assertEqual(
-            names_at_three,
-            ["Marine Tondelier", "Éric Zemmour"],
-        )
+
+        self.assertEqual(names_at_ten, ["Candidate C", "Candidate D"])
 
     def test_candidate_id_is_only_the_final_defensive_tie_break(self):
         rows = [
@@ -995,27 +1142,37 @@ class FeaturedPollBoardTests(unittest.TestCase):
         )
 
     def test_board_uses_no_range_or_cross_poll_synthetic_point(self):
-        marine = next(
+        fixture = featured_poll_board_fixture()
+        candidate_b = next(
             row
-            for row in self.payload["featured_poll_board"]["candidates"]
-            if row["candidate_name"] == "Marine Le Pen"
+            for row in fixture["board"]["candidates"]
+            if row["candidate_name"] == "Candidate B"
         )
         package_scores = [
             next(
                 candidate["score"]
                 for candidate in event["candidates"]
-                if candidate["name"] == "Marine Le Pen"
+                if candidate["name"] == "Candidate B"
             )
-            for event in self.package["events"]
+            for event in fixture["package"]["events"]
         ]
-        self.assertEqual(marine["reported_score"], 35.0)
-        self.assertIn(marine["reported_score"], package_scores)
+        cross_poll_score = next(
+            candidate["score"]
+            for candidate in fixture["cross_poll_event"]["candidates"]
+            if candidate["name"] == "Candidate B"
+        )
+
+        self.assertEqual(candidate_b["reported_score"], 20)
+        self.assertEqual(package_scores, [20, 30])
+        self.assertEqual(cross_poll_score, 40)
+        self.assertIn(candidate_b["reported_score"], package_scores)
+        self.assertNotEqual(candidate_b["reported_score"], cross_poll_score)
         self.assertEqual(
-            marine["reported_score"],
+            candidate_b["reported_score"],
             next(
                 candidate["score"]
-                for candidate in self.selected_event["candidates"]
-                if candidate["name"] == "Marine Le Pen"
+                for candidate in fixture["selected_event"]["candidates"]
+                if candidate["name"] == "Candidate B"
             ),
         )
 
@@ -1115,30 +1272,58 @@ class FeaturedPollBoardTests(unittest.TestCase):
         self.assert_board_rejected(equal_score_change, "correctly ordered")
 
     def test_invalid_urls_dates_and_selected_metadata_are_rejected(self):
-        self.assert_board_rejected(
-            lambda board: board.__setitem__("source_urls", ["relative/path"]),
-            "source_urls",
+        cases = (
+            (
+                "invalid URL",
+                lambda board: board.__setitem__(
+                    "source_urls",
+                    ["relative/path"],
+                ),
+                "source_urls",
+            ),
+            (
+                "duplicate URL",
+                lambda board: board["source_urls"].append(
+                    board["source_urls"][0]
+                ),
+                "source_urls",
+            ),
+            (
+                "invalid calendar date",
+                lambda board: board.__setitem__(
+                    "fieldwork_start",
+                    "2026-02-30",
+                ),
+                "ISO calendar date",
+            ),
+            (
+                "reversed dates",
+                lambda board: board.__setitem__(
+                    "fieldwork_start",
+                    (
+                        date.fromisoformat(board["fieldwork_end"])
+                        + timedelta(days=1)
+                    ).isoformat(),
+                ),
+                "dates are reversed",
+            ),
+            (
+                "empty scenario",
+                lambda board: board.__setitem__("scenario_key", ""),
+                "non-empty string",
+            ),
+            (
+                "selected event mismatch",
+                lambda board: board.__setitem__(
+                    "selected_event_id",
+                    "other",
+                ),
+                "does not match featured polling package",
+            ),
         )
-        self.assert_board_rejected(
-            lambda board: board["source_urls"].append(board["source_urls"][0]),
-            "source_urls",
-        )
-        self.assert_board_rejected(
-            lambda board: board.__setitem__("fieldwork_start", "2026-02-30"),
-            "ISO calendar date",
-        )
-        self.assert_board_rejected(
-            lambda board: board.__setitem__("fieldwork_start", "2026-08-23"),
-            "dates are reversed",
-        )
-        self.assert_board_rejected(
-            lambda board: board.__setitem__("scenario_key", ""),
-            "non-empty string",
-        )
-        self.assert_board_rejected(
-            lambda board: board.__setitem__("selected_event_id", "other"),
-            "does not match featured polling package",
-        )
+        for name, change, pattern in cases:
+            with self.subTest(case=name):
+                self.assert_board_rejected(change, pattern)
 
 class VisibilityTests(unittest.TestCase):
     def test_campaign_and_general_projections_stay_separate(self):
@@ -2122,9 +2307,26 @@ class DeterminismAndSafetyTests(unittest.TestCase):
             payload["candidate_universe"]["count"],
             len(self.current_candidacy_status["candidates"]),
         )
+        selected_package = builder.select_featured_polling_package(
+            self.current_polls
+        )
         self.assertEqual(
-            payload["featured_polling_package"]["pollster"],
-            "Harris Interactive",
+            payload["featured_polling_package"],
+            builder._featured_package_public(selected_package),
+        )
+        self.assertEqual(
+            payload["featured_poll_board"]["selected_event_id"],
+            selected_package["selected_event"]["event_id"],
+        )
+        registry_ids = {
+            candidate["candidate_id"]
+            for candidate in self.current_candidacy_status["candidates"]
+        }
+        self.assertTrue(
+            all(
+                row["candidate_id"] in registry_ids
+                for row in payload["featured_poll_board"]["candidates"]
+            )
         )
         serialized = json.dumps(payload)
         self.assertNotIn('"story_clusters"', serialized)
