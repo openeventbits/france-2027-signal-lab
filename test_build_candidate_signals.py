@@ -584,6 +584,238 @@ class PollPackageTests(unittest.TestCase):
         self.assertEqual(marine["hypothesis_count"], len(elabe_scores))
 
 
+class PollHistoryTests(unittest.TestCase):
+    CANDIDATES = candidate_records(
+        "Candidate A",
+        "Candidate B",
+        "Candidate C",
+    )
+
+    def test_history_reuses_packages_and_orders_oldest_first(self):
+        older = poll_event(
+            pollster="Alpha",
+            fieldwork_start="2026-06-01",
+            fieldwork_end="2026-06-02",
+            event_id="older",
+            candidates=[
+                ("Candidate A", 60),
+                ("Candidate B", 40),
+            ],
+        )
+        newer = poll_event(
+            pollster="Beta",
+            fieldwork_start="2026-07-09",
+            fieldwork_end="2026-07-10",
+            event_id="newer",
+            candidates=[
+                ("Candidate A", 55),
+                ("Candidate C", 45),
+            ],
+        )
+
+        history = builder.project_candidate_poll_history(
+            self.CANDIDATES,
+            [newer, older],
+        )
+
+        candidate_a = history["candidate-a"]
+
+        self.assertEqual(
+            candidate_a["evidence_state"],
+            "reported",
+        )
+        self.assertEqual(candidate_a["observation_count"], 2)
+        self.assertEqual(candidate_a["period_start"], "2026-06-01")
+        self.assertEqual(candidate_a["period_end"], "2026-07-10")
+
+        self.assertEqual(
+            [
+                observation["pollster"]
+                for observation in candidate_a["observations"]
+            ],
+            ["Alpha", "Beta"],
+        )
+        self.assertEqual(
+            [
+                observation["selected_score"]
+                for observation in candidate_a["observations"]
+            ],
+            [60, 55],
+        )
+
+        candidate_b = history["candidate-b"]
+        self.assertEqual(candidate_b["observation_count"], 1)
+        self.assertEqual(
+            candidate_b["observations"][0]["range_min"],
+            40,
+        )
+
+    def test_history_preserves_range_when_selected_event_has_gap(self):
+        selected = poll_event(
+            pollster="Alpha",
+            event_id="selected",
+            scenario_key="selected-scenario",
+            candidates=[
+                ("Candidate A", 60),
+                ("Candidate B", 40),
+            ],
+        )
+        alternate = poll_event(
+            pollster="Alpha",
+            event_id="alternate",
+            scenario_key="alternate-scenario",
+            candidates=[
+                ("Candidate A", 50),
+                ("Candidate C", 50),
+            ],
+        )
+
+        history = builder.project_candidate_poll_history(
+            self.CANDIDATES,
+            [selected, alternate],
+        )
+
+        candidate_c = history["candidate-c"]
+
+        self.assertEqual(
+            candidate_c["evidence_state"],
+            "reported",
+        )
+        self.assertEqual(candidate_c["observation_count"], 1)
+
+        observation = candidate_c["observations"][0]
+
+        self.assertIsNone(observation["selected_score"])
+        self.assertEqual(observation["range_min"], 50)
+        self.assertEqual(observation["range_max"], 50)
+        self.assertEqual(observation["hypothesis_count"], 1)
+
+    def test_history_public_contract_validates(self):
+        first = poll_event(
+            pollster="Alpha",
+            fieldwork_start="2026-06-01",
+            fieldwork_end="2026-06-02",
+            event_id="first-history",
+            candidates=[
+                ("Candidate A", 60),
+                ("Candidate B", 40),
+            ],
+        )
+        second = poll_event(
+            pollster="Beta",
+            fieldwork_start="2026-07-01",
+            fieldwork_end="2026-07-02",
+            event_id="second-history",
+            candidates=[
+                ("Candidate A", 55),
+                ("Candidate C", 45),
+            ],
+        )
+
+        history = builder.project_candidate_poll_history(
+            self.CANDIDATES,
+            [second, first],
+        )
+
+        for candidate_id, candidate_history in history.items():
+            builder._validate_poll_history(
+                candidate_history,
+                f"fixture.{candidate_id}",
+            )
+
+    def test_history_validator_rejects_selected_score_outside_range(self):
+        poll = poll_event(
+            event_id="range-validation",
+            candidates=[
+                ("Candidate A", 60),
+                ("Candidate B", 40),
+            ],
+        )
+        history = builder.project_candidate_poll_history(
+            self.CANDIDATES,
+            [poll],
+        )
+        malformed = copy.deepcopy(history["candidate-a"])
+        malformed["observations"][0]["selected_score"] = 99
+
+        with self.assertRaisesRegex(
+            builder.CandidateSignalsError,
+            "falls outside package range",
+        ):
+            builder._validate_poll_history(
+                malformed,
+                "fixture.candidate-a",
+            )
+
+    def test_history_validator_rejects_non_chronological_observations(self):
+        older = poll_event(
+            pollster="Alpha",
+            fieldwork_start="2026-06-01",
+            fieldwork_end="2026-06-02",
+            event_id="chronology-old",
+            candidates=[
+                ("Candidate A", 60),
+                ("Candidate B", 40),
+            ],
+        )
+        newer = poll_event(
+            pollster="Beta",
+            fieldwork_start="2026-07-01",
+            fieldwork_end="2026-07-02",
+            event_id="chronology-new",
+            candidates=[
+                ("Candidate A", 55),
+                ("Candidate B", 45),
+            ],
+        )
+
+        history = builder.project_candidate_poll_history(
+            self.CANDIDATES,
+            [newer, older],
+        )
+        malformed = copy.deepcopy(history["candidate-a"])
+        malformed["observations"].reverse()
+
+        with self.assertRaisesRegex(
+            builder.CandidateSignalsError,
+            "not chronological",
+        ):
+            builder._validate_poll_history(
+                malformed,
+                "fixture.candidate-a",
+            )
+
+    def test_history_does_not_infer_short_candidate_labels(self):
+        short_label_poll = poll_event(
+            event_id="short-label",
+            candidates=[
+                ("Attal", 60),
+                ("Candidate B", 40),
+            ],
+        )
+
+        candidates = candidate_records(
+            "Gabriel Attal",
+            "Candidate B",
+        )
+
+        history = builder.project_candidate_poll_history(
+            candidates,
+            [short_label_poll],
+        )
+
+        self.assertEqual(
+            history["gabriel-attal"],
+            {
+                "evidence_state": "not_observed",
+                "observation_count": 0,
+                "period_start": None,
+                "period_end": None,
+                "observations": [],
+            },
+        )
+
+
 class FeaturedPollBoardTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -1412,7 +1644,7 @@ class PresidentialFieldContractTests(unittest.TestCase):
         )
 
     def test_schema_keys_complete_universe_and_order_are_exact(self):
-        self.assertEqual(self.payload["schema_version"], "1.4")
+        self.assertEqual(self.payload["schema_version"], "1.5")
         self.assertEqual(
             list(self.payload),
             [
@@ -1446,6 +1678,7 @@ class PresidentialFieldContractTests(unittest.TestCase):
                 "candidate_name",
                 "candidacy",
                 "polling",
+                "poll_history",
                 "campaign_attention",
                 "general_visibility",
                 "scrutiny",
