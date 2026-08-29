@@ -40,9 +40,13 @@
       ? below
       : above;
     const idealLeft = triggerRect.left + (triggerRect.width - tooltipRect.width) / 2;
+    const rightEdgeInset = trigger.id === "masthead-countdown" ? 24 : 0;
     const left = Math.max(
       viewportGap,
-      Math.min(idealLeft, window.innerWidth - tooltipRect.width - viewportGap)
+      Math.min(
+        idealLeft,
+        window.innerWidth - tooltipRect.width - viewportGap - rightEdgeInset
+      )
     );
     node.style.left = `${Math.round(left)}px`;
     node.style.top = `${Math.round(Math.max(viewportGap, top))}px`;
