@@ -103,6 +103,7 @@
 
   function rangeText(minimum, maximum) {
     if (!hasValue(minimum) || !hasValue(maximum)) return MISSING;
+    if (Number(minimum) === Number(maximum)) return percentageText(minimum);
     return `${percentageText(minimum)}–${percentageText(maximum)}`;
   }
 

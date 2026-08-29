@@ -2025,6 +2025,24 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             range_result["text"],
         )
 
+    def test_equal_polling_range_renders_single_percentage(self):
+        source = payload(self.rows)
+        selected_id = source["candidates"][0]["candidate_id"]
+        source["candidates"][0]["polling"].update(
+            {
+                "range_min": 6,
+                "range_max": 6,
+                "selected_hypothesis_score": None,
+                "selected_hypothesis_rank": None,
+            }
+        )
+
+        result = run_workspace(source, selected_id)
+
+        self.assertEqual(result["resolved"], selected_id)
+        self.assertIn("Published range6%", result["text"])
+        self.assertNotIn("6%–6%", result["text"])
+
     def test_absent_campaign_keeps_real_general_visibility_only(self):
         source = payload(self.rows)
         selected_id = source["candidates"][0]["candidate_id"]
