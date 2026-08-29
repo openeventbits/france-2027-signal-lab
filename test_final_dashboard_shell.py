@@ -2091,6 +2091,23 @@ class DesktopFoundationStabilizationTests(
             r"\.hero-grid",
         )
 
+    def test_desktop_hero_gap_stays_compact(self):
+        hero_rule = re.search(
+            r"\.hero-grid \{(?P<body>.*?)\}",
+            self.css,
+            re.DOTALL,
+        )
+
+        self.assertIsNotNone(hero_rule)
+        self.assertIn(
+            "margin-top: 6px;",
+            hero_rule.group("body"),
+        )
+        self.assertNotIn(
+            "margin-top: 10px;",
+            hero_rule.group("body"),
+        )
+
     def test_compact_desktop_uses_shared_density_tokens(self):
         compact_start = self.stabilized_css.index(
             "@media (min-width: 1240px) "
