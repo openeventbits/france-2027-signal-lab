@@ -401,23 +401,43 @@ def _assert_production_source_structure(parsed: dict[str, Any]) -> dict[str, Any
         )
     audited = load_mediawiki_fixture(FRENCH_FIXTURE, FRENCH_REVISION)
     audited_headings = _relevant_heading_fingerprint(audited)
+
     ruffin_index = audited_headings.index((3, "hypothese ruffin le pen"))
-    reviewed_headings = (
+    hollande_after_ruffin_headings = (
         audited_headings[: ruffin_index + 1]
         + (POST_AUDIT_HOLLANDE_LE_PEN_TOC_ENTRY,)
         + audited_headings[ruffin_index + 1 :]
     )
+
+    glucksmann_index = audited_headings.index((3, "hypothese glucksmann le pen"))
+    hollande_after_glucksmann_headings = (
+        audited_headings[: glucksmann_index + 1]
+        + (POST_AUDIT_HOLLANDE_LE_PEN_TOC_ENTRY,)
+        + audited_headings[glucksmann_index + 1 :]
+    )
+
     incoming_headings = _relevant_heading_fingerprint(parsed)
-    if incoming_headings not in {audited_headings, reviewed_headings}:
+    if incoming_headings not in {
+        audited_headings,
+        hollande_after_ruffin_headings,
+        hollande_after_glucksmann_headings,
+    }:
         raise SourceDriftError("relevant heading hierarchy changed")
+
     audited_schema = _table_schema_fingerprint(audited, relevant_table_count=17)
     if incoming_headings == audited_headings:
         expected_schema = audited_schema
-    else:
+    elif incoming_headings == hollande_after_ruffin_headings:
         expected_schema = (
             audited_schema[:12]
             + (POST_AUDIT_HOLLANDE_LE_PEN_TABLE_SCHEMA,)
             + audited_schema[12:]
+        )
+    else:
+        expected_schema = (
+            audited_schema[:8]
+            + (POST_AUDIT_HOLLANDE_LE_PEN_TABLE_SCHEMA,)
+            + audited_schema[8:]
         )
     if _table_schema_fingerprint(
         parsed, relevant_table_count=len(expected_schema)

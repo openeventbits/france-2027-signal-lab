@@ -181,6 +181,41 @@ def post_audit_hollande_runoff_fixture() -> dict:
     return parsed
 
 
+def post_audit_hollande_reordered_runoff_fixture() -> dict:
+    parsed = post_audit_hollande_runoff_fixture()
+
+    sections = parsed["tocdata"]["sections"]
+    hollande = next(
+        section
+        for section in sections
+        if section["line"] == "Hypothèse Hollande – Le Pen"
+    )
+    sections.remove(hollande)
+    glucksmann_index = next(
+        index
+        for index, section in enumerate(sections)
+        if section["line"] == "Hypothèse Glucksmann – Le Pen"
+    )
+    sections.insert(glucksmann_index + 1, hollande)
+
+    document = lxml_html.fromstring(parsed["text"])
+    tables = document.xpath("//table")
+    glucksmann_table = tables[7]
+    hollande_table = tables[12]
+    hollande_heading = document.xpath(
+        '//h4[@id="Hypothèse_Hollande_–_Le_Pen"]'
+    )[0].getparent()
+
+    hollande_heading.getparent().remove(hollande_heading)
+    hollande_table.getparent().remove(hollande_table)
+    glucksmann_table.addnext(hollande_heading)
+    hollande_heading.addnext(hollande_table)
+
+    parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+    parsed["revid"] = 239047490
+    return parsed
+
+
 def key_dict(record: dict, field: str = "canonical_factual_key") -> dict:
     return record[field]
 
@@ -338,7 +373,33 @@ class FrozenFixtureTests(unittest.TestCase):
         self.assertEqual(len(added), 1)
         self.assertEqual(added[0]["migration_source_locator"], new_locator)
 
-    def test_hollande_family_requires_exact_position_and_table_schema(self) -> None:
+    def test_hollande_family_accepts_reviewed_live_reordering(self) -> None:
+        previous_first = read_pre_cutover_first_round()
+        previous_second = read_pre_cutover_second_round()
+
+        result = reconcile_french_production_source(
+            post_audit_hollande_reordered_runoff_fixture(),
+            previous_first,
+            previous_second,
+        )
+
+        self.assertEqual(
+            (len(result.first_round_events), len(result.second_round_events)),
+            (232, 51),
+        )
+        self.assertEqual(
+            result.report["normal_post_audit_additions"],
+            {FIRST_ROUND: 0, SECOND_ROUND: 1},
+        )
+        new_locator = f"{POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR}r1"
+        added = [
+            event
+            for event in result.second_round_events
+            if event.get("migration_source_locator") == new_locator
+        ]
+        self.assertEqual(len(added), 1)
+
+    def test_hollande_family_requires_reviewed_position_and_table_schema(self) -> None:
         previous_first = read_pre_cutover_first_round()
         previous_second = read_pre_cutover_second_round()
 
