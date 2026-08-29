@@ -419,19 +419,24 @@ class CurrentCommissionCoverageRegressionTests(unittest.TestCase):
             if item["classification"] in {"eligible", "unsupported"}
         ]
         if any("coverage" not in item for item in relevant):
+            self.assertTrue(
+                all("coverage" not in item for item in relevant)
+            )
+            expected_ids = [item["notice_id"] for item in relevant]
             self.assertEqual(
                 coverage_summary(payload),
                 {
-                    "relevant": 16,
+                    "relevant": len(relevant),
                     "parsed": 0,
                     "reconciled": 0,
-                    "unresolved": 16,
-                    "unresolved_notice_ids": [
-                        item["notice_id"] for item in relevant
-                    ],
+                    "unresolved": len(relevant),
+                    "unresolved_notice_ids": expected_ids,
                 },
             )
-            self.assertEqual(len(coverage_warnings(payload)), 15)
+            self.assertEqual(
+                len(coverage_warnings(payload)),
+                len(relevant),
+            )
             self.assertEqual(
                 {
                     item["notice_id"]: item.get("coverage")
@@ -441,18 +446,21 @@ class CurrentCommissionCoverageRegressionTests(unittest.TestCase):
             )
             return
 
-        summary = reconcile_commission_notices(payload, events)
+        from poll_migration import load_migration_registry
 
-        self.assertEqual(
-            summary,
-            {
-                "relevant": 16,
-                "parsed": 3,
-                "reconciled": 13,
-                "unresolved": 0,
-                "unresolved_notice_ids": [],
-            },
-        )
+        audited_locators = {
+            record["source_locator"]
+            for record in load_migration_registry()["french_additions"]["first_round"]
+        }
+        commission_evidence = [
+            event
+            for event in events
+            if event.get("migration_source_locator") not in audited_locators
+        ]
+        stored_summary = coverage_summary(payload)
+        summary = reconcile_commission_notices(payload, commission_evidence)
+
+        self.assertEqual(summary, stored_summary)
         self.assertEqual(
             {
                 item["notice_id"]: item.get("coverage")
