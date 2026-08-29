@@ -1436,7 +1436,7 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
                 source_candidate["poll_history"],
             )
 
-    def test_schema_15_rejects_malformed_poll_history(self):
+    def test_schema_15_isolates_malformed_or_missing_optional_poll_history(self):
         base = json.loads(
             (ROOT / "candidate_signals.json").read_text(encoding="utf-8")
         )
@@ -1480,14 +1480,35 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
         ].reverse()
         cases.append(("non_chronological", bad_order))
 
+        missing = json.loads(json.dumps(base))
+        missing["candidates"][reported_index].pop("poll_history")
+        cases.append(("missing", missing))
+
         for label, payload in cases:
             with self.subTest(case=label):
                 state = run_candidate_module(
                     "api.normalize(input.payload)",
                     payload,
                 )
-                self.assertEqual(state["status"], "unavailable")
-                self.assertEqual(state["reason"], "invalid_payload")
+                self.assertEqual(state["status"], "ready")
+                self.assertIsNone(state["reason"])
+                candidate_id = base["candidates"][reported_index][
+                    "candidate_id"
+                ]
+                normalized = next(
+                    candidate
+                    for candidate in state["candidates"]
+                    if candidate["candidate_id"] == candidate_id
+                )
+                self.assertIsNone(normalized["poll_history"])
+                self.assertEqual(
+                    normalized["polling"],
+                    base["candidates"][reported_index]["polling"],
+                )
+                self.assertEqual(
+                    normalized["agenda_profile"],
+                    base["candidates"][reported_index]["agenda_profile"],
+                )
 
     def test_schema_12_accepts_dynamic_candidate_and_tier_counts(self):
         tier_sets = (

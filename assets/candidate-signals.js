@@ -860,7 +860,10 @@
       if (!isPlainObject(sourceCandidate)) return unavailable("invalid_payload");
       if (
         isVersion15
-          ? !hasExactKeys(sourceCandidate, candidateRecordFields15)
+          ? !(
+              hasExactKeys(sourceCandidate, candidateRecordFields15) ||
+              hasExactKeys(sourceCandidate, candidateRecordFields14)
+            )
           : (
               isVersion14
                 ? !hasExactKeys(sourceCandidate, candidateRecordFields14)
@@ -908,12 +911,11 @@
         return unavailable("invalid_payload");
       }
 
-      candidate.poll_history = isVersion15
-        ? normalizePollHistory(sourceCandidate.poll_history)
+      candidate.poll_history = (
+        isVersion15 && sourceCandidate.poll_history !== undefined
+      )
+        ? normalizePollHistory(sourceCandidate.poll_history) || null
         : null;
-      if (isVersion15 && candidate.poll_history === undefined) {
-        return unavailable("invalid_payload");
-      }
 
       candidateIds.add(candidateId);
       candidates.push(candidate);

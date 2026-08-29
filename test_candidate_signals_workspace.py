@@ -598,6 +598,9 @@ function details() {
     analysisCardTitles:
       mount.querySelectorAll(".candidate-signals-analysis-card-title")
         .map(node => node.textContent),
+    pollEvidenceInfoTooltip:
+      mount.querySelector(".candidate-signals-poll-evidence-info")
+        ?.getAttribute("data-fr27-tooltip") || null,
     analysisBodyOrder:
       analysisBody
         ? analysisBody.children.map(node => node.className)
@@ -667,6 +670,61 @@ function details() {
     agendaCardAria:
       mount.querySelector(".candidate-signals-agenda-summary")
         ?.getAttribute("aria-label") || null,
+    pollHistoryPointCount:
+      mount.querySelector(".candidate-signals-poll-history-summary")
+        ?.querySelectorAll(".candidate-signals-poll-history-point").length || 0,
+    pollHistoryRangeCount:
+      mount.querySelector(".candidate-signals-poll-history-summary")
+        ?.querySelectorAll(".candidate-signals-poll-history-range").length || 0,
+    pollHistoryMarkerTitles:
+      (
+        mount.querySelector(".candidate-signals-poll-history-summary")
+          ?.querySelectorAll(".candidate-signals-poll-history-point") || []
+      ).map(node => node.getAttribute("data-fr27-tooltip") || null),
+    pollHistoryRangeTitles:
+      (
+        mount.querySelector(".candidate-signals-poll-history-summary")
+          ?.querySelectorAll(".candidate-signals-poll-history-range") || []
+      ).map(node => node.getAttribute("data-fr27-tooltip") || null),
+    pollHistoryChartAria:
+      mount.querySelector(".candidate-signals-poll-history-chart")
+        ?.getAttribute("aria-label") || null,
+    pollHistoryChartViewBox:
+      mount.querySelector(".candidate-signals-poll-history-chart")
+        ?.getAttribute("viewBox") || null,
+    pollHistoryTags:
+      (
+        mount.querySelector(".candidate-signals-poll-history-summary")
+          ?.querySelectorAll("svg") || []
+      ).flatMap(svg => {
+        const nodes = [];
+        const collect = node => {
+          nodes.push(node.tagName);
+          node.children.forEach(collect);
+        };
+        collect(svg);
+        return nodes;
+      }),
+    pollHistoryCount:
+      mount.querySelector(".candidate-signals-poll-history-count")
+        ?.textContent || null,
+    pollHistoryInfoTooltip:
+      mount.querySelector(".candidate-signals-poll-history-info")
+        ?.getAttribute("data-fr27-tooltip") || null,
+    pollHistoryInfoAria:
+      mount.querySelector(".candidate-signals-poll-history-info")
+        ?.getAttribute("aria-label") || null,
+    pollHistoryInfoTag:
+      mount.querySelector(".candidate-signals-poll-history-info")
+        ?.tagName || null,
+    pollHistoryLegend:
+      mount.querySelector(".candidate-signals-poll-history-legend")
+        ?.textContent || null,
+    pollHistoryFooterCount:
+      mount.querySelectorAll(".candidate-signals-poll-history-meta").length,
+    pollHistoryState:
+      mount.querySelector(".candidate-signals-poll-history-state")
+        ?.textContent || null,
     attentionRowTexts:
       mount.querySelectorAll(".candidate-signals-attention-row")
         .map(node => node.textContent),
@@ -1776,7 +1834,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         result = run_workspace(payload(self.rows))
         self.assertEqual(result["monitorListCount"], 1)
         self.assertEqual(result["buttonCount"], 3)
-        self.assertEqual(result["tags"].count("BUTTON"), 5)
+        self.assertEqual(result["tags"].count("BUTTON"), 7)
         self.assertIn("View full evidence →", result["text"])
         self.assertNotIn("TABLE", result["tags"])
         self.assertIn('button.setAttribute("aria-pressed", String(selected));', self.workspace_js)
@@ -1984,7 +2042,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         )
         self.assertIn(
             "No current general visibility evidence.",
-            result["analysisCardTexts"][1],
+            result["analysisCardTexts"][2],
         )
         self.assertEqual(result["attentionTrackCount"], 1)
 
@@ -2050,7 +2108,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
 
         result = run_workspace(source, selected_id)
 
-        attention = result["analysisCardTexts"][1]
+        attention = result["analysisCardTexts"][2]
         self.assertIn(
             "No current campaign/election evidence.",
             attention,
@@ -2058,7 +2116,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         self.assertIn("General visibility25%", attention)
         self.assertEqual(result["attentionTrackCount"], 1)
 
-        coverage = result["analysisCardTexts"][2]
+        coverage = result["analysisCardTexts"][3]
         self.assertIn(
             "No campaign/election evidence observed in the current period.",
             coverage,
@@ -2105,7 +2163,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             "No current campaign/election or general visibility evidence."
         )
 
-        self.assertIn(expected, result["analysisCardTexts"][1])
+        self.assertIn(expected, result["analysisCardTexts"][2])
         self.assertEqual(result["attentionTrackCount"], 0)
 
         self.assertIn(expected, result["dossierCardTexts"][0])
@@ -2113,7 +2171,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
 
         self.assertIn(
             "No campaign/election evidence observed in the current period.",
-            result["analysisCardTexts"][2],
+            result["analysisCardTexts"][3],
         )
         self.assertIn(
             "No campaign/election evidence observed in the current period.",
@@ -2161,13 +2219,13 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
 
         self.assertIn(
             "No current campaign/election evidence.",
-            result["analysisCardTexts"][1],
+            result["analysisCardTexts"][2],
         )
-        self.assertNotIn("99 REC", result["analysisCardTexts"][1])
+        self.assertNotIn("99 REC", result["analysisCardTexts"][2])
 
         self.assertIn(
             "No campaign/election evidence observed in the current period.",
-            result["analysisCardTexts"][2],
+            result["analysisCardTexts"][3],
         )
 
         self.assertEqual(result["dossierScopeCellCount"], 0)
@@ -2301,7 +2359,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
 
         self.assertIn(
             "No scrutiny evidence is currently published.",
-            absent_result["analysisCardTexts"][3],
+            absent_result["analysisCardTexts"][4],
         )
         self.assertIn(
             "No scrutiny evidence is currently published.",
@@ -2343,7 +2401,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         self.assertEqual(zero_result["dossierScrutinyMetricCount"], 6)
         self.assertNotIn(
             "No scrutiny evidence is currently published.",
-            zero_result["analysisCardTexts"][3],
+            zero_result["analysisCardTexts"][4],
         )
         self.assertNotIn(
             "No scrutiny evidence is currently published.",
@@ -2384,7 +2442,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
     def test_populated_empty_state_redesign_preserves_existing_semantics(self):
         result = run_workspace(payload(self.rows), "zeta")
 
-        self.assertEqual(len(result["analysisCardTexts"]), 4)
+        self.assertEqual(len(result["analysisCardTexts"]), 5)
         self.assertEqual(len(result["dossierMetricTexts"]), 4)
         self.assertEqual(len(result["dossierCardTexts"]), 4)
 
@@ -2435,7 +2493,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         ):
             self.assertIn(label, text)
 
-        race_mix = result["analysisCardTexts"][2]
+        race_mix = result["analysisCardTexts"][3]
         self.assertIn("Campaign", race_mix)
         self.assertIn("Election", race_mix)
         self.assertNotIn("General", race_mix)
@@ -2521,6 +2579,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             result["analysisCardTitles"],
             [
                 "POLL EVIDENCE",
+                "POLL HISTORY",
                 "AGENDA PROFILE",
                 "CAMPAIGN ATTENTION",
                 "RACE COVERAGE MIX",
@@ -2617,6 +2676,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             result["analysisCardTitles"],
             [
                 "POLL EVIDENCE",
+                "POLL HISTORY",
                 "AGENDA PROFILE",
                 "CAMPAIGN ATTENTION",
                 "RACE COVERAGE MIX",
@@ -2649,13 +2709,14 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             result["agendaCardTitle"],
         )
 
-    def test_selected_analysis_has_exact_four_cards(self):
+    def test_selected_analysis_has_poll_history_and_existing_cards(self):
         result = run_workspace(payload(self.rows))
 
         self.assertEqual(
             result["analysisCardTitles"],
             [
                 "POLL EVIDENCE",
+                "POLL HISTORY",
                 "CAMPAIGN ATTENTION",
                 "RACE COVERAGE MIX",
                 "SCRUTINY",
@@ -2663,6 +2724,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         )
         for required in (
             "function pollSummaryCard(candidate, metadata)",
+            "function pollHistorySummaryCard(candidate)",
             "function attentionSummaryCard(candidate, historyState)",
             "function scopeCompositionCard(candidate)",
             "function scrutinySummaryCard(candidate)",
@@ -2690,7 +2752,26 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             self.assertIn(label, result["text"])
 
         self.assertIn("2 hypotheses", result["text"])
-        self.assertIn("N=1,503", result["text"])
+        self.assertIn(
+            "Pollster: Example Pollster.",
+            result["pollEvidenceInfoTooltip"],
+        )
+        self.assertIn(
+            "Fieldwork: 9–10 Jul 2026.",
+            result["pollEvidenceInfoTooltip"],
+        )
+        self.assertIn(
+            "Sample: N=1,503.",
+            result["pollEvidenceInfoTooltip"],
+        )
+        self.assertIn(
+            "Package: 2 hypotheses.",
+            result["pollEvidenceInfoTooltip"],
+        )
+        self.assertIn(
+            "Published candidate range: 0%–6%.",
+            result["pollEvidenceInfoTooltip"],
+        )
         self.assertIn("PUBLISHED RANGE", result["text"])
         self.assertIn("0 REC · 2 PUB · 3 DAYS", result["text"])
         self.assertIn("Open latest source →", result["text"])
@@ -2698,6 +2779,179 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             "COVERAGE COMPOSITION · PUBLISHED SCOPE",
             result["text"],
         )
+
+    def test_poll_history_renders_package_observations_without_derivation(self):
+        published = json.loads(
+            CANDIDATE_JSON.read_text(encoding="utf-8")
+        )
+        selected_id = published["active_monitoring_field"]["main"][0]
+        selected = next(
+            row
+            for row in published["candidates"]
+            if row["candidate_id"] == selected_id
+        )
+        exact_package = ["Exact Pollster", "2026-07-01", "2026-07-02", 1000]
+        range_package = ["Range Pollster", "2026-07-10", "2026-07-11", 1200]
+        selected["poll_history"] = {
+            "evidence_state": "reported",
+            "observation_count": 2,
+            "period_start": "2026-07-01",
+            "period_end": "2026-07-11",
+            "observations": [
+                {
+                    "package_key": json.dumps(exact_package),
+                    "pollster": exact_package[0],
+                    "fieldwork_start": exact_package[1],
+                    "fieldwork_end": exact_package[2],
+                    "sample_size": exact_package[3],
+                    "hypothesis_count": 1,
+                    "selected_score": 21,
+                    "range_min": 21,
+                    "range_max": 21,
+                    "source_urls": ["https://example.test/exact"],
+                },
+                {
+                    "package_key": json.dumps(range_package),
+                    "pollster": range_package[0],
+                    "fieldwork_start": range_package[1],
+                    "fieldwork_end": range_package[2],
+                    "sample_size": range_package[3],
+                    "hypothesis_count": 3,
+                    "selected_score": None,
+                    "range_min": 10,
+                    "range_max": 14,
+                    "source_urls": ["https://example.test/range"],
+                },
+            ],
+        }
+
+        result = run_workspace(published, selected_id)
+
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["analysisCardTitles"][:2], [
+            "POLL EVIDENCE",
+            "POLL HISTORY",
+        ])
+        self.assertEqual(result["pollHistoryPointCount"], 1)
+        self.assertEqual(result["pollHistoryRangeCount"], 1)
+        self.assertNotIn("PATH", result["pollHistoryTags"])
+        self.assertNotIn("POLYLINE", result["pollHistoryTags"])
+        self.assertIn(
+            "exact selected-hypothesis score 21%",
+            result["pollHistoryMarkerTitles"][0],
+        )
+        self.assertIn(
+            "published package range 10%–14%",
+            result["pollHistoryRangeTitles"][0],
+        )
+        self.assertNotIn("12%", result["pollHistoryRangeTitles"][0])
+        self.assertIn(
+            "no averaging or interpolation",
+            result["pollHistoryChartAria"],
+        )
+        self.assertEqual(result["pollHistoryCount"], "2 OBS")
+        self.assertEqual(result["pollHistoryInfoTag"], "BUTTON")
+        self.assertIn(
+            "Observation count: 2.",
+            result["pollHistoryInfoTooltip"],
+        )
+        self.assertIn(
+            "Covered period: 1–11 Jul 2026.",
+            result["pollHistoryInfoTooltip"],
+        )
+        for statement in (
+            "Points = exact reported scores.",
+            "Bars = published ranges.",
+            "No averaging, smoothing or interpolation.",
+        ):
+            self.assertIn(statement, result["pollHistoryInfoTooltip"])
+            self.assertIn(statement, result["pollHistoryInfoAria"])
+        self.assertEqual(
+            result["pollHistoryLegend"],
+            "● exact│ published range",
+        )
+        self.assertEqual(result["pollHistoryChartViewBox"], "0 0 260 74")
+        self.assertEqual(result["pollHistoryFooterCount"], 0)
+
+    def test_poll_history_no_evidence_state_is_explicit(self):
+        published = json.loads(
+            CANDIDATE_JSON.read_text(encoding="utf-8")
+        )
+        selected_id = published["active_monitoring_field"]["main"][0]
+        selected = next(
+            row
+            for row in published["candidates"]
+            if row["candidate_id"] == selected_id
+        )
+        selected["poll_history"] = {
+            "evidence_state": "not_observed",
+            "observation_count": 0,
+            "period_start": None,
+            "period_end": None,
+            "observations": [],
+        }
+
+        result = run_workspace(published, selected_id)
+
+        self.assertEqual(
+            result["pollHistoryState"],
+            "No package-level poll history evidence.",
+        )
+        self.assertEqual(result["pollHistoryCount"], "0 OBS")
+        self.assertIn(
+            "Observation count: 0.",
+            result["pollHistoryInfoTooltip"],
+        )
+        self.assertIn(
+            "Covered period: No covered period.",
+            result["pollHistoryInfoTooltip"],
+        )
+        self.assertEqual(result["pollHistoryFooterCount"], 0)
+        self.assertEqual(result["pollHistoryPointCount"], 0)
+        self.assertEqual(result["pollHistoryRangeCount"], 0)
+
+    def test_optional_poll_history_failure_stays_local_to_its_card(self):
+        for case in ("malformed", "missing"):
+            with self.subTest(case=case):
+                published = json.loads(
+                    CANDIDATE_JSON.read_text(encoding="utf-8")
+                )
+                selected_id = published["active_monitoring_field"]["main"][0]
+                selected = next(
+                    row
+                    for row in published["candidates"]
+                    if row["candidate_id"] == selected_id
+                )
+                if case == "malformed":
+                    selected["poll_history"]["observation_count"] += 1
+                else:
+                    selected.pop("poll_history")
+
+                result = run_workspace(published, selected_id)
+
+                self.assertEqual(result["status"], "ready")
+                self.assertEqual(
+                    result["pollHistoryState"],
+                    "Poll history unavailable.",
+                )
+                self.assertIsNone(result["pollHistoryCount"])
+                self.assertIn(
+                    "Observation count: unavailable.",
+                    result["pollHistoryInfoTooltip"],
+                )
+                self.assertIn(
+                    "Covered period: Unavailable.",
+                    result["pollHistoryInfoTooltip"],
+                )
+                self.assertEqual(result["pollHistoryFooterCount"], 0)
+                self.assertEqual(result["analysisCardTitles"], [
+                    "POLL EVIDENCE",
+                    "POLL HISTORY",
+                    "AGENDA PROFILE",
+                    "CAMPAIGN ATTENTION",
+                    "RACE COVERAGE MIX",
+                    "SCRUTINY",
+                ])
 
     def test_selected_analysis_uses_comparative_attention_and_signal_states(self):
         source = self.workspace_js

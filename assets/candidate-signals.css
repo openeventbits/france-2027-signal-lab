@@ -514,6 +514,22 @@
   border-bottom: 0;
 }
 
+.candidate-signals-analysis-cards.has-poll-history
+  > .candidate-signals-analysis-card {
+  border-right: 1px solid rgba(35, 86, 114, 0.58);
+  border-bottom: 1px solid rgba(35, 86, 114, 0.58);
+}
+
+.candidate-signals-analysis-cards.has-poll-history
+  > .candidate-signals-analysis-card:nth-child(even) {
+  border-right: 0;
+}
+
+.candidate-signals-analysis-cards.has-poll-history
+  > .candidate-signals-analysis-card:nth-child(n + 5) {
+  border-bottom: 0;
+}
+
 .candidate-signals-analysis-card::before {
   display: none;
 }
@@ -558,16 +574,18 @@
 .candidate-signals-poll-summary {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto auto 1fr;
-  align-content: start;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
   column-gap: 9px;
 }
 
-.candidate-signals-poll-summary
-  .candidate-signals-analysis-card-title {
+.candidate-signals-poll-evidence-head {
   grid-column: 1;
   grid-row: 1;
-  align-self: center;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .candidate-signals-poll-summary
@@ -582,9 +600,10 @@
 .candidate-signals-poll-gauge {
   grid-column: 1 / -1;
   grid-row: 2;
+  align-self: center;
   display: grid;
   gap: 3px;
-  margin-top: 13px;
+  margin-top: 4px;
 }
 
 .candidate-signals-poll-gauge-kicker {
@@ -641,31 +660,120 @@
   justify-content: center;
 }
 
-.candidate-signals-poll-note {
-  grid-column: 1 / -1;
-  grid-row: 3;
-  align-self: end;
+.candidate-signals-poll-history-summary {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.candidate-signals-poll-history-head {
   min-width: 0;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  margin-top: 9px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(35, 86, 114, 0.48);
 }
 
-.candidate-signals-poll-note-text {
-  min-width: 0;
-  flex: 1 1 auto;
-  overflow: hidden;
-  color: #a4b8c3;
-  font-size: 10px;
-  font-weight: 700;
+.candidate-signals-poll-history-head-controls {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.candidate-signals-poll-history-count {
+  color: #91aaba;
+  font-size: 8px;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.005em;
-  line-height: 1.2;
-  text-overflow: ellipsis;
+  font-weight: 740;
+  letter-spacing: 0.055em;
+  line-height: 1;
   white-space: nowrap;
+}
+
+.candidate-signals-poll-evidence-info,
+.candidate-signals-poll-history-info {
+  width: 14px;
+  height: 14px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(93, 162, 194, 0.72);
+  border-radius: 50%;
+  background: rgba(7, 28, 43, 0.84);
+  color: #9dddea;
+  font: 700 9px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  text-decoration: none;
+  cursor: help;
+}
+
+.candidate-signals-poll-evidence-info:hover,
+.candidate-signals-poll-evidence-info:focus-visible,
+.candidate-signals-poll-history-info:hover,
+.candidate-signals-poll-history-info:focus-visible {
+  border-color: var(--final-cyan, #35d8ff);
+  color: #dff9ff;
+  outline: 1px solid rgba(53, 216, 255, 0.46);
+  outline-offset: 1px;
+}
+
+.candidate-signals-poll-history-visual {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 2px;
+  margin-top: 3px;
+}
+
+.candidate-signals-poll-history-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  color: #819dad;
+  font-size: 8.25px;
+  font-weight: 710;
+  letter-spacing: 0.045em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.candidate-signals-poll-history-legend-point {
+  color: var(--final-cyan, #35d8ff);
+}
+
+.candidate-signals-poll-history-legend-range {
+  color: #b8a6ff;
+}
+
+.candidate-signals-poll-history-chart {
+  width: 100%;
+  height: 74px;
+  display: block;
+  overflow: visible;
+}
+
+ .candidate-signals-poll-history-context-range {
+  stroke: rgba(135, 88, 255, 0.5);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.candidate-signals-poll-history-range line {
+  stroke: #b8a6ff;
+  stroke-width: 1.45;
+  vector-effect: non-scaling-stroke;
+}
+
+.candidate-signals-poll-history-point {
+  fill: #061a2a;
+  stroke: var(--final-cyan, #35d8ff);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.candidate-signals-poll-history-state {
+  margin-top: 9px;
 }
 
 .candidate-signals-poll-facts {
@@ -832,12 +940,12 @@
 
 .candidate-signals-analysis-cards.has-agenda-profile
   > .candidate-signals-agenda-summary {
-  border-right: 0;
+  border-right: 1px solid rgba(35, 86, 114, 0.58);
 }
 
 .candidate-signals-analysis-cards.has-agenda-profile
   > .candidate-signals-attention-summary {
-  grid-column: 1 / -1;
+  grid-column: auto;
   border-right: 0;
   border-bottom: 1px solid rgba(35, 86, 114, 0.58);
 }
@@ -923,17 +1031,17 @@
 
 .candidate-signals-analysis-cards.has-agenda-profile
   .candidate-signals-attention-visual {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 12px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
 }
 
 .candidate-signals-analysis-cards.has-agenda-profile
   .candidate-signals-attention-row
   + .candidate-signals-attention-row {
-  padding-top: 0;
-  padding-left: 12px;
-  border-top: 0;
-  border-left: 1px solid rgba(35, 86, 114, 0.48);
+  padding-top: 6px;
+  padding-left: 0;
+  border-top: 1px solid rgba(35, 86, 114, 0.48);
+  border-left: 0;
 }
 
 @media (max-width: 620px) {

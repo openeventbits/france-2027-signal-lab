@@ -1200,6 +1200,55 @@
     const hasSelected = reported &&
       hasValue(poll.selected_hypothesis_score);
 
+    if (reported) {
+      const pollster = pollPackage?.pollster || MISSING;
+      const fieldwork = formatDateRange(
+        pollPackage?.fieldwork_start,
+        pollPackage?.fieldwork_end
+      );
+      const hypotheses = hasValue(poll?.hypothesis_count)
+        ? `${numberText(poll.hypothesis_count)} hypotheses`
+        : MISSING;
+      const sample = hasValue(pollPackage?.sample_size)
+        ? `N=${groupedNumberText(pollPackage.sample_size)}`
+        : MISSING;
+      const publishedRange = hasRange
+        ? rangeText(poll.range_min, poll.range_max)
+        : MISSING;
+
+      const infoText =
+        `Pollster: ${pollster}. Fieldwork: ${fieldwork}. ` +
+        `Sample: ${sample}. Package: ${hypotheses}. ` +
+        `Published candidate range: ${publishedRange}.`;
+
+      const info = createElement(
+        "button",
+        "candidate-signals-poll-evidence-info",
+        "i"
+      );
+      info.setAttribute("type", "button");
+
+      explanatoryMetadata(
+        info,
+        infoText,
+        `Poll evidence information. ${infoText}`
+      );
+
+      const title = card.querySelector(
+        ".candidate-signals-analysis-card-title"
+      );
+
+      if (title) {
+        const heading = createElement(
+          "div",
+          "candidate-signals-poll-evidence-head"
+        );
+        title.remove();
+        heading.append(title, info);
+        card.append(heading);
+      }
+    }
+
     const primaryText = !reported
       ? NOT_TESTED
       : hasSelected
@@ -1307,34 +1356,323 @@
       );
     }
 
-    if (reported) {
-      const pollster = pollPackage?.pollster || MISSING;
-      const fieldwork = formatDateRange(
-        pollPackage?.fieldwork_start,
-        pollPackage?.fieldwork_end
-      );
-      const hypotheses = hasValue(poll?.hypothesis_count)
-        ? `${numberText(poll.hypothesis_count)} hypotheses`
-        : MISSING;
-      const sample = hasValue(pollPackage?.sample_size)
-        ? `N=${groupedNumberText(pollPackage.sample_size)}`
-        : MISSING;
+    return card;
+  }
 
-      const note = createElement(
-        "div",
-        "candidate-signals-poll-note"
-      );
-      note.append(
-        createElement(
-          "span",
-          "candidate-signals-poll-note-text",
-          `${pollster} · ${fieldwork} · ${sample} · ${hypotheses}`
-        )
-      );
+  function pollHistoryForDisplay(source) {
+    if (!source || typeof source !== "object") return null;
 
-      card.append(note);
+    if (
+      source.evidence_state === "not_observed" &&
+      source.observation_count === 0 &&
+      source.period_start === null &&
+      source.period_end === null &&
+      Array.isArray(source.observations) &&
+      source.observations.length === 0
+    ) {
+      return source;
     }
 
+    if (
+      source.evidence_state !== "reported" ||
+      !Number.isInteger(source.observation_count) ||
+      source.observation_count <= 0 ||
+      !Array.isArray(source.observations) ||
+      source.observation_count !== source.observations.length ||
+      !hasValue(source.period_start) ||
+      !hasValue(source.period_end)
+    ) {
+      return null;
+    }
+
+    for (const observation of source.observations) {
+      if (!observation || typeof observation !== "object") return null;
+
+      const minimum = Number(observation.range_min);
+      const maximum = Number(observation.range_max);
+      const selected = observation.selected_score === null
+        ? null
+        : Number(observation.selected_score);
+
+      if (
+        !hasValue(observation.pollster) ||
+        !hasValue(observation.fieldwork_start) ||
+        !hasValue(observation.fieldwork_end) ||
+        !Number.isInteger(observation.hypothesis_count) ||
+        observation.hypothesis_count <= 0 ||
+        !hasValue(observation.range_min) ||
+        !hasValue(observation.range_max) ||
+        !Number.isFinite(minimum) ||
+        !Number.isFinite(maximum) ||
+        minimum < 0 ||
+        minimum > maximum ||
+        (
+          selected !== null &&
+          (
+            !Number.isFinite(selected) ||
+            selected < minimum ||
+            selected > maximum
+          )
+        )
+      ) {
+        return null;
+      }
+    }
+
+    return source;
+  }
+
+  function pollHistoryObservationLabel(observation) {
+    const pollster = observation.pollster;
+    const fieldwork = formatDateRange(
+      observation.fieldwork_start,
+      observation.fieldwork_end
+    );
+    const hypotheses = `${numberText(
+      observation.hypothesis_count
+    )} ${
+      observation.hypothesis_count === 1
+        ? "hypothesis"
+        : "hypotheses"
+    }`;
+    const publishedRange = rangeText(
+      observation.range_min,
+      observation.range_max
+    );
+
+    if (observation.selected_score !== null) {
+      return `${pollster}, ${fieldwork}: exact selected-hypothesis score ${
+        percentageText(observation.selected_score)
+      }; package range ${publishedRange}; ${hypotheses}.`;
+    }
+
+    return `${pollster}, ${fieldwork}: published package range ${
+      publishedRange
+    }; no selected-hypothesis score; ${hypotheses}.`;
+  }
+
+  function pollHistoryChart(history, candidate) {
+    const observations = history.observations;
+    const values = observations.flatMap(observation => [
+      Number(observation.range_min),
+      Number(observation.range_max)
+    ]);
+    const observedMinimum = Math.min(...values);
+    const observedMaximum = Math.max(...values);
+    const scaleMinimum = Math.max(0, Math.floor(observedMinimum - 2));
+    const scaleMaximum = Math.max(
+      scaleMinimum + 1,
+      Math.ceil(observedMaximum + 2)
+    );
+    const width = 260;
+    const height = 74;
+    const margin = { top: 5, right: 4, bottom: 2, left: 4 };
+    const plotWidth = width - margin.left - margin.right;
+    const plotHeight = height - margin.top - margin.bottom;
+    const xFor = index => margin.left + (
+      observations.length === 1
+        ? plotWidth / 2
+        : (index / (observations.length - 1)) * plotWidth
+    );
+    const yFor = value => margin.top + (
+      1 - (
+        (Number(value) - scaleMinimum) /
+        (scaleMaximum - scaleMinimum)
+      )
+    ) * plotHeight;
+    const exactCount = observations.filter(
+      observation => observation.selected_score !== null
+    ).length;
+    const rangeOnlyCount = observations.length - exactCount;
+
+    const svg = wikipediaSvgElement(
+      "svg",
+      "candidate-signals-poll-history-chart"
+    );
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.setAttribute("role", "img");
+    svg.setAttribute(
+      "aria-label",
+      `${numberText(history.observation_count)} chronological package-level poll observations for ${
+        candidate.candidate_name
+      }: ${numberText(exactCount)} exact selected scores and ${
+        numberText(rangeOnlyCount)
+      } published ranges without a selected score. Points are discrete observations and bars are published ranges; no averaging or interpolation.`
+    );
+
+     observations.forEach((observation, index) => {
+      const x = xFor(index);
+      const minimumY = yFor(observation.range_min);
+      const maximumY = yFor(observation.range_max);
+      const label = pollHistoryObservationLabel(observation);
+
+      if (observation.selected_score === null) {
+        const range = wikipediaSvgElement(
+          "g",
+          "candidate-signals-poll-history-range"
+        );
+        range.setAttribute("aria-label", label);
+        range.setAttribute("data-fr27-tooltip", label);
+
+        const stem = wikipediaSvgElement("line");
+        stem.setAttribute("x1", x);
+        stem.setAttribute("x2", x);
+        stem.setAttribute("y1", maximumY);
+        stem.setAttribute("y2", minimumY);
+
+        const capMinimum = wikipediaSvgElement("line");
+        capMinimum.setAttribute("x1", x - 2.5);
+        capMinimum.setAttribute("x2", x + 2.5);
+        capMinimum.setAttribute("y1", minimumY);
+        capMinimum.setAttribute("y2", minimumY);
+
+        const capMaximum = wikipediaSvgElement("line");
+        capMaximum.setAttribute("x1", x - 2.5);
+        capMaximum.setAttribute("x2", x + 2.5);
+        capMaximum.setAttribute("y1", maximumY);
+        capMaximum.setAttribute("y2", maximumY);
+
+        range.append(stem, capMinimum, capMaximum);
+        svg.append(range);
+        return;
+      }
+
+      if (Number(observation.range_min) !== Number(observation.range_max)) {
+        const contextRange = wikipediaSvgElement(
+          "line",
+          "candidate-signals-poll-history-context-range"
+        );
+        contextRange.setAttribute("x1", x);
+        contextRange.setAttribute("x2", x);
+        contextRange.setAttribute("y1", maximumY);
+        contextRange.setAttribute("y2", minimumY);
+        contextRange.setAttribute("aria-hidden", "true");
+        svg.append(contextRange);
+      }
+
+      const point = wikipediaSvgElement(
+        "circle",
+        "candidate-signals-poll-history-point"
+      );
+      point.setAttribute("cx", x);
+      point.setAttribute("cy", yFor(observation.selected_score));
+      point.setAttribute("r", observations.length >= 30 ? 1.8 : 2.15);
+      point.setAttribute("aria-label", label);
+      point.setAttribute("data-fr27-tooltip", label);
+      svg.append(point);
+    });
+
+    return svg;
+  }
+
+  function pollHistoryCardHeading(card, history) {
+    const title = card.querySelector(
+      ".candidate-signals-analysis-card-title"
+    );
+    const heading = createElement(
+      "div",
+      "candidate-signals-poll-history-head"
+    );
+    const controls = createElement(
+      "div",
+      "candidate-signals-poll-history-head-controls"
+    );
+    const reported = history?.evidence_state === "reported";
+    const notObserved = history?.evidence_state === "not_observed";
+    const count = reported || notObserved
+      ? numberText(history.observation_count)
+      : null;
+    const period = reported
+      ? formatDateRange(history.period_start, history.period_end)
+      : notObserved
+        ? "No covered period"
+        : "Unavailable";
+    const infoText = `Observation count: ${
+      count === null ? "unavailable" : count
+    }. Covered period: ${period}. Points = exact reported scores. Bars = published ranges. Observations are equally spaced in chronological order; horizontal spacing does not represent elapsed time. No averaging, smoothing or interpolation.`;
+    const info = createElement(
+      "button",
+      "candidate-signals-poll-history-info",
+      "i"
+    );
+
+    info.setAttribute("type", "button");
+    explanatoryMetadata(
+      info,
+      infoText,
+      `Poll history information. ${infoText}`
+    );
+
+    if (count !== null) {
+      controls.append(
+        createElement(
+          "span",
+          "candidate-signals-poll-history-count",
+          `${count} OBS`
+        )
+      );
+    }
+    controls.append(info);
+
+    title.remove();
+    heading.append(title, controls);
+    card.append(heading);
+  }
+
+  function pollHistorySummaryCard(candidate) {
+    const card = summaryCard(
+      "POLL HISTORY",
+      "candidate-signals-poll-history-summary"
+    );
+    const history = pollHistoryForDisplay(candidate.poll_history);
+    pollHistoryCardHeading(card, history);
+
+    if (!history) {
+      card.append(
+        createElement(
+          "p",
+          "candidate-signals-card-state candidate-signals-poll-history-state",
+          "Poll history unavailable."
+        )
+      );
+      return card;
+    }
+
+    if (history.evidence_state === "not_observed") {
+      card.append(
+        createElement(
+          "p",
+          "candidate-signals-card-state candidate-signals-poll-history-state",
+          "No package-level poll history evidence."
+        )
+      );
+      return card;
+    }
+
+    const visual = createElement(
+      "div",
+      "candidate-signals-poll-history-visual"
+    );
+    const legend = createElement(
+      "div",
+      "candidate-signals-poll-history-legend"
+    );
+    legend.append(
+      createElement(
+        "span",
+        "candidate-signals-poll-history-legend-point",
+        "● exact"
+      ),
+      createElement(
+        "span",
+        "candidate-signals-poll-history-legend-range",
+        "│ published range"
+      )
+    );
+    visual.append(legend, pollHistoryChart(history, candidate));
+
+    card.append(visual);
     return card;
   }
 
@@ -3172,7 +3510,10 @@
     );
     header.querySelector("h2").id = "candidate-signals-analysis-title";
 
-    const cards = createElement("div", "candidate-signals-analysis-cards");
+    const cards = createElement(
+      "div",
+      "candidate-signals-analysis-cards has-poll-history"
+    );
     const agendaProfile = candidate.agenda_profile
       ? agendaSummaryCard(candidate)
       : null;
@@ -3181,6 +3522,7 @@
       cards.className += " has-agenda-profile";
       cards.append(
         pollSummaryCard(candidate, metadata),
+        pollHistorySummaryCard(candidate),
         agendaProfile,
         attentionSummaryCard(
           candidate,
@@ -3192,6 +3534,7 @@
     } else {
       cards.append(
         pollSummaryCard(candidate, metadata),
+        pollHistorySummaryCard(candidate),
         attentionSummaryCard(
           candidate,
           visibilityHistoryState
