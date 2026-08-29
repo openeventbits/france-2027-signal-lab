@@ -9850,7 +9850,7 @@
     }
 
     function validatePublicationManifestPayload(payload) {
-      if (!payload || payload.schema_version !== "1.4") {
+      if (!payload || payload.schema_version !== "1.5") {
         throw new Error("publication_manifest.json has an unsupported schema");
       }
       if (!/^[0-9a-f]{64}$/.test(payload.snapshot_id || "")) {

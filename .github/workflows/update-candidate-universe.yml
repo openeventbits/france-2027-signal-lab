@@ -39,6 +39,8 @@ jobs:
             test_candidate_active_monitoring_phase3a1 \
             test_candidate_visibility_history_contract \
             test_build_candidate_visibility_history \
+            test_candidate_agenda_history_contract \
+            test_build_candidate_agenda_history \
             test_candidate_universe_phase2 \
             test_build_candidate_signals \
             test_publication_manifest \
@@ -207,6 +209,7 @@ jobs:
               "campaign_events_changed": False,
               "candidate_signals_rebuilt": False,
               "candidate_visibility_history_rebuilt": False,
+              "candidate_agenda_history_rebuilt": False,
               "manifest_rebuilt": False,
               "published_commit": None,
           }
@@ -438,6 +441,56 @@ jobs:
           )
           PY
 
+      - name: Rebuild Candidate Agenda History on registry change
+        id: candidate_agenda_history
+        if: steps.registry.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec 2> >(tee /tmp/candidate-universe-error.txt >&2)
+
+          python -B build_candidate_agenda_history.py \
+            --news news_wire.json \
+            --candidacy-status candidate_candidacy_status.json \
+            --previous candidate_agenda_history.json \
+            --output /tmp/candidate_agenda_history.json
+
+          python -B - <<'PY'
+          import json
+          from pathlib import Path
+
+          from build_candidate_agenda_history import atomic_write_bytes
+          from candidate_agenda_history_contract import (
+              validate_candidate_agenda_history,
+          )
+          from candidate_candidacy_status import load_candidate_candidacy_status
+
+          temporary = Path("/tmp/candidate_agenda_history.json")
+          candidate = json.loads(temporary.read_text(encoding="utf-8"))
+          registry = load_candidate_candidacy_status(
+              "candidate_candidacy_status.json"
+          )
+          validate_candidate_agenda_history(
+              candidate, expected_candidates=registry["candidates"]
+          )
+          atomic_write_bytes(
+              Path("candidate_agenda_history.json"), temporary.read_bytes()
+          )
+          promoted = json.loads(
+              Path("candidate_agenda_history.json").read_text(encoding="utf-8")
+          )
+          validate_candidate_agenda_history(
+              promoted, expected_candidates=registry["candidates"]
+          )
+          summary_path = Path("/tmp/candidate-universe-summary.json")
+          summary = json.loads(summary_path.read_text(encoding="utf-8"))
+          summary["candidate_agenda_history_rebuilt"] = True
+          summary_path.write_text(
+              json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Rebuild publication manifest on registry change
         id: manifest
         if: steps.registry.outputs.changed == 'true'
@@ -486,7 +539,7 @@ jobs:
           unexpected="$(
             git status --porcelain=v1 --untracked-files=all \
               | sed -E 's/^...//' \
-              | grep -Ev '^(candidate_candidacy_status|candidate_signals|candidate_visibility_history|campaign_events|publication_manifest)\.json$' \
+              | grep -Ev '^(candidate_candidacy_status|candidate_signals|candidate_agenda_history|candidate_visibility_history|campaign_events|publication_manifest)\.json$' \
               || true
           )"
           if [[ -n "$unexpected" ]]; then
@@ -517,6 +570,7 @@ jobs:
             candidate_candidacy_status.json \
             campaign_events.json \
             candidate_signals.json \
+            candidate_agenda_history.json \
             candidate_visibility_history.json \
             publication_manifest.json
           git diff --cached --check
@@ -524,11 +578,15 @@ jobs:
             candidate_candidacy_status.json \
             campaign_events.json \
             candidate_signals.json \
+            candidate_agenda_history.json \
             candidate_visibility_history.json \
             publication_manifest.json
 
           git fetch origin main
           git rebase origin/main
+
+          git show origin/main:candidate_agenda_history.json \
+            > /tmp/candidate_agenda_history-upstream.json
 
           campaign_events_generated_at="$(
             python -B -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"))'
@@ -576,6 +634,10 @@ jobs:
               atomic_write_bytes as atomic_write_visibility_history,
               build_from_payloads as build_visibility_history_from_payloads,
           )
+          from build_candidate_agenda_history import (
+              atomic_write_bytes as atomic_write_agenda_history,
+              build_from_payloads as build_agenda_history_from_payloads,
+          )
           from build_publication_manifest import (
               atomic_write_json,
               build_manifest,
@@ -584,6 +646,9 @@ jobs:
           from candidate_candidacy_status import load_candidate_candidacy_status
           from candidate_visibility_history_contract import (
               serialize_candidate_visibility_history,
+          )
+          from candidate_agenda_history_contract import (
+              serialize_candidate_agenda_history,
           )
 
           registry = load_candidate_candidacy_status(
@@ -623,6 +688,21 @@ jobs:
               visibility_history_bytes,
           )
 
+          upstream_agenda_history = json.loads(
+              Path("/tmp/candidate_agenda_history-upstream.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+          agenda_history = build_agenda_history_from_payloads(
+              news_payload,
+              registry,
+              upstream_agenda_history,
+          )
+          atomic_write_agenda_history(
+              Path("candidate_agenda_history.json"),
+              serialize_candidate_agenda_history(agenda_history),
+          )
+
           published_at = datetime.now(timezone.utc).replace(
               microsecond=0
           ).isoformat().replace("+00:00", "Z")
@@ -634,12 +714,14 @@ jobs:
           if ! git diff --quiet -- \
             campaign_events.json \
             candidate_signals.json \
+            candidate_agenda_history.json \
             candidate_visibility_history.json \
             publication_manifest.json
           then
             git add -- \
               campaign_events.json \
               candidate_signals.json \
+              candidate_agenda_history.json \
               candidate_visibility_history.json \
               publication_manifest.json
             git diff --cached --check
@@ -649,7 +731,7 @@ jobs:
           unexpected="$(
             git status --porcelain=v1 --untracked-files=all \
               | sed -E 's/^...//' \
-              | grep -Ev '^(candidate_candidacy_status|candidate_signals|candidate_visibility_history|campaign_events|publication_manifest)\.json$' \
+              | grep -Ev '^(candidate_candidacy_status|candidate_signals|candidate_agenda_history|candidate_visibility_history|campaign_events|publication_manifest)\.json$' \
               || true
           )"
           if [[ -n "$unexpected" ]]; then
@@ -657,10 +739,28 @@ jobs:
             echo "$unexpected"
             exit 1
           fi
+          final_published_at="$(python -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
+          python -B build_candidate_agenda_history.py \
+            --news news_wire.json \
+            --candidacy-status candidate_candidacy_status.json \
+            --previous candidate_agenda_history.json \
+            --output candidate_agenda_history.json
+          python -B build_candidate_agenda_history.py \
+            --news news_wire.json \
+            --candidacy-status candidate_candidacy_status.json \
+            --previous candidate_agenda_history.json \
+            --output candidate_agenda_history.json \
+            --check
+          python -B build_publication_manifest.py \
+            --published-at "$final_published_at"
+          python -B build_publication_manifest.py \
+            --check \
+            --published-at "$final_published_at"
           git diff --exit-code -- \
             candidate_candidacy_status.json \
             campaign_events.json \
             candidate_signals.json \
+            candidate_agenda_history.json \
             candidate_visibility_history.json \
             publication_manifest.json
           git push origin HEAD:main
@@ -716,6 +816,7 @@ jobs:
               f"- Campaign Events bytes changed: `{str(summary['campaign_events_changed']).lower()}`",
               f"- Candidate Signals rebuilt: `{str(summary['candidate_signals_rebuilt']).lower()}`",
               f"- Candidate Visibility History rebuilt: `{str(summary['candidate_visibility_history_rebuilt']).lower()}`",
+              f"- Candidate Agenda History rebuilt: `{str(summary['candidate_agenda_history_rebuilt']).lower()}`",
               f"- Manifest rebuilt: `{str(summary['manifest_rebuilt']).lower()}`",
               f"- Published commit: `{summary['published_commit'] or 'none'}`",
           ]

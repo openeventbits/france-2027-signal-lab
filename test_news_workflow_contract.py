@@ -38,6 +38,9 @@ class NewsWorkflowContractTests(unittest.TestCase):
         history = post_rebase.index(
             "python -B build_candidate_visibility_history.py"
         )
+        agenda_history = post_rebase.index(
+            "python -B build_candidate_agenda_history.py"
+        )
         manifest = post_rebase.index(
             "python -B build_publication_manifest.py"
         )
@@ -52,6 +55,10 @@ class NewsWorkflowContractTests(unittest.TestCase):
         )
         self.assertLess(
             history,
+            agenda_history,
+        )
+        self.assertLess(
+            agenda_history,
             manifest,
         )
 
@@ -73,7 +80,7 @@ class NewsWorkflowContractTests(unittest.TestCase):
             )
 
         self.assertIn(
-            "recent_changes.json candidate_signals.json candidate_visibility_history.json publication_manifest.json",
+            "recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json publication_manifest.json",
             reconciliation,
         )
 
@@ -88,7 +95,7 @@ class NewsWorkflowContractTests(unittest.TestCase):
             final_validation,
         )
         self.assertIn(
-            "recent_changes.json candidate_signals.json candidate_visibility_history.json publication_manifest.json",
+            "recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json publication_manifest.json",
             final_validation,
         )
 
@@ -160,6 +167,32 @@ class NewsWorkflowContractTests(unittest.TestCase):
             "python -B build_candidate_visibility_history.py",
             commit,
         )
+
+    def test_agenda_history_is_transactional_persistent_and_rebase_safe(self):
+        build = self.text.index("python -B build_candidate_agenda_history.py")
+        promotion = self.text.index("- name: Validate and promote generated data")
+        temporary = self.text[build:promotion]
+        self.assertIn("--news /tmp/news_wire.json", temporary)
+        self.assertIn("--previous candidate_agenda_history.json", temporary)
+        self.assertIn("--output /tmp/candidate_agenda_history.json", temporary)
+
+        promotion_text = self.text[promotion:]
+        self.assertIn("validate_candidate_agenda_history(", promotion_text)
+        self.assertIn("current_agenda_history != agenda_history", promotion_text)
+        self.assertIn("TEMP_AGENDA_HISTORY", promotion_text)
+        self.assertIn("CURRENT_AGENDA_HISTORY", promotion_text)
+
+        commit = self.text[self.text.index("- name: Commit changed rolling news data"):]
+        self.assertIn("candidate_agenda_history.json", commit)
+        self.assertIn(
+            '"origin/$target_branch:candidate_agenda_history.json"', commit
+        )
+        self.assertIn("--previous /tmp/candidate_agenda_history-upstream.json", commit)
+        final = commit[commit.index("final_published_at="):]
+        self.assertGreaterEqual(
+            final.count("python -B build_candidate_agenda_history.py"), 2
+        )
+        self.assertIn("--check", final)
 
 
     def test_push_retries_only_transient_commit_refs_failure(self):
