@@ -51,7 +51,7 @@ class UnifiedTooltipContractTests(unittest.TestCase):
         self.assertIn('marker.setAttribute("aria-hidden", "true")', marker_block)
 
     def test_known_explanatory_terms_have_deliberate_focus_triggers(self):
-        for target_id in ("context-poll-meta",):
+        for target_id in ("context-poll-meta", "masthead-countdown"):
             tag = re.search(
                 rf'<[^>]+id="{target_id}"[^>]+>', INDEX, re.S
             )
@@ -142,6 +142,10 @@ class UnifiedTooltipContractTests(unittest.TestCase):
             "window.innerWidth - tooltipRect.width - viewportGap",
         ):
             self.assertIn(required, UI_CSS + UI_JS)
+
+    def test_countdown_freshness_tooltip_gets_extra_right_edge_inset(self):
+        self.assertIn('trigger.id === "masthead-countdown" ? 24 : 0', UI_JS)
+        self.assertIn('window.innerWidth - tooltipRect.width - viewportGap - rightEdgeInset', UI_JS)
 
     def test_passive_tooltip_surface_has_no_workspace_override(self):
         local_styles = [

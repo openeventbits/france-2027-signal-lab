@@ -7479,11 +7479,7 @@
         </div>
       </div>
       <div class="masthead-tools">
-        <div class="masthead-data" aria-live="polite" aria-busy="true">
-          <span id="masthead-updated" aria-label="Loading snapshot publication time"><i class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:150px"></i></span>
-          <span id="masthead-lanes" aria-label="Loading dataset lane metadata"><i class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:220px"></i></span>
-        </div>
-        <div class="masthead-countdown" data-clock-target="first" data-i18n-aria-label="dashboard.first_round_election_countdown" aria-label="First-round election countdown">
+        <div class="masthead-countdown" id="masthead-countdown" data-clock-target="first" data-i18n-aria-label="dashboard.first_round_election_countdown" aria-label="First-round election countdown" data-fr27-tooltip="Loading snapshot and evidence freshness" tabindex="0">
           <span class="masthead-countdown-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false">
               <rect x="4" y="6" width="16" height="14" rx="2"></rect>
@@ -8427,27 +8423,31 @@
     function renderMastheadMetadata() {
       const manifest = dashboardState.manifest;
       const manifestLoading = dashboardState.loadState.manifest === "loading";
+      const countdown = $("#masthead-countdown");
+      if (!countdown) return;
+
       if (manifestLoading) {
-        renderInlineSkeleton("#masthead-updated", "Loading snapshot publication time", "150px", "8px");
-      } else {
-        renderResolvedText(
-          "#masthead-updated",
-          manifest && Number.isFinite(dashboardTimestamp(manifest.published_at))
-            ? "Snapshot published " + formatMastheadParisDateTime(manifest.published_at)
-            : "Snapshot publication unavailable"
+        countdown.setAttribute(
+          "data-fr27-tooltip",
+          "Loading snapshot and evidence freshness"
         );
+        countdown.setAttribute("aria-busy", "true");
+        return;
       }
 
+      const snapshotLabel =
+        manifest && Number.isFinite(dashboardTimestamp(manifest.published_at))
+          ? "Snapshot published " + formatMastheadParisDateTime(manifest.published_at)
+          : "Snapshot publication unavailable";
       const summaries = mastheadLaneSummaries(manifest);
-      if (manifestLoading) {
-        renderInlineSkeleton("#masthead-lanes", "Loading dataset lane metadata", "220px", "8px");
-      } else {
-        renderResolvedText(
-          "#masthead-lanes",
-          summaries.length ? summaries.join(" · ") : "Lane metadata unavailable"
-        );
-      }
-      $(".masthead-data")?.setAttribute("aria-busy", String(manifestLoading));
+      const laneLabel =
+        summaries.length ? summaries.join(" · ") : "Lane metadata unavailable";
+
+      countdown.setAttribute(
+        "data-fr27-tooltip",
+        snapshotLabel + " · " + laneLabel
+      );
+      countdown.removeAttribute("aria-busy");
     }
 
     function pollFieldworkLabel(event) {
