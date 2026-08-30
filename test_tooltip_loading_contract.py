@@ -94,6 +94,37 @@ class UnifiedTooltipContractTests(unittest.TestCase):
                 rf'<button[^>]+aria-label="{re.escape(label)}"[^>]+data-fr27-tooltip',
             )
 
+    def test_hud_metrics_have_explicit_explanatory_info_triggers(self):
+        expected = {
+            "fr27-hud-domains-info":
+                "Approved publisher domains configured in the FR27 source universe.",
+            "fr27-hud-polls-info":
+                "Distinct first-round poll packages in the loaded poll corpus, not pollsters.",
+            "fr27-hud-publishers-info":
+                "Distinct publishers represented in accepted election news during the current Media Pulse source window.",
+        }
+
+        for trigger_id, tooltip_prefix in expected.items():
+            tag = re.search(
+                rf'<span[^>]+id="{trigger_id}"[^>]+>',
+                INDEX,
+                re.S,
+            )
+            self.assertIsNotNone(tag)
+            markup = tag.group(0)
+            self.assertIn("data-fr27-tooltip", markup)
+            self.assertIn(
+                'data-fr27-tooltip-affordance="term"',
+                markup,
+            )
+            self.assertIn('tabindex="0"', markup)
+            self.assertIn(tooltip_prefix, markup)
+            self.assertNotIn("fr27-info-glyph", markup)
+            self.assertNotIn('aria-hidden="true"', markup)
+
+        self.assertIn("<span>domains</span>", INDEX)
+        self.assertIn("<span>polls</span>", INDEX)
+        self.assertIn("<span>PUBLISHERS</span>", INDEX)
     def test_semantic_metadata_avoids_repeated_passive_tooltips(self):
         helper = CANDIDATES[
             CANDIDATES.index("function semanticMetadata") :

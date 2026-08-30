@@ -690,6 +690,36 @@
   white-space: nowrap;
 }
 
+.candidate-signals-agenda-head {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.candidate-signals-agenda-info {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(93, 162, 194, 0.68);
+  border-radius: 50%;
+  background: rgba(7, 28, 43, 0.76);
+  color: #8fcbd8;
+  font: 700 8px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  text-decoration: none;
+  cursor: help;
+}
+
+.candidate-signals-agenda-info:hover,
+.candidate-signals-agenda-info:focus-visible {
+  border-color: var(--final-cyan, #35d8ff);
+  color: #dff9ff;
+  outline: 1px solid rgba(53, 216, 255, 0.46);
+  outline-offset: 1px;
+}
 .candidate-signals-poll-evidence-info,
 .candidate-signals-poll-history-info {
   width: 14px;
