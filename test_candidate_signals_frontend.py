@@ -15,24 +15,24 @@ SHELL_CSS = ROOT / "assets" / "final-dashboard-shell.css"
 
 VIEW_NAMES = [
     "candidates",
-    "runoff",
-    "events",
     "agenda",
+    "events",
     "issues",
+    "runoff",
 ]
 TAB_IDS = [
     "signal-candidates-tab",
-    "signal-runoff-tab",
-    "signal-events-tab",
     "signal-agenda-tab",
+    "signal-events-tab",
     "signal-issues-tab",
+    "signal-runoff-tab",
 ]
 PANEL_IDS = [
     "signal-candidates-panel",
-    "signal-runoff-panel",
-    "signal-events-panel",
     "signal-agenda-panel",
+    "signal-events-panel",
     "signal-issues-panel",
+    "signal-runoff-panel",
 ]
 
 
@@ -46,13 +46,13 @@ source = source.replace(
   ""
 );
 const input = JSON.parse(fs.readFileSync(0, "utf8"));
-const names = ["candidates", "runoff", "events", "agenda", "issues"];
+const names = ["candidates", "agenda", "events", "issues", "runoff"];
 const panelIds = [
   "signal-candidates-panel",
-  "signal-runoff-panel",
-  "signal-events-panel",
   "signal-agenda-panel",
-  "signal-issues-panel"
+  "signal-events-panel",
+  "signal-issues-panel",
+  "signal-runoff-panel"
 ];
 const panels = Object.fromEntries(panelIds.map(id => [id, { id, hidden: true }]));
 const tabs = names.map((name, index) => ({
@@ -477,15 +477,15 @@ const candidateRoot = {
 };
 const panelIds = [
   "signal-candidates-panel",
-  "signal-runoff-panel",
-  "signal-events-panel",
   "signal-agenda-panel",
-  "signal-issues-panel"
+  "signal-events-panel",
+  "signal-issues-panel",
+  "signal-runoff-panel"
 ];
 const panels = Object.fromEntries(
   panelIds.map(id => [id, { id, hidden: true }])
 );
-const names = ["candidates", "runoff", "events", "agenda", "issues"];
+const names = ["candidates", "agenda", "events", "issues", "runoff"];
 const tabs = names.map((name, index) => ({
   dataset: { hybridView: name },
   attributes: { "aria-controls": panelIds[index] },
@@ -655,9 +655,9 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
                     "#signal-candidates",
                 ),
                 (
-                    "runoff",
-                    "RUNOFF",
-                    "#signal-runoff",
+                    "agenda",
+                    "AGENDA",
+                    "#signal-agenda",
                 ),
                 (
                     "events",
@@ -665,14 +665,14 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
                     "#signal-events",
                 ),
                 (
-                    "agenda",
-                    "AGENDA",
-                    "#signal-agenda",
-                ),
-                (
                     "issues",
                     "ISSUES",
                     "#signal-issues",
+                ),
+                (
+                    "runoff",
+                    "RUNOFF",
+                    "#signal-runoff",
                 ),
             ],
         )
@@ -1115,10 +1115,10 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
     def test_direct_hashes_and_hashchange_activate_recognized_views(self):
         hashes = [
             "#signal-candidates",
-            "#signal-runoff",
-            "#signal-events",
             "#signal-agenda",
+            "#signal-events",
             "#signal-issues",
+            "#signal-runoff",
         ]
 
         for tab_id, hash_value in zip(
@@ -1177,10 +1177,10 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
             VIEW_NAMES,
             [
                 "candidates",
-                "runoff",
-                "events",
                 "agenda",
+                "events",
                 "issues",
+                "runoff",
             ],
         )
 
