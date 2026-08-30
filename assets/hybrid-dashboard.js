@@ -47,21 +47,6 @@
       tabId: "signal-candidates-tab",
       panelId: "signal-candidates-panel"
     },
-    runoff: {
-      label: translate("signal_board.runoff", "RUNOFF"),
-      title: translate("signal_board.closest_runoff", "Closest Runoff"),
-      hash: "#signal-runoff",
-      tabId: "signal-runoff-tab",
-      panelId: "signal-runoff-panel",
-      index: "1"
-    },
-    events: {
-      label: "EVENTS",
-      title: translate("signal_board.campaign_events", "Campaign Events"),
-      hash: "#signal-events",
-      tabId: "signal-events-tab",
-      panelId: "signal-events-panel"
-    },
     agenda: {
       label: "AGENDA",
       title: translate("signal_board.campaign_agenda", "Campaign Agenda"),
@@ -70,12 +55,27 @@
       panelId: "signal-agenda-panel",
       index: "3"
     },
+    events: {
+      label: "EVENTS",
+      title: translate("signal_board.campaign_events", "Campaign Events"),
+      hash: "#signal-events",
+      tabId: "signal-events-tab",
+      panelId: "signal-events-panel"
+    },
     issues: {
       label: "ISSUES",
       title: "Policy Issues",
       hash: "#signal-issues",
       tabId: "signal-issues-tab",
       panelId: "signal-issues-panel"
+    },
+    runoff: {
+      label: translate("signal_board.runoff", "RUNOFF"),
+      title: translate("signal_board.closest_runoff", "Closest Runoff"),
+      hash: "#signal-runoff",
+      tabId: "signal-runoff-tab",
+      panelId: "signal-runoff-panel",
+      index: "1"
     },
   });
   const viewOrder = Object.keys(views);

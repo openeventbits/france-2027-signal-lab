@@ -34,7 +34,7 @@ class RemoveClaimScrutinyWorkspaceTests(unittest.TestCase):
         )
         self.assertEqual(
             keys,
-            ["candidates", "runoff", "events", "agenda", "issues"],
+            ["candidates", "agenda", "events", "issues", "runoff"],
         )
 
     def test_claims_is_absent_from_view_registry_and_surface(self):
