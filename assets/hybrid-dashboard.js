@@ -106,6 +106,11 @@
       payload: null,
       reason: null
     },
+    candidateAgendaHistory: {
+      status: "loading",
+      payload: null,
+      reason: null
+    },
     scrollOnNextHash: false
   };
   const runoffArchiveState = {
@@ -224,6 +229,38 @@
         renderCandidateSignalsPanel();
 
         return candidateVisibilityHistoryState;
+      });
+
+  const candidateAgendaHistoryRequest =
+    Promise.resolve()
+      .then(() => {
+        const loader =
+          window.France2027CandidateAgendaHistory;
+
+        return loader
+          ? loader.load("candidate_agenda_history.json")
+          : {
+            status: "unavailable",
+            payload: null,
+            reason: "history_loader_unavailable"
+          };
+      })
+      .then(candidateAgendaHistoryState => {
+        state.candidateAgendaHistory =
+          candidateAgendaHistoryState;
+        renderCandidateSignalsPanel();
+        return candidateAgendaHistoryState;
+      })
+      .catch(() => {
+        const candidateAgendaHistoryState = {
+          status: "unavailable",
+          payload: null,
+          reason: "fetch_failed"
+        };
+        state.candidateAgendaHistory =
+          candidateAgendaHistoryState;
+        renderCandidateSignalsPanel();
+        return candidateAgendaHistoryState;
       });
 
   const number = value => Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -7458,6 +7495,8 @@
           state.candidateAttention,
         candidateVisibilityHistory:
           state.candidateVisibilityHistory,
+        candidateAgendaHistory:
+          state.candidateAgendaHistory,
         resolvePortrait:
           resolveCandidateSignalsPortrait
       }

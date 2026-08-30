@@ -380,7 +380,6 @@ def complete_inputs(root):
             "schema_version": 1,
             "generated_at": (
                 date.fromisoformat(agenda_history["tracking"]["data_as_of"])
-                + timedelta(days=1)
             ).isoformat()
             + "T08:03:00Z",
             "discovery": {
@@ -650,14 +649,17 @@ class PublicationManifestTests(unittest.TestCase):
         news_path = self.root / "news_wire.json"
         news = json.loads(news_path.read_text(encoding="utf-8"))
         news["generated_at"] = (
-            date.fromisoformat(
-                candidate_agenda_history_payload()["tracking"]["data_as_of"]
+            (
+                date.fromisoformat(
+                    candidate_agenda_history_payload()["tracking"]["data_as_of"]
+                )
+                + timedelta(days=1)
             ).isoformat()
             + "T08:03:00Z"
         )
         write_json(self.root, "news_wire.json", news)
         with self.assertRaisesRegex(
-            manifest_builder.ManifestError, "completed News Wire horizon"
+            manifest_builder.ManifestError, "current News Wire publication day"
         ):
             self.build()
 

@@ -37,14 +37,20 @@ class CandidateAgendaHistoryContractTests(unittest.TestCase):
         )
         self.assertEqual(self.payload["schema_version"], "1.0")
         news = json.loads((ROOT / "news_wire.json").read_text(encoding="utf-8"))
-        expected_as_of = (
-            datetime.fromisoformat(news["generated_at"].replace("Z", "+00:00")).date()
-            - timedelta(days=1)
+        expected_as_of = datetime.fromisoformat(
+            news["generated_at"].replace("Z", "+00:00")
+        ).date().isoformat()
+        expected_start = (
+            datetime.fromisoformat(expected_as_of).date()
+            - timedelta(days=29)
         ).isoformat()
-        self.assertEqual(self.payload["tracking"]["start_date"], "2026-08-20")
+        self.assertEqual(
+            self.payload["tracking"]["start_date"],
+            expected_start,
+        )
         self.assertEqual(self.payload["tracking"]["data_as_of"], expected_as_of)
         self.assertEqual(self.payload["tracking"]["day_boundary"], "UTC")
-        self.assertIs(self.payload["tracking"]["current_utc_day_excluded"], True)
+        self.assertIs(self.payload["tracking"]["current_utc_day_excluded"], False)
         self.assertEqual(
             [(row["id"], row["label"]) for row in self.payload["taxonomies"]["policy"]],
             [

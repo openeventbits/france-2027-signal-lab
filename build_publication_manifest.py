@@ -830,13 +830,12 @@ def _validate_candidate_agenda_history_news_horizon(
     generated_at = _utc_timestamp(
         news.get("generated_at"), field="news.generated_at"
     )
-    expected = (
-        datetime.fromisoformat(generated_at.replace("Z", "+00:00")).date()
-        - timedelta(days=1)
-    ).isoformat()
+    expected = datetime.fromisoformat(
+        generated_at.replace("Z", "+00:00")
+    ).date().isoformat()
     if history["tracking"]["data_as_of"] != expected:
         raise ManifestError(
-            "candidate_agenda_history data_as_of does not match the completed News Wire horizon"
+            "candidate_agenda_history data_as_of does not match the current News Wire publication day"
         )
 
 

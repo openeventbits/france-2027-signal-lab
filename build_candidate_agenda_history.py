@@ -17,7 +17,6 @@ from candidate_agenda_history_contract import (
     POLICY_MIN_NONZERO_TOPICS,
     POLICY_TAXONOMY,
     SCHEMA_VERSION,
-    TRACKING_START,
     CandidateAgendaHistoryContractError,
     serialize_candidate_agenda_history,
     validate_candidate_agenda_history,
@@ -35,7 +34,7 @@ from fetch_news_wire import (
 )
 
 
-RECOMPUTABLE_COMPLETE_DAYS = 29
+RECOMPUTABLE_CALENDAR_DAYS = 30
 
 
 class CandidateAgendaHistoryBuildError(ValueError):
@@ -265,25 +264,20 @@ def build_candidate_agenda_history(
             "news window_days must provide at least 30 UTC calendar days"
         )
     generated_day = _utc_datetime(generated_at, field="news.generated_at").date()
-    data_as_of = generated_day - timedelta(days=1)
-    global_start = date.fromisoformat(TRACKING_START)
-    if data_as_of < global_start:
-        raise CandidateAgendaHistoryBuildError(
-            "news completed-day horizon predates the frozen tracking start"
-        )
+    data_as_of = generated_day
     recomputable_start = data_as_of - timedelta(
-        days=RECOMPUTABLE_COMPLETE_DAYS - 1
+        days=RECOMPUTABLE_CALENDAR_DAYS - 1
     )
 
     previous_by_id: dict[str, dict[str, Any]] = {}
     if previous is None:
-        if global_start < recomputable_start:
-            raise CandidateAgendaHistoryBuildError(
-                "initial history cannot reconstruct every day from the frozen tracking start"
-            )
+        global_start = recomputable_start
     else:
         try:
             validate_candidate_agenda_history(previous)
+            global_start = date.fromisoformat(
+                previous["tracking"]["start_date"]
+            )
         except CandidateAgendaHistoryContractError as error:
             raise CandidateAgendaHistoryBuildError(
                 f"previous Candidate Agenda History is invalid: {error}"
@@ -354,10 +348,10 @@ def build_candidate_agenda_history(
     payload = {
         "schema_version": SCHEMA_VERSION,
         "tracking": {
-            "start_date": TRACKING_START,
+            "start_date": global_start.isoformat(),
             "data_as_of": data_as_of.isoformat(),
             "day_boundary": DAY_BOUNDARY,
-            "current_utc_day_excluded": True,
+            "current_utc_day_excluded": False,
         },
         "methodology": dict(METHODOLOGY),
         "taxonomies": {

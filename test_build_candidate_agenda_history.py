@@ -191,7 +191,10 @@ class CandidateAgendaHistoryBuildTests(unittest.TestCase):
             generated="2026-08-30T20:00:00Z",
             previous=second,
         )
-        self.assertEqual(len(candidate(second, "alice")["daily_series"]), 10)
+        self.assertEqual(
+            len(candidate(second, "alice")["daily_series"]),
+            len(candidate(first, "alice")["daily_series"]) + 1,
+        )
         self.assertEqual(serialize_candidate_agenda_history(second), serialize_candidate_agenda_history(third))
 
     def test_settled_days_older_than_recomputable_window_survive(self):
@@ -216,9 +219,12 @@ class CandidateAgendaHistoryBuildTests(unittest.TestCase):
         with self.assertRaisesRegex(CandidateAgendaHistoryBuildError, "previous.*invalid"):
             build(previous=malformed)
 
-    def test_initial_build_fails_when_frozen_start_is_unreconstructable(self):
-        with self.assertRaisesRegex(CandidateAgendaHistoryBuildError, "initial history"):
-            build(generated="2026-09-19T01:00:00Z")
+    def test_initial_build_starts_at_earliest_reconstructable_complete_day(self):
+        result = build(generated="2026-09-19T01:00:00Z")
+        self.assertEqual(
+            result["tracking"]["start_date"],
+            "2026-08-21",
+        )
 
     def test_rename_preserves_stable_id_history(self):
         first = build(
@@ -247,7 +253,10 @@ class CandidateAgendaHistoryBuildTests(unittest.TestCase):
             [], generated="2026-09-20T01:00:00Z", roster=BASE_CANDIDATES, previous=first
         )
         self.assertEqual(candidate(second, "bob")["tracking_start"], "2026-08-22")
-        self.assertEqual(candidate(second, "alice")["tracking_start"], "2026-08-20")
+        self.assertEqual(
+            candidate(second, "alice")["tracking_start"],
+            first["tracking"]["start_date"],
+        )
 
     def test_uncontrolled_candidate_identity_fails_closed(self):
         with self.assertRaisesRegex(CandidateAgendaHistoryBuildError, "uncontrolled"):

@@ -10,7 +10,6 @@ from fetch_news_wire import CAMPAIGN_AGENDA_TOPICS, POLICY_AGENDA_TOPICS
 
 
 SCHEMA_VERSION = "1.0"
-TRACKING_START = "2026-08-20"
 DAY_BOUNDARY = "UTC"
 POLICY_MIN_NONZERO_TOPICS = 3
 
@@ -165,11 +164,10 @@ def validate_candidate_agenda_history(
         {"start_date", "data_as_of", "day_boundary", "current_utc_day_excluded"},
         field="tracking",
     )
-    if tracking["start_date"] != TRACKING_START:
-        raise CandidateAgendaHistoryContractError(
-            f"tracking.start_date must equal {TRACKING_START}"
-        )
-    tracking_start = _date(tracking["start_date"], field="tracking.start_date")
+    tracking_start = _date(
+        tracking["start_date"],
+        field="tracking.start_date",
+    )
     data_as_of = _date(tracking["data_as_of"], field="tracking.data_as_of")
     if data_as_of < tracking_start:
         raise CandidateAgendaHistoryContractError(
@@ -179,9 +177,9 @@ def validate_candidate_agenda_history(
         raise CandidateAgendaHistoryContractError(
             f"tracking.day_boundary must equal {DAY_BOUNDARY}"
         )
-    if tracking["current_utc_day_excluded"] is not True:
+    if tracking["current_utc_day_excluded"] is not False:
         raise CandidateAgendaHistoryContractError(
-            "tracking.current_utc_day_excluded must be true"
+            "tracking.current_utc_day_excluded must be false"
         )
     if payload["methodology"] != METHODOLOGY:
         raise CandidateAgendaHistoryContractError(

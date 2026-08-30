@@ -141,6 +141,23 @@
     return `${dateText} · ${timeText} UTC`;
   }
 
+  function formatCompactDayMonth(value) {
+    if (!hasValue(value)) return MISSING;
+    const date = new Date(`${value}T00:00:00Z`);
+    if (!Number.isFinite(date.getTime())) return String(value);
+
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "short",
+      timeZone: "UTC"
+    }).formatToParts(date);
+    const day = parts.find(part => part.type === "day")?.value;
+    const month = parts.find(part => part.type === "month")?.value;
+    return day && month
+      ? `${day} ${month.slice(0, 3).toUpperCase()}`
+      : String(value);
+  }
+
   function formatDateRange(startValue, endValue) {
     if (!hasValue(startValue) && !hasValue(endValue)) return MISSING;
     if (!hasValue(startValue)) return formatDisplayDate(endValue);
@@ -1027,42 +1044,48 @@
     return card;
   }
 
-  function agendaSummaryCard(candidate) {
-    const profile = candidate.agenda_profile;
+  function agendaSummaryCard(
+    profile,
+    {
+      title,
+      countField,
+      metadata,
+      emptyMessage
+    }
+  ) {
     const card = summaryCard(
-      "AGENDA PROFILE",
+      title,
       "candidate-signals-agenda-summary"
     );
 
-    if (!profile) return card;
-
-    const mode = profile.profile_mode === "policy"
-      ? "POLICY"
-      : "CAMPAIGN";
-    const semantics = profile.profile_mode === "policy"
-      ? POLICY_AGENDA_SEMANTICS
-      : CAMPAIGN_AGENDA_SEMANTICS;
-    const period = formatDateRange(
-      profile.period_start,
-      profile.period_end
-    );
-    const metadata = `${mode} · ${profile.window_days}D · ${
-      numberText(profile.association_count)
-    } LINKS · ${period} — ${semantics}`;
+    if (!profile) {
+      card.setAttribute(
+        "aria-label",
+        `${title} — ${emptyMessage}`
+      );
+      card.append(
+        createElement(
+          "p",
+          "candidate-signals-card-state candidate-signals-agenda-empty",
+          emptyMessage
+        )
+      );
+      return card;
+    }
 
     card.setAttribute("data-fr27-tooltip", metadata);
     card.setAttribute("tabindex", "0");
     card.setAttribute(
       "aria-label",
-      `AGENDA PROFILE — ${metadata}`
+      `${title} — ${metadata}`
     );
 
     const ranked = [];
 
     for (const topic of profile.topics) {
       if (
-        !hasValue(topic.association_count) ||
-        Number(topic.association_count) <= 0
+        !hasValue(topic[countField]) ||
+        Number(topic[countField]) <= 0
       ) {
         continue;
       }
@@ -1071,8 +1094,8 @@
 
       for (let index = 0; index < ranked.length; index += 1) {
         if (
-          Number(topic.association_count) >
-          Number(ranked[index].association_count)
+          Number(topic[countField]) >
+          Number(ranked[index][countField])
         ) {
           ranked.splice(index, 0, topic);
           inserted = true;
@@ -1094,7 +1117,7 @@
         createElement(
           "p",
           "candidate-signals-card-state candidate-signals-agenda-empty",
-          "No classified topic coverage in the current 30-day window."
+          emptyMessage
         )
       );
       return card;
@@ -1143,6 +1166,94 @@
 
     card.append(list);
     return card;
+  }
+
+  function currentAgendaSummaryCard(candidate) {
+    const profile = candidate.agenda_profile;
+    if (!profile) return null;
+
+    const mode = profile.profile_mode === "policy"
+      ? "POLICY"
+      : "CAMPAIGN";
+    const semantics = profile.profile_mode === "policy"
+      ? POLICY_AGENDA_SEMANTICS
+      : CAMPAIGN_AGENDA_SEMANTICS;
+    const period = formatDateRange(
+      profile.period_start,
+      profile.period_end
+    );
+    const metadata = `${mode} · ${profile.window_days}D · ${
+      numberText(profile.association_count)
+    } LINKS · ${period} — ${semantics}`;
+
+    return agendaSummaryCard(
+      profile,
+      {
+        title: "AGENDA PROFILE · 30D",
+        countField: "association_count",
+        metadata,
+        emptyMessage:
+          "No classified topic coverage in the current 30-day window."
+      }
+    );
+  }
+
+  function historicalAgendaSummaryCard(
+    candidate,
+    historyState
+  ) {
+    const candidates = historyState?.status === "ready"
+      ? historyState.payload?.candidates
+      : null;
+    const record = Array.isArray(candidates)
+      ? candidates.find(
+        item => item.candidate_id === candidate.candidate_id
+      )
+      : null;
+    const title = record
+      ? `AGENDA PROFILE · SINCE ${
+        formatCompactDayMonth(record.tracking_start)
+      }`
+      : "AGENDA PROFILE · SINCE TRACKING";
+    const unavailableMessage =
+      "Cumulative Agenda Profile is unavailable for this candidate.";
+
+    if (!record?.cumulative_profile) {
+      return agendaSummaryCard(
+        null,
+        {
+          title,
+          countField: "count",
+          metadata: "",
+          emptyMessage: unavailableMessage
+        }
+      );
+    }
+
+    const profile = record.cumulative_profile;
+    const mode = profile.profile_mode === "policy"
+      ? "POLICY"
+      : "CAMPAIGN";
+    const period = formatDateRange(
+      profile.period_start,
+      profile.period_end
+    );
+    const metadata = `${mode} · ${
+      numberText(profile.association_count)
+    } LINKS · ${period} — Cumulative Agenda Profile since ${
+      formatDisplayDate(record.tracking_start)
+    }, through ${formatDisplayDate(profile.period_end)}, based on accepted News Wire evidence. Policy mode is used when at least 3 substantive policy topics are observed; otherwise campaign-topic fallback is used. Displays the four leading non-zero topics. Coverage/topic evidence, not candidate support or sentiment.`;
+
+    return agendaSummaryCard(
+      profile,
+      {
+        title,
+        countField: "count",
+        metadata,
+        emptyMessage:
+          "No classified topic coverage since tracking began."
+      }
+    );
   }
 
 
@@ -3491,6 +3602,7 @@
     metadata,
     attentionState,
     visibilityHistoryState,
+    agendaHistoryState,
     onOpenScrutiny
   ) {
     const section = createElement(
@@ -3514,9 +3626,7 @@
       "div",
       "candidate-signals-analysis-cards has-poll-history"
     );
-    const agendaProfile = candidate.agenda_profile
-      ? agendaSummaryCard(candidate)
-      : null;
+    const agendaProfile = currentAgendaSummaryCard(candidate);
 
     if (agendaProfile) {
       cards.className += " has-agenda-profile";
@@ -3524,6 +3634,10 @@
         pollSummaryCard(candidate, metadata),
         pollHistorySummaryCard(candidate),
         agendaProfile,
+        historicalAgendaSummaryCard(
+          candidate,
+          agendaHistoryState
+        ),
         attentionSummaryCard(
           candidate,
           visibilityHistoryState
@@ -4676,6 +4790,8 @@
             options.candidateAttention,
           candidateVisibilityHistory:
             options.candidateVisibilityHistory,
+          candidateAgendaHistory:
+            options.candidateAgendaHistory,
           onOpenScrutiny:
             options.onOpenScrutiny
         });
@@ -4702,6 +4818,7 @@
         state.metadata || {},
         options.candidateAttention,
         options.candidateVisibilityHistory,
+        options.candidateAgendaHistory,
         options.onOpenScrutiny
       ),
       candidateDossier(selectedCandidate, state.metadata || {}, options)

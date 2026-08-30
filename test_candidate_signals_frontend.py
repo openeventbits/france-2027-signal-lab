@@ -9,6 +9,8 @@ ROOT = Path(__file__).resolve().parent
 INDEX = ROOT / "index.html"
 HYBRID_JS = ROOT / "assets" / "hybrid-dashboard.js"
 CANDIDATE_JS = ROOT / "assets" / "candidate-signals.js"
+AGENDA_HISTORY_JS = ROOT / "assets" / "candidate-agenda-history.js"
+AGENDA_HISTORY_JSON = ROOT / "candidate_agenda_history.json"
 SHELL_CSS = ROOT / "assets" / "final-dashboard-shell.css"
 
 VIEW_NAMES = [
@@ -396,6 +398,65 @@ vm.runInNewContext(
     return json.loads(completed.stdout)
 
 
+def run_agenda_history_module(expression, payload=None, fetch_mode="success"):
+    script = r"""
+const fs = require("fs");
+const vm = require("vm");
+const input = JSON.parse(fs.readFileSync(0, "utf8"));
+const windowObject = {};
+windowObject.fetch = async () => {
+  if (input.fetchMode === "fetch_failed") throw new Error("private network text");
+  if (input.fetchMode === "http_error") {
+    return { ok: false, status: 503, json: async () => input.payload };
+  }
+  if (input.fetchMode === "malformed_json") {
+    return {
+      ok: true,
+      status: 200,
+      json: async () => { throw new SyntaxError("private parser text"); }
+    };
+  }
+  return { ok: true, status: 200, json: async () => input.payload };
+};
+const context = {
+  window: windowObject,
+  Date,
+  Object,
+  Array,
+  Set,
+  Number,
+  Promise
+};
+vm.runInNewContext(
+  fs.readFileSync("assets/candidate-agenda-history.js", "utf8"),
+  context
+);
+(async () => {
+  const api = context.window.France2027CandidateAgendaHistory;
+  const result = await eval(input.expression);
+  process.stdout.write(JSON.stringify(result));
+})().catch(error => {
+  process.stderr.write(String(error && error.stack || error));
+  process.exit(1);
+});
+"""
+    completed = subprocess.run(
+        ["node", "-e", script],
+        input=json.dumps(
+            {
+                "expression": expression,
+                "payload": payload,
+                "fetchMode": fetch_mode,
+            }
+        ),
+        cwd=ROOT,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+    return json.loads(completed.stdout)
+
+
 def run_hybrid_candidate_integration(load_mode, expression):
     script = r"""
 const fs = require("fs");
@@ -408,6 +469,8 @@ source = source.replace(
 );
 let loadCount = 0;
 const loadedUrls = [];
+let agendaLoadCount = 0;
+const agendaLoadedUrls = [];
 const candidateRoot = {
   attributes: {},
   setAttribute(key, value) { this.attributes[key] = String(value); }
@@ -462,6 +525,17 @@ const windowObject = {
         reason: null
       });
     }
+  },
+  France2027CandidateAgendaHistory: {
+    load(url) {
+      agendaLoadCount += 1;
+      agendaLoadedUrls.push(url);
+      return Promise.resolve({
+        status: "unavailable",
+        payload: null,
+        reason: null
+      });
+    }
   }
 };
 const context = {
@@ -500,6 +574,8 @@ const context = {
 };
 vm.runInNewContext(source, context);
 (async () => {
+  await Promise.resolve();
+  await Promise.resolve();
   await Promise.resolve();
   await Promise.resolve();
   const api = context.window.hybridDashboard;
@@ -1142,6 +1218,9 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
         cls.html = INDEX.read_text(encoding="utf-8")
         cls.hybrid_js = HYBRID_JS.read_text(encoding="utf-8")
         cls.candidate_js = CANDIDATE_JS.read_text(encoding="utf-8")
+        cls.agenda_history_js = AGENDA_HISTORY_JS.read_text(
+            encoding="utf-8"
+        )
 
     def test_module_exists_and_loads_before_dashboard(self):
         self.assertTrue(CANDIDATE_JS.is_file())
@@ -1152,6 +1231,85 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
             self.html.index(candidate_script),
             self.html.index(dashboard_script),
         )
+
+        history_script = (
+            '<script src="assets/candidate-agenda-history.js"></script>'
+        )
+        self.assertTrue(AGENDA_HISTORY_JS.is_file())
+        self.assertIn(history_script, self.html)
+        self.assertLess(
+            self.html.index(history_script),
+            self.html.index(dashboard_script),
+        )
+
+    def test_agenda_history_optional_loader_validates_published_artifact(self):
+        published = json.loads(
+            AGENDA_HISTORY_JSON.read_text(encoding="utf-8")
+        )
+        result = run_agenda_history_module(
+            """(() => {
+              const state = api.normalize(input.payload);
+              return {
+                status: state.status,
+                candidateCount: state.payload.candidates.length,
+                samePayload: state.payload === input.payload
+              };
+            })()""",
+            published,
+        )
+        self.assertEqual(result, {
+            "status": "ready",
+            "candidateCount": len(published["candidates"]),
+            "samePayload": True,
+        })
+
+    def test_agenda_history_malformed_optional_payload_fails_locally(self):
+        published = json.loads(
+            AGENDA_HISTORY_JSON.read_text(encoding="utf-8")
+        )
+        malformed = []
+
+        duplicate = json.loads(json.dumps(published))
+        duplicate["candidates"].append(duplicate["candidates"][0])
+        malformed.append(duplicate)
+
+        invalid_mode = json.loads(json.dumps(published))
+        invalid_mode["candidates"][0]["cumulative_profile"][
+            "profile_mode"
+        ] = "mixed"
+        malformed.append(invalid_mode)
+
+        invalid_count = json.loads(json.dumps(published))
+        invalid_count["candidates"][0]["cumulative_profile"][
+            "topics"
+        ][0]["count"] = -1
+        malformed.append(invalid_count)
+
+        invalid_share = json.loads(json.dumps(published))
+        invalid_share["candidates"][0]["cumulative_profile"][
+            "topics"
+        ][0]["share"] = 1.01
+        malformed.append(invalid_share)
+
+        for payload_value in malformed:
+            with self.subTest():
+                state = run_agenda_history_module(
+                    "api.normalize(input.payload)",
+                    payload_value,
+                )
+                self.assertEqual(state, {
+                    "status": "unavailable",
+                    "payload": None,
+                    "reason": "invalid_payload",
+                })
+
+        failure = run_agenda_history_module(
+            'api.load("candidate_agenda_history.json")',
+            published,
+            fetch_mode="fetch_failed",
+        )
+        self.assertEqual(failure["status"], "unavailable")
+        self.assertIsNone(failure["payload"])
 
     def test_exact_namespace_frozen_api_and_states(self):
         result = run_candidate_module(
@@ -1743,6 +1901,45 @@ class CandidateSignalsDataModelStageB1Tests(unittest.TestCase):
             "candidate_signals.json",
             self.hybrid_js[interaction_start:interaction_end],
         )
+
+    def test_agenda_history_loads_once_during_initialization_not_tabs(self):
+        result = run_hybrid_candidate_integration(
+            "resolve",
+            """(() => {
+              api.setActiveSignalView("events");
+              api.setActiveSignalView("candidates");
+              api.setActiveSignalView("candidates");
+              return { agendaLoadCount, agendaLoadedUrls };
+            })()""",
+        )
+        self.assertEqual(result, {
+            "agendaLoadCount": 1,
+            "agendaLoadedUrls": ["candidate_agenda_history.json"],
+        })
+        self.assertEqual(
+            self.hybrid_js.count(
+                '.load("candidate_agenda_history.json")'
+            ),
+            1,
+        )
+        interaction_start = self.hybrid_js.index(
+            "  function bindInteractions()"
+        )
+        interaction_end = self.hybrid_js.index(
+            "  function renderTopMediaPulsePanel(", interaction_start
+        )
+        self.assertNotIn(
+            "candidate_agenda_history.json",
+            self.hybrid_js[interaction_start:interaction_end],
+        )
+        self.assertNotIn("fetch(", self.hybrid_js[
+            self.hybrid_js.index("const candidateAgendaHistoryRequest"):
+            self.hybrid_js.index(
+                "  const number = value", self.hybrid_js.index(
+                    "const candidateAgendaHistoryRequest"
+                )
+            )
+        ])
 
     def test_candidate_failure_isolated_from_dashboard_initialization(self):
         result = run_hybrid_candidate_integration(
