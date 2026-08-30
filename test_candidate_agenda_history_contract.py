@@ -40,10 +40,9 @@ class CandidateAgendaHistoryContractTests(unittest.TestCase):
         expected_as_of = datetime.fromisoformat(
             news["generated_at"].replace("Z", "+00:00")
         ).date().isoformat()
-        expected_start = (
-            datetime.fromisoformat(expected_as_of).date()
-            - timedelta(days=29)
-        ).isoformat()
+        # Historical start is persistent published state, not a rolling
+        # derivation from the current 30-day recomputable window.
+        expected_start = "2026-07-31"
         self.assertEqual(
             self.payload["tracking"]["start_date"],
             expected_start,
