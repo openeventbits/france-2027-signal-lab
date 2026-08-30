@@ -3845,7 +3845,7 @@ h1 {
   --fr27-desktop-hero-height: 400px;
   --fr27-desktop-context-height: 66px;
   --fr27-desktop-context-inline-padding: 14px;
-  --fr27-desktop-context-icon-size: 32px;
+  --fr27-desktop-context-icon-size: 34px;
   --fr27-desktop-context-label-size: 9.6px;
   --fr27-desktop-context-value-size: 13.5px;
   --fr27-desktop-tab-height: 44px;
@@ -3885,7 +3885,7 @@ h1 {
     --fr27-desktop-countdown-min-height: 48px;
     --fr27-desktop-countdown-value-size: 26px;
     --fr27-desktop-context-inline-padding: 10px;
-    --fr27-desktop-context-icon-size: 28px;
+    --fr27-desktop-context-icon-size: 30px;
     --fr27-desktop-context-label-size: 9px;
     --fr27-desktop-context-value-size: 12.5px;
     --fr27-desktop-tab-font-size: 9.5px;
@@ -3926,7 +3926,7 @@ h1 {
     --fr27-desktop-countdown-value-size: 23px;
     --fr27-desktop-hero-gap: 6px;
     --fr27-desktop-context-inline-padding: 7px;
-    --fr27-desktop-context-icon-size: 24px;
+    --fr27-desktop-context-icon-size: 26px;
     --fr27-desktop-context-label-size: 8.25px;
     --fr27-desktop-context-value-size: 11.5px;
     --fr27-desktop-tab-font-size: 9px;
@@ -4055,6 +4055,10 @@ h1 {
   }
 
   .context-cell {
+    grid-template-columns:
+      var(--fr27-desktop-context-icon-size)
+      minmax(0, 1fr);
+    column-gap: 10px;
     min-height: calc(var(--fr27-desktop-context-height) - 2px);
     padding-right: var(--fr27-desktop-context-inline-padding);
     padding-left: var(--fr27-desktop-context-inline-padding);
@@ -4063,6 +4067,11 @@ h1 {
   .context-icon {
     width: var(--fr27-desktop-context-icon-size);
     height: var(--fr27-desktop-context-icon-size);
+  }
+
+  .context-icon svg {
+    width: calc(var(--fr27-desktop-context-icon-size) - 2px);
+    height: calc(var(--fr27-desktop-context-icon-size) - 2px);
   }
 
   .context-label {

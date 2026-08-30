@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urljoin, urlsplit
 from urllib.request import Request, urlopen
+from xml.etree import ElementTree
 
 from fetch_news_wire import SOURCES
 
@@ -49,6 +50,7 @@ MIME_EXTENSIONS = {
     "image/vnd.microsoft.icon": ".ico",
     "image/webp": ".webp",
     "image/jpeg": ".jpg",
+    "image/svg+xml": ".svg",
 }
 
 
@@ -260,6 +262,88 @@ def detect_icon_extension(
         return "image/jpeg", ".jpg"
 
     return None
+
+
+def png_dimensions(content: bytes) -> tuple[int, int] | None:
+    """Return PNG width/height when an IHDR header is available."""
+
+    if (
+        len(content) < 24
+        or not content.startswith(b"\x89PNG\r\n\x1a\n")
+        or content[12:16] != b"IHDR"
+    ):
+        return None
+
+    return (
+        int.from_bytes(content[16:20], "big"),
+        int.from_bytes(content[20:24], "big"),
+    )
+
+
+def png_is_placeholder(content: bytes) -> bool:
+    """Reject known transparent/tracking-style one-pixel PNG assets."""
+
+    dimensions = png_dimensions(content)
+
+    return (
+        dimensions is not None
+        and min(dimensions) <= 1
+    )
+
+
+def safe_static_svg_icon(content: bytes) -> bool:
+    """Accept only self-contained, non-scriptable SVG icon content."""
+
+    try:
+        root = ElementTree.fromstring(content)
+    except ElementTree.ParseError:
+        return False
+
+    def local_name(value: str) -> str:
+        return value.rsplit("}", 1)[-1].lower()
+
+    if local_name(root.tag) != "svg":
+        return False
+
+    forbidden_elements = {
+        "script",
+        "foreignobject",
+        "iframe",
+        "object",
+        "embed",
+    }
+
+    for element in root.iter():
+        if local_name(element.tag) in forbidden_elements:
+            return False
+
+        for raw_name, raw_value in element.attrib.items():
+            name = local_name(raw_name)
+            value = str(raw_value).strip().lower()
+
+            if name.startswith("on"):
+                return False
+
+            if "javascript:" in value:
+                return False
+
+            # SVG icons may use internal fragment references (#id),
+            # but must not fetch external resources.
+            if name == "href" and value and not value.startswith("#"):
+                return False
+
+            if (
+                "url(" in value
+                and (
+                    "http:" in value
+                    or "https:" in value
+                    or "data:" in value
+                    or "//" in value
+                )
+            ):
+                return False
+
+    return True
 
 
 def manifest_icon_candidates(
@@ -840,10 +924,27 @@ def valid_cached_record(
 
     cached_path = repository_root / relative_path
 
-    return (
-        cached_path.is_file()
-        and cached_path.stat().st_size >= MIN_ICON_BYTES
-    )
+    if (
+        not cached_path.is_file()
+        or cached_path.stat().st_size < MIN_ICON_BYTES
+    ):
+        return False
+
+    try:
+        content = cached_path.read_bytes()
+    except OSError:
+        return False
+
+    if png_is_placeholder(content):
+        return False
+
+    if (
+        cached_path.suffix.lower() == ".svg"
+        and not safe_static_svg_icon(content)
+    ):
+        return False
+
+    return True
 
 
 def retrieve_source_icon(
@@ -897,6 +998,19 @@ def retrieve_source_icon(
                 )
 
             mime_type, extension = detected
+
+            if extension == ".png" and png_is_placeholder(content):
+                dimensions = png_dimensions(content)
+                raise RuntimeError(
+                    "PNG icon dimensions are unusably small "
+                    f"({dimensions[0]}x{dimensions[1]})"
+                )
+
+            if extension == ".svg" and not safe_static_svg_icon(content):
+                raise RuntimeError(
+                    "SVG icon is malformed or contains unsafe/external content"
+                )
+
             filename = slugify(publisher) + extension
             destination = icons_dir / filename
 
