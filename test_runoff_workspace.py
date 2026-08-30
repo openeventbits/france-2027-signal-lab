@@ -1191,7 +1191,7 @@ class RunoffIsolationAndStaticContractTests(unittest.TestCase):
 
     def test_tab_panel_hash_and_aria_contract_is_stable(self):
         runoff_config = re.search(
-            r"runoff:\s*\{(?P<body>.*?)\n\s*\},\n\s*events:",
+            r"runoff:\s*\{(?P<body>.*?)\n\s*\},",
             self.js,
             re.DOTALL,
         )
@@ -1204,6 +1204,26 @@ class RunoffIsolationAndStaticContractTests(unittest.TestCase):
             self.assertIn(contract, runoff_config.group("body"))
         self.assertIn('id="signal-runoff-panel" role="tabpanel" aria-labelledby="signal-runoff-tab"', self.js)
         self.assertIn('data-hybrid-view="${key}" aria-controls="${views[key].panelId}"', self.js)
+
+    def test_workspace_navigation_order_is_intentional(self):
+        views_config = re.search(
+            r"const views = Object\.freeze\(\{(?P<body>.*?)\n  \}\);",
+            self.js,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(views_config)
+
+        keys = re.findall(
+            r"^\s{4}(candidates|agenda|events|issues|runoff):\s*\{",
+            views_config.group("body"),
+            re.MULTILINE,
+        )
+
+        self.assertEqual(
+            keys,
+            ["candidates", "agenda", "events", "issues", "runoff"],
+        )
+        self.assertIn("const viewOrder = Object.keys(views);", self.js)
 
     def test_archive_load_and_join_contract_is_exact(self):
         self.assertEqual(self.js.count('loadRunoffArchive();'), 1)
