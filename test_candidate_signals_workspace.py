@@ -3520,10 +3520,27 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             candidate_attention=attention,
         )
 
-        bars = result["wikipediaPointTitles"]
+        tooltips = result["wikipediaPointTitles"]
 
-        self.assertEqual(len(bars), 30)
-        self.assertTrue(all(title is None for title in bars))
+        self.assertEqual(len(tooltips), 30)
+        self.assertTrue(
+            all(title is not None for title in tooltips)
+        )
+        self.assertEqual(
+            tooltips[0],
+            "8 Jul 2026 · 501 pageviews",
+        )
+        self.assertEqual(
+            tooltips[7],
+            "15 Jul 2026 · 3,333 pageviews",
+        )
+        self.assertEqual(
+            tooltips[-1],
+            "6 Aug 2026 · 530 pageviews",
+        )
+        self.assertFalse(
+            any("99,999" in title for title in tooltips)
+        )
         self.assertIn(
             "French Wikipedia daily pageviews",
             result["wikipediaChartAriaLabel"],

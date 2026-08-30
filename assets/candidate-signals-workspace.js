@@ -3351,7 +3351,14 @@
             : 2.7
       );
 
-      marker.setAttribute("aria-hidden", "true");
+      const tooltip = `${formatDisplayDate(
+        point.date
+      )} · ${groupedNumberText(
+        point.views
+      )} pageviews`;
+
+      marker.setAttribute("aria-label", tooltip);
+      marker.setAttribute("data-fr27-tooltip", tooltip);
 
       svg.append(marker);
     });

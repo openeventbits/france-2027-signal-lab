@@ -47,8 +47,22 @@ class UnifiedTooltipContractTests(unittest.TestCase):
         marker_block = CANDIDATES[
             marker_start : CANDIDATES.index('svg.append(marker);', marker_start)
         ]
-        self.assertNotIn("data-fr27-tooltip", marker_block)
-        self.assertIn('marker.setAttribute("aria-hidden", "true")', marker_block)
+        self.assertIn(
+            'marker.setAttribute("aria-label", tooltip)',
+            marker_block,
+        )
+        self.assertIn(
+            'marker.setAttribute("data-fr27-tooltip", tooltip)',
+            marker_block,
+        )
+        self.assertNotIn(
+            'marker.setAttribute("aria-hidden", "true")',
+            marker_block,
+        )
+        self.assertNotIn(
+            'marker.setAttribute("tabindex"',
+            marker_block,
+        )
 
     def test_known_explanatory_terms_have_deliberate_focus_triggers(self):
         for target_id in ("context-poll-meta", "masthead-countdown"):
