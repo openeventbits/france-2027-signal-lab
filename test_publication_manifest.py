@@ -3,6 +3,7 @@ import json
 import shutil
 import unittest
 import uuid
+from datetime import date, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -76,6 +77,12 @@ def candidate_visibility_history_payload():
             ROOT
             / "candidate_visibility_history.json"
         ).read_text(encoding="utf-8")
+    )
+
+
+def candidate_agenda_history_payload():
+    return json.loads(
+        (ROOT / "candidate_agenda_history.json").read_text(encoding="utf-8")
     )
 
 
@@ -294,6 +301,7 @@ def complete_inputs(root):
     source_news = json.loads(
         (ROOT / "news_wire.json").read_text(encoding="utf-8")
     )
+    agenda_history = candidate_agenda_history_payload()
     write_json(root, "candidate_signals.json", candidate_signals_payload())
     write_json(
         root,
@@ -317,6 +325,11 @@ def complete_inputs(root):
         root,
         "candidate_visibility_history.json",
         candidate_visibility_history_payload(),
+    )
+    write_json(
+        root,
+        "candidate_agenda_history.json",
+        agenda_history,
     )
     write_json(
         root,
@@ -365,7 +378,10 @@ def complete_inputs(root):
         "news_wire.json",
         {
             "schema_version": 1,
-            "generated_at": "2026-07-25T08:03:00Z",
+            "generated_at": (
+                date.fromisoformat(agenda_history["tracking"]["data_as_of"])
+            ).isoformat()
+            + "T08:03:00Z",
             "discovery": {
                 "approved_publisher_domains": 202,
             },
@@ -501,7 +517,7 @@ class PublicationManifestTests(unittest.TestCase):
 
     def test_valid_complete_inputs(self):
         manifest = self.build()
-        self.assertEqual(manifest["schema_version"], "1.4")
+        self.assertEqual(manifest["schema_version"], "1.5")
         self.assertEqual(manifest["published_at"], PUBLISHED_AT)
         self.assertEqual(
             set(manifest["lanes"]),
@@ -509,6 +525,7 @@ class PublicationManifestTests(unittest.TestCase):
                 "candidacy_status",
                 "campaign_events",
                 "candidate_attention",
+                "candidate_agenda_history",
                 "candidate_signals",
                 "candidate_visibility_history",
                 "polls",
@@ -599,6 +616,53 @@ class PublicationManifestTests(unittest.TestCase):
             ).hexdigest(),
         )
 
+    def test_candidate_agenda_history_lane_metadata(self):
+        manifest = self.build()
+        lane = manifest["lanes"]["candidate_agenda_history"]
+        source = self.root / "candidate_agenda_history.json"
+        source_payload = json.loads(source.read_text(encoding="utf-8"))
+        canonical = canonical_source_bytes(source)
+        self.assertEqual(lane["file"], "candidate_agenda_history.json")
+        self.assertTrue(lane["available"])
+        self.assertTrue(lane["valid"])
+        self.assertEqual(lane["schema_version"], "1.0")
+        self.assertEqual(
+            lane["data_as_of"], source_payload["tracking"]["data_as_of"]
+        )
+        self.assertEqual(lane["timestamp_status"], "unknown")
+        self.assertEqual(lane["record_count"], len(source_payload["candidates"]))
+        self.assertEqual(lane["byte_size"], len(canonical))
+        self.assertEqual(lane["sha256"], hashlib.sha256(canonical).hexdigest())
+
+    def test_candidate_agenda_history_candidacy_parity(self):
+        source = self.root / "candidate_agenda_history.json"
+        payload = json.loads(source.read_text(encoding="utf-8"))
+        payload["candidates"][0]["candidate_name"] += " Changed"
+        write_json(self.root, "candidate_agenda_history.json", payload)
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError,
+            "candidate_agenda_history candidacy parity",
+        ):
+            self.build()
+
+    def test_candidate_agenda_history_news_horizon_must_match(self):
+        news_path = self.root / "news_wire.json"
+        news = json.loads(news_path.read_text(encoding="utf-8"))
+        news["generated_at"] = (
+            (
+                date.fromisoformat(
+                    candidate_agenda_history_payload()["tracking"]["data_as_of"]
+                )
+                + timedelta(days=1)
+            ).isoformat()
+            + "T08:03:00Z"
+        )
+        write_json(self.root, "news_wire.json", news)
+        with self.assertRaisesRegex(
+            manifest_builder.ManifestError, "current News Wire publication day"
+        ):
+            self.build()
+
 
     def test_candidate_visibility_history_candidacy_parity(self):
         source = (
@@ -641,6 +705,7 @@ class PublicationManifestTests(unittest.TestCase):
             [
                 "campaign_events",
                 "candidacy_status",
+                "candidate_agenda_history",
                 "candidate_attention",
                 "candidate_signals",
                 "candidate_visibility_history",

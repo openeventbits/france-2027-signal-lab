@@ -349,12 +349,74 @@ def candidate_visibility_history_state(
         },
     }
 
+
+def candidate_agenda_history_state(rows, profiles=None):
+    profiles = profiles or {}
+    candidates = []
+
+    for index, row in enumerate(rows):
+        tracking_start = (
+            "2026-08-20" if index == 0 else "2026-09-04"
+        )
+        profile = profiles.get(row["candidate_id"])
+        if profile is None:
+            profile = {
+                "profile_mode": "campaign",
+                "period_start": tracking_start,
+                "period_end": "2026-09-12",
+                "day_count": 24 if index == 0 else 9,
+                "association_count": 6 + index,
+                "topics": [
+                    {
+                        "id": "polls_race",
+                        "label": "Polling & race narratives",
+                        "count": 4 + index,
+                        "share": round((4 + index) / (6 + index), 6),
+                    },
+                    {
+                        "id": "selection_strategy",
+                        "label": "Primaries & party strategy",
+                        "count": 2,
+                        "share": round(2 / (6 + index), 6),
+                    },
+                    {
+                        "id": "legal_eligibility",
+                        "label": "Legal cases & eligibility",
+                        "count": 0,
+                        "share": 0.0,
+                    },
+                ],
+            }
+        candidates.append(
+            {
+                "candidate_id": row["candidate_id"],
+                "tracking_start": tracking_start,
+                "cumulative_profile": profile,
+            }
+        )
+
+    return {
+        "status": "ready",
+        "reason": None,
+        "payload": {
+            "schema_version": "1.0",
+            "tracking": {
+                "start_date": "2026-08-20",
+                "data_as_of": "2026-09-12",
+                "day_boundary": "UTC",
+                "current_utc_day_excluded": False,
+            },
+            "candidates": candidates,
+        },
+    }
+
 def run_workspace(
     input_payload,
     selected_id=None,
     action=None,
     candidate_attention=None,
     candidate_visibility_history=None,
+    candidate_agenda_history=None,
 ):
     script = r"""
 const fs = require("fs");
@@ -483,6 +545,8 @@ function renderCurrent() {
     candidateAttention: input.candidateAttention,
     candidateVisibilityHistory:
       input.candidateVisibilityHistory,
+    candidateAgendaHistory:
+      input.candidateAgendaHistory,
     onSelect(candidateId) {
       selectCalls.push(candidateId);
       selected = candidateId;
@@ -598,6 +662,12 @@ function details() {
     analysisCardTitles:
       mount.querySelectorAll(".candidate-signals-analysis-card-title")
         .map(node => node.textContent),
+    analysisCardClasses:
+      mount.querySelectorAll(".candidate-signals-analysis-card")
+        .map(node => node.className),
+    pollEvidenceInfoTooltip:
+      mount.querySelector(".candidate-signals-poll-evidence-info")
+        ?.getAttribute("data-fr27-tooltip") || null,
     analysisBodyOrder:
       analysisBody
         ? analysisBody.children.map(node => node.className)
@@ -661,12 +731,88 @@ function details() {
     agendaTopicTexts:
       mount.querySelectorAll(".candidate-signals-agenda-topic")
         .map(node => node.textContent),
+    agendaCardHeadings:
+      mount.querySelectorAll(".candidate-signals-agenda-summary")
+        .map(node =>
+          node.querySelector(".candidate-signals-analysis-card-title")
+            ?.textContent || null
+        ),
+    agendaCardClasses:
+      mount.querySelectorAll(".candidate-signals-agenda-summary")
+        .map(node => node.className),
+    agendaCardStructures:
+      mount.querySelectorAll(".candidate-signals-agenda-summary")
+        .map(node => node.children.map(child => child.className)),
+    agendaCardTooltips:
+      mount.querySelectorAll(".candidate-signals-agenda-summary")
+        .map(node => node.getAttribute("data-fr27-tooltip") || null),
+    agendaTopicTextsByCard:
+      mount.querySelectorAll(".candidate-signals-agenda-summary")
+        .map(node =>
+          node.querySelectorAll(".candidate-signals-agenda-topic")
+            .map(topic => topic.textContent)
+        ),
     agendaCardTitle:
       mount.querySelector(".candidate-signals-agenda-summary")
         ?.getAttribute("data-fr27-tooltip") || null,
     agendaCardAria:
       mount.querySelector(".candidate-signals-agenda-summary")
         ?.getAttribute("aria-label") || null,
+    pollHistoryPointCount:
+      mount.querySelector(".candidate-signals-poll-history-summary")
+        ?.querySelectorAll(".candidate-signals-poll-history-point").length || 0,
+    pollHistoryRangeCount:
+      mount.querySelector(".candidate-signals-poll-history-summary")
+        ?.querySelectorAll(".candidate-signals-poll-history-range").length || 0,
+    pollHistoryMarkerTitles:
+      (
+        mount.querySelector(".candidate-signals-poll-history-summary")
+          ?.querySelectorAll(".candidate-signals-poll-history-point") || []
+      ).map(node => node.getAttribute("data-fr27-tooltip") || null),
+    pollHistoryRangeTitles:
+      (
+        mount.querySelector(".candidate-signals-poll-history-summary")
+          ?.querySelectorAll(".candidate-signals-poll-history-range") || []
+      ).map(node => node.getAttribute("data-fr27-tooltip") || null),
+    pollHistoryChartAria:
+      mount.querySelector(".candidate-signals-poll-history-chart")
+        ?.getAttribute("aria-label") || null,
+    pollHistoryChartViewBox:
+      mount.querySelector(".candidate-signals-poll-history-chart")
+        ?.getAttribute("viewBox") || null,
+    pollHistoryTags:
+      (
+        mount.querySelector(".candidate-signals-poll-history-summary")
+          ?.querySelectorAll("svg") || []
+      ).flatMap(svg => {
+        const nodes = [];
+        const collect = node => {
+          nodes.push(node.tagName);
+          node.children.forEach(collect);
+        };
+        collect(svg);
+        return nodes;
+      }),
+    pollHistoryCount:
+      mount.querySelector(".candidate-signals-poll-history-count")
+        ?.textContent || null,
+    pollHistoryInfoTooltip:
+      mount.querySelector(".candidate-signals-poll-history-info")
+        ?.getAttribute("data-fr27-tooltip") || null,
+    pollHistoryInfoAria:
+      mount.querySelector(".candidate-signals-poll-history-info")
+        ?.getAttribute("aria-label") || null,
+    pollHistoryInfoTag:
+      mount.querySelector(".candidate-signals-poll-history-info")
+        ?.tagName || null,
+    pollHistoryLegend:
+      mount.querySelector(".candidate-signals-poll-history-legend")
+        ?.textContent || null,
+    pollHistoryFooterCount:
+      mount.querySelectorAll(".candidate-signals-poll-history-meta").length,
+    pollHistoryState:
+      mount.querySelector(".candidate-signals-poll-history-state")
+        ?.textContent || null,
     attentionRowTexts:
       mount.querySelectorAll(".candidate-signals-attention-row")
         .map(node => node.textContent),
@@ -787,6 +933,8 @@ process.stdout.write(JSON.stringify(details()));
                 "candidateAttention": candidate_attention,
                 "candidateVisibilityHistory":
                     candidate_visibility_history,
+                "candidateAgendaHistory":
+                    candidate_agenda_history,
             }
         ),
         cwd=ROOT,
@@ -1061,10 +1209,17 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         css = '<link rel="stylesheet" href="assets/candidate-signals.css">'
         model = '<script src="assets/candidate-signals.js"></script>'
         workspace = '<script src="assets/candidate-signals-workspace.js"></script>'
+        agenda_history = (
+            '<script src="assets/candidate-agenda-history.js"></script>'
+        )
         dashboard = '<script src="assets/hybrid-dashboard.js"></script>'
         self.assertLess(self.html.index(shell), self.html.index(css))
         self.assertLess(self.html.index(model), self.html.index(workspace))
         self.assertLess(self.html.index(workspace), self.html.index(dashboard))
+        self.assertLess(
+            self.html.index(agenda_history),
+            self.html.index(dashboard),
+        )
 
     def test_frozen_namespace_exposes_exactly_render(self):
         result = run_workspace(payload(self.rows))
@@ -1776,7 +1931,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         result = run_workspace(payload(self.rows))
         self.assertEqual(result["monitorListCount"], 1)
         self.assertEqual(result["buttonCount"], 3)
-        self.assertEqual(result["tags"].count("BUTTON"), 5)
+        self.assertEqual(result["tags"].count("BUTTON"), 7)
         self.assertIn("View full evidence →", result["text"])
         self.assertNotIn("TABLE", result["tags"])
         self.assertIn('button.setAttribute("aria-pressed", String(selected));', self.workspace_js)
@@ -1984,7 +2139,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         )
         self.assertIn(
             "No current general visibility evidence.",
-            result["analysisCardTexts"][1],
+            result["analysisCardTexts"][2],
         )
         self.assertEqual(result["attentionTrackCount"], 1)
 
@@ -2050,7 +2205,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
 
         result = run_workspace(source, selected_id)
 
-        attention = result["analysisCardTexts"][1]
+        attention = result["analysisCardTexts"][2]
         self.assertIn(
             "No current campaign/election evidence.",
             attention,
@@ -2058,7 +2213,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         self.assertIn("General visibility25%", attention)
         self.assertEqual(result["attentionTrackCount"], 1)
 
-        coverage = result["analysisCardTexts"][2]
+        coverage = result["analysisCardTexts"][3]
         self.assertIn(
             "No campaign/election evidence observed in the current period.",
             coverage,
@@ -2105,7 +2260,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             "No current campaign/election or general visibility evidence."
         )
 
-        self.assertIn(expected, result["analysisCardTexts"][1])
+        self.assertIn(expected, result["analysisCardTexts"][2])
         self.assertEqual(result["attentionTrackCount"], 0)
 
         self.assertIn(expected, result["dossierCardTexts"][0])
@@ -2113,7 +2268,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
 
         self.assertIn(
             "No campaign/election evidence observed in the current period.",
-            result["analysisCardTexts"][2],
+            result["analysisCardTexts"][3],
         )
         self.assertIn(
             "No campaign/election evidence observed in the current period.",
@@ -2161,13 +2316,13 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
 
         self.assertIn(
             "No current campaign/election evidence.",
-            result["analysisCardTexts"][1],
+            result["analysisCardTexts"][2],
         )
-        self.assertNotIn("99 REC", result["analysisCardTexts"][1])
+        self.assertNotIn("99 REC", result["analysisCardTexts"][2])
 
         self.assertIn(
             "No campaign/election evidence observed in the current period.",
-            result["analysisCardTexts"][2],
+            result["analysisCardTexts"][3],
         )
 
         self.assertEqual(result["dossierScopeCellCount"], 0)
@@ -2301,7 +2456,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
 
         self.assertIn(
             "No scrutiny evidence is currently published.",
-            absent_result["analysisCardTexts"][3],
+            absent_result["analysisCardTexts"][4],
         )
         self.assertIn(
             "No scrutiny evidence is currently published.",
@@ -2343,7 +2498,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         self.assertEqual(zero_result["dossierScrutinyMetricCount"], 6)
         self.assertNotIn(
             "No scrutiny evidence is currently published.",
-            zero_result["analysisCardTexts"][3],
+            zero_result["analysisCardTexts"][4],
         )
         self.assertNotIn(
             "No scrutiny evidence is currently published.",
@@ -2384,7 +2539,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
     def test_populated_empty_state_redesign_preserves_existing_semantics(self):
         result = run_workspace(payload(self.rows), "zeta")
 
-        self.assertEqual(len(result["analysisCardTexts"]), 4)
+        self.assertEqual(len(result["analysisCardTexts"]), 5)
         self.assertEqual(len(result["dossierMetricTexts"]), 4)
         self.assertEqual(len(result["dossierCardTexts"]), 4)
 
@@ -2435,7 +2590,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         ):
             self.assertIn(label, text)
 
-        race_mix = result["analysisCardTexts"][2]
+        race_mix = result["analysisCardTexts"][3]
         self.assertIn("Campaign", race_mix)
         self.assertIn("Election", race_mix)
         self.assertNotIn("General", race_mix)
@@ -2521,7 +2676,9 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             result["analysisCardTitles"],
             [
                 "POLL EVIDENCE",
-                "AGENDA PROFILE",
+                "POLL HISTORY",
+                "AGENDA PROFILE · 30D",
+                "AGENDA PROFILE · SINCE TRACKING",
                 "CAMPAIGN ATTENTION",
                 "RACE COVERAGE MIX",
                 "SCRUTINY",
@@ -2550,7 +2707,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         )
         self.assertTrue(
             result["agendaCardAria"].startswith(
-                "AGENDA PROFILE — POLICY · 30D · 14 LINKS"
+                "AGENDA PROFILE · 30D — POLICY · 30D · 14 LINKS"
             )
         )
 
@@ -2617,7 +2774,9 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             result["analysisCardTitles"],
             [
                 "POLL EVIDENCE",
-                "AGENDA PROFILE",
+                "POLL HISTORY",
+                "AGENDA PROFILE · 30D",
+                "AGENDA PROFILE · SINCE TRACKING",
                 "CAMPAIGN ATTENTION",
                 "RACE COVERAGE MIX",
                 "SCRUTINY",
@@ -2649,13 +2808,312 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             result["agendaCardTitle"],
         )
 
-    def test_selected_analysis_has_exact_four_cards(self):
+    def test_historical_agenda_clones_current_structure_and_uses_backend_profile(self):
+        published = json.loads(
+            CANDIDATE_JSON.read_text(encoding="utf-8")
+        )
+        selected_id = published["active_monitoring_field"]["main"][0]
+        history = candidate_agenda_history_state(
+            published["candidates"]
+        )
+        record = next(
+            row for row in history["payload"]["candidates"]
+            if row["candidate_id"] == selected_id
+        )
+        record["cumulative_profile"] = {
+            "profile_mode": "campaign",
+            "period_start": record["tracking_start"],
+            "period_end": "2026-09-12",
+            "day_count": 24,
+            "association_count": 999,
+            "topics": [
+                {
+                    "id": "polls_race",
+                    "label": "Polling & race narratives",
+                    "count": 9,
+                    "share": 0.91,
+                },
+                {
+                    "id": "selection_strategy",
+                    "label": "Primaries & party strategy",
+                    "count": 8,
+                    "share": 0.72,
+                },
+                {
+                    "id": "legal_eligibility",
+                    "label": "Legal cases & eligibility",
+                    "count": 7,
+                    "share": 0.63,
+                },
+                {
+                    "id": "rules_calendar",
+                    "label": "Rules, calendar & campaign mechanics",
+                    "count": 6,
+                    "share": 0.54,
+                },
+                {
+                    "id": "positioning_integrity",
+                    "label": "Positioning & political image",
+                    "count": 5,
+                    "share": 0.45,
+                },
+            ],
+        }
+        selected = next(
+            row for row in published["candidates"]
+            if row["candidate_id"] == selected_id
+        )
+        selected["agenda_profile"] = {
+            "profile_mode": "campaign",
+            "window_days": 30,
+            "period_start": "2026-08-01",
+            "period_end": "2026-08-30",
+            "association_count": 15,
+            "topics": [
+                {
+                    "id": "legal_eligibility",
+                    "label": "Legal cases & eligibility",
+                    "association_count": 5,
+                    "share": 0.333333,
+                },
+                {
+                    "id": "selection_strategy",
+                    "label": "Primaries & party strategy",
+                    "association_count": 4,
+                    "share": 0.266667,
+                },
+                {
+                    "id": "candidacies_endorsements",
+                    "label": "Candidacies & endorsements",
+                    "association_count": 3,
+                    "share": 0.2,
+                },
+                {
+                    "id": "rules_calendar",
+                    "label": "Rules, calendar & campaign mechanics",
+                    "association_count": 2,
+                    "share": 0.133333,
+                },
+                {
+                    "id": "positioning_integrity",
+                    "label": "Positioning & political image",
+                    "association_count": 1,
+                    "share": 0.066667,
+                },
+                {
+                    "id": "polls_race",
+                    "label": "Polling & race narratives",
+                    "association_count": 0,
+                    "share": 0.0,
+                },
+            ],
+        }
+
+        result = run_workspace(
+            published,
+            selected_id,
+            candidate_agenda_history=history,
+        )
+
+        expected_since = (
+            "20 AUG" if record["tracking_start"] == "2026-08-20"
+            else "04 SEP"
+        )
+        self.assertEqual(result["analysisCardTitles"], [
+            "POLL EVIDENCE",
+            "POLL HISTORY",
+            "AGENDA PROFILE · 30D",
+            f"AGENDA PROFILE · SINCE {expected_since}",
+            "CAMPAIGN ATTENTION",
+            "RACE COVERAGE MIX",
+            "SCRUTINY",
+        ])
+        self.assertEqual(
+            result["agendaCardClasses"][0],
+            result["agendaCardClasses"][1],
+        )
+        self.assertEqual(
+            result["agendaCardStructures"][0],
+            result["agendaCardStructures"][1],
+        )
+        self.assertEqual(result["agendaTopicTextsByCard"][1], [
+            "Polling / race91%",
+            "Primaries / strategy72%",
+            "Legal / eligibility63%",
+            "Rules / calendar54%",
+        ])
+        self.assertNotIn(
+            "Positioning / image",
+            "".join(result["agendaTopicTextsByCard"][1]),
+        )
+        self.assertIn("CAMPAIGN · 999 LINKS", result["agendaCardTooltips"][1])
+        self.assertIn(
+            "based on accepted News Wire evidence",
+            result["agendaCardTooltips"][1],
+        )
+        self.assertIn(
+            "not candidate support or sentiment",
+            result["agendaCardTooltips"][1],
+        )
+
+    def test_historical_policy_profile_uses_policy_topics_without_mode_recomputation(self):
+        published = json.loads(
+            CANDIDATE_JSON.read_text(encoding="utf-8")
+        )
+        selected_id = published["active_monitoring_field"]["main"][0]
+        history = candidate_agenda_history_state(published["candidates"])
+        record = next(
+            row for row in history["payload"]["candidates"]
+            if row["candidate_id"] == selected_id
+        )
+        record["cumulative_profile"] = {
+            "profile_mode": "policy",
+            "period_start": record["tracking_start"],
+            "period_end": "2026-09-12",
+            "day_count": 24,
+            "association_count": 2,
+            "topics": [
+                {
+                    "id": "economy_public_finances",
+                    "label": "Economy & Public Finances",
+                    "count": 2,
+                    "share": 0.34,
+                },
+                {
+                    "id": "security_justice",
+                    "label": "Security & Justice",
+                    "count": 1,
+                    "share": 0.12,
+                },
+            ],
+        }
+
+        result = run_workspace(
+            published,
+            selected_id,
+            candidate_agenda_history=history,
+        )
+
+        self.assertEqual(result["agendaTopicTextsByCard"][1], [
+            "Economy / finances34%",
+            "Security / justice12%",
+        ])
+        self.assertIn("POLICY · 2 LINKS", result["agendaCardTooltips"][1])
+        self.assertNotIn(
+            "Polling / race",
+            "".join(result["agendaTopicTextsByCard"][1]),
+        )
+
+    def test_historical_agenda_unavailable_states_are_local(self):
+        published = json.loads(
+            CANDIDATE_JSON.read_text(encoding="utf-8")
+        )
+        selected_id = published["active_monitoring_field"]["main"][0]
+        ready_missing = candidate_agenda_history_state(
+            published["candidates"]
+        )
+        ready_missing["payload"]["candidates"] = [
+            row for row in ready_missing["payload"]["candidates"]
+            if row["candidate_id"] != selected_id
+        ]
+
+        for state in (
+            {
+                "status": "unavailable",
+                "payload": None,
+                "reason": "invalid_payload",
+            },
+            ready_missing,
+        ):
+            with self.subTest(reason=state["reason"]):
+                result = run_workspace(
+                    published,
+                    selected_id,
+                    candidate_agenda_history=state,
+                )
+                self.assertEqual(result["status"], "ready")
+                self.assertEqual(result["agendaCardHeadings"], [
+                    "AGENDA PROFILE · 30D",
+                    "AGENDA PROFILE · SINCE TRACKING",
+                ])
+                self.assertEqual(result["agendaTopicTextsByCard"][1], [])
+                self.assertNotIn(
+                    "Cumulative Agenda Profile is unavailable",
+                    result["analysisCardTexts"][2],
+                )
+                self.assertIn(
+                    "Cumulative Agenda Profile is unavailable",
+                    result["analysisCardTexts"][3],
+                )
+                self.assertEqual(
+                    result["analysisCardTitles"][4],
+                    "CAMPAIGN ATTENTION",
+                )
+
+    def test_candidate_switch_updates_historical_agenda_by_exact_id(self):
+        source = json.loads(
+            CANDIDATE_JSON.read_text(encoding="utf-8")
+        )
+        history = candidate_agenda_history_state(source["candidates"])
+
+        result = run_workspace(
+            source,
+            selected_id=None,
+            action="click-second",
+            candidate_agenda_history=history,
+        )
+
+        selected_after_switch = result["candidateOrder"][1]
+        self.assertEqual(result["resolved"], selected_after_switch)
+        record = next(
+            row for row in history["payload"]["candidates"]
+            if row["candidate_id"] == selected_after_switch
+        )
+        expected_since = (
+            "20 AUG" if record["tracking_start"] == "2026-08-20"
+            else "04 SEP"
+        )
+        self.assertEqual(
+            result["agendaCardHeadings"][1],
+            f"AGENDA PROFILE · SINCE {expected_since}",
+        )
+        expected_share = round(
+            record["cumulative_profile"]["topics"][0]["share"] * 100,
+            1,
+        )
+        self.assertIn(
+            f"{expected_share:g}%",
+            result["agendaTopicTextsByCard"][1][0],
+        )
+
+    def test_agenda_pair_geometry_reuses_shared_visual_rules(self):
+        source = self.css
+        self.assertIn(
+            "> .candidate-signals-agenda-summary:nth-child(4)",
+            source,
+        )
+        attention_rule = re.search(
+            r"\.candidate-signals-analysis-cards\.has-agenda-profile\s+"
+            r"> \.candidate-signals-attention-summary \{([^}]*)\}",
+            source,
+        )
+        self.assertIsNotNone(attention_rule)
+        self.assertIn("grid-column: 1 / -1;", attention_rule.group(1))
+        self.assertIn("@media (max-width: 560px)", source)
+        self.assertNotIn("historical-agenda-topic", source)
+        self.assertEqual(
+            self.workspace_js.count("candidate-signals-agenda-topic-fill"),
+            1,
+        )
+
+    def test_selected_analysis_has_poll_history_and_existing_cards(self):
         result = run_workspace(payload(self.rows))
 
         self.assertEqual(
             result["analysisCardTitles"],
             [
                 "POLL EVIDENCE",
+                "POLL HISTORY",
                 "CAMPAIGN ATTENTION",
                 "RACE COVERAGE MIX",
                 "SCRUTINY",
@@ -2663,6 +3121,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         )
         for required in (
             "function pollSummaryCard(candidate, metadata)",
+            "function pollHistorySummaryCard(candidate)",
             "function attentionSummaryCard(candidate, historyState)",
             "function scopeCompositionCard(candidate)",
             "function scrutinySummaryCard(candidate)",
@@ -2690,7 +3149,26 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             self.assertIn(label, result["text"])
 
         self.assertIn("2 hypotheses", result["text"])
-        self.assertIn("N=1,503", result["text"])
+        self.assertIn(
+            "Pollster: Example Pollster.",
+            result["pollEvidenceInfoTooltip"],
+        )
+        self.assertIn(
+            "Fieldwork: 9–10 Jul 2026.",
+            result["pollEvidenceInfoTooltip"],
+        )
+        self.assertIn(
+            "Sample: N=1,503.",
+            result["pollEvidenceInfoTooltip"],
+        )
+        self.assertIn(
+            "Package: 2 hypotheses.",
+            result["pollEvidenceInfoTooltip"],
+        )
+        self.assertIn(
+            "Published candidate range: 0%–6%.",
+            result["pollEvidenceInfoTooltip"],
+        )
         self.assertIn("PUBLISHED RANGE", result["text"])
         self.assertIn("0 REC · 2 PUB · 3 DAYS", result["text"])
         self.assertIn("Open latest source →", result["text"])
@@ -2698,6 +3176,180 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             "COVERAGE COMPOSITION · PUBLISHED SCOPE",
             result["text"],
         )
+
+    def test_poll_history_renders_package_observations_without_derivation(self):
+        published = json.loads(
+            CANDIDATE_JSON.read_text(encoding="utf-8")
+        )
+        selected_id = published["active_monitoring_field"]["main"][0]
+        selected = next(
+            row
+            for row in published["candidates"]
+            if row["candidate_id"] == selected_id
+        )
+        exact_package = ["Exact Pollster", "2026-07-01", "2026-07-02", 1000]
+        range_package = ["Range Pollster", "2026-07-10", "2026-07-11", 1200]
+        selected["poll_history"] = {
+            "evidence_state": "reported",
+            "observation_count": 2,
+            "period_start": "2026-07-01",
+            "period_end": "2026-07-11",
+            "observations": [
+                {
+                    "package_key": json.dumps(exact_package),
+                    "pollster": exact_package[0],
+                    "fieldwork_start": exact_package[1],
+                    "fieldwork_end": exact_package[2],
+                    "sample_size": exact_package[3],
+                    "hypothesis_count": 1,
+                    "selected_score": 21,
+                    "range_min": 21,
+                    "range_max": 21,
+                    "source_urls": ["https://example.test/exact"],
+                },
+                {
+                    "package_key": json.dumps(range_package),
+                    "pollster": range_package[0],
+                    "fieldwork_start": range_package[1],
+                    "fieldwork_end": range_package[2],
+                    "sample_size": range_package[3],
+                    "hypothesis_count": 3,
+                    "selected_score": None,
+                    "range_min": 10,
+                    "range_max": 14,
+                    "source_urls": ["https://example.test/range"],
+                },
+            ],
+        }
+
+        result = run_workspace(published, selected_id)
+
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["analysisCardTitles"][:2], [
+            "POLL EVIDENCE",
+            "POLL HISTORY",
+        ])
+        self.assertEqual(result["pollHistoryPointCount"], 1)
+        self.assertEqual(result["pollHistoryRangeCount"], 1)
+        self.assertNotIn("PATH", result["pollHistoryTags"])
+        self.assertNotIn("POLYLINE", result["pollHistoryTags"])
+        self.assertIn(
+            "exact selected-hypothesis score 21%",
+            result["pollHistoryMarkerTitles"][0],
+        )
+        self.assertIn(
+            "published package range 10%–14%",
+            result["pollHistoryRangeTitles"][0],
+        )
+        self.assertNotIn("12%", result["pollHistoryRangeTitles"][0])
+        self.assertIn(
+            "no averaging or interpolation",
+            result["pollHistoryChartAria"],
+        )
+        self.assertEqual(result["pollHistoryCount"], "2 OBS")
+        self.assertEqual(result["pollHistoryInfoTag"], "BUTTON")
+        self.assertIn(
+            "Observation count: 2.",
+            result["pollHistoryInfoTooltip"],
+        )
+        self.assertIn(
+            "Covered period: 1–11 Jul 2026.",
+            result["pollHistoryInfoTooltip"],
+        )
+        for statement in (
+            "Points = exact reported scores.",
+            "Bars = published ranges.",
+            "No averaging, smoothing or interpolation.",
+        ):
+            self.assertIn(statement, result["pollHistoryInfoTooltip"])
+            self.assertIn(statement, result["pollHistoryInfoAria"])
+        self.assertEqual(
+            result["pollHistoryLegend"],
+            "● exact│ published range",
+        )
+        self.assertEqual(result["pollHistoryChartViewBox"], "0 0 260 74")
+        self.assertEqual(result["pollHistoryFooterCount"], 0)
+
+    def test_poll_history_no_evidence_state_is_explicit(self):
+        published = json.loads(
+            CANDIDATE_JSON.read_text(encoding="utf-8")
+        )
+        selected_id = published["active_monitoring_field"]["main"][0]
+        selected = next(
+            row
+            for row in published["candidates"]
+            if row["candidate_id"] == selected_id
+        )
+        selected["poll_history"] = {
+            "evidence_state": "not_observed",
+            "observation_count": 0,
+            "period_start": None,
+            "period_end": None,
+            "observations": [],
+        }
+
+        result = run_workspace(published, selected_id)
+
+        self.assertEqual(
+            result["pollHistoryState"],
+            "No package-level poll history evidence.",
+        )
+        self.assertEqual(result["pollHistoryCount"], "0 OBS")
+        self.assertIn(
+            "Observation count: 0.",
+            result["pollHistoryInfoTooltip"],
+        )
+        self.assertIn(
+            "Covered period: No covered period.",
+            result["pollHistoryInfoTooltip"],
+        )
+        self.assertEqual(result["pollHistoryFooterCount"], 0)
+        self.assertEqual(result["pollHistoryPointCount"], 0)
+        self.assertEqual(result["pollHistoryRangeCount"], 0)
+
+    def test_optional_poll_history_failure_stays_local_to_its_card(self):
+        for case in ("malformed", "missing"):
+            with self.subTest(case=case):
+                published = json.loads(
+                    CANDIDATE_JSON.read_text(encoding="utf-8")
+                )
+                selected_id = published["active_monitoring_field"]["main"][0]
+                selected = next(
+                    row
+                    for row in published["candidates"]
+                    if row["candidate_id"] == selected_id
+                )
+                if case == "malformed":
+                    selected["poll_history"]["observation_count"] += 1
+                else:
+                    selected.pop("poll_history")
+
+                result = run_workspace(published, selected_id)
+
+                self.assertEqual(result["status"], "ready")
+                self.assertEqual(
+                    result["pollHistoryState"],
+                    "Poll history unavailable.",
+                )
+                self.assertIsNone(result["pollHistoryCount"])
+                self.assertIn(
+                    "Observation count: unavailable.",
+                    result["pollHistoryInfoTooltip"],
+                )
+                self.assertIn(
+                    "Covered period: Unavailable.",
+                    result["pollHistoryInfoTooltip"],
+                )
+                self.assertEqual(result["pollHistoryFooterCount"], 0)
+                self.assertEqual(result["analysisCardTitles"], [
+                    "POLL EVIDENCE",
+                    "POLL HISTORY",
+                    "AGENDA PROFILE · 30D",
+                    "AGENDA PROFILE · SINCE TRACKING",
+                    "CAMPAIGN ATTENTION",
+                    "RACE COVERAGE MIX",
+                    "SCRUTINY",
+                ])
 
     def test_selected_analysis_uses_comparative_attention_and_signal_states(self):
         source = self.workspace_js

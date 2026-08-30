@@ -120,9 +120,9 @@ class FrontendPublicationFactsTests(unittest.TestCase):
         manifest = json.loads(
             MANIFEST_PATH.read_text(encoding="utf-8")
         )
-        self.assertEqual(manifest["schema_version"], "1.4")
+        self.assertEqual(manifest["schema_version"], "1.5")
         self.assertIn(
-            'payload.schema_version !== "1.4"',
+            'payload.schema_version !== "1.5"',
             validator,
         )
         self.assertNotIn(
@@ -148,7 +148,7 @@ class FrontendPublicationFactsTests(unittest.TestCase):
 
         self.assertEqual(
             manifest["schema_version"],
-            "1.4",
+            "1.5",
         )
         self.assertEqual(
             lane["file"],
@@ -191,7 +191,7 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             CANDIDATE_SIGNALS_PATH.read_text(encoding="utf-8")
         )
         lane = manifest["lanes"]["candidate_signals"]
-        self.assertEqual(manifest["schema_version"], "1.4")
+        self.assertEqual(manifest["schema_version"], "1.5")
         self.assertEqual(
             lane["schema_version"],
             candidate["schema_version"],
