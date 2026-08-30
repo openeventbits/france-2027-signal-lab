@@ -745,7 +745,10 @@ function details() {
         .map(node => node.children.map(child => child.className)),
     agendaCardTooltips:
       mount.querySelectorAll(".candidate-signals-agenda-summary")
-        .map(node => node.getAttribute("data-fr27-tooltip") || null),
+        .map(node =>
+          node.querySelector(".candidate-signals-agenda-info")
+            ?.getAttribute("data-fr27-tooltip") || null
+        ),
     agendaTopicTextsByCard:
       mount.querySelectorAll(".candidate-signals-agenda-summary")
         .map(node =>
@@ -754,6 +757,7 @@ function details() {
         ),
     agendaCardTitle:
       mount.querySelector(".candidate-signals-agenda-summary")
+        ?.querySelector(".candidate-signals-agenda-info")
         ?.getAttribute("data-fr27-tooltip") || null,
     agendaCardAria:
       mount.querySelector(".candidate-signals-agenda-summary")
@@ -3086,6 +3090,79 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             result["agendaTopicTextsByCard"][1][0],
         )
 
+    def test_agenda_profile_cards_have_visible_info_markers(self):
+        source = self.workspace_js
+
+        agenda_helper = source[
+            source.index("function agendaSummaryCard") :
+            source.index("function currentAgendaSummaryCard")
+        ]
+
+        self.assertIn(
+            '"button",\n        "candidate-signals-agenda-info",\n        "i"',
+            agenda_helper,
+        )
+        self.assertIn(
+            'info.setAttribute("type", "button")',
+            agenda_helper,
+        )
+        self.assertIn(
+            "explanatoryMetadata(\n        info,\n        metadata,",
+            agenda_helper,
+        )
+        self.assertIn(
+            "heading.append(titleNode, info)",
+            agenda_helper,
+        )
+
+        # Tooltip is deliberately owned by the small info button,
+        # not by the whole Agenda Profile card.
+        self.assertNotIn(
+            'card.setAttribute("data-fr27-tooltip", metadata)',
+            agenda_helper,
+        )
+        self.assertNotIn(
+            'card.setAttribute("tabindex", "0")',
+            agenda_helper,
+        )
+
+        heading_rule = re.search(
+            r"\.candidate-signals-agenda-head\s*\{(?P<body>.*?)\n\}",
+            self.css,
+            re.S,
+        )
+        self.assertIsNotNone(heading_rule)
+        self.assertIn(
+            "display: flex;",
+            heading_rule.group("body"),
+        )
+        self.assertIn(
+            "gap: 5px;",
+            heading_rule.group("body"),
+        )
+
+        marker_rule = re.search(
+            r"\.candidate-signals-agenda-info\s*\{(?P<body>.*?)\n\}",
+            self.css,
+            re.S,
+        )
+        self.assertIsNotNone(marker_rule)
+        self.assertIn(
+            "width: 12px;",
+            marker_rule.group("body"),
+        )
+        self.assertIn(
+            "height: 12px;",
+            marker_rule.group("body"),
+        )
+        self.assertIn(
+            "cursor: help;",
+            marker_rule.group("body"),
+        )
+        self.assertNotIn(
+            "pointer-events: none;",
+            marker_rule.group("body"),
+        )
     def test_agenda_pair_geometry_reuses_shared_visual_rules(self):
         source = self.css
         self.assertIn(

@@ -1073,8 +1073,33 @@
       return card;
     }
 
-    card.setAttribute("data-fr27-tooltip", metadata);
-    card.setAttribute("tabindex", "0");
+    const titleNode = card.querySelector(
+      ".candidate-signals-analysis-card-title"
+    );
+
+    if (titleNode) {
+      const heading = createElement(
+        "div",
+        "candidate-signals-agenda-head"
+      );
+      const info = createElement(
+        "button",
+        "candidate-signals-agenda-info",
+        "i"
+      );
+      info.setAttribute("type", "button");
+
+      explanatoryMetadata(
+        info,
+        metadata,
+        `${title} information. ${metadata}`
+      );
+
+      titleNode.remove();
+      heading.append(titleNode, info);
+      card.append(heading);
+    }
+
     card.setAttribute(
       "aria-label",
       `${title} — ${metadata}`
