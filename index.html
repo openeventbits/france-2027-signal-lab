@@ -3186,6 +3186,7 @@
 
     /* Masthead countdown: final compact alignment */
     .masthead-countdown {
+      position: relative;
       width: max-content;
       min-width: 205px;
       padding: 7px 10px;
@@ -3237,10 +3238,36 @@
     }
 
     .masthead-countdown-date {
+      display: flex;
+      align-items: center;
+      gap: 4px;
       margin: 0;
       color: #89a5b7;
       font-size: 9px;
       line-height: 1;
+    }
+
+    .fr27-tooltip-mark {
+      display: inline-grid;
+      place-items: center;
+      width: 12px;
+      height: 12px;
+      flex: 0 0 12px;
+      border: 1px solid #50758a;
+      border-radius: 50%;
+      color: #8eb4c8;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas,
+        "Liberation Mono", monospace;
+      font-size: 8px;
+      font-weight: 700;
+      line-height: 1;
+      text-transform: none;
+    }
+
+    .masthead-countdown-tooltip-mark {
+      position: static;
+      margin-left: 2px;
+      transform: none;
     }
 
     @media (max-width: 520px) {
@@ -6350,7 +6377,7 @@
     height: var(--fr27-app-hud-height);
     margin: 0 !important;
     padding: 0;
-    border-top: 1px solid var(--line);
+    border-top: 0;
     color: #a7bac6;
     font-size: 10px;
     line-height: 1;
@@ -7494,7 +7521,10 @@
                 <span class="clock-unit"></span>
                 <span class="masthead-countdown-label">to first round</span>
               </div>
-              <div class="masthead-countdown-date">18 Apr 2027</div>
+              <div class="masthead-countdown-date">
+                <span>18 Apr 2027</span>
+                <span class="fr27-tooltip-mark masthead-countdown-tooltip-mark" aria-hidden="true">i</span>
+              </div>
             </div>
           </div>
         </div>

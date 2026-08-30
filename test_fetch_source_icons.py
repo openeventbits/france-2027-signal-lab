@@ -215,6 +215,164 @@ class CacheAndFailureTests(unittest.TestCase):
             retrieve.assert_not_called()
             self.assertEqual(records, [record])
 
+    def test_one_pixel_png_cache_is_invalid(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            record = self.create_cached_record(
+                root,
+                "Example",
+            )
+            icon_path = root / record["path"]
+
+            placeholder = (
+                b"\x89PNG\r\n\x1a\n"
+                + b"\x00\x00\x00\rIHDR"
+                + (1).to_bytes(4, "big")
+                + (1).to_bytes(4, "big")
+                + b"\x00" * 32
+            )
+            icon_path.write_bytes(placeholder)
+
+            self.assertFalse(
+                icons.valid_cached_record(record, root)
+            )
+
+    def test_one_pixel_png_candidate_is_skipped(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            icon_dir = root / "assets" / "source-icons"
+            icon_dir.mkdir(parents=True)
+
+            def png(width, height):
+                return (
+                    b"\x89PNG\r\n\x1a\n"
+                    + b"\x00\x00\x00\rIHDR"
+                    + width.to_bytes(4, "big")
+                    + height.to_bytes(4, "big")
+                    + b"\x00" * 32
+                )
+
+            candidates = [
+                {
+                    "href": "https://example.com/bad.png",
+                    "rel": "apple-touch-icon",
+                    "sizes": "180x180",
+                    "type": "image/png",
+                },
+                {
+                    "href": "https://example.com/good.png",
+                    "rel": "icon",
+                    "sizes": "32x32",
+                    "type": "image/png",
+                },
+            ]
+
+            def request_bytes(
+                url,
+                *,
+                accept,
+                maximum_bytes,
+                timeout=25,
+            ):
+                if url.endswith("/bad.png"):
+                    return (
+                        png(1, 1),
+                        url,
+                        "image/png",
+                    )
+
+                return (
+                    png(32, 32),
+                    url,
+                    "image/png",
+                )
+
+            with (
+                patch.object(
+                    icons,
+                    "discover_icon_candidates",
+                    return_value=candidates,
+                ),
+                patch.object(
+                    icons,
+                    "request_bytes",
+                    side_effect=request_bytes,
+                ),
+            ):
+                record = icons.retrieve_source_icon(
+                    publisher="Example",
+                    feed_url="https://example.com/feed",
+                    icons_dir=icon_dir,
+                    repository_root=root,
+                )
+
+            self.assertEqual(record["status"], "ok")
+            self.assertEqual(
+                record["icon_url"],
+                "https://example.com/good.png",
+            )
+            self.assertEqual(
+                icons.png_dimensions(
+                    (root / record["path"]).read_bytes()
+                ),
+                (32, 32),
+            )
+
+    def test_safe_svg_candidate_is_cached(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            icon_dir = root / "assets" / "source-icons"
+            icon_dir.mkdir(parents=True)
+
+            svg = b"""<svg xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 32 32">
+                <circle cx="16" cy="16" r="14"/>
+            </svg>"""
+
+            with (
+                patch.object(
+                    icons,
+                    "discover_icon_candidates",
+                    return_value=[
+                        {
+                            "href": "https://example.com/logo.svg",
+                            "rel": "icon",
+                            "sizes": "512x512",
+                            "type": "image/png",
+                        }
+                    ],
+                ),
+                patch.object(
+                    icons,
+                    "request_bytes",
+                    return_value=(
+                        svg,
+                        "https://example.com/logo.svg",
+                        "image/svg+xml",
+                    ),
+                ),
+            ):
+                record = icons.retrieve_source_icon(
+                    publisher="Example",
+                    feed_url="https://example.com/feed",
+                    icons_dir=icon_dir,
+                    repository_root=root,
+                )
+
+            self.assertEqual(record["status"], "ok")
+            self.assertEqual(record["mime_type"], "image/svg+xml")
+            self.assertEqual(
+                record["path"],
+                "assets/source-icons/example.svg",
+            )
+            self.assertEqual(
+                (root / record["path"]).read_bytes(),
+                svg,
+            )
+            self.assertTrue(
+                icons.safe_static_svg_icon(svg)
+            )
+
     def test_one_failed_publisher_does_not_stop_other_targets(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
