@@ -24,6 +24,31 @@ def write_json(root, name, payload):
     )
 
 
+def synthetic_candidate_watch_record(
+    *,
+    identifier,
+    published_at,
+    coverage_scope,
+    candidate_name,
+):
+    """Return deterministic record-level evidence for manifest semantics."""
+    return {
+        "id": identifier,
+        "published_at": published_at,
+        "publisher": "Synthetic Test Publisher",
+        "headline": f"{candidate_name} synthetic manifest fixture",
+        "coverage_scope": coverage_scope,
+        "candidates": [candidate_name],
+        "candidate_matches": [
+            {
+                "candidate": candidate_name,
+                "matched_aliases": [candidate_name],
+                "locations": ["headline"],
+            }
+        ],
+    }
+
+
 def commission_registry(*notices):
     return {
         "schema_version": "1.0",
@@ -1731,18 +1756,21 @@ class PublicationManifestTests(unittest.TestCase):
     def test_record_level_denominator_mismatch_fails(self):
         news_path = self.root / "news_wire.json"
         news = json.loads(news_path.read_text(encoding="utf-8"))
-        active_names = {
+        payload = self.candidate_payload()
+        active_name = next(
             candidate["candidate_name"]
-            for candidate in self.candidate_payload()["candidates"]
+            for candidate in payload["candidates"]
             if candidate["candidacy"]["active_field_eligible"]
-        }
-        removed = next(
-            record for record in news["candidate_watch"]
-            if record["coverage_scope"] in {"election", "campaign"}
-            and record["published_at"][:10] >= "2026-07-25"
-            and active_names & set(record["candidates"])
         )
-        news["candidate_watch"].remove(removed)
+        current_period = news["candidate_visibility"]["current_period"]
+        news["candidate_watch"].append(
+            synthetic_candidate_watch_record(
+                identifier="test:manifest:primary-active-record",
+                published_at=f"{current_period['start_date']}T12:00:00Z",
+                coverage_scope="campaign",
+                candidate_name=active_name,
+            )
+        )
         write_json(self.root, "news_wire.json", news)
         with self.assertRaisesRegex(
             manifest_builder.ManifestError,
@@ -1755,18 +1783,20 @@ class PublicationManifestTests(unittest.TestCase):
         news_path = self.root / "news_wire.json"
         news = json.loads(news_path.read_text(encoding="utf-8"))
         payload = self.candidate_payload()
-        active_names = {
+        active_name = next(
             candidate["candidate_name"]
             for candidate in payload["candidates"]
             if candidate["candidacy"]["active_field_eligible"]
-        }
-        removed = next(
-            record for record in news["candidate_watch"]
-            if record["coverage_scope"] == "general"
-            and "2026-07-25" <= record["published_at"][:10] <= "2026-07-31"
-            and active_names & set(record["candidates"])
         )
-        news["candidate_watch"].remove(removed)
+        general_period = news["candidate_visibility"]["general_current_period"]
+        news["candidate_watch"].append(
+            synthetic_candidate_watch_record(
+                identifier="test:manifest:general-active-record",
+                published_at=f"{general_period['start_date']}T12:00:00Z",
+                coverage_scope="general",
+                candidate_name=active_name,
+            )
+        )
         registry = json.loads(
             (self.root / "candidate_candidacy_status.json").read_text(encoding="utf-8")
         )
