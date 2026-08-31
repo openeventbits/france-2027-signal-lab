@@ -49,10 +49,11 @@
     "unavailable"
   ]);
 
-  function createElement(tagName, className, text) {
+  function createElement(tagName, className, text, typeRole = null) {
     const node = document.createElement(tagName);
     if (className) node.className = className;
     if (text !== undefined) node.textContent = text;
+    if (typeRole) node.setAttribute("data-fr27-type", typeRole);
     return node;
   }
 
@@ -263,12 +264,12 @@
     );
 
     header.append(
-      createElement("h2", "candidate-signals-region-title", title)
+      createElement("h2", "candidate-signals-region-title", title, "panel-title")
     );
 
     if (note) {
       header.append(
-        createElement("span", "candidate-signals-region-note", note)
+        createElement("span", "candidate-signals-region-note", note, "meta")
       );
     }
 
@@ -278,11 +279,12 @@
   function evidenceLine(label, value) {
     const row = createElement("div", "candidate-signals-evidence-line");
     row.append(
-      createElement("span", "candidate-signals-evidence-label", label),
+      createElement("span", "candidate-signals-evidence-label", label, "field-label"),
       createElement(
         "span",
         "candidate-signals-evidence-value",
-        hasValue(value) ? String(value) : MISSING
+        hasValue(value) ? String(value) : MISSING,
+        "meta"
       )
     );
     return row;
@@ -292,7 +294,7 @@
     const group = createElement("div", "candidate-signals-evidence-group");
     if (title) {
       group.append(
-        createElement("h4", "candidate-signals-evidence-group-title", title)
+        createElement("h4", "candidate-signals-evidence-group-title", title, "module-title")
       );
     }
     lines.forEach(item => group.append(evidenceLine(item[0], item[1])));
@@ -308,12 +310,14 @@
       createElement(
         "h4",
         "candidate-signals-evidence-group-title",
-        title
+        title,
+        "module-title"
       ),
       createElement(
         "p",
         "candidate-signals-development-empty",
-        message
+        message,
+        "status-label"
       )
     );
     return group;
@@ -466,7 +470,8 @@
     const labelNode = createElement(
       "span",
       "candidate-signals-candidate-fact-label",
-      label
+      label,
+      "field-label"
     );
     if (semantics) {
       semanticMetadata(labelNode, semantics);
@@ -476,7 +481,8 @@
       createElement(
         "strong",
         "candidate-signals-candidate-fact-value",
-        value
+        value,
+        value === MISSING ? "meta" : "data"
       )
     );
     return fact;
@@ -572,12 +578,14 @@
         createElement(
           "span",
           "candidate-signals-candidate-name",
-          candidate.candidate_name
+          candidate.candidate_name,
+          "item-title"
         ),
         createElement(
           "span",
           "candidate-signals-candidate-secondary",
-          candidateSecondary(candidate)
+          candidateSecondary(candidate),
+          "meta"
         )
       );
 
@@ -587,7 +595,8 @@
           createElement(
             "span",
             "candidate-signals-candidate-tier",
-            String(tier).toUpperCase()
+            String(tier).toUpperCase(),
+            "status-label"
           )
         );
       }
@@ -606,7 +615,12 @@
               ? " is-unpublished"
               : ""
           }`,
-          pollText
+          pollText,
+          pollText === NOT_TESTED
+            ? "status-label"
+            : pollText === MISSING
+              ? "meta"
+              : "key-data"
         )
       );
       top.append(identity, metric);
@@ -1038,7 +1052,8 @@
       createElement(
         "h3",
         "candidate-signals-analysis-card-title",
-        title
+        title,
+        "module-title"
       )
     );
     return card;
@@ -1165,12 +1180,14 @@
       const label = createElement(
         "span",
         "candidate-signals-agenda-topic-label",
-        AGENDA_PROFILE_LABELS[topic.id] || topic.label
+        AGENDA_PROFILE_LABELS[topic.id] || topic.label,
+        "row-label"
       );
       const share = createElement(
         "strong",
         "candidate-signals-agenda-topic-share",
-        compactPercentageText(topic.share, true)
+        compactPercentageText(topic.share, true),
+        "data"
       );
       const track = createElement(
         "span",
@@ -1291,7 +1308,8 @@
       createElement(
         "span",
         "candidate-signals-summary-meta-label",
-        label
+        label,
+        "field-label"
       ),
       createElement(
         "span",
@@ -1311,12 +1329,14 @@
       createElement(
         "span",
         "candidate-signals-poll-fact-label",
-        label
+        label,
+        "field-label"
       ),
       createElement(
         "strong",
         "candidate-signals-poll-fact-value",
-        hasValue(value) ? String(value) : MISSING
+        hasValue(value) ? String(value) : MISSING,
+        hasValue(value) ? "data" : "meta"
       )
     );
     return fact;
@@ -1397,9 +1417,14 @@
       createElement(
         "strong",
         `candidate-signals-summary-primary${
-          reported ? "" : " is-textual"
+          hasSelected || hasRange ? "" : " is-textual"
         }`,
-        primaryText
+        primaryText,
+        !reported
+          ? "status-label"
+          : hasSelected || hasRange
+            ? "key-data"
+            : "meta"
       )
     );
 
@@ -1436,7 +1461,8 @@
         createElement(
           "span",
           "candidate-signals-poll-gauge-kicker",
-          "PUBLISHED RANGE"
+          "PUBLISHED RANGE",
+          "field-label"
         )
       );
 
@@ -3714,7 +3740,8 @@
     label,
     primary,
     notes = [],
-    className = ""
+    className = "",
+    typeRole = null
   ) {
     const metric = createElement(
       "article",
@@ -3722,16 +3749,25 @@
         className ? ` ${className}` : ""
       }`
     );
+    const resolvedTypeRole = typeRole || (
+      primary === NOT_TESTED || className.includes("is-empty")
+        ? "status-label"
+        : primary === MISSING
+          ? "meta"
+          : "key-data"
+    );
     metric.append(
       createElement(
         "span",
         "candidate-signals-dossier-metric-label",
-        label
+        label,
+        "field-label"
       ),
       createElement(
         "strong",
         "candidate-signals-dossier-metric-value",
-        primary
+        primary,
+        resolvedTypeRole
       )
     );
 
@@ -3745,7 +3781,8 @@
         createElement(
           "span",
           "candidate-signals-dossier-metric-note",
-          note
+          note,
+          "meta"
         )
       );
     });
@@ -4507,7 +4544,8 @@
     const headerAction = createElement(
       "button",
       "candidate-signals-region-action",
-      "View full evidence →"
+      "View full evidence →",
+      "action-label"
     );
     headerAction.type = "button";
 
@@ -4543,12 +4581,14 @@
       createElement(
         "span",
         "candidate-signals-kicker",
-        "SELECTED CANDIDATE"
+        "SELECTED CANDIDATE",
+        "kicker"
       ),
       createElement(
         "h3",
         "candidate-signals-dossier-name",
-        candidate.candidate_name
+        candidate.candidate_name,
+        "item-title"
       )
     );
 
@@ -4562,7 +4602,8 @@
         createElement(
           "span",
           "candidate-signals-dossier-status",
-          humanizeStatus(status).toUpperCase()
+          humanizeStatus(status).toUpperCase(),
+          "status-label"
         )
       );
     }
@@ -4572,7 +4613,8 @@
         createElement(
           "span",
           `candidate-signals-dossier-tier is-${String(tier).toLowerCase()}`,
-          String(tier).toUpperCase()
+          String(tier).toUpperCase(),
+          "status-label"
         )
       );
     }
@@ -4747,6 +4789,91 @@
     return orderWorkspaceCandidates(visible);
   }
 
+  function annotateTypography(root) {
+    const mappings = [
+      ["module-title", [
+        ".candidate-signals-analysis-card-title",
+        ".candidate-signals-subsection-title",
+        ".candidate-signals-evidence-group-title",
+        ".candidate-signals-dossier-card-title",
+        ".candidate-signals-scrutiny-period-title",
+        ".candidate-signals-wikipedia-chart-title"
+      ]],
+      ["kicker", [
+        ".candidate-signals-kicker",
+        ".candidate-signals-history-kicker"
+      ]],
+      ["item-title", [
+        ".candidate-signals-development-headline",
+        ".candidate-signals-match-basis-headline"
+      ]],
+      ["row-label", [
+        ".candidate-signals-agenda-topic-label",
+        ".candidate-signals-attention-label",
+        ".candidate-signals-scrutiny-row-label",
+        ".candidate-signals-evidence-structure-label"
+      ]],
+      ["field-label", [
+        ".candidate-signals-search-label",
+        ".candidate-signals-candidate-fact-label",
+        ".candidate-signals-evidence-label",
+        ".candidate-signals-poll-fact-label",
+        ".candidate-signals-poll-gauge-kicker",
+        ".candidate-signals-poll-gauge-label",
+        ".candidate-signals-summary-meta-label",
+        ".candidate-signals-dossier-metric-label",
+        ".candidate-signals-dossier-scope-label",
+        ".candidate-signals-dossier-scrutiny-label",
+        ".candidate-signals-dossier-structure-ratio-label",
+        ".candidate-signals-dossier-visibility-total-label",
+        ".candidate-signals-evidence-ratio-label",
+        ".candidate-signals-structure-stat-label",
+        ".candidate-signals-wikipedia-metric-label"
+      ]],
+      ["action-label", [
+        ".candidate-signals-source-link",
+        ".candidate-signals-region-action"
+      ]],
+      ["meta", [
+        ".candidate-signals-candidate-secondary",
+        ".candidate-signals-candidacy-source-value",
+        ".candidate-signals-development-meta",
+        ".candidate-signals-dossier-development-meta",
+        ".candidate-signals-history-meta",
+        ".candidate-signals-summary-meta"
+      ]],
+      ["status-label", [
+        ".candidate-signals-candidacy-status",
+        ".candidate-signals-candidacy-tier",
+        ".candidate-signals-candidate-tier",
+        ".candidate-signals-dossier-status",
+        ".candidate-signals-dossier-tier"
+      ]],
+      ["scale-label", [
+        ".candidate-signals-wikipedia-x-label",
+        ".candidate-signals-wikipedia-y-label"
+      ]],
+      ["data", [
+        ".candidate-signals-agenda-topic-share",
+        ".candidate-signals-candidate-fact-value",
+        ".candidate-signals-composition-summary-value",
+        ".candidate-signals-evidence-structure-value",
+        ".candidate-signals-structure-stat-value",
+        ".candidate-signals-wikipedia-metric-value"
+      ]]
+    ];
+
+    mappings.forEach(([role, selectors]) => {
+      selectors.forEach(selector => {
+        root.querySelectorAll(selector).forEach(node => {
+          if (node.getAttribute("data-fr27-type") === null) {
+            node.setAttribute("data-fr27-type", role);
+          }
+        });
+      });
+    });
+  }
+
   function render(mount, state, options = {}) {
     if (!mount || typeof mount.replaceChildren !== "function") return null;
 
@@ -4855,6 +4982,7 @@
       ),
       candidateDossier(selectedCandidate, state.metadata || {}, options)
     );
+    annotateTypography(workspace);
     mount.append(workspace);
     return selected;
   }

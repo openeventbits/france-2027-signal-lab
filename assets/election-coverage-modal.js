@@ -218,7 +218,7 @@
           .slice(0, 3)
           .map(
             candidate => `
-              <span>
+              <span data-fr27-type="row-label">
                 ${escapeHtml(candidate)}
               </span>
             `
@@ -233,7 +233,7 @@
 
     if (!href) {
       return `
-        <span class="ecm-source-unavailable">
+        <span class="ecm-source-unavailable" data-fr27-type="meta">
           Source unavailable
         </span>
       `;
@@ -242,6 +242,7 @@
     return `
       <a
         class="ecm-feed-source"
+        data-fr27-type="action-label"
         href="${escapeAttribute(href)}"
         target="_blank"
         rel="noopener noreferrer"
@@ -256,6 +257,7 @@
     <article class="ecm-feed-row">
       <time
         class="ecm-feed-time"
+        data-fr27-type="meta"
         datetime="${escapeAttribute(
           record.publishedAt
         )}"
@@ -287,6 +289,7 @@
 
       <div
         class="ecm-feed-publisher"
+        data-fr27-type="meta"
       >
         ${escapeHtml(record.publisher)}
       </div>
@@ -294,6 +297,7 @@
       <div class="ecm-feed-copy">
         <h4
           lang="fr"
+          data-fr27-type="item-title"
         >
           ${escapeHtml(record.headline)}
         </h4>
@@ -619,7 +623,7 @@
         >
           <header class="ecm-feed-header">
             <div class="ecm-feed-heading">
-              <h3 id="ecm-feed-title">
+              <h3 id="ecm-feed-title" data-fr27-type="module-title">
                 Recent election coverage
               </h3>
 
@@ -627,21 +631,21 @@
                 class="ecm-feed-meta"
                 aria-label="Coverage summary"
               >
-                <span>
+                <span data-fr27-type="key-data">
                   ${records.length} records
                 </span>
 
-                <span>
+                <span data-fr27-type="key-data">
                   ${publisherCounts().length}
                   publishers
                 </span>
 
-                <span>
+                <span data-fr27-type="key-data">
                   ${latest24HourCount()}
                   latest 24h
                 </span>
 
-                <span>
+                <span data-fr27-type="meta">
                   Coverage window ·
                   ${escapeHtml(
                     coverageWindowLabel()
@@ -837,11 +841,11 @@
           >
             <header class="ecm-header">
               <div class="ecm-heading">
-                <h2 id="ecm-title">
+                <h2 id="ecm-title" data-fr27-type="panel-title">
                   Media Pulse / Election Coverage
                 </h2>
 
-                <p id="ecm-subtitle">
+                <p id="ecm-subtitle" data-fr27-type="body">
                   Recent accepted reporting from
                   monitored sources
                 </p>
@@ -851,6 +855,7 @@
                 <span
                   class="ecm-updated"
                   data-ecm-updated
+                  data-fr27-type="meta"
                 ></span>
 
                 <button

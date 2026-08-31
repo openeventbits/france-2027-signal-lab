@@ -659,6 +659,129 @@ class FinalDashboardShellTests(unittest.TestCase):
         self.assertNotIn("MOVEMENT PROFILE", html)
         self.assertNotIn("hybrid-agenda-v4-", html)
 
+        for title in (
+            "AGENDA MONITOR",
+            "AGENDA EVOLUTION",
+            "TOPIC DOSSIER",
+        ):
+            self.assertRegex(
+                html,
+                rf'<h3[^>]+data-fr27-type="panel-title"[^>]*>{title}</h3>',
+            )
+        for title in (
+            "30-DAY EVOLUTION",
+            "WEEK SHIFT",
+            "ACTIVITY PROFILE",
+            "ASSOCIATED SIGNALS",
+            "RECENT EVIDENCE",
+        ):
+            self.assertIn(
+                f'data-fr27-type="module-title">{title}',
+                html,
+            )
+        self.assertIn('data-fr27-type="item-title"', html)
+        self.assertIn('data-fr27-type="row-label"', html)
+        self.assertIn('data-fr27-type="scale-label"', html)
+        self.assertIn('data-fr27-type="key-data"', html)
+        self.assertIn('data-fr27-type="data"', html)
+        self.assertIn('data-fr27-type="status-label"', html)
+
+    def test_media_issues_and_events_render_semantic_typography(self):
+        news = json.loads(
+            (ROOT / "news_wire.json").read_text(encoding="utf-8")
+        )
+        rendered = run_media_model_script(
+            news,
+            """(() => {
+              const mediaModel = api.buildMediaViewModel();
+              const mediaWithComparison = {
+                ...mediaModel,
+                candidateCoverageAvailable: true,
+                candidateCoverageLeaders: [{
+                  name: "Candidate A",
+                  tierLabel: "MAIN FIELD",
+                  latestShare: 25,
+                  previousShare: 20,
+                  delta: 5,
+                  changeAvailable: true,
+                  latestCount: 5,
+                  previousCount: 4
+                }]
+              };
+              return {
+                media: api.renderMediaPanel(mediaWithComparison),
+                issues: api.renderIssuesPanel(api.buildPolicyAgendaViewModel())
+              };
+            })()""",
+        )
+
+        media = rendered["media"]
+        self.assertRegex(
+            media,
+            r'class="hybrid-candidate-share-name" data-fr27-type="row-label"',
+        )
+        self.assertIn(
+            'class="hybrid-status-chip" data-fr27-type="status-label"',
+            media,
+        )
+        self.assertIn('<strong data-fr27-type="data">25%</strong>', media)
+        self.assertIn('data-fr27-type="scale-label"', media)
+        self.assertIn('data-fr27-type="module-title"', media)
+
+        issues = rendered["issues"]
+        for title in (
+            "POLICY MONITOR",
+            "ISSUE EVOLUTION",
+            "ISSUE DOSSIER",
+        ):
+            self.assertRegex(
+                issues,
+                rf'data-fr27-type="panel-title">\s*{title}',
+            )
+        for role in (
+            "module-title",
+            "item-title",
+            "row-label",
+            "scale-label",
+            "key-data",
+            "data",
+            "status-label",
+        ):
+            self.assertIn(f'data-fr27-type="{role}"', issues)
+
+        events = json.loads(
+            (ROOT / "campaign_events.json").read_text(encoding="utf-8")
+        )
+        event_html = run_media_model_script(
+            events,
+            """(() => {
+              context.dashboardState.campaignEvents = payload;
+              context.dashboardState.loadState.campaignEvents = "loaded";
+              return api.renderEventsPanel(api.buildEventsViewModel());
+            })()""",
+        )
+        for title in (
+            "12-WEEK SCHEDULE",
+            "UPCOMING EVENTS",
+            "EVENT DOSSIER",
+            "SCHEDULE WATCH",
+        ):
+            self.assertIn(
+                f'data-fr27-type="panel-title">{title}',
+                event_html,
+            )
+        self.assertRegex(
+            event_html,
+            r'class="hybrid-events-ops-months"[^>]*>.*?data-fr27-type="scale-label"',
+        )
+        self.assertRegex(
+            event_html,
+            r'<time data-fr27-type="scale-label" datetime=',
+        )
+        self.assertIn('data-fr27-type="item-title"', event_html)
+        self.assertIn('data-fr27-type="field-label"', event_html)
+        self.assertIn('data-fr27-type="status-label"', event_html)
+
     def test_agenda_renderer_keeps_legacy_fallback_without_evolution(self):
         payload = agenda_evolution_payload()
 
@@ -689,6 +812,21 @@ class FinalDashboardShellTests(unittest.TestCase):
             html,
         )
 
+        self.assertIn(
+            '<h3 class="hybrid-section-title" data-fr27-type="module-title">Eligible-topic ranking</h3>',
+            html,
+        )
+        self.assertIn(
+            '<div class="hybrid-section-title" data-fr27-type="kicker">Selected recurring topic</div>',
+            html,
+        )
+        self.assertIn('data-fr27-type="item-title"', html)
+        self.assertIn('data-fr27-type="data"', html)
+        self.assertIn('data-fr27-type="meta"', html)
+        self.assertIn(
+            'class="hybrid-supporting-link" data-fr27-type="action-label"',
+            html,
+        )
     @classmethod
     def setUpClass(cls):
         cls.html = INDEX.read_text(encoding="utf-8")
@@ -2497,7 +2635,7 @@ class HeroBrandingContractTests(unittest.TestCase):
 
     def test_locked_hero_branding_contract(self):
         self.assertIn(
-            "<h1>FRANCE 2027 <span>SIGNAL LAB</span></h1>",
+            '<h1 data-fr27-type="display">FRANCE 2027 <span>SIGNAL LAB</span></h1>',
             self.index,
         )
         self.assertNotIn(

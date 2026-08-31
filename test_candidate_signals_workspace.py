@@ -644,6 +644,33 @@ function details() {
     status: mount.getAttribute("data-candidate-signals-state"),
     text: mount.textContent,
     tags: allNodes.map(node => node.tagName),
+    typeValues: allNodes
+      .map(node => node.getAttribute("data-fr27-type"))
+      .filter(value => value !== undefined),
+    candidatePollSemantics:
+      mount.querySelectorAll(".candidate-signals-candidate-poll")
+        .map(node => ({
+          text: node.textContent,
+          type: node.getAttribute("data-fr27-type") || null
+        })),
+    candidateFactSemantics:
+      mount.querySelectorAll(".candidate-signals-candidate-fact-value")
+        .map(node => ({
+          text: node.textContent,
+          type: node.getAttribute("data-fr27-type") || null
+        })),
+    analysisPrimarySemantics:
+      mount.querySelectorAll(".candidate-signals-summary-primary")
+        .map(node => ({
+          text: node.textContent,
+          type: node.getAttribute("data-fr27-type") || null
+        })),
+    dossierMetricSemantics:
+      mount.querySelectorAll(".candidate-signals-dossier-metric-value")
+        .map(node => ({
+          text: node.textContent,
+          type: node.getAttribute("data-fr27-type") || null
+        })),
     candidateOrder: buttons.map(button => button.dataset.candidateSignalsCandidate),
     visibleCandidateOrder: buttons
       .filter(button => !button.hidden)
@@ -2127,6 +2154,72 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             'pollText === MISSING || pollText === NOT_TESTED',
             self.workspace_js,
         )
+        self.assertIn(
+            {"text": "Not tested", "type": "status-label"},
+            result["candidatePollSemantics"],
+        )
+        self.assertIn(
+            {"text": "Not tested", "type": "status-label"},
+            result["analysisPrimarySemantics"],
+        )
+        self.assertTrue(
+            all(
+                item["type"] not in {"data", "key-data", "focal-data"}
+                for item in result["candidatePollSemantics"]
+                if item["text"] == "Not tested"
+            )
+        )
+
+    def test_candidate_numeric_roles_are_derived_after_rendering(self):
+        result = run_workspace(payload(self.rows), self.rows[0]["candidate_id"])
+
+        self.assertTrue(result["typeValues"])
+        self.assertTrue(
+            all(value in {
+                "display", "panel-title", "module-title", "kicker",
+                "item-title", "row-label", "field-label", "nav-label",
+                "action-label", "body", "meta", "status-label",
+                "scale-label", "data", "key-data", "focal-data",
+            } for value in result["typeValues"])
+        )
+        self.assertTrue(
+            all(item["type"] == "key-data" for item in result["candidatePollSemantics"])
+        )
+        self.assertTrue(result["candidateFactSemantics"])
+        self.assertTrue(
+            all(item["type"] == "data" for item in result["candidateFactSemantics"])
+        )
+        self.assertIn(
+            {"text": "0%", "type": "key-data"},
+            result["analysisPrimarySemantics"],
+        )
+
+    def test_missing_candidate_measurements_use_meta_not_numeric_roles(self):
+        source = payload(self.rows)
+        selected_id = source["candidates"][0]["candidate_id"]
+        source["candidates"][0]["polling"].update(
+            {
+                "evidence_state": "reported",
+                "range_min": None,
+                "range_max": None,
+                "selected_hypothesis_score": None,
+                "selected_hypothesis_rank": None,
+            }
+        )
+
+        result = run_workspace(source, selected_id)
+        missing = [
+            item
+            for family in (
+                result["candidatePollSemantics"],
+                result["analysisPrimarySemantics"],
+                result["dossierMetricSemantics"],
+            )
+            for item in family
+            if item["text"] == "Not published"
+        ]
+        self.assertTrue(missing)
+        self.assertTrue(all(item["type"] == "meta" for item in missing))
 
     def test_absent_general_visibility_is_not_zero_or_not_published(self):
         source = payload(self.rows)
@@ -4029,7 +4122,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             "candidate-signals-composition-visual",
             "candidate-signals-development-meta",
             "function compactPercentageText(value, ratio = false)",
-            "function dossierMetric(\n    label,\n    primary,\n    notes = [],\n    className = \"\"\n  )",
+            "function dossierMetric(\n    label,\n    primary,\n    notes = [],\n    className = \"\",\n    typeRole = null\n  )",
             '"Point estimate"',
         ):
             self.assertIn(required, self.workspace_js)

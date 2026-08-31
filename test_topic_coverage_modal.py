@@ -75,6 +75,17 @@ class TopicCoverageModalTests(unittest.TestCase):
         ):
             self.assertIn(contract, self.modal_js)
 
+    def test_modal_semantic_typography_keeps_title_row_and_data_levels(self):
+        self.assertRegex(
+            self.modal_js,
+            r'<h2[^>]+data-fr27-type="panel-title"',
+        )
+        self.assertIn('data-fr27-type="module-title"', self.modal_js)
+        self.assertIn('data-fr27-type="row-label"', self.modal_js)
+        self.assertIn('data-fr27-type="scale-label"', self.modal_js)
+        self.assertIn('? "meta" : "key-data"', self.modal_js)
+        self.assertIn('data-fr27-type="data"', self.modal_js)
+
     def test_old_reader_controls_and_article_detail_are_removed(self):
         for forbidden in (
             "Candidate shift</button>",
@@ -227,7 +238,7 @@ class TopicCoverageModalTests(unittest.TestCase):
             renderer,
         )
         self.assertIn(
-            '<strong>${escapeHtml(item.name)}</strong>',
+            '<strong data-fr27-type="row-label">${escapeHtml(item.name)}</strong>',
             renderer,
         )
         self.assertNotIn(

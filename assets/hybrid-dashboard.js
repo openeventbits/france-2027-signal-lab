@@ -3476,8 +3476,8 @@
   function sourceLink(url, label, className = "", accessibleLabel = "") {
     const safe = safeSourceUrl(url);
     return safe
-      ? `<a class="${className}" href="${escapeAttribute(safe)}" target="_blank" rel="noopener noreferrer"${accessibleLabel ? ` aria-label="${escapeAttribute(accessibleLabel)}"` : ""}>${escapeHtml(label)} <span aria-hidden="true">↗</span></a>`
-      : `<span class="${className}">Source unavailable</span>`;
+      ? `<a class="${className}" data-fr27-type="action-label" href="${escapeAttribute(safe)}" target="_blank" rel="noopener noreferrer"${accessibleLabel ? ` aria-label="${escapeAttribute(accessibleLabel)}"` : ""}>${escapeHtml(label)} <span aria-hidden="true">↗</span></a>`
+      : `<span class="${className}" data-fr27-type="meta">Source unavailable</span>`;
   }
 
   function runoffSampleLabel(value) {
@@ -3530,8 +3530,8 @@
   function runoffCompactSourceLink(url, accessibleLabel) {
     const safe = safeSourceUrl(url);
     return safe
-      ? `<a class="hybrid-runoff-source is-compact is-icon-only" href="${escapeAttribute(safe)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeAttribute(accessibleLabel)}"><span aria-hidden="true">↗</span></a>`
-      : '<span class="hybrid-runoff-source is-compact is-icon-only">—</span>';
+      ? `<a class="hybrid-runoff-source is-compact is-icon-only" data-fr27-type="action-label" href="${escapeAttribute(safe)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeAttribute(accessibleLabel)}"><span aria-hidden="true">↗</span></a>`
+      : '<span class="hybrid-runoff-source is-compact is-icon-only" data-fr27-type="meta">—</span>';
   }
 
   function groupRunoffHistoryWindows(observations) {
@@ -3564,8 +3564,20 @@
       <span class="hybrid-runoff-compact-centre" aria-hidden="true"></span>
     </span>`;
   }
-  function observationMarkup(observation, candidates) {
+  function observationMarkup(observation, candidates, featuredObservation = null) {
     const scores = runoffScoresForCandidates(observation, candidates);
+    const isFeatured = Boolean(
+      featuredObservation &&
+      (
+        observation === featuredObservation ||
+        (
+          observation.event_id &&
+          featuredObservation.event_id &&
+          observation.event_id === featuredObservation.event_id
+        )
+      )
+    );
+    const scoreRole = isFeatured ? "focal-data" : "key-data";
 
     const fieldwork = observation.fieldwork_start && observation.fieldwork_end
       ? exactRunoffWindowLabel(observation)
@@ -3589,16 +3601,16 @@
       sampleLabel
     ].filter(Boolean).join(" · ");
 
-    return `<article class="hybrid-observation hybrid-runoff-source-observation" tabindex="0" data-fr27-tooltip="${escapeAttribute(tooltip)}" data-runoff-hover="RUNOFF_HOVER_METADATA">
+    return `<article class="hybrid-observation hybrid-runoff-source-observation" tabindex="0"${isFeatured ? ' data-runoff-featured-observation="true"' : ""} data-fr27-tooltip="${escapeAttribute(tooltip)}" data-runoff-hover="RUNOFF_HOVER_METADATA">
       <div class="hybrid-runoff-candidate">
-        <span class="hybrid-runoff-candidate-name">${escapeHtml(candidates[0])}</span>
-        <span class="hybrid-runoff-candidate-result">${portraitMarkup(candidates[0])}<strong>${percent(scores[0])}</strong></span>
+        <span class="hybrid-runoff-candidate-name" data-fr27-type="row-label">${escapeHtml(candidates[0])}</span>
+        <span class="hybrid-runoff-candidate-result">${portraitMarkup(candidates[0])}<strong data-fr27-type="${scoreRole}">${percent(scores[0])}</strong></span>
       </div>
 
       <div class="hybrid-runoff-instrument">
         <div class="hybrid-runoff-observation-head">
-          <strong>${escapeHtml(observation.pollster)}</strong>
-          <span>${escapeHtml(fieldworkLabel)}${sampleLabel ? ` · ${escapeHtml(sampleLabel)}` : ""}</span>
+          <strong data-fr27-type="item-title">${escapeHtml(observation.pollster)}</strong>
+          <span data-fr27-type="meta">${escapeHtml(fieldworkLabel)}${sampleLabel ? ` · ${escapeHtml(sampleLabel)}` : ""}</span>
         </div>
 
         ${runoffBalanceRail(observation, candidates)}
@@ -3610,14 +3622,14 @@
       </div>
 
       <div class="hybrid-runoff-candidate is-right">
-        <span class="hybrid-runoff-candidate-name">${escapeHtml(candidates[1])}</span>
-        <span class="hybrid-runoff-candidate-result"><strong>${percent(scores[1])}</strong>${portraitMarkup(candidates[1])}</span>
+        <span class="hybrid-runoff-candidate-name" data-fr27-type="row-label">${escapeHtml(candidates[1])}</span>
+        <span class="hybrid-runoff-candidate-result"><strong data-fr27-type="${scoreRole}">${percent(scores[1])}</strong>${portraitMarkup(candidates[1])}</span>
       </div>
 
       <div class="hybrid-runoff-margin-tile">
-        <span>MARGIN</span>
-        <strong>${number(observation.margin)}</strong>
-        <small>pts</small>
+        <span data-fr27-type="field-label">MARGIN</span>
+        <strong data-fr27-type="data">${number(observation.margin)}</strong>
+        <small data-fr27-type="field-label">pts</small>
       </div>
     </article>`;
   }
@@ -3635,14 +3647,14 @@
     return `<header class="hybrid-runoff-evidence-header">
       <div class="hybrid-runoff-title-block">
         <span class="hybrid-runoff-mark">${runoffIconMarkup("runoff", "hybrid-runoff-title-icon")}</span>
-        <div><h2>RUNOFF SIGNALS</h2><p>Source-separated second-round evidence · no averages · no forecast</p></div>
+        <div><h2 data-fr27-type="panel-title">RUNOFF SIGNALS</h2><p data-fr27-type="body">Source-separated second-round evidence · no averages · no forecast</p></div>
       </div>
       <div class="hybrid-runoff-current-scope" aria-label="Current exact-window scope">
-        <span class="hybrid-runoff-status is-${escapeAttribute(model.status)}">${escapeHtml(model.statusLabel).toUpperCase()}</span>
-        <span class="hybrid-runoff-scope-message">${escapeHtml(explanation)}</span>
-        <strong class="hybrid-runoff-date-pill">${runoffIconMarkup("calendar", "hybrid-runoff-inline-icon")}<span>${escapeHtml(runoffTitleCaseDate(model.fieldworkLabel))}</span></strong>
+        <span class="hybrid-runoff-status is-${escapeAttribute(model.status)}" data-fr27-type="status-label">${escapeHtml(model.statusLabel).toUpperCase()}</span>
+        <span class="hybrid-runoff-scope-message" data-fr27-type="body">${escapeHtml(explanation)}</span>
+        <strong class="hybrid-runoff-date-pill" data-fr27-type="meta">${runoffIconMarkup("calendar", "hybrid-runoff-inline-icon")}<span>${escapeHtml(runoffTitleCaseDate(model.fieldworkLabel))}</span></strong>
       </div>
-      <div class="hybrid-runoff-header-metrics" aria-label="Full archive counts">${counters.map(counter => `<span class="hybrid-runoff-header-metric"><strong>${counter[0]}</strong><small>${counter[1]}</small></span>`).join("")}</div>
+      <div class="hybrid-runoff-header-metrics" aria-label="Full archive counts">${counters.map(counter => `<span class="hybrid-runoff-header-metric"><strong data-fr27-type="key-data">${counter[0]}</strong><small data-fr27-type="field-label">${counter[1]}</small></span>`).join("")}</div>
     </header>`;
   }
   function renderRunoffClosest(model) {
@@ -3650,10 +3662,10 @@
       const matchup = model.selectedMatchup;
       const narrowest = Math.min(...matchup.observations.map(item => Number(item.margin)));
       return `<section class="hybrid-runoff-module hybrid-runoff-closest" aria-labelledby="hybrid-runoff-closest-title">
-        <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">1</span><h3 id="hybrid-runoff-closest-title">CLOSEST TESTED RUNOFF</h3></div><span>Same closest matchup · different reported distance</span></div>
-        <h4>${escapeHtml(matchup.candidates.join(" vs "))}</h4>
-        <div class="hybrid-runoff-observations">${matchup.observations.map(item => observationMarkup(item, matchup.candidates)).join("")}</div>
-        <div class="hybrid-runoff-closest-callout">${runoffIconMarkup("target", "hybrid-runoff-callout-icon")}<strong>NARROWEST OBSERVED MARGIN · ${number(narrowest)} PTS</strong></div>
+        <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">1</span><h3 id="hybrid-runoff-closest-title" data-fr27-type="module-title">CLOSEST TESTED RUNOFF</h3></div><span data-fr27-type="meta">Same closest matchup · different reported distance</span></div>
+        <h4 data-fr27-type="item-title">${escapeHtml(matchup.candidates.join(" vs "))}</h4>
+        <div class="hybrid-runoff-observations">${matchup.observations.map(item => observationMarkup(item, matchup.candidates, model.featuredObservation)).join("")}</div>
+        <div class="hybrid-runoff-closest-callout">${runoffIconMarkup("target", "hybrid-runoff-callout-icon")}<strong data-fr27-type="data">NARROWEST OBSERVED MARGIN · ${number(narrowest)} PTS</strong></div>
       </section>`;
     }
 
@@ -3662,15 +3674,15 @@
         ? "Pollsters identify different uniquely closest matchups in the common tested set."
         : "At least one pollster has multiple matchups tied at its minimum reported margin.";
       return `<section class="hybrid-runoff-module hybrid-runoff-closest" aria-labelledby="hybrid-runoff-closest-title">
-        <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">1</span><h3 id="hybrid-runoff-closest-title">CLOSEST TESTED RUNOFF</h3></div><span>${escapeHtml(model.statusLabel)}</span></div>
-        <p class="hybrid-runoff-local-state">${escapeHtml(explanation)}</p>
-        <div class="hybrid-runoff-unresolved-grid">${model.pollsters.map(pollster => `<section class="hybrid-runoff-unresolved-source"><h4>${escapeHtml(pollster.pollster)}</h4>${pollster.closest_matchups.map(matchup => `<div class="hybrid-runoff-unresolved-row"><strong>${escapeHtml(matchup.candidates.join(" vs "))}</strong><span>${escapeHtml(runoffScorePair(matchup.result, matchup.candidates))} · ${number(matchup.result.margin)} pts</span>${sourceLink(matchup.result.source_url, "SOURCE", "hybrid-runoff-source is-compact")}</div>`).join("")}</section>`).join("")}</div>
+        <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">1</span><h3 id="hybrid-runoff-closest-title" data-fr27-type="module-title">CLOSEST TESTED RUNOFF</h3></div><span data-fr27-type="status-label">${escapeHtml(model.statusLabel)}</span></div>
+        <p class="hybrid-runoff-local-state" data-fr27-type="body">${escapeHtml(explanation)}</p>
+        <div class="hybrid-runoff-unresolved-grid">${model.pollsters.map(pollster => `<section class="hybrid-runoff-unresolved-source"><h4 data-fr27-type="item-title">${escapeHtml(pollster.pollster)}</h4>${pollster.closest_matchups.map(matchup => `<div class="hybrid-runoff-unresolved-row"><strong data-fr27-type="row-label">${escapeHtml(matchup.candidates.join(" vs "))}</strong><span data-fr27-type="key-data">${escapeHtml(runoffScorePair(matchup.result, matchup.candidates))} · ${number(matchup.result.margin)} pts</span>${sourceLink(matchup.result.source_url, "SOURCE", "hybrid-runoff-source is-compact")}</div>`).join("")}</section>`).join("")}</div>
       </section>`;
     }
 
     return `<section class="hybrid-runoff-module hybrid-runoff-closest" aria-labelledby="hybrid-runoff-closest-title">
-      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">1</span><h3 id="hybrid-runoff-closest-title">CLOSEST TESTED RUNOFF</h3></div></div>
-      <div class="hybrid-runoff-local-state" role="status">No score comparison is shown. A qualifying window requires at least two pollsters, at least two tested matchups per pollster, and at least two exact common matchup keys.</div>
+      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">1</span><h3 id="hybrid-runoff-closest-title" data-fr27-type="module-title">CLOSEST TESTED RUNOFF</h3></div></div>
+      <div class="hybrid-runoff-local-state" data-fr27-type="status-label" role="status">No score comparison is shown. A qualifying window requires at least two pollsters, at least two tested matchups per pollster, and at least two exact common matchup keys.</div>
     </section>`;
   }
   function renderRunoffCommonMatchups(model) {
@@ -3682,30 +3694,30 @@
       return left.candidates.join(" ").localeCompare(right.candidates.join(" "), "fr");
     });
     return `<section class="hybrid-runoff-module hybrid-runoff-common" aria-labelledby="hybrid-runoff-common-title">
-      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">2</span><div><h3 id="hybrid-runoff-common-title">CURRENT COMMON MATCHUPS</h3></div></div></div>
+      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">2</span><div><h3 id="hybrid-runoff-common-title" data-fr27-type="module-title">CURRENT COMMON MATCHUPS</h3></div></div></div>
       ${model.commonMatchups.length ? `<div class="hybrid-runoff-matrix" role="table" aria-label="Current common matchup source results">
-        <div class="hybrid-runoff-matrix-head" role="row"><span role="columnheader">MATCHUP</span>${pollsters.map(name => `<span role="columnheader">${escapeHtml(name)}</span>`).join("")}<span role="columnheader">MARGINS</span></div>
+        <div class="hybrid-runoff-matrix-head" role="row"><span role="columnheader" data-fr27-type="field-label">MATCHUP</span>${pollsters.map(name => `<span role="columnheader" data-fr27-type="field-label">${escapeHtml(name)}</span>`).join("")}<span role="columnheader" data-fr27-type="field-label">MARGINS</span></div>
         ${displayMatchups.map(matchup => {
           const selected = model.selectedMatchup?.key === matchup.matchup_key;
           const margins = pollsters.map(name => matchup.results.find(item => item.pollster === name)?.margin);
           return `<div class="hybrid-runoff-matrix-row${selected ? " is-selected" : ""}" role="row">
-            <span class="hybrid-runoff-matrix-matchup" role="rowheader">${selected ? '<small>CLOSEST COMMON MATCHUP</small>' : ""}<strong>${escapeHtml(matchup.candidates[0] || "")}<br>vs ${escapeHtml(matchup.candidates[1] || "")}</strong></span>
+            <span class="hybrid-runoff-matrix-matchup" role="rowheader" data-fr27-type="row-label">${selected ? '<small>CLOSEST COMMON MATCHUP</small>' : ""}<strong>${escapeHtml(matchup.candidates[0] || "")}<br>vs ${escapeHtml(matchup.candidates[1] || "")}</strong></span>
             ${pollsters.map(name => {
               const result = matchup.results.find(item => item.pollster === name);
-              if (!result) return `<span class="hybrid-runoff-matrix-result" role="cell">—</span>`;
+              if (!result) return `<span class="hybrid-runoff-matrix-result" role="cell" data-fr27-type="meta">—</span>`;
               const scores = runoffScoresForCandidates(result, matchup.candidates);
-              return `<span class="hybrid-runoff-matrix-result" role="cell"><span class="hybrid-runoff-matrix-score is-left">${percent(scores[0])}</span>${runoffCompactRail(result, matchup.candidates)}<span class="hybrid-runoff-matrix-score is-right">${percent(scores[1])}</span></span>`;
+              return `<span class="hybrid-runoff-matrix-result" role="cell"><span class="hybrid-runoff-matrix-score is-left" data-fr27-type="data">${percent(scores[0])}</span>${runoffCompactRail(result, matchup.candidates)}<span class="hybrid-runoff-matrix-score is-right" data-fr27-type="data">${percent(scores[1])}</span></span>`;
             }).join("")}
-            <span class="hybrid-runoff-matrix-margins" role="cell"><strong>${margins.map(value => number(value)).join(" / ")}</strong><small>pts</small></span>
+            <span class="hybrid-runoff-matrix-margins" role="cell"><strong data-fr27-type="data">${margins.map(value => number(value)).join(" / ")}</strong><small data-fr27-type="field-label">pts</small></span>
           </div>`;
         }).join("")}
-      </div>` : `<div class="hybrid-runoff-local-state" role="status">No common exact-window matchup matrix is available for this status.</div>`}
+      </div>` : `<div class="hybrid-runoff-local-state" data-fr27-type="status-label" role="status">No common exact-window matchup matrix is available for this status.</div>`}
       <div class="hybrid-runoff-matrix-legend"><span><i class="is-left"></i>Candidate 1</span><span><i class="is-right"></i>Candidate 2</span><span>Exact source-reported scores · no averages</span></div>
     </section>`;
   }
   function renderRunoffFootprint(model) {
     if (model.archive.state !== "ready") {
-      return `<section class="hybrid-runoff-module hybrid-runoff-footprint" aria-labelledby="hybrid-runoff-footprint-title"><div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">3</span><h3 id="hybrid-runoff-footprint-title">EVIDENCE FOOTPRINT</h3></div></div><div class="hybrid-runoff-local-state" role="status" aria-live="polite">${escapeHtml(model.archive.message)}</div></section>`;
+      return `<section class="hybrid-runoff-module hybrid-runoff-footprint" aria-labelledby="hybrid-runoff-footprint-title"><div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">3</span><h3 id="hybrid-runoff-footprint-title" data-fr27-type="module-title">EVIDENCE FOOTPRINT</h3></div></div><div class="hybrid-runoff-local-state" data-fr27-type="status-label" role="status" aria-live="polite">${escapeHtml(model.archive.message)}</div></section>`;
     }
     const footprint = model.archive.footprint;
     const metrics = [
@@ -3716,18 +3728,18 @@
     ];
     const earliestYear = String(footprint.earliestWindow.fieldwork_end).slice(0, 4);
     return `<section class="hybrid-runoff-module hybrid-runoff-footprint" aria-labelledby="hybrid-runoff-footprint-title">
-      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">3</span><h3 id="hybrid-runoff-footprint-title">EVIDENCE FOOTPRINT</h3></div></div>
-      <dl class="hybrid-runoff-footprint-grid">${metrics.map(metric => `<div class="hybrid-runoff-metric">${runoffIconMarkup(metric[2], "hybrid-runoff-metric-icon")}<dd><strong>${metric[0]}</strong></dd><dt>${metric[1]}</dt></div>`).join("")}</dl>
+      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">3</span><h3 id="hybrid-runoff-footprint-title" data-fr27-type="module-title">EVIDENCE FOOTPRINT</h3></div></div>
+      <dl class="hybrid-runoff-footprint-grid">${metrics.map(metric => `<div class="hybrid-runoff-metric">${runoffIconMarkup(metric[2], "hybrid-runoff-metric-icon")}<dd><strong data-fr27-type="key-data">${metric[0]}</strong></dd><dt data-fr27-type="field-label">${metric[1]}</dt></div>`).join("")}</dl>
       <div class="hybrid-runoff-window-range">
-        <article><span>EARLIEST EVIDENCE</span><strong>${escapeHtml(earliestYear)}</strong><b>${escapeHtml(runoffMonthYear(footprint.earliestWindow))}</b><small>${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(footprint.earliestWindow)))}</small></article>
-        <article><span>LATEST EVIDENCE</span><strong>${escapeHtml(runoffMonthYear(footprint.latestWindow))}</strong><small>${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(footprint.latestWindow)))}</small></article>
+        <article><span data-fr27-type="field-label">EARLIEST EVIDENCE</span><strong data-fr27-type="scale-label">${escapeHtml(earliestYear)}</strong><b data-fr27-type="scale-label">${escapeHtml(runoffMonthYear(footprint.earliestWindow))}</b><small data-fr27-type="meta">${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(footprint.earliestWindow)))}</small></article>
+        <article><span data-fr27-type="field-label">LATEST EVIDENCE</span><strong data-fr27-type="scale-label">${escapeHtml(runoffMonthYear(footprint.latestWindow))}</strong><small data-fr27-type="meta">${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(footprint.latestWindow)))}</small></article>
       </div>
-      <p class="hybrid-runoff-module-note">Source-linked evidence · no synthesis · no forecast</p>
+      <p class="hybrid-runoff-module-note" data-fr27-type="meta">Source-linked evidence · no synthesis · no forecast</p>
     </section>`;
   }
   function renderRunoffHistory(model) {
     if (model.archive.state !== "ready") {
-      return `<section class="hybrid-runoff-module hybrid-runoff-history" aria-labelledby="hybrid-runoff-history-title"><div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">4</span><h3 id="hybrid-runoff-history-title">SELECTED MATCHUP HISTORY</h3></div></div><div class="hybrid-runoff-local-state" role="status" aria-live="polite">${escapeHtml(model.archive.message)}</div></section>`;
+      return `<section class="hybrid-runoff-module hybrid-runoff-history" aria-labelledby="hybrid-runoff-history-title"><div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">4</span><h3 id="hybrid-runoff-history-title" data-fr27-type="module-title">SELECTED MATCHUP HISTORY</h3></div></div><div class="hybrid-runoff-local-state" data-fr27-type="status-label" role="status" aria-live="polite">${escapeHtml(model.archive.message)}</div></section>`;
     }
 
     const selected = model.archive.matchups.find(
@@ -3748,12 +3760,12 @@
         <div>
           <span class="hybrid-runoff-step" aria-hidden="true">4</span>
           <div>
-            <h3 id="hybrid-runoff-history-title">SELECTED MATCHUP HISTORY</h3>
-            <p>${escapeHtml(selected?.candidates.join(" vs ") || "Exact matchup")} · Discrete source observations only</p>
+            <h3 id="hybrid-runoff-history-title" data-fr27-type="module-title">SELECTED MATCHUP HISTORY</h3>
+            <p data-fr27-type="meta">${escapeHtml(selected?.candidates.join(" vs ") || "Exact matchup")} · Discrete source observations only</p>
           </div>
         </div>
 
-        <label>
+        <label data-fr27-type="field-label">
           INSPECT MATCHUP
           <select class="hybrid-runoff-history-select" data-hybrid-runoff-history>
             ${model.archive.matchups.map(matchup => `<option value="${escapeAttribute(matchup.key)}"${matchup.key === model.archive.selectedHistoryKey ? " selected" : ""}>${escapeHtml(matchup.candidates.join(" vs "))}</option>`).join("")}
@@ -3784,19 +3796,19 @@
             return `<div class="hybrid-runoff-history-position">
               <span class="hybrid-runoff-history-node${index % 2 ? " is-violet" : ""}" aria-hidden="true"></span>
 
-              <time datetime="${escapeAttribute(event.fieldwork_end)}">${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(event)))}</time>
+              <time data-fr27-type="scale-label" datetime="${escapeAttribute(event.fieldwork_end)}">${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(event)))}</time>
 
               <div class="hybrid-runoff-history-group">
                 <article class="hybrid-runoff-history-entry" tabindex="0" data-fr27-tooltip="${escapeAttribute(`${runoffTitleCaseDate(exactRunoffWindowLabel(event))} · ${event.pollster} · ${percent(scores[0])}–${percent(scores[1])} · Margin ${number(event.margin)} pts · ${runoffSampleLabel(event.sample_size)}`)}" data-runoff-hover="RUNOFF_HOVER_METADATA">
-                  <strong class="hybrid-runoff-history-pollster">${escapeHtml(event.pollster)}${runoffCompactSourceLink(
+                  <strong class="hybrid-runoff-history-pollster" data-fr27-type="row-label">${escapeHtml(event.pollster)}${runoffCompactSourceLink(
                       event.source_url,
                       `Open ${event.pollster} source for ${candidates.join(" versus ")}`
                     )}</strong>
 
                   <span class="hybrid-runoff-history-scores">
-                    <b>${percent(scores[0])}</b>
+                    <b data-fr27-type="data">${percent(scores[0])}</b>
                     <i>–</i>
-                    <b>${percent(scores[1])}</b>
+                    <b data-fr27-type="data">${percent(scores[1])}</b>
                   </span>
 
                 </article>
@@ -3809,15 +3821,15 @@
   }
   function renderRunoffOtherMatchups(model) {
     if (model.archive.state !== "ready") {
-      return `<section class="hybrid-runoff-module hybrid-runoff-others" aria-labelledby="hybrid-runoff-others-title"><div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">5</span><h3 id="hybrid-runoff-others-title">OTHER TESTED MATCHUPS</h3></div></div><div class="hybrid-runoff-local-state" role="status" aria-live="polite">${escapeHtml(model.archive.message)}</div></section>`;
+      return `<section class="hybrid-runoff-module hybrid-runoff-others" aria-labelledby="hybrid-runoff-others-title"><div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">5</span><h3 id="hybrid-runoff-others-title" data-fr27-type="module-title">OTHER TESTED MATCHUPS</h3></div></div><div class="hybrid-runoff-local-state" data-fr27-type="status-label" role="status" aria-live="polite">${escapeHtml(model.archive.message)}</div></section>`;
     }
     return `<section class="hybrid-runoff-module hybrid-runoff-others" aria-labelledby="hybrid-runoff-others-title">
-      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">5</span><h3 id="hybrid-runoff-others-title">OTHER TESTED MATCHUPS</h3></div><span>Evidence catalogue · latest reported source result shown</span></div>
+      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">5</span><h3 id="hybrid-runoff-others-title" data-fr27-type="module-title">OTHER TESTED MATCHUPS</h3></div><span data-fr27-type="meta">Evidence catalogue · latest reported source result shown</span></div>
       <div class="hybrid-runoff-other-grid">${model.archive.otherMatchups.map(matchup => {
         const event = matchup.latest;
         const scores = runoffScoresForCandidates(event, matchup.candidates);
         const sourceLabel = `Open ${event.pollster} source for ${matchup.candidates.join(" versus ")}`;
-        return `<article class="hybrid-runoff-other-card" tabindex="0" data-fr27-tooltip="${escapeAttribute(`${event.pollster} · ${runoffTitleCaseDate(exactRunoffWindowLabel(event))} · Margin ${number(event.margin)} pts · ${runoffSampleLabel(event.sample_size)}`)}" data-runoff-hover="RUNOFF_HOVER_METADATA"><h4><span>${escapeHtml(matchup.candidates[0])}</span><small>vs ${escapeHtml(matchup.candidates[1])}</small></h4><span class="hybrid-runoff-other-meta">${escapeHtml(event.pollster)} · ${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(event)))}</span><div class="hybrid-runoff-other-score"><strong>${percent(scores[0])}</strong>${runoffCompactRail(event, matchup.candidates)}<strong>${percent(scores[1])}</strong></div><div class="hybrid-runoff-other-foot"><span>MARGIN · ${number(event.margin)} PTS</span><span>${escapeHtml(runoffSampleLabel(event.sample_size))}</span>${runoffCompactSourceLink(event.source_url, sourceLabel)}</div></article>`;
+        return `<article class="hybrid-runoff-other-card" tabindex="0" data-fr27-tooltip="${escapeAttribute(`${event.pollster} · ${runoffTitleCaseDate(exactRunoffWindowLabel(event))} · Margin ${number(event.margin)} pts · ${runoffSampleLabel(event.sample_size)}`)}" data-runoff-hover="RUNOFF_HOVER_METADATA"><h4 data-fr27-type="row-label"><span>${escapeHtml(matchup.candidates[0])}</span><small>vs ${escapeHtml(matchup.candidates[1])}</small></h4><span class="hybrid-runoff-other-meta" data-fr27-type="meta">${escapeHtml(event.pollster)} · ${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(event)))}</span><div class="hybrid-runoff-other-score"><strong data-fr27-type="data">${percent(scores[0])}</strong>${runoffCompactRail(event, matchup.candidates)}<strong data-fr27-type="data">${percent(scores[1])}</strong></div><div class="hybrid-runoff-other-foot"><span data-fr27-type="data">MARGIN · ${number(event.margin)} PTS</span><span data-fr27-type="field-label">${escapeHtml(runoffSampleLabel(event.sample_size))}</span>${runoffCompactSourceLink(event.source_url, sourceLabel)}</div></article>`;
       }).join("")}</div>
     </section>`;
   }
@@ -3829,7 +3841,7 @@
           "Loading runoff evidence"
         ).outerHTML;
       }
-      return `<div class="hybrid-runoff-local-state" role="status" aria-live="polite">${escapeHtml(model.message || "Runoff evidence is unavailable.")}</div>`;
+      return `<div class="hybrid-runoff-local-state" data-fr27-type="status-label" role="status" aria-live="polite">${escapeHtml(model.message || "Runoff evidence is unavailable.")}</div>`;
     }
     return `<div class="hybrid-runoff-workspace">
       ${renderRunoffHeader(model)}
@@ -3869,17 +3881,20 @@
 
             <time
               datetime="${escapeAttribute(item.published_at)}"
+              data-fr27-type="meta"
             >${escapeHtml(
               formatNewsDateTime(item.published_at)
             )}</time>
 
             <span
               class="hybrid-media-terminal-publisher"
+              data-fr27-type="meta"
             >${escapeHtml(item.publisher)}</span>
 
             <span class="hybrid-media-terminal-copy">
               <span
                 class="hybrid-media-terminal-headline"
+                data-fr27-type="item-title"
                 lang="fr"
               >${escapeHtml(item.headline)} <span aria-hidden="true">↗</span></span>
             </span>
@@ -3947,12 +3962,12 @@
                 `${item.name}, ${item.tierLabel}: ${latestShareText} percent mention rate among active-field-linked race records in the latest seven days, ${previousShareText} percent in the previous seven days, ${deltaText}; ${item.latestCount} latest records and ${item.previousCount} previous records`
               )}"
             >
-              <span class="hybrid-candidate-share-name">
+              <span class="hybrid-candidate-share-name" data-fr27-type="row-label">
                 ${escapeHtml(item.name)}
               </span>
-                <small class="hybrid-status-chip">${escapeHtml(item.tierLabel)}</small>
+                <small class="hybrid-status-chip" data-fr27-type="status-label">${escapeHtml(item.tierLabel)}</small>
 
-              <strong>${latestShareText}%</strong>
+              <strong data-fr27-type="data">${latestShareText}%</strong>
 
               <span
                 class="hybrid-candidate-share-track"
@@ -3969,7 +3984,7 @@
                 ></i>
               </span>
 
-              <b class="${directionClass}">
+              <b class="${directionClass}" data-fr27-type="${deltaAvailable ? "data" : "meta"}">
                 ${direction ? `${direction} ` : ""}${escapeHtml(deltaText)}
               </b>
             </div>`;
@@ -4052,18 +4067,19 @@
                 >
                   <span
                     class="hybrid-topic-matrix-rank"
+                    data-fr27-type="scale-label"
                     aria-hidden="true"
                   >${String(index + 1).padStart(2, "0")}</span>
 
-                  <span class="hybrid-topic-matrix-label">
+                  <span class="hybrid-topic-matrix-label" data-fr27-type="row-label">
                     ${escapeHtml(topic.label)}
                   </span>
 
-                  <strong class="hybrid-topic-matrix-days">
+                  <strong class="hybrid-topic-matrix-days" data-fr27-type="${sourceDaysAvailable ? "data" : "meta"}">
                     ${sourceDaysText}
                   </strong>
 
-                  <strong class="hybrid-topic-matrix-pubs">
+                  <strong class="hybrid-topic-matrix-pubs" data-fr27-type="${publishersAvailable ? "data" : "meta"}">
                     ${publishersText}
                   </strong>
                 </button>`;
@@ -4075,11 +4091,11 @@
       <div class="hybrid-media-terminal-layout">
         <section class="hybrid-media-terminal-feed">
           <div class="hybrid-media-terminal-heading">
-            <h3 class="hybrid-section-title">
+            <h3 class="hybrid-section-title" data-fr27-type="module-title">
               Recent election coverage
             </h3>
 
-            <span class="hybrid-media-terminal-status">
+            <span class="hybrid-media-terminal-status" data-fr27-type="meta">
               ${model.feedItems.length} items ·
               ${model.acceptedNewsPublisherCount} publishers
             </span>
@@ -4096,7 +4112,7 @@
 
         <aside class="hybrid-media-terminal-rail">
           <section class="hybrid-media-terminal-module">
-            <h3 class="hybrid-section-title">
+            <h3 class="hybrid-section-title" data-fr27-type="module-title">
               Active-field mention rate
             </h3>
 
@@ -4113,8 +4129,8 @@
                   aria-hidden="true"
                 ></i>
                 <span>
-                  <strong>CURRENT</strong>
-                  <small>${escapeHtml(currentPeriodLabel)}</small>
+                  <strong data-fr27-type="field-label">CURRENT</strong>
+                  <small data-fr27-type="scale-label">${escapeHtml(currentPeriodLabel)}</small>
                 </span>
               </span>
 
@@ -4124,8 +4140,8 @@
                   aria-hidden="true"
                 ></i>
                 <span>
-                  <strong>PRIOR</strong>
-                  <small>${escapeHtml(priorPeriodLabel)}</small>
+                  <strong data-fr27-type="field-label">PRIOR</strong>
+                  <small data-fr27-type="scale-label">${escapeHtml(priorPeriodLabel)}</small>
                 </span>
               </span>
             </div>
@@ -4136,7 +4152,7 @@
           </section>
 
           <section class="hybrid-media-terminal-module">
-            <h3 class="hybrid-section-title">
+            <h3 class="hybrid-section-title" data-fr27-type="module-title">
               Sustained topics
             </h3>
 
@@ -4157,8 +4173,8 @@
               >
                 <span></span>
                 <span></span>
-                <strong>DAYS</strong>
-                <strong>PUBS</strong>
+                <strong data-fr27-type="field-label">DAYS</strong>
+                <strong data-fr27-type="field-label">PUBS</strong>
               </div>
 
               ${topicRows}
@@ -4285,8 +4301,8 @@
 
     return `<div class="hybrid-agenda-layout">
       <section class="hybrid-agenda-ranking">
-        <h3 class="hybrid-section-title">Eligible-topic ranking</h3>
-        <p class="hybrid-section-sub">Accepted election-news topics · ${model.windowDays}-day source window. Primary bar value: source-day recurrence.</p>
+        <h3 class="hybrid-section-title" data-fr27-type="module-title">Eligible-topic ranking</h3>
+        <p class="hybrid-section-sub" data-fr27-type="meta">Accepted election-news topics · ${model.windowDays}-day source window. Primary bar value: source-day recurrence.</p>
 
         ${model.topics.map((topic, index) => `
           <button
@@ -4296,11 +4312,11 @@
             aria-pressed="${String(topic.id === selected.id)}"
           >
             <span class="hybrid-agenda-topic-head">
-              <span>${index + 1}. ${escapeHtml(topic.label)}</span>
-              <strong>${topic.source_day_count} source-days</strong>
+              <span data-fr27-type="item-title">${index + 1}. ${escapeHtml(topic.label)}</span>
+              <strong data-fr27-type="data">${topic.source_day_count} source-days</strong>
             </span>
 
-            <span class="hybrid-agenda-topic-meta">
+            <span class="hybrid-agenda-topic-meta" data-fr27-type="meta">
               ${countLabel(topic.item_count, "item")} ·
               ${countLabel(topic.publisher_count, "publisher")} ·
               ${countLabel(topic.active_day_count, "active day")}
@@ -4321,32 +4337,32 @@
       </section>
 
       <section class="hybrid-agenda-detail" aria-live="polite">
-        <div class="hybrid-section-title">Selected recurring topic</div>
-        <h3>${escapeHtml(selected.label)}</h3>
+        <div class="hybrid-section-title" data-fr27-type="kicker">Selected recurring topic</div>
+        <h3 data-fr27-type="item-title">${escapeHtml(selected.label)}</h3>
 
-        <p class="hybrid-agenda-definition${definitionAvailable ? "" : " is-unavailable"}">
+        <p class="hybrid-agenda-definition${definitionAvailable ? "" : " is-unavailable"}" data-fr27-type="${definitionAvailable ? "body" : "meta"}">
           ${escapeHtml(definition)}
         </p>
 
         <div class="hybrid-metrics">
-          <span class="hybrid-metric">${selected.source_day_count} source-days</span>
-          <span class="hybrid-metric">${countLabel(selected.item_count, "accepted item")}</span>
-          <span class="hybrid-metric">${countLabel(selected.publisher_count, "publisher")}</span>
-          <span class="hybrid-metric">${countLabel(selected.active_day_count, "active day")}</span>
+          <span class="hybrid-metric" data-fr27-type="data">${selected.source_day_count} source-days</span>
+          <span class="hybrid-metric" data-fr27-type="data">${countLabel(selected.item_count, "accepted item")}</span>
+          <span class="hybrid-metric" data-fr27-type="data">${countLabel(selected.publisher_count, "publisher")}</span>
+          <span class="hybrid-metric" data-fr27-type="data">${countLabel(selected.active_day_count, "active day")}</span>
         </div>
 
         <div class="hybrid-supporting-list">
           ${selected.supporting_items.slice(0, 5).map(item => `
             <a
-              class="hybrid-supporting-link"
+              class="hybrid-supporting-link" data-fr27-type="action-label"
               href="${escapeAttribute(safeSourceUrl(item.url))}"
               target="_blank"
               rel="noopener noreferrer"
             >
-              <span class="hybrid-supporting-meta">
+              <span class="hybrid-supporting-meta" data-fr27-type="meta">
                 ${escapeHtml(item.publisher)} · ${formatDay(item.published_at)}
               </span>
-              <span lang="fr">
+              <span lang="fr" data-fr27-type="item-title">
                 ${escapeHtml(item.headline)}
                 <span aria-hidden="true">↗</span>
               </span>
@@ -4356,7 +4372,7 @@
       </section>
     </div>
 
-    <p class="hybrid-disclosure">
+    <p class="hybrid-disclosure" data-fr27-type="body">
       Recurring campaign topics classify accepted presidential-election coverage from monitored publishers. Bars use source-day count, not raw article volume. This is agenda activity, not voter or public priorities.
     </p>`;
   }
@@ -4399,20 +4415,20 @@
     const diagnosticMarkup = diagnostics
       ? `<div class="hybrid-agenda-v6-diagnostics" aria-label="Agenda diagnostics">
           <article class="is-active">
-            <span>ACTIVE TOPICS</span>
-            <strong>${diagnostics.activeTopics}</strong>
+            <span data-fr27-type="field-label">ACTIVE TOPICS</span>
+            <strong data-fr27-type="key-data">${diagnostics.activeTopics}</strong>
           </article>
           <article class="is-concentration">
-            <span>TOP-3 SHARE</span>
-            <strong>${number(diagnostics.top3Share).toFixed(1)}%</strong>
+            <span data-fr27-type="field-label">TOP-3 SHARE</span>
+            <strong data-fr27-type="key-data">${number(diagnostics.top3Share).toFixed(1)}%</strong>
           </article>
           <article class="is-rising">
-            <span>RISING TOPICS</span>
-            <strong>${diagnostics.risingTopics}</strong>
+            <span data-fr27-type="field-label">RISING TOPICS</span>
+            <strong data-fr27-type="key-data">${diagnostics.risingTopics}</strong>
           </article>
           <article class="is-turnover">
-            <span>TOP-3 TURNOVER</span>
-            <strong>${diagnostics.top3Turnover}/${diagnostics.top3TurnoverDenominator}</strong>
+            <span data-fr27-type="field-label">TOP-3 TURNOVER</span>
+            <strong data-fr27-type="key-data">${diagnostics.top3Turnover}/${diagnostics.top3TurnoverDenominator}</strong>
           </article>
         </div>`
       : "";
@@ -4442,19 +4458,20 @@
         </span>
 
         <span class="hybrid-agenda-v6-topic-copy">
-          <span class="hybrid-agenda-v6-topic-name">${escapeHtml(topic.label)}</span>
+          <span class="hybrid-agenda-v6-topic-name" data-fr27-type="item-title">${escapeHtml(topic.label)}</span>
           <span class="hybrid-agenda-v6-topic-tags">
             <span
               class="hybrid-agenda-v6-badge"
               data-movement="${escapeAttribute(movement)}"
+              data-fr27-type="status-label"
             >${escapeHtml(topic.movement)}</span>
-            <span class="hybrid-agenda-v6-badge is-structure">${escapeHtml(topic.structure)}</span>
+            <span class="hybrid-agenda-v6-badge is-structure" data-fr27-type="status-label">${escapeHtml(topic.structure)}</span>
           </span>
         </span>
 
         <span class="hybrid-agenda-v6-topic-total">
-          <strong>${topic.source_day_count}</strong>
-          <span>SOURCE-DAYS</span>
+          <strong data-fr27-type="data">${topic.source_day_count}</strong>
+          <span data-fr27-type="field-label">SOURCE-DAYS</span>
           <i class="hybrid-agenda-v6-topic-volume" aria-hidden="true">
             <b style="--agenda-monitor-volume:${volumeWidth.toFixed(1)}%"></b>
           </i>
@@ -4462,14 +4479,14 @@
 
         <span class="hybrid-agenda-v6-topic-shift">
           <span>
-            <small>PRIOR</small>
-            <strong>${topic.previousSourceDays}</strong>
+            <small data-fr27-type="field-label">PRIOR</small>
+            <strong data-fr27-type="data">${topic.previousSourceDays}</strong>
           </span>
           <span>
-            <small>LATEST</small>
-            <strong>${topic.latestSourceDays}</strong>
+            <small data-fr27-type="field-label">LATEST</small>
+            <strong data-fr27-type="data">${topic.latestSourceDays}</strong>
           </span>
-          <em data-movement="${escapeAttribute(movement)}">
+          <em data-movement="${escapeAttribute(movement)}" data-fr27-type="data">
             ${movementGlyph} ${escapeHtml(agendaSignedPp(topic.agendaShareChangePp))}
           </em>
         </span>
@@ -4478,8 +4495,8 @@
 
     return `<section class="hybrid-agenda-v6-panel hybrid-agenda-v6-monitor">
       <header class="hybrid-agenda-v6-panel-head">
-        <h3 class="hybrid-agenda-v6-panel-title">AGENDA MONITOR</h3>
-        <span class="hybrid-agenda-v6-panel-meta">
+        <h3 class="hybrid-agenda-v6-panel-title" data-fr27-type="panel-title">AGENDA MONITOR</h3>
+        <span class="hybrid-agenda-v6-panel-meta" data-fr27-type="meta">
           ${diagnostics ? `${diagnostics.activeTopics} ACTIVE · 30D` : "30D"}
         </span>
       </header>
@@ -4518,7 +4535,7 @@
     };
 
     const periodHeaders = model.evolutionBins.map(bin => `
-      <span class="hybrid-agenda-v6-period">
+      <span class="hybrid-agenda-v6-period" data-fr27-type="scale-label">
         ${escapeHtml(agendaPeriodLabel(bin.start, bin.end))}
       </span>
     `).join("");
@@ -4536,7 +4553,7 @@
         aria-pressed="${String(topic.id === selected?.id)}"
         data-fr27-tooltip="${escapeAttribute(topic.label)}"
       >
-        <span class="hybrid-agenda-v6-matrix-label">${escapeHtml(shortLabel)}</span>
+        <span class="hybrid-agenda-v6-matrix-label" data-fr27-type="row-label">${escapeHtml(shortLabel)}</span>
 
         ${daily.map((day, index) =>
           agendaDailyCellV6(
@@ -4547,14 +4564,14 @@
           )
         ).join("")}
 
-        <strong class="hybrid-agenda-v6-matrix-total">${topic.source_day_count}</strong>
+        <strong class="hybrid-agenda-v6-matrix-total" data-fr27-type="data">${topic.source_day_count}</strong>
       </button>`;
     }).join("");
 
     return `<section class="hybrid-agenda-v6-module hybrid-agenda-v6-matrix-module">
       <div class="hybrid-agenda-v6-module-head">
-        <strong>30-DAY EVOLUTION</strong>
-        <span>
+        <strong data-fr27-type="module-title">30-DAY EVOLUTION</strong>
+        <span data-fr27-type="scale-label">
           ${escapeHtml(agendaCompactDate(model.evolution.period_start))}
           →
           ${escapeHtml(agendaCompactDate(model.evolution.period_end))}
@@ -4568,9 +4585,9 @@
           aria-label="Thirty-day Agenda evolution matrix"
         >
           <div class="hybrid-agenda-v6-matrix-head" aria-hidden="true">
-            <span>TOPIC</span>
+            <span data-fr27-type="field-label">TOPIC</span>
             ${periodHeaders}
-            <span>30D</span>
+            <span data-fr27-type="scale-label">30D</span>
           </div>
 
           ${rows}
@@ -4618,7 +4635,7 @@
         class="hybrid-agenda-v6-shift-row"
         data-movement="${escapeAttribute(movement)}"
       >
-        <span class="hybrid-agenda-v6-shift-label">${escapeHtml(shortLabel)}</span>
+        <span class="hybrid-agenda-v6-shift-label" data-fr27-type="row-label">${escapeHtml(shortLabel)}</span>
 
         <span
           class="hybrid-agenda-v6-pair-bars"
@@ -4634,20 +4651,22 @@
 
         <span
           class="hybrid-agenda-v6-shift-count"
+          data-fr27-type="data"
         >${previous} → ${latest}</span>
 
         <strong
           class="hybrid-agenda-v6-shift-delta"
           data-movement="${escapeAttribute(movement)}"
+          data-fr27-type="data"
         >${glyph} ${escapeHtml(agendaSignedPp(topic.agendaShareChangePp))}</strong>
       </div>`;
     }).join("");
 
     return `<section class="hybrid-agenda-v6-module hybrid-agenda-v6-shift-module">
       <div class="hybrid-agenda-v6-module-head">
-        <strong>WEEK SHIFT</strong>
+        <strong data-fr27-type="module-title">WEEK SHIFT</strong>
 
-        <span class="hybrid-agenda-v6-shift-key">
+        <span class="hybrid-agenda-v6-shift-key" data-fr27-type="scale-label">
           <span>
             <i class="is-prior" aria-hidden="true"></i>
             PRIOR ${escapeHtml(
@@ -4678,9 +4697,9 @@
   function renderAgendaV6Analysis(model) {
     return `<section class="hybrid-agenda-v6-panel hybrid-agenda-v6-evolution-panel">
       <header class="hybrid-agenda-v6-panel-head">
-        <h3>AGENDA EVOLUTION</h3>
+        <h3 data-fr27-type="panel-title">AGENDA EVOLUTION</h3>
         <span class="hybrid-agenda-v6-head-tools">
-          <span class="hybrid-agenda-v6-panel-head-meta">COMPLETE-WEEK COMPARISON</span>
+          <span class="hybrid-agenda-v6-panel-head-meta" data-fr27-type="meta">COMPLETE-WEEK COMPARISON</span>
           <button class="hybrid-agenda-v6-info fr27-info-glyph" type="button" aria-label="Agenda methodology" data-fr27-tooltip="Source-day = unique publisher × UTC date · exact 30D projection includes the current partial UTC day · movement compares latest 7 complete days with prior 7 · this measures monitored media agenda activity, not voter or public priorities.">
             <span aria-hidden="true">i</span>
           </button>
@@ -4779,8 +4798,8 @@
 
     return `<section class="hybrid-agenda-v6-module hybrid-agenda-v6-profile-module">
       <div class="hybrid-agenda-v6-module-head">
-        <strong>ACTIVITY PROFILE · 30D</strong>
-        <span>
+        <strong data-fr27-type="module-title">ACTIVITY PROFILE · 30D</strong>
+        <span data-fr27-type="scale-label">
           ${escapeHtml(agendaCompactDate(daily[0]?.date))}
           →
           ${escapeHtml(agendaCompactDate(daily[daily.length - 1]?.date))}
@@ -4814,23 +4833,23 @@
             aria-label="Prior and latest complete-week daily activity shapes"
           >
             <div class="hybrid-agenda-v6-week-line is-latest">
-              <span>LATEST 7D</span>
+              <span data-fr27-type="scale-label">LATEST 7D</span>
               ${renderSparkline(
                 latestSeries,
                 "latest",
                 `Latest 7D daily source-days: ${latestSeries.join(", ")}`
               )}
-              <strong>${topic.latestSourceDays}</strong>
+              <strong data-fr27-type="data">${topic.latestSourceDays}</strong>
             </div>
 
             <div class="hybrid-agenda-v6-week-line is-prior">
-              <span>PRIOR 7D</span>
+              <span data-fr27-type="scale-label">PRIOR 7D</span>
               ${renderSparkline(
                 priorSeries,
                 "prior",
                 `Prior 7D daily source-days: ${priorSeries.join(", ")}`
               )}
-              <strong>${topic.previousSourceDays}</strong>
+              <strong data-fr27-type="data">${topic.previousSourceDays}</strong>
             </div>
           </div>
         </div>
@@ -4840,23 +4859,23 @@
           aria-label="Selected topic persistence and peak facts"
         >
           <div>
-            <span>ACTIVE · 14D</span>
-            <strong>${topic.activeDays14}/14</strong>
+            <span data-fr27-type="field-label">ACTIVE · 14D</span>
+            <strong data-fr27-type="key-data">${topic.activeDays14}/14</strong>
           </div>
 
           <div>
-            <span>ACTIVE · 30D</span>
-            <strong>${activeDays30}/30</strong>
+            <span data-fr27-type="field-label">ACTIVE · 30D</span>
+            <strong data-fr27-type="key-data">${activeDays30}/30</strong>
           </div>
 
           <div>
-            <span>PEAK SHARE</span>
-            <strong>${escapeHtml(agendaPercent(topic.peakDayShare))}</strong>
+            <span data-fr27-type="field-label">PEAK SHARE</span>
+            <strong data-fr27-type="key-data">${escapeHtml(agendaPercent(topic.peakDayShare))}</strong>
           </div>
 
           <div>
-            <span>PEAK DAY</span>
-            <strong>${escapeHtml(agendaCompactDate(topic.peakDayDate))} · ${topic.peakDaySourceDays} SD</strong>
+            <span data-fr27-type="field-label">PEAK DAY</span>
+            <strong data-fr27-type="key-data">${escapeHtml(agendaCompactDate(topic.peakDayDate))} · ${topic.peakDaySourceDays} SD</strong>
           </div>
         </div>
       </div>
@@ -4882,8 +4901,8 @@
           const count = number(signal.item_count);
           return `<div class="hybrid-agenda-v6-signal-item">
             <div class="hybrid-agenda-v6-signal-head">
-              <span>${escapeHtml(agendaSignalLabel(signal.term))}</span>
-              <strong>${count}</strong>
+              <span data-fr27-type="row-label">${escapeHtml(agendaSignalLabel(signal.term))}</span>
+              <strong data-fr27-type="data">${count}</strong>
             </div>
             <span class="hybrid-agenda-v6-signal-track" aria-hidden="true">
               <i style="--agenda-signal-width:${(count / maximum * 100).toFixed(1)}%"></i>
@@ -5038,14 +5057,14 @@
             : "";
 
           return `<a
-            class="hybrid-agenda-v6-evidence-row ${iconPath ? "has-publisher-icon" : "has-no-publisher-icon"}"
+            class="hybrid-agenda-v6-evidence-row ${iconPath ? "has-publisher-icon" : "has-no-publisher-icon"}" data-fr27-type="action-label"
             href="${escapeAttribute(safeSourceUrl(item.url))}"
             target="_blank"
             rel="noopener noreferrer"
           >
             <span class="hybrid-agenda-v6-evidence-copy">
-              <strong lang="fr">${escapeHtml(item.headline)}</strong>
-              <small>${escapeHtml(item.publisher)} · ${formatDay(item.published_at)}</small>
+              <strong lang="fr" data-fr27-type="item-title">${escapeHtml(item.headline)}</strong>
+              <small data-fr27-type="meta">${escapeHtml(item.publisher)} · ${formatDay(item.published_at)}</small>
             </span>
 
             <i class="hybrid-agenda-v6-evidence-arrow" aria-hidden="true">↗</i>
@@ -5077,8 +5096,8 @@
 
     return `<section class="hybrid-agenda-v6-panel hybrid-agenda-v6-dossier">
       <header class="hybrid-agenda-v6-panel-head">
-        <h3 class="hybrid-agenda-v6-panel-title">TOPIC DOSSIER</h3>
-        <span class="hybrid-agenda-v6-panel-meta">SOURCE-LINKED EVIDENCE</span>
+        <h3 class="hybrid-agenda-v6-panel-title" data-fr27-type="panel-title">TOPIC DOSSIER</h3>
+        <span class="hybrid-agenda-v6-panel-meta" data-fr27-type="meta">SOURCE-LINKED EVIDENCE</span>
       </header>
 
       <div class="hybrid-agenda-v6-panel-body hybrid-agenda-v6-dossier-body">
@@ -5088,17 +5107,18 @@
           </span>
 
           <div class="hybrid-agenda-v6-identity-copy">
-            <span class="hybrid-agenda-v6-kicker">SELECTED RECURRING TOPIC</span>
+            <span class="hybrid-agenda-v6-kicker" data-fr27-type="kicker">SELECTED RECURRING TOPIC</span>
 
             <div class="hybrid-agenda-v6-title-line">
-              <h4>${escapeHtml(topic.label)}</h4>
+              <h4 data-fr27-type="item-title">${escapeHtml(topic.label)}</h4>
 
               <span
                 class="hybrid-agenda-v6-badge"
                 data-movement="${escapeAttribute(movement)}"
+                data-fr27-type="status-label"
               >${escapeHtml(topic.movement)}</span>
 
-              <span class="hybrid-agenda-v6-badge is-structure">
+              <span class="hybrid-agenda-v6-badge is-structure" data-fr27-type="status-label">
                 ${escapeHtml(topic.structure)}
               </span>
             </div>
@@ -5110,20 +5130,20 @@
           aria-label="Selected topic headline metrics"
         >
           <article>
-            <strong>${topic.source_day_count}</strong>
-            <span>30D SOURCE-DAYS</span>
+            <strong data-fr27-type="key-data">${topic.source_day_count}</strong>
+            <span data-fr27-type="field-label">30D SOURCE-DAYS</span>
           </article>
 
           <article>
-            <strong data-movement="${escapeAttribute(movement)}">
+            <strong data-movement="${escapeAttribute(movement)}" data-fr27-type="key-data">
               ${escapeHtml(agendaSignedPp(topic.agendaShareChangePp))}
             </strong>
-            <span>AGENDA SHARE Δ</span>
+            <span data-fr27-type="field-label">AGENDA SHARE Δ</span>
           </article>
 
           <article>
-            <strong>${topic.publisher_count}</strong>
-            <span>PUBLISHERS</span>
+            <strong data-fr27-type="key-data">${topic.publisher_count}</strong>
+            <span data-fr27-type="field-label">PUBLISHERS</span>
           </article>
         </section>
 
@@ -5132,16 +5152,16 @@
         <div class="hybrid-agenda-v6-detail-grid">
           <section class="hybrid-agenda-v6-detail-card">
             <div class="hybrid-agenda-v6-detail-head">
-              <strong>ASSOCIATED SIGNALS</strong>
-              <span>${signalHits} hits · ${signalCount} signals</span>
+              <strong data-fr27-type="module-title">ASSOCIATED SIGNALS</strong>
+              <span data-fr27-type="meta">${signalHits} hits · ${signalCount} signals</span>
             </div>
             ${renderAgendaV6Signals(topic)}
           </section>
 
           <section class="hybrid-agenda-v6-detail-card">
             <div class="hybrid-agenda-v6-detail-head">
-              <strong>RECENT EVIDENCE</strong>
-              <span>${Math.min(8, evidenceCount)} of ${evidenceCount}</span>
+              <strong data-fr27-type="module-title">RECENT EVIDENCE</strong>
+              <span data-fr27-type="meta">${Math.min(8, evidenceCount)} of ${evidenceCount}</span>
             </div>
             ${renderAgendaV6Evidence(topic)}
           </section>
@@ -5271,7 +5291,7 @@
             </span>
 
             <span class="hybrid-agenda-v6-topic-copy">
-              <span class="hybrid-agenda-v6-topic-name">
+              <span class="hybrid-agenda-v6-topic-name" data-fr27-type="item-title">
                 ${escapeHtml(topic.label)}
               </span>
 
@@ -5279,19 +5299,20 @@
                 <span
                   class="hybrid-agenda-v6-badge"
                   data-movement="${escapeAttribute(movement)}"
+                  data-fr27-type="status-label"
                 >
                   ${escapeHtml(topic.movement)}
                 </span>
 
-                <span class="hybrid-agenda-v6-badge is-structure">
+                <span class="hybrid-agenda-v6-badge is-structure" data-fr27-type="status-label">
                   ${escapeHtml(topic.structure)}
                 </span>
               </span>
             </span>
 
             <span class="hybrid-agenda-v6-topic-total">
-              <strong>${topic.source_day_count}</strong>
-              <span>SOURCE-DAYS</span>
+              <strong data-fr27-type="data">${topic.source_day_count}</strong>
+              <span data-fr27-type="field-label">SOURCE-DAYS</span>
 
               <i
                 class="hybrid-agenda-v6-topic-volume"
@@ -5305,17 +5326,18 @@
 
             <span class="hybrid-agenda-v6-topic-shift">
               <span>
-                <small>PRIOR</small>
-                <strong>${topic.previousIncidence.toFixed(1)}%</strong>
+                <small data-fr27-type="field-label">PRIOR</small>
+                <strong data-fr27-type="data">${topic.previousIncidence.toFixed(1)}%</strong>
               </span>
 
               <span>
-                <small>LATEST</small>
-                <strong>${topic.latestIncidence.toFixed(1)}%</strong>
+                <small data-fr27-type="field-label">LATEST</small>
+                <strong data-fr27-type="data">${topic.latestIncidence.toFixed(1)}%</strong>
               </span>
 
               <em
                 data-movement="${escapeAttribute(movement)}"
+                data-fr27-type="data"
               >
                 ${glyph}
                 ${escapeHtml(
@@ -5333,11 +5355,11 @@
       class="hybrid-agenda-v6-panel hybrid-agenda-v6-monitor"
     >
       <header class="hybrid-agenda-v6-panel-head">
-        <h3 class="hybrid-agenda-v6-panel-title">
+        <h3 class="hybrid-agenda-v6-panel-title" data-fr27-type="panel-title">
           POLICY MONITOR
         </h3>
 
-        <span class="hybrid-agenda-v6-panel-meta">
+        <span class="hybrid-agenda-v6-panel-meta" data-fr27-type="meta">
           ${model.topics.length}
           ISSUES · 30D
         </span>
@@ -5351,15 +5373,15 @@
           aria-label="Policy issue diagnostics"
         >
           <article class="is-active">
-            <span>ACTIVE 7D</span>
-            <strong>
+            <span data-fr27-type="field-label">ACTIVE 7D</span>
+            <strong data-fr27-type="key-data">
               ${diagnostics.activeIssues}
             </strong>
           </article>
 
           <article class="is-concentration">
-            <span>LEADING ISSUE</span>
-            <strong class="hybrid-issues-leading">
+            <span data-fr27-type="field-label">LEADING ISSUE</span>
+            <strong class="hybrid-issues-leading" data-fr27-type="key-data">
               ${escapeHtml(
                 policyIssueCode(
                   diagnostics.leadingIssue
@@ -5369,15 +5391,15 @@
           </article>
 
           <article class="is-rising">
-            <span>RISING ISSUES</span>
-            <strong>
+            <span data-fr27-type="field-label">RISING ISSUES</span>
+            <strong data-fr27-type="key-data">
               ${diagnostics.risingIssues}
             </strong>
           </article>
 
           <article class="is-turnover">
-            <span>POLICY COVERAGE</span>
-            <strong>
+            <span data-fr27-type="field-label">POLICY COVERAGE</span>
+            <strong data-fr27-type="key-data">
               ${diagnostics.policyCoverage.toFixed(1)}%
             </strong>
           </article>
@@ -5395,7 +5417,7 @@
       model.evolutionBins
         .map(
           bin => `
-            <span class="hybrid-agenda-v6-period">
+            <span class="hybrid-agenda-v6-period" data-fr27-type="scale-label">
               ${escapeHtml(
                 agendaPeriodLabel(
                   bin.start,
@@ -5417,7 +5439,7 @@
             aria-pressed="${String(topic.id === model.selectedIssue?.id)}"
             data-fr27-tooltip="${escapeAttribute(topic.label)}"
           >
-            <span class="hybrid-agenda-v6-matrix-label">
+            <span class="hybrid-agenda-v6-matrix-label" data-fr27-type="row-label">
               ${escapeHtml(
                 policyIssueShortLabel(topic)
               )}
@@ -5435,7 +5457,7 @@
               )
               .join("")}
 
-            <strong class="hybrid-agenda-v6-matrix-total">
+            <strong class="hybrid-agenda-v6-matrix-total" data-fr27-type="data">
               ${topic.source_day_count}
             </strong>
           </button>
@@ -5446,9 +5468,9 @@
       class="hybrid-agenda-v6-module hybrid-agenda-v6-matrix-module"
     >
       <div class="hybrid-agenda-v6-module-head">
-        <strong>30-DAY EVOLUTION</strong>
+        <strong data-fr27-type="module-title">30-DAY EVOLUTION</strong>
 
-        <span>
+        <span data-fr27-type="scale-label">
           ${escapeHtml(
             agendaCompactDate(
               model.evolution.period_start
@@ -5473,9 +5495,9 @@
             class="hybrid-agenda-v6-matrix-head"
             aria-hidden="true"
           >
-            <span>ISSUE</span>
+            <span data-fr27-type="field-label">ISSUE</span>
             ${periodHeaders}
-            <span>30D</span>
+            <span data-fr27-type="scale-label">30D</span>
           </div>
 
           ${rows}
@@ -5485,10 +5507,10 @@
           class="hybrid-agenda-v6-matrix-legend"
           aria-label="Policy Issues evolution color key"
         >
-          <span><i data-window="older"></i>OLDER</span>
-          <span><i data-window="previous"></i>PRIOR 7D</span>
-          <span><i data-window="latest"></i>LATEST 7D</span>
-          <span><i data-window="partial"></i>PARTIAL DAY</span>
+          <span data-fr27-type="scale-label"><i data-window="older"></i>OLDER</span>
+          <span data-fr27-type="scale-label"><i data-window="previous"></i>PRIOR 7D</span>
+          <span data-fr27-type="scale-label"><i data-window="latest"></i>LATEST 7D</span>
+          <span data-fr27-type="scale-label"><i data-window="partial"></i>PARTIAL DAY</span>
         </div>
       </div>
     </section>`;
@@ -5540,7 +5562,7 @@
             class="hybrid-agenda-v6-shift-row"
             data-movement="${escapeAttribute(movement)}"
           >
-            <span class="hybrid-agenda-v6-shift-label">
+            <span class="hybrid-agenda-v6-shift-label" data-fr27-type="row-label">
               ${escapeHtml(
                 policyIssueShortLabel(topic)
               )}
@@ -5569,7 +5591,7 @@
               </span>
             </span>
 
-            <span class="hybrid-agenda-v6-shift-count">
+            <span class="hybrid-agenda-v6-shift-count" data-fr27-type="data">
               ${previous.toFixed(1)}%
               →
               ${latest.toFixed(1)}%
@@ -5578,6 +5600,7 @@
             <strong
               class="hybrid-agenda-v6-shift-delta"
               data-movement="${escapeAttribute(movement)}"
+              data-fr27-type="data"
             >
               ${glyph}
               ${escapeHtml(
@@ -5594,9 +5617,9 @@
       class="hybrid-agenda-v6-module hybrid-agenda-v6-shift-module"
     >
       <div class="hybrid-agenda-v6-module-head">
-        <strong>WEEK SHIFT</strong>
+        <strong data-fr27-type="module-title">WEEK SHIFT</strong>
 
-        <span class="hybrid-agenda-v6-shift-key">
+        <span class="hybrid-agenda-v6-shift-key" data-fr27-type="scale-label">
           <span>
             <i class="is-prior" aria-hidden="true"></i>
             PRIOR
@@ -5620,10 +5643,10 @@
       class="hybrid-agenda-v6-panel hybrid-agenda-v6-evolution-panel"
     >
       <header class="hybrid-agenda-v6-panel-head">
-        <h3>ISSUE EVOLUTION</h3>
+        <h3 data-fr27-type="panel-title">ISSUE EVOLUTION</h3>
 
         <span class="hybrid-agenda-v6-head-tools">
-          <span class="hybrid-agenda-v6-panel-head-meta">
+          <span class="hybrid-agenda-v6-panel-head-meta" data-fr27-type="meta">
             COMPLETE-WEEK COMPARISON
           </span>
 
@@ -5694,13 +5717,13 @@
               class="hybrid-agenda-v6-signal-item"
             >
               <div class="hybrid-agenda-v6-signal-head">
-                <span>
+                <span data-fr27-type="row-label">
                   ${escapeHtml(
                     item.candidate
                   )}
                 </span>
 
-                <strong>
+                <strong data-fr27-type="data">
                   ${count}
                 </strong>
               </div>
@@ -5732,6 +5755,7 @@
 
     return `<span
       class="hybrid-agenda-v6-badge is-structure"
+      data-fr27-type="status-label"
       data-fr27-tooltip="${escapeAttribute(
         `${policySubtopicLabel(lead.id)} · ${lead.item_count} matched articles`
       )}"
@@ -5779,11 +5803,11 @@
       class="hybrid-agenda-v6-panel hybrid-agenda-v6-dossier"
     >
       <header class="hybrid-agenda-v6-panel-head">
-        <h3 class="hybrid-agenda-v6-panel-title">
+        <h3 class="hybrid-agenda-v6-panel-title" data-fr27-type="panel-title">
           ISSUE DOSSIER
         </h3>
 
-        <span class="hybrid-agenda-v6-panel-meta">
+        <span class="hybrid-agenda-v6-panel-meta" data-fr27-type="meta">
           SOURCE-LINKED EVIDENCE
         </span>
       </header>
@@ -5800,18 +5824,19 @@
           </span>
 
           <div class="hybrid-agenda-v6-identity-copy">
-            <span class="hybrid-agenda-v6-kicker">
+            <span class="hybrid-agenda-v6-kicker" data-fr27-type="kicker">
               SELECTED SUBSTANTIVE ISSUE
             </span>
 
             <div class="hybrid-agenda-v6-title-line">
-              <h4>
+              <h4 data-fr27-type="item-title">
                 ${escapeHtml(topic.label)}
               </h4>
 
               <span
                 class="hybrid-agenda-v6-badge"
                 data-movement="${escapeAttribute(movement)}"
+                data-fr27-type="status-label"
               >
                 ${escapeHtml(
                   topic.movement
@@ -5828,22 +5853,23 @@
           aria-label="Selected issue headline metrics"
         >
           <article>
-            <strong>
+            <strong data-fr27-type="key-data">
               ${topic.source_day_count}
             </strong>
-            <span>30D SOURCE-DAYS</span>
+            <span data-fr27-type="field-label">30D SOURCE-DAYS</span>
           </article>
 
           <article>
-            <strong>
+            <strong data-fr27-type="key-data">
               ${topic.latestIncidence.toFixed(1)}%
             </strong>
-            <span>7D INCIDENCE</span>
+            <span data-fr27-type="field-label">7D INCIDENCE</span>
           </article>
 
           <article>
             <strong
               data-movement="${escapeAttribute(movement)}"
+              data-fr27-type="key-data"
             >
               ${escapeHtml(
                 agendaSignedPp(
@@ -5851,7 +5877,7 @@
                 )
               )}
             </strong>
-            <span>INCIDENCE Δ</span>
+            <span data-fr27-type="field-label">INCIDENCE Δ</span>
           </article>
         </section>
 
@@ -5863,11 +5889,11 @@
         <div class="hybrid-agenda-v6-detail-grid">
           <section class="hybrid-agenda-v6-detail-card">
             <div class="hybrid-agenda-v6-detail-head">
-              <strong>
+              <strong data-fr27-type="module-title">
                 CANDIDATE ASSOCIATIONS
               </strong>
 
-              <span>
+              <span data-fr27-type="meta">
                 ${candidateHits}
                 hits ·
                 ${topic.candidate_counts.length}
@@ -5880,11 +5906,11 @@
 
           <section class="hybrid-agenda-v6-detail-card">
             <div class="hybrid-agenda-v6-detail-head">
-              <strong>
+              <strong data-fr27-type="module-title">
                 RECENT EVIDENCE
               </strong>
 
-              <span>
+              <span data-fr27-type="meta">
                 ${Math.min(
                   8,
                   evidenceCount
@@ -6237,7 +6263,7 @@
   }
 
   function renderEventTypeBadge(eventType, extra = "") {
-    return `<span class="hybrid-events-type-badge" data-event-type="${escapeAttribute(eventType)}">
+    return `<span class="hybrid-events-type-badge" data-fr27-type="status-label" data-event-type="${escapeAttribute(eventType)}">
       <strong>${escapeHtml(campaignEventTypeCode(eventType))}</strong>
       ${extra ? `<small>${escapeHtml(extra)}</small>` : ""}
     </span>`;
@@ -6450,7 +6476,7 @@
     const legendCategories = ["debate", "rally", "visit", "launch", "other"]
       .map(key => campaignEventHorizonCategories.find(category => category.key === key))
       .filter(Boolean);
-    return `<footer class="hybrid-events-ops-legend" aria-label="Event type color legend"><div>${legendCategories.map(category => `<span class="hybrid-events-ops-legend-item"><i class="hybrid-events-ops-legend-swatch" data-event-type="${escapeAttribute(category.types[0])}" aria-hidden="true"></i><span>${escapeHtml(campaignEventHorizonCategoryLabel(category.key))} [${escapeHtml(campaignEventTypeCode(category.types[0]))}]</span></span>`).join("")}</div><p>Descriptive polling data from public sources · no model · no averages · no forecast · no voting advice.</p><p>Candidate portraits are AI-generated illustrations for visual identification.</p></footer>`;
+    return `<footer class="hybrid-events-ops-legend" aria-label="Event type color legend"><div>${legendCategories.map(category => `<span class="hybrid-events-ops-legend-item"><i class="hybrid-events-ops-legend-swatch" data-event-type="${escapeAttribute(category.types[0])}" aria-hidden="true"></i><span data-fr27-type="status-label">${escapeHtml(campaignEventHorizonCategoryLabel(category.key))} [${escapeHtml(campaignEventTypeCode(category.types[0]))}]</span></span>`).join("")}</div><p data-fr27-type="body">Descriptive polling data from public sources · no model · no averages · no forecast · no voting advice.</p><p data-fr27-type="meta">Candidate portraits are AI-generated illustrations for visual identification.</p></footer>`;
   }
 
   function campaignEventScheduleMetricIcon(name) {
@@ -6466,7 +6492,7 @@
   function renderOperationsScheduleRail(model) {
     const horizon = model.horizon;
     const monthStarts = new Set(horizon.monthGroups.map(group => group.start - 1));
-    const months = horizon.monthGroups.map(group => `<span style="grid-column:${group.start} / span ${group.span}">${escapeHtml(group.label)}</span>`).join("");
+    const months = horizon.monthGroups.map(group => `<span data-fr27-type="scale-label" style="grid-column:${group.start} / span ${group.span}">${escapeHtml(group.label)}</span>`).join("");
     const weeks = horizon.weekBins.map((bin, index) => {
       const selected = model.selectedWeek?.startKey === bin.startKey;
       const current = model.todayKey >= bin.startKey && model.todayKey <= bin.endKey;
@@ -6479,7 +6505,7 @@
       const weekSummary = `${bin.label}. ${bin.count} scheduled ${bin.count === 1 ? "event" : "events"}. ${breakdown}.`;
       return `<div class="hybrid-events-ops-week${selected ? " is-selected" : ""}${current ? " is-current" : ""}${monthStart ? " is-month-start" : ""}">
         <button type="button" class="hybrid-events-ops-week-select" data-hybrid-week-select="${escapeAttribute(bin.startKey)}" aria-label="${escapeAttribute(`Navigate to week ${weekSummary}`)}" aria-pressed="${String(selected)}" data-fr27-tooltip="${escapeAttribute(weekSummary)}"${current ? ' aria-current="date"' : ""}>
-          <span>${escapeHtml(bin.label)}</span><strong class="hybrid-events-ops-week-count${bin.count ? " has-events" : " is-empty"}">${escapeHtml(countLabel)}</strong>
+          <span data-fr27-type="scale-label">${escapeHtml(bin.label)}</span><strong class="hybrid-events-ops-week-count${bin.count ? " has-events" : " is-empty"}" data-fr27-type="data">${escapeHtml(countLabel)}</strong>
         </button>
         <div class="hybrid-events-ops-week-markers" aria-hidden="true">${renderOperationsHorizonComposition(bin.events)}</div>
       </div>`;
@@ -6491,11 +6517,11 @@
     return `<section class="hybrid-events-ops-rail" aria-labelledby="hybrid-events-ops-rail-title">
       <div class="hybrid-events-ops-rail-head">
         <div class="hybrid-events-ops-titleline">
-          <h3 id="hybrid-events-ops-rail-title">12-WEEK SCHEDULE</h3>
+          <h3 id="hybrid-events-ops-rail-title" data-fr27-type="panel-title">12-WEEK SCHEDULE</h3>
           <button class="hybrid-events-ops-info fr27-info-glyph" type="button" aria-label="Schedule methodology" data-fr27-tooltip="${escapeAttribute(scheduleInfo)}">i</button>
         </div>
         <div class="hybrid-events-ops-head-controls">
-          <div class="hybrid-events-ops-filters" aria-label="Filter campaign events by type">${filters.map(filter => `<button type="button" class="hybrid-events-filter${model.eventTypeFilter === filter.key ? " is-active" : ""}" data-event-type="${escapeAttribute(filter.key)}" data-hybrid-events-filter="${escapeAttribute(filter.key)}" aria-pressed="${String(model.eventTypeFilter === filter.key)}">${escapeHtml(filter.label)}</button>`).join("")}</div>
+          <div class="hybrid-events-ops-filters" aria-label="Filter campaign events by type">${filters.map(filter => `<button type="button" class="hybrid-events-filter${model.eventTypeFilter === filter.key ? " is-active" : ""}" data-event-type="${escapeAttribute(filter.key)}" data-hybrid-events-filter="${escapeAttribute(filter.key)}" data-fr27-type="nav-label" aria-pressed="${String(model.eventTypeFilter === filter.key)}">${escapeHtml(filter.label)}</button>`).join("")}</div>
         </div>
       </div>
       <div class="hybrid-events-ops-horizon-scroll">
@@ -6525,10 +6551,10 @@
       data-hybrid-event-week="${escapeAttribute(weekStart)}"
       aria-pressed="${String(selected)}"
     >
-      <time datetime="${escapeAttribute(event.scheduled_start)}"><strong>${escapeHtml(dateParts[0] || "")}</strong><span>${escapeHtml(dateParts.slice(1).join(" "))}</span><em>${escapeHtml(weekday)}</em></time>
+      <time data-fr27-type="scale-label" datetime="${escapeAttribute(event.scheduled_start)}"><strong>${escapeHtml(dateParts[0] || "")}</strong><span>${escapeHtml(dateParts.slice(1).join(" "))}</span><em>${escapeHtml(weekday)}</em></time>
       ${renderEventTypeBadge(event.event_type, participantCount > 1 ? `×${participantCount}` : "")}
-      <span class="hybrid-events-upcoming-copy"><strong lang="fr">${escapeHtml(event.title)}</strong><small>${campaignEventTimeLabel(event) !== "—" ? `<b class="hybrid-events-upcoming-meta-time">${escapeHtml(campaignEventTimeLabel(event))}</b>` : ""}${campaignEventTimeLabel(event) !== "—" && (place || people) ? " · " : ""}${place ? escapeHtml(place) : ""}${place && people ? " · " : ""}${people ? escapeHtml(people) : ""}</small></span>
-      ${rightLabel ? `<span class="hybrid-events-upcoming-right">${escapeHtml(rightLabel)}</span>` : ""}
+      <span class="hybrid-events-upcoming-copy"><strong lang="fr" data-fr27-type="item-title">${escapeHtml(event.title)}</strong><small data-fr27-type="meta">${campaignEventTimeLabel(event) !== "—" ? `<b class="hybrid-events-upcoming-meta-time">${escapeHtml(campaignEventTimeLabel(event))}</b>` : ""}${campaignEventTimeLabel(event) !== "—" && (place || people) ? " · " : ""}${place ? escapeHtml(place) : ""}${place && people ? " · " : ""}${people ? escapeHtml(people) : ""}</small></span>
+      ${rightLabel ? `<span class="hybrid-events-upcoming-right" data-fr27-type="status-label">${escapeHtml(rightLabel)}</span>` : ""}
     </button>`;
   }
 
@@ -6537,16 +6563,16 @@
     const groups = buildCampaignEventStreamGroups(visible);
     const content = groups.length
       ? groups.map(group => `<section class="hybrid-events-upcoming-week" data-hybrid-event-week-group="${escapeAttribute(group.startKey)}">
-          <div class="hybrid-events-upcoming-week-head"><strong>${escapeHtml(group.label)}</strong><span>${group.events.length} ${group.events.length === 1 ? "EVENT" : "EVENTS"}</span></div>
+          <div class="hybrid-events-upcoming-week-head"><strong data-fr27-type="scale-label">${escapeHtml(group.label)}</strong><span data-fr27-type="data">${group.events.length} ${group.events.length === 1 ? "EVENT" : "EVENTS"}</span></div>
           <div>${group.events.map(event => renderUpcomingEventRow(event, model)).join("")}</div>
         </section>`).join("")
-      : '<div class="hybrid-state">No upcoming events match this event-type filter.</div>';
+      : '<div class="hybrid-state" data-fr27-type="status-label">No upcoming events match this event-type filter.</div>';
     const filteredMeta = model.eventTypeFilter === "all"
       ? `${model.upcomingCount} EVENTS`
       : `${visible.length} OF ${model.upcomingCount}`;
 
     return `<section class="hybrid-events-upcoming" aria-labelledby="hybrid-events-upcoming-title">
-      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-upcoming-title">UPCOMING EVENTS</h3><span>${escapeHtml(filteredMeta)}</span></div>
+      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-upcoming-title" data-fr27-type="panel-title">UPCOMING EVENTS</h3><span data-fr27-type="meta">${escapeHtml(filteredMeta)}</span></div>
       <div class="hybrid-events-upcoming-list">${content}</div>
     </section>`;
   }
@@ -6555,11 +6581,11 @@
     const organizer = String(event.organization || "").trim() || "Not published";
     const precision = event.time_precision === "date" ? "Date only" : "Date + time";
     const format = campaignEventTypeDisplayLabel(event.event_type);
-    return `<section class="hybrid-events-dossier-context"><h4>EVENT DETAILS</h4><dl>
-      <div><dt>Organiser</dt><dd>${escapeHtml(organizer)}</dd></div>
-      <div><dt>Format</dt><dd>${escapeHtml(format)}</dd></div>
-      <div><dt>Time precision</dt><dd>${escapeHtml(precision)}</dd></div>
-      <div><dt>Timezone</dt><dd>${escapeHtml(event.timezone || "Europe/Paris")}</dd></div>
+    return `<section class="hybrid-events-dossier-context"><h4 data-fr27-type="module-title">EVENT DETAILS</h4><dl>
+      <div><dt data-fr27-type="field-label">Organiser</dt><dd data-fr27-type="meta">${escapeHtml(organizer)}</dd></div>
+      <div><dt data-fr27-type="field-label">Format</dt><dd data-fr27-type="meta">${escapeHtml(format)}</dd></div>
+      <div><dt data-fr27-type="field-label">Time precision</dt><dd data-fr27-type="meta">${escapeHtml(precision)}</dd></div>
+      <div><dt data-fr27-type="field-label">Timezone</dt><dd data-fr27-type="meta">${escapeHtml(event.timezone || "Europe/Paris")}</dd></div>
     </dl></section>`;
   }
 
@@ -6576,44 +6602,44 @@
         : event.organization
           ? "ORGANISATION-LED"
           : "NO NAMED PARTICIPANT";
-      return `<section class="hybrid-events-dossier-involvement"><h4>INVOLVEMENT</h4><strong>${escapeHtml(lead)}</strong><small>${escapeHtml(note)}</small></section>`;
+      return `<section class="hybrid-events-dossier-involvement"><h4 data-fr27-type="module-title">INVOLVEMENT</h4><strong data-fr27-type="item-title">${escapeHtml(lead)}</strong><small data-fr27-type="status-label">${escapeHtml(note)}</small></section>`;
     }
-    return `<section class="hybrid-events-dossier-participants"><h4>PARTICIPANTS · ${participants.length}</h4><div>${participants.map(name => `<span>${escapeHtml(name)}</span>`).join("")}</div></section>`;
+    return `<section class="hybrid-events-dossier-participants"><h4 data-fr27-type="module-title">PARTICIPANTS · ${participants.length}</h4><div>${participants.map(name => `<span data-fr27-type="row-label">${escapeHtml(name)}</span>`).join("")}</div></section>`;
   }
 
   function renderDossierEvidence(event) {
     const evidence = campaignEventPrimaryEvidence(event);
     const evidenceState = campaignEventEvidencePresentation(event);
     if (!evidence) {
-      return `<section class="hybrid-events-dossier-evidence"><h4>SOURCE EVIDENCE</h4><div class="hybrid-state is-compact">Source evidence is unavailable.</div></section>`;
+      return `<section class="hybrid-events-dossier-evidence"><h4 data-fr27-type="module-title">SOURCE EVIDENCE</h4><div class="hybrid-state is-compact" data-fr27-type="status-label">Source evidence is unavailable.</div></section>`;
     }
-    return `<section class="hybrid-events-dossier-evidence"><div class="hybrid-events-dossier-section-head"><h4>SOURCE EVIDENCE</h4><span>PRIMARY</span></div>
+    return `<section class="hybrid-events-dossier-evidence"><div class="hybrid-events-dossier-section-head"><h4 data-fr27-type="module-title">SOURCE EVIDENCE</h4><span data-fr27-type="status-label">PRIMARY</span></div>
       <div class="hybrid-events-evidence-primary">
-        <div><strong>${escapeHtml(evidence.source_publisher || "Source")}</strong><span>${escapeHtml(campaignEventSourceTypeLabel(evidence.source_type))}</span></div>
-        <time datetime="${escapeAttribute(event.last_verified_at || "")}">${escapeHtml(campaignEventObservedLabel(event.last_verified_at))}</time>
+        <div><strong data-fr27-type="row-label">${escapeHtml(evidence.source_publisher || "Source")}</strong><span data-fr27-type="meta">${escapeHtml(campaignEventSourceTypeLabel(evidence.source_type))}</span></div>
+        <time data-fr27-type="meta" datetime="${escapeAttribute(event.last_verified_at || "")}">${escapeHtml(campaignEventObservedLabel(event.last_verified_at))}</time>
       </div>
-      <p>${escapeHtml(campaignEventEvidenceTypeLabel(evidence.evidence_type))}</p>
-      <div class="hybrid-events-evidence-actions"><span class="hybrid-events-evidence-chip" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span>${sourceLink(evidence.source_url, "OPEN SOURCE", "hybrid-events-dossier-source", `Open source for ${event.title}`)}</div>
+      <p data-fr27-type="body">${escapeHtml(campaignEventEvidenceTypeLabel(evidence.evidence_type))}</p>
+      <div class="hybrid-events-evidence-actions"><span class="hybrid-events-evidence-chip" data-fr27-type="status-label" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span>${sourceLink(evidence.source_url, "OPEN SOURCE", "hybrid-events-dossier-source", `Open source for ${event.title}`)}</div>
     </section>`;
   }
 
   function renderDossierHistory(model) {
     const updates = model.selectedUpdates.slice(0, 8);
     if (!updates.length) {
-      return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4>SCHEDULE HISTORY</h4><span>NO RECORDS</span></div><div class="hybrid-events-history-empty-state"><strong>NO PUBLISHED SCHEDULE HISTORY</strong><span>No calendar update is currently linked to this event.</span></div></section>`;
+      return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4 data-fr27-type="module-title">SCHEDULE HISTORY</h4><span data-fr27-type="status-label">NO RECORDS</span></div><div class="hybrid-events-history-empty-state"><strong data-fr27-type="status-label">NO PUBLISHED SCHEDULE HISTORY</strong><span data-fr27-type="meta">No calendar update is currently linked to this event.</span></div></section>`;
     }
     const hasMaterialUpdate = updates.some(update => String(update.update_type || "").toUpperCase() !== "NEW");
-    const rows = updates.map(update => `<article class="hybrid-events-history-item" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}"><i aria-hidden="true"></i><time datetime="${escapeAttribute(update.observed_at)}">${escapeHtml(campaignEventObservedLabel(update.observed_at))}</time><span class="hybrid-events-watch-type" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(String(update.update_type || "UPDATED").toUpperCase())}</span><small>${escapeHtml(campaignEventUpdateCopy(update))}</small></article>`).join("");
+    const rows = updates.map(update => `<article class="hybrid-events-history-item" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}"><i aria-hidden="true"></i><time data-fr27-type="scale-label" datetime="${escapeAttribute(update.observed_at)}">${escapeHtml(campaignEventObservedLabel(update.observed_at))}</time><span class="hybrid-events-watch-type" data-fr27-type="status-label" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(String(update.update_type || "UPDATED").toUpperCase())}</span><small data-fr27-type="meta">${escapeHtml(campaignEventUpdateCopy(update))}</small></article>`).join("");
     const quietState = hasMaterialUpdate
       ? ""
-      : `<div class="hybrid-events-history-empty-state"><strong>NO FURTHER SCHEDULE CHANGES</strong><span>No later confirmed, updated, postponed or cancelled schedule change is published for this event.</span></div>`;
-    return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4>SCHEDULE HISTORY</h4><span>${updates.length} RECORD${updates.length === 1 ? "" : "S"}</span></div><div class="hybrid-events-history-list">${rows}</div>${quietState}</section>`;
+      : `<div class="hybrid-events-history-empty-state"><strong data-fr27-type="status-label">NO FURTHER SCHEDULE CHANGES</strong><span data-fr27-type="meta">No later confirmed, updated, postponed or cancelled schedule change is published for this event.</span></div>`;
+    return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4 data-fr27-type="module-title">SCHEDULE HISTORY</h4><span data-fr27-type="data">${updates.length} RECORD${updates.length === 1 ? "" : "S"}</span></div><div class="hybrid-events-history-list">${rows}</div>${quietState}</section>`;
   }
 
   function renderEventDossier(model) {
     const event = model.selectedEvent;
     if (!event) {
-      return `<section class="hybrid-events-dossier"><div class="hybrid-events-panel-head"><h3>EVENT DOSSIER</h3><span>SOURCE-LINKED EVIDENCE</span></div><div class="hybrid-state">No campaign event is selected.</div></section>`;
+      return `<section class="hybrid-events-dossier"><div class="hybrid-events-panel-head"><h3 data-fr27-type="panel-title">EVENT DOSSIER</h3><span data-fr27-type="meta">SOURCE-LINKED EVIDENCE</span></div><div class="hybrid-state" data-fr27-type="status-label">No campaign event is selected.</div></section>`;
     }
     const status = campaignEventStatusPresentation(event);
     const evidenceState = campaignEventEvidencePresentation(event);
@@ -6623,13 +6649,13 @@
     const format = campaignEventTypeDisplayLabel(event.event_type);
 
     return `<section class="hybrid-events-dossier" aria-labelledby="hybrid-events-dossier-title">
-      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-dossier-title">EVENT DOSSIER</h3><span class="hybrid-events-dossier-head-meta">SOURCE-LINKED EVIDENCE <button class="hybrid-events-dossier-info fr27-info-glyph" type="button" aria-label="Event evidence methodology" data-fr27-tooltip="Past scheduled events remain scheduled until explicit occurrence evidence confirms they took place.">i</button></span></div>
+      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-dossier-title" data-fr27-type="panel-title">EVENT DOSSIER</h3><span class="hybrid-events-dossier-head-meta" data-fr27-type="meta">SOURCE-LINKED EVIDENCE <button class="hybrid-events-dossier-info fr27-info-glyph" type="button" aria-label="Event evidence methodology" data-fr27-tooltip="Past scheduled events remain scheduled until explicit occurrence evidence confirms they took place.">i</button></span></div>
       <div class="hybrid-events-dossier-body">
-        <div class="hybrid-events-dossier-title">${renderEventTypeBadge(event.event_type, participantCount > 1 ? `×${participantCount}` : "")}<div><h4 lang="fr">${escapeHtml(event.title)}</h4><div><span class="hybrid-events-status" data-event-status="${escapeAttribute(status.key)}">${escapeHtml(status.label)}</span><span class="hybrid-events-evidence-chip" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span></div></div></div>
+        <div class="hybrid-events-dossier-title">${renderEventTypeBadge(event.event_type, participantCount > 1 ? `×${participantCount}` : "")}<div><h4 lang="fr" data-fr27-type="item-title">${escapeHtml(event.title)}</h4><div><span class="hybrid-events-status" data-fr27-type="status-label" data-event-status="${escapeAttribute(status.key)}">${escapeHtml(status.label)}</span><span class="hybrid-events-evidence-chip" data-fr27-type="status-label" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span></div></div></div>
         <div class="hybrid-events-dossier-lede">
-          <div><small>DATE / TIME</small><strong>${escapeHtml(when)}</strong></div>
-          <div><small>VENUE</small><strong>${escapeHtml(place)}</strong></div>
-          <div><small>FORMAT</small><strong>${escapeHtml(format)}</strong></div>
+          <div><small data-fr27-type="field-label">DATE / TIME</small><strong data-fr27-type="meta">${escapeHtml(when)}</strong></div>
+          <div><small data-fr27-type="field-label">VENUE</small><strong data-fr27-type="meta">${escapeHtml(place)}</strong></div>
+          <div><small data-fr27-type="field-label">FORMAT</small><strong data-fr27-type="meta">${escapeHtml(format)}</strong></div>
         </div>
         <div class="hybrid-events-dossier-grid">
           <div class="hybrid-events-dossier-left">${renderDossierParticipants(event)}${renderDossierEventDetails(event)}</div>
@@ -6648,9 +6674,9 @@
     const schedule = event ? `${campaignEventShortDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}` : "Schedule unavailable";
     const selected = model.selectedEvent?.event_id === update.event_id;
     return `<button type="button" class="hybrid-events-watch-material-item${selected ? " is-selected" : ""}" data-hybrid-event-id="${escapeAttribute(update.event_id)}" ${weekStart ? `data-hybrid-event-week="${escapeAttribute(weekStart)}"` : ""}>
-      <span class="hybrid-events-watch-type" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(String(update.update_type || "UPDATED").toUpperCase())}</span>
-      <span class="hybrid-events-watch-material-copy"><strong lang="fr">${escapeHtml(title)}</strong><small>${escapeHtml(schedule)} · ${escapeHtml(campaignEventUpdateCopy(update))}</small></span>
-      <time datetime="${escapeAttribute(update.observed_at)}"><strong>${escapeHtml(observed.time || "—")}</strong><span>${escapeHtml(observed.date)}</span></time>
+      <span class="hybrid-events-watch-type" data-fr27-type="status-label" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(String(update.update_type || "UPDATED").toUpperCase())}</span>
+      <span class="hybrid-events-watch-material-copy"><strong lang="fr" data-fr27-type="item-title">${escapeHtml(title)}</strong><small data-fr27-type="meta">${escapeHtml(schedule)} · ${escapeHtml(campaignEventUpdateCopy(update))}</small></span>
+      <time data-fr27-type="scale-label" datetime="${escapeAttribute(update.observed_at)}"><strong>${escapeHtml(observed.time || "—")}</strong><span>${escapeHtml(observed.date)}</span></time>
     </button>`;
   }
 
@@ -6664,7 +6690,7 @@
     const selected = model.selectedEvent?.event_id === update.event_id;
     return `<button type="button" class="hybrid-events-watch-addition${selected ? " is-selected" : ""}" data-event-type="${escapeAttribute(event?.event_type || "other")}" data-hybrid-event-id="${escapeAttribute(update.event_id)}" ${weekStart ? `data-hybrid-event-week="${escapeAttribute(weekStart)}"` : ""}>
       <i class="hybrid-events-watch-event-node" aria-hidden="true"></i>
-      <strong lang="fr">${escapeHtml(title)}</strong><small>${escapeHtml(schedule)} · ${escapeHtml(publisher)}</small>
+      <strong lang="fr" data-fr27-type="item-title">${escapeHtml(title)}</strong><small data-fr27-type="meta">${escapeHtml(schedule)} · ${escapeHtml(publisher)}</small>
     </button>`;
   }
 
@@ -6673,19 +6699,19 @@
     const additionGroups = groupCampaignEventAdditions(model.eventWatch);
     const materialContent = materialUpdates.length
       ? materialUpdates.map(update => renderScheduleWatchMaterialItem(update, model)).join("")
-      : `<div class="hybrid-events-watch-empty"><i aria-hidden="true">✓</i><strong>MATERIAL CHANGES 0</strong></div>`;
+      : `<div class="hybrid-events-watch-empty"><i aria-hidden="true">✓</i><strong data-fr27-type="status-label">MATERIAL CHANGES 0</strong></div>`;
     const additions = additionGroups.length
       ? additionGroups.map(group => {
           const observed = campaignEventObservedParts(group.observedAt);
-          return `<section class="hybrid-events-watch-addition-group"><i class="hybrid-events-watch-group-node" aria-hidden="true"></i><div class="hybrid-events-watch-addition-head"><span>${escapeHtml(observed.date)}${observed.time ? ` · ${escapeHtml(observed.time)}` : ""}</span><strong>+${group.updates.length} NEW</strong></div><div>${group.updates.map(update => renderScheduleWatchAddition(update, model)).join("")}</div></section>`;
+          return `<section class="hybrid-events-watch-addition-group"><i class="hybrid-events-watch-group-node" aria-hidden="true"></i><div class="hybrid-events-watch-addition-head"><span data-fr27-type="scale-label">${escapeHtml(observed.date)}${observed.time ? ` · ${escapeHtml(observed.time)}` : ""}</span><strong data-fr27-type="status-label">+${group.updates.length} NEW</strong></div><div>${group.updates.map(update => renderScheduleWatchAddition(update, model)).join("")}</div></section>`;
         }).join("")
-      : '<div class="hybrid-events-watch-empty"><strong>NO RECENT ADDITIONS</strong><span>No newly published event is recorded in the current watch log.</span></div>';
+      : '<div class="hybrid-events-watch-empty"><strong data-fr27-type="status-label">NO RECENT ADDITIONS</strong><span data-fr27-type="meta">No newly published event is recorded in the current watch log.</span></div>';
 
     return `<section class="hybrid-events-schedule-watch" aria-labelledby="hybrid-events-schedule-watch-title">
-      <div class="hybrid-events-panel-head"><div><h3 id="hybrid-events-schedule-watch-title">SCHEDULE WATCH</h3><span>CALENDAR ACTIVITY</span></div><span>${model.watchCount} RECORDS</span></div>
+      <div class="hybrid-events-panel-head"><div><h3 id="hybrid-events-schedule-watch-title" data-fr27-type="panel-title">SCHEDULE WATCH</h3><span data-fr27-type="meta">CALENDAR ACTIVITY</span></div><span data-fr27-type="data">${model.watchCount} RECORDS</span></div>
       <div class="hybrid-events-schedule-watch-body">
         <section class="hybrid-events-watch-section is-material">${materialContent}</section>
-        <section class="hybrid-events-watch-section is-additions"><div class="hybrid-events-watch-section-head"><h4>RECENT ADDITIONS</h4><span>${model.eventWatch.length - materialUpdates.length}</span></div><div class="hybrid-events-watch-timeline">${additions}</div></section>
+        <section class="hybrid-events-watch-section is-additions"><div class="hybrid-events-watch-section-head"><h4 data-fr27-type="module-title">RECENT ADDITIONS</h4><span data-fr27-type="data">${model.eventWatch.length - materialUpdates.length}</span></div><div class="hybrid-events-watch-timeline">${additions}</div></section>
       </div>
     </section>`;
   }
@@ -6714,7 +6740,7 @@
   function renderFocusWorkspace(models) {
     return `<section class="hybrid-workspace" data-hybrid-workspace aria-label="Signal Board focus workspace">
       <div class="hybrid-tabs" role="tablist" aria-label="Lower evidence workspace" aria-orientation="horizontal">
-        ${viewOrder.map(key => `<button class="hybrid-tab" id="${views[key].tabId}" type="button" role="tab"
+        ${viewOrder.map(key => `<button class="hybrid-tab" id="${views[key].tabId}" type="button" role="tab" data-fr27-type="nav-label"
           data-hybrid-view="${key}" aria-controls="${views[key].panelId}" aria-selected="${String(state.activeView === key)}" tabindex="${state.activeView === key ? "0" : "-1"}">
           ${workspaceTabIconMarkup(key)}
           <span class="hybrid-tab-label">${views[key].label}</span>
@@ -7799,7 +7825,7 @@
             `Open ${item.publisher} article: ${item.headline}`
           )}"
         >
-          <span class="top-media-coverage-meta">
+          <span class="top-media-coverage-meta" data-fr27-type="meta">
             <time
               datetime="${escapeAttribute(
                 item.published_at
@@ -7818,10 +7844,11 @@
           <span class="top-media-coverage-copy">
             <span
               class="top-media-coverage-headline"
+              data-fr27-type="item-title"
               lang="fr"
             >${escapeHtml(item.headline)}</span>
 
-            <span class="top-media-source-link">
+            <span class="top-media-source-link" data-fr27-type="action-label">
               Open source ↗
             </span>
           </span>
@@ -7887,6 +7914,8 @@
               Number.isFinite(item.previousShare)
                 ? formatMediaShare(item.previousShare)
                 : "—";
+            const latestShareRole = latestShareText === "—" ? "meta" : "data";
+            const previousShareRole = previousShareText === "—" ? "meta" : "data";
             const deltaText =
               displayedDelta === null
                 ? "—"
@@ -7916,11 +7945,11 @@
                       : `${item.name}, ${item.tierLabel}: ${latestShareText} percent mention rate among active-field-linked race records in the current period, ${previousShareText} percent in the prior period.`
                 )}"
               >
-                <span class="top-media-shift-name">
+                <span class="top-media-shift-name" data-fr27-type="row-label">
                   ${escapeHtml(item.name)}
-                  <small class="hybrid-status-chip">${escapeHtml(item.tierLabel)}</small>
+                  <small class="hybrid-status-chip" data-fr27-type="status-label">${escapeHtml(item.tierLabel)}</small>
                 </span>
-                <strong>${latestShareText}${latestShareText === "—" ? "" : "%"}</strong>
+                <strong data-fr27-type="${latestShareRole}">${latestShareText}${latestShareText === "—" ? "" : "%"}</strong>
                 <span class="top-media-shift-track" aria-hidden="true">
                   <span
                     class="top-media-shift-current"
@@ -7931,10 +7960,10 @@
                     style="--top-prior-share:${previousWidth.toFixed(2)}%"
                   ></i>
                 </span>
-                <em class="top-media-shift-prior-value">
+                <em class="top-media-shift-prior-value" data-fr27-type="${previousShareRole}">
                   ${previousShareText}${previousShareText === "—" ? "" : "%"}
                 </em>
-                <b class="${directionClass}" aria-hidden="true">
+                <b class="${directionClass}" data-fr27-type="${displayedDelta === null ? "meta" : "data"}" aria-hidden="true">
                   ${displayedDelta === null
                     ? "—"
                     : direction + " " + escapeHtml(deltaText)}
@@ -7983,7 +8012,7 @@
               `${topic.label}: ${sourceDays} source-days. Open topic coverage detail.`
             )}"
           >
-            <span>
+            <span data-fr27-type="row-label">
               ${escapeHtml(topic.label)}
             </span>
 
@@ -7993,7 +8022,7 @@
               ></b>
             </i>
 
-            <strong>${sourceDays || "—"}</strong>
+            <strong data-fr27-type="${sourceDays ? "data" : "meta"}">${sourceDays || "—"}</strong>
           </button>
         `;
       })
@@ -8009,11 +8038,11 @@
                 ${String(index + 1).padStart(2, "0")}
               </span>
 
-              <strong>
+              <strong data-fr27-type="row-label">
                 ${escapeHtml(publisher.name)}
               </strong>
 
-              <b>${publisher.count}</b>
+              <b data-fr27-type="data">${publisher.count}</b>
             </div>
           `
         )
@@ -8047,6 +8076,7 @@
             aria-controls="top-media-overview-panel"
             tabindex="0"
             data-top-media-tab="overview"
+            data-fr27-type="nav-label"
           >
             Overview
           </button>
@@ -8059,6 +8089,7 @@
             aria-controls="top-media-coverage-panel"
             tabindex="-1"
             data-top-media-tab="coverage"
+            data-fr27-type="nav-label"
           >
             Coverage
           </button>
@@ -8073,9 +8104,9 @@
           hidden
         >
           <div class="top-media-section-heading">
-            <h3>Latest election coverage</h3>
+            <h3 data-fr27-type="module-title">Latest election coverage</h3>
 
-            <span>
+            <span data-fr27-type="meta">
               ${Math.min(
                 5,
                 model.feedItems.length
@@ -8096,6 +8127,7 @@
             class="top-media-panel-link ecm-open media-pulse-dashboard-cta"
             type="button"
             data-election-coverage-open
+            data-fr27-type="action-label"
             aria-haspopup="dialog"
             aria-controls="election-coverage-modal"
             aria-expanded="false"
@@ -8116,7 +8148,7 @@
               class="top-media-section-heading"
               aria-label="${escapeAttribute(`Active-field mention rate. Percentage of active-field-linked race records that mention each candidate. One record may mention multiple candidates, so rates can overlap and need not total 100 percent. ${candidateComparisonExplanation}`)}"
             >
-              <h3>Active-field mention rate</h3>
+              <h3 data-fr27-type="module-title">Active-field mention rate</h3>
 
               <span
                 class="top-media-shift-quality"
@@ -8138,8 +8170,8 @@
             >
               <span class="is-current">
                 <i aria-hidden="true"></i>
-                <strong>CURRENT</strong>
-                <small>
+                <strong data-fr27-type="field-label">CURRENT</strong>
+                <small data-fr27-type="scale-label">
                   ${escapeHtml(
                     currentPeriodLabel
                   )}
@@ -8148,8 +8180,8 @@
 
               <span class="is-prior">
                 <i aria-hidden="true"></i>
-                <strong>PRIOR</strong>
-                <small>
+                <strong data-fr27-type="field-label">PRIOR</strong>
+                <small data-fr27-type="scale-label">
                   ${escapeHtml(
                     priorPeriodLabel
                   )}
@@ -8165,7 +8197,7 @@
           <div class="top-media-support-grid">
             <section>
               <div class="top-media-section-heading">
-                <h3>Topic coverage</h3>
+                <h3 data-fr27-type="module-title">Topic coverage</h3>
               </div>
 
               <div class="top-media-topic-list">
@@ -8176,7 +8208,7 @@
 
             <section>
               <div class="top-media-section-heading">
-                <h3>Top publishers</h3>
+                <h3 data-fr27-type="module-title">Top publishers</h3>
               </div>
 
               <div class="top-media-publisher-list">
@@ -8189,6 +8221,7 @@
             class="top-media-panel-link tcm-open media-pulse-dashboard-cta"
             type="button"
             data-topic-coverage-open
+            data-fr27-type="action-label"
             aria-haspopup="dialog"
             aria-controls="topic-coverage-modal"
             aria-expanded="false"
@@ -8461,12 +8494,12 @@
           metrics
             .map(metric => `
               <span class="top-media-header-metric">
-                <strong>
+                <strong data-fr27-type="key-data">
                   ${escapeHtml(
                     String(metric.value)
                   )}
                 </strong>
-                <small>
+                <small data-fr27-type="field-label">
                   ${escapeHtml(metric.label)}
                 </small>
               </span>

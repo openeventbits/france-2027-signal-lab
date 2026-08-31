@@ -119,6 +119,17 @@ class ElectionCoverageModalTests(
                 self.modal_js,
             )
 
+    def test_modal_semantic_typography_keeps_structural_roles(self):
+        self.assertRegex(
+            self.modal_js,
+            r'<h2[^>]+data-fr27-type="panel-title"',
+        )
+        self.assertIn('data-fr27-type="module-title"', self.modal_js)
+        self.assertIn('data-fr27-type="item-title"', self.modal_js)
+        self.assertIn('data-fr27-type="row-label"', self.modal_js)
+        self.assertIn('data-fr27-type="key-data"', self.modal_js)
+        self.assertIn('data-fr27-type="action-label"', self.modal_js)
+
     def test_feed_fields_are_truthful(self):
         for field in (
             "item?.published_at",

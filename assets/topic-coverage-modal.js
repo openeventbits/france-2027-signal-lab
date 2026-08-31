@@ -225,9 +225,9 @@
     className = ""
   ) => `
     <div class="tcm-summary-metric${className ? ` ${className}` : ""}">
-      <strong>${escapeHtml(value)}</strong>
-      <span>${escapeHtml(label)}</span>
-      ${note ? `<small>${escapeHtml(note)}</small>` : ""}
+      <strong data-fr27-type="${className === "is-window" ? "meta" : "key-data"}">${escapeHtml(value)}</strong>
+      <span data-fr27-type="field-label">${escapeHtml(label)}</span>
+      ${note ? `<small data-fr27-type="meta">${escapeHtml(note)}</small>` : ""}
     </div>
   `;
 
@@ -298,13 +298,13 @@
       >
         <span>
           <i class="is-current" aria-hidden="true"></i>
-          <strong>CURRENT</strong>
-          <small>${escapeHtml(latestPeriodLabel)}</small>
+          <strong data-fr27-type="field-label">CURRENT</strong>
+          <small data-fr27-type="scale-label">${escapeHtml(latestPeriodLabel)}</small>
         </span>
         <span>
           <i class="is-prior" aria-hidden="true"></i>
-          <strong>PRIOR</strong>
-          <small>${escapeHtml(priorPeriodLabel)}</small>
+          <strong data-fr27-type="field-label">PRIOR</strong>
+          <small data-fr27-type="scale-label">${escapeHtml(priorPeriodLabel)}</small>
         </span>
       </div>
     `;
@@ -369,14 +369,14 @@
               `${item.name}. Candidate status ${item.status}. Current active-field share ${latestText}; prior active-field share ${priorText}.${item.changeAvailable ? ` Comparable change ${deltaMarkup}.` : rawDeltaAvailable ? ` Raw arithmetic difference ${deltaMarkup}. Publisher panels changed, so this is not a comparable trend estimate.` : ""}`
             )}"
           >
-            <strong>${escapeHtml(item.name)}</strong>
-            <b>${escapeHtml(latestText)}</b>
+            <strong data-fr27-type="row-label">${escapeHtml(item.name)}</strong>
+            <b data-fr27-type="${latestText === "—" ? "meta" : "data"}">${escapeHtml(latestText)}</b>
             <span class="tcm-shift-track" aria-hidden="true">
               <i class="is-current" style="--tcm-current-width:${currentWidth.toFixed(2)}%"></i>
               <i class="is-prior" style="--tcm-prior-width:${priorWidth.toFixed(2)}%"></i>
             </span>
-            <em>${escapeHtml(priorText)}</em>
-            <span class="tcm-delta ${displayedDelta === null ? "is-limited" : deltaClass(displayedDelta)}">
+            <em data-fr27-type="${priorText === "—" ? "meta" : "data"}">${escapeHtml(priorText)}</em>
+            <span class="tcm-delta ${displayedDelta === null ? "is-limited" : deltaClass(displayedDelta)}" data-fr27-type="${displayedDelta === null ? "meta" : "data"}">
               ${escapeHtml(deltaMarkup)}
             </span>
           </div>
@@ -384,8 +384,8 @@
       }).join("");
       return `
         <div class="tcm-module-head">
-          <h3>${escapeHtml(label)}</h3>
-          <span>${rows.length} active candidates</span>
+          <h3 data-fr27-type="status-label">${escapeHtml(label)}</h3>
+          <span data-fr27-type="meta">${rows.length} active candidates</span>
         </div>
         ${renderedRows}
       `;
@@ -428,8 +428,8 @@
               ${String(index + 1).padStart(2, "0")}
             </span>
             <span class="tcm-row-copy">
-              <strong>${escapeHtml(item.label)}</strong>
-              <small>
+              <strong data-fr27-type="row-label">${escapeHtml(item.label)}</strong>
+              <small data-fr27-type="meta">
                 ${item.itemCount} items ·
                 ${item.publisherCount} publishers ·
                 ${item.activeDayCount} active days
@@ -440,7 +440,7 @@
                 ></b>
               </i>
             </span>
-            <b>${item.sourceDays}</b>
+            <b data-fr27-type="data">${item.sourceDays}</b>
           </div>
         `;
       })
@@ -473,13 +473,13 @@
             <span class="tcm-rank">
               ${String(index + 1).padStart(2, "0")}
             </span>
-            <strong>${escapeHtml(item.name)}</strong>
+            <strong data-fr27-type="row-label">${escapeHtml(item.name)}</strong>
             <i class="tcm-publisher-track" aria-hidden="true">
               <b
                 style="--tcm-publisher-width:${width.toFixed(2)}%"
               ></b>
             </i>
-            <b>${item.count}</b>
+            <b data-fr27-type="data">${item.count}</b>
           </div>
         `;
       })
@@ -556,13 +556,13 @@
               `${formatCompactDate(item.key)}: ${item.count} accepted reports`
             )}"
           >
-            <b>${item.count}</b>
+            <b data-fr27-type="data">${item.count}</b>
             <i aria-hidden="true">
               <span
                 style="--tcm-volume-height:${height.toFixed(2)}%"
               ></span>
             </i>
-            <time datetime="${escapeAttribute(item.key)}">
+            <time data-fr27-type="scale-label" datetime="${escapeAttribute(item.key)}">
               ${escapeHtml(formatVolumeDay(item.key))}
             </time>
           </div>
@@ -591,8 +591,8 @@
   ) => `
     <section class="tcm-module ${className}">
       <header class="tcm-module-head">
-        <h3>${escapeHtml(title)}</h3>
-        ${meta ? `<span>${escapeHtml(meta)}</span>` : ""}
+        <h3 data-fr27-type="module-title">${escapeHtml(title)}</h3>
+        ${meta ? `<span data-fr27-type="meta">${escapeHtml(meta)}</span>` : ""}
       </header>
       <div class="tcm-module-body">
         ${content}
@@ -699,13 +699,14 @@
             aria-labelledby="tcm-title"
           >
             <header class="tcm-header">
-              <h2 id="tcm-title">
+              <h2 id="tcm-title" data-fr27-type="panel-title">
                 Media Pulse / Coverage Analysis
               </h2>
               <div class="tcm-header-actions">
                 <span
                   class="tcm-updated"
                   data-tcm-updated
+                  data-fr27-type="meta"
                 ></span>
                 <button
                   class="tcm-close"

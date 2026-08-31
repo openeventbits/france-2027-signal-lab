@@ -779,6 +779,67 @@ class RunoffFrontendContractTests(unittest.TestCase):
         self.assertIn('class="hybrid-runoff-inline-icon"', html)
         self.assertIn("Both pollsters agree this is the closest tested runoff", html)
 
+    def test_semantic_typography_distinguishes_runoff_structure_and_data(self):
+        output = self.render_real()
+        model = output["model"]
+        html = output["html"]
+
+        for heading_id, heading in (
+            ("hybrid-runoff-closest-title", "CLOSEST TESTED RUNOFF"),
+            ("hybrid-runoff-common-title", "CURRENT COMMON MATCHUPS"),
+            ("hybrid-runoff-others-title", "OTHER TESTED MATCHUPS"),
+            ("hybrid-runoff-history-title", "SELECTED MATCHUP HISTORY"),
+        ):
+            with self.subTest(heading=heading):
+                self.assertIn(
+                    f'<h3 id="{heading_id}" data-fr27-type="module-title">{heading}</h3>',
+                    html,
+                )
+
+        selected_label = " vs ".join(model["selectedMatchup"]["candidates"])
+        self.assertIn(
+            f'<h4 data-fr27-type="item-title">{selected_label}</h4>',
+            html,
+        )
+        self.assertRegex(
+            html,
+            r'<article class="hybrid-runoff-other-card".*?<h4 data-fr27-type="row-label">',
+        )
+
+        cards = re.findall(
+            r'<article class="hybrid-observation hybrid-runoff-source-observation".*?</article>',
+            html,
+            re.DOTALL,
+        )
+        featured_cards = [
+            card for card in cards
+            if 'data-runoff-featured-observation="true"' in card
+        ]
+        self.assertEqual(len(featured_cards), 1)
+        featured = featured_cards[0]
+        self.assertIn(model["featuredObservation"]["pollster"], featured)
+        self.assertEqual(featured.count('data-fr27-type="focal-data"'), 2)
+        self.assertNotIn('data-fr27-type="key-data"', featured)
+
+        other_cards = [card for card in cards if card not in featured_cards]
+        self.assertTrue(other_cards)
+        for card in other_cards:
+            self.assertEqual(card.count('data-fr27-type="key-data"'), 2)
+            self.assertNotIn('data-fr27-type="focal-data"', card)
+
+        self.assertRegex(
+            html,
+            r'class="hybrid-runoff-matrix-score is-left" data-fr27-type="data"',
+        )
+        self.assertRegex(
+            html,
+            r'class="hybrid-runoff-history-pollster" data-fr27-type="row-label"',
+        )
+        self.assertRegex(
+            html,
+            r'<b data-fr27-type="data">[^<]+</b>',
+        )
+
     def test_raw_join_is_event_id_only_and_does_not_mutate_payloads(self):
         derived = copy.deepcopy(self.derived)
         archive_state = copy.deepcopy(self.archive_state)
@@ -871,7 +932,8 @@ class RunoffFrontendContractTests(unittest.TestCase):
                 ]
                 margin_label = " / ".join(f"{float(value):g}" for value in margins)
                 self.assertIn(
-                    f"<strong>{margin_label}</strong><small>pts</small>",
+                    f'<strong data-fr27-type="data">{margin_label}</strong>'
+                    '<small data-fr27-type="field-label">pts</small>',
                     html,
                 )
                 self.assertEqual(
@@ -980,11 +1042,15 @@ class RunoffFrontendContractTests(unittest.TestCase):
                 self.assertEqual(latest["matchup_key"], matchup["key"])
                 self.assertRegex(
                     card,
-                    r"<strong>\d+(?:\.\d+)?%</strong>[\s\S]*"
-                    r"<strong>\d+(?:\.\d+)?%</strong>",
+                    r'<strong data-fr27-type="data">\d+(?:\.\d+)?%</strong>[\s\S]*'
+                    r'<strong data-fr27-type="data">\d+(?:\.\d+)?%</strong>',
                 )
                 for candidate in latest["candidates"]:
-                    self.assertIn(f'<strong>{float(candidate["score"]):g}%</strong>', card)
+                    self.assertIn(
+                        '<strong data-fr27-type="data">'
+                        f'{float(candidate["score"]):g}%</strong>',
+                        card,
+                    )
 
         density = HYBRID_CSS.read_text(encoding="utf-8").split(
             "/* RUNOFF PANEL 3 DENSITY V4: START */",
