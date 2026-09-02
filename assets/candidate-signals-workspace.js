@@ -640,7 +640,7 @@
       if (latest) {
         evidence.append(
           candidateFact(
-            "Scrutiny · 14 days",
+            "Scrutiny\n14 days",
             `${numberText(latest.about_count)} about · ${numberText(
               latest.by_count
             )} by`,
@@ -3417,14 +3417,29 @@
       "WIKIPEDIA ATTENTION · 30 DAYS"
     );
 
-    heading.append(
-      headingTitle,
-      createElement(
-        "span",
-        "candidate-signals-wikipedia-source",
-        "French Wikipedia daily pageviews"
-      )
+
+    const wikipediaTitleRow = createElement(
+      "div",
+      "candidate-signals-wikipedia-title-row"
     );
+
+    const wikipediaInfo = createElement(
+      "button",
+      "candidate-signals-poll-evidence-info candidate-signals-wikipedia-info",
+      "i"
+    );
+
+    wikipediaInfo.type = "button";
+    wikipediaInfo.setAttribute(
+      "aria-label",
+      "About Wikipedia attention"
+    );
+
+    wikipediaTitleRow.append(
+      headingTitle
+    );
+
+    heading.append(wikipediaTitleRow);
 
     head.append(heading);
 
@@ -3456,13 +3471,16 @@
         : [];
 
     const methodologyNote =
-      exclusions.length
-        ? `${interpretation} They do not measure ${
-          exclusions.join(", ")
-        }.`
-        : interpretation;
+      `Tracks daily pageviews of the candidate’s French Wikipedia article over the latest 30 days. ${
+        interpretation
+      } Pageviews may include repeat visits.${
+        exclusions.length
+          ? ` They do not measure ${exclusions.join(", ")}.`
+          : ""
+      }`;
 
-    explanatoryMetadata(headingTitle, methodologyNote);
+    explanatoryMetadata(wikipediaInfo, methodologyNote);
+    wikipediaTitleRow.append(wikipediaInfo);
 
     const record = payload?.candidates?.find(
       item =>
@@ -3722,25 +3740,61 @@
         className ? ` ${className}` : ""
       }`
     );
-    metric.append(
-      createElement(
-        "span",
-        "candidate-signals-dossier-metric-label",
-        label
-      ),
-      createElement(
-        "strong",
-        "candidate-signals-dossier-metric-value",
-        primary
-      )
+    const labelNode = createElement(
+      "span",
+      "candidate-signals-dossier-metric-label",
+      label
     );
 
-    const noteList = Array.isArray(notes) ? notes : [notes];
+    const valueNode = createElement(
+      "strong",
+      "candidate-signals-dossier-metric-value",
+      primary
+    );
+
+    const noteList = (
+      Array.isArray(notes) ? notes : [notes]
+    ).filter(hasValue);
+
+    metric.append(labelNode);
+
+    if (noteList.length) {
+      const infoText = `${noteList.join(". ")}${
+        noteList.at(-1).endsWith(".") ? "" : "."
+      }`;
+
+      const info = createElement(
+        "button",
+        "candidate-signals-poll-evidence-info candidate-signals-dossier-metric-info",
+        ""
+      );
+
+      info.setAttribute("type", "button");
+
+      explanatoryMetadata(
+        info,
+        infoText,
+        `${label} details. ${infoText}`
+      );
+
+      metric.append(info);
+    }
+
+    metric.append(valueNode);
+
+    /*
+     * Preserve the existing note nodes for data/test continuity,
+     * but remove them from the visual card. The same information
+     * is exposed through the explicit tooltip trigger.
+     */
     const noteWrap = createElement(
       "span",
       "candidate-signals-dossier-metric-notes"
     );
-    noteList.filter(hasValue).forEach(note => {
+
+    noteWrap.hidden = true;
+
+    noteList.forEach(note => {
       noteWrap.append(
         createElement(
           "span",
@@ -3749,6 +3803,7 @@
         )
       );
     });
+
     metric.append(noteWrap);
     return metric;
   }

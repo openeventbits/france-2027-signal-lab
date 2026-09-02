@@ -11589,6 +11589,32 @@
       );
     }
 
+    function racePollTabShortLabel(pollPackage) {
+      const pollster = String(
+        pollPackage?.pollster ?? "Poll"
+      ).trim();
+
+      const words = pollster
+        .split(/\s+/)
+        .filter(Boolean);
+
+      const compactPollster =
+        words.length > 1
+          ? `${words[0]} ${words
+              .slice(1)
+              .map(word => `${word.charAt(0).toUpperCase()}.`)
+              .join("")}`
+          : words[0] || "Poll";
+
+      return (
+        compactPollster +
+        " · " +
+        compactRacePollDate(
+          pollPackage?.fieldwork_end
+        )
+      );
+    }
+
     function raceScenarioLabel(event, index) {
       const alphabetIndex = index % 26;
       const letter = String.fromCharCode(65 + alphabetIndex);
@@ -11783,6 +11809,7 @@
 
       raceGlanceState.pollPackages.forEach((pollPackage, index) => {
         const fullLabel = racePollTabLabel(pollPackage);
+        const shortLabel = racePollTabShortLabel(pollPackage);
         const button = document.createElement("button");
         const full = document.createElement("span");
         const short = document.createElement("span");
@@ -11803,7 +11830,7 @@
 
         short.className = "race-tab-label-short";
         short.setAttribute("aria-hidden", "true");
-        short.textContent = fullLabel;
+        short.textContent = shortLabel;
 
         button.append(full, short);
         button.addEventListener("click", () => {

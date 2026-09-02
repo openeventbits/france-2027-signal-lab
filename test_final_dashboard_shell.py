@@ -2126,9 +2126,9 @@ class DesktopFoundationStabilizationTests(
             "--fr27-desktop-shell-inline-padding: 16px;",
             "--fr27-desktop-mark-size: 46px;",
             "--fr27-desktop-masthead-title-size: 22px;",
-            "--fr27-desktop-panel-title-size: 14px;",
-            "--fr27-desktop-reading-size: 11.5px;",
-            "--fr27-desktop-action-size: 10px;",
+            "--fr27-desktop-panel-title-size: var(--fr27-type-panel-heading);",
+            "--fr27-desktop-reading-size: var(--fr27-type-primary);",
+            "--fr27-desktop-action-size: var(--fr27-type-action);",
             "--fr27-desktop-filter-gap: 3px;",
             "--fr27-desktop-filter-inline-padding: 6px;",
         ):
@@ -2156,7 +2156,7 @@ class DesktopFoundationStabilizationTests(
         for contract in (
             "--fr27-desktop-shell-inline-padding: 12px;",
             "--fr27-desktop-masthead-title-size: 18px;",
-            "--fr27-desktop-reading-size: 10.5px;",
+            "--fr27-desktop-reading-size: var(--fr27-type-primary);",
             "--fr27-workspace-gap: 6px;",
             "--fr27-workspace-portrait-size: 34px;",
         ):
@@ -2216,7 +2216,25 @@ class DesktopWorkspaceStabilizationTests(
             )[1]
         )
 
-    def test_shared_workspace_density_tokens_have_three_desktop_values(self):
+    def test_shared_workspace_density_tokens_keep_type_stable_and_geometry_responsive(self):
+        compact_marker = (
+            "@media (min-width: 1240px) "
+            "and (max-width: 1399px)"
+        )
+        narrow_marker = (
+            "@media (min-width: 1024px) "
+            "and (max-width: 1239px)"
+        )
+
+        wide_css, responsive_css = self.shell_css.split(
+            compact_marker,
+            1,
+        )
+        compact_css, narrow_css = responsive_css.split(
+            narrow_marker,
+            1,
+        )
+
         for wide, compact, narrow in (
             (
                 "--fr27-workspace-gap: 10px;",
@@ -2229,14 +2247,14 @@ class DesktopWorkspaceStabilizationTests(
                 "--fr27-workspace-inline-padding: 6px;",
             ),
             (
-                "--fr27-workspace-panel-title-size: 13px;",
-                "--fr27-workspace-panel-title-size: 12px;",
-                "--fr27-workspace-panel-title-size: 11px;",
+                "--fr27-workspace-panel-title-size: var(--fr27-type-panel-heading);",
+                "--fr27-workspace-panel-title-size: var(--fr27-type-panel-heading);",
+                "--fr27-workspace-panel-title-size: var(--fr27-type-panel-heading);",
             ),
             (
-                "--fr27-workspace-primary-size: 12.5px;",
-                "--fr27-workspace-primary-size: 11.5px;",
-                "--fr27-workspace-primary-size: 10.5px;",
+                "--fr27-workspace-primary-size: var(--fr27-type-primary);",
+                "--fr27-workspace-primary-size: var(--fr27-type-primary);",
+                "--fr27-workspace-primary-size: var(--fr27-type-primary);",
             ),
             (
                 "--fr27-workspace-portrait-size: 46px;",
@@ -2245,9 +2263,9 @@ class DesktopWorkspaceStabilizationTests(
             ),
         ):
             with self.subTest(token=wide.split(":", 1)[0]):
-                self.assertIn(wide, self.shell_css)
-                self.assertIn(compact, self.shell_css)
-                self.assertIn(narrow, self.shell_css)
+                self.assertIn(wide, wide_css)
+                self.assertIn(compact, compact_css)
+                self.assertIn(narrow, narrow_css)
 
         self.assertIn(
             "@media (min-width: 1240px) "
@@ -2308,9 +2326,13 @@ class DesktopWorkspaceStabilizationTests(
             "position: sticky;",
             self.candidate_workspace_css,
         )
-        self.assertNotIn(
-            "grid-column: 1 / -1;",
+        self.assertNotRegex(
             self.candidate_workspace_css,
+            (
+                r"\.candidate-signals-"
+                r"(?:monitor|analysis|dossier)\s*\{"
+                r"[^}]*grid-column:\s*1\s*/\s*-1;"
+            ),
         )
 
     def test_runoff_compact_tracks_cannot_impose_right_edge_overflow(self):

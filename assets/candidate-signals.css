@@ -2303,6 +2303,10 @@
   gap: 1px;
 }
 
+.candidate-signals-dossier-metric-notes[hidden] {
+  display: none !important;
+}
+
 .candidate-signals-dossier-metric-note {
   color: #91aab8;
   font-size: 10px;
@@ -4339,3 +4343,577 @@
 }
 
 /* FR27 FINAL LOWER-ROW MICRO-POLISH END */
+
+/* FR27 CANONICAL HEADING TYPOGRAPHY V1 */
+@media (min-width: 1024px) {
+  .candidate-signals-region-title {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-panel-heading) !important;
+    font-weight: 760 !important;
+    line-height: 1.05 !important;
+    letter-spacing: 0.035em !important;
+    text-transform: uppercase !important;
+  }
+
+  .candidate-signals-analysis-card-title,
+  .candidate-signals-subsection-title,
+  .candidate-signals-dossier-card-title,
+  .candidate-signals-evidence-group-title,
+  .candidate-signals-scrutiny-period-title {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-module-heading) !important;
+    font-weight: 760 !important;
+    line-height: 1 !important;
+    letter-spacing: 0.045em !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .candidate-signals-candidate-evidence {
+    grid-template-columns:
+      minmax(36px, 0.75fr)
+      minmax(52px, 0.6fr)
+      minmax(78px, 1.65fr);
+  }
+
+  .candidate-signals-candidate-fact {
+    padding-right: 3px;
+    padding-left: 3px;
+  }
+
+  .candidate-signals-candidate-fact:first-child {
+    padding-left: 0;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1239px) {
+  .candidate-signals-analysis-card {
+    padding-right: 3px;
+    padding-left: 3px;
+  }
+
+  .candidate-signals-poll-summary {
+    column-gap: 0;
+  }
+
+  .candidate-signals-poll-evidence-head {
+    gap: 2px;
+  }
+
+  .candidate-signals-poll-evidence-info,
+  .candidate-signals-poll-history-info {
+    width: 10px;
+    height: 10px;
+  }
+
+  .candidate-signals-dossier-grid {
+    gap: 3px;
+  }
+
+  .candidate-signals-dossier-card {
+    padding-right: 4px;
+    padding-left: 4px;
+  }
+}
+
+/* FR27 CANONICAL CONTENT TYPOGRAPHY V1
+ * Candidate workspace copy is classified by reading role, not column density.
+ * Approved panel and module heading selectors remain owned by the block above.
+ */
+@media (min-width: 1024px) {
+  .candidate-signals-candidate-name,
+  .candidate-signals-dossier-name,
+  .candidate-signals-development-headline,
+  .candidate-signals-agenda-topic-label {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-primary) !important;
+  }
+
+  .candidate-signals-candidacy-note,
+  .candidate-signals-card-state,
+  .candidate-signals-empty-state,
+  .candidate-signals-unavailable,
+  .candidate-signals-candidate-poll.is-unpublished {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-body) !important;
+  }
+
+  .candidate-signals-region-note,
+  .candidate-signals-candidate-fact-label,
+  .candidate-signals-candidate-fact-value,
+  .candidate-signals-attention-label,
+  .candidate-signals-attention-detail,
+  .candidate-signals-agenda-topic-share,
+  .candidate-signals-history-asof,
+  .candidate-signals-wikipedia-source,
+  .candidate-signals-wikipedia-asof,
+  .candidate-signals-dossier-visibility-total-label,
+  .candidate-signals-evidence-structure-period,
+  .candidate-signals-evidence-structure-label,
+  .candidate-signals-structure-stat-label,
+  .candidate-signals-evidence-label,
+  .candidate-signals-evidence-ratio-label,
+  .candidate-signals-evidence-ratio-detail,
+  .candidate-signals-dossier-metric-label,
+  .candidate-signals-dossier-metric-note,
+  .candidate-signals-dossier-scope-label,
+  .candidate-signals-dossier-scope-share,
+  .candidate-signals-dossier-scrutiny-label,
+  .candidate-signals-dossier-review-note,
+  .candidate-signals-dossier-development-meta,
+  .candidate-signals-development-meta,
+  .candidate-signals-dossier-structure-ratio-label,
+  .candidate-signals-dossier-structure-ratio-detail,
+  .candidate-signals-summary-meta-label,
+  .candidate-signals-summary-meta-value,
+  .candidate-signals-candidacy-source-label,
+  .candidate-signals-candidacy-source-value,
+  .candidate-signals-scrutiny-column,
+  .candidate-signals-scrutiny-row-label,
+  .candidate-signals-poll-history-count {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-meta) !important;
+  }
+
+  .candidate-signals-scope-label > span {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-meta) !important;
+  }
+
+  .candidate-signals-candidate-tier,
+  .candidate-signals-candidacy-status,
+  .candidate-signals-candidacy-tier,
+  .candidate-signals-development-scope,
+  .candidate-signals-dossier-status,
+  .candidate-signals-dossier-tier,
+  .candidate-signals-dossier-development-scope,
+  .candidate-signals-kicker,
+  .candidate-signals-history-kicker,
+  .candidate-signals-wikipedia-metric-label,
+  .candidate-signals-wikipedia-chart-title,
+  .candidate-signals-wikipedia-pattern,
+  .candidate-signals-poll-history-legend-point,
+  .candidate-signals-poll-history-legend-range,
+  .candidate-signals-wikipedia-x-label,
+  .candidate-signals-wikipedia-y-label,
+  .candidate-signals-poll-evidence-info,
+  .candidate-signals-poll-history-info,
+  .candidate-signals-agenda-info {
+    font-size: var(--fr27-type-micro) !important;
+  }
+
+  .candidate-signals-search-input {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-control) !important;
+  }
+
+  .candidate-signals-source-link,
+  .candidate-signals-region-action,
+  .candidate-signals-dossier-details-summary {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-action) !important;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1239px) {
+  .candidate-signals-monitor-tools {
+    gap: 3px;
+  }
+
+  .candidate-signals-candidate-button {
+    padding-right: 4px;
+    padding-left: 4px;
+  }
+
+  .candidate-signals-agenda-topics,
+  .candidate-signals-evidence-structure-stats,
+  .candidate-signals-structure-stats {
+    gap: 2px;
+  }
+}
+
+/* FR27 CANDIDATE MONITOR MANUAL POLISH V1
+ * Wide desktop only.
+ * Preserve readable typography; allow compact metric headings to wrap.
+ */
+@media (min-width: 1400px) {
+  .candidate-signals-candidate-evidence {
+    grid-template-columns:
+      minmax(0, 1.12fr)
+      minmax(0, 0.88fr)
+      minmax(0, 1fr);
+  }
+
+  .candidate-signals-candidate-fact {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .candidate-signals-candidate-fact-label {
+    min-height: 21px;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+}
+
+/* FR27 CANONICAL ANALYTICAL NUMERICS V1
+ * Candidate readings use the shared desktop numeric roles. Textual states,
+ * dates, samples and evidence metadata remain on the frozen text scale.
+ */
+@media (min-width: 1024px) {
+  .candidate-signals-summary-primary:not(.is-textual) {
+    font-size: var(--fr27-num-focal) !important;
+    line-height: 1 !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .candidate-signals-attention-share:not(.is-unpublished),
+  .candidate-signals-composition-summary-count,
+  .candidate-signals-evidence-structure-value,
+  .candidate-signals-structure-stat-value,
+  .candidate-signals-dossier-metric:not(.is-empty)
+    .candidate-signals-dossier-metric-value,
+  .candidate-signals-dossier-visibility-total-value:not(.is-textual),
+  .candidate-signals-dossier-scrutiny-value {
+    font-size: var(--fr27-num-kpi) !important;
+    line-height: 1 !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .candidate-signals-candidate-poll:not(.is-unpublished),
+  .candidate-signals-scope-count,
+  .candidate-signals-scrutiny-cell:not(.is-unpublished),
+  .candidate-signals-dossier-scope-count,
+  .candidate-signals-wikipedia-primary-metrics
+    .candidate-signals-wikipedia-metric:nth-child(-n + 4)
+    .candidate-signals-wikipedia-metric-value {
+    font-size: var(--fr27-num-row) !important;
+    line-height: 1 !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .candidate-signals-candidate-fact-value,
+  .candidate-signals-agenda-topic-share,
+  .candidate-signals-scope-percentage,
+  .candidate-signals-dossier-scope-share,
+  .candidate-signals-wikipedia-secondary-metrics
+    .candidate-signals-wikipedia-metric-value,
+  .candidate-signals-dossier-metric:nth-child(-n + 2)
+    .candidate-signals-dossier-metric-note,
+  .candidate-signals-dossier-metric.is-composite
+    .candidate-signals-dossier-metric-note:first-child {
+    font-size: var(--fr27-num-support) !important;
+    line-height: 1.1 !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .candidate-signals-poll-gauge-labels,
+  .candidate-signals-wikipedia-x-label,
+  .candidate-signals-wikipedia-y-label {
+    font-size: var(--fr27-num-micro) !important;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* FR27 CANONICAL STATUS CHIP V1 — CANDIDATES
+ * Candidacy and dossier status use one compact terminal contract.
+ * Empty/loading/history states remain prose surfaces.
+ */
+@media (min-width: 1024px) {
+  .candidate-signals-candidacy-status,
+  .candidate-signals-dossier-status {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: fit-content;
+    min-height: var(--fr27-chip-height) !important;
+    padding:
+      var(--fr27-chip-padding-y)
+      var(--fr27-chip-padding-x)
+      !important;
+    border-radius: var(--fr27-chip-radius) !important;
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-chip-font) !important;
+    font-weight: var(--fr27-chip-weight) !important;
+    line-height: 1 !important;
+    letter-spacing: var(--fr27-chip-tracking) !important;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+}
+
+/* FR27 CANONICAL CONTROL TYPOGRAPHY V1 — CANDIDATES
+ * Info triggers are one visual family.
+ * Text actions share action typography.
+ * Candidate cards and icon-only utilities remain context-owned.
+ */
+@media (min-width: 1024px) {
+  .candidate-signals-agenda-info,
+  .candidate-signals-poll-evidence-info,
+  .candidate-signals-poll-history-info {
+    box-sizing: border-box !important;
+    display: inline-grid !important;
+    place-items: center !important;
+    width: 17px !important;
+    min-width: 17px !important;
+    height: 17px !important;
+    min-height: 17px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    font-family: var(--fr27-type-sans) !important;
+    font-size: 10px !important;
+    font-weight: 760 !important;
+    line-height: 1 !important;
+  }
+
+  .candidate-signals-source-link,
+  .candidate-signals-region-action,
+  .candidate-signals-dossier-details-summary {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-action) !important;
+    font-weight: 700 !important;
+  }
+}
+
+/* FR27 CANONICAL VISUAL-DATA TYPOGRAPHY V1 — CANDIDATES
+ * Matrix-column headers use the shared meta/header vocabulary.
+ * Axes, legends, primary row labels and numeric values remain
+ * owned by their already-frozen semantic layers.
+ */
+@media (min-width: 1024px) {
+  .candidate-signals-scrutiny-column {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-meta) !important;
+    font-weight: 720 !important;
+    line-height: 1 !important;
+    letter-spacing: .03em !important;
+  }
+}
+/* FR27 CANDIDATE AGENDA ROW HIERARCHY V1
+ *
+ * User-reviewed semantic correction.
+ *
+ * Agenda Profile titles remain canonical module headings.
+ * Topic names are compact categorical row labels, not
+ * primary analytical headings.
+ */
+@media (min-width: 1024px) {
+  .candidate-signals-analysis-cards.has-agenda-profile
+    .candidate-signals-agenda-topic-label {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-meta) !important;
+    font-weight: 720 !important;
+    line-height: 1.1 !important;
+    letter-spacing: .03em !important;
+  }
+}
+/* FR27 CANDIDATE MONITOR SCRUTINY LABEL V1
+ *
+ * User-reviewed copy/layout adjustment.
+ * Keep canonical typography unchanged.
+ */
+.candidate-signals-candidate-scrutiny
+  .candidate-signals-candidate-fact-label {
+  white-space: pre-line;
+}
+/* FR27 POLL EVIDENCE KPI SCALE V1
+ *
+ * User-reviewed hierarchy correction.
+ * Poll Evidence is a card-level KPI, not an exceptional
+ * focal display value.
+ */
+@media (min-width: 1024px) {
+  .candidate-signals-poll-summary
+    .candidate-signals-summary-primary:not(.is-textual) {
+    font-size: var(--fr27-num-kpi) !important;
+    line-height: 1 !important;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+
+/* FR27 WIKIPEDIA HEADING INFO TRIGGER V1
+ *
+ * User-reviewed methodology affordance.
+ * Reuses the existing Candidate info-trigger treatment.
+ */
+.candidate-signals-wikipedia-title-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.candidate-signals-wikipedia-title-row
+  .candidate-signals-subsection-title {
+  min-width: 0;
+}
+
+.candidate-signals-wikipedia-info {
+  flex: 0 0 auto;
+}
+
+/* Keep the full Peak Date readable instead of ellipsizing it. */
+@media (min-width: 760px) {
+  .candidate-signals-wikipedia-primary-metrics {
+    grid-template-columns:
+      repeat(4, minmax(0, 1fr))
+      minmax(96px, 1.05fr)
+      minmax(112px, 1.18fr);
+  }
+
+  .candidate-signals-wikipedia-primary-metrics
+    .candidate-signals-wikipedia-metric:nth-child(5)
+    .candidate-signals-wikipedia-metric-value {
+    overflow: visible;
+    text-overflow: clip;
+  }
+}
+
+
+/* FR27 WIKIPEDIA METRIC FIT POLISH V1
+ *
+ * User-reviewed desktop fit correction.
+ * 30D Peak needs less horizontal space; Peak Date and State
+ * need more. Typography is reduced only for the two values
+ * whose content requires the additional fit.
+ */
+@media (min-width: 1024px) {
+  .candidate-signals-wikipedia-primary-metrics {
+    grid-template-columns:
+      14.5%
+      15.5%
+      14.5%
+      12%
+      21%
+      22.5%;
+  }
+
+  .candidate-signals-wikipedia-primary-metrics
+    .candidate-signals-wikipedia-metric:nth-child(5)
+    .candidate-signals-wikipedia-metric-value {
+    font-size: var(--fr27-type-primary) !important;
+    line-height: 1 !important;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
+
+  .candidate-signals-wikipedia-primary-metrics
+    .candidate-signals-wikipedia-metric:nth-child(6)
+    .candidate-signals-wikipedia-pattern {
+    font-size: 8px !important;
+    line-height: 1 !important;
+    white-space: nowrap;
+  }
+}
+
+
+/* FR27 DOSSIER IDENTITY AND METRIC COMPACTION V1
+ *
+ * User-reviewed Candidate Dossier hierarchy.
+ *
+ * Supporting notes move behind explicit information triggers,
+ * allowing the four summary cards to contract to their visible
+ * content. The selected candidate name receives stronger emphasis.
+ */
+/*
+ * The visual info glyph must exist at every responsive width.
+ * The button's aria-label and tooltip own the accessible text.
+ */
+.candidate-signals-dossier-metric-info::before {
+  content: "i";
+}
+
+@media (min-width: 1024px) {
+  .candidate-signals-dossier-name {
+    font-size: 20px !important;
+    font-weight: 720 !important;
+    line-height: 1.08 !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  .candidate-signals-dossier-metric {
+    min-height: 52px;
+    grid-template-columns: max-content auto;
+    grid-template-rows: auto auto;
+    align-content: center;
+    justify-content: start;
+    column-gap: 6px;
+    row-gap: 3px;
+    padding: 5px 11px;
+  }
+
+  .candidate-signals-dossier-metric-label {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+  }
+
+  .candidate-signals-dossier-metric-info {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    flex: 0 0 auto;
+  }
+
+  .candidate-signals-dossier-metric-value {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+}
+
+@media (min-width: 1024px) and (max-width: 1239px) {
+  .candidate-signals-dossier-name {
+    font-size: 18px !important;
+  }
+}
+
+
+/* FR27 DOSSIER LOWER CARD GEOMETRY V1
+ *
+ * User-reviewed geometry only.
+ *
+ * Evidence Structure uses its available card height more evenly.
+ * Scrutiny Overview contracts to the height required by its content.
+ *
+ * Candidate identity and KPI-card geometry remain untouched.
+ */
+@media (min-width: 1024px) {
+  .candidate-signals-dossier-structure-ratios {
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  .candidate-signals-dossier-structure-ratio {
+    gap: 5px;
+  }
+
+  .candidate-signals-dossier-scrutiny-block {
+    min-height: 72px;
+  }
+}
+
+
+/* FR27 VISIBILITY COMPOSITION COUNT HIERARCHY V1
+ *
+ * User-reviewed numeric hierarchy.
+ *
+ * The overall race-record total remains a KPI.
+ * Campaign / election component counts are repeated row
+ * values and therefore use the canonical row numeric role.
+ */
+@media (min-width: 1024px) {
+  .candidate-signals-composition-summary-count {
+    font-size: var(--fr27-num-row) !important;
+    line-height: 1 !important;
+    font-variant-numeric: tabular-nums;
+  }
+}
