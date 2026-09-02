@@ -689,10 +689,10 @@ function details() {
       wikipediaPeakPoints.length,
     wikipediaLatestMarkerCount:
       wikipediaLatestPoints.length,
-    wikipediaHeadingTooltip:
-      wikipediaHeading
-        ? wikipediaHeading.getAttribute("data-fr27-tooltip") || null
-        : null,
+    wikipediaInfoTooltip:
+      mount
+        .querySelector(".candidate-signals-wikipedia-info")
+        ?.getAttribute("data-fr27-tooltip") || null,
     dossierCardTitles:
       mount.querySelectorAll(".candidate-signals-dossier-card-title")
         .map(node => node.textContent),
@@ -1935,7 +1935,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         result = run_workspace(payload(self.rows))
         self.assertEqual(result["monitorListCount"], 1)
         self.assertEqual(result["buttonCount"], 3)
-        self.assertEqual(result["tags"].count("BUTTON"), 7)
+        self.assertEqual(result["tags"].count("BUTTON"), 12)
         self.assertIn("View full evidence →", result["text"])
         self.assertNotIn("TABLE", result["tags"])
         self.assertIn('button.setAttribute("aria-pressed", String(selected));', self.workspace_js)
@@ -3643,7 +3643,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         )
 
 
-    def test_wikipedia_methodology_uses_shared_tooltip_and_cta_is_absent(self):
+    def test_wikipedia_methodology_uses_visible_info_tooltip_and_cta_is_absent(self):
         attention = candidate_attention_state(self.rows)
 
         result = run_workspace(
@@ -3652,19 +3652,20 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         )
 
         expected = (
-            "French Wikipedia pageviews measure "
-            "article-reading attention. "
-            "They do not measure unique individuals, "
-            "sentiment, approval, electoral support, "
-            "voting intention."
+            "Tracks daily pageviews of the candidate’s French Wikipedia "
+            "article over the latest 30 days. "
+            "French Wikipedia pageviews measure article-reading attention. "
+            "Pageviews may include repeat visits. "
+            "They do not measure unique individuals, sentiment, approval, "
+            "electoral support, voting intention."
         )
 
         self.assertEqual(
-            result["wikipediaHeadingTooltip"],
+            result["wikipediaInfoTooltip"],
             expected,
         )
 
-        # Shared tooltip metadata is not visible textContent.
+        # Info-trigger tooltip metadata is not visible textContent.
         self.assertNotIn(
             expected,
             result["text"],

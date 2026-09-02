@@ -149,7 +149,11 @@ class RaceGlanceDefaultTests(unittest.TestCase):
 
     def test_poll_tabs_show_compact_wave_identity(self):
         self.assertIn("full.textContent = fullLabel;", self.source)
-        self.assertIn("short.textContent = fullLabel;", self.source)
+        self.assertIn(
+            "const shortLabel = racePollTabShortLabel(pollPackage);",
+            self.source,
+        )
+        self.assertIn("short.textContent = shortLabel;", self.source)
         self.assertIn("button.setAttribute(\"aria-label\", fullLabel);", self.source)
         self.assertIn("button.dataset.fr27Tooltip = fullLabel;", self.source)
 
@@ -162,26 +166,61 @@ class RaceGlanceDefaultTests(unittest.TestCase):
         packages = [
             {"pollster": "Harris", "fieldwork_end": "2026-08-19"},
             {"pollster": "Harris", "fieldwork_end": "2026-08-22"},
+            {
+                "pollster": "Harris Interactive",
+                "fieldwork_end": "2026-08-19",
+            },
         ]
         script = (
             helpers
-            + "\nconsole.log(JSON.stringify("
-            + f"{json.dumps(packages)}.map(racePollTabLabel)"
-            + "));"
+            + "\nconst packages = "
+            + json.dumps(packages)
+            + ";\nconsole.log(JSON.stringify({"
+            + "full: packages.map(racePollTabLabel),"
+            + "short: packages.map(racePollTabShortLabel)"
+            + "}));"
         )
         result = subprocess.run(
             [node, "-e", script],
             check=True,
             capture_output=True,
             text=True,
+            encoding="utf-8",
         )
         labels = json.loads(result.stdout)
-        self.assertEqual([label.split()[-2:] for label in labels], [
-            ["19", "Aug"],
-            ["22", "Aug"],
-        ])
-        self.assertTrue(all(label.startswith("Harris") for label in labels))
-        self.assertEqual(len(labels), len(set(labels)))
+        full_labels = labels["full"]
+        short_labels = labels["short"]
+
+        self.assertEqual(
+            [label.split()[-2:] for label in full_labels[:2]],
+            [
+                ["19", "Aug"],
+                ["22", "Aug"],
+            ],
+        )
+        self.assertTrue(
+            all(label.startswith("Harris") for label in full_labels)
+        )
+        self.assertEqual(
+            full_labels[2],
+            "Harris Interactive · 19 Aug",
+        )
+        self.assertEqual(
+            short_labels,
+            [
+                "Harris · 19 Aug",
+                "Harris · 22 Aug",
+                "Harris I. · 19 Aug",
+            ],
+        )
+        self.assertEqual(
+            len(full_labels),
+            len(set(full_labels)),
+        )
+        self.assertEqual(
+            len(short_labels),
+            len(set(short_labels)),
+        )
 
 
 if __name__ == "__main__":

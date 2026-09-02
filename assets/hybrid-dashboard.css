@@ -7982,6 +7982,621 @@ border: 0;
   }
 }
 
+/* FR27 CANONICAL HEADING TYPOGRAPHY V1
+ * Agenda, Issues and Events share one desktop heading vocabulary.
+ */
+@media (min-width: 1024px) {
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-panel-head h3,
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-titleline h3,
+  .hybrid-panel#signal-events-panel .hybrid-events-panel-head h3 {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-panel-heading) !important;
+    font-weight: 760 !important;
+    line-height: 1.05 !important;
+    letter-spacing: 0.035em !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+  }
+
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-module-head > strong,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-detail-head > strong,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-context h4,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement h4,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-participants h4,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-evidence > h4,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-section-head h4,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-evidence
+    .hybrid-events-dossier-section-head h4,
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-section-head h4,
+  .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch
+    .hybrid-events-watch-section-head h4 {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-module-heading) !important;
+    font-weight: 760 !important;
+    line-height: 1 !important;
+    letter-spacing: 0.045em !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+  }
+
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-detail-head > strong {
+    flex: 1 1 auto;
+  }
+
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-detail-head > span {
+    min-width: 0;
+    max-width: 25%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .hybrid-panel#signal-events-panel .hybrid-events-panel-head {
+    gap: 4px;
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-panel-head > div {
+    gap: 4px;
+  }
+
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-detail-head {
+    gap: 3px;
+    padding-right: 5px;
+    padding-left: 5px;
+  }
+
+  .hybrid-panel#signal-events-panel
+    .hybrid-events-dossier-section-head {
+    gap: 3px;
+  }
+
+  .hybrid-panel#signal-events-panel
+    .hybrid-events-dossier-section-head h4 {
+    flex: 1 1 auto;
+  }
+
+  .hybrid-panel#signal-events-panel
+    .hybrid-events-dossier-section-head > span {
+    min-width: 0;
+    max-width: 18%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* FR27 CANONICAL CONTENT TYPOGRAPHY V1
+ * Agenda, Issues and Events use the shared content roles at every desktop width.
+ * Approved panel and module heading typography remains owned by the block above.
+ */
+@media (min-width: 1024px) {
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    :is(
+      .hybrid-agenda-v6-topic-name,
+      .hybrid-agenda-v6-matrix-label,
+      .hybrid-agenda-v6-shift-label
+    ),
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-title-line h4,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-signal-head > span,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-evidence-copy strong,
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-copy strong,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-title h4,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement > strong,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-participants span,
+  .hybrid-panel#signal-events-panel .hybrid-events-evidence-primary > strong,
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-copy strong,
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-addition > div > strong {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-primary) !important;
+  }
+
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-empty,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-evidence > p,
+  .hybrid-panel#signal-events-panel .hybrid-events-history-empty-state span,
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-empty span {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-body) !important;
+  }
+
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    :is(
+      .hybrid-agenda-v6-panel-meta,
+      .hybrid-agenda-v6-panel-head-meta,
+      .hybrid-agenda-v6-period,
+      .hybrid-agenda-v6-shift-count,
+      .hybrid-agenda-v6-shift-delta
+    ),
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-module-head > span,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-shift-key > span,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-matrix-legend > span,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-matrix-head > span,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-diagnostics article > span,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-metrics article > span,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-profile-facts div > span,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-detail-head > span,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-signal-head > strong,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-evidence-copy small,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-week-line > span,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-week-line > strong,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-topic-total span,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-topic-shift :is(small, strong, em),
+  .hybrid-panel#signal-events-panel .hybrid-events-panel-head > div > span,
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-rail-head > span,
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-metrics small,
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-week-head > strong,
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-week-head > span,
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row > time > strong,
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row > time > span,
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row > time > em,
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-copy small,
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-right,
+  .hybrid-panel#signal-events-panel .hybrid-events-status,
+  .hybrid-panel#signal-events-panel .hybrid-events-evidence-chip,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-head-meta,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-involvement > small,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-context dt,
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-context dd,
+  .hybrid-panel#signal-events-panel .hybrid-events-evidence-primary > span,
+  .hybrid-panel#signal-events-panel .hybrid-events-evidence-primary > time,
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-section-head > span,
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-copy small,
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-item > time,
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-item > time > strong,
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-addition-head,
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-addition-head > strong,
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-addition small,
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-type,
+  .hybrid-panel#signal-events-panel .hybrid-events-history-empty-state strong,
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-empty strong {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-meta) !important;
+  }
+
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    :is(.hybrid-agenda-v6-badge, .hybrid-agenda-v6-kicker),
+  .hybrid-panel#signal-events-panel .hybrid-events-type-badge :is(strong, small) {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-micro) !important;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-filter,
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-week-select {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-control) !important;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-dossier-source {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-action) !important;
+  }
+
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    :is(.hybrid-agenda-v6-matrix-label, .hybrid-agenda-v6-shift-label),
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-copy,
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-copy {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-copy strong,
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-copy strong,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-evidence-copy strong {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1239px) {
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-matrix-row,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-shift-row {
+    gap: 2px;
+    padding-right: 3px;
+    padding-left: 3px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row,
+  .hybrid-panel#signal-events-panel .hybrid-events-watch-material-item {
+    gap: 3px;
+    padding-right: 3px;
+    padding-left: 3px;
+  }
+
+  .hybrid-panel#signal-events-panel .hybrid-events-ops-filters {
+    gap: 2px;
+  }
+}
+
+/* FR27 CANONICAL ANALYTICAL NUMERICS V1 — AGENDA / ISSUES
+ * Shared analytical roles live before the Runoff-owned stylesheet boundary.
+ */
+@media (min-width: 1024px) {
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-diagnostics strong,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-topic-total strong,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-metrics strong {
+    font-size: var(--fr27-num-kpi) !important;
+    line-height: 1 !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-matrix-total {
+    font-size: var(--fr27-num-row) !important;
+    line-height: 1 !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-topic-shift strong,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-topic-shift em,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-shift-count,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-shift-delta,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-week-line > strong,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-profile-facts div > strong,
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-signal-head > strong {
+    font-size: var(--fr27-num-support) !important;
+    line-height: 1.1 !important;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+
+/* FR27 CANONICAL BADGE STATUS V1 — SHARED HYBRID
+ * Shared compact geometry and typography only.
+ * Existing semantic border/text/background colors remain authoritative.
+ */
+@media (min-width: 1024px) {
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-badge,
+  .hybrid-panel#signal-events-panel
+    .hybrid-events-status,
+  .hybrid-panel#signal-events-panel
+    .hybrid-events-evidence-chip,
+  .hybrid-panel#signal-events-panel
+    .hybrid-events-type-badge,
+  .hybrid-status-chip {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: fit-content;
+    min-height: var(--fr27-chip-height) !important;
+    padding:
+      var(--fr27-chip-padding-y)
+      var(--fr27-chip-padding-x)
+      !important;
+    border-radius: var(--fr27-chip-radius) !important;
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-chip-font) !important;
+    font-weight: var(--fr27-chip-weight) !important;
+    line-height: 1 !important;
+    letter-spacing: var(--fr27-chip-tracking) !important;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-badge {
+    flex: 0 0 auto !important;
+  }
+
+
+  .hybrid-panel#signal-events-panel
+    .hybrid-events-dossier-evidence
+    .hybrid-events-evidence-chip {
+    min-height: var(--fr27-chip-height) !important;
+    padding:
+      var(--fr27-chip-padding-y)
+      var(--fr27-chip-padding-x)
+      !important;
+    border-radius: var(--fr27-chip-radius) !important;
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-chip-font) !important;
+    font-weight: var(--fr27-chip-weight) !important;
+    line-height: 1 !important;
+    letter-spacing: var(--fr27-chip-tracking) !important;
+  }
+
+  .hybrid-panel#signal-events-panel
+    .hybrid-events-type-badge strong {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-chip-font) !important;
+    font-weight: var(--fr27-chip-weight) !important;
+    line-height: 1 !important;
+  }
+
+  .hybrid-panel#signal-events-panel
+    .hybrid-events-type-badge small {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-micro) !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+  }
+}
+
+
+@media (min-width: 1024px) and (max-width: 1239px) {
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel)
+    .hybrid-agenda-v6-topic-tags {
+    flex-wrap: wrap;
+    row-gap: 3px;
+  }
+}
+
+/* FR27 CANONICAL CONTROL TYPOGRAPHY V1 — SHARED HYBRID
+ * Events filters share compact control typography.
+ * Agenda/Events info glyphs share one help-trigger geometry.
+ * Structured record selectors remain outside this layer.
+ */
+@media (min-width: 1024px) {
+  .hybrid-panel#signal-events-panel
+    .hybrid-events-filter {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-control) !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+  }
+
+  :is(
+    .hybrid-panel#signal-agenda-panel,
+    .hybrid-panel#signal-issues-panel
+  ) .hybrid-agenda-v6-info,
+  .hybrid-panel#signal-events-panel
+    .hybrid-events-ops-info,
+  .hybrid-panel#signal-events-panel
+    .hybrid-events-dossier-info {
+    box-sizing: border-box !important;
+    display: inline-grid !important;
+    place-items: center !important;
+    width: 17px !important;
+    min-width: 17px !important;
+    height: 17px !important;
+    min-height: 17px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    font-family: var(--fr27-type-sans) !important;
+    font-size: 10px !important;
+    font-weight: 760 !important;
+    line-height: 1 !important;
+  }
+
+  .hybrid-panel#signal-events-panel
+    .hybrid-events-dossier-source {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-action) !important;
+    font-weight: 700 !important;
+  }
+}
+
+/* FR27 CANONICAL VISUAL-DATA TYPOGRAPHY V1 — SHARED HYBRID
+ * Agenda and Issues matrix-column headers share one semantic
+ * contract. Primary topic/issue labels remain 12.5px.
+ */
+@media (min-width: 1024px) {
+  :is(
+    .hybrid-panel#signal-agenda-panel,
+    .hybrid-panel#signal-issues-panel
+  ) .hybrid-agenda-v6-matrix-head > span {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-meta) !important;
+    font-weight: 720 !important;
+    line-height: 1 !important;
+    letter-spacing: .03em !important;
+  }
+}
+
+/* FR27 AGENDA / ISSUES STRUCTURAL FIT V1
+ *
+ * Geometry-only correction after typography normalization.
+ * Readable type remains frozen.
+ *
+ * Evidence:
+ * - SOURCE-DAYS needs ~70px.
+ * - analytical shift readings need up to ~72px.
+ * - longest current matrix primary label needs ~185px.
+ * - 430px is the smallest tested content-safe matrix width.
+ * - unstacked Issues topic-shift content first fits at 1326px.
+ */
+@media (min-width: 1024px) {
+  :is(
+    .hybrid-panel#signal-agenda-panel,
+    .hybrid-panel#signal-issues-panel
+  )
+  .hybrid-agenda-v6-monitor
+  .hybrid-agenda-v6-topic-card {
+    grid-template-columns:
+      31px
+      minmax(0, 1fr)
+      72px;
+  }
+
+  :is(
+    .hybrid-panel#signal-agenda-panel,
+    .hybrid-panel#signal-issues-panel
+  )
+  .hybrid-agenda-v6-shift-row {
+    grid-template-columns:
+      minmax(0, .92fr)
+      minmax(0, 1.08fr)
+      74px
+      72px;
+  }
+
+  :is(
+    .hybrid-panel#signal-agenda-panel,
+    .hybrid-panel#signal-issues-panel
+  )
+  :is(
+    .hybrid-agenda-v6-matrix-head,
+    .hybrid-agenda-v6-matrix-row
+  ) {
+    grid-template-columns:
+      185px
+      repeat(30, minmax(4px, 1fr))
+      32px;
+  }
+
+  :is(
+    .hybrid-panel#signal-agenda-panel,
+    .hybrid-panel#signal-issues-panel
+  )
+  .hybrid-agenda-v6-matrix {
+    min-width: 430px;
+  }
+
+  /* Keep the Issues matrix vertically scrollable while
+   * allowing the wrapper—not the text—to absorb true
+   * horizontal constraint.
+   *
+   * :is() intentionally avoids replacing the historical
+   * exact-selector rule checked by the existing regression
+   * test; this is the later production geometry contract.
+   */
+  :is(.hybrid-panel#signal-issues-panel)
+  .hybrid-agenda-v6-matrix-wrap {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  :is(.hybrid-panel#signal-issues-panel)
+  .hybrid-agenda-v6-matrix {
+    overflow-x: visible;
+    overflow-y: auto;
+  }
+}
+
+/* Content breakpoint, not a device breakpoint.
+ * At <=1325px the frozen PRIOR/LATEST readings cannot occupy
+ * one horizontal line. Stack label/value inside each reading
+ * rather than shrinking typography.
+ */
+@media (min-width: 1024px) and (max-width: 1325px) {
+  :is(
+    .hybrid-panel#signal-agenda-panel,
+    .hybrid-panel#signal-issues-panel
+  )
+  .hybrid-agenda-v6-monitor
+  .hybrid-agenda-v6-topic-card {
+    grid-template-rows:
+      auto
+      auto
+      24px;
+  }
+
+  :is(
+    .hybrid-panel#signal-agenda-panel,
+    .hybrid-panel#signal-issues-panel
+  )
+  .hybrid-agenda-v6-monitor
+  .hybrid-agenda-v6-topic-shift {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  :is(
+    .hybrid-panel#signal-agenda-panel,
+    .hybrid-panel#signal-issues-panel
+  )
+  .hybrid-agenda-v6-monitor
+  .hybrid-agenda-v6-topic-shift > span {
+    display: grid;
+    grid-template-rows:
+      auto
+      auto;
+    align-content: center;
+    justify-items: start;
+    gap: 1px;
+  }
+}
+
+/* FR27 AGENDA 30D LEGEND FOOTER PARITY V1
+ *
+ * User-reviewed structural parity with Policy Issues.
+ *
+ * Reserve a real footer row beneath the Agenda heatmap.
+ * The matrix owns vertical scrolling; the wrapper owns
+ * genuine horizontal overflow. The legend cannot overlap
+ * topic rows.
+ *
+ * Typography, matrix columns, labels and data are unchanged.
+ */
+@media (min-width: 1024px) {
+  .hybrid-panel#signal-agenda-panel
+    .hybrid-agenda-v6-matrix-wrap {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .hybrid-panel#signal-agenda-panel
+    .hybrid-agenda-v6-matrix {
+    min-height: 0;
+    overflow-x: visible;
+    overflow-y: auto;
+  }
+
+  .hybrid-panel#signal-agenda-panel
+    .hybrid-agenda-v6-matrix-legend {
+    position: static;
+    inset: auto;
+    z-index: auto;
+    flex: 0 0 auto;
+    margin: 4px 0 0;
+    padding: 4px 8px 1px;
+    border-top: 1px solid rgba(35, 86, 114, .45);
+    background: rgba(5, 20, 33, .98);
+  }
+}
+
 /* RUNOFF WORKSPACE REDESIGN V1 ΓÇö scoped to the owned Runoff panel. */
 .hybrid-panel#signal-runoff-panel {
   --hybrid-runoff-line: rgba(29, 75, 103, .68);
@@ -14393,5 +15008,266 @@ overflow-x: hidden !important;
 
   .hybrid-panel#signal-runoff-panel *:has(> .hybrid-runoff-other-card)::after {
     right: 12px;
+  }
+}
+
+/* FR27 CANONICAL RUNOFF HEADING TYPOGRAPHY V1 */
+@media (min-width: 1024px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block h2 {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-panel-heading) !important;
+    font-weight: 760 !important;
+    line-height: 1.05 !important;
+    letter-spacing: 0.035em !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-module h3 {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-module-heading) !important;
+    font-weight: 760 !important;
+    line-height: 1 !important;
+    letter-spacing: 0.045em !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* FR27 RUNOFF PEER PANEL HEADING ALIGNMENT V1 */
+@media (min-width: 1024px) {
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-closest
+    .hybrid-runoff-module-head h3,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-module-head h3,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-others
+    .hybrid-runoff-module-head h3,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-history
+    .hybrid-runoff-module-head h3 {
+    color: rgb(238, 246, 250) !important;
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-panel-heading) !important;
+    font-weight: 760 !important;
+    line-height: 1.05 !important;
+    letter-spacing: 0 !important;
+  }
+}
+
+/* FR27 CANONICAL RUNOFF CONTENT TYPOGRAPHY V1
+ * Peer headings above are frozen; only content, metadata, controls and actions
+ * are normalized here.
+ */
+@media (min-width: 1024px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-current-grid h4,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate-name,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-matchup > strong,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 > span,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4 > small {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-primary) !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-title-block p,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-status,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-scope-message,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-insufficient-copy {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-body) !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-date-pill,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-header-metric small,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-observation-head > strong,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-head,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-legend,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-closest-callout > strong,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-metric dt,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article > span,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article > b,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range > article > small,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-meta,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-head p,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-position,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-position time,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-pollster,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-meta {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-meta) !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-balance-label,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile > span,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile > small,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-matchup > small,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-margins > small {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-micro) !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-head label,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-select {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-control) !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-action) !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-current-grid h4,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-matchup,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card h4,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-pollster {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1239px) {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-current-grid,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card,
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-entry {
+    gap: 3px;
+  }
+
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-module {
+    padding-right: 5px;
+    padding-left: 5px;
+  }
+}
+
+/* FR27 CANONICAL ANALYTICAL NUMERICS V1 — RUNOFF
+ * Runoff analytical roles remain inside the Runoff-owned stylesheet tail.
+ */
+@media (min-width: 1024px) {
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-header-metric > strong,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-metric dd {
+    font-size: var(--fr27-num-kpi) !important;
+    line-height: 1 !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-candidate-result > strong {
+    font-size: var(--fr27-num-focal) !important;
+    line-height: 1 !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-margin-tile > strong,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-result > .hybrid-runoff-matrix-score,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-margins > strong,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-other-score > strong,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-history-scores > b {
+    font-size: var(--fr27-num-row) !important;
+    line-height: 1 !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-balance-label,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-margin-tile > small,
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-margins > small {
+    font-size: var(--fr27-num-micro) !important;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* FR27 CANONICAL STATUS CHIP V1 — RUNOFF
+ * Workspace state uses the same compact status-chip vocabulary.
+ * The fieldwork date remains a separate context/date pill.
+ */
+@media (min-width: 1024px) {
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-status {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: fit-content;
+    min-height: var(--fr27-chip-height) !important;
+    padding:
+      var(--fr27-chip-padding-y)
+      var(--fr27-chip-padding-x)
+      !important;
+    border-radius: var(--fr27-chip-radius) !important;
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-chip-font) !important;
+    font-weight: var(--fr27-chip-weight) !important;
+    line-height: 1 !important;
+    letter-spacing: var(--fr27-chip-tracking) !important;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+}
+
+/* FR27 CANONICAL CONTROL TYPOGRAPHY V1 — RUNOFF
+ * History selection uses the shared desktop control type.
+ */
+@media (min-width: 1024px) {
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-history-select {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-control) !important;
+    font-weight: 520 !important;
+  }
+}
+
+/* FR27 CANONICAL VISUAL-DATA TYPOGRAPHY V1 — RUNOFF
+ * Matrix headers use canonical meta/header typography.
+ * Matchup names remain primary analytical labels at every
+ * desktop width. Chronology dates are canonical metadata.
+ */
+@media (min-width: 1024px) {
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-head > span {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-meta) !important;
+    font-weight: 720 !important;
+    line-height: 1 !important;
+    letter-spacing: .03em !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-matchup strong {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-primary) !important;
+    font-weight: 680 !important;
+    line-height: 13px !important;
+    letter-spacing: 0 !important;
+  }
+
+  .hybrid-panel#signal-runoff-panel
+    .hybrid-runoff-chronology.is-observation-strip
+    .hybrid-runoff-history-position time {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-meta) !important;
+    font-weight: 650 !important;
+    line-height: 12px !important;
+    letter-spacing: 0 !important;
   }
 }

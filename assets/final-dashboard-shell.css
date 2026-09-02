@@ -3827,6 +3827,36 @@ h1 {
  */
 
 :root {
+  --fr27-type-sans:
+    Inter,
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  --fr27-type-panel-heading: 14px;
+  --fr27-type-module-heading: 10.5px;
+  --fr27-type-primary: 12.5px;
+  --fr27-type-body: 11.5px;
+  --fr27-type-meta: 10px;
+  --fr27-type-micro: 9px;
+  --fr27-type-control: 10.5px;
+  --fr27-type-action: 11px;
+  --fr27-num-display: 28px;
+  --fr27-num-focal: 26px;
+  --fr27-num-kpi: 20px;
+  --fr27-num-row: 14px;
+  --fr27-num-support: 11px;
+  --fr27-num-micro: 9px;
+
+  /* FR27 compact semantic chip vocabulary */
+  --fr27-chip-font: var(--fr27-type-meta);
+  --fr27-chip-height: 20px;
+  --fr27-chip-padding-y: 2px;
+  --fr27-chip-padding-x: 6px;
+  --fr27-chip-radius: 2px;
+  --fr27-chip-weight: 760;
+  --fr27-chip-tracking: .045em;
   --fr27-desktop-shell-max-width: 1780px;
   --fr27-desktop-shell-inline-padding: 24px;
   --fr27-desktop-masthead-min-height: 78px;
@@ -3836,8 +3866,8 @@ h1 {
   --fr27-desktop-mark-size: 52px;
   --fr27-desktop-mark-icon-size: 42px;
   --fr27-desktop-masthead-title-size: clamp(22px, 1.5vw, 26px);
-  --fr27-desktop-masthead-tagline-size: 12px;
-  --fr27-desktop-masthead-data-size: 10px;
+  --fr27-desktop-masthead-tagline-size: var(--fr27-type-body);
+  --fr27-desktop-masthead-data-size: var(--fr27-type-meta);
   --fr27-desktop-countdown-min-width: 206px;
   --fr27-desktop-countdown-min-height: 52px;
   --fr27-desktop-countdown-value-size: 29px;
@@ -3846,27 +3876,27 @@ h1 {
   --fr27-desktop-context-height: 66px;
   --fr27-desktop-context-inline-padding: 14px;
   --fr27-desktop-context-icon-size: 34px;
-  --fr27-desktop-context-label-size: 9.6px;
-  --fr27-desktop-context-value-size: 13.5px;
+  --fr27-desktop-context-label-size: var(--fr27-type-meta);
+  --fr27-desktop-context-value-size: var(--fr27-type-primary);
   --fr27-desktop-tab-height: 44px;
-  --fr27-desktop-tab-font-size: 10px;
+  --fr27-desktop-tab-font-size: var(--fr27-type-control);
   --fr27-desktop-tab-icon-size: 20px;
   --fr27-desktop-panel-height: 462px;
-  --fr27-desktop-panel-title-size: 15px;
-  --fr27-desktop-reading-size: 12.5px;
+  --fr27-desktop-panel-title-size: var(--fr27-type-panel-heading);
+  --fr27-desktop-reading-size: var(--fr27-type-primary);
   --fr27-desktop-value-size: 14px;
-  --fr27-desktop-control-size: 10px;
-  --fr27-desktop-action-size: 11px;
-  --fr27-desktop-meta-size: 9px;
+  --fr27-desktop-control-size: var(--fr27-type-control);
+  --fr27-desktop-action-size: var(--fr27-type-action);
+  --fr27-desktop-meta-size: var(--fr27-type-meta);
   --fr27-desktop-filter-gap: 4px;
   --fr27-desktop-filter-inline-padding: 8px;
   --fr27-workspace-gap: 10px;
   --fr27-workspace-inline-padding: 10px;
-  --fr27-workspace-panel-title-size: 13px;
-  --fr27-workspace-primary-size: 12.5px;
-  --fr27-workspace-body-size: 10.5px;
-  --fr27-workspace-meta-size: 9.5px;
-  --fr27-workspace-micro-size: 8.5px;
+  --fr27-workspace-panel-title-size: var(--fr27-type-panel-heading);
+  --fr27-workspace-primary-size: var(--fr27-type-primary);
+  --fr27-workspace-body-size: var(--fr27-type-body);
+  --fr27-workspace-meta-size: var(--fr27-type-meta);
+  --fr27-workspace-micro-size: var(--fr27-type-micro);
   --fr27-workspace-portrait-size: 46px;
 }
 
@@ -3879,32 +3909,32 @@ h1 {
     --fr27-desktop-mark-size: 46px;
     --fr27-desktop-mark-icon-size: 36px;
     --fr27-desktop-masthead-title-size: 22px;
-    --fr27-desktop-masthead-tagline-size: 10.5px;
-    --fr27-desktop-masthead-data-size: 8.5px;
+    --fr27-desktop-masthead-tagline-size: var(--fr27-type-body);
+    --fr27-desktop-masthead-data-size: var(--fr27-type-meta);
     --fr27-desktop-countdown-min-width: 178px;
     --fr27-desktop-countdown-min-height: 48px;
     --fr27-desktop-countdown-value-size: 26px;
     --fr27-desktop-context-inline-padding: 10px;
     --fr27-desktop-context-icon-size: 30px;
-    --fr27-desktop-context-label-size: 9px;
-    --fr27-desktop-context-value-size: 12.5px;
-    --fr27-desktop-tab-font-size: 9.5px;
+    --fr27-desktop-context-label-size: var(--fr27-type-meta);
+    --fr27-desktop-context-value-size: var(--fr27-type-primary);
+    --fr27-desktop-tab-font-size: var(--fr27-type-control);
     --fr27-desktop-tab-icon-size: 18px;
-    --fr27-desktop-panel-title-size: 14px;
-    --fr27-desktop-reading-size: 11.5px;
-    --fr27-desktop-value-size: 13px;
-    --fr27-desktop-control-size: 9.5px;
-    --fr27-desktop-action-size: 10px;
-    --fr27-desktop-meta-size: 8.5px;
+    --fr27-desktop-panel-title-size: var(--fr27-type-panel-heading);
+    --fr27-desktop-reading-size: var(--fr27-type-primary);
+    --fr27-desktop-value-size: 14px;
+    --fr27-desktop-control-size: var(--fr27-type-control);
+    --fr27-desktop-action-size: var(--fr27-type-action);
+    --fr27-desktop-meta-size: var(--fr27-type-meta);
     --fr27-desktop-filter-gap: 3px;
     --fr27-desktop-filter-inline-padding: 6px;
     --fr27-workspace-gap: 8px;
     --fr27-workspace-inline-padding: 8px;
-    --fr27-workspace-panel-title-size: 12px;
-    --fr27-workspace-primary-size: 11.5px;
-    --fr27-workspace-body-size: 10px;
-    --fr27-workspace-meta-size: 8.75px;
-    --fr27-workspace-micro-size: 8px;
+    --fr27-workspace-panel-title-size: var(--fr27-type-panel-heading);
+    --fr27-workspace-primary-size: var(--fr27-type-primary);
+    --fr27-workspace-body-size: var(--fr27-type-body);
+    --fr27-workspace-meta-size: var(--fr27-type-meta);
+    --fr27-workspace-micro-size: var(--fr27-type-micro);
     --fr27-workspace-portrait-size: 40px;
   }
 }
@@ -3919,33 +3949,33 @@ h1 {
     --fr27-desktop-mark-size: 40px;
     --fr27-desktop-mark-icon-size: 32px;
     --fr27-desktop-masthead-title-size: 18px;
-    --fr27-desktop-masthead-tagline-size: 9px;
-    --fr27-desktop-masthead-data-size: 8px;
+    --fr27-desktop-masthead-tagline-size: var(--fr27-type-body);
+    --fr27-desktop-masthead-data-size: var(--fr27-type-meta);
     --fr27-desktop-countdown-min-width: 150px;
     --fr27-desktop-countdown-min-height: 44px;
     --fr27-desktop-countdown-value-size: 23px;
     --fr27-desktop-hero-gap: 6px;
     --fr27-desktop-context-inline-padding: 7px;
     --fr27-desktop-context-icon-size: 26px;
-    --fr27-desktop-context-label-size: 8.25px;
-    --fr27-desktop-context-value-size: 11.5px;
-    --fr27-desktop-tab-font-size: 9px;
+    --fr27-desktop-context-label-size: var(--fr27-type-meta);
+    --fr27-desktop-context-value-size: var(--fr27-type-primary);
+    --fr27-desktop-tab-font-size: var(--fr27-type-control);
     --fr27-desktop-tab-icon-size: 16px;
-    --fr27-desktop-panel-title-size: 12.5px;
-    --fr27-desktop-reading-size: 10.5px;
-    --fr27-desktop-value-size: 12px;
-    --fr27-desktop-control-size: 8.5px;
-    --fr27-desktop-action-size: 9.5px;
-    --fr27-desktop-meta-size: 8px;
+    --fr27-desktop-panel-title-size: var(--fr27-type-panel-heading);
+    --fr27-desktop-reading-size: var(--fr27-type-primary);
+    --fr27-desktop-value-size: 14px;
+    --fr27-desktop-control-size: var(--fr27-type-control);
+    --fr27-desktop-action-size: var(--fr27-type-action);
+    --fr27-desktop-meta-size: var(--fr27-type-meta);
     --fr27-desktop-filter-gap: 2px;
     --fr27-desktop-filter-inline-padding: 4px;
     --fr27-workspace-gap: 6px;
     --fr27-workspace-inline-padding: 6px;
-    --fr27-workspace-panel-title-size: 11px;
-    --fr27-workspace-primary-size: 10.5px;
-    --fr27-workspace-body-size: 9.5px;
-    --fr27-workspace-meta-size: 8px;
-    --fr27-workspace-micro-size: 7.5px;
+    --fr27-workspace-panel-title-size: var(--fr27-type-panel-heading);
+    --fr27-workspace-primary-size: var(--fr27-type-primary);
+    --fr27-workspace-body-size: var(--fr27-type-body);
+    --fr27-workspace-meta-size: var(--fr27-type-meta);
+    --fr27-workspace-micro-size: var(--fr27-type-micro);
     --fr27-workspace-portrait-size: 34px;
   }
 }
@@ -4321,5 +4351,476 @@ h1 {
     gap: 4px;
     padding-right: 5px;
     padding-left: 5px;
+  }
+}
+
+/* FR27 CANONICAL HEADING TYPOGRAPHY V1
+ * Desktop heading type is stable; responsive rules may change geometry only.
+ */
+@media (min-width: 1024px) {
+  .what-changed .panel-head h2,
+  .race-glance .panel-head h2,
+  .top-media-pulse-head h2 {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-panel-heading) !important;
+    font-weight: 760 !important;
+    line-height: 1.05 !important;
+    letter-spacing: 0.035em !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+  }
+
+  .top-media-pulse .top-media-section-heading h3 {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-module-heading) !important;
+    font-weight: 760 !important;
+    line-height: 1 !important;
+    letter-spacing: 0.045em !important;
+    text-transform: uppercase !important;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1239px) {
+  .race-glance .race-glance-head {
+    grid-template-columns:
+      minmax(138px, 0.82fr)
+      minmax(0, 1.18fr);
+    gap: 2px;
+    padding-right: 5px;
+    padding-left: 5px;
+  }
+
+  .race-glance .race-poll-tabs {
+    gap: 2px;
+  }
+}
+
+/* FR27 CANONICAL CONTENT TYPOGRAPHY V1
+ * Desktop text roles remain stable; responsive rules may change geometry only.
+ * Approved panel and module heading typography is intentionally not repeated here.
+ */
+@media (min-width: 1024px) {
+  .masthead-tagline,
+  .fr27-hud-info-popover p,
+  .fr27-hud-info-note {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-body) !important;
+  }
+
+  .changes-ledger-headline,
+  .what-changed-headline,
+  .race-glance .candidate,
+  .top-media-pulse .top-media-coverage-headline,
+  .top-media-pulse .top-media-shift-name,
+  .top-media-pulse .top-media-topic-row > span,
+  .top-media-pulse .top-media-publisher-row > strong,
+  .context-value {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-primary) !important;
+  }
+
+  .changes-ledger-summary,
+  .changes-ledger-date,
+  .changes-ledger-category,
+  .changes-ledger-meta,
+  .changes-ledger-meta-text,
+  .what-changed-category,
+  .what-changed-context,
+  .what-changed-meta,
+  .race-event-title,
+  .race-event-detail,
+  .race-heading > .sub,
+  .race-change strong,
+  .top-media-pulse-head p,
+  .top-media-pulse .top-media-header-metric small,
+  .top-media-pulse .top-media-section-heading > span,
+  .top-media-pulse .top-media-coverage-meta,
+  .top-media-pulse .top-media-coverage-meta time,
+  .top-media-pulse .top-media-coverage-meta strong,
+  .top-media-pulse .top-media-period-legend strong,
+  .top-media-pulse .top-media-period-legend small,
+  .top-media-pulse .top-media-shift-row > strong,
+  .top-media-pulse .top-media-shift-row > b,
+  .top-media-pulse .top-media-shift-prior-value,
+  .top-media-pulse .top-media-shift-quality,
+  .top-media-pulse .top-media-topic-row > strong,
+  .top-media-pulse .top-media-publisher-row > b,
+  .context-label,
+  .context-meta,
+  #context-status-badge,
+  .masthead-data,
+  .masthead-countdown-label,
+  .masthead-countdown-date,
+  .fr27-app-hud .fr27-zone-meta,
+  .fr27-app-hud #fr27-hud-paris-date,
+  .fr27-app-hud .fr27-countdown-date,
+  .fr27-app-hud .fr27-source-stat > span:not(.fr27-source-icon),
+  .fr27-app-hud .fr27-linear-publication-cell span,
+  .fr27-hud-contact-head span,
+  .fr27-hud-info-head span,
+  .fr27-hud-info-rules {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-meta) !important;
+  }
+
+  .race-column-head > span,
+  .top-media-pulse .top-media-publisher-row > span,
+  .masthead .clock-unit,
+  .fr27-app-hud .fr27-zone-title,
+  .fr27-app-hud .fr27-countdown-unit,
+  .fr27-app-hud .fr27-sub-title,
+  .fr27-app-hud .fr27-linear-system-kicker {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-micro) !important;
+  }
+
+  .changes-ledger-filter,
+  .race-poll-tab,
+  .race-poll-tab .race-tab-label-full,
+  .race-scenario-control .hypothesis-label,
+  .race-scenario-control #hypothesis-select,
+  .top-media-pulse .top-media-tabs button,
+  #hybrid-signal-board .hybrid-tabs > button {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-control) !important;
+  }
+
+  .changes-ledger-source,
+  .what-changed-link,
+  .race-glance .race-footer .media-pulse-dashboard-cta,
+  .race-glance .race-footer a:not(.media-pulse-dashboard-cta),
+  .top-media-pulse .top-media-source-link,
+  .top-media-pulse .top-media-panel-link,
+  .top-media-pulse .top-media-panel-link .media-pulse-dashboard-cta,
+  .fr27-hud-contact-copy {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-action) !important;
+  }
+
+  .top-media-pulse
+    #top-media-coverage-panel
+    .top-media-coverage-headline {
+    font-size: var(--fr27-type-primary) !important;
+  }
+
+  .top-media-pulse
+    #top-media-coverage-panel
+    .top-media-source-link {
+    font-size: var(--fr27-type-action) !important;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1239px) {
+  .changes-ledger-filter {
+    padding-right: 3px;
+    padding-left: 3px;
+  }
+
+  .top-media-pulse-head {
+    display: grid;
+    grid-template-columns:
+      minmax(92px, 0.72fr)
+      minmax(0, 1.28fr);
+    gap: 3px;
+  }
+
+  .top-media-pulse-title-block,
+  .top-media-pulse-metrics,
+  .top-media-header-metric {
+    min-width: 0;
+  }
+
+  .top-media-pulse-title-block p,
+  .top-media-header-metric small {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .top-media-pulse-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: auto;
+    gap: 1px;
+  }
+
+  .top-media-header-metric {
+    padding-right: 2px;
+    padding-left: 2px;
+  }
+
+  .top-media-pulse .top-media-shift-row {
+    grid-template-columns:
+      minmax(68px, 1.15fr)
+      30px
+      minmax(56px, 1.35fr)
+      29px
+      39px !important;
+    gap: 2px !important;
+  }
+
+  .context-cell {
+    column-gap: 5px;
+    padding-right: 5px;
+    padding-left: 5px;
+  }
+
+  .fr27-app-hud .fr27-linear-zone {
+    padding-right: 3px;
+    padding-left: 3px;
+  }
+
+  .fr27-app-hud .fr27-linear-publication-cell span,
+  .fr27-app-hud .fr27-linear-system-value {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* FR27 TOP ROW MANUAL POLISH V1
+ * Wide desktop only.
+ * Reallocate existing space; typography and outer panel geometry stay frozen.
+ */
+@media (min-width: 1400px) {
+  .race-glance .race-column-head,
+  .race-glance .bar-row {
+    grid-template-columns:
+      minmax(160px, 1.38fr)
+      minmax(72px, 1.08fr)
+      50px
+      minmax(72px, 0.72fr)
+      !important;
+    column-gap: 5px;
+  }
+
+  .top-media-pulse
+    #top-media-overview-panel
+    .top-media-support-grid {
+    grid-template-columns:
+      minmax(0, 1.24fr)
+      minmax(0, 0.76fr);
+  }
+}
+
+/* FR27 CANONICAL ANALYTICAL NUMERICS V1
+ * Analytical roles remain stable at every desktop width. Dates, times,
+ * fieldwork prose, context text and the HUD clock stay on their text/utility
+ * typography contracts.
+ */
+@media (min-width: 1024px) {
+  .masthead-countdown .clock-count {
+    font-size: var(--fr27-num-display) !important;
+    line-height: 1 !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .top-media-pulse .top-media-header-metric > strong,
+  .fr27-app-hud .fr27-source-stat > strong,
+  .fr27-app-hud .fr27-linear-publication-cell > strong {
+    font-size: var(--fr27-num-kpi) !important;
+    line-height: 1 !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .race-glance .score,
+  .top-media-pulse .top-media-shift-row > strong {
+    font-size: var(--fr27-num-row) !important;
+    line-height: 1 !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .race-glance .race-change strong,
+  .top-media-pulse .top-media-shift-prior-value,
+  .top-media-pulse .top-media-shift-row > b,
+  .top-media-pulse .top-media-topic-row > strong,
+  .top-media-pulse .top-media-publisher-row > b {
+    font-size: var(--fr27-num-support) !important;
+    line-height: 1.1 !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .top-media-pulse .top-media-publisher-row > span {
+    font-size: var(--fr27-num-micro) !important;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* FR27 CANONICAL STATUS CHIP V1 — SHELL
+ * Operational state token only. Context/date pills and prose states
+ * remain on their existing semantic contracts.
+ */
+@media (min-width: 1024px) {
+  .context-source-state {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: fit-content;
+    min-height: var(--fr27-chip-height) !important;
+    padding:
+      var(--fr27-chip-padding-y)
+      var(--fr27-chip-padding-x)
+      !important;
+    border-radius: var(--fr27-chip-radius) !important;
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-chip-font) !important;
+    font-weight: var(--fr27-chip-weight) !important;
+    line-height: 1 !important;
+    letter-spacing: var(--fr27-chip-tracking) !important;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+}
+
+/* FR27 CANONICAL CONTROL TYPOGRAPHY V1 — SHELL
+ * Semantic typography is shared; geometry remains context-owned.
+ * Structured analytical rows and icon-only utilities are excluded.
+ */
+@media (min-width: 1024px) {
+  .changes-ledger-filter {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-control) !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+  }
+
+  .race-glance .race-poll-tab,
+  .top-media-pulse .top-media-tabs button {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-control) !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+  }
+
+  #hybrid-signal-board .hybrid-tabs > button {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-control) !important;
+    font-weight: 760 !important;
+    line-height: 1 !important;
+  }
+
+  .race-scenario-control #hypothesis-select {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-control) !important;
+    font-weight: 520 !important;
+  }
+
+  .changes-ledger-source,
+  .what-changed-link,
+  .race-glance .race-footer .media-pulse-dashboard-cta,
+  .race-glance .race-footer a:not(.media-pulse-dashboard-cta),
+  .top-media-pulse .top-media-panel-link,
+  .top-media-pulse .top-media-panel-link .media-pulse-dashboard-cta,
+  .fr27-hud-contact-copy {
+    font-family: var(--fr27-type-sans) !important;
+    font-size: var(--fr27-type-action) !important;
+    font-weight: 700 !important;
+  }
+}
+
+/* FR27 RACE POLL TAB RESPONSIVE LABEL V1
+ * Preserve 10.5px control type.
+ * Below 1500px, use the compact pollster label while the button
+ * aria-label and tooltip retain pollster + fieldwork date.
+ * At 1500px and above, allocate only the Race heading's natural
+ * width to the title so the full pollster + date labels fit.
+ */
+@media (min-width: 1024px) and (max-width: 1499px) {
+  .race-glance .race-tab-label-full {
+    display: none !important;
+  }
+
+  .race-glance .race-tab-label-short {
+    display: inline !important;
+  }
+
+  .race-glance .race-poll-tab {
+    padding-right: 6px !important;
+    padding-left: 6px !important;
+  }
+}
+
+/* Preserve the existing wide-band compact tab spacing before
+ * the full-label layout becomes viable.
+ */
+@media (min-width: 1400px) and (max-width: 1499px) {
+  .race-glance .race-poll-tabs {
+    gap: 2px !important;
+  }
+}
+
+@media (min-width: 1500px) {
+  .race-glance .race-glance-head {
+    grid-template-columns:
+      max-content
+      minmax(0, 1fr) !important;
+  }
+
+  .race-glance .race-poll-tabs {
+    gap: 2px !important;
+  }
+
+  .race-glance .race-poll-tab {
+    padding-right: 6px !important;
+    padding-left: 6px !important;
+  }
+
+  .race-glance .race-tab-label-full {
+    display: inline !important;
+  }
+
+  .race-glance .race-tab-label-short {
+    display: none !important;
+  }
+}
+
+/* FR27 MEDIA OVERVIEW SUPPORT POLISH V1
+ *
+ * User-reviewed visual adjustment.
+ * Keep the support area height unchanged:
+ * move subsection headings lower while reclaiming the same
+ * space from the list gap beneath them.
+ *
+ * Publisher totals are repeated analytical row values rather
+ * than support annotations.
+ */
+@media (min-width: 1024px) {
+  .top-media-pulse
+    #top-media-overview-panel
+    .top-media-support-grid
+    > section {
+    box-sizing: border-box;
+    padding-top: 3px;
+  }
+
+  .top-media-pulse
+    #top-media-overview-panel
+    .top-media-topic-list,
+  .top-media-pulse
+    #top-media-overview-panel
+    .top-media-publisher-list {
+    padding-top: 2px !important;
+  }
+
+
+}
+/* FR27 MEDIA COVERAGE HEADER POSITION V1
+ *
+ * Geometry only.
+ * Measured before correction:
+ * panel→heading = 10px
+ * heading→list = 16.5px
+ *
+ * Move header contents down 3px while preserving the
+ * existing 29px header track, divider and typography.
+ */
+@media (min-width: 1024px) {
+  .top-media-pulse
+    #top-media-coverage-panel
+    .top-media-section-heading
+    > * {
+    transform: translateY(3px);
   }
 }

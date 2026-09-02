@@ -166,7 +166,10 @@ class UnifiedTooltipContractTests(unittest.TestCase):
         tooltip_rule = re.search(r"\.fr27-tooltip\s*\{(?P<body>.*?)\n\}", UI_CSS, re.S)
         self.assertIsNotNone(tooltip_rule)
         tooltip_body = tooltip_rule.group("body")
-        size = re.search(r"font-size:\s*([0-9.]+)px", tooltip_rule.group("body"))
+        size = re.search(
+            r"font-size:\s*var\(--fr27-type-body,\s*([0-9.]+)px\)",
+            tooltip_body,
+        )
         self.assertIsNotNone(size)
         self.assertGreaterEqual(float(size.group(1)), 10.0)
         for surface in (
