@@ -4824,3 +4824,50 @@ h1 {
     transform: translateY(3px);
   }
 }
+
+/* FR27 RESTRAINED FRENCH BRAND LAYER
+ *
+ * French palette is intentionally limited to brand/navigation.
+ * Analytical cyan, violet, teal, gold and local data palettes
+ * remain unchanged.
+ */
+
+:root {
+  --fr27-brand-bleu-nuit: #172A46;
+  --fr27-brand-bleu-france: #2F5FA7;
+  --fr27-brand-ivoire: #F4F1EA;
+}
+
+.masthead h1 {
+  color: var(--fr27-brand-ivoire);
+}
+
+#hybrid-signal-board
+  .hybrid-tabs
+  > button[aria-selected="true"] {
+  color: var(--fr27-brand-ivoire);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(47, 95, 167, 0.22),
+      rgba(23, 42, 70, 0.78)
+    );
+}
+
+#hybrid-signal-board
+  .hybrid-tabs
+  > button[aria-selected="true"]::after {
+  background: var(--fr27-brand-bleu-france);
+
+  box-shadow:
+    0 0 12px
+    rgba(47, 95, 167, 0.40);
+}
+
+#hybrid-signal-board
+  .hybrid-tabs
+  > button[aria-selected="true"]
+  .hybrid-tab-icon {
+  color: var(--fr27-brand-bleu-france);
+}
