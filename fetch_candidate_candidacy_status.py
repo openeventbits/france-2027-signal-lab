@@ -398,16 +398,23 @@ def _text_content(node: _HtmlNode) -> str:
 def _text_before_break(node: _HtmlNode) -> str:
     parts: list[str] = []
     stopped = False
+    saw_visible_text = False
+    leading_break_seen = False
 
     def visit(value: _HtmlNode | str) -> None:
-        nonlocal stopped
+        nonlocal stopped, saw_visible_text, leading_break_seen
         if stopped:
             return
         if isinstance(value, str):
             parts.append(value)
+            if value.strip():
+                saw_visible_text = True
             return
         if value.tag == "br":
-            stopped = True
+            if saw_visible_text or leading_break_seen:
+                stopped = True
+            else:
+                leading_break_seen = True
             return
         if _skip_text_node(value):
             return
