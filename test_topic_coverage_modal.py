@@ -387,6 +387,32 @@ process.stdout.write(
             ),
         )
 
+    def test_modal_header_owns_its_fixed_track_geometry(self):
+        header_rule = re.search(
+            r"\.tcm-header\s*\{(?P<body>[^}]*)\}",
+            self.modal_css,
+        )
+        self.assertIsNotNone(header_rule)
+
+        for contract in (
+            "flex-flow: row nowrap;",
+            "min-height: 0;",
+        ):
+            self.assertIn(
+                contract,
+                header_rule.group("body"),
+            )
+
+        self.assertRegex(
+            self.modal_css,
+            re.compile(
+                r"\.tcm-dialog\s*\{[^}]*"
+                r"grid-template-rows:\s*42px\s+"
+                r"minmax\(0,\s*1fr\);",
+                re.DOTALL,
+            ),
+        )
+
     def test_modal_keeps_public_api_and_focus_safety(self):
         for contract in (
             "window.France2027TopicCoverageModal",
