@@ -177,6 +177,42 @@ class CandidateExtractionTests(unittest.TestCase):
         self.assertEqual(candidate["status"], "declared")
         self.assertEqual(candidate["display_tier"], "main")
 
+    def test_leading_break_before_candidate_name_is_accepted(self):
+        standard = candidate_table("Élodie Déclarée")
+        leading_break = standard.replace(
+            '<th><span style="display:none">sort key</span>',
+            "<th><br>",
+            1,
+        )
+        html = fixture_html().replace(standard, leading_break)
+
+        payload, _ = collector.build_payload(self.revision, html)
+        by_name = {
+            candidate["candidate_name"]: candidate
+            for candidate in payload["candidates"]
+        }
+
+        self.assertIn("Élodie Déclarée", by_name)
+        self.assertEqual(by_name["Élodie Déclarée"]["status"], "declared")
+
+    def test_multiple_leading_breaks_before_candidate_name_fail_closed(self):
+        standard = candidate_table("Élodie Déclarée")
+        multiple_leading_breaks = standard.replace(
+            '<th><span style="display:none">sort key</span>',
+            "<th><br><br>",
+            1,
+        )
+        html = fixture_html().replace(
+            standard,
+            multiple_leading_breaks,
+        )
+
+        with self.assertRaisesRegex(
+            collector.CandidateCandidacyFetchError,
+            "malformed name",
+        ):
+            collector.build_payload(self.revision, html)
+
     def test_primary_contender_extraction(self):
         candidate = self.by_name["François Primaire"]
         self.assertEqual(candidate["status"], "primary_contender")
