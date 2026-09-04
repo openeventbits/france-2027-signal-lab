@@ -1044,7 +1044,23 @@ class NewsWireRelevanceTests(unittest.TestCase):
             coverage["shared_discovery_feeds"],
             payload["discovery"]["configured_queries"],
         )
-        self.assertEqual(coverage["publisher_site_feeds"], 180)
+        expected_publisher_site_feed_count = sum(
+            bool(record.get("enabled", True))
+            and record.get("source_type") == "media"
+            for record in PUBLISHER_POLICY.values()
+        )
+        self.assertEqual(
+            coverage["publisher_site_feeds"],
+            expected_publisher_site_feed_count,
+        )
+        self.assertEqual(
+            coverage["configured_media_publishers"],
+            expected_publisher_site_feed_count,
+        )
+        self.assertEqual(
+            payload["discovery"]["approved_media_domains"],
+            expected_publisher_site_feed_count,
+        )
         self.assertEqual(
             coverage["configured_feeds"],
             (
