@@ -627,8 +627,11 @@ class CandidateVisibilityHistoryBuildTests(
             serialize_candidate_visibility_history,
         )
         from fetch_news_wire import (
+            PUBLISHER_POLICY,
             build_candidate_visibility,
+            generate_publisher_site_feeds,
             parse_feed_datetime,
+            publisher_site_feed_due,
         )
 
         root = Path(__file__).resolve().parent
@@ -645,6 +648,65 @@ class CandidateVisibilityHistoryBuildTests(
                 / "candidate_candidacy_status.json"
             ).read_text(
                 encoding="utf-8"
+            )
+        )
+
+        # This test exercises visibility-history invariance, not an
+        # exact snapshot of the mutable publisher registry. Reconcile
+        # only dynamic feed-configuration metadata before canonical
+        # News Wire validation.
+        configured_site_feeds = generate_publisher_site_feeds()
+
+        policy_generated_at = parse_feed_datetime(
+            news.get("generated_at")
+        )
+        self.assertIsNotNone(policy_generated_at)
+
+        discovery = news.get("discovery")
+        feed_coverage = news.get("feed_coverage")
+
+        self.assertIsInstance(discovery, dict)
+        self.assertIsInstance(feed_coverage, dict)
+
+        configured_media_publishers = len(
+            configured_site_feeds
+        )
+        publisher_site_feeds_due = sum(
+            publisher_site_feed_due(
+                feed,
+                policy_generated_at,
+            )
+            for feed in configured_site_feeds
+        )
+
+        discovery["approved_publisher_domains"] = len(
+            PUBLISHER_POLICY
+        )
+        discovery["approved_media_domains"] = (
+            configured_media_publishers
+        )
+
+        feed_coverage["publisher_site_feeds"] = (
+            configured_media_publishers
+        )
+        feed_coverage["configured_media_publishers"] = (
+            configured_media_publishers
+        )
+        feed_coverage["publisher_site_feeds_due"] = (
+            publisher_site_feeds_due
+        )
+        feed_coverage["configured_feeds"] = sum(
+            (
+                feed_coverage["direct_feeds"],
+                feed_coverage["shared_discovery_feeds"],
+                configured_media_publishers,
+            )
+        )
+        feed_coverage["feeds_due_this_run"] = sum(
+            (
+                feed_coverage["direct_feeds"],
+                feed_coverage["shared_discovery_feeds"],
+                publisher_site_feeds_due,
             )
         )
 
