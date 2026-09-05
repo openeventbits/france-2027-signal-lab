@@ -63,6 +63,8 @@ AUDITED_FRENCH_RUNOFF_HEADINGS = (
 )
 POST_AUDIT_HOLLANDE_LE_PEN_HEADING = "hypothese hollande le pen"
 POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR = "FR-POST-HOLLANDE-LE-PEN"
+FRENCH_FIRST_ROUND_SECTION = "sondages concernant le premier tour"
+FRENCH_SECOND_ROUND_SECTION = "sondages concernant le second tour"
 
 ALLOWED_ROUNDS = {FIRST_ROUND, SECOND_ROUND}
 ALLOWED_SAMPLE_SCOPES = {
@@ -1028,6 +1030,91 @@ def _preceding_heading(table: object) -> str:
     return normalize_identity(headings[-1].text_content()) if headings else ""
 
 
+def _section_heading(table: object) -> str:
+    headings = table.xpath("preceding::h2[1]")
+    return normalize_identity(headings[-1].text_content()) if headings else ""
+
+
+def _french_first_round_table_plan(tables: list[object]) -> list[object]:
+    """Select first-round tables by section and validate their local context."""
+
+    selected = [
+        table
+        for table in tables
+        if _section_heading(table) == FRENCH_FIRST_ROUND_SECTION
+    ]
+    if not selected:
+        raise ValueError("French source lacks first-round tables")
+    seen_contexts: set[str] = set()
+    for table in selected:
+        context = _preceding_heading(table)
+        if not (
+            context == "autres"
+            or re.fullmatch(r"(?:premier|second) semestre 20\d{2}", context)
+            or re.fullmatch(r"annee 20\d{2}", context)
+        ):
+            raise ValueError(
+                f"French first-round table has invalid context {context!r}"
+            )
+        if context in seen_contexts:
+            raise ValueError(
+                f"French first-round context {context!r} exposes multiple tables"
+            )
+        seen_contexts.add(context)
+    return selected
+
+
+def _validate_french_core_columns(
+    frame: object, *, table_label: str, candidate_count: int
+) -> None:
+    if len(frame.columns) < 3 + candidate_count:
+        raise ValueError(
+            f"{table_label} lacks {candidate_count} candidate columns"
+        )
+    observed = tuple(
+        normalize_identity(_header_value(column)[0])
+        for column in frame.columns[:3]
+    )
+    if (
+        observed[0] != "sondeur"
+        or observed[1] not in {"date", "dates"}
+        or observed[2] != "echantillon"
+    ):
+        raise ValueError(
+            f"{table_label} has malformed core headers: {observed!r}"
+        )
+
+
+def _column_has_candidate_evidence(frame: object, column_index: int) -> bool:
+    for value in frame.iloc[:, column_index]:
+        normalized = normalize_identity(cell_text(value))
+        if normalized not in {"", "nan"} and normalized not in {"-", "–", "—", "−"}:
+            return True
+    return False
+
+
+def _validate_first_round_candidate_headers(
+    frame: object, *, table_label: str
+) -> None:
+    for column_index, column in enumerate(frame.columns[3:], start=3):
+        header_name, _generic = _header_candidate(column)
+        if header_name:
+            continue
+        header_text, _header_link = _header_value(column)
+        normalized = normalize_identity(candidate_name(header_text))
+        if (
+            normalized in GENERIC_CANDIDATE_MARKERS
+            or not normalized
+            or normalized.startswith("unnamed ")
+        ):
+            continue
+        if _column_has_candidate_evidence(frame, column_index):
+            raise ValueError(
+                f"{table_label} has score-bearing candidate header "
+                f"with unknown identity: {header_text!r}"
+            )
+
+
 def _french_runoff_table_plan(tables: list[object]) -> list[tuple[str, object]]:
     """Select reviewed runoff families without tying legacy locators to positions."""
 
@@ -1035,10 +1122,15 @@ def _french_runoff_table_plan(tables: list[object]) -> list[tuple[str, object]]:
         POST_AUDIT_HOLLANDE_LE_PEN_HEADING
     }
     by_heading: dict[str, object] = {}
-    for table in tables:
+    runoff_tables = [
+        table
+        for table in tables
+        if _section_heading(table) == FRENCH_SECOND_ROUND_SECTION
+    ]
+    for table in runoff_tables:
         heading = _preceding_heading(table)
         if heading not in reviewed_headings:
-            continue
+            raise ValueError(f"unreviewed French runoff family {heading!r}")
         if heading in by_heading:
             raise ValueError(f"French runoff family {heading!r} exposes multiple tables")
         by_heading[heading] = table
@@ -1099,13 +1191,18 @@ def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
     second_round: list[dict[str, Any]] = []
     rejected: list[dict[str, Any]] = []
 
-    for table_index, table in enumerate(tables[:6]):
+    for table_index, table in enumerate(_french_first_round_table_plan(tables)):
         frame = pd.read_html(
             io.StringIO(lxml_html.tostring(table, encoding="unicode")),
             extract_links="all",
         )[0]
-        if len(frame.columns) < 6:
-            continue
+        table_label = f"French first-round table {table_index} ({_preceding_heading(table)})"
+        _validate_french_core_columns(
+            frame,
+            table_label=table_label,
+            candidate_count=3,
+        )
+        _validate_first_round_candidate_headers(frame, table_label=table_label)
         default_year = _table_default_year(table)
         candidate_columns = [
             (index, *_header_candidate(column))
@@ -1207,6 +1304,11 @@ def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
             io.StringIO(lxml_html.tostring(table, encoding="unicode")),
             extract_links="all",
         )[0]
+        _validate_french_core_columns(
+            frame,
+            table_label=f"French runoff table {family_locator}",
+            candidate_count=2,
+        )
         candidate_columns = [
             (index, *_header_candidate(column))
             for index, column in enumerate(frame.columns[3:], start=3)

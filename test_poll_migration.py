@@ -45,8 +45,11 @@ from rehearse_fr_poll_migration import (
     EVENT_ID_CONTRACT_PROBES,
     PHASE4_PRODUCTION_MODIFICATION_FILES,
     PHASE4_PROTECTED_LOGIC_SHA256,
+    REVIEWED_POST_AUDIT_FRENCH_FIXTURE,
+    REVIEWED_POST_AUDIT_FRENCH_REVISION,
     RehearsalError,
     SourceDriftError,
+    _assert_production_source_structure,
     phase4a_cutover_contract,
     reconcile_french_production_source,
     rehearse_migration,
@@ -216,6 +219,73 @@ def post_audit_hollande_reordered_runoff_fixture() -> dict:
     return parsed
 
 
+def minimal_named_candidate_fixture(order: tuple[str, ...]) -> dict:
+    parsed = copy.deepcopy(
+        load_mediawiki_fixture(
+            REVIEWED_POST_AUDIT_FRENCH_FIXTURE,
+            REVIEWED_POST_AUDIT_FRENCH_REVISION,
+        )
+    )
+    document = lxml_html.fromstring(parsed["text"])
+    candidates = {
+        "Ruffin": ("/wiki/Fran%C3%A7ois_Ruffin", "6"),
+        "Attal": ("/wiki/Gabriel_Attal", "14"),
+        "Le Pen": ("/wiki/Marine_Le_Pen", "35"),
+        "Lisnard": ("/wiki/David_Lisnard", "3"),
+    }
+    image_headers = "".join("<th></th>" for _candidate in order)
+    name_headers = "".join(
+        f'<th><a href="{candidates[name][0]}">{name}</a></th>'
+        for name in order
+    )
+    score_cells = "".join(f"<td>{candidates[name][1]}</td>" for name in order)
+    replacement = lxml_html.fragment_fromstring(
+        "<table class='wikitable'><tbody>"
+        "<tr><th rowspan='2'>Sondeur</th><th rowspan='2'>Dates</th>"
+        "<th rowspan='2'>Échantillon</th>"
+        f"{image_headers}</tr><tr>{name_headers}</tr>"
+        "<tr><td><a href='https://example.test/structural-layout'>Ipsos</a></td>"
+        f"<td>1 - 2 septembre</td><td>1 234</td>{score_cells}</tr>"
+        "</tbody></table>"
+    )
+    original = document.xpath("//table")[0]
+    original.getparent().replace(original, replacement)
+    parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+    parsed["revid"] += 1
+    return parsed
+
+
+def added_unused_named_candidate_fixture() -> dict:
+    parsed = copy.deepcopy(
+        load_mediawiki_fixture(
+            REVIEWED_POST_AUDIT_FRENCH_FIXTURE,
+            REVIEWED_POST_AUDIT_FRENCH_REVISION,
+        )
+    )
+    document = lxml_html.fromstring(parsed["text"])
+    table = document.xpath("//table")[0]
+    header_rows = [
+        row
+        for row in table.xpath("./thead/tr | ./tbody/tr | ./tr")
+        if not row.xpath("./td")
+    ]
+    named_count = len(header_rows[1].xpath("./th"))
+    image_header = lxml_html.Element("th")
+    candidate_header = lxml_html.Element("th")
+    candidate_link = lxml_html.Element("a", href="/wiki/David_Lisnard")
+    candidate_link.text = "Lisnard (LR)"
+    candidate_header.append(candidate_link)
+    other_header = header_rows[0].xpath("./th")[-1]
+    other_header.addprevious(image_header)
+    header_rows[1].append(candidate_header)
+    for row in table.xpath(".//tr[td]"):
+        if len(row.xpath("./td")) >= 3 + named_count:
+            row.insert(3 + named_count, lxml_html.Element("td"))
+    parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+    parsed["revid"] += 1
+    return parsed
+
+
 def key_dict(record: dict, field: str = "canonical_factual_key") -> dict:
     return record[field]
 
@@ -268,6 +338,10 @@ class FrozenFixtureTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.en = load_mediawiki_fixture(ENGLISH_FIXTURE, 1371070883)
         cls.fr = load_mediawiki_fixture(FRENCH_FIXTURE, 238906992)
+        cls.reviewed_post_audit_fr = load_mediawiki_fixture(
+            REVIEWED_POST_AUDIT_FRENCH_FIXTURE,
+            REVIEWED_POST_AUDIT_FRENCH_REVISION,
+        )
         cls.en_first, cls.en_skipped = parse_english_frozen_first_round(cls.en)
         cls.en_second = parse_english_frozen_second_round(cls.en)
         cls.fr_parsed = parse_french_frozen_fixture(cls.fr)
@@ -276,6 +350,7 @@ class FrozenFixtureTests(unittest.TestCase):
         expected = {
             ENGLISH_FIXTURE: "d6f0cfcb0cf33edc04a13e38c0171d917a61b985d49a1f5d863a4027838b2f0a",
             FRENCH_FIXTURE: "62bcad0a3f951a352f7acdb35bdfb5da85bb1aaae3912c61c2d2bc03e197744f",
+            REVIEWED_POST_AUDIT_FRENCH_FIXTURE: "907745569947c525a7361f148ad89377fef0799bee9460b5ce91ebc9a8154dec",
             PRE_CUTOVER_FIRST_ROUND: "57d1fbdd08a1133dd7e907e7be71cf572e700a6d010a1f0b5fd070893211b913",
             PRE_CUTOVER_SECOND_ROUND: "063176c7af66e29c3380dcc5c5e22d2af632ab564b7f79e160678bb7f08f0d34",
             PRE_CUTOVER_COMMISSION_REGISTRY: "bad7e3924f82b60d6972d24537ace73071a73c049fb4b155df7d8cb392f992d9",
@@ -319,6 +394,401 @@ class FrozenFixtureTests(unittest.TestCase):
                 }
             ),
         )
+
+    def test_reviewed_post_audit_fixture_preserves_history_and_runoffs(self) -> None:
+        previous_first = read_json("polls.json")
+        previous_second_payload = read_json("second_round_polls.json")
+        self.assertIsInstance(previous_first, list)
+        self.assertIsInstance(previous_second_payload, dict)
+        previous_second = previous_second_payload["events"]
+
+        result = reconcile_french_production_source(
+            self.reviewed_post_audit_fr,
+            previous_first,
+            previous_second,
+        )
+
+        previous_first_ids = {event["event_id"] for event in previous_first}
+        previous_second_ids = {event["event_id"] for event in previous_second}
+        self.assertLessEqual(
+            previous_first_ids,
+            {event["event_id"] for event in result.first_round_events},
+        )
+        self.assertEqual(
+            previous_second_ids,
+            {event["event_id"] for event in result.second_round_events},
+        )
+        self.assertEqual(
+            result.report["normal_post_audit_additions"],
+            {FIRST_ROUND: 4, SECOND_ROUND: 0},
+        )
+        self.assertEqual(result.report["unexplained_historical_losses"], 0)
+        self.assertEqual(result.report["duplicate_canonical_factual_identities"], 0)
+        self.assertEqual(result.report["duplicate_runoff_factual_identities"], 0)
+        self.assertEqual(
+            {event["event_id"]: event for event in result.second_round_events},
+            {event["event_id"]: event for event in previous_second},
+        )
+
+    def test_reviewed_generic_headers_require_explicit_row_candidate_links(self) -> None:
+        parsed = copy.deepcopy(self.reviewed_post_audit_fr)
+        baseline = parse_french_frozen_fixture(parsed)
+        document = lxml_html.fromstring(parsed["text"])
+        generic_table = document.xpath("//table")[2]
+        linked_candidate = next(
+            link
+            for link in generic_table.xpath(".//td//a")
+            if "Rapha%C3%ABl_Glucksmann" in link.get("href", "")
+        )
+        linked_candidate.getparent().remove(linked_candidate)
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        parsed["revid"] += 1
+
+        changed = parse_french_frozen_fixture(parsed)
+
+        self.assertEqual(len(changed["first_round"]), len(baseline["first_round"]) - 1)
+        self.assertEqual(len(changed["rejected"]), len(baseline["rejected"]) + 1)
+        new_rejections = {
+            (record["pollster"], record["fieldwork_start"], record["reason_code"])
+            for record in changed["rejected"]
+        } - {
+            (record["pollster"], record["fieldwork_start"], record["reason_code"])
+            for record in baseline["rejected"]
+        }
+        self.assertEqual(len(new_rejections), 1)
+        self.assertEqual(next(iter(new_rejections))[2], "unnamed_generic_candidate")
+        with self.assertRaisesRegex(
+            SourceDriftError,
+            "semantic/evidence drift: reviewed first_round factual identities",
+        ):
+            reconcile_french_production_source(
+                parsed,
+                read_json("polls.json"),
+                read_json("second_round_polls.json")["events"],
+            )
+
+    def test_named_first_round_candidate_columns_can_reorder(self) -> None:
+        expected = {
+            "François Ruffin": 6,
+            "Gabriel Attal": 14,
+            "Marine Le Pen": 35,
+        }
+        for order in (
+            ("Ruffin", "Attal", "Le Pen"),
+            ("Le Pen", "Ruffin", "Attal"),
+        ):
+            with self.subTest(order=order):
+                parsed = _assert_production_source_structure(
+                    minimal_named_candidate_fixture(order)
+                )
+                record = next(
+                    record
+                    for record in parsed[FIRST_ROUND]
+                    if record["source_url"]
+                    == "https://example.test/structural-layout"
+                )
+                self.assertEqual(
+                    {
+                        candidate["name"]: candidate["score"]
+                        for candidate in record["candidates"]
+                    },
+                    expected,
+                )
+
+    def test_named_first_round_candidate_column_can_be_added(self) -> None:
+        parsed = _assert_production_source_structure(
+            minimal_named_candidate_fixture(
+                ("Ruffin", "Attal", "Le Pen", "Lisnard")
+            )
+        )
+        record = next(
+            record
+            for record in parsed[FIRST_ROUND]
+            if record["source_url"] == "https://example.test/structural-layout"
+        )
+        self.assertEqual(
+            {candidate["name"] for candidate in record["candidates"]},
+            {"François Ruffin", "Gabriel Attal", "Marine Le Pen", "David Lisnard"},
+        )
+
+    def test_unused_named_first_round_candidate_column_can_be_added_or_removed(self) -> None:
+        previous_first = read_json("polls.json")
+        previous_second = read_json("second_round_polls.json")["events"]
+        added = added_unused_named_candidate_fixture()
+        result = reconcile_french_production_source(
+            added,
+            previous_first,
+            previous_second,
+        )
+        self.assertEqual(result.report["normal_post_audit_additions"], {
+            FIRST_ROUND: 4,
+            SECOND_ROUND: 0,
+        })
+
+        document = lxml_html.fromstring(added["text"])
+        table = document.xpath("//table")[0]
+        header_rows = [
+            row
+            for row in table.xpath("./thead/tr | ./tbody/tr | ./tr")
+            if not row.xpath("./td")
+        ]
+        candidate_headers = header_rows[1].xpath("./th")
+        removed_index = next(
+            index
+            for index, header in enumerate(candidate_headers)
+            if "Lisnard" in header.text_content()
+        )
+        image_headers = header_rows[0].xpath("./th")
+        header_rows[0].remove(image_headers[removed_index + 3])
+        header_rows[1].remove(candidate_headers[removed_index])
+        for row in table.xpath(".//tr[td]"):
+            cells = row.xpath("./td")
+            if len(cells) > removed_index + 3:
+                row.remove(cells[removed_index + 3])
+        added["text"] = lxml_html.tostring(document, encoding="unicode")
+        added["revid"] += 1
+        removed = reconcile_french_production_source(
+            added,
+            previous_first,
+            previous_second,
+        )
+        self.assertEqual(
+            removed.report["normal_post_audit_additions"],
+            {FIRST_ROUND: 4, SECOND_ROUND: 0},
+        )
+
+    def test_linked_candidate_header_presentation_can_change(self) -> None:
+        parsed = copy.deepcopy(self.reviewed_post_audit_fr)
+        document = lxml_html.fromstring(parsed["text"])
+        ruffin_header = next(
+            header
+            for header in document.xpath("//table")[0].xpath(".//th")
+            if "Ruffin" in header.text_content()
+        )
+        ruffin_header.xpath(".//a")[0].text = "Présentation Ruffin"
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        parsed["revid"] += 1
+        result = reconcile_french_production_source(
+            parsed,
+            read_json("polls.json"),
+            read_json("second_round_polls.json")["events"],
+        )
+        self.assertEqual(
+            result.report["normal_post_audit_additions"],
+            {FIRST_ROUND: 4, SECOND_ROUND: 0},
+        )
+
+    def test_unknown_score_bearing_candidate_header_fails_structurally(self) -> None:
+        parsed = copy.deepcopy(self.reviewed_post_audit_fr)
+        document = lxml_html.fromstring(parsed["text"])
+        ruffin_header = next(
+            header
+            for header in document.xpath("//table")[0].xpath(".//th")
+            if "Ruffin" in header.text_content()
+        )
+        ruffin_header.clear()
+        ruffin_header.text = "Candidat inconnu"
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        parsed["revid"] += 1
+        with self.assertRaisesRegex(
+            SourceDriftError,
+            "structural validation failed: .*unknown identity",
+        ):
+            reconcile_french_production_source(
+                parsed,
+                read_json("polls.json"),
+                read_json("second_round_polls.json")["events"],
+            )
+
+    def test_duplicate_candidate_identity_fails_structurally(self) -> None:
+        parsed = copy.deepcopy(self.reviewed_post_audit_fr)
+        document = lxml_html.fromstring(parsed["text"])
+        table = document.xpath("//table")[0]
+        ruffin_header = next(
+            header for header in table.xpath(".//th") if "Ruffin" in header.text_content()
+        )
+        tondelier_header = next(
+            header for header in table.xpath(".//th") if "Tondelier" in header.text_content()
+        )
+        ruffin_link = ruffin_header.xpath(".//a")[0]
+        tondelier_link = tondelier_header.xpath(".//a")[0]
+        ruffin_link.set("href", tondelier_link.get("href"))
+        ruffin_link.text = tondelier_link.text
+        header_rows = [
+            row
+            for row in table.xpath("./thead/tr | ./tbody/tr | ./tr")
+            if not row.xpath("./td")
+        ]
+        candidate_headers = header_rows[1].xpath("./th")
+        tondelier_index = candidate_headers.index(tondelier_header)
+        ruffin_index = candidate_headers.index(ruffin_header)
+        poll_row = next(
+            row
+            for row in table.xpath(".//tr[td]")
+            if len(row.xpath("./td")) > ruffin_index + 3
+            and row.xpath("./td[1]//a[@href]")
+        )
+        poll_row.xpath("./td")[tondelier_index + 3].text = "1"
+        poll_row.xpath("./td")[ruffin_index + 3].text = "1"
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        parsed["revid"] += 1
+        with self.assertRaisesRegex(
+            SourceDriftError,
+            "structural validation failed: .*duplicate candidates",
+        ):
+            reconcile_french_production_source(
+                parsed,
+                read_json("polls.json"),
+                read_json("second_round_polls.json")["events"],
+            )
+
+    def test_core_header_and_first_round_context_corruption_fail_structurally(self) -> None:
+        for mutation in ("core", "context"):
+            with self.subTest(mutation=mutation):
+                parsed = copy.deepcopy(self.reviewed_post_audit_fr)
+                document = lxml_html.fromstring(parsed["text"])
+                table = document.xpath("//table")[0]
+                if mutation == "core":
+                    table.xpath(".//th")[0].text = "Organisation"
+                    message = "malformed core headers"
+                else:
+                    headings = table.xpath(
+                        "preceding::*[self::h2 or self::h3 or self::h4]"
+                    )
+                    headings[-1].text = "Données sans contexte électoral"
+                    message = "invalid context"
+                parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+                parsed["revid"] += 1
+                with self.assertRaisesRegex(SourceDriftError, message):
+                    reconcile_french_production_source(
+                        parsed,
+                        read_json("polls.json"),
+                        read_json("second_round_polls.json")["events"],
+                    )
+
+    def test_candidate_colspan_ambiguity_fails_closed(self) -> None:
+        parsed = copy.deepcopy(self.reviewed_post_audit_fr)
+        document = lxml_html.fromstring(parsed["text"])
+        ruffin_header = next(
+            header
+            for header in document.xpath("//table")[0].xpath(".//th")
+            if "Ruffin" in header.text_content()
+        )
+        ruffin_header.set("colspan", "2")
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        parsed["revid"] += 1
+        with self.assertRaises(SourceDriftError):
+            reconcile_french_production_source(
+                parsed,
+                read_json("polls.json"),
+                read_json("second_round_polls.json")["events"],
+            )
+
+    def test_reviewed_factual_change_fails_semantically(self) -> None:
+        parsed = copy.deepcopy(self.reviewed_post_audit_fr)
+        document = lxml_html.fromstring(parsed["text"])
+        row = next(
+            row
+            for row in document.xpath("//table")[0].xpath(".//tr[td]")
+            if len(row.xpath("./td")) > 6 and row.xpath("./td[1]//a[@href]")
+        )
+        score_cell = next(
+            cell
+            for cell in row.xpath("./td")[3:]
+            if cell.text_content().strip().replace(",", ".").replace(" ", "")
+            in {"1", "1.0"}
+        )
+        score_cell.text = "1,5"
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        parsed["revid"] += 1
+        with self.assertRaisesRegex(
+            SourceDriftError,
+            "semantic/evidence drift: reviewed first_round factual identities",
+        ):
+            reconcile_french_production_source(
+                parsed,
+                read_json("polls.json"),
+                read_json("second_round_polls.json")["events"],
+            )
+
+    def test_reviewed_source_provenance_change_fails_semantically(self) -> None:
+        parsed = copy.deepcopy(self.reviewed_post_audit_fr)
+        document = lxml_html.fromstring(parsed["text"])
+        row = next(
+            row
+            for row in document.xpath("//table")[0].xpath(".//tr[td]")
+            if len(row.xpath("./td")) > 6 and row.xpath("./td[1]//a[@href]")
+        )
+        pollster_link = row.xpath("./td[1]//a")[0]
+        pollster_link.set("href", "https://example.test/changed-provenance")
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        parsed["revid"] += 1
+        with self.assertRaisesRegex(
+            SourceDriftError,
+            "semantic/evidence drift: reviewed first_round provenance changed",
+        ):
+            reconcile_french_production_source(
+                parsed,
+                read_json("polls.json"),
+                read_json("second_round_polls.json")["events"],
+            )
+
+    def test_reviewed_cluster_source_refresh_preserves_exact_facts(self) -> None:
+        parsed = copy.deepcopy(self.reviewed_post_audit_fr)
+        document = lxml_html.fromstring(parsed["text"])
+        source_links = document.xpath('//a[contains(@href, "37HISKBJDRBZZFYP2EYB7PDIXA")]')
+        self.assertEqual(len(source_links), 1)
+        source_links[0].set(
+            "href",
+            "https://www.commission-des-sondages.fr/notices/files/notices/"
+            "2026/septembre/10251-pres-iv-cluster-17-le-point-5-septembre.pdf",
+        )
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        parsed["revid"] += 1
+        result = reconcile_french_production_source(
+            parsed,
+            read_json("polls.json"),
+            read_json("second_round_polls.json")["events"],
+        )
+        self.assertEqual(
+            result.report["normal_post_audit_additions"],
+            {FIRST_ROUND: 4, SECOND_ROUND: 0},
+        )
+
+    def test_reviewed_fail_closed_source_refresh_keeps_row_rejected(self) -> None:
+        parsed = copy.deepcopy(self.reviewed_post_audit_fr)
+        document = lxml_html.fromstring(parsed["text"])
+        source_link = document.xpath('//a[contains(@href, "_905503")]')[0]
+        source_link.set(
+            "href",
+            "https://www.commission-des-sondages.fr/notices/files/notices/"
+            "2024/septembre/9889a-pres-iv-opinionway-challenges-18-septembre.pdf",
+        )
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        parsed["revid"] += 1
+        result = reconcile_french_production_source(
+            parsed,
+            read_json("polls.json"),
+            read_json("second_round_polls.json")["events"],
+        )
+        self.assertEqual(result.report["skips"]["fail_closed_rows"], 8)
+
+        source_link.set(
+            "href",
+            "https://www.commission-des-sondages.fr/notices/files/notices/"
+            "2024/septembre/unreviewed-source.pdf",
+        )
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        parsed["revid"] += 1
+        with self.assertRaisesRegex(
+            SourceDriftError,
+            "reviewed fail-closed row identity/provenance changed",
+        ):
+            reconcile_french_production_source(
+                parsed,
+                read_json("polls.json"),
+                read_json("second_round_polls.json")["events"],
+            )
 
     def test_known_hollande_family_preserves_audited_runoff_locators(self) -> None:
         parsed = parse_french_frozen_fixture(post_audit_hollande_runoff_fixture())
@@ -399,79 +869,20 @@ class FrozenFixtureTests(unittest.TestCase):
         ]
         self.assertEqual(len(added), 1)
 
-    def test_hollande_family_requires_reviewed_position_and_table_schema(self) -> None:
+    def test_runoff_families_and_candidate_headers_remain_strict(self) -> None:
         previous_first = read_pre_cutover_first_round()
         previous_second = read_pre_cutover_second_round()
 
-        misordered = post_audit_hollande_runoff_fixture()
-        sections = misordered["tocdata"]["sections"]
-        hollande = next(
-            section
-            for section in sections
-            if section["line"] == "Hypothèse Hollande – Le Pen"
-        )
-        sections.remove(hollande)
-        retailleau_bardella = next(
-            index
-            for index, section in enumerate(sections)
-            if section["line"] == "Hypothèse Retailleau – Bardella"
-        )
-        sections.insert(retailleau_bardella + 1, hollande)
-        with self.subTest(drift="position"), self.assertRaisesRegex(
-            SourceDriftError, "heading hierarchy changed"
+        unknown_family = post_audit_hollande_runoff_fixture()
+        document = lxml_html.fromstring(unknown_family["text"])
+        heading = document.xpath('//h4[@id="Hypothèse_Hollande_–_Le_Pen"]')[0]
+        heading.text = "Hypothèse inconnue – Le Pen"
+        unknown_family["text"] = lxml_html.tostring(document, encoding="unicode")
+        with self.subTest(drift="family"), self.assertRaisesRegex(
+            SourceDriftError, "unreviewed French runoff family"
         ):
             reconcile_french_production_source(
-                misordered,
-                previous_first,
-                previous_second,
-            )
-
-        wrong_level = post_audit_hollande_runoff_fixture()
-        next(
-            section
-            for section in wrong_level["tocdata"]["sections"]
-            if section["line"] == "Hypothèse Hollande – Le Pen"
-        )["tocLevel"] = 2
-        with self.subTest(drift="level"), self.assertRaisesRegex(
-            SourceDriftError, "heading hierarchy changed"
-        ):
-            reconcile_french_production_source(
-                wrong_level,
-                previous_first,
-                previous_second,
-            )
-
-        added_heading = post_audit_hollande_runoff_fixture()
-        sections = added_heading["tocdata"]["sections"]
-        hollande_index = next(
-            index
-            for index, section in enumerate(sections)
-            if section["line"] == "Hypothèse Hollande – Le Pen"
-        )
-        sections.insert(
-            hollande_index + 1,
-            {"tocLevel": 3, "line": "Hypothèse non auditée – Le Pen"},
-        )
-        with self.subTest(drift="addition"), self.assertRaisesRegex(
-            SourceDriftError, "heading hierarchy changed"
-        ):
-            reconcile_french_production_source(
-                added_heading,
-                previous_first,
-                previous_second,
-            )
-
-        removed_heading = post_audit_hollande_runoff_fixture()
-        removed_heading["tocdata"]["sections"] = [
-            section
-            for section in removed_heading["tocdata"]["sections"]
-            if section["line"] != "Hypothèse Ruffin – Le Pen"
-        ]
-        with self.subTest(drift="removal"), self.assertRaisesRegex(
-            SourceDriftError, "heading hierarchy changed"
-        ):
-            reconcile_french_production_source(
-                removed_heading,
+                unknown_family,
                 previous_first,
                 previous_second,
             )
@@ -480,10 +891,10 @@ class FrozenFixtureTests(unittest.TestCase):
         document = lxml_html.fromstring(mutated["text"])
         hollande_header = document.xpath("//table")[12].xpath(".//tr[2]/th[1]")[0]
         hollande_header.clear()
-        hollande_header.text = "Hollande schema mutation"
+        hollande_header.text = "Candidat PS"
         mutated["text"] = lxml_html.tostring(document, encoding="unicode")
-        with self.subTest(drift="schema"), self.assertRaisesRegex(
-            SourceDriftError, "table/header schema changed"
+        with self.subTest(drift="candidate"), self.assertRaisesRegex(
+            SourceDriftError, "runoff table .* ambiguous headers"
         ):
             reconcile_french_production_source(
                 mutated,
@@ -493,11 +904,20 @@ class FrozenFixtureTests(unittest.TestCase):
 
         missing_table = post_audit_hollande_runoff_fixture()
         document = lxml_html.fromstring(missing_table["text"])
-        table = document.xpath("//table")[12]
+        table = next(
+            table
+            for table in document.xpath("//table")
+            if "Ruffin" in " ".join(
+                header.text_content() for header in table.xpath(".//th")
+            )
+            and "Le Pen" in " ".join(
+                header.text_content() for header in table.xpath(".//th")
+            )
+        )
         table.getparent().remove(table)
         missing_table["text"] = lxml_html.tostring(document, encoding="unicode")
         with self.subTest(drift="missing table"), self.assertRaisesRegex(
-            SourceDriftError, "table/header schema changed"
+            SourceDriftError, "lacks audited runoff tables"
         ):
             reconcile_french_production_source(
                 missing_table,
@@ -772,13 +1192,15 @@ class CutoverRehearsalTests(unittest.TestCase):
 
     def test_unreviewed_source_structure_drift_fails_closed(self) -> None:
         changed = copy.deepcopy(self.parsed)
+        document = lxml_html.fromstring(changed["text"])
         section = next(
-            item
-            for item in changed["tocdata"]["sections"]
-            if item["line"] == "Sondages concernant le second tour"
+            heading
+            for heading in document.xpath("//h2")
+            if "second tour" in heading.text_content()
         )
-        section["line"] = "Sondages de second tour non audités"
-        with self.assertRaisesRegex(SourceDriftError, "heading hierarchy changed"):
+        section.text = "Sondages de second tour non audités"
+        changed["text"] = lxml_html.tostring(document, encoding="unicode")
+        with self.assertRaisesRegex(SourceDriftError, "lacks audited runoff tables"):
             rehearse_migration(changed)
 
     def test_cutover_keeps_the_scheduled_source_and_integration_boundary_explicit(
@@ -867,7 +1289,7 @@ class CutoverRehearsalTests(unittest.TestCase):
         header = document.xpath("//table")[0].xpath(".//th")[0]
         header.text = header.text_content() + " schema mutation"
         parsed["text"] = lxml_html.tostring(document, encoding="unicode")
-        with self.assertRaisesRegex(SourceDriftError, "table/header schema"):
+        with self.assertRaisesRegex(SourceDriftError, "malformed core headers"):
             reconcile_french_production_source(
                 parsed,
                 read_pre_cutover_first_round(),
