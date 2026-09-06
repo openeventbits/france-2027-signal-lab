@@ -1,7 +1,7 @@
 {
   "schema_version": "1.5",
-  "snapshot_id": "241e2b7d55325c2bcdab91ad51aef8019144d4058982adc5fb117554b044b2ff",
-  "published_at": "2026-09-06T01:05:37Z",
+  "snapshot_id": "40f0758b19f7b6c58c3a1623b4a4b4422a7eee0a78f7b4ca9e3b4b9c3757eb16",
+  "published_at": "2026-09-06T05:25:32Z",
   "lanes": {
     "campaign_events": {
       "file": "campaign_events.json",
@@ -69,7 +69,7 @@
       "file": "candidate_signals.json",
       "available": true,
       "valid": true,
-      "sha256": "58d88ccc529348aecfb96ecd75e29b91b8ed531c84f9beb98986dd2720f24ace",
+      "sha256": "65f66476f877a6890258cd720f8795dabb66ab7bb2927bad31aab6e30c6911de",
       "schema_version": "1.5",
       "data_as_of": "2026-09-06",
       "timestamp_status": "unknown",
@@ -119,26 +119,30 @@
       "file": "polls.json",
       "available": true,
       "valid": true,
-      "sha256": "9b84997a886d8c79c85fe815db633e421df6b1642a1bf498bc24a6e65f16bc5f",
+      "sha256": "360b39c1cbc6f9b130d4509585cbe3904a919cd86996a70c85454046bc10c8e3",
       "schema_version": null,
-      "data_as_of": "2026-08-28",
+      "data_as_of": "2026-09-03",
       "timestamp_status": "unknown",
       "warnings": [
+        "poll coverage: unresolved relevant Commission notice commission:10251 (10251 Pres IV CLUSTER 17 Le Point 5 septembre)",
+        "poll coverage: unresolved relevant Commission notice commission:10250 (10250 Pres IV IPSOS BVA Le Parisien 5 septembre)",
         "poll coverage: unresolved relevant Commission notice commission:10242 (10242 Pres Barometre election pres IV V5 IFOP 26 aout)"
       ],
       "related_files": [
         {
           "file": "commission_notice_registry.json",
           "available": true,
-          "sha256": "fce5c65e61dd9c26e314d9a1fae9322e222a88b9e2c59e039388eeea4f2bca7a"
+          "sha256": "d77c8c5790b3d593876775a70404ec7cb0278bd87f4380f14da0b5db8ac55328"
         }
       ],
       "commission_notice_coverage": {
-        "relevant": 19,
+        "relevant": 21,
         "parsed": 3,
         "reconciled": 15,
-        "unresolved": 1,
+        "unresolved": 3,
         "unresolved_notice_ids": [
+          "commission:10251",
+          "commission:10250",
           "commission:10242"
         ]
       }
@@ -147,31 +151,31 @@
       "file": "recent_changes.json",
       "available": true,
       "valid": true,
-      "sha256": "770547d11caeed080d341ca302cc827a9bdda0d89903a14e7cf160631b5e5eb7",
+      "sha256": "4be95470caddc7626ec17a120136949a7522570c67a689ae4f9aef77b750596b",
       "schema_version": 1,
       "data_as_of": "2026-09-05T17:13:36Z",
       "timestamp_status": "known",
       "warnings": [],
-      "generated_at": "2026-09-06T01:05:32.106044Z",
-      "last_success_at": "2026-09-06T01:05:32.106044Z"
+      "generated_at": "2026-09-06T05:25:29.551851Z",
+      "last_success_at": "2026-09-06T05:25:29.551851Z"
     },
     "runoff": {
       "file": "second_round_polls.json",
       "available": true,
       "valid": true,
-      "sha256": "854c483af8aaf985aaba5de79df08588e4e77764edb2da854f478b7018599795",
+      "sha256": "489a65d7b51b95e99439829b68b2e80556f788dca1282e116df04496ee2a8d96",
       "schema_version": "1.0",
-      "data_as_of": "2026-08-28",
+      "data_as_of": "2026-09-03",
       "timestamp_status": "known",
       "warnings": [],
       "related_files": [
         {
           "file": "closest_tested_runoff.json",
           "available": true,
-          "sha256": "8e6b96be8bf0a5a666f31343bab0ef4a08dae1a16bb3a56164c4e1a7a93f6321"
+          "sha256": "d3e18653a333bc58d95cf03f198f5370d2c2aec0af2cc9bfed12c5b4e4663688"
         }
       ],
-      "generated_at": "2026-09-05T10:34:12.070272Z"
+      "generated_at": "2026-09-06T05:25:24.065255Z"
     },
     "source_health": {
       "file": "source_health.json",
@@ -204,6 +208,8 @@
     "recovered_routes": 0
   },
   "warnings": [
+    "poll coverage: unresolved relevant Commission notice commission:10251 (10251 Pres IV CLUSTER 17 Le Point 5 septembre)",
+    "poll coverage: unresolved relevant Commission notice commission:10250 (10250 Pres IV IPSOS BVA Le Parisien 5 septembre)",
     "poll coverage: unresolved relevant Commission notice commission:10242 (10242 Pres Barometre election pres IV V5 IFOP 26 aout)"
   ]
 }
