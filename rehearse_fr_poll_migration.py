@@ -61,26 +61,41 @@ PRE_CUTOVER_SECOND_ROUND = (
     ROOT / "test_fixtures/fr27_polling/pre_cutover_second_round_38.json"
 )
 FRENCH_REVISION = 238906992
+REVIEWED_POST_AUDIT_FRENCH_REVISION = 239248634
+REVIEWED_POST_AUDIT_FRENCH_FIXTURE = (
+    ROOT
+    / "test_fixtures/fr27_polling/fr_mediawiki_239248634.json"
+)
+REVIEWED_FAIL_CLOSED_SOURCE_REFRESHES = {
+    (
+        "opinionway",
+        "2024-09-11",
+        "2024-09-12",
+        1009,
+        "https://www.challenges.fr/politique/"
+        "presidentielle-2027-le-sondage-confidentiel-qui-a-de-quoi-inquieter-"
+        "attal-et-melenchon_905503",
+        "censored_score",
+    ): (
+        "https://www.commission-des-sondages.fr/notices/files/notices/2024/"
+        "septembre/9889a-pres-iv-opinionway-challenges-18-septembre.pdf"
+    ),
+}
+REVIEWED_ACCEPTED_SOURCE_REFRESHES = {
+    (
+        "cluster17",
+        "2026-08-31",
+        "2026-09-01",
+        1711,
+        "https://www.lepoint.fr/politique/"
+        "jean-luc-melenchon-aux-portes-du-second-tour-selon-un-sondage-"
+        "cluster-17-pour-le-point-37HISKBJDRBZZFYP2EYB7PDIXA/",
+        "https://www.commission-des-sondages.fr/notices/files/notices/2026/"
+        "septembre/10251-pres-iv-cluster-17-le-point-5-septembre.pdf",
+    ),
+}
 FRENCH_PAGE = "Liste de sondages sur l'élection présidentielle française de 2027"
 FRENCH_API_URL = "https://fr.wikipedia.org/w/api.php"
-POST_AUDIT_HOLLANDE_LE_PEN_TOC_ENTRY = (
-    3,
-    POST_AUDIT_HOLLANDE_LE_PEN_HEADING,
-)
-POST_AUDIT_HOLLANDE_LE_PEN_TABLE_SCHEMA = (
-    (
-        ("sondeur", "3", "1"),
-        ("dates", "3", "1"),
-        ("echantillon", "3", "1"),
-        ("", "1", "1"),
-        ("", "1", "1"),
-    ),
-    (
-        ("hollande ps", "1", "1"),
-        ("le pen rn", "1", "1"),
-    ),
-)
-
 PHASE4_PRODUCTION_MODIFICATION_FILES = (
     "fetch_polls.py",
     ".github/workflows/update-polls.yml",
@@ -343,110 +358,20 @@ def _assert_audited_source_footprint(parsed: dict[str, Any]) -> dict[str, Any]:
     return incoming["records"]
 
 
-def _semantic_header_text(cell: object) -> str:
-    semantic_cell = copy.deepcopy(cell)
-    for reference in semantic_cell.xpath(
-        ".//sup[contains(concat(' ', normalize-space(@class), ' '), ' reference ')]"
-    ):
-        reference.getparent().remove(reference)
-    return normalize_identity(semantic_cell.text_content())
-
-
-def _table_schema_fingerprint(
-    parsed: dict[str, Any], *, relevant_table_count: int
-) -> tuple[Any, ...]:
-    """Describe audited table headers while deliberately ignoring body rows."""
-
-    document = lxml_html.fromstring(parsed["text"])
-    tables = document.xpath("//table")
-    if len(tables) < relevant_table_count:
-        raise SourceDriftError(
-            f"French source exposes {len(tables)} tables; "
-            f"reviewed parser requires {relevant_table_count}"
-        )
-    schemas: list[tuple[Any, ...]] = []
-    for table_index, table in enumerate(tables[:relevant_table_count]):
-        header_rows: list[tuple[Any, ...]] = []
-        for row in table.xpath("./thead/tr | ./tbody/tr | ./tr"):
-            if row.xpath("./td"):
-                break
-            cells = row.xpath("./th")
-            if not cells:
-                continue
-            header_rows.append(
-                tuple(
-                    (
-                        _semantic_header_text(cell),
-                        cell.get("rowspan", "1"),
-                        cell.get("colspan", "1"),
-                    )
-                    for cell in cells
-                )
-            )
-        if not header_rows:
-            raise SourceDriftError(
-                f"French table {table_index} lacks an auditable header"
-            )
-        schemas.append(tuple(header_rows))
-    return tuple(schemas)
-
-
 def _assert_production_source_structure(parsed: dict[str, Any]) -> dict[str, Any]:
-    """Allow new body rows but reject unreviewed heading/table schema drift."""
+    """Validate dynamic table structure through the substantive French parser."""
 
     revision = parsed.get("revid")
     if not isinstance(revision, int) or revision < FRENCH_REVISION:
         raise SourceDriftError(
             f"French source revision {revision!r} predates audited revision {FRENCH_REVISION}"
         )
-    audited = load_mediawiki_fixture(FRENCH_FIXTURE, FRENCH_REVISION)
-    audited_headings = _relevant_heading_fingerprint(audited)
-
-    ruffin_index = audited_headings.index((3, "hypothese ruffin le pen"))
-    hollande_after_ruffin_headings = (
-        audited_headings[: ruffin_index + 1]
-        + (POST_AUDIT_HOLLANDE_LE_PEN_TOC_ENTRY,)
-        + audited_headings[ruffin_index + 1 :]
-    )
-
-    glucksmann_index = audited_headings.index((3, "hypothese glucksmann le pen"))
-    hollande_after_glucksmann_headings = (
-        audited_headings[: glucksmann_index + 1]
-        + (POST_AUDIT_HOLLANDE_LE_PEN_TOC_ENTRY,)
-        + audited_headings[glucksmann_index + 1 :]
-    )
-
-    incoming_headings = _relevant_heading_fingerprint(parsed)
-    if incoming_headings not in {
-        audited_headings,
-        hollande_after_ruffin_headings,
-        hollande_after_glucksmann_headings,
-    }:
-        raise SourceDriftError("relevant heading hierarchy changed")
-
-    audited_schema = _table_schema_fingerprint(audited, relevant_table_count=17)
-    if incoming_headings == audited_headings:
-        expected_schema = audited_schema
-    elif incoming_headings == hollande_after_ruffin_headings:
-        expected_schema = (
-            audited_schema[:12]
-            + (POST_AUDIT_HOLLANDE_LE_PEN_TABLE_SCHEMA,)
-            + audited_schema[12:]
-        )
-    else:
-        expected_schema = (
-            audited_schema[:8]
-            + (POST_AUDIT_HOLLANDE_LE_PEN_TABLE_SCHEMA,)
-            + audited_schema[8:]
-        )
-    if _table_schema_fingerprint(
-        parsed, relevant_table_count=len(expected_schema)
-    ) != expected_schema:
-        raise SourceDriftError("French polling table/header schema changed")
     try:
         return parse_french_frozen_fixture(parsed)
     except (TypeError, ValueError) as error:
-        raise SourceDriftError(f"French table structure is not auditable: {error}") from error
+        raise SourceDriftError(
+            f"French polling structural validation failed: {error}"
+        ) from error
 
 
 def _read_corpora(
@@ -738,6 +663,8 @@ def rehearse_migration(
             "reviewed_reconciliations",
         )
         for record in migration_registry[section]
+        if record.get("incoming_source_revision", FRENCH_REVISION)
+        == parsed["revid"]
     }
     additions = {
         record["source_locator"]: record
@@ -944,6 +871,152 @@ def _rejected_row_signature(record: dict[str, Any]) -> tuple[Any, ...]:
     )
 
 
+def _reviewed_rejected_row_signature(record: dict[str, Any]) -> tuple[Any, ...]:
+    signature = _rejected_row_signature(record)
+    for reviewed, refreshed_source in REVIEWED_FAIL_CLOSED_SOURCE_REFRESHES.items():
+        refreshed = reviewed[:4] + (refreshed_source, reviewed[5])
+        if signature == refreshed:
+            return reviewed
+    return signature
+
+
+def _factual_key_label(key: Any) -> str:
+    candidates = ",".join(candidate_id for candidate_id, _score in key.candidates)
+    return (
+        f"{key.round}:{key.pollster_identity}:"
+        f"{key.fieldwork_start}..{key.fieldwork_end}:"
+        f"n={key.sample_size}:[{candidates}]"
+    )
+
+
+def _is_reviewed_accepted_source_refresh(
+    key: Any, reviewed_source: str, incoming_source: str
+) -> bool:
+    return (
+        key.pollster_identity,
+        key.fieldwork_start,
+        key.fieldwork_end,
+        key.sample_size,
+        reviewed_source,
+        incoming_source,
+    ) in REVIEWED_ACCEPTED_SOURCE_REFRESHES
+
+
+def _assert_reviewed_post_audit_semantics(
+    parsed: dict[str, Any],
+    source_records: dict[str, Any],
+    previous_by_round: dict[str, list[dict[str, Any]]],
+    migration_registry: dict[str, Any],
+) -> None:
+    """Keep reviewed facts/provenance strict while allowing new source rows."""
+
+    if parsed["revid"] < REVIEWED_POST_AUDIT_FRENCH_REVISION:
+        return
+    reviewed = parse_french_frozen_fixture(
+        load_mediawiki_fixture(
+            REVIEWED_POST_AUDIT_FRENCH_FIXTURE,
+            REVIEWED_POST_AUDIT_FRENCH_REVISION,
+        )
+    )
+    reviewed_replacements: dict[tuple[str, Any], dict[str, Any]] = {}
+    for record in migration_registry["reviewed_reconciliations"]:
+        if record.get("materialize_absent_canonical") is not True:
+            continue
+        old_key = factual_key_from_dict(
+            record["old_factual_key"], "reviewed reconciliation old factual key"
+        )
+        canonical_key = factual_key_from_dict(
+            record["canonical_factual_key"],
+            "reviewed reconciliation canonical factual key",
+        )
+        if old_key != canonical_key:
+            continue
+        reviewed_replacements[(canonical_key.round, canonical_key)] = record
+    drift: list[str] = []
+    for round_name in (FIRST_ROUND, SECOND_ROUND):
+        previous_keys: set[Any] = set()
+        for event in previous_by_round[round_name]:
+            try:
+                previous_keys.add(
+                    exact_factual_key(
+                        event,
+                        sample_scope=event.get("sample_scope", "reported"),
+                    )
+                )
+            except ValueError:
+                # Non-French legacy candidates cannot match a reviewed French
+                # source row and are irrelevant to this provenance comparison.
+                continue
+        reviewed_by_key = {
+            exact_factual_key(record, sample_scope="reported"): record
+            for record in reviewed[round_name]
+        }
+        incoming_by_key = {
+            exact_factual_key(record, sample_scope="reported"): record
+            for record in source_records[round_name]
+        }
+        missing = []
+        for reviewed_key in set(reviewed_by_key) - set(incoming_by_key):
+            replacement = reviewed_replacements.get((round_name, reviewed_key))
+            if replacement is None:
+                missing.append(reviewed_key)
+                continue
+            incoming_key = factual_key_from_dict(
+                replacement["incoming_factual_key"],
+                "reviewed reconciliation incoming factual key",
+            )
+            incoming = incoming_by_key.get(incoming_key)
+            if (
+                incoming is None
+                or incoming["source_url"] != replacement["incoming_source_url"]
+            ):
+                missing.append(reviewed_key)
+        missing.sort()
+        if missing:
+            drift.append(
+                f"reviewed {round_name} factual identities missing or changed: "
+                + ", ".join(_factual_key_label(key) for key in missing)
+            )
+        changed_sources = sorted(
+            key
+            for key in set(reviewed_by_key) & set(incoming_by_key)
+            if key not in previous_keys
+            if reviewed_by_key[key]["source_url"]
+            != incoming_by_key[key]["source_url"]
+            if not _is_reviewed_accepted_source_refresh(
+                key,
+                reviewed_by_key[key]["source_url"],
+                incoming_by_key[key]["source_url"],
+            )
+        )
+        if changed_sources:
+            drift.append(
+                f"reviewed {round_name} provenance changed: "
+                + ", ".join(_factual_key_label(key) for key in changed_sources)
+            )
+
+    reviewed_rejected = {
+        _reviewed_rejected_row_signature(record) for record in reviewed["rejected"]
+    }
+    incoming_rejected = {
+        _reviewed_rejected_row_signature(record)
+        for record in source_records["rejected"]
+    }
+    missing_rejected = sorted(reviewed_rejected - incoming_rejected)
+    if missing_rejected:
+        drift.append(
+            "reviewed fail-closed row identity/provenance changed: "
+            + ", ".join(
+                f"{pollster}:{start}..{end}:n={sample}:{reason}"
+                for pollster, start, end, sample, _source, reason in missing_rejected
+            )
+        )
+    if drift:
+        raise SourceDriftError(
+            "French polling semantic/evidence drift: " + "; ".join(drift)
+        )
+
+
 def reconcile_french_production_source(
     parsed: dict[str, Any],
     previous_first: list[dict[str, Any]],
@@ -968,6 +1041,12 @@ def reconcile_french_production_source(
         FIRST_ROUND: previous_first,
         SECOND_ROUND: previous_second,
     }
+    _assert_reviewed_post_audit_semantics(
+        parsed,
+        source_records,
+        previous_by_round,
+        migration_registry,
+    )
     previous_ids = {
         round_name: {event["event_id"] for event in events}
         for round_name, events in previous_by_round.items()
@@ -995,6 +1074,19 @@ def reconcile_french_production_source(
         record["source_locator"]: record
         for round_name in (FIRST_ROUND, SECOND_ROUND)
         for record in audited[round_name]
+    }
+    reviewed_post_audit = parse_french_frozen_fixture(
+        load_mediawiki_fixture(
+            REVIEWED_POST_AUDIT_FRENCH_FIXTURE,
+            REVIEWED_POST_AUDIT_FRENCH_REVISION,
+        )
+    )
+    reviewed_post_audit_by_key = {
+        round_name: {
+            exact_factual_key(record, sample_scope="reported"): record
+            for record in reviewed_post_audit[round_name]
+        }
+        for round_name in (FIRST_ROUND, SECOND_ROUND)
     }
     mapping_by_incoming: dict[Any, dict[str, Any]] = {}
     for section in (
@@ -1027,10 +1119,11 @@ def reconcile_french_production_source(
         for record in migration_registry["identity_skips"]
     }
     audited_rejected = {
-        _rejected_row_signature(record) for record in audited["rejected"]
+        _reviewed_rejected_row_signature(record) for record in audited["rejected"]
     }
     incoming_rejected = {
-        _rejected_row_signature(record) for record in source_records["rejected"]
+        _reviewed_rejected_row_signature(record)
+        for record in source_records["rejected"]
     }
     missing_rejections = audited_rejected - incoming_rejected
     if missing_rejections:
@@ -1067,6 +1160,7 @@ def reconcile_french_production_source(
     audited_additions_present = {FIRST_ROUND: 0, SECOND_ROUND: 0}
     audited_additions_introduced = {FIRST_ROUND: 0, SECOND_ROUND: 0}
     normal_additions = {FIRST_ROUND: 0, SECOND_ROUND: 0}
+    reviewed_canonical_introduced = {FIRST_ROUND: 0, SECOND_ROUND: 0}
     ambiguous_skips = 0
     classified_canonical_keys: set[Any] = set()
     source_keys: set[Any] = set()
@@ -1083,6 +1177,14 @@ def reconcile_french_production_source(
 
             if raw_key in mapping_by_incoming:
                 record = mapping_by_incoming[raw_key]
+                if (
+                    "incoming_source_revision" in record
+                    and source_record["source_url"]
+                    != record["incoming_source_url"]
+                ):
+                    raise SourceDriftError(
+                        f"{source_record['source_locator']} reviewed mapping provenance changed"
+                    )
                 canonical = factual_key_from_dict(
                     record["canonical_factual_key"], "mapping canonical factual key"
                 )
@@ -1091,9 +1193,44 @@ def reconcile_french_production_source(
                 classified_canonical_keys.add(canonical)
                 retained_id = record["retained_event_id"]
                 if retained_id not in previous_ids[round_name]:
-                    raise RehearsalError(
-                        "reviewed mapping references an absent retained event ID"
+                    old_key = factual_key_from_dict(
+                        record["old_factual_key"], "mapping old factual key"
                     )
+                    reviewed_source = reviewed_post_audit_by_key[round_name].get(
+                        canonical
+                    )
+                    if (
+                        round_name != FIRST_ROUND
+                        or record["treatment"]
+                        != "retain_id_reviewed_correction"
+                        or record.get("materialize_absent_canonical") is not True
+                        or old_key != canonical
+                        or reviewed_source is None
+                    ):
+                        raise RehearsalError(
+                            "reviewed mapping references an absent retained event ID"
+                        )
+                    canonical_source = copy.deepcopy(reviewed_source)
+                    canonical_source["source_locator"] = source_record[
+                        "source_locator"
+                    ]
+                    if (
+                        exact_factual_key(
+                            canonical_source, sample_scope="reported"
+                        )
+                        != canonical
+                    ):
+                        raise RehearsalError(
+                            "reviewed post-audit canonical factual identity changed"
+                        )
+                    event = _make_normal_first_event(canonical_source)
+                    if event["event_id"] != retained_id:
+                        raise RehearsalError(
+                            "reviewed post-audit canonical event ID changed"
+                        )
+                    reconciled[round_name].append(event)
+                    previous_ids[round_name].add(retained_id)
+                    reviewed_canonical_introduced[round_name] += 1
                 category = (
                     "reviewed"
                     if record["treatment"] == "retain_id_reviewed_correction"
@@ -1214,6 +1351,7 @@ def reconcile_french_production_source(
         "audited_additions_present": audited_additions_present,
         "audited_additions_introduced": audited_additions_introduced,
         "normal_post_audit_additions": normal_additions,
+        "reviewed_canonical_introduced": reviewed_canonical_introduced,
         "source_only_migrations": mapped["source_only"],
         "reviewed_reconciliations": mapped["reviewed"],
         "exact_retained": exact_retained,

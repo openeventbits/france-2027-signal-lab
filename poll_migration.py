@@ -63,6 +63,8 @@ AUDITED_FRENCH_RUNOFF_HEADINGS = (
 )
 POST_AUDIT_HOLLANDE_LE_PEN_HEADING = "hypothese hollande le pen"
 POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR = "FR-POST-HOLLANDE-LE-PEN"
+FRENCH_FIRST_ROUND_SECTION = "sondages concernant le premier tour"
+FRENCH_SECOND_ROUND_SECTION = "sondages concernant le second tour"
 
 ALLOWED_ROUNDS = {FIRST_ROUND, SECOND_ROUND}
 ALLOWED_SAMPLE_SCOPES = {
@@ -554,6 +556,7 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
         raise ValueError("source_revisions must contain English and French")
     for language, revision in revisions.items():
         _validate_source_revision(revision, f"source_revisions.{language}")
+    baseline_french_revision = revisions["french"]["revision_id"]
 
     acceptance = payload.get("acceptance")
     required_acceptance = {
@@ -562,7 +565,7 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
         "french_new_first_round": 29,
         "french_new_second_round": 12,
         "source_only_migrations": 102,
-        "reviewed_reconciliation_mappings": 73,
+        "reviewed_reconciliation_mappings": 75,
         "unexplained_historical_losses": 0,
         "unresolved_accepted_identity_ambiguities": 0,
         "duplicate_canonical_factual_identities": 0,
@@ -605,9 +608,9 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
         _validate_evidence(alias, context)
 
     legacy_ids: set[str] = set()
-    retained_by_locator: dict[str, str] = {}
+    retained_by_locator: dict[tuple[int, str], str] = {}
     canonical_to_retained: dict[FactualKey, str] = {}
-    mapping_locators: set[str] = set()
+    mapping_locators: set[tuple[int, str]] = set()
     for section_name, reviewed in (
         ("source_only_identity_migrations", False),
         ("reviewed_reconciliations", True),
@@ -632,6 +635,10 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
             }
             if reviewed:
                 required.add("field_decisions")
+            if isinstance(record, dict) and "incoming_source_revision" in record:
+                required.add("incoming_source_revision")
+            if isinstance(record, dict) and "materialize_absent_canonical" in record:
+                required.add("materialize_absent_canonical")
             if not isinstance(record, dict) or set(record) != required:
                 raise ValueError(f"{context} is malformed")
             legacy_id = record["legacy_event_id"]
@@ -650,15 +657,29 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
                 r"FR-(?:T\d+R\d+|R\d+r\d+)", locator
             ):
                 raise ValueError(f"{context}.incoming_source_locator is malformed")
-            prior_retained = retained_by_locator.get(locator)
+            incoming_revision = record.get(
+                "incoming_source_revision", baseline_french_revision
+            )
+            if (
+                isinstance(incoming_revision, bool)
+                or not isinstance(incoming_revision, int)
+                or incoming_revision < baseline_french_revision
+            ):
+                raise ValueError(
+                    f"{context}.incoming_source_revision is malformed"
+                )
+            locator_scope = (incoming_revision, locator)
+            prior_retained = retained_by_locator.get(locator_scope)
             if prior_retained is not None and prior_retained != retained_id:
                 raise ValueError(
-                    f"incoming mapping {locator} maps to multiple retained IDs"
+                    f"incoming mapping {incoming_revision}:{locator} maps to multiple retained IDs"
                 )
-            if locator in mapping_locators:
-                raise ValueError(f"ambiguous source locator: {locator}")
-            mapping_locators.add(locator)
-            retained_by_locator[locator] = retained_id
+            if locator_scope in mapping_locators:
+                raise ValueError(
+                    f"ambiguous source locator: {incoming_revision}:{locator}"
+                )
+            mapping_locators.add(locator_scope)
+            retained_by_locator[locator_scope] = retained_id
             treatment = record["treatment"]
             expected_treatment = (
                 "retain_id_reviewed_correction"
@@ -674,6 +695,21 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
             canonical_key = factual_key_from_dict(
                 record["canonical_factual_key"], f"{context}.canonical_factual_key"
             )
+            if "materialize_absent_canonical" in record:
+                # This opt-in is only for a reviewed post-audit canonical event
+                # that never entered tracked production, not historical recovery.
+                if (
+                    record["materialize_absent_canonical"] is not True
+                    or not reviewed
+                    or "incoming_source_revision" not in record
+                    or incoming_revision <= baseline_french_revision
+                    or legacy_id != retained_id
+                    or old_key.round != FIRST_ROUND
+                    or old_key != canonical_key
+                ):
+                    raise ValueError(
+                        f"{context}.materialize_absent_canonical is unauthorized"
+                    )
             if reviewed:
                 _validate_field_decisions(
                     record["field_decisions"],
@@ -748,7 +784,10 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
                 r"FR-(?:T\d+R\d+|R\d+r\d+)", locator
             ):
                 raise ValueError(f"{context}.source_locator is malformed")
-            if locator in addition_locators or locator in mapping_locators:
+            if (
+                locator in addition_locators
+                or (baseline_french_revision, locator) in mapping_locators
+            ):
                 raise ValueError(f"ambiguous source locator: {locator}")
             addition_locators.add(locator)
             if record["treatment"] != "add_new":
@@ -779,7 +818,11 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
         locator = record["source_locator"]
         if not isinstance(locator, str) or not re.fullmatch(r"FR-T\d+R\d+", locator):
             raise ValueError(f"{context}.source_locator is malformed")
-        if locator in fail_locators or locator in mapping_locators or locator in addition_locators:
+        if (
+            locator in fail_locators
+            or (baseline_french_revision, locator) in mapping_locators
+            or locator in addition_locators
+        ):
             raise ValueError(f"ambiguous source locator: {locator}")
         fail_locators.add(locator)
         if record["treatment"] != "skip_fail_closed":
@@ -804,7 +847,11 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
         locator = record["source_locator"]
         if not isinstance(locator, str) or not re.fullmatch(r"FR-T\d+R\d+", locator):
             raise ValueError(f"{context}.source_locator is malformed")
-        if locator in fail_locators or locator in mapping_locators or locator in addition_locators:
+        if (
+            locator in fail_locators
+            or (baseline_french_revision, locator) in mapping_locators
+            or locator in addition_locators
+        ):
             raise ValueError(f"ambiguous source locator: {locator}")
         fail_locators.add(locator)
         if record["treatment"] != "skip_fail_closed":
@@ -815,8 +862,8 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
 
     if len(payload["source_only_identity_migrations"]) != 102:
         raise ValueError("source-only migration count must equal 102")
-    if len(payload["reviewed_reconciliations"]) != 73:
-        raise ValueError("reviewed reconciliation count must equal 73")
+    if len(payload["reviewed_reconciliations"]) != 75:
+        raise ValueError("reviewed reconciliation count must equal 75")
     return payload
 
 
@@ -1028,6 +1075,91 @@ def _preceding_heading(table: object) -> str:
     return normalize_identity(headings[-1].text_content()) if headings else ""
 
 
+def _section_heading(table: object) -> str:
+    headings = table.xpath("preceding::h2[1]")
+    return normalize_identity(headings[-1].text_content()) if headings else ""
+
+
+def _french_first_round_table_plan(tables: list[object]) -> list[object]:
+    """Select first-round tables by section and validate their local context."""
+
+    selected = [
+        table
+        for table in tables
+        if _section_heading(table) == FRENCH_FIRST_ROUND_SECTION
+    ]
+    if not selected:
+        raise ValueError("French source lacks first-round tables")
+    seen_contexts: set[str] = set()
+    for table in selected:
+        context = _preceding_heading(table)
+        if not (
+            context == "autres"
+            or re.fullmatch(r"(?:premier|second) semestre 20\d{2}", context)
+            or re.fullmatch(r"annee 20\d{2}", context)
+        ):
+            raise ValueError(
+                f"French first-round table has invalid context {context!r}"
+            )
+        if context in seen_contexts:
+            raise ValueError(
+                f"French first-round context {context!r} exposes multiple tables"
+            )
+        seen_contexts.add(context)
+    return selected
+
+
+def _validate_french_core_columns(
+    frame: object, *, table_label: str, candidate_count: int
+) -> None:
+    if len(frame.columns) < 3 + candidate_count:
+        raise ValueError(
+            f"{table_label} lacks {candidate_count} candidate columns"
+        )
+    observed = tuple(
+        normalize_identity(_header_value(column)[0])
+        for column in frame.columns[:3]
+    )
+    if (
+        observed[0] != "sondeur"
+        or observed[1] not in {"date", "dates"}
+        or observed[2] != "echantillon"
+    ):
+        raise ValueError(
+            f"{table_label} has malformed core headers: {observed!r}"
+        )
+
+
+def _column_has_candidate_evidence(frame: object, column_index: int) -> bool:
+    for value in frame.iloc[:, column_index]:
+        normalized = normalize_identity(cell_text(value))
+        if normalized not in {"", "nan"} and normalized not in {"-", "–", "—", "−"}:
+            return True
+    return False
+
+
+def _validate_first_round_candidate_headers(
+    frame: object, *, table_label: str
+) -> None:
+    for column_index, column in enumerate(frame.columns[3:], start=3):
+        header_name, _generic = _header_candidate(column)
+        if header_name:
+            continue
+        header_text, _header_link = _header_value(column)
+        normalized = normalize_identity(candidate_name(header_text))
+        if (
+            normalized in GENERIC_CANDIDATE_MARKERS
+            or not normalized
+            or normalized.startswith("unnamed ")
+        ):
+            continue
+        if _column_has_candidate_evidence(frame, column_index):
+            raise ValueError(
+                f"{table_label} has score-bearing candidate header "
+                f"with unknown identity: {header_text!r}"
+            )
+
+
 def _french_runoff_table_plan(tables: list[object]) -> list[tuple[str, object]]:
     """Select reviewed runoff families without tying legacy locators to positions."""
 
@@ -1035,10 +1167,15 @@ def _french_runoff_table_plan(tables: list[object]) -> list[tuple[str, object]]:
         POST_AUDIT_HOLLANDE_LE_PEN_HEADING
     }
     by_heading: dict[str, object] = {}
-    for table in tables:
+    runoff_tables = [
+        table
+        for table in tables
+        if _section_heading(table) == FRENCH_SECOND_ROUND_SECTION
+    ]
+    for table in runoff_tables:
         heading = _preceding_heading(table)
         if heading not in reviewed_headings:
-            continue
+            raise ValueError(f"unreviewed French runoff family {heading!r}")
         if heading in by_heading:
             raise ValueError(f"French runoff family {heading!r} exposes multiple tables")
         by_heading[heading] = table
@@ -1099,13 +1236,18 @@ def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
     second_round: list[dict[str, Any]] = []
     rejected: list[dict[str, Any]] = []
 
-    for table_index, table in enumerate(tables[:6]):
+    for table_index, table in enumerate(_french_first_round_table_plan(tables)):
         frame = pd.read_html(
             io.StringIO(lxml_html.tostring(table, encoding="unicode")),
             extract_links="all",
         )[0]
-        if len(frame.columns) < 6:
-            continue
+        table_label = f"French first-round table {table_index} ({_preceding_heading(table)})"
+        _validate_french_core_columns(
+            frame,
+            table_label=table_label,
+            candidate_count=3,
+        )
+        _validate_first_round_candidate_headers(frame, table_label=table_label)
         default_year = _table_default_year(table)
         candidate_columns = [
             (index, *_header_candidate(column))
@@ -1207,6 +1349,11 @@ def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
             io.StringIO(lxml_html.tostring(table, encoding="unicode")),
             extract_links="all",
         )[0]
+        _validate_french_core_columns(
+            frame,
+            table_label=f"French runoff table {family_locator}",
+            candidate_count=2,
+        )
         candidate_columns = [
             (index, *_header_candidate(column))
             for index, column in enumerate(frame.columns[3:], start=3)
