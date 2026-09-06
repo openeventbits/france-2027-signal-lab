@@ -15,6 +15,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import build_fr27_poll_migration_registry as registry_builder
+import pandas as pd
 from lxml import html as lxml_html
 from fetch_polls import (
     SECOND_ROUND,
@@ -27,6 +28,9 @@ from poll_migration import (
     ENGLISH_FIXTURE,
     FRENCH_FIXTURE,
     POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR,
+    _header_candidate,
+    _header_value,
+    _validate_first_round_candidate_headers,
     apply_wave_scoped_pollster_alias,
     candidate_identity,
     exact_factual_key,
@@ -350,6 +354,59 @@ class FrozenFixtureTests(unittest.TestCase):
         cls.en_first, cls.en_skipped = parse_english_frozen_first_round(cls.en)
         cls.en_second = parse_english_frozen_second_round(cls.en)
         cls.fr_parsed = parse_french_frozen_fixture(cls.fr)
+
+    def test_pandas_duplicate_linked_header_is_normalized(self) -> None:
+        image_link = "/wiki/Fichier:Ensemble_2024_B.png"
+        candidate_link = (
+            "/wiki/Ensemble_pour_la_R%C3%A9publique_(France)"
+        )
+
+        pandas_2_header = (
+            ("", image_link),
+            ("Candidat EPR", candidate_link),
+        )
+        pandas_3_header = (
+            ("", image_link),
+            repr(("Candidat EPR", candidate_link)) + ".1",
+        )
+
+        expected = ("Candidat EPR", candidate_link)
+
+        self.assertEqual(_header_value(pandas_2_header), expected)
+        self.assertEqual(_header_value(pandas_3_header), expected)
+
+        self.assertEqual(_header_candidate(pandas_2_header), (None, True))
+        self.assertEqual(_header_candidate(pandas_3_header), (None, True))
+
+    def test_pandas_duplicate_unknown_header_remains_fail_closed(self) -> None:
+        unknown_header = (
+            "('Mystery Candidate', '/wiki/Mystery_Candidate').1"
+        )
+        frame = pd.DataFrame(
+            [["Example", "1 janvier", "1000", "12"]],
+            columns=[
+                "Sondeur",
+                "Dates",
+                "Échantillon",
+                unknown_header,
+            ],
+        )
+
+        with self.assertRaisesRegex(ValueError, "unknown identity"):
+            _validate_first_round_candidate_headers(
+                frame,
+                table_label="synthetic pandas duplicate",
+            )
+
+        self.assertEqual(
+            _header_value("Mystery Candidate.1"),
+            ("Mystery Candidate.1", None),
+        )
+
+        self.assertEqual(
+            _header_value("('Mystery Candidate',).1"),
+            ("('Mystery Candidate',).1", None),
+        )
 
     def test_fixtures_are_the_exact_audited_revisions(self) -> None:
         expected = {

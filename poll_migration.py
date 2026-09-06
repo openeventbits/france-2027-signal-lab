@@ -8,6 +8,7 @@ continuity helpers needed before the live source is changed.
 
 from __future__ import annotations
 
+import ast
 import copy
 import io
 import json
@@ -1008,13 +1009,50 @@ def _parse_french_score(value: object) -> float | None:
     return float(match.group(1).replace(",", "."))
 
 
+def _decode_pandas_duplicate_linked_header(
+    value: object,
+) -> tuple[str, str] | None:
+    """Recover a linked header leaf mangled by pandas duplicate-column naming."""
+
+    if not isinstance(value, str):
+        return None
+
+    match = re.fullmatch(r"(\(.*\))\.([1-9]\d*)", value)
+    if not match:
+        return None
+
+    try:
+        decoded = ast.literal_eval(match.group(1))
+    except (SyntaxError, ValueError):
+        return None
+
+    if (
+        not isinstance(decoded, tuple)
+        or len(decoded) != 2
+        or not all(isinstance(item, str) for item in decoded)
+    ):
+        return None
+
+    text, link = decoded
+    if not text or not link:
+        return None
+
+    return text, link
+
+
 def _header_value(column: object) -> tuple[str, str | None]:
     levels = column if isinstance(column, tuple) else (column,)
     for level in reversed(levels):
-        text = cell_text(level)
-        link = cell_link(level)
+        decoded = _decode_pandas_duplicate_linked_header(level)
+        if decoded is not None:
+            text, link = decoded
+        else:
+            text = cell_text(level)
+            link = cell_link(level)
+
         if text and not text.startswith("Unnamed:"):
             return text, link
+
     return "", None
 
 
