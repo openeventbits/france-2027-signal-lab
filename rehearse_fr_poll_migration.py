@@ -663,6 +663,8 @@ def rehearse_migration(
             "reviewed_reconciliations",
         )
         for record in migration_registry[section]
+        if record.get("incoming_source_revision", FRENCH_REVISION)
+        == parsed["revid"]
     }
     additions = {
         record["source_locator"]: record
@@ -904,6 +906,7 @@ def _assert_reviewed_post_audit_semantics(
     parsed: dict[str, Any],
     source_records: dict[str, Any],
     previous_by_round: dict[str, list[dict[str, Any]]],
+    migration_registry: dict[str, Any],
 ) -> None:
     """Keep reviewed facts/provenance strict while allowing new source rows."""
 
@@ -915,6 +918,20 @@ def _assert_reviewed_post_audit_semantics(
             REVIEWED_POST_AUDIT_FRENCH_REVISION,
         )
     )
+    reviewed_replacements: dict[tuple[str, Any], dict[str, Any]] = {}
+    for record in migration_registry["reviewed_reconciliations"]:
+        if record.get("materialize_absent_canonical") is not True:
+            continue
+        old_key = factual_key_from_dict(
+            record["old_factual_key"], "reviewed reconciliation old factual key"
+        )
+        canonical_key = factual_key_from_dict(
+            record["canonical_factual_key"],
+            "reviewed reconciliation canonical factual key",
+        )
+        if old_key != canonical_key:
+            continue
+        reviewed_replacements[(canonical_key.round, canonical_key)] = record
     drift: list[str] = []
     for round_name in (FIRST_ROUND, SECOND_ROUND):
         previous_keys: set[Any] = set()
@@ -938,7 +955,23 @@ def _assert_reviewed_post_audit_semantics(
             exact_factual_key(record, sample_scope="reported"): record
             for record in source_records[round_name]
         }
-        missing = sorted(set(reviewed_by_key) - set(incoming_by_key))
+        missing = []
+        for reviewed_key in set(reviewed_by_key) - set(incoming_by_key):
+            replacement = reviewed_replacements.get((round_name, reviewed_key))
+            if replacement is None:
+                missing.append(reviewed_key)
+                continue
+            incoming_key = factual_key_from_dict(
+                replacement["incoming_factual_key"],
+                "reviewed reconciliation incoming factual key",
+            )
+            incoming = incoming_by_key.get(incoming_key)
+            if (
+                incoming is None
+                or incoming["source_url"] != replacement["incoming_source_url"]
+            ):
+                missing.append(reviewed_key)
+        missing.sort()
         if missing:
             drift.append(
                 f"reviewed {round_name} factual identities missing or changed: "
@@ -1012,6 +1045,7 @@ def reconcile_french_production_source(
         parsed,
         source_records,
         previous_by_round,
+        migration_registry,
     )
     previous_ids = {
         round_name: {event["event_id"] for event in events}
@@ -1040,6 +1074,19 @@ def reconcile_french_production_source(
         record["source_locator"]: record
         for round_name in (FIRST_ROUND, SECOND_ROUND)
         for record in audited[round_name]
+    }
+    reviewed_post_audit = parse_french_frozen_fixture(
+        load_mediawiki_fixture(
+            REVIEWED_POST_AUDIT_FRENCH_FIXTURE,
+            REVIEWED_POST_AUDIT_FRENCH_REVISION,
+        )
+    )
+    reviewed_post_audit_by_key = {
+        round_name: {
+            exact_factual_key(record, sample_scope="reported"): record
+            for record in reviewed_post_audit[round_name]
+        }
+        for round_name in (FIRST_ROUND, SECOND_ROUND)
     }
     mapping_by_incoming: dict[Any, dict[str, Any]] = {}
     for section in (
@@ -1113,6 +1160,7 @@ def reconcile_french_production_source(
     audited_additions_present = {FIRST_ROUND: 0, SECOND_ROUND: 0}
     audited_additions_introduced = {FIRST_ROUND: 0, SECOND_ROUND: 0}
     normal_additions = {FIRST_ROUND: 0, SECOND_ROUND: 0}
+    reviewed_canonical_introduced = {FIRST_ROUND: 0, SECOND_ROUND: 0}
     ambiguous_skips = 0
     classified_canonical_keys: set[Any] = set()
     source_keys: set[Any] = set()
@@ -1129,6 +1177,14 @@ def reconcile_french_production_source(
 
             if raw_key in mapping_by_incoming:
                 record = mapping_by_incoming[raw_key]
+                if (
+                    "incoming_source_revision" in record
+                    and source_record["source_url"]
+                    != record["incoming_source_url"]
+                ):
+                    raise SourceDriftError(
+                        f"{source_record['source_locator']} reviewed mapping provenance changed"
+                    )
                 canonical = factual_key_from_dict(
                     record["canonical_factual_key"], "mapping canonical factual key"
                 )
@@ -1137,9 +1193,44 @@ def reconcile_french_production_source(
                 classified_canonical_keys.add(canonical)
                 retained_id = record["retained_event_id"]
                 if retained_id not in previous_ids[round_name]:
-                    raise RehearsalError(
-                        "reviewed mapping references an absent retained event ID"
+                    old_key = factual_key_from_dict(
+                        record["old_factual_key"], "mapping old factual key"
                     )
+                    reviewed_source = reviewed_post_audit_by_key[round_name].get(
+                        canonical
+                    )
+                    if (
+                        round_name != FIRST_ROUND
+                        or record["treatment"]
+                        != "retain_id_reviewed_correction"
+                        or record.get("materialize_absent_canonical") is not True
+                        or old_key != canonical
+                        or reviewed_source is None
+                    ):
+                        raise RehearsalError(
+                            "reviewed mapping references an absent retained event ID"
+                        )
+                    canonical_source = copy.deepcopy(reviewed_source)
+                    canonical_source["source_locator"] = source_record[
+                        "source_locator"
+                    ]
+                    if (
+                        exact_factual_key(
+                            canonical_source, sample_scope="reported"
+                        )
+                        != canonical
+                    ):
+                        raise RehearsalError(
+                            "reviewed post-audit canonical factual identity changed"
+                        )
+                    event = _make_normal_first_event(canonical_source)
+                    if event["event_id"] != retained_id:
+                        raise RehearsalError(
+                            "reviewed post-audit canonical event ID changed"
+                        )
+                    reconciled[round_name].append(event)
+                    previous_ids[round_name].add(retained_id)
+                    reviewed_canonical_introduced[round_name] += 1
                 category = (
                     "reviewed"
                     if record["treatment"] == "retain_id_reviewed_correction"
@@ -1260,6 +1351,7 @@ def reconcile_french_production_source(
         "audited_additions_present": audited_additions_present,
         "audited_additions_introduced": audited_additions_introduced,
         "normal_post_audit_additions": normal_additions,
+        "reviewed_canonical_introduced": reviewed_canonical_introduced,
         "source_only_migrations": mapped["source_only"],
         "reviewed_reconciliations": mapped["reviewed"],
         "exact_retained": exact_retained,

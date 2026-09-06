@@ -1,7 +1,7 @@
 """Build the reviewed FR27 migration registry from frozen audit evidence.
 
 This is a deterministic maintainer tool.  It reads only repository data and
-the two frozen MediaWiki fixtures; it never fetches live Wikipedia.
+frozen MediaWiki fixtures; it never fetches live Wikipedia.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Callable
 
+from poll_contract import make_event_id
 from poll_migration import (
     ENGLISH_FIXTURE,
     FRENCH_FIXTURE,
@@ -36,6 +37,14 @@ PRE_CUTOVER_FIRST_ROUND = (
 PRE_CUTOVER_SECOND_ROUND = (
     ROOT / "test_fixtures/fr27_polling/pre_cutover_second_round_38.json"
 )
+REVIEWED_POST_AUDIT_FRENCH_FIXTURE = (
+    ROOT / "test_fixtures/fr27_polling/fr_mediawiki_239248634.json"
+)
+REVIEWED_POST_AUDIT_FRENCH_REVISION = 239248634
+REVIEWED_DEGRADED_FRENCH_FIXTURE = (
+    ROOT / "test_fixtures/fr27_polling/fr_mediawiki_239255702.json"
+)
+REVIEWED_DEGRADED_FRENCH_REVISION = 239255702
 
 AMBIGUOUS_IDENTITY_LOCATORS = {"FR-T1R9", "FR-T1R10", "FR-T1R11"}
 
@@ -55,6 +64,14 @@ COMMISSION_CLUSTER_SEPTEMBER = (
     "https://www.commission-des-sondages.fr/notices/files/notices/2025/"
     "octobre/9990-pres-cluster-17-le-point-3-octobre.pdf"
 )
+COMMISSION_CLUSTER_SEPTEMBER_2026 = (
+    "https://www.commission-des-sondages.fr/notices/files/notices/2026/"
+    "septembre/10251-pres-iv-cluster-17-le-point-5-septembre.pdf"
+)
+COMMISSION_ELABE_AUGUST_2026 = (
+    "https://www.commission-des-sondages.fr/notices/files/notices/2026/"
+    "aout/10245-pres-iv-elabe-29-aout.pdf"
+)
 COMMISSION_IFOP_MARCH = (
     "https://www.commission-des-sondages.fr/notices/files/notices/2025/"
     "mars/9912-pres-ifop-jdd-30-mars-notice-pour-publication.pdf"
@@ -62,6 +79,35 @@ COMMISSION_IFOP_MARCH = (
 HEXAGONE_REPORT = (
     "https://observatoire-hexagone.org/wp-content/uploads/2025/05/"
     "20250502_Hexagone_Grande-Enquete-Electorale-2025.pdf"
+)
+
+POST_AUDIT_FACTUAL_RECONCILIATIONS = (
+    {
+        "reviewed_locator": "FR-T0R3",
+        "incoming_locator": "FR-T0R12",
+        "retained_event_id": (
+            "4810851ea958b928b63298fa94fb082afc6cc7d449b2aad41f023953bb1aac36"
+        ),
+        "evidence_urls": [COMMISSION_CLUSTER_SEPTEMBER_2026],
+        "review_reason": (
+            "Commission notice 10251 reports David Lisnard at 4.2 (published "
+            "as 4) in the Ruffin scenario; retain the reviewed candidate set "
+            "when the later Wikipedia row omits Lisnard."
+        ),
+    },
+    {
+        "reviewed_locator": "FR-T0R8",
+        "incoming_locator": "FR-T0R17",
+        "retained_event_id": (
+            "cc9225fa3a6e2b9fa3f2c0b75f728272b99ab0cf667d9f2334cdf78dda342978"
+        ),
+        "evidence_urls": [COMMISSION_ELABE_AUGUST_2026],
+        "review_reason": (
+            "Commission notice 10245 reports David Lisnard at 3.5 in the "
+            "Ruffin scenario; retain the reviewed candidate set when the "
+            "later Wikipedia row omits Lisnard."
+        ),
+    },
 )
 
 
@@ -368,6 +414,8 @@ def _mapping_record(
     reason: str,
     evidence: list[str],
     incoming_key: FactualKey | None = None,
+    incoming_revision: int | None = None,
+    materialize_absent_canonical: bool = False,
 ) -> dict[str, Any]:
     old_key = _full_key(old)
     incoming_key = incoming_key or _full_key(incoming)
@@ -390,6 +438,10 @@ def _mapping_record(
     }
     if reviewed:
         record["field_decisions"] = _field_decisions(old_key, incoming_key, canonical)
+    if incoming_revision is not None:
+        record["incoming_source_revision"] = incoming_revision
+    if materialize_absent_canonical:
+        record["materialize_absent_canonical"] = True
     return record
 
 
@@ -453,6 +505,18 @@ def build_registry() -> dict[str, Any]:
     current_second = _read_json(PRE_CUTOVER_SECOND_ROUND)["events"]
     french = parse_french_frozen_fixture(
         load_mediawiki_fixture(FRENCH_FIXTURE, 238906992)
+    )
+    reviewed_post_audit = parse_french_frozen_fixture(
+        load_mediawiki_fixture(
+            REVIEWED_POST_AUDIT_FRENCH_FIXTURE,
+            REVIEWED_POST_AUDIT_FRENCH_REVISION,
+        )
+    )
+    reviewed_degraded = parse_french_frozen_fixture(
+        load_mediawiki_fixture(
+            REVIEWED_DEGRADED_FRENCH_FIXTURE,
+            REVIEWED_DEGRADED_FRENCH_REVISION,
+        )
     )
 
     eligible_french_first = [
@@ -601,7 +665,43 @@ def build_registry() -> dict[str, Any]:
                 evidence=evidence,
             )
         )
-    assert len(reviewed_records) == 73
+    post_audit_by_locator = {
+        record["source_locator"]: record
+        for record in reviewed_post_audit[FIRST_ROUND]
+    }
+    degraded_by_locator = {
+        record["source_locator"]: record
+        for record in reviewed_degraded[FIRST_ROUND]
+    }
+    for decision in POST_AUDIT_FACTUAL_RECONCILIATIONS:
+        old = dict(post_audit_by_locator[decision["reviewed_locator"]])
+        incoming = degraded_by_locator[decision["incoming_locator"]]
+        hypothesis = "French source — " + ", ".join(
+            candidate["name"] for candidate in old["candidates"]
+        )
+        calculated_id = make_event_id(
+            old["pollster"],
+            old["fieldwork_start"],
+            old["fieldwork_end"],
+            hypothesis,
+            old["source_url"],
+        )
+        assert calculated_id == decision["retained_event_id"]
+        old["event_id"] = calculated_id
+        canonical = _full_key(old)
+        reviewed_records.append(
+            _mapping_record(
+                old,
+                incoming,
+                canonical,
+                reviewed=True,
+                reason=decision["review_reason"],
+                evidence=decision["evidence_urls"],
+                incoming_revision=REVIEWED_DEGRADED_FRENCH_REVISION,
+                materialize_absent_canonical=True,
+            )
+        )
+    assert len(reviewed_records) == 75
 
     mapped_first_ids = {
         record["legacy_event_id"]
@@ -643,7 +743,7 @@ def build_registry() -> dict[str, Any]:
             "french_new_first_round": 29,
             "french_new_second_round": 12,
             "source_only_migrations": 102,
-            "reviewed_reconciliation_mappings": 73,
+            "reviewed_reconciliation_mappings": 75,
             "unexplained_historical_losses": 0,
             "unresolved_accepted_identity_ambiguities": 0,
             "duplicate_canonical_factual_identities": 0,

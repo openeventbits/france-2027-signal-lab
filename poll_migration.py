@@ -556,6 +556,7 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
         raise ValueError("source_revisions must contain English and French")
     for language, revision in revisions.items():
         _validate_source_revision(revision, f"source_revisions.{language}")
+    baseline_french_revision = revisions["french"]["revision_id"]
 
     acceptance = payload.get("acceptance")
     required_acceptance = {
@@ -564,7 +565,7 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
         "french_new_first_round": 29,
         "french_new_second_round": 12,
         "source_only_migrations": 102,
-        "reviewed_reconciliation_mappings": 73,
+        "reviewed_reconciliation_mappings": 75,
         "unexplained_historical_losses": 0,
         "unresolved_accepted_identity_ambiguities": 0,
         "duplicate_canonical_factual_identities": 0,
@@ -607,9 +608,9 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
         _validate_evidence(alias, context)
 
     legacy_ids: set[str] = set()
-    retained_by_locator: dict[str, str] = {}
+    retained_by_locator: dict[tuple[int, str], str] = {}
     canonical_to_retained: dict[FactualKey, str] = {}
-    mapping_locators: set[str] = set()
+    mapping_locators: set[tuple[int, str]] = set()
     for section_name, reviewed in (
         ("source_only_identity_migrations", False),
         ("reviewed_reconciliations", True),
@@ -634,6 +635,10 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
             }
             if reviewed:
                 required.add("field_decisions")
+            if isinstance(record, dict) and "incoming_source_revision" in record:
+                required.add("incoming_source_revision")
+            if isinstance(record, dict) and "materialize_absent_canonical" in record:
+                required.add("materialize_absent_canonical")
             if not isinstance(record, dict) or set(record) != required:
                 raise ValueError(f"{context} is malformed")
             legacy_id = record["legacy_event_id"]
@@ -652,15 +657,29 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
                 r"FR-(?:T\d+R\d+|R\d+r\d+)", locator
             ):
                 raise ValueError(f"{context}.incoming_source_locator is malformed")
-            prior_retained = retained_by_locator.get(locator)
+            incoming_revision = record.get(
+                "incoming_source_revision", baseline_french_revision
+            )
+            if (
+                isinstance(incoming_revision, bool)
+                or not isinstance(incoming_revision, int)
+                or incoming_revision < baseline_french_revision
+            ):
+                raise ValueError(
+                    f"{context}.incoming_source_revision is malformed"
+                )
+            locator_scope = (incoming_revision, locator)
+            prior_retained = retained_by_locator.get(locator_scope)
             if prior_retained is not None and prior_retained != retained_id:
                 raise ValueError(
-                    f"incoming mapping {locator} maps to multiple retained IDs"
+                    f"incoming mapping {incoming_revision}:{locator} maps to multiple retained IDs"
                 )
-            if locator in mapping_locators:
-                raise ValueError(f"ambiguous source locator: {locator}")
-            mapping_locators.add(locator)
-            retained_by_locator[locator] = retained_id
+            if locator_scope in mapping_locators:
+                raise ValueError(
+                    f"ambiguous source locator: {incoming_revision}:{locator}"
+                )
+            mapping_locators.add(locator_scope)
+            retained_by_locator[locator_scope] = retained_id
             treatment = record["treatment"]
             expected_treatment = (
                 "retain_id_reviewed_correction"
@@ -676,6 +695,21 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
             canonical_key = factual_key_from_dict(
                 record["canonical_factual_key"], f"{context}.canonical_factual_key"
             )
+            if "materialize_absent_canonical" in record:
+                # This opt-in is only for a reviewed post-audit canonical event
+                # that never entered tracked production, not historical recovery.
+                if (
+                    record["materialize_absent_canonical"] is not True
+                    or not reviewed
+                    or "incoming_source_revision" not in record
+                    or incoming_revision <= baseline_french_revision
+                    or legacy_id != retained_id
+                    or old_key.round != FIRST_ROUND
+                    or old_key != canonical_key
+                ):
+                    raise ValueError(
+                        f"{context}.materialize_absent_canonical is unauthorized"
+                    )
             if reviewed:
                 _validate_field_decisions(
                     record["field_decisions"],
@@ -750,7 +784,10 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
                 r"FR-(?:T\d+R\d+|R\d+r\d+)", locator
             ):
                 raise ValueError(f"{context}.source_locator is malformed")
-            if locator in addition_locators or locator in mapping_locators:
+            if (
+                locator in addition_locators
+                or (baseline_french_revision, locator) in mapping_locators
+            ):
                 raise ValueError(f"ambiguous source locator: {locator}")
             addition_locators.add(locator)
             if record["treatment"] != "add_new":
@@ -781,7 +818,11 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
         locator = record["source_locator"]
         if not isinstance(locator, str) or not re.fullmatch(r"FR-T\d+R\d+", locator):
             raise ValueError(f"{context}.source_locator is malformed")
-        if locator in fail_locators or locator in mapping_locators or locator in addition_locators:
+        if (
+            locator in fail_locators
+            or (baseline_french_revision, locator) in mapping_locators
+            or locator in addition_locators
+        ):
             raise ValueError(f"ambiguous source locator: {locator}")
         fail_locators.add(locator)
         if record["treatment"] != "skip_fail_closed":
@@ -806,7 +847,11 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
         locator = record["source_locator"]
         if not isinstance(locator, str) or not re.fullmatch(r"FR-T\d+R\d+", locator):
             raise ValueError(f"{context}.source_locator is malformed")
-        if locator in fail_locators or locator in mapping_locators or locator in addition_locators:
+        if (
+            locator in fail_locators
+            or (baseline_french_revision, locator) in mapping_locators
+            or locator in addition_locators
+        ):
             raise ValueError(f"ambiguous source locator: {locator}")
         fail_locators.add(locator)
         if record["treatment"] != "skip_fail_closed":
@@ -817,8 +862,8 @@ def validate_migration_registry(payload: object) -> dict[str, Any]:
 
     if len(payload["source_only_identity_migrations"]) != 102:
         raise ValueError("source-only migration count must equal 102")
-    if len(payload["reviewed_reconciliations"]) != 73:
-        raise ValueError("reviewed reconciliation count must equal 73")
+    if len(payload["reviewed_reconciliations"]) != 75:
+        raise ValueError("reviewed reconciliation count must equal 75")
     return payload
 
 

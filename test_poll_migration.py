@@ -28,6 +28,7 @@ from poll_migration import (
     FRENCH_FIXTURE,
     POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR,
     apply_wave_scoped_pollster_alias,
+    candidate_identity,
     exact_factual_key,
     load_mediawiki_fixture,
     load_migration_registry,
@@ -342,6 +343,10 @@ class FrozenFixtureTests(unittest.TestCase):
             REVIEWED_POST_AUDIT_FRENCH_FIXTURE,
             REVIEWED_POST_AUDIT_FRENCH_REVISION,
         )
+        cls.reviewed_degraded_fr = load_mediawiki_fixture(
+            registry_builder.REVIEWED_DEGRADED_FRENCH_FIXTURE,
+            registry_builder.REVIEWED_DEGRADED_FRENCH_REVISION,
+        )
         cls.en_first, cls.en_skipped = parse_english_frozen_first_round(cls.en)
         cls.en_second = parse_english_frozen_second_round(cls.en)
         cls.fr_parsed = parse_french_frozen_fixture(cls.fr)
@@ -351,6 +356,7 @@ class FrozenFixtureTests(unittest.TestCase):
             ENGLISH_FIXTURE: "d6f0cfcb0cf33edc04a13e38c0171d917a61b985d49a1f5d863a4027838b2f0a",
             FRENCH_FIXTURE: "62bcad0a3f951a352f7acdb35bdfb5da85bb1aaae3912c61c2d2bc03e197744f",
             REVIEWED_POST_AUDIT_FRENCH_FIXTURE: "907745569947c525a7361f148ad89377fef0799bee9460b5ce91ebc9a8154dec",
+            registry_builder.REVIEWED_DEGRADED_FRENCH_FIXTURE: "9c7a74feb4dc91b06e86eebd7f9a2a18b0b0ab469ce406e96e3c5a5ec207070e",
             PRE_CUTOVER_FIRST_ROUND: "57d1fbdd08a1133dd7e907e7be71cf572e700a6d010a1f0b5fd070893211b913",
             PRE_CUTOVER_SECOND_ROUND: "063176c7af66e29c3380dcc5c5e22d2af632ab564b7f79e160678bb7f08f0d34",
             PRE_CUTOVER_COMMISSION_REGISTRY: "bad7e3924f82b60d6972d24537ace73071a73c049fb4b155df7d8cb392f992d9",
@@ -429,6 +435,155 @@ class FrozenFixtureTests(unittest.TestCase):
             {event["event_id"]: event for event in result.second_round_events},
             {event["event_id"]: event for event in previous_second},
         )
+
+    def test_degraded_lisnard_rows_reconcile_to_exact_reviewed_events(self) -> None:
+        previous_first = read_json("polls.json")
+        previous_second = read_json("second_round_polls.json")["events"]
+        result = reconcile_french_production_source(
+            self.reviewed_degraded_fr,
+            previous_first,
+            previous_second,
+        )
+        reviewed_ids = {
+            "4810851ea958b928b63298fa94fb082afc6cc7d449b2aad41f023953bb1aac36": 4,
+            "cc9225fa3a6e2b9fa3f2c0b75f728272b99ab0cf667d9f2334cdf78dda342978": 3.5,
+        }
+        reconciled = {
+            event["event_id"]: event
+            for event in result.first_round_events
+            if event["event_id"] in reviewed_ids
+        }
+        self.assertEqual(set(reconciled), set(reviewed_ids))
+        for event_id, lisnard_score in reviewed_ids.items():
+            candidates = {
+                candidate_identity(candidate["name"]): candidate["score"]
+                for candidate in reconciled[event_id]["candidates"]
+            }
+            self.assertEqual(candidates["david-lisnard"], lisnard_score)
+        self.assertEqual(
+            result.report["reviewed_canonical_introduced"],
+            {FIRST_ROUND: 2, SECOND_ROUND: 0},
+        )
+        self.assertEqual(
+            result.report["normal_post_audit_additions"][SECOND_ROUND], 3
+        )
+
+    def test_degraded_fixture_adds_only_the_three_reviewed_new_runoff_facts(self) -> None:
+        previous_first = read_json("polls.json")
+        previous_second = read_json("second_round_polls.json")["events"]
+        previous_ids = {event["event_id"] for event in previous_second}
+        result = reconcile_french_production_source(
+            self.reviewed_degraded_fr,
+            previous_first,
+            previous_second,
+        )
+        new_events = [
+            event
+            for event in result.second_round_events
+            if event["event_id"] not in previous_ids
+        ]
+        self.assertEqual(
+            {event["event_id"] for event in new_events},
+            {
+                "3cf2a8414561f964ef70f4ca8e6118d724ebb34ed3adaf36a6f99166f1fd6957",
+                "85510b0870b1333b5423563811ca0b69882ed41ed1c0c05f5d7168fc2a497a70",
+                "84f4d19c27e09b4ee2f120edc667e03b7339c85ab5dcb6ed689d27d955dfe668",
+            },
+        )
+        self.assertEqual(
+            {
+                tuple(
+                    sorted(
+                        (
+                            candidate_identity(candidate["name"]),
+                            candidate["score"],
+                        )
+                        for candidate in event["candidates"]
+                    )
+                )
+                for event in new_events
+            },
+            {
+                (("gabriel-attal", 45), ("marine-le-pen", 55)),
+                (("jean-luc-melenchon", 34), ("marine-le-pen", 66)),
+                (("edouard-philippe", 48), ("marine-le-pen", 52)),
+            },
+        )
+
+    def test_historical_reviewed_mapping_cannot_materialize_absent_event(self) -> None:
+        retained_event_id = (
+            "035e82b69d7b2e548034706a79901084561ce25ce2d0e96a096c7771559e1c6f"
+        )
+        previous_first = read_json("polls.json")
+        self.assertIn(
+            retained_event_id,
+            {event["event_id"] for event in previous_first},
+        )
+        previous_without_retained = [
+            event
+            for event in previous_first
+            if event["event_id"] != retained_event_id
+        ]
+        with self.assertRaisesRegex(
+            RehearsalError,
+            "reviewed mapping references an absent retained event ID",
+        ):
+            reconcile_french_production_source(
+                self.reviewed_degraded_fr,
+                previous_without_retained,
+                read_json("second_round_polls.json")["events"],
+            )
+
+    def test_similar_unreviewed_candidate_omission_still_fails(self) -> None:
+        parsed = copy.deepcopy(self.reviewed_degraded_fr)
+        document = lxml_html.fromstring(parsed["text"])
+        cluster_row = next(
+            row
+            for row in document.xpath("//table")[0].xpath(".//tr[td]")
+            if "Ruffin" in row.text_content() and "Lisnard" in row.text_content()
+        )
+        candidate_headers = [
+            header
+            for header in document.xpath("//table")[0]
+            .xpath(".//tr[th]")[-1]
+            .xpath("./th")
+        ]
+        zemmour_index = next(
+            index
+            for index, header in enumerate(candidate_headers)
+            if "Zemmour" in header.text_content()
+        )
+        cluster_row.xpath("./td")[zemmour_index].clear()
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        parsed["revid"] += 1
+        with self.assertRaisesRegex(
+            SourceDriftError,
+            "semantic/evidence drift: reviewed first_round factual identities",
+        ):
+            reconcile_french_production_source(
+                parsed,
+                read_json("polls.json"),
+                read_json("second_round_polls.json")["events"],
+            )
+
+    def test_reviewed_degraded_mapping_requires_exact_provenance(self) -> None:
+        parsed = copy.deepcopy(self.reviewed_degraded_fr)
+        document = lxml_html.fromstring(parsed["text"])
+        source_link = document.xpath(
+            '//a[contains(@href, "10251-pres-iv-cluster-17")]'
+        )[0]
+        source_link.set("href", "https://example.test/unreviewed-source-refresh")
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        parsed["revid"] += 1
+        with self.assertRaisesRegex(
+            SourceDriftError,
+            "semantic/evidence drift: reviewed first_round factual identities",
+        ):
+            reconcile_french_production_source(
+                parsed,
+                read_json("polls.json"),
+                read_json("second_round_polls.json")["events"],
+            )
 
     def test_reviewed_generic_headers_require_explicit_row_candidate_links(self) -> None:
         parsed = copy.deepcopy(self.reviewed_post_audit_fr)
@@ -1381,7 +1536,7 @@ class RegistryAcceptanceTests(unittest.TestCase):
                 "french_new_first_round": 29,
                 "french_new_second_round": 12,
                 "source_only_migrations": 102,
-                "reviewed_reconciliation_mappings": 73,
+                "reviewed_reconciliation_mappings": 75,
                 "unexplained_historical_losses": 0,
                 "unresolved_accepted_identity_ambiguities": 0,
                 "duplicate_canonical_factual_identities": 0,
@@ -1399,7 +1554,7 @@ class RegistryAcceptanceTests(unittest.TestCase):
             for record in self.registry["reviewed_reconciliations"]
         )
         self.assertEqual(source_only, Counter({FIRST_ROUND: 90, SECOND_ROUND: 12}))
-        self.assertEqual(reviewed, Counter({FIRST_ROUND: 59, SECOND_ROUND: 14}))
+        self.assertEqual(reviewed, Counter({FIRST_ROUND: 61, SECOND_ROUND: 14}))
         self.assertEqual(
             [len(self.registry["french_additions"][round_name]) for round_name in (FIRST_ROUND, SECOND_ROUND)],
             [29, 12],
@@ -1437,6 +1592,7 @@ class RegistryAcceptanceTests(unittest.TestCase):
                 )
                 for record in self.registry[section]
                 if key_dict(record)["round"] == round_name
+                and "incoming_source_revision" not in record
             }
             self.assertTrue(round_mapped <= current[round_name])
             self.assertTrue(persisted[round_name] <= current[round_name])
@@ -1521,13 +1677,13 @@ class ReviewedDecisionTests(unittest.TestCase):
                 ("2025-03-26", "2025-03-27"),
             )
 
-    def test_all_eight_audited_score_decisions_are_explicit(self) -> None:
+    def test_all_ten_reviewed_candidate_decisions_are_explicit(self) -> None:
         records = [
             record
             for record in self.registry["reviewed_reconciliations"]
             if "candidates" in record.get("field_decisions", {})
         ]
-        self.assertEqual(len(records), 8)
+        self.assertEqual(len(records), 10)
         expected_locators = {
             "FR-T3R23",
             "FR-T4R18",
@@ -1537,6 +1693,8 @@ class ReviewedDecisionTests(unittest.TestCase):
             "FR-T0R8",
             "FR-T4R17",
             "FR-T4R15",
+            "FR-T0R12",
+            "FR-T0R17",
         }
         self.assertEqual(
             {record["incoming_source_locator"] for record in records},
@@ -1547,6 +1705,55 @@ class ReviewedDecisionTests(unittest.TestCase):
             self.assertNotEqual(decision["old"], decision["incoming"])
             self.assertIn(decision["canonical"], (decision["old"], decision["incoming"]))
             self.assertEqual(decision["canonical"], key_dict(record)["candidates"])
+
+    def test_post_audit_lisnard_reconciliations_are_exact_and_revision_scoped(self) -> None:
+        records = [
+            record
+            for record in self.registry["reviewed_reconciliations"]
+            if record.get("incoming_source_revision") == 239255702
+        ]
+        self.assertEqual(
+            {
+                (
+                    record["retained_event_id"],
+                    record["incoming_source_locator"],
+                )
+                for record in records
+            },
+            {
+                (
+                    "4810851ea958b928b63298fa94fb082afc6cc7d449b2aad41f023953bb1aac36",
+                    "FR-T0R12",
+                ),
+                (
+                    "cc9225fa3a6e2b9fa3f2c0b75f728272b99ab0cf667d9f2334cdf78dda342978",
+                    "FR-T0R17",
+                ),
+            },
+        )
+        self.assertEqual(
+            [
+                record
+                for record in self.registry["reviewed_reconciliations"]
+                if record.get("materialize_absent_canonical") is True
+            ],
+            records,
+        )
+        for record in records:
+            self.assertIs(record["materialize_absent_canonical"], True)
+            decision = record["field_decisions"]["candidates"]
+            self.assertEqual(decision["old"], decision["canonical"])
+            self.assertNotEqual(decision["incoming"], decision["canonical"])
+            self.assertIn(
+                {"candidate_id": "david-lisnard", "score": "4"}
+                if record["incoming_source_locator"] == "FR-T0R12"
+                else {"candidate_id": "david-lisnard", "score": "3.5"},
+                decision["canonical"],
+            )
+            self.assertNotIn("david-lisnard", {
+                candidate["candidate_id"] for candidate in decision["incoming"]
+            })
+            self.assertTrue(record["evidence_urls"])
 
     def test_ifop_hexagone_alias_is_wave_scoped_only(self) -> None:
         self.assertEqual(
@@ -1704,6 +1911,19 @@ class RegistryValidationTests(unittest.TestCase):
         records[1]["incoming_source_locator"] = records[0]["incoming_source_locator"]
         self.assertNotEqual(records[1]["retained_event_id"], records[0]["retained_event_id"])
         with self.assertRaisesRegex(ValueError, "multiple retained IDs"):
+            validate_migration_registry(payload)
+
+    def test_historical_mapping_cannot_gain_materialization_permission(self) -> None:
+        payload = self.mutated()
+        record = next(
+            item
+            for item in payload["reviewed_reconciliations"]
+            if "incoming_source_revision" not in item
+        )
+        record["materialize_absent_canonical"] = True
+        with self.assertRaisesRegex(
+            ValueError, "materialize_absent_canonical is unauthorized"
+        ):
             validate_migration_registry(payload)
 
 
