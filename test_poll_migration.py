@@ -73,6 +73,13 @@ PRE_CUTOVER_COMMISSION_REGISTRY = (
 )
 
 
+POST_AUDIT_FIRST_ROUND = (
+    ROOT / "test_fixtures/fr27_polling/post_audit_first_round_9579b90.json"
+)
+POST_AUDIT_SECOND_ROUND = (
+    ROOT / "test_fixtures/fr27_polling/post_audit_second_round_9579b90.json"
+)
+
 def read_json(name: str) -> object:
     return json.loads((ROOT / name).read_text(encoding="utf-8"))
 
@@ -91,6 +98,24 @@ def read_pre_cutover_second_round() -> list[dict]:
         raise AssertionError("frozen pre-cutover second-round fixture is malformed")
     return events
 
+
+def read_post_audit_first_round() -> list[dict]:
+    payload = json.loads(POST_AUDIT_FIRST_ROUND.read_text(encoding="utf-8"))
+    if not isinstance(payload, list):
+        raise AssertionError("frozen post-audit first-round fixture is malformed")
+    return payload
+
+
+def read_post_audit_second_round_payload() -> dict:
+    payload = json.loads(POST_AUDIT_SECOND_ROUND.read_text(encoding="utf-8"))
+    events = payload.get("events") if isinstance(payload, dict) else None
+    if not isinstance(events, list):
+        raise AssertionError("frozen post-audit second-round fixture is malformed")
+    return payload
+
+
+def read_post_audit_second_round() -> list[dict]:
+    return read_post_audit_second_round_payload()["events"]
 
 def rehearse_pre_cutover(parsed: dict):
     return rehearse_migration(
@@ -459,8 +484,8 @@ class FrozenFixtureTests(unittest.TestCase):
         )
 
     def test_reviewed_post_audit_fixture_preserves_history_and_runoffs(self) -> None:
-        previous_first = read_json("polls.json")
-        previous_second_payload = read_json("second_round_polls.json")
+        previous_first = read_post_audit_first_round()
+        previous_second_payload = read_post_audit_second_round_payload()
         self.assertIsInstance(previous_first, list)
         self.assertIsInstance(previous_second_payload, dict)
         previous_second = previous_second_payload["events"]
@@ -494,8 +519,8 @@ class FrozenFixtureTests(unittest.TestCase):
         )
 
     def test_degraded_lisnard_rows_reconcile_to_exact_reviewed_events(self) -> None:
-        previous_first = read_json("polls.json")
-        previous_second = read_json("second_round_polls.json")["events"]
+        previous_first = read_post_audit_first_round()
+        previous_second = read_post_audit_second_round()
         result = reconcile_french_production_source(
             self.reviewed_degraded_fr,
             previous_first,
@@ -526,8 +551,8 @@ class FrozenFixtureTests(unittest.TestCase):
         )
 
     def test_degraded_fixture_adds_only_the_three_reviewed_new_runoff_facts(self) -> None:
-        previous_first = read_json("polls.json")
-        previous_second = read_json("second_round_polls.json")["events"]
+        previous_first = read_post_audit_first_round()
+        previous_second = read_post_audit_second_round()
         previous_ids = {event["event_id"] for event in previous_second}
         result = reconcile_french_production_source(
             self.reviewed_degraded_fr,
@@ -571,7 +596,7 @@ class FrozenFixtureTests(unittest.TestCase):
         retained_event_id = (
             "035e82b69d7b2e548034706a79901084561ce25ce2d0e96a096c7771559e1c6f"
         )
-        previous_first = read_json("polls.json")
+        previous_first = read_post_audit_first_round()
         self.assertIn(
             retained_event_id,
             {event["event_id"] for event in previous_first},
@@ -588,7 +613,7 @@ class FrozenFixtureTests(unittest.TestCase):
             reconcile_french_production_source(
                 self.reviewed_degraded_fr,
                 previous_without_retained,
-                read_json("second_round_polls.json")["events"],
+                read_post_audit_second_round(),
             )
 
     def test_similar_unreviewed_candidate_omission_still_fails(self) -> None:
@@ -619,8 +644,8 @@ class FrozenFixtureTests(unittest.TestCase):
         ):
             reconcile_french_production_source(
                 parsed,
-                read_json("polls.json"),
-                read_json("second_round_polls.json")["events"],
+                read_post_audit_first_round(),
+                read_post_audit_second_round(),
             )
 
     def test_reviewed_degraded_mapping_requires_exact_provenance(self) -> None:
@@ -638,8 +663,8 @@ class FrozenFixtureTests(unittest.TestCase):
         ):
             reconcile_french_production_source(
                 parsed,
-                read_json("polls.json"),
-                read_json("second_round_polls.json")["events"],
+                read_post_audit_first_round(),
+                read_post_audit_second_round(),
             )
 
     def test_reviewed_generic_headers_require_explicit_row_candidate_links(self) -> None:
@@ -675,8 +700,8 @@ class FrozenFixtureTests(unittest.TestCase):
         ):
             reconcile_french_production_source(
                 parsed,
-                read_json("polls.json"),
-                read_json("second_round_polls.json")["events"],
+                read_post_audit_first_round(),
+                read_post_audit_second_round(),
             )
 
     def test_named_first_round_candidate_columns_can_reorder(self) -> None:
@@ -724,8 +749,8 @@ class FrozenFixtureTests(unittest.TestCase):
         )
 
     def test_unused_named_first_round_candidate_column_can_be_added_or_removed(self) -> None:
-        previous_first = read_json("polls.json")
-        previous_second = read_json("second_round_polls.json")["events"]
+        previous_first = read_post_audit_first_round()
+        previous_second = read_post_audit_second_round()
         added = added_unused_named_candidate_fixture()
         result = reconcile_french_production_source(
             added,
@@ -782,8 +807,8 @@ class FrozenFixtureTests(unittest.TestCase):
         parsed["revid"] += 1
         result = reconcile_french_production_source(
             parsed,
-            read_json("polls.json"),
-            read_json("second_round_polls.json")["events"],
+            read_post_audit_first_round(),
+            read_post_audit_second_round(),
         )
         self.assertEqual(
             result.report["normal_post_audit_additions"],
@@ -808,8 +833,8 @@ class FrozenFixtureTests(unittest.TestCase):
         ):
             reconcile_french_production_source(
                 parsed,
-                read_json("polls.json"),
-                read_json("second_round_polls.json")["events"],
+                read_post_audit_first_round(),
+                read_post_audit_second_round(),
             )
 
     def test_duplicate_candidate_identity_fails_structurally(self) -> None:
@@ -850,8 +875,8 @@ class FrozenFixtureTests(unittest.TestCase):
         ):
             reconcile_french_production_source(
                 parsed,
-                read_json("polls.json"),
-                read_json("second_round_polls.json")["events"],
+                read_post_audit_first_round(),
+                read_post_audit_second_round(),
             )
 
     def test_core_header_and_first_round_context_corruption_fail_structurally(self) -> None:
@@ -874,8 +899,8 @@ class FrozenFixtureTests(unittest.TestCase):
                 with self.assertRaisesRegex(SourceDriftError, message):
                     reconcile_french_production_source(
                         parsed,
-                        read_json("polls.json"),
-                        read_json("second_round_polls.json")["events"],
+                        read_post_audit_first_round(),
+                        read_post_audit_second_round(),
                     )
 
     def test_candidate_colspan_ambiguity_fails_closed(self) -> None:
@@ -892,8 +917,8 @@ class FrozenFixtureTests(unittest.TestCase):
         with self.assertRaises(SourceDriftError):
             reconcile_french_production_source(
                 parsed,
-                read_json("polls.json"),
-                read_json("second_round_polls.json")["events"],
+                read_post_audit_first_round(),
+                read_post_audit_second_round(),
             )
 
     def test_reviewed_factual_change_fails_semantically(self) -> None:
@@ -919,8 +944,8 @@ class FrozenFixtureTests(unittest.TestCase):
         ):
             reconcile_french_production_source(
                 parsed,
-                read_json("polls.json"),
-                read_json("second_round_polls.json")["events"],
+                read_post_audit_first_round(),
+                read_post_audit_second_round(),
             )
 
     def test_reviewed_source_provenance_change_fails_semantically(self) -> None:
@@ -941,8 +966,8 @@ class FrozenFixtureTests(unittest.TestCase):
         ):
             reconcile_french_production_source(
                 parsed,
-                read_json("polls.json"),
-                read_json("second_round_polls.json")["events"],
+                read_post_audit_first_round(),
+                read_post_audit_second_round(),
             )
 
     def test_reviewed_cluster_source_refresh_preserves_exact_facts(self) -> None:
@@ -959,8 +984,8 @@ class FrozenFixtureTests(unittest.TestCase):
         parsed["revid"] += 1
         result = reconcile_french_production_source(
             parsed,
-            read_json("polls.json"),
-            read_json("second_round_polls.json")["events"],
+            read_post_audit_first_round(),
+            read_post_audit_second_round(),
         )
         self.assertEqual(
             result.report["normal_post_audit_additions"],
@@ -980,8 +1005,8 @@ class FrozenFixtureTests(unittest.TestCase):
         parsed["revid"] += 1
         result = reconcile_french_production_source(
             parsed,
-            read_json("polls.json"),
-            read_json("second_round_polls.json")["events"],
+            read_post_audit_first_round(),
+            read_post_audit_second_round(),
         )
         self.assertEqual(result.report["skips"]["fail_closed_rows"], 8)
 
@@ -998,8 +1023,8 @@ class FrozenFixtureTests(unittest.TestCase):
         ):
             reconcile_french_production_source(
                 parsed,
-                read_json("polls.json"),
-                read_json("second_round_polls.json")["events"],
+                read_post_audit_first_round(),
+                read_post_audit_second_round(),
             )
 
     def test_known_hollande_family_preserves_audited_runoff_locators(self) -> None:
