@@ -1225,11 +1225,17 @@ class FeaturedPollBoardTests(unittest.TestCase):
 
     def test_malformed_counts_and_display_limits_are_rejected(self):
         self.assert_board_rejected(
-            lambda board: board.__setitem__("omitted_candidate_count", 2),
+            lambda board: board.__setitem__(
+                "omitted_candidate_count",
+                board["omitted_candidate_count"] + 1,
+            ),
             "omitted count",
         )
         self.assert_board_rejected(
-            lambda board: board.__setitem__("displayed_candidate_count", 9),
+            lambda board: board.__setitem__(
+                "displayed_candidate_count",
+                board["displayed_candidate_count"] + 1,
+            ),
             "displayed count",
         )
         self.assert_board_rejected(
