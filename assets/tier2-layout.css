@@ -1,0 +1,1977 @@
+/* FR27 Tier 2 prototype — 2-panel architecture
+   Active only from 1024px through 1398px.
+   Tier 1 (>=1399px) is untouched; Tier 3 (<=1023px) is handled separately. */
+
+.fr27-tier2-media-row,
+.fr27-tier2-control {
+  display: none;
+}
+
+html.fr27-tier2-active .hero-grid {
+  grid-template-columns: minmax(0, 44fr) minmax(0, 56fr) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+}
+
+html.fr27-tier2-active .hero-grid > .what-changed {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+}
+
+html.fr27-tier2-active .hero-grid > .race-glance {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+}
+
+html.fr27-tier2-active .hero-grid > .panel {
+  height: clamp(430px, 36vw, 455px) !important;
+  min-height: 0 !important;
+}
+
+/* Rows 2–3: preserve the telemetry language, but wrap it 2 × 2. */
+html.fr27-tier2-active .context-strip {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(2, minmax(58px, auto)) !important;
+}
+
+html.fr27-tier2-active .context-strip > .context-cell {
+  min-width: 0 !important;
+  border-right: 1px solid var(--line) !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+
+html.fr27-tier2-active .context-strip > .context-cell:nth-child(2n) {
+  border-right: 0 !important;
+}
+
+html.fr27-tier2-active .context-strip > .context-cell:nth-child(n + 3) {
+  border-bottom: 0 !important;
+}
+
+/* Row 4: full-width Media Pulse with two peer analytical cards. */
+html.fr27-tier2-active .fr27-tier2-media-row {
+  display: block;
+  margin-top: 12px;
+}
+
+html.fr27-tier2-active .fr27-tier2-media-row > .top-media-pulse {
+  width: 100%;
+  height: 440px !important;
+  min-height: 440px !important;
+}
+
+html.fr27-tier2-active
+  .fr27-tier2-media-row
+  .top-media-pulse-head {
+  min-height: 70px !important;
+}
+
+html.fr27-tier2-active
+  .fr27-tier2-media-row
+  .top-media-pulse-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden !important;
+}
+
+html.fr27-tier2-active
+  .fr27-tier2-media-row
+  .top-media-dashboard[data-tier2-dual-media="true"] {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  gap: 8px;
+  height: 100% !important;
+  min-height: 0;
+  padding: 8px;
+  overflow: hidden !important;
+}
+
+html.fr27-tier2-active
+  .fr27-tier2-media-row
+  .top-media-tabs {
+  display: none !important;
+}
+
+html.fr27-tier2-active
+  .fr27-tier2-media-row
+  [data-top-media-panel] {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  border: 1px solid #17364e !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(53, 213, 255, .34) rgba(2, 15, 27, .42);
+}
+
+html.fr27-tier2-active
+  .fr27-tier2-media-row
+  [data-top-media-panel="overview"] {
+  display: grid !important;
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+}
+
+html.fr27-tier2-active
+  .fr27-tier2-media-row
+  [data-top-media-panel="coverage"] {
+  display: grid !important;
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  border-right: 1px solid #17364e !important;
+}
+
+/* Rows 5–6: compact terminal selectors, not another tab architecture. */
+html.fr27-tier2-active .fr27-tier2-control {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 7px 10px;
+  border: 1px solid rgba(31, 75, 101, .82);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(10, 35, 54, .72),
+      rgba(4, 17, 29, .58)
+    );
+}
+
+html.fr27-tier2-active .fr27-tier2-workspace-control {
+  margin-bottom: 8px;
+}
+
+html.fr27-tier2-active .fr27-tier2-candidate-control {
+  margin: 8px 12px 10px;
+}
+
+html.fr27-tier2-active .fr27-tier2-control-label {
+  color: #79a6be;
+  font-size: 8.5px;
+  font-weight: 760;
+  letter-spacing: .11em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+html.fr27-tier2-active .fr27-tier2-select-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+html.fr27-tier2-active .fr27-tier2-select-wrap::after {
+  content: "⌄";
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  color: var(--final-cyan, #35d8ff);
+  font-size: 12px;
+  line-height: 1;
+  pointer-events: none;
+  transform: translateY(-53%);
+}
+
+html.fr27-tier2-active .fr27-tier2-select {
+  appearance: none;
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 36px 6px 10px;
+  border: 1px solid rgba(42, 96, 124, .9);
+  border-radius: 2px;
+  outline: 0;
+  background: rgba(3, 17, 29, .94);
+  color: #edf7fc;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 680;
+  letter-spacing: .02em;
+}
+
+html.fr27-tier2-active .fr27-tier2-select:focus-visible {
+  border-color: var(--final-cyan, #35d8ff);
+  box-shadow: 0 0 0 2px rgba(53, 216, 255, .12);
+}
+
+html.fr27-tier2-active .hybrid-tabs {
+  display: none !important;
+}
+
+/* Row 7: Candidate Dossier + Selected Analysis as equal peer surfaces. */
+html.fr27-tier2-active
+  #signal-candidates-panel
+  .candidate-signals-workspace {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  gap: 10px !important;
+  height: clamp(450px, 58vh, 520px) !important;
+  max-height: none !important;
+  align-items: stretch !important;
+  overflow: hidden !important;
+}
+
+html.fr27-tier2-active
+  #signal-candidates-panel
+  .candidate-signals-monitor {
+  display: none !important;
+}
+
+html.fr27-tier2-active
+  #signal-candidates-panel
+  .candidate-signals-dossier {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+html.fr27-tier2-active
+  #signal-candidates-panel
+  .candidate-signals-analysis {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+html.fr27-tier2-active
+  #signal-candidates-panel
+  .candidate-signals-analysis-body,
+html.fr27-tier2-active
+  #signal-candidates-panel
+  .candidate-signals-dossier-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(53, 216, 255, .34) rgba(2, 15, 27, .42);
+}
+
+/* Do not let older <=1023 workspace rules stack/reposition the two peer cards. */
+html.fr27-tier2-active
+  #signal-candidates-panel
+  .candidate-signals-analysis,
+html.fr27-tier2-active
+  #signal-candidates-panel
+  .candidate-signals-dossier {
+  position: static !important;
+  width: auto !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+/* At the provisional floor, keep controls compact without shrinking FR27 type. */
+@media (min-width: 900px) and (max-width: 1023px) {
+  html.fr27-tier2-active .fr27-tier2-control {
+    grid-template-columns: 104px minmax(0, 1fr);
+  }
+
+  html.fr27-tier2-active
+    #signal-candidates-panel
+    .candidate-signals-workspace {
+    gap: 8px !important;
+  }
+}
+
+/* TIER 2 POLISH 01 — candidate scroll regions + HUD rebalance */
+@media (1024px <= width < 1399px) {
+
+  /*
+   * CANDIDATES
+   * Dossier and Analysis remain equal-height instruments.
+   * Their bodies scroll independently instead of clipping
+   * lower evidence such as Wikipedia history and developments.
+   */
+
+  #signal-candidates-panel
+    .candidate-signals-dossier,
+  #signal-candidates-panel
+    .candidate-signals-analysis {
+    height: 440px !important;
+    min-height: 440px !important;
+    max-height: 440px !important;
+    overflow: hidden !important;
+  }
+
+  #signal-candidates-panel
+    .candidate-signals-dossier-body,
+  #signal-candidates-panel
+    .candidate-signals-analysis-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color:
+      rgba(53, 216, 255, 0.42)
+      rgba(3, 17, 29, 0.45);
+  }
+
+  #signal-candidates-panel
+    .candidate-signals-dossier-body::-webkit-scrollbar,
+  #signal-candidates-panel
+    .candidate-signals-analysis-body::-webkit-scrollbar {
+    width: 7px;
+  }
+
+  #signal-candidates-panel
+    .candidate-signals-dossier-body::-webkit-scrollbar-track,
+  #signal-candidates-panel
+    .candidate-signals-analysis-body::-webkit-scrollbar-track {
+    background: rgba(3, 17, 29, 0.45);
+  }
+
+  #signal-candidates-panel
+    .candidate-signals-dossier-body::-webkit-scrollbar-thumb,
+  #signal-candidates-panel
+    .candidate-signals-analysis-body::-webkit-scrollbar-thumb {
+    border: 2px solid rgba(3, 17, 29, 0.45);
+    border-radius: 999px;
+    background: rgba(53, 216, 255, 0.42);
+  }
+
+
+  /*
+   * TIER-2 HUD
+   * Remove redundant methodology/status trio.
+   * Preserve live time, countdown, domains/polls,
+   * dataset scale and utilities.
+   */
+
+  #method-disclosure.fr27-app-hud
+    .fr27-zone-method-sub {
+    display: none !important;
+  }
+
+  #method-disclosure.fr27-app-hud
+    .fr27-zone-infra-body {
+    display: block !important;
+    min-width: 0;
+  }
+
+  #method-disclosure.fr27-app-hud
+    .fr27-zone-source-sub,
+  #method-disclosure.fr27-app-hud
+    .fr27-source-main {
+    width: 100%;
+    min-width: 0;
+  }
+
+  #method-disclosure.fr27-app-hud
+    .fr27-app-hud-content.fr27-linear-console {
+    grid-template-columns:
+      minmax(0, 13fr)
+      minmax(0, 11fr)
+      minmax(0, 17fr)
+      minmax(0, 42fr)
+      minmax(0, 17fr) !important;
+  }
+
+  /*
+   * The HUD is fixed. Reserve genuine document space
+   * beneath the workspace so the final evidence rows
+   * are never hidden behind it.
+   */
+
+  .shell {
+    padding-bottom: 108px !important;
+  }
+}
+
+/* TIER 2 POLISH 02 — three-column context strip */
+@media (1024px <= width < 1399px) {
+
+  /*
+   * Keep the three highest-value context instruments:
+   * milestone, polling freshness and source-network health.
+   *
+   * Poll Coverage is removed from the Tier-2 strip because
+   * polling context already has stronger homes in Race and HUD.
+   */
+
+  .context-strip {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .context-strip > .context-cell:nth-child(3) {
+    display: none !important;
+  }
+
+  .context-strip > .context-cell {
+    min-width: 0;
+    border-bottom: 0 !important;
+  }
+
+  .context-strip > .context-cell:nth-child(2) {
+    border-right: 1px solid var(--line) !important;
+  }
+
+  .context-strip > .context-cell:last-child {
+    border-right: 0 !important;
+  }
+}
+
+/* TIER 2 POLISH 03 — force single-row three-cell context strip */
+@media (1024px <= width < 1399px) {
+
+  /*
+   * Tier 2 context is exactly ONE ROW:
+   *
+   * 1  Next Milestone
+   * 2  Latest Fieldwork
+   * 4  Source Network
+   *
+   * Poll Coverage (3) is not shown.
+   */
+
+  .shell > .context-strip {
+    display: grid !important;
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr)) !important;
+    grid-template-rows:
+      minmax(0, 1fr) !important;
+    grid-auto-flow: row !important;
+    grid-auto-rows: unset !important;
+  }
+
+  .shell > .context-strip
+    > .context-cell:nth-child(1) {
+    display: grid !important;
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  .shell > .context-strip
+    > .context-cell:nth-child(2) {
+    display: grid !important;
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+
+  .shell > .context-strip
+    > .context-cell:nth-child(3) {
+    display: none !important;
+  }
+
+  .shell > .context-strip
+    > .context-cell:nth-child(4) {
+    display: grid !important;
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+  }
+
+  .shell > .context-strip
+    > .context-cell {
+    width: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    border-bottom: 0 !important;
+  }
+
+  .shell > .context-strip
+    > .context-cell:nth-child(1),
+  .shell > .context-strip
+    > .context-cell:nth-child(2) {
+    border-right: 1px solid var(--line) !important;
+  }
+
+  .shell > .context-strip
+    > .context-cell:nth-child(4) {
+    border-right: 0 !important;
+  }
+}
+
+/* TIER 2 POLISH 04 — definitive single-row status strip */
+@media (1024px <= width < 1399px) {
+
+  /*
+   * Exact Tier-2 contract:
+   *
+   * NEXT MILESTONE | LATEST FIELDWORK | SOURCE NETWORK
+   *
+   * One row only. Three equal-width instruments.
+   * Poll Coverage is absent.
+   */
+
+  body .shell > .context-strip {
+    display: grid !important;
+
+    grid-template:
+      "milestone fieldwork network"
+      / minmax(0, 1fr)
+        minmax(0, 1fr)
+        minmax(0, 1fr) !important;
+
+    grid-template-rows: auto !important;
+    grid-auto-rows: 0 !important;
+    grid-auto-columns: 0 !important;
+    grid-auto-flow: row !important;
+
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    align-items: stretch !important;
+    overflow: visible !important;
+  }
+
+  /* NEXT MILESTONE */
+  body .shell > .context-strip
+    > .context-cell:nth-child(1) {
+    display: grid !important;
+    grid-area: milestone !important;
+
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 58px !important;
+
+    align-self: stretch !important;
+
+    border-right:
+      1px solid var(--line) !important;
+    border-bottom: 0 !important;
+  }
+
+  /* LATEST FIELDWORK */
+  body .shell > .context-strip
+    > .context-cell:nth-child(2) {
+    display: grid !important;
+    grid-area: fieldwork !important;
+
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 58px !important;
+
+    align-self: stretch !important;
+
+    border-right:
+      1px solid var(--line) !important;
+    border-bottom: 0 !important;
+  }
+
+  /* POLL COVERAGE */
+  body .shell > .context-strip
+    > .context-cell:nth-child(3) {
+    display: none !important;
+  }
+
+  /* SOURCE NETWORK */
+  body .shell > .context-strip
+    > .context-cell:nth-child(4) {
+    display: grid !important;
+    grid-area: network !important;
+
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 58px !important;
+
+    align-self: stretch !important;
+
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+  }
+
+  /*
+   * Undo any previous Tier-2 sizing inherited by
+   * the three surviving context instruments.
+   */
+  body .shell > .context-strip
+    > .context-cell:nth-child(1),
+  body .shell > .context-strip
+    > .context-cell:nth-child(2),
+  body .shell > .context-strip
+    > .context-cell:nth-child(4) {
+    position: relative !important;
+    inset: auto !important;
+    margin: 0 !important;
+    padding-top: 9px !important;
+    padding-bottom: 9px !important;
+  }
+
+  body .shell > .context-strip
+    > .context-cell:nth-child(4)
+    .context-copy {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  body .shell > .context-strip
+    > .context-cell:nth-child(4)
+    .context-source-label-row {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+/* TIER 2 AGENDA — monitor selector + two-panel workspace */
+@media (1024px <= width < 1399px) {
+
+  /*
+   * Agenda Monitor becomes the topic-selection instrument.
+   */
+
+  #signal-agenda-panel
+    .fr27-tier2-agenda-selector {
+    display: grid;
+    grid-template-columns:
+      132px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+
+    margin: 14px 14px 8px;
+    padding: 8px 10px;
+
+    border: 1px solid
+      rgba(31, 75, 101, .82);
+
+    background:
+      linear-gradient(
+        90deg,
+        rgba(10, 38, 58, .52),
+        rgba(5, 20, 33, .42)
+      );
+  }
+
+  #signal-agenda-panel
+    .fr27-tier2-agenda-selector-label {
+    color: #7798ab;
+
+    font-size: 8px;
+    font-weight: 760;
+    letter-spacing: .09em;
+    line-height: 1.15;
+
+    text-transform: uppercase;
+  }
+
+  #signal-agenda-panel
+    .fr27-tier2-agenda-select {
+    display: block;
+
+    width: 100%;
+    min-width: 0;
+    height: 36px;
+
+    padding: 6px 34px 6px 10px;
+
+    border: 1px solid
+      rgba(36, 91, 120, .92);
+    border-radius: 2px;
+
+    background: #061522;
+
+    color: #e7f2f7;
+
+    font: inherit;
+    font-size: 9px;
+    font-weight: 680;
+
+    cursor: pointer;
+  }
+
+  #signal-agenda-panel
+    .fr27-tier2-agenda-select:focus-visible {
+    outline: 1px solid
+      var(--final-cyan, #35d8ff);
+    outline-offset: 2px;
+  }
+
+
+  /*
+   * The original Agenda Monitor remains in the DOM
+   * because it owns the existing topic-selection
+   * buttons/state contract. Tier 2 simply stops
+   * displaying it as a permanent panel.
+   */
+
+  #signal-agenda-panel
+    .hybrid-agenda-v6-monitor {
+    display: none !important;
+  }
+
+
+  /*
+   * Remaining analytical stage:
+   *
+   * AGENDA EVOLUTION | TOPIC DOSSIER
+   *
+   * Equal width, equal height.
+   */
+
+  #signal-agenda-panel
+    .hybrid-agenda-v6-workspace.fr27-tier2-agenda-workspace {
+    display: grid !important;
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+
+    grid-template-rows:
+      460px !important;
+
+    grid-auto-columns: 0 !important;
+    grid-auto-rows: 0 !important;
+
+    gap: 8px !important;
+
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+
+    margin: 0 14px 14px !important;
+    padding: 0 !important;
+
+    overflow: visible !important;
+  }
+
+
+  /* AGENDA EVOLUTION */
+
+  #signal-agenda-panel
+    .hybrid-agenda-v6-workspace.fr27-tier2-agenda-workspace
+    > .hybrid-agenda-v6-evolution-panel {
+    display: grid !important;
+
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+
+    width: auto !important;
+    height: 460px !important;
+    min-width: 0 !important;
+    min-height: 460px !important;
+    max-height: 460px !important;
+
+    overflow: hidden !important;
+  }
+
+
+  /* TOPIC DOSSIER */
+
+  #signal-agenda-panel
+    .hybrid-agenda-v6-workspace.fr27-tier2-agenda-workspace
+    > .hybrid-agenda-v6-dossier {
+    display: grid !important;
+
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+
+    width: auto !important;
+    height: 460px !important;
+    min-width: 0 !important;
+    min-height: 460px !important;
+    max-height: 460px !important;
+
+    overflow: hidden !important;
+  }
+
+
+  /*
+   * Both analytical card bodies scroll vertically.
+   * Existing charts, tooltips, evidence links and
+   * internal renderers remain unchanged.
+   */
+
+  #signal-agenda-panel
+    .hybrid-agenda-v6-evolution-body,
+  #signal-agenda-panel
+    .hybrid-agenda-v6-dossier-body {
+    min-height: 0 !important;
+
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+
+    overscroll-behavior: contain;
+
+    scrollbar-width: thin;
+    scrollbar-color:
+      rgba(53, 216, 255, .40)
+      rgba(3, 17, 29, .42);
+  }
+
+  #signal-agenda-panel
+    .hybrid-agenda-v6-evolution-body::-webkit-scrollbar,
+  #signal-agenda-panel
+    .hybrid-agenda-v6-dossier-body::-webkit-scrollbar {
+    width: 7px;
+  }
+
+  #signal-agenda-panel
+    .hybrid-agenda-v6-evolution-body::-webkit-scrollbar-track,
+  #signal-agenda-panel
+    .hybrid-agenda-v6-dossier-body::-webkit-scrollbar-track {
+    background:
+      rgba(3, 17, 29, .42);
+  }
+
+  #signal-agenda-panel
+    .hybrid-agenda-v6-evolution-body::-webkit-scrollbar-thumb,
+  #signal-agenda-panel
+    .hybrid-agenda-v6-dossier-body::-webkit-scrollbar-thumb {
+    border: 2px solid
+      rgba(3, 17, 29, .42);
+
+    border-radius: 999px;
+
+    background:
+      rgba(53, 216, 255, .40);
+  }
+}
+
+/* TIER 2 WORKSPACE GEOMETRY CONTRACT — shared edge alignment */
+@media (1024px <= width < 1399px) {
+
+  /*
+   * Every converted Tier-2 workspace uses one geometry:
+   *
+   * WORKSPACE SELECTOR
+   *        8px
+   * LOCAL SELECTOR
+   *        8px
+   * ANALYTICAL STAGE
+   *
+   * All three share exactly the same left and right edges.
+   *
+   * No nested desktop-panel gutter.
+   */
+
+  #signal-candidates-panel,
+  #signal-agenda-panel {
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+
+    padding:
+      8px
+      0
+      0 !important;
+
+    margin: 0 !important;
+  }
+
+
+  /*
+   * Remove inherited inner horizontal displacement.
+   */
+
+  #signal-candidates-panel
+    #candidate-signals-root,
+  #signal-agenda-panel
+    .hybrid-agenda-v6-workspace {
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+
+  /*
+   * CANDIDATE MONITOR selector
+   *
+   * Use substring targeting as a compatibility guard
+   * around the Tier-2 candidate selector wrapper.
+   */
+
+  #signal-candidates-panel
+    [class*="tier2"][class*="candidate"][class*="selector"] {
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin:
+      0
+      0
+      8px !important;
+  }
+
+
+  /*
+   * AGENDA MONITOR selector
+   */
+
+  #signal-agenda-panel
+    .fr27-tier2-agenda-selector {
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin:
+      0
+      0
+      8px !important;
+  }
+
+
+  /*
+   * CANDIDATE analytical stage
+   */
+
+  #signal-candidates-panel
+    .candidate-signals-workspace {
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin:
+      0
+      0
+      8px !important;
+  }
+
+
+  /*
+   * AGENDA analytical stage
+   *
+   * Overrides the temporary 14px prototype gutter.
+   */
+
+  #signal-agenda-panel
+    .hybrid-agenda-v6-workspace.fr27-tier2-agenda-workspace {
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin:
+      0
+      0
+      8px !important;
+  }
+
+
+  /*
+   * No extra indentation on either of the two analytical cards.
+   */
+
+  #signal-candidates-panel
+    .candidate-signals-workspace
+    > .candidate-signals-panel,
+  #signal-agenda-panel
+    .hybrid-agenda-v6-workspace.fr27-tier2-agenda-workspace
+    > .hybrid-agenda-v6-panel {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+}
+
+/* TIER 2 POLISH 07 — exact shared workspace control contract */
+@media (1024px <= width < 1399px) {
+
+  /*
+   * ========================================================
+   * CONTROL ROW GEOMETRY
+   * ========================================================
+   *
+   * WORKSPACE
+   * CANDIDATE MONITOR
+   * AGENDA MONITOR
+   *
+   * all use the same:
+   *
+   * 140px label | remaining width selector
+   */
+
+  html.fr27-tier2-active
+    .fr27-tier2-workspace-control,
+
+  html.fr27-tier2-active
+    .fr27-tier2-candidate-control,
+
+  html.fr27-tier2-active
+    #signal-agenda-panel
+    .fr27-tier2-agenda-selector {
+
+    box-sizing: border-box !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+      140px minmax(0, 1fr) !important;
+
+    align-items: center !important;
+
+    gap: 12px !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+
+    padding:
+      8px
+      10px !important;
+  }
+
+
+  /*
+   * Candidate Monitor previously had:
+   * margin: 8px 12px 10px
+   *
+   * The 12px side margins caused the narrower Candidate row.
+   */
+
+  html.fr27-tier2-active
+    .fr27-tier2-candidate-control {
+
+    margin:
+      0
+      0
+      8px !important;
+  }
+
+
+  /*
+   * Agenda uses the same spacing.
+   */
+
+  html.fr27-tier2-active
+    #signal-agenda-panel
+    .fr27-tier2-agenda-selector {
+
+    margin:
+      0
+      0
+      8px !important;
+  }
+
+
+  /*
+   * Workspace row -> selected-workspace content:
+   * standard 8px dashboard rhythm.
+   */
+
+  html.fr27-tier2-active
+    .fr27-tier2-workspace-control {
+
+    margin:
+      0
+      0
+      8px !important;
+  }
+
+
+  /*
+   * ========================================================
+   * SELECT WRAPPERS
+   * ========================================================
+   *
+   * Generic Candidate/Workspace controls use
+   * .fr27-tier2-select-wrap.
+   */
+
+  html.fr27-tier2-active
+    .fr27-tier2-workspace-control
+    .fr27-tier2-select-wrap,
+
+  html.fr27-tier2-active
+    .fr27-tier2-candidate-control
+    .fr27-tier2-select-wrap {
+
+    box-sizing: border-box !important;
+
+    display: block !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    min-width: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+
+  /*
+   * ========================================================
+   * SELECTS
+   * ========================================================
+   *
+   * All three selectors get exactly the same typography,
+   * height and usable width.
+   */
+
+  html.fr27-tier2-active
+    .fr27-tier2-workspace-control
+    .fr27-tier2-select,
+
+  html.fr27-tier2-active
+    .fr27-tier2-candidate-control
+    .fr27-tier2-select,
+
+  html.fr27-tier2-active
+    #signal-agenda-panel
+    .fr27-tier2-agenda-select {
+
+    box-sizing: border-box !important;
+
+    display: block !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    height: 36px !important;
+    min-height: 36px !important;
+
+    padding:
+      6px
+      32px
+      6px
+      10px !important;
+
+    font-size: 11px !important;
+    font-weight: 650 !important;
+    letter-spacing: 0 !important;
+    line-height: 1.2 !important;
+  }
+
+
+  html.fr27-tier2-active
+    .fr27-tier2-select option,
+
+  html.fr27-tier2-active
+    #signal-agenda-panel
+    .fr27-tier2-agenda-select option {
+
+    font-size: 11px !important;
+    font-weight: 650 !important;
+  }
+
+
+  /*
+   * ========================================================
+   * WORKSPACE WIDTH
+   * ========================================================
+   *
+   * No narrower analytical stage beneath the selectors.
+   */
+
+  html.fr27-tier2-active
+    #signal-candidates-panel
+    #candidate-signals-root,
+
+  html.fr27-tier2-active
+    #signal-candidates-panel
+    .candidate-signals-workspace,
+
+  html.fr27-tier2-active
+    #signal-agenda-panel
+    .hybrid-agenda-v6-workspace.fr27-tier2-agenda-workspace {
+
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+
+  /*
+   * Standard two-card gap.
+   */
+
+  html.fr27-tier2-active
+    #signal-candidates-panel
+    .candidate-signals-workspace,
+
+  html.fr27-tier2-active
+    #signal-agenda-panel
+    .hybrid-agenda-v6-workspace.fr27-tier2-agenda-workspace {
+
+    gap: 8px !important;
+  }
+
+
+  /*
+   * ========================================================
+   * PANEL RHYTHM
+   * ========================================================
+   *
+   * The selected workspace should not introduce an extra
+   * blank band between the global selector and local selector.
+   */
+
+  html.fr27-tier2-active
+    #signal-candidates-panel,
+
+  html.fr27-tier2-active
+    #signal-agenda-panel {
+
+    padding:
+      0
+      0
+      0 !important;
+
+    margin: 0 !important;
+  }
+
+
+  /*
+   * ========================================================
+   * HUD CLEARANCE
+   * ========================================================
+   *
+   * Keep only the space actually needed by the fixed HUD.
+   */
+
+  body .shell {
+    padding-bottom:
+      76px !important;
+  }
+}
+
+/* TIER 2 ISSUES — policy selector + two-panel workspace */
+@media (1024px <= width < 1399px) {
+
+  /*
+   * ========================================================
+   * POLICY MONITOR SELECTOR
+   * ========================================================
+   *
+   * Same geometry as Agenda Monitor:
+   *
+   * 140px label | full-width selector
+   */
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .fr27-tier2-issues-selector {
+
+    box-sizing: border-box !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+      140px minmax(0, 1fr) !important;
+
+    align-items: center !important;
+
+    gap: 12px !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin:
+      0
+      0
+      8px !important;
+
+    padding:
+      8px
+      10px !important;
+
+    border:
+      1px solid rgba(31, 75, 101, .82);
+
+    background:
+      linear-gradient(
+        90deg,
+        rgba(10, 38, 58, .52),
+        rgba(5, 20, 33, .42)
+      );
+  }
+
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .fr27-tier2-issues-selector-label {
+
+    color: #789caf !important;
+
+    font-size: 9px !important;
+    font-weight: 750 !important;
+    letter-spacing: .08em !important;
+    line-height: 1.1 !important;
+
+    text-transform: uppercase !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .fr27-tier2-issues-select {
+
+    box-sizing: border-box !important;
+
+    display: block !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    height: 36px !important;
+    min-height: 36px !important;
+
+    padding:
+      6px
+      32px
+      6px
+      10px !important;
+
+    border:
+      1px solid rgba(36, 91, 120, .92);
+
+    border-radius: 2px;
+
+    background: #061522;
+
+    color: #e7f2f7;
+
+    font: inherit;
+    font-size: 11px !important;
+    font-weight: 650 !important;
+    letter-spacing: 0 !important;
+    line-height: 1.2 !important;
+
+    cursor: pointer;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .fr27-tier2-issues-select option {
+
+    font-size: 11px !important;
+    font-weight: 650 !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .fr27-tier2-issues-select:focus-visible {
+
+    outline:
+      1px solid var(--final-cyan, #35d8ff);
+
+    outline-offset: 2px;
+  }
+
+
+  /*
+   * ========================================================
+   * REMOVE PERMANENT POLICY MONITOR PANEL
+   * ========================================================
+   *
+   * It remains in the DOM because its issue buttons retain
+   * the existing dashboard selection contract.
+   */
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .hybrid-agenda-v6-monitor {
+
+    display: none !important;
+  }
+
+
+  /*
+   * ========================================================
+   * ISSUES PANEL GEOMETRY
+   * ========================================================
+   *
+   * No nested desktop gutter.
+   */
+
+  html.fr27-tier2-active
+    #signal-issues-panel {
+
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+
+  /*
+   * ISSUE EVOLUTION | ISSUE DOSSIER
+   *
+   * Same 50 / 50 geometry as Agenda.
+   */
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .hybrid-agenda-v6-workspace.fr27-tier2-issues-workspace {
+
+    box-sizing: border-box !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+
+    grid-template-rows:
+      460px !important;
+
+    gap: 8px !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    height: auto !important;
+    min-height: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    overflow: visible !important;
+  }
+
+
+  /*
+   * ISSUE EVOLUTION
+   */
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .hybrid-agenda-v6-workspace.fr27-tier2-issues-workspace
+    > .hybrid-agenda-v6-evolution-panel {
+
+    display: grid !important;
+
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+
+    box-sizing: border-box !important;
+
+    width: auto !important;
+
+    height: 460px !important;
+    min-height: 460px !important;
+    max-height: 460px !important;
+
+    min-width: 0 !important;
+
+    margin: 0 !important;
+
+    overflow: hidden !important;
+  }
+
+
+  /*
+   * ISSUE DOSSIER
+   */
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .hybrid-agenda-v6-workspace.fr27-tier2-issues-workspace
+    > .hybrid-agenda-v6-dossier {
+
+    display: grid !important;
+
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+
+    box-sizing: border-box !important;
+
+    width: auto !important;
+
+    height: 460px !important;
+    min-height: 460px !important;
+    max-height: 460px !important;
+
+    min-width: 0 !important;
+
+    margin: 0 !important;
+
+    overflow: hidden !important;
+  }
+
+
+  /*
+   * ========================================================
+   * INDEPENDENT SCROLLING
+   * ========================================================
+   */
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .hybrid-agenda-v6-evolution-body,
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .hybrid-agenda-v6-dossier-body {
+
+    min-height: 0 !important;
+
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+
+    overscroll-behavior: contain;
+
+    scrollbar-width: thin;
+
+    scrollbar-color:
+      rgba(53, 216, 255, .40)
+      rgba(3, 17, 29, .42);
+  }
+
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .hybrid-agenda-v6-evolution-body::-webkit-scrollbar,
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .hybrid-agenda-v6-dossier-body::-webkit-scrollbar {
+
+    width: 7px;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .hybrid-agenda-v6-evolution-body::-webkit-scrollbar-track,
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .hybrid-agenda-v6-dossier-body::-webkit-scrollbar-track {
+
+    background:
+      rgba(3, 17, 29, .42);
+  }
+
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .hybrid-agenda-v6-evolution-body::-webkit-scrollbar-thumb,
+
+  html.fr27-tier2-active
+    #signal-issues-panel
+    .hybrid-agenda-v6-dossier-body::-webkit-scrollbar-thumb {
+
+    border:
+      2px solid rgba(3, 17, 29, .42);
+
+    border-radius: 999px;
+
+    background:
+      rgba(53, 216, 255, .40);
+  }
+}
+
+/* TIER 2 EVENTS V2 — audited grid-preserving layout */
+@media (1024px <= width < 1399px) {
+
+  /*
+   * Preserve the canonical outer Events graph:
+   *
+   * schedule
+   * ops-main
+   * legend
+   *
+   * Do NOT add another direct child to
+   * .hybrid-events-workspace.
+   */
+
+  html.fr27-tier2-active
+    #signal-events-panel {
+
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-events-panel
+    .hybrid-events-ops-rail {
+
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin: 0 !important;
+  }
+
+
+  /*
+   * ========================================================
+   * OPS MAIN
+   *
+   * Row 1: Upcoming Events selector
+   * Row 2: Dossier | Schedule Watch
+   * ========================================================
+   */
+
+  html.fr27-tier2-active
+    #signal-events-panel
+    .hybrid-events-ops-main.fr27-tier2-events-main {
+
+    box-sizing: border-box !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+
+    grid-template-rows:
+      auto minmax(0, 1fr) !important;
+
+    gap: 8px !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    height: 100% !important;
+    min-height: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    overflow: hidden !important;
+  }
+
+
+  /*
+   * ========================================================
+   * UPCOMING EVENTS SELECTOR
+   * ========================================================
+   */
+
+  html.fr27-tier2-active
+    #signal-events-panel
+    .fr27-tier2-events-selector {
+
+    box-sizing: border-box !important;
+
+    display: grid !important;
+
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+
+    grid-template-columns:
+      140px minmax(0, 1fr) !important;
+
+    align-items: center !important;
+
+    gap: 12px !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin: 0 !important;
+
+    padding:
+      8px
+      10px !important;
+
+    border:
+      1px solid rgba(31, 75, 101, .82);
+
+    background:
+      linear-gradient(
+        90deg,
+        rgba(10, 38, 58, .52),
+        rgba(5, 20, 33, .42)
+      );
+  }
+
+
+  html.fr27-tier2-active
+    #signal-events-panel
+    .fr27-tier2-events-selector-label {
+
+    color: #789caf !important;
+
+    font-size: 9px !important;
+    font-weight: 750 !important;
+    letter-spacing: .08em !important;
+    line-height: 1.1 !important;
+
+    text-transform: uppercase !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-events-panel
+    .fr27-tier2-events-select {
+
+    box-sizing: border-box !important;
+
+    display: block !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    height: 36px !important;
+    min-height: 36px !important;
+
+    padding:
+      6px
+      32px
+      6px
+      10px !important;
+
+    border:
+      1px solid rgba(36, 91, 120, .92);
+
+    border-radius: 2px;
+
+    background: #061522;
+    color: #e7f2f7;
+
+    font: inherit;
+    font-size: 11px !important;
+    font-weight: 650 !important;
+    letter-spacing: 0 !important;
+    line-height: 1.2 !important;
+
+    cursor: pointer;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-events-panel
+    .fr27-tier2-events-select option {
+
+    font-size: 11px !important;
+    font-weight: 650 !important;
+  }
+
+
+  /*
+   * Original Upcoming Events list remains alive
+   * as the selection-state owner, but is not displayed.
+   */
+
+  html.fr27-tier2-active
+    #signal-events-panel
+    .hybrid-events-upcoming {
+
+    display: none !important;
+  }
+
+
+  /*
+   * ========================================================
+   * EVENT DOSSIER
+   * ========================================================
+   */
+
+  html.fr27-tier2-active
+    #signal-events-panel
+    .hybrid-events-ops-main.fr27-tier2-events-main
+    > .hybrid-events-dossier {
+
+    box-sizing: border-box !important;
+
+    display: grid !important;
+
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+
+    width: auto !important;
+    min-width: 0 !important;
+
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    margin: 0 !important;
+
+    overflow: hidden !important;
+  }
+
+
+  /*
+   * ========================================================
+   * SCHEDULE WATCH
+   * ========================================================
+   */
+
+  html.fr27-tier2-active
+    #signal-events-panel
+    .hybrid-events-ops-main.fr27-tier2-events-main
+    > .hybrid-events-schedule-watch {
+
+    box-sizing: border-box !important;
+
+    display: grid !important;
+
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+
+    width: auto !important;
+    min-width: 0 !important;
+
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    margin: 0 !important;
+
+    overflow: hidden !important;
+  }
+
+
+  /*
+   * Both analytical bodies scroll independently.
+   */
+
+  html.fr27-tier2-active
+    #signal-events-panel
+    .hybrid-events-dossier-body,
+
+  html.fr27-tier2-active
+    #signal-events-panel
+    .hybrid-events-schedule-watch-body {
+
+    min-height: 0 !important;
+
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+
+    overscroll-behavior: contain;
+
+    scrollbar-width: thin;
+
+    scrollbar-color:
+      rgba(53, 216, 255, .40)
+      rgba(3, 17, 29, .42);
+  }
+
+
+  html.fr27-tier2-active
+    #signal-events-panel
+    .hybrid-events-dossier-body::-webkit-scrollbar,
+
+  html.fr27-tier2-active
+    #signal-events-panel
+    .hybrid-events-schedule-watch-body::-webkit-scrollbar {
+
+    width: 7px;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-events-panel
+    .hybrid-events-dossier-body::-webkit-scrollbar-thumb,
+
+  html.fr27-tier2-active
+    #signal-events-panel
+    .hybrid-events-schedule-watch-body::-webkit-scrollbar-thumb {
+
+    border:
+      2px solid rgba(3, 17, 29, .42);
+
+    border-radius: 999px;
+
+    background:
+      rgba(53, 216, 255, .40);
+  }
+}
+
+/* TIER 2 RUNOFF — two-panel current comparison */
+@media (1024px <= width < 1399px) {
+
+  /*
+   * Tier 2 keeps the two analytically important
+   * current-runoff modules:
+   *
+   * CLOSEST TESTED RUNOFF  45%
+   * CURRENT COMMON MATCHUPS 55%
+   *
+   * Other Tested Matchups is catalogue/archive material
+   * and is omitted from the constrained composition.
+   */
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-others {
+
+    display: none !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-current-grid {
+
+    display: grid !important;
+
+    grid-template-columns:
+      minmax(0, 45fr)
+      minmax(0, 55fr) !important;
+
+    grid-template-rows:
+      minmax(0, 1fr) !important;
+
+    gap: 8px !important;
+
+    width: 100% !important;
+
+    min-width: 0 !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-current-grid
+    > .hybrid-runoff-closest {
+
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+
+    min-width: 0 !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-current-grid
+    > .hybrid-runoff-common {
+
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+
+    min-width: 0 !important;
+  }
+
+
+  /*
+   * Selected Matchup History remains the full-width
+   * second analytical row.
+   */
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-archive-grid {
+
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}

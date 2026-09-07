@@ -1,0 +1,936 @@
+/* FR27 TIER 3
+ * width < 1024px
+ *
+ * Architecture:
+ * ONE MAJOR PANEL PER ROW.
+ *
+ * Internal modules may still use columns where useful.
+ * Slice 01:
+ * - top briefing
+ * - context strip
+ * - Candidates
+ */
+
+@media (width < 1024px) {
+
+  /*
+   * ========================================================
+   * TIER 3 GLOBAL
+   * ========================================================
+   */
+
+  html.fr27-tier3-active .hybrid-tabs {
+    display: none !important;
+  }
+
+
+  /*
+   * ========================================================
+   * TOP BRIEFING
+   *
+   * WHAT CHANGED
+   * RACE AT A GLANCE
+   * MEDIA PULSE
+   *
+   * One major panel per row.
+   * ========================================================
+   */
+
+  html.fr27-tier3-active .hero-grid {
+    box-sizing: border-box !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    gap: 8px !important;
+
+    margin: 0 !important;
+
+    overflow: visible !important;
+  }
+
+
+  html.fr27-tier3-active
+    .hero-grid > * {
+
+    box-sizing: border-box !important;
+
+    flex: none !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+
+
+  /*
+   * Media Pulse remains ONE major panel.
+   *
+   * Its existing Overview / Coverage controls remain valid
+   * because they switch views inside that one panel.
+   */
+
+  html.fr27-tier3-active
+    .top-media-pulse {
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    margin: 0 !important;
+  }
+
+
+  /*
+   * ========================================================
+   * CONTEXT / STATUS BAND
+   *
+   * One outer panel.
+   * Internal information may use 2 columns at tablet width.
+   * ========================================================
+   */
+
+  html.fr27-tier3-active
+    .context-strip {
+
+    box-sizing: border-box !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    margin-top: 8px !important;
+  }
+
+
+  /*
+   * ========================================================
+   * SHARED TIER-3 SELECT CONTROLS
+   * ========================================================
+   */
+
+  html.fr27-tier3-active
+    .fr27-tier3-workspace-control,
+
+  html.fr27-tier3-active
+    .fr27-tier3-candidate-control {
+
+    box-sizing: border-box !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+      140px minmax(0, 1fr) !important;
+
+    align-items: center !important;
+
+    gap: 12px !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin: 0 0 8px !important;
+
+    padding: 8px 10px !important;
+
+    border:
+      1px solid rgba(31, 75, 101, .82);
+
+    background:
+      linear-gradient(
+        90deg,
+        rgba(10, 38, 58, .52),
+        rgba(5, 20, 33, .42)
+      );
+  }
+
+
+  html.fr27-tier3-active
+    .fr27-tier3-control-label {
+
+    min-width: 0 !important;
+
+    color: #789caf !important;
+
+    font-size: 9px !important;
+    font-weight: 750 !important;
+    letter-spacing: .08em !important;
+    line-height: 1.1 !important;
+
+    text-transform: uppercase !important;
+  }
+
+
+  html.fr27-tier3-active
+    .fr27-tier3-select-wrap {
+
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+
+  html.fr27-tier3-active
+    .fr27-tier3-select {
+
+    box-sizing: border-box !important;
+
+    display: block !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    height: 36px !important;
+    min-height: 36px !important;
+
+    padding:
+      6px 32px 6px 10px !important;
+
+    border:
+      1px solid rgba(36, 91, 120, .92);
+
+    border-radius: 2px;
+
+    background: #061522;
+
+    color: #e7f2f7;
+
+    font: inherit;
+    font-size: 11px !important;
+    font-weight: 650 !important;
+    line-height: 1.2 !important;
+
+    cursor: pointer;
+  }
+
+
+  /*
+   * ========================================================
+   * CANDIDATES
+   *
+   * Candidate Monitor becomes dropdown.
+   *
+   * Then:
+   *
+   * SELECTED ANALYSIS
+   * CANDIDATE DOSSIER
+   *
+   * each full width.
+   * ========================================================
+   */
+
+  html.fr27-tier3-active
+    #signal-candidates-panel {
+
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    #candidate-signals-root {
+
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+
+  /*
+   * Kill the legacy 38/62 tablet architecture.
+   */
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-workspace {
+
+    box-sizing: border-box !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    height: auto !important;
+
+    gap: 8px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    overflow: visible !important;
+  }
+
+
+  /*
+   * Original Candidate Monitor remains as the state owner,
+   * but never participates in Tier-3 layout.
+   */
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-monitor {
+
+    display: none !important;
+
+    position: static !important;
+
+    width: auto !important;
+    height: auto !important;
+
+    max-height: none !important;
+
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+
+
+  /*
+   * Analysis first.
+   * Dossier second.
+   *
+   * Natural panel height.
+   * The PAGE scrolls; we do not manufacture another
+   * internal fixed-height workspace here.
+   */
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-analysis,
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-dossier {
+
+    box-sizing: border-box !important;
+
+    position: static !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    flex: none !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    margin: 0 !important;
+
+    grid-column: auto !important;
+    grid-row: auto !important;
+
+    overflow: visible !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-analysis-body,
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-dossier-body {
+
+    flex: none !important;
+
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+
+    overflow: visible !important;
+  }
+
+
+  /*
+   * Preserve useful internal density at tablet width.
+   *
+   * These are modules INSIDE one major panel,
+   * so two internal columns are permitted.
+   */
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-analysis-cards,
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-dossier-grid {
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+
+/*
+ * ==========================================================
+ * NARROW TIER 3
+ *
+ * Same architecture.
+ * Only internal modules collapse.
+ * ==========================================================
+ */
+
+@media (width < 600px) {
+
+  html.fr27-tier3-active
+    .context-strip {
+
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+  }
+
+
+  html.fr27-tier3-active
+    .fr27-tier3-workspace-control,
+
+  html.fr27-tier3-active
+    .fr27-tier3-candidate-control {
+
+    grid-template-columns:
+      106px minmax(0, 1fr) !important;
+
+    gap: 8px !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-analysis-cards,
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-dossier-grid {
+
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+  }
+}
+
+/* TIER 3 POLISH 01 — hierarchy, compact media, footer cleanup */
+@media (width < 1024px) {
+
+  /*
+   * ========================================================
+   * CANDIDATES
+   *
+   * Identity/context first.
+   * Interpretation second.
+   * ========================================================
+   */
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-dossier {
+
+    order: 1 !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-analysis {
+
+    order: 2 !important;
+  }
+
+
+  /*
+   * Give the two major candidate instruments a slightly
+   * clearer separation without changing their visual system.
+   */
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-workspace {
+
+    gap: 10px !important;
+  }
+
+
+  /*
+   * ========================================================
+   * STATUS BAND
+   *
+   * This remains one outer telemetry instrument.
+   * Internal 2-column layout remains appropriate at 1023px.
+   * ========================================================
+   */
+
+  html.fr27-tier3-active
+    .context-strip {
+
+    margin:
+      8px
+      0
+      0 !important;
+  }
+
+
+  /*
+   * ========================================================
+   * MEDIA PULSE
+   *
+   * Tier 3 owns its geometry explicitly.
+   *
+   * Overview:
+   * - four visible Coverage Shift rows
+   * - two-column support evidence at tablet width
+   * - fixed CTA
+   * - no generic internal panel scrolling
+   *
+   * Coverage:
+   * - fixed heading
+   * - genuinely scrollable article list
+   * - fixed CTA
+   * ========================================================
+   */
+
+  html.fr27-tier3-active
+    .top-media-pulse {
+
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    margin:
+      8px
+      0
+      0 !important;
+
+    overflow: visible !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse-content {
+
+    height: auto !important;
+    min-height: 0 !important;
+
+    overflow: visible !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    .top-media-dashboard {
+
+    height: auto !important;
+    min-height: 0 !important;
+
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+
+    grid-template-rows:
+      32px auto !important;
+
+    overflow: visible !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    .top-media-dashboard
+    > .top-media-tab-panel {
+
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+
+  /*
+   * OVERVIEW
+   */
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-overview-panel {
+
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+
+    grid-template-rows:
+      143px
+      118px
+      var(--top-row-cta-height) !important;
+
+    gap: 0 !important;
+
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    overflow: hidden !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-overview-panel
+    .top-media-shift {
+
+    box-sizing: border-box !important;
+
+    grid-template-rows:
+      25px
+      14px
+      92px !important;
+
+    height: 143px !important;
+    min-height: 143px !important;
+    max-height: 143px !important;
+
+    padding:
+      7px
+      10px
+      5px !important;
+
+    overflow: hidden !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-overview-panel
+    .top-media-shift-list {
+
+    display: grid !important;
+
+    grid-template-rows:
+      repeat(4, 23px) !important;
+
+    height: 92px !important;
+    min-height: 92px !important;
+    max-height: 92px !important;
+
+    overflow: hidden !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-overview-panel
+    .top-media-shift-row:nth-child(-n + 4) {
+
+    display: grid !important;
+
+    min-height: 23px !important;
+    height: 23px !important;
+
+    grid-template-columns:
+      minmax(0, 1.1fr)
+      46px
+      minmax(80px, 1.3fr)
+      42px
+      67px !important;
+
+    gap: 6px !important;
+
+    padding:
+      1px
+      5px !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-overview-panel
+    .top-media-shift-row:nth-child(n + 5) {
+
+    display: none !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-overview-panel
+    .top-media-shift-name {
+
+    min-width: 0 !important;
+
+    overflow: hidden !important;
+
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+  }
+
+
+  /*
+   * Supporting evidence.
+   *
+   * Four Topic rows and four Publisher rows are the compact
+   * Tier-3 summary. Full inventories remain available through
+   * their existing analytical surfaces.
+   */
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-overview-panel
+    .top-media-support-grid {
+
+    box-sizing: border-box !important;
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+
+    height: 118px !important;
+    min-height: 118px !important;
+    max-height: 118px !important;
+
+    padding-top: 3px !important;
+
+    overflow: hidden !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-overview-panel
+    .top-media-topic-list,
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-overview-panel
+    .top-media-publisher-list {
+
+    grid-template-rows:
+      repeat(4, 23px) !important;
+
+    height: 92px !important;
+    min-height: 92px !important;
+    max-height: 92px !important;
+
+    padding-top: 0 !important;
+
+    overflow: hidden !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-overview-panel
+    .top-media-publisher-row:nth-child(-n + 4) {
+
+    display: grid !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-overview-panel
+    .top-media-publisher-row:nth-child(n + 5) {
+
+    display: none !important;
+  }
+
+
+  /*
+   * COVERAGE
+   *
+   * Scrolling belongs on the article inventory itself,
+   * not around the complete Media Pulse analytical surface.
+   */
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-coverage-panel {
+
+    grid-template-rows:
+      29px
+      280px
+      var(--top-row-cta-height) !important;
+
+    gap: 0 !important;
+
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    overflow: hidden !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-coverage-panel
+    .top-media-coverage-list {
+
+    min-height: 0 !important;
+
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+
+    overscroll-behavior: contain;
+
+    scrollbar-width: thin;
+  }
+
+
+  /*
+   * Compact telemetry in the Media Pulse header.
+   */
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    .top-media-header-metric {
+
+    min-height: 32px !important;
+
+    gap: 3px !important;
+
+    padding:
+      3px
+      5px !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    .top-media-header-metric
+    strong {
+
+    font-size: 13px !important;
+    line-height: 1 !important;
+  }
+
+  /*
+   * ========================================================
+   * FOOTER
+   *
+   * Supporting methodology metadata does not deserve three
+   * permanent Tier-3 HUD cells.
+   *
+   * Keep operational/data counts and utility controls.
+   * ========================================================
+   */
+
+  html.fr27-tier3-active
+    .fr27-zone-method-sub {
+
+    display: none !important;
+  }
+}
+/*
+ * ==========================================================
+ * NARROW MEDIA PULSE
+ *
+ * Same Tier-3 architecture.
+ * Supporting evidence becomes sequential below 600px.
+ * ==========================================================
+ */
+
+@media (width < 600px) {
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-overview-panel {
+
+    grid-template-rows:
+      143px
+      auto
+      var(--top-row-cta-height) !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-overview-panel
+    .top-media-shift-row:nth-child(-n + 4) {
+
+    grid-template-columns:
+      minmax(0, 1fr)
+      40px
+      minmax(52px, .85fr)
+      38px
+      56px !important;
+
+    gap: 4px !important;
+
+    padding-inline: 3px !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-overview-panel
+    .top-media-support-grid {
+
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    gap: 8px !important;
+
+    overflow: visible !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-overview-panel
+    .top-media-topic-list,
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-overview-panel
+    .top-media-publisher-list {
+
+    height: 92px !important;
+    min-height: 92px !important;
+    max-height: 92px !important;
+  }
+
+
+  html.fr27-tier3-active
+    .top-media-pulse
+    #top-media-coverage-panel {
+
+    grid-template-rows:
+      29px
+      300px
+      var(--top-row-cta-height) !important;
+  }
+}
