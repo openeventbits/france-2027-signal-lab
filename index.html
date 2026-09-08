@@ -1,24 +1,25 @@
 <!doctype html>
-<html lang="en" data-locale="en" data-site-root="./" data-i18n-document-title="page.france_2027_signal_lab_source_linked_election_signals">
+<html lang="fr" data-site-root="./" data-i18n-document-title="page.france_2027_signal_lab_source_linked_election_signals">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Source-linked polling, election news, candidate coverage and fact checks for France's 2027 presidential race. No averages, no forecast, no voting advice.">
+  <meta name="description" content="Sondages sourcés, actualité électorale, couverture des candidats et vérifications pour la présidentielle française de 2027. Aucune moyenne, aucune prévision, aucun conseil de vote.">
   <link rel="canonical" href="https://openeventbits.github.io/france-2027-signal-lab/">
   <meta name="theme-color" content="#050b14">
   <meta name="color-scheme" content="dark">
   <meta name="application-name" content="France 2027 Signal Lab">
-  <meta property="og:title" content="France 2027 Signal Lab — Source-Linked Election Signals">
-  <meta property="og:description" content="Source-linked polling, election news, candidate coverage and fact checks for France's 2027 presidential race. No averages, no forecast, no voting advice.">
+  <meta property="og:title" content="France 2027 Signal Lab — Signaux électoraux sourcés">
+  <meta property="og:description" content="Sondages sourcés, actualité électorale, couverture des candidats et vérifications pour la présidentielle française de 2027. Aucune moyenne, aucune prévision, aucun conseil de vote.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://openeventbits.github.io/france-2027-signal-lab/">
   <meta property="og:site_name" content="France 2027 Signal Lab">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="France 2027 Signal Lab — Source-Linked Election Signals">
-  <meta name="twitter:description" content="Source-linked polling, election news, candidate coverage and fact checks for France's 2027 presidential race. No averages, no forecast, no voting advice.">
+  <meta name="twitter:title" content="France 2027 Signal Lab — Signaux électoraux sourcés">
+  <meta name="twitter:description" content="Sondages sourcés, actualité électorale, couverture des candidats et vérifications pour la présidentielle française de 2027. Aucune moyenne, aucune prévision, aucun conseil de vote.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3QgeD0iMSIgeT0iMSIgd2lkdGg9IjMwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbD0iIzA3MTUyMiIvPjxwYXRoIGQ9Ik02IDE2QTEwIDEwIDAgMCAxIDE2IDZNMjYgMTZBMTAgMTAgMCAwIDEgMTYgMjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzI2OGNmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNMTAgMTZBNiA2IDAgMCAxIDE2IDEwTTIyIDE2QTYgNiAwIDAgMSAxNiAyMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzVkNWZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjIuNSIgZmlsbD0iIzM1ZDVmZiIvPjwvc3ZnPg==">
-  <title>France 2027 Signal Lab — Source-Linked Election Signals</title>
+  <title>France 2027 Signal Lab — Signaux électoraux sourcés</title>
     <script src="locales/en.js"></script>
+    <script src="locales/fr.js"></script>
     <script src="assets/localization.js"></script>
     <link rel="stylesheet" href="assets/fr27-ui.css">
     <script src="assets/fr27-ui.js"></script>
@@ -107,6 +108,23 @@
     .masthead-tools {
       display: flex; align-items: center; justify-content: flex-end; gap: 7px 12px; min-width: 0;
       color: var(--muted); font-size: 10px;
+    }
+    .masthead-language {
+      display: inline-flex; align-items: center; flex: 0 0 auto; gap: 2px;
+      min-height: 30px; padding: 2px 4px; border: 1px solid #23445d; border-radius: 4px;
+      background: rgba(7, 21, 34, .56);
+    }
+    .masthead-language a {
+      display: inline-grid; place-items: center; min-width: 28px; min-height: 24px; padding: 0 5px;
+      color: #839fb2; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-decoration: none;
+    }
+    .masthead-language-divider { color: #3f6075; }
+    .masthead-language a:hover { color: var(--text); text-decoration: none; }
+    .masthead-language a[aria-current="page"] {
+      color: var(--cyan); background: rgba(38, 140, 255, .14);
+    }
+    .masthead-language a:focus-visible {
+      outline: 2px solid var(--cyan); outline-offset: 1px;
     }
     .masthead-data { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 4px 12px; }
     .masthead-data span { white-space: nowrap; }
@@ -7506,6 +7524,11 @@
         </div>
       </div>
       <div class="masthead-tools">
+        <nav class="masthead-language" data-i18n-aria-label="common.interface_language" aria-label="Interface language">
+          <a href="./" data-fr27-language="fr" lang="fr" hreflang="fr" aria-label="Français">FR</a>
+          <span class="masthead-language-divider" aria-hidden="true">|</span>
+          <a href="?lang=en" data-fr27-language="en" lang="en" hreflang="en" aria-label="English">EN</a>
+        </nav>
         <div class="masthead-countdown" id="masthead-countdown" data-clock-target="first" data-i18n-aria-label="dashboard.first_round_election_countdown" aria-label="First-round election countdown" data-fr27-tooltip="Loading snapshot and evidence freshness" tabindex="0">
           <span class="masthead-countdown-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false">
@@ -7540,10 +7563,11 @@
             class="changes-ledger-summary"
             id="changes-ledger-summary"
             aria-live="polite"
-           aria-label="Loading source-linked updates"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:112px"></span></div>
+            data-i18n-aria-label="what_changed.loading_count"
+            aria-label="Loading source-linked update count"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:112px"></span></div>
         </div>
 
-<div class="what-changed-list" id="what-changed-list" aria-live="polite" aria-busy="true" aria-label="Loading source-linked dashboard changes">
+<div class="what-changed-list" id="what-changed-list" aria-live="polite" aria-busy="true" data-i18n-aria-label="what_changed.loading" aria-label="Loading source-linked dashboard changes">
           <div class="fr27-skeleton-region" aria-hidden="true"><div class="fr27-skeleton-briefing"><span class="fr27-skeleton-row"><span class="fr27-skeleton-block fr27-skeleton-source"></span><span class="fr27-skeleton-row-copy"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:88%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:46%;--fr27-skeleton-height:7px"></span></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block fr27-skeleton-source"></span><span class="fr27-skeleton-row-copy"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:74%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:52%;--fr27-skeleton-height:7px"></span></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block fr27-skeleton-source"></span><span class="fr27-skeleton-row-copy"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:82%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:38%;--fr27-skeleton-height:7px"></span></span></span></div></div>
         </div>
       </article>
@@ -7570,12 +7594,12 @@
         >
           <div class="race-event-controls">
             <div class="race-event" aria-live="polite">
-              <div class="race-event-title" id="latest-title" aria-label="Loading latest poll"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:160px;--fr27-skeleton-height:12px"></span></div>
+              <div class="race-event-title" id="latest-title" data-i18n-aria-label="race_glance.loading_latest_poll" aria-label="Loading latest poll"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:160px;--fr27-skeleton-height:12px"></span></div>
               <div class="race-event-detail" id="latest-sub"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:110px;--fr27-skeleton-height:7px"></span></div>
             </div>
 
             <div class="race-scenario-control">
-              <label class="hypothesis-label" for="hypothesis-select">SCENARIO</label>
+              <label class="hypothesis-label" for="hypothesis-select" data-i18n="race_glance.scenario">SCENARIO</label>
               <select
                 id="hypothesis-select"
                 disabled
@@ -7595,7 +7619,7 @@
               class="bars"
               id="bars"
               aria-live="polite"
-              aria-label="Reported candidate scores for the selected scenario. Scroll to view all candidates."
+              data-i18n-aria-label="race_glance.reported_scores_list" aria-label="Reported candidate scores for the selected scenario. Scroll to view all candidates."
               tabindex="0"
             ><div class="fr27-skeleton-region" role="status" aria-label="Loading candidate scores"><div class="fr27-skeleton-race" aria-hidden="true"><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span></div></div></div>
             <div
@@ -7627,17 +7651,17 @@
       >
         <div class="panel-head top-media-pulse-head">
           <div class="top-media-pulse-title-block">
-            <h2 id="top-media-pulse-title">
+            <h2 id="top-media-pulse-title" data-i18n="media_pulse.title">
               MEDIA PULSE
             </h2>
 
-            <p data-i18n="dashboard.30_day_activity_14_day_recent">30-day activity · 14-day recent</p>
+            <p data-i18n="media_pulse.subtitle">30-day activity · 14-day recent</p>
           </div>
           <div
             class="top-media-pulse-metrics"
             id="top-media-pulse-metrics"
             aria-live="polite"
-           aria-label="Loading media metrics"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:118px;--fr27-skeleton-height:18px"></span></div>
+           data-i18n-aria-label="media_pulse.loading_metrics" aria-label="Loading media metrics"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:118px;--fr27-skeleton-height:18px"></span></div>
         </div>
 
         <div
@@ -7645,7 +7669,7 @@
           id="top-media-pulse-content"
           aria-live="polite"
         >
-          <div class="fr27-skeleton-region" role="status" aria-label="Loading Media Pulse"><div class="fr27-skeleton-media" aria-hidden="true"><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span></div></div>
+          <div class="fr27-skeleton-region" role="status" data-i18n-aria-label="media_pulse.loading" aria-label="Loading Media Pulse"><div class="fr27-skeleton-media" aria-hidden="true"><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span></div></div>
         </div>
       </article>
     </section>
@@ -7676,7 +7700,7 @@
         <div class="context-copy">
           <div class="context-label" data-i18n="dashboard.latest_fieldwork">LATEST FIELDWORK</div>
           <div class="context-value" id="context-poll-value" aria-label="Loading latest fieldwork"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:112px;--fr27-skeleton-height:12px"></span></div>
-          <div class="context-meta" id="context-poll-meta" data-i18n="dashboard.loading" data-i18n-fr27-tooltip="dashboard.latest_fieldwork_explanation" data-fr27-tooltip="Maximum fieldwork end date across published first-round poll events; all pollsters tied on that date are shown." data-fr27-tooltip-affordance="term" tabindex="0">Loading…</div>
+          <div class="context-meta" id="context-poll-meta" data-i18n-fr27-tooltip="dashboard.latest_fieldwork_explanation" data-fr27-tooltip="Maximum fieldwork end date across published first-round poll events; all pollsters tied on that date are shown." data-fr27-tooltip-affordance="term" tabindex="0">Loading…</div>
         </div>
       </article>
 
@@ -8058,22 +8082,22 @@
 
               <div class="fr27-linear-publication-cell">
                 <strong id="fr27-hud-news-value" class="fr27-hud-metric-loading" aria-label="Loading accepted news count">—</strong>
-                <span>ACCEPTED NEWS</span>
+                <span data-i18n="media_pulse.metric.accepted_news">ACCEPTED NEWS</span>
               </div>
 
               <div class="fr27-linear-publication-cell">
                 <strong id="fr27-hud-publishers-value" class="fr27-hud-metric-loading" aria-label="Loading publisher count">—</strong>
-                <span class="fr27-hud-label-with-info" id="fr27-hud-publishers-info" data-fr27-tooltip="Distinct publishers represented in accepted election news during the current Media Pulse source window. This can be lower than DOMAINS because not every approved source contributes accepted election news in the window." data-fr27-tooltip-affordance="term" tabindex="0"><span>PUBLISHERS</span></span>
+                <span class="fr27-hud-label-with-info" id="fr27-hud-publishers-info" data-fr27-tooltip="Distinct publishers represented in accepted election news during the current Media Pulse source window. This can be lower than DOMAINS because not every approved source contributes accepted election news in the window." data-fr27-tooltip-affordance="term" tabindex="0"><span data-i18n="media_pulse.metric.publishers">PUBLISHERS</span></span>
               </div>
 
               <div class="fr27-linear-publication-cell">
                 <strong id="fr27-hud-recent-value" class="fr27-hud-metric-loading" aria-label="Loading recent news count">—</strong>
-                <span>RECENT 14D</span>
+                <span data-i18n="media_pulse.metric.recent_14d">RECENT 14D</span>
               </div>
 
               <div class="fr27-linear-publication-cell">
                 <strong id="fr27-hud-candidate-watch-value" class="fr27-hud-metric-loading" aria-label="Loading candidate-watch count">—</strong>
-                <span>CANDIDATE WATCH</span>
+                <span data-i18n="media_pulse.metric.candidate_watch">CANDIDATE WATCH</span>
               </div>
 
             </div>
@@ -8261,6 +8285,16 @@
       const localizer = globalThis.FR27I18N;
       return localizer && typeof localizer.t === "function"
         ? localizer.t(key, parameters)
+        : fallback;
+    };
+
+    const agendaTopicLabel = topic => {
+      const localizer = globalThis.FR27I18N;
+      const key = `agenda_topic.${String(topic?.id || "")}`;
+      const fallback = String(topic?.label || "");
+
+      return localizer && typeof localizer.t === "function"
+        ? localizer.t(key, null, fallback)
         : fallback;
     };
 
@@ -8784,17 +8818,22 @@
     function ledgerDateHeading(dateKey, anchorKey) {
       const difference = ledgerDateDifference(anchorKey, dateKey);
       const date = ledgerParseDate(dateKey);
+      const localeTag = globalThis.FR27I18N?.localeTag || "en-GB";
 
       const shortDate = date
-        ? new Intl.DateTimeFormat("en-GB", {
+        ? new Intl.DateTimeFormat(localeTag, {
             timeZone: "Europe/Paris",
             day: "numeric",
             month: "short"
           }).format(date).toUpperCase()
         : dateKey;
 
-      if (difference === 0) return "TODAY · " + shortDate;
-      if (difference === 1) return "YESTERDAY · " + shortDate;
+      if (difference === 0) {
+        return translate("what_changed.today", "TODAY") + " · " + shortDate;
+      }
+      if (difference === 1) {
+        return translate("what_changed.yesterday", "YESTERDAY") + " · " + shortDate;
+      }
 
       return shortDate;
     }
@@ -8802,12 +8841,15 @@
     function ledgerTimeLabel(entry) {
       if (entry.datePrecision !== "datetime") return "—";
 
-      return new Intl.DateTimeFormat("en-GB", {
+      return new Intl.DateTimeFormat(
+        globalThis.FR27I18N?.localeTag || "en-GB",
+        {
         timeZone: "Europe/Paris",
         hour: "2-digit",
         minute: "2-digit",
         hourCycle: "h23"
-      }).format(entry.date);
+        }
+      ).format(entry.date);
     }
 
     function ledgerSvgElement(tagName, attributes = {}, className = "") {
@@ -9003,6 +9045,168 @@
       return visual;
     }
 
+    function ledgerCategoryLabel(category) {
+      const definitions = {
+        campaign: ["what_changed.category.campaign", "CAMPAIGN"],
+        polling: ["what_changed.category.polling", "POLLING"],
+        runoff: ["what_changed.category.runoff", "RUNOFF"],
+        fact_check: ["what_changed.category.fact_check", "FACT CHECK"],
+        legal: ["what_changed.category.legal", "LEGAL"]
+      };
+      const definition = definitions[category];
+      return definition
+        ? translate(definition[0], definition[1])
+        : String(category || "");
+    }
+
+    function ledgerDateKindLabel(kind) {
+      const definitions = {
+        source_published: ["what_changed.meta.published", "Published"],
+        official_event: ["what_changed.meta.official_event", "Official event"],
+        first_seen: ["what_changed.meta.first_seen", "First seen"],
+        fieldwork_ended: ["what_changed.meta.fieldwork_ended", "Fieldwork ended"],
+        review_published: ["what_changed.meta.review_published", "Review published"],
+        ruling_or_decision: ["what_changed.meta.ruling_or_decision", "Ruling / decision"]
+      };
+      const definition = definitions[kind] || ["what_changed.meta.dated", "Dated"];
+      return translate(definition[0], definition[1]);
+    }
+
+    function ledgerCompactDate(value) {
+      const date = ledgerParseDate(value);
+      if (!date) return String(value || "");
+      return new Intl.DateTimeFormat(
+        globalThis.FR27I18N?.localeTag || "en-GB",
+        { timeZone: "Europe/Paris", day: "numeric", month: "short", year: "numeric" }
+      ).format(date);
+    }
+
+    function ledgerSupportingSourceNote(count) {
+      if (!Number.isInteger(count) || count < 1) return "";
+      return " · " + translate(
+        "what_changed.meta.supporting_sources",
+        "+{count} supporting {count, plural, one {source} other {sources}}",
+        { count }
+      );
+    }
+
+    function ledgerFactCheckEvidence(item) {
+      const reviews = dashboardState.claims?.reviews;
+      if (!Array.isArray(reviews)) return null;
+      return reviews.find(review =>
+        safeSourceUrl(review?.review_url) === safeSourceUrl(item.primary_source?.url)
+      ) || null;
+    }
+
+    function ledgerFrenchMetadata(item) {
+      const dateNote = ledgerDateKindLabel(item.trusted_change_date_kind);
+      const supportNote = ledgerSupportingSourceNote(item.supporting_source_count);
+
+      if (item.category === "campaign") {
+        return dateNote + " · " + translate(
+          "what_changed.meta.campaign_change",
+          "Candidate, endorsement, selection or campaign-status change"
+        ) + supportNote;
+      }
+
+      if (item.category === "legal") {
+        return dateNote + " · " + translate(
+          "what_changed.meta.legal_change",
+          "Presidential-election legal or procedural development"
+        ) + supportNote;
+      }
+
+      if (item.category === "fact_check") {
+        const review = ledgerFactCheckEvidence(item);
+        const evidence = [];
+        if (review?.rating) {
+          evidence.push(translate(
+            "what_changed.meta.rating",
+            "Rating: {value}",
+            { value: review.rating }
+          ));
+        }
+        if (review?.claimant) {
+          evidence.push(translate(
+            "what_changed.meta.claimant",
+            "Claimant: {value}",
+            { value: review.claimant }
+          ));
+        }
+        return [dateNote, ...evidence].join(" · ") + supportNote;
+      }
+
+      if (item.category === "polling") {
+        return dateNote + " " + ledgerCompactDate(item.trusted_change_at) + " · " +
+          translate("what_changed.meta.poll_wave", "First-round poll wave") + supportNote;
+      }
+
+      if (item.category === "runoff") {
+        return dateNote + " " + ledgerCompactDate(item.trusted_change_at) + " · " +
+          translate(
+            "what_changed.meta.runoff_evidence",
+            "Reported margins shown separately; no average"
+          ) + supportNote;
+      }
+
+      return dateNote + supportNote;
+    }
+
+    function ledgerEntryMetadata(item) {
+      if (globalThis.FR27I18N?.locale !== "fr") {
+        const dateNote = ledgerDateKindLabel(item.trusted_change_date_kind);
+        const supportNote = ledgerSupportingSourceNote(item.supporting_source_count);
+        return (['polling', 'runoff'].includes(item.category)
+          ? item.summary
+          : dateNote + " · " + item.summary) + supportNote;
+      }
+      return ledgerFrenchMetadata(item);
+    }
+
+    function ledgerEntryHeadline(item) {
+      if (globalThis.FR27I18N?.locale !== "fr") return item.headline;
+
+      if (item.category === "polling") {
+        const events = dashboardState.polls?.events;
+        const matching = Array.isArray(events)
+          ? events.filter(event =>
+              event?.pollster === item.primary_source?.name &&
+              safeSourceUrl(event.source_url) === safeSourceUrl(item.primary_source?.url) &&
+              (
+                event.fieldwork_end === item.trusted_change_at ||
+                event.publication_date === item.trusted_change_at
+              )
+            )
+          : [];
+        const poll = matching[0];
+        if (poll) {
+          return translate(
+            "what_changed.poll_headline",
+            "{pollster} · first round · fieldwork {start}–{end} · " +
+              "{count} {count, plural, one {hypothesis} other {hypotheses}}",
+            {
+              pollster: poll.pollster,
+              start: ledgerCompactDate(poll.fieldwork_start),
+              end: ledgerCompactDate(poll.fieldwork_end),
+              count: matching.length
+            }
+          );
+        }
+        return item.primary_source.name + " · " +
+          translate("what_changed.meta.poll_wave", "First-round poll wave");
+      }
+
+      if (item.category === "runoff") {
+        return translate(
+          "what_changed.runoff_headline",
+          "{matchup} is the closest tested runoff",
+          { matchup: item.candidate_names.join(" vs ") }
+        );
+      }
+
+      return item.headline;
+    }
+
     function deriveRecentChangeLedger() {
       const payload = dashboardState.recentChanges;
       if (!payload || !Array.isArray(payload.items)) {
@@ -9010,37 +9214,21 @@
           entries: [],
           anchorDate: null,
           anchorKey: "",
-          loading: dashboardState.loadState.recentChanges === "loading"
+          loading: dashboardState.loadState.recentChanges === "loading",
+          unavailable: dashboardState.loadState.recentChanges === "error"
         };
       }
-      const labels = {
-        campaign: "CAMPAIGN",
-        polling: "POLLING",
-        runoff: "RUNOFF",
-        fact_check: "FACT CHECK",
-        legal: "LEGAL"
-      };
       const entries = payload.items.flatMap(item => {
         const date = ledgerParseDate(item.trusted_change_at);
         const sourceUrl = safeSourceUrl(item.primary_source?.url);
-        if (!date || !sourceUrl || !labels[item.category]) return [];
-        const dateNote = {
-          source_published: "Published",
-          official_event: "Official event",
-          first_seen: "First seen",
-          fieldwork_ended: "Fieldwork ended",
-          review_published: "Review published",
-          ruling_or_decision: "Ruling / decision"
-        }[item.trusted_change_date_kind] || "Dated";
-        const supportNote = item.supporting_source_count
-          ? " · +" + item.supporting_source_count + " supporting " +
-            (item.supporting_source_count === 1 ? "source" : "sources")
-          : "";
+        if (!date || !sourceUrl || ![
+          "campaign", "polling", "runoff", "fact_check", "legal"
+        ].includes(item.category)) return [];
         return [{
           id: item.id,
           category: item.category,
-          categoryLabel: labels[item.category],
-          headline: item.headline,
+          categoryLabel: ledgerCategoryLabel(item.category),
+          headline: ledgerEntryHeadline(item),
           date,
           datePrecision:
             item.trusted_change_date_kind === "source_published" &&
@@ -9049,9 +9237,7 @@
           sourceName: item.primary_source.name,
           sourceUrl,
           sourceIconKey: item.source_icon_key,
-          meta: (["polling", "runoff"].includes(item.category)
-            ? item.summary
-            : dateNote + " · " + item.summary) + supportNote,
+          meta: ledgerEntryMetadata(item),
           candidates: Array.isArray(item.candidate_names)
             ? item.candidate_names : [],
           relatedDestination: item.related_destination
@@ -9063,7 +9249,8 @@
         entries,
         anchorDate,
         anchorKey: anchorDate ? ledgerParisDateKey(anchorDate) : "",
-        loading: false
+        loading: false,
+        unavailable: false
       };
     }
 
@@ -9112,17 +9299,20 @@
       source.href = entry.sourceUrl;
       source.target = "_blank";
       source.rel = "noopener noreferrer";
-      source.textContent = "Open source ↗";
-      const categoryLabelLower =
-        entry.categoryLabel.toLowerCase();
+      source.textContent = translate(
+        "what_changed.open_source",
+        "Open source ↗"
+      );
       source.setAttribute(
         "aria-label",
         translate(
           "dashboard.source.open_category_source_from_publisher",
-          "Open " + categoryLabelLower +
+          "Open " + ledgerCategoryLabel(entry.category).toLowerCase() +
             " source from " + entry.sourceName,
           {
-            categoryLabelLower,
+            category: ledgerCategoryLabel(entry.category).toLocaleLowerCase(
+              globalThis.FR27I18N?.localeTag || "en-GB"
+            ),
             sourceName: entry.sourceName
           }
         )
@@ -9143,11 +9333,11 @@
       const ledger = deriveRecentChangeLedger();
 
       const categories = [
-        { key: "all", label: "ALL", matches: () => true },
-        { key: "campaign", label: "CAMPAIGN", matches: entry => entry.category === "campaign" },
-        { key: "polling", label: "POLLS", matches: entry => entry.category === "polling" },
-        { key: "runoff", label: "RUNOFFS", matches: entry => entry.category === "runoff" },
-        { key: "checks", label: "CHECKS + LEGAL", matches: entry => ["fact_check", "legal"].includes(entry.category) }
+        { key: "all", label: translate("what_changed.filter.all", "ALL"), matches: () => true },
+        { key: "campaign", label: translate("what_changed.filter.campaign", "CAMPAIGN"), matches: entry => entry.category === "campaign" },
+        { key: "polling", label: translate("what_changed.filter.polling", "POLLS"), matches: entry => entry.category === "polling" },
+        { key: "runoff", label: translate("what_changed.filter.runoff", "RUNOFFS"), matches: entry => entry.category === "runoff" },
+        { key: "checks", label: translate("what_changed.filter.checks_legal", "CHECKS + LEGAL"), matches: entry => ["fact_check", "legal"].includes(entry.category) }
       ];
 
       const counts = Object.fromEntries(
@@ -9179,12 +9369,26 @@
 
       if (summary) {
         if (ledger.loading) {
-          renderInlineSkeleton(summary, "Loading source-linked update count", "112px", "9px");
+          renderInlineSkeleton(
+            summary,
+            translate("what_changed.loading_count", "Loading source-linked update count"),
+            "112px",
+            "9px"
+          );
+        } else if (ledger.unavailable) {
+          renderResolvedText(
+            summary,
+            translate("what_changed.unavailable", "Unavailable")
+          );
         } else {
-          renderResolvedText(summary,
-            counts.all +
-            (counts.all === 1 ? " CHANGE" : " CHANGES") +
-            " · LAST 14 DAYS");
+          renderResolvedText(
+            summary,
+            translate(
+              "what_changed.summary",
+              "{count} {count, plural, one {CHANGE} other {CHANGES}} · LAST 14 DAYS",
+              { count: counts.all }
+            )
+          );
         }
       }
 
@@ -9193,7 +9397,10 @@
 
       const toolbar = document.createElement("div");
       toolbar.className = "changes-ledger-toolbar";
-      toolbar.setAttribute("aria-label", "Filter recent updates");
+      toolbar.setAttribute(
+        "aria-label",
+        translate("what_changed.filter_updates", "Filter recent updates")
+      );
 
       categories.forEach(category => {
         const button = document.createElement("button");
@@ -9230,7 +9437,10 @@
       scroll.tabIndex = 0;
       scroll.setAttribute(
         "aria-label",
-        "Chronological source-linked updates"
+        translate(
+          "what_changed.chronological_updates",
+          "Chronological source-linked updates"
+        )
       );
 
       if (!filteredEntries.length) {
@@ -9238,23 +9448,33 @@
           scroll.appendChild(
             window.FR27UI.skeletonElement(
               "briefing",
-              "Loading source-linked dashboard changes"
+              translate(
+                "what_changed.loading",
+                "Loading source-linked dashboard changes"
+              )
             )
+          );
+        } else if (ledger.unavailable) {
+          appendBriefingText(
+            scroll,
+            "changes-ledger-empty",
+            translate("what_changed.unavailable", "Unavailable")
           );
         } else {
           appendBriefingText(
             scroll,
             "changes-ledger-empty",
-            "No " +
-              (
-                whatChangedLedgerFilter === "all"
+            translate(
+              "what_changed.no_recent_changes",
+              "No {category}update was identified in the last 14 days.",
+              {
+                category: whatChangedLedgerFilter === "all"
                   ? ""
                   : categories.find(
-                      category =>
-                        category.key === whatChangedLedgerFilter
+                      category => category.key === whatChangedLedgerFilter
                     ).label.toLowerCase() + " "
-              ) +
-              "update was identified in the last 14 days."
+              }
+            )
           );
         }
       } else {
@@ -9757,7 +9977,7 @@
                   data-agenda-topic="${escapeAttribute(topic.id)}"
                   aria-pressed="${String(active)}">
             <span class="campaign-agenda-topic-head">
-              <span class="campaign-agenda-topic-label">${escapeHtml(topic.label)}</span>
+              <span class="campaign-agenda-topic-label">${escapeHtml(agendaTopicLabel(topic))}</span>
             </span>
             <span class="campaign-agenda-topic-meta">${topic.source_day_count} source-days · ${topic.publisher_count} ${topic.publisher_count === 1 ? "publisher" : "publishers"}</span>
             <span class="campaign-agenda-track" aria-hidden="true"><span class="campaign-agenda-fill" style="width:${width}%"></span></span>
@@ -9777,7 +9997,7 @@
           </div>
           <div class="campaign-agenda-detail">
             <div class="campaign-agenda-detail-kicker">Selected coverage theme</div>
-            <h3>${escapeHtml(selected.label)}</h3>
+            <h3>${escapeHtml(agendaTopicLabel(selected))}</h3>
             <div class="campaign-agenda-metrics">
               <span class="campaign-agenda-metric">${selected.item_count} accepted ${selected.item_count === 1 ? "item" : "items"}</span>
               <span class="campaign-agenda-metric">${selected.source_day_count} source-days</span>
@@ -11567,18 +11787,91 @@
       return Math.max(40, Math.ceil(highestValue / 5) * 5);
     }
 
-    function compactRacePollDate(value) {
+    function racePollDate(value, options) {
       const timestamp = Date.parse(`${value}T00:00:00Z`);
 
       if (!Number.isFinite(timestamp)) {
         return String(value ?? "");
       }
 
-      return new Intl.DateTimeFormat("en-GB", {
+      const date = new Date(timestamp);
+      const dateOptions = {
+        ...options,
+        timeZone: "UTC"
+      };
+      const localizer = globalThis.FR27I18N;
+
+      return localizer && typeof localizer.formatDate === "function"
+        ? localizer.formatDate(date, dateOptions)
+        : new Intl.DateTimeFormat(
+            localizer?.localeTag || "en-GB",
+            dateOptions
+          ).format(date);
+    }
+
+    function compactRacePollDate(value) {
+      return racePollDate(value, {
+        day: "numeric",
+        month: "short"
+      });
+    }
+
+    function fullRacePollDate(value) {
+      return racePollDate(value, {
         day: "numeric",
         month: "short",
-        timeZone: "UTC"
-      }).format(new Date(timestamp));
+        year: "numeric"
+      });
+    }
+
+    function raceFieldworkRange(startValue, endValue) {
+      const start = new Date(`${startValue}T00:00:00Z`);
+      const end = new Date(`${endValue}T00:00:00Z`);
+
+      if (![start, end].every(date => Number.isFinite(date.getTime()))) {
+        return [startValue, endValue].filter(Boolean).join("–");
+      }
+
+      if (startValue === endValue) {
+        return fullRacePollDate(endValue);
+      }
+
+      const sameYear =
+        start.getUTCFullYear() === end.getUTCFullYear();
+      const sameMonth =
+        sameYear && start.getUTCMonth() === end.getUTCMonth();
+
+      if (sameMonth) {
+        return (
+          racePollDate(startValue, { day: "numeric" }) +
+          "–" +
+          fullRacePollDate(endValue)
+        );
+      }
+
+      if (sameYear) {
+        return (
+          compactRacePollDate(startValue) +
+          "–" +
+          fullRacePollDate(endValue)
+        );
+      }
+
+      return (
+        fullRacePollDate(startValue) +
+        "–" +
+        fullRacePollDate(endValue)
+      );
+    }
+
+    function racePollNumber(value) {
+      const localizer = globalThis.FR27I18N;
+
+      return localizer && typeof localizer.formatNumber === "function"
+        ? localizer.formatNumber(value)
+        : new Intl.NumberFormat(
+            localizer?.localeTag || "en-GB"
+          ).format(value);
     }
 
     function racePollTabLabel(pollPackage) {
@@ -11620,13 +11913,14 @@
       const letter = String.fromCharCode(65 + alphabetIndex);
       const candidateCount = event.candidates.length;
 
-      return (
-        "Scenario " +
-        letter +
-        " · " +
-        candidateCount +
-        " " +
-        (candidateCount === 1 ? "candidate" : "candidates")
+      return translate(
+        candidateCount === 1
+          ? "race_glance.scenario_one"
+          : "race_glance.scenario_other",
+        candidateCount === 1
+          ? "Scenario {letter} · {count} candidate"
+          : "Scenario {letter} · {count} candidates",
+        { letter, count: candidateCount }
       );
     }
 
@@ -11879,7 +12173,10 @@
       if (hasMultipleScenarios) {
         selector.removeAttribute("data-fr27-tooltip");
       } else {
-        selector.dataset.fr27Tooltip = "Only reported scenario in this poll event";
+        selector.dataset.fr27Tooltip = translate(
+          "race_glance.only_reported_scenario",
+          "Only reported scenario in this poll event"
+        );
       }
 
       staticLabel.hidden = true;
@@ -11915,21 +12212,55 @@
     }
 
     function formatRaceComparableChange(change) {
+      if (change.classification === "NO COMPARABLE PRIOR") {
+        return {
+          value: "—",
+          meta: translate(
+            "race_glance.no_prior_match",
+            "No prior match"
+          ),
+          tone: "is-missing"
+        };
+      }
+
       const formatted = formatComparableChange(change);
+      const detail = change.retained.length === 1
+        ? `${change.retained[0].gap}d · ${change.retained[0].current.pollster}`
+        : translate(
+            "race_glance.comparison_count",
+            "{gaps} · {count} comparisons",
+            {
+              gaps: [...new Set(
+                change.retained.map(comparison => comparison.gap)
+              )]
+                .sort((a, b) => a - b)
+                .map(gap => `${gap}d`)
+                .join(", "),
+              count: change.retained.length
+            }
+          );
 
       if (change.classification === "MIXED") {
         return {
           ...formatted,
-          value: "VARIES",
-          meta:
+          value: translate(
+            "race_glance.varies",
+            "VARIES"
+          ),
+          meta: translate(
+            "race_glance.direction_varies",
             "Direction varies across retained comparable scenarios " +
-            "from earlier poll events. " +
-            formatted.meta
+              "from earlier poll events. {detail}",
+            { detail }
+          )
         };
       }
 
       if (change.classification !== "SAME-DIRECTION RANGE") {
-        return formatted;
+        return {
+          ...formatted,
+          meta: detail
+        };
       }
 
       const magnitudes = change.deltas
@@ -11943,10 +12274,12 @@
           "–" +
           formatRaceComparableMagnitude(magnitudes.at(-1)) +
           " pts",
-        meta:
+        meta: translate(
+          "race_glance.range_comparison",
           "Range across retained comparable scenarios from earlier " +
-          "poll events. " +
-          formatted.meta
+            "poll events. {detail}",
+          { detail }
+        )
       };
     }
 
@@ -12006,8 +12339,15 @@
         );
 
         const changeAria = formattedChange.value === "—"
-          ? "No comparable prior result"
-          : "Comparable change " + formattedChange.value;
+          ? translate(
+              "race_glance.no_comparable_prior_result",
+              "No comparable prior result"
+            )
+          : translate(
+              "race_glance.comparable_change",
+              "Comparable change {value}",
+              { value: formattedChange.value }
+            );
 
         const changeGlyph =
           formattedChange.tone === "is-positive"
@@ -12018,11 +12358,24 @@
                   formattedChange.value !== "—"
                 ? "\u2248 "
                 : "";
+        const changeDetail = formattedChange.meta === changeAria
+          ? changeAria
+          : changeAria + ". " + formattedChange.meta;
 
         return `
           <article
             class="bar-row"
-            aria-label="${escapeAttribute(candidate.name)}, reported score ${escapeAttribute(formatScore(candidate.score))}. ${escapeAttribute(changeAria)}."
+            aria-label="${escapeAttribute(
+              translate(
+                "race_glance.candidate_result",
+                "{name}, reported score {score}. {comparison}.",
+                {
+                  name: candidate.name,
+                  score: formatScore(candidate.score),
+                  comparison: changeAria
+                }
+              )
+            )}"
           >
             <div class="race-candidate">
               ${raceCandidateMarker(candidate.name)}
@@ -12044,7 +12397,7 @@
               class="race-change ${formattedChange.tone}"
               data-fr27-tooltip="${escapeAttribute(formattedChange.meta)}"
               tabindex="0"
-              aria-label="${escapeAttribute(changeAria + ". " + formattedChange.meta)}"
+              aria-label="${escapeAttribute(changeDetail)}"
             >
               <strong>${escapeHtml(changeGlyph + formattedChange.value)}</strong>
             </div>
@@ -12059,9 +12412,24 @@
 
       bars.innerHTML = `
         <div class="race-column-head">
-          <span class="race-column-head-candidate">Candidate</span>
-          <span class="race-column-head-bar">Reported score</span>
-          <span class="race-column-head-result">Result</span>
+          <span class="race-column-head-candidate">${escapeHtml(
+            translate(
+              "race_glance.column_candidate",
+              "CANDIDATE"
+            )
+          )}</span>
+          <span class="race-column-head-bar">${escapeHtml(
+            translate(
+              "race_glance.column_reported_score",
+              "REPORTED SCORE"
+            )
+          )}</span>
+          <span class="race-column-head-result">${escapeHtml(
+            translate(
+              "race_glance.column_result",
+              "RESULT"
+            )
+          )}</span>
           <span
             class="race-column-head-change"
             data-fr27-tooltip="${escapeAttribute(comparisonExplanation)}"
@@ -12072,10 +12440,15 @@
         ${rows}
       `;
 
-      $("#race-more").textContent =
-        `All ${ordered.length} reported ${
-          ordered.length === 1 ? "candidate is" : "candidates are"
-        } available in the scrollable list.`;
+      $("#race-more").textContent = translate(
+        ordered.length === 1
+          ? "race_glance.reported_candidate_one"
+          : "race_glance.reported_candidate_other",
+        ordered.length === 1
+          ? "All {count} reported candidate is available in the scrollable list."
+          : "All {count} reported candidates are available in the scrollable list.",
+        { count: ordered.length }
+      );
 
       requestAnimationFrame(updateRaceScrollFade);
     }
@@ -12106,17 +12479,23 @@
 
     function renderMeta(event) {
       const sample = event.sample_size
-        ? event.sample_size.toLocaleString("en-GB")
-        : "not stated";
+        ? racePollNumber(event.sample_size)
+        : translate(
+            "race_glance.not_stated",
+            "not stated"
+          );
 
       const publication = event.publication_date
-        ? formatDate(event.publication_date)
-        : "not stated in dataset";
+        ? fullRacePollDate(event.publication_date)
+        : translate(
+            "race_glance.not_stated_in_dataset",
+            "not stated in dataset"
+          );
 
-      const fieldwork =
-        formatDate(event.fieldwork_start) +
-        "–" +
-        formatDate(event.fieldwork_end);
+      const fieldwork = raceFieldworkRange(
+        event.fieldwork_start,
+        event.fieldwork_end
+      );
 
       const officialSource = safeSourceUrl(
         event.official_source_url
@@ -12126,27 +12505,54 @@
         officialSource ||
         safeSourceUrl(event.source_url);
 
-      $("#latest-title").textContent =
-        event.pollster + " · Fieldwork " + fieldwork;
+      const fieldworkSummary = translate(
+        "race_glance.fieldwork",
+        "Fieldwork {fieldwork}",
+        { fieldwork }
+      );
+      const latestTitle = $("#latest-title");
+
+      latestTitle.textContent =
+        event.pollster + " · " + fieldworkSummary;
+      latestTitle.setAttribute(
+        "aria-label",
+        translate(
+          "race_glance.poll_summary_aria",
+          "{pollster}. Fieldwork {fieldwork}.",
+          {
+            pollster: event.pollster,
+            fieldwork
+          }
+        )
+      );
 
       const comparisonUnavailable =
-        $("#race-poll-panel").classList.contains(
-          "is-no-comparison"
-        );
+        $("#race-poll-panel").dataset.comparisonState ===
+        "unavailable";
 
       const partialDisclosure = pollPartialDisclosure(event);
 
       $("#latest-sub").textContent =
-        "Sample " +
-        sample +
+        translate(
+          "race_glance.sample_value",
+          "Sample {sample}",
+          { sample }
+        ) +
         (
           event.publication_date
-            ? " · Published " + publication
+            ? " · " + translate(
+                "race_glance.published_value",
+                "Published {date}",
+                { date: publication }
+              )
             : ""
         ) +
         (
           comparisonUnavailable
-            ? " · No comparable prior event"
+            ? " · " + translate(
+                "race_glance.no_comparable_prior_event",
+                "No comparable prior event"
+              )
             : ""
         ) +
         (partialDisclosure ? " · " + partialDisclosure : "");
@@ -12155,20 +12561,28 @@
 
       sourceLink.hidden = !source;
       sourceLink.textContent = officialSource
-        ? "View official poll ↗"
-        : "View full results ↗";
+        ? translate(
+            "race_glance.view_official_poll",
+            "View official poll ↗"
+          )
+        : translate(
+            "race_glance.view_full_results",
+            "View full results ↗"
+          );
 
       if (source) {
         sourceLink.href = source;
         sourceLink.setAttribute(
           "aria-label",
-          (
+          translate(
             officialSource
-              ? "View official "
-              : "View full "
-          ) +
-            event.pollster +
-            " poll results in a new tab"
+              ? "race_glance.view_official_poll_aria"
+              : "race_glance.view_full_results_aria",
+            officialSource
+              ? "View official {pollster} poll results in a new tab"
+              : "View full {pollster} poll results in a new tab",
+            { pollster: event.pollster }
+          )
         );
       } else {
         sourceLink.removeAttribute("href");
@@ -12176,26 +12590,38 @@
       }
 
       $("#meta").innerHTML =
-        "<div>Pollster: <b>" +
+        "<div>" +
+        escapeHtml(translate("race_glance.pollster", "Pollster")) +
+        ": <b>" +
         escapeHtml(event.pollster) +
         "</b></div>" +
-        "<div>Sample: <b>" +
+        "<div>" +
+        escapeHtml(translate("race_glance.sample", "Sample")) +
+        ": <b>" +
         escapeHtml(sample) +
         "</b></div>" +
-        "<div>Fieldwork: <b>" +
+        "<div>" +
+        escapeHtml(translate("race_glance.fieldwork_label", "Fieldwork")) +
+        ": <b>" +
         escapeHtml(fieldwork) +
         "</b></div>" +
-        "<div>Published: <b>" +
+        "<div>" +
+        escapeHtml(translate("race_glance.published", "Published")) +
+        ": <b>" +
         escapeHtml(publication) +
         "</b></div>" +
         (
           partialDisclosure
-            ? '<div class="wide">Coverage: <b>' +
+            ? '<div class="wide">' +
+              escapeHtml(translate("race_glance.coverage", "Coverage")) +
+              ": <b>" +
               escapeHtml(partialDisclosure) +
               "</b></div>"
             : ""
         ) +
-        '<div class="wide">Hypothesis: <b>' +
+        '<div class="wide">' +
+        escapeHtml(translate("race_glance.hypothesis", "Hypothesis")) +
+        ": <b>" +
         escapeHtml(event.hypothesis) +
         "</b></div>" +
         '<div class="wide">' +
@@ -12203,8 +12629,15 @@
           source
             ? '<a href="' +
               escapeAttribute(source) +
-              '" target="_blank" rel="noopener noreferrer">Open source ↗</a>'
-            : "Source unavailable"
+              '" target="_blank" rel="noopener noreferrer">' +
+              escapeHtml(translate("race_glance.open_source", "Open source ↗")) +
+              "</a>"
+            : escapeHtml(
+                translate(
+                  "race_glance.source_unavailable",
+                  "Source unavailable"
+                )
+              )
         ) +
         "</div>";
     }
@@ -13044,9 +13477,14 @@
         tablist.replaceChildren();
         tablist.setAttribute("aria-busy", "false");
 
-        $("#latest-title").textContent = "Polling unavailable";
-        $("#latest-sub").textContent =
-          "Latest first-round events could not be loaded.";
+        $("#latest-title").textContent = translate(
+          "dashboard.polling_unavailable",
+          "Polling unavailable"
+        );
+        $("#latest-sub").textContent = translate(
+          "dashboard.latest_first_round_events_could_not_be_loaded",
+          "Latest first-round events could not be loaded."
+        );
 
         const selector = $("#hypothesis-select");
         selector.disabled = true;
@@ -13058,7 +13496,12 @@
 
         $("#bars").innerHTML =
           '<div class="error">' +
-          escapeHtml(error.message) +
+          escapeHtml(
+            translate(
+              "dashboard.poll_data_unavailable",
+              "Poll data unavailable"
+            )
+          ) +
           "</div>";
 
         $("#meta").replaceChildren();
@@ -13452,71 +13895,33 @@
   }
 
   /*
-   * Exact-label metric lookup for compact Media Pulse summary values.
-   * This deliberately avoids headings such as "TOP PUBLISHERS".
+   * Stable-key lookup for compact Media Pulse summary values.
+   * This remains independent of the rendered locale label.
    */
-  function fr27HudExtractExactMetric(labelTexts) {
-    const targets =
-      (Array.isArray(labelTexts) ? labelTexts : [labelTexts])
-        .map(function (value) {
-          return String(value || "")
-            .replace(/\s+/g, " ")
-            .trim()
-            .toLowerCase();
-        });
-
-    const candidates =
+  function fr27HudExtractExactMetric(metricKey) {
+    const metrics =
       Array.from(
         document.querySelectorAll(
-          "#top-media-pulse-metrics *"
+          "#top-media-pulse-metrics [data-media-pulse-metric]"
         )
       );
 
-    for (const target of targets) {
-      const labels =
-        candidates.filter(function (node) {
-          if (hud.contains(node)) return false;
+    const metric =
+      metrics.find(function (node) {
+        return (
+          !hud.contains(node) &&
+          node.getAttribute("data-media-pulse-metric") ===
+            metricKey
+        );
+      });
 
-          const value =
-            String(node.textContent || "")
-              .replace(/\u00a0/g, " ")
-              .replace(/\s+/g, " ")
-              .trim()
-              .toLowerCase();
+    if (!metric) return null;
 
-          return value === target;
-        });
+    const valueNode = metric.querySelector("strong");
+    const digits = String(valueNode?.textContent || "")
+      .replace(/[^\d]/g, "");
 
-      for (const node of labels) {
-        let current = node.parentElement;
-
-        for (
-          let depth = 0;
-          depth < 3 && current;
-          depth += 1
-        ) {
-          const value =
-            String(current.textContent || "")
-              .replace(/\u00a0/g, " ")
-              .replace(/\s+/g, " ")
-              .trim();
-
-          const number =
-            value.match(/\b\d[\d\s,.]*\b/);
-
-          if (number) {
-            const digits =
-              number[0].replace(/[^\d]/g, "");
-
-            if (digits) return digits;
-          }
-
-          current = current.parentElement;
-        }
-      }
-    }
-
-    return null;
+    return digits || null;
   }
 
   function fr27HudRefreshMetrics() {
@@ -13542,7 +13947,7 @@
 
     const news =
       fr27HudExtractExactMetric(
-        ["accepted news"]
+        "media_pulse.metric.accepted_news"
       ) ||
       fr27HudExtractMetric(
         "accepted news"
@@ -13554,12 +13959,12 @@
      */
     const publishers =
       fr27HudExtractExactMetric(
-        ["publishers"]
+        "media_pulse.metric.publishers"
       );
 
     const recent =
       fr27HudExtractExactMetric(
-        ["recent 14d", "recent (14d)"]
+        "media_pulse.metric.recent_14d"
       ) ||
       fr27HudExtractMetric(
         "recent 14d"
@@ -13567,7 +13972,7 @@
 
     const candidateWatch =
       fr27HudExtractExactMetric(
-        ["candidate-watch", "candidate watch"]
+        "media_pulse.metric.candidate_watch"
       ) ||
       fr27HudExtractMetric(
         "candidate-watch"

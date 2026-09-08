@@ -6,9 +6,21 @@
     const localizer = globalThis.FR27I18N;
 
     return localizer && typeof localizer.t === "function"
-      ? localizer.t(key, parameters)
+      ? localizer.t(key, parameters, fallback)
       : fallback;
   };
+
+  const agendaTopicLabel = topic =>
+    translate(
+      `agenda_topic.${String(topic?.id || "")}`,
+      String(topic?.label || "")
+    );
+
+  const compactAgendaTopicLabel = topic =>
+    translate(
+      `agenda_topic_short.${String(topic?.id || "")}`,
+      agendaTopicLabel(topic)
+    );
 
   const renderStrongDateOrUnavailable = (
     value,
@@ -565,19 +577,39 @@
     const end = parseKey(endKey);
 
     if (!start || !end || start > end) {
-      return "DATE UNAVAILABLE";
+      return translate(
+        "media_pulse.date_unavailable",
+        "DATE UNAVAILABLE"
+      );
     }
 
-    const months = [
+    const localeTag =
+      globalThis.FR27I18N?.localeTag || "en-GB";
+
+    const englishMonths = [
       "JAN", "FEB", "MAR", "APR",
       "MAY", "JUN", "JUL", "AUG",
       "SEP", "OCT", "NOV", "DEC"
     ];
 
+    const monthLabel = date =>
+      localeTag === "en-GB"
+        ? englishMonths[date.getUTCMonth()]
+        : new Intl.DateTimeFormat(
+            localeTag,
+            {
+              month: "short",
+              timeZone: "UTC"
+            }
+          )
+            .format(date)
+            .replace(/\.$/, "")
+            .toLocaleUpperCase(localeTag);
+
     const startDay = start.getUTCDate();
     const endDay = end.getUTCDate();
-    const startMonth = months[start.getUTCMonth()];
-    const endMonth = months[end.getUTCMonth()];
+    const startMonth = monthLabel(start);
+    const endMonth = monthLabel(end);
     const startYear = start.getUTCFullYear();
     const endYear = end.getUTCFullYear();
 
@@ -1122,7 +1154,10 @@
           name: row.candidate_name,
           status: row.status,
           tier: row.tier,
-          tierLabel: row.tier.toUpperCase(),
+          tierLabel:
+            row.tier === "main"
+              ? translate("media_pulse.tier_main", "MAIN")
+              : translate("media_pulse.tier_secondary", "SECONDARY"),
           latestCount: row.current_record_count,
           previousCount: row.prior_record_count,
           latestShare,
@@ -1767,33 +1802,6 @@
     return seenEvolutionIds.size === baseById.size;
   }
 
-
-  function policyIssueShortLabel(topic) {
-    const labels = {
-      economy_public_finances:
-        "Economy & finances",
-      work_purchasing_power_pensions:
-        "Work & pensions",
-      immigration_identity_secularism:
-        "Immigration & identity",
-      security_justice:
-        "Security & justice",
-      health_education_public_services:
-        "Health & education",
-      climate_energy_agriculture:
-        "Climate & energy",
-      europe_defence_foreign_affairs:
-        "Europe & defence",
-      institutions_democracy_territories:
-        "Institutions & territories"
-    };
-
-    return (
-      labels[topic?.id] ||
-      topic?.label ||
-      "Issue"
-    );
-  }
 
   function policyIssueCode(topic) {
     const labels = {
@@ -3456,7 +3464,7 @@
       <span class="hybrid-ranking">
         ${model.eligibleTopics.slice(0, 3).map(topic => `
           <span class="hybrid-topic-summary-row">
-            <span>${escapeHtml(topic.label)}</span>
+            <span>${escapeHtml(agendaTopicLabel(topic))}</span>
             <span class="hybrid-track" aria-hidden="true"><span class="hybrid-fill" style="--hybrid-width:${(number(topic.source_day_count) / model.maxSourceDays * 100).toFixed(1)}%"></span></span>
             <span class="hybrid-topic-count">${topic.source_day_count} source-days</span>
           </span>
@@ -4040,6 +4048,10 @@
                       "item"
                     )}`
                   : "";
+              const topicLabel =
+                agendaTopicLabel(topic);
+              const compactTopicLabel =
+                compactAgendaTopicLabel(topic);
 
               return `
                 <button
@@ -4047,7 +4059,7 @@
                   type="button"
                   data-hybrid-media-topic="${escapeAttribute(topic.id)}"
                   aria-label="${escapeAttribute(
-                    `${topic.label}: rank ${index + 1}; ${sourceDaysAccessible}; ${publishersAccessible}${itemContext}. Open Campaign Agenda detail.`
+                    `${topicLabel}: rank ${index + 1}; ${sourceDaysAccessible}; ${publishersAccessible}${itemContext}. Open Campaign Agenda detail.`
                   )}"
                 >
                   <span
@@ -4056,7 +4068,7 @@
                   >${String(index + 1).padStart(2, "0")}</span>
 
                   <span class="hybrid-topic-matrix-label">
-                    ${escapeHtml(topic.label)}
+                    ${escapeHtml(compactTopicLabel)}
                   </span>
 
                   <strong class="hybrid-topic-matrix-days">
@@ -4296,7 +4308,7 @@
             aria-pressed="${String(topic.id === selected.id)}"
           >
             <span class="hybrid-agenda-topic-head">
-              <span>${index + 1}. ${escapeHtml(topic.label)}</span>
+              <span>${index + 1}. ${escapeHtml(agendaTopicLabel(topic))}</span>
               <strong>${topic.source_day_count} source-days</strong>
             </span>
 
@@ -4322,7 +4334,7 @@
 
       <section class="hybrid-agenda-detail" aria-live="polite">
         <div class="hybrid-section-title">Selected recurring topic</div>
-        <h3>${escapeHtml(selected.label)}</h3>
+        <h3>${escapeHtml(agendaTopicLabel(selected))}</h3>
 
         <p class="hybrid-agenda-definition${definitionAvailable ? "" : " is-unavailable"}">
           ${escapeHtml(definition)}
@@ -4442,7 +4454,7 @@
         </span>
 
         <span class="hybrid-agenda-v6-topic-copy">
-          <span class="hybrid-agenda-v6-topic-name">${escapeHtml(topic.label)}</span>
+          <span class="hybrid-agenda-v6-topic-name">${escapeHtml(agendaTopicLabel(topic))}</span>
           <span class="hybrid-agenda-v6-topic-tags">
             <span
               class="hybrid-agenda-v6-badge"
@@ -4509,13 +4521,6 @@
 
   function renderAgendaV6Matrix(model) {
     const selected = model.selectedEvolutionTopic;
-    const compactLabels = {
-      "Primaries & party strategy": "Primaries & strategy",
-      "Candidacies & endorsements": "Candidacies & endors.",
-      "Legal cases & eligibility": "Legal & eligibility",
-      "Polling & race narratives": "Polling & race",
-      "Rules, calendar & campaign mechanics": "Rules & mechanics"
-    };
 
     const periodHeaders = model.evolutionBins.map(bin => `
       <span class="hybrid-agenda-v6-period">
@@ -4527,14 +4532,15 @@
       const daily = Array.isArray(topic.daily_activity)
         ? topic.daily_activity
         : [];
-      const shortLabel = compactLabels[topic.label] || topic.label;
+      const shortLabel = compactAgendaTopicLabel(topic);
+      const topicLabel = agendaTopicLabel(topic);
 
       return `<button
         class="hybrid-agenda-v6-matrix-row"
         type="button"
         data-hybrid-agenda-topic="${escapeAttribute(topic.id)}"
         aria-pressed="${String(topic.id === selected?.id)}"
-        data-fr27-tooltip="${escapeAttribute(topic.label)}"
+        data-fr27-tooltip="${escapeAttribute(topicLabel)}"
       >
         <span class="hybrid-agenda-v6-matrix-label">${escapeHtml(shortLabel)}</span>
 
@@ -4587,14 +4593,6 @@
   }
 
   function renderAgendaV6WeekShift(model) {
-    const compactLabels = {
-      "Primaries & party strategy": "Primaries & strategy",
-      "Candidacies & endorsements": "Candidacies & endors.",
-      "Legal cases & eligibility": "Legal & eligibility",
-      "Polling & race narratives": "Polling & race",
-      "Rules, calendar & campaign mechanics": "Rules & mechanics"
-    };
-
     const maximum = Math.max(
       1,
       ...model.evolutionTopics.flatMap(topic => [
@@ -4612,13 +4610,17 @@
         : movement === "fading"
           ? "▼"
           : "•";
-      const shortLabel = compactLabels[topic.label] || topic.label;
+      const shortLabel = compactAgendaTopicLabel(topic);
+      const topicLabel = agendaTopicLabel(topic);
 
       return `<div
         class="hybrid-agenda-v6-shift-row"
         data-movement="${escapeAttribute(movement)}"
       >
-        <span class="hybrid-agenda-v6-shift-label">${escapeHtml(shortLabel)}</span>
+        <span
+          class="hybrid-agenda-v6-shift-label"
+          aria-label="${escapeAttribute(topicLabel)}"
+        >${escapeHtml(shortLabel)}</span>
 
         <span
           class="hybrid-agenda-v6-pair-bars"
@@ -5091,7 +5093,7 @@
             <span class="hybrid-agenda-v6-kicker">SELECTED RECURRING TOPIC</span>
 
             <div class="hybrid-agenda-v6-title-line">
-              <h4>${escapeHtml(topic.label)}</h4>
+              <h4>${escapeHtml(agendaTopicLabel(topic))}</h4>
 
               <span
                 class="hybrid-agenda-v6-badge"
@@ -5238,7 +5240,6 @@
               topic.movement ||
               "STABLE"
             ).toLowerCase();
-
           const glyph =
             movement === "rising"
               ? "▲"
@@ -5272,7 +5273,7 @@
 
             <span class="hybrid-agenda-v6-topic-copy">
               <span class="hybrid-agenda-v6-topic-name">
-                ${escapeHtml(topic.label)}
+                ${escapeHtml(agendaTopicLabel(topic))}
               </span>
 
               <span class="hybrid-agenda-v6-topic-tags">
@@ -5415,11 +5416,11 @@
             type="button"
             data-hybrid-policy-issue="${escapeAttribute(topic.id)}"
             aria-pressed="${String(topic.id === model.selectedIssue?.id)}"
-            data-fr27-tooltip="${escapeAttribute(topic.label)}"
+            data-fr27-tooltip="${escapeAttribute(agendaTopicLabel(topic))}"
           >
             <span class="hybrid-agenda-v6-matrix-label">
               ${escapeHtml(
-                policyIssueShortLabel(topic)
+                compactAgendaTopicLabel(topic)
               )}
             </span>
 
@@ -5535,14 +5536,19 @@
               : movement === "fading"
                 ? "▼"
                 : "•";
+          const topicLabel =
+            agendaTopicLabel(topic);
 
           return `<div
             class="hybrid-agenda-v6-shift-row"
             data-movement="${escapeAttribute(movement)}"
           >
-            <span class="hybrid-agenda-v6-shift-label">
+            <span
+              class="hybrid-agenda-v6-shift-label"
+              aria-label="${escapeAttribute(topicLabel)}"
+            >
               ${escapeHtml(
-                policyIssueShortLabel(topic)
+                compactAgendaTopicLabel(topic)
               )}
             </span>
 
@@ -5806,7 +5812,7 @@
 
             <div class="hybrid-agenda-v6-title-line">
               <h4>
-                ${escapeHtml(topic.label)}
+                ${escapeHtml(agendaTopicLabel(topic))}
               </h4>
 
               <span
@@ -7704,23 +7710,53 @@
       model.comparisonQuality?.reason || "";
     const reasonLabel =
       reason === "publisher_panel_changed"
-        ? "publisher panel changed"
+        ? translate(
+            "media_pulse.comparison.publisher_panel_changed",
+            "publisher panel changed"
+          )
         : reason === "insufficient_data"
-          ? "insufficient data"
-          : "comparison unavailable";
+          ? translate(
+              "media_pulse.comparison.insufficient_data",
+              "insufficient data"
+            )
+          : translate(
+              "media_pulse.comparison.comparison_unavailable",
+              "comparison unavailable"
+            );
 
     return {
       available,
       label: available
-        ? "Δ pp"
+        ? translate(
+            "media_pulse.comparison.delta_pp",
+            "Δ pp"
+          )
         : model.candidateCoverageAvailable
-          ? "RAW Δ pp"
-          : "UNAVAILABLE",
+          ? translate(
+              "media_pulse.comparison.raw_delta_pp",
+              "RAW Δ pp"
+            )
+          : translate(
+              "media_pulse.comparison.unavailable",
+              "UNAVAILABLE"
+            ),
       explanation: available
-        ? "Comparable change in active-field mention rate, in percentage points."
+        ? translate(
+            "media_pulse.comparison.comparable_explanation",
+            "Comparable change in active-field mention rate, in percentage points."
+          )
         : model.candidateCoverageAvailable
-          ? `Raw arithmetic current-minus-prior mention-rate differences are displayed because comparison quality is not comparable; reason: ${reason || "unknown"}. These values are descriptive and are not comparable trend estimates.`
-          : "Active-field mention-rate comparison unavailable."
+          ? translate(
+              "media_pulse.comparison.raw_explanation",
+              `Raw arithmetic current-minus-prior mention-rate differences are displayed because comparison quality is not comparable; reason: ${reasonLabel}. These values are descriptive and are not comparable trend estimates.`,
+              {
+                reason: reasonLabel
+              }
+            )
+          : translate(
+              "media_pulse.comparison.unavailable_explanation",
+              "Active-field mention-rate comparison unavailable."
+            )
     };
   }
 
@@ -7757,7 +7793,7 @@
       if (model.state === "loading" && window.FR27UI) {
         return window.FR27UI.skeletonElement(
           "media",
-          "Loading Media Pulse"
+          translate("media_pulse.loading", "Loading Media Pulse")
         ).outerHTML;
       }
       return summaryState(model);
@@ -7767,11 +7803,14 @@
       const parsed = new Date(value);
 
       if (!Number.isFinite(parsed.getTime())) {
-        return "Date unavailable";
+        return translate(
+          "media_pulse.date_unavailable",
+          "Date unavailable"
+        );
       }
 
       return new Intl.DateTimeFormat(
-        "en-GB",
+        globalThis.FR27I18N?.localeTag || "en-GB",
         {
           day: "2-digit",
           month: "short",
@@ -7822,7 +7861,7 @@
             >${escapeHtml(item.headline)}</span>
 
             <span class="top-media-source-link">
-              Open source ↗
+              ${escapeHtml(translate("media_pulse.open_source", "Open source ↗"))}
             </span>
           </span>
         </a>
@@ -7890,7 +7929,7 @@
             const deltaText =
               displayedDelta === null
                 ? "—"
-                : `${displayedDelta > 0 ? "+" : ""}${formatMediaShare(displayedDelta)}pp`;
+                : `${displayedDelta > 0 ? "+" : ""}${formatMediaShare(displayedDelta)}${translate("media_pulse.delta_unit", "pp")}`;
             const currentWidth = Math.min(
               100,
               number(item.latestShare) / maxCombinedShare * 100
@@ -7910,10 +7949,39 @@
                 aria-expanded="false"
                 aria-label="${escapeAttribute(
                   deltaAvailable
-                    ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent mention rate among active-field-linked race records in the current period, ${previousShareText} percent in the prior period, comparable change ${deltaText}`
+                    ? translate(
+                        "media_pulse.candidate_row_comparable",
+                        `${item.name}, ${item.tierLabel}: current active-field share ${latestShareText === "—" ? "—" : `${latestShareText}%`}; prior active-field share ${previousShareText === "—" ? "—" : `${previousShareText}%`}; comparable change ${deltaText}.`,
+                        {
+                          name: item.name,
+                          tier: item.tierLabel,
+                          current: latestShareText === "—" ? "—" : `${latestShareText}%`,
+                          prior: previousShareText === "—" ? "—" : `${previousShareText}%`,
+                          delta: deltaText
+                        }
+                      )
                     : rawDeltaAvailable
-                      ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent mention rate among active-field-linked race records in the current period, ${previousShareText} percent in the prior period, raw arithmetic difference ${deltaText}. Publisher panels changed, so this is not a comparable trend estimate.`
-                      : `${item.name}, ${item.tierLabel}: ${latestShareText} percent mention rate among active-field-linked race records in the current period, ${previousShareText} percent in the prior period.`
+                      ? translate(
+                          "media_pulse.candidate_row_raw",
+                          `${item.name}, ${item.tierLabel}: current active-field share ${latestShareText === "—" ? "—" : `${latestShareText}%`}; prior active-field share ${previousShareText === "—" ? "—" : `${previousShareText}%`}; raw arithmetic difference ${deltaText}. Publisher panels changed, so this is not a comparable trend estimate.`,
+                          {
+                            name: item.name,
+                            tier: item.tierLabel,
+                            current: latestShareText === "—" ? "—" : `${latestShareText}%`,
+                            prior: previousShareText === "—" ? "—" : `${previousShareText}%`,
+                            delta: deltaText
+                          }
+                        )
+                      : translate(
+                          "media_pulse.candidate_row_no_delta",
+                          `${item.name}, ${item.tierLabel}: current active-field share ${latestShareText === "—" ? "—" : `${latestShareText}%`}; prior active-field share ${previousShareText === "—" ? "—" : `${previousShareText}%`}.`,
+                          {
+                            name: item.name,
+                            tier: item.tierLabel,
+                            current: latestShareText === "—" ? "—" : `${latestShareText}%`,
+                            prior: previousShareText === "—" ? "—" : `${previousShareText}%`
+                          }
+                        )
                 )}"
               >
                 <span class="top-media-shift-name">
@@ -7968,6 +8036,8 @@
             maxTopicDays *
             100
         );
+        const topicLabel = agendaTopicLabel(topic);
+        const compactTopicLabel = compactAgendaTopicLabel(topic);
 
         return `
           <button
@@ -7980,11 +8050,18 @@
             aria-controls="topic-coverage-modal"
             aria-expanded="false"
             aria-label="${escapeAttribute(
-              `${topic.label}: ${sourceDays} source-days. Open topic coverage detail.`
+              translate(
+                "media_pulse.topic_source_days_detail",
+                `${topicLabel}: ${sourceDays} source-days. Open topic coverage detail.`,
+                {
+                  topic: topicLabel,
+                  count: sourceDays
+                }
+              )
             )}"
           >
             <span>
-              ${escapeHtml(topic.label)}
+              ${escapeHtml(compactTopicLabel)}
             </span>
 
             <i aria-hidden="true">
@@ -8036,7 +8113,7 @@
         <div
           class="top-media-tabs"
           role="tablist"
-          aria-label="Media Pulse views"
+          aria-label="${escapeAttribute(translate("media_pulse.views", "Media Pulse views"))}"
         >
           <button
             id="top-media-overview-tab"
@@ -8048,7 +8125,7 @@
             tabindex="0"
             data-top-media-tab="overview"
           >
-            Overview
+            ${escapeHtml(translate("media_pulse.overview", "Overview"))}
           </button>
 
           <button
@@ -8060,7 +8137,7 @@
             tabindex="-1"
             data-top-media-tab="coverage"
           >
-            Coverage
+            ${escapeHtml(translate("media_pulse.coverage", "Coverage"))}
           </button>
         </div>
 
@@ -8073,20 +8150,25 @@
           hidden
         >
           <div class="top-media-section-heading">
-            <h3>Latest election coverage</h3>
+            <h3>${escapeHtml(translate("media_pulse.latest_election_coverage", "Latest election coverage"))}</h3>
 
             <span>
-              ${Math.min(
-                5,
-                model.feedItems.length
-              )} latest
+              ${escapeHtml(
+                translate(
+                  "media_pulse.latest_count",
+                  `LATEST · ${Math.min(5, model.feedItems.length)}`,
+                  {
+                    count: Math.min(5, model.feedItems.length)
+                  }
+                )
+              )}
             </span>
           </div>
 
           <div
             class="top-media-coverage-list"
             role="feed"
-            aria-label="Latest accepted election coverage"
+            aria-label="${escapeAttribute(translate("media_pulse.latest_accepted_election_coverage", "Latest accepted election coverage"))}"
           >
             ${coverageRows}
           </div>
@@ -8100,7 +8182,7 @@
             aria-controls="election-coverage-modal"
             aria-expanded="false"
           >
-            Browse recent coverage →
+            ${escapeHtml(translate("media_pulse.browse_recent_coverage", "Browse recent coverage →"))}
           </button>
         </section>
 
@@ -8114,9 +8196,17 @@
           <section class="top-media-shift">
             <div
               class="top-media-section-heading"
-              aria-label="${escapeAttribute(`Active-field mention rate. Percentage of active-field-linked race records that mention each candidate. One record may mention multiple candidates, so rates can overlap and need not total 100 percent. ${candidateComparisonExplanation}`)}"
+              aria-label="${escapeAttribute(
+                translate(
+                  "media_pulse.active_field_mention_description",
+                  `Active-field mention rate. Percentage of active-field-linked race records that mention each candidate. One record may mention multiple candidates, so rates can overlap and need not total 100 percent. ${candidateComparisonExplanation}`,
+                  {
+                    comparison: candidateComparisonExplanation
+                  }
+                )
+              )}"
             >
-              <h3>Active-field mention rate</h3>
+              <h3>${escapeHtml(translate("media_pulse.active_field_mention_rate", "Active-field mention rate"))}</h3>
 
               <span
                 class="top-media-shift-quality"
@@ -8133,12 +8223,19 @@
             <div
               class="top-media-period-legend"
               aria-label="${escapeAttribute(
-                `Candidate mention rate among active-field-linked race records. One record may mention multiple candidates, so rates can overlap and need not total 100 percent. Current period ${currentPeriodLabel}; prior period ${priorPeriodLabel}.`
+                translate(
+                  "media_pulse.period_legend",
+                  `Candidate mention rate among active-field-linked race records. One record may mention multiple candidates, so rates can overlap and need not total 100 percent. Current period ${currentPeriodLabel}; prior period ${priorPeriodLabel}.`,
+                  {
+                    current: currentPeriodLabel,
+                    prior: priorPeriodLabel
+                  }
+                )
               )}"
             >
               <span class="is-current">
                 <i aria-hidden="true"></i>
-                <strong>CURRENT</strong>
+                <strong>${escapeHtml(translate("media_pulse.current", "CURRENT"))}</strong>
                 <small>
                   ${escapeHtml(
                     currentPeriodLabel
@@ -8148,7 +8245,7 @@
 
               <span class="is-prior">
                 <i aria-hidden="true"></i>
-                <strong>PRIOR</strong>
+                <strong>${escapeHtml(translate("media_pulse.prior", "PRIOR"))}</strong>
                 <small>
                   ${escapeHtml(
                     priorPeriodLabel
@@ -8165,7 +8262,7 @@
           <div class="top-media-support-grid">
             <section>
               <div class="top-media-section-heading">
-                <h3>Topic coverage</h3>
+                <h3>${escapeHtml(translate("media_pulse.topic_coverage", "Topic coverage"))}</h3>
               </div>
 
               <div class="top-media-topic-list">
@@ -8176,7 +8273,7 @@
 
             <section>
               <div class="top-media-section-heading">
-                <h3>Top publishers</h3>
+                <h3>${escapeHtml(translate("media_pulse.top_publishers", "Top publishers"))}</h3>
               </div>
 
               <div class="top-media-publisher-list">
@@ -8193,7 +8290,7 @@
             aria-controls="topic-coverage-modal"
             aria-expanded="false"
           >
-            Open coverage analysis →
+            ${escapeHtml(translate("media_pulse.open_coverage_analysis", "Open coverage analysis →"))}
           </button>
         </aside>
       </div>
@@ -8439,28 +8536,35 @@
       if (model.state === "ready") {
         const metrics = [
           {
+            key: "media_pulse.metric.accepted_news",
             value: model.electionNewsCount,
-            label: "accepted news"
+            label: translate("media_pulse.metric.accepted_news", "accepted news")
           },
           {
+            key: "media_pulse.metric.publishers",
             value:
               model.acceptedNewsPublisherCount,
-            label: "publishers"
+            label: translate("media_pulse.metric.publishers", "publishers")
           },
           {
+            key: "media_pulse.metric.recent_14d",
             value: model.activityItemCount,
-            label: "recent (14d)"
+            label: translate("media_pulse.metric.recent_14d", "recent (14d)")
           },
           {
+            key: "media_pulse.metric.candidate_watch",
             value: model.candidateWatchCount,
-            label: "candidate-watch"
+            label: translate("media_pulse.metric.candidate_watch", "candidate-watch")
           }
         ];
 
         topMediaMetrics.innerHTML =
           metrics
             .map(metric => `
-              <span class="top-media-header-metric">
+              <span
+                class="top-media-header-metric"
+                data-media-pulse-metric="${escapeAttribute(metric.key)}"
+              >
                 <strong>
                   ${escapeHtml(
                     String(metric.value)
@@ -8487,14 +8591,14 @@
         topMediaMetrics.replaceChildren(
           window.FR27UI.skeletonElement(
             "metrics",
-            "Loading media metrics"
+            translate("media_pulse.loading_metrics", "Loading media metrics")
           )
         );
         topMediaMetrics.setAttribute("aria-busy", "true");
       } else {
         topMediaMetrics.textContent =
           model.message ||
-          "Media data unavailable";
+          translate("media_pulse.data_unavailable", "Media data unavailable");
         topMediaMetrics.removeAttribute("aria-busy");
       }
     }
@@ -8544,12 +8648,12 @@
 
       if (topMediaMount) {
         topMediaMount.innerHTML =
-          `<div class="hybrid-state is-error" role="alert">Media Pulse could not render.</div>`;
+          `<div class="hybrid-state is-error" role="alert">${escapeHtml(translate("media_pulse.render_failed", "Media Pulse could not render."))}</div>`;
       }
 
       if (topMediaMetrics) {
         topMediaMetrics.textContent =
-          "Media Pulse unavailable";
+          translate("media_pulse.unavailable", "Media Pulse unavailable");
       }
     }
   }

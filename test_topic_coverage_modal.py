@@ -152,8 +152,6 @@ class TopicCoverageModalTests(unittest.TestCase):
             "activePrimary.main.map",
             "activePrimary.secondary.map",
             'comparison_quality?.status === "comparable"',
-            'renderGroup("main", "MAIN FIELD")',
-            'renderGroup("secondary", "SECONDARY FIELD")',
             'const candidateComparisonLabel',
             '"RAW Δ pp"',
             '"publisher panel changed"',
@@ -163,6 +161,17 @@ class TopicCoverageModalTests(unittest.TestCase):
                 contract,
                 self.modal_js,
             )
+
+        self.assertRegex(
+            renderer,
+            r'renderGroup\(\s*"main",\s*translate\('
+            r'\s*"coverage_analysis\.main_field"',
+        )
+        self.assertRegex(
+            renderer,
+            r'renderGroup\(\s*"secondary",\s*translate\('
+            r'\s*"coverage_analysis\.secondary_field"',
+        )
 
         self.assertEqual(
             self.modal_js.count('"RAW Δ pp"'),
@@ -256,6 +265,33 @@ let latestPeriodLabel = "25–31 Jul";
 let priorPeriodLabel = "18–24 Jul";
 const escapeHtml = value => String(value);
 const escapeAttribute = escapeHtml;
+const localizedMessages = new Map([
+  [
+    "coverage_analysis.publisher_panel_changed",
+    "localized publisher-panel reason"
+  ],
+  [
+    "coverage_analysis.comparison_raw_explanation",
+    "localized raw comparison: {reason}"
+  ],
+  [
+    "coverage_analysis.comparable_active_field_percentage_point_change",
+    "localized comparable comparison"
+  ],
+  [
+    "coverage_analysis.period_legend",
+    "localized legend: {quality}"
+  ],
+  ["coverage_analysis.current", "localized current"],
+  ["coverage_analysis.prior", "localized prior"]
+]);
+const translate = (key, fallback, parameters = {}) => {
+  const message = localizedMessages.get(key) || fallback;
+  return message.replace(
+    /\{(\w+)\}/g,
+    (_match, name) => String(parameters[name] ?? `{${name}}`)
+  );
+};
 """ + legend_source + r"""
 const invalid = renderPeriodLegend();
 candidateComparisonAvailable = true;
@@ -289,15 +325,15 @@ process.stdout.write(
             rendered["invalid"],
         )
         self.assertIn(
-            "publisher panel changed",
+            "localized publisher-panel reason",
             rendered["invalid"],
         )
         self.assertIn(
-            "Raw arithmetic differences are current-minus-prior",
+            "localized raw comparison",
             rendered["invalid"],
         )
         self.assertIn(
-            "Comparable active-field percentage-point change.",
+            "localized comparable comparison",
             rendered["comparable"],
         )
 
