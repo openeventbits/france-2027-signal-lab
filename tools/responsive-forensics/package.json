@@ -1,0 +1,20 @@
+{
+  "name": "fr27-responsive-forensics",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "inventory": "node src/inventory.mjs",
+    "matrix": "node src/matrix.mjs",
+    "audit": "node src/audit.mjs",
+    "audit:masthead": "node src/audit.mjs --component masthead",
+    "screenshots": "node src/audit.mjs --component masthead,what-changed,race,events --widths 700,699 --screenshots",
+    "test": "playwright test",
+    "test:tooling": "playwright test tests/inventory.spec.mjs",
+    "test:behavior": "playwright test tests/media-pulse.spec.mjs",
+    "test:screenshots": "playwright test tests/screenshots.spec.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}
