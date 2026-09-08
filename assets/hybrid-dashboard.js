@@ -10,6 +10,33 @@
       : fallback;
   };
 
+  const candidateDisplayNumber = value => {
+    const numeric = Number(value);
+    const localizer = globalThis.FR27I18N;
+    return localizer && typeof localizer.formatNumber === "function"
+      ? localizer.formatNumber(numeric, { maximumFractionDigits: 0 })
+      : new Intl.NumberFormat(
+        globalThis.FR27I18N?.localeTag || "en-GB",
+        { maximumFractionDigits: 0 }
+      ).format(numeric);
+  };
+
+  const candidateDisplayDate = value => {
+    const options = {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC"
+    };
+    const localizer = globalThis.FR27I18N;
+    return localizer && typeof localizer.formatDate === "function"
+      ? localizer.formatDate(`${String(value).slice(0, 10)}T00:00:00Z`, options)
+      : new Intl.DateTimeFormat(
+        globalThis.FR27I18N?.localeTag || "en-GB",
+        options
+      ).format(new Date(`${String(value).slice(0, 10)}T00:00:00Z`));
+  };
+
   const agendaTopicLabel = topic =>
     translate(
       `agenda_topic.${String(topic?.id || "")}`,
@@ -6985,7 +7012,13 @@
       candidateScrutinyNode(
         "span",
         `candidate-signals-scrutiny-relationship is-${relationship}`,
-        relationship.toUpperCase()
+        relationship === "about"
+          ? translate("candidate.about", "ABOUT")
+          : relationship === "by"
+            ? translate("candidate.by", "BY")
+            : relationship.toLocaleUpperCase(
+              globalThis.FR27I18N?.localeTag || "en-GB"
+            )
       );
 
     const dateNode =
@@ -6993,8 +7026,8 @@
         "time",
         "candidate-signals-scrutiny-review-date",
         review.review_date
-          ? formatDay(review.review_date)
-          : "DATE UNAVAILABLE"
+          ? candidateDisplayDate(review.review_date)
+          : translate("candidate.date_unavailable", "DATE UNAVAILABLE")
       );
 
     if (review.review_date) {
@@ -7063,7 +7096,7 @@
       const link = candidateScrutinyNode(
         "a",
         "candidate-signals-scrutiny-source",
-        "OPEN SOURCE ↗"
+        translate("candidate.open_source_upper", "OPEN SOURCE ↗")
       );
 
       link.href = sourceUrl;
@@ -7071,7 +7104,16 @@
       link.rel = "noopener noreferrer";
       link.setAttribute(
         "aria-label",
-        `Open ${review.publisher_name || "publisher"} review source in a new tab`
+        translate(
+          "candidate.open_publisher_review_source",
+          `Open ${
+            review.publisher_name || "publisher"
+          } review source in a new tab`,
+          {
+            publisher: review.publisher_name ||
+              translate("candidate.publisher", "publisher")
+          }
+        )
       );
 
       footer.append(link);
@@ -7080,7 +7122,7 @@
         candidateScrutinyNode(
           "span",
           "candidate-signals-scrutiny-source is-unavailable",
-          "SOURCE UNAVAILABLE"
+          translate("candidate.source_unavailable", "SOURCE UNAVAILABLE")
         )
       );
     }
@@ -7100,7 +7142,10 @@
         window.FR27UI
           ? window.FR27UI.skeletonElement(
               "list",
-              "Loading monitored publisher reviews"
+              translate(
+                "candidate.scrutiny.loading_reviews",
+                "Loading monitored publisher reviews"
+              )
             )
           : candidateScrutinyNode(
               "div",
@@ -7120,17 +7165,26 @@
         candidateScrutinyNode(
           "strong",
           "candidate-signals-scrutiny-state-title",
-          "DETAIL UNAVAILABLE"
+          translate(
+            "candidate.scrutiny.detail_unavailable",
+            "DETAIL UNAVAILABLE"
+          )
         ),
         candidateScrutinyNode(
           "p",
           "",
-          "Candidate scrutiny summary remains available."
+          translate(
+            "candidate.scrutiny.summary_remains_available",
+            "Candidate scrutiny summary remains available."
+          )
         ),
         candidateScrutinyNode(
           "p",
           "",
-          "Detailed publisher reviews could not be loaded."
+          translate(
+            "candidate.scrutiny.reviews_could_not_be_loaded",
+            "Detailed publisher reviews could not be loaded."
+          )
         )
       );
       body.append(state);
@@ -7146,12 +7200,18 @@
         candidateScrutinyNode(
           "strong",
           "candidate-signals-scrutiny-state-title",
-          "NO PUBLISHED REVIEWS"
+          translate(
+            "candidate.scrutiny.no_published_reviews",
+            "NO PUBLISHED REVIEWS"
+          )
         ),
         candidateScrutinyNode(
           "p",
           "",
-          "No monitored publisher review is currently associated with this candidate."
+          translate(
+            "candidate.scrutiny.no_associated_reviews",
+            "No monitored publisher review is currently associated with this candidate."
+          )
         )
       );
       body.append(state);
@@ -7174,7 +7234,10 @@
     const disclosure = candidateScrutinyNode(
       "p",
       "candidate-signals-scrutiny-disclosure",
-      "BY — candidate is the recorded claimant. ABOUT — candidate is mentioned in a checked claim attributed to somebody else."
+      translate(
+        "candidate.scrutiny.relationship_disclosure",
+        "BY — candidate is the recorded claimant. ABOUT — candidate is mentioned in a checked claim attributed to somebody else."
+      )
     );
 
     body.append(list, disclosure);
@@ -7431,7 +7494,11 @@
       candidateScrutinyNode(
         "h2",
         "candidate-signals-scrutiny-title",
-        `CLAIM SCRUTINY · ${candidate.candidate_name}`
+        translate(
+          "candidate.claim_scrutiny_title",
+          `CLAIM SCRUTINY · ${candidate.candidate_name}`,
+          { candidate: candidate.candidate_name }
+        )
       );
 
     title.id = titleId;
@@ -7453,11 +7520,13 @@
       candidateScrutinyNode(
         "p",
         "candidate-signals-scrutiny-count",
-        `${reviewCount} MONITORED PUBLISHER ${
-          reviewCount === 1
-            ? "REVIEW"
-            : "REVIEWS"
-        }`
+        translate(
+          "candidate.scrutiny.monitored_review_count",
+          `${candidateDisplayNumber(reviewCount)} MONITORED PUBLISHER ${
+            reviewCount === 1 ? "REVIEW" : "REVIEWS"
+          }`,
+          { count: candidateDisplayNumber(reviewCount) }
+        )
       );
 
     count.id = countId;
@@ -7474,7 +7543,11 @@
     close.type = "button";
     close.setAttribute(
       "aria-label",
-      `Close claim scrutiny for ${candidate.candidate_name}`
+      translate(
+        "candidate.close_claim_scrutiny_for_candidate",
+        `Close claim scrutiny for ${candidate.candidate_name}`,
+        { candidate: candidate.candidate_name }
+      )
     );
 
     header.append(heading, close);

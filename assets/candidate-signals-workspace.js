@@ -2,26 +2,65 @@
   "use strict";
 
 
-  const translate = (key, fallback) => {
+  const translate = (key, fallback, parameters) => {
     const localizer = globalThis.FR27I18N;
 
-    return localizer && typeof localizer.t === "function"
-      ? localizer.t(key)
-      : fallback;
+    if (localizer && typeof localizer.t === "function") {
+      return localizer.t(key, parameters, fallback);
+    }
+
+    const values = parameters || {};
+    const pluralized = String(fallback).replace(
+      /\{([A-Za-z0-9_]+),\s*plural,\s*one\s*\{([^{}]*)\}\s*other\s*\{([^{}]*)\}\s*\}/g,
+      (_match, name, one, other) =>
+        new Intl.PluralRules("en-GB").select(Number(values[name])) === "one"
+          ? one
+          : other
+    );
+    return pluralized.replace(
+      /\{([A-Za-z0-9_]+)\}/g,
+      (match, name) => Object.prototype.hasOwnProperty.call(values, name)
+        ? String(values[name])
+        : match
+    );
   };
 
-  const MISSING = "Not published";
-  const NOT_TESTED = "Not tested";
+  const localeTag = () => globalThis.FR27I18N?.localeTag || "en-GB";
+
+  const formatLocaleNumber = (value, options = {}) => {
+    const localizer = globalThis.FR27I18N;
+    return localizer && typeof localizer.formatNumber === "function"
+      ? localizer.formatNumber(value, options)
+      : new Intl.NumberFormat(localeTag(), options).format(value);
+  };
+
+  const MISSING = translate("candidate.not_published", "Not published");
+  const NOT_TESTED = translate("candidate.not_tested", "Not tested");
   const SCRUTINY_ABOUT_SEMANTICS =
-    "ABOUT — candidate mentioned in a claim attributed to someone else.";
+    translate(
+      "candidate.scrutiny.about_semantics",
+      "ABOUT — candidate mentioned in a claim attributed to someone else."
+    );
   const SCRUTINY_BY_SEMANTICS =
-    "BY — candidate is the recorded claimant.";
+    translate(
+      "candidate.scrutiny.by_semantics",
+      "BY — candidate is the recorded claimant."
+    );
   const CAMPAIGN_ATTENTION_SEMANTICS =
-    "Share of active-field-linked campaign/election records in the current period. A record may mention more than one candidate.";
+    translate(
+      "candidate.campaign_attention_semantics",
+      "Share of active-field-linked campaign/election records in the current period. A record may mention more than one candidate."
+    );
   const RACE_RECORDS_SEMANTICS =
-    "Candidate-linked campaign/election records in the current period.";
+    translate(
+      "candidate.race_records_semantics",
+      "Candidate-linked campaign/election records in the current period."
+    );
   const LATEST_DEVELOPMENT_EXPLANATION =
-    "Newest campaign/election record with this candidate matched in the headline.";
+    translate(
+      "candidate.latest_development_explanation",
+      "Newest campaign/election record with this candidate matched in the headline."
+    );
   const POLICY_AGENDA_SEMANTICS =
     "Candidate × policy-issue coverage associations derived from the published multi-label Policy Issues layer over the 30-day window. These measure media coverage association, not candidate priorities, positions, issue ownership, ideology, or policy support.";
   const CAMPAIGN_AGENDA_SEMANTICS =
@@ -75,30 +114,33 @@
 
   function numberText(value) {
     return hasValue(value) && Number.isFinite(Number(value))
-      ? String(Number(value))
+      ? formatLocaleNumber(Number(value), { maximumFractionDigits: 3 })
       : MISSING;
   }
 
   function groupedNumberText(value) {
     if (!hasValue(value) || !Number.isFinite(Number(value))) return MISSING;
-    return String(Math.trunc(Number(value))).replace(
-      /\B(?=(\d{3})+(?!\d))/g,
-      ","
-    );
+    return formatLocaleNumber(Math.trunc(Number(value)), {
+      maximumFractionDigits: 0
+    });
   }
 
   function percentageText(value, ratio = false) {
     if (!hasValue(value) || !Number.isFinite(Number(value))) return MISSING;
-    const amount = ratio ? Number(value) * 100 : Number(value);
-    const rounded = Math.round((amount + Number.EPSILON) * 1000) / 1000;
-    return `${rounded}%`;
+    const amount = ratio ? Number(value) : Number(value) / 100;
+    return formatLocaleNumber(amount, {
+      style: "percent",
+      maximumFractionDigits: 3
+    });
   }
 
   function compactPercentageText(value, ratio = false) {
     if (!hasValue(value) || !Number.isFinite(Number(value))) return MISSING;
-    const amount = ratio ? Number(value) * 100 : Number(value);
-    const rounded = Math.round((amount + Number.EPSILON) * 10) / 10;
-    return `${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1)}%`;
+    const amount = ratio ? Number(value) : Number(value) / 100;
+    return formatLocaleNumber(amount, {
+      style: "percent",
+      maximumFractionDigits: 1
+    });
   }
 
   function rangeText(minimum, maximum) {
@@ -122,7 +164,7 @@
     const date = new Date(normalized);
     if (!Number.isFinite(date.getTime())) return source;
 
-    const dateText = new Intl.DateTimeFormat("en-GB", {
+    const dateText = new Intl.DateTimeFormat(localeTag(), {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -131,7 +173,7 @@
 
     if (!includeTime) return dateText;
 
-    const timeText = new Intl.DateTimeFormat("en-GB", {
+    const timeText = new Intl.DateTimeFormat(localeTag(), {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
@@ -146,7 +188,7 @@
     const date = new Date(`${value}T00:00:00Z`);
     if (!Number.isFinite(date.getTime())) return String(value);
 
-    const parts = new Intl.DateTimeFormat("en-GB", {
+    const parts = new Intl.DateTimeFormat(localeTag(), {
       day: "2-digit",
       month: "short",
       timeZone: "UTC"
@@ -154,7 +196,7 @@
     const day = parts.find(part => part.type === "day")?.value;
     const month = parts.find(part => part.type === "month")?.value;
     return day && month
-      ? `${day} ${month.slice(0, 3).toUpperCase()}`
+      ? `${day} ${(localeTag().toLowerCase().startsWith("fr") ? month : month.slice(0, 3)).toLocaleUpperCase(localeTag())}`
       : String(value);
   }
 
@@ -172,13 +214,21 @@
       start.getUTCFullYear() === end.getUTCFullYear() &&
       start.getUTCMonth() === end.getUTCMonth()
     ) {
-      const monthYear = new Intl.DateTimeFormat("en-GB", {
+      const monthYear = new Intl.DateTimeFormat(localeTag(), {
         month: "short",
         year: "numeric",
         timeZone: "UTC"
       }).format(end);
 
-      return `${start.getUTCDate()}–${end.getUTCDate()} ${monthYear}`;
+      const startDay = new Intl.DateTimeFormat(localeTag(), {
+        day: "numeric",
+        timeZone: "UTC"
+      }).format(start);
+      const endDay = new Intl.DateTimeFormat(localeTag(), {
+        day: "numeric",
+        timeZone: "UTC"
+      }).format(end);
+      return `${startDay}–${endDay} ${monthYear}`;
     }
 
     return `${formatDisplayDate(startValue)} – ${formatDisplayDate(endValue)}`;
@@ -193,11 +243,35 @@
       .join(" ");
   }
 
-  function counted(value, singular, plural = `${singular}s`) {
+  function candidacyStatusLabel(value) {
+    return translate(
+      `candidate.status.${String(value || "").toLowerCase()}`,
+      humanizeStatus(value)
+    );
+  }
+
+  function candidacyTierLabel(value) {
+    return translate(
+      `candidate.tier.${String(value || "").toLowerCase()}`,
+      humanizeStatus(value)
+    );
+  }
+
+  function counted(value, kind) {
     if (!hasValue(value)) return MISSING;
     const number = Number(value);
     if (!Number.isFinite(number)) return MISSING;
-    return `${numberText(number)} ${number === 1 ? singular : plural}`;
+    const fallbacks = {
+      record: "{count} {count, plural, one {record} other {records}}",
+      publisher: "{count} {count, plural, one {publisher} other {publishers}}",
+      active_day: "{count} {count, plural, one {active day} other {active days}}",
+      review: "{count} {count, plural, one {review} other {reviews}}"
+    };
+    return translate(
+      `candidate.count.${kind}`,
+      fallbacks[kind] || "{count}",
+      { count: numberText(number) }
+    );
   }
 
   function pollValue(candidate) {
@@ -445,17 +519,30 @@
 
     if (campaign?.evidence_state === "reported") {
       parts.push(
-        `Campaign / election ${numberText(campaign.record_count)}`
+        translate(
+          "candidate.campaign_election_count",
+          "Campaign / election {count}",
+          { count: numberText(campaign.record_count) }
+        )
       );
     }
 
     if (general?.evidence_state === "reported") {
-      parts.push(`General ${numberText(general.record_count)}`);
+      parts.push(
+        translate(
+          "candidate.general_count",
+          "General {count}",
+          { count: numberText(general.record_count) }
+        )
+      );
     }
 
     return parts.length
       ? parts.join(" · ")
-      : "No current coverage evidence";
+      : translate(
+        "candidate.no_current_coverage_evidence",
+        "No current coverage evidence"
+      );
   }
 
   function candidateFact(label, value, className = "", semantics = null) {
@@ -496,14 +583,17 @@
     const label = createElement(
       "label",
       "candidate-signals-search-label",
-      "Search candidate"
+      translate("candidate.search_candidate_label", "Search candidate")
     );
     label.setAttribute("for", "candidate-signals-search");
 
     const input = createElement("input", "candidate-signals-search-input");
     input.id = "candidate-signals-search";
     input.type = "search";
-    input.placeholder = "Search candidate…";
+    input.placeholder = translate(
+      "candidate.search_candidate",
+      "Search candidate…"
+    );
     input.autocomplete = "off";
     input.setAttribute("aria-controls", "candidate-signals-monitor-list");
 
@@ -515,9 +605,15 @@
     filterButton.setAttribute("aria-pressed", "false");
     filterButton.setAttribute(
       "aria-label",
+      translate(
+        "candidate.show_main_candidates_only",
+        "Show main candidates only"
+      )
+    );
+    filterButton.dataset.fr27Tooltip = translate(
+      "candidate.show_main_candidates_only",
       "Show main candidates only"
     );
-    filterButton.dataset.fr27Tooltip = "Show main candidates only";
 
     const filterGlyph = createElement(
       "span",
@@ -530,12 +626,15 @@
 
     const list = createElement("div", "candidate-signals-monitor-list");
     list.id = "candidate-signals-monitor-list";
-    list.setAttribute("aria-label", "Published candidates");
+    list.setAttribute(
+      "aria-label",
+      translate("candidate.published_candidates", "Published candidates")
+    );
 
     const noMatches = createElement(
       "p",
       "candidate-signals-monitor-empty",
-      "No matching candidates."
+      translate("candidate.no_matching_candidates", "No matching candidates.")
     );
     noMatches.hidden = true;
     noMatches.setAttribute("aria-live", "polite");
@@ -587,7 +686,7 @@
           createElement(
             "span",
             "candidate-signals-candidate-tier",
-            String(tier).toUpperCase()
+            candidacyTierLabel(tier).toLocaleUpperCase(localeTag())
           )
         );
       }
@@ -623,13 +722,13 @@
       if (campaignReported) {
         evidence.append(
           candidateFact(
-            "CAMPAIGN ATTENTION",
+            translate("candidate.campaign_attention", "CAMPAIGN ATTENTION"),
             percentageText(campaign.share, true),
             "candidate-signals-candidate-attention",
             CAMPAIGN_ATTENTION_SEMANTICS
           ),
           candidateFact(
-            "RACE RECORDS",
+            translate("candidate.race_records", "RACE RECORDS"),
             numberText(campaign.record_count),
             "candidate-signals-candidate-records",
             RACE_RECORDS_SEMANTICS
@@ -640,10 +739,18 @@
       if (latest) {
         evidence.append(
           candidateFact(
-            "Scrutiny\n14 days",
-            `${numberText(latest.about_count)} about · ${numberText(
-              latest.by_count
-            )} by`,
+            translate(
+              "candidate.scrutiny_monitor_14_days",
+              "Scrutiny\n14 days"
+            ),
+            translate(
+              "candidate.scrutiny_relationship_counts",
+              "{about} about · {by} by",
+              {
+                about: numberText(latest.about_count),
+                by: numberText(latest.by_count)
+              }
+            ),
             "candidate-signals-candidate-scrutiny"
           )
         );
@@ -727,8 +834,11 @@
       );
 
       const description = mainOnly
-        ? "Show all candidates"
-        : "Show main candidates only";
+        ? translate("candidate.show_all_candidates", "Show all candidates")
+        : translate(
+          "candidate.show_main_candidates_only",
+          "Show main candidates only"
+        );
 
       filterButton.setAttribute("aria-label", description);
       filterButton.dataset.fr27Tooltip = description;
@@ -749,7 +859,7 @@
       createElement(
         "h3",
         "candidate-signals-subsection-title",
-        "CANDIDACY EVIDENCE"
+        translate("candidate.candidacy_evidence", "CANDIDACY EVIDENCE")
       )
     );
 
@@ -759,7 +869,10 @@
         createElement(
           "p",
           "candidate-signals-development-empty",
-          "No candidacy evidence is currently published."
+          translate(
+            "candidate.no_candidacy_evidence_is_currently_published",
+            "No candidacy evidence is currently published."
+          )
         )
       );
       return section;
@@ -773,7 +886,7 @@
       createElement(
         "span",
         "candidate-signals-candidacy-status",
-        humanizeStatus(candidacy.status)
+        candidacyStatusLabel(candidacy.status)
       )
     );
 
@@ -784,7 +897,8 @@
           `candidate-signals-candidacy-tier is-${String(
             candidacy.display_tier
           ).toLowerCase()}`,
-          String(candidacy.display_tier).toUpperCase()
+          candidacyTierLabel(candidacy.display_tier)
+            .toLocaleUpperCase(localeTag())
         )
       );
     }
@@ -803,7 +917,7 @@
       createElement(
         "span",
         "candidate-signals-candidacy-source-label",
-        "Source"
+        translate("candidate.source", "Source")
       ),
       createElement(
         "strong",
@@ -822,7 +936,7 @@
       const link = createElement(
         "a",
         "candidate-signals-source-link",
-        "View candidacy source →"
+        translate("candidate.view_candidacy_source", "View candidacy source →")
       );
       link.href = href;
       link.target = "_blank";
@@ -840,7 +954,10 @@
         createElement(
           "p",
           "candidate-signals-development-empty",
-          "No source-linked development is currently published."
+          translate(
+            "candidate.no_source_linked_development_is_currently_published",
+            "No source-linked development is currently published."
+          )
         )
       ];
     }
@@ -851,9 +968,9 @@
         "candidate-signals-development-headline",
         development.headline || MISSING
       ),
-      evidenceLine("Source", development.publisher),
+      evidenceLine(translate("candidate.source", "Source"), development.publisher),
       evidenceLine(
-        "Published",
+        translate("candidate.published", "Published"),
         formatDisplayDate(development.published_at, true)
       )
     ];
@@ -862,14 +979,16 @@
       const link = createElement(
         "a",
         "candidate-signals-source-link",
-        "Open source ↗"
+        translate("candidate.open_source", "Open source ↗")
       );
       link.href = href;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       content.push(link);
     } else {
-      content.push(evidenceLine("Source link", MISSING));
+      content.push(
+        evidenceLine(translate("candidate.source_link", "Source link"), MISSING)
+      );
     }
     return content;
   }
@@ -884,10 +1003,14 @@
         createElement(
           "h3",
           "candidate-signals-subsection-title",
-          "LATEST DEVELOPMENT"
+          translate("candidate.latest_development", "LATEST DEVELOPMENT")
         ),
         LATEST_DEVELOPMENT_EXPLANATION,
-        `LATEST DEVELOPMENT — ${LATEST_DEVELOPMENT_EXPLANATION}`
+        translate(
+          "candidate.latest_development_aria",
+          "LATEST DEVELOPMENT — {explanation}",
+          { explanation: LATEST_DEVELOPMENT_EXPLANATION }
+        )
       )
     );
 
@@ -897,7 +1020,10 @@
         createElement(
           "p",
           "candidate-signals-development-empty",
-          "No source-linked development is currently published."
+          translate(
+            "candidate.no_source_linked_development_is_currently_published",
+            "No source-linked development is currently published."
+          )
         )
       );
       return section;
@@ -908,7 +1034,10 @@
         createElement(
           "span",
           "candidate-signals-development-scope",
-          String(development.coverage_scope).toUpperCase()
+          translate(
+            `candidate.scope.${String(development.coverage_scope).toLowerCase()}`,
+            String(development.coverage_scope)
+          ).toLocaleUpperCase(localeTag())
         )
       );
     }
@@ -934,14 +1063,16 @@
       const link = createElement(
         "a",
         "candidate-signals-source-link",
-        "Open latest source →"
+        translate("candidate.open_latest_source", "Open latest source →")
       );
       link.href = href;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       section.append(link);
     } else {
-      section.append(evidenceLine("Source link", MISSING));
+      section.append(
+        evidenceLine(translate("candidate.source_link", "Source link"), MISSING)
+      );
     }
 
     return section;
@@ -957,10 +1088,14 @@
         createElement(
           "h3",
           "candidate-signals-dossier-card-title",
-          "LATEST DEVELOPMENT"
+          translate("candidate.latest_development", "LATEST DEVELOPMENT")
         ),
         LATEST_DEVELOPMENT_EXPLANATION,
-        `LATEST DEVELOPMENT — ${LATEST_DEVELOPMENT_EXPLANATION}`
+        translate(
+          "candidate.latest_development_aria",
+          "LATEST DEVELOPMENT — {explanation}",
+          { explanation: LATEST_DEVELOPMENT_EXPLANATION }
+        )
       )
     );
     const body = createElement(
@@ -1165,7 +1300,12 @@
       const label = createElement(
         "span",
         "candidate-signals-agenda-topic-label",
-        AGENDA_PROFILE_LABELS[topic.id] || topic.label
+        localeTag().toLowerCase().startsWith("fr")
+          ? translate(
+              `agenda_topic_short.${topic.id}`,
+              AGENDA_PROFILE_LABELS[topic.id] || topic.label
+            )
+          : AGENDA_PROFILE_LABELS[topic.id] || topic.label
       );
       const share = createElement(
         "strong",
@@ -1214,7 +1354,10 @@
     return agendaSummaryCard(
       profile,
       {
-        title: "AGENDA PROFILE · 30D",
+        title: translate(
+          "candidate.agenda_profile.current_title",
+          "AGENDA PROFILE · 30D"
+        ),
         countField: "association_count",
         metadata,
         emptyMessage:
@@ -1236,10 +1379,15 @@
       )
       : null;
     const title = record
-      ? `AGENDA PROFILE · SINCE ${
-        formatCompactDayMonth(record.tracking_start)
-      }`
-      : "AGENDA PROFILE · SINCE TRACKING";
+      ? translate(
+          "candidate.agenda_profile.since_title",
+          "AGENDA PROFILE · SINCE {date}",
+          { date: formatCompactDayMonth(record.tracking_start) }
+        )
+      : translate(
+          "candidate.agenda_profile.since_tracking",
+          "AGENDA PROFILE · SINCE TRACKING"
+        );
     const unavailableMessage =
       "Cumulative Agenda Profile is unavailable for this candidate.";
 
@@ -1324,7 +1472,7 @@
 
   function pollSummaryCard(candidate, metadata) {
     const card = summaryCard(
-      "POLL EVIDENCE",
+      translate("candidate.poll_evidence", "POLL EVIDENCE"),
       "candidate-signals-poll-summary"
     );
     const poll = candidate.polling;
@@ -1343,7 +1491,11 @@
         pollPackage?.fieldwork_end
       );
       const hypotheses = hasValue(poll?.hypothesis_count)
-        ? `${numberText(poll.hypothesis_count)} hypotheses`
+        ? translate(
+          "candidate.count.hypothesis",
+          "{count} {count, plural, one {hypothesis} other {hypotheses}}",
+          { count: numberText(poll.hypothesis_count) }
+        )
         : MISSING;
       const sample = hasValue(pollPackage?.sample_size)
         ? `N=${groupedNumberText(pollPackage.sample_size)}`
@@ -1352,10 +1504,11 @@
         ? rangeText(poll.range_min, poll.range_max)
         : MISSING;
 
-      const infoText =
-        `Pollster: ${pollster}. Fieldwork: ${fieldwork}. ` +
-        `Sample: ${sample}. Package: ${hypotheses}. ` +
-        `Published candidate range: ${publishedRange}.`;
+      const infoText = translate(
+        "candidate.poll_evidence_details",
+        "Pollster: {pollster}. Fieldwork: {fieldwork}. Sample: {sample}. Package: {hypotheses}. Published candidate range: {range}.",
+        { pollster, fieldwork, sample, hypotheses, range: publishedRange }
+      );
 
       const info = createElement(
         "button",
@@ -1367,7 +1520,11 @@
       explanatoryMetadata(
         info,
         infoText,
-        `Poll evidence information. ${infoText}`
+        translate(
+          "candidate.poll_evidence_information",
+          "Poll evidence information. {details}",
+          { details: infoText }
+        )
       );
 
       const title = card.querySelector(
@@ -1426,17 +1583,25 @@
       gauge.setAttribute(
         "aria-label",
         selected === null
-          ? `Published range ${rangeText(minimum, maximum)}`
-          : `Published range ${rangeText(
-            minimum,
-            maximum
-          )}; selected estimate ${percentageText(selected)}`
+          ? translate(
+            "candidate.published_range_value",
+            "Published range {range}",
+            { range: rangeText(minimum, maximum) }
+          )
+          : translate(
+            "candidate.published_range_selected_estimate",
+            "Published range {range}; selected estimate {estimate}",
+            {
+              range: rangeText(minimum, maximum),
+              estimate: percentageText(selected)
+            }
+          )
       );
       gauge.append(
         createElement(
           "span",
           "candidate-signals-poll-gauge-kicker",
-          "PUBLISHED RANGE"
+          translate("candidate.published_range_heading", "PUBLISHED RANGE")
         )
       );
 
@@ -1487,7 +1652,10 @@
         createElement(
           "p",
           "candidate-signals-card-state",
-          "No accepted first-round test in the current polling window."
+          translate(
+            "candidate.no_accepted_first_round_test_in_the_current_polling_window",
+            "No accepted first-round test in the current polling window."
+          )
         )
       );
     }
@@ -1568,8 +1736,8 @@
       observation.hypothesis_count
     )} ${
       observation.hypothesis_count === 1
-        ? "hypothesis"
-        : "hypotheses"
+        ? translate("candidate.hypothesis", "hypothesis")
+        : translate("candidate.hypotheses", "hypotheses")
     }`;
     const publishedRange = rangeText(
       observation.range_min,
@@ -1577,14 +1745,24 @@
     );
 
     if (observation.selected_score !== null) {
-      return `${pollster}, ${fieldwork}: exact selected-hypothesis score ${
-        percentageText(observation.selected_score)
-      }; package range ${publishedRange}; ${hypotheses}.`;
+      return translate(
+        "candidate.poll_history_exact_observation",
+        "{pollster}, {fieldwork}: exact selected-hypothesis score {score}; package range {range}; {hypotheses}.",
+        {
+          pollster,
+          fieldwork,
+          score: percentageText(observation.selected_score),
+          range: publishedRange,
+          hypotheses
+        }
+      );
     }
 
-    return `${pollster}, ${fieldwork}: published package range ${
-      publishedRange
-    }; no selected-hypothesis score; ${hypotheses}.`;
+    return translate(
+      "candidate.poll_history_range_observation",
+      "{pollster}, {fieldwork}: published package range {range}; no selected-hypothesis score; {hypotheses}.",
+      { pollster, fieldwork, range: publishedRange, hypotheses }
+    );
   }
 
   function pollHistoryChart(history, candidate) {
@@ -1630,11 +1808,16 @@
     svg.setAttribute("role", "img");
     svg.setAttribute(
       "aria-label",
-      `${numberText(history.observation_count)} chronological package-level poll observations for ${
-        candidate.candidate_name
-      }: ${numberText(exactCount)} exact selected scores and ${
-        numberText(rangeOnlyCount)
-      } published ranges without a selected score. Points are discrete observations and bars are published ranges; no averaging or interpolation.`
+      translate(
+        "candidate.poll_history_chart_aria",
+        "{count} chronological package-level poll observations for {candidate}: {exact} exact selected scores and {ranges} published ranges without a selected score. Points are discrete observations and bars are published ranges; no averaging or interpolation.",
+        {
+          count: numberText(history.observation_count),
+          candidate: candidate.candidate_name,
+          exact: numberText(exactCount),
+          ranges: numberText(rangeOnlyCount)
+        }
+      )
     );
 
      observations.forEach((observation, index) => {
@@ -1722,11 +1905,18 @@
     const period = reported
       ? formatDateRange(history.period_start, history.period_end)
       : notObserved
-        ? "No covered period"
-        : "Unavailable";
-    const infoText = `Observation count: ${
-      count === null ? "unavailable" : count
-    }. Covered period: ${period}. Points = exact reported scores. Bars = published ranges. Observations are equally spaced in chronological order; horizontal spacing does not represent elapsed time. No averaging, smoothing or interpolation.`;
+        ? translate("candidate.no_covered_period", "No covered period")
+        : translate("candidate.unavailable", "Unavailable");
+    const infoText = translate(
+      "candidate.poll_history_details",
+      "Observation count: {count}. Covered period: {period}. Points = exact reported scores. Bars = published ranges. Observations are equally spaced in chronological order; horizontal spacing does not represent elapsed time. No averaging, smoothing or interpolation.",
+      {
+        count: count === null
+          ? translate("candidate.unavailable", "unavailable")
+          : count,
+        period
+      }
+    );
     const info = createElement(
       "button",
       "candidate-signals-poll-history-info",
@@ -1737,7 +1927,11 @@
     explanatoryMetadata(
       info,
       infoText,
-      `Poll history information. ${infoText}`
+      translate(
+        "candidate.poll_history_information",
+        "Poll history information. {details}",
+        { details: infoText }
+      )
     );
 
     if (count !== null) {
@@ -1745,7 +1939,7 @@
         createElement(
           "span",
           "candidate-signals-poll-history-count",
-          `${count} OBS`
+          translate("candidate.observation_abbreviation", "{count} OBS", { count })
         )
       );
     }
@@ -1758,7 +1952,7 @@
 
   function pollHistorySummaryCard(candidate) {
     const card = summaryCard(
-      "POLL HISTORY",
+      translate("candidate.poll_history", "POLL HISTORY"),
       "candidate-signals-poll-history-summary"
     );
     const history = pollHistoryForDisplay(candidate.poll_history);
@@ -1769,7 +1963,7 @@
         createElement(
           "p",
           "candidate-signals-card-state candidate-signals-poll-history-state",
-          "Poll history unavailable."
+          translate("candidate.poll_history_unavailable", "Poll history unavailable.")
         )
       );
       return card;
@@ -1780,7 +1974,10 @@
         createElement(
           "p",
           "candidate-signals-card-state candidate-signals-poll-history-state",
-          "No package-level poll history evidence."
+          translate(
+            "candidate.no_package_poll_history_evidence",
+            "No package-level poll history evidence."
+          )
         )
       );
       return card;
@@ -1798,12 +1995,12 @@
       createElement(
         "span",
         "candidate-signals-poll-history-legend-point",
-        "● exact"
+        translate("candidate.poll_history_exact", "● exact")
       ),
       createElement(
         "span",
         "candidate-signals-poll-history-legend-range",
-        "│ published range"
+        translate("candidate.poll_history_published_range", "│ published range")
       )
     );
     visual.append(legend, pollHistoryChart(history, candidate));
@@ -1845,8 +2042,14 @@
           "span",
           "candidate-signals-attention-detail",
           tone === "general"
-            ? "No current general visibility evidence."
-            : "No current campaign/election evidence."
+            ? translate(
+              "candidate.no_current_general_visibility_evidence",
+              "No current general visibility evidence."
+            )
+            : translate(
+              "candidate.no_current_campaign_election_evidence",
+              "No current campaign/election evidence."
+            )
         )
       );
       return row;
@@ -1887,15 +2090,25 @@
 
     const compactParts = [
       hasValue(evidence.record_count)
-        ? `${numberText(evidence.record_count)} REC`
+        ? translate(
+          "candidate.record_abbreviation",
+          "{count} REC",
+          { count: numberText(evidence.record_count) }
+        )
         : null,
       hasValue(evidence.publisher_count)
-        ? `${numberText(evidence.publisher_count)} PUB`
+        ? translate(
+          "candidate.publisher_abbreviation",
+          "{count} PUB",
+          { count: numberText(evidence.publisher_count) }
+        )
         : null,
       hasValue(evidence.active_day_count)
-        ? `${numberText(evidence.active_day_count)} ${
-          Number(evidence.active_day_count) === 1 ? "DAY" : "DAYS"
-        }`
+        ? translate(
+          "candidate.active_day_abbreviation",
+          "{count} {count, plural, one {DAY} other {DAYS}}",
+          { count: numberText(evidence.active_day_count) }
+        )
         : null
     ].filter(Boolean);
 
@@ -1912,7 +2125,7 @@
           ? counted(evidence.publisher_count, "publisher")
           : null,
         hasValue(evidence.active_day_count)
-          ? counted(evidence.active_day_count, "active day")
+          ? counted(evidence.active_day_count, "active_day")
           : null
       ].filter(Boolean).join(", ")
     );
@@ -1994,7 +2207,7 @@
       createElement(
         "span",
         "candidate-signals-history-kicker",
-        "29D DAILY SHARE"
+        translate("candidate.daily_share_29d", "29D DAILY SHARE")
       )
     );
 
@@ -2008,9 +2221,14 @@
         createElement(
           "span",
           "candidate-signals-history-asof",
-          `THROUGH ${formatDisplayDate(
-            period.data_as_of
-          ).toUpperCase()}`
+          translate(
+            "candidate.through_date",
+            "THROUGH {date}",
+            {
+              date: formatDisplayDate(period.data_as_of)
+                .toLocaleUpperCase(localeTag())
+            }
+          )
         )
       );
     }
@@ -2021,7 +2239,10 @@
       block.append(
         skeletonPresentation(
           "list",
-          "Loading 29-day daily share"
+          translate(
+            "candidate.loading_daily_share_29d",
+            "Loading 29-day daily share"
+          )
         )
       );
       return block;
@@ -2030,7 +2251,10 @@
     if (historyState?.status !== "ready") {
       block.append(
         visibilityHistoryState(
-          "29-day daily-share history unavailable."
+          translate(
+            "candidate.daily_share_history_unavailable",
+            "29-day daily-share history unavailable."
+          )
         )
       );
       return block;
@@ -2058,7 +2282,10 @@
     ) {
       block.append(
         visibilityHistoryState(
-          "Complete 29-day daily-share history unavailable."
+          translate(
+            "candidate.complete_daily_share_history_unavailable",
+            "Complete 29-day daily-share history unavailable."
+          )
         )
       );
       return block;
@@ -2091,7 +2318,10 @@
     if (!observedShares.length) {
       block.append(
         visibilityHistoryState(
-          "No qualifying lane records in this 29-day window."
+          translate(
+            "candidate.no_qualifying_lane_records",
+            "No qualifying lane records in this 29-day window."
+          )
         )
       );
       return block;
@@ -2172,13 +2402,16 @@
 
     svg.setAttribute(
       "aria-label",
-      `${laneLabel} daily share of lane coverage for ${
-        candidate.candidate_name
-      }, ${formatDisplayDate(
-        series[0].date
-      )} through ${formatDisplayDate(
-        series[series.length - 1].date
-      )}. Each point is candidate-linked records divided by all records in this lane. Gaps mark days with no lane denominator.`
+      translate(
+        "candidate.visibility_history_chart_aria",
+        "{lane} daily share of lane coverage for {candidate}, {start} through {end}. Each point is candidate-linked records divided by all records in this lane. Gaps mark days with no lane denominator.",
+        {
+          lane: laneLabel,
+          candidate: candidate.candidate_name,
+          start: formatDisplayDate(series[0].date),
+          end: formatDisplayDate(series[series.length - 1].date)
+        }
+      )
     );
 
     const baseline = wikipediaSvgElement(
@@ -2288,22 +2521,18 @@
             point.date
           );
 
-        const label =
-          `${laneLabel}, ${formatDisplayDate(
-            point.date
-          )}: daily share ${percentageText(
-            point.share,
-            true
-          )}; candidate ${counted(
-            point.record_count,
-            "record"
-          )}; ${counted(
-            point.publisher_count,
-            "publisher"
-          )}; lane denominator ${counted(
-            denominator?.record_count,
-            "record"
-          )}.`;
+        const label = translate(
+          "candidate.visibility_history_point",
+          "{lane}, {date}: daily share {share}; candidate {records}; {publishers}; lane denominator {denominator}.",
+          {
+            lane: laneLabel,
+            date: formatDisplayDate(point.date),
+            share: percentageText(point.share, true),
+            records: counted(point.record_count, "record"),
+            publishers: counted(point.publisher_count, "publisher"),
+            denominator: counted(denominator?.record_count, "record")
+          }
+        );
 
         const marker = wikipediaSvgElement(
           "circle",
@@ -2345,7 +2574,7 @@
 
   function attentionSummaryCard(candidate, historyState) {
     const card = summaryCard(
-      "CAMPAIGN ATTENTION",
+      translate("candidate.campaign_attention", "CAMPAIGN ATTENTION"),
       "candidate-signals-attention-summary"
     );
 
@@ -2359,7 +2588,10 @@
         createElement(
           "p",
           "candidate-signals-card-state",
-          "No current campaign/election or general visibility evidence."
+          translate(
+            "candidate.no_current_visibility_evidence",
+            "No current campaign/election or general visibility evidence."
+          )
         )
       );
     }
@@ -2383,7 +2615,7 @@
     );
     const campaignRow =
       attentionVisualRow(
-        "Campaign / election",
+        translate("candidate.campaign_election", "Campaign / election"),
         candidate.campaign_attention,
         "primary",
         scaleMaximum
@@ -2395,13 +2627,13 @@
         historyState,
         "campaign_attention",
         "primary",
-        "Campaign / election"
+        translate("candidate.campaign_election", "Campaign / election")
       )
     );
 
     const generalRow =
       attentionVisualRow(
-        "General visibility",
+        translate("candidate.general_visibility", "General visibility"),
         candidate.general_visibility,
         "general",
         scaleMaximum
@@ -2413,7 +2645,7 @@
         historyState,
         "general_visibility",
         "general",
-        "General visibility"
+        translate("candidate.general_visibility", "General visibility")
       )
     );
 
@@ -2453,7 +2685,7 @@
 
   function scopeCompositionCard(candidate) {
     const card = summaryCard(
-      "RACE COVERAGE MIX",
+      translate("candidate.race_coverage_mix", "RACE COVERAGE MIX"),
       "candidate-signals-composition-card"
     );
     const composition = scopeComposition(candidate);
@@ -2464,7 +2696,10 @@
         createElement(
           "p",
           "candidate-signals-card-state",
-          "No campaign/election evidence observed in the current period."
+          translate(
+            "candidate.no_campaign_election_evidence_observed_in_the_current_period",
+            "No campaign/election evidence observed in the current period."
+          )
         )
       );
       return card;
@@ -2488,15 +2723,17 @@
         createElement(
           "span",
           "candidate-signals-composition-summary-unit",
-          "REC"
+          translate("candidate.records_abbreviation", "REC")
         )
       );
 
       semanticMetadata(
         summary,
-        `${numberText(
-          composition.total
-        )} candidate-linked campaign/election records`
+        translate(
+          "candidate.candidate_linked_race_records",
+          "{count} candidate-linked campaign/election records",
+          { count: numberText(composition.total) }
+        )
       );
 
       summary.append(summaryValue);
@@ -2517,10 +2754,18 @@
     stack.setAttribute(
       "aria-label",
       composition.complete
-        ? `Race coverage composition: ${numberText(campaign)} campaign, ${
-          numberText(election)
-        } election`
-        : "Race coverage composition is incomplete"
+        ? translate(
+          "candidate.race_coverage_composition_aria",
+          "Race coverage composition: {campaign} campaign, {election} election",
+          {
+            campaign: numberText(campaign),
+            election: numberText(election)
+          }
+        )
+        : translate(
+          "candidate.race_coverage_composition_is_incomplete",
+          "Race coverage composition is incomplete"
+        )
     );
     stack.append(
       compositionSegment(
@@ -2545,14 +2790,14 @@
     );
     legend.append(
       scopeLegendRow(
-        "Campaign",
+        translate("candidate.campaign_268286d2", "Campaign"),
         campaign,
         composition.total,
         "campaign",
         composition.complete
       ),
       scopeLegendRow(
-        "Election",
+        translate("candidate.election_4e5c805d", "Election"),
         election,
         composition.total,
         "election",
@@ -2585,7 +2830,7 @@
   function scrutinySummaryCard(candidate) {
     const onOpenScrutiny = arguments[1];
     const card = summaryCard(
-      "SCRUTINY",
+      translate("candidate.scrutiny", "SCRUTINY"),
       "candidate-signals-scrutiny-summary",
       "div"
     );
@@ -2598,7 +2843,11 @@
       card.setAttribute("aria-expanded", "false");
       card.setAttribute(
         "aria-label",
-        `Open claim scrutiny details for ${candidate.candidate_name}`
+        translate(
+          "candidate.open_claim_scrutiny_for_candidate",
+          "Open claim scrutiny details for {candidate}",
+          { candidate: candidate.candidate_name }
+        )
       );
 
       const openScrutiny = () => {
@@ -2621,7 +2870,10 @@
         createElement(
           "p",
           "candidate-signals-card-state",
-          "No scrutiny evidence is currently published."
+          translate(
+            "candidate.no_scrutiny_evidence_is_currently_published",
+            "No scrutiny evidence is currently published."
+          )
         )
       );
       return card;
@@ -2641,7 +2893,7 @@
         createElement(
           "span",
           "candidate-signals-scrutiny-column",
-          "ABOUT"
+          translate("candidate.about", "ABOUT")
         ),
         SCRUTINY_ABOUT_SEMANTICS
       ),
@@ -2649,7 +2901,7 @@
         createElement(
           "span",
           "candidate-signals-scrutiny-column",
-          "BY"
+          translate("candidate.by", "BY")
         ),
         SCRUTINY_BY_SEMANTICS
       ),
@@ -2657,10 +2909,10 @@
         createElement(
           "span",
           "candidate-signals-scrutiny-column",
-          "REV."
+          translate("candidate.reviews_abbreviation", "REV.")
         ),
-        "REVIEWS",
-        "REVIEWS"
+        translate("candidate.reviews", "REVIEWS"),
+        translate("candidate.reviews", "REVIEWS")
       )
     );
 
@@ -2669,7 +2921,7 @@
         createElement(
           "span",
           "candidate-signals-scrutiny-row-label is-current",
-          "14 DAYS"
+          translate("candidate.days_14", "14 DAYS")
         ),
         scrutinyMatrixCell(
           latest.about_count,
@@ -2691,7 +2943,7 @@
         createElement(
           "span",
           "candidate-signals-scrutiny-row-label is-archive",
-          "ARCHIVE"
+          translate("candidate.archive", "ARCHIVE")
         ),
         scrutinyMatrixCell(
           archive.about_count,
@@ -2718,12 +2970,19 @@
         ".candidate-signals-analysis-card-title"
       );
       if (title) {
-        const latestReviewText =
-          `LATEST REVIEW · ${formatDisplayDate(newestDate)}`;
+        const latestReviewText = translate(
+          "candidate.latest_review_value",
+          "LATEST REVIEW · {date}",
+          { date: formatDisplayDate(newestDate) }
+        );
         semanticMetadata(
           title,
           latestReviewText,
-          `SCRUTINY — ${latestReviewText}`
+          translate(
+            "candidate.scrutiny_latest_review_aria",
+            "SCRUTINY — {latest}",
+            { latest: latestReviewText }
+          )
         );
       }
     }
@@ -2821,15 +3080,20 @@
       createElement(
         "span",
         "candidate-signals-evidence-ratio-label",
-        "Match basis"
+        translate("candidate.match_basis", "Match basis")
       ),
       createElement(
         "span",
         "candidate-signals-evidence-ratio-detail",
         published
-          ? `${numberText(headline)} headline · ${numberText(
-            summaryOnly
-          )} summary-only`
+          ? translate(
+            "candidate.match_basis_counts",
+            "{headline} headline · {summary} summary-only",
+            {
+              headline: numberText(headline),
+              summary: numberText(summaryOnly)
+            }
+          )
           : MISSING
       )
     );
@@ -2882,7 +3146,7 @@
       createElement(
         "h3",
         "candidate-signals-subsection-title",
-        "EVIDENCE STRUCTURE"
+        translate("candidate.evidence_structure", "EVIDENCE STRUCTURE")
       )
     );
 
@@ -2893,7 +3157,10 @@
         "candidate-signals-evidence-structure-period",
         period
           ? formatDateRange(period.start_date, period.end_date)
-          : "Current published period"
+          : translate(
+            "candidate.current_published_period",
+            "Current published period"
+          )
       )
     );
 
@@ -2904,7 +3171,10 @@
         createElement(
           "p",
           "candidate-signals-card-state",
-          "No campaign/election evidence observed in the current period."
+          translate(
+            "candidate.no_campaign_election_evidence_observed_in_the_current_period",
+            "No campaign/election evidence observed in the current period."
+          )
         )
       );
       return section;
@@ -2916,19 +3186,19 @@
     );
     stats.append(
       evidenceStructureStat(
-        "Records",
+        translate("candidate.records", "Records"),
         numberText(campaign.record_count)
       ),
       evidenceStructureStat(
-        "Publishers",
+        translate("candidate.publishers", "Publishers"),
         numberText(campaign.publisher_count)
       ),
       evidenceStructureStat(
-        "Active days",
+        translate("candidate.active_days", "Active days"),
         numberText(campaign.active_day_count)
       ),
       evidenceStructureStat(
-        "Story clusters",
+        translate("candidate.story_clusters", "Story clusters"),
         numberText(campaign.story_cluster_count)
       )
     );
@@ -2941,7 +3211,7 @@
     ratios.append(
       evidenceMatchBasis(candidate),
       evidenceRatioRow(
-        "Top publisher",
+        translate("candidate.top_publisher", "Top publisher"),
         concentration
           ? [
             concentration.leading_publisher || MISSING,
@@ -2968,7 +3238,7 @@
         "publisher"
       ),
       evidenceRatioRow(
-        "Top story concentration",
+        translate("candidate.top_story_concentration", "Top story concentration"),
         concentration
           ? `${
             Number(campaign.record_count) > 0
@@ -3002,16 +3272,23 @@
   function wikipediaSignedPercent(value) {
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) return MISSING;
-    return `${numeric > 0 ? "+" : ""}${numeric.toFixed(1)}%`;
+    return `${numeric > 0 ? "+" : ""}${formatLocaleNumber(
+      numeric / 100,
+      {
+        style: "percent",
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1
+      }
+    )}`;
   }
 
   function wikipediaAttentionFlagLabel(value) {
     const labels = {
-      sustained_rise: "SUSTAINED RISE",
-      sustained_decline: "SUSTAINED DECLINE",
-      event_amplified: "EVENT AMPLIFIED",
-      stable: "STABLE",
-      low_attention: "LOW ATTENTION"
+      sustained_rise: translate("candidate.wikipedia.state.sustained_rise", "SUSTAINED RISE"),
+      sustained_decline: translate("candidate.wikipedia.state.sustained_decline", "SUSTAINED DECLINE"),
+      event_amplified: translate("candidate.wikipedia.state.event_amplified", "EVENT AMPLIFIED"),
+      stable: translate("candidate.wikipedia.state.stable", "STABLE"),
+      low_attention: translate("candidate.wikipedia.state.low_attention", "LOW ATTENTION")
     };
 
     return labels[value] || (
@@ -3043,22 +3320,12 @@
 
     const absolute = Math.abs(numeric);
 
-    if (absolute >= 1000000) {
-      const amount = numeric / 1000000;
-      return `${
-        Math.abs(amount) >= 10
-          ? amount.toFixed(0)
-          : amount.toFixed(1).replace(/\.0$/, "")
-      }M`;
-    }
-
     if (absolute >= 1000) {
-      const amount = numeric / 1000;
-      return `${
-        Math.abs(amount) >= 10
-          ? amount.toFixed(0)
-          : amount.toFixed(1).replace(/\.0$/, "")
-      }K`;
+      return formatLocaleNumber(numeric, {
+        notation: "compact",
+        compactDisplay: "short",
+        maximumFractionDigits: absolute >= 10000 ? 0 : 1
+      });
     }
 
     return groupedNumberText(numeric);
@@ -3073,7 +3340,7 @@
       return String(value);
     }
 
-    return new Intl.DateTimeFormat("en-GB", {
+    return new Intl.DateTimeFormat(localeTag(), {
       day: "numeric",
       month: "short",
       timeZone: "UTC"
@@ -3143,7 +3410,7 @@
       createElement(
         "span",
         "candidate-signals-wikipedia-metric-label",
-        "STATE"
+        translate("candidate.wikipedia.state", "STATE")
       ),
       createElement(
         "span",
@@ -3183,7 +3450,7 @@
       createElement(
         "span",
         "candidate-signals-wikipedia-chart-title",
-        "DAILY PAGEVIEWS"
+        translate("candidate.wikipedia.daily_pageviews", "DAILY PAGEVIEWS")
       )
     );
 
@@ -3254,17 +3521,17 @@
     );
     svg.setAttribute(
       "aria-label",
-      `French Wikipedia daily pageviews for ${
-        candidate.candidate_name
-      }, ${formatDisplayDate(
-        recent[0].date
-      )} through ${formatDisplayDate(
-        latestPoint.date
-      )}. Thirty-day peak ${
-        groupedNumberText(peak.views)
-      } views on ${formatDisplayDate(
-        peak.date
-      )}.`
+      translate(
+        "candidate.wikipedia.chart_aria",
+        "French Wikipedia daily pageviews for {candidate}, {start} through {end}. Thirty-day peak {views} views on {date}.",
+        {
+          candidate: candidate.candidate_name,
+          start: formatDisplayDate(recent[0].date),
+          end: formatDisplayDate(latestPoint.date),
+          views: groupedNumberText(peak.views),
+          date: formatDisplayDate(peak.date)
+        }
+      )
     );
     for (
       let tick = 0;
@@ -3376,11 +3643,14 @@
             : 2.7
       );
 
-      const tooltip = `${formatDisplayDate(
-        point.date
-      )} · ${groupedNumberText(
-        point.views
-      )} pageviews`;
+      const tooltip = translate(
+        "candidate.wikipedia.point_tooltip",
+        "{date} · {views} pageviews",
+        {
+          date: formatDisplayDate(point.date),
+          views: groupedNumberText(point.views)
+        }
+      );
 
       marker.setAttribute("aria-label", tooltip);
       marker.setAttribute("data-fr27-tooltip", tooltip);
@@ -3414,7 +3684,10 @@
     const headingTitle = createElement(
       "h3",
       "candidate-signals-subsection-title",
-      "WIKIPEDIA ATTENTION · 30 DAYS"
+      translate(
+        "candidate.wikipedia.attention_30_days",
+        "WIKIPEDIA ATTENTION · 30 DAYS"
+      )
     );
 
 
@@ -3432,7 +3705,10 @@
     wikipediaInfo.type = "button";
     wikipediaInfo.setAttribute(
       "aria-label",
-      "About Wikipedia attention"
+      translate(
+        "candidate.wikipedia.about_attention",
+        "About Wikipedia attention"
+      )
     );
 
     wikipediaTitleRow.append(
@@ -3448,7 +3724,10 @@
         head,
         skeletonPresentation(
           "agenda",
-          "Loading published Wikimedia attention"
+          translate(
+            "candidate.wikipedia.loading_attention",
+            "Loading published Wikimedia attention"
+          )
         )
       );
       return section;
@@ -3463,21 +3742,30 @@
 
     const interpretation =
       methodology?.interpretation ||
-      "French Wikipedia pageviews measure article-reading attention.";
+      translate(
+        "candidate.wikipedia.default_interpretation",
+        "French Wikipedia pageviews measure article-reading attention."
+      );
 
     const exclusions =
       Array.isArray(methodology?.not_measures)
         ? methodology.not_measures.filter(hasValue)
         : [];
 
-    const methodologyNote =
-      `Tracks daily pageviews of the candidate’s French Wikipedia article over the latest 30 days. ${
-        interpretation
-      } Pageviews may include repeat visits.${
-        exclusions.length
-          ? ` They do not measure ${exclusions.join(", ")}.`
+    const methodologyNote = translate(
+      "candidate.wikipedia.methodology",
+      "Tracks daily pageviews of the candidate’s French Wikipedia article over the latest 30 days. {interpretation} Pageviews may include repeat visits.{exclusions}",
+      {
+        interpretation,
+        exclusions: exclusions.length
+          ? translate(
+            "candidate.wikipedia.exclusions",
+            " They do not measure {values}.",
+            { values: exclusions.join(", ") }
+          )
           : ""
-      }`;
+      }
+    );
 
     explanatoryMetadata(wikipediaInfo, methodologyNote);
     wikipediaTitleRow.append(wikipediaInfo);
@@ -3493,7 +3781,10 @@
         createElement(
           "p",
           "candidate-signals-wikipedia-state",
-          "Published Wikipedia attention is unavailable for this candidate."
+          translate(
+            "candidate.wikipedia.attention_unavailable",
+            "Published Wikipedia attention is unavailable for this candidate."
+          )
         )
       );
       return section;
@@ -3517,7 +3808,10 @@
         createElement(
           "p",
           "candidate-signals-wikipedia-state",
-          "A complete 30-day Wikipedia attention series is unavailable."
+          translate(
+            "candidate.wikipedia.series_unavailable",
+            "A complete 30-day Wikipedia attention series is unavailable."
+          )
         )
       );
       return section;
@@ -3543,9 +3837,14 @@
       createElement(
         "span",
         "candidate-signals-wikipedia-asof",
-        `DATA THROUGH ${formatDisplayDate(
-          periodDate
-        ).toUpperCase()}`
+        translate(
+          "candidate.wikipedia.data_through",
+          "DATA THROUGH {date}",
+          {
+            date: formatDisplayDate(periodDate)
+              .toLocaleUpperCase(localeTag())
+          }
+        )
       )
     );
 
@@ -3561,19 +3860,19 @@
 
     primary.append(
       wikipediaAttentionMetric(
-        "LATEST 7D",
+        translate("candidate.wikipedia.latest_7d", "LATEST 7D"),
         groupedNumberText(
           record.latest_7_views
         )
       ),
       wikipediaAttentionMetric(
-        "PREVIOUS 7D",
+        translate("candidate.wikipedia.previous_7d", "PREVIOUS 7D"),
         groupedNumberText(
           record.previous_7_views
         )
       ),
       wikipediaAttentionMetric(
-        "7D CHANGE",
+        translate("candidate.wikipedia.change_7d", "7D CHANGE"),
         wikipediaSignedPercent(
           record.change_7_pct
         ),
@@ -3582,11 +3881,11 @@
         )}`
       ),
       wikipediaAttentionMetric(
-        "30D PEAK",
+        translate("candidate.wikipedia.peak_30d", "30D PEAK"),
         groupedNumberText(peak.views)
       ),
       wikipediaAttentionMetric(
-        "PEAK DATE",
+        translate("candidate.wikipedia.peak_date", "PEAK DATE"),
         formatDisplayDate(peak.date)
       ),
       wikipediaAttentionStateMetric(
@@ -3610,7 +3909,7 @@
 
     secondary.append(
       wikipediaAttentionMetric(
-        "PEAK-REMOVED 7D",
+        translate("candidate.wikipedia.peak_removed_7d", "PEAK-REMOVED 7D"),
         wikipediaSignedPercent(
           record.change_7_peak_removed_pct
         ),
@@ -3619,13 +3918,13 @@
         )}`
       ),
       wikipediaAttentionMetric(
-        "28D TOTAL",
+        translate("candidate.wikipedia.total_28d", "28D TOTAL"),
         groupedNumberText(
           record.latest_28_views
         )
       ),
       wikipediaAttentionMetric(
-        "28D CHANGE",
+        translate("candidate.wikipedia.change_28d", "28D CHANGE"),
         wikipediaSignedPercent(
           record.change_28_pct
         ),
@@ -3667,7 +3966,11 @@
     const header = regionHeader(
       translate("candidate.selected_analysis", "SELECTED ANALYSIS"),
       hasValue(updateDate)
-        ? `Updated ${formatDisplayDate(updateDate)}`
+        ? translate(
+          "candidate.updated_date",
+          "Updated {date}",
+          { date: formatDisplayDate(updateDate) }
+        )
         : null
     );
     header.querySelector("h2").id = "candidate-signals-analysis-title";
@@ -3774,7 +4077,11 @@
       explanatoryMetadata(
         info,
         infoText,
-        `${label} details. ${infoText}`
+        translate(
+          "candidate.metric_details_aria",
+          "{label} details. {details}",
+          { label, details: infoText }
+        )
       );
 
       metric.append(info);
@@ -3847,30 +4154,30 @@
     );
 
     return [
-      ["Point estimate", hasPointEstimate
+      [translate("candidate.point_estimate", "Point estimate"), hasPointEstimate
         ? percentageText(polling.selected_hypothesis_score)
         : hasPublishedRange
-          ? "Range only"
+          ? translate("candidate.range_only", "Range only")
           : reported
             ? MISSING
             : NOT_TESTED],
-      ["Published range", reported
+      [translate("candidate.published_range", "Published range"), reported
         ? rangeText(polling.range_min, polling.range_max)
         : NOT_TESTED],
-      ["Pollster", pollPackage?.pollster || MISSING],
-      ["Field dates", formatDateRange(
+      [translate("candidate.pollster", "Pollster"), pollPackage?.pollster || MISSING],
+      [translate("candidate.field_dates", "Field dates"), formatDateRange(
         pollPackage?.fieldwork_start,
         pollPackage?.fieldwork_end
       )],
-      ["Sample", hasValue(pollPackage?.sample_size)
+      [translate("candidate.sample", "Sample"), hasValue(pollPackage?.sample_size)
         ? groupedNumberText(pollPackage.sample_size)
         : MISSING],
-      ["Hypotheses", reported && hasValue(polling.hypothesis_count)
+      [translate("candidate.hypotheses_heading", "Hypotheses"), reported && hasValue(polling.hypothesis_count)
         ? numberText(polling.hypothesis_count)
         : reported
           ? MISSING
           : NOT_TESTED],
-      ["Published sources", hasValue(sourceCount)
+      [translate("candidate.published_sources", "Published sources"), hasValue(sourceCount)
         ? numberText(sourceCount)
         : MISSING]
     ];
@@ -3879,25 +4186,25 @@
   function dossierStructureLines(evidence) {
     const concentration = evidence?.concentration;
     return [
-      ["Publishers", evidence
+      [translate("candidate.publishers", "Publishers"), evidence
         ? numberText(evidence.publisher_count)
         : MISSING],
-      ["Active days", evidence
+      [translate("candidate.active_days", "Active days"), evidence
         ? numberText(evidence.active_day_count)
         : MISSING],
-      ["Story clusters", evidence
+      [translate("candidate.story_clusters", "Story clusters"), evidence
         ? numberText(evidence.story_cluster_count)
         : MISSING],
-      ["Leading publisher", concentration && hasValue(
+      [translate("candidate.leading_publisher", "Leading publisher"), concentration && hasValue(
         concentration.leading_publisher
       ) ? concentration.leading_publisher : MISSING],
-      ["Publisher concentration", concentration
+      [translate("candidate.publisher_concentration", "Publisher concentration"), concentration
         ? percentageText(
           concentration.leading_publisher_share,
           true
         )
         : MISSING],
-      ["Story concentration", concentration
+      [translate("candidate.story_concentration", "Story concentration"), concentration
         ? percentageText(
           concentration.leading_story_share,
           true
@@ -3916,25 +4223,28 @@
 
     if (latest) {
       lines.push(
-        ["14 days · ABOUT", numberText(latest.about_count)],
-        ["14 days · BY", numberText(latest.by_count)],
-        ["14 days · Reviews", numberText(latest.review_count)]
+        [translate("candidate.scrutiny.latest_about", "14 days · ABOUT"), numberText(latest.about_count)],
+        [translate("candidate.scrutiny.latest_by", "14 days · BY"), numberText(latest.by_count)],
+        [translate("candidate.scrutiny.latest_reviews", "14 days · Reviews"), numberText(latest.review_count)]
       );
     }
 
     if (archive) {
       lines.push(
-        ["Archive · ABOUT", numberText(archive.about_count)],
+        [translate("candidate.scrutiny.archive_about", "Archive · ABOUT"), numberText(archive.about_count)],
         [
           translate("candidate.scrutiny.archive_by", "Archive · BY"),
           numberText(archive.by_count)
         ],
-        ["Archive · Reviews", numberText(archive.review_count)]
+        [translate("candidate.scrutiny.archive_reviews", "Archive · Reviews"), numberText(archive.review_count)]
       );
     }
 
     if (newestDate) {
-      lines.push(["Newest review", formatDisplayDate(newestDate)]);
+      lines.push([
+        translate("candidate.newest_review", "Newest review"),
+        formatDisplayDate(newestDate)
+      ]);
     }
 
     return lines;
@@ -3948,7 +4258,10 @@
     const summary = createElement(
       "summary",
       "candidate-signals-dossier-details-summary",
-      "View full evidence details"
+      translate(
+        "candidate.view_full_evidence_details",
+        "View full evidence details"
+      )
     );
     const content = createElement(
       "div",
@@ -3964,35 +4277,59 @@
 
     content.append(
       evidenceGroup(
-        "POLL EVIDENCE & SOURCE DETAILS",
+        translate(
+          "candidate.poll_evidence_source_details",
+          "POLL EVIDENCE & SOURCE DETAILS"
+        ),
         dossierPollLines(candidate, metadata)
       ),
       campaignReported
         ? evidenceGroup(
-          "CAMPAIGN / ELECTION STRUCTURE",
+          translate(
+            "candidate.campaign_election_structure",
+            "CAMPAIGN / ELECTION STRUCTURE"
+          ),
           dossierStructureLines(candidate.campaign_attention)
         )
         : evidenceStateGroup(
-          "CAMPAIGN / ELECTION STRUCTURE",
-          "No current campaign/election evidence."
+          translate(
+            "candidate.campaign_election_structure",
+            "CAMPAIGN / ELECTION STRUCTURE"
+          ),
+          translate(
+            "candidate.no_current_campaign_election_evidence",
+            "No current campaign/election evidence."
+          )
         ),
       generalReported
         ? evidenceGroup(
-          "GENERAL STRUCTURE",
+          translate("candidate.general_structure", "GENERAL STRUCTURE"),
           dossierStructureLines(candidate.general_visibility)
         )
         : evidenceStateGroup(
-          "GENERAL STRUCTURE",
-          "No current general visibility evidence."
+          translate("candidate.general_structure", "GENERAL STRUCTURE"),
+          translate(
+            "candidate.no_current_general_visibility_evidence",
+            "No current general visibility evidence."
+          )
         ),
       latest || archive
         ? evidenceGroup(
-          "CLAIM SCRUTINY DETAIL",
+          translate(
+            "candidate.claim_scrutiny_detail",
+            "CLAIM SCRUTINY DETAIL"
+          ),
           dossierScrutinyLines(candidate)
         )
         : evidenceStateGroup(
-          "CLAIM SCRUTINY DETAIL",
-          "No scrutiny evidence currently published."
+          translate(
+            "candidate.claim_scrutiny_detail",
+            "CLAIM SCRUTINY DETAIL"
+          ),
+          translate(
+            "candidate.no_scrutiny_evidence_currently_published",
+            "No scrutiny evidence currently published."
+          )
         )
     );
 
@@ -4043,7 +4380,7 @@
       createElement(
         "h3",
         "candidate-signals-dossier-card-title",
-        "VISIBILITY & COMPOSITION"
+        translate("candidate.visibility_composition", "VISIBILITY & COMPOSITION")
       )
     );
 
@@ -4059,7 +4396,10 @@
         createElement(
           "p",
           "candidate-signals-card-state",
-          "No current campaign/election or general visibility evidence."
+          translate(
+            "candidate.no_current_visibility_evidence",
+            "No current campaign/election or general visibility evidence."
+          )
         )
       );
       return card;
@@ -4076,7 +4416,7 @@
       );
       const totalText = composition.complete
         ? numberText(composition.total)
-        : "Incomplete";
+        : translate("candidate.incomplete", "Incomplete");
 
       totalLine.append(
         createElement(
@@ -4089,7 +4429,7 @@
         createElement(
           "span",
           "candidate-signals-dossier-visibility-total-label",
-          "Race records"
+          translate("candidate.race_records_title", "Race records")
         )
       );
       card.append(totalLine);
@@ -4130,14 +4470,14 @@
       );
       scopeGrid.append(
         dossierScopeCell(
-          "Campaign",
+          translate("candidate.campaign_268286d2", "Campaign"),
           campaignCount,
           composition.total,
           "campaign",
           composition.complete
         ),
         dossierScopeCell(
-          "Election",
+          translate("candidate.election_4e5c805d", "Election"),
           electionCount,
           composition.total,
           "election",
@@ -4155,7 +4495,7 @@
     if (campaignReported) {
       summary.append(
         summaryMeta(
-          "Campaign / election",
+          translate("candidate.campaign_election", "Campaign / election"),
           `${counted(campaign.record_count, "record")} · ${percentageText(
             campaign.share,
             true
@@ -4167,7 +4507,7 @@
     if (generalReported) {
       summary.append(
         summaryMeta(
-          "General visibility",
+          translate("candidate.general_visibility", "General visibility"),
           `${counted(general.record_count, "record")} · ${percentageText(
             general.share,
             true
@@ -4229,7 +4569,7 @@
       createElement(
         "h3",
         "candidate-signals-dossier-card-title",
-        "EVIDENCE STRUCTURE"
+        translate("candidate.evidence_structure", "EVIDENCE STRUCTURE")
       )
     );
 
@@ -4241,7 +4581,10 @@
         createElement(
           "p",
           "candidate-signals-card-state",
-          "No campaign/election evidence observed in the current period."
+          translate(
+            "candidate.no_campaign_election_evidence_observed_in_the_current_period",
+            "No campaign/election evidence observed in the current period."
+          )
         )
       );
       return card;
@@ -4253,25 +4596,25 @@
     );
     stats.append(
       dossierStructureStat(
-        "Records",
+        translate("candidate.records", "Records"),
         campaign && hasValue(campaign.record_count)
           ? numberText(campaign.record_count)
           : MISSING
       ),
       dossierStructureStat(
-        "Publishers",
+        translate("candidate.publishers", "Publishers"),
         campaign && hasValue(campaign.publisher_count)
           ? numberText(campaign.publisher_count)
           : MISSING
       ),
       dossierStructureStat(
-        "Active days",
+        translate("candidate.active_days", "Active days"),
         campaign && hasValue(campaign.active_day_count)
           ? numberText(campaign.active_day_count)
           : MISSING
       ),
       dossierStructureStat(
-        "Story clusters",
+        translate("candidate.story_clusters", "Story clusters"),
         campaign && hasValue(campaign.story_cluster_count)
           ? numberText(campaign.story_cluster_count)
           : MISSING
@@ -4287,7 +4630,7 @@
     );
     ratios.append(
       dossierStructureRatio(
-        "Top publisher",
+        translate("candidate.top_publisher", "Top publisher"),
         concentration && hasValue(concentration.leading_publisher)
           ? [
             concentration.leading_publisher,
@@ -4307,7 +4650,7 @@
         "publisher"
       ),
       dossierStructureRatio(
-        "Top story concentration",
+        translate("candidate.top_story_concentration", "Top story concentration"),
         concentration && hasValue(concentration.leading_story_record_count)
           ? [
             hasValue(recordCount)
@@ -4329,7 +4672,7 @@
     return card;
   }
 
-  function dossierScrutinyMetric(label, value) {
+  function dossierScrutinyMetric(relationshipKind, label, value) {
     const metric = createElement(
       "span",
       "candidate-signals-dossier-scrutiny-metric"
@@ -4342,9 +4685,9 @@
       "candidate-signals-dossier-scrutiny-label",
       label
     );
-    if (label === "ABOUT") {
+    if (relationshipKind === "about") {
       semanticMetadata(labelNode, SCRUTINY_ABOUT_SEMANTICS);
-    } else if (label === "BY") {
+    } else if (relationshipKind === "by") {
       semanticMetadata(labelNode, SCRUTINY_BY_SEMANTICS);
     }
     metric.append(
@@ -4386,9 +4729,21 @@
       "candidate-signals-dossier-scrutiny-metrics"
     );
     metrics.append(
-      dossierScrutinyMetric("ABOUT", evidence?.about_count),
-      dossierScrutinyMetric("BY", evidence?.by_count),
-      dossierScrutinyMetric("REVIEWS", evidence?.review_count)
+      dossierScrutinyMetric(
+        "about",
+        translate("candidate.about", "ABOUT"),
+        evidence?.about_count
+      ),
+      dossierScrutinyMetric(
+        "by",
+        translate("candidate.by", "BY"),
+        evidence?.by_count
+      ),
+      dossierScrutinyMetric(
+        "reviews",
+        translate("candidate.reviews", "REVIEWS"),
+        evidence?.review_count
+      )
     );
     block.append(metrics);
     return block;
@@ -4403,7 +4758,7 @@
       createElement(
         "h3",
         "candidate-signals-dossier-card-title",
-        "SCRUTINY OVERVIEW"
+        translate("candidate.scrutiny_overview", "SCRUTINY OVERVIEW")
       )
     );
 
@@ -4415,7 +4770,10 @@
         createElement(
           "p",
           "candidate-signals-card-state",
-          "No scrutiny evidence is currently published."
+          translate(
+            "candidate.no_scrutiny_evidence_is_currently_published",
+            "No scrutiny evidence is currently published."
+          )
         )
       );
       return card;
@@ -4432,7 +4790,7 @@
     if (latest) {
       grid.append(
         dossierScrutinyPeriod(
-          "14 DAYS",
+          translate("candidate.days_14", "14 DAYS"),
           latest,
           "is-current"
         )
@@ -4442,7 +4800,7 @@
     if (archive) {
       grid.append(
         dossierScrutinyPeriod(
-          "ARCHIVE",
+          translate("candidate.archive", "ARCHIVE"),
           archive,
           "is-archive"
         )
@@ -4458,7 +4816,7 @@
         createElement(
           "h4",
           "candidate-signals-scrutiny-period-title",
-          "LATEST REVIEW"
+          translate("candidate.latest_review", "LATEST REVIEW")
         ),
         createElement(
           "strong",
@@ -4468,7 +4826,7 @@
         createElement(
           "span",
           "candidate-signals-dossier-review-note",
-          "Published review date"
+          translate("candidate.published_review_date", "Published review date")
         )
       );
       grid.append(review);
@@ -4488,10 +4846,14 @@
         createElement(
           "h3",
           "candidate-signals-dossier-card-title",
-          "LATEST DEVELOPMENT"
+          translate("candidate.latest_development", "LATEST DEVELOPMENT")
         ),
         LATEST_DEVELOPMENT_EXPLANATION,
-        `LATEST DEVELOPMENT — ${LATEST_DEVELOPMENT_EXPLANATION}`
+        translate(
+          "candidate.latest_development_aria",
+          "LATEST DEVELOPMENT — {explanation}",
+          { explanation: LATEST_DEVELOPMENT_EXPLANATION }
+        )
       )
     );
 
@@ -4501,7 +4863,10 @@
         createElement(
           "p",
           "candidate-signals-development-empty",
-          "No source-linked development is currently published."
+          translate(
+            "candidate.no_source_linked_development_is_currently_published",
+            "No source-linked development is currently published."
+          )
         )
       );
       return section;
@@ -4512,7 +4877,10 @@
         createElement(
           "span",
           "candidate-signals-dossier-development-scope",
-          String(development.coverage_scope).toUpperCase()
+          translate(
+            `candidate.scope.${String(development.coverage_scope).toLowerCase()}`,
+            String(development.coverage_scope)
+          ).toLocaleUpperCase(localeTag())
         )
       );
     }
@@ -4538,14 +4906,16 @@
       const link = createElement(
         "a",
         "candidate-signals-source-link",
-        "Open latest source →"
+        translate("candidate.open_latest_source", "Open latest source →")
       );
       link.href = href;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       section.append(link);
     } else {
-      section.append(evidenceLine("Source link", MISSING));
+      section.append(
+        evidenceLine(translate("candidate.source_link", "Source link"), MISSING)
+      );
     }
     return section;
   }
@@ -4562,7 +4932,7 @@
     const headerAction = createElement(
       "button",
       "candidate-signals-region-action",
-      "View full evidence →"
+      translate("candidate.view_full_evidence", "View full evidence →")
     );
     headerAction.type = "button";
 
@@ -4598,7 +4968,7 @@
       createElement(
         "span",
         "candidate-signals-kicker",
-        "SELECTED CANDIDATE"
+        translate("candidate.selected_candidate", "SELECTED CANDIDATE")
       ),
       createElement(
         "h3",
@@ -4617,7 +4987,7 @@
         createElement(
           "span",
           "candidate-signals-dossier-status",
-          humanizeStatus(status).toUpperCase()
+          candidacyStatusLabel(status).toLocaleUpperCase(localeTag())
         )
       );
     }
@@ -4627,7 +4997,7 @@
         createElement(
           "span",
           `candidate-signals-dossier-tier is-${String(tier).toLowerCase()}`,
-          String(tier).toUpperCase()
+          candidacyTierLabel(tier).toLocaleUpperCase(localeTag())
         )
       );
     }
@@ -4657,35 +5027,60 @@
     );
 
     const pollMetric = dossierMetric(
-      "POLL EVIDENCE",
+      translate("candidate.poll_evidence", "POLL EVIDENCE"),
       pollValue(candidate),
       pollReported
         ? [
           rangeText(poll.range_min, poll.range_max),
           hypothesisCount
-            ? `${hypothesisCount} hypotheses`
+            ? translate(
+              "candidate.count.hypothesis",
+              "{count} {count, plural, one {hypothesis} other {hypotheses}}",
+              { count: hypothesisCount }
+            )
             : null
         ]
-        : ["Not tested in featured package"]
+        : [translate(
+          "candidate.not_tested_in_featured_package",
+          "Not tested in featured package"
+        )]
     );
 
     const scrutinyMetric = latest
       ? dossierMetric(
-        "SCRUTINY · 14 DAYS",
-        `${numberText(latest.about_count)} about · ${numberText(
-          latest.by_count
-        )} by`,
+        translate(
+          "candidate.scrutiny_14_days_heading",
+          "SCRUTINY · 14 DAYS"
+        ),
+        translate(
+          "candidate.scrutiny_relationship_counts",
+          "{about} about · {by} by",
+          {
+            about: numberText(latest.about_count),
+            by: numberText(latest.by_count)
+          }
+        ),
         [
           counted(latest.review_count, "review"),
           newestDate
-            ? `Latest review · ${formatDisplayDate(newestDate)}`
+            ? translate(
+              "candidate.latest_review_title_value",
+              "Latest review · {date}",
+              { date: formatDisplayDate(newestDate) }
+            )
             : null
         ],
         "is-composite"
       )
       : dossierMetric(
-        "SCRUTINY · 14 DAYS",
-        "No current scrutiny evidence.",
+        translate(
+          "candidate.scrutiny_14_days_heading",
+          "SCRUTINY · 14 DAYS"
+        ),
+        translate(
+          "candidate.no_current_scrutiny_evidence",
+          "No current scrutiny evidence."
+        ),
         [],
         "is-composite is-empty"
       );
@@ -4694,7 +5089,7 @@
       metrics.append(
         pollMetric,
         dossierMetric(
-          "CAMPAIGN ATTENTION",
+          translate("candidate.campaign_attention", "CAMPAIGN ATTENTION"),
           percentageText(campaign.share, true),
           [
             counted(campaign.record_count, "record"),
@@ -4704,11 +5099,17 @@
         ),
         scrutinyMetric,
         dossierMetric(
-          "ACTIVE DAYS",
+          translate("candidate.active_days_heading", "ACTIVE DAYS"),
           hasValue(campaign.active_day_count)
             ? numberText(campaign.active_day_count)
             : MISSING,
-          ["Current published period", periodText]
+          [
+            translate(
+              "candidate.current_published_period",
+              "Current published period"
+            ),
+            periodText
+          ]
         )
       );
     } else {
@@ -4716,8 +5117,14 @@
         pollMetric,
         scrutinyMetric,
         dossierMetric(
-          "CAMPAIGN / ELECTION EVIDENCE",
-          "No current campaign/election evidence.",
+          translate(
+            "candidate.campaign_election_evidence",
+            "CAMPAIGN / ELECTION EVIDENCE"
+          ),
+          translate(
+            "candidate.no_current_campaign_election_evidence",
+            "No current campaign/election evidence."
+          ),
           periodText ? [periodText] : [],
           "is-empty is-wide"
         )
@@ -4815,20 +5222,29 @@
       mount.append(
         skeletonPresentation(
           "candidates",
-          "Loading candidate evidence"
+          translate(
+            "candidate.loading_candidate_evidence",
+            "Loading candidate evidence"
+          )
         )
       );
       return null;
     }
     if (status === "empty") {
       mount.append(
-        statePresentation("No candidate evidence is currently published.")
+        statePresentation(translate(
+          "candidate.no_candidate_evidence_is_currently_published",
+          "No candidate evidence is currently published."
+        ))
       );
       return null;
     }
     if (status === "unavailable") {
       mount.append(
-        statePresentation("Candidate evidence is temporarily unavailable.")
+        statePresentation(translate(
+          "candidate.candidate_evidence_is_temporarily_unavailable",
+          "Candidate evidence is temporarily unavailable."
+        ))
       );
       return null;
     }
@@ -4843,7 +5259,10 @@
     if (!candidates.length) {
       mount.setAttribute("data-candidate-signals-state", "empty");
       mount.append(
-        statePresentation("No candidate evidence is currently published.")
+        statePresentation(translate(
+          "candidate.no_candidate_evidence_is_currently_published",
+          "No candidate evidence is currently published."
+        ))
       );
       return null;
     }
