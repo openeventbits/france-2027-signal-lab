@@ -22,6 +22,23 @@
       agendaTopicLabel(topic)
     );
 
+  const agendaPresentationToken = (namespace, value) => {
+    const fallback = String(value || "");
+    const token = fallback.toLowerCase().replaceAll("-", "_");
+    return translate(`agenda_workspace.${namespace}.${token}`, fallback);
+  };
+
+  const agendaDisplayNumber = (value, digits = 1) => {
+    const numeric = number(value);
+    const localizer = globalThis.FR27I18N;
+    return localizer && typeof localizer.formatNumber === "function"
+      ? localizer.formatNumber(numeric, {
+          minimumFractionDigits: digits,
+          maximumFractionDigits: digits
+        })
+      : numeric.toFixed(digits);
+  };
+
   const renderStrongDateOrUnavailable = (
     value,
     options,
@@ -1823,20 +1840,22 @@
         "INSTITUTIONS"
     };
 
-    return (
-      labels[topic?.id] ||
-      "ISSUE"
-    );
+    const fallback = labels[topic?.id] || "ISSUE";
+    const key = labels[topic?.id]
+      ? `policy_workspace.code.${topic.id}`
+      : "policy_workspace.code.unknown";
+    return translate(key, fallback);
   }
 
   function policySubtopicLabel(value) {
-    return String(value || "")
+    const fallback = String(value || "")
       .replaceAll("_", " ")
       .replace(
         /\b\w/g,
         character =>
           character.toUpperCase()
       );
+    return translate(`policy_subtopic.${String(value || "")}`, fallback);
   }
 
   function isValidPolicyAgendaBaseTopics(
@@ -2107,7 +2126,15 @@
     if (unavailable) {
       return {
         domain: "issues",
-        ...unavailable
+        ...unavailable,
+        message: unavailable.state === "loading"
+          ? translate("policy_workspace.loading", "Loading policy issues")
+          : unavailable.state === "empty"
+            ? translate("agenda_workspace.no_data", "No supported data is available.")
+            : translate(
+                "policy_workspace.data_unavailable",
+                "Policy Issues data is unavailable. Other signals remain live."
+              )
       };
     }
 
@@ -2122,8 +2149,10 @@
       return {
         domain: "issues",
         state: "unavailable",
-        message:
+        message: translate(
+          "policy_workspace.not_available",
           "Policy Issues are not available in the current news artifact."
+        )
       };
     }
 
@@ -2159,8 +2188,10 @@
       return {
         domain: "issues",
         state: "invalid",
-        message:
+        message: translate(
+          "policy_workspace.contract_invalid",
           "Policy Issues are unavailable because the policy contract is malformed."
+        )
       };
     }
 
@@ -2181,8 +2212,10 @@
       return {
         domain: "issues",
         state: "invalid",
-        message:
+        message: translate(
+          "policy_workspace.assignments_invalid",
           "Policy Issues are unavailable because multi-label assignment totals are inconsistent."
+        )
       };
     }
 
@@ -2219,8 +2252,10 @@
       return {
         domain: "issues",
         state: "empty",
-        message:
-          "No policy issue currently meets the publication threshold.",
+        message: translate(
+          "policy_workspace.empty",
+          "No policy issue currently meets the publication threshold."
+        ),
         topics: [],
         selectedIssue: null,
         evolutionReady: false
@@ -2239,8 +2274,10 @@
       return {
         domain: "issues",
         state: "invalid",
-        message:
+        message: translate(
+          "policy_workspace.evolution_invalid",
           "Policy Issues are unavailable because the evolution contract is malformed."
+        )
       };
     }
 
@@ -2491,7 +2528,20 @@
 
   function buildAgendaViewModel() {
     const unavailable = viewModelState("news");
-    if (unavailable) return { domain: "agenda", ...unavailable };
+    if (unavailable) {
+      return {
+        domain: "agenda",
+        ...unavailable,
+        message: unavailable.state === "loading"
+          ? translate("agenda_workspace.loading", "Loading campaign agenda")
+          : unavailable.state === "empty"
+            ? translate("agenda_workspace.no_data", "No supported data is available.")
+            : translate(
+                "agenda_workspace.data_unavailable",
+                "Campaign Agenda data is unavailable. Other signals remain live."
+              )
+      };
+    }
 
     const agenda = dashboardState.news.campaign_agenda;
     const allTopics = Array.isArray(agenda?.topics) ? agenda.topics : [];
@@ -2500,7 +2550,10 @@
       return {
         domain: "agenda",
         state: "invalid",
-        message: "Campaign Agenda is unavailable because its topic contract is malformed."
+        message: translate(
+          "agenda_workspace.contract_invalid",
+          "Campaign Agenda is unavailable because its topic contract is malformed."
+        )
       };
     }
 
@@ -2558,6 +2611,12 @@
       state: selectable.length
         ? "ready"
         : "empty",
+      message: selectable.length
+        ? ""
+        : translate(
+            "agenda_workspace.empty",
+            "No recurring campaign topic currently meets the publication threshold."
+          ),
       topics: selectable,
       eligibleTopics: eligible,
       selectedTopic,
@@ -4182,11 +4241,11 @@
 
   function agendaSignedPp(value) {
     const numeric = number(value);
-    return `${numeric > 0 ? "+" : ""}${numeric.toFixed(1)}pp`;
+    return `${numeric > 0 ? "+" : ""}${agendaDisplayNumber(numeric)}pp`;
   }
 
   function agendaPercent(value, digits = 1) {
-    return `${(number(value) * 100).toFixed(digits)}%`;
+    return `${agendaDisplayNumber(number(value) * 100, digits)}%`;
   }
 
   function agendaCompactDate(value) {
@@ -4196,11 +4255,17 @@
 
     if (!match) return value || "";
 
-    const months = [
+    const months = globalThis.FR27I18N?.locale === "fr"
+      ? [
+          "JANV.", "FÉVR.", "MARS", "AVR.",
+          "MAI", "JUIN", "JUIL.", "AOÛT",
+          "SEPT.", "OCT.", "NOV.", "DÉC."
+        ]
+      : [
       "JAN", "FEB", "MAR", "APR",
       "MAY", "JUN", "JUL", "AUG",
       "SEP", "OCT", "NOV", "DEC"
-    ];
+        ];
 
     return `${Number(match[3])} ${months[Number(match[2]) - 1]}`;
   }
@@ -4218,11 +4283,17 @@
       return `${startValue || ""}–${endValue || ""}`;
     }
 
-    const months = [
+    const months = globalThis.FR27I18N?.locale === "fr"
+      ? [
+          "JANV.", "FÉVR.", "MARS", "AVR.",
+          "MAI", "JUIN", "JUIL.", "AOÛT",
+          "SEPT.", "OCT.", "NOV.", "DÉC."
+        ]
+      : [
       "JAN", "FEB", "MAR", "APR",
       "MAY", "JUN", "JUL", "AUG",
       "SEP", "OCT", "NOV", "DEC"
-    ];
+        ];
 
     const startDay = Number(start[3]);
     const endDay = Number(end[3]);
@@ -4293,12 +4364,15 @@
 
     const definition = definitionAvailable
       ? selected.definition.trim()
-      : "Topic definition unavailable in the current repository data.";
+      : translate(
+          "agenda_workspace.definition_unavailable",
+          "Topic definition unavailable in the current repository data."
+        );
 
     return `<div class="hybrid-agenda-layout">
       <section class="hybrid-agenda-ranking">
-        <h3 class="hybrid-section-title">Eligible-topic ranking</h3>
-        <p class="hybrid-section-sub">Accepted election-news topics · ${model.windowDays}-day source window. Primary bar value: source-day recurrence.</p>
+        <h3 class="hybrid-section-title">${escapeHtml(translate("agenda_workspace.eligible_ranking", "Eligible-topic ranking"))}</h3>
+        <p class="hybrid-section-sub">${escapeHtml(translate("agenda_workspace.ranking_description", `Accepted election-news topics · ${model.windowDays}-day source window. Primary bar value: source-day recurrence.`, { days: model.windowDays }))}</p>
 
         ${model.topics.map((topic, index) => `
           <button
@@ -4309,13 +4383,13 @@
           >
             <span class="hybrid-agenda-topic-head">
               <span>${index + 1}. ${escapeHtml(agendaTopicLabel(topic))}</span>
-              <strong>${topic.source_day_count} source-days</strong>
+              <strong>${topic.source_day_count} ${escapeHtml(translate("agenda_workspace.source_days", "SOURCE-DAYS").toLowerCase())}</strong>
             </span>
 
             <span class="hybrid-agenda-topic-meta">
-              ${countLabel(topic.item_count, "item")} ·
-              ${countLabel(topic.publisher_count, "publisher")} ·
-              ${countLabel(topic.active_day_count, "active day")}
+              ${escapeHtml(translate("agenda_workspace.item_count", countLabel(topic.item_count, "item"), { count: topic.item_count }))} ·
+              ${escapeHtml(translate("agenda_workspace.publisher_count", countLabel(topic.publisher_count, "publisher"), { count: topic.publisher_count }))} ·
+              ${escapeHtml(translate("agenda_workspace.active_day_count", countLabel(topic.active_day_count, "active day"), { count: topic.active_day_count }))}
             </span>
 
             <span class="hybrid-track" aria-hidden="true">
@@ -4333,7 +4407,7 @@
       </section>
 
       <section class="hybrid-agenda-detail" aria-live="polite">
-        <div class="hybrid-section-title">Selected recurring topic</div>
+        <div class="hybrid-section-title">${escapeHtml(translate("agenda_workspace.selected_topic_legacy", "Selected recurring topic"))}</div>
         <h3>${escapeHtml(agendaTopicLabel(selected))}</h3>
 
         <p class="hybrid-agenda-definition${definitionAvailable ? "" : " is-unavailable"}">
@@ -4341,10 +4415,10 @@
         </p>
 
         <div class="hybrid-metrics">
-          <span class="hybrid-metric">${selected.source_day_count} source-days</span>
-          <span class="hybrid-metric">${countLabel(selected.item_count, "accepted item")}</span>
-          <span class="hybrid-metric">${countLabel(selected.publisher_count, "publisher")}</span>
-          <span class="hybrid-metric">${countLabel(selected.active_day_count, "active day")}</span>
+          <span class="hybrid-metric">${selected.source_day_count} ${escapeHtml(translate("agenda_workspace.source_days", "SOURCE-DAYS").toLowerCase())}</span>
+          <span class="hybrid-metric">${escapeHtml(translate("agenda_workspace.accepted_item_count", countLabel(selected.item_count, "accepted item"), { count: selected.item_count }))}</span>
+          <span class="hybrid-metric">${escapeHtml(translate("agenda_workspace.publisher_count", countLabel(selected.publisher_count, "publisher"), { count: selected.publisher_count }))}</span>
+          <span class="hybrid-metric">${escapeHtml(translate("agenda_workspace.active_day_count", countLabel(selected.active_day_count, "active day"), { count: selected.active_day_count }))}</span>
         </div>
 
         <div class="hybrid-supporting-list">
@@ -4363,13 +4437,13 @@
                 <span aria-hidden="true">↗</span>
               </span>
             </a>
-          `).join("") || '<div class="hybrid-state is-compact">No supporting source-linked items are available for this topic.</div>'}
+          `).join("") || `<div class="hybrid-state is-compact">${escapeHtml(translate("agenda_workspace.no_topic_evidence", "No supporting source-linked items are available for this topic."))}</div>`}
         </div>
       </section>
     </div>
 
     <p class="hybrid-disclosure">
-      Recurring campaign topics classify accepted presidential-election coverage from monitored publishers. Bars use source-day count, not raw article volume. This is agenda activity, not voter or public priorities.
+      ${escapeHtml(translate("agenda_workspace.disclosure", "Recurring campaign topics classify accepted presidential-election coverage from monitored publishers. Bars use source-day count, not raw article volume. This is agenda activity, not voter or public priorities."))}
     </p>`;
   }
 
@@ -4409,21 +4483,21 @@
     );
 
     const diagnosticMarkup = diagnostics
-      ? `<div class="hybrid-agenda-v6-diagnostics" aria-label="Agenda diagnostics">
+      ? `<div class="hybrid-agenda-v6-diagnostics" aria-label="${escapeAttribute(translate("agenda_workspace.diagnostics_aria", "Agenda diagnostics"))}">
           <article class="is-active">
-            <span>ACTIVE TOPICS</span>
+            <span>${escapeHtml(translate("agenda_workspace.active_topics", "ACTIVE TOPICS"))}</span>
             <strong>${diagnostics.activeTopics}</strong>
           </article>
           <article class="is-concentration">
-            <span>TOP-3 SHARE</span>
-            <strong>${number(diagnostics.top3Share).toFixed(1)}%</strong>
+            <span>${escapeHtml(translate("agenda_workspace.top_3_share", "TOP-3 SHARE"))}</span>
+            <strong>${agendaDisplayNumber(diagnostics.top3Share)}%</strong>
           </article>
           <article class="is-rising">
-            <span>RISING TOPICS</span>
+            <span>${escapeHtml(translate("agenda_workspace.rising_topics", "RISING TOPICS"))}</span>
             <strong>${diagnostics.risingTopics}</strong>
           </article>
           <article class="is-turnover">
-            <span>TOP-3 TURNOVER</span>
+            <span>${escapeHtml(translate("agenda_workspace.top_3_turnover", "TOP-3 TURNOVER"))}</span>
             <strong>${diagnostics.top3Turnover}/${diagnostics.top3TurnoverDenominator}</strong>
           </article>
         </div>`
@@ -4459,14 +4533,14 @@
             <span
               class="hybrid-agenda-v6-badge"
               data-movement="${escapeAttribute(movement)}"
-            >${escapeHtml(topic.movement)}</span>
-            <span class="hybrid-agenda-v6-badge is-structure">${escapeHtml(topic.structure)}</span>
+            >${escapeHtml(agendaPresentationToken("movement", topic.movement))}</span>
+            <span class="hybrid-agenda-v6-badge is-structure">${escapeHtml(agendaPresentationToken("structure", topic.structure))}</span>
           </span>
         </span>
 
         <span class="hybrid-agenda-v6-topic-total">
           <strong>${topic.source_day_count}</strong>
-          <span>SOURCE-DAYS</span>
+          <span>${escapeHtml(translate("agenda_workspace.source_days", "SOURCE-DAYS"))}</span>
           <i class="hybrid-agenda-v6-topic-volume" aria-hidden="true">
             <b style="--agenda-monitor-volume:${volumeWidth.toFixed(1)}%"></b>
           </i>
@@ -4474,11 +4548,11 @@
 
         <span class="hybrid-agenda-v6-topic-shift">
           <span>
-            <small>PRIOR</small>
+            <small>${escapeHtml(translate("agenda_workspace.prior", "PRIOR"))}</small>
             <strong>${topic.previousSourceDays}</strong>
           </span>
           <span>
-            <small>LATEST</small>
+            <small>${escapeHtml(translate("agenda_workspace.latest", "LATEST"))}</small>
             <strong>${topic.latestSourceDays}</strong>
           </span>
           <em data-movement="${escapeAttribute(movement)}">
@@ -4490,9 +4564,15 @@
 
     return `<section class="hybrid-agenda-v6-panel hybrid-agenda-v6-monitor">
       <header class="hybrid-agenda-v6-panel-head">
-        <h3 class="hybrid-agenda-v6-panel-title">AGENDA MONITOR</h3>
+        <h3 class="hybrid-agenda-v6-panel-title">${escapeHtml(translate("agenda_workspace.monitor", "AGENDA MONITOR"))}</h3>
         <span class="hybrid-agenda-v6-panel-meta">
-          ${diagnostics ? `${diagnostics.activeTopics} ACTIVE · 30D` : "30D"}
+          ${diagnostics
+            ? escapeHtml(translate(
+                "agenda_workspace.active_30d",
+                `${diagnostics.activeTopics} ACTIVE · 30D`,
+                { count: diagnostics.activeTopics }
+              ))
+            : escapeHtml(translate("agenda_workspace.day_count_30d", "30D"))}
         </span>
       </header>
 
@@ -4559,7 +4639,7 @@
 
     return `<section class="hybrid-agenda-v6-module hybrid-agenda-v6-matrix-module">
       <div class="hybrid-agenda-v6-module-head">
-        <strong>30-DAY EVOLUTION</strong>
+        <strong>${escapeHtml(translate("agenda_workspace.evolution_30d", "30-DAY EVOLUTION"))}</strong>
         <span>
           ${escapeHtml(agendaCompactDate(model.evolution.period_start))}
           →
@@ -4571,22 +4651,22 @@
         <div
           class="hybrid-agenda-v6-matrix"
           role="group"
-          aria-label="Thirty-day Agenda evolution matrix"
+          aria-label="${escapeAttribute(translate("agenda_workspace.matrix_aria", "Thirty-day Agenda evolution matrix"))}"
         >
           <div class="hybrid-agenda-v6-matrix-head" aria-hidden="true">
-            <span>TOPIC</span>
+            <span>${escapeHtml(translate("agenda_workspace.topic", "TOPIC"))}</span>
             ${periodHeaders}
-            <span>30D</span>
+            <span>${escapeHtml(translate("agenda_workspace.day_count_30d", "30D"))}</span>
           </div>
 
           ${rows}
         </div>
 
-        <div class="hybrid-agenda-v6-matrix-legend" aria-label="Agenda evolution color key">
-          <span><i data-window="older"></i>OLDER</span>
-          <span><i data-window="previous"></i>PRIOR 7D</span>
-          <span><i data-window="latest"></i>LATEST 7D</span>
-          <span><i data-window="partial"></i>PARTIAL DAY</span>
+        <div class="hybrid-agenda-v6-matrix-legend" aria-label="${escapeAttribute(translate("agenda_workspace.legend_aria", "Agenda evolution color key"))}">
+          <span><i data-window="older"></i>${escapeHtml(translate("agenda_workspace.older", "OLDER"))}</span>
+          <span><i data-window="previous"></i>${escapeHtml(translate("agenda_workspace.prior_7d", "PRIOR 7D"))}</span>
+          <span><i data-window="latest"></i>${escapeHtml(translate("agenda_workspace.latest_7d", "LATEST 7D"))}</span>
+          <span><i data-window="partial"></i>${escapeHtml(translate("agenda_workspace.partial_day", "PARTIAL DAY"))}</span>
         </div>
       </div>
     </section>`;
@@ -4624,7 +4704,11 @@
 
         <span
           class="hybrid-agenda-v6-pair-bars"
-          aria-label="Prior ${previous} source-days; latest ${latest} source-days"
+          aria-label="${escapeAttribute(translate(
+            "agenda_workspace.week_pair_aria",
+            `Prior ${previous} source-days; latest ${latest} source-days`,
+            { previous, latest }
+          ))}"
         >
           <span class="hybrid-agenda-v6-pair-track is-prior" aria-hidden="true">
             <i style="--agenda-width:${(previous / maximum * 100).toFixed(1)}%"></i>
@@ -4647,12 +4731,12 @@
 
     return `<section class="hybrid-agenda-v6-module hybrid-agenda-v6-shift-module">
       <div class="hybrid-agenda-v6-module-head">
-        <strong>WEEK SHIFT</strong>
+        <strong>${escapeHtml(translate("agenda_workspace.week_shift", "WEEK SHIFT"))}</strong>
 
         <span class="hybrid-agenda-v6-shift-key">
           <span>
             <i class="is-prior" aria-hidden="true"></i>
-            PRIOR ${escapeHtml(
+            ${escapeHtml(translate("agenda_workspace.prior", "PRIOR"))} ${escapeHtml(
               agendaPeriodLabel(
                 model.evolution.previous_start,
                 model.evolution.previous_end
@@ -4661,7 +4745,7 @@
           </span>
           <span>
             <i class="is-latest" aria-hidden="true"></i>
-            LATEST ${escapeHtml(
+            ${escapeHtml(translate("agenda_workspace.latest", "LATEST"))} ${escapeHtml(
               agendaPeriodLabel(
                 model.evolution.latest_start,
                 model.evolution.latest_end
@@ -4680,10 +4764,10 @@
   function renderAgendaV6Analysis(model) {
     return `<section class="hybrid-agenda-v6-panel hybrid-agenda-v6-evolution-panel">
       <header class="hybrid-agenda-v6-panel-head">
-        <h3>AGENDA EVOLUTION</h3>
+        <h3>${escapeHtml(translate("agenda_workspace.evolution", "AGENDA EVOLUTION"))}</h3>
         <span class="hybrid-agenda-v6-head-tools">
-          <span class="hybrid-agenda-v6-panel-head-meta">COMPLETE-WEEK COMPARISON</span>
-          <button class="hybrid-agenda-v6-info fr27-info-glyph" type="button" aria-label="Agenda methodology" data-fr27-tooltip="Source-day = unique publisher × UTC date · exact 30D projection includes the current partial UTC day · movement compares latest 7 complete days with prior 7 · this measures monitored media agenda activity, not voter or public priorities.">
+          <span class="hybrid-agenda-v6-panel-head-meta">${escapeHtml(translate("agenda_workspace.complete_week_comparison", "COMPLETE-WEEK COMPARISON"))}</span>
+          <button class="hybrid-agenda-v6-info fr27-info-glyph" type="button" aria-label="${escapeAttribute(translate("agenda_workspace.methodology_label", "Agenda methodology"))}" data-fr27-tooltip="${escapeAttribute(translate("agenda_workspace.methodology", "Source-day = unique publisher × UTC date · exact 30D projection includes the current partial UTC day · movement compares latest 7 complete days with prior 7 · this measures monitored media agenda activity, not voter or public priorities."))}">
             <span aria-hidden="true">i</span>
           </button>
         </span>
@@ -4781,7 +4865,7 @@
 
     return `<section class="hybrid-agenda-v6-module hybrid-agenda-v6-profile-module">
       <div class="hybrid-agenda-v6-module-head">
-        <strong>ACTIVITY PROFILE · 30D</strong>
+        <strong>${escapeHtml(translate("agenda_workspace.activity_profile_30d", "ACTIVITY PROFILE · 30D"))}</strong>
         <span>
           ${escapeHtml(agendaCompactDate(daily[0]?.date))}
           →
@@ -4793,7 +4877,7 @@
         <div class="hybrid-agenda-v6-profile-top">
           <div
             class="hybrid-agenda-v6-bars"
-            aria-label="Thirty-day selected-topic source-day activity"
+            aria-label="${escapeAttribute(translate("agenda_workspace.activity_aria", "Thirty-day selected-topic source-day activity"))}"
           >
             ${daily.map(day => {
               const value = number(day.source_day_count);
@@ -4813,24 +4897,32 @@
 
           <div
             class="hybrid-agenda-v6-week-compare"
-            aria-label="Prior and latest complete-week daily activity shapes"
+            aria-label="${escapeAttribute(translate("agenda_workspace.week_activity_aria", "Prior and latest complete-week daily activity shapes"))}"
           >
             <div class="hybrid-agenda-v6-week-line is-latest">
-              <span>LATEST 7D</span>
+              <span>${escapeHtml(translate("agenda_workspace.latest_7d", "LATEST 7D"))}</span>
               ${renderSparkline(
                 latestSeries,
                 "latest",
-                `Latest 7D daily source-days: ${latestSeries.join(", ")}`
+                translate(
+                  "agenda_workspace.latest_series_aria",
+                  `Latest 7D daily source-days: ${latestSeries.join(", ")}`,
+                  { values: latestSeries.join(", ") }
+                )
               )}
               <strong>${topic.latestSourceDays}</strong>
             </div>
 
             <div class="hybrid-agenda-v6-week-line is-prior">
-              <span>PRIOR 7D</span>
+              <span>${escapeHtml(translate("agenda_workspace.prior_7d", "PRIOR 7D"))}</span>
               ${renderSparkline(
                 priorSeries,
                 "prior",
-                `Prior 7D daily source-days: ${priorSeries.join(", ")}`
+                translate(
+                  "agenda_workspace.prior_series_aria",
+                  `Prior 7D daily source-days: ${priorSeries.join(", ")}`,
+                  { values: priorSeries.join(", ") }
+                )
               )}
               <strong>${topic.previousSourceDays}</strong>
             </div>
@@ -4839,26 +4931,26 @@
 
         <div
           class="hybrid-agenda-v6-profile-facts"
-          aria-label="Selected topic persistence and peak facts"
+          aria-label="${escapeAttribute(translate("agenda_workspace.facts_aria", "Selected topic persistence and peak facts"))}"
         >
           <div>
-            <span>ACTIVE · 14D</span>
+            <span>${escapeHtml(translate("agenda_workspace.active_14d", "ACTIVE · 14D"))}</span>
             <strong>${topic.activeDays14}/14</strong>
           </div>
 
           <div>
-            <span>ACTIVE · 30D</span>
+            <span>${escapeHtml(translate("agenda_workspace.active_days_30d", "ACTIVE · 30D"))}</span>
             <strong>${activeDays30}/30</strong>
           </div>
 
           <div>
-            <span>PEAK SHARE</span>
+            <span>${escapeHtml(translate("agenda_workspace.peak_share", "PEAK SHARE"))}</span>
             <strong>${escapeHtml(agendaPercent(topic.peakDayShare))}</strong>
           </div>
 
           <div>
-            <span>PEAK DAY</span>
-            <strong>${escapeHtml(agendaCompactDate(topic.peakDayDate))} · ${topic.peakDaySourceDays} SD</strong>
+            <span>${escapeHtml(translate("agenda_workspace.peak_day", "PEAK DAY"))}</span>
+            <strong>${escapeHtml(agendaCompactDate(topic.peakDayDate))} · ${topic.peakDaySourceDays} ${escapeHtml(translate("agenda_workspace.source_day_abbreviation", "SD"))}</strong>
           </div>
         </div>
       </div>
@@ -4872,7 +4964,7 @@
 
     if (!signals.length) {
       return `<div class="hybrid-agenda-v6-scroll" data-agenda-scroll-region="signals">
-        <div class="hybrid-agenda-v6-empty">No associated classification signals are published.</div>
+        <div class="hybrid-agenda-v6-empty">${escapeHtml(translate("agenda_workspace.no_signals", "No associated classification signals are published."))}</div>
       </div>`;
     }
 
@@ -5012,7 +5104,7 @@
         data-agenda-scroll-region="evidence"
       >
         <div class="hybrid-agenda-v6-empty">
-          No source-linked evidence is currently published.
+          ${escapeHtml(translate("agenda_workspace.no_evidence", "No source-linked evidence is currently published."))}
         </div>
       </div>`;
     }
@@ -5079,8 +5171,8 @@
 
     return `<section class="hybrid-agenda-v6-panel hybrid-agenda-v6-dossier">
       <header class="hybrid-agenda-v6-panel-head">
-        <h3 class="hybrid-agenda-v6-panel-title">TOPIC DOSSIER</h3>
-        <span class="hybrid-agenda-v6-panel-meta">SOURCE-LINKED EVIDENCE</span>
+        <h3 class="hybrid-agenda-v6-panel-title">${escapeHtml(translate("agenda_workspace.dossier", "TOPIC DOSSIER"))}</h3>
+        <span class="hybrid-agenda-v6-panel-meta">${escapeHtml(translate("agenda_workspace.source_linked_evidence", "SOURCE-LINKED EVIDENCE"))}</span>
       </header>
 
       <div class="hybrid-agenda-v6-panel-body hybrid-agenda-v6-dossier-body">
@@ -5090,7 +5182,7 @@
           </span>
 
           <div class="hybrid-agenda-v6-identity-copy">
-            <span class="hybrid-agenda-v6-kicker">SELECTED RECURRING TOPIC</span>
+            <span class="hybrid-agenda-v6-kicker">${escapeHtml(translate("agenda_workspace.selected_topic", "SELECTED RECURRING TOPIC"))}</span>
 
             <div class="hybrid-agenda-v6-title-line">
               <h4>${escapeHtml(agendaTopicLabel(topic))}</h4>
@@ -5098,10 +5190,10 @@
               <span
                 class="hybrid-agenda-v6-badge"
                 data-movement="${escapeAttribute(movement)}"
-              >${escapeHtml(topic.movement)}</span>
+              >${escapeHtml(agendaPresentationToken("movement", topic.movement))}</span>
 
               <span class="hybrid-agenda-v6-badge is-structure">
-                ${escapeHtml(topic.structure)}
+                ${escapeHtml(agendaPresentationToken("structure", topic.structure))}
               </span>
             </div>
           </div>
@@ -5109,23 +5201,23 @@
 
         <section
           class="hybrid-agenda-v6-metrics"
-          aria-label="Selected topic headline metrics"
+          aria-label="${escapeAttribute(translate("agenda_workspace.metrics_aria", "Selected topic headline metrics"))}"
         >
           <article>
             <strong>${topic.source_day_count}</strong>
-            <span>30D SOURCE-DAYS</span>
+            <span>${escapeHtml(translate("agenda_workspace.source_days_30d", "30D SOURCE-DAYS"))}</span>
           </article>
 
           <article>
             <strong data-movement="${escapeAttribute(movement)}">
               ${escapeHtml(agendaSignedPp(topic.agendaShareChangePp))}
             </strong>
-            <span>AGENDA SHARE Δ</span>
+            <span>${escapeHtml(translate("agenda_workspace.share_change", "AGENDA SHARE Δ"))}</span>
           </article>
 
           <article>
             <strong>${topic.publisher_count}</strong>
-            <span>PUBLISHERS</span>
+            <span>${escapeHtml(translate("agenda_workspace.publishers", "PUBLISHERS"))}</span>
           </article>
         </section>
 
@@ -5134,16 +5226,16 @@
         <div class="hybrid-agenda-v6-detail-grid">
           <section class="hybrid-agenda-v6-detail-card">
             <div class="hybrid-agenda-v6-detail-head">
-              <strong>ASSOCIATED SIGNALS</strong>
-              <span>${signalHits} hits · ${signalCount} signals</span>
+              <strong>${escapeHtml(translate("agenda_workspace.associated_signals", "ASSOCIATED SIGNALS"))}</strong>
+              <span>${escapeHtml(translate("agenda_workspace.signal_totals", `${signalHits} hits · ${signalCount} signals`, { hits: signalHits, count: signalCount }))}</span>
             </div>
             ${renderAgendaV6Signals(topic)}
           </section>
 
           <section class="hybrid-agenda-v6-detail-card">
             <div class="hybrid-agenda-v6-detail-head">
-              <strong>RECENT EVIDENCE</strong>
-              <span>${Math.min(8, evidenceCount)} of ${evidenceCount}</span>
+              <strong>${escapeHtml(translate("agenda_workspace.recent_evidence", "RECENT EVIDENCE"))}</strong>
+              <span>${escapeHtml(translate("agenda_workspace.evidence_totals", `${Math.min(8, evidenceCount)} of ${evidenceCount}`, { shown: Math.min(8, evidenceCount), total: evidenceCount }))}</span>
             </div>
             ${renderAgendaV6Evidence(topic)}
           </section>
@@ -5281,18 +5373,18 @@
                   class="hybrid-agenda-v6-badge"
                   data-movement="${escapeAttribute(movement)}"
                 >
-                  ${escapeHtml(topic.movement)}
+                  ${escapeHtml(agendaPresentationToken("movement", topic.movement))}
                 </span>
 
                 <span class="hybrid-agenda-v6-badge is-structure">
-                  ${escapeHtml(topic.structure)}
+                  ${escapeHtml(agendaPresentationToken("structure", topic.structure))}
                 </span>
               </span>
             </span>
 
             <span class="hybrid-agenda-v6-topic-total">
               <strong>${topic.source_day_count}</strong>
-              <span>SOURCE-DAYS</span>
+              <span>${escapeHtml(translate("agenda_workspace.source_days", "SOURCE-DAYS"))}</span>
 
               <i
                 class="hybrid-agenda-v6-topic-volume"
@@ -5306,13 +5398,13 @@
 
             <span class="hybrid-agenda-v6-topic-shift">
               <span>
-                <small>PRIOR</small>
-                <strong>${topic.previousIncidence.toFixed(1)}%</strong>
+                <small>${escapeHtml(translate("agenda_workspace.prior", "PRIOR"))}</small>
+                <strong>${agendaDisplayNumber(topic.previousIncidence)}%</strong>
               </span>
 
               <span>
-                <small>LATEST</small>
-                <strong>${topic.latestIncidence.toFixed(1)}%</strong>
+                <small>${escapeHtml(translate("agenda_workspace.latest", "LATEST"))}</small>
+                <strong>${agendaDisplayNumber(topic.latestIncidence)}%</strong>
               </span>
 
               <em
@@ -5335,12 +5427,15 @@
     >
       <header class="hybrid-agenda-v6-panel-head">
         <h3 class="hybrid-agenda-v6-panel-title">
-          POLICY MONITOR
+          ${escapeHtml(translate("policy_workspace.monitor", "POLICY MONITOR"))}
         </h3>
 
         <span class="hybrid-agenda-v6-panel-meta">
-          ${model.topics.length}
-          ISSUES · 30D
+          ${escapeHtml(translate(
+            "policy_workspace.issue_count_30d",
+            `${model.topics.length} ISSUES · 30D`,
+            { count: model.topics.length }
+          ))}
         </span>
       </header>
 
@@ -5349,17 +5444,17 @@
       >
         <div
           class="hybrid-agenda-v6-diagnostics"
-          aria-label="Policy issue diagnostics"
+          aria-label="${escapeAttribute(translate("policy_workspace.diagnostics_aria", "Policy issue diagnostics"))}"
         >
           <article class="is-active">
-            <span>ACTIVE 7D</span>
+            <span>${escapeHtml(translate("policy_workspace.active_7d", "ACTIVE 7D"))}</span>
             <strong>
               ${diagnostics.activeIssues}
             </strong>
           </article>
 
           <article class="is-concentration">
-            <span>LEADING ISSUE</span>
+            <span>${escapeHtml(translate("policy_workspace.leading_issue", "LEADING ISSUE"))}</span>
             <strong class="hybrid-issues-leading">
               ${escapeHtml(
                 policyIssueCode(
@@ -5370,16 +5465,16 @@
           </article>
 
           <article class="is-rising">
-            <span>RISING ISSUES</span>
+            <span>${escapeHtml(translate("policy_workspace.rising_issues", "RISING ISSUES"))}</span>
             <strong>
               ${diagnostics.risingIssues}
             </strong>
           </article>
 
           <article class="is-turnover">
-            <span>POLICY COVERAGE</span>
+            <span>${escapeHtml(translate("policy_workspace.coverage", "POLICY COVERAGE"))}</span>
             <strong>
-              ${diagnostics.policyCoverage.toFixed(1)}%
+              ${agendaDisplayNumber(diagnostics.policyCoverage)}%
             </strong>
           </article>
         </div>
@@ -5447,7 +5542,7 @@
       class="hybrid-agenda-v6-module hybrid-agenda-v6-matrix-module"
     >
       <div class="hybrid-agenda-v6-module-head">
-        <strong>30-DAY EVOLUTION</strong>
+        <strong>${escapeHtml(translate("agenda_workspace.evolution_30d", "30-DAY EVOLUTION"))}</strong>
 
         <span>
           ${escapeHtml(
@@ -5468,15 +5563,15 @@
         <div
           class="hybrid-agenda-v6-matrix"
           role="group"
-          aria-label="Thirty-day Policy Issues evolution matrix"
+          aria-label="${escapeAttribute(translate("policy_workspace.matrix_aria", "Thirty-day Policy Issues evolution matrix"))}"
         >
           <div
             class="hybrid-agenda-v6-matrix-head"
             aria-hidden="true"
           >
-            <span>ISSUE</span>
+            <span>${escapeHtml(translate("policy_workspace.issue", "ISSUE"))}</span>
             ${periodHeaders}
-            <span>30D</span>
+            <span>${escapeHtml(translate("agenda_workspace.day_count_30d", "30D"))}</span>
           </div>
 
           ${rows}
@@ -5484,12 +5579,12 @@
 
         <div
           class="hybrid-agenda-v6-matrix-legend"
-          aria-label="Policy Issues evolution color key"
+          aria-label="${escapeAttribute(translate("policy_workspace.legend_aria", "Policy Issues evolution color key"))}"
         >
-          <span><i data-window="older"></i>OLDER</span>
-          <span><i data-window="previous"></i>PRIOR 7D</span>
-          <span><i data-window="latest"></i>LATEST 7D</span>
-          <span><i data-window="partial"></i>PARTIAL DAY</span>
+          <span><i data-window="older"></i>${escapeHtml(translate("agenda_workspace.older", "OLDER"))}</span>
+          <span><i data-window="previous"></i>${escapeHtml(translate("agenda_workspace.prior_7d", "PRIOR 7D"))}</span>
+          <span><i data-window="latest"></i>${escapeHtml(translate("agenda_workspace.latest_7d", "LATEST 7D"))}</span>
+          <span><i data-window="partial"></i>${escapeHtml(translate("agenda_workspace.partial_day", "PARTIAL DAY"))}</span>
         </div>
       </div>
     </section>`;
@@ -5554,7 +5649,14 @@
 
             <span
               class="hybrid-agenda-v6-pair-bars"
-              aria-label="Prior ${previous.toFixed(1)} percent; latest ${latest.toFixed(1)} percent issue incidence"
+              aria-label="${escapeAttribute(translate(
+                "policy_workspace.week_pair_aria",
+                `Prior ${agendaDisplayNumber(previous)} percent; latest ${agendaDisplayNumber(latest)} percent issue incidence`,
+                {
+                  previous: agendaDisplayNumber(previous),
+                  latest: agendaDisplayNumber(latest)
+                }
+              ))}"
             >
               <span
                 class="hybrid-agenda-v6-pair-track is-prior"
@@ -5576,9 +5678,9 @@
             </span>
 
             <span class="hybrid-agenda-v6-shift-count">
-              ${previous.toFixed(1)}%
+              ${agendaDisplayNumber(previous)}%
               →
-              ${latest.toFixed(1)}%
+              ${agendaDisplayNumber(latest)}%
             </span>
 
             <strong
@@ -5600,17 +5702,17 @@
       class="hybrid-agenda-v6-module hybrid-agenda-v6-shift-module"
     >
       <div class="hybrid-agenda-v6-module-head">
-        <strong>WEEK SHIFT</strong>
+        <strong>${escapeHtml(translate("agenda_workspace.week_shift", "WEEK SHIFT"))}</strong>
 
         <span class="hybrid-agenda-v6-shift-key">
           <span>
             <i class="is-prior" aria-hidden="true"></i>
-            PRIOR
+            ${escapeHtml(translate("agenda_workspace.prior", "PRIOR"))}
           </span>
 
           <span>
             <i class="is-latest" aria-hidden="true"></i>
-            LATEST
+            ${escapeHtml(translate("agenda_workspace.latest", "LATEST"))}
           </span>
         </span>
       </div>
@@ -5626,18 +5728,18 @@
       class="hybrid-agenda-v6-panel hybrid-agenda-v6-evolution-panel"
     >
       <header class="hybrid-agenda-v6-panel-head">
-        <h3>ISSUE EVOLUTION</h3>
+        <h3>${escapeHtml(translate("policy_workspace.evolution", "ISSUE EVOLUTION"))}</h3>
 
         <span class="hybrid-agenda-v6-head-tools">
           <span class="hybrid-agenda-v6-panel-head-meta">
-            COMPLETE-WEEK COMPARISON
+            ${escapeHtml(translate("agenda_workspace.complete_week_comparison", "COMPLETE-WEEK COMPARISON"))}
           </span>
 
           <button
             class="hybrid-agenda-v6-info fr27-info-glyph"
             type="button"
-            aria-label="Policy Issues methodology"
-            data-fr27-tooltip="Deterministic multi-label classification of accepted presidential coverage. Source-day = unique publisher × UTC date. Issue incidence = issue source-days divided by all accepted presidential-coverage source-days in the same complete week. Percentages can overlap and need not total 100%. This measures monitored media coverage, not voter priorities."
+            aria-label="${escapeAttribute(translate("policy_workspace.methodology_label", "Policy Issues methodology"))}"
+            data-fr27-tooltip="${escapeAttribute(translate("policy_workspace.methodology", "Deterministic multi-label classification of accepted presidential coverage. Source-day = unique publisher × UTC date. Issue incidence = issue source-days divided by all accepted presidential-coverage source-days in the same complete week. Percentages can overlap and need not total 100%. This measures monitored media coverage, not voter priorities."))}"
           >
             <span aria-hidden="true">i</span>
           </button>
@@ -5668,7 +5770,7 @@
         data-agenda-scroll-region="issue-candidates"
       >
         <div class="hybrid-agenda-v6-empty">
-          No candidate association is supported by the selected issue evidence.
+          ${escapeHtml(translate("policy_workspace.no_candidates", "No candidate association is supported by the selected issue evidence."))}
         </div>
       </div>`;
     }
@@ -5739,7 +5841,11 @@
     return `<span
       class="hybrid-agenda-v6-badge is-structure"
       data-fr27-tooltip="${escapeAttribute(
-        `${policySubtopicLabel(lead.id)} · ${lead.item_count} matched articles`
+        `${policySubtopicLabel(lead.id)} · ${translate(
+          "policy_workspace.matched_articles",
+          `${lead.item_count} matched articles`,
+          { count: lead.item_count }
+        )}`
       )}"
       tabindex="0"
     >
@@ -5786,11 +5892,11 @@
     >
       <header class="hybrid-agenda-v6-panel-head">
         <h3 class="hybrid-agenda-v6-panel-title">
-          ISSUE DOSSIER
+          ${escapeHtml(translate("policy_workspace.dossier", "ISSUE DOSSIER"))}
         </h3>
 
         <span class="hybrid-agenda-v6-panel-meta">
-          SOURCE-LINKED EVIDENCE
+          ${escapeHtml(translate("agenda_workspace.source_linked_evidence", "SOURCE-LINKED EVIDENCE"))}
         </span>
       </header>
 
@@ -5807,7 +5913,7 @@
 
           <div class="hybrid-agenda-v6-identity-copy">
             <span class="hybrid-agenda-v6-kicker">
-              SELECTED SUBSTANTIVE ISSUE
+              ${escapeHtml(translate("policy_workspace.selected_issue", "SELECTED SUBSTANTIVE ISSUE"))}
             </span>
 
             <div class="hybrid-agenda-v6-title-line">
@@ -5820,7 +5926,7 @@
                 data-movement="${escapeAttribute(movement)}"
               >
                 ${escapeHtml(
-                  topic.movement
+                  agendaPresentationToken("movement", topic.movement)
                 )}
               </span>
 
@@ -5831,20 +5937,20 @@
 
         <section
           class="hybrid-agenda-v6-metrics"
-          aria-label="Selected issue headline metrics"
+          aria-label="${escapeAttribute(translate("policy_workspace.metrics_aria", "Selected issue headline metrics"))}"
         >
           <article>
             <strong>
               ${topic.source_day_count}
             </strong>
-            <span>30D SOURCE-DAYS</span>
+            <span>${escapeHtml(translate("agenda_workspace.source_days_30d", "30D SOURCE-DAYS"))}</span>
           </article>
 
           <article>
             <strong>
-              ${topic.latestIncidence.toFixed(1)}%
+              ${agendaDisplayNumber(topic.latestIncidence)}%
             </strong>
-            <span>7D INCIDENCE</span>
+            <span>${escapeHtml(translate("policy_workspace.incidence_7d", "7D INCIDENCE"))}</span>
           </article>
 
           <article>
@@ -5857,7 +5963,7 @@
                 )
               )}
             </strong>
-            <span>INCIDENCE Δ</span>
+            <span>${escapeHtml(translate("policy_workspace.incidence_change", "INCIDENCE Δ"))}</span>
           </article>
         </section>
 
@@ -5870,14 +5976,15 @@
           <section class="hybrid-agenda-v6-detail-card">
             <div class="hybrid-agenda-v6-detail-head">
               <strong>
-                CANDIDATE ASSOCIATIONS
+                ${escapeHtml(translate("policy_workspace.candidate_associations", "CANDIDATE ASSOCIATIONS"))}
               </strong>
 
               <span>
-                ${candidateHits}
-                hits ·
-                ${topic.candidate_counts.length}
-                candidates
+                ${escapeHtml(translate(
+                  "policy_workspace.candidate_totals",
+                  `${candidateHits} hits · ${topic.candidate_counts.length} candidates`,
+                  { hits: candidateHits, count: topic.candidate_counts.length }
+                ))}
               </span>
             </div>
 
@@ -5887,16 +5994,15 @@
           <section class="hybrid-agenda-v6-detail-card">
             <div class="hybrid-agenda-v6-detail-head">
               <strong>
-                RECENT EVIDENCE
+                ${escapeHtml(translate("agenda_workspace.recent_evidence", "RECENT EVIDENCE"))}
               </strong>
 
               <span>
-                ${Math.min(
-                  8,
-                  evidenceCount
-                )}
-                of
-                ${evidenceCount}
+                ${escapeHtml(translate(
+                  "agenda_workspace.evidence_totals",
+                  `${Math.min(8, evidenceCount)} of ${evidenceCount}`,
+                  { shown: Math.min(8, evidenceCount), total: evidenceCount }
+                ))}
               </span>
             </div>
 
@@ -5914,7 +6020,7 @@
       if (model.state === "loading" && window.FR27UI) {
         return window.FR27UI.skeletonElement(
           "issues",
-          "Loading policy issues"
+          translate("policy_workspace.loading", "Loading policy issues")
         ).outerHTML;
       }
       return summaryState(model);
@@ -5922,7 +6028,7 @@
 
     return `<div
       class="hybrid-agenda-v6-workspace"
-      aria-label="Policy Issues analytical workspace"
+      aria-label="${escapeAttribute(translate("policy_workspace.workspace_aria", "Policy Issues analytical workspace"))}"
     >
       ${renderIssuesMonitor(model)}
       ${renderIssuesAnalysis(model)}
@@ -5935,7 +6041,7 @@
       if (model.state === "loading" && window.FR27UI) {
         return window.FR27UI.skeletonElement(
           "agenda",
-          "Loading campaign agenda"
+          translate("agenda_workspace.loading", "Loading campaign agenda")
         ).outerHTML;
       }
       return summaryState(model);
