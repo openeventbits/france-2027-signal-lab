@@ -231,6 +231,7 @@ def run_runoff_script(
     *,
     load_state: str = "ready",
     archive_state: dict | None = None,
+    locale: str | None = None,
 ):
     node = shutil.which("node")
     if node is None:
@@ -245,6 +246,34 @@ source = source.replace(
 );
 const input = JSON.parse(fs.readFileSync(0, "utf8"));
 const mount = {};
+const localeTag = input.locale === "fr" ? "fr-FR" : "en-GB";
+const pluralPattern = /\{([A-Za-z0-9_]+),\s*plural,\s*one\s*\{([^{}]*)\}\s*other\s*\{([^{}]*)\}\s*\}/g;
+const localizer = input.locale ? {
+  locale: input.locale,
+  localeTag,
+  t(key, parameters = {}, fallback = "") {
+    const message = String(input.messages[key] ?? fallback);
+    const pluralized = message.replace(
+      pluralPattern,
+      (_match, name, one, other) =>
+        new Intl.PluralRules(localeTag).select(Number(parameters?.[name])) === "one"
+          ? one
+          : other
+    );
+    return pluralized.replace(
+      /\{([A-Za-z0-9_]+)\}/g,
+      (match, name) => Object.prototype.hasOwnProperty.call(parameters || {}, name)
+        ? String(parameters[name])
+        : match
+    );
+  },
+  formatDate(value, options) {
+    return new Intl.DateTimeFormat(localeTag, options).format(new Date(value));
+  },
+  formatNumber(value, options) {
+    return new Intl.NumberFormat(localeTag, options).format(value);
+  }
+} : undefined;
 const safeSourceUrl = value => {
   try {
     const url = new URL(String(value));
@@ -256,9 +285,12 @@ const safeSourceUrl = value => {
 const formatRunoffFieldwork = value => {
   const start = new Date(`${value.start}T00:00:00Z`);
   const end = new Date(`${value.end}T00:00:00Z`);
-  const day = date => new Intl.DateTimeFormat("en-GB", { day: "numeric", timeZone: "UTC" }).format(date);
-  const month = date => new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" }).format(date).toUpperCase();
-  const year = date => new Intl.DateTimeFormat("en-GB", { year: "numeric", timeZone: "UTC" }).format(date);
+  const day = date => new Intl.DateTimeFormat(localeTag, { day: "numeric", timeZone: "UTC" }).format(date);
+  const month = date => {
+    const label = new Intl.DateTimeFormat(localeTag, { month: "short", timeZone: "UTC" }).format(date);
+    return input.locale === "fr" ? label : label.toUpperCase();
+  };
+  const year = date => new Intl.DateTimeFormat(localeTag, { year: "numeric", timeZone: "UTC" }).format(date);
   if (value.start === value.end) return `${day(start)} ${month(start)} ${year(start)}`;
   if (start.getUTCFullYear() === end.getUTCFullYear() && start.getUTCMonth() === end.getUTCMonth()) {
     return `${day(start)}–${day(end)} ${month(end)} ${year(end)}`;
@@ -278,6 +310,7 @@ const context = {
   String,
   JSON,
   Intl,
+  FR27I18N: localizer,
   window: { location: { hash: "" }, addEventListener() {} },
   document: {
     getElementById(id) { return id === "hybrid-signal-board" ? mount : null; },
@@ -327,6 +360,20 @@ Promise.resolve(eval(input.expression))
                 "expression": expression,
                 "loadState": load_state,
                 "archiveState": archive_state,
+                "locale": locale,
+                "messages": (
+                    json.loads(
+                        re.search(
+                            r"const messages = Object\.freeze\((\{.*?\})\);",
+                            (ROOT / "locales" / f"{locale}.js").read_text(
+                                encoding="utf-8"
+                            ),
+                            re.DOTALL,
+                        ).group(1)
+                    )
+                    if locale
+                    else {}
+                ),
             }
         ),
         cwd=ROOT,

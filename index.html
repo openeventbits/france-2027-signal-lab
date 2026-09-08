@@ -10607,9 +10607,15 @@
     function formatRunoffFieldwork(windowValue) {
       const start = new Date(`${windowValue.start}T00:00:00Z`);
       const end = new Date(`${windowValue.end}T00:00:00Z`);
-      const day = date => new Intl.DateTimeFormat("en-GB", { day: "numeric", timeZone: "UTC" }).format(date);
-      const month = date => new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" }).format(date).toUpperCase();
-      const year = date => new Intl.DateTimeFormat("en-GB", { year: "numeric", timeZone: "UTC" }).format(date);
+      const localeTag = globalThis.FR27I18N?.localeTag || "en-GB";
+      const day = date => new Intl.DateTimeFormat(localeTag, { day: "numeric", timeZone: "UTC" }).format(date);
+      const month = date => {
+        const label = new Intl.DateTimeFormat(localeTag, { month: "short", timeZone: "UTC" }).format(date);
+        return localeTag.toLowerCase().startsWith("fr")
+          ? label
+          : label.toLocaleUpperCase(localeTag);
+      };
+      const year = date => new Intl.DateTimeFormat(localeTag, { year: "numeric", timeZone: "UTC" }).format(date);
       if (windowValue.start === windowValue.end) return `${day(start)} ${month(start)} ${year(start)}`;
       if (start.getUTCFullYear() === end.getUTCFullYear() && start.getUTCMonth() === end.getUTCMonth()) {
         return `${day(start)}–${day(end)} ${month(end)} ${year(end)}`;
