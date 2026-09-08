@@ -724,3 +724,906 @@
 
   queueRefresh();
 })();
+
+/* =========================================================
+ * TIER 3 AGENDA CONTROLLER
+ *
+ * Reuse the original Agenda topic buttons as state owners.
+ * Tier 3 exposes that state through one compact dropdown.
+ * ========================================================= */
+(() => {
+  "use strict";
+
+  const tier3Query =
+    window.matchMedia(
+      "(width < 1024px)"
+    );
+
+  const mount =
+    document.getElementById(
+      "hybrid-signal-board"
+    );
+
+  if (!mount) return;
+
+  let refreshQueued = false;
+
+
+  function removeAgendaTier3() {
+
+    document
+      .querySelector(
+        ".fr27-tier3-agenda-selector"
+      )
+      ?.remove();
+
+    document
+      .querySelector(
+        "#signal-agenda-panel .hybrid-agenda-v6-workspace"
+      )
+      ?.classList.remove(
+        "fr27-tier3-agenda-workspace"
+      );
+  }
+
+
+  function applyAgendaTier3() {
+
+    const panel =
+      document.getElementById(
+        "signal-agenda-panel"
+      );
+
+    if (!panel) return;
+
+
+    const workspace =
+      panel.querySelector(
+        ".hybrid-agenda-v6-workspace"
+      );
+
+    if (!workspace) return;
+
+
+    if (!tier3Query.matches) {
+      removeAgendaTier3();
+      return;
+    }
+
+
+    workspace.classList.add(
+      "fr27-tier3-agenda-workspace"
+    );
+
+
+    const monitor =
+      workspace.querySelector(
+        ".hybrid-agenda-v6-monitor"
+      );
+
+    if (!monitor) return;
+
+
+    const topicButtons = [
+      ...monitor.querySelectorAll(
+        "[data-hybrid-agenda-topic]"
+      )
+    ];
+
+    if (!topicButtons.length) return;
+
+
+    let selectorRow =
+      panel.querySelector(
+        ".fr27-tier3-agenda-selector"
+      );
+
+    let select;
+
+
+    if (!selectorRow) {
+
+      selectorRow =
+        document.createElement(
+          "div"
+        );
+
+      selectorRow.className =
+        "fr27-tier3-agenda-selector";
+
+
+      const label =
+        document.createElement(
+          "span"
+        );
+
+      label.className =
+        "fr27-tier3-control-label";
+
+      label.textContent =
+        "AGENDA MONITOR";
+
+
+      const wrap =
+        document.createElement(
+          "div"
+        );
+
+      wrap.className =
+        "fr27-tier3-select-wrap";
+
+
+      select =
+        document.createElement(
+          "select"
+        );
+
+      select.className =
+        "fr27-tier3-select";
+
+      select.setAttribute(
+        "aria-label",
+        "Select Agenda topic"
+      );
+
+
+      wrap.append(select);
+
+      selectorRow.append(
+        label,
+        wrap
+      );
+
+
+      select.addEventListener(
+        "change",
+        () => {
+
+          const currentWorkspace =
+            panel.querySelector(
+              ".hybrid-agenda-v6-workspace"
+            );
+
+          if (!currentWorkspace) return;
+
+          const selectedButton =
+            currentWorkspace.querySelector(
+              `[data-hybrid-agenda-topic="${
+                CSS.escape(select.value)
+              }"]`
+            );
+
+          /*
+           * Preserve the original Agenda state path.
+           * The real topic button remains the state owner.
+           */
+          selectedButton?.click();
+        }
+      );
+
+
+      workspace.insertAdjacentElement(
+        "beforebegin",
+        selectorRow
+      );
+
+    } else {
+
+      select =
+        selectorRow.querySelector(
+          "select"
+        );
+    }
+
+
+    if (!select) return;
+
+
+    /*
+     * Rebuild options from the current original monitor.
+     * This also keeps selection synchronized after rerenders.
+     */
+    const options =
+      topicButtons.map(
+        button => {
+
+          const option =
+            document.createElement(
+              "option"
+            );
+
+          const topicId =
+            button.dataset
+              .hybridAgendaTopic;
+
+          const name =
+            button
+              .querySelector(
+                ".hybrid-agenda-v6-topic-name"
+              )
+              ?.textContent
+              ?.trim() ||
+            button.textContent.trim();
+
+          const sourceDays =
+            button
+              .querySelector(
+                ".hybrid-agenda-v6-topic-total strong"
+              )
+              ?.textContent
+              ?.trim();
+
+          const movement =
+            String(
+              button.dataset.movement ||
+              ""
+            )
+              .trim()
+              .toUpperCase();
+
+
+          option.value =
+            topicId || "";
+
+          option.textContent = [
+            name,
+            movement,
+            sourceDays
+              ? `${sourceDays} source-days`
+              : ""
+          ]
+            .filter(Boolean)
+            .join(" · ");
+
+          option.selected =
+            button.getAttribute(
+              "aria-pressed"
+            ) === "true";
+
+          return option;
+        }
+      );
+
+
+    select.replaceChildren(
+      ...options
+    );
+  }
+
+
+  function queueAgendaRefresh() {
+
+    if (refreshQueued) return;
+
+    refreshQueued = true;
+
+    requestAnimationFrame(
+      () => {
+
+        refreshQueued = false;
+
+        applyAgendaTier3();
+      }
+    );
+  }
+
+
+  tier3Query.addEventListener(
+    "change",
+    queueAgendaRefresh
+  );
+
+  window.addEventListener(
+    "hashchange",
+    queueAgendaRefresh
+  );
+
+
+  const observer =
+    new MutationObserver(
+      queueAgendaRefresh
+    );
+
+  observer.observe(
+    mount,
+    {
+      childList: true,
+      subtree: true
+    }
+  );
+
+
+  queueAgendaRefresh();
+})();
+
+/* =========================================================
+ * TIER 3 ISSUES CONTROLLER
+ *
+ * Candidate-shell architecture:
+ *
+ *   WORKSPACE
+ *   ISSUES MONITOR
+ *   ISSUE EVOLUTION
+ *   ISSUE DOSSIER
+ *
+ * Original policy-issue buttons remain the state owners.
+ * ========================================================= */
+(() => {
+  "use strict";
+
+  const tier3Query =
+    window.matchMedia(
+      "(width < 1024px)"
+    );
+
+  const mount =
+    document.getElementById(
+      "hybrid-signal-board"
+    );
+
+  if (!mount) return;
+
+  let refreshQueued = false;
+
+
+  function removeIssuesTier3() {
+
+    document
+      .querySelector(
+        ".fr27-tier3-issues-selector"
+      )
+      ?.remove();
+
+    document
+      .querySelector(
+        "#signal-issues-panel .hybrid-agenda-v6-workspace"
+      )
+      ?.classList.remove(
+        "fr27-tier3-issues-workspace"
+      );
+  }
+
+
+  function applyIssuesTier3() {
+
+    const panel =
+      document.getElementById(
+        "signal-issues-panel"
+      );
+
+    if (!panel) return;
+
+
+    const workspace =
+      panel.querySelector(
+        ".hybrid-agenda-v6-workspace"
+      );
+
+    if (!workspace) return;
+
+
+    if (!tier3Query.matches) {
+      removeIssuesTier3();
+      return;
+    }
+
+
+    workspace.classList.add(
+      "fr27-tier3-issues-workspace"
+    );
+
+
+    const monitor =
+      workspace.querySelector(
+        ".hybrid-agenda-v6-monitor"
+      );
+
+    if (!monitor) return;
+
+
+    const issueButtons = [
+      ...monitor.querySelectorAll(
+        "[data-hybrid-policy-issue]"
+      )
+    ];
+
+    if (!issueButtons.length) return;
+
+
+    let selectorRow =
+      panel.querySelector(
+        ".fr27-tier3-issues-selector"
+      );
+
+    let select;
+
+
+    if (!selectorRow) {
+
+      selectorRow =
+        document.createElement(
+          "div"
+        );
+
+      /*
+       * Reuse Candidate Monitor's actual Tier-3 shell class.
+       * This guarantees exact visual parity.
+       */
+      selectorRow.className =
+        "fr27-tier3-issues-selector fr27-tier3-candidate-control";
+
+
+      const label =
+        document.createElement(
+          "span"
+        );
+
+      label.className =
+        "fr27-tier3-control-label";
+
+      label.textContent =
+        "ISSUES MONITOR";
+
+
+      const wrap =
+        document.createElement(
+          "div"
+        );
+
+      wrap.className =
+        "fr27-tier3-select-wrap";
+
+
+      select =
+        document.createElement(
+          "select"
+        );
+
+      select.className =
+        "fr27-tier3-select";
+
+      select.setAttribute(
+        "aria-label",
+        "Select policy issue"
+      );
+
+
+      wrap.append(select);
+
+      selectorRow.append(
+        label,
+        wrap
+      );
+
+
+      select.addEventListener(
+        "change",
+        () => {
+
+          const currentWorkspace =
+            panel.querySelector(
+              ".hybrid-agenda-v6-workspace"
+            );
+
+          const currentMonitor =
+            currentWorkspace
+              ?.querySelector(
+                ".hybrid-agenda-v6-monitor"
+              );
+
+          if (!currentMonitor) return;
+
+
+          const selectedButton =
+            currentMonitor.querySelector(
+              `[data-hybrid-policy-issue="${
+                CSS.escape(select.value)
+              }"]`
+            );
+
+          /*
+           * Preserve the original Issues interaction/state
+           * contract. The real monitor button owns selection.
+           */
+          selectedButton?.click();
+        }
+      );
+
+
+      workspace.insertAdjacentElement(
+        "beforebegin",
+        selectorRow
+      );
+
+    } else {
+
+      select =
+        selectorRow.querySelector(
+          "select"
+        );
+    }
+
+
+    if (!select) return;
+
+
+    const options =
+      issueButtons.map(
+        button => {
+
+          const option =
+            document.createElement(
+              "option"
+            );
+
+          const issueId =
+            button.dataset
+              .hybridPolicyIssue;
+
+          const name =
+            button
+              .querySelector(
+                ".hybrid-agenda-v6-topic-name"
+              )
+              ?.textContent
+              ?.trim() ||
+            button.textContent.trim();
+
+          const sourceDays =
+            button
+              .querySelector(
+                ".hybrid-agenda-v6-topic-total strong"
+              )
+              ?.textContent
+              ?.trim();
+
+          const movement =
+            String(
+              button.dataset.movement ||
+              ""
+            )
+              .trim()
+              .toUpperCase();
+
+
+          option.value =
+            issueId || "";
+
+          option.textContent = [
+            name,
+            movement,
+            sourceDays
+              ? `${sourceDays} source-days`
+              : ""
+          ]
+            .filter(Boolean)
+            .join(" · ");
+
+          option.selected =
+            button.getAttribute(
+              "aria-pressed"
+            ) === "true";
+
+          return option;
+        }
+      );
+
+
+    select.replaceChildren(
+      ...options
+    );
+  }
+
+
+  function queueIssuesRefresh() {
+
+    if (refreshQueued) return;
+
+    refreshQueued = true;
+
+    requestAnimationFrame(
+      () => {
+
+        refreshQueued = false;
+
+        applyIssuesTier3();
+      }
+    );
+  }
+
+
+  tier3Query.addEventListener(
+    "change",
+    queueIssuesRefresh
+  );
+
+  window.addEventListener(
+    "hashchange",
+    queueIssuesRefresh
+  );
+
+
+  const observer =
+    new MutationObserver(
+      queueIssuesRefresh
+    );
+
+  observer.observe(
+    mount,
+    {
+      childList: true,
+      subtree: true
+    }
+  );
+
+
+  queueIssuesRefresh();
+})();
+
+/* TIER 3 EVENTS CONTROLLER — AUTHORITATIVE */
+(() => {
+  "use strict";
+
+  const tier3Query =
+    window.matchMedia(
+      "(width < 1024px)"
+    );
+
+  const mount =
+    document.getElementById(
+      "hybrid-signal-board"
+    );
+
+  if (!mount) return;
+
+  let refreshQueued = false;
+
+
+  function removeEventsTier3() {
+
+    document
+      .querySelector(
+        ".fr27-tier3-events-selector"
+      )
+      ?.remove();
+
+    document
+      .querySelector(
+        "#signal-events-panel .hybrid-events-ops-main"
+      )
+      ?.classList.remove(
+        "fr27-tier3-events-main"
+      );
+  }
+
+
+  function applyEventsTier3() {
+
+    const panel =
+      document.getElementById(
+        "signal-events-panel"
+      );
+
+    if (!panel) return;
+
+
+    const main =
+      panel.querySelector(
+        ".hybrid-events-ops-main"
+      );
+
+    if (!main) return;
+
+
+    if (!tier3Query.matches) {
+      removeEventsTier3();
+      return;
+    }
+
+
+    main.classList.add(
+      "fr27-tier3-events-main"
+    );
+
+
+    const upcoming =
+      main.querySelector(
+        ".hybrid-events-upcoming"
+      );
+
+    if (!upcoming) return;
+
+
+    const eventButtons = [
+      ...upcoming.querySelectorAll(
+        ".hybrid-events-upcoming-row[data-hybrid-event-id]"
+      )
+    ];
+
+    if (!eventButtons.length) return;
+
+
+    if (
+      main.querySelector(
+        ".fr27-tier3-events-selector"
+      )
+    ) {
+      return;
+    }
+
+
+    const selectorRow =
+      document.createElement("div");
+
+    selectorRow.className =
+      "fr27-tier3-events-selector";
+
+
+    const label =
+      document.createElement("div");
+
+    label.className =
+      "fr27-tier3-events-selector-label";
+
+    label.textContent =
+      "UPCOMING EVENTS";
+
+
+    const select =
+      document.createElement("select");
+
+    select.className =
+      "fr27-tier3-events-select";
+
+    select.setAttribute(
+      "aria-label",
+      "Select upcoming campaign event"
+    );
+
+
+    eventButtons.forEach(button => {
+
+      const option =
+        document.createElement("option");
+
+      const eventId =
+        button.dataset.hybridEventId;
+
+      const dateDay =
+        button
+          .querySelector("time strong")
+          ?.textContent
+          ?.trim() || "";
+
+      const dateMonth =
+        button
+          .querySelector("time span")
+          ?.textContent
+          ?.trim() || "";
+
+      const type =
+        button
+          .querySelector(
+            ".hybrid-events-type-badge strong"
+          )
+          ?.textContent
+          ?.trim() || "";
+
+      const title =
+        button
+          .querySelector(
+            ".hybrid-events-upcoming-copy > strong"
+          )
+          ?.textContent
+          ?.trim() ||
+        "Campaign event";
+
+
+      option.value =
+        eventId;
+
+      option.textContent = [
+        [dateDay, dateMonth]
+          .filter(Boolean)
+          .join(" "),
+        type,
+        title
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      option.selected =
+        button.getAttribute(
+          "aria-pressed"
+        ) === "true";
+
+      select.append(option);
+    });
+
+
+    select.addEventListener(
+      "change",
+      () => {
+
+        /*
+         * Re-query after every render.
+         * Selecting an event may replace the Events DOM.
+         */
+        const currentPanel =
+          document.getElementById(
+            "signal-events-panel"
+          );
+
+        const currentUpcoming =
+          currentPanel?.querySelector(
+            ".hybrid-events-upcoming"
+          );
+
+        const selectedButton =
+          currentUpcoming?.querySelector(
+            `.hybrid-events-upcoming-row[data-hybrid-event-id="${
+              CSS.escape(select.value)
+            }"]`
+          );
+
+        selectedButton?.click();
+      }
+    );
+
+
+    selectorRow.append(
+      label,
+      select
+    );
+
+
+    /*
+     * Exactly as Tier 2:
+     * Upcoming selector belongs INSIDE ops-main.
+     */
+    main.prepend(
+      selectorRow
+    );
+  }
+
+
+  function queueEventsRefresh() {
+
+    if (refreshQueued) return;
+
+    refreshQueued = true;
+
+    requestAnimationFrame(() => {
+      refreshQueued = false;
+      applyEventsTier3();
+    });
+  }
+
+
+  const observer =
+    new MutationObserver(
+      queueEventsRefresh
+    );
+
+  observer.observe(
+    mount,
+    {
+      childList: true,
+      subtree: true
+    }
+  );
+
+
+  tier3Query.addEventListener(
+    "change",
+    queueEventsRefresh
+  );
+
+  window.addEventListener(
+    "hashchange",
+    queueEventsRefresh
+  );
+
+
+  queueEventsRefresh();
+})();

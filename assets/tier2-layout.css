@@ -1975,3 +1975,756 @@ html.fr27-tier2-active
     min-width: 0 !important;
   }
 }
+
+/* =========================================================
+ * TIER 2 RUNOFF — FULL-WIDTH EVENTS RHYTHM
+ *
+ * Match the Events workspace macro language:
+ *
+ *   WORKSPACE
+ *   PRIMARY INSTRUMENT
+ *   SECONDARY INSTRUMENT
+ *   HISTORY INSTRUMENT
+ *
+ * All three major Runoff surfaces own the full workspace width.
+ * Existing Runoff content and interaction logic are untouched.
+ * ========================================================= */
+@media (1024px <= width < 1399px) {
+
+  /* -------------------------------------------------------
+   * PANEL ROOT
+   * ------------------------------------------------------- */
+
+  html.fr27-tier2-active
+    #signal-runoff-panel {
+
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+
+  /* -------------------------------------------------------
+   * CURRENT RUNOFF STACK
+   *
+   * Was:
+   *   Closest 45% | Common 55%
+   *
+   * Now:
+   *   Closest
+   *   Common
+   * ------------------------------------------------------- */
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-current-grid {
+
+    box-sizing: border-box !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+
+    grid-template-rows:
+      auto auto !important;
+
+    gap: 8px !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    overflow: visible !important;
+  }
+
+
+  /* -------------------------------------------------------
+   * CLOSEST TESTED RUNOFF
+   * ------------------------------------------------------- */
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-current-grid
+    > .hybrid-runoff-closest {
+
+    box-sizing: border-box !important;
+
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    margin: 0 !important;
+  }
+
+
+  /* -------------------------------------------------------
+   * CURRENT COMMON MATCHUPS
+   * ------------------------------------------------------- */
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-current-grid
+    > .hybrid-runoff-common {
+
+    box-sizing: border-box !important;
+
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    margin: 0 !important;
+  }
+
+
+  /* -------------------------------------------------------
+   * SELECTED MATCHUP HISTORY
+   * ------------------------------------------------------- */
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-archive-grid {
+
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    margin-top: 8px !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-archive-grid
+    > * {
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+}
+
+/* =========================================================
+ * TIER 2 RUNOFF — EDGE-TO-EDGE CURRENT PAIR
+ *
+ * Preserve the established Tier-2 composition:
+ *
+ *   CLOSEST TESTED RUNOFF  |  CURRENT COMMON MATCHUPS
+ *             45%          |           55%
+ *
+ * Only remove the visual side inset from this row so the
+ * outer module borders align with the workspace frame.
+ * Selected Matchup History is otherwise untouched.
+ * ========================================================= */
+@media (1024px <= width < 1399px) {
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-current-grid {
+
+    /* Preserve the original Tier-2 two-panel composition. */
+    grid-template-columns:
+      minmax(0, 45fr)
+      minmax(0, 55fr) !important;
+
+    grid-template-rows:
+      minmax(0, 1fr) !important;
+
+    gap: 8px !important;
+
+
+    /*
+     * The Runoff workspace owns an inline inset.
+     * Bleed only this analytical row back across that inset.
+     *
+     * Result:
+     *
+     * | CLOSEST TESTED RUNOFF | CURRENT COMMON MATCHUPS |
+     * ^                                               ^
+     * outer workspace edge                     outer edge
+     */
+    width: auto !important;
+    max-width: none !important;
+
+    margin-left:
+      calc(
+        0px -
+        var(--fr27-workspace-inline-padding, 10px)
+      ) !important;
+
+    margin-right:
+      calc(
+        0px -
+        var(--fr27-workspace-inline-padding, 10px)
+      ) !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-current-grid
+    > .hybrid-runoff-closest {
+
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+
+    width: auto !important;
+    min-width: 0 !important;
+
+    margin: 0 !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-current-grid
+    > .hybrid-runoff-common {
+
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+
+    width: auto !important;
+    min-width: 0 !important;
+
+    margin: 0 !important;
+  }
+}
+
+/* =========================================================
+ * TIER 2 RUNOFF — EVENTS EDGE AND RHYTHM
+ *
+ * Preserve:
+ *   CLOSEST TESTED RUNOFF 45%
+ *   CURRENT COMMON MATCHUPS 55%
+ *   SELECTED MATCHUP HISTORY
+ *
+ * Change only:
+ *   - analytical rows align with workspace outer edges
+ *   - vertical rhythm matches Events: 8px
+ * ========================================================= */
+@media (1024px <= width < 1399px) {
+
+  /* -------------------------------------------------------
+   * REMOVE LEGACY RUNOFF TOP INSET
+   *
+   * The global WORKSPACE control already owns the standard
+   * 8px separation from the selected workspace.
+   * ------------------------------------------------------- */
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-workspace {
+
+    margin-top: 0 !important;
+
+    gap: 8px !important;
+  }
+
+
+  /* -------------------------------------------------------
+   * UPPER PAIR
+   *
+   * Geometry already correct. Normalize only vertical margin.
+   * Existing edge-to-edge patch continues to own the bleed.
+   * ------------------------------------------------------- */
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-current-grid {
+
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+
+  /* -------------------------------------------------------
+   * SELECTED MATCHUP HISTORY
+   *
+   * Give the lower analytical row the exact same horizontal
+   * edge alignment as the upper pair.
+   * ------------------------------------------------------- */
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-archive-grid {
+
+    width: auto !important;
+    max-width: none !important;
+
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+
+    margin-left:
+      calc(
+        0px -
+        var(--fr27-workspace-inline-padding, 10px)
+      ) !important;
+
+    margin-right:
+      calc(
+        0px -
+        var(--fr27-workspace-inline-padding, 10px)
+      ) !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-archive-grid
+    > .hybrid-runoff-module {
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    margin: 0 !important;
+  }
+}
+
+/* =========================================================
+ * TIER 2 RUNOFF — CLEAN INTERIORS AND VISIBLE LEGEND
+ *
+ * Preserve:
+ *   - external module borders
+ *   - analytical bars / timeline
+ *   - interactive control borders
+ *
+ * Remove:
+ *   - decorative internal cell borders
+ *   - observation separators
+ *   - nested instrument borders
+ *
+ * Also permanently reserve space for the Candidate 1 /
+ * Candidate 2 legend in Current Common Matchups.
+ * ========================================================= */
+@media (1024px <= width < 1399px) {
+
+  /* =======================================================
+   * CURRENT COMMON MATCHUPS — LEGEND
+   * ======================================================= */
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-common {
+
+    overflow: hidden !important;
+
+    padding-bottom: 4px !important;
+  }
+
+
+  /*
+   * Matrix owns only the space ABOVE the legend.
+   * If necessary, its rows scroll rather than pushing the
+   * legend through the bottom edge of the module.
+   */
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix {
+
+    flex: 1 1 auto !important;
+
+    min-height: 0 !important;
+
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-legend {
+
+    box-sizing: border-box !important;
+
+    flex:
+      0 0 32px !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+
+    align-items: stretch !important;
+
+    width: 100% !important;
+
+    min-height: 32px !important;
+    height: 32px !important;
+
+    margin:
+      0 !important;
+
+    padding:
+      0 !important;
+
+    border:
+      0 !important;
+
+    overflow:
+      visible !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-legend
+    > span {
+
+    box-sizing: border-box !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    min-width: 0 !important;
+    min-height: 32px !important;
+
+    border:
+      0 !important;
+
+    background:
+      transparent !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-legend
+    > span:nth-child(2) {
+
+    margin-left:
+      0 !important;
+
+    border-left:
+      0 !important;
+  }
+
+
+  /* =======================================================
+   * CLOSEST TESTED RUNOFF — REMOVE INTERNAL FRAMING
+   * ======================================================= */
+
+  /*
+   * Remove separator between the two source observations.
+   */
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-source-observation
+    + .hybrid-runoff-source-observation {
+
+    border-top:
+      0 !important;
+  }
+
+
+  /*
+   * Pollster/result instruments remain visually grouped by
+   * their surface but no longer have a nested card border.
+   */
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-instrument {
+
+    border:
+      0 !important;
+  }
+
+
+  /*
+   * Margin remains a distinct metric, but not a bordered cell.
+   */
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-margin-tile {
+
+    border:
+      0 !important;
+
+    border-left:
+      0 !important;
+  }
+
+
+  /*
+   * Narrowest-margin status remains, but without another
+   * rectangle inside the major panel.
+   */
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-closest-callout {
+
+    border:
+      0 !important;
+  }
+
+
+  /* =======================================================
+   * CURRENT COMMON MATCHUPS — REMOVE TABLE GRID
+   * ======================================================= */
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-head
+    > span,
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-row
+    > span {
+
+    border-right:
+      0 !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-row {
+
+    border-top:
+      0 !important;
+  }
+
+
+  /*
+   * Keep the closest-row tint as the semantic highlight,
+   * but remove its structural left border.
+   */
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-row.is-selected {
+
+    border-left:
+      0 !important;
+
+    box-shadow:
+      none !important;
+  }
+
+
+  /* =======================================================
+   * SELECTED MATCHUP HISTORY — REMOVE INTERNAL DIVIDERS
+   * ======================================================= */
+
+  /*
+   * Keep the chronology guide itself: it is data encoding,
+   * not decorative framing.
+   *
+   * Remove only the vertical separators between observations.
+   */
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-chronology.is-observation-strip
+    .hybrid-runoff-history-position {
+
+    border-left:
+      0 !important;
+  }
+}
+
+/* =========================================================
+ * TIER 2 RUNOFF — REMOVE GENERIC CANDIDATE LEGEND
+ *
+ * Candidate names are already explicit in each matchup.
+ * Cyan / violet score encoding remains unchanged.
+ * ========================================================= */
+@media (1024px <= width < 1399px) {
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-legend {
+
+    display: none !important;
+  }
+}
+
+/* =========================================================
+ * TIER 2 RUNOFF — FINAL COMMON MATRIX FIT
+ *
+ * Legend is gone, so the Common Matchups matrix no longer
+ * needs its own vertical scrollbar.
+ *
+ * Tighten the column-header band slightly so the first
+ * matchup begins a few pixels higher.
+ * ========================================================= */
+@media (1024px <= width < 1399px) {
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix {
+
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+
+    scrollbar-width: none !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix::-webkit-scrollbar {
+
+    display: none !important;
+  }
+
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-head {
+
+    min-height: 21px !important;
+  }
+}
+
+/* =========================================================
+ * TIER 2 RUNOFF — TIGHTER HUD CLEARANCE
+ *
+ * Keep the fixed-HUD safety reserve, but remove the slightly
+ * excessive visual gap below Selected Matchup History.
+ * ========================================================= */
+@media (1024px <= width < 1399px) {
+
+  html.fr27-tier2-active
+    .shell {
+
+    padding-bottom: 78px !important;
+  }
+}
+
+/* =========================================================
+ * TIER 2 RUNOFF — FINAL BOTTOM SEAM
+ *
+ * The base Runoff panel carries 8px padding on all sides.
+ * At the bottom this leaves an unnecessary internal gutter
+ * and makes the outer workspace side borders appear to run
+ * down toward the fixed HUD.
+ *
+ * Remove only that bottom inset.
+ * ========================================================= */
+@media (1024px <= width < 1399px) {
+
+  html.fr27-tier2-active
+    #signal-runoff-panel {
+
+    padding-bottom: 0 !important;
+  }
+}
+
+/* =========================================================
+ * TIER 2 RUNOFF — FINAL FOOTER FIT
+ *
+ * Root cause:
+ * the desktop shell gives .hybrid-workspace > .hybrid-panel
+ * a fixed panel height. Runoff content is now shorter than
+ * that height, leaving an empty bordered tail beneath
+ * Selected Matchup History.
+ *
+ * Tier 2 Runoff therefore owns natural panel height.
+ * The fixed-HUD clearance is also tightened specifically
+ * when Runoff is the visible workspace.
+ * ========================================================= */
+@media (1024px <= width < 1399px) {
+
+  /* -------------------------------------------------------
+   * LET THE RUNOFF WORKSPACE END WITH ITS REAL CONTENT
+   *
+   * This removes the vertical outer-border extensions below
+   * Selected Matchup History.
+   * ------------------------------------------------------- */
+
+  html.fr27-tier2-active
+    #hybrid-signal-board
+    .hybrid-workspace
+    > #signal-runoff-panel {
+
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    overflow: visible !important;
+  }
+
+
+  /* The internal Runoff stack also remains content-sized. */
+
+  html.fr27-tier2-active
+    #signal-runoff-panel
+    .hybrid-runoff-workspace {
+
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+
+  /* -------------------------------------------------------
+   * RUNOFF-SPECIFIC HUD CLEARANCE
+   *
+   * Existing Tier-2 reserve remains available to the other
+   * workspaces. Runoff needs less because its final panel is
+   * naturally bounded.
+   *
+   * Target: approximately the same 8px visual interval used
+   * between the Runoff analytical panels.
+   * ------------------------------------------------------- */
+
+  html.fr27-tier2-active
+    .shell:has(
+      #signal-runoff-panel:not([hidden])
+    ) {
+
+    padding-bottom: 64px !important;
+  }
+}
+
+/* =========================================================
+ * TIER 2 MEDIA PULSE — REMOVE CANDIDATE TIER LABELS
+ *
+ * MAIN / SECONDARY remain part of the underlying data and
+ * accessibility text, but are not displayed in Tier 2.
+ * ========================================================= */
+@media (1024px <= width < 1399px) {
+
+  html.fr27-tier2-active
+    .top-media-pulse
+    .hybrid-candidate-share-row
+    > .hybrid-status-chip,
+
+  html.fr27-tier2-active
+    .top-media-pulse
+    .top-media-shift-name
+    > .hybrid-status-chip {
+
+    display: none !important;
+  }
+}

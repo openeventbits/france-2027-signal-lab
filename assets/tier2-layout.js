@@ -52,6 +52,16 @@
 
   let mediaRow = null;
   let mediaViewBeforeTier2 = "overview";
+
+  /*
+   * TIER 2 MEDIA STATE OWNERSHIP FIX
+   *
+   * Tier 2 may restore the remembered tab once when it is
+   * exited, but must not continuously reassert that state
+   * while Tier 3 or Tier 1 owns Media Pulse.
+   */
+  let tier2WasActive = tier2Query.matches;
+
   let refreshQueued = false;
 
   function currentWorkspace() {
@@ -161,8 +171,15 @@
     showDualMedia();
   }
 
-  function restoreMediaOutsideTier2() {
-    restoreTabbedMedia();
+  function restoreMediaOutsideTier2(restoreView = true) {
+    /*
+     * Only restore the remembered tab on an actual transition
+     * out of Tier 2. Repeated inactive refreshes must not reset
+     * a tab chosen by the Tier-3 user.
+     */
+    if (restoreView) {
+      restoreTabbedMedia();
+    }
 
     if (tier3Query.matches) {
       contextStrip.insertAdjacentElement(
@@ -368,10 +385,22 @@
     root.classList.toggle("fr27-tier2-active", active);
 
     if (!active) {
-      restoreMediaOutsideTier2();
+      /*
+       * Restore the remembered tab only on the boundary
+       * crossing out of Tier 2.
+       *
+       * Once Tier 3 is active, its Overview/Coverage choice
+       * must survive unrelated MutationObserver refreshes.
+       */
+      restoreMediaOutsideTier2(tier2WasActive);
+
+      tier2WasActive = false;
+
       removeTier2Controls();
       return;
     }
+
+    tier2WasActive = true;
 
     moveMediaIntoTier2();
     ensureWorkspaceControl();
