@@ -55,6 +55,12 @@
     return translate(`agenda_workspace.${namespace}.${token}`, fallback);
   };
 
+  const campaignEventLocaleTag = () =>
+    globalThis.FR27I18N?.localeTag || "en-GB";
+
+  const campaignEventUsesEnglishPresentation = () =>
+    campaignEventLocaleTag().toLowerCase().startsWith("en");
+
   const agendaDisplayNumber = (value, digits = 1) => {
     const numeric = number(value);
     const localizer = globalThis.FR27I18N;
@@ -3032,19 +3038,31 @@
   function campaignEventMonthShort(value) {
     const date = campaignEventDateFromKey(value);
     if (!date) return "";
-    return [
-      "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
-      "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
-    ][date.getUTCMonth()];
+    if (campaignEventUsesEnglishPresentation()) {
+      return [
+        "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+        "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
+      ][date.getUTCMonth()];
+    }
+    return new Intl.DateTimeFormat(campaignEventLocaleTag(), {
+      timeZone: "UTC",
+      month: "short"
+    }).format(date);
   }
 
   function campaignEventMonthLong(value) {
     const date = campaignEventDateFromKey(value);
     if (!date) return "";
-    return [
-      "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
-      "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
-    ][date.getUTCMonth()];
+    if (campaignEventUsesEnglishPresentation()) {
+      return [
+        "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+        "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
+      ][date.getUTCMonth()];
+    }
+    return new Intl.DateTimeFormat(campaignEventLocaleTag(), {
+      timeZone: "UTC",
+      month: "long"
+    }).format(date);
   }
 
   function campaignEventWeekRangeLabel(startKey, endKey) {
@@ -3637,11 +3655,17 @@
     </div>`;
   }
 
-  function sourceLink(url, label, className = "", accessibleLabel = "") {
+  function sourceLink(
+    url,
+    label,
+    className = "",
+    accessibleLabel = "",
+    unavailableLabel = "Source unavailable"
+  ) {
     const safe = safeSourceUrl(url);
     return safe
       ? `<a class="${className}" href="${escapeAttribute(safe)}" target="_blank" rel="noopener noreferrer"${accessibleLabel ? ` aria-label="${escapeAttribute(accessibleLabel)}"` : ""}>${escapeHtml(label)} <span aria-hidden="true">↗</span></a>`
-      : `<span class="${className}">Source unavailable</span>`;
+      : `<span class="${className}">${escapeHtml(unavailableLabel)}</span>`;
   }
 
   function runoffSampleLabel(value) {
@@ -6259,18 +6283,37 @@
       second_round: "SECOND ROUND"
     };
 
-    return labels[value] ||
-      String(value || "EVENT")
-        .replaceAll("_", " ")
-        .toUpperCase();
+    const fallback = labels[value] ||
+      String(value || "EVENT").replaceAll("_", " ").toUpperCase();
+    return translate(`events_workspace.event_type.${value || "unknown"}`, fallback);
   }
 
   function campaignEventTypeDisplayLabel(value) {
-    return campaignEventTypeLabel(value)
-      .split(/\s+/)
-      .filter(Boolean)
-      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
-      .join(" ");
+    const labels = {
+      rally: "Rally",
+      debate: "Debate",
+      candidate_visit: "Candidate Visit",
+      campaign_launch: "Campaign Launch",
+      media_appearance: "Media Appearance",
+      press_conference: "Press Conference",
+      public_meeting: "Public Meeting",
+      speech: "Speech",
+      party_event: "Party Event",
+      primary: "Primary",
+      candidacy_announcement: "Candidacy Announcement",
+      program_launch: "Program Launch",
+      other: "Other",
+      first_round: "First Round",
+      second_round: "Second Round"
+    };
+    const fallback = labels[value] ||
+      String(value || "Event")
+        .replaceAll("_", " ")
+        .replace(/(^|\s)\S/g, match => match.toUpperCase());
+    return translate(
+      `events_workspace.event_type_display.${value || "unknown"}`,
+      fallback
+    );
   }
 
   function campaignEventTypeCode(value) {
@@ -6301,7 +6344,10 @@
     ) {
       return {
         key: "unconfirmed",
-        label: "PAST · UNCONFIRMED"
+        label: translate(
+          "events_workspace.status.past_unconfirmed",
+          "PAST · UNCONFIRMED"
+        )
       };
     }
 
@@ -6314,21 +6360,36 @@
 
     return {
       key: event.status || "unknown",
-      label: labels[event.status] || "STATUS UNKNOWN"
+      label: translate(
+        `events_workspace.status.${event.status || "unknown"}`,
+        labels[event.status] || "STATUS UNKNOWN"
+      )
     };
   }
 
   function campaignEventEvidencePresentation(event) {
     if (event?.evidence_status === "verified") {
-      return { key: "verified", label: "VERIFIED" };
+      return {
+        key: "verified",
+        label: translate("events_workspace.evidence_status.verified", "VERIFIED")
+      };
     }
     if (event?.evidence_status === "past_unconfirmed") {
-      return { key: "unconfirmed", label: "UNCONFIRMED" };
+      return {
+        key: "unconfirmed",
+        label: translate(
+          "events_workspace.evidence_status.past_unconfirmed",
+          "UNCONFIRMED"
+        )
+      };
     }
     const raw = String(event?.evidence_status || "evidence unknown");
     return {
       key: raw.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-      label: raw.replaceAll("_", " ").toUpperCase()
+      label: translate(
+        `events_workspace.evidence_status.${event?.evidence_status || "unknown"}`,
+        raw.replaceAll("_", " ").toUpperCase()
+      )
     };
   }
 
@@ -6343,7 +6404,7 @@
     }
 
     return new Intl.DateTimeFormat(
-      "en-GB",
+      campaignEventLocaleTag(),
       {
         timeZone: "Europe/Paris",
         hour: "2-digit",
@@ -6354,26 +6415,8 @@
   }
 
   function campaignEventObservedLabel(value) {
-    const date = new Date(value);
-    if (!Number.isFinite(date.getTime())) {
-      return "DATE UNAVAILABLE";
-    }
-
-    return new Intl.DateTimeFormat(
-      "en-GB",
-      {
-        timeZone: "Europe/Paris",
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hourCycle: "h23"
-      }
-    )
-      .format(date)
-      .replace(",", " · ")
-      .toUpperCase();
+    const parts = campaignEventObservedParts(value);
+    return parts.time ? `${parts.date} · ${parts.time}` : parts.date;
   }
 
   function campaignEventPeopleLabel(event) {
@@ -6411,7 +6454,7 @@
       event.location_name,
       event.locality,
       event.department
-        ? `DEP. ${event.department}`
+        ? `${translate("events_workspace.department_abbreviation", "DEP.")} ${event.department}`
         : ""
     ]
       .map(value => String(value || "").trim())
@@ -6440,29 +6483,35 @@
 
   function campaignEventShortDate(value) {
     const parsed = campaignEventDisplayDate(value);
-    if (!parsed) return "DATE UNAVAILABLE";
-    return new Intl.DateTimeFormat(
-      "en-GB",
+    if (!parsed) {
+      return translate("events_workspace.date_unavailable", "DATE UNAVAILABLE");
+    }
+    const label = new Intl.DateTimeFormat(
+      campaignEventLocaleTag(),
       {
         timeZone: parsed.timeZone,
         day: "2-digit",
         month: "short"
       }
-    ).format(parsed.date).toUpperCase();
+    ).format(parsed.date);
+    return campaignEventUsesEnglishPresentation() ? label.toUpperCase() : label;
   }
 
   function campaignEventLongDate(value) {
     const parsed = campaignEventDisplayDate(value);
-    if (!parsed) return "DATE UNAVAILABLE";
-    return new Intl.DateTimeFormat(
-      "en-GB",
+    if (!parsed) {
+      return translate("events_workspace.date_unavailable", "DATE UNAVAILABLE");
+    }
+    const label = new Intl.DateTimeFormat(
+      campaignEventLocaleTag(),
       {
         timeZone: parsed.timeZone,
         day: "2-digit",
         month: "short",
         year: "numeric"
       }
-    ).format(parsed.date).toUpperCase();
+    ).format(parsed.date);
+    return campaignEventUsesEnglishPresentation() ? label.toUpperCase() : label;
   }
 
   function campaignEventSourceTypeLabel(value) {
@@ -6471,17 +6520,23 @@
       organizer_first_party: "ORGANISER FIRST-PARTY",
       candidate_first_party: "CANDIDATE FIRST-PARTY",
       party_first_party: "PARTY FIRST-PARTY",
+      official_structured: "OFFICIAL STRUCTURED",
       official_unstructured: "OFFICIAL SOURCE"
     };
-    return labels[value] || String(value || "SOURCE").replaceAll("_", " ").toUpperCase();
+    const fallback = labels[value] ||
+      String(value || "SOURCE").replaceAll("_", " ").toUpperCase();
+    return translate(`events_workspace.source_type.${value || "unknown"}`, fallback);
   }
 
   function campaignEventEvidenceTypeLabel(value) {
     const labels = {
       explicit_schedule: "Explicit schedule published",
+      explicit_status_update: "explicit status update",
       official_rule_derivation: "Official calendar derivation"
     };
-    return labels[value] || String(value || "Evidence published").replaceAll("_", " ");
+    const fallback = labels[value] ||
+      String(value || "Evidence published").replaceAll("_", " ");
+    return translate(`events_workspace.evidence_type.${value || "unknown"}`, fallback);
   }
 
   function campaignEventParticipantCount(event) {
@@ -6499,35 +6554,91 @@
     const candidates = Array.isArray(event?.candidate_names)
       ? event.candidate_names.filter(Boolean)
       : [];
-    if (candidates.length > 1) return `${candidates.length} CANDIDATES`;
-    if (candidates.length === 1) return "SOLO";
+    if (candidates.length > 1) {
+      return translate(
+        "events_workspace.candidate_count",
+        "{count} {count, plural, one {CANDIDATE} other {CANDIDATES}}",
+        { count: candidates.length }
+      );
+    }
+    if (candidates.length === 1) {
+      return translate("events_workspace.solo", "SOLO");
+    }
 
     const participants = Array.isArray(event?.participants)
       ? event.participants.filter(Boolean)
       : [];
-    if (participants.length > 1) return `${participants.length} PARTICIPANTS`;
-    if (participants.length === 1) return "SOLO";
-    return "COLLECTIVE";
+    if (participants.length > 1) {
+      return translate(
+        "events_workspace.participant_count",
+        "{count} {count, plural, one {PARTICIPANT} other {PARTICIPANTS}}",
+        { count: participants.length }
+      );
+    }
+    if (participants.length === 1) {
+      return translate("events_workspace.solo", "SOLO");
+    }
+    return translate("events_workspace.collective", "COLLECTIVE");
+  }
+
+  function campaignEventUpdateTypeLabel(value) {
+    const type = String(value || "UPDATED").toUpperCase();
+    return translate(
+      `events_workspace.update_type.${type.toLowerCase()}`,
+      type
+    );
   }
 
   function campaignEventUpdateCopy(update) {
     const evidence = campaignEventPrimaryEvidence(update);
-    const publisher = String(evidence?.source_publisher || "source").trim();
+    const publisher = String(
+      evidence?.source_publisher ||
+      translate("events_workspace.source_lower", "source")
+    ).trim();
     const type = String(update.update_type || "UPDATED").toUpperCase();
-    if (type === "NEW") return `Event added from ${publisher}`;
-    if (type === "CONFIRMED") return `Schedule confirmation published by ${publisher}`;
-    if (type === "POSTPONED") return `Postponement published by ${publisher}`;
-    if (type === "CANCELLED") return `Cancellation published by ${publisher}`;
-    return update.headline || `Calendar update published by ${publisher}`;
+    if (type === "NEW") {
+      return translate(
+        "events_workspace.update_copy.new",
+        "Event added from {publisher}",
+        { publisher }
+      );
+    }
+    if (type === "CONFIRMED") {
+      return translate(
+        "events_workspace.update_copy.confirmed",
+        "Schedule confirmation published by {publisher}",
+        { publisher }
+      );
+    }
+    if (type === "POSTPONED") {
+      return translate(
+        "events_workspace.update_copy.postponed",
+        "Postponement published by {publisher}",
+        { publisher }
+      );
+    }
+    if (type === "CANCELLED") {
+      return translate(
+        "events_workspace.update_copy.cancelled",
+        "Cancellation published by {publisher}",
+        { publisher }
+      );
+    }
+    return update.headline || translate(
+      "events_workspace.update_copy.updated",
+      "Calendar update published by {publisher}",
+      { publisher }
+    );
   }
 
   function campaignEventWeekdayLabel(value) {
     const parsed = campaignEventDisplayDate(value);
     if (!parsed) return "";
-    return new Intl.DateTimeFormat("en-GB", {
+    const label = new Intl.DateTimeFormat(campaignEventLocaleTag(), {
       timeZone: parsed.timeZone,
       weekday: "short"
-    }).format(parsed.date).toUpperCase();
+    }).format(parsed.date);
+    return campaignEventUsesEnglishPresentation() ? label.toUpperCase() : label;
   }
 
   function renderEventTypeBadge(eventType, extra = "") {
@@ -6542,10 +6653,26 @@
     if (!Number.isFinite(date.getTime())) return "—";
     const diffMs = Math.max(0, now.getTime() - date.getTime());
     const minutes = Math.floor(diffMs / 60000);
-    if (minutes < 60) return `${Math.max(1, minutes)}M AGO`;
+    if (minutes < 60) {
+      return translate(
+        "events_workspace.relative_age.minutes",
+        "{count}M AGO",
+        { count: Math.max(1, minutes) }
+      );
+    }
     const hours = Math.floor(minutes / 60);
-    if (hours < 48) return `${hours}H AGO`;
-    return `${Math.floor(hours / 24)}D AGO`;
+    if (hours < 48) {
+      return translate(
+        "events_workspace.relative_age.hours",
+        "{count}H AGO",
+        { count: hours }
+      );
+    }
+    return translate(
+      "events_workspace.relative_age.days",
+      "{count}D AGO",
+      { count: Math.floor(hours / 24) }
+    );
   }
 
   const campaignEventHorizonCategories = [
@@ -6599,7 +6726,10 @@
       )
     );
     return [
-      { key: "all", label: "ALL" },
+      {
+        key: "all",
+        label: translate("events_workspace.filter.all", "ALL")
+      },
       ...campaignEventHorizonCategories
         .filter(category => present.has(category.key))
         .map(category => ({
@@ -6618,9 +6748,17 @@
 
   function campaignEventStreamRightLabel(event, model) {
     const materialUpdate = campaignEventLatestMaterialUpdate(event, model);
-    if (materialUpdate) return String(materialUpdate.update_type || "UPDATED").toUpperCase();
+    if (materialUpdate) {
+      return campaignEventUpdateTypeLabel(materialUpdate.update_type);
+    }
     const participantCount = campaignEventParticipantCount(event);
-    if (participantCount > 1) return `${participantCount} PARTICIPANTS`;
+    if (participantCount > 1) {
+      return translate(
+        "events_workspace.participant_count",
+        "{count} {count, plural, one {PARTICIPANT} other {PARTICIPANTS}}",
+        { count: participantCount }
+      );
+    }
     const status = campaignEventStatusPresentation(event);
     if (status.key !== "scheduled") return status.label;
     const evidenceState = campaignEventEvidencePresentation(event);
@@ -6662,15 +6800,31 @@
   }
 
   function campaignEventObservedParts(value) {
-    const label = campaignEventObservedLabel(value);
-    const pieces = label.split(" · ");
-    if (pieces.length > 1) {
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) {
       return {
-        date: pieces.slice(0, -1).join(" · "),
-        time: pieces[pieces.length - 1]
+        date: translate("events_workspace.date_unavailable", "DATE UNAVAILABLE"),
+        time: ""
       };
     }
-    return { date: label, time: "" };
+    const dateLabel = new Intl.DateTimeFormat(campaignEventLocaleTag(), {
+      timeZone: "Europe/Paris",
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    }).format(date);
+    const timeLabel = new Intl.DateTimeFormat(campaignEventLocaleTag(), {
+      timeZone: "Europe/Paris",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23"
+    }).format(date);
+    return {
+      date: campaignEventUsesEnglishPresentation()
+        ? dateLabel.toUpperCase()
+        : dateLabel,
+      time: timeLabel
+    };
   }
 
   function campaignEventObservedMinuteKey(value) {
@@ -6703,7 +6857,10 @@
       media: "MEDIA",
       other: "OTHER"
     };
-    return labels[key] || "OTHER";
+    return translate(
+      `events_workspace.horizon_category.${key || "other"}`,
+      labels[key] || "OTHER"
+    );
   }
 
   const campaignEventHorizonDotCategories = [
@@ -6726,7 +6883,7 @@
           key: category.key,
           eventType: category.eventType,
           count,
-          label: category.label
+          label: campaignEventHorizonCategoryLabel(category.key)
         } : null;
       })
       .filter(Boolean);
@@ -6744,7 +6901,7 @@
     const legendCategories = ["debate", "rally", "visit", "launch", "other"]
       .map(key => campaignEventHorizonCategories.find(category => category.key === key))
       .filter(Boolean);
-    return `<footer class="hybrid-events-ops-legend" aria-label="Event type color legend"><div>${legendCategories.map(category => `<span class="hybrid-events-ops-legend-item"><i class="hybrid-events-ops-legend-swatch" data-event-type="${escapeAttribute(category.types[0])}" aria-hidden="true"></i><span>${escapeHtml(campaignEventHorizonCategoryLabel(category.key))} [${escapeHtml(campaignEventTypeCode(category.types[0]))}]</span></span>`).join("")}</div><p>Descriptive polling data from public sources · no model · no averages · no forecast · no voting advice.</p><p>Candidate portraits are AI-generated illustrations for visual identification.</p></footer>`;
+    return `<footer class="hybrid-events-ops-legend" aria-label="${escapeAttribute(translate("events_workspace.legend_aria", "Event type color legend"))}"><div>${legendCategories.map(category => `<span class="hybrid-events-ops-legend-item"><i class="hybrid-events-ops-legend-swatch" data-event-type="${escapeAttribute(category.types[0])}" aria-hidden="true"></i><span>${escapeHtml(campaignEventHorizonCategoryLabel(category.key))} [${escapeHtml(campaignEventTypeCode(category.types[0]))}]</span></span>`).join("")}</div><p>${escapeHtml(translate("events_workspace.polling_disclaimer", "Descriptive polling data from public sources · no model · no averages · no forecast · no voting advice."))}</p><p>${escapeHtml(translate("events_workspace.portrait_disclaimer", "Candidate portraits are AI-generated illustrations for visual identification."))}</p></footer>`;
   }
 
   function campaignEventScheduleMetricIcon(name) {
@@ -6769,10 +6926,24 @@
       const typeGroups = campaignEventHorizonTypeGroups(bin.events);
       const breakdown = typeGroups.length
         ? typeGroups.map(group => `${group.label}: ${group.count}`).join("; ")
-        : "No scheduled events";
-      const weekSummary = `${bin.label}. ${bin.count} scheduled ${bin.count === 1 ? "event" : "events"}. ${breakdown}.`;
+        : translate("events_workspace.no_scheduled_events", "No scheduled events");
+      const scheduledCount = translate(
+        "events_workspace.scheduled_event_count",
+        "{count} scheduled {count, plural, one {event} other {events}}",
+        { count: bin.count }
+      );
+      const weekSummary = translate(
+        "events_workspace.week_summary",
+        "{week}. {scheduled}. {breakdown}.",
+        { week: bin.label, scheduled: scheduledCount, breakdown }
+      );
+      const weekAria = translate(
+        "events_workspace.navigate_week_aria",
+        "Navigate to week {summary}",
+        { summary: weekSummary }
+      );
       return `<div class="hybrid-events-ops-week${selected ? " is-selected" : ""}${current ? " is-current" : ""}${monthStart ? " is-month-start" : ""}">
-        <button type="button" class="hybrid-events-ops-week-select" data-hybrid-week-select="${escapeAttribute(bin.startKey)}" aria-label="${escapeAttribute(`Navigate to week ${weekSummary}`)}" aria-pressed="${String(selected)}" data-fr27-tooltip="${escapeAttribute(weekSummary)}"${current ? ' aria-current="date"' : ""}>
+        <button type="button" class="hybrid-events-ops-week-select" data-hybrid-week-select="${escapeAttribute(bin.startKey)}" aria-label="${escapeAttribute(weekAria)}" aria-pressed="${String(selected)}" data-fr27-tooltip="${escapeAttribute(weekSummary)}"${current ? ' aria-current="date"' : ""}>
           <span>${escapeHtml(bin.label)}</span><strong class="hybrid-events-ops-week-count${bin.count ? " has-events" : " is-empty"}">${escapeHtml(countLabel)}</strong>
         </button>
         <div class="hybrid-events-ops-week-markers" aria-hidden="true">${renderOperationsHorizonComposition(bin.events)}</div>
@@ -6780,16 +6951,20 @@
     }).join("");
     const filters = campaignEventFilterOptions(model);
     const dataAsOf = campaignEventObservedLabel(model.dataAsOf);
-    const scheduleInfo = `Curated high-signal calendar. Empty weeks do not imply no campaign activity. Past scheduled events are not treated as completed without explicit occurrence evidence. Data as of: ${dataAsOf}.`;
+    const scheduleInfo = translate(
+      "events_workspace.schedule_methodology",
+      "Curated high-signal calendar. Empty weeks do not imply no campaign activity. Past scheduled events are not treated as completed without explicit occurrence evidence. Data as of: {date}.",
+      { date: dataAsOf }
+    );
 
     return `<section class="hybrid-events-ops-rail" aria-labelledby="hybrid-events-ops-rail-title">
       <div class="hybrid-events-ops-rail-head">
         <div class="hybrid-events-ops-titleline">
-          <h3 id="hybrid-events-ops-rail-title">12-WEEK SCHEDULE</h3>
-          <button class="hybrid-events-ops-info fr27-info-glyph" type="button" aria-label="Schedule methodology" data-fr27-tooltip="${escapeAttribute(scheduleInfo)}">i</button>
+          <h3 id="hybrid-events-ops-rail-title">${escapeHtml(translate("events_workspace.schedule_12_weeks", "12-WEEK SCHEDULE"))}</h3>
+          <button class="hybrid-events-ops-info fr27-info-glyph" type="button" aria-label="${escapeAttribute(translate("events_workspace.schedule_methodology_aria", "Schedule methodology"))}" data-fr27-tooltip="${escapeAttribute(scheduleInfo)}">i</button>
         </div>
         <div class="hybrid-events-ops-head-controls">
-          <div class="hybrid-events-ops-filters" aria-label="Filter campaign events by type">${filters.map(filter => `<button type="button" class="hybrid-events-filter${model.eventTypeFilter === filter.key ? " is-active" : ""}" data-event-type="${escapeAttribute(filter.key)}" data-hybrid-events-filter="${escapeAttribute(filter.key)}" aria-pressed="${String(model.eventTypeFilter === filter.key)}">${escapeHtml(filter.label)}</button>`).join("")}</div>
+          <div class="hybrid-events-ops-filters" aria-label="${escapeAttribute(translate("events_workspace.filter_aria", "Filter campaign events by type"))}">${filters.map(filter => `<button type="button" class="hybrid-events-filter${model.eventTypeFilter === filter.key ? " is-active" : ""}" data-event-type="${escapeAttribute(filter.key)}" data-hybrid-events-filter="${escapeAttribute(filter.key)}" aria-pressed="${String(model.eventTypeFilter === filter.key)}">${escapeHtml(filter.label)}</button>`).join("")}</div>
         </div>
       </div>
       <div class="hybrid-events-ops-horizon-scroll">
@@ -6831,29 +7006,40 @@
     const groups = buildCampaignEventStreamGroups(visible);
     const content = groups.length
       ? groups.map(group => `<section class="hybrid-events-upcoming-week" data-hybrid-event-week-group="${escapeAttribute(group.startKey)}">
-          <div class="hybrid-events-upcoming-week-head"><strong>${escapeHtml(group.label)}</strong><span>${group.events.length} ${group.events.length === 1 ? "EVENT" : "EVENTS"}</span></div>
+          <div class="hybrid-events-upcoming-week-head"><strong>${escapeHtml(group.label)}</strong><span>${escapeHtml(translate("events_workspace.event_count", "{count} {count, plural, one {EVENT} other {EVENTS}}", { count: group.events.length }))}</span></div>
           <div>${group.events.map(event => renderUpcomingEventRow(event, model)).join("")}</div>
         </section>`).join("")
-      : '<div class="hybrid-state">No upcoming events match this event-type filter.</div>';
+      : `<div class="hybrid-state">${escapeHtml(translate("events_workspace.no_matching_upcoming", "No upcoming events match this event-type filter."))}</div>`;
     const filteredMeta = model.eventTypeFilter === "all"
-      ? `${model.upcomingCount} EVENTS`
-      : `${visible.length} OF ${model.upcomingCount}`;
+      ? translate(
+          "events_workspace.event_count",
+          "{count} {count, plural, one {EVENT} other {EVENTS}}",
+          { count: model.upcomingCount }
+        )
+      : translate(
+          "events_workspace.visible_of_total",
+          "{visible} OF {total}",
+          { visible: visible.length, total: model.upcomingCount }
+        );
 
     return `<section class="hybrid-events-upcoming" aria-labelledby="hybrid-events-upcoming-title">
-      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-upcoming-title">UPCOMING EVENTS</h3><span>${escapeHtml(filteredMeta)}</span></div>
+      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-upcoming-title">${escapeHtml(translate("events_workspace.upcoming_events", "UPCOMING EVENTS"))}</h3><span>${escapeHtml(filteredMeta)}</span></div>
       <div class="hybrid-events-upcoming-list">${content}</div>
     </section>`;
   }
 
   function renderDossierEventDetails(event) {
-    const organizer = String(event.organization || "").trim() || "Not published";
-    const precision = event.time_precision === "date" ? "Date only" : "Date + time";
+    const organizer = String(event.organization || "").trim() ||
+      translate("events_workspace.not_published", "Not published");
+    const precision = event.time_precision === "date"
+      ? translate("events_workspace.date_only", "Date only")
+      : translate("events_workspace.date_and_time", "Date + time");
     const format = campaignEventTypeDisplayLabel(event.event_type);
-    return `<section class="hybrid-events-dossier-context"><h4>EVENT DETAILS</h4><dl>
-      <div><dt>Organiser</dt><dd>${escapeHtml(organizer)}</dd></div>
-      <div><dt>Format</dt><dd>${escapeHtml(format)}</dd></div>
-      <div><dt>Time precision</dt><dd>${escapeHtml(precision)}</dd></div>
-      <div><dt>Timezone</dt><dd>${escapeHtml(event.timezone || "Europe/Paris")}</dd></div>
+    return `<section class="hybrid-events-dossier-context"><h4>${escapeHtml(translate("events_workspace.event_details", "EVENT DETAILS"))}</h4><dl>
+      <div><dt>${escapeHtml(translate("events_workspace.organiser", "Organiser"))}</dt><dd>${escapeHtml(organizer)}</dd></div>
+      <div><dt>${escapeHtml(translate("events_workspace.format", "Format"))}</dt><dd>${escapeHtml(format)}</dd></div>
+      <div><dt>${escapeHtml(translate("events_workspace.time_precision", "Time precision"))}</dt><dd>${escapeHtml(precision)}</dd></div>
+      <div><dt>${escapeHtml(translate("events_workspace.timezone", "Timezone"))}</dt><dd>${escapeHtml(event.timezone || "Europe/Paris")}</dd></div>
     </dl></section>`;
   }
 
@@ -6864,66 +7050,91 @@
         ? event.participants.filter(Boolean)
         : [];
     if (participants.length <= 1) {
-      const lead = participants[0] || String(event.organization || "").trim() || "No named participant is published.";
+      const lead = participants[0] || String(event.organization || "").trim() ||
+        translate(
+          "events_workspace.no_named_participant_sentence",
+          "No named participant is published."
+        );
       const note = participants.length === 1
-        ? "SOLO APPEARANCE"
+        ? translate("events_workspace.solo_appearance", "SOLO APPEARANCE")
         : event.organization
-          ? "ORGANISATION-LED"
-          : "NO NAMED PARTICIPANT";
-      return `<section class="hybrid-events-dossier-involvement"><h4>INVOLVEMENT</h4><strong>${escapeHtml(lead)}</strong><small>${escapeHtml(note)}</small></section>`;
+          ? translate("events_workspace.organisation_led", "ORGANISATION-LED")
+          : translate("events_workspace.no_named_participant", "NO NAMED PARTICIPANT");
+      return `<section class="hybrid-events-dossier-involvement"><h4>${escapeHtml(translate("events_workspace.involvement", "INVOLVEMENT"))}</h4><strong>${escapeHtml(lead)}</strong><small>${escapeHtml(note)}</small></section>`;
     }
-    return `<section class="hybrid-events-dossier-participants"><h4>PARTICIPANTS · ${participants.length}</h4><div>${participants.map(name => `<span>${escapeHtml(name)}</span>`).join("")}</div></section>`;
+    const participantCount = translate(
+      "events_workspace.participant_count",
+      "{count} {count, plural, one {PARTICIPANT} other {PARTICIPANTS}}",
+      { count: participants.length }
+    );
+    return `<section class="hybrid-events-dossier-participants"><h4>${escapeHtml(participantCount)}</h4><div>${participants.map(name => `<span>${escapeHtml(name)}</span>`).join("")}</div></section>`;
   }
 
   function renderDossierEvidence(event) {
     const evidence = campaignEventPrimaryEvidence(event);
     const evidenceState = campaignEventEvidencePresentation(event);
     if (!evidence) {
-      return `<section class="hybrid-events-dossier-evidence"><h4>SOURCE EVIDENCE</h4><div class="hybrid-state is-compact">Source evidence is unavailable.</div></section>`;
+      return `<section class="hybrid-events-dossier-evidence"><h4>${escapeHtml(translate("events_workspace.source_evidence", "SOURCE EVIDENCE"))}</h4><div class="hybrid-state is-compact">${escapeHtml(translate("events_workspace.source_evidence_unavailable", "Source evidence is unavailable."))}</div></section>`;
     }
-    return `<section class="hybrid-events-dossier-evidence"><div class="hybrid-events-dossier-section-head"><h4>SOURCE EVIDENCE</h4><span>PRIMARY</span></div>
+    const openSource = translate("events_workspace.open_source", "OPEN SOURCE");
+    const sourceAria = translate(
+      "events_workspace.open_source_aria",
+      "Open source for {title}",
+      { title: event.title }
+    );
+    return `<section class="hybrid-events-dossier-evidence"><div class="hybrid-events-dossier-section-head"><h4>${escapeHtml(translate("events_workspace.source_evidence", "SOURCE EVIDENCE"))}</h4><span>${escapeHtml(translate("events_workspace.primary_source", "PRIMARY"))}</span></div>
       <div class="hybrid-events-evidence-primary">
-        <div><strong>${escapeHtml(evidence.source_publisher || "Source")}</strong><span>${escapeHtml(campaignEventSourceTypeLabel(evidence.source_type))}</span></div>
+        <div><strong>${escapeHtml(evidence.source_publisher || translate("events_workspace.source", "Source"))}</strong><span>${escapeHtml(campaignEventSourceTypeLabel(evidence.source_type))}</span></div>
         <time datetime="${escapeAttribute(event.last_verified_at || "")}">${escapeHtml(campaignEventObservedLabel(event.last_verified_at))}</time>
       </div>
       <p>${escapeHtml(campaignEventEvidenceTypeLabel(evidence.evidence_type))}</p>
-      <div class="hybrid-events-evidence-actions"><span class="hybrid-events-evidence-chip" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span>${sourceLink(evidence.source_url, "OPEN SOURCE", "hybrid-events-dossier-source", `Open source for ${event.title}`)}</div>
+      <div class="hybrid-events-evidence-actions"><span class="hybrid-events-evidence-chip" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span>${sourceLink(evidence.source_url, openSource, "hybrid-events-dossier-source", sourceAria, translate("events_workspace.source_unavailable", "Source unavailable"))}</div>
     </section>`;
   }
 
   function renderDossierHistory(model) {
     const updates = model.selectedUpdates.slice(0, 8);
     if (!updates.length) {
-      return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4>SCHEDULE HISTORY</h4><span>NO RECORDS</span></div><div class="hybrid-events-history-empty-state"><strong>NO PUBLISHED SCHEDULE HISTORY</strong><span>No calendar update is currently linked to this event.</span></div></section>`;
+      return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4>${escapeHtml(translate("events_workspace.schedule_history", "SCHEDULE HISTORY"))}</h4><span>${escapeHtml(translate("events_workspace.no_records", "NO RECORDS"))}</span></div><div class="hybrid-events-history-empty-state"><strong>${escapeHtml(translate("events_workspace.no_published_schedule_history", "NO PUBLISHED SCHEDULE HISTORY"))}</strong><span>${escapeHtml(translate("events_workspace.no_linked_calendar_update", "No calendar update is currently linked to this event."))}</span></div></section>`;
     }
     const hasMaterialUpdate = updates.some(update => String(update.update_type || "").toUpperCase() !== "NEW");
-    const rows = updates.map(update => `<article class="hybrid-events-history-item" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}"><i aria-hidden="true"></i><time datetime="${escapeAttribute(update.observed_at)}">${escapeHtml(campaignEventObservedLabel(update.observed_at))}</time><span class="hybrid-events-watch-type" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(String(update.update_type || "UPDATED").toUpperCase())}</span><small>${escapeHtml(campaignEventUpdateCopy(update))}</small></article>`).join("");
+    const rows = updates.map(update => `<article class="hybrid-events-history-item" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}"><i aria-hidden="true"></i><time datetime="${escapeAttribute(update.observed_at)}">${escapeHtml(campaignEventObservedLabel(update.observed_at))}</time><span class="hybrid-events-watch-type" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(campaignEventUpdateTypeLabel(update.update_type))}</span><small>${escapeHtml(campaignEventUpdateCopy(update))}</small></article>`).join("");
     const quietState = hasMaterialUpdate
       ? ""
-      : `<div class="hybrid-events-history-empty-state"><strong>NO FURTHER SCHEDULE CHANGES</strong><span>No later confirmed, updated, postponed or cancelled schedule change is published for this event.</span></div>`;
-    return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4>SCHEDULE HISTORY</h4><span>${updates.length} RECORD${updates.length === 1 ? "" : "S"}</span></div><div class="hybrid-events-history-list">${rows}</div>${quietState}</section>`;
+      : `<div class="hybrid-events-history-empty-state"><strong>${escapeHtml(translate("events_workspace.no_further_schedule_changes", "NO FURTHER SCHEDULE CHANGES"))}</strong><span>${escapeHtml(translate("events_workspace.no_later_schedule_change", "No later confirmed, updated, postponed or cancelled schedule change is published for this event."))}</span></div>`;
+    const recordCount = translate(
+      "events_workspace.record_count",
+      "{count} {count, plural, one {RECORD} other {RECORDS}}",
+      { count: updates.length }
+    );
+    return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4>${escapeHtml(translate("events_workspace.schedule_history", "SCHEDULE HISTORY"))}</h4><span>${escapeHtml(recordCount)}</span></div><div class="hybrid-events-history-list">${rows}</div>${quietState}</section>`;
   }
 
   function renderEventDossier(model) {
     const event = model.selectedEvent;
     if (!event) {
-      return `<section class="hybrid-events-dossier"><div class="hybrid-events-panel-head"><h3>EVENT DOSSIER</h3><span>SOURCE-LINKED EVIDENCE</span></div><div class="hybrid-state">No campaign event is selected.</div></section>`;
+      return `<section class="hybrid-events-dossier"><div class="hybrid-events-panel-head"><h3>${escapeHtml(translate("events_workspace.event_dossier", "EVENT DOSSIER"))}</h3><span>${escapeHtml(translate("events_workspace.source_linked_evidence", "SOURCE-LINKED EVIDENCE"))}</span></div><div class="hybrid-state">${escapeHtml(translate("events_workspace.no_selected_event", "No campaign event is selected."))}</div></section>`;
     }
     const status = campaignEventStatusPresentation(event);
     const evidenceState = campaignEventEvidencePresentation(event);
     const participantCount = campaignEventParticipantCount(event);
-    const place = campaignEventPlaceLabel(event) || "Location not published";
+    const place = campaignEventPlaceLabel(event) ||
+      translate("events_workspace.location_not_published", "Location not published");
     const when = `${campaignEventLongDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}`;
     const format = campaignEventTypeDisplayLabel(event.event_type);
+    const evidenceMethodology = translate(
+      "events_workspace.evidence_methodology",
+      "Past scheduled events remain scheduled until explicit occurrence evidence confirms they took place."
+    );
 
     return `<section class="hybrid-events-dossier" aria-labelledby="hybrid-events-dossier-title">
-      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-dossier-title">EVENT DOSSIER</h3><span class="hybrid-events-dossier-head-meta">SOURCE-LINKED EVIDENCE <button class="hybrid-events-dossier-info fr27-info-glyph" type="button" aria-label="Event evidence methodology" data-fr27-tooltip="Past scheduled events remain scheduled until explicit occurrence evidence confirms they took place.">i</button></span></div>
+      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-dossier-title">${escapeHtml(translate("events_workspace.event_dossier", "EVENT DOSSIER"))}</h3><span class="hybrid-events-dossier-head-meta">${escapeHtml(translate("events_workspace.source_linked_evidence", "SOURCE-LINKED EVIDENCE"))} <button class="hybrid-events-dossier-info fr27-info-glyph" type="button" aria-label="${escapeAttribute(translate("events_workspace.evidence_methodology_aria", "Event evidence methodology"))}" data-fr27-tooltip="${escapeAttribute(evidenceMethodology)}">i</button></span></div>
       <div class="hybrid-events-dossier-body">
         <div class="hybrid-events-dossier-title">${renderEventTypeBadge(event.event_type, participantCount > 1 ? `×${participantCount}` : "")}<div><h4 lang="fr">${escapeHtml(event.title)}</h4><div><span class="hybrid-events-status" data-event-status="${escapeAttribute(status.key)}">${escapeHtml(status.label)}</span><span class="hybrid-events-evidence-chip" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span></div></div></div>
         <div class="hybrid-events-dossier-lede">
-          <div><small>DATE / TIME</small><strong>${escapeHtml(when)}</strong></div>
-          <div><small>VENUE</small><strong>${escapeHtml(place)}</strong></div>
-          <div><small>FORMAT</small><strong>${escapeHtml(format)}</strong></div>
+          <div><small>${escapeHtml(translate("events_workspace.date_time", "DATE / TIME"))}</small><strong>${escapeHtml(when)}</strong></div>
+          <div><small>${escapeHtml(translate("events_workspace.venue", "VENUE"))}</small><strong>${escapeHtml(place)}</strong></div>
+          <div><small>${escapeHtml(translate("events_workspace.format_upper", "FORMAT"))}</small><strong>${escapeHtml(format)}</strong></div>
         </div>
         <div class="hybrid-events-dossier-grid">
           <div class="hybrid-events-dossier-left">${renderDossierParticipants(event)}${renderDossierEventDetails(event)}</div>
@@ -6938,11 +7149,14 @@
     const event = update.event;
     const observed = campaignEventObservedParts(update.observed_at);
     const weekStart = event ? campaignEventWeekStartKey(campaignEventDateKey(event)) : "";
-    const title = event?.title || update.headline || "Campaign calendar update";
-    const schedule = event ? `${campaignEventShortDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}` : "Schedule unavailable";
+    const title = event?.title || update.headline ||
+      translate("events_workspace.fallback_update_title", "Campaign calendar update");
+    const schedule = event
+      ? `${campaignEventShortDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}`
+      : translate("events_workspace.schedule_unavailable", "Schedule unavailable");
     const selected = model.selectedEvent?.event_id === update.event_id;
     return `<button type="button" class="hybrid-events-watch-material-item${selected ? " is-selected" : ""}" data-hybrid-event-id="${escapeAttribute(update.event_id)}" ${weekStart ? `data-hybrid-event-week="${escapeAttribute(weekStart)}"` : ""}>
-      <span class="hybrid-events-watch-type" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(String(update.update_type || "UPDATED").toUpperCase())}</span>
+      <span class="hybrid-events-watch-type" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(campaignEventUpdateTypeLabel(update.update_type))}</span>
       <span class="hybrid-events-watch-material-copy"><strong lang="fr">${escapeHtml(title)}</strong><small>${escapeHtml(schedule)} · ${escapeHtml(campaignEventUpdateCopy(update))}</small></span>
       <time datetime="${escapeAttribute(update.observed_at)}"><strong>${escapeHtml(observed.time || "—")}</strong><span>${escapeHtml(observed.date)}</span></time>
     </button>`;
@@ -6951,10 +7165,15 @@
   function renderScheduleWatchAddition(update, model) {
     const event = update.event;
     const evidence = campaignEventPrimaryEvidence(update);
-    const publisher = String(evidence?.source_publisher || "Source").trim();
+    const publisher = String(
+      evidence?.source_publisher || translate("events_workspace.source", "Source")
+    ).trim();
     const weekStart = event ? campaignEventWeekStartKey(campaignEventDateKey(event)) : "";
-    const title = event?.title || update.headline || "Campaign calendar addition";
-    const schedule = event ? `${campaignEventShortDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}` : "Schedule unavailable";
+    const title = event?.title || update.headline ||
+      translate("events_workspace.fallback_addition_title", "Campaign calendar addition");
+    const schedule = event
+      ? `${campaignEventShortDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}`
+      : translate("events_workspace.schedule_unavailable", "Schedule unavailable");
     const selected = model.selectedEvent?.event_id === update.event_id;
     return `<button type="button" class="hybrid-events-watch-addition${selected ? " is-selected" : ""}" data-event-type="${escapeAttribute(event?.event_type || "other")}" data-hybrid-event-id="${escapeAttribute(update.event_id)}" ${weekStart ? `data-hybrid-event-week="${escapeAttribute(weekStart)}"` : ""}>
       <i class="hybrid-events-watch-event-node" aria-hidden="true"></i>
@@ -6967,19 +7186,30 @@
     const additionGroups = groupCampaignEventAdditions(model.eventWatch);
     const materialContent = materialUpdates.length
       ? materialUpdates.map(update => renderScheduleWatchMaterialItem(update, model)).join("")
-      : `<div class="hybrid-events-watch-empty"><i aria-hidden="true">✓</i><strong>MATERIAL CHANGES 0</strong></div>`;
+      : `<div class="hybrid-events-watch-empty"><i aria-hidden="true">✓</i><strong>${escapeHtml(translate("events_workspace.material_changes_zero", "MATERIAL CHANGES 0"))}</strong></div>`;
     const additions = additionGroups.length
       ? additionGroups.map(group => {
           const observed = campaignEventObservedParts(group.observedAt);
-          return `<section class="hybrid-events-watch-addition-group"><i class="hybrid-events-watch-group-node" aria-hidden="true"></i><div class="hybrid-events-watch-addition-head"><span>${escapeHtml(observed.date)}${observed.time ? ` · ${escapeHtml(observed.time)}` : ""}</span><strong>+${group.updates.length} NEW</strong></div><div>${group.updates.map(update => renderScheduleWatchAddition(update, model)).join("")}</div></section>`;
+          const additionCount = translate(
+            "events_workspace.addition_count",
+            "+{count} {count, plural, one {NEW} other {NEW}}",
+            { count: group.updates.length }
+          );
+          return `<section class="hybrid-events-watch-addition-group"><i class="hybrid-events-watch-group-node" aria-hidden="true"></i><div class="hybrid-events-watch-addition-head"><span>${escapeHtml(observed.date)}${observed.time ? ` · ${escapeHtml(observed.time)}` : ""}</span><strong>${escapeHtml(additionCount)}</strong></div><div>${group.updates.map(update => renderScheduleWatchAddition(update, model)).join("")}</div></section>`;
         }).join("")
-      : '<div class="hybrid-events-watch-empty"><strong>NO RECENT ADDITIONS</strong><span>No newly published event is recorded in the current watch log.</span></div>';
+      : `<div class="hybrid-events-watch-empty"><strong>${escapeHtml(translate("events_workspace.no_recent_additions", "NO RECENT ADDITIONS"))}</strong><span>${escapeHtml(translate("events_workspace.no_new_event_in_watch", "No newly published event is recorded in the current watch log."))}</span></div>`;
+
+    const recordCount = translate(
+      "events_workspace.record_count",
+      "{count} {count, plural, one {RECORD} other {RECORDS}}",
+      { count: model.watchCount }
+    );
 
     return `<section class="hybrid-events-schedule-watch" aria-labelledby="hybrid-events-schedule-watch-title">
-      <div class="hybrid-events-panel-head"><div><h3 id="hybrid-events-schedule-watch-title">SCHEDULE WATCH</h3><span>CALENDAR ACTIVITY</span></div><span>${model.watchCount} RECORDS</span></div>
+      <div class="hybrid-events-panel-head"><div><h3 id="hybrid-events-schedule-watch-title">${escapeHtml(translate("events_workspace.schedule_watch", "SCHEDULE WATCH"))}</h3><span>${escapeHtml(translate("events_workspace.calendar_activity", "CALENDAR ACTIVITY"))}</span></div><span>${escapeHtml(recordCount)}</span></div>
       <div class="hybrid-events-schedule-watch-body">
         <section class="hybrid-events-watch-section is-material">${materialContent}</section>
-        <section class="hybrid-events-watch-section is-additions"><div class="hybrid-events-watch-section-head"><h4>RECENT ADDITIONS</h4><span>${model.eventWatch.length - materialUpdates.length}</span></div><div class="hybrid-events-watch-timeline">${additions}</div></section>
+        <section class="hybrid-events-watch-section is-additions"><div class="hybrid-events-watch-section-head"><h4>${escapeHtml(translate("events_workspace.recent_additions", "RECENT ADDITIONS"))}</h4><span>${model.eventWatch.length - materialUpdates.length}</span></div><div class="hybrid-events-watch-timeline">${additions}</div></section>
       </div>
     </section>`;
   }
@@ -6989,12 +7219,23 @@
       if (model.state === "loading" && window.FR27UI) {
         return window.FR27UI.skeletonElement(
           "events",
-          "Loading campaign events"
+          translate("events_workspace.loading", "Loading campaign events")
         ).outerHTML;
       }
-      return summaryState(model);
+      const message = model.state === "loading"
+        ? translate("events_workspace.loading", "Loading campaign events")
+        : model.state === "unavailable"
+          ? translate(
+              "events_workspace.data_unavailable",
+          "This data domain is unavailable. Other signals remain live."
+            )
+          : translate(
+              "events_workspace.empty",
+          "No supported data is available."
+            );
+      return `<span class="hybrid-state is-compact${model.state === "unavailable" ? " is-error" : ""}">${escapeHtml(message)}</span>`;
     }
-    return `<div class="hybrid-events-workspace" aria-label="Campaign Events temporal operations desk">
+    return `<div class="hybrid-events-workspace" aria-label="${escapeAttribute(translate("events_workspace.workspace_aria", "Campaign Events temporal operations desk"))}">
       ${renderOperationsScheduleRail(model)}
       <div class="hybrid-events-ops-main">
         ${renderUpcomingPanel(model)}

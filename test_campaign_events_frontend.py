@@ -94,6 +94,8 @@ const context = {
   state: input.state,
   viewModelState() { return null; },
   utcDateKey(date) { return date.toISOString().slice(0, 10); },
+  campaignEventLocaleTag() { return "en-GB"; },
+  campaignEventUsesEnglishPresentation() { return true; },
   campaignEventMatchesTypeFilter(event, filterKey) {
     return !filterKey || filterKey === "all" || event.event_type === filterKey;
   }
@@ -147,7 +149,12 @@ if (start < 0 || end < 0) {
   throw new Error("Could not extract Campaign Events date-only helpers");
 }
 
-const context = { Date };
+const context = {
+  Date,
+  Intl,
+  campaignEventLocaleTag() { return "en-GB"; },
+  campaignEventUsesEnglishPresentation() { return true; }
+};
 vm.runInNewContext(source.slice(start, end), context);
 
 const date = context.campaignEventDateFromKey(input.value);
