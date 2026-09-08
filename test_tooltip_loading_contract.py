@@ -122,9 +122,18 @@ class UnifiedTooltipContractTests(unittest.TestCase):
             self.assertNotIn("fr27-info-glyph", markup)
             self.assertNotIn('aria-hidden="true"', markup)
 
-        self.assertIn("<span>domains</span>", INDEX)
-        self.assertIn("<span>polls</span>", INDEX)
-        self.assertIn("<span>PUBLISHERS</span>", INDEX)
+        self.assertIn(
+            '<span data-i18n="hud.domains">domains</span>',
+            INDEX,
+        )
+        self.assertIn(
+            '<span data-i18n="hud.polls">polls</span>',
+            INDEX,
+        )
+        self.assertIn(
+            '<span data-i18n="media_pulse.metric.publishers">PUBLISHERS</span>',
+            INDEX,
+        )
     def test_semantic_metadata_avoids_repeated_passive_tooltips(self):
         helper = CANDIDATES[
             CANDIDATES.index("function semanticMetadata") :

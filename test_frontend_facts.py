@@ -577,7 +577,10 @@ class FrontendPublicationFactsTests(unittest.TestCase):
 
     def test_hud_poll_count_uses_full_poll_package_corpus(self):
         self.assertIn('id="fr27-hud-polls-value"', self.index)
-        self.assertIn("<span>polls</span>", self.index)
+        self.assertIn(
+            '<span data-i18n="hud.polls">polls</span>',
+            self.index,
+        )
         self.assertNotIn('id="fr27-hud-pollsters-value"', self.index)
         self.assertIn(
             "const allPollPackages =\n"

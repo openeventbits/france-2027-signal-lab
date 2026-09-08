@@ -7699,7 +7699,7 @@
         </span>
         <div class="context-copy">
           <div class="context-label" data-i18n="dashboard.latest_fieldwork">LATEST FIELDWORK</div>
-          <div class="context-value" id="context-poll-value" aria-label="Loading latest fieldwork"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:112px;--fr27-skeleton-height:12px"></span></div>
+          <div class="context-value" id="context-poll-value" data-i18n-aria-label="dashboard.loading_latest_fieldwork" aria-label="Loading latest fieldwork"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:112px;--fr27-skeleton-height:12px"></span></div>
           <div class="context-meta" id="context-poll-meta" data-i18n-fr27-tooltip="dashboard.latest_fieldwork_explanation" data-fr27-tooltip="Maximum fieldwork end date across published first-round poll events; all pollsters tied on that date are shown." data-fr27-tooltip-affordance="term" tabindex="0">Loading…</div>
         </div>
       </article>
@@ -7712,8 +7712,8 @@
         </span>
         <div class="context-copy">
           <div class="context-label" data-i18n="dashboard.poll_coverage">POLL COVERAGE</div>
-          <div class="context-value" id="context-coverage-value" aria-label="Loading poll coverage"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:96px;--fr27-skeleton-height:12px"></span></div>
-          <div class="context-meta" id="context-coverage-meta">Target: first round</div>
+          <div class="context-value" id="context-coverage-value" data-i18n-aria-label="dashboard.loading_poll_coverage" aria-label="Loading poll coverage"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:96px;--fr27-skeleton-height:12px"></span></div>
+          <div class="context-meta" id="context-coverage-meta" data-i18n="dashboard.target_first_round">Target: first round</div>
         </div>
       </article>
 
@@ -7731,13 +7731,13 @@
             <div class="context-label" data-i18n="dashboard.source_network">SOURCE NETWORK</div>
             <span class="context-source-state" id="context-status-badge">UNKNOWN</span>
           </div>
-          <div class="context-value" id="context-status-value">—</div>
-          <div class="context-meta" id="context-status-meta">Automatically updated from the source registry</div>
+          <div class="context-value" id="context-status-value" data-context-metric="approved_publisher_domains">—</div>
+          <div class="context-meta" id="context-status-meta" data-i18n="dashboard.automatically_updated_from_the_source_registry">Automatically updated from the source registry</div>
         </div>
       </article>
     </section>
-    <section id="hybrid-signal-board" class="hybrid-root" aria-label="Hybrid Signal Board">
-      <div class="fr27-skeleton-region" role="status" aria-label="Loading the Signal Board"><div class="fr27-skeleton-workspace" aria-hidden="true"><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:58%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span></section><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:46%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:72%;--fr27-skeleton-height:22px"></span><div class="fr27-skeleton-chart"><span class="fr27-skeleton-block" style="--fr27-skeleton-height:42%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:72%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:58%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:86%"></span></div></section><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:54%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span></section></div></div>
+    <section id="hybrid-signal-board" class="hybrid-root" data-i18n-aria-label="dashboard.hybrid_signal_board" aria-label="Hybrid Signal Board">
+      <div class="fr27-skeleton-region" role="status" data-i18n-aria-label="signal_board.loading_signal_board" aria-label="Loading the Signal Board"><div class="fr27-skeleton-workspace" aria-hidden="true"><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:58%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span></section><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:46%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:72%;--fr27-skeleton-height:22px"></span><div class="fr27-skeleton-chart"><span class="fr27-skeleton-block" style="--fr27-skeleton-height:42%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:72%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:58%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:86%"></span></div></section><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:54%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span></section></div></div>
     </section>
     <section class="intelligence-grid" aria-label="Election intelligence">
       <article class="panel closest-runoff runoff-spotlight" aria-labelledby="closest-runoff-title">
@@ -7930,6 +7930,7 @@
       id="method-disclosure"
       class="fr27-app-hud"
       data-expanded="true"
+      data-i18n-aria-label="hud.system_dock"
       aria-label="France 2027 Signal Lab system dock"
     >
       <button
@@ -7938,7 +7939,9 @@
         type="button"
         aria-expanded="true"
         aria-controls="fr27-app-hud-surface"
+        data-i18n-aria-label="hud.collapse_system_dock"
         aria-label="Collapse system dock"
+        data-i18n-fr27-tooltip="hud.collapse_system_dock"
         data-fr27-tooltip="Collapse system dock"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -7955,9 +7958,10 @@
           <!-- LIVE TIME -->
           <section
             class="fr27-linear-zone fr27-zone-live"
+            data-i18n-aria-label="hud.live_time"
             aria-label="Live time"
           >
-            <div class="fr27-zone-title">LIVE TIME</div>
+            <div class="fr27-zone-title" data-i18n="hud.live_time">LIVE TIME</div>
 
             <div class="fr27-zone-meta">
               <span>PARIS</span>
@@ -7974,9 +7978,10 @@
           <section
             class="fr27-linear-zone fr27-zone-countdown"
             data-clock-target="first"
+            data-i18n-aria-label="hud.election_countdown"
             aria-label="Election countdown"
           >
-            <div class="fr27-zone-title">COUNTDOWN</div>
+            <div class="fr27-zone-title" data-i18n="hud.countdown">COUNTDOWN</div>
 
             <div class="fr27-zone-main fr27-countdown-main">
               <div class="fr27-countdown-value-row">
@@ -7996,9 +8001,10 @@
           <!-- INFRASTRUCTURE / METHODOLOGY -->
           <section
             class="fr27-linear-zone fr27-zone-infra"
+            data-i18n-aria-label="hud.infrastructure_methodology"
             aria-label="Infrastructure and methodology"
           >
-            <div class="fr27-zone-title">
+            <div class="fr27-zone-title" data-i18n="hud.infrastructure_methodology">
               INFRASTRUCTURE / METHODOLOGY
             </div>
 
@@ -8006,15 +8012,16 @@
 
               <section
                 class="fr27-zone-source-sub"
+                data-i18n-aria-label="hud.source_universe"
                 aria-label="Source universe"
               >
-                <div class="fr27-sub-title">
+                <div class="fr27-sub-title" data-i18n="hud.source_universe">
                   SOURCE UNIVERSE
                 </div>
 
                 <div class="fr27-source-main">
                   <div class="fr27-source-stat">
-                    <strong id="fr27-hud-domains-value" class="fr27-hud-metric-loading" aria-label="Loading approved domain count">—</strong>
+                    <strong id="fr27-hud-domains-value" class="fr27-hud-metric-loading" data-i18n-aria-label="hud.loading_approved_domain_count" aria-label="Loading approved domain count">—</strong>
                     <span class="fr27-source-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24" focusable="false">
                         <circle cx="12" cy="12" r="8"></circle>
@@ -8023,11 +8030,11 @@
                         <path d="M12 4c-2.2 2.2-3.3 4.9-3.3 8s1.1 5.8 3.3 8"></path>
                       </svg>
                     </span>
-                    <span class="fr27-hud-label-with-info" id="fr27-hud-domains-info" data-fr27-tooltip="Approved publisher domains configured in the FR27 source universe. This is the monitored source registry, not the number of publishers represented in accepted election news." data-fr27-tooltip-affordance="term" tabindex="0"><span>domains</span></span>
+                    <span class="fr27-hud-label-with-info" id="fr27-hud-domains-info" data-i18n-fr27-tooltip="hud.domains_explanation" data-fr27-tooltip="Approved publisher domains configured in the FR27 source universe. This is the monitored source registry, not the number of publishers represented in accepted election news." data-fr27-tooltip-affordance="term" tabindex="0"><span data-i18n="hud.domains">domains</span></span>
                   </div>
 
                   <div class="fr27-source-stat">
-                    <strong id="fr27-hud-polls-value" class="fr27-hud-metric-loading" aria-label="Loading poll count">—</strong>
+                    <strong id="fr27-hud-polls-value" class="fr27-hud-metric-loading" data-i18n-aria-label="hud.loading_poll_count" aria-label="Loading poll count">—</strong>
                     <span class="fr27-source-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24" focusable="false">
                         <circle cx="9" cy="8.5" r="3"></circle>
@@ -8036,34 +8043,35 @@
                         <path d="M15.5 14c2.7.3 4.2 1.8 4.8 4.5"></path>
                       </svg>
                     </span>
-                    <span class="fr27-hud-label-with-info" id="fr27-hud-polls-info" data-fr27-tooltip="Distinct first-round poll packages in the loaded poll corpus, not pollsters. Reported hypotheses sharing the same pollster, fieldwork dates and sample size count as one poll package." data-fr27-tooltip-affordance="term" tabindex="0"><span>polls</span></span>
+                    <span class="fr27-hud-label-with-info" id="fr27-hud-polls-info" data-i18n-fr27-tooltip="hud.polls_explanation" data-fr27-tooltip="Distinct first-round poll packages in the loaded poll corpus, not pollsters. Reported hypotheses sharing the same pollster, fieldwork dates and sample size count as one poll package." data-fr27-tooltip-affordance="term" tabindex="0"><span data-i18n="hud.polls">polls</span></span>
                   </div>
                 </div>
               </section>
 
               <section
                 class="fr27-linear-system fr27-zone-method-sub"
+                data-i18n-aria-label="hud.system_data_approach"
                 aria-label="System data and approach"
               >
                 <div class="fr27-linear-system-cell">
-                  <div class="fr27-linear-system-kicker">SYSTEM</div>
+                  <div class="fr27-linear-system-kicker" data-i18n="hud.system">SYSTEM</div>
                   <div class="fr27-linear-system-value fr27-system-cyan">
                     <span class="fr27-linear-operational-dot"></span>
-                    <span>OPERATIONAL</span>
+                    <span data-i18n="hud.operational">OPERATIONAL</span>
                   </div>
                 </div>
 
                 <div class="fr27-linear-system-cell">
-                  <div class="fr27-linear-system-kicker">DATA</div>
+                  <div class="fr27-linear-system-kicker" data-i18n="hud.data">DATA</div>
                   <div class="fr27-linear-system-value fr27-system-cyan">
-                    <span>SOURCE-LINKED</span>
+                    <span data-i18n="hud.source_linked">SOURCE-LINKED</span>
                   </div>
                 </div>
 
                 <div class="fr27-linear-system-cell">
-                  <div class="fr27-linear-system-kicker">APPROACH</div>
+                  <div class="fr27-linear-system-kicker" data-i18n="hud.approach">APPROACH</div>
                   <div class="fr27-linear-system-value fr27-system-violet">
-                    <span>DESCRIPTIVE</span>
+                    <span data-i18n="hud.descriptive_method">DESCRIPTIVE</span>
                   </div>
                 </div>
               </section>
@@ -8074,29 +8082,30 @@
           <!-- DATASET SCALE -->
           <section
             class="fr27-linear-zone fr27-zone-scale"
+            data-i18n-aria-label="hud.dataset_scale"
             aria-label="Dataset scale"
           >
-            <div class="fr27-zone-title">DATASET SCALE</div>
+            <div class="fr27-zone-title" data-i18n="hud.dataset_scale">DATASET SCALE</div>
 
             <div class="fr27-linear-publication fr27-zone-scale-body">
 
               <div class="fr27-linear-publication-cell">
-                <strong id="fr27-hud-news-value" class="fr27-hud-metric-loading" aria-label="Loading accepted news count">—</strong>
+                <strong id="fr27-hud-news-value" class="fr27-hud-metric-loading" data-i18n-aria-label="hud.loading_accepted_news_count" aria-label="Loading accepted news count">—</strong>
                 <span data-i18n="media_pulse.metric.accepted_news">ACCEPTED NEWS</span>
               </div>
 
               <div class="fr27-linear-publication-cell">
-                <strong id="fr27-hud-publishers-value" class="fr27-hud-metric-loading" aria-label="Loading publisher count">—</strong>
-                <span class="fr27-hud-label-with-info" id="fr27-hud-publishers-info" data-fr27-tooltip="Distinct publishers represented in accepted election news during the current Media Pulse source window. This can be lower than DOMAINS because not every approved source contributes accepted election news in the window." data-fr27-tooltip-affordance="term" tabindex="0"><span data-i18n="media_pulse.metric.publishers">PUBLISHERS</span></span>
+                <strong id="fr27-hud-publishers-value" class="fr27-hud-metric-loading" data-i18n-aria-label="hud.loading_publisher_count" aria-label="Loading publisher count">—</strong>
+                <span class="fr27-hud-label-with-info" id="fr27-hud-publishers-info" data-i18n-fr27-tooltip="hud.publishers_explanation" data-fr27-tooltip="Distinct publishers represented in accepted election news during the current Media Pulse source window. This can be lower than DOMAINS because not every approved source contributes accepted election news in the window." data-fr27-tooltip-affordance="term" tabindex="0"><span data-i18n="media_pulse.metric.publishers">PUBLISHERS</span></span>
               </div>
 
               <div class="fr27-linear-publication-cell">
-                <strong id="fr27-hud-recent-value" class="fr27-hud-metric-loading" aria-label="Loading recent news count">—</strong>
+                <strong id="fr27-hud-recent-value" class="fr27-hud-metric-loading" data-i18n-aria-label="hud.loading_recent_news_count" aria-label="Loading recent news count">—</strong>
                 <span data-i18n="media_pulse.metric.recent_14d">RECENT 14D</span>
               </div>
 
               <div class="fr27-linear-publication-cell">
-                <strong id="fr27-hud-candidate-watch-value" class="fr27-hud-metric-loading" aria-label="Loading candidate-watch count">—</strong>
+                <strong id="fr27-hud-candidate-watch-value" class="fr27-hud-metric-loading" data-i18n-aria-label="hud.loading_candidate_watch_count" aria-label="Loading candidate-watch count">—</strong>
                 <span data-i18n="media_pulse.metric.candidate_watch">CANDIDATE WATCH</span>
               </div>
 
@@ -8106,9 +8115,10 @@
           <!-- UTILITY -->
           <section
             class="fr27-linear-zone fr27-zone-utility"
+            data-i18n-aria-label="hud.utility_links"
             aria-label="Utility links"
           >
-            <div class="fr27-zone-title">UTILITY</div>
+            <div class="fr27-zone-title" data-i18n="hud.utility_links">UTILITY</div>
 
             <div class="fr27-linear-actions">
 
@@ -8117,7 +8127,9 @@
                 href="https://github.com/openeventbits/france-2027-signal-lab"
                 target="_blank"
                 rel="noreferrer"
+                data-i18n-fr27-tooltip="hud.view_repository"
                 data-fr27-tooltip="View repository"
+                data-i18n-aria-label="hud.open_github_repository"
                 aria-label="Open GitHub repository"
               >
                 <svg
@@ -8136,7 +8148,9 @@
                 type="button"
                 id="fr27-hud-email-toggle"
                 class="fr27-hud-command email"
+                data-i18n-fr27-tooltip="hud.contact"
                 data-fr27-tooltip="Contact"
+                data-i18n-aria-label="hud.contact_signal_lab"
                 aria-label="Contact France 2027 Signal Lab"
                 aria-haspopup="dialog"
                 aria-controls="fr27-hud-contact-popover"
@@ -8162,7 +8176,9 @@
                 type="button"
                 id="fr27-hud-share"
                 class="fr27-hud-command share"
+                data-i18n-fr27-tooltip="hud.share_dashboard"
                 data-fr27-tooltip="Share dashboard"
+                data-i18n-aria-label="hud.share_current_view"
                 aria-label="Share current view"
               >
                 <svg
@@ -8185,7 +8201,9 @@
                 aria-haspopup="dialog"
                 aria-controls="method-disclosure"
                 aria-expanded="false"
+                data-i18n-fr27-tooltip="hud.about_signal_lab"
                 data-fr27-tooltip="About France 2027 Signal Lab"
+                data-i18n-aria-label="hud.project_information"
                 aria-label="Project information"
               >
                 <svg
@@ -8214,11 +8232,12 @@
         class="fr27-hud-contact-popover"
         id="fr27-hud-contact-popover"
         aria-hidden="true"
+        data-i18n-aria-label="hud.contact_signal_lab"
         aria-label="Contact France 2027 Signal Lab"
       >
         <div class="fr27-hud-contact-head">
-          <strong>CONTACT</strong>
-          <span>EMAIL</span>
+          <strong data-i18n="hud.contact">CONTACT</strong>
+          <span data-i18n="hud.email">EMAIL</span>
         </div>
 
         <div class="fr27-hud-contact-address">
@@ -8230,6 +8249,7 @@
           class="fr27-hud-contact-copy"
           id="fr27-hud-contact-copy"
           aria-live="polite"
+          data-i18n="hud.copy_address"
         >
           COPY ADDRESS
         </button>
@@ -8239,14 +8259,15 @@
         class="fr27-hud-info-popover"
         id="fr27-hud-info-popover"
         aria-hidden="true"
+        data-i18n-aria-label="hud.project_information"
         aria-label="Project information"
       >
         <div class="fr27-hud-info-head">
           <strong>FRANCE 2027 SIGNAL LAB</strong>
-          <span>PUBLIC MONITORING INTERFACE</span>
+          <span data-i18n="hud.public_monitoring_interface">PUBLIC MONITORING INTERFACE</span>
         </div>
 
-        <p>
+        <p data-i18n="hud.project_description">
           Source-linked monitoring of the French 2027 presidential
           race using published polling, campaign, media and public
           evidence.
@@ -8254,24 +8275,24 @@
 
         <div class="fr27-hud-info-rules">
           <div class="fr27-hud-info-rule-line primary">
-            <span>PUBLIC EVIDENCE</span>
-            <span>SOURCE-LINKED</span>
-            <span>DESCRIPTIVE</span>
+            <span data-i18n="hud.public_evidence">PUBLIC EVIDENCE</span>
+            <span data-i18n="hud.source_linked">SOURCE-LINKED</span>
+            <span data-i18n="hud.descriptive">DESCRIPTIVE</span>
           </div>
           <div class="fr27-hud-info-rule-line boundary">
-            <span>NO POLLING AVERAGES</span>
-            <span>NO FORECAST</span>
-            <span>NO VOTING ADVICE</span>
+            <span data-i18n="hud.no_polling_averages">NO POLLING AVERAGES</span>
+            <span data-i18n="hud.no_forecast">NO FORECAST</span>
+            <span data-i18n="hud.no_voting_advice">NO VOTING ADVICE</span>
           </div>
         </div>
 
-        <small class="fr27-hud-info-note">
+        <small class="fr27-hud-info-note" data-i18n="hud.ai_portraits_note">
           Candidate portraits are AI-generated illustrations
           for visual identification.
         </small>
       </aside>
 
-      <div class="visually-hidden">
+      <div class="visually-hidden" data-i18n="hud.accessibility_summary">
         Descriptive polling data from public sources.
         No model. No polling averages. No forecast.
         No voting advice.
@@ -8361,6 +8382,7 @@
       node.textContent = text;
       node.removeAttribute("aria-busy");
       node.removeAttribute("aria-label");
+      node.removeAttribute("data-i18n-aria-label");
     }
 
     function markDataset(name, status, payload = null, updatedAt = "") {
@@ -9559,6 +9581,22 @@
       }).format(new Date(timestamp)).toLocaleUpperCase(localeTag);
     }
 
+    function formatContextDate(value) {
+      const timestamp = Date.parse(`${value}T00:00:00Z`);
+      if (!Number.isFinite(timestamp)) return "";
+
+      const options = {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        timeZone: "UTC"
+      };
+      const localizer = globalThis.FR27I18N;
+      return localizer && typeof localizer.formatDate === "function"
+        ? localizer.formatDate(new Date(timestamp), options)
+        : new Intl.DateTimeFormat("en-GB", options).format(new Date(timestamp));
+    }
+
     function derivePollCoverage(events) {
       const dated = events.map(event => ({
         event,
@@ -9617,9 +9655,7 @@
 
       return Number.isInteger(value) && value >= 0
         ? {
-            value,
-            label: "approved publisher domains",
-            mastheadUnit: "approved publisher domains"
+            value
           }
         : null;
     }
@@ -9637,14 +9673,22 @@
       const sourceMetric = deriveSourceMetric(newsWire);
 
       const valueText = sourceMetric
-        ? sourceMetric.value + " " + sourceMetric.label
+        ? translate(
+            "dashboard.source_network.approved_domains",
+            sourceMetric.value + " approved publisher domains",
+            { count: sourceMetric.value }
+          )
         : "—";
 
       const due = metrics.routes_due_in_run;
       const successful = metrics.successful_due_routes;
       const configured = metrics.configured_routes_or_feeds;
       const configuredText = isNonNegativeInteger(configured)
-        ? " · " + configured + " configured routes"
+        ? translate(
+            "dashboard.source_network.configured_routes",
+            " · " + configured + " configured routes",
+            { count: configured }
+          )
         : "";
 
       if (
@@ -9658,33 +9702,50 @@
         if (failed <= 1) {
           return {
             valueText,
-            status: "OPERATIONAL",
+            status: translate(
+              "dashboard.source_network.status.operational",
+              "OPERATIONAL"
+            ),
             secondaryText:
               failed === 0
-                ? successful + "/" + due +
-                  " due routes succeeded" + configuredText
-                : "1 due route unavailable" + configuredText,
+                ? translate(
+                    "dashboard.source_network.due_routes_succeeded",
+                    successful + "/" + due + " due routes succeeded",
+                    { successful, due }
+                  ) + configuredText
+                : translate(
+                    "dashboard.source_network.one_due_route_unavailable",
+                    "1 due route unavailable"
+                  ) + configuredText,
             visualState: "operational"
           };
         }
 
         return {
           valueText,
-          status: "DEGRADED",
-          secondaryText:
-            failed +
-            " due " +
-            (failed === 1 ? "route" : "routes") +
-            " unavailable" + configuredText,
+          status: translate(
+            "dashboard.source_network.status.degraded",
+            "DEGRADED"
+          ),
+          secondaryText: translate(
+            "dashboard.source_network.due_routes_unavailable",
+            failed + " due routes unavailable",
+            { count: failed }
+          ) + configuredText,
           visualState: "degraded"
         };
       }
 
       return {
         valueText,
-        status: "UNKNOWN",
-        secondaryText:
-          "Due-route success unavailable",
+        status: translate(
+          "dashboard.source_network.status.unknown",
+          "UNKNOWN"
+        ),
+        secondaryText: translate(
+          "dashboard.source_network.due_route_success_unavailable",
+          "Due-route success unavailable"
+        ),
         visualState: "unknown"
       };
     }
@@ -9711,6 +9772,7 @@
       $("#context-status-value").textContent =
         presentation.valueText;
 
+      $("#context-status-meta").removeAttribute("data-i18n");
       $("#context-status-meta").textContent =
         presentation.secondaryText;
     }
@@ -9719,11 +9781,19 @@
       try {
         const snapshot = getElectionClockSnapshot();
         const milestone = snapshot.targets.find(target => !target.held) || snapshot.targets.at(-1);
-        $("#context-milestone-value").textContent = milestone.label;
-        $("#context-milestone-meta").textContent = milestone.absoluteLabel + " · " + milestone.status;
+        $("#context-milestone-value").textContent = electionClockTargetLabel(milestone);
+        $("#context-milestone-meta").textContent =
+          electionClockAbsoluteLabel(milestone) + " · " +
+          electionClockStatusLabel(milestone);
       } catch (error) {
-        $("#context-milestone-value").textContent = "Milestone unavailable";
-        $("#context-milestone-meta").textContent = "Europe/Paris countdown unavailable";
+        $("#context-milestone-value").textContent = translate(
+          "dashboard.milestone_unavailable",
+          "Milestone unavailable"
+        );
+        $("#context-milestone-meta").textContent = translate(
+          "dashboard.europe_paris_countdown_unavailable",
+          "Europe/Paris countdown unavailable"
+        );
       }
 
       if (dashboardState.polls) {
@@ -9747,27 +9817,64 @@
         const coverage = derivePollCoverage(dashboardState.polls.events);
 
         renderResolvedText("#context-coverage-value", coverage
-          ? coverage.count + " " +
-            (coverage.count === 1 ? "pollster" : "pollsters") +
-            " · 6-month window"
-          : "Coverage unavailable");
+          ? translate(
+              "dashboard.poll_coverage_summary",
+              coverage.count + " " +
+                (coverage.count === 1 ? "pollster" : "pollsters") +
+                " · 6-month window",
+              { count: coverage.count }
+            )
+          : translate(
+              "dashboard.coverage_unavailable",
+              "Coverage unavailable"
+            ));
 
+        $("#context-coverage-meta").removeAttribute("data-i18n");
         $("#context-coverage-meta").textContent = coverage
-          ? "First round · " +
-            formatDate(coverage.startDate) +
-            "–" +
-            formatDate(coverage.latestDate)
-          : "Target: first round";
+          ? translate(
+              "dashboard.poll_coverage_meta",
+              "First round · " +
+                formatContextDate(coverage.startDate) + "–" +
+                formatContextDate(coverage.latestDate),
+              {
+                startDate: formatContextDate(coverage.startDate),
+                latestDate: formatContextDate(coverage.latestDate)
+              }
+            )
+          : translate(
+              "dashboard.target_first_round",
+              "Target: first round"
+            );
       } else {
         const pollError = dashboardState.loadState.polls === "error";
-        if (pollError) renderResolvedText("#context-poll-value", "Polling unavailable");
-        else renderInlineSkeleton("#context-poll-value", "Loading latest fieldwork", "112px", "12px");
+        if (pollError) renderResolvedText(
+          "#context-poll-value",
+          translate("dashboard.polling_unavailable", "Polling unavailable")
+        );
+        else renderInlineSkeleton(
+          "#context-poll-value",
+          translate("dashboard.loading_latest_fieldwork", "Loading latest fieldwork"),
+          "112px",
+          "12px"
+        );
         $("#context-poll-meta").textContent = pollError
           ? translate("dashboard.polling_unavailable", "Polling unavailable")
           : translate("dashboard.loading", "Loading…");
-        if (pollError) renderResolvedText("#context-coverage-value", "Polling unavailable");
-        else renderInlineSkeleton("#context-coverage-value", "Loading poll coverage", "96px", "12px");
-        $("#context-coverage-meta").textContent = "First-round polling coverage";
+        if (pollError) renderResolvedText(
+          "#context-coverage-value",
+          translate("dashboard.coverage_unavailable", "Coverage unavailable")
+        );
+        else renderInlineSkeleton(
+          "#context-coverage-value",
+          translate("dashboard.loading_poll_coverage", "Loading poll coverage"),
+          "96px",
+          "12px"
+        );
+        $("#context-coverage-meta").removeAttribute("data-i18n");
+        $("#context-coverage-meta").textContent = translate(
+          "dashboard.first_round_polling_coverage",
+          "First-round polling coverage"
+        );
       }
 
       renderSourceNetworkStatus(dashboardState.news);
@@ -10343,6 +10450,53 @@
       }
     ]);
 
+    function electionClockTargetLabel(target) {
+      if (target.key === "sponsorship") {
+        return translate(
+          "election_clock.candidate_sponsorship_deadline",
+          target.label
+        );
+      }
+      if (target.key === "second") {
+        return translate(
+          "election_clock.second_round_if_required",
+          target.label
+        );
+      }
+      return translate("election_clock.first_round", target.label);
+    }
+
+    function electionClockAbsoluteLabel(target) {
+      const iso = [
+        target.year,
+        String(target.month).padStart(2, "0"),
+        String(target.day).padStart(2, "0")
+      ].join("-");
+      const dateLabel = formatContextDate(iso);
+      return target.key === "sponsorship"
+        ? dateLabel + " · 18:00 Paris"
+        : dateLabel;
+    }
+
+    function electionClockStatusLabel(target) {
+      if (target.held) {
+        return target.key === "sponsorship"
+          ? translate("election_clock.closed", "CLOSED")
+          : translate("election_clock.held", "HELD");
+      }
+      if (target.isTargetDay) {
+        return target.key === "sponsorship"
+          ? translate("election_clock.today", "TODAY")
+          : translate("election_clock.voting_day", "VOTING DAY");
+      }
+      return translate(
+        "election_clock.days_remaining",
+        target.daysRemaining + " " +
+          (target.daysRemaining === 1 ? "day" : "days"),
+        { count: target.daysRemaining }
+      );
+    }
+
     function getElectionClockSnapshot(now = new Date()) {
       const parisParts = Object.fromEntries(
         new Intl.DateTimeFormat("en-GB", {
@@ -10383,17 +10537,29 @@
             const count = metric.querySelector(".clock-count");
             const unit = metric.querySelector(".clock-unit");
             const mastheadLabel = metric.querySelector(".masthead-countdown-label");
+            const absoluteDate = metric.querySelector(".fr27-countdown-date");
             if (!count || !unit) return;
+            if (absoluteDate) {
+              const localeTag = globalThis.FR27I18N?.localeTag || "en-GB";
+              absoluteDate.textContent = electionClockAbsoluteLabel(target)
+                .toLocaleUpperCase(localeTag);
+            }
             count.classList.remove("is-word");
             if (target.held || target.isTargetDay) {
-              count.textContent = target.status;
+              count.textContent = electionClockStatusLabel(target);
               count.classList.add("is-word");
               unit.textContent = "";
-              if (mastheadLabel) mastheadLabel.textContent = "first round";
+              if (mastheadLabel) mastheadLabel.textContent = translate(
+                "election_clock.first_round_lower",
+                "first round"
+              );
             } else {
               count.textContent = target.daysRemaining;
-              unit.textContent = "DAYS";
-              if (mastheadLabel) mastheadLabel.textContent = "to first round";
+              unit.textContent = translate("hud.days", "DAYS");
+              if (mastheadLabel) mastheadLabel.textContent = translate(
+                "election_clock.to_first_round",
+                "to first round"
+              );
             }
           });
         });
@@ -13390,6 +13556,7 @@
             "fr27-hud-metric-loading"
           );
           hudPollsNode.removeAttribute("aria-label");
+          hudPollsNode.removeAttribute("data-i18n-aria-label");
         }
 
         raceGlanceState.events = validEvents;
@@ -13527,6 +13694,13 @@
 (function () {
   "use strict";
 
+  const hudTranslate = function (key, fallback, parameters) {
+    const localizer = window.FR27I18N;
+    return localizer && typeof localizer.t === "function"
+      ? localizer.t(key, parameters, fallback)
+      : fallback;
+  };
+
   const hud = document.querySelector(
     "#method-disclosure.fr27-app-hud"
   );
@@ -13601,14 +13775,26 @@
         const originalTooltip = shareToggle.dataset.fr27Tooltip;
         const originalLabel = shareToggle.getAttribute("aria-label");
 
-        shareToggle.dataset.fr27Tooltip = "Link copied";
-        shareToggle.setAttribute("aria-label", "Link copied");
+        shareToggle.dataset.fr27Tooltip = hudTranslate(
+          "hud.link_copied",
+          "Link copied"
+        );
+        shareToggle.setAttribute(
+          "aria-label",
+          hudTranslate("hud.link_copied", "Link copied")
+        );
 
         window.setTimeout(() => {
-          shareToggle.dataset.fr27Tooltip = originalTooltip || "Share dashboard";
+          shareToggle.dataset.fr27Tooltip = originalTooltip || hudTranslate(
+            "hud.share_dashboard",
+            "Share dashboard"
+          );
           shareToggle.setAttribute(
             "aria-label",
-            originalLabel || "Share current view"
+            originalLabel || hudTranslate(
+              "hud.share_current_view",
+              "Share current view"
+            )
           );
         }, 1600);
       } catch (error) {
@@ -13716,14 +13902,26 @@
     toggle.setAttribute(
       "aria-label",
       expanded
-        ? "Collapse system dock"
-        : "Expand system dock"
+        ? hudTranslate(
+            "hud.collapse_system_dock",
+            "Collapse system dock"
+          )
+        : hudTranslate(
+            "hud.expand_system_dock",
+            "Expand system dock"
+          )
     );
 
     toggle.dataset.fr27Tooltip =
       expanded
-        ? "Collapse system dock"
-        : "Expand system dock";
+        ? hudTranslate(
+            "hud.collapse_system_dock",
+            "Collapse system dock"
+          )
+        : hudTranslate(
+            "hud.expand_system_dock",
+            "Expand system dock"
+          );
 
     content.setAttribute(
       "aria-hidden",
@@ -13756,10 +13954,12 @@
     if (!timeNode || !dateNode || !zoneNode) return;
 
     const now = new Date();
+    const localeTag =
+      window.FR27I18N?.localeTag || "en-GB";
 
     const timeFormatter =
       new Intl.DateTimeFormat(
-        "en-GB",
+        localeTag,
         {
           timeZone: "Europe/Paris",
           hour: "2-digit",
@@ -13771,7 +13971,7 @@
 
     const dateFormatter =
       new Intl.DateTimeFormat(
-        "en-GB",
+        localeTag,
         {
           timeZone: "Europe/Paris",
           day: "2-digit",
@@ -13782,7 +13982,7 @@
 
     const zoneFormatter =
       new Intl.DateTimeFormat(
-        "en-GB",
+        localeTag,
         {
           timeZone: "Europe/Paris",
           timeZoneName: "shortOffset"
@@ -13799,7 +13999,7 @@
       dateFormatter
         .format(now)
         .replace(",", "")
-        .toUpperCase();
+        .toLocaleUpperCase(localeTag);
 
     const zonePart =
       zoneFormatter
@@ -13828,71 +14028,6 @@
    * Keep footer values aligned with the values already rendered
    * elsewhere in the application.
    */
-
-  function fr27HudExtractMetric(labelText) {
-    const target =
-      String(labelText || "").toLowerCase();
-
-    const candidates =
-      Array.from(
-        document.querySelectorAll(
-          ".context-strip *, #top-media-pulse-metrics *"
-        )
-      );
-
-    const matches =
-      candidates
-        .filter(function (node) {
-          if (hud.contains(node)) return false;
-
-          const value =
-            String(node.textContent || "")
-              .replace(/\s+/g, " ")
-              .trim()
-              .toLowerCase();
-
-          return (
-            value.includes(target) &&
-            value.length < 180
-          );
-        })
-        .sort(function (a, b) {
-          return (
-            String(a.textContent || "").length -
-            String(b.textContent || "").length
-          );
-        });
-
-    for (const node of matches) {
-      let current = node;
-
-      for (
-        let depth = 0;
-        depth < 4 && current;
-        depth += 1
-      ) {
-        const value =
-          String(current.textContent || "")
-            .replace(/\u00a0/g, " ")
-            .replace(/\s+/g, " ")
-            .trim();
-
-        const number =
-          value.match(/\b\d[\d\s,.]*\b/);
-
-        if (number) {
-          const digits =
-            number[0].replace(/[^\d]/g, "");
-
-          if (digits) return digits;
-        }
-
-        current = current.parentElement;
-      }
-    }
-
-    return null;
-  }
 
   /*
    * Stable-key lookup for compact Media Pulse summary values.
@@ -13924,6 +14059,20 @@
     return digits || null;
   }
 
+  function fr27HudExtractContextMetric(metricKey) {
+    const metric = Array.from(
+      document.querySelectorAll("[data-context-metric]")
+    ).find(function (node) {
+      return node.getAttribute("data-context-metric") === metricKey;
+    });
+    if (!metric || hud.contains(metric)) return null;
+
+    const digits = String(metric.textContent || "")
+      .match(/\b\d[\d\s,.]*\b/)?.[0]
+      ?.replace(/[^\d]/g, "");
+    return digits || null;
+  }
+
   function fr27HudRefreshMetrics() {
     const domainsNode =
       hud.querySelector("#fr27-hud-domains-value");
@@ -13941,16 +14090,13 @@
       hud.querySelector("#fr27-hud-candidate-watch-value");
 
     const domains =
-      fr27HudExtractMetric(
-        "approved publisher domains"
+      fr27HudExtractContextMetric(
+        "approved_publisher_domains"
       );
 
     const news =
       fr27HudExtractExactMetric(
         "media_pulse.metric.accepted_news"
-      ) ||
-      fr27HudExtractMetric(
-        "accepted news"
       );
 
     /*
@@ -13965,17 +14111,11 @@
     const recent =
       fr27HudExtractExactMetric(
         "media_pulse.metric.recent_14d"
-      ) ||
-      fr27HudExtractMetric(
-        "recent 14d"
       );
 
     const candidateWatch =
       fr27HudExtractExactMetric(
         "media_pulse.metric.candidate_watch"
-      ) ||
-      fr27HudExtractMetric(
-        "candidate-watch"
       );
 
     const resolveHudMetric = function (node, value) {
@@ -13983,6 +14123,7 @@
       node.textContent = value;
       node.classList.remove("fr27-hud-metric-loading");
       node.removeAttribute("aria-label");
+      node.removeAttribute("data-i18n-aria-label");
     };
 
     if (domains && domainsNode) {
@@ -14006,6 +14147,11 @@
     }
   }
   fr27HudRefreshMetrics();
+
+  document.addEventListener(
+    "hybrid:dataset",
+    fr27HudRefreshMetrics
+  );
 
   window.setTimeout(
     fr27HudRefreshMetrics,
@@ -14106,20 +14252,32 @@
               field.remove();
             }
 
-            contactCopy.textContent = "COPIED";
+            contactCopy.textContent = hudTranslate(
+              "hud.copied",
+              "COPIED"
+            );
 
             window.setTimeout(
               function () {
-                contactCopy.textContent = "COPY ADDRESS";
+                contactCopy.textContent = hudTranslate(
+                  "hud.copy_address",
+                  "COPY ADDRESS"
+                );
               },
               1600
             );
           } catch (_) {
-            contactCopy.textContent = "COPY FAILED";
+            contactCopy.textContent = hudTranslate(
+              "hud.copy_failed",
+              "COPY FAILED"
+            );
 
             window.setTimeout(
               function () {
-                contactCopy.textContent = "COPY ADDRESS";
+                contactCopy.textContent = hudTranslate(
+                  "hud.copy_address",
+                  "COPY ADDRESS"
+                );
               },
               1600
             );

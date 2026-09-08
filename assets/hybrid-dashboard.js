@@ -60,7 +60,7 @@
       panelId: "signal-candidates-panel"
     },
     agenda: {
-      label: "AGENDA",
+      label: translate("signal_board.agenda", "AGENDA"),
       title: translate("signal_board.campaign_agenda", "Campaign Agenda"),
       hash: "#signal-agenda",
       tabId: "signal-agenda-tab",
@@ -68,15 +68,15 @@
       index: "3"
     },
     events: {
-      label: "EVENTS",
+      label: translate("signal_board.events", "EVENTS"),
       title: translate("signal_board.campaign_events", "Campaign Events"),
       hash: "#signal-events",
       tabId: "signal-events-tab",
       panelId: "signal-events-panel"
     },
     issues: {
-      label: "ISSUES",
-      title: "Policy Issues",
+      label: translate("signal_board.issues", "ISSUES"),
+      title: translate("signal_board.policy_issues", "Policy Issues"),
       hash: "#signal-issues",
       tabId: "signal-issues-tab",
       panelId: "signal-issues-panel"
@@ -6718,8 +6718,8 @@
   }
 
   function renderFocusWorkspace(models) {
-    return `<section class="hybrid-workspace" data-hybrid-workspace aria-label="Signal Board focus workspace">
-      <div class="hybrid-tabs" role="tablist" aria-label="Lower evidence workspace" aria-orientation="horizontal">
+    return `<section class="hybrid-workspace" data-hybrid-workspace aria-label="${escapeAttribute(translate("signal_board.signal_board_focus_workspace", "Signal Board focus workspace"))}">
+      <div class="hybrid-tabs" role="tablist" aria-label="${escapeAttribute(translate("signal_board.lower_evidence_workspace", "Lower evidence workspace"))}" aria-orientation="horizontal">
         ${viewOrder.map(key => `<button class="hybrid-tab" id="${views[key].tabId}" type="button" role="tab"
           data-hybrid-view="${key}" aria-controls="${views[key].panelId}" aria-selected="${String(state.activeView === key)}" tabindex="${state.activeView === key ? "0" : "-1"}">
           ${workspaceTabIconMarkup(key)}
@@ -6729,7 +6729,7 @@
       <section class="hybrid-panel" id="signal-runoff-panel" role="tabpanel" aria-labelledby="signal-runoff-tab"${state.activeView === "runoff" ? "" : " hidden"}>${renderRunoffPanel(models.runoff)}</section>
       <section class="hybrid-panel" id="signal-candidates-panel" role="tabpanel" aria-labelledby="signal-candidates-tab"${state.activeView === "candidates" ? "" : " hidden"}>
         <div id="candidate-signals-root" data-candidate-signals-state="${state.candidateSignals.status}">
-          ${window.FR27UI ? window.FR27UI.skeletonElement("candidates", "Loading candidate evidence").outerHTML : '<div class="candidate-signals-state" role="status" aria-label="Loading candidate evidence">—</div>'}
+          ${window.FR27UI ? window.FR27UI.skeletonElement("candidates", translate("candidate.loading_candidate_evidence", "Loading candidate evidence")).outerHTML : `<div class="candidate-signals-state" role="status" aria-label="${escapeAttribute(translate("candidate.loading_candidate_evidence", "Loading candidate evidence"))}">—</div>`}
         </div>
       </section>
       <section class="hybrid-panel" id="signal-events-panel" role="tabpanel" aria-labelledby="signal-events-tab"${state.activeView === "events" ? "" : " hidden"}>${renderEventsPanel(models.events)}</section>

@@ -771,7 +771,11 @@ class FinalDashboardShellTests(unittest.TestCase):
             self.js,
         )
         self.assertIn(
-            'label: "ISSUES"',
+            'label: translate("signal_board.issues", "ISSUES")',
+            self.js,
+        )
+        self.assertIn(
+            'title: translate("signal_board.policy_issues", "Policy Issues")',
             self.js,
         )
         self.assertIn(
