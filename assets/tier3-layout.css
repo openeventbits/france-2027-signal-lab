@@ -280,7 +280,138 @@
     padding: 8px 12px;
   }
 
-  /* Status band: four real telemetry items in a balanced 2 x 2 grid. */
+  /* Race: measured lower mode begins where the four-column row stops fitting. */
+  @media (width < 647px) {
+    html.fr27-tier3-active .race-event-controls {
+      flex: 0 0 88px;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 7px;
+      padding-inline: 11px;
+    }
+
+    html.fr27-tier3-active .race-scenario-control {
+      grid-template-columns: 58px minmax(0, 1fr);
+    }
+
+    html.fr27-tier3-active .race-glance .bars {
+      padding-inline: 10px;
+    }
+
+    html.fr27-tier3-active .race-column-head,
+    html.fr27-tier3-active .race-glance .bar-row {
+      grid-template-columns: minmax(0, 1fr) 48px 82px;
+      grid-template-rows: auto auto;
+      gap: 5px 7px;
+    }
+
+    html.fr27-tier3-active .race-column-head-bar {
+      display: none;
+    }
+
+    html.fr27-tier3-active .race-column-head-candidate,
+    html.fr27-tier3-active .race-glance .race-candidate {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    html.fr27-tier3-active .race-column-head-result,
+    html.fr27-tier3-active .race-glance .score {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    html.fr27-tier3-active .race-column-head-change,
+    html.fr27-tier3-active .race-glance .race-change {
+      grid-column: 3;
+      grid-row: 1;
+    }
+
+    html.fr27-tier3-active .race-glance .track {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+
+    html.fr27-tier3-active .race-glance .bar-row {
+      min-height: 52px;
+      padding: 4px 0;
+    }
+
+    html.fr27-tier3-active .race-glance .candidate-monogram {
+      width: 36px;
+      height: 36px;
+    }
+
+    html.fr27-tier3-active .race-glance .candidate {
+      overflow: visible;
+      font-size: 11px;
+      line-height: 1.2;
+      text-overflow: clip;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    html.fr27-tier3-active
+      .race-poll-panel.is-no-comparison
+      .race-column-head,
+    html.fr27-tier3-active
+      .race-glance
+      .race-poll-panel.is-no-comparison
+      .bar-row {
+      grid-template-columns: minmax(0, 1fr) 48px;
+    }
+
+    html.fr27-tier3-active
+      .race-poll-panel.is-no-comparison
+      .race-column-head-result {
+      grid-column: 2;
+    }
+  }
+
+  @media (width <= 430px) {
+    html.fr27-tier3-active .race-glance-head,
+    html.fr27-tier3-active .race-event-controls {
+      padding-inline: 9px;
+    }
+
+    html.fr27-tier3-active .race-poll-tabs {
+      gap: 3px;
+    }
+
+    html.fr27-tier3-active .race-poll-tabs button {
+      min-height: 33px;
+      padding: 5px 4px;
+    }
+
+    html.fr27-tier3-active .race-glance .bars {
+      padding-inline: 8px;
+    }
+
+    html.fr27-tier3-active .race-column-head,
+    html.fr27-tier3-active .race-glance .bar-row {
+      grid-template-columns: minmax(0, 1fr) 45px 76px;
+      gap: 5px;
+    }
+
+    html.fr27-tier3-active .race-glance .candidate {
+      font-size: 10.5px;
+    }
+
+    html.fr27-tier3-active .race-glance .race-change strong {
+      font-size: 8.5px;
+    }
+
+    html.fr27-tier3-active
+      .race-poll-panel.is-no-comparison
+      .race-column-head,
+    html.fr27-tier3-active
+      .race-glance
+      .race-poll-panel.is-no-comparison
+      .bar-row {
+      grid-template-columns: minmax(0, 1fr) 45px;
+    }
+  }
+
+  /* Status fallback shell; bounded local contracts below own its final composition. */
   html.fr27-tier3-active .context-strip {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -636,15 +767,6 @@
  */
 
 @media (width < 600px) {
-
-  html.fr27-tier3-active
-    .context-strip {
-
-    grid-template-columns:
-      minmax(0, 1fr) !important;
-  }
-
-
   html.fr27-tier3-active
     .fr27-tier3-workspace-control,
 
@@ -1138,14 +1260,15 @@
 }
 
 /*
- * Narrow Tier 3 retains the existing single-column phone fallback.
- * The 1023px composition above is not squeezed into phone geometry.
+ * Status alone retains the single-column fallback at the existing
+ * 350px micro boundary. Other narrow Tier 3 modules keep their own
+ * independently measured ranges below.
  */
-@media (width < 600px) {
+@media (width <= 350px) {
   html.fr27-tier3-active .context-strip {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: repeat(4, 90px);
-    height: 361px;
+    grid-template-rows: repeat(3, 90px);
+    height: 271px;
   }
 
   html.fr27-tier3-active .context-cell {
@@ -1154,10 +1277,16 @@
     border-bottom: 1px solid rgba(31, 75, 101, .72);
   }
 
-  html.fr27-tier3-active .context-cell:last-child {
+  html.fr27-tier3-active .context-cell:nth-child(3) {
     border-bottom: 0;
   }
 
+  html.fr27-tier3-active .context-cell:nth-child(4) {
+    display: none;
+  }
+}
+
+@media (width < 600px) {
   html.fr27-tier3-active
     .top-media-pulse
     #top-media-overview-panel {
@@ -1205,7 +1334,7 @@
  *
  * Source Network is redundant with the footer domain count.
  * ========================================================= */
-@media (700px <= width < 1024px) {
+@media (687px <= width < 1024px) {
 
   html.fr27-tier3-active .context-strip {
     box-sizing: border-box !important;
@@ -1215,7 +1344,8 @@
       minmax(0, 1.18fr)
       minmax(0, .82fr)
       minmax(0, 1fr) !important;
-    grid-template-rows: 66px !important;
+    /* The 64px inner track plus the root border preserves a 66px band. */
+    grid-template-rows: 64px !important;
 
     width: 100% !important;
     height: 66px !important;
@@ -1232,10 +1362,10 @@
     box-sizing: border-box !important;
 
     min-width: 0 !important;
-    min-height: 66px !important;
-    height: 66px !important;
+    min-height: 64px !important;
+    height: 64px !important;
 
-    padding: 8px 12px !important;
+    padding: 0 12px !important;
 
     border-bottom: 0 !important;
     border-right: 1px solid var(--line) !important;
@@ -1254,6 +1384,50 @@
   html.fr27-tier3-active
     .context-strip > .context-cell:nth-child(4) {
     display: none !important;
+  }
+}
+
+/* =========================================================
+ * TIER 3 STATUS BAND — BOUNDED TWO-ROW FALLBACK
+ *
+ * FR is the limiting locale. Below the compact row, keep the same
+ * three cells, give the longer milestone the full first row, and
+ * retain the fieldwork / coverage pair on the second row through
+ * the existing 350px micro boundary.
+ * ========================================================= */
+@media (351px <= width < 687px) {
+
+  html.fr27-tier3-active .context-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, 98px);
+    height: 197px;
+  }
+
+  html.fr27-tier3-active
+    .context-strip > .context-cell:nth-child(1) {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    border-right: 0;
+  }
+
+  html.fr27-tier3-active
+    .context-strip > .context-cell:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+    border-right: 1px solid rgba(31, 75, 101, .72);
+    border-bottom: 0;
+  }
+
+  html.fr27-tier3-active
+    .context-strip > .context-cell:nth-child(3) {
+    grid-column: 2;
+    grid-row: 2;
+    border-right: 0;
+  }
+
+  html.fr27-tier3-active
+    .context-strip > .context-cell:nth-child(4) {
+    display: none;
   }
 }
 
@@ -4853,113 +5027,6 @@
     min-width: 176px;
     min-height: 44px;
     margin: 0 !important;
-  }
-}
-
-/* =========================================================
- * TIER 3 RACE — HOLD FOUR-COLUMN ROW THROUGH 700
- *
- * Legacy max-width:719px rules convert each poll row into a
- * two-row mobile composition:
- *
- *   candidate | score | change
- *   bar spanning full width
- *
- * Tier 3 still has enough width from 700–719px for the
- * established four-column analytical row, so preserve it.
- *
- * No typography or panel-height changes.
- * ========================================================= */
-@media (700px <= width < 720px) {
-
-  html.fr27-tier3-active
-    .race-column-head,
-
-  html.fr27-tier3-active
-    .race-glance
-    .bar-row {
-
-    grid-template-columns:
-      minmax(190px, .95fr)
-      minmax(220px, 1.65fr)
-      58px
-      92px !important;
-
-    grid-template-rows: auto !important;
-
-    gap: 9px !important;
-  }
-
-
-  /* Restore the bar-column heading hidden by legacy mobile CSS. */
-  html.fr27-tier3-active
-    .race-column-head-bar {
-
-    display: block !important;
-
-    grid-column: auto !important;
-    grid-row: auto !important;
-  }
-
-
-  html.fr27-tier3-active
-    .race-column-head-candidate,
-
-  html.fr27-tier3-active
-    .race-column-head-result,
-
-  html.fr27-tier3-active
-    .race-column-head-change {
-
-    grid-column: auto !important;
-    grid-row: auto !important;
-  }
-
-
-  /* Put all four row components back onto one analytical row. */
-  html.fr27-tier3-active
-    .race-glance
-    .race-candidate,
-
-  html.fr27-tier3-active
-    .race-glance
-    .track,
-
-  html.fr27-tier3-active
-    .race-glance
-    .score,
-
-  html.fr27-tier3-active
-    .race-glance
-    .race-change {
-
-    grid-column: auto !important;
-    grid-row: auto !important;
-  }
-
-
-  /* Undo legacy mobile candidate wrapping. */
-  html.fr27-tier3-active
-    .race-glance
-    .candidate {
-
-    overflow: hidden !important;
-    overflow-x: hidden !important;
-    overflow-y: hidden !important;
-
-    white-space: nowrap !important;
-    text-overflow: ellipsis !important;
-    overflow-wrap: normal !important;
-  }
-
-
-  /* Preserve the established Tier-3 row density. */
-  html.fr27-tier3-active
-    .race-glance
-    .bar-row {
-
-    min-height: 49px !important;
-    padding: 3px 0 !important;
   }
 }
 

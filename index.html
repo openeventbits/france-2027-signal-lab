@@ -2509,41 +2509,6 @@
         font-size: 10px;
       }
 
-      .race-glance .panel-head {
-        grid-template-columns: 1fr;
-        align-items: start;
-      }
-
-      .hypothesis-label {
-        max-width: 100%;
-      }
-
-      .race-glance .bar-row {
-        grid-template-columns: minmax(0, 1fr) 44px 72px;
-        gap: 5px 7px;
-        min-height: 43px;
-        padding: 3px 0;
-      }
-
-      .race-candidate {
-        grid-column: 1;
-        grid-row: 1;
-      }
-
-      .race-glance .score {
-        grid-column: 2;
-        grid-row: 1;
-      }
-
-      .race-change {
-        grid-column: 3;
-        grid-row: 1;
-      }
-
-      .race-glance .track {
-        grid-column: 1 / -1;
-        grid-row: 2;
-      }
     }
 
     @media (max-width: 430px) {
@@ -2698,26 +2663,6 @@
       line-height: 1;
       font-variant-numeric: tabular-nums;
     }
-
-    @media (max-width: 719px) {
-      .race-candidate .candidate-monogram {
-        width: 31px;
-        height: 31px;
-      }
-
-      .race-glance .candidate {
-        font-size: 11.5px;
-      }
-
-      .race-glance .score {
-        font-size: 13px;
-      }
-
-      .race-change strong {
-        font-size: 9.5px;
-      }
-    }
-
 
     /* Fix 3: rebalance race information columns */
     @media (min-width: 720px) {
@@ -4528,152 +4473,6 @@
       }
     }
 
-    @media (max-width: 719px) {
-      .race-glance {
-        height: auto;
-        min-height: 0;
-        max-height: none;
-        overflow: hidden;
-      }
-
-      .race-glance .race-glance-head {
-        grid-template-columns: 1fr;
-        align-items: start;
-        min-height: 0;
-        padding: 10px 11px 8px;
-      }
-
-      .race-poll-tabs {
-        width: 100%;
-      }
-
-      .race-poll-tab {
-        min-height: 34px;
-      }
-
-      .race-event-controls {
-        grid-template-columns: 1fr;
-        gap: 7px;
-        padding: 7px 11px;
-      }
-
-      .race-scenario-control {
-        grid-template-columns: 58px minmax(0, 1fr);
-      }
-
-      .race-scroll-shell {
-        flex: 0 0 auto;
-        height: 292px;
-      }
-
-      .race-glance .bars {
-        padding-inline: 10px;
-      }
-
-      .race-column-head,
-      .race-glance .bar-row {
-        grid-template-columns: minmax(0, 1fr) 48px 82px;
-        gap: 5px 7px;
-      }
-
-      .race-column-head {
-        min-height: 21px;
-      }
-
-      .race-column-head-bar {
-        display: none;
-      }
-
-      .race-column-head-candidate {
-        grid-column: 1;
-      }
-
-      .race-column-head-result {
-        grid-column: 2;
-      }
-
-      .race-column-head-change {
-        grid-column: 3;
-      }
-
-      .race-glance .bar-row {
-        min-height: 52px;
-        padding: 4px 0;
-      }
-
-      .race-candidate {
-        grid-column: 1;
-        grid-row: 1;
-      }
-
-      .race-glance .score {
-        grid-column: 2;
-        grid-row: 1;
-        font-size: 12px;
-      }
-
-      .race-change {
-        grid-column: 3;
-        grid-row: 1;
-      }
-
-      .race-glance .track {
-        grid-column: 1 / -1;
-        grid-row: 2;
-      }
-
-      .race-candidate .candidate-monogram {
-        width: 36px;
-        height: 36px;
-      }
-
-      .race-glance .candidate {
-        overflow: visible;
-        font-size: 11px;
-        line-height: 1.2;
-        text-overflow: clip;
-        white-space: normal;
-        overflow-wrap: anywhere;
-      }
-    }
-
-    @media (max-width: 430px) {
-      .race-glance .race-glance-head {
-        padding-inline: 9px;
-      }
-
-      .race-poll-tabs {
-        gap: 3px;
-      }
-
-      .race-poll-tab {
-        min-height: 33px;
-        padding: 5px 4px;
-      }
-
-      .race-event-controls {
-        padding-inline: 9px;
-      }
-
-      .race-glance .bars {
-        padding-inline: 8px;
-      }
-
-      .race-column-head,
-      .race-glance .bar-row {
-        grid-template-columns: minmax(0, 1fr) 45px 76px;
-        gap: 5px;
-      }
-
-      .race-glance .candidate {
-        font-size: 10.5px;
-      }
-
-      .race-change strong {
-        font-size: 8.5px;
-      }
-    }
-
     @media (prefers-reduced-motion: reduce) {
       .race-poll-tab,
       .race-glance .fill {
@@ -4713,33 +4512,6 @@
           minmax(160px, 1.2fr)
           minmax(120px, 2.25fr)
           54px;
-      }
-    }
-
-    @media (max-width: 719px) {
-      .race-glance
-        .race-poll-panel.is-no-comparison
-        .race-column-head,
-      .race-glance
-        .race-poll-panel.is-no-comparison
-        .bar-row {
-        grid-template-columns: minmax(0, 1fr) 48px;
-      }
-
-      .race-poll-panel.is-no-comparison
-        .race-column-head-result {
-        grid-column: 2;
-      }
-    }
-
-    @media (max-width: 430px) {
-      .race-glance
-        .race-poll-panel.is-no-comparison
-        .race-column-head,
-      .race-glance
-        .race-poll-panel.is-no-comparison
-        .bar-row {
-        grid-template-columns: minmax(0, 1fr) 45px;
       }
     }
 
