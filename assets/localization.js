@@ -6,20 +6,22 @@
   const catalogs = global.FR27_LOCALES || Object.create(null);
   const fallbackLocale = "en";
 
-  const normalizeLocale = value => {
-    const normalized = String(value || fallbackLocale)
+  const normalizeLocale = value =>
+    String(value || "")
       .trim()
-      .toLowerCase();
+      .toLowerCase() === "en"
+      ? "en"
+      : "fr";
 
-    return normalized.indexOf("fr") === 0 ? "fr" : "en";
-  };
-
-  const locale = normalizeLocale(
-    documentElement &&
-      (documentElement.dataset.locale || documentElement.lang)
-  );
-
+  const requestedLocale =
+    global.location &&
+    new URLSearchParams(global.location.search).get("lang");
+  const locale = normalizeLocale(requestedLocale);
   const localeTag = locale === "fr" ? "fr-FR" : "en-GB";
+
+  if (documentElement) {
+    documentElement.lang = locale;
+  }
 
   const isDevelopment = Boolean(
     global.location &&
@@ -34,7 +36,7 @@
   const fallbackCatalog =
     catalogs[fallbackLocale] || Object.create(null);
 
-  const messageFor = key => {
+  const messageFor = (key, callerFallback) => {
     const normalizedKey = String(key || "");
 
     if (
@@ -62,6 +64,13 @@
         "[fr27-i18n] Missing localization key:",
         normalizedKey
       );
+    }
+
+    if (
+      typeof callerFallback === "string" &&
+      callerFallback.trim()
+    ) {
+      return callerFallback;
     }
 
     return normalizedKey;
@@ -94,11 +103,11 @@
           : match
     );
 
-  const t = (key, parameters) => {
+  const t = (key, parameters, callerFallback) => {
     const safeParameters =
       parameters || Object.create(null);
     const pluralized = applyPluralRules(
-      String(messageFor(key)),
+      String(messageFor(key, callerFallback)),
       safeParameters
     );
 
@@ -138,22 +147,12 @@
   const buildLocaleUrl = targetLocale => {
     const target = normalizeLocale(targetLocale);
     const next = new URL(global.location.href);
-    const root = siteRootUrl();
-    const rootPath = root.pathname.replace(/\/?$/, "/");
-    let relativePath = next.pathname;
 
-    if (relativePath.indexOf(rootPath) === 0) {
-      relativePath = relativePath.slice(rootPath.length);
+    if (target === "en") {
+      next.searchParams.set("lang", "en");
+    } else {
+      next.searchParams.delete("lang");
     }
-
-    relativePath = relativePath
-      .replace(/^\/+/, "")
-      .replace(/^fr\//, "");
-
-    next.pathname =
-      target === "fr"
-        ? rootPath + "fr/" + relativePath
-        : rootPath + relativePath;
 
     return next.toString();
   };
@@ -171,17 +170,6 @@
     }
   };
 
-  const fallbackMessageFor = key => {
-    const normalizedKey = String(key || "");
-
-    return Object.prototype.hasOwnProperty.call(
-      fallbackCatalog,
-      normalizedKey
-    )
-      ? String(fallbackCatalog[normalizedKey])
-      : null;
-  };
-
   const applyTextTranslations = () => {
     if (!global.document || !global.document.querySelectorAll) {
       return;
@@ -193,12 +181,9 @@
 
     elements.forEach(element => {
       const key = element.getAttribute("data-i18n");
-      const fallback = fallbackMessageFor(key);
-      const current = String(element.textContent || "").trim();
+      const current = String(element.textContent || "");
 
-      if (fallback !== null && current === fallback.trim()) {
-        element.textContent = t(key);
-      }
+      element.textContent = t(key, null, current);
     });
   };
 
@@ -215,12 +200,12 @@
       const key = element.getAttribute(
         "data-i18n-aria-label"
       );
-      const fallback = fallbackMessageFor(key);
       const current = element.getAttribute("aria-label");
 
-      if (fallback !== null && current === fallback) {
-        element.setAttribute("aria-label", t(key));
-      }
+      element.setAttribute(
+        "aria-label",
+        t(key, null, current)
+      );
     });
   };
 
@@ -237,12 +222,12 @@
       const key = element.getAttribute(
         "data-i18n-fr27-tooltip"
       );
-      const fallback = fallbackMessageFor(key);
       const current = element.getAttribute("data-fr27-tooltip");
 
-      if (fallback !== null && current === fallback) {
-        element.setAttribute("data-fr27-tooltip", t(key));
-      }
+      element.setAttribute(
+        "data-fr27-tooltip",
+        t(key, null, current)
+      );
     });
   };
 
@@ -250,6 +235,39 @@
     applyTextTranslations();
     applyAttributeTranslations();
     applyTooltipTranslations();
+  };
+
+  const applyLanguageLinks = () => {
+    if (!global.document || !global.document.querySelectorAll) {
+      return;
+    }
+
+    const links = global.document.querySelectorAll(
+      "[data-fr27-language]"
+    );
+
+    links.forEach(link => {
+      const target = normalizeLocale(
+        link.getAttribute("data-fr27-language")
+      );
+
+      link.setAttribute("href", buildLocaleUrl(target));
+
+      if (target === locale) {
+        link.setAttribute("aria-current", "page");
+      } else {
+        link.removeAttribute("aria-current");
+      }
+    });
+  };
+
+  const applyBootLocalization = () => {
+    applyStaticTranslations();
+    applyLanguageLinks();
+
+    global.addEventListener("hashchange", () => {
+      global.setTimeout(applyLanguageLinks, 0);
+    });
   };
 
   const api = Object.freeze({
@@ -274,11 +292,11 @@
     if (global.document.readyState === "loading") {
       global.document.addEventListener(
         "DOMContentLoaded",
-        applyStaticTranslations,
+        applyBootLocalization,
         { once: true }
       );
     } else {
-      applyStaticTranslations();
+      applyBootLocalization();
     }
   }
 })(window);

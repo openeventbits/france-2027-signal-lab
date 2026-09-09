@@ -170,6 +170,7 @@ class FactCheckFrontendTests(unittest.TestCase):
             "Faux": "False",
             "Manque de contexte": "Missing context",
             "Plutôt faux": "Mostly false",
+            "Plutôt Vrai": "Mostly true",
             "Plutôt vrai": "Mostly true",
             "Trompeur": "Misleading",
             "Vidéo manipulée": "Manipulated video",

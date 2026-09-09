@@ -1,24 +1,25 @@
 <!doctype html>
-<html lang="en" data-locale="en" data-site-root="./" data-i18n-document-title="page.france_2027_signal_lab_source_linked_election_signals">
+<html lang="fr" data-site-root="./" data-i18n-document-title="page.france_2027_signal_lab_source_linked_election_signals">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Source-linked polling, election news, candidate coverage and fact checks for France's 2027 presidential race. No averages, no forecast, no voting advice.">
+  <meta name="description" content="Sondages sourcés, actualité électorale, couverture des candidats et vérifications pour la présidentielle française de 2027. Aucune moyenne, aucune prévision, aucun conseil de vote.">
   <link rel="canonical" href="https://openeventbits.github.io/france-2027-signal-lab/">
   <meta name="theme-color" content="#050b14">
   <meta name="color-scheme" content="dark">
   <meta name="application-name" content="France 2027 Signal Lab">
-  <meta property="og:title" content="France 2027 Signal Lab — Source-Linked Election Signals">
-  <meta property="og:description" content="Source-linked polling, election news, candidate coverage and fact checks for France's 2027 presidential race. No averages, no forecast, no voting advice.">
+  <meta property="og:title" content="France 2027 Signal Lab — Signaux électoraux sourcés">
+  <meta property="og:description" content="Sondages sourcés, actualité électorale, couverture des candidats et vérifications pour la présidentielle française de 2027. Aucune moyenne, aucune prévision, aucun conseil de vote.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://openeventbits.github.io/france-2027-signal-lab/">
   <meta property="og:site_name" content="France 2027 Signal Lab">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="France 2027 Signal Lab — Source-Linked Election Signals">
-  <meta name="twitter:description" content="Source-linked polling, election news, candidate coverage and fact checks for France's 2027 presidential race. No averages, no forecast, no voting advice.">
+  <meta name="twitter:title" content="France 2027 Signal Lab — Signaux électoraux sourcés">
+  <meta name="twitter:description" content="Sondages sourcés, actualité électorale, couverture des candidats et vérifications pour la présidentielle française de 2027. Aucune moyenne, aucune prévision, aucun conseil de vote.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3QgeD0iMSIgeT0iMSIgd2lkdGg9IjMwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbD0iIzA3MTUyMiIvPjxwYXRoIGQ9Ik02IDE2QTEwIDEwIDAgMCAxIDE2IDZNMjYgMTZBMTAgMTAgMCAwIDEgMTYgMjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzI2OGNmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNMTAgMTZBNiA2IDAgMCAxIDE2IDEwTTIyIDE2QTYgNiAwIDAgMSAxNiAyMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzVkNWZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjIuNSIgZmlsbD0iIzM1ZDVmZiIvPjwvc3ZnPg==">
-  <title>France 2027 Signal Lab — Source-Linked Election Signals</title>
+  <title>France 2027 Signal Lab — Signaux électoraux sourcés</title>
     <script src="locales/en.js"></script>
+    <script src="locales/fr.js"></script>
     <script src="assets/localization.js"></script>
     <link rel="stylesheet" href="assets/fr27-ui.css">
     <script src="assets/fr27-ui.js"></script>
@@ -107,6 +108,23 @@
     .masthead-tools {
       display: flex; align-items: center; justify-content: flex-end; gap: 7px 12px; min-width: 0;
       color: var(--muted); font-size: 10px;
+    }
+    .masthead-language {
+      display: inline-flex; align-items: center; flex: 0 0 auto; gap: 2px;
+      min-height: 30px; padding: 2px 4px; border: 1px solid #23445d; border-radius: 4px;
+      background: rgba(7, 21, 34, .56);
+    }
+    .masthead-language a {
+      display: inline-grid; place-items: center; min-width: 28px; min-height: 24px; padding: 0 5px;
+      color: #839fb2; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-decoration: none;
+    }
+    .masthead-language-divider { color: #3f6075; }
+    .masthead-language a:hover { color: var(--text); text-decoration: none; }
+    .masthead-language a[aria-current="page"] {
+      color: var(--cyan); background: rgba(38, 140, 255, .14);
+    }
+    .masthead-language a:focus-visible {
+      outline: 2px solid var(--cyan); outline-offset: 1px;
     }
     .masthead-data { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 4px 12px; }
     .masthead-data span { white-space: nowrap; }
@@ -1154,6 +1172,7 @@
       align-items: stretch; margin-top: 16px;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
+    .intelligence-grid[hidden] { display: none !important; }
     .intelligence-grid > .panel { min-width: 0; }
     .intelligence-grid .closest-runoff {
       display: flex; flex-direction: column; margin-top: 0; overflow: visible;
@@ -7211,13 +7230,29 @@
     letter-spacing: .07em;
   }
 
+
+  .fr27-hud-info-popover p,
+  .fr27-hud-info-independence,
+  .fr27-hud-info-note {
+    font-family: inherit;
+    font-size: 11.2px;
+    font-weight: 400;
+    font-style: normal;
+    line-height: 1.5;
+    letter-spacing: normal;
+  }
+
   .fr27-hud-info-popover p {
     margin: 13px 0;
     color: #aec0c9;
-    font-size: 11.2px;
-    line-height: 1.5;
   }
 
+  .fr27-hud-info-independence,
+  .fr27-hud-info-note {
+    display: block;
+    margin-top: 11px;
+    color: #8299a5;
+  }
   .fr27-hud-info-rules {
     display: grid;
     gap: 7px;
@@ -7250,12 +7285,62 @@
     color: #9185bd;
   }
 
-  .fr27-hud-info-note {
-    display: block;
-    margin-top: 11px;
-    color: #78909c;
+  html[lang="fr"] .fr27-hud-info-rule-line.boundary {
+    flex-wrap: wrap;
+    row-gap: 5px;
+    white-space: normal;
+  }
+
+  html[lang="fr"] .fr27-hud-info-rule-line.boundary span {
+    white-space: nowrap;
+  }
+
+  html[lang="fr"] .fr27-hud-info-rule-line.boundary span:last-child {
+    flex-basis: 100%;
+  }
+
+  html[lang="fr"] .fr27-hud-info-rule-line.boundary span:last-child::before {
+    display: none;
+  }
+
+
+
+  .fr27-hud-info-rights {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 4px 14px;
+    margin-top: 12px;
+    padding-top: 11px;
+    border-top: 1px solid rgba(45, 70, 85, .52);
+  }
+
+  .fr27-hud-info-rights strong {
+    grid-column: 1 / -1;
+    color: #9eb3bd;
     font-size: 9.2px;
-    line-height: 1.45;
+    line-height: 1.2;
+    letter-spacing: .08em;
+  }
+
+  .fr27-hud-info-rights span {
+    color: #718b98;
+    font-size: 9.2px;
+    line-height: 1.3;
+    letter-spacing: .035em;
+  }
+
+  .fr27-hud-info-rights a {
+    color: #54c7df;
+    font-size: 9.2px;
+    font-weight: 750;
+    line-height: 1.3;
+    letter-spacing: .06em;
+  }
+
+  .fr27-hud-info-rights a:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
   }
 
   /* Persistent rail */
@@ -7508,7 +7593,12 @@
         </div>
       </div>
       <div class="masthead-tools">
-        <div class="masthead-countdown" id="masthead-countdown" data-clock-target="first" data-i18n-aria-label="dashboard.first_round_election_countdown" aria-label="First-round election countdown" data-fr27-tooltip="Loading snapshot and evidence freshness" tabindex="0">
+        <nav class="masthead-language" data-i18n-aria-label="common.interface_language" aria-label="Interface language">
+          <a href="./" data-fr27-language="fr" lang="fr" hreflang="fr" aria-label="Français">FR</a>
+          <span class="masthead-language-divider" aria-hidden="true">|</span>
+          <a href="?lang=en" data-fr27-language="en" lang="en" hreflang="en" aria-label="English">EN</a>
+        </nav>
+        <div class="masthead-countdown" id="masthead-countdown" data-clock-target="first" data-i18n-aria-label="dashboard.first_round_election_countdown" aria-label="First-round election countdown" data-i18n-fr27-tooltip="masthead_freshness.loading" data-fr27-tooltip="Loading snapshot and evidence freshness" tabindex="0">
           <span class="masthead-countdown-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false">
               <rect x="4" y="6" width="16" height="14" rx="2"></rect>
@@ -7542,10 +7632,11 @@
             class="changes-ledger-summary"
             id="changes-ledger-summary"
             aria-live="polite"
-           aria-label="Loading source-linked updates"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:112px"></span></div>
+            data-i18n-aria-label="what_changed.loading_count"
+            aria-label="Loading source-linked update count"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:112px"></span></div>
         </div>
 
-<div class="what-changed-list" id="what-changed-list" aria-live="polite" aria-busy="true" aria-label="Loading source-linked dashboard changes">
+<div class="what-changed-list" id="what-changed-list" aria-live="polite" aria-busy="true" data-i18n-aria-label="what_changed.loading" aria-label="Loading source-linked dashboard changes">
           <div class="fr27-skeleton-region" aria-hidden="true"><div class="fr27-skeleton-briefing"><span class="fr27-skeleton-row"><span class="fr27-skeleton-block fr27-skeleton-source"></span><span class="fr27-skeleton-row-copy"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:88%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:46%;--fr27-skeleton-height:7px"></span></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block fr27-skeleton-source"></span><span class="fr27-skeleton-row-copy"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:74%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:52%;--fr27-skeleton-height:7px"></span></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block fr27-skeleton-source"></span><span class="fr27-skeleton-row-copy"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:82%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:38%;--fr27-skeleton-height:7px"></span></span></span></div></div>
         </div>
       </article>
@@ -7572,12 +7663,12 @@
         >
           <div class="race-event-controls">
             <div class="race-event" aria-live="polite">
-              <div class="race-event-title" id="latest-title" aria-label="Loading latest poll"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:160px;--fr27-skeleton-height:12px"></span></div>
+              <div class="race-event-title" id="latest-title" data-i18n-aria-label="race_glance.loading_latest_poll" aria-label="Loading latest poll"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:160px;--fr27-skeleton-height:12px"></span></div>
               <div class="race-event-detail" id="latest-sub"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:110px;--fr27-skeleton-height:7px"></span></div>
             </div>
 
             <div class="race-scenario-control">
-              <label class="hypothesis-label" for="hypothesis-select">SCENARIO</label>
+              <label class="hypothesis-label" for="hypothesis-select" data-i18n="race_glance.scenario">SCENARIO</label>
               <select
                 id="hypothesis-select"
                 disabled
@@ -7597,9 +7688,9 @@
               class="bars"
               id="bars"
               aria-live="polite"
-              aria-label="Reported candidate scores for the selected scenario. Scroll to view all candidates."
+              data-i18n-aria-label="race_glance.reported_scores_list" aria-label="Reported candidate scores for the selected scenario. Scroll to view all candidates."
               tabindex="0"
-            ><div class="fr27-skeleton-region" role="status" aria-label="Loading candidate scores"><div class="fr27-skeleton-race" aria-hidden="true"><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span></div></div></div>
+            ><div class="fr27-skeleton-region" role="status" data-i18n-aria-label="dashboard.loading_candidate_scores" aria-label="Loading candidate scores"><div class="fr27-skeleton-race" aria-hidden="true"><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span></div></div></div>
             <div
               class="race-scroll-fade"
               id="race-scroll-fade"
@@ -7629,17 +7720,17 @@
       >
         <div class="panel-head top-media-pulse-head">
           <div class="top-media-pulse-title-block">
-            <h2 id="top-media-pulse-title">
+            <h2 id="top-media-pulse-title" data-i18n="media_pulse.title">
               MEDIA PULSE
             </h2>
 
-            <p data-i18n="dashboard.30_day_activity_14_day_recent">30-day activity · 14-day recent</p>
+            <p data-i18n="media_pulse.subtitle">30-day activity · 14-day recent</p>
           </div>
           <div
             class="top-media-pulse-metrics"
             id="top-media-pulse-metrics"
             aria-live="polite"
-           aria-label="Loading media metrics"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:118px;--fr27-skeleton-height:18px"></span></div>
+           data-i18n-aria-label="media_pulse.loading_metrics" aria-label="Loading media metrics"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:118px;--fr27-skeleton-height:18px"></span></div>
         </div>
 
         <div
@@ -7647,7 +7738,7 @@
           id="top-media-pulse-content"
           aria-live="polite"
         >
-          <div class="fr27-skeleton-region" role="status" aria-label="Loading Media Pulse"><div class="fr27-skeleton-media" aria-hidden="true"><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span></div></div>
+          <div class="fr27-skeleton-region" role="status" data-i18n-aria-label="media_pulse.loading" aria-label="Loading Media Pulse"><div class="fr27-skeleton-media" aria-hidden="true"><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span></div></div>
         </div>
       </article>
     </section>
@@ -7677,8 +7768,8 @@
         </span>
         <div class="context-copy">
           <div class="context-label" data-i18n="dashboard.latest_fieldwork">LATEST FIELDWORK</div>
-          <div class="context-value" id="context-poll-value" aria-label="Loading latest fieldwork"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:112px;--fr27-skeleton-height:12px"></span></div>
-          <div class="context-meta" id="context-poll-meta" data-i18n="dashboard.loading" data-i18n-fr27-tooltip="dashboard.latest_fieldwork_explanation" data-fr27-tooltip="Maximum fieldwork end date across published first-round poll events; all pollsters tied on that date are shown." data-fr27-tooltip-affordance="term" tabindex="0">Loading…</div>
+          <div class="context-value" id="context-poll-value" data-i18n-aria-label="dashboard.loading_latest_fieldwork" aria-label="Loading latest fieldwork"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:112px;--fr27-skeleton-height:12px"></span></div>
+          <div class="context-meta" id="context-poll-meta" data-i18n-fr27-tooltip="dashboard.latest_fieldwork_explanation" data-fr27-tooltip="Maximum fieldwork end date across published first-round poll events; all pollsters tied on that date are shown." data-fr27-tooltip-affordance="term" tabindex="0">Loading…</div>
         </div>
       </article>
 
@@ -7690,8 +7781,8 @@
         </span>
         <div class="context-copy">
           <div class="context-label" data-i18n="dashboard.poll_coverage">POLL COVERAGE</div>
-          <div class="context-value" id="context-coverage-value" aria-label="Loading poll coverage"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:96px;--fr27-skeleton-height:12px"></span></div>
-          <div class="context-meta" id="context-coverage-meta">Target: first round</div>
+          <div class="context-value" id="context-coverage-value" data-i18n-aria-label="dashboard.loading_poll_coverage" aria-label="Loading poll coverage"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:96px;--fr27-skeleton-height:12px"></span></div>
+          <div class="context-meta" id="context-coverage-meta" data-i18n="dashboard.target_first_round">Target: first round</div>
         </div>
       </article>
 
@@ -7709,15 +7800,15 @@
             <div class="context-label" data-i18n="dashboard.source_network">SOURCE NETWORK</div>
             <span class="context-source-state" id="context-status-badge">UNKNOWN</span>
           </div>
-          <div class="context-value" id="context-status-value">—</div>
-          <div class="context-meta" id="context-status-meta">Automatically updated from the source registry</div>
+          <div class="context-value" id="context-status-value" data-context-metric="approved_publisher_domains">—</div>
+          <div class="context-meta" id="context-status-meta" data-i18n="dashboard.automatically_updated_from_the_source_registry">Automatically updated from the source registry</div>
         </div>
       </article>
     </section>
-    <section id="hybrid-signal-board" class="hybrid-root" aria-label="Hybrid Signal Board">
-      <div class="fr27-skeleton-region" role="status" aria-label="Loading the Signal Board"><div class="fr27-skeleton-workspace" aria-hidden="true"><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:58%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span></section><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:46%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:72%;--fr27-skeleton-height:22px"></span><div class="fr27-skeleton-chart"><span class="fr27-skeleton-block" style="--fr27-skeleton-height:42%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:72%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:58%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:86%"></span></div></section><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:54%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span></section></div></div>
+    <section id="hybrid-signal-board" class="hybrid-root" data-i18n-aria-label="dashboard.hybrid_signal_board" aria-label="Hybrid Signal Board">
+      <div class="fr27-skeleton-region" role="status" data-i18n-aria-label="signal_board.loading_signal_board" aria-label="Loading the Signal Board"><div class="fr27-skeleton-workspace" aria-hidden="true"><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:58%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span></section><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:46%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:72%;--fr27-skeleton-height:22px"></span><div class="fr27-skeleton-chart"><span class="fr27-skeleton-block" style="--fr27-skeleton-height:42%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:72%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:58%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:86%"></span></div></section><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:54%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span></section></div></div>
     </section>
-    <section class="intelligence-grid" aria-label="Election intelligence">
+    <section class="intelligence-grid" aria-label="Election intelligence" hidden aria-hidden="true">
       <article class="panel closest-runoff runoff-spotlight" aria-labelledby="closest-runoff-title">
         <div class="panel-head closest-runoff-head">
           <div class="runoff-head-title">
@@ -7908,6 +7999,7 @@
       id="method-disclosure"
       class="fr27-app-hud"
       data-expanded="true"
+      data-i18n-aria-label="hud.system_dock"
       aria-label="France 2027 Signal Lab system dock"
     >
       <button
@@ -7916,7 +8008,9 @@
         type="button"
         aria-expanded="true"
         aria-controls="fr27-app-hud-surface"
+        data-i18n-aria-label="hud.collapse_system_dock"
         aria-label="Collapse system dock"
+        data-i18n-fr27-tooltip="hud.collapse_system_dock"
         data-fr27-tooltip="Collapse system dock"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -7933,9 +8027,10 @@
           <!-- LIVE TIME -->
           <section
             class="fr27-linear-zone fr27-zone-live"
+            data-i18n-aria-label="hud.live_time"
             aria-label="Live time"
           >
-            <div class="fr27-zone-title">LIVE TIME</div>
+            <div class="fr27-zone-title" data-i18n="hud.live_time">LIVE TIME</div>
 
             <div class="fr27-zone-meta">
               <span>PARIS</span>
@@ -7952,9 +8047,10 @@
           <section
             class="fr27-linear-zone fr27-zone-countdown"
             data-clock-target="first"
+            data-i18n-aria-label="hud.election_countdown"
             aria-label="Election countdown"
           >
-            <div class="fr27-zone-title">COUNTDOWN</div>
+            <div class="fr27-zone-title" data-i18n="hud.countdown">COUNTDOWN</div>
 
             <div class="fr27-zone-main fr27-countdown-main">
               <div class="fr27-countdown-value-row">
@@ -7974,9 +8070,10 @@
           <!-- INFRASTRUCTURE / METHODOLOGY -->
           <section
             class="fr27-linear-zone fr27-zone-infra"
+            data-i18n-aria-label="hud.infrastructure_methodology"
             aria-label="Infrastructure and methodology"
           >
-            <div class="fr27-zone-title">
+            <div class="fr27-zone-title" data-i18n="hud.infrastructure_methodology">
               INFRASTRUCTURE / METHODOLOGY
             </div>
 
@@ -7984,15 +8081,16 @@
 
               <section
                 class="fr27-zone-source-sub"
+                data-i18n-aria-label="hud.source_universe"
                 aria-label="Source universe"
               >
-                <div class="fr27-sub-title">
+                <div class="fr27-sub-title" data-i18n="hud.source_universe">
                   SOURCE UNIVERSE
                 </div>
 
                 <div class="fr27-source-main">
                   <div class="fr27-source-stat">
-                    <strong id="fr27-hud-domains-value" class="fr27-hud-metric-loading" aria-label="Loading approved domain count">—</strong>
+                    <strong id="fr27-hud-domains-value" class="fr27-hud-metric-loading" data-i18n-aria-label="hud.loading_approved_domain_count" aria-label="Loading approved domain count">—</strong>
                     <span class="fr27-source-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24" focusable="false">
                         <circle cx="12" cy="12" r="8"></circle>
@@ -8001,11 +8099,11 @@
                         <path d="M12 4c-2.2 2.2-3.3 4.9-3.3 8s1.1 5.8 3.3 8"></path>
                       </svg>
                     </span>
-                    <span class="fr27-hud-label-with-info" id="fr27-hud-domains-info" data-fr27-tooltip="Approved publisher domains configured in the FR27 source universe. This is the monitored source registry, not the number of publishers represented in accepted election news." data-fr27-tooltip-affordance="term" tabindex="0"><span>domains</span></span>
+                    <span class="fr27-hud-label-with-info" id="fr27-hud-domains-info" data-i18n-fr27-tooltip="hud.domains_explanation" data-fr27-tooltip="Approved publisher domains configured in the FR27 source universe. This is the monitored source registry, not the number of publishers represented in accepted election news." data-fr27-tooltip-affordance="term" tabindex="0"><span data-i18n="hud.domains">domains</span></span>
                   </div>
 
                   <div class="fr27-source-stat">
-                    <strong id="fr27-hud-polls-value" class="fr27-hud-metric-loading" aria-label="Loading poll count">—</strong>
+                    <strong id="fr27-hud-polls-value" class="fr27-hud-metric-loading" data-i18n-aria-label="hud.loading_poll_count" aria-label="Loading poll count">—</strong>
                     <span class="fr27-source-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24" focusable="false">
                         <circle cx="9" cy="8.5" r="3"></circle>
@@ -8014,34 +8112,35 @@
                         <path d="M15.5 14c2.7.3 4.2 1.8 4.8 4.5"></path>
                       </svg>
                     </span>
-                    <span class="fr27-hud-label-with-info" id="fr27-hud-polls-info" data-fr27-tooltip="Distinct first-round poll packages in the loaded poll corpus, not pollsters. Reported hypotheses sharing the same pollster, fieldwork dates and sample size count as one poll package." data-fr27-tooltip-affordance="term" tabindex="0"><span>polls</span></span>
+                    <span class="fr27-hud-label-with-info" id="fr27-hud-polls-info" data-i18n-fr27-tooltip="hud.polls_explanation" data-fr27-tooltip="Distinct first-round poll packages in the loaded poll corpus, not pollsters. Reported hypotheses sharing the same pollster, fieldwork dates and sample size count as one poll package." data-fr27-tooltip-affordance="term" tabindex="0"><span data-i18n="hud.polls">polls</span></span>
                   </div>
                 </div>
               </section>
 
               <section
                 class="fr27-linear-system fr27-zone-method-sub"
+                data-i18n-aria-label="hud.system_data_approach"
                 aria-label="System data and approach"
               >
                 <div class="fr27-linear-system-cell">
-                  <div class="fr27-linear-system-kicker">SYSTEM</div>
+                  <div class="fr27-linear-system-kicker" data-i18n="hud.system">SYSTEM</div>
                   <div class="fr27-linear-system-value fr27-system-cyan">
                     <span class="fr27-linear-operational-dot"></span>
-                    <span>OPERATIONAL</span>
+                    <span data-i18n="hud.operational">OPERATIONAL</span>
                   </div>
                 </div>
 
                 <div class="fr27-linear-system-cell">
-                  <div class="fr27-linear-system-kicker">DATA</div>
+                  <div class="fr27-linear-system-kicker" data-i18n="hud.data">DATA</div>
                   <div class="fr27-linear-system-value fr27-system-cyan">
-                    <span>SOURCE-LINKED</span>
+                    <span data-i18n="hud.source_linked">SOURCE-LINKED</span>
                   </div>
                 </div>
 
                 <div class="fr27-linear-system-cell">
-                  <div class="fr27-linear-system-kicker">APPROACH</div>
+                  <div class="fr27-linear-system-kicker" data-i18n="hud.approach">APPROACH</div>
                   <div class="fr27-linear-system-value fr27-system-violet">
-                    <span>DESCRIPTIVE</span>
+                    <span data-i18n="hud.descriptive_method">DESCRIPTIVE</span>
                   </div>
                 </div>
               </section>
@@ -8052,30 +8151,31 @@
           <!-- DATASET SCALE -->
           <section
             class="fr27-linear-zone fr27-zone-scale"
+            data-i18n-aria-label="hud.dataset_scale"
             aria-label="Dataset scale"
           >
-            <div class="fr27-zone-title">DATASET SCALE</div>
+            <div class="fr27-zone-title" data-i18n="hud.dataset_scale">DATASET SCALE</div>
 
             <div class="fr27-linear-publication fr27-zone-scale-body">
 
               <div class="fr27-linear-publication-cell">
-                <strong id="fr27-hud-news-value" class="fr27-hud-metric-loading" aria-label="Loading accepted news count">—</strong>
-                <span>ACCEPTED NEWS</span>
+                <strong id="fr27-hud-news-value" class="fr27-hud-metric-loading" data-i18n-aria-label="hud.loading_accepted_news_count" aria-label="Loading accepted news count">—</strong>
+                <span data-i18n="media_pulse.metric.accepted_news">ACCEPTED NEWS</span>
               </div>
 
               <div class="fr27-linear-publication-cell">
-                <strong id="fr27-hud-publishers-value" class="fr27-hud-metric-loading" aria-label="Loading publisher count">—</strong>
-                <span class="fr27-hud-label-with-info" id="fr27-hud-publishers-info" data-fr27-tooltip="Distinct publishers represented in accepted election news during the current Media Pulse source window. This can be lower than DOMAINS because not every approved source contributes accepted election news in the window." data-fr27-tooltip-affordance="term" tabindex="0"><span>PUBLISHERS</span></span>
+                <strong id="fr27-hud-publishers-value" class="fr27-hud-metric-loading" data-i18n-aria-label="hud.loading_publisher_count" aria-label="Loading publisher count">—</strong>
+                <span class="fr27-hud-label-with-info" id="fr27-hud-publishers-info" data-i18n-fr27-tooltip="hud.publishers_explanation" data-fr27-tooltip="Distinct publishers represented in accepted election news during the current Media Pulse source window. This can be lower than DOMAINS because not every approved source contributes accepted election news in the window." data-fr27-tooltip-affordance="term" tabindex="0"><span data-i18n="media_pulse.metric.publishers">PUBLISHERS</span></span>
               </div>
 
               <div class="fr27-linear-publication-cell">
-                <strong id="fr27-hud-recent-value" class="fr27-hud-metric-loading" aria-label="Loading recent news count">—</strong>
-                <span>RECENT 14D</span>
+                <strong id="fr27-hud-recent-value" class="fr27-hud-metric-loading" data-i18n-aria-label="hud.loading_recent_news_count" aria-label="Loading recent news count">—</strong>
+                <span data-i18n="media_pulse.metric.recent_14d">RECENT 14D</span>
               </div>
 
               <div class="fr27-linear-publication-cell">
-                <strong id="fr27-hud-candidate-watch-value" class="fr27-hud-metric-loading" aria-label="Loading candidate-watch count">—</strong>
-                <span>CANDIDATE WATCH</span>
+                <strong id="fr27-hud-candidate-watch-value" class="fr27-hud-metric-loading" data-i18n-aria-label="hud.loading_candidate_watch_count" aria-label="Loading candidate-watch count">—</strong>
+                <span data-i18n="media_pulse.metric.candidate_watch">CANDIDATE WATCH</span>
               </div>
 
             </div>
@@ -8084,9 +8184,10 @@
           <!-- UTILITY -->
           <section
             class="fr27-linear-zone fr27-zone-utility"
+            data-i18n-aria-label="hud.utility_links"
             aria-label="Utility links"
           >
-            <div class="fr27-zone-title">UTILITY</div>
+            <div class="fr27-zone-title" data-i18n="hud.utility_links">UTILITY</div>
 
             <div class="fr27-linear-actions">
 
@@ -8095,7 +8196,9 @@
                 href="https://github.com/openeventbits/france-2027-signal-lab"
                 target="_blank"
                 rel="noreferrer"
+                data-i18n-fr27-tooltip="hud.view_repository"
                 data-fr27-tooltip="View repository"
+                data-i18n-aria-label="hud.open_github_repository"
                 aria-label="Open GitHub repository"
               >
                 <svg
@@ -8114,7 +8217,9 @@
                 type="button"
                 id="fr27-hud-email-toggle"
                 class="fr27-hud-command email"
+                data-i18n-fr27-tooltip="hud.contact"
                 data-fr27-tooltip="Contact"
+                data-i18n-aria-label="hud.contact_signal_lab"
                 aria-label="Contact France 2027 Signal Lab"
                 aria-haspopup="dialog"
                 aria-controls="fr27-hud-contact-popover"
@@ -8140,7 +8245,9 @@
                 type="button"
                 id="fr27-hud-share"
                 class="fr27-hud-command share"
+                data-i18n-fr27-tooltip="hud.share_dashboard"
                 data-fr27-tooltip="Share dashboard"
+                data-i18n-aria-label="hud.share_current_view"
                 aria-label="Share current view"
               >
                 <svg
@@ -8161,9 +8268,11 @@
                 id="fr27-hud-info-toggle"
                 class="fr27-hud-command"
                 aria-haspopup="dialog"
-                aria-controls="method-disclosure"
+                aria-controls="fr27-hud-info-popover"
                 aria-expanded="false"
+                data-i18n-fr27-tooltip="hud.about_signal_lab"
                 data-fr27-tooltip="About France 2027 Signal Lab"
+                data-i18n-aria-label="hud.project_information"
                 aria-label="Project information"
               >
                 <svg
@@ -8192,11 +8301,12 @@
         class="fr27-hud-contact-popover"
         id="fr27-hud-contact-popover"
         aria-hidden="true"
+        data-i18n-aria-label="hud.contact_signal_lab"
         aria-label="Contact France 2027 Signal Lab"
       >
         <div class="fr27-hud-contact-head">
-          <strong>CONTACT</strong>
-          <span>EMAIL</span>
+          <strong data-i18n="hud.contact">CONTACT</strong>
+          <span data-i18n="hud.email">EMAIL</span>
         </div>
 
         <div class="fr27-hud-contact-address">
@@ -8208,6 +8318,7 @@
           class="fr27-hud-contact-copy"
           id="fr27-hud-contact-copy"
           aria-live="polite"
+          data-i18n="hud.copy_address"
         >
           COPY ADDRESS
         </button>
@@ -8217,14 +8328,15 @@
         class="fr27-hud-info-popover"
         id="fr27-hud-info-popover"
         aria-hidden="true"
+        data-i18n-aria-label="hud.project_information"
         aria-label="Project information"
       >
         <div class="fr27-hud-info-head">
           <strong>FRANCE 2027 SIGNAL LAB</strong>
-          <span>PUBLIC MONITORING INTERFACE</span>
+          <span data-i18n="hud.public_monitoring_interface">PUBLIC MONITORING INTERFACE</span>
         </div>
 
-        <p>
+        <p data-i18n="hud.project_description">
           Source-linked monitoring of the French 2027 presidential
           race using published polling, campaign, media and public
           evidence.
@@ -8232,24 +8344,42 @@
 
         <div class="fr27-hud-info-rules">
           <div class="fr27-hud-info-rule-line primary">
-            <span>PUBLIC EVIDENCE</span>
-            <span>SOURCE-LINKED</span>
-            <span>DESCRIPTIVE</span>
+            <span data-i18n="hud.public_evidence">PUBLIC EVIDENCE</span>
+            <span data-i18n="hud.source_linked">SOURCE-LINKED</span>
+            <span data-i18n="hud.descriptive">DESCRIPTIVE</span>
           </div>
           <div class="fr27-hud-info-rule-line boundary">
-            <span>NO POLLING AVERAGES</span>
-            <span>NO FORECAST</span>
-            <span>NO VOTING ADVICE</span>
+            <span data-i18n="hud.no_polling_averages">NO POLLING AVERAGES</span>
+            <span data-i18n="hud.no_forecast">NO FORECAST</span>
+            <span data-i18n="hud.no_voting_advice">NO VOTING ADVICE</span>
           </div>
         </div>
 
-        <small class="fr27-hud-info-note">
+        <small class="fr27-hud-info-independence" data-i18n="hud.independence_statement">
+          Independent project · no affiliation with the candidates, parties,
+          pollsters, publishers or public authorities monitored.
+        </small>
+
+        <small class="fr27-hud-info-note" data-i18n="hud.ai_portraits_note">
           Candidate portraits are AI-generated illustrations
           for visual identification.
         </small>
+
+        <div class="fr27-hud-info-rights">
+          <strong data-i18n="hud.rights_licences">RIGHTS &amp; LICENCES</strong>
+          <span data-i18n="hud.licence_summary">POLYFORM NC · CC BY-NC 4.0</span>
+          <a
+            href="https://github.com/openeventbits/france-2027-signal-lab/blob/main/NOTICE"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n="hud.licence_details"
+            data-i18n-aria-label="hud.open_licensing_notice"
+            aria-label="Open rights and licensing details in a new tab"
+          >DETAILS ↗</a>
+        </div>
       </aside>
 
-      <div class="visually-hidden">
+      <div class="visually-hidden" data-i18n="hud.accessibility_summary">
         Descriptive polling data from public sources.
         No model. No polling averages. No forecast.
         No voting advice.
@@ -8263,6 +8393,16 @@
       const localizer = globalThis.FR27I18N;
       return localizer && typeof localizer.t === "function"
         ? localizer.t(key, parameters)
+        : fallback;
+    };
+
+    const agendaTopicLabel = topic => {
+      const localizer = globalThis.FR27I18N;
+      const key = `agenda_topic.${String(topic?.id || "")}`;
+      const fallback = String(topic?.label || "");
+
+      return localizer && typeof localizer.t === "function"
+        ? localizer.t(key, null, fallback)
         : fallback;
     };
 
@@ -8329,6 +8469,7 @@
       node.textContent = text;
       node.removeAttribute("aria-busy");
       node.removeAttribute("aria-label");
+      node.removeAttribute("data-i18n-aria-label");
     }
 
     function markDataset(name, status, payload = null, updatedAt = "") {
@@ -8349,18 +8490,23 @@
 
     function formatMastheadParisDateTime(value) {
       const date = new Date(value);
-      if (!Number.isFinite(date.getTime())) return "time unavailable";
+      if (!Number.isFinite(date.getTime())) {
+        return translate("masthead_freshness.time_unknown", "time unknown");
+      }
 
       const parts = Object.fromEntries(
-        new Intl.DateTimeFormat("en-GB", {
-          timeZone: "Europe/Paris",
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          hourCycle: "h23"
-        })
+        new Intl.DateTimeFormat(
+          globalThis.FR27I18N?.localeTag || "en-GB",
+          {
+            timeZone: "Europe/Paris",
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hourCycle: "h23"
+          }
+        )
           .formatToParts(date)
           .filter(part => part.type !== "literal")
           .map(part => [part.type, part.value])
@@ -8371,22 +8517,33 @@
 
     function formatMastheadParisClock(value) {
       const date = new Date(value);
-      if (!Number.isFinite(date.getTime())) return "time unknown";
-      return new Intl.DateTimeFormat("en-GB", {
-        timeZone: "Europe/Paris",
-        day: "numeric",
-        month: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-        hourCycle: "h23"
-      }).format(date).replace(",", " ·");
+      if (!Number.isFinite(date.getTime())) {
+        return translate("masthead_freshness.time_unknown", "time unknown");
+      }
+      const parts = Object.fromEntries(
+        new Intl.DateTimeFormat(
+          globalThis.FR27I18N?.localeTag || "en-GB",
+          {
+            timeZone: "Europe/Paris",
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+            hourCycle: "h23"
+          }
+        )
+          .formatToParts(date)
+          .filter(part => part.type !== "literal")
+          .map(part => [part.type, part.value])
+      );
+      return `${parts.day} ${parts.month} · ${parts.hour}:${parts.minute}`;
     }
 
     function formatManifestEvidenceDate(value) {
       if (typeof value !== "string" || !value) return "";
       if (value.includes("T")) return formatMastheadParisClock(value);
       return /^\d{4}-\d{2}-\d{2}$/.test(value)
-        ? new Intl.DateTimeFormat("en-GB", {
+        ? new Intl.DateTimeFormat(globalThis.FR27I18N?.localeTag || "en-GB", {
             day: "numeric",
             month: "short",
             timeZone: "UTC"
@@ -8394,10 +8551,41 @@
         : "";
     }
 
-    function unavailableLaneLabel(label, lane) {
-      if (!lane || lane.timestamp_status === "missing") return label + " unavailable";
-      if (!lane.valid || lane.timestamp_status === "invalid") return label + " invalid";
-      return label + " time unknown";
+    function mastheadLaneLabel(laneId) {
+      const fallbacks = {
+        polls: "Polls",
+        runoff: "Runoff",
+        news: "News",
+        claims: "Claims",
+        recent_changes: "Changes"
+      };
+      return translate(
+        `masthead_freshness.lane.${laneId}`,
+        fallbacks[laneId] || laneId
+      );
+    }
+
+    function unavailableLaneLabel(laneId, lane) {
+      const label = mastheadLaneLabel(laneId);
+      if (!lane || lane.timestamp_status === "missing") {
+        return translate(
+          "masthead_freshness.lane_unavailable",
+          "{lane} unavailable",
+          { lane: label }
+        );
+      }
+      if (!lane.valid || lane.timestamp_status === "invalid") {
+        return translate(
+          "masthead_freshness.lane_invalid",
+          "{lane} invalid",
+          { lane: label }
+        );
+      }
+      return translate(
+        "masthead_freshness.lane_time_unknown",
+        "{lane} time unknown",
+        { lane: label }
+      );
     }
 
     function mastheadLaneSummaries(manifest) {
@@ -8409,45 +8597,72 @@
       if (polls?.available && polls.valid) {
         const pollTime = polls.last_success_at || polls.generated_at;
         if (polls.timestamp_status === "known" && pollTime) {
-          summaries.push("Polls checked " + formatMastheadParisClock(pollTime));
+          summaries.push(translate(
+            "masthead_freshness.polls_checked",
+            "Polls checked {time}",
+            { time: formatMastheadParisClock(pollTime) }
+          ));
         } else if (polls.data_as_of) {
-          summaries.push(
-            "Poll evidence through " +
-            formatManifestEvidenceDate(polls.data_as_of)
-          );
+          summaries.push(translate(
+            "masthead_freshness.poll_evidence_through",
+            "Poll evidence through {date}",
+            { date: formatManifestEvidenceDate(polls.data_as_of) }
+          ));
         } else {
-          summaries.push("Poll freshness unavailable");
+          summaries.push(translate(
+            "masthead_freshness.poll_freshness_unavailable",
+            "Poll freshness unavailable"
+          ));
         }
       } else {
-        summaries.push("Poll data unavailable");
+        summaries.push(translate(
+          "masthead_freshness.poll_data_unavailable",
+          "Poll data unavailable"
+        ));
       }
 
       const runoff = lanes.runoff;
       if (runoff?.available && runoff.valid && runoff.data_as_of) {
-        summaries.push("Runoff through " + formatManifestEvidenceDate(runoff.data_as_of));
+        summaries.push(translate(
+          "masthead_freshness.runoff_through",
+          "Runoff through {date}",
+          { date: formatManifestEvidenceDate(runoff.data_as_of) }
+        ));
       } else {
-        summaries.push(unavailableLaneLabel("Runoff", runoff));
+        summaries.push(unavailableLaneLabel("runoff", runoff));
       }
 
       const news = lanes.news;
       if (news?.available && news.valid && news.timestamp_status === "known" && news.generated_at) {
-        summaries.push("News updated " + formatMastheadParisClock(news.generated_at));
+        summaries.push(translate(
+          "masthead_freshness.news_updated",
+          "News updated {time}",
+          { time: formatMastheadParisClock(news.generated_at) }
+        ));
       } else {
-        summaries.push(unavailableLaneLabel("News", news));
+        summaries.push(unavailableLaneLabel("news", news));
       }
 
       const claims = lanes.claims;
       if (claims?.available && claims.valid && claims.data_as_of) {
-        summaries.push("Claims through " + formatManifestEvidenceDate(claims.data_as_of));
+        summaries.push(translate(
+          "masthead_freshness.claims_through",
+          "Claims through {date}",
+          { date: formatManifestEvidenceDate(claims.data_as_of) }
+        ));
       } else {
-        summaries.push(unavailableLaneLabel("Claims", claims));
+        summaries.push(unavailableLaneLabel("claims", claims));
       }
 
       const changes = lanes.recent_changes;
       if (changes?.available && changes.valid && changes.timestamp_status === "known" && changes.last_success_at) {
-        summaries.push("Changes checked " + formatMastheadParisClock(changes.last_success_at));
+        summaries.push(translate(
+          "masthead_freshness.changes_checked",
+          "Changes checked {time}",
+          { time: formatMastheadParisClock(changes.last_success_at) }
+        ));
       } else {
-        summaries.push(unavailableLaneLabel("Changes", changes));
+        summaries.push(unavailableLaneLabel("recent_changes", changes));
       }
       return summaries;
     }
@@ -8461,7 +8676,10 @@
       if (manifestLoading) {
         countdown.setAttribute(
           "data-fr27-tooltip",
-          "Loading snapshot and evidence freshness"
+          translate(
+            "masthead_freshness.loading",
+            "Loading snapshot and evidence freshness"
+          )
         );
         countdown.setAttribute("aria-busy", "true");
         return;
@@ -8469,11 +8687,23 @@
 
       const snapshotLabel =
         manifest && Number.isFinite(dashboardTimestamp(manifest.published_at))
-          ? "Snapshot published " + formatMastheadParisDateTime(manifest.published_at)
-          : "Snapshot publication unavailable";
+          ? translate(
+              "masthead_freshness.snapshot_published",
+              "Snapshot published {datetime}",
+              { datetime: formatMastheadParisDateTime(manifest.published_at) }
+            )
+          : translate(
+              "masthead_freshness.snapshot_unavailable",
+              "Snapshot publication unavailable"
+            );
       const summaries = mastheadLaneSummaries(manifest);
       const laneLabel =
-        summaries.length ? summaries.join(" · ") : "Lane metadata unavailable";
+        summaries.length
+          ? summaries.join(" · ")
+          : translate(
+              "masthead_freshness.lane_metadata_unavailable",
+              "Lane metadata unavailable"
+            );
 
       countdown.setAttribute(
         "data-fr27-tooltip",
@@ -8786,17 +9016,22 @@
     function ledgerDateHeading(dateKey, anchorKey) {
       const difference = ledgerDateDifference(anchorKey, dateKey);
       const date = ledgerParseDate(dateKey);
+      const localeTag = globalThis.FR27I18N?.localeTag || "en-GB";
 
       const shortDate = date
-        ? new Intl.DateTimeFormat("en-GB", {
+        ? new Intl.DateTimeFormat(localeTag, {
             timeZone: "Europe/Paris",
             day: "numeric",
             month: "short"
           }).format(date).toUpperCase()
         : dateKey;
 
-      if (difference === 0) return "TODAY · " + shortDate;
-      if (difference === 1) return "YESTERDAY · " + shortDate;
+      if (difference === 0) {
+        return translate("what_changed.today", "TODAY") + " · " + shortDate;
+      }
+      if (difference === 1) {
+        return translate("what_changed.yesterday", "YESTERDAY") + " · " + shortDate;
+      }
 
       return shortDate;
     }
@@ -8804,12 +9039,15 @@
     function ledgerTimeLabel(entry) {
       if (entry.datePrecision !== "datetime") return "—";
 
-      return new Intl.DateTimeFormat("en-GB", {
+      return new Intl.DateTimeFormat(
+        globalThis.FR27I18N?.localeTag || "en-GB",
+        {
         timeZone: "Europe/Paris",
         hour: "2-digit",
         minute: "2-digit",
         hourCycle: "h23"
-      }).format(entry.date);
+        }
+      ).format(entry.date);
     }
 
     function ledgerSvgElement(tagName, attributes = {}, className = "") {
@@ -9005,6 +9243,168 @@
       return visual;
     }
 
+    function ledgerCategoryLabel(category) {
+      const definitions = {
+        campaign: ["what_changed.category.campaign", "CAMPAIGN"],
+        polling: ["what_changed.category.polling", "POLLING"],
+        runoff: ["what_changed.category.runoff", "RUNOFF"],
+        fact_check: ["what_changed.category.fact_check", "FACT CHECK"],
+        legal: ["what_changed.category.legal", "LEGAL"]
+      };
+      const definition = definitions[category];
+      return definition
+        ? translate(definition[0], definition[1])
+        : String(category || "");
+    }
+
+    function ledgerDateKindLabel(kind) {
+      const definitions = {
+        source_published: ["what_changed.meta.published", "Published"],
+        official_event: ["what_changed.meta.official_event", "Official event"],
+        first_seen: ["what_changed.meta.first_seen", "First seen"],
+        fieldwork_ended: ["what_changed.meta.fieldwork_ended", "Fieldwork ended"],
+        review_published: ["what_changed.meta.review_published", "Review published"],
+        ruling_or_decision: ["what_changed.meta.ruling_or_decision", "Ruling / decision"]
+      };
+      const definition = definitions[kind] || ["what_changed.meta.dated", "Dated"];
+      return translate(definition[0], definition[1]);
+    }
+
+    function ledgerCompactDate(value) {
+      const date = ledgerParseDate(value);
+      if (!date) return String(value || "");
+      return new Intl.DateTimeFormat(
+        globalThis.FR27I18N?.localeTag || "en-GB",
+        { timeZone: "Europe/Paris", day: "numeric", month: "short", year: "numeric" }
+      ).format(date);
+    }
+
+    function ledgerSupportingSourceNote(count) {
+      if (!Number.isInteger(count) || count < 1) return "";
+      return " · " + translate(
+        "what_changed.meta.supporting_sources",
+        "+{count} supporting {count, plural, one {source} other {sources}}",
+        { count }
+      );
+    }
+
+    function ledgerFactCheckEvidence(item) {
+      const reviews = dashboardState.claims?.reviews;
+      if (!Array.isArray(reviews)) return null;
+      return reviews.find(review =>
+        safeSourceUrl(review?.review_url) === safeSourceUrl(item.primary_source?.url)
+      ) || null;
+    }
+
+    function ledgerFrenchMetadata(item) {
+      const dateNote = ledgerDateKindLabel(item.trusted_change_date_kind);
+      const supportNote = ledgerSupportingSourceNote(item.supporting_source_count);
+
+      if (item.category === "campaign") {
+        return dateNote + " · " + translate(
+          "what_changed.meta.campaign_change",
+          "Candidate, endorsement, selection or campaign-status change"
+        ) + supportNote;
+      }
+
+      if (item.category === "legal") {
+        return dateNote + " · " + translate(
+          "what_changed.meta.legal_change",
+          "Presidential-election legal or procedural development"
+        ) + supportNote;
+      }
+
+      if (item.category === "fact_check") {
+        const review = ledgerFactCheckEvidence(item);
+        const evidence = [];
+        if (review?.rating) {
+          evidence.push(translate(
+            "what_changed.meta.rating",
+            "Rating: {value}",
+            { value: review.rating }
+          ));
+        }
+        if (review?.claimant) {
+          evidence.push(translate(
+            "what_changed.meta.claimant",
+            "Claimant: {value}",
+            { value: review.claimant }
+          ));
+        }
+        return [dateNote, ...evidence].join(" · ") + supportNote;
+      }
+
+      if (item.category === "polling") {
+        return dateNote + " " + ledgerCompactDate(item.trusted_change_at) + " · " +
+          translate("what_changed.meta.poll_wave", "First-round poll wave") + supportNote;
+      }
+
+      if (item.category === "runoff") {
+        return dateNote + " " + ledgerCompactDate(item.trusted_change_at) + " · " +
+          translate(
+            "what_changed.meta.runoff_evidence",
+            "Reported margins shown separately; no average"
+          ) + supportNote;
+      }
+
+      return dateNote + supportNote;
+    }
+
+    function ledgerEntryMetadata(item) {
+      if (globalThis.FR27I18N?.locale !== "fr") {
+        const dateNote = ledgerDateKindLabel(item.trusted_change_date_kind);
+        const supportNote = ledgerSupportingSourceNote(item.supporting_source_count);
+        return (['polling', 'runoff'].includes(item.category)
+          ? item.summary
+          : dateNote + " · " + item.summary) + supportNote;
+      }
+      return ledgerFrenchMetadata(item);
+    }
+
+    function ledgerEntryHeadline(item) {
+      if (globalThis.FR27I18N?.locale !== "fr") return item.headline;
+
+      if (item.category === "polling") {
+        const events = dashboardState.polls?.events;
+        const matching = Array.isArray(events)
+          ? events.filter(event =>
+              event?.pollster === item.primary_source?.name &&
+              safeSourceUrl(event.source_url) === safeSourceUrl(item.primary_source?.url) &&
+              (
+                event.fieldwork_end === item.trusted_change_at ||
+                event.publication_date === item.trusted_change_at
+              )
+            )
+          : [];
+        const poll = matching[0];
+        if (poll) {
+          return translate(
+            "what_changed.poll_headline",
+            "{pollster} · first round · fieldwork {start}–{end} · " +
+              "{count} {count, plural, one {hypothesis} other {hypotheses}}",
+            {
+              pollster: poll.pollster,
+              start: ledgerCompactDate(poll.fieldwork_start),
+              end: ledgerCompactDate(poll.fieldwork_end),
+              count: matching.length
+            }
+          );
+        }
+        return item.primary_source.name + " · " +
+          translate("what_changed.meta.poll_wave", "First-round poll wave");
+      }
+
+      if (item.category === "runoff") {
+        return translate(
+          "what_changed.runoff_headline",
+          "{matchup} is the closest tested runoff",
+          { matchup: item.candidate_names.join(" vs ") }
+        );
+      }
+
+      return item.headline;
+    }
+
     function deriveRecentChangeLedger() {
       const payload = dashboardState.recentChanges;
       if (!payload || !Array.isArray(payload.items)) {
@@ -9012,37 +9412,21 @@
           entries: [],
           anchorDate: null,
           anchorKey: "",
-          loading: dashboardState.loadState.recentChanges === "loading"
+          loading: dashboardState.loadState.recentChanges === "loading",
+          unavailable: dashboardState.loadState.recentChanges === "error"
         };
       }
-      const labels = {
-        campaign: "CAMPAIGN",
-        polling: "POLLING",
-        runoff: "RUNOFF",
-        fact_check: "FACT CHECK",
-        legal: "LEGAL"
-      };
       const entries = payload.items.flatMap(item => {
         const date = ledgerParseDate(item.trusted_change_at);
         const sourceUrl = safeSourceUrl(item.primary_source?.url);
-        if (!date || !sourceUrl || !labels[item.category]) return [];
-        const dateNote = {
-          source_published: "Published",
-          official_event: "Official event",
-          first_seen: "First seen",
-          fieldwork_ended: "Fieldwork ended",
-          review_published: "Review published",
-          ruling_or_decision: "Ruling / decision"
-        }[item.trusted_change_date_kind] || "Dated";
-        const supportNote = item.supporting_source_count
-          ? " · +" + item.supporting_source_count + " supporting " +
-            (item.supporting_source_count === 1 ? "source" : "sources")
-          : "";
+        if (!date || !sourceUrl || ![
+          "campaign", "polling", "runoff", "fact_check", "legal"
+        ].includes(item.category)) return [];
         return [{
           id: item.id,
           category: item.category,
-          categoryLabel: labels[item.category],
-          headline: item.headline,
+          categoryLabel: ledgerCategoryLabel(item.category),
+          headline: ledgerEntryHeadline(item),
           date,
           datePrecision:
             item.trusted_change_date_kind === "source_published" &&
@@ -9051,9 +9435,7 @@
           sourceName: item.primary_source.name,
           sourceUrl,
           sourceIconKey: item.source_icon_key,
-          meta: (["polling", "runoff"].includes(item.category)
-            ? item.summary
-            : dateNote + " · " + item.summary) + supportNote,
+          meta: ledgerEntryMetadata(item),
           candidates: Array.isArray(item.candidate_names)
             ? item.candidate_names : [],
           relatedDestination: item.related_destination
@@ -9065,7 +9447,8 @@
         entries,
         anchorDate,
         anchorKey: anchorDate ? ledgerParisDateKey(anchorDate) : "",
-        loading: false
+        loading: false,
+        unavailable: false
       };
     }
 
@@ -9114,17 +9497,20 @@
       source.href = entry.sourceUrl;
       source.target = "_blank";
       source.rel = "noopener noreferrer";
-      source.textContent = "Open source ↗";
-      const categoryLabelLower =
-        entry.categoryLabel.toLowerCase();
+      source.textContent = translate(
+        "what_changed.open_source",
+        "Open source ↗"
+      );
       source.setAttribute(
         "aria-label",
         translate(
           "dashboard.source.open_category_source_from_publisher",
-          "Open " + categoryLabelLower +
+          "Open " + ledgerCategoryLabel(entry.category).toLowerCase() +
             " source from " + entry.sourceName,
           {
-            categoryLabelLower,
+            category: ledgerCategoryLabel(entry.category).toLocaleLowerCase(
+              globalThis.FR27I18N?.localeTag || "en-GB"
+            ),
             sourceName: entry.sourceName
           }
         )
@@ -9145,11 +9531,11 @@
       const ledger = deriveRecentChangeLedger();
 
       const categories = [
-        { key: "all", label: "ALL", matches: () => true },
-        { key: "campaign", label: "CAMPAIGN", matches: entry => entry.category === "campaign" },
-        { key: "polling", label: "POLLS", matches: entry => entry.category === "polling" },
-        { key: "runoff", label: "RUNOFFS", matches: entry => entry.category === "runoff" },
-        { key: "checks", label: "CHECKS + LEGAL", matches: entry => ["fact_check", "legal"].includes(entry.category) }
+        { key: "all", label: translate("what_changed.filter.all", "ALL"), matches: () => true },
+        { key: "campaign", label: translate("what_changed.filter.campaign", "CAMPAIGN"), matches: entry => entry.category === "campaign" },
+        { key: "polling", label: translate("what_changed.filter.polling", "POLLS"), matches: entry => entry.category === "polling" },
+        { key: "runoff", label: translate("what_changed.filter.runoff", "RUNOFFS"), matches: entry => entry.category === "runoff" },
+        { key: "checks", label: translate("what_changed.filter.checks_legal", "CHECKS + LEGAL"), matches: entry => ["fact_check", "legal"].includes(entry.category) }
       ];
 
       const counts = Object.fromEntries(
@@ -9181,12 +9567,26 @@
 
       if (summary) {
         if (ledger.loading) {
-          renderInlineSkeleton(summary, "Loading source-linked update count", "112px", "9px");
+          renderInlineSkeleton(
+            summary,
+            translate("what_changed.loading_count", "Loading source-linked update count"),
+            "112px",
+            "9px"
+          );
+        } else if (ledger.unavailable) {
+          renderResolvedText(
+            summary,
+            translate("what_changed.unavailable", "Unavailable")
+          );
         } else {
-          renderResolvedText(summary,
-            counts.all +
-            (counts.all === 1 ? " CHANGE" : " CHANGES") +
-            " · LAST 14 DAYS");
+          renderResolvedText(
+            summary,
+            translate(
+              "what_changed.summary",
+              "{count} {count, plural, one {CHANGE} other {CHANGES}} · LAST 14 DAYS",
+              { count: counts.all }
+            )
+          );
         }
       }
 
@@ -9195,7 +9595,10 @@
 
       const toolbar = document.createElement("div");
       toolbar.className = "changes-ledger-toolbar";
-      toolbar.setAttribute("aria-label", "Filter recent updates");
+      toolbar.setAttribute(
+        "aria-label",
+        translate("what_changed.filter_updates", "Filter recent updates")
+      );
 
       categories.forEach(category => {
         const button = document.createElement("button");
@@ -9232,7 +9635,10 @@
       scroll.tabIndex = 0;
       scroll.setAttribute(
         "aria-label",
-        "Chronological source-linked updates"
+        translate(
+          "what_changed.chronological_updates",
+          "Chronological source-linked updates"
+        )
       );
 
       if (!filteredEntries.length) {
@@ -9240,23 +9646,33 @@
           scroll.appendChild(
             window.FR27UI.skeletonElement(
               "briefing",
-              "Loading source-linked dashboard changes"
+              translate(
+                "what_changed.loading",
+                "Loading source-linked dashboard changes"
+              )
             )
+          );
+        } else if (ledger.unavailable) {
+          appendBriefingText(
+            scroll,
+            "changes-ledger-empty",
+            translate("what_changed.unavailable", "Unavailable")
           );
         } else {
           appendBriefingText(
             scroll,
             "changes-ledger-empty",
-            "No " +
-              (
-                whatChangedLedgerFilter === "all"
+            translate(
+              "what_changed.no_recent_changes",
+              "No {category}update was identified in the last 14 days.",
+              {
+                category: whatChangedLedgerFilter === "all"
                   ? ""
                   : categories.find(
-                      category =>
-                        category.key === whatChangedLedgerFilter
+                      category => category.key === whatChangedLedgerFilter
                     ).label.toLowerCase() + " "
-              ) +
-              "update was identified in the last 14 days."
+              }
+            )
           );
         }
       } else {
@@ -9341,6 +9757,22 @@
       }).format(new Date(timestamp)).toLocaleUpperCase(localeTag);
     }
 
+    function formatContextDate(value) {
+      const timestamp = Date.parse(`${value}T00:00:00Z`);
+      if (!Number.isFinite(timestamp)) return "";
+
+      const options = {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        timeZone: "UTC"
+      };
+      const localizer = globalThis.FR27I18N;
+      return localizer && typeof localizer.formatDate === "function"
+        ? localizer.formatDate(new Date(timestamp), options)
+        : new Intl.DateTimeFormat("en-GB", options).format(new Date(timestamp));
+    }
+
     function derivePollCoverage(events) {
       const dated = events.map(event => ({
         event,
@@ -9399,9 +9831,7 @@
 
       return Number.isInteger(value) && value >= 0
         ? {
-            value,
-            label: "approved publisher domains",
-            mastheadUnit: "approved publisher domains"
+            value
           }
         : null;
     }
@@ -9419,14 +9849,22 @@
       const sourceMetric = deriveSourceMetric(newsWire);
 
       const valueText = sourceMetric
-        ? sourceMetric.value + " " + sourceMetric.label
+        ? translate(
+            "dashboard.source_network.approved_domains",
+            sourceMetric.value + " approved publisher domains",
+            { count: sourceMetric.value }
+          )
         : "—";
 
       const due = metrics.routes_due_in_run;
       const successful = metrics.successful_due_routes;
       const configured = metrics.configured_routes_or_feeds;
       const configuredText = isNonNegativeInteger(configured)
-        ? " · " + configured + " configured routes"
+        ? translate(
+            "dashboard.source_network.configured_routes",
+            " · " + configured + " configured routes",
+            { count: configured }
+          )
         : "";
 
       if (
@@ -9440,33 +9878,50 @@
         if (failed <= 1) {
           return {
             valueText,
-            status: "OPERATIONAL",
+            status: translate(
+              "dashboard.source_network.status.operational",
+              "OPERATIONAL"
+            ),
             secondaryText:
               failed === 0
-                ? successful + "/" + due +
-                  " due routes succeeded" + configuredText
-                : "1 due route unavailable" + configuredText,
+                ? translate(
+                    "dashboard.source_network.due_routes_succeeded",
+                    successful + "/" + due + " due routes succeeded",
+                    { successful, due }
+                  ) + configuredText
+                : translate(
+                    "dashboard.source_network.one_due_route_unavailable",
+                    "1 due route unavailable"
+                  ) + configuredText,
             visualState: "operational"
           };
         }
 
         return {
           valueText,
-          status: "DEGRADED",
-          secondaryText:
-            failed +
-            " due " +
-            (failed === 1 ? "route" : "routes") +
-            " unavailable" + configuredText,
+          status: translate(
+            "dashboard.source_network.status.degraded",
+            "DEGRADED"
+          ),
+          secondaryText: translate(
+            "dashboard.source_network.due_routes_unavailable",
+            failed + " due routes unavailable",
+            { count: failed }
+          ) + configuredText,
           visualState: "degraded"
         };
       }
 
       return {
         valueText,
-        status: "UNKNOWN",
-        secondaryText:
-          "Due-route success unavailable",
+        status: translate(
+          "dashboard.source_network.status.unknown",
+          "UNKNOWN"
+        ),
+        secondaryText: translate(
+          "dashboard.source_network.due_route_success_unavailable",
+          "Due-route success unavailable"
+        ),
         visualState: "unknown"
       };
     }
@@ -9493,6 +9948,7 @@
       $("#context-status-value").textContent =
         presentation.valueText;
 
+      $("#context-status-meta").removeAttribute("data-i18n");
       $("#context-status-meta").textContent =
         presentation.secondaryText;
     }
@@ -9501,11 +9957,19 @@
       try {
         const snapshot = getElectionClockSnapshot();
         const milestone = snapshot.targets.find(target => !target.held) || snapshot.targets.at(-1);
-        $("#context-milestone-value").textContent = milestone.label;
-        $("#context-milestone-meta").textContent = milestone.absoluteLabel + " · " + milestone.status;
+        $("#context-milestone-value").textContent = electionClockTargetLabel(milestone);
+        $("#context-milestone-meta").textContent =
+          electionClockAbsoluteLabel(milestone) + " · " +
+          electionClockStatusLabel(milestone);
       } catch (error) {
-        $("#context-milestone-value").textContent = "Milestone unavailable";
-        $("#context-milestone-meta").textContent = "Europe/Paris countdown unavailable";
+        $("#context-milestone-value").textContent = translate(
+          "dashboard.milestone_unavailable",
+          "Milestone unavailable"
+        );
+        $("#context-milestone-meta").textContent = translate(
+          "dashboard.europe_paris_countdown_unavailable",
+          "Europe/Paris countdown unavailable"
+        );
       }
 
       if (dashboardState.polls) {
@@ -9529,27 +9993,64 @@
         const coverage = derivePollCoverage(dashboardState.polls.events);
 
         renderResolvedText("#context-coverage-value", coverage
-          ? coverage.count + " " +
-            (coverage.count === 1 ? "pollster" : "pollsters") +
-            " · 6-month window"
-          : "Coverage unavailable");
+          ? translate(
+              "dashboard.poll_coverage_summary",
+              coverage.count + " " +
+                (coverage.count === 1 ? "pollster" : "pollsters") +
+                " · 6-month window",
+              { count: coverage.count }
+            )
+          : translate(
+              "dashboard.coverage_unavailable",
+              "Coverage unavailable"
+            ));
 
+        $("#context-coverage-meta").removeAttribute("data-i18n");
         $("#context-coverage-meta").textContent = coverage
-          ? "First round · " +
-            formatDate(coverage.startDate) +
-            "–" +
-            formatDate(coverage.latestDate)
-          : "Target: first round";
+          ? translate(
+              "dashboard.poll_coverage_meta",
+              "First round · " +
+                formatContextDate(coverage.startDate) + "–" +
+                formatContextDate(coverage.latestDate),
+              {
+                startDate: formatContextDate(coverage.startDate),
+                latestDate: formatContextDate(coverage.latestDate)
+              }
+            )
+          : translate(
+              "dashboard.target_first_round",
+              "Target: first round"
+            );
       } else {
         const pollError = dashboardState.loadState.polls === "error";
-        if (pollError) renderResolvedText("#context-poll-value", "Polling unavailable");
-        else renderInlineSkeleton("#context-poll-value", "Loading latest fieldwork", "112px", "12px");
+        if (pollError) renderResolvedText(
+          "#context-poll-value",
+          translate("dashboard.polling_unavailable", "Polling unavailable")
+        );
+        else renderInlineSkeleton(
+          "#context-poll-value",
+          translate("dashboard.loading_latest_fieldwork", "Loading latest fieldwork"),
+          "112px",
+          "12px"
+        );
         $("#context-poll-meta").textContent = pollError
           ? translate("dashboard.polling_unavailable", "Polling unavailable")
           : translate("dashboard.loading", "Loading…");
-        if (pollError) renderResolvedText("#context-coverage-value", "Polling unavailable");
-        else renderInlineSkeleton("#context-coverage-value", "Loading poll coverage", "96px", "12px");
-        $("#context-coverage-meta").textContent = "First-round polling coverage";
+        if (pollError) renderResolvedText(
+          "#context-coverage-value",
+          translate("dashboard.coverage_unavailable", "Coverage unavailable")
+        );
+        else renderInlineSkeleton(
+          "#context-coverage-value",
+          translate("dashboard.loading_poll_coverage", "Loading poll coverage"),
+          "96px",
+          "12px"
+        );
+        $("#context-coverage-meta").removeAttribute("data-i18n");
+        $("#context-coverage-meta").textContent = translate(
+          "dashboard.first_round_polling_coverage",
+          "First-round polling coverage"
+        );
       }
 
       renderSourceNetworkStatus(dashboardState.news);
@@ -9759,7 +10260,7 @@
                   data-agenda-topic="${escapeAttribute(topic.id)}"
                   aria-pressed="${String(active)}">
             <span class="campaign-agenda-topic-head">
-              <span class="campaign-agenda-topic-label">${escapeHtml(topic.label)}</span>
+              <span class="campaign-agenda-topic-label">${escapeHtml(agendaTopicLabel(topic))}</span>
             </span>
             <span class="campaign-agenda-topic-meta">${topic.source_day_count} source-days · ${topic.publisher_count} ${topic.publisher_count === 1 ? "publisher" : "publishers"}</span>
             <span class="campaign-agenda-track" aria-hidden="true"><span class="campaign-agenda-fill" style="width:${width}%"></span></span>
@@ -9779,7 +10280,7 @@
           </div>
           <div class="campaign-agenda-detail">
             <div class="campaign-agenda-detail-kicker">Selected coverage theme</div>
-            <h3>${escapeHtml(selected.label)}</h3>
+            <h3>${escapeHtml(agendaTopicLabel(selected))}</h3>
             <div class="campaign-agenda-metrics">
               <span class="campaign-agenda-metric">${selected.item_count} accepted ${selected.item_count === 1 ? "item" : "items"}</span>
               <span class="campaign-agenda-metric">${selected.source_day_count} source-days</span>
@@ -10125,6 +10626,53 @@
       }
     ]);
 
+    function electionClockTargetLabel(target) {
+      if (target.key === "sponsorship") {
+        return translate(
+          "election_clock.candidate_sponsorship_deadline",
+          target.label
+        );
+      }
+      if (target.key === "second") {
+        return translate(
+          "election_clock.second_round_if_required",
+          target.label
+        );
+      }
+      return translate("election_clock.first_round", target.label);
+    }
+
+    function electionClockAbsoluteLabel(target) {
+      const iso = [
+        target.year,
+        String(target.month).padStart(2, "0"),
+        String(target.day).padStart(2, "0")
+      ].join("-");
+      const dateLabel = formatContextDate(iso);
+      return target.key === "sponsorship"
+        ? dateLabel + " · 18:00 Paris"
+        : dateLabel;
+    }
+
+    function electionClockStatusLabel(target) {
+      if (target.held) {
+        return target.key === "sponsorship"
+          ? translate("election_clock.closed", "CLOSED")
+          : translate("election_clock.held", "HELD");
+      }
+      if (target.isTargetDay) {
+        return target.key === "sponsorship"
+          ? translate("election_clock.today", "TODAY")
+          : translate("election_clock.voting_day", "VOTING DAY");
+      }
+      return translate(
+        "election_clock.days_remaining",
+        target.daysRemaining + " " +
+          (target.daysRemaining === 1 ? "day" : "days"),
+        { count: target.daysRemaining }
+      );
+    }
+
     function getElectionClockSnapshot(now = new Date()) {
       const parisParts = Object.fromEntries(
         new Intl.DateTimeFormat("en-GB", {
@@ -10165,17 +10713,29 @@
             const count = metric.querySelector(".clock-count");
             const unit = metric.querySelector(".clock-unit");
             const mastheadLabel = metric.querySelector(".masthead-countdown-label");
+            const absoluteDate = metric.querySelector(".fr27-countdown-date");
             if (!count || !unit) return;
+            if (absoluteDate) {
+              const localeTag = globalThis.FR27I18N?.localeTag || "en-GB";
+              absoluteDate.textContent = electionClockAbsoluteLabel(target)
+                .toLocaleUpperCase(localeTag);
+            }
             count.classList.remove("is-word");
             if (target.held || target.isTargetDay) {
-              count.textContent = target.status;
+              count.textContent = electionClockStatusLabel(target);
               count.classList.add("is-word");
               unit.textContent = "";
-              if (mastheadLabel) mastheadLabel.textContent = "first round";
+              if (mastheadLabel) mastheadLabel.textContent = translate(
+                "election_clock.first_round_lower",
+                "first round"
+              );
             } else {
               count.textContent = target.daysRemaining;
-              unit.textContent = "DAYS";
-              if (mastheadLabel) mastheadLabel.textContent = "to first round";
+              unit.textContent = translate("hud.days", "DAYS");
+              if (mastheadLabel) mastheadLabel.textContent = translate(
+                "election_clock.to_first_round",
+                "to first round"
+              );
             }
           });
         });
@@ -10223,9 +10783,15 @@
     function formatRunoffFieldwork(windowValue) {
       const start = new Date(`${windowValue.start}T00:00:00Z`);
       const end = new Date(`${windowValue.end}T00:00:00Z`);
-      const day = date => new Intl.DateTimeFormat("en-GB", { day: "numeric", timeZone: "UTC" }).format(date);
-      const month = date => new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" }).format(date).toUpperCase();
-      const year = date => new Intl.DateTimeFormat("en-GB", { year: "numeric", timeZone: "UTC" }).format(date);
+      const localeTag = globalThis.FR27I18N?.localeTag || "en-GB";
+      const day = date => new Intl.DateTimeFormat(localeTag, { day: "numeric", timeZone: "UTC" }).format(date);
+      const month = date => {
+        const label = new Intl.DateTimeFormat(localeTag, { month: "short", timeZone: "UTC" }).format(date);
+        return localeTag.toLowerCase().startsWith("fr")
+          ? label
+          : label.toLocaleUpperCase(localeTag);
+      };
+      const year = date => new Intl.DateTimeFormat(localeTag, { year: "numeric", timeZone: "UTC" }).format(date);
       if (windowValue.start === windowValue.end) return `${day(start)} ${month(start)} ${year(start)}`;
       if (start.getUTCFullYear() === end.getUTCFullYear() && start.getUTCMonth() === end.getUTCMonth()) {
         return `${day(start)}–${day(end)} ${month(end)} ${year(end)}`;
@@ -10481,6 +11047,7 @@
       "Manque de contexte": { label: "Missing context", tone: "is-missing-context" },
       "C’est plus compliqué": { label: "More complicated", tone: "is-nuanced" },
       "En partie vrai": { label: "Partly true", tone: "is-partly-true" },
+      "Plutôt Vrai": { label: "Mostly true", tone: "is-mostly-true" },
       "Plutôt vrai": { label: "Mostly true", tone: "is-mostly-true" },
       "Vrai": { label: "True", tone: "is-true" },
       "Vidéo manipulée": { label: "Manipulated video", tone: "is-manipulated-video" }
@@ -11569,18 +12136,91 @@
       return Math.max(40, Math.ceil(highestValue / 5) * 5);
     }
 
-    function compactRacePollDate(value) {
+    function racePollDate(value, options) {
       const timestamp = Date.parse(`${value}T00:00:00Z`);
 
       if (!Number.isFinite(timestamp)) {
         return String(value ?? "");
       }
 
-      return new Intl.DateTimeFormat("en-GB", {
+      const date = new Date(timestamp);
+      const dateOptions = {
+        ...options,
+        timeZone: "UTC"
+      };
+      const localizer = globalThis.FR27I18N;
+
+      return localizer && typeof localizer.formatDate === "function"
+        ? localizer.formatDate(date, dateOptions)
+        : new Intl.DateTimeFormat(
+            localizer?.localeTag || "en-GB",
+            dateOptions
+          ).format(date);
+    }
+
+    function compactRacePollDate(value) {
+      return racePollDate(value, {
+        day: "numeric",
+        month: "short"
+      });
+    }
+
+    function fullRacePollDate(value) {
+      return racePollDate(value, {
         day: "numeric",
         month: "short",
-        timeZone: "UTC"
-      }).format(new Date(timestamp));
+        year: "numeric"
+      });
+    }
+
+    function raceFieldworkRange(startValue, endValue) {
+      const start = new Date(`${startValue}T00:00:00Z`);
+      const end = new Date(`${endValue}T00:00:00Z`);
+
+      if (![start, end].every(date => Number.isFinite(date.getTime()))) {
+        return [startValue, endValue].filter(Boolean).join("–");
+      }
+
+      if (startValue === endValue) {
+        return fullRacePollDate(endValue);
+      }
+
+      const sameYear =
+        start.getUTCFullYear() === end.getUTCFullYear();
+      const sameMonth =
+        sameYear && start.getUTCMonth() === end.getUTCMonth();
+
+      if (sameMonth) {
+        return (
+          racePollDate(startValue, { day: "numeric" }) +
+          "–" +
+          fullRacePollDate(endValue)
+        );
+      }
+
+      if (sameYear) {
+        return (
+          compactRacePollDate(startValue) +
+          "–" +
+          fullRacePollDate(endValue)
+        );
+      }
+
+      return (
+        fullRacePollDate(startValue) +
+        "–" +
+        fullRacePollDate(endValue)
+      );
+    }
+
+    function racePollNumber(value) {
+      const localizer = globalThis.FR27I18N;
+
+      return localizer && typeof localizer.formatNumber === "function"
+        ? localizer.formatNumber(value)
+        : new Intl.NumberFormat(
+            localizer?.localeTag || "en-GB"
+          ).format(value);
     }
 
     function racePollTabLabel(pollPackage) {
@@ -11622,13 +12262,14 @@
       const letter = String.fromCharCode(65 + alphabetIndex);
       const candidateCount = event.candidates.length;
 
-      return (
-        "Scenario " +
-        letter +
-        " · " +
-        candidateCount +
-        " " +
-        (candidateCount === 1 ? "candidate" : "candidates")
+      return translate(
+        candidateCount === 1
+          ? "race_glance.scenario_one"
+          : "race_glance.scenario_other",
+        candidateCount === 1
+          ? "Scenario {letter} · {count} candidate"
+          : "Scenario {letter} · {count} candidates",
+        { letter, count: candidateCount }
       );
     }
 
@@ -11881,7 +12522,10 @@
       if (hasMultipleScenarios) {
         selector.removeAttribute("data-fr27-tooltip");
       } else {
-        selector.dataset.fr27Tooltip = "Only reported scenario in this poll event";
+        selector.dataset.fr27Tooltip = translate(
+          "race_glance.only_reported_scenario",
+          "Only reported scenario in this poll event"
+        );
       }
 
       staticLabel.hidden = true;
@@ -11917,21 +12561,55 @@
     }
 
     function formatRaceComparableChange(change) {
+      if (change.classification === "NO COMPARABLE PRIOR") {
+        return {
+          value: "—",
+          meta: translate(
+            "race_glance.no_prior_match",
+            "No prior match"
+          ),
+          tone: "is-missing"
+        };
+      }
+
       const formatted = formatComparableChange(change);
+      const detail = change.retained.length === 1
+        ? `${change.retained[0].gap}d · ${change.retained[0].current.pollster}`
+        : translate(
+            "race_glance.comparison_count",
+            "{gaps} · {count} comparisons",
+            {
+              gaps: [...new Set(
+                change.retained.map(comparison => comparison.gap)
+              )]
+                .sort((a, b) => a - b)
+                .map(gap => `${gap}d`)
+                .join(", "),
+              count: change.retained.length
+            }
+          );
 
       if (change.classification === "MIXED") {
         return {
           ...formatted,
-          value: "VARIES",
-          meta:
+          value: translate(
+            "race_glance.varies",
+            "VARIES"
+          ),
+          meta: translate(
+            "race_glance.direction_varies",
             "Direction varies across retained comparable scenarios " +
-            "from earlier poll events. " +
-            formatted.meta
+              "from earlier poll events. {detail}",
+            { detail }
+          )
         };
       }
 
       if (change.classification !== "SAME-DIRECTION RANGE") {
-        return formatted;
+        return {
+          ...formatted,
+          meta: detail
+        };
       }
 
       const magnitudes = change.deltas
@@ -11945,10 +12623,12 @@
           "–" +
           formatRaceComparableMagnitude(magnitudes.at(-1)) +
           " pts",
-        meta:
+        meta: translate(
+          "race_glance.range_comparison",
           "Range across retained comparable scenarios from earlier " +
-          "poll events. " +
-          formatted.meta
+            "poll events. {detail}",
+          { detail }
+        )
       };
     }
 
@@ -12008,8 +12688,15 @@
         );
 
         const changeAria = formattedChange.value === "—"
-          ? "No comparable prior result"
-          : "Comparable change " + formattedChange.value;
+          ? translate(
+              "race_glance.no_comparable_prior_result",
+              "No comparable prior result"
+            )
+          : translate(
+              "race_glance.comparable_change",
+              "Comparable change {value}",
+              { value: formattedChange.value }
+            );
 
         const changeGlyph =
           formattedChange.tone === "is-positive"
@@ -12020,11 +12707,24 @@
                   formattedChange.value !== "—"
                 ? "\u2248 "
                 : "";
+        const changeDetail = formattedChange.meta === changeAria
+          ? changeAria
+          : changeAria + ". " + formattedChange.meta;
 
         return `
           <article
             class="bar-row"
-            aria-label="${escapeAttribute(candidate.name)}, reported score ${escapeAttribute(formatScore(candidate.score))}. ${escapeAttribute(changeAria)}."
+            aria-label="${escapeAttribute(
+              translate(
+                "race_glance.candidate_result",
+                "{name}, reported score {score}. {comparison}.",
+                {
+                  name: candidate.name,
+                  score: formatScore(candidate.score),
+                  comparison: changeAria
+                }
+              )
+            )}"
           >
             <div class="race-candidate">
               ${raceCandidateMarker(candidate.name)}
@@ -12046,7 +12746,7 @@
               class="race-change ${formattedChange.tone}"
               data-fr27-tooltip="${escapeAttribute(formattedChange.meta)}"
               tabindex="0"
-              aria-label="${escapeAttribute(changeAria + ". " + formattedChange.meta)}"
+              aria-label="${escapeAttribute(changeDetail)}"
             >
               <strong>${escapeHtml(changeGlyph + formattedChange.value)}</strong>
             </div>
@@ -12061,9 +12761,24 @@
 
       bars.innerHTML = `
         <div class="race-column-head">
-          <span class="race-column-head-candidate">Candidate</span>
-          <span class="race-column-head-bar">Reported score</span>
-          <span class="race-column-head-result">Result</span>
+          <span class="race-column-head-candidate">${escapeHtml(
+            translate(
+              "race_glance.column_candidate",
+              "CANDIDATE"
+            )
+          )}</span>
+          <span class="race-column-head-bar">${escapeHtml(
+            translate(
+              "race_glance.column_reported_score",
+              "REPORTED SCORE"
+            )
+          )}</span>
+          <span class="race-column-head-result">${escapeHtml(
+            translate(
+              "race_glance.column_result",
+              "RESULT"
+            )
+          )}</span>
           <span
             class="race-column-head-change"
             data-fr27-tooltip="${escapeAttribute(comparisonExplanation)}"
@@ -12074,10 +12789,15 @@
         ${rows}
       `;
 
-      $("#race-more").textContent =
-        `All ${ordered.length} reported ${
-          ordered.length === 1 ? "candidate is" : "candidates are"
-        } available in the scrollable list.`;
+      $("#race-more").textContent = translate(
+        ordered.length === 1
+          ? "race_glance.reported_candidate_one"
+          : "race_glance.reported_candidate_other",
+        ordered.length === 1
+          ? "All {count} reported candidate is available in the scrollable list."
+          : "All {count} reported candidates are available in the scrollable list.",
+        { count: ordered.length }
+      );
 
       requestAnimationFrame(updateRaceScrollFade);
     }
@@ -12108,17 +12828,23 @@
 
     function renderMeta(event) {
       const sample = event.sample_size
-        ? event.sample_size.toLocaleString("en-GB")
-        : "not stated";
+        ? racePollNumber(event.sample_size)
+        : translate(
+            "race_glance.not_stated",
+            "not stated"
+          );
 
       const publication = event.publication_date
-        ? formatDate(event.publication_date)
-        : "not stated in dataset";
+        ? fullRacePollDate(event.publication_date)
+        : translate(
+            "race_glance.not_stated_in_dataset",
+            "not stated in dataset"
+          );
 
-      const fieldwork =
-        formatDate(event.fieldwork_start) +
-        "–" +
-        formatDate(event.fieldwork_end);
+      const fieldwork = raceFieldworkRange(
+        event.fieldwork_start,
+        event.fieldwork_end
+      );
 
       const officialSource = safeSourceUrl(
         event.official_source_url
@@ -12128,27 +12854,54 @@
         officialSource ||
         safeSourceUrl(event.source_url);
 
-      $("#latest-title").textContent =
-        event.pollster + " · Fieldwork " + fieldwork;
+      const fieldworkSummary = translate(
+        "race_glance.fieldwork",
+        "Fieldwork {fieldwork}",
+        { fieldwork }
+      );
+      const latestTitle = $("#latest-title");
+
+      latestTitle.textContent =
+        event.pollster + " · " + fieldworkSummary;
+      latestTitle.setAttribute(
+        "aria-label",
+        translate(
+          "race_glance.poll_summary_aria",
+          "{pollster}. Fieldwork {fieldwork}.",
+          {
+            pollster: event.pollster,
+            fieldwork
+          }
+        )
+      );
 
       const comparisonUnavailable =
-        $("#race-poll-panel").classList.contains(
-          "is-no-comparison"
-        );
+        $("#race-poll-panel").dataset.comparisonState ===
+        "unavailable";
 
       const partialDisclosure = pollPartialDisclosure(event);
 
       $("#latest-sub").textContent =
-        "Sample " +
-        sample +
+        translate(
+          "race_glance.sample_value",
+          "Sample {sample}",
+          { sample }
+        ) +
         (
           event.publication_date
-            ? " · Published " + publication
+            ? " · " + translate(
+                "race_glance.published_value",
+                "Published {date}",
+                { date: publication }
+              )
             : ""
         ) +
         (
           comparisonUnavailable
-            ? " · No comparable prior event"
+            ? " · " + translate(
+                "race_glance.no_comparable_prior_event",
+                "No comparable prior event"
+              )
             : ""
         ) +
         (partialDisclosure ? " · " + partialDisclosure : "");
@@ -12157,20 +12910,28 @@
 
       sourceLink.hidden = !source;
       sourceLink.textContent = officialSource
-        ? "View official poll ↗"
-        : "View full results ↗";
+        ? translate(
+            "race_glance.view_official_poll",
+            "View official poll ↗"
+          )
+        : translate(
+            "race_glance.view_full_results",
+            "View full results ↗"
+          );
 
       if (source) {
         sourceLink.href = source;
         sourceLink.setAttribute(
           "aria-label",
-          (
+          translate(
             officialSource
-              ? "View official "
-              : "View full "
-          ) +
-            event.pollster +
-            " poll results in a new tab"
+              ? "race_glance.view_official_poll_aria"
+              : "race_glance.view_full_results_aria",
+            officialSource
+              ? "View official {pollster} poll results in a new tab"
+              : "View full {pollster} poll results in a new tab",
+            { pollster: event.pollster }
+          )
         );
       } else {
         sourceLink.removeAttribute("href");
@@ -12178,26 +12939,38 @@
       }
 
       $("#meta").innerHTML =
-        "<div>Pollster: <b>" +
+        "<div>" +
+        escapeHtml(translate("race_glance.pollster", "Pollster")) +
+        ": <b>" +
         escapeHtml(event.pollster) +
         "</b></div>" +
-        "<div>Sample: <b>" +
+        "<div>" +
+        escapeHtml(translate("race_glance.sample", "Sample")) +
+        ": <b>" +
         escapeHtml(sample) +
         "</b></div>" +
-        "<div>Fieldwork: <b>" +
+        "<div>" +
+        escapeHtml(translate("race_glance.fieldwork_label", "Fieldwork")) +
+        ": <b>" +
         escapeHtml(fieldwork) +
         "</b></div>" +
-        "<div>Published: <b>" +
+        "<div>" +
+        escapeHtml(translate("race_glance.published", "Published")) +
+        ": <b>" +
         escapeHtml(publication) +
         "</b></div>" +
         (
           partialDisclosure
-            ? '<div class="wide">Coverage: <b>' +
+            ? '<div class="wide">' +
+              escapeHtml(translate("race_glance.coverage", "Coverage")) +
+              ": <b>" +
               escapeHtml(partialDisclosure) +
               "</b></div>"
             : ""
         ) +
-        '<div class="wide">Hypothesis: <b>' +
+        '<div class="wide">' +
+        escapeHtml(translate("race_glance.hypothesis", "Hypothesis")) +
+        ": <b>" +
         escapeHtml(event.hypothesis) +
         "</b></div>" +
         '<div class="wide">' +
@@ -12205,8 +12978,15 @@
           source
             ? '<a href="' +
               escapeAttribute(source) +
-              '" target="_blank" rel="noopener noreferrer">Open source ↗</a>'
-            : "Source unavailable"
+              '" target="_blank" rel="noopener noreferrer">' +
+              escapeHtml(translate("race_glance.open_source", "Open source ↗")) +
+              "</a>"
+            : escapeHtml(
+                translate(
+                  "race_glance.source_unavailable",
+                  "Source unavailable"
+                )
+              )
         ) +
         "</div>";
     }
@@ -12959,6 +13739,7 @@
             "fr27-hud-metric-loading"
           );
           hudPollsNode.removeAttribute("aria-label");
+          hudPollsNode.removeAttribute("data-i18n-aria-label");
         }
 
         raceGlanceState.events = validEvents;
@@ -13046,9 +13827,14 @@
         tablist.replaceChildren();
         tablist.setAttribute("aria-busy", "false");
 
-        $("#latest-title").textContent = "Polling unavailable";
-        $("#latest-sub").textContent =
-          "Latest first-round events could not be loaded.";
+        $("#latest-title").textContent = translate(
+          "dashboard.polling_unavailable",
+          "Polling unavailable"
+        );
+        $("#latest-sub").textContent = translate(
+          "dashboard.latest_first_round_events_could_not_be_loaded",
+          "Latest first-round events could not be loaded."
+        );
 
         const selector = $("#hypothesis-select");
         selector.disabled = true;
@@ -13060,7 +13846,12 @@
 
         $("#bars").innerHTML =
           '<div class="error">' +
-          escapeHtml(error.message) +
+          escapeHtml(
+            translate(
+              "dashboard.poll_data_unavailable",
+              "Poll data unavailable"
+            )
+          ) +
           "</div>";
 
         $("#meta").replaceChildren();
@@ -13087,6 +13878,13 @@
 <script>
 (function () {
   "use strict";
+
+  const hudTranslate = function (key, fallback, parameters) {
+    const localizer = window.FR27I18N;
+    return localizer && typeof localizer.t === "function"
+      ? localizer.t(key, parameters, fallback)
+      : fallback;
+  };
 
   const hud = document.querySelector(
     "#method-disclosure.fr27-app-hud"
@@ -13162,14 +13960,26 @@
         const originalTooltip = shareToggle.dataset.fr27Tooltip;
         const originalLabel = shareToggle.getAttribute("aria-label");
 
-        shareToggle.dataset.fr27Tooltip = "Link copied";
-        shareToggle.setAttribute("aria-label", "Link copied");
+        shareToggle.dataset.fr27Tooltip = hudTranslate(
+          "hud.link_copied",
+          "Link copied"
+        );
+        shareToggle.setAttribute(
+          "aria-label",
+          hudTranslate("hud.link_copied", "Link copied")
+        );
 
         window.setTimeout(() => {
-          shareToggle.dataset.fr27Tooltip = originalTooltip || "Share dashboard";
+          shareToggle.dataset.fr27Tooltip = originalTooltip || hudTranslate(
+            "hud.share_dashboard",
+            "Share dashboard"
+          );
           shareToggle.setAttribute(
             "aria-label",
-            originalLabel || "Share current view"
+            originalLabel || hudTranslate(
+              "hud.share_current_view",
+              "Share current view"
+            )
           );
         }, 1600);
       } catch (error) {
@@ -13277,14 +14087,26 @@
     toggle.setAttribute(
       "aria-label",
       expanded
-        ? "Collapse system dock"
-        : "Expand system dock"
+        ? hudTranslate(
+            "hud.collapse_system_dock",
+            "Collapse system dock"
+          )
+        : hudTranslate(
+            "hud.expand_system_dock",
+            "Expand system dock"
+          )
     );
 
     toggle.dataset.fr27Tooltip =
       expanded
-        ? "Collapse system dock"
-        : "Expand system dock";
+        ? hudTranslate(
+            "hud.collapse_system_dock",
+            "Collapse system dock"
+          )
+        : hudTranslate(
+            "hud.expand_system_dock",
+            "Expand system dock"
+          );
 
     content.setAttribute(
       "aria-hidden",
@@ -13317,10 +14139,12 @@
     if (!timeNode || !dateNode || !zoneNode) return;
 
     const now = new Date();
+    const localeTag =
+      window.FR27I18N?.localeTag || "en-GB";
 
     const timeFormatter =
       new Intl.DateTimeFormat(
-        "en-GB",
+        localeTag,
         {
           timeZone: "Europe/Paris",
           hour: "2-digit",
@@ -13332,7 +14156,7 @@
 
     const dateFormatter =
       new Intl.DateTimeFormat(
-        "en-GB",
+        localeTag,
         {
           timeZone: "Europe/Paris",
           day: "2-digit",
@@ -13343,7 +14167,7 @@
 
     const zoneFormatter =
       new Intl.DateTimeFormat(
-        "en-GB",
+        localeTag,
         {
           timeZone: "Europe/Paris",
           timeZoneName: "shortOffset"
@@ -13360,7 +14184,7 @@
       dateFormatter
         .format(now)
         .replace(",", "")
-        .toUpperCase();
+        .toLocaleUpperCase(localeTag);
 
     const zonePart =
       zoneFormatter
@@ -13390,137 +14214,48 @@
    * elsewhere in the application.
    */
 
-  function fr27HudExtractMetric(labelText) {
-    const target =
-      String(labelText || "").toLowerCase();
-
-    const candidates =
+  /*
+   * Stable-key lookup for compact Media Pulse summary values.
+   * This remains independent of the rendered locale label.
+   */
+  function fr27HudExtractExactMetric(metricKey) {
+    const metrics =
       Array.from(
         document.querySelectorAll(
-          ".context-strip *, #top-media-pulse-metrics *"
+          "#top-media-pulse-metrics [data-media-pulse-metric]"
         )
       );
 
-    const matches =
-      candidates
-        .filter(function (node) {
-          if (hud.contains(node)) return false;
+    const metric =
+      metrics.find(function (node) {
+        return (
+          !hud.contains(node) &&
+          node.getAttribute("data-media-pulse-metric") ===
+            metricKey
+        );
+      });
 
-          const value =
-            String(node.textContent || "")
-              .replace(/\s+/g, " ")
-              .trim()
-              .toLowerCase();
+    if (!metric) return null;
 
-          return (
-            value.includes(target) &&
-            value.length < 180
-          );
-        })
-        .sort(function (a, b) {
-          return (
-            String(a.textContent || "").length -
-            String(b.textContent || "").length
-          );
-        });
+    const valueNode = metric.querySelector("strong");
+    const digits = String(valueNode?.textContent || "")
+      .replace(/[^\d]/g, "");
 
-    for (const node of matches) {
-      let current = node;
-
-      for (
-        let depth = 0;
-        depth < 4 && current;
-        depth += 1
-      ) {
-        const value =
-          String(current.textContent || "")
-            .replace(/\u00a0/g, " ")
-            .replace(/\s+/g, " ")
-            .trim();
-
-        const number =
-          value.match(/\b\d[\d\s,.]*\b/);
-
-        if (number) {
-          const digits =
-            number[0].replace(/[^\d]/g, "");
-
-          if (digits) return digits;
-        }
-
-        current = current.parentElement;
-      }
-    }
-
-    return null;
+    return digits || null;
   }
 
-  /*
-   * Exact-label metric lookup for compact Media Pulse summary values.
-   * This deliberately avoids headings such as "TOP PUBLISHERS".
-   */
-  function fr27HudExtractExactMetric(labelTexts) {
-    const targets =
-      (Array.isArray(labelTexts) ? labelTexts : [labelTexts])
-        .map(function (value) {
-          return String(value || "")
-            .replace(/\s+/g, " ")
-            .trim()
-            .toLowerCase();
-        });
+  function fr27HudExtractContextMetric(metricKey) {
+    const metric = Array.from(
+      document.querySelectorAll("[data-context-metric]")
+    ).find(function (node) {
+      return node.getAttribute("data-context-metric") === metricKey;
+    });
+    if (!metric || hud.contains(metric)) return null;
 
-    const candidates =
-      Array.from(
-        document.querySelectorAll(
-          "#top-media-pulse-metrics *"
-        )
-      );
-
-    for (const target of targets) {
-      const labels =
-        candidates.filter(function (node) {
-          if (hud.contains(node)) return false;
-
-          const value =
-            String(node.textContent || "")
-              .replace(/\u00a0/g, " ")
-              .replace(/\s+/g, " ")
-              .trim()
-              .toLowerCase();
-
-          return value === target;
-        });
-
-      for (const node of labels) {
-        let current = node.parentElement;
-
-        for (
-          let depth = 0;
-          depth < 3 && current;
-          depth += 1
-        ) {
-          const value =
-            String(current.textContent || "")
-              .replace(/\u00a0/g, " ")
-              .replace(/\s+/g, " ")
-              .trim();
-
-          const number =
-            value.match(/\b\d[\d\s,.]*\b/);
-
-          if (number) {
-            const digits =
-              number[0].replace(/[^\d]/g, "");
-
-            if (digits) return digits;
-          }
-
-          current = current.parentElement;
-        }
-      }
-    }
-
-    return null;
+    const digits = String(metric.textContent || "")
+      .match(/\b\d[\d\s,.]*\b/)?.[0]
+      ?.replace(/[^\d]/g, "");
+    return digits || null;
   }
 
   function fr27HudRefreshMetrics() {
@@ -13540,16 +14275,13 @@
       hud.querySelector("#fr27-hud-candidate-watch-value");
 
     const domains =
-      fr27HudExtractMetric(
-        "approved publisher domains"
+      fr27HudExtractContextMetric(
+        "approved_publisher_domains"
       );
 
     const news =
       fr27HudExtractExactMetric(
-        ["accepted news"]
-      ) ||
-      fr27HudExtractMetric(
-        "accepted news"
+        "media_pulse.metric.accepted_news"
       );
 
     /*
@@ -13558,23 +14290,17 @@
      */
     const publishers =
       fr27HudExtractExactMetric(
-        ["publishers"]
+        "media_pulse.metric.publishers"
       );
 
     const recent =
       fr27HudExtractExactMetric(
-        ["recent 14d", "recent (14d)"]
-      ) ||
-      fr27HudExtractMetric(
-        "recent 14d"
+        "media_pulse.metric.recent_14d"
       );
 
     const candidateWatch =
       fr27HudExtractExactMetric(
-        ["candidate-watch", "candidate watch"]
-      ) ||
-      fr27HudExtractMetric(
-        "candidate-watch"
+        "media_pulse.metric.candidate_watch"
       );
 
     const resolveHudMetric = function (node, value) {
@@ -13582,6 +14308,7 @@
       node.textContent = value;
       node.classList.remove("fr27-hud-metric-loading");
       node.removeAttribute("aria-label");
+      node.removeAttribute("data-i18n-aria-label");
     };
 
     if (domains && domainsNode) {
@@ -13605,6 +14332,11 @@
     }
   }
   fr27HudRefreshMetrics();
+
+  document.addEventListener(
+    "hybrid:dataset",
+    fr27HudRefreshMetrics
+  );
 
   window.setTimeout(
     fr27HudRefreshMetrics,
@@ -13705,20 +14437,32 @@
               field.remove();
             }
 
-            contactCopy.textContent = "COPIED";
+            contactCopy.textContent = hudTranslate(
+              "hud.copied",
+              "COPIED"
+            );
 
             window.setTimeout(
               function () {
-                contactCopy.textContent = "COPY ADDRESS";
+                contactCopy.textContent = hudTranslate(
+                  "hud.copy_address",
+                  "COPY ADDRESS"
+                );
               },
               1600
             );
           } catch (_) {
-            contactCopy.textContent = "COPY FAILED";
+            contactCopy.textContent = hudTranslate(
+              "hud.copy_failed",
+              "COPY FAILED"
+            );
 
             window.setTimeout(
               function () {
-                contactCopy.textContent = "COPY ADDRESS";
+                contactCopy.textContent = hudTranslate(
+                  "hud.copy_address",
+                  "COPY ADDRESS"
+                );
               },
               1600
             );

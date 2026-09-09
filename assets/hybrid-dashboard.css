@@ -14350,13 +14350,13 @@ border: 0;
   .hybrid-panel#signal-runoff-panel
     *:has(> .hybrid-runoff-other-card)::before {
     left: 8px;
-    content: "MATCHUP";
+    content: attr(data-matchup-label);
   }
 
   .hybrid-panel#signal-runoff-panel
     *:has(> .hybrid-runoff-other-card)::after {
     right: 28px;
-    content: "LATEST RESULT ┬╖ BALANCE";
+    content: attr(data-latest-result-label);
     text-align: right;
   }
 }

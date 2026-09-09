@@ -5,6 +5,17 @@
   let returnFocus = null;
   let records = [];
 
+  const localizer = globalThis.FR27I18N;
+  const localeTag =
+    localizer && localizer.localeTag
+      ? localizer.localeTag
+      : document.documentElement.lang || "fr";
+
+  const translate = (key, fallback, parameters) =>
+    localizer && typeof localizer.t === "function"
+      ? localizer.t(key, parameters, fallback)
+      : fallback;
+
   const state = {
     query: "",
     publisher: "",
@@ -13,7 +24,7 @@
   };
 
   const collator = new Intl.Collator(
-    "fr",
+    localeTag,
     {
       sensitivity: "base"
     }
@@ -64,10 +75,10 @@
   const formatRecordDay = value => {
     const parsed = parseTimestamp(value);
 
-    if (!parsed) return "Date unavailable";
+    if (!parsed) return translate("coverage_modal.date_unavailable", "Date unavailable");
 
     return new Intl.DateTimeFormat(
-      "en-GB",
+      localeTag,
       {
         day: "2-digit",
         month: "short",
@@ -83,7 +94,7 @@
     if (!parsed) return "";
 
     return new Intl.DateTimeFormat(
-      "en-GB",
+      localeTag,
       {
         hour: "2-digit",
         minute: "2-digit",
@@ -96,10 +107,10 @@
   const formatTimestamp = value => {
     const parsed = parseTimestamp(value);
 
-    if (!parsed) return "Unavailable";
+    if (!parsed) return translate("coverage_modal.unavailable", "Unavailable");
 
     return new Intl.DateTimeFormat(
-      "en-GB",
+      localeTag,
       {
         day: "2-digit",
         month: "short",
@@ -140,19 +151,29 @@
         const parsed =
           parseTimestamp(publishedAt);
 
+        const unknownPublisher = translate(
+          "coverage_modal.unknown_publisher",
+          "Unknown publisher"
+        );
+
+        const untitledRecord = translate(
+          "coverage_modal.untitled_coverage_record",
+          "Untitled coverage record"
+        );
+
         const publisher =
           String(
             item?.publisher ||
-            "Unknown publisher"
+            unknownPublisher
           ).trim() ||
-          "Unknown publisher";
+          unknownPublisher;
 
         const headline =
           String(
             item?.headline ||
-            "Untitled coverage record"
+            untitledRecord
           ).trim() ||
-          "Untitled coverage record";
+          untitledRecord;
 
         const candidates =
           candidateNames(item);
@@ -212,7 +233,7 @@
     return `
       <div
         class="ecm-feed-tags"
-        aria-label="Associated candidates"
+        aria-label="${escapeAttribute(translate("coverage_modal.associated_candidates", "Associated candidates"))}"
       >
         ${record.candidates
           .slice(0, 3)
@@ -234,7 +255,12 @@
     if (!href) {
       return `
         <span class="ecm-source-unavailable">
-          Source unavailable
+          ${escapeHtml(
+            translate(
+              "coverage_modal.source_unavailable",
+              "Source unavailable"
+            )
+          )}
         </span>
       `;
     }
@@ -246,7 +272,12 @@
         target="_blank"
         rel="noopener noreferrer"
       >
-        Open source
+        ${escapeHtml(
+          translate(
+            "coverage_modal.open_source",
+            "Open source"
+          )
+        )}
         <span aria-hidden="true">↗</span>
       </a>
     `;
@@ -362,10 +393,21 @@
 
   const resultLabel = count => {
     if (!hasActiveCoverageFilters()) {
-      return `All ${records.length}`;
+      return translate(
+        "coverage_modal.all_results",
+        "All {count}",
+        { count: records.length }
+      );
     }
 
-    return `Showing ${count} of ${records.length}`;
+    return translate(
+      "coverage_modal.showing_results",
+      "Showing {shown} of {total}",
+      {
+        shown: count,
+        total: records.length
+      }
+    );
   };
 
   const updateFeed = () => {
@@ -395,10 +437,21 @@
             class="ecm-empty"
             role="status"
           >
-            <strong>No matching coverage</strong>
+            <strong>
+              ${escapeHtml(
+                translate(
+                  "coverage_modal.no_matching_coverage",
+                  "No matching coverage"
+                )
+              )}
+            </strong>
             <span>
-              Adjust the search or filters to
-              show recent records.
+              ${escapeHtml(
+                translate(
+                  "coverage_modal.adjust_search_or_filters",
+                  "Adjust the search or filters to show recent records."
+                )
+              )}
             </span>
           </div>
         `;
@@ -466,7 +519,7 @@
       );
 
     if (!dated.length) {
-      return "Unavailable";
+      return translate("coverage_modal.unavailable", "Unavailable");
     }
 
     const oldest = dated[0];
@@ -516,7 +569,7 @@
             class="ecm-visually-hidden"
             for="ecm-search"
           >
-            Search coverage
+            ${escapeHtml(translate("coverage_modal.search_coverage", "Search coverage"))}
           </label>
 
           <span aria-hidden="true">⌕</span>
@@ -524,7 +577,7 @@
           <input
             id="ecm-search"
             type="search"
-            placeholder="Search coverage"
+            placeholder="${escapeAttribute(translate("coverage_modal.search_coverage", "Search coverage"))}"
             autocomplete="off"
             data-ecm-search
             aria-controls="ecm-feed-list"
@@ -536,7 +589,7 @@
             class="ecm-visually-hidden"
             for="ecm-publisher"
           >
-            Filter by publisher
+            ${escapeHtml(translate("coverage_modal.filter_by_publisher", "Filter by publisher"))}
           </label>
 
           <select
@@ -545,7 +598,7 @@
             aria-controls="ecm-feed-list"
           >
             <option value="">
-              All publishers
+              ${escapeHtml(translate("coverage_modal.all_publishers", "All publishers"))}
             </option>
 
             ${optionMarkup(publishers)}
@@ -560,7 +613,7 @@
                   class="ecm-visually-hidden"
                   for="ecm-candidate"
                 >
-                  Filter by candidate
+                  ${escapeHtml(translate("coverage_modal.filter_by_candidate", "Filter by candidate"))}
                 </label>
 
                 <select
@@ -569,7 +622,7 @@
                   aria-controls="ecm-feed-list"
                 >
                   <option value="">
-                    All candidates
+                    ${escapeHtml(translate("coverage_modal.all_candidates", "All candidates"))}
                   </option>
 
                   ${optionMarkup(candidates)}
@@ -584,7 +637,7 @@
             class="ecm-visually-hidden"
             for="ecm-sort"
           >
-            Sort coverage
+            ${escapeHtml(translate("coverage_modal.sort_coverage", "Sort coverage"))}
           </label>
 
           <select
@@ -593,11 +646,11 @@
             aria-controls="ecm-feed-list"
           >
             <option value="newest">
-              Newest first
+              ${escapeHtml(translate("coverage_modal.newest_first", "Newest first"))}
             </option>
 
             <option value="oldest">
-              Oldest first
+              ${escapeHtml(translate("coverage_modal.oldest_first", "Oldest first"))}
             </option>
           </select>
         </div>
@@ -609,7 +662,7 @@
       <section
         class="ecm-tab-panel ecm-coverage-panel"
         id="ecm-coverage-panel"
-        aria-label="Election coverage"
+        aria-label="${escapeAttribute(translate("coverage_modal.election_coverage", "Election coverage"))}"
       >
         ${renderToolbar()}
 
@@ -620,29 +673,58 @@
           <header class="ecm-feed-header">
             <div class="ecm-feed-heading">
               <h3 id="ecm-feed-title">
-                Recent election coverage
+                ${escapeHtml(translate("coverage_modal.recent_election_coverage", "Recent election coverage"))}
               </h3>
 
               <div
                 class="ecm-feed-meta"
-                aria-label="Coverage summary"
+                aria-label="${escapeAttribute(translate("coverage_modal.coverage_summary", "Coverage summary"))}"
               >
                 <span>
-                  ${records.length} records
+                  ${records.length}
+                  ${escapeHtml(
+                    translate(
+                      records.length === 1
+                        ? "coverage_modal.record"
+                        : "coverage_modal.records",
+                      records.length === 1
+                        ? "record"
+                        : "records"
+                    )
+                  )}
                 </span>
 
                 <span>
                   ${publisherCounts().length}
-                  publishers
+                  ${escapeHtml(
+                    translate(
+                      publisherCounts().length === 1
+                        ? "coverage_modal.publisher"
+                        : "coverage_modal.publishers",
+                      publisherCounts().length === 1
+                        ? "publisher"
+                        : "publishers"
+                    )
+                  )}
                 </span>
 
                 <span>
                   ${latest24HourCount()}
-                  latest 24h
+                  ${escapeHtml(
+                    translate(
+                      "coverage_modal.latest_24h",
+                      "latest 24h"
+                    )
+                  )}
                 </span>
 
                 <span>
-                  Coverage window ·
+                  ${escapeHtml(
+                    translate(
+                      "coverage_modal.coverage_window",
+                      "Coverage window"
+                    )
+                  )} ·
                   ${escapeHtml(
                     coverageWindowLabel()
                   )}
@@ -663,7 +745,7 @@
             id="ecm-feed-list"
             data-ecm-feed-list
             role="feed"
-            aria-label="Recent accepted election coverage"
+            aria-label="${escapeAttribute(translate("coverage_modal.recent_accepted_election_coverage", "Recent accepted election coverage"))}"
             tabindex="0"
           ></div>
         </section>
@@ -673,13 +755,28 @@
         <span aria-hidden="true">ⓘ</span>
 
         <span>
-          Source-linked automated collection
-          · No editorial verification
+          ${escapeHtml(
+            translate(
+              "coverage_modal.source_linked_automated_collection",
+              "Source-linked automated collection"
+            )
+          )}
+          ·
+          ${escapeHtml(
+            translate(
+              "coverage_modal.no_editorial_verification",
+              "No editorial verification"
+            )
+          )}
         </span>
 
         <span>
-          Coverage is not a representative
-          measure of all French media
+          ${escapeHtml(
+            translate(
+              "coverage_modal.not_representative_of_all_french_media",
+              "Coverage is not a representative measure of all French media"
+            )
+          )}
         </span>
       </footer>
     </div>
@@ -838,12 +935,21 @@
             <header class="ecm-header">
               <div class="ecm-heading">
                 <h2 id="ecm-title">
-                  Media Pulse / Election Coverage
+                  ${escapeHtml(
+                    translate(
+                      "coverage_modal.title",
+                      "Media Pulse / Election Coverage"
+                    )
+                  )}
                 </h2>
 
                 <p id="ecm-subtitle">
-                  Recent accepted reporting from
-                  monitored sources
+                  ${escapeHtml(
+                    translate(
+                      "coverage_modal.subtitle",
+                      "Recent accepted reporting from monitored sources"
+                    )
+                  )}
                 </p>
               </div>
 
@@ -856,7 +962,7 @@
                 <button
                   class="ecm-close"
                   type="button"
-                  aria-label="Close election coverage"
+                  aria-label="${escapeAttribute(translate("coverage_modal.close_election_coverage", "Close election coverage"))}"
                   data-ecm-close
                 >
                   ×
@@ -972,7 +1078,13 @@
     modal.querySelector(
       "[data-ecm-updated]"
     ).textContent =
-      `Updated: ${formatTimestamp(updated)}`;
+      translate(
+        "coverage_modal.updated",
+        "Updated: {date}",
+        {
+          date: formatTimestamp(updated)
+        }
+      );
 
     modal
       .querySelector(".ecm-body")

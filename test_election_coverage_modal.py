@@ -252,14 +252,25 @@ class ElectionCoverageModalTests(
             self.modal_js,
         )
 
+        result_label_start = self.modal_js.index(
+            "const resultLabel ="
+        )
+        result_label = self.modal_js[
+            result_label_start:
+            self.modal_js.index(
+                "const updateFeed =",
+                result_label_start,
+            )
+        ]
+
         for contract in (
             "hasActiveCoverageFilters",
-            "`All ${records.length}`",
-            "`Showing ${count} of ${records.length}`",
+            '"coverage_modal.all_results"',
+            '"coverage_modal.showing_results"',
         ):
             self.assertIn(
                 contract,
-                self.modal_js,
+                result_label,
             )
 
         self.assertIn(
@@ -275,7 +286,6 @@ class ElectionCoverageModalTests(
 
         for contract in (
             'class="ecm-feed-meta"',
-            "Coverage window ·",
             'class="ecm-feed-results"',
             "list.scrollTop = 0;",
         ):
@@ -283,6 +293,11 @@ class ElectionCoverageModalTests(
                 contract,
                 self.modal_js,
             )
+
+        self.assertRegex(
+            self.modal_js,
+            r'translate\(\s*"coverage_modal\.coverage_window"',
+        )
 
         self.assertNotIn("data-fr27-tooltip", self.modal_js)
 
@@ -312,7 +327,6 @@ class ElectionCoverageModalTests(
     def test_modal_uses_single_coverage_view(self):
         for contract in (
             'class="ecm-tab-panel ecm-coverage-panel"',
-            'aria-label="Election coverage"',
             'class="ecm-feed-meta"',
             "renderToolbar()",
             "updateFeed()",
@@ -321,6 +335,12 @@ class ElectionCoverageModalTests(
                 contract,
                 self.modal_js,
             )
+
+        self.assertRegex(
+            self.modal_js,
+            r'aria-label="\$\{escapeAttribute\(translate\('
+            r'\s*"coverage_modal\.election_coverage"',
+        )
 
         for removed in (
             "Coverage Intelligence",

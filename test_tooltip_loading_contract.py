@@ -83,16 +83,21 @@ class UnifiedTooltipContractTests(unittest.TestCase):
         ]
         self.assertIn('setAttribute("data-fr27-tooltip"', explanatory_helper)
         self.assertIn('setAttribute("tabindex", "0")', explanatory_helper)
-        for label in (
-            "Agenda methodology",
-            "Policy Issues methodology",
-            "Schedule methodology",
-            "Event evidence methodology",
+        for translation_key in (
+            "agenda_workspace.methodology_label",
+            "policy_workspace.methodology_label",
+            "events_workspace.schedule_methodology_aria",
+            "events_workspace.evidence_methodology_aria",
         ):
-            self.assertRegex(
-                HYBRID,
-                rf'<button[^>]+aria-label="{re.escape(label)}"[^>]+data-fr27-tooltip',
-            )
+            translation = HYBRID.index(f'translate("{translation_key}"')
+            tag_start = HYBRID.rfind("<button", 0, translation)
+            tag_end = HYBRID.index(">", translation)
+            self.assertGreaterEqual(tag_start, 0)
+            markup = HYBRID[tag_start : tag_end + 1]
+            self.assertIn('type="button"', markup)
+            self.assertIn("aria-label=", markup)
+            self.assertIn(f'translate("{translation_key}"', markup)
+            self.assertIn("data-fr27-tooltip=", markup)
 
     def test_hud_metrics_have_explicit_explanatory_info_triggers(self):
         expected = {
@@ -122,9 +127,18 @@ class UnifiedTooltipContractTests(unittest.TestCase):
             self.assertNotIn("fr27-info-glyph", markup)
             self.assertNotIn('aria-hidden="true"', markup)
 
-        self.assertIn("<span>domains</span>", INDEX)
-        self.assertIn("<span>polls</span>", INDEX)
-        self.assertIn("<span>PUBLISHERS</span>", INDEX)
+        self.assertIn(
+            '<span data-i18n="hud.domains">domains</span>',
+            INDEX,
+        )
+        self.assertIn(
+            '<span data-i18n="hud.polls">polls</span>',
+            INDEX,
+        )
+        self.assertIn(
+            '<span data-i18n="media_pulse.metric.publishers">PUBLISHERS</span>',
+            INDEX,
+        )
     def test_semantic_metadata_avoids_repeated_passive_tooltips(self):
         helper = CANDIDATES[
             CANDIDATES.index("function semanticMetadata") :

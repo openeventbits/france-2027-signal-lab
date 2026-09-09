@@ -567,7 +567,7 @@ class PolicyAgendaFrontendTests(
         )
 
         self.assertIn(
-            'label: "ISSUES"',
+            'label: translate("signal_board.issues", "ISSUES")',
             source,
         )
 
