@@ -2956,90 +2956,17 @@
   }
 }
 
-/* Legacy tablet layout only. Desktop begins at 1024px and always uses the
-   canonical Monitor / Analysis / Dossier three-column composition above. */
-@media (min-width: 760px) and (max-width: 1023px) {
-  .candidate-signals-workspace {
-    grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
-    grid-template-rows: auto auto;
-    align-items: start;
-  }
-
-  .candidate-signals-monitor {
-    position: sticky;
-    top: 8px;
-    max-height: calc(100vh - 24px);
-    grid-column: 1;
-    grid-row: 1 / span 2;
-    overflow: hidden;
-  }
-
-  .candidate-signals-analysis {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  .candidate-signals-dossier {
-    grid-column: 2;
-    grid-row: 2;
-  }
-
-  .candidate-signals-analysis-cards,
-  .candidate-signals-dossier-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .candidate-signals-dossier-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .candidate-signals-dossier-metric:nth-child(2) {
-    border-right: 0;
-  }
-
-  .candidate-signals-dossier-metric:nth-child(-n + 2) {
-    border-bottom: 1px solid rgba(31, 75, 101, 0.5);
-  }
-}
+/* The former 760–1023px two-column fallback was retired. Tier 3 now owns
+   the complete sub-1024px Candidate workspace presentation. */
 
 @media (max-width: 759px) {
-  .candidate-signals-workspace {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .candidate-signals-monitor {
-    position: static;
-    max-height: none;
-  }
-
-  .candidate-signals-monitor-list {
-    max-height: min(68vh, 660px);
-  }
-
-  .candidate-signals-analysis-cards,
   .candidate-signals-dossier-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .candidate-signals-analysis-lower {
-    grid-template-columns: minmax(0, 1fr);
   }
 
   .candidate-signals-latest-development {
     border-top: 1px solid rgba(31, 75, 101, 0.46);
     border-left: 0;
-  }
-
-  .candidate-signals-dossier-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .candidate-signals-dossier-metric:nth-child(2) {
-    border-right: 0;
-  }
-
-  .candidate-signals-dossier-metric:nth-child(-n + 2) {
-    border-bottom: 1px solid rgba(31, 75, 101, 0.5);
   }
 
   .candidate-signals-dossier-details-content {
@@ -3048,36 +2975,15 @@
 }
 
 @media (max-width: 560px) {
-  .candidate-signals-analysis-cards,
   .candidate-signals-dossier-grid,
-  .candidate-signals-dossier-metrics,
   .candidate-signals-scrutiny-overview-grid,
   .candidate-signals-scrutiny-overview-groups {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .candidate-signals-analysis-card {
-    border-right: 0;
-    border-bottom: 1px solid rgba(31, 75, 101, 0.48);
-  }
-
-  .candidate-signals-analysis-card:last-child {
-    border-bottom: 0;
-  }
-
   .candidate-signals-dossier-card,
   .candidate-signals-dossier-details {
     grid-column: auto;
-  }
-
-  .candidate-signals-dossier-metric,
-  .candidate-signals-dossier-metric:nth-child(2) {
-    border-right: 0;
-    border-bottom: 1px solid rgba(31, 75, 101, 0.5);
-  }
-
-  .candidate-signals-dossier-metric:last-child {
-    border-bottom: 0;
   }
 
   .candidate-signals-dossier-visibility-content,

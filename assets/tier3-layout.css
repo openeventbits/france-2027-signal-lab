@@ -1439,7 +1439,7 @@
  *
  * No data, state, typography or lower Dossier modules change.
  * ========================================================= */
-@media (700px <= width < 1024px) {
+@media (width < 1024px) {
 
   html.fr27-tier3-active
     #signal-candidates-panel
@@ -1548,7 +1548,7 @@
  *
  * Selected Analysis is intentionally untouched.
  * ========================================================= */
-@media (700px <= width < 1024px) {
+@media (width < 1024px) {
 
   /*
    * Remove Scrutiny from the four-cell headline metric bank.
@@ -1623,7 +1623,7 @@
  * Compact identity + three KPI summary.
  * KPI cells are vertically and horizontally aligned.
  * ========================================================= */
-@media (700px <= width < 1024px) {
+@media (width < 1024px) {
 
   html.fr27-tier3-active
     #signal-candidates-panel
@@ -1734,7 +1734,7 @@
  * KPI value is centered beneath them.
  * Tooltip behavior remains unchanged.
  * ========================================================= */
-@media (700px <= width < 1024px) {
+@media (width < 1024px) {
 
   html.fr27-tier3-active
     #signal-candidates-panel
@@ -1922,7 +1922,7 @@
  * Evidence Structure + Latest Development are intentionally
  * omitted here because Tier-3 Dossier already presents them.
  * ========================================================= */
-@media (700px <= width < 1024px) {
+@media (width < 1024px) {
 
   /* -------------------------------------------------------
    * ANALYSIS PANEL CONTRACT
@@ -2370,7 +2370,7 @@
  * Keep the V1 recomposition but remove the premature
  * nested scrolling contract while geometry is being reviewed.
  * ========================================================= */
-@media (700px <= width < 1024px) {
+@media (width < 1024px) {
 
   html.fr27-tier3-active
     #signal-candidates-panel
@@ -2402,7 +2402,7 @@
  * - soften the Agenda comparison divider
  * - preserve all existing geometry
  * ========================================================= */
-@media (700px <= width < 1024px) {
+@media (width < 1024px) {
 
   /* -------------------------------------------------------
    * POLL HISTORY SUPPORT METADATA
@@ -3130,7 +3130,7 @@
  * Existing Agenda renderers, visuals, data and interactions
  * remain untouched.
  * ========================================================= */
-@media (700px <= width < 1024px) {
+@media (width < 1024px) {
 
   /* -------------------------------------------------------
    * PANEL ROOT
@@ -3428,7 +3428,7 @@
  * No permanent Policy Monitor panel.
  * One major analytical panel per row.
  * ========================================================= */
-@media (700px <= width < 1024px) {
+@media (width < 1024px) {
 
   html.fr27-tier3-active
     #signal-issues-panel {
@@ -5042,7 +5042,7 @@
  * Body geometry is already correct and is intentionally
  * untouched here.
  * ========================================================= */
-@media (700px <= width < 720px) {
+@media (431px <= width < 720px) {
 
   html.fr27-tier3-active
     #signal-candidates-panel
@@ -5066,7 +5066,7 @@
 }
 
 /* =========================================================
- * TIER 3 AGENDA — HOLD PANEL HEADERS THROUGH 700
+ * TIER 3 AGENDA + ISSUES — HOLD PANEL HEADERS ABOVE NARROW MODE
  *
  * Legacy max-width:719px generic header rules stack these
  * panel headers vertically.
@@ -5075,12 +5075,12 @@
  *
  * title                                  context / evidence
  *
- * Agenda analytical content is intentionally untouched.
+ * Analytical content is intentionally untouched.
  * ========================================================= */
-@media (700px <= width < 720px) {
+@media (431px <= width < 720px) {
 
   html.fr27-tier3-active
-    #signal-agenda-panel
+    :is(#signal-agenda-panel, #signal-issues-panel)
     .hybrid-agenda-v6-panel-head {
 
     display: flex !important;
@@ -5098,7 +5098,7 @@
 
 
   html.fr27-tier3-active
-    #signal-agenda-panel
+    :is(#signal-agenda-panel, #signal-issues-panel)
     .hybrid-agenda-v6-panel-head
     h3 {
 
@@ -5108,7 +5108,7 @@
 
 
   html.fr27-tier3-active
-    #signal-agenda-panel
+    :is(#signal-agenda-panel, #signal-issues-panel)
     .hybrid-agenda-v6-panel-head
     > :last-child {
 
@@ -5254,5 +5254,170 @@
 @media (width < 390px) {
   html.fr27-tier3-active .changes-ledger-toolbar {
     width: 100%;
+  }
+}
+
+/* =========================================================
+ * TIER 3 WORKSPACE CONVERGENCE — PROGRESSIVE NARROW REFLOW
+ *
+ * Preserve the approved workspace shells below 700px. Only
+ * the component-local structures that reach a measured fit
+ * limit change composition.
+ * ========================================================= */
+
+/* Candidate identity clears the three-KPI bank at its first fit limit. */
+@media (width <= 660px) {
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-dossier-body {
+
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto !important;
+  }
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-dossier-identity {
+
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+  }
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-dossier-metrics {
+
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+  }
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-dossier-metric {
+
+    grid-template-columns: minmax(0, 1fr) 14px !important;
+  }
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-dossier-metric-label {
+
+    max-width: 100% !important;
+    white-space: normal !important;
+  }
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-dossier-grid {
+
+    grid-column: 1 !important;
+    grid-row: 3 !important;
+  }
+}
+
+/* Candidate analysis pairs become sequential without restoring the legacy workspace. */
+@media (width <= 430px) {
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-region-header {
+
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    min-height: 54px !important;
+  }
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-analysis-cards.has-agenda-profile
+    > .candidate-signals-poll-summary {
+
+    grid-column: 1 / 13 !important;
+    grid-row: 1 !important;
+    border-right: 0 !important;
+  }
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-analysis-cards.has-agenda-profile
+    > .candidate-signals-poll-history-summary {
+
+    grid-column: 1 / 13 !important;
+    grid-row: 2 !important;
+  }
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-analysis-cards.has-agenda-profile
+    > .candidate-signals-agenda-summary:nth-child(3) {
+
+    grid-column: 1 / 13 !important;
+    grid-row: 3 !important;
+    border-right: 0 !important;
+  }
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-analysis-cards.has-agenda-profile
+    > .candidate-signals-agenda-summary:nth-child(4) {
+
+    grid-column: 1 / 13 !important;
+    grid-row: 4 !important;
+  }
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-analysis-cards.has-agenda-profile
+    > .candidate-signals-attention-summary {
+
+    grid-column: 1 / 13 !important;
+    grid-row: 5 !important;
+  }
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-analysis-cards.has-agenda-profile
+    > .candidate-signals-composition-card {
+
+    grid-column: 1 / 13 !important;
+    grid-row: 6 !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid rgba(35, 86, 114, .58) !important;
+  }
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-analysis-cards.has-agenda-profile
+    > .candidate-signals-scrutiny-summary {
+
+    grid-column: 1 / 13 !important;
+    grid-row: 7 !important;
+  }
+
+  /* Agenda and Issues share one narrow header contract. */
+  html.fr27-tier3-active
+    :is(#signal-agenda-panel, #signal-issues-panel)
+    .hybrid-agenda-v6-panel-head {
+
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    padding: 6px 11px !important;
+  }
+
+  html.fr27-tier3-active
+    :is(#signal-agenda-panel, #signal-issues-panel)
+    .hybrid-agenda-v6-panel-head
+    > :last-child {
+
+    margin-left: 0 !important;
   }
 }

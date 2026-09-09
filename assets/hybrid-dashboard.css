@@ -3679,10 +3679,12 @@
   font-size: 11px;
 }
 
-:is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
-  .hybrid-agenda-v6-detail-grid {
-  grid-template-columns: minmax(0, 41fr) minmax(0, 59fr);
-  gap: 5px;
+@media (min-width: 431px) {
+  :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier
+    .hybrid-agenda-v6-detail-grid {
+    grid-template-columns: minmax(0, 41fr) minmax(0, 59fr);
+    gap: 5px;
+  }
 }
 
 :is(.hybrid-panel#signal-agenda-panel, .hybrid-panel#signal-issues-panel) .hybrid-agenda-v6-dossier

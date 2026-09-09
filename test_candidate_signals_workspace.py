@@ -13,6 +13,7 @@ INDEX = ROOT / "index.html"
 MODEL_JS = ROOT / "assets" / "candidate-signals.js"
 WORKSPACE_JS = ROOT / "assets" / "candidate-signals-workspace.js"
 WORKSPACE_CSS = ROOT / "assets" / "candidate-signals.css"
+TIER3_CSS = ROOT / "assets" / "tier3-layout.css"
 HYBRID_JS = ROOT / "assets" / "hybrid-dashboard.js"
 CANDIDATE_JSON = ROOT / "candidate_signals.json"
 
@@ -998,6 +999,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         cls.model_js = MODEL_JS.read_text(encoding="utf-8")
         cls.workspace_js = WORKSPACE_JS.read_text(encoding="utf-8")
         cls.css = WORKSPACE_CSS.read_text(encoding="utf-8")
+        cls.tier3_css = TIER3_CSS.read_text(encoding="utf-8")
         cls.hybrid_js = HYBRID_JS.read_text(encoding="utf-8")
         cls.rows = [
             candidate("zeta", "Zeta Candidate"),
@@ -2029,17 +2031,14 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         self.assertIn('node.setAttribute("role", "status");', self.workspace_js)
         self.assertNotIn("state.reason", self.workspace_js)
 
-    def test_desktop_legacy_tablet_and_mobile_geometry(self):
+    def test_desktop_and_progressive_tier3_geometry(self):
         desktop_start = self.css.index("@media (min-width: 1024px)")
-        tablet_start = self.css.index(
-            "@media (min-width: 760px) and (max-width: 1023px)"
-        )
         mobile_start = self.css.index("@media (max-width: 759px)")
 
         base = self.css[:desktop_start]
-        desktop = self.css[desktop_start:tablet_start]
-        tablet = self.css[tablet_start:mobile_start]
+        desktop = self.css[desktop_start:mobile_start]
         mobile = self.css[mobile_start:]
+        first_mobile_block = mobile[: mobile.index("@media (max-width: 560px)")]
 
         for token in (
             "minmax(0, 27fr)",
@@ -2062,18 +2061,16 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         self.assertNotIn("height: 620px;", self.css)
         self.assertNotIn("height: 360px;", self.css)
 
-        self.assertIn(
-            "grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);",
-            tablet,
+        self.assertNotIn(
+            "@media (min-width: 760px) and (max-width: 1023px)",
+            self.css,
         )
-        self.assertIn(".candidate-signals-analysis", tablet)
-        self.assertIn(".candidate-signals-dossier", tablet)
-
-        self.assertIn(
-            "grid-template-columns: minmax(0, 1fr);",
-            mobile,
-        )
-        self.assertIn("position: static;", mobile)
+        self.assertNotIn(".candidate-signals-workspace {", first_mobile_block)
+        self.assertNotIn(".candidate-signals-monitor {", first_mobile_block)
+        self.assertIn("@media (width <= 660px)", self.tier3_css)
+        self.assertIn("@media (width <= 430px)", self.tier3_css)
+        self.assertIn(".candidate-signals-dossier-body", self.tier3_css)
+        self.assertIn(".candidate-signals-analysis-cards.has-agenda-profile", self.tier3_css)
         self.assertEqual(self.workspace_js.count("candidateMonitor("), 2)
         self.assertNotIn('createElement("table"', self.workspace_js)
 
@@ -4130,10 +4127,8 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
 
     def test_stage5_compact_scrollable_workspace_height(self):
         desktop_start = self.css.index("@media (min-width: 1024px)")
-        tablet_start = self.css.index(
-            "@media (min-width: 760px) and (max-width: 1023px)"
-        )
-        desktop = self.css[desktop_start:tablet_start]
+        mobile_start = self.css.index("@media (max-width: 759px)")
+        desktop = self.css[desktop_start:mobile_start]
 
         for required in (
             "height: 430px;",
