@@ -8,6 +8,8 @@
  * Layout remains CSS-owned.
  * No artificial Analysis/Dossier view state.
  */
+const fr27Tier3T = (key, fallback) =>
+  window.FR27I18N?.t?.(key, null, fallback) ?? fallback;
 (() => {
   "use strict";
 
@@ -39,11 +41,11 @@
 
   const workspaceLabels =
     Object.freeze({
-      candidates: "CANDIDATES",
-      agenda: "AGENDA",
-      events: "EVENTS",
-      issues: "ISSUES",
-      runoff: "RUNOFF"
+      candidates: fr27Tier3T("signal_board.candidates_847367c6", "CANDIDATES"),
+      agenda: fr27Tier3T("signal_board.agenda", "AGENDA"),
+      events: fr27Tier3T("signal_board.events", "EVENTS"),
+      issues: fr27Tier3T("signal_board.issues", "ISSUES"),
+      runoff: fr27Tier3T("signal_board.runoff", "RUNOFF")
     });
 
 
@@ -158,8 +160,8 @@
       const created =
         createSelectControl(
           "fr27-tier3-workspace-control",
-          "WORKSPACE",
-          "Choose FR27 workspace"
+          fr27Tier3T("responsive.workspace", "WORKSPACE"),
+          fr27Tier3T("responsive.workspace_aria", "Choose FR27 workspace")
         );
 
 
@@ -270,17 +272,26 @@
     const name =
       button.querySelector(
         ".candidate-signals-candidate-name"
-      )?.textContent?.trim() ||
-      "Candidate";
+      )?.textContent?.trim() || fr27Tier3T("responsive.unknown_candidate", "Candidate");
 
 
-    const tier =
-      String(
-        button.dataset.candidateTier ||
-        ""
-      )
-        .trim()
-        .toUpperCase();
+    const tierCode =
+        String(button.dataset.candidateTier || "")
+          .trim()
+          .toLowerCase();
+
+      const tierKey =
+        tierCode === "primary"
+          ? "main"
+          : tierCode;
+
+      const tier =
+        tierKey
+          ? fr27Tier3T(
+              `candidate.tier.${tierKey}`,
+              tierCode.toUpperCase()
+            ).toUpperCase()
+          : "";
 
 
     const poll =
@@ -334,8 +345,8 @@
       const created =
         createSelectControl(
           "fr27-tier3-candidate-control",
-          "CANDIDATE MONITOR",
-          "Choose candidate"
+          fr27Tier3T("candidate.candidate_monitor", "CANDIDATE MONITOR"),
+          fr27Tier3T("responsive.candidate_aria", "Choose candidate")
         );
 
 
@@ -420,7 +431,7 @@
           "";
 
         option.textContent =
-          "Loading candidates…";
+          fr27Tier3T("responsive.loading_candidates", "Loading candidates…");
 
 
         select.replaceChildren(
@@ -841,7 +852,7 @@
         "fr27-tier3-control-label";
 
       label.textContent =
-        "AGENDA MONITOR";
+        fr27Tier3T("agenda_workspace.monitor", "AGENDA MONITOR");
 
 
       const wrap =
@@ -863,7 +874,7 @@
 
       select.setAttribute(
         "aria-label",
-        "Select Agenda topic"
+        fr27Tier3T("responsive.agenda_aria", "Select Agenda topic")
       );
 
 
@@ -953,13 +964,18 @@
               ?.textContent
               ?.trim();
 
-          const movement =
-            String(
-              button.dataset.movement ||
-              ""
+          const movementCode =
+        String(button.dataset.movement || "")
+          .trim()
+          .toLowerCase();
+
+      const movement =
+        movementCode
+          ? fr27Tier3T(
+              `agenda_workspace.movement.${movementCode}`,
+              movementCode.toUpperCase()
             )
-              .trim()
-              .toUpperCase();
+          : "";
 
 
           option.value =
@@ -969,7 +985,7 @@
             name,
             movement,
             sourceDays
-              ? `${sourceDays} source-days`
+              ? `${sourceDays} ${fr27Tier3T("responsive.source_days", "source-days")}`
               : ""
           ]
             .filter(Boolean)
@@ -1162,7 +1178,7 @@
         "fr27-tier3-control-label";
 
       label.textContent =
-        "ISSUES MONITOR";
+        fr27Tier3T("policy_workspace.monitor", "ISSUES MONITOR");
 
 
       const wrap =
@@ -1184,7 +1200,7 @@
 
       select.setAttribute(
         "aria-label",
-        "Select policy issue"
+        fr27Tier3T("responsive.issues_aria", "Select policy issue")
       );
 
 
@@ -1277,13 +1293,18 @@
               ?.textContent
               ?.trim();
 
-          const movement =
-            String(
-              button.dataset.movement ||
-              ""
+          const movementCode =
+        String(button.dataset.movement || "")
+          .trim()
+          .toLowerCase();
+
+      const movement =
+        movementCode
+          ? fr27Tier3T(
+              `agenda_workspace.movement.${movementCode}`,
+              movementCode.toUpperCase()
             )
-              .trim()
-              .toUpperCase();
+          : "";
 
 
           option.value =
@@ -1293,7 +1314,7 @@
             name,
             movement,
             sourceDays
-              ? `${sourceDays} source-days`
+              ? `${sourceDays} ${fr27Tier3T("responsive.source_days", "source-days")}`
               : ""
           ]
             .filter(Boolean)
@@ -1466,7 +1487,7 @@
       "fr27-tier3-events-selector-label";
 
     label.textContent =
-      "UPCOMING EVENTS";
+      fr27Tier3T("events_workspace.upcoming_events", "UPCOMING EVENTS");
 
 
     const select =
@@ -1477,7 +1498,7 @@
 
     select.setAttribute(
       "aria-label",
-      "Select upcoming campaign event"
+      fr27Tier3T("responsive.events_aria", "Select upcoming campaign event")
     );
 
 
@@ -1515,8 +1536,7 @@
             ".hybrid-events-upcoming-copy > strong"
           )
           ?.textContent
-          ?.trim() ||
-        "Campaign event";
+          ?.trim() || fr27Tier3T("responsive.campaign_event", "Campaign event");
 
 
       option.value =

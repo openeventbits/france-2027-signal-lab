@@ -1,6 +1,8 @@
 /* FR27 Tier 2 prototype — 1024px <= width < 1399px
    Reuses the existing Media Pulse and Candidate renderers.
    No data contracts, writers, routes, or publication logic are changed. */
+const fr27Tier2T = (key, fallback) =>
+  window.FR27I18N?.t?.(key, null, fallback) ?? fallback;
 (() => {
   "use strict";
 
@@ -38,11 +40,11 @@
   });
 
   const workspaceLabels = Object.freeze({
-    candidates: "CANDIDATES",
-    agenda: "AGENDA",
-    events: "EVENTS",
-    issues: "ISSUES",
-    runoff: "RUNOFF"
+    candidates: fr27Tier2T("signal_board.candidates_847367c6", "CANDIDATES"),
+    agenda: fr27Tier2T("signal_board.agenda", "AGENDA"),
+    events: fr27Tier2T("signal_board.events", "EVENTS"),
+    issues: fr27Tier2T("signal_board.issues", "ISSUES"),
+    runoff: fr27Tier2T("signal_board.runoff", "RUNOFF")
   });
 
   const mediaHome = document.createComment(
@@ -212,8 +214,8 @@
     if (!control) {
       const created = createSelectControl(
         "fr27-tier2-workspace-control",
-        "WORKSPACE",
-        "Choose FR27 workspace"
+        fr27Tier2T("responsive.workspace", "WORKSPACE"),
+        fr27Tier2T("responsive.workspace_aria", "Choose FR27 workspace")
       );
 
       control = created.control;
@@ -260,16 +262,29 @@
   function candidateOptionLabel(button) {
     const name =
       button.querySelector(".candidate-signals-candidate-name")
-        ?.textContent?.trim() || "Candidate";
+        ?.textContent?.trim() || fr27Tier2T("responsive.unknown_candidate", "Candidate");
 
     const poll =
       button.querySelector(".candidate-signals-candidate-poll")
         ?.textContent?.trim() || "";
 
-    const tier =
-      String(button.dataset.candidateTier || "")
-        .trim()
-        .toUpperCase();
+    const tierCode =
+        String(button.dataset.candidateTier || "")
+          .trim()
+          .toLowerCase();
+
+      const tierKey =
+        tierCode === "primary"
+          ? "main"
+          : tierCode;
+
+      const tier =
+        tierKey
+          ? fr27Tier2T(
+              `candidate.tier.${tierKey}`,
+              tierCode.toUpperCase()
+            ).toUpperCase()
+          : "";
 
     return [name, tier, poll].filter(Boolean).join(" · ");
   }
@@ -293,8 +308,8 @@
     if (!control) {
       const created = createSelectControl(
         "fr27-tier2-candidate-control",
-        "CANDIDATE MONITOR",
-        "Choose candidate"
+        fr27Tier2T("candidate.candidate_monitor", "CANDIDATE MONITOR"),
+        fr27Tier2T("responsive.candidate_aria", "Choose candidate")
       );
 
       control = created.control;
@@ -331,7 +346,7 @@
       if (select.dataset.optionSignature !== "loading") {
         const option = document.createElement("option");
         option.value = "";
-        option.textContent = "Loading candidates…";
+        option.textContent = fr27Tier2T("responsive.loading_candidates", "Loading candidates…");
         select.replaceChildren(option);
         select.disabled = true;
         select.dataset.optionSignature = "loading";
@@ -532,7 +547,7 @@
       "fr27-tier2-agenda-selector-label";
 
     label.textContent =
-      "AGENDA MONITOR";
+      fr27Tier2T("agenda_workspace.monitor", "AGENDA MONITOR");
 
     const select =
       document.createElement("select");
@@ -542,7 +557,7 @@
 
     select.setAttribute(
       "aria-label",
-      "Select Agenda topic"
+      fr27Tier2T("responsive.agenda_aria", "Select Agenda topic")
     );
 
     topicButtons.forEach(button => {
@@ -569,12 +584,18 @@
           ?.textContent
           ?.trim();
 
-      const movement =
-        String(
-          button.dataset.movement || ""
-        )
+      const movementCode =
+        String(button.dataset.movement || "")
           .trim()
-          .toUpperCase();
+          .toLowerCase();
+
+      const movement =
+        movementCode
+          ? fr27Tier2T(
+              `agenda_workspace.movement.${movementCode}`,
+              movementCode.toUpperCase()
+            )
+          : "";
 
       option.value = topicId;
 
@@ -582,7 +603,7 @@
         name,
         movement,
         sourceDays
-          ? `${sourceDays} source-days`
+          ? `${sourceDays} ${fr27Tier2T("responsive.source_days", "source-days")}`
           : ""
       ]
         .filter(Boolean)
@@ -774,7 +795,7 @@
       "fr27-tier2-issues-selector-label";
 
     label.textContent =
-      "POLICY MONITOR";
+      fr27Tier2T("policy_workspace.monitor", "POLICY MONITOR");
 
 
     const select =
@@ -785,7 +806,7 @@
 
     select.setAttribute(
       "aria-label",
-      "Select policy issue"
+      fr27Tier2T("responsive.issues_aria", "Select policy issue")
     );
 
 
@@ -818,12 +839,18 @@
           ?.trim();
 
 
-      const movement =
-        String(
-          button.dataset.movement || ""
-        )
+      const movementCode =
+        String(button.dataset.movement || "")
           .trim()
-          .toUpperCase();
+          .toLowerCase();
+
+      const movement =
+        movementCode
+          ? fr27Tier2T(
+              `agenda_workspace.movement.${movementCode}`,
+              movementCode.toUpperCase()
+            )
+          : "";
 
 
       option.value =
@@ -834,7 +861,7 @@
         name,
         movement,
         sourceDays
-          ? `${sourceDays} source-days`
+          ? `${sourceDays} ${fr27Tier2T("responsive.source_days", "source-days")}`
           : ""
       ]
         .filter(Boolean)
@@ -1027,7 +1054,7 @@
       "fr27-tier2-events-selector-label";
 
     label.textContent =
-      "UPCOMING EVENTS";
+      fr27Tier2T("events_workspace.upcoming_events", "UPCOMING EVENTS");
 
 
     const select =
@@ -1038,7 +1065,7 @@
 
     select.setAttribute(
       "aria-label",
-      "Select upcoming campaign event"
+      fr27Tier2T("responsive.events_aria", "Select upcoming campaign event")
     );
 
 
@@ -1076,8 +1103,7 @@
             ".hybrid-events-upcoming-copy > strong"
           )
           ?.textContent
-          ?.trim() ||
-        "Campaign event";
+          ?.trim() || fr27Tier2T("responsive.campaign_event", "Campaign event");
 
 
       option.value =
