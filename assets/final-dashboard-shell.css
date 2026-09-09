@@ -775,7 +775,6 @@ h1 {
     max-height: 500px !important;
   }
 
-  .hero-grid > .what-changed,
   .hero-grid > .race-glance {
     height: 410px !important;
     min-height: 410px !important;
@@ -788,7 +787,7 @@ h1 {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .hero-grid > .panel,
+  .hero-grid > .panel:where(:not(.what-changed)),
   .hero-grid > .race-glance,
   .top-media-pulse {
     height: auto !important;

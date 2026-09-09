@@ -104,28 +104,21 @@
     border-radius: 7px;
   }
 
-  /*
-   * WHAT CHANGED
-   *
-   * Preserve the original FR27 ledger component.
-   * Tier 3 owns macro full-width placement only.
-   * Internal ledger geometry, beacon rail, publisher placement,
-   * typography, metadata and scrolling fall through to the
-   * original component styles.
-   */
-
   html.fr27-tier3-active .race-glance .panel-head h2 {
     font-size: 15px;
     line-height: 1.1;
   }
 
   /*
-   * TIER 3 WHAT CHANGED — RESTORE ORIGINAL SCROLL
+   * TIER 3 WHAT CHANGED — BOUNDED EVIDENCE STREAM
    *
-   * Preserve the original FR27 ledger appearance.
-   * Only restore the bounded evidence-stream scrolling contract.
+   * One height and scroll-chain contract throughout Tier 3.
+   * Internal ledger geometry and typography remain unchanged.
    */
   html.fr27-tier3-active .what-changed {
+    height: 455px !important;
+    min-height: 455px !important;
+    max-height: 455px !important;
     overflow: hidden !important;
   }
 
@@ -4752,53 +4745,6 @@
 }
 
 /* =========================================================
- * TIER 3 WHAT CHANGED — HOLD BOUNDED HEIGHT THROUGH 860
- *
- * Legacy max-width:860px CSS releases every hero panel to
- * height:auto !important.
- *
- * For What Changed this destroys the bounded evidence-stream
- * contract: the ledger expands to its full content height
- * instead of scrolling.
- *
- * Preserve the established Tier-3 reference geometry only.
- * No typography/content/internal-layout changes.
- * ========================================================= */
-@media (700px <= width <= 860px) {
-
-  html.fr27-tier3-active
-    .what-changed {
-
-    height: 455px !important;
-    min-height: 455px !important;
-    max-height: 455px !important;
-
-    overflow: hidden !important;
-  }
-
-
-  html.fr27-tier3-active
-    .what-changed-list {
-
-    min-height: 0 !important;
-    overflow: hidden !important;
-  }
-
-
-  html.fr27-tier3-active
-    .changes-ledger-scroll {
-
-    flex: 1 1 auto !important;
-
-    min-height: 0 !important;
-    max-height: none !important;
-
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-  }
-}
-
-/* =========================================================
  * TIER 3 MASTHEAD — COMPONENT-LOCAL RESPONSIVE CONTRACT
  *
  * Historical max-width rules remain in the shared source,
@@ -5235,5 +5181,11 @@
 
     min-width: 0 !important;
     min-height: 0 !important;
+  }
+}
+/* What Changed: bound the intrinsic filter rail at narrow widths. */
+@media (width < 390px) {
+  html.fr27-tier3-active .changes-ledger-toolbar {
+    width: 100%;
   }
 }
