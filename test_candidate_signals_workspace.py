@@ -417,6 +417,7 @@ def run_workspace(
     candidate_attention=None,
     candidate_visibility_history=None,
     candidate_agenda_history=None,
+    locale=None,
 ):
     script = r"""
 const fs = require("fs");
@@ -529,8 +530,43 @@ const context = {
   Number,
   String,
   Math,
-  Promise
+  Promise,
+  Intl
 };
+if (input.locale) {
+  vm.runInNewContext(fs.readFileSync("locales/en.js", "utf8"), context);
+  vm.runInNewContext(fs.readFileSync("locales/fr.js", "utf8"), context);
+  const localeTag = input.locale === "fr" ? "fr-FR" : "en-GB";
+  const messages = windowObject.FR27_LOCALES[input.locale];
+  const fallbackMessages = windowObject.FR27_LOCALES.en;
+  const pluralPattern =
+    /\{([A-Za-z0-9_]+),\s*plural,\s*one\s*\{([^{}]*)\}\s*other\s*\{([^{}]*)\}\s*\}/g;
+  const localizer = {
+    locale: input.locale,
+    localeTag,
+    t(key, parameters = {}, fallback = key) {
+      const message = messages[key] ?? fallbackMessages[key] ?? fallback;
+      const pluralized = String(message).replace(
+        pluralPattern,
+        (_match, name, one, other) =>
+          new Intl.PluralRules(localeTag).select(Number(parameters[name])) === "one"
+            ? one
+            : other
+      );
+      return pluralized.replace(
+        /\{([A-Za-z0-9_]+)\}/g,
+        (match, name) => Object.prototype.hasOwnProperty.call(parameters, name)
+          ? String(parameters[name])
+          : match
+      );
+    },
+    formatNumber(value, options) {
+      return new Intl.NumberFormat(localeTag, options).format(value);
+    }
+  };
+  windowObject.FR27I18N = localizer;
+  context.FR27I18N = localizer;
+}
 vm.runInNewContext(fs.readFileSync("assets/candidate-signals.js", "utf8"), context);
 vm.runInNewContext(fs.readFileSync("assets/candidate-signals-workspace.js", "utf8"), context);
 
@@ -712,6 +748,11 @@ function details() {
         title: node.getAttribute("data-fr27-tooltip") || null,
         ariaLabel: node.getAttribute("aria-label") || null
       })),
+    dossierScrutinyValues:
+      mount.querySelectorAll(".candidate-signals-dossier-scrutiny-value")
+        .map(node => node.textContent),
+    searchPlaceholder:
+      mount.querySelector(".candidate-signals-search-input")?.placeholder || null,
     latestDevelopmentHeadingDetails:
       latestDevelopmentHeadings.map(node => ({
         text: node.textContent,
@@ -939,6 +980,7 @@ process.stdout.write(JSON.stringify(details()));
                     candidate_visibility_history,
                 "candidateAgendaHistory":
                     candidate_agenda_history,
+                "locale": locale,
             }
         ),
         cwd=ROOT,
@@ -2120,7 +2162,7 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         self.assertNotIn("Point estimateNot published", text)
         self.assertNotIn("Published rangeNot published", text)
         self.assertIn(
-            'const NOT_TESTED = "Not tested";',
+            'const NOT_TESTED = translate("candidate.not_tested", "Not tested");',
             self.workspace_js,
         )
         self.assertIn(

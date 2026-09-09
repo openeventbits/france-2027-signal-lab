@@ -122,11 +122,32 @@ class RemoveClaimScrutinyWorkspaceTests(unittest.TestCase):
             "safeSourceUrl(review.review_url)",
             "item?.candidate_id",
             "candidate.candidate_id",
-            "relationship.toUpperCase()",
             "NO PUBLISHED REVIEWS",
             "DETAIL UNAVAILABLE",
         ):
             self.assertIn(required, HYBRID)
+
+        entries = HYBRID[
+            HYBRID.index("function candidateScrutinyReviewEntries(") :
+            HYBRID.index("function candidateScrutinyDetailState(")
+        ]
+        self.assertIn("claimsPayload.reviews", entries)
+        self.assertIn("review?.candidate_associations", entries)
+        self.assertIn("association.relationship", entries)
+
+        review_row = HYBRID[
+            HYBRID.index("function candidateScrutinyReviewRow(") :
+            HYBRID.index("function candidateScrutinyBody(")
+        ]
+        self.assertIn('translate("candidate.about", "ABOUT")', review_row)
+        self.assertIn('translate("candidate.by", "BY")', review_row)
+        self.assertIn("review.claim_text", review_row)
+        self.assertIn("review.rating", review_row)
+        self.assertIn("review.publisher_name", review_row)
+        self.assertIn("safeSourceUrl(review.review_url)", review_row)
+        self.assertIn("link.href = sourceUrl", review_row)
+        self.assertIn('link.target = "_blank"', review_row)
+        self.assertIn('link.rel = "noopener noreferrer"', review_row)
 
     def test_candidate_dossier_scrutiny_remains(self):
         for required in (

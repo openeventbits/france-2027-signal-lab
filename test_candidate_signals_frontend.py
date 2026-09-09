@@ -42,7 +42,7 @@ const fs = require("fs");
 const vm = require("vm");
 let source = fs.readFileSync("assets/hybrid-dashboard.js", "utf8");
 source = source.replace(
-  /\s+retainLegacyComparison\(\);\s+renderAll\(\);\s+window\.addEventListener\("hashchange", handleSignalHashChange\);\s+document\.addEventListener\("hybrid:dataset", renderAll\);/,
+  /\s+renderAll\(\);\s+window\.addEventListener\("hashchange", handleSignalHashChange\);\s+document\.addEventListener\("hybrid:dataset", renderAll\);/,
   ""
 );
 const input = JSON.parse(fs.readFileSync(0, "utf8"));
@@ -464,7 +464,7 @@ const vm = require("vm");
 const input = JSON.parse(fs.readFileSync(0, "utf8"));
 let source = fs.readFileSync("assets/hybrid-dashboard.js", "utf8");
 source = source.replace(
-  /\s+retainLegacyComparison\(\);\s+renderAll\(\);\s+window\.addEventListener\("hashchange", handleSignalHashChange\);\s+document\.addEventListener\("hybrid:dataset", renderAll\);/,
+  /\s+renderAll\(\);\s+window\.addEventListener\("hashchange", handleSignalHashChange\);\s+document\.addEventListener\("hybrid:dataset", renderAll\);/,
   ""
 );
 let loadCount = 0;
@@ -880,7 +880,7 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
 
         self.assertIn(
             '<span class="hybrid-state is-compact">'
-            "events</span>",
+            "No supported data is available.</span>",
             workspace,
         )
 

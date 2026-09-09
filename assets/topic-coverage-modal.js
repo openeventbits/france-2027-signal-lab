@@ -16,6 +16,36 @@
   let highlightedCandidate = "";
   let highlightedTopic = "";
 
+  const localizer = globalThis.FR27I18N;
+  const localeTag =
+    localizer && localizer.localeTag
+      ? localizer.localeTag
+      : document.documentElement.lang || "fr";
+
+  const translate = (key, fallback, parameters) =>
+    localizer && typeof localizer.t === "function"
+      ? localizer.t(key, parameters, fallback)
+      : fallback;
+
+  const agendaTopicLabel = topic =>
+    translate(
+      `agenda_topic.${String(topic?.id || "")}`,
+      String(topic?.label || "")
+    );
+
+  const compactAgendaTopicLabel = topic =>
+    translate(
+      `agenda_topic_short.${String(topic?.id || "")}`,
+      agendaTopicLabel(topic)
+    );
+
+  const collator = new Intl.Collator(
+    localeTag,
+    {
+      sensitivity: "base"
+    }
+  );
+
   const escapeHtml = value =>
     String(value ?? "")
       .replaceAll("&", "&amp;")
@@ -40,9 +70,14 @@
 
   const formatTimestamp = value => {
     const parsed = parseTimestamp(value);
-    if (!parsed) return "Unavailable";
+    if (!parsed) {
+      return translate(
+        "coverage_analysis.value_unavailable",
+        "Unavailable"
+      );
+    }
 
-    return new Intl.DateTimeFormat("en-GB", {
+    return new Intl.DateTimeFormat(localeTag, {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -64,7 +99,7 @@
 
     if (!parsed) return "—";
 
-    return new Intl.DateTimeFormat("en-GB", {
+    return new Intl.DateTimeFormat(localeTag, {
       day: "2-digit",
       month: "short",
       timeZone: "UTC"
@@ -73,9 +108,14 @@
 
   const formatWindowDate = value => {
     const parsed = parseTimestamp(value);
-    if (!parsed) return "Unavailable";
+    if (!parsed) {
+      return translate(
+        "coverage_analysis.value_unavailable",
+        "Unavailable"
+      );
+    }
 
-    return new Intl.DateTimeFormat("en-GB", {
+    return new Intl.DateTimeFormat(localeTag, {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -95,7 +135,10 @@
 
     if (!dated.length) {
       return {
-        label: "Unavailable",
+        label: translate(
+          "coverage_analysis.value_unavailable",
+          "Unavailable"
+        ),
         days: 0
       };
     }
@@ -132,14 +175,24 @@
     };
   };
 
+  const shareFormatter = new Intl.NumberFormat(
+    localeTag,
+    {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1,
+      useGrouping: false
+    }
+  );
+
   const formatShare = value =>
-    numberOrZero(value)
-      .toFixed(1)
-      .replace(/\.0$/, "");
+    shareFormatter.format(numberOrZero(value));
 
   const formatDelta = value => {
     const amount = numberOrZero(value);
-    return `${amount > 0 ? "+" : ""}${formatShare(amount)}pp`;
+    return `${amount > 0 ? "+" : ""}${formatShare(amount)}${translate(
+      "coverage_analysis.percentage_point_unit",
+      "pp"
+    )}`;
   };
 
   const deltaClass = value => {
@@ -179,12 +232,27 @@
       : Number(item?.prior_share) * 100;
     const changeAvailable = candidateComparisonAvailable &&
       item?.share_change !== null;
+    const unknownCandidate = translate(
+      "coverage_analysis.unknown_candidate",
+      "Unknown candidate"
+    );
+
     return {
       id: String(item?.candidate_id || ""),
-      name: String(item?.candidate_name || "Unknown candidate").trim() ||
-        "Unknown candidate",
+      name:
+        String(item?.candidate_name || unknownCandidate).trim() ||
+        unknownCandidate,
       tier,
-      tierLabel: tier === "main" ? "MAIN FIELD" : "SECONDARY FIELD",
+      tierLabel:
+        tier === "main"
+          ? translate(
+              "coverage_analysis.main_field",
+              "MAIN FIELD"
+            )
+          : translate(
+              "coverage_analysis.secondary_field",
+              "SECONDARY FIELD"
+            ),
       status: String(item?.status || ""),
       latestShare,
       previousShare,
@@ -195,23 +263,46 @@
     };
   };
 
-  const normalizeTopic = item => ({
-    id: String(item?.id || item?.label || ""),
-    label:
-      String(item?.label || "Untitled topic").trim() ||
-      "Untitled topic",
-    sourceDays: numberOrZero(item?.source_day_count),
-    itemCount: numberOrZero(item?.item_count),
-    publisherCount: numberOrZero(item?.publisher_count),
-    activeDayCount: numberOrZero(item?.active_day_count)
-  });
+  const normalizeTopic = item => {
+    const untitledTopic = translate(
+      "coverage_analysis.untitled_topic",
+      "Untitled topic"
+    );
+    const canonicalLabel =
+      String(item?.label || untitledTopic).trim() ||
+      untitledTopic;
 
-  const normalizePublisher = item => ({
-    name:
-      String(item?.name || "Unknown publisher").trim() ||
-      "Unknown publisher",
-    count: numberOrZero(item?.count)
-  });
+    return {
+      id: String(item?.id || ""),
+      canonicalLabel,
+      label: agendaTopicLabel({
+        id: item?.id,
+        label: canonicalLabel
+      }),
+      compactLabel: compactAgendaTopicLabel({
+        id: item?.id,
+        label: canonicalLabel
+      }),
+      sourceDays: numberOrZero(item?.source_day_count),
+      itemCount: numberOrZero(item?.item_count),
+      publisherCount: numberOrZero(item?.publisher_count),
+      activeDayCount: numberOrZero(item?.active_day_count)
+    };
+  };
+
+  const normalizePublisher = item => {
+    const unknownPublisher = translate(
+      "coverage_analysis.unknown_publisher",
+      "Unknown publisher"
+    );
+
+    return {
+      name:
+        String(item?.name || unknownPublisher).trim() ||
+        unknownPublisher,
+      count: numberOrZero(item?.count)
+    };
+  };
 
   const normalizeDay = item => ({
     key: String(item?.key || ""),
@@ -235,30 +326,63 @@
     const coverageWindow =
       deriveCoverageWindow(mediaModel);
 
+    const activityDays =
+      numberOrZero(mediaModel?.activityWindowDays);
+
     return `
       <section
         class="tcm-summary-strip"
-        aria-label="Coverage summary"
+        aria-label="${escapeAttribute(
+          translate(
+            "coverage_analysis.coverage_summary",
+            "Coverage summary"
+          )
+        )}"
       >
         ${renderMetric(
           String(numberOrZero(mediaModel?.electionNewsCount)),
-          "Accepted news"
+          translate(
+            "coverage_analysis.accepted_news",
+            "Accepted news"
+          )
         )}
         ${renderMetric(
           String(numberOrZero(mediaModel?.acceptedNewsPublisherCount)),
-          "Publishers"
+          translate(
+            "coverage_analysis.publishers",
+            "Publishers"
+          )
         )}
         ${renderMetric(
           String(numberOrZero(mediaModel?.activityItemCount)),
-          "Recent activity",
-          `${numberOrZero(mediaModel?.activityWindowDays)} days`
+          translate(
+            "coverage_analysis.recent_activity",
+            "Recent activity"
+          ),
+          `${activityDays} ${translate(
+            activityDays === 1
+              ? "coverage_analysis.day"
+              : "coverage_analysis.days",
+            activityDays === 1 ? "day" : "days"
+          )}`
         )}
         ${renderMetric(
           coverageWindow.label,
-          "Coverage window",
+          translate(
+            "coverage_analysis.coverage_window",
+            "Coverage window"
+          ),
           coverageWindow.days
-            ? `${coverageWindow.days} days`
-            : "Current record range",
+            ? `${coverageWindow.days} ${translate(
+                coverageWindow.days === 1
+                  ? "coverage_analysis.day"
+                  : "coverage_analysis.days",
+                coverageWindow.days === 1 ? "day" : "days"
+              )}`
+            : translate(
+                "coverage_analysis.current_record_range",
+                "Current record range"
+              ),
           "is-window"
         )}
       </section>
@@ -267,43 +391,92 @@
 
   const candidateComparisonLabel = () =>
     candidateComparisonAvailable
-      ? "Δ pp"
+      ? translate(
+          "coverage_analysis.delta_pp",
+          "Δ pp"
+        )
       : candidateProjectionAvailable
-        ? "RAW Δ pp"
-        : "UNAVAILABLE";
+        ? translate(
+            "coverage_analysis.raw_delta_pp",
+            "RAW Δ pp"
+          )
+        : translate(
+            "coverage_analysis.unavailable",
+            "UNAVAILABLE"
+          );
 
   const renderPeriodLegend = () => {
     const reasonLabel =
       candidateComparisonReason ===
       "publisher_panel_changed"
-        ? "publisher panel changed"
+        ? translate(
+            "coverage_analysis.publisher_panel_changed",
+            "publisher panel changed"
+          )
         : candidateComparisonReason ===
           "insufficient_data"
-          ? "insufficient data"
-          : "comparison unavailable";
+          ? translate(
+              "coverage_analysis.insufficient_data",
+              "insufficient data"
+            )
+          : translate(
+              "coverage_analysis.comparison_unavailable",
+              "comparison unavailable"
+            );
+
     const qualityExplanation =
       candidateComparisonAvailable
-        ? "Comparable active-field percentage-point change."
+        ? translate(
+            "coverage_analysis.comparable_active_field_percentage_point_change",
+            "Comparable active-field percentage-point change."
+          )
         : candidateProjectionAvailable
-          ? `Comparison quality is not comparable: ${reasonLabel}. Raw arithmetic differences are current-minus-prior percentage-point values, not comparable trend estimates.`
-          : "Active-field candidate comparison unavailable.";
+          ? translate(
+              "coverage_analysis.comparison_raw_explanation",
+              `Comparison quality is not comparable: ${reasonLabel}. Raw arithmetic differences are current-minus-prior percentage-point values, not comparable trend estimates.`,
+              {
+                reason: reasonLabel
+              }
+            )
+          : translate(
+              "coverage_analysis.active_field_candidate_comparison_unavailable",
+              "Active-field candidate comparison unavailable."
+            );
 
     return `
       <div
         class="tcm-period-legend"
         role="group"
         aria-label="${escapeAttribute(
-          `Active-field candidate-linked share. Current period ${latestPeriodLabel}; prior period ${priorPeriodLabel}. ${qualityExplanation}`
+          translate(
+            "coverage_analysis.period_legend",
+            `Active-field candidate-linked share. Current period ${latestPeriodLabel}; prior period ${priorPeriodLabel}. ${qualityExplanation}`,
+            {
+              current: latestPeriodLabel,
+              prior: priorPeriodLabel,
+              quality: qualityExplanation
+            }
+          )
         )}"
       >
         <span>
           <i class="is-current" aria-hidden="true"></i>
-          <strong>CURRENT</strong>
+          <strong>${escapeHtml(
+            translate(
+              "coverage_analysis.current",
+              "CURRENT"
+            )
+          )}</strong>
           <small>${escapeHtml(latestPeriodLabel)}</small>
         </span>
         <span>
           <i class="is-prior" aria-hidden="true"></i>
-          <strong>PRIOR</strong>
+          <strong>${escapeHtml(
+            translate(
+              "coverage_analysis.prior",
+              "PRIOR"
+            )
+          )}</strong>
           <small>${escapeHtml(priorPeriodLabel)}</small>
         </span>
       </div>
@@ -314,7 +487,12 @@
     if (!candidateProjectionAvailable) {
       return `
         <div class="tcm-empty">
-          Active-field candidate comparison unavailable.
+          ${escapeHtml(
+            translate(
+              "coverage_analysis.active_field_candidate_comparison_unavailable",
+              "Active-field candidate comparison unavailable."
+            )
+          )}
         </div>
       `;
     }
@@ -366,7 +544,40 @@
             data-tcm-candidate-row="${escapeAttribute(item.name)}"
             tabindex="0"
             aria-label="${escapeAttribute(
-              `${item.name}. Candidate status ${item.status}. Current active-field share ${latestText}; prior active-field share ${priorText}.${item.changeAvailable ? ` Comparable change ${deltaMarkup}.` : rawDeltaAvailable ? ` Raw arithmetic difference ${deltaMarkup}. Publisher panels changed, so this is not a comparable trend estimate.` : ""}`
+              item.changeAvailable
+                ? translate(
+                    "coverage_analysis.candidate_row_comparable",
+                    `${item.name}. Candidate status ${item.status}. Current active-field share ${latestText}; prior active-field share ${priorText}. Comparable change ${deltaMarkup}.`,
+                    {
+                      name: item.name,
+                      status: item.status,
+                      current: latestText,
+                      prior: priorText,
+                      delta: deltaMarkup
+                    }
+                  )
+                : rawDeltaAvailable
+                  ? translate(
+                      "coverage_analysis.candidate_row_raw",
+                      `${item.name}. Candidate status ${item.status}. Current active-field share ${latestText}; prior active-field share ${priorText}. Raw arithmetic difference ${deltaMarkup}. Publisher panels changed, so this is not a comparable trend estimate.`,
+                      {
+                        name: item.name,
+                        status: item.status,
+                        current: latestText,
+                        prior: priorText,
+                        delta: deltaMarkup
+                      }
+                    )
+                  : translate(
+                      "coverage_analysis.candidate_row_no_delta",
+                      `${item.name}. Candidate status ${item.status}. Current active-field share ${latestText}; prior active-field share ${priorText}.`,
+                      {
+                        name: item.name,
+                        status: item.status,
+                        current: latestText,
+                        prior: priorText
+                      }
+                    )
             )}"
           >
             <strong>${escapeHtml(item.name)}</strong>
@@ -385,20 +596,49 @@
       return `
         <div class="tcm-module-head">
           <h3>${escapeHtml(label)}</h3>
-          <span>${rows.length} active candidates</span>
+          <span>${escapeHtml(
+            translate(
+              rows.length === 1
+                ? "coverage_analysis.active_candidate"
+                : "coverage_analysis.active_candidates",
+              rows.length === 1
+                ? "{count} active candidate"
+                : "{count} active candidates",
+              {
+                count: rows.length
+              }
+            )
+          )}</span>
         </div>
         ${renderedRows}
       `;
     };
-    return renderGroup("main", "MAIN FIELD") +
-      renderGroup("secondary", "SECONDARY FIELD");
+    return renderGroup(
+      "main",
+      translate(
+        "coverage_analysis.main_field",
+        "MAIN FIELD"
+      )
+    ) +
+      renderGroup(
+        "secondary",
+        translate(
+          "coverage_analysis.secondary_field",
+          "SECONDARY FIELD"
+        )
+      );
   };
 
   const renderTopicRows = () => {
     if (!topics.length) {
       return `
         <div class="tcm-empty">
-          Recurring topic data unavailable.
+          ${escapeHtml(
+            translate(
+              "coverage_analysis.topic_data_unavailable",
+              "Recurring topic data unavailable."
+            )
+          )}
         </div>
       `;
     }
@@ -419,6 +659,31 @@
             ? " is-highlighted"
             : "";
 
+        const itemWord = translate(
+          item.itemCount === 1
+            ? "coverage_analysis.item"
+            : "coverage_analysis.items",
+          item.itemCount === 1 ? "item" : "items"
+        );
+
+        const publisherWord = translate(
+          item.publisherCount === 1
+            ? "coverage_analysis.publisher_word"
+            : "coverage_analysis.publishers_word",
+          item.publisherCount === 1
+            ? "publisher"
+            : "publishers"
+        );
+
+        const activeDayWord = translate(
+          item.activeDayCount === 1
+            ? "coverage_analysis.active_day"
+            : "coverage_analysis.active_days",
+          item.activeDayCount === 1
+            ? "active day"
+            : "active days"
+        );
+
         return `
           <div
             class="tcm-topic-item${highlighted}"
@@ -428,11 +693,13 @@
               ${String(index + 1).padStart(2, "0")}
             </span>
             <span class="tcm-row-copy">
-              <strong>${escapeHtml(item.label)}</strong>
+              <strong
+                aria-label="${escapeAttribute(item.label)}"
+              >${escapeHtml(item.compactLabel)}</strong>
               <small>
-                ${item.itemCount} items ·
-                ${item.publisherCount} publishers ·
-                ${item.activeDayCount} active days
+                ${item.itemCount} ${escapeHtml(itemWord)} ·
+                ${item.publisherCount} ${escapeHtml(publisherWord)} ·
+                ${item.activeDayCount} ${escapeHtml(activeDayWord)}
               </small>
               <i class="tcm-topic-track" aria-hidden="true">
                 <b
@@ -451,7 +718,12 @@
     if (!publishers.length) {
       return `
         <div class="tcm-empty">
-          Publisher ranking unavailable.
+          ${escapeHtml(
+            translate(
+              "coverage_analysis.publisher_ranking_unavailable",
+              "Publisher ranking unavailable."
+            )
+          )}
         </div>
       `;
     }
@@ -495,7 +767,7 @@
 
     if (!parsed) return "—";
 
-    return new Intl.DateTimeFormat("en-GB", {
+    return new Intl.DateTimeFormat(localeTag, {
       day: "numeric",
       timeZone: "UTC"
     }).format(parsed);
@@ -503,7 +775,10 @@
 
   const renderDailyVolumeMeta = () => {
     if (!dailyActivity.length) {
-      return "Accepted reports per day";
+      return translate(
+        "coverage_analysis.accepted_reports_per_day",
+        "Accepted reports per day"
+      );
     }
 
     const firstLabel = formatCompactDate(
@@ -525,14 +800,26 @@
       0
     );
 
-    return `${range} · total ${total}`;
+    return translate(
+      "coverage_analysis.daily_total",
+      "{range} · total {total}",
+      {
+        range,
+        total
+      }
+    );
   };
 
   const renderDailyVolume = () => {
     if (!dailyActivity.length) {
       return `
         <div class="tcm-empty">
-          Daily activity data unavailable.
+          ${escapeHtml(
+            translate(
+              "coverage_analysis.daily_activity_unavailable",
+              "Daily activity data unavailable."
+            )
+          )}
         </div>
       `;
     }
@@ -553,7 +840,18 @@
           <div
             class="tcm-volume-day"
             aria-label="${escapeAttribute(
-              `${formatCompactDate(item.key)}: ${item.count} accepted reports`
+              translate(
+                item.count === 1
+                  ? "coverage_analysis.daily_report"
+                  : "coverage_analysis.daily_reports",
+                item.count === 1
+                  ? "{date}: {count} accepted report"
+                  : "{date}: {count} accepted reports",
+                {
+                  date: formatCompactDate(item.key),
+                  count: item.count
+                }
+              )
             )}"
           >
             <b>${item.count}</b>
@@ -574,7 +872,12 @@
       <div
         class="tcm-volume-wrap"
         role="img"
-        aria-label="Daily accepted election coverage"
+        aria-label="${escapeAttribute(
+          translate(
+            "coverage_analysis.daily_accepted_election_coverage",
+            "Daily accepted election coverage"
+          )
+        )}"
       >
         <div class="tcm-volume-chart">
           ${bars}
@@ -606,38 +909,78 @@
       <div class="tcm-intelligence-grid">
         ${renderModule(
           "tcm-module-shift",
-          "Active-field coverage shift",
+          translate(
+            "coverage_analysis.active_field_coverage_shift",
+            "Active-field coverage shift"
+          ),
           candidateComparisonLabel(),
           renderPeriodLegend() +
             `<div
               class="tcm-shift-list tcm-scroll-y"
               tabindex="0"
-              aria-label="Complete active-field candidate coverage shift"
+              aria-label="${escapeAttribute(
+                translate(
+                  "coverage_analysis.complete_active_field_candidate_coverage_shift",
+                  "Complete active-field candidate coverage shift"
+                )
+              )}"
             >${renderCoverageShiftRows()}</div>`
         )}
         ${renderModule(
           "tcm-module-topics",
-          "Topic coverage",
-          "Source-days · 30-day context",
+          translate(
+            "coverage_analysis.topic_coverage",
+            "Topic coverage"
+          ),
+          translate(
+            "coverage_analysis.source_days_30_day_context",
+            "Source-days · 30-day context"
+          ),
           `<div
             class="tcm-topic-list tcm-scroll-y"
             tabindex="0"
-            aria-label="Complete recurring topic ranking"
+            aria-label="${escapeAttribute(
+              translate(
+                "coverage_analysis.complete_recurring_topic_ranking",
+                "Complete recurring topic ranking"
+              )
+            )}"
           >${renderTopicRows()}</div>`
         )}
         ${renderModule(
           "tcm-module-publishers",
-          "Top publishers",
-          `${publishers.length} represented`,
+          translate(
+            "coverage_analysis.top_publishers",
+            "Top publishers"
+          ),
+          translate(
+            publishers.length === 1
+              ? "coverage_analysis.publisher_represented"
+              : "coverage_analysis.publishers_represented",
+            publishers.length === 1
+              ? "{count} represented publisher"
+              : "{count} represented publishers",
+            {
+              count: publishers.length
+            }
+          ),
           `<div
             class="tcm-publisher-list tcm-scroll-y"
             tabindex="0"
-            aria-label="Complete publisher ranking"
+            aria-label="${escapeAttribute(
+              translate(
+                "coverage_analysis.complete_publisher_ranking",
+                "Complete publisher ranking"
+              )
+            )}"
           >${renderPublisherRows()}</div>`
         )}
         ${renderModule(
           "tcm-module-volume",
-          "Daily volume",
+          translate(
+            "coverage_analysis.daily_volume",
+            "Daily volume"
+          ),
           renderDailyVolumeMeta(),
           renderDailyVolume()
         )}
@@ -700,7 +1043,12 @@
           >
             <header class="tcm-header">
               <h2 id="tcm-title">
-                Media Pulse / Coverage Analysis
+                ${escapeHtml(
+                  translate(
+                    "coverage_analysis.title",
+                    "Media Pulse / Coverage Analysis"
+                  )
+                )}
               </h2>
               <div class="tcm-header-actions">
                 <span
@@ -710,7 +1058,12 @@
                 <button
                   class="tcm-close"
                   type="button"
-                  aria-label="Close coverage analysis"
+                  aria-label="${escapeAttribute(
+                    translate(
+                      "coverage_analysis.close_coverage_analysis",
+                      "Close coverage analysis"
+                    )
+                  )}"
                   data-tcm-close
                 >×</button>
               </div>
@@ -840,7 +1193,10 @@
             (a, b) =>
               b.sourceDays - a.sourceDays ||
               b.publisherCount - a.publisherCount ||
-              a.label.localeCompare(b.label, "en")
+              collator.compare(
+                a.canonicalLabel,
+                b.canonicalLabel
+              )
           )
       : [];
 
@@ -907,7 +1263,13 @@
     modal.querySelector(
       "[data-tcm-updated]"
     ).textContent =
-      `Updated: ${formatTimestamp(generatedAt)}`;
+      translate(
+        "coverage_analysis.updated",
+        "Updated: {date}",
+        {
+          date: formatTimestamp(generatedAt)
+        }
+      );
 
     modal.querySelector(
       "[data-tcm-body]"

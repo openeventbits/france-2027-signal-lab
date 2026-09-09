@@ -22,7 +22,7 @@ let source = fs.readFileSync(
   "utf8"
 );
 source = source.replace(
-  /\s+retainLegacyComparison\(\);\s+renderAll\(\);\s+window\.addEventListener\("hashchange", handleSignalHashChange\);\s+document\.addEventListener\("hybrid:dataset", renderAll\);/,
+  /\s+renderAll\(\);\s+window\.addEventListener\("hashchange", handleSignalHashChange\);\s+document\.addEventListener\("hybrid:dataset", renderAll\);/,
   ""
 );
 const input = JSON.parse(fs.readFileSync(0, "utf8"));
@@ -771,7 +771,11 @@ class FinalDashboardShellTests(unittest.TestCase):
             self.js,
         )
         self.assertIn(
-            'label: "ISSUES"',
+            'label: translate("signal_board.issues", "ISSUES")',
+            self.js,
+        )
+        self.assertIn(
+            'title: translate("signal_board.policy_issues", "Policy Issues")',
             self.js,
         )
         self.assertIn(
@@ -906,19 +910,27 @@ class FinalDashboardShellTests(unittest.TestCase):
 
         section = self.js[start:end]
 
-        for contract in (
-            "const metrics = [",
-            "value: model.electionNewsCount",
-            "model.acceptedNewsPublisherCount",
-            "value: model.activityItemCount",
-            "value: model.candidateWatchCount",
-            'label: "accepted news"',
-            'label: "publishers"',
-            'label: "recent (14d)"',
-            'label: "candidate-watch"',
-            'class="top-media-header-metric"',
-        ):
-            self.assertIn(contract, section)
+        metric_contracts = {
+            "media_pulse.metric.accepted_news":
+                "model.electionNewsCount",
+            "media_pulse.metric.publishers":
+                "model.acceptedNewsPublisherCount",
+            "media_pulse.metric.recent_14d":
+                "model.activityItemCount",
+            "media_pulse.metric.candidate_watch":
+                "model.candidateWatchCount",
+        }
+
+        self.assertIn("const metrics = [", section)
+        self.assertIn('class="top-media-header-metric"', section)
+
+        for key, value_expression in metric_contracts.items():
+            self.assertRegex(
+                section,
+                rf'key: "{re.escape(key)}",\s+'
+                rf'value:\s*{re.escape(value_expression)},\s+'
+                rf'label: translate\(\s*"{re.escape(key)}",',
+            )
 
     def test_media_model_derives_ranked_top_publishers(self):
         start = self.js.index(
@@ -1205,7 +1217,9 @@ class FinalDashboardShellTests(unittest.TestCase):
         ]
         self.assertIn("candidateCoverageAvailable = Boolean(activePrimary)", model)
         self.assertIn("Active-field candidate comparison unavailable.", renderer)
-        self.assertIn('tierLabel: row.tier.toUpperCase()', model)
+        self.assertIn("tier: row.tier", model)
+        self.assertIn('"media_pulse.tier_main"', model)
+        self.assertIn('"media_pulse.tier_secondary"', model)
         self.assertNotIn("candidatePeriods", model)
         self.assertNotIn("canonicalizeCandidate", model)
 
@@ -1482,8 +1496,37 @@ class FinalDashboardShellTests(unittest.TestCase):
         sync_source = self.js[
             sync_start:renderer_start
         ]
+        translate_start = self.js.index(
+            "const translate ="
+        )
+        translate_end = self.js.index(
+            "const agendaTopicLabel",
+            translate_start,
+        )
+        translate_source = self.js[
+            translate_start:translate_end
+        ]
 
-        script = presentation_source + sync_source + r"""
+        script = translate_source + presentation_source + sync_source + r"""
+const localizedMessages = {
+  "media_pulse.comparison.publisher_panel_changed":
+    "LOCALIZED PANEL CHANGE",
+  "media_pulse.comparison.delta_pp":
+    "LOCALIZED DELTA",
+  "media_pulse.comparison.raw_delta_pp":
+    "LOCALIZED RAW DELTA",
+  "media_pulse.comparison.raw_explanation":
+    "LOCALIZED RAW EXPLANATION: {reason}"
+};
+globalThis.FR27I18N = {
+  t(key, parameters, fallback) {
+    const message = localizedMessages[key] || fallback || key;
+    return message.replace(
+      /\{(\w+)\}/g,
+      (_, name) => String(parameters?.[name] ?? `{${name}}`)
+    );
+  }
+};
 const selector =
   ".top-media-shift .top-media-section-heading::after";
 const contentRule = {
@@ -1543,19 +1586,15 @@ process.stdout.write(JSON.stringify({
             completed.stdout
         )
 
-        raw_label = "RAW Δ pp"
+        raw_label = "LOCALIZED RAW DELTA"
 
         self.assertEqual(
             presentation["invalid"]["label"],
             raw_label,
         )
-        self.assertIn(
-            "Raw arithmetic current-minus-prior",
+        self.assertEqual(
             presentation["invalid"]["explanation"],
-        )
-        self.assertIn(
-            "reason: publisher_panel_changed",
-            presentation["invalid"]["explanation"],
+            "LOCALIZED RAW EXPLANATION: LOCALIZED PANEL CHANGE",
         )
         self.assertEqual(
             presentation["invalidUpdates"],
@@ -1567,7 +1606,7 @@ process.stdout.write(JSON.stringify({
         )
         self.assertEqual(
             presentation["comparable"]["label"],
-            "Δ pp",
+            "LOCALIZED DELTA",
         )
         self.assertEqual(
             presentation["comparableUpdates"],
@@ -1575,7 +1614,7 @@ process.stdout.write(JSON.stringify({
         )
         self.assertEqual(
             presentation["comparableContent"],
-            '"Δ pp"',
+            '"LOCALIZED DELTA"',
         )
 
         self.assertEqual(

@@ -116,12 +116,12 @@ class CandidateScrutinyPopoverTests(unittest.TestCase):
         self.assertIn("scopeCompositionCard(candidate)", selected)
         self.assertIn("scrutinySummaryCard(candidate, onOpenScrutiny)", selected)
         for locked in (
-            '"ABOUT"',
-            '"BY"',
-            '"REVIEWS"',
-            '"14 DAYS"',
-            '"ARCHIVE"',
-            "`LATEST REVIEW · ${formatDisplayDate(newestDate)}`",
+            'translate("candidate.about", "ABOUT")',
+            'translate("candidate.by", "BY")',
+            'translate("candidate.reviews", "REVIEWS")',
+            'translate("candidate.days_14", "14 DAYS")',
+            'translate("candidate.archive", "ARCHIVE")',
+            '"candidate.latest_review_value"',
         ):
             self.assertIn(locked, WORKSPACE)
 

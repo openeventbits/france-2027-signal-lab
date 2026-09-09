@@ -6,8 +6,70 @@
     const localizer = globalThis.FR27I18N;
 
     return localizer && typeof localizer.t === "function"
-      ? localizer.t(key, parameters)
+      ? localizer.t(key, parameters, fallback)
       : fallback;
+  };
+
+  const candidateDisplayNumber = value => {
+    const numeric = Number(value);
+    const localizer = globalThis.FR27I18N;
+    return localizer && typeof localizer.formatNumber === "function"
+      ? localizer.formatNumber(numeric, { maximumFractionDigits: 0 })
+      : new Intl.NumberFormat(
+        globalThis.FR27I18N?.localeTag || "en-GB",
+        { maximumFractionDigits: 0 }
+      ).format(numeric);
+  };
+
+  const candidateDisplayDate = value => {
+    const options = {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC"
+    };
+    const localizer = globalThis.FR27I18N;
+    return localizer && typeof localizer.formatDate === "function"
+      ? localizer.formatDate(`${String(value).slice(0, 10)}T00:00:00Z`, options)
+      : new Intl.DateTimeFormat(
+        globalThis.FR27I18N?.localeTag || "en-GB",
+        options
+      ).format(new Date(`${String(value).slice(0, 10)}T00:00:00Z`));
+  };
+
+  const agendaTopicLabel = topic =>
+    translate(
+      `agenda_topic.${String(topic?.id || "")}`,
+      String(topic?.label || "")
+    );
+
+  const compactAgendaTopicLabel = topic =>
+    translate(
+      `agenda_topic_short.${String(topic?.id || "")}`,
+      agendaTopicLabel(topic)
+    );
+
+  const agendaPresentationToken = (namespace, value) => {
+    const fallback = String(value || "");
+    const token = fallback.toLowerCase().replaceAll("-", "_");
+    return translate(`agenda_workspace.${namespace}.${token}`, fallback);
+  };
+
+  const campaignEventLocaleTag = () =>
+    globalThis.FR27I18N?.localeTag || "en-GB";
+
+  const campaignEventUsesEnglishPresentation = () =>
+    campaignEventLocaleTag().toLowerCase().startsWith("en");
+
+  const agendaDisplayNumber = (value, digits = 1) => {
+    const numeric = number(value);
+    const localizer = globalThis.FR27I18N;
+    return localizer && typeof localizer.formatNumber === "function"
+      ? localizer.formatNumber(numeric, {
+          minimumFractionDigits: digits,
+          maximumFractionDigits: digits
+        })
+      : numeric.toFixed(digits);
   };
 
   const renderStrongDateOrUnavailable = (
@@ -48,7 +110,7 @@
       panelId: "signal-candidates-panel"
     },
     agenda: {
-      label: "AGENDA",
+      label: translate("signal_board.agenda", "AGENDA"),
       title: translate("signal_board.campaign_agenda", "Campaign Agenda"),
       hash: "#signal-agenda",
       tabId: "signal-agenda-tab",
@@ -56,15 +118,15 @@
       index: "3"
     },
     events: {
-      label: "EVENTS",
+      label: translate("signal_board.events", "EVENTS"),
       title: translate("signal_board.campaign_events", "Campaign Events"),
       hash: "#signal-events",
       tabId: "signal-events-tab",
       panelId: "signal-events-panel"
     },
     issues: {
-      label: "ISSUES",
-      title: "Policy Issues",
+      label: translate("signal_board.issues", "ISSUES"),
+      title: translate("signal_board.policy_issues", "Policy Issues"),
       hash: "#signal-issues",
       tabId: "signal-issues-tab",
       panelId: "signal-issues-panel"
@@ -267,13 +329,65 @@
   const percent = value => Number.isFinite(value) ? formatScore(value) : "—";
   const countLabel = (value, singular, plural = singular + "s") => `${value} ${value === 1 ? singular : plural}`;
   const formatDay = value => formatDate(String(value).slice(0, 10));
-  const statusCopy = status => ({
-    agree: "Agree",
-    split: "Pollsters split",
-    ambiguous: "No single closest matchup",
-    insufficient: "Insufficient comparable evidence",
-    unavailable: "Unavailable"
-  })[status] || "Unavailable";
+  const runoffLocaleTag = () =>
+    globalThis.FR27I18N?.localeTag || "en-GB";
+
+  const runoffDisplayNumber = value => {
+    const numeric = number(value);
+    if (!runoffLocaleTag().toLowerCase().startsWith("fr")) {
+      return String(numeric);
+    }
+    const options = { maximumFractionDigits: 20 };
+    const localizer = globalThis.FR27I18N;
+    return localizer && typeof localizer.formatNumber === "function"
+      ? localizer.formatNumber(numeric, options)
+      : new Intl.NumberFormat(runoffLocaleTag(), options).format(numeric);
+  };
+
+  const runoffPercent = value => {
+    if (!Number.isFinite(value)) return "—";
+    if (!runoffLocaleTag().toLowerCase().startsWith("fr")) {
+      return formatScore(value);
+    }
+    return new Intl.NumberFormat(runoffLocaleTag(), {
+      style: "percent",
+      maximumFractionDigits: 1
+    }).format(value / 100);
+  };
+
+  const runoffStatusLabel = status => translate(
+    `runoff_workspace.status.${status}`,
+    ({
+      agree: "Agree",
+      split: "Pollsters split",
+      ambiguous: "No single closest matchup",
+      insufficient: "Insufficient comparable evidence",
+      unavailable: "Unavailable"
+    })[status] || "Unavailable"
+  );
+
+  const runoffStatusExplanation = model => {
+    const fallback = ({
+      agree: "Both pollsters agree this is the closest tested runoff",
+      split: "Pollsters identify different uniquely closest matchups in the common tested set.",
+      ambiguous: "At least one pollster has multiple matchups tied at its minimum reported margin.",
+      insufficient: "Current comparison unavailable."
+    })[model.status] || "Current comparison unavailable.";
+
+    if (model.status !== "agree" && globalThis.FR27I18N?.locale !== "fr") {
+      return model.message || fallback;
+    }
+
+    return translate(
+      `runoff_workspace.status_explanation.${model.status}`,
+      fallback
+    );
+  };
+
+  const runoffStateMessage = (state, fallback = "") => translate(
+    `runoff_workspace.state.${state}`,
+    fallback
+  );
 
   function isValidRunoffArchivePayload(payload) {
     if (!payload || typeof payload !== "object" || !Array.isArray(payload.events)) return false;
@@ -335,13 +449,13 @@
       .toUpperCase();
   }
 
-  function portraitMarkup(name, eager = false) {
+  function portraitMarkup(name, eager = false, accessibleLabel = "") {
     const portrait = candidatePortraits[name];
     const fallback = escapeHtml(initials(name));
     if (!portrait) return `<span class="hybrid-portrait" aria-hidden="true">${fallback}</span>`;
     return `<span class="hybrid-portrait">
       <span aria-hidden="true">${fallback}</span>
-      <img src="${escapeAttribute(portrait)}" alt="AI-generated portrait of ${escapeAttribute(name)}"
+      <img src="${escapeAttribute(portrait)}" alt="${escapeAttribute(accessibleLabel || `AI-generated portrait of ${name}`)}"
            loading="${eager ? "eager" : "lazy"}" decoding="async" onerror="this.remove()">
     </span>`;
   }
@@ -370,8 +484,8 @@
       return {
         state: archiveState.status === "loading" ? "loading" : "unavailable",
         message: archiveState.status === "loading"
-          ? "Loading the source-linked archive…"
-          : "Archive coverage and history are locally unavailable; current comparison evidence remains available.",
+          ? runoffStateMessage("archive_loading", "Loading the source-linked archive…")
+          : runoffStateMessage("archive_unavailable", "Archive coverage and history are locally unavailable; current comparison evidence remains available."),
         eventById: new Map(),
         footprint: null,
         matchups: [],
@@ -442,11 +556,24 @@
 
   function buildRunoffViewModel(archiveState = runoffArchiveState) {
     const unavailable = viewModelState("runoff");
-    if (unavailable) return { domain: "runoff", ...unavailable };
+    if (unavailable) {
+      return {
+        domain: "runoff",
+        ...unavailable,
+        message: runoffStateMessage(unavailable.state, unavailable.message)
+      };
+    }
 
     const payload = dashboardState.runoff;
     if (!payload || !["agree", "split", "ambiguous", "insufficient"].includes(payload.status)) {
-      return { domain: "runoff", state: "invalid", message: "Runoff evidence is unavailable because the derived artifact is malformed." };
+      return {
+        domain: "runoff",
+        state: "invalid",
+        message: runoffStateMessage(
+          "invalid",
+          "Runoff evidence is unavailable because the derived artifact is malformed."
+        )
+      };
     }
     const commonMatchups = Array.isArray(payload.common_matchups) ? payload.common_matchups : [];
     const preferredHistoryKey = state.selectedRunoffHistoryKey || payload.selected_matchup?.matchup_key || commonMatchups[0]?.matchup_key || "";
@@ -455,11 +582,16 @@
       domain: "runoff",
       state: payload.status === "insufficient" ? "empty" : "ready",
       status: payload.status,
-      statusLabel: statusCopy(payload.status),
+      statusLabel: runoffStatusLabel(payload.status),
       message: payload.message,
       disclosure: payload.disclosure,
       fieldworkWindow: payload.fieldwork_window || null,
-      fieldworkLabel: payload.fieldwork_window ? formatRunoffFieldwork(payload.fieldwork_window) : "Fieldwork unavailable",
+      fieldworkLabel: payload.fieldwork_window
+        ? formatRunoffFieldwork(payload.fieldwork_window)
+        : translate(
+            "runoff_workspace.fieldwork_unavailable",
+            "Fieldwork unavailable"
+          ),
       pollsterCount: number(payload.pollster_count),
       commonMatchupCount: number(payload.common_matchup_count),
       selectedMatchup: null,
@@ -565,19 +697,39 @@
     const end = parseKey(endKey);
 
     if (!start || !end || start > end) {
-      return "DATE UNAVAILABLE";
+      return translate(
+        "media_pulse.date_unavailable",
+        "DATE UNAVAILABLE"
+      );
     }
 
-    const months = [
+    const localeTag =
+      globalThis.FR27I18N?.localeTag || "en-GB";
+
+    const englishMonths = [
       "JAN", "FEB", "MAR", "APR",
       "MAY", "JUN", "JUL", "AUG",
       "SEP", "OCT", "NOV", "DEC"
     ];
 
+    const monthLabel = date =>
+      localeTag === "en-GB"
+        ? englishMonths[date.getUTCMonth()]
+        : new Intl.DateTimeFormat(
+            localeTag,
+            {
+              month: "short",
+              timeZone: "UTC"
+            }
+          )
+            .format(date)
+            .replace(/\.$/, "")
+            .toLocaleUpperCase(localeTag);
+
     const startDay = start.getUTCDate();
     const endDay = end.getUTCDate();
-    const startMonth = months[start.getUTCMonth()];
-    const endMonth = months[end.getUTCMonth()];
+    const startMonth = monthLabel(start);
+    const endMonth = monthLabel(end);
     const startYear = start.getUTCFullYear();
     const endYear = end.getUTCFullYear();
 
@@ -1122,7 +1274,10 @@
           name: row.candidate_name,
           status: row.status,
           tier: row.tier,
-          tierLabel: row.tier.toUpperCase(),
+          tierLabel:
+            row.tier === "main"
+              ? translate("media_pulse.tier_main", "MAIN")
+              : translate("media_pulse.tier_secondary", "SECONDARY"),
           latestCount: row.current_record_count,
           previousCount: row.prior_record_count,
           latestShare,
@@ -1768,33 +1923,6 @@
   }
 
 
-  function policyIssueShortLabel(topic) {
-    const labels = {
-      economy_public_finances:
-        "Economy & finances",
-      work_purchasing_power_pensions:
-        "Work & pensions",
-      immigration_identity_secularism:
-        "Immigration & identity",
-      security_justice:
-        "Security & justice",
-      health_education_public_services:
-        "Health & education",
-      climate_energy_agriculture:
-        "Climate & energy",
-      europe_defence_foreign_affairs:
-        "Europe & defence",
-      institutions_democracy_territories:
-        "Institutions & territories"
-    };
-
-    return (
-      labels[topic?.id] ||
-      topic?.label ||
-      "Issue"
-    );
-  }
-
   function policyIssueCode(topic) {
     const labels = {
       economy_public_finances:
@@ -1815,20 +1943,22 @@
         "INSTITUTIONS"
     };
 
-    return (
-      labels[topic?.id] ||
-      "ISSUE"
-    );
+    const fallback = labels[topic?.id] || "ISSUE";
+    const key = labels[topic?.id]
+      ? `policy_workspace.code.${topic.id}`
+      : "policy_workspace.code.unknown";
+    return translate(key, fallback);
   }
 
   function policySubtopicLabel(value) {
-    return String(value || "")
+    const fallback = String(value || "")
       .replaceAll("_", " ")
       .replace(
         /\b\w/g,
         character =>
           character.toUpperCase()
       );
+    return translate(`policy_subtopic.${String(value || "")}`, fallback);
   }
 
   function isValidPolicyAgendaBaseTopics(
@@ -2099,7 +2229,15 @@
     if (unavailable) {
       return {
         domain: "issues",
-        ...unavailable
+        ...unavailable,
+        message: unavailable.state === "loading"
+          ? translate("policy_workspace.loading", "Loading policy issues")
+          : unavailable.state === "empty"
+            ? translate("agenda_workspace.no_data", "No supported data is available.")
+            : translate(
+                "policy_workspace.data_unavailable",
+                "Policy Issues data is unavailable. Other signals remain live."
+              )
       };
     }
 
@@ -2114,8 +2252,10 @@
       return {
         domain: "issues",
         state: "unavailable",
-        message:
+        message: translate(
+          "policy_workspace.not_available",
           "Policy Issues are not available in the current news artifact."
+        )
       };
     }
 
@@ -2151,8 +2291,10 @@
       return {
         domain: "issues",
         state: "invalid",
-        message:
+        message: translate(
+          "policy_workspace.contract_invalid",
           "Policy Issues are unavailable because the policy contract is malformed."
+        )
       };
     }
 
@@ -2173,8 +2315,10 @@
       return {
         domain: "issues",
         state: "invalid",
-        message:
+        message: translate(
+          "policy_workspace.assignments_invalid",
           "Policy Issues are unavailable because multi-label assignment totals are inconsistent."
+        )
       };
     }
 
@@ -2211,8 +2355,10 @@
       return {
         domain: "issues",
         state: "empty",
-        message:
-          "No policy issue currently meets the publication threshold.",
+        message: translate(
+          "policy_workspace.empty",
+          "No policy issue currently meets the publication threshold."
+        ),
         topics: [],
         selectedIssue: null,
         evolutionReady: false
@@ -2231,8 +2377,10 @@
       return {
         domain: "issues",
         state: "invalid",
-        message:
+        message: translate(
+          "policy_workspace.evolution_invalid",
           "Policy Issues are unavailable because the evolution contract is malformed."
+        )
       };
     }
 
@@ -2483,7 +2631,20 @@
 
   function buildAgendaViewModel() {
     const unavailable = viewModelState("news");
-    if (unavailable) return { domain: "agenda", ...unavailable };
+    if (unavailable) {
+      return {
+        domain: "agenda",
+        ...unavailable,
+        message: unavailable.state === "loading"
+          ? translate("agenda_workspace.loading", "Loading campaign agenda")
+          : unavailable.state === "empty"
+            ? translate("agenda_workspace.no_data", "No supported data is available.")
+            : translate(
+                "agenda_workspace.data_unavailable",
+                "Campaign Agenda data is unavailable. Other signals remain live."
+              )
+      };
+    }
 
     const agenda = dashboardState.news.campaign_agenda;
     const allTopics = Array.isArray(agenda?.topics) ? agenda.topics : [];
@@ -2492,7 +2653,10 @@
       return {
         domain: "agenda",
         state: "invalid",
-        message: "Campaign Agenda is unavailable because its topic contract is malformed."
+        message: translate(
+          "agenda_workspace.contract_invalid",
+          "Campaign Agenda is unavailable because its topic contract is malformed."
+        )
       };
     }
 
@@ -2550,6 +2714,12 @@
       state: selectable.length
         ? "ready"
         : "empty",
+      message: selectable.length
+        ? ""
+        : translate(
+            "agenda_workspace.empty",
+            "No recurring campaign topic currently meets the publication threshold."
+          ),
       topics: selectable,
       eligibleTopics: eligible,
       selectedTopic,
@@ -2868,19 +3038,31 @@
   function campaignEventMonthShort(value) {
     const date = campaignEventDateFromKey(value);
     if (!date) return "";
-    return [
-      "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
-      "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
-    ][date.getUTCMonth()];
+    if (campaignEventUsesEnglishPresentation()) {
+      return [
+        "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+        "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
+      ][date.getUTCMonth()];
+    }
+    return new Intl.DateTimeFormat(campaignEventLocaleTag(), {
+      timeZone: "UTC",
+      month: "short"
+    }).format(date);
   }
 
   function campaignEventMonthLong(value) {
     const date = campaignEventDateFromKey(value);
     if (!date) return "";
-    return [
-      "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
-      "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
-    ][date.getUTCMonth()];
+    if (campaignEventUsesEnglishPresentation()) {
+      return [
+        "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+        "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
+      ][date.getUTCMonth()];
+    }
+    return new Intl.DateTimeFormat(campaignEventLocaleTag(), {
+      timeZone: "UTC",
+      month: "long"
+    }).format(date);
   }
 
   function campaignEventWeekRangeLabel(startKey, endKey) {
@@ -3456,7 +3638,7 @@
       <span class="hybrid-ranking">
         ${model.eligibleTopics.slice(0, 3).map(topic => `
           <span class="hybrid-topic-summary-row">
-            <span>${escapeHtml(topic.label)}</span>
+            <span>${escapeHtml(agendaTopicLabel(topic))}</span>
             <span class="hybrid-track" aria-hidden="true"><span class="hybrid-fill" style="--hybrid-width:${(number(topic.source_day_count) / model.maxSourceDays * 100).toFixed(1)}%"></span></span>
             <span class="hybrid-topic-count">${topic.source_day_count} source-days</span>
           </span>
@@ -3473,32 +3655,79 @@
     </div>`;
   }
 
-  function sourceLink(url, label, className = "", accessibleLabel = "") {
+  function sourceLink(
+    url,
+    label,
+    className = "",
+    accessibleLabel = "",
+    unavailableLabel = "Source unavailable"
+  ) {
     const safe = safeSourceUrl(url);
     return safe
       ? `<a class="${className}" href="${escapeAttribute(safe)}" target="_blank" rel="noopener noreferrer"${accessibleLabel ? ` aria-label="${escapeAttribute(accessibleLabel)}"` : ""}>${escapeHtml(label)} <span aria-hidden="true">↗</span></a>`
-      : `<span class="${className}">Source unavailable</span>`;
+      : `<span class="${className}">${escapeHtml(unavailableLabel)}</span>`;
   }
 
   function runoffSampleLabel(value) {
-    return Number.isInteger(value) ? `n=${new Intl.NumberFormat("en-US").format(value)}` : "n unavailable";
+    if (!Number.isInteger(value)) {
+      return translate(
+        "runoff_workspace.sample_unavailable",
+        "n unavailable"
+      );
+    }
+    const localizer = globalThis.FR27I18N;
+    const formatted = localizer && typeof localizer.formatNumber === "function"
+      ? localizer.formatNumber(value, { maximumFractionDigits: 0 })
+      : new Intl.NumberFormat(
+          runoffLocaleTag(),
+          { maximumFractionDigits: 0 }
+        ).format(value);
+    return `n=${formatted}`;
   }
 
   function runoffScorePair(observation, candidates) {
     const scores = runoffScoresForCandidates(observation, candidates);
-    return `${percent(scores[0])} · ${percent(scores[1])}`;
+    return `${runoffPercent(scores[0])} · ${runoffPercent(scores[1])}`;
   }
 
   function runoffMonthYear(event) {
-    if (!event?.fieldwork_end) return "Date unavailable";
-    return new Intl.DateTimeFormat("en-GB", {
+    if (!event?.fieldwork_end) {
+      return translate(
+        "runoff_workspace.date_unavailable",
+        "Date unavailable"
+      );
+    }
+    return new Intl.DateTimeFormat(runoffLocaleTag(), {
       month: "short",
       year: "numeric",
       timeZone: "UTC"
     }).format(new Date(`${event.fieldwork_end}T00:00:00Z`));
   }
   function runoffTitleCaseDate(value) {
+    if (runoffLocaleTag().toLowerCase().startsWith("fr")) {
+      return String(value || "");
+    }
     return String(value || "").replace(/\b([A-Z]{3})\b/g, month => month[0] + month.slice(1).toLowerCase());
+  }
+
+  function runoffSourceAccessibleLabel(pollster, candidates) {
+    return translate(
+      "runoff_workspace.open_source_for_matchup",
+      `Open ${pollster} source for ${candidates.join(" versus ")}`,
+      {
+        pollster,
+        candidateOne: candidates[0] || "",
+        candidateTwo: candidates[1] || ""
+      }
+    );
+  }
+
+  function runoffTextSourceLink(url) {
+    const safe = safeSourceUrl(url);
+    const label = translate("runoff_workspace.source", "SOURCE");
+    return safe
+      ? `<a class="hybrid-runoff-source is-compact" href="${escapeAttribute(safe)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)} <span aria-hidden="true">↗</span></a>`
+      : `<span class="hybrid-runoff-source is-compact">${escapeHtml(translate("runoff_workspace.source_unavailable", "Source unavailable"))}</span>`;
   }
 
   function runoffIconMarkup(name, className = "") {
@@ -3547,7 +3776,17 @@
   function runoffBalanceRail(observation, candidates) {
     const scores = runoffScoresForCandidates(observation, candidates);
     const left = Number.isFinite(scores[0]) ? Math.max(0, Math.min(100, scores[0])) : 50;
-    return `<div class="hybrid-runoff-balance" role="img" aria-label="Reported score: ${escapeAttribute(candidates[0])} ${percent(scores[0])}; ${escapeAttribute(candidates[1])} ${percent(scores[1])}; 50 percent centre reference">
+    const accessibleLabel = translate(
+      "runoff_workspace.reported_score_accessibility",
+      `Reported score: ${candidates[0]} ${runoffPercent(scores[0])}; ${candidates[1]} ${runoffPercent(scores[1])}; 50 percent centre reference`,
+      {
+        candidateOne: candidates[0] || "",
+        scoreOne: runoffPercent(scores[0]),
+        candidateTwo: candidates[1] || "",
+        scoreTwo: runoffPercent(scores[1])
+      }
+    );
+    return `<div class="hybrid-runoff-balance" role="img" aria-label="${escapeAttribute(accessibleLabel)}">
       <span class="hybrid-runoff-balance-left" style="width:${left}%"></span>
       <span class="hybrid-runoff-balance-right"></span>
       <span class="hybrid-runoff-balance-centre" aria-hidden="true"></span>
@@ -3558,7 +3797,7 @@
   function runoffCompactRail(observation, candidates) {
     const scores = runoffScoresForCandidates(observation, candidates);
     const left = Number.isFinite(scores[0]) ? Math.max(0, Math.min(100, scores[0])) : 50;
-    return `<span class="hybrid-runoff-compact-rail" role="img" aria-label="${escapeAttribute(candidates[0])} ${percent(scores[0])}; ${escapeAttribute(candidates[1])} ${percent(scores[1])}">
+    return `<span class="hybrid-runoff-compact-rail" role="img" aria-label="${escapeAttribute(candidates[0])} ${runoffPercent(scores[0])}; ${escapeAttribute(candidates[1])} ${runoffPercent(scores[1])}">
       <span class="hybrid-runoff-compact-left" style="width:${left}%"></span>
       <span class="hybrid-runoff-compact-right"></span>
       <span class="hybrid-runoff-compact-centre" aria-hidden="true"></span>
@@ -3569,11 +3808,12 @@
 
     const fieldwork = observation.fieldwork_start && observation.fieldwork_end
       ? exactRunoffWindowLabel(observation)
-      : "Exact fieldwork unavailable";
+      : translate(
+          "runoff_workspace.exact_fieldwork_unavailable",
+          "Exact fieldwork unavailable"
+        );
 
-    const fieldworkLabel = fieldwork === "Exact fieldwork unavailable"
-      ? fieldwork
-      : runoffTitleCaseDate(fieldwork);
+    const fieldworkLabel = runoffTitleCaseDate(fieldwork);
 
     const sampleSize =
       observation.sampleSize ??
@@ -3592,7 +3832,15 @@
     return `<article class="hybrid-observation hybrid-runoff-source-observation" tabindex="0" data-fr27-tooltip="${escapeAttribute(tooltip)}" data-runoff-hover="RUNOFF_HOVER_METADATA">
       <div class="hybrid-runoff-candidate">
         <span class="hybrid-runoff-candidate-name">${escapeHtml(candidates[0])}</span>
-        <span class="hybrid-runoff-candidate-result">${portraitMarkup(candidates[0])}<strong>${percent(scores[0])}</strong></span>
+        <span class="hybrid-runoff-candidate-result">${portraitMarkup(
+          candidates[0],
+          false,
+          translate(
+            "runoff_workspace.candidate_portrait_alt",
+            `AI-generated portrait of ${candidates[0]}`,
+            { candidateName: candidates[0] }
+          )
+        )}<strong>${runoffPercent(scores[0])}</strong></span>
       </div>
 
       <div class="hybrid-runoff-instrument">
@@ -3605,18 +3853,26 @@
 
         ${runoffCompactSourceLink(
           observation.source_url,
-          `Open ${observation.pollster} source for ${candidates.join(" versus ")}`
+          runoffSourceAccessibleLabel(observation.pollster, candidates)
         )}
       </div>
 
       <div class="hybrid-runoff-candidate is-right">
         <span class="hybrid-runoff-candidate-name">${escapeHtml(candidates[1])}</span>
-        <span class="hybrid-runoff-candidate-result"><strong>${percent(scores[1])}</strong>${portraitMarkup(candidates[1])}</span>
+        <span class="hybrid-runoff-candidate-result"><strong>${runoffPercent(scores[1])}</strong>${portraitMarkup(
+          candidates[1],
+          false,
+          translate(
+            "runoff_workspace.candidate_portrait_alt",
+            `AI-generated portrait of ${candidates[1]}`,
+            { candidateName: candidates[1] }
+          )
+        )}</span>
       </div>
 
       <div class="hybrid-runoff-margin-tile">
-        <span>MARGIN</span>
-        <strong>${number(observation.margin)}</strong>
+        <span>${escapeHtml(translate("runoff_workspace.margin", "MARGIN"))}</span>
+        <strong>${runoffDisplayNumber(observation.margin)}</strong>
         <small>pts</small>
       </div>
     </article>`;
@@ -3624,25 +3880,23 @@
   function renderRunoffHeader(model) {
     const footprint = model.archive?.state === "ready" ? model.archive.footprint : null;
     const counters = [
-      [footprint?.observationCount ?? "—", "observations"],
-      [footprint?.matchupCount ?? "—", "matchups"],
-      [footprint?.pollsterCount ?? "—", "pollsters"],
-      [footprint?.windowCount ?? "—", "windows"]
+      [footprint?.observationCount, translate("runoff_workspace.counter.observations", "observations")],
+      [footprint?.matchupCount, translate("runoff_workspace.counter.matchups", "matchups")],
+      [footprint?.pollsterCount, translate("runoff_workspace.counter.pollsters", "pollsters")],
+      [footprint?.windowCount, translate("runoff_workspace.counter.windows", "windows")]
     ];
-    const explanation = model.status === "agree"
-      ? "Both pollsters agree this is the closest tested runoff"
-      : model.message || "Current comparison unavailable.";
+    const explanation = runoffStatusExplanation(model);
     return `<header class="hybrid-runoff-evidence-header">
       <div class="hybrid-runoff-title-block">
         <span class="hybrid-runoff-mark">${runoffIconMarkup("runoff", "hybrid-runoff-title-icon")}</span>
-        <div><h2>RUNOFF SIGNALS</h2><p>Source-separated second-round evidence · no averages · no forecast</p></div>
+        <div><h2>${escapeHtml(translate("runoff_workspace.title", "RUNOFF SIGNALS"))}</h2><p>${escapeHtml(translate("runoff_workspace.subtitle", "Source-separated second-round evidence · no averages · no forecast"))}</p></div>
       </div>
-      <div class="hybrid-runoff-current-scope" aria-label="Current exact-window scope">
+      <div class="hybrid-runoff-current-scope" aria-label="${escapeAttribute(translate("runoff_workspace.current_exact_window_scope", "Current exact-window scope"))}">
         <span class="hybrid-runoff-status is-${escapeAttribute(model.status)}">${escapeHtml(model.statusLabel).toUpperCase()}</span>
         <span class="hybrid-runoff-scope-message">${escapeHtml(explanation)}</span>
         <strong class="hybrid-runoff-date-pill">${runoffIconMarkup("calendar", "hybrid-runoff-inline-icon")}<span>${escapeHtml(runoffTitleCaseDate(model.fieldworkLabel))}</span></strong>
       </div>
-      <div class="hybrid-runoff-header-metrics" aria-label="Full archive counts">${counters.map(counter => `<span class="hybrid-runoff-header-metric"><strong>${counter[0]}</strong><small>${counter[1]}</small></span>`).join("")}</div>
+      <div class="hybrid-runoff-header-metrics" aria-label="${escapeAttribute(translate("runoff_workspace.full_archive_counts", "Full archive counts"))}">${counters.map(counter => `<span class="hybrid-runoff-header-metric"><strong>${Number.isFinite(counter[0]) ? runoffDisplayNumber(counter[0]) : "—"}</strong><small>${escapeHtml(counter[1])}</small></span>`).join("")}</div>
     </header>`;
   }
   function renderRunoffClosest(model) {
@@ -3650,27 +3904,33 @@
       const matchup = model.selectedMatchup;
       const narrowest = Math.min(...matchup.observations.map(item => Number(item.margin)));
       return `<section class="hybrid-runoff-module hybrid-runoff-closest" aria-labelledby="hybrid-runoff-closest-title">
-        <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">1</span><h3 id="hybrid-runoff-closest-title">CLOSEST TESTED RUNOFF</h3></div><span>Same closest matchup · different reported distance</span></div>
+        <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">1</span><h3 id="hybrid-runoff-closest-title">${escapeHtml(translate("runoff_workspace.closest_tested_runoff", "CLOSEST TESTED RUNOFF"))}</h3></div><span>${escapeHtml(translate("runoff_workspace.closest_subtitle", "Same closest matchup · different reported distance"))}</span></div>
         <h4>${escapeHtml(matchup.candidates.join(" vs "))}</h4>
         <div class="hybrid-runoff-observations">${matchup.observations.map(item => observationMarkup(item, matchup.candidates)).join("")}</div>
-        <div class="hybrid-runoff-closest-callout">${runoffIconMarkup("target", "hybrid-runoff-callout-icon")}<strong>NARROWEST OBSERVED MARGIN · ${number(narrowest)} PTS</strong></div>
+        <div class="hybrid-runoff-closest-callout">${runoffIconMarkup("target", "hybrid-runoff-callout-icon")}<strong>${escapeHtml(translate("runoff_workspace.narrowest_observed_margin", "NARROWEST OBSERVED MARGIN"))} · ${runoffDisplayNumber(narrowest)} PTS</strong></div>
       </section>`;
     }
 
     if (["split", "ambiguous"].includes(model.status)) {
       const explanation = model.status === "split"
-        ? "Pollsters identify different uniquely closest matchups in the common tested set."
-        : "At least one pollster has multiple matchups tied at its minimum reported margin.";
+        ? translate(
+            "runoff_workspace.status_explanation.split",
+            "Pollsters identify different uniquely closest matchups in the common tested set."
+          )
+        : translate(
+            "runoff_workspace.status_explanation.ambiguous",
+            "At least one pollster has multiple matchups tied at its minimum reported margin."
+          );
       return `<section class="hybrid-runoff-module hybrid-runoff-closest" aria-labelledby="hybrid-runoff-closest-title">
-        <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">1</span><h3 id="hybrid-runoff-closest-title">CLOSEST TESTED RUNOFF</h3></div><span>${escapeHtml(model.statusLabel)}</span></div>
+        <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">1</span><h3 id="hybrid-runoff-closest-title">${escapeHtml(translate("runoff_workspace.closest_tested_runoff", "CLOSEST TESTED RUNOFF"))}</h3></div><span>${escapeHtml(model.statusLabel)}</span></div>
         <p class="hybrid-runoff-local-state">${escapeHtml(explanation)}</p>
-        <div class="hybrid-runoff-unresolved-grid">${model.pollsters.map(pollster => `<section class="hybrid-runoff-unresolved-source"><h4>${escapeHtml(pollster.pollster)}</h4>${pollster.closest_matchups.map(matchup => `<div class="hybrid-runoff-unresolved-row"><strong>${escapeHtml(matchup.candidates.join(" vs "))}</strong><span>${escapeHtml(runoffScorePair(matchup.result, matchup.candidates))} · ${number(matchup.result.margin)} pts</span>${sourceLink(matchup.result.source_url, "SOURCE", "hybrid-runoff-source is-compact")}</div>`).join("")}</section>`).join("")}</div>
+        <div class="hybrid-runoff-unresolved-grid">${model.pollsters.map(pollster => `<section class="hybrid-runoff-unresolved-source"><h4>${escapeHtml(pollster.pollster)}</h4>${pollster.closest_matchups.map(matchup => `<div class="hybrid-runoff-unresolved-row"><strong>${escapeHtml(matchup.candidates.join(" vs "))}</strong><span>${escapeHtml(runoffScorePair(matchup.result, matchup.candidates))} · ${runoffDisplayNumber(matchup.result.margin)} pts</span>${runoffTextSourceLink(matchup.result.source_url)}</div>`).join("")}</section>`).join("")}</div>
       </section>`;
     }
 
     return `<section class="hybrid-runoff-module hybrid-runoff-closest" aria-labelledby="hybrid-runoff-closest-title">
-      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">1</span><h3 id="hybrid-runoff-closest-title">CLOSEST TESTED RUNOFF</h3></div></div>
-      <div class="hybrid-runoff-local-state" role="status">No score comparison is shown. A qualifying window requires at least two pollsters, at least two tested matchups per pollster, and at least two exact common matchup keys.</div>
+      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">1</span><h3 id="hybrid-runoff-closest-title">${escapeHtml(translate("runoff_workspace.closest_tested_runoff", "CLOSEST TESTED RUNOFF"))}</h3></div></div>
+      <div class="hybrid-runoff-local-state" role="status">${escapeHtml(translate("runoff_workspace.insufficient_explanation", "No score comparison is shown. A qualifying window requires at least two pollsters, at least two tested matchups per pollster, and at least two exact common matchup keys."))}</div>
     </section>`;
   }
   function renderRunoffCommonMatchups(model) {
@@ -3682,25 +3942,25 @@
       return left.candidates.join(" ").localeCompare(right.candidates.join(" "), "fr");
     });
     return `<section class="hybrid-runoff-module hybrid-runoff-common" aria-labelledby="hybrid-runoff-common-title">
-      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">2</span><div><h3 id="hybrid-runoff-common-title">CURRENT COMMON MATCHUPS</h3></div></div></div>
-      ${model.commonMatchups.length ? `<div class="hybrid-runoff-matrix" role="table" aria-label="Current common matchup source results">
-        <div class="hybrid-runoff-matrix-head" role="row"><span role="columnheader">MATCHUP</span>${pollsters.map(name => `<span role="columnheader">${escapeHtml(name)}</span>`).join("")}<span role="columnheader">MARGINS</span></div>
+      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">2</span><div><h3 id="hybrid-runoff-common-title">${escapeHtml(translate("runoff_workspace.current_common_matchups", "CURRENT COMMON MATCHUPS"))}</h3></div></div></div>
+      ${model.commonMatchups.length ? `<div class="hybrid-runoff-matrix" role="table" aria-label="${escapeAttribute(translate("runoff_workspace.current_common_matchup_results", "Current common matchup source results"))}">
+        <div class="hybrid-runoff-matrix-head" role="row"><span role="columnheader">${escapeHtml(translate("runoff_workspace.matchup", "MATCHUP"))}</span>${pollsters.map(name => `<span role="columnheader">${escapeHtml(name)}</span>`).join("")}<span role="columnheader">${escapeHtml(translate("runoff_workspace.margins", "MARGINS"))}</span></div>
         ${displayMatchups.map(matchup => {
           const selected = model.selectedMatchup?.key === matchup.matchup_key;
           const margins = pollsters.map(name => matchup.results.find(item => item.pollster === name)?.margin);
           return `<div class="hybrid-runoff-matrix-row${selected ? " is-selected" : ""}" role="row">
-            <span class="hybrid-runoff-matrix-matchup" role="rowheader">${selected ? '<small>CLOSEST COMMON MATCHUP</small>' : ""}<strong>${escapeHtml(matchup.candidates[0] || "")}<br>vs ${escapeHtml(matchup.candidates[1] || "")}</strong></span>
+            <span class="hybrid-runoff-matrix-matchup" role="rowheader">${selected ? `<small>${escapeHtml(translate("runoff_workspace.closest_common_matchup", "CLOSEST COMMON MATCHUP"))}</small>` : ""}<strong>${escapeHtml(matchup.candidates[0] || "")}<br>vs ${escapeHtml(matchup.candidates[1] || "")}</strong></span>
             ${pollsters.map(name => {
               const result = matchup.results.find(item => item.pollster === name);
               if (!result) return `<span class="hybrid-runoff-matrix-result" role="cell">—</span>`;
               const scores = runoffScoresForCandidates(result, matchup.candidates);
-              return `<span class="hybrid-runoff-matrix-result" role="cell"><span class="hybrid-runoff-matrix-score is-left">${percent(scores[0])}</span>${runoffCompactRail(result, matchup.candidates)}<span class="hybrid-runoff-matrix-score is-right">${percent(scores[1])}</span></span>`;
+              return `<span class="hybrid-runoff-matrix-result" role="cell"><span class="hybrid-runoff-matrix-score is-left">${runoffPercent(scores[0])}</span>${runoffCompactRail(result, matchup.candidates)}<span class="hybrid-runoff-matrix-score is-right">${runoffPercent(scores[1])}</span></span>`;
             }).join("")}
-            <span class="hybrid-runoff-matrix-margins" role="cell"><strong>${margins.map(value => number(value)).join(" / ")}</strong><small>pts</small></span>
+            <span class="hybrid-runoff-matrix-margins" role="cell"><strong>${margins.map(value => runoffDisplayNumber(value)).join(" / ")}</strong><small>pts</small></span>
           </div>`;
         }).join("")}
-      </div>` : `<div class="hybrid-runoff-local-state" role="status">No common exact-window matchup matrix is available for this status.</div>`}
-      <div class="hybrid-runoff-matrix-legend"><span><i class="is-left"></i>Candidate 1</span><span><i class="is-right"></i>Candidate 2</span><span>Exact source-reported scores · no averages</span></div>
+      </div>` : `<div class="hybrid-runoff-local-state" role="status">${escapeHtml(translate("runoff_workspace.no_common_matrix", "No common exact-window matchup matrix is available for this status."))}</div>`}
+      <div class="hybrid-runoff-matrix-legend"><span><i class="is-left"></i>${escapeHtml(translate("runoff_workspace.candidate_one", "Candidate 1"))}</span><span><i class="is-right"></i>${escapeHtml(translate("runoff_workspace.candidate_two", "Candidate 2"))}</span><span>${escapeHtml(translate("runoff_workspace.exact_source_scores", "Exact source-reported scores · no averages"))}</span></div>
     </section>`;
   }
   function renderRunoffFootprint(model) {
@@ -3727,7 +3987,7 @@
   }
   function renderRunoffHistory(model) {
     if (model.archive.state !== "ready") {
-      return `<section class="hybrid-runoff-module hybrid-runoff-history" aria-labelledby="hybrid-runoff-history-title"><div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">4</span><h3 id="hybrid-runoff-history-title">SELECTED MATCHUP HISTORY</h3></div></div><div class="hybrid-runoff-local-state" role="status" aria-live="polite">${escapeHtml(model.archive.message)}</div></section>`;
+      return `<section class="hybrid-runoff-module hybrid-runoff-history" aria-labelledby="hybrid-runoff-history-title"><div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">4</span><h3 id="hybrid-runoff-history-title">${escapeHtml(translate("runoff_workspace.selected_matchup_history", "SELECTED MATCHUP HISTORY"))}</h3></div></div><div class="hybrid-runoff-local-state" role="status" aria-live="polite">${escapeHtml(model.archive.message)}</div></section>`;
     }
 
     const selected = model.archive.matchups.find(
@@ -3748,13 +4008,13 @@
         <div>
           <span class="hybrid-runoff-step" aria-hidden="true">4</span>
           <div>
-            <h3 id="hybrid-runoff-history-title">SELECTED MATCHUP HISTORY</h3>
-            <p>${escapeHtml(selected?.candidates.join(" vs ") || "Exact matchup")} · Discrete source observations only</p>
+            <h3 id="hybrid-runoff-history-title">${escapeHtml(translate("runoff_workspace.selected_matchup_history", "SELECTED MATCHUP HISTORY"))}</h3>
+            <p>${escapeHtml(selected?.candidates.join(" vs ") || translate("runoff_workspace.exact_matchup", "Exact matchup"))} · ${escapeHtml(translate("runoff_workspace.discrete_source_observations", "Discrete source observations only"))}</p>
           </div>
         </div>
 
         <label>
-          INSPECT MATCHUP
+          ${escapeHtml(translate("runoff_workspace.inspect_matchup", "INSPECT MATCHUP"))}
           <select class="hybrid-runoff-history-select" data-hybrid-runoff-history>
             ${model.archive.matchups.map(matchup => `<option value="${escapeAttribute(matchup.key)}"${matchup.key === model.archive.selectedHistoryKey ? " selected" : ""}>${escapeHtml(matchup.candidates.join(" vs "))}</option>`).join("")}
           </select>
@@ -3764,11 +4024,11 @@
       <div
         class="hybrid-runoff-history-scroll"
         tabindex="0"
-        aria-label="Scrollable selected matchup history"
+        aria-label="${escapeAttribute(translate("runoff_workspace.scrollable_history", "Scrollable selected matchup history"))}"
       >
         <div
           class="hybrid-runoff-chronology is-observation-strip"
-          aria-label="${observations.length} exact source observations"
+          aria-label="${escapeAttribute(translate("runoff_workspace.exact_source_observation_count", `${observations.length} exact source observations`, { count: observations.length }))}"
         >
           <span
             class="hybrid-runoff-chronology-guide"
@@ -3787,16 +4047,16 @@
               <time datetime="${escapeAttribute(event.fieldwork_end)}">${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(event)))}</time>
 
               <div class="hybrid-runoff-history-group">
-                <article class="hybrid-runoff-history-entry" tabindex="0" data-fr27-tooltip="${escapeAttribute(`${runoffTitleCaseDate(exactRunoffWindowLabel(event))} · ${event.pollster} · ${percent(scores[0])}–${percent(scores[1])} · Margin ${number(event.margin)} pts · ${runoffSampleLabel(event.sample_size)}`)}" data-runoff-hover="RUNOFF_HOVER_METADATA">
+                <article class="hybrid-runoff-history-entry" tabindex="0" data-fr27-tooltip="${escapeAttribute(`${runoffTitleCaseDate(exactRunoffWindowLabel(event))} · ${event.pollster} · ${runoffPercent(scores[0])}–${runoffPercent(scores[1])} · ${translate("runoff_workspace.margin_title", "Margin")} ${runoffDisplayNumber(event.margin)} pts · ${runoffSampleLabel(event.sample_size)}`)}" data-runoff-hover="RUNOFF_HOVER_METADATA">
                   <strong class="hybrid-runoff-history-pollster">${escapeHtml(event.pollster)}${runoffCompactSourceLink(
                       event.source_url,
-                      `Open ${event.pollster} source for ${candidates.join(" versus ")}`
+                      runoffSourceAccessibleLabel(event.pollster, candidates)
                     )}</strong>
 
                   <span class="hybrid-runoff-history-scores">
-                    <b>${percent(scores[0])}</b>
+                    <b>${runoffPercent(scores[0])}</b>
                     <i>–</i>
-                    <b>${percent(scores[1])}</b>
+                    <b>${runoffPercent(scores[1])}</b>
                   </span>
 
                 </article>
@@ -3809,15 +4069,25 @@
   }
   function renderRunoffOtherMatchups(model) {
     if (model.archive.state !== "ready") {
-      return `<section class="hybrid-runoff-module hybrid-runoff-others" aria-labelledby="hybrid-runoff-others-title"><div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">5</span><h3 id="hybrid-runoff-others-title">OTHER TESTED MATCHUPS</h3></div></div><div class="hybrid-runoff-local-state" role="status" aria-live="polite">${escapeHtml(model.archive.message)}</div></section>`;
+      return `<section class="hybrid-runoff-module hybrid-runoff-others" aria-labelledby="hybrid-runoff-others-title"><div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">5</span><h3 id="hybrid-runoff-others-title">${escapeHtml(translate("runoff_workspace.other_tested_matchups", "OTHER TESTED MATCHUPS"))}</h3></div></div><div class="hybrid-runoff-local-state" role="status" aria-live="polite">${escapeHtml(model.archive.message)}</div></section>`;
     }
     return `<section class="hybrid-runoff-module hybrid-runoff-others" aria-labelledby="hybrid-runoff-others-title">
-      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">5</span><h3 id="hybrid-runoff-others-title">OTHER TESTED MATCHUPS</h3></div><span>Evidence catalogue · latest reported source result shown</span></div>
-      <div class="hybrid-runoff-other-grid">${model.archive.otherMatchups.map(matchup => {
+      <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">5</span><h3 id="hybrid-runoff-others-title">${escapeHtml(translate("runoff_workspace.other_tested_matchups", "OTHER TESTED MATCHUPS"))}</h3></div><span>${escapeHtml(translate("runoff_workspace.other_matchups_subtitle", "Evidence catalogue · latest reported source result shown"))}</span></div>
+      <div class="hybrid-runoff-other-grid"
+        data-matchup-label="${escapeAttribute(
+          translate("runoff_workspace.matchup", "MATCHUP")
+        )}"
+        data-latest-result-label="${escapeAttribute(
+          translate(
+            "runoff_workspace.latest_result_balance",
+            "LATEST RESULT · BALANCE"
+          )
+        )}"
+      >${model.archive.otherMatchups.map(matchup => {
         const event = matchup.latest;
         const scores = runoffScoresForCandidates(event, matchup.candidates);
-        const sourceLabel = `Open ${event.pollster} source for ${matchup.candidates.join(" versus ")}`;
-        return `<article class="hybrid-runoff-other-card" tabindex="0" data-fr27-tooltip="${escapeAttribute(`${event.pollster} · ${runoffTitleCaseDate(exactRunoffWindowLabel(event))} · Margin ${number(event.margin)} pts · ${runoffSampleLabel(event.sample_size)}`)}" data-runoff-hover="RUNOFF_HOVER_METADATA"><h4><span>${escapeHtml(matchup.candidates[0])}</span><small>vs ${escapeHtml(matchup.candidates[1])}</small></h4><span class="hybrid-runoff-other-meta">${escapeHtml(event.pollster)} · ${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(event)))}</span><div class="hybrid-runoff-other-score"><strong>${percent(scores[0])}</strong>${runoffCompactRail(event, matchup.candidates)}<strong>${percent(scores[1])}</strong></div><div class="hybrid-runoff-other-foot"><span>MARGIN · ${number(event.margin)} PTS</span><span>${escapeHtml(runoffSampleLabel(event.sample_size))}</span>${runoffCompactSourceLink(event.source_url, sourceLabel)}</div></article>`;
+        const sourceLabel = runoffSourceAccessibleLabel(event.pollster, matchup.candidates);
+        return `<article class="hybrid-runoff-other-card" tabindex="0" data-fr27-tooltip="${escapeAttribute(`${event.pollster} · ${runoffTitleCaseDate(exactRunoffWindowLabel(event))} · ${translate("runoff_workspace.margin_title", "Margin")} ${runoffDisplayNumber(event.margin)} pts · ${runoffSampleLabel(event.sample_size)}`)}" data-runoff-hover="RUNOFF_HOVER_METADATA"><h4><span>${escapeHtml(matchup.candidates[0])}</span><small>vs ${escapeHtml(matchup.candidates[1])}</small></h4><span class="hybrid-runoff-other-meta">${escapeHtml(event.pollster)} · ${escapeHtml(runoffTitleCaseDate(exactRunoffWindowLabel(event)))}</span><div class="hybrid-runoff-other-score"><strong>${runoffPercent(scores[0])}</strong>${runoffCompactRail(event, matchup.candidates)}<strong>${runoffPercent(scores[1])}</strong></div><div class="hybrid-runoff-other-foot"><span>${escapeHtml(translate("runoff_workspace.margin", "MARGIN"))} · ${runoffDisplayNumber(event.margin)} PTS</span><span>${escapeHtml(runoffSampleLabel(event.sample_size))}</span>${runoffCompactSourceLink(event.source_url, sourceLabel)}</div></article>`;
       }).join("")}</div>
     </section>`;
   }
@@ -3826,10 +4096,13 @@
       if (model.state === "loading" && window.FR27UI) {
         return window.FR27UI.skeletonElement(
           "runoff",
-          "Loading runoff evidence"
+          translate(
+            "runoff_workspace.loading_evidence",
+            "Loading runoff evidence"
+          )
         ).outerHTML;
       }
-      return `<div class="hybrid-runoff-local-state" role="status" aria-live="polite">${escapeHtml(model.message || "Runoff evidence is unavailable.")}</div>`;
+      return `<div class="hybrid-runoff-local-state" role="status" aria-live="polite">${escapeHtml(model.message || runoffStateMessage("evidence_unavailable", "Runoff evidence is unavailable."))}</div>`;
     }
     return `<div class="hybrid-runoff-workspace">
       ${renderRunoffHeader(model)}
@@ -4040,6 +4313,10 @@
                       "item"
                     )}`
                   : "";
+              const topicLabel =
+                agendaTopicLabel(topic);
+              const compactTopicLabel =
+                compactAgendaTopicLabel(topic);
 
               return `
                 <button
@@ -4047,7 +4324,7 @@
                   type="button"
                   data-hybrid-media-topic="${escapeAttribute(topic.id)}"
                   aria-label="${escapeAttribute(
-                    `${topic.label}: rank ${index + 1}; ${sourceDaysAccessible}; ${publishersAccessible}${itemContext}. Open Campaign Agenda detail.`
+                    `${topicLabel}: rank ${index + 1}; ${sourceDaysAccessible}; ${publishersAccessible}${itemContext}. Open Campaign Agenda detail.`
                   )}"
                 >
                   <span
@@ -4056,7 +4333,7 @@
                   >${String(index + 1).padStart(2, "0")}</span>
 
                   <span class="hybrid-topic-matrix-label">
-                    ${escapeHtml(topic.label)}
+                    ${escapeHtml(compactTopicLabel)}
                   </span>
 
                   <strong class="hybrid-topic-matrix-days">
@@ -4170,11 +4447,11 @@
 
   function agendaSignedPp(value) {
     const numeric = number(value);
-    return `${numeric > 0 ? "+" : ""}${numeric.toFixed(1)}pp`;
+    return `${numeric > 0 ? "+" : ""}${agendaDisplayNumber(numeric)}pp`;
   }
 
   function agendaPercent(value, digits = 1) {
-    return `${(number(value) * 100).toFixed(digits)}%`;
+    return `${agendaDisplayNumber(number(value) * 100, digits)}%`;
   }
 
   function agendaCompactDate(value) {
@@ -4184,11 +4461,17 @@
 
     if (!match) return value || "";
 
-    const months = [
+    const months = globalThis.FR27I18N?.locale === "fr"
+      ? [
+          "JANV.", "FÉVR.", "MARS", "AVR.",
+          "MAI", "JUIN", "JUIL.", "AOÛT",
+          "SEPT.", "OCT.", "NOV.", "DÉC."
+        ]
+      : [
       "JAN", "FEB", "MAR", "APR",
       "MAY", "JUN", "JUL", "AUG",
       "SEP", "OCT", "NOV", "DEC"
-    ];
+        ];
 
     return `${Number(match[3])} ${months[Number(match[2]) - 1]}`;
   }
@@ -4206,11 +4489,17 @@
       return `${startValue || ""}–${endValue || ""}`;
     }
 
-    const months = [
+    const months = globalThis.FR27I18N?.locale === "fr"
+      ? [
+          "JANV.", "FÉVR.", "MARS", "AVR.",
+          "MAI", "JUIN", "JUIL.", "AOÛT",
+          "SEPT.", "OCT.", "NOV.", "DÉC."
+        ]
+      : [
       "JAN", "FEB", "MAR", "APR",
       "MAY", "JUN", "JUL", "AUG",
       "SEP", "OCT", "NOV", "DEC"
-    ];
+        ];
 
     const startDay = Number(start[3]);
     const endDay = Number(end[3]);
@@ -4281,12 +4570,15 @@
 
     const definition = definitionAvailable
       ? selected.definition.trim()
-      : "Topic definition unavailable in the current repository data.";
+      : translate(
+          "agenda_workspace.definition_unavailable",
+          "Topic definition unavailable in the current repository data."
+        );
 
     return `<div class="hybrid-agenda-layout">
       <section class="hybrid-agenda-ranking">
-        <h3 class="hybrid-section-title">Eligible-topic ranking</h3>
-        <p class="hybrid-section-sub">Accepted election-news topics · ${model.windowDays}-day source window. Primary bar value: source-day recurrence.</p>
+        <h3 class="hybrid-section-title">${escapeHtml(translate("agenda_workspace.eligible_ranking", "Eligible-topic ranking"))}</h3>
+        <p class="hybrid-section-sub">${escapeHtml(translate("agenda_workspace.ranking_description", `Accepted election-news topics · ${model.windowDays}-day source window. Primary bar value: source-day recurrence.`, { days: model.windowDays }))}</p>
 
         ${model.topics.map((topic, index) => `
           <button
@@ -4296,14 +4588,14 @@
             aria-pressed="${String(topic.id === selected.id)}"
           >
             <span class="hybrid-agenda-topic-head">
-              <span>${index + 1}. ${escapeHtml(topic.label)}</span>
-              <strong>${topic.source_day_count} source-days</strong>
+              <span>${index + 1}. ${escapeHtml(agendaTopicLabel(topic))}</span>
+              <strong>${topic.source_day_count} ${escapeHtml(translate("agenda_workspace.source_days", "SOURCE-DAYS").toLowerCase())}</strong>
             </span>
 
             <span class="hybrid-agenda-topic-meta">
-              ${countLabel(topic.item_count, "item")} ·
-              ${countLabel(topic.publisher_count, "publisher")} ·
-              ${countLabel(topic.active_day_count, "active day")}
+              ${escapeHtml(translate("agenda_workspace.item_count", countLabel(topic.item_count, "item"), { count: topic.item_count }))} ·
+              ${escapeHtml(translate("agenda_workspace.publisher_count", countLabel(topic.publisher_count, "publisher"), { count: topic.publisher_count }))} ·
+              ${escapeHtml(translate("agenda_workspace.active_day_count", countLabel(topic.active_day_count, "active day"), { count: topic.active_day_count }))}
             </span>
 
             <span class="hybrid-track" aria-hidden="true">
@@ -4321,18 +4613,18 @@
       </section>
 
       <section class="hybrid-agenda-detail" aria-live="polite">
-        <div class="hybrid-section-title">Selected recurring topic</div>
-        <h3>${escapeHtml(selected.label)}</h3>
+        <div class="hybrid-section-title">${escapeHtml(translate("agenda_workspace.selected_topic_legacy", "Selected recurring topic"))}</div>
+        <h3>${escapeHtml(agendaTopicLabel(selected))}</h3>
 
         <p class="hybrid-agenda-definition${definitionAvailable ? "" : " is-unavailable"}">
           ${escapeHtml(definition)}
         </p>
 
         <div class="hybrid-metrics">
-          <span class="hybrid-metric">${selected.source_day_count} source-days</span>
-          <span class="hybrid-metric">${countLabel(selected.item_count, "accepted item")}</span>
-          <span class="hybrid-metric">${countLabel(selected.publisher_count, "publisher")}</span>
-          <span class="hybrid-metric">${countLabel(selected.active_day_count, "active day")}</span>
+          <span class="hybrid-metric">${selected.source_day_count} ${escapeHtml(translate("agenda_workspace.source_days", "SOURCE-DAYS").toLowerCase())}</span>
+          <span class="hybrid-metric">${escapeHtml(translate("agenda_workspace.accepted_item_count", countLabel(selected.item_count, "accepted item"), { count: selected.item_count }))}</span>
+          <span class="hybrid-metric">${escapeHtml(translate("agenda_workspace.publisher_count", countLabel(selected.publisher_count, "publisher"), { count: selected.publisher_count }))}</span>
+          <span class="hybrid-metric">${escapeHtml(translate("agenda_workspace.active_day_count", countLabel(selected.active_day_count, "active day"), { count: selected.active_day_count }))}</span>
         </div>
 
         <div class="hybrid-supporting-list">
@@ -4351,13 +4643,13 @@
                 <span aria-hidden="true">↗</span>
               </span>
             </a>
-          `).join("") || '<div class="hybrid-state is-compact">No supporting source-linked items are available for this topic.</div>'}
+          `).join("") || `<div class="hybrid-state is-compact">${escapeHtml(translate("agenda_workspace.no_topic_evidence", "No supporting source-linked items are available for this topic."))}</div>`}
         </div>
       </section>
     </div>
 
     <p class="hybrid-disclosure">
-      Recurring campaign topics classify accepted presidential-election coverage from monitored publishers. Bars use source-day count, not raw article volume. This is agenda activity, not voter or public priorities.
+      ${escapeHtml(translate("agenda_workspace.disclosure", "Recurring campaign topics classify accepted presidential-election coverage from monitored publishers. Bars use source-day count, not raw article volume. This is agenda activity, not voter or public priorities."))}
     </p>`;
   }
 
@@ -4397,21 +4689,21 @@
     );
 
     const diagnosticMarkup = diagnostics
-      ? `<div class="hybrid-agenda-v6-diagnostics" aria-label="Agenda diagnostics">
+      ? `<div class="hybrid-agenda-v6-diagnostics" aria-label="${escapeAttribute(translate("agenda_workspace.diagnostics_aria", "Agenda diagnostics"))}">
           <article class="is-active">
-            <span>ACTIVE TOPICS</span>
+            <span>${escapeHtml(translate("agenda_workspace.active_topics", "ACTIVE TOPICS"))}</span>
             <strong>${diagnostics.activeTopics}</strong>
           </article>
           <article class="is-concentration">
-            <span>TOP-3 SHARE</span>
-            <strong>${number(diagnostics.top3Share).toFixed(1)}%</strong>
+            <span>${escapeHtml(translate("agenda_workspace.top_3_share", "TOP-3 SHARE"))}</span>
+            <strong>${agendaDisplayNumber(diagnostics.top3Share)}%</strong>
           </article>
           <article class="is-rising">
-            <span>RISING TOPICS</span>
+            <span>${escapeHtml(translate("agenda_workspace.rising_topics", "RISING TOPICS"))}</span>
             <strong>${diagnostics.risingTopics}</strong>
           </article>
           <article class="is-turnover">
-            <span>TOP-3 TURNOVER</span>
+            <span>${escapeHtml(translate("agenda_workspace.top_3_turnover", "TOP-3 TURNOVER"))}</span>
             <strong>${diagnostics.top3Turnover}/${diagnostics.top3TurnoverDenominator}</strong>
           </article>
         </div>`
@@ -4442,19 +4734,19 @@
         </span>
 
         <span class="hybrid-agenda-v6-topic-copy">
-          <span class="hybrid-agenda-v6-topic-name">${escapeHtml(topic.label)}</span>
+          <span class="hybrid-agenda-v6-topic-name">${escapeHtml(agendaTopicLabel(topic))}</span>
           <span class="hybrid-agenda-v6-topic-tags">
             <span
               class="hybrid-agenda-v6-badge"
               data-movement="${escapeAttribute(movement)}"
-            >${escapeHtml(topic.movement)}</span>
-            <span class="hybrid-agenda-v6-badge is-structure">${escapeHtml(topic.structure)}</span>
+            >${escapeHtml(agendaPresentationToken("movement", topic.movement))}</span>
+            <span class="hybrid-agenda-v6-badge is-structure">${escapeHtml(agendaPresentationToken("structure", topic.structure))}</span>
           </span>
         </span>
 
         <span class="hybrid-agenda-v6-topic-total">
           <strong>${topic.source_day_count}</strong>
-          <span>SOURCE-DAYS</span>
+          <span>${escapeHtml(translate("agenda_workspace.source_days", "SOURCE-DAYS"))}</span>
           <i class="hybrid-agenda-v6-topic-volume" aria-hidden="true">
             <b style="--agenda-monitor-volume:${volumeWidth.toFixed(1)}%"></b>
           </i>
@@ -4462,11 +4754,11 @@
 
         <span class="hybrid-agenda-v6-topic-shift">
           <span>
-            <small>PRIOR</small>
+            <small>${escapeHtml(translate("agenda_workspace.prior", "PRIOR"))}</small>
             <strong>${topic.previousSourceDays}</strong>
           </span>
           <span>
-            <small>LATEST</small>
+            <small>${escapeHtml(translate("agenda_workspace.latest", "LATEST"))}</small>
             <strong>${topic.latestSourceDays}</strong>
           </span>
           <em data-movement="${escapeAttribute(movement)}">
@@ -4478,9 +4770,15 @@
 
     return `<section class="hybrid-agenda-v6-panel hybrid-agenda-v6-monitor">
       <header class="hybrid-agenda-v6-panel-head">
-        <h3 class="hybrid-agenda-v6-panel-title">AGENDA MONITOR</h3>
+        <h3 class="hybrid-agenda-v6-panel-title">${escapeHtml(translate("agenda_workspace.monitor", "AGENDA MONITOR"))}</h3>
         <span class="hybrid-agenda-v6-panel-meta">
-          ${diagnostics ? `${diagnostics.activeTopics} ACTIVE · 30D` : "30D"}
+          ${diagnostics
+            ? escapeHtml(translate(
+                "agenda_workspace.active_30d",
+                `${diagnostics.activeTopics} ACTIVE · 30D`,
+                { count: diagnostics.activeTopics }
+              ))
+            : escapeHtml(translate("agenda_workspace.day_count_30d", "30D"))}
         </span>
       </header>
 
@@ -4509,13 +4807,6 @@
 
   function renderAgendaV6Matrix(model) {
     const selected = model.selectedEvolutionTopic;
-    const compactLabels = {
-      "Primaries & party strategy": "Primaries & strategy",
-      "Candidacies & endorsements": "Candidacies & endors.",
-      "Legal cases & eligibility": "Legal & eligibility",
-      "Polling & race narratives": "Polling & race",
-      "Rules, calendar & campaign mechanics": "Rules & mechanics"
-    };
 
     const periodHeaders = model.evolutionBins.map(bin => `
       <span class="hybrid-agenda-v6-period">
@@ -4527,14 +4818,15 @@
       const daily = Array.isArray(topic.daily_activity)
         ? topic.daily_activity
         : [];
-      const shortLabel = compactLabels[topic.label] || topic.label;
+      const shortLabel = compactAgendaTopicLabel(topic);
+      const topicLabel = agendaTopicLabel(topic);
 
       return `<button
         class="hybrid-agenda-v6-matrix-row"
         type="button"
         data-hybrid-agenda-topic="${escapeAttribute(topic.id)}"
         aria-pressed="${String(topic.id === selected?.id)}"
-        data-fr27-tooltip="${escapeAttribute(topic.label)}"
+        data-fr27-tooltip="${escapeAttribute(topicLabel)}"
       >
         <span class="hybrid-agenda-v6-matrix-label">${escapeHtml(shortLabel)}</span>
 
@@ -4553,7 +4845,7 @@
 
     return `<section class="hybrid-agenda-v6-module hybrid-agenda-v6-matrix-module">
       <div class="hybrid-agenda-v6-module-head">
-        <strong>30-DAY EVOLUTION</strong>
+        <strong>${escapeHtml(translate("agenda_workspace.evolution_30d", "30-DAY EVOLUTION"))}</strong>
         <span>
           ${escapeHtml(agendaCompactDate(model.evolution.period_start))}
           →
@@ -4565,36 +4857,28 @@
         <div
           class="hybrid-agenda-v6-matrix"
           role="group"
-          aria-label="Thirty-day Agenda evolution matrix"
+          aria-label="${escapeAttribute(translate("agenda_workspace.matrix_aria", "Thirty-day Agenda evolution matrix"))}"
         >
           <div class="hybrid-agenda-v6-matrix-head" aria-hidden="true">
-            <span>TOPIC</span>
+            <span>${escapeHtml(translate("agenda_workspace.topic", "TOPIC"))}</span>
             ${periodHeaders}
-            <span>30D</span>
+            <span>${escapeHtml(translate("agenda_workspace.day_count_30d", "30D"))}</span>
           </div>
 
           ${rows}
         </div>
 
-        <div class="hybrid-agenda-v6-matrix-legend" aria-label="Agenda evolution color key">
-          <span><i data-window="older"></i>OLDER</span>
-          <span><i data-window="previous"></i>PRIOR 7D</span>
-          <span><i data-window="latest"></i>LATEST 7D</span>
-          <span><i data-window="partial"></i>PARTIAL DAY</span>
+        <div class="hybrid-agenda-v6-matrix-legend" aria-label="${escapeAttribute(translate("agenda_workspace.legend_aria", "Agenda evolution color key"))}">
+          <span><i data-window="older"></i>${escapeHtml(translate("agenda_workspace.older", "OLDER"))}</span>
+          <span><i data-window="previous"></i>${escapeHtml(translate("agenda_workspace.prior_7d", "PRIOR 7D"))}</span>
+          <span><i data-window="latest"></i>${escapeHtml(translate("agenda_workspace.latest_7d", "LATEST 7D"))}</span>
+          <span><i data-window="partial"></i>${escapeHtml(translate("agenda_workspace.partial_day", "PARTIAL DAY"))}</span>
         </div>
       </div>
     </section>`;
   }
 
   function renderAgendaV6WeekShift(model) {
-    const compactLabels = {
-      "Primaries & party strategy": "Primaries & strategy",
-      "Candidacies & endorsements": "Candidacies & endors.",
-      "Legal cases & eligibility": "Legal & eligibility",
-      "Polling & race narratives": "Polling & race",
-      "Rules, calendar & campaign mechanics": "Rules & mechanics"
-    };
-
     const maximum = Math.max(
       1,
       ...model.evolutionTopics.flatMap(topic => [
@@ -4612,17 +4896,25 @@
         : movement === "fading"
           ? "▼"
           : "•";
-      const shortLabel = compactLabels[topic.label] || topic.label;
+      const shortLabel = compactAgendaTopicLabel(topic);
+      const topicLabel = agendaTopicLabel(topic);
 
       return `<div
         class="hybrid-agenda-v6-shift-row"
         data-movement="${escapeAttribute(movement)}"
       >
-        <span class="hybrid-agenda-v6-shift-label">${escapeHtml(shortLabel)}</span>
+        <span
+          class="hybrid-agenda-v6-shift-label"
+          aria-label="${escapeAttribute(topicLabel)}"
+        >${escapeHtml(shortLabel)}</span>
 
         <span
           class="hybrid-agenda-v6-pair-bars"
-          aria-label="Prior ${previous} source-days; latest ${latest} source-days"
+          aria-label="${escapeAttribute(translate(
+            "agenda_workspace.week_pair_aria",
+            `Prior ${previous} source-days; latest ${latest} source-days`,
+            { previous, latest }
+          ))}"
         >
           <span class="hybrid-agenda-v6-pair-track is-prior" aria-hidden="true">
             <i style="--agenda-width:${(previous / maximum * 100).toFixed(1)}%"></i>
@@ -4645,12 +4937,12 @@
 
     return `<section class="hybrid-agenda-v6-module hybrid-agenda-v6-shift-module">
       <div class="hybrid-agenda-v6-module-head">
-        <strong>WEEK SHIFT</strong>
+        <strong>${escapeHtml(translate("agenda_workspace.week_shift", "WEEK SHIFT"))}</strong>
 
         <span class="hybrid-agenda-v6-shift-key">
           <span>
             <i class="is-prior" aria-hidden="true"></i>
-            PRIOR ${escapeHtml(
+            ${escapeHtml(translate("agenda_workspace.prior", "PRIOR"))} ${escapeHtml(
               agendaPeriodLabel(
                 model.evolution.previous_start,
                 model.evolution.previous_end
@@ -4659,7 +4951,7 @@
           </span>
           <span>
             <i class="is-latest" aria-hidden="true"></i>
-            LATEST ${escapeHtml(
+            ${escapeHtml(translate("agenda_workspace.latest", "LATEST"))} ${escapeHtml(
               agendaPeriodLabel(
                 model.evolution.latest_start,
                 model.evolution.latest_end
@@ -4678,10 +4970,10 @@
   function renderAgendaV6Analysis(model) {
     return `<section class="hybrid-agenda-v6-panel hybrid-agenda-v6-evolution-panel">
       <header class="hybrid-agenda-v6-panel-head">
-        <h3>AGENDA EVOLUTION</h3>
+        <h3>${escapeHtml(translate("agenda_workspace.evolution", "AGENDA EVOLUTION"))}</h3>
         <span class="hybrid-agenda-v6-head-tools">
-          <span class="hybrid-agenda-v6-panel-head-meta">COMPLETE-WEEK COMPARISON</span>
-          <button class="hybrid-agenda-v6-info fr27-info-glyph" type="button" aria-label="Agenda methodology" data-fr27-tooltip="Source-day = unique publisher × UTC date · exact 30D projection includes the current partial UTC day · movement compares latest 7 complete days with prior 7 · this measures monitored media agenda activity, not voter or public priorities.">
+          <span class="hybrid-agenda-v6-panel-head-meta">${escapeHtml(translate("agenda_workspace.complete_week_comparison", "COMPLETE-WEEK COMPARISON"))}</span>
+          <button class="hybrid-agenda-v6-info fr27-info-glyph" type="button" aria-label="${escapeAttribute(translate("agenda_workspace.methodology_label", "Agenda methodology"))}" data-fr27-tooltip="${escapeAttribute(translate("agenda_workspace.methodology", "Source-day = unique publisher × UTC date · exact 30D projection includes the current partial UTC day · movement compares latest 7 complete days with prior 7 · this measures monitored media agenda activity, not voter or public priorities."))}">
             <span aria-hidden="true">i</span>
           </button>
         </span>
@@ -4779,7 +5071,7 @@
 
     return `<section class="hybrid-agenda-v6-module hybrid-agenda-v6-profile-module">
       <div class="hybrid-agenda-v6-module-head">
-        <strong>ACTIVITY PROFILE · 30D</strong>
+        <strong>${escapeHtml(translate("agenda_workspace.activity_profile_30d", "ACTIVITY PROFILE · 30D"))}</strong>
         <span>
           ${escapeHtml(agendaCompactDate(daily[0]?.date))}
           →
@@ -4791,7 +5083,7 @@
         <div class="hybrid-agenda-v6-profile-top">
           <div
             class="hybrid-agenda-v6-bars"
-            aria-label="Thirty-day selected-topic source-day activity"
+            aria-label="${escapeAttribute(translate("agenda_workspace.activity_aria", "Thirty-day selected-topic source-day activity"))}"
           >
             ${daily.map(day => {
               const value = number(day.source_day_count);
@@ -4811,24 +5103,32 @@
 
           <div
             class="hybrid-agenda-v6-week-compare"
-            aria-label="Prior and latest complete-week daily activity shapes"
+            aria-label="${escapeAttribute(translate("agenda_workspace.week_activity_aria", "Prior and latest complete-week daily activity shapes"))}"
           >
             <div class="hybrid-agenda-v6-week-line is-latest">
-              <span>LATEST 7D</span>
+              <span>${escapeHtml(translate("agenda_workspace.latest_7d", "LATEST 7D"))}</span>
               ${renderSparkline(
                 latestSeries,
                 "latest",
-                `Latest 7D daily source-days: ${latestSeries.join(", ")}`
+                translate(
+                  "agenda_workspace.latest_series_aria",
+                  `Latest 7D daily source-days: ${latestSeries.join(", ")}`,
+                  { values: latestSeries.join(", ") }
+                )
               )}
               <strong>${topic.latestSourceDays}</strong>
             </div>
 
             <div class="hybrid-agenda-v6-week-line is-prior">
-              <span>PRIOR 7D</span>
+              <span>${escapeHtml(translate("agenda_workspace.prior_7d", "PRIOR 7D"))}</span>
               ${renderSparkline(
                 priorSeries,
                 "prior",
-                `Prior 7D daily source-days: ${priorSeries.join(", ")}`
+                translate(
+                  "agenda_workspace.prior_series_aria",
+                  `Prior 7D daily source-days: ${priorSeries.join(", ")}`,
+                  { values: priorSeries.join(", ") }
+                )
               )}
               <strong>${topic.previousSourceDays}</strong>
             </div>
@@ -4837,26 +5137,26 @@
 
         <div
           class="hybrid-agenda-v6-profile-facts"
-          aria-label="Selected topic persistence and peak facts"
+          aria-label="${escapeAttribute(translate("agenda_workspace.facts_aria", "Selected topic persistence and peak facts"))}"
         >
           <div>
-            <span>ACTIVE · 14D</span>
+            <span>${escapeHtml(translate("agenda_workspace.active_14d", "ACTIVE · 14D"))}</span>
             <strong>${topic.activeDays14}/14</strong>
           </div>
 
           <div>
-            <span>ACTIVE · 30D</span>
+            <span>${escapeHtml(translate("agenda_workspace.active_days_30d", "ACTIVE · 30D"))}</span>
             <strong>${activeDays30}/30</strong>
           </div>
 
           <div>
-            <span>PEAK SHARE</span>
+            <span>${escapeHtml(translate("agenda_workspace.peak_share", "PEAK SHARE"))}</span>
             <strong>${escapeHtml(agendaPercent(topic.peakDayShare))}</strong>
           </div>
 
           <div>
-            <span>PEAK DAY</span>
-            <strong>${escapeHtml(agendaCompactDate(topic.peakDayDate))} · ${topic.peakDaySourceDays} SD</strong>
+            <span>${escapeHtml(translate("agenda_workspace.peak_day", "PEAK DAY"))}</span>
+            <strong>${escapeHtml(agendaCompactDate(topic.peakDayDate))} · ${topic.peakDaySourceDays} ${escapeHtml(translate("agenda_workspace.source_day_abbreviation", "SD"))}</strong>
           </div>
         </div>
       </div>
@@ -4870,7 +5170,7 @@
 
     if (!signals.length) {
       return `<div class="hybrid-agenda-v6-scroll" data-agenda-scroll-region="signals">
-        <div class="hybrid-agenda-v6-empty">No associated classification signals are published.</div>
+        <div class="hybrid-agenda-v6-empty">${escapeHtml(translate("agenda_workspace.no_signals", "No associated classification signals are published."))}</div>
       </div>`;
     }
 
@@ -5010,7 +5310,7 @@
         data-agenda-scroll-region="evidence"
       >
         <div class="hybrid-agenda-v6-empty">
-          No source-linked evidence is currently published.
+          ${escapeHtml(translate("agenda_workspace.no_evidence", "No source-linked evidence is currently published."))}
         </div>
       </div>`;
     }
@@ -5077,8 +5377,8 @@
 
     return `<section class="hybrid-agenda-v6-panel hybrid-agenda-v6-dossier">
       <header class="hybrid-agenda-v6-panel-head">
-        <h3 class="hybrid-agenda-v6-panel-title">TOPIC DOSSIER</h3>
-        <span class="hybrid-agenda-v6-panel-meta">SOURCE-LINKED EVIDENCE</span>
+        <h3 class="hybrid-agenda-v6-panel-title">${escapeHtml(translate("agenda_workspace.dossier", "TOPIC DOSSIER"))}</h3>
+        <span class="hybrid-agenda-v6-panel-meta">${escapeHtml(translate("agenda_workspace.source_linked_evidence", "SOURCE-LINKED EVIDENCE"))}</span>
       </header>
 
       <div class="hybrid-agenda-v6-panel-body hybrid-agenda-v6-dossier-body">
@@ -5088,18 +5388,18 @@
           </span>
 
           <div class="hybrid-agenda-v6-identity-copy">
-            <span class="hybrid-agenda-v6-kicker">SELECTED RECURRING TOPIC</span>
+            <span class="hybrid-agenda-v6-kicker">${escapeHtml(translate("agenda_workspace.selected_topic", "SELECTED RECURRING TOPIC"))}</span>
 
             <div class="hybrid-agenda-v6-title-line">
-              <h4>${escapeHtml(topic.label)}</h4>
+              <h4>${escapeHtml(agendaTopicLabel(topic))}</h4>
 
               <span
                 class="hybrid-agenda-v6-badge"
                 data-movement="${escapeAttribute(movement)}"
-              >${escapeHtml(topic.movement)}</span>
+              >${escapeHtml(agendaPresentationToken("movement", topic.movement))}</span>
 
               <span class="hybrid-agenda-v6-badge is-structure">
-                ${escapeHtml(topic.structure)}
+                ${escapeHtml(agendaPresentationToken("structure", topic.structure))}
               </span>
             </div>
           </div>
@@ -5107,23 +5407,23 @@
 
         <section
           class="hybrid-agenda-v6-metrics"
-          aria-label="Selected topic headline metrics"
+          aria-label="${escapeAttribute(translate("agenda_workspace.metrics_aria", "Selected topic headline metrics"))}"
         >
           <article>
             <strong>${topic.source_day_count}</strong>
-            <span>30D SOURCE-DAYS</span>
+            <span>${escapeHtml(translate("agenda_workspace.source_days_30d", "30D SOURCE-DAYS"))}</span>
           </article>
 
           <article>
             <strong data-movement="${escapeAttribute(movement)}">
               ${escapeHtml(agendaSignedPp(topic.agendaShareChangePp))}
             </strong>
-            <span>AGENDA SHARE Δ</span>
+            <span>${escapeHtml(translate("agenda_workspace.share_change", "AGENDA SHARE Δ"))}</span>
           </article>
 
           <article>
             <strong>${topic.publisher_count}</strong>
-            <span>PUBLISHERS</span>
+            <span>${escapeHtml(translate("agenda_workspace.publishers", "PUBLISHERS"))}</span>
           </article>
         </section>
 
@@ -5132,16 +5432,16 @@
         <div class="hybrid-agenda-v6-detail-grid">
           <section class="hybrid-agenda-v6-detail-card">
             <div class="hybrid-agenda-v6-detail-head">
-              <strong>ASSOCIATED SIGNALS</strong>
-              <span>${signalHits} hits · ${signalCount} signals</span>
+              <strong>${escapeHtml(translate("agenda_workspace.associated_signals", "ASSOCIATED SIGNALS"))}</strong>
+              <span>${escapeHtml(translate("agenda_workspace.signal_totals", `${signalHits} hits · ${signalCount} signals`, { hits: signalHits, count: signalCount }))}</span>
             </div>
             ${renderAgendaV6Signals(topic)}
           </section>
 
           <section class="hybrid-agenda-v6-detail-card">
             <div class="hybrid-agenda-v6-detail-head">
-              <strong>RECENT EVIDENCE</strong>
-              <span>${Math.min(8, evidenceCount)} of ${evidenceCount}</span>
+              <strong>${escapeHtml(translate("agenda_workspace.recent_evidence", "RECENT EVIDENCE"))}</strong>
+              <span>${escapeHtml(translate("agenda_workspace.evidence_totals", `${Math.min(8, evidenceCount)} of ${evidenceCount}`, { shown: Math.min(8, evidenceCount), total: evidenceCount }))}</span>
             </div>
             ${renderAgendaV6Evidence(topic)}
           </section>
@@ -5238,7 +5538,6 @@
               topic.movement ||
               "STABLE"
             ).toLowerCase();
-
           const glyph =
             movement === "rising"
               ? "▲"
@@ -5272,7 +5571,7 @@
 
             <span class="hybrid-agenda-v6-topic-copy">
               <span class="hybrid-agenda-v6-topic-name">
-                ${escapeHtml(topic.label)}
+                ${escapeHtml(agendaTopicLabel(topic))}
               </span>
 
               <span class="hybrid-agenda-v6-topic-tags">
@@ -5280,18 +5579,18 @@
                   class="hybrid-agenda-v6-badge"
                   data-movement="${escapeAttribute(movement)}"
                 >
-                  ${escapeHtml(topic.movement)}
+                  ${escapeHtml(agendaPresentationToken("movement", topic.movement))}
                 </span>
 
                 <span class="hybrid-agenda-v6-badge is-structure">
-                  ${escapeHtml(topic.structure)}
+                  ${escapeHtml(agendaPresentationToken("structure", topic.structure))}
                 </span>
               </span>
             </span>
 
             <span class="hybrid-agenda-v6-topic-total">
               <strong>${topic.source_day_count}</strong>
-              <span>SOURCE-DAYS</span>
+              <span>${escapeHtml(translate("agenda_workspace.source_days", "SOURCE-DAYS"))}</span>
 
               <i
                 class="hybrid-agenda-v6-topic-volume"
@@ -5305,13 +5604,13 @@
 
             <span class="hybrid-agenda-v6-topic-shift">
               <span>
-                <small>PRIOR</small>
-                <strong>${topic.previousIncidence.toFixed(1)}%</strong>
+                <small>${escapeHtml(translate("agenda_workspace.prior", "PRIOR"))}</small>
+                <strong>${agendaDisplayNumber(topic.previousIncidence)}%</strong>
               </span>
 
               <span>
-                <small>LATEST</small>
-                <strong>${topic.latestIncidence.toFixed(1)}%</strong>
+                <small>${escapeHtml(translate("agenda_workspace.latest", "LATEST"))}</small>
+                <strong>${agendaDisplayNumber(topic.latestIncidence)}%</strong>
               </span>
 
               <em
@@ -5334,12 +5633,15 @@
     >
       <header class="hybrid-agenda-v6-panel-head">
         <h3 class="hybrid-agenda-v6-panel-title">
-          POLICY MONITOR
+          ${escapeHtml(translate("policy_workspace.monitor", "POLICY MONITOR"))}
         </h3>
 
         <span class="hybrid-agenda-v6-panel-meta">
-          ${model.topics.length}
-          ISSUES · 30D
+          ${escapeHtml(translate(
+            "policy_workspace.issue_count_30d",
+            `${model.topics.length} ISSUES · 30D`,
+            { count: model.topics.length }
+          ))}
         </span>
       </header>
 
@@ -5348,17 +5650,17 @@
       >
         <div
           class="hybrid-agenda-v6-diagnostics"
-          aria-label="Policy issue diagnostics"
+          aria-label="${escapeAttribute(translate("policy_workspace.diagnostics_aria", "Policy issue diagnostics"))}"
         >
           <article class="is-active">
-            <span>ACTIVE 7D</span>
+            <span>${escapeHtml(translate("policy_workspace.active_7d", "ACTIVE 7D"))}</span>
             <strong>
               ${diagnostics.activeIssues}
             </strong>
           </article>
 
           <article class="is-concentration">
-            <span>LEADING ISSUE</span>
+            <span>${escapeHtml(translate("policy_workspace.leading_issue", "LEADING ISSUE"))}</span>
             <strong class="hybrid-issues-leading">
               ${escapeHtml(
                 policyIssueCode(
@@ -5369,16 +5671,16 @@
           </article>
 
           <article class="is-rising">
-            <span>RISING ISSUES</span>
+            <span>${escapeHtml(translate("policy_workspace.rising_issues", "RISING ISSUES"))}</span>
             <strong>
               ${diagnostics.risingIssues}
             </strong>
           </article>
 
           <article class="is-turnover">
-            <span>POLICY COVERAGE</span>
+            <span>${escapeHtml(translate("policy_workspace.coverage", "POLICY COVERAGE"))}</span>
             <strong>
-              ${diagnostics.policyCoverage.toFixed(1)}%
+              ${agendaDisplayNumber(diagnostics.policyCoverage)}%
             </strong>
           </article>
         </div>
@@ -5415,11 +5717,11 @@
             type="button"
             data-hybrid-policy-issue="${escapeAttribute(topic.id)}"
             aria-pressed="${String(topic.id === model.selectedIssue?.id)}"
-            data-fr27-tooltip="${escapeAttribute(topic.label)}"
+            data-fr27-tooltip="${escapeAttribute(agendaTopicLabel(topic))}"
           >
             <span class="hybrid-agenda-v6-matrix-label">
               ${escapeHtml(
-                policyIssueShortLabel(topic)
+                compactAgendaTopicLabel(topic)
               )}
             </span>
 
@@ -5446,7 +5748,7 @@
       class="hybrid-agenda-v6-module hybrid-agenda-v6-matrix-module"
     >
       <div class="hybrid-agenda-v6-module-head">
-        <strong>30-DAY EVOLUTION</strong>
+        <strong>${escapeHtml(translate("agenda_workspace.evolution_30d", "30-DAY EVOLUTION"))}</strong>
 
         <span>
           ${escapeHtml(
@@ -5467,15 +5769,15 @@
         <div
           class="hybrid-agenda-v6-matrix"
           role="group"
-          aria-label="Thirty-day Policy Issues evolution matrix"
+          aria-label="${escapeAttribute(translate("policy_workspace.matrix_aria", "Thirty-day Policy Issues evolution matrix"))}"
         >
           <div
             class="hybrid-agenda-v6-matrix-head"
             aria-hidden="true"
           >
-            <span>ISSUE</span>
+            <span>${escapeHtml(translate("policy_workspace.issue", "ISSUE"))}</span>
             ${periodHeaders}
-            <span>30D</span>
+            <span>${escapeHtml(translate("agenda_workspace.day_count_30d", "30D"))}</span>
           </div>
 
           ${rows}
@@ -5483,12 +5785,12 @@
 
         <div
           class="hybrid-agenda-v6-matrix-legend"
-          aria-label="Policy Issues evolution color key"
+          aria-label="${escapeAttribute(translate("policy_workspace.legend_aria", "Policy Issues evolution color key"))}"
         >
-          <span><i data-window="older"></i>OLDER</span>
-          <span><i data-window="previous"></i>PRIOR 7D</span>
-          <span><i data-window="latest"></i>LATEST 7D</span>
-          <span><i data-window="partial"></i>PARTIAL DAY</span>
+          <span><i data-window="older"></i>${escapeHtml(translate("agenda_workspace.older", "OLDER"))}</span>
+          <span><i data-window="previous"></i>${escapeHtml(translate("agenda_workspace.prior_7d", "PRIOR 7D"))}</span>
+          <span><i data-window="latest"></i>${escapeHtml(translate("agenda_workspace.latest_7d", "LATEST 7D"))}</span>
+          <span><i data-window="partial"></i>${escapeHtml(translate("agenda_workspace.partial_day", "PARTIAL DAY"))}</span>
         </div>
       </div>
     </section>`;
@@ -5535,20 +5837,32 @@
               : movement === "fading"
                 ? "▼"
                 : "•";
+          const topicLabel =
+            agendaTopicLabel(topic);
 
           return `<div
             class="hybrid-agenda-v6-shift-row"
             data-movement="${escapeAttribute(movement)}"
           >
-            <span class="hybrid-agenda-v6-shift-label">
+            <span
+              class="hybrid-agenda-v6-shift-label"
+              aria-label="${escapeAttribute(topicLabel)}"
+            >
               ${escapeHtml(
-                policyIssueShortLabel(topic)
+                compactAgendaTopicLabel(topic)
               )}
             </span>
 
             <span
               class="hybrid-agenda-v6-pair-bars"
-              aria-label="Prior ${previous.toFixed(1)} percent; latest ${latest.toFixed(1)} percent issue incidence"
+              aria-label="${escapeAttribute(translate(
+                "policy_workspace.week_pair_aria",
+                `Prior ${agendaDisplayNumber(previous)} percent; latest ${agendaDisplayNumber(latest)} percent issue incidence`,
+                {
+                  previous: agendaDisplayNumber(previous),
+                  latest: agendaDisplayNumber(latest)
+                }
+              ))}"
             >
               <span
                 class="hybrid-agenda-v6-pair-track is-prior"
@@ -5570,9 +5884,9 @@
             </span>
 
             <span class="hybrid-agenda-v6-shift-count">
-              ${previous.toFixed(1)}%
+              ${agendaDisplayNumber(previous)}%
               →
-              ${latest.toFixed(1)}%
+              ${agendaDisplayNumber(latest)}%
             </span>
 
             <strong
@@ -5594,17 +5908,17 @@
       class="hybrid-agenda-v6-module hybrid-agenda-v6-shift-module"
     >
       <div class="hybrid-agenda-v6-module-head">
-        <strong>WEEK SHIFT</strong>
+        <strong>${escapeHtml(translate("agenda_workspace.week_shift", "WEEK SHIFT"))}</strong>
 
         <span class="hybrid-agenda-v6-shift-key">
           <span>
             <i class="is-prior" aria-hidden="true"></i>
-            PRIOR
+            ${escapeHtml(translate("agenda_workspace.prior", "PRIOR"))}
           </span>
 
           <span>
             <i class="is-latest" aria-hidden="true"></i>
-            LATEST
+            ${escapeHtml(translate("agenda_workspace.latest", "LATEST"))}
           </span>
         </span>
       </div>
@@ -5620,18 +5934,18 @@
       class="hybrid-agenda-v6-panel hybrid-agenda-v6-evolution-panel"
     >
       <header class="hybrid-agenda-v6-panel-head">
-        <h3>ISSUE EVOLUTION</h3>
+        <h3>${escapeHtml(translate("policy_workspace.evolution", "ISSUE EVOLUTION"))}</h3>
 
         <span class="hybrid-agenda-v6-head-tools">
           <span class="hybrid-agenda-v6-panel-head-meta">
-            COMPLETE-WEEK COMPARISON
+            ${escapeHtml(translate("agenda_workspace.complete_week_comparison", "COMPLETE-WEEK COMPARISON"))}
           </span>
 
           <button
             class="hybrid-agenda-v6-info fr27-info-glyph"
             type="button"
-            aria-label="Policy Issues methodology"
-            data-fr27-tooltip="Deterministic multi-label classification of accepted presidential coverage. Source-day = unique publisher × UTC date. Issue incidence = issue source-days divided by all accepted presidential-coverage source-days in the same complete week. Percentages can overlap and need not total 100%. This measures monitored media coverage, not voter priorities."
+            aria-label="${escapeAttribute(translate("policy_workspace.methodology_label", "Policy Issues methodology"))}"
+            data-fr27-tooltip="${escapeAttribute(translate("policy_workspace.methodology", "Deterministic multi-label classification of accepted presidential coverage. Source-day = unique publisher × UTC date. Issue incidence = issue source-days divided by all accepted presidential-coverage source-days in the same complete week. Percentages can overlap and need not total 100%. This measures monitored media coverage, not voter priorities."))}"
           >
             <span aria-hidden="true">i</span>
           </button>
@@ -5662,7 +5976,7 @@
         data-agenda-scroll-region="issue-candidates"
       >
         <div class="hybrid-agenda-v6-empty">
-          No candidate association is supported by the selected issue evidence.
+          ${escapeHtml(translate("policy_workspace.no_candidates", "No candidate association is supported by the selected issue evidence."))}
         </div>
       </div>`;
     }
@@ -5733,7 +6047,11 @@
     return `<span
       class="hybrid-agenda-v6-badge is-structure"
       data-fr27-tooltip="${escapeAttribute(
-        `${policySubtopicLabel(lead.id)} · ${lead.item_count} matched articles`
+        `${policySubtopicLabel(lead.id)} · ${translate(
+          "policy_workspace.matched_articles",
+          `${lead.item_count} matched articles`,
+          { count: lead.item_count }
+        )}`
       )}"
       tabindex="0"
     >
@@ -5780,11 +6098,11 @@
     >
       <header class="hybrid-agenda-v6-panel-head">
         <h3 class="hybrid-agenda-v6-panel-title">
-          ISSUE DOSSIER
+          ${escapeHtml(translate("policy_workspace.dossier", "ISSUE DOSSIER"))}
         </h3>
 
         <span class="hybrid-agenda-v6-panel-meta">
-          SOURCE-LINKED EVIDENCE
+          ${escapeHtml(translate("agenda_workspace.source_linked_evidence", "SOURCE-LINKED EVIDENCE"))}
         </span>
       </header>
 
@@ -5801,12 +6119,12 @@
 
           <div class="hybrid-agenda-v6-identity-copy">
             <span class="hybrid-agenda-v6-kicker">
-              SELECTED SUBSTANTIVE ISSUE
+              ${escapeHtml(translate("policy_workspace.selected_issue", "SELECTED SUBSTANTIVE ISSUE"))}
             </span>
 
             <div class="hybrid-agenda-v6-title-line">
               <h4>
-                ${escapeHtml(topic.label)}
+                ${escapeHtml(agendaTopicLabel(topic))}
               </h4>
 
               <span
@@ -5814,7 +6132,7 @@
                 data-movement="${escapeAttribute(movement)}"
               >
                 ${escapeHtml(
-                  topic.movement
+                  agendaPresentationToken("movement", topic.movement)
                 )}
               </span>
 
@@ -5825,20 +6143,20 @@
 
         <section
           class="hybrid-agenda-v6-metrics"
-          aria-label="Selected issue headline metrics"
+          aria-label="${escapeAttribute(translate("policy_workspace.metrics_aria", "Selected issue headline metrics"))}"
         >
           <article>
             <strong>
               ${topic.source_day_count}
             </strong>
-            <span>30D SOURCE-DAYS</span>
+            <span>${escapeHtml(translate("agenda_workspace.source_days_30d", "30D SOURCE-DAYS"))}</span>
           </article>
 
           <article>
             <strong>
-              ${topic.latestIncidence.toFixed(1)}%
+              ${agendaDisplayNumber(topic.latestIncidence)}%
             </strong>
-            <span>7D INCIDENCE</span>
+            <span>${escapeHtml(translate("policy_workspace.incidence_7d", "7D INCIDENCE"))}</span>
           </article>
 
           <article>
@@ -5851,7 +6169,7 @@
                 )
               )}
             </strong>
-            <span>INCIDENCE Δ</span>
+            <span>${escapeHtml(translate("policy_workspace.incidence_change", "INCIDENCE Δ"))}</span>
           </article>
         </section>
 
@@ -5864,14 +6182,15 @@
           <section class="hybrid-agenda-v6-detail-card">
             <div class="hybrid-agenda-v6-detail-head">
               <strong>
-                CANDIDATE ASSOCIATIONS
+                ${escapeHtml(translate("policy_workspace.candidate_associations", "CANDIDATE ASSOCIATIONS"))}
               </strong>
 
               <span>
-                ${candidateHits}
-                hits ·
-                ${topic.candidate_counts.length}
-                candidates
+                ${escapeHtml(translate(
+                  "policy_workspace.candidate_totals",
+                  `${candidateHits} hits · ${topic.candidate_counts.length} candidates`,
+                  { hits: candidateHits, count: topic.candidate_counts.length }
+                ))}
               </span>
             </div>
 
@@ -5881,16 +6200,15 @@
           <section class="hybrid-agenda-v6-detail-card">
             <div class="hybrid-agenda-v6-detail-head">
               <strong>
-                RECENT EVIDENCE
+                ${escapeHtml(translate("agenda_workspace.recent_evidence", "RECENT EVIDENCE"))}
               </strong>
 
               <span>
-                ${Math.min(
-                  8,
-                  evidenceCount
-                )}
-                of
-                ${evidenceCount}
+                ${escapeHtml(translate(
+                  "agenda_workspace.evidence_totals",
+                  `${Math.min(8, evidenceCount)} of ${evidenceCount}`,
+                  { shown: Math.min(8, evidenceCount), total: evidenceCount }
+                ))}
               </span>
             </div>
 
@@ -5908,7 +6226,7 @@
       if (model.state === "loading" && window.FR27UI) {
         return window.FR27UI.skeletonElement(
           "issues",
-          "Loading policy issues"
+          translate("policy_workspace.loading", "Loading policy issues")
         ).outerHTML;
       }
       return summaryState(model);
@@ -5916,7 +6234,7 @@
 
     return `<div
       class="hybrid-agenda-v6-workspace"
-      aria-label="Policy Issues analytical workspace"
+      aria-label="${escapeAttribute(translate("policy_workspace.workspace_aria", "Policy Issues analytical workspace"))}"
     >
       ${renderIssuesMonitor(model)}
       ${renderIssuesAnalysis(model)}
@@ -5929,7 +6247,7 @@
       if (model.state === "loading" && window.FR27UI) {
         return window.FR27UI.skeletonElement(
           "agenda",
-          "Loading campaign agenda"
+          translate("agenda_workspace.loading", "Loading campaign agenda")
         ).outerHTML;
       }
       return summaryState(model);
@@ -5965,18 +6283,37 @@
       second_round: "SECOND ROUND"
     };
 
-    return labels[value] ||
-      String(value || "EVENT")
-        .replaceAll("_", " ")
-        .toUpperCase();
+    const fallback = labels[value] ||
+      String(value || "EVENT").replaceAll("_", " ").toUpperCase();
+    return translate(`events_workspace.event_type.${value || "unknown"}`, fallback);
   }
 
   function campaignEventTypeDisplayLabel(value) {
-    return campaignEventTypeLabel(value)
-      .split(/\s+/)
-      .filter(Boolean)
-      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
-      .join(" ");
+    const labels = {
+      rally: "Rally",
+      debate: "Debate",
+      candidate_visit: "Candidate Visit",
+      campaign_launch: "Campaign Launch",
+      media_appearance: "Media Appearance",
+      press_conference: "Press Conference",
+      public_meeting: "Public Meeting",
+      speech: "Speech",
+      party_event: "Party Event",
+      primary: "Primary",
+      candidacy_announcement: "Candidacy Announcement",
+      program_launch: "Program Launch",
+      other: "Other",
+      first_round: "First Round",
+      second_round: "Second Round"
+    };
+    const fallback = labels[value] ||
+      String(value || "Event")
+        .replaceAll("_", " ")
+        .replace(/(^|\s)\S/g, match => match.toUpperCase());
+    return translate(
+      `events_workspace.event_type_display.${value || "unknown"}`,
+      fallback
+    );
   }
 
   function campaignEventTypeCode(value) {
@@ -6007,7 +6344,10 @@
     ) {
       return {
         key: "unconfirmed",
-        label: "PAST · UNCONFIRMED"
+        label: translate(
+          "events_workspace.status.past_unconfirmed",
+          "PAST · UNCONFIRMED"
+        )
       };
     }
 
@@ -6020,21 +6360,36 @@
 
     return {
       key: event.status || "unknown",
-      label: labels[event.status] || "STATUS UNKNOWN"
+      label: translate(
+        `events_workspace.status.${event.status || "unknown"}`,
+        labels[event.status] || "STATUS UNKNOWN"
+      )
     };
   }
 
   function campaignEventEvidencePresentation(event) {
     if (event?.evidence_status === "verified") {
-      return { key: "verified", label: "VERIFIED" };
+      return {
+        key: "verified",
+        label: translate("events_workspace.evidence_status.verified", "VERIFIED")
+      };
     }
     if (event?.evidence_status === "past_unconfirmed") {
-      return { key: "unconfirmed", label: "UNCONFIRMED" };
+      return {
+        key: "unconfirmed",
+        label: translate(
+          "events_workspace.evidence_status.past_unconfirmed",
+          "UNCONFIRMED"
+        )
+      };
     }
     const raw = String(event?.evidence_status || "evidence unknown");
     return {
       key: raw.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-      label: raw.replaceAll("_", " ").toUpperCase()
+      label: translate(
+        `events_workspace.evidence_status.${event?.evidence_status || "unknown"}`,
+        raw.replaceAll("_", " ").toUpperCase()
+      )
     };
   }
 
@@ -6049,7 +6404,7 @@
     }
 
     return new Intl.DateTimeFormat(
-      "en-GB",
+      campaignEventLocaleTag(),
       {
         timeZone: "Europe/Paris",
         hour: "2-digit",
@@ -6060,26 +6415,8 @@
   }
 
   function campaignEventObservedLabel(value) {
-    const date = new Date(value);
-    if (!Number.isFinite(date.getTime())) {
-      return "DATE UNAVAILABLE";
-    }
-
-    return new Intl.DateTimeFormat(
-      "en-GB",
-      {
-        timeZone: "Europe/Paris",
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hourCycle: "h23"
-      }
-    )
-      .format(date)
-      .replace(",", " · ")
-      .toUpperCase();
+    const parts = campaignEventObservedParts(value);
+    return parts.time ? `${parts.date} · ${parts.time}` : parts.date;
   }
 
   function campaignEventPeopleLabel(event) {
@@ -6117,7 +6454,7 @@
       event.location_name,
       event.locality,
       event.department
-        ? `DEP. ${event.department}`
+        ? `${translate("events_workspace.department_abbreviation", "DEP.")} ${event.department}`
         : ""
     ]
       .map(value => String(value || "").trim())
@@ -6146,29 +6483,35 @@
 
   function campaignEventShortDate(value) {
     const parsed = campaignEventDisplayDate(value);
-    if (!parsed) return "DATE UNAVAILABLE";
-    return new Intl.DateTimeFormat(
-      "en-GB",
+    if (!parsed) {
+      return translate("events_workspace.date_unavailable", "DATE UNAVAILABLE");
+    }
+    const label = new Intl.DateTimeFormat(
+      campaignEventLocaleTag(),
       {
         timeZone: parsed.timeZone,
         day: "2-digit",
         month: "short"
       }
-    ).format(parsed.date).toUpperCase();
+    ).format(parsed.date);
+    return campaignEventUsesEnglishPresentation() ? label.toUpperCase() : label;
   }
 
   function campaignEventLongDate(value) {
     const parsed = campaignEventDisplayDate(value);
-    if (!parsed) return "DATE UNAVAILABLE";
-    return new Intl.DateTimeFormat(
-      "en-GB",
+    if (!parsed) {
+      return translate("events_workspace.date_unavailable", "DATE UNAVAILABLE");
+    }
+    const label = new Intl.DateTimeFormat(
+      campaignEventLocaleTag(),
       {
         timeZone: parsed.timeZone,
         day: "2-digit",
         month: "short",
         year: "numeric"
       }
-    ).format(parsed.date).toUpperCase();
+    ).format(parsed.date);
+    return campaignEventUsesEnglishPresentation() ? label.toUpperCase() : label;
   }
 
   function campaignEventSourceTypeLabel(value) {
@@ -6177,17 +6520,23 @@
       organizer_first_party: "ORGANISER FIRST-PARTY",
       candidate_first_party: "CANDIDATE FIRST-PARTY",
       party_first_party: "PARTY FIRST-PARTY",
+      official_structured: "OFFICIAL STRUCTURED",
       official_unstructured: "OFFICIAL SOURCE"
     };
-    return labels[value] || String(value || "SOURCE").replaceAll("_", " ").toUpperCase();
+    const fallback = labels[value] ||
+      String(value || "SOURCE").replaceAll("_", " ").toUpperCase();
+    return translate(`events_workspace.source_type.${value || "unknown"}`, fallback);
   }
 
   function campaignEventEvidenceTypeLabel(value) {
     const labels = {
       explicit_schedule: "Explicit schedule published",
+      explicit_status_update: "explicit status update",
       official_rule_derivation: "Official calendar derivation"
     };
-    return labels[value] || String(value || "Evidence published").replaceAll("_", " ");
+    const fallback = labels[value] ||
+      String(value || "Evidence published").replaceAll("_", " ");
+    return translate(`events_workspace.evidence_type.${value || "unknown"}`, fallback);
   }
 
   function campaignEventParticipantCount(event) {
@@ -6205,35 +6554,91 @@
     const candidates = Array.isArray(event?.candidate_names)
       ? event.candidate_names.filter(Boolean)
       : [];
-    if (candidates.length > 1) return `${candidates.length} CANDIDATES`;
-    if (candidates.length === 1) return "SOLO";
+    if (candidates.length > 1) {
+      return translate(
+        "events_workspace.candidate_count",
+        "{count} {count, plural, one {CANDIDATE} other {CANDIDATES}}",
+        { count: candidates.length }
+      );
+    }
+    if (candidates.length === 1) {
+      return translate("events_workspace.solo", "SOLO");
+    }
 
     const participants = Array.isArray(event?.participants)
       ? event.participants.filter(Boolean)
       : [];
-    if (participants.length > 1) return `${participants.length} PARTICIPANTS`;
-    if (participants.length === 1) return "SOLO";
-    return "COLLECTIVE";
+    if (participants.length > 1) {
+      return translate(
+        "events_workspace.participant_count",
+        "{count} {count, plural, one {PARTICIPANT} other {PARTICIPANTS}}",
+        { count: participants.length }
+      );
+    }
+    if (participants.length === 1) {
+      return translate("events_workspace.solo", "SOLO");
+    }
+    return translate("events_workspace.collective", "COLLECTIVE");
+  }
+
+  function campaignEventUpdateTypeLabel(value) {
+    const type = String(value || "UPDATED").toUpperCase();
+    return translate(
+      `events_workspace.update_type.${type.toLowerCase()}`,
+      type
+    );
   }
 
   function campaignEventUpdateCopy(update) {
     const evidence = campaignEventPrimaryEvidence(update);
-    const publisher = String(evidence?.source_publisher || "source").trim();
+    const publisher = String(
+      evidence?.source_publisher ||
+      translate("events_workspace.source_lower", "source")
+    ).trim();
     const type = String(update.update_type || "UPDATED").toUpperCase();
-    if (type === "NEW") return `Event added from ${publisher}`;
-    if (type === "CONFIRMED") return `Schedule confirmation published by ${publisher}`;
-    if (type === "POSTPONED") return `Postponement published by ${publisher}`;
-    if (type === "CANCELLED") return `Cancellation published by ${publisher}`;
-    return update.headline || `Calendar update published by ${publisher}`;
+    if (type === "NEW") {
+      return translate(
+        "events_workspace.update_copy.new",
+        "Event added from {publisher}",
+        { publisher }
+      );
+    }
+    if (type === "CONFIRMED") {
+      return translate(
+        "events_workspace.update_copy.confirmed",
+        "Schedule confirmation published by {publisher}",
+        { publisher }
+      );
+    }
+    if (type === "POSTPONED") {
+      return translate(
+        "events_workspace.update_copy.postponed",
+        "Postponement published by {publisher}",
+        { publisher }
+      );
+    }
+    if (type === "CANCELLED") {
+      return translate(
+        "events_workspace.update_copy.cancelled",
+        "Cancellation published by {publisher}",
+        { publisher }
+      );
+    }
+    return update.headline || translate(
+      "events_workspace.update_copy.updated",
+      "Calendar update published by {publisher}",
+      { publisher }
+    );
   }
 
   function campaignEventWeekdayLabel(value) {
     const parsed = campaignEventDisplayDate(value);
     if (!parsed) return "";
-    return new Intl.DateTimeFormat("en-GB", {
+    const label = new Intl.DateTimeFormat(campaignEventLocaleTag(), {
       timeZone: parsed.timeZone,
       weekday: "short"
-    }).format(parsed.date).toUpperCase();
+    }).format(parsed.date);
+    return campaignEventUsesEnglishPresentation() ? label.toUpperCase() : label;
   }
 
   function renderEventTypeBadge(eventType, extra = "") {
@@ -6248,10 +6653,26 @@
     if (!Number.isFinite(date.getTime())) return "—";
     const diffMs = Math.max(0, now.getTime() - date.getTime());
     const minutes = Math.floor(diffMs / 60000);
-    if (minutes < 60) return `${Math.max(1, minutes)}M AGO`;
+    if (minutes < 60) {
+      return translate(
+        "events_workspace.relative_age.minutes",
+        "{count}M AGO",
+        { count: Math.max(1, minutes) }
+      );
+    }
     const hours = Math.floor(minutes / 60);
-    if (hours < 48) return `${hours}H AGO`;
-    return `${Math.floor(hours / 24)}D AGO`;
+    if (hours < 48) {
+      return translate(
+        "events_workspace.relative_age.hours",
+        "{count}H AGO",
+        { count: hours }
+      );
+    }
+    return translate(
+      "events_workspace.relative_age.days",
+      "{count}D AGO",
+      { count: Math.floor(hours / 24) }
+    );
   }
 
   const campaignEventHorizonCategories = [
@@ -6305,7 +6726,10 @@
       )
     );
     return [
-      { key: "all", label: "ALL" },
+      {
+        key: "all",
+        label: translate("events_workspace.filter.all", "ALL")
+      },
       ...campaignEventHorizonCategories
         .filter(category => present.has(category.key))
         .map(category => ({
@@ -6324,9 +6748,17 @@
 
   function campaignEventStreamRightLabel(event, model) {
     const materialUpdate = campaignEventLatestMaterialUpdate(event, model);
-    if (materialUpdate) return String(materialUpdate.update_type || "UPDATED").toUpperCase();
+    if (materialUpdate) {
+      return campaignEventUpdateTypeLabel(materialUpdate.update_type);
+    }
     const participantCount = campaignEventParticipantCount(event);
-    if (participantCount > 1) return `${participantCount} PARTICIPANTS`;
+    if (participantCount > 1) {
+      return translate(
+        "events_workspace.participant_count",
+        "{count} {count, plural, one {PARTICIPANT} other {PARTICIPANTS}}",
+        { count: participantCount }
+      );
+    }
     const status = campaignEventStatusPresentation(event);
     if (status.key !== "scheduled") return status.label;
     const evidenceState = campaignEventEvidencePresentation(event);
@@ -6368,15 +6800,31 @@
   }
 
   function campaignEventObservedParts(value) {
-    const label = campaignEventObservedLabel(value);
-    const pieces = label.split(" · ");
-    if (pieces.length > 1) {
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) {
       return {
-        date: pieces.slice(0, -1).join(" · "),
-        time: pieces[pieces.length - 1]
+        date: translate("events_workspace.date_unavailable", "DATE UNAVAILABLE"),
+        time: ""
       };
     }
-    return { date: label, time: "" };
+    const dateLabel = new Intl.DateTimeFormat(campaignEventLocaleTag(), {
+      timeZone: "Europe/Paris",
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    }).format(date);
+    const timeLabel = new Intl.DateTimeFormat(campaignEventLocaleTag(), {
+      timeZone: "Europe/Paris",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23"
+    }).format(date);
+    return {
+      date: campaignEventUsesEnglishPresentation()
+        ? dateLabel.toUpperCase()
+        : dateLabel,
+      time: timeLabel
+    };
   }
 
   function campaignEventObservedMinuteKey(value) {
@@ -6409,7 +6857,10 @@
       media: "MEDIA",
       other: "OTHER"
     };
-    return labels[key] || "OTHER";
+    return translate(
+      `events_workspace.horizon_category.${key || "other"}`,
+      labels[key] || "OTHER"
+    );
   }
 
   const campaignEventHorizonDotCategories = [
@@ -6432,7 +6883,7 @@
           key: category.key,
           eventType: category.eventType,
           count,
-          label: category.label
+          label: campaignEventHorizonCategoryLabel(category.key)
         } : null;
       })
       .filter(Boolean);
@@ -6450,7 +6901,7 @@
     const legendCategories = ["debate", "rally", "visit", "launch", "other"]
       .map(key => campaignEventHorizonCategories.find(category => category.key === key))
       .filter(Boolean);
-    return `<footer class="hybrid-events-ops-legend" aria-label="Event type color legend"><div>${legendCategories.map(category => `<span class="hybrid-events-ops-legend-item"><i class="hybrid-events-ops-legend-swatch" data-event-type="${escapeAttribute(category.types[0])}" aria-hidden="true"></i><span>${escapeHtml(campaignEventHorizonCategoryLabel(category.key))} [${escapeHtml(campaignEventTypeCode(category.types[0]))}]</span></span>`).join("")}</div><p>Descriptive polling data from public sources · no model · no averages · no forecast · no voting advice.</p><p>Candidate portraits are AI-generated illustrations for visual identification.</p></footer>`;
+    return `<footer class="hybrid-events-ops-legend" aria-label="${escapeAttribute(translate("events_workspace.legend_aria", "Event type color legend"))}"><div>${legendCategories.map(category => `<span class="hybrid-events-ops-legend-item"><i class="hybrid-events-ops-legend-swatch" data-event-type="${escapeAttribute(category.types[0])}" aria-hidden="true"></i><span>${escapeHtml(campaignEventHorizonCategoryLabel(category.key))} [${escapeHtml(campaignEventTypeCode(category.types[0]))}]</span></span>`).join("")}</div><p>${escapeHtml(translate("events_workspace.polling_disclaimer", "Descriptive polling data from public sources · no model · no averages · no forecast · no voting advice."))}</p><p>${escapeHtml(translate("events_workspace.portrait_disclaimer", "Candidate portraits are AI-generated illustrations for visual identification."))}</p></footer>`;
   }
 
   function campaignEventScheduleMetricIcon(name) {
@@ -6475,10 +6926,24 @@
       const typeGroups = campaignEventHorizonTypeGroups(bin.events);
       const breakdown = typeGroups.length
         ? typeGroups.map(group => `${group.label}: ${group.count}`).join("; ")
-        : "No scheduled events";
-      const weekSummary = `${bin.label}. ${bin.count} scheduled ${bin.count === 1 ? "event" : "events"}. ${breakdown}.`;
+        : translate("events_workspace.no_scheduled_events", "No scheduled events");
+      const scheduledCount = translate(
+        "events_workspace.scheduled_event_count",
+        "{count} scheduled {count, plural, one {event} other {events}}",
+        { count: bin.count }
+      );
+      const weekSummary = translate(
+        "events_workspace.week_summary",
+        "{week}. {scheduled}. {breakdown}.",
+        { week: bin.label, scheduled: scheduledCount, breakdown }
+      );
+      const weekAria = translate(
+        "events_workspace.navigate_week_aria",
+        "Navigate to week {summary}",
+        { summary: weekSummary }
+      );
       return `<div class="hybrid-events-ops-week${selected ? " is-selected" : ""}${current ? " is-current" : ""}${monthStart ? " is-month-start" : ""}">
-        <button type="button" class="hybrid-events-ops-week-select" data-hybrid-week-select="${escapeAttribute(bin.startKey)}" aria-label="${escapeAttribute(`Navigate to week ${weekSummary}`)}" aria-pressed="${String(selected)}" data-fr27-tooltip="${escapeAttribute(weekSummary)}"${current ? ' aria-current="date"' : ""}>
+        <button type="button" class="hybrid-events-ops-week-select" data-hybrid-week-select="${escapeAttribute(bin.startKey)}" aria-label="${escapeAttribute(weekAria)}" aria-pressed="${String(selected)}" data-fr27-tooltip="${escapeAttribute(weekSummary)}"${current ? ' aria-current="date"' : ""}>
           <span>${escapeHtml(bin.label)}</span><strong class="hybrid-events-ops-week-count${bin.count ? " has-events" : " is-empty"}">${escapeHtml(countLabel)}</strong>
         </button>
         <div class="hybrid-events-ops-week-markers" aria-hidden="true">${renderOperationsHorizonComposition(bin.events)}</div>
@@ -6486,16 +6951,20 @@
     }).join("");
     const filters = campaignEventFilterOptions(model);
     const dataAsOf = campaignEventObservedLabel(model.dataAsOf);
-    const scheduleInfo = `Curated high-signal calendar. Empty weeks do not imply no campaign activity. Past scheduled events are not treated as completed without explicit occurrence evidence. Data as of: ${dataAsOf}.`;
+    const scheduleInfo = translate(
+      "events_workspace.schedule_methodology",
+      "Curated high-signal calendar. Empty weeks do not imply no campaign activity. Past scheduled events are not treated as completed without explicit occurrence evidence. Data as of: {date}.",
+      { date: dataAsOf }
+    );
 
     return `<section class="hybrid-events-ops-rail" aria-labelledby="hybrid-events-ops-rail-title">
       <div class="hybrid-events-ops-rail-head">
         <div class="hybrid-events-ops-titleline">
-          <h3 id="hybrid-events-ops-rail-title">12-WEEK SCHEDULE</h3>
-          <button class="hybrid-events-ops-info fr27-info-glyph" type="button" aria-label="Schedule methodology" data-fr27-tooltip="${escapeAttribute(scheduleInfo)}">i</button>
+          <h3 id="hybrid-events-ops-rail-title">${escapeHtml(translate("events_workspace.schedule_12_weeks", "12-WEEK SCHEDULE"))}</h3>
+          <button class="hybrid-events-ops-info fr27-info-glyph" type="button" aria-label="${escapeAttribute(translate("events_workspace.schedule_methodology_aria", "Schedule methodology"))}" data-fr27-tooltip="${escapeAttribute(scheduleInfo)}">i</button>
         </div>
         <div class="hybrid-events-ops-head-controls">
-          <div class="hybrid-events-ops-filters" aria-label="Filter campaign events by type">${filters.map(filter => `<button type="button" class="hybrid-events-filter${model.eventTypeFilter === filter.key ? " is-active" : ""}" data-event-type="${escapeAttribute(filter.key)}" data-hybrid-events-filter="${escapeAttribute(filter.key)}" aria-pressed="${String(model.eventTypeFilter === filter.key)}">${escapeHtml(filter.label)}</button>`).join("")}</div>
+          <div class="hybrid-events-ops-filters" aria-label="${escapeAttribute(translate("events_workspace.filter_aria", "Filter campaign events by type"))}">${filters.map(filter => `<button type="button" class="hybrid-events-filter${model.eventTypeFilter === filter.key ? " is-active" : ""}" data-event-type="${escapeAttribute(filter.key)}" data-hybrid-events-filter="${escapeAttribute(filter.key)}" aria-pressed="${String(model.eventTypeFilter === filter.key)}">${escapeHtml(filter.label)}</button>`).join("")}</div>
         </div>
       </div>
       <div class="hybrid-events-ops-horizon-scroll">
@@ -6537,29 +7006,40 @@
     const groups = buildCampaignEventStreamGroups(visible);
     const content = groups.length
       ? groups.map(group => `<section class="hybrid-events-upcoming-week" data-hybrid-event-week-group="${escapeAttribute(group.startKey)}">
-          <div class="hybrid-events-upcoming-week-head"><strong>${escapeHtml(group.label)}</strong><span>${group.events.length} ${group.events.length === 1 ? "EVENT" : "EVENTS"}</span></div>
+          <div class="hybrid-events-upcoming-week-head"><strong>${escapeHtml(group.label)}</strong><span>${escapeHtml(translate("events_workspace.event_count", "{count} {count, plural, one {EVENT} other {EVENTS}}", { count: group.events.length }))}</span></div>
           <div>${group.events.map(event => renderUpcomingEventRow(event, model)).join("")}</div>
         </section>`).join("")
-      : '<div class="hybrid-state">No upcoming events match this event-type filter.</div>';
+      : `<div class="hybrid-state">${escapeHtml(translate("events_workspace.no_matching_upcoming", "No upcoming events match this event-type filter."))}</div>`;
     const filteredMeta = model.eventTypeFilter === "all"
-      ? `${model.upcomingCount} EVENTS`
-      : `${visible.length} OF ${model.upcomingCount}`;
+      ? translate(
+          "events_workspace.event_count",
+          "{count} {count, plural, one {EVENT} other {EVENTS}}",
+          { count: model.upcomingCount }
+        )
+      : translate(
+          "events_workspace.visible_of_total",
+          "{visible} OF {total}",
+          { visible: visible.length, total: model.upcomingCount }
+        );
 
     return `<section class="hybrid-events-upcoming" aria-labelledby="hybrid-events-upcoming-title">
-      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-upcoming-title">UPCOMING EVENTS</h3><span>${escapeHtml(filteredMeta)}</span></div>
+      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-upcoming-title">${escapeHtml(translate("events_workspace.upcoming_events", "UPCOMING EVENTS"))}</h3><span>${escapeHtml(filteredMeta)}</span></div>
       <div class="hybrid-events-upcoming-list">${content}</div>
     </section>`;
   }
 
   function renderDossierEventDetails(event) {
-    const organizer = String(event.organization || "").trim() || "Not published";
-    const precision = event.time_precision === "date" ? "Date only" : "Date + time";
+    const organizer = String(event.organization || "").trim() ||
+      translate("events_workspace.not_published", "Not published");
+    const precision = event.time_precision === "date"
+      ? translate("events_workspace.date_only", "Date only")
+      : translate("events_workspace.date_and_time", "Date + time");
     const format = campaignEventTypeDisplayLabel(event.event_type);
-    return `<section class="hybrid-events-dossier-context"><h4>EVENT DETAILS</h4><dl>
-      <div><dt>Organiser</dt><dd>${escapeHtml(organizer)}</dd></div>
-      <div><dt>Format</dt><dd>${escapeHtml(format)}</dd></div>
-      <div><dt>Time precision</dt><dd>${escapeHtml(precision)}</dd></div>
-      <div><dt>Timezone</dt><dd>${escapeHtml(event.timezone || "Europe/Paris")}</dd></div>
+    return `<section class="hybrid-events-dossier-context"><h4>${escapeHtml(translate("events_workspace.event_details", "EVENT DETAILS"))}</h4><dl>
+      <div><dt>${escapeHtml(translate("events_workspace.organiser", "Organiser"))}</dt><dd>${escapeHtml(organizer)}</dd></div>
+      <div><dt>${escapeHtml(translate("events_workspace.format", "Format"))}</dt><dd>${escapeHtml(format)}</dd></div>
+      <div><dt>${escapeHtml(translate("events_workspace.time_precision", "Time precision"))}</dt><dd>${escapeHtml(precision)}</dd></div>
+      <div><dt>${escapeHtml(translate("events_workspace.timezone", "Timezone"))}</dt><dd>${escapeHtml(event.timezone || "Europe/Paris")}</dd></div>
     </dl></section>`;
   }
 
@@ -6570,66 +7050,91 @@
         ? event.participants.filter(Boolean)
         : [];
     if (participants.length <= 1) {
-      const lead = participants[0] || String(event.organization || "").trim() || "No named participant is published.";
+      const lead = participants[0] || String(event.organization || "").trim() ||
+        translate(
+          "events_workspace.no_named_participant_sentence",
+          "No named participant is published."
+        );
       const note = participants.length === 1
-        ? "SOLO APPEARANCE"
+        ? translate("events_workspace.solo_appearance", "SOLO APPEARANCE")
         : event.organization
-          ? "ORGANISATION-LED"
-          : "NO NAMED PARTICIPANT";
-      return `<section class="hybrid-events-dossier-involvement"><h4>INVOLVEMENT</h4><strong>${escapeHtml(lead)}</strong><small>${escapeHtml(note)}</small></section>`;
+          ? translate("events_workspace.organisation_led", "ORGANISATION-LED")
+          : translate("events_workspace.no_named_participant", "NO NAMED PARTICIPANT");
+      return `<section class="hybrid-events-dossier-involvement"><h4>${escapeHtml(translate("events_workspace.involvement", "INVOLVEMENT"))}</h4><strong>${escapeHtml(lead)}</strong><small>${escapeHtml(note)}</small></section>`;
     }
-    return `<section class="hybrid-events-dossier-participants"><h4>PARTICIPANTS · ${participants.length}</h4><div>${participants.map(name => `<span>${escapeHtml(name)}</span>`).join("")}</div></section>`;
+    const participantCount = translate(
+      "events_workspace.participant_count",
+      "{count} {count, plural, one {PARTICIPANT} other {PARTICIPANTS}}",
+      { count: participants.length }
+    );
+    return `<section class="hybrid-events-dossier-participants"><h4>${escapeHtml(participantCount)}</h4><div>${participants.map(name => `<span>${escapeHtml(name)}</span>`).join("")}</div></section>`;
   }
 
   function renderDossierEvidence(event) {
     const evidence = campaignEventPrimaryEvidence(event);
     const evidenceState = campaignEventEvidencePresentation(event);
     if (!evidence) {
-      return `<section class="hybrid-events-dossier-evidence"><h4>SOURCE EVIDENCE</h4><div class="hybrid-state is-compact">Source evidence is unavailable.</div></section>`;
+      return `<section class="hybrid-events-dossier-evidence"><h4>${escapeHtml(translate("events_workspace.source_evidence", "SOURCE EVIDENCE"))}</h4><div class="hybrid-state is-compact">${escapeHtml(translate("events_workspace.source_evidence_unavailable", "Source evidence is unavailable."))}</div></section>`;
     }
-    return `<section class="hybrid-events-dossier-evidence"><div class="hybrid-events-dossier-section-head"><h4>SOURCE EVIDENCE</h4><span>PRIMARY</span></div>
+    const openSource = translate("events_workspace.open_source", "OPEN SOURCE");
+    const sourceAria = translate(
+      "events_workspace.open_source_aria",
+      "Open source for {title}",
+      { title: event.title }
+    );
+    return `<section class="hybrid-events-dossier-evidence"><div class="hybrid-events-dossier-section-head"><h4>${escapeHtml(translate("events_workspace.source_evidence", "SOURCE EVIDENCE"))}</h4><span>${escapeHtml(translate("events_workspace.primary_source", "PRIMARY"))}</span></div>
       <div class="hybrid-events-evidence-primary">
-        <div><strong>${escapeHtml(evidence.source_publisher || "Source")}</strong><span>${escapeHtml(campaignEventSourceTypeLabel(evidence.source_type))}</span></div>
+        <div><strong>${escapeHtml(evidence.source_publisher || translate("events_workspace.source", "Source"))}</strong><span>${escapeHtml(campaignEventSourceTypeLabel(evidence.source_type))}</span></div>
         <time datetime="${escapeAttribute(event.last_verified_at || "")}">${escapeHtml(campaignEventObservedLabel(event.last_verified_at))}</time>
       </div>
       <p>${escapeHtml(campaignEventEvidenceTypeLabel(evidence.evidence_type))}</p>
-      <div class="hybrid-events-evidence-actions"><span class="hybrid-events-evidence-chip" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span>${sourceLink(evidence.source_url, "OPEN SOURCE", "hybrid-events-dossier-source", `Open source for ${event.title}`)}</div>
+      <div class="hybrid-events-evidence-actions"><span class="hybrid-events-evidence-chip" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span>${sourceLink(evidence.source_url, openSource, "hybrid-events-dossier-source", sourceAria, translate("events_workspace.source_unavailable", "Source unavailable"))}</div>
     </section>`;
   }
 
   function renderDossierHistory(model) {
     const updates = model.selectedUpdates.slice(0, 8);
     if (!updates.length) {
-      return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4>SCHEDULE HISTORY</h4><span>NO RECORDS</span></div><div class="hybrid-events-history-empty-state"><strong>NO PUBLISHED SCHEDULE HISTORY</strong><span>No calendar update is currently linked to this event.</span></div></section>`;
+      return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4>${escapeHtml(translate("events_workspace.schedule_history", "SCHEDULE HISTORY"))}</h4><span>${escapeHtml(translate("events_workspace.no_records", "NO RECORDS"))}</span></div><div class="hybrid-events-history-empty-state"><strong>${escapeHtml(translate("events_workspace.no_published_schedule_history", "NO PUBLISHED SCHEDULE HISTORY"))}</strong><span>${escapeHtml(translate("events_workspace.no_linked_calendar_update", "No calendar update is currently linked to this event."))}</span></div></section>`;
     }
     const hasMaterialUpdate = updates.some(update => String(update.update_type || "").toUpperCase() !== "NEW");
-    const rows = updates.map(update => `<article class="hybrid-events-history-item" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}"><i aria-hidden="true"></i><time datetime="${escapeAttribute(update.observed_at)}">${escapeHtml(campaignEventObservedLabel(update.observed_at))}</time><span class="hybrid-events-watch-type" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(String(update.update_type || "UPDATED").toUpperCase())}</span><small>${escapeHtml(campaignEventUpdateCopy(update))}</small></article>`).join("");
+    const rows = updates.map(update => `<article class="hybrid-events-history-item" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}"><i aria-hidden="true"></i><time datetime="${escapeAttribute(update.observed_at)}">${escapeHtml(campaignEventObservedLabel(update.observed_at))}</time><span class="hybrid-events-watch-type" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(campaignEventUpdateTypeLabel(update.update_type))}</span><small>${escapeHtml(campaignEventUpdateCopy(update))}</small></article>`).join("");
     const quietState = hasMaterialUpdate
       ? ""
-      : `<div class="hybrid-events-history-empty-state"><strong>NO FURTHER SCHEDULE CHANGES</strong><span>No later confirmed, updated, postponed or cancelled schedule change is published for this event.</span></div>`;
-    return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4>SCHEDULE HISTORY</h4><span>${updates.length} RECORD${updates.length === 1 ? "" : "S"}</span></div><div class="hybrid-events-history-list">${rows}</div>${quietState}</section>`;
+      : `<div class="hybrid-events-history-empty-state"><strong>${escapeHtml(translate("events_workspace.no_further_schedule_changes", "NO FURTHER SCHEDULE CHANGES"))}</strong><span>${escapeHtml(translate("events_workspace.no_later_schedule_change", "No later confirmed, updated, postponed or cancelled schedule change is published for this event."))}</span></div>`;
+    const recordCount = translate(
+      "events_workspace.record_count",
+      "{count} {count, plural, one {RECORD} other {RECORDS}}",
+      { count: updates.length }
+    );
+    return `<section class="hybrid-events-history"><div class="hybrid-events-dossier-section-head"><h4>${escapeHtml(translate("events_workspace.schedule_history", "SCHEDULE HISTORY"))}</h4><span>${escapeHtml(recordCount)}</span></div><div class="hybrid-events-history-list">${rows}</div>${quietState}</section>`;
   }
 
   function renderEventDossier(model) {
     const event = model.selectedEvent;
     if (!event) {
-      return `<section class="hybrid-events-dossier"><div class="hybrid-events-panel-head"><h3>EVENT DOSSIER</h3><span>SOURCE-LINKED EVIDENCE</span></div><div class="hybrid-state">No campaign event is selected.</div></section>`;
+      return `<section class="hybrid-events-dossier"><div class="hybrid-events-panel-head"><h3>${escapeHtml(translate("events_workspace.event_dossier", "EVENT DOSSIER"))}</h3><span>${escapeHtml(translate("events_workspace.source_linked_evidence", "SOURCE-LINKED EVIDENCE"))}</span></div><div class="hybrid-state">${escapeHtml(translate("events_workspace.no_selected_event", "No campaign event is selected."))}</div></section>`;
     }
     const status = campaignEventStatusPresentation(event);
     const evidenceState = campaignEventEvidencePresentation(event);
     const participantCount = campaignEventParticipantCount(event);
-    const place = campaignEventPlaceLabel(event) || "Location not published";
+    const place = campaignEventPlaceLabel(event) ||
+      translate("events_workspace.location_not_published", "Location not published");
     const when = `${campaignEventLongDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}`;
     const format = campaignEventTypeDisplayLabel(event.event_type);
+    const evidenceMethodology = translate(
+      "events_workspace.evidence_methodology",
+      "Past scheduled events remain scheduled until explicit occurrence evidence confirms they took place."
+    );
 
     return `<section class="hybrid-events-dossier" aria-labelledby="hybrid-events-dossier-title">
-      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-dossier-title">EVENT DOSSIER</h3><span class="hybrid-events-dossier-head-meta">SOURCE-LINKED EVIDENCE <button class="hybrid-events-dossier-info fr27-info-glyph" type="button" aria-label="Event evidence methodology" data-fr27-tooltip="Past scheduled events remain scheduled until explicit occurrence evidence confirms they took place.">i</button></span></div>
+      <div class="hybrid-events-panel-head"><h3 id="hybrid-events-dossier-title">${escapeHtml(translate("events_workspace.event_dossier", "EVENT DOSSIER"))}</h3><span class="hybrid-events-dossier-head-meta">${escapeHtml(translate("events_workspace.source_linked_evidence", "SOURCE-LINKED EVIDENCE"))} <button class="hybrid-events-dossier-info fr27-info-glyph" type="button" aria-label="${escapeAttribute(translate("events_workspace.evidence_methodology_aria", "Event evidence methodology"))}" data-fr27-tooltip="${escapeAttribute(evidenceMethodology)}">i</button></span></div>
       <div class="hybrid-events-dossier-body">
         <div class="hybrid-events-dossier-title">${renderEventTypeBadge(event.event_type, participantCount > 1 ? `×${participantCount}` : "")}<div><h4 lang="fr">${escapeHtml(event.title)}</h4><div><span class="hybrid-events-status" data-event-status="${escapeAttribute(status.key)}">${escapeHtml(status.label)}</span><span class="hybrid-events-evidence-chip" data-evidence-status="${escapeAttribute(evidenceState.key)}">${escapeHtml(evidenceState.label)}</span></div></div></div>
         <div class="hybrid-events-dossier-lede">
-          <div><small>DATE / TIME</small><strong>${escapeHtml(when)}</strong></div>
-          <div><small>VENUE</small><strong>${escapeHtml(place)}</strong></div>
-          <div><small>FORMAT</small><strong>${escapeHtml(format)}</strong></div>
+          <div><small>${escapeHtml(translate("events_workspace.date_time", "DATE / TIME"))}</small><strong>${escapeHtml(when)}</strong></div>
+          <div><small>${escapeHtml(translate("events_workspace.venue", "VENUE"))}</small><strong>${escapeHtml(place)}</strong></div>
+          <div><small>${escapeHtml(translate("events_workspace.format_upper", "FORMAT"))}</small><strong>${escapeHtml(format)}</strong></div>
         </div>
         <div class="hybrid-events-dossier-grid">
           <div class="hybrid-events-dossier-left">${renderDossierParticipants(event)}${renderDossierEventDetails(event)}</div>
@@ -6644,11 +7149,14 @@
     const event = update.event;
     const observed = campaignEventObservedParts(update.observed_at);
     const weekStart = event ? campaignEventWeekStartKey(campaignEventDateKey(event)) : "";
-    const title = event?.title || update.headline || "Campaign calendar update";
-    const schedule = event ? `${campaignEventShortDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}` : "Schedule unavailable";
+    const title = event?.title || update.headline ||
+      translate("events_workspace.fallback_update_title", "Campaign calendar update");
+    const schedule = event
+      ? `${campaignEventShortDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}`
+      : translate("events_workspace.schedule_unavailable", "Schedule unavailable");
     const selected = model.selectedEvent?.event_id === update.event_id;
     return `<button type="button" class="hybrid-events-watch-material-item${selected ? " is-selected" : ""}" data-hybrid-event-id="${escapeAttribute(update.event_id)}" ${weekStart ? `data-hybrid-event-week="${escapeAttribute(weekStart)}"` : ""}>
-      <span class="hybrid-events-watch-type" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(String(update.update_type || "UPDATED").toUpperCase())}</span>
+      <span class="hybrid-events-watch-type" data-update-type="${escapeAttribute(String(update.update_type || "updated").toLowerCase())}">${escapeHtml(campaignEventUpdateTypeLabel(update.update_type))}</span>
       <span class="hybrid-events-watch-material-copy"><strong lang="fr">${escapeHtml(title)}</strong><small>${escapeHtml(schedule)} · ${escapeHtml(campaignEventUpdateCopy(update))}</small></span>
       <time datetime="${escapeAttribute(update.observed_at)}"><strong>${escapeHtml(observed.time || "—")}</strong><span>${escapeHtml(observed.date)}</span></time>
     </button>`;
@@ -6657,10 +7165,15 @@
   function renderScheduleWatchAddition(update, model) {
     const event = update.event;
     const evidence = campaignEventPrimaryEvidence(update);
-    const publisher = String(evidence?.source_publisher || "Source").trim();
+    const publisher = String(
+      evidence?.source_publisher || translate("events_workspace.source", "Source")
+    ).trim();
     const weekStart = event ? campaignEventWeekStartKey(campaignEventDateKey(event)) : "";
-    const title = event?.title || update.headline || "Campaign calendar addition";
-    const schedule = event ? `${campaignEventShortDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}` : "Schedule unavailable";
+    const title = event?.title || update.headline ||
+      translate("events_workspace.fallback_addition_title", "Campaign calendar addition");
+    const schedule = event
+      ? `${campaignEventShortDate(event.scheduled_start)}${campaignEventTimeLabel(event) !== "—" ? ` · ${campaignEventTimeLabel(event)}` : ""}`
+      : translate("events_workspace.schedule_unavailable", "Schedule unavailable");
     const selected = model.selectedEvent?.event_id === update.event_id;
     return `<button type="button" class="hybrid-events-watch-addition${selected ? " is-selected" : ""}" data-event-type="${escapeAttribute(event?.event_type || "other")}" data-hybrid-event-id="${escapeAttribute(update.event_id)}" ${weekStart ? `data-hybrid-event-week="${escapeAttribute(weekStart)}"` : ""}>
       <i class="hybrid-events-watch-event-node" aria-hidden="true"></i>
@@ -6673,19 +7186,30 @@
     const additionGroups = groupCampaignEventAdditions(model.eventWatch);
     const materialContent = materialUpdates.length
       ? materialUpdates.map(update => renderScheduleWatchMaterialItem(update, model)).join("")
-      : `<div class="hybrid-events-watch-empty"><i aria-hidden="true">✓</i><strong>MATERIAL CHANGES 0</strong></div>`;
+      : `<div class="hybrid-events-watch-empty"><i aria-hidden="true">✓</i><strong>${escapeHtml(translate("events_workspace.material_changes_zero", "MATERIAL CHANGES 0"))}</strong></div>`;
     const additions = additionGroups.length
       ? additionGroups.map(group => {
           const observed = campaignEventObservedParts(group.observedAt);
-          return `<section class="hybrid-events-watch-addition-group"><i class="hybrid-events-watch-group-node" aria-hidden="true"></i><div class="hybrid-events-watch-addition-head"><span>${escapeHtml(observed.date)}${observed.time ? ` · ${escapeHtml(observed.time)}` : ""}</span><strong>+${group.updates.length} NEW</strong></div><div>${group.updates.map(update => renderScheduleWatchAddition(update, model)).join("")}</div></section>`;
+          const additionCount = translate(
+            "events_workspace.addition_count",
+            "+{count} {count, plural, one {NEW} other {NEW}}",
+            { count: group.updates.length }
+          );
+          return `<section class="hybrid-events-watch-addition-group"><i class="hybrid-events-watch-group-node" aria-hidden="true"></i><div class="hybrid-events-watch-addition-head"><span>${escapeHtml(observed.date)}${observed.time ? ` · ${escapeHtml(observed.time)}` : ""}</span><strong>${escapeHtml(additionCount)}</strong></div><div>${group.updates.map(update => renderScheduleWatchAddition(update, model)).join("")}</div></section>`;
         }).join("")
-      : '<div class="hybrid-events-watch-empty"><strong>NO RECENT ADDITIONS</strong><span>No newly published event is recorded in the current watch log.</span></div>';
+      : `<div class="hybrid-events-watch-empty"><strong>${escapeHtml(translate("events_workspace.no_recent_additions", "NO RECENT ADDITIONS"))}</strong><span>${escapeHtml(translate("events_workspace.no_new_event_in_watch", "No newly published event is recorded in the current watch log."))}</span></div>`;
+
+    const recordCount = translate(
+      "events_workspace.record_count",
+      "{count} {count, plural, one {RECORD} other {RECORDS}}",
+      { count: model.watchCount }
+    );
 
     return `<section class="hybrid-events-schedule-watch" aria-labelledby="hybrid-events-schedule-watch-title">
-      <div class="hybrid-events-panel-head"><div><h3 id="hybrid-events-schedule-watch-title">SCHEDULE WATCH</h3><span>CALENDAR ACTIVITY</span></div><span>${model.watchCount} RECORDS</span></div>
+      <div class="hybrid-events-panel-head"><div><h3 id="hybrid-events-schedule-watch-title">${escapeHtml(translate("events_workspace.schedule_watch", "SCHEDULE WATCH"))}</h3><span>${escapeHtml(translate("events_workspace.calendar_activity", "CALENDAR ACTIVITY"))}</span></div><span>${escapeHtml(recordCount)}</span></div>
       <div class="hybrid-events-schedule-watch-body">
         <section class="hybrid-events-watch-section is-material">${materialContent}</section>
-        <section class="hybrid-events-watch-section is-additions"><div class="hybrid-events-watch-section-head"><h4>RECENT ADDITIONS</h4><span>${model.eventWatch.length - materialUpdates.length}</span></div><div class="hybrid-events-watch-timeline">${additions}</div></section>
+        <section class="hybrid-events-watch-section is-additions"><div class="hybrid-events-watch-section-head"><h4>${escapeHtml(translate("events_workspace.recent_additions", "RECENT ADDITIONS"))}</h4><span>${model.eventWatch.length - materialUpdates.length}</span></div><div class="hybrid-events-watch-timeline">${additions}</div></section>
       </div>
     </section>`;
   }
@@ -6695,12 +7219,23 @@
       if (model.state === "loading" && window.FR27UI) {
         return window.FR27UI.skeletonElement(
           "events",
-          "Loading campaign events"
+          translate("events_workspace.loading", "Loading campaign events")
         ).outerHTML;
       }
-      return summaryState(model);
+      const message = model.state === "loading"
+        ? translate("events_workspace.loading", "Loading campaign events")
+        : model.state === "unavailable"
+          ? translate(
+              "events_workspace.data_unavailable",
+          "This data domain is unavailable. Other signals remain live."
+            )
+          : translate(
+              "events_workspace.empty",
+          "No supported data is available."
+            );
+      return `<span class="hybrid-state is-compact${model.state === "unavailable" ? " is-error" : ""}">${escapeHtml(message)}</span>`;
     }
-    return `<div class="hybrid-events-workspace" aria-label="Campaign Events temporal operations desk">
+    return `<div class="hybrid-events-workspace" aria-label="${escapeAttribute(translate("events_workspace.workspace_aria", "Campaign Events temporal operations desk"))}">
       ${renderOperationsScheduleRail(model)}
       <div class="hybrid-events-ops-main">
         ${renderUpcomingPanel(model)}
@@ -6712,8 +7247,8 @@
   }
 
   function renderFocusWorkspace(models) {
-    return `<section class="hybrid-workspace" data-hybrid-workspace aria-label="Signal Board focus workspace">
-      <div class="hybrid-tabs" role="tablist" aria-label="Lower evidence workspace" aria-orientation="horizontal">
+    return `<section class="hybrid-workspace" data-hybrid-workspace aria-label="${escapeAttribute(translate("signal_board.signal_board_focus_workspace", "Signal Board focus workspace"))}">
+      <div class="hybrid-tabs" role="tablist" aria-label="${escapeAttribute(translate("signal_board.lower_evidence_workspace", "Lower evidence workspace"))}" aria-orientation="horizontal">
         ${viewOrder.map(key => `<button class="hybrid-tab" id="${views[key].tabId}" type="button" role="tab"
           data-hybrid-view="${key}" aria-controls="${views[key].panelId}" aria-selected="${String(state.activeView === key)}" tabindex="${state.activeView === key ? "0" : "-1"}">
           ${workspaceTabIconMarkup(key)}
@@ -6723,7 +7258,7 @@
       <section class="hybrid-panel" id="signal-runoff-panel" role="tabpanel" aria-labelledby="signal-runoff-tab"${state.activeView === "runoff" ? "" : " hidden"}>${renderRunoffPanel(models.runoff)}</section>
       <section class="hybrid-panel" id="signal-candidates-panel" role="tabpanel" aria-labelledby="signal-candidates-tab"${state.activeView === "candidates" ? "" : " hidden"}>
         <div id="candidate-signals-root" data-candidate-signals-state="${state.candidateSignals.status}">
-          ${window.FR27UI ? window.FR27UI.skeletonElement("candidates", "Loading candidate evidence").outerHTML : '<div class="candidate-signals-state" role="status" aria-label="Loading candidate evidence">—</div>'}
+          ${window.FR27UI ? window.FR27UI.skeletonElement("candidates", translate("candidate.loading_candidate_evidence", "Loading candidate evidence")).outerHTML : `<div class="candidate-signals-state" role="status" aria-label="${escapeAttribute(translate("candidate.loading_candidate_evidence", "Loading candidate evidence"))}">—</div>`}
         </div>
       </section>
       <section class="hybrid-panel" id="signal-events-panel" role="tabpanel" aria-labelledby="signal-events-tab"${state.activeView === "events" ? "" : " hidden"}>${renderEventsPanel(models.events)}</section>
@@ -6873,7 +7408,13 @@
       candidateScrutinyNode(
         "span",
         `candidate-signals-scrutiny-relationship is-${relationship}`,
-        relationship.toUpperCase()
+        relationship === "about"
+          ? translate("candidate.about", "ABOUT")
+          : relationship === "by"
+            ? translate("candidate.by", "BY")
+            : relationship.toLocaleUpperCase(
+              globalThis.FR27I18N?.localeTag || "en-GB"
+            )
       );
 
     const dateNode =
@@ -6881,8 +7422,8 @@
         "time",
         "candidate-signals-scrutiny-review-date",
         review.review_date
-          ? formatDay(review.review_date)
-          : "DATE UNAVAILABLE"
+          ? candidateDisplayDate(review.review_date)
+          : translate("candidate.date_unavailable", "DATE UNAVAILABLE")
       );
 
     if (review.review_date) {
@@ -6951,7 +7492,7 @@
       const link = candidateScrutinyNode(
         "a",
         "candidate-signals-scrutiny-source",
-        "OPEN SOURCE ↗"
+        translate("candidate.open_source_upper", "OPEN SOURCE ↗")
       );
 
       link.href = sourceUrl;
@@ -6959,7 +7500,16 @@
       link.rel = "noopener noreferrer";
       link.setAttribute(
         "aria-label",
-        `Open ${review.publisher_name || "publisher"} review source in a new tab`
+        translate(
+          "candidate.open_publisher_review_source",
+          `Open ${
+            review.publisher_name || "publisher"
+          } review source in a new tab`,
+          {
+            publisher: review.publisher_name ||
+              translate("candidate.publisher", "publisher")
+          }
+        )
       );
 
       footer.append(link);
@@ -6968,7 +7518,7 @@
         candidateScrutinyNode(
           "span",
           "candidate-signals-scrutiny-source is-unavailable",
-          "SOURCE UNAVAILABLE"
+          translate("candidate.source_unavailable", "SOURCE UNAVAILABLE")
         )
       );
     }
@@ -6988,7 +7538,10 @@
         window.FR27UI
           ? window.FR27UI.skeletonElement(
               "list",
-              "Loading monitored publisher reviews"
+              translate(
+                "candidate.scrutiny.loading_reviews",
+                "Loading monitored publisher reviews"
+              )
             )
           : candidateScrutinyNode(
               "div",
@@ -7008,17 +7561,26 @@
         candidateScrutinyNode(
           "strong",
           "candidate-signals-scrutiny-state-title",
-          "DETAIL UNAVAILABLE"
+          translate(
+            "candidate.scrutiny.detail_unavailable",
+            "DETAIL UNAVAILABLE"
+          )
         ),
         candidateScrutinyNode(
           "p",
           "",
-          "Candidate scrutiny summary remains available."
+          translate(
+            "candidate.scrutiny.summary_remains_available",
+            "Candidate scrutiny summary remains available."
+          )
         ),
         candidateScrutinyNode(
           "p",
           "",
-          "Detailed publisher reviews could not be loaded."
+          translate(
+            "candidate.scrutiny.reviews_could_not_be_loaded",
+            "Detailed publisher reviews could not be loaded."
+          )
         )
       );
       body.append(state);
@@ -7034,12 +7596,18 @@
         candidateScrutinyNode(
           "strong",
           "candidate-signals-scrutiny-state-title",
-          "NO PUBLISHED REVIEWS"
+          translate(
+            "candidate.scrutiny.no_published_reviews",
+            "NO PUBLISHED REVIEWS"
+          )
         ),
         candidateScrutinyNode(
           "p",
           "",
-          "No monitored publisher review is currently associated with this candidate."
+          translate(
+            "candidate.scrutiny.no_associated_reviews",
+            "No monitored publisher review is currently associated with this candidate."
+          )
         )
       );
       body.append(state);
@@ -7062,7 +7630,10 @@
     const disclosure = candidateScrutinyNode(
       "p",
       "candidate-signals-scrutiny-disclosure",
-      "BY — candidate is the recorded claimant. ABOUT — candidate is mentioned in a checked claim attributed to somebody else."
+      translate(
+        "candidate.scrutiny.relationship_disclosure",
+        "BY — candidate is the recorded claimant. ABOUT — candidate is mentioned in a checked claim attributed to somebody else."
+      )
     );
 
     body.append(list, disclosure);
@@ -7319,7 +7890,11 @@
       candidateScrutinyNode(
         "h2",
         "candidate-signals-scrutiny-title",
-        `CLAIM SCRUTINY · ${candidate.candidate_name}`
+        translate(
+          "candidate.claim_scrutiny_title",
+          `CLAIM SCRUTINY · ${candidate.candidate_name}`,
+          { candidate: candidate.candidate_name }
+        )
       );
 
     title.id = titleId;
@@ -7341,11 +7916,13 @@
       candidateScrutinyNode(
         "p",
         "candidate-signals-scrutiny-count",
-        `${reviewCount} MONITORED PUBLISHER ${
-          reviewCount === 1
-            ? "REVIEW"
-            : "REVIEWS"
-        }`
+        translate(
+          "candidate.scrutiny.monitored_review_count",
+          `${candidateDisplayNumber(reviewCount)} MONITORED PUBLISHER ${
+            reviewCount === 1 ? "REVIEW" : "REVIEWS"
+          }`,
+          { count: candidateDisplayNumber(reviewCount) }
+        )
       );
 
     count.id = countId;
@@ -7362,7 +7939,11 @@
     close.type = "button";
     close.setAttribute(
       "aria-label",
-      `Close claim scrutiny for ${candidate.candidate_name}`
+      translate(
+        "candidate.close_claim_scrutiny_for_candidate",
+        `Close claim scrutiny for ${candidate.candidate_name}`,
+        { candidate: candidate.candidate_name }
+      )
     );
 
     header.append(heading, close);
@@ -7704,23 +8285,53 @@
       model.comparisonQuality?.reason || "";
     const reasonLabel =
       reason === "publisher_panel_changed"
-        ? "publisher panel changed"
+        ? translate(
+            "media_pulse.comparison.publisher_panel_changed",
+            "publisher panel changed"
+          )
         : reason === "insufficient_data"
-          ? "insufficient data"
-          : "comparison unavailable";
+          ? translate(
+              "media_pulse.comparison.insufficient_data",
+              "insufficient data"
+            )
+          : translate(
+              "media_pulse.comparison.comparison_unavailable",
+              "comparison unavailable"
+            );
 
     return {
       available,
       label: available
-        ? "Δ pp"
+        ? translate(
+            "media_pulse.comparison.delta_pp",
+            "Δ pp"
+          )
         : model.candidateCoverageAvailable
-          ? "RAW Δ pp"
-          : "UNAVAILABLE",
+          ? translate(
+              "media_pulse.comparison.raw_delta_pp",
+              "RAW Δ pp"
+            )
+          : translate(
+              "media_pulse.comparison.unavailable",
+              "UNAVAILABLE"
+            ),
       explanation: available
-        ? "Comparable change in active-field mention rate, in percentage points."
+        ? translate(
+            "media_pulse.comparison.comparable_explanation",
+            "Comparable change in active-field mention rate, in percentage points."
+          )
         : model.candidateCoverageAvailable
-          ? `Raw arithmetic current-minus-prior mention-rate differences are displayed because comparison quality is not comparable; reason: ${reason || "unknown"}. These values are descriptive and are not comparable trend estimates.`
-          : "Active-field mention-rate comparison unavailable."
+          ? translate(
+              "media_pulse.comparison.raw_explanation",
+              `Raw arithmetic current-minus-prior mention-rate differences are displayed because comparison quality is not comparable; reason: ${reasonLabel}. These values are descriptive and are not comparable trend estimates.`,
+              {
+                reason: reasonLabel
+              }
+            )
+          : translate(
+              "media_pulse.comparison.unavailable_explanation",
+              "Active-field mention-rate comparison unavailable."
+            )
     };
   }
 
@@ -7757,7 +8368,7 @@
       if (model.state === "loading" && window.FR27UI) {
         return window.FR27UI.skeletonElement(
           "media",
-          "Loading Media Pulse"
+          translate("media_pulse.loading", "Loading Media Pulse")
         ).outerHTML;
       }
       return summaryState(model);
@@ -7767,11 +8378,14 @@
       const parsed = new Date(value);
 
       if (!Number.isFinite(parsed.getTime())) {
-        return "Date unavailable";
+        return translate(
+          "media_pulse.date_unavailable",
+          "Date unavailable"
+        );
       }
 
       return new Intl.DateTimeFormat(
-        "en-GB",
+        globalThis.FR27I18N?.localeTag || "en-GB",
         {
           day: "2-digit",
           month: "short",
@@ -7822,7 +8436,7 @@
             >${escapeHtml(item.headline)}</span>
 
             <span class="top-media-source-link">
-              Open source ↗
+              ${escapeHtml(translate("media_pulse.open_source", "Open source ↗"))}
             </span>
           </span>
         </a>
@@ -7890,7 +8504,7 @@
             const deltaText =
               displayedDelta === null
                 ? "—"
-                : `${displayedDelta > 0 ? "+" : ""}${formatMediaShare(displayedDelta)}pp`;
+                : `${displayedDelta > 0 ? "+" : ""}${formatMediaShare(displayedDelta)}${translate("media_pulse.delta_unit", "pp")}`;
             const currentWidth = Math.min(
               100,
               number(item.latestShare) / maxCombinedShare * 100
@@ -7910,10 +8524,39 @@
                 aria-expanded="false"
                 aria-label="${escapeAttribute(
                   deltaAvailable
-                    ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent mention rate among active-field-linked race records in the current period, ${previousShareText} percent in the prior period, comparable change ${deltaText}`
+                    ? translate(
+                        "media_pulse.candidate_row_comparable",
+                        `${item.name}, ${item.tierLabel}: current active-field share ${latestShareText === "—" ? "—" : `${latestShareText}%`}; prior active-field share ${previousShareText === "—" ? "—" : `${previousShareText}%`}; comparable change ${deltaText}.`,
+                        {
+                          name: item.name,
+                          tier: item.tierLabel,
+                          current: latestShareText === "—" ? "—" : `${latestShareText}%`,
+                          prior: previousShareText === "—" ? "—" : `${previousShareText}%`,
+                          delta: deltaText
+                        }
+                      )
                     : rawDeltaAvailable
-                      ? `${item.name}, ${item.tierLabel}: ${latestShareText} percent mention rate among active-field-linked race records in the current period, ${previousShareText} percent in the prior period, raw arithmetic difference ${deltaText}. Publisher panels changed, so this is not a comparable trend estimate.`
-                      : `${item.name}, ${item.tierLabel}: ${latestShareText} percent mention rate among active-field-linked race records in the current period, ${previousShareText} percent in the prior period.`
+                      ? translate(
+                          "media_pulse.candidate_row_raw",
+                          `${item.name}, ${item.tierLabel}: current active-field share ${latestShareText === "—" ? "—" : `${latestShareText}%`}; prior active-field share ${previousShareText === "—" ? "—" : `${previousShareText}%`}; raw arithmetic difference ${deltaText}. Publisher panels changed, so this is not a comparable trend estimate.`,
+                          {
+                            name: item.name,
+                            tier: item.tierLabel,
+                            current: latestShareText === "—" ? "—" : `${latestShareText}%`,
+                            prior: previousShareText === "—" ? "—" : `${previousShareText}%`,
+                            delta: deltaText
+                          }
+                        )
+                      : translate(
+                          "media_pulse.candidate_row_no_delta",
+                          `${item.name}, ${item.tierLabel}: current active-field share ${latestShareText === "—" ? "—" : `${latestShareText}%`}; prior active-field share ${previousShareText === "—" ? "—" : `${previousShareText}%`}.`,
+                          {
+                            name: item.name,
+                            tier: item.tierLabel,
+                            current: latestShareText === "—" ? "—" : `${latestShareText}%`,
+                            prior: previousShareText === "—" ? "—" : `${previousShareText}%`
+                          }
+                        )
                 )}"
               >
                 <span class="top-media-shift-name">
@@ -7968,6 +8611,8 @@
             maxTopicDays *
             100
         );
+        const topicLabel = agendaTopicLabel(topic);
+        const compactTopicLabel = compactAgendaTopicLabel(topic);
 
         return `
           <button
@@ -7980,11 +8625,18 @@
             aria-controls="topic-coverage-modal"
             aria-expanded="false"
             aria-label="${escapeAttribute(
-              `${topic.label}: ${sourceDays} source-days. Open topic coverage detail.`
+              translate(
+                "media_pulse.topic_source_days_detail",
+                `${topicLabel}: ${sourceDays} source-days. Open topic coverage detail.`,
+                {
+                  topic: topicLabel,
+                  count: sourceDays
+                }
+              )
             )}"
           >
             <span>
-              ${escapeHtml(topic.label)}
+              ${escapeHtml(compactTopicLabel)}
             </span>
 
             <i aria-hidden="true">
@@ -8036,7 +8688,7 @@
         <div
           class="top-media-tabs"
           role="tablist"
-          aria-label="Media Pulse views"
+          aria-label="${escapeAttribute(translate("media_pulse.views", "Media Pulse views"))}"
         >
           <button
             id="top-media-overview-tab"
@@ -8048,7 +8700,7 @@
             tabindex="0"
             data-top-media-tab="overview"
           >
-            Overview
+            ${escapeHtml(translate("media_pulse.overview", "Overview"))}
           </button>
 
           <button
@@ -8060,7 +8712,7 @@
             tabindex="-1"
             data-top-media-tab="coverage"
           >
-            Coverage
+            ${escapeHtml(translate("media_pulse.coverage", "Coverage"))}
           </button>
         </div>
 
@@ -8073,20 +8725,25 @@
           hidden
         >
           <div class="top-media-section-heading">
-            <h3>Latest election coverage</h3>
+            <h3>${escapeHtml(translate("media_pulse.latest_election_coverage", "Latest election coverage"))}</h3>
 
             <span>
-              ${Math.min(
-                5,
-                model.feedItems.length
-              )} latest
+              ${escapeHtml(
+                translate(
+                  "media_pulse.latest_count",
+                  `LATEST · ${Math.min(5, model.feedItems.length)}`,
+                  {
+                    count: Math.min(5, model.feedItems.length)
+                  }
+                )
+              )}
             </span>
           </div>
 
           <div
             class="top-media-coverage-list"
             role="feed"
-            aria-label="Latest accepted election coverage"
+            aria-label="${escapeAttribute(translate("media_pulse.latest_accepted_election_coverage", "Latest accepted election coverage"))}"
           >
             ${coverageRows}
           </div>
@@ -8100,7 +8757,7 @@
             aria-controls="election-coverage-modal"
             aria-expanded="false"
           >
-            Browse recent coverage →
+            ${escapeHtml(translate("media_pulse.browse_recent_coverage", "Browse recent coverage →"))}
           </button>
         </section>
 
@@ -8114,9 +8771,17 @@
           <section class="top-media-shift">
             <div
               class="top-media-section-heading"
-              aria-label="${escapeAttribute(`Active-field mention rate. Percentage of active-field-linked race records that mention each candidate. One record may mention multiple candidates, so rates can overlap and need not total 100 percent. ${candidateComparisonExplanation}`)}"
+              aria-label="${escapeAttribute(
+                translate(
+                  "media_pulse.active_field_mention_description",
+                  `Active-field mention rate. Percentage of active-field-linked race records that mention each candidate. One record may mention multiple candidates, so rates can overlap and need not total 100 percent. ${candidateComparisonExplanation}`,
+                  {
+                    comparison: candidateComparisonExplanation
+                  }
+                )
+              )}"
             >
-              <h3>Active-field mention rate</h3>
+              <h3>${escapeHtml(translate("media_pulse.active_field_mention_rate", "Active-field mention rate"))}</h3>
 
               <span
                 class="top-media-shift-quality"
@@ -8133,12 +8798,19 @@
             <div
               class="top-media-period-legend"
               aria-label="${escapeAttribute(
-                `Candidate mention rate among active-field-linked race records. One record may mention multiple candidates, so rates can overlap and need not total 100 percent. Current period ${currentPeriodLabel}; prior period ${priorPeriodLabel}.`
+                translate(
+                  "media_pulse.period_legend",
+                  `Candidate mention rate among active-field-linked race records. One record may mention multiple candidates, so rates can overlap and need not total 100 percent. Current period ${currentPeriodLabel}; prior period ${priorPeriodLabel}.`,
+                  {
+                    current: currentPeriodLabel,
+                    prior: priorPeriodLabel
+                  }
+                )
               )}"
             >
               <span class="is-current">
                 <i aria-hidden="true"></i>
-                <strong>CURRENT</strong>
+                <strong>${escapeHtml(translate("media_pulse.current", "CURRENT"))}</strong>
                 <small>
                   ${escapeHtml(
                     currentPeriodLabel
@@ -8148,7 +8820,7 @@
 
               <span class="is-prior">
                 <i aria-hidden="true"></i>
-                <strong>PRIOR</strong>
+                <strong>${escapeHtml(translate("media_pulse.prior", "PRIOR"))}</strong>
                 <small>
                   ${escapeHtml(
                     priorPeriodLabel
@@ -8165,7 +8837,7 @@
           <div class="top-media-support-grid">
             <section>
               <div class="top-media-section-heading">
-                <h3>Topic coverage</h3>
+                <h3>${escapeHtml(translate("media_pulse.topic_coverage", "Topic coverage"))}</h3>
               </div>
 
               <div class="top-media-topic-list">
@@ -8176,7 +8848,7 @@
 
             <section>
               <div class="top-media-section-heading">
-                <h3>Top publishers</h3>
+                <h3>${escapeHtml(translate("media_pulse.top_publishers", "Top publishers"))}</h3>
               </div>
 
               <div class="top-media-publisher-list">
@@ -8193,7 +8865,7 @@
             aria-controls="topic-coverage-modal"
             aria-expanded="false"
           >
-            Open coverage analysis →
+            ${escapeHtml(translate("media_pulse.open_coverage_analysis", "Open coverage analysis →"))}
           </button>
         </aside>
       </div>
@@ -8439,28 +9111,35 @@
       if (model.state === "ready") {
         const metrics = [
           {
+            key: "media_pulse.metric.accepted_news",
             value: model.electionNewsCount,
-            label: "accepted news"
+            label: translate("media_pulse.metric.accepted_news", "accepted news")
           },
           {
+            key: "media_pulse.metric.publishers",
             value:
               model.acceptedNewsPublisherCount,
-            label: "publishers"
+            label: translate("media_pulse.metric.publishers", "publishers")
           },
           {
+            key: "media_pulse.metric.recent_14d",
             value: model.activityItemCount,
-            label: "recent (14d)"
+            label: translate("media_pulse.metric.recent_14d", "recent (14d)")
           },
           {
+            key: "media_pulse.metric.candidate_watch",
             value: model.candidateWatchCount,
-            label: "candidate-watch"
+            label: translate("media_pulse.metric.candidate_watch", "candidate-watch")
           }
         ];
 
         topMediaMetrics.innerHTML =
           metrics
             .map(metric => `
-              <span class="top-media-header-metric">
+              <span
+                class="top-media-header-metric"
+                data-media-pulse-metric="${escapeAttribute(metric.key)}"
+              >
                 <strong>
                   ${escapeHtml(
                     String(metric.value)
@@ -8487,14 +9166,14 @@
         topMediaMetrics.replaceChildren(
           window.FR27UI.skeletonElement(
             "metrics",
-            "Loading media metrics"
+            translate("media_pulse.loading_metrics", "Loading media metrics")
           )
         );
         topMediaMetrics.setAttribute("aria-busy", "true");
       } else {
         topMediaMetrics.textContent =
           model.message ||
-          "Media data unavailable";
+          translate("media_pulse.data_unavailable", "Media data unavailable");
         topMediaMetrics.removeAttribute("aria-busy");
       }
     }
@@ -8544,12 +9223,12 @@
 
       if (topMediaMount) {
         topMediaMount.innerHTML =
-          `<div class="hybrid-state is-error" role="alert">Media Pulse could not render.</div>`;
+          `<div class="hybrid-state is-error" role="alert">${escapeHtml(translate("media_pulse.render_failed", "Media Pulse could not render."))}</div>`;
       }
 
       if (topMediaMetrics) {
         topMediaMetrics.textContent =
-          "Media Pulse unavailable";
+          translate("media_pulse.unavailable", "Media Pulse unavailable");
       }
     }
   }
@@ -8561,20 +9240,7 @@
     setActiveSignalView(next, { scrollWorkspace: shouldScroll });
   }
 
-  function retainLegacyComparison() {
-    const legacy = document.querySelector(".intelligence-grid");
-    const polling = document.getElementById("polling-evidence-lab");
-    if (!legacy || !polling || legacy.closest(".hybrid-legacy")) return;
-    const details = document.createElement("details");
-    details.className = "hybrid-legacy";
-    const summary = document.createElement("summary");
-    summary.textContent = "Legacy middle layout — comparison only";
-    details.append(summary, legacy);
-    polling.insertAdjacentElement("afterend", details);
-  }
-
   loadRunoffArchive();
-  retainLegacyComparison();
   renderAll();
   window.addEventListener("hashchange", handleSignalHashChange);
   document.addEventListener("hybrid:dataset", renderAll);
