@@ -1,8 +1,16 @@
 export const componentRegistry = Object.freeze({
   masthead: {
     selector: "header.masthead",
-    probes: [".brand", ".masthead-tools", "#masthead-countdown"],
-    requiredControls: [{ selector: "#masthead-countdown", label: "election countdown" }]
+    probes: [
+      ".brand", ".masthead-tools", ".masthead-language",
+      "[data-fr27-language='fr']", "[data-fr27-language='en']", "#masthead-countdown"
+    ],
+    requiredControls: [
+      { selector: ".masthead-language", label: "language control", requireViewport: true },
+      { selector: "[data-fr27-language='fr']", label: "French language link", requireViewport: true },
+      { selector: "[data-fr27-language='en']", label: "English language link", requireViewport: true },
+      { selector: "#masthead-countdown", label: "election countdown" }
+    ]
   },
   "what-changed": {
     selector: ".what-changed",

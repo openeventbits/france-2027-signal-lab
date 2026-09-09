@@ -4,8 +4,9 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 import { auditJsonPath, auditSummaryPath, artifactsRoot, inventoryJsonPath, relativeToRepo } from "./paths.mjs";
 import { componentRegistry, selectComponents } from "./registry.mjs";
+import { localeUrl, selectLocales } from "./locales.mjs";
 import { buildMatrix, loadOrBuildInventory, writeMatrix } from "./matrix.mjs";
-import { activateComponent, cdpMatchedRules, collectComponent, compareSnapshots, waitForDashboard } from "./forensics.mjs";
+import { activateComponent, cdpMatchedRules, collectComponent, compareLocaleSnapshots, compareSnapshots, waitForDashboard } from "./forensics.mjs";
 import { startStaticServer } from "./server.mjs";
 
 function parseArgs(argv) {
@@ -69,16 +70,18 @@ function reportMarkdown(report) {
     "",
     `Components: ${report.components.join(", ")}`,
     "",
-    `Hard findings: ${report.hardFindings.length}; transitions marked for review: ${report.transitions.length}.`,
+    `Locales: ${report.locales.join(", ")}`,
+    "",
+    `Hard findings: ${report.hardFindings.length}; responsive transitions marked for review: ${report.transitions.length}; cross-locale geometry comparisons marked for review: ${report.localeComparisons.length}.`,
     ""
   ];
   for (const name of report.components) {
     const transitions = report.transitions.filter(item => item.component === name);
     const hard = report.hardFindings.filter(item => item.component === name);
     lines.push(`## ${name}`, "");
-    if (!transitions.length && !hard.length) lines.push("No abrupt transition or hard invariant finding in this probe set.", "");
+    if (!transitions.length && !hard.length) lines.push("No abrupt responsive transition or hard invariant finding in this probe set.", "");
     for (const transition of transitions) {
-      lines.push(`### ${transition.previousWidth} → ${transition.currentWidth}: REVIEW`, "");
+      lines.push(`### ${transition.locale.toUpperCase()} · ${transition.previousWidth} → ${transition.currentWidth}: RESPONSIVE TRANSITION — REVIEW`, "");
       for (const change of transition.changes.slice(0, 12)) lines.push(`- ${change.selector} — ${change.property}: ${change.previous} → ${change.current}`);
       if (transition.likelyOwners.length) {
         lines.push("", "Likely source owners (diagnostic candidates, not defect claims):", "");
@@ -86,10 +89,18 @@ function reportMarkdown(report) {
       }
       lines.push("");
     }
-    for (const finding of hard) lines.push(`- HARD at ${finding.width}×${finding.height}: ${finding.failure.type}`);
+    for (const finding of hard) lines.push(`- HARD · ${finding.locale.toUpperCase()} · ${finding.width}×${finding.height}: ${finding.failure.type}`);
     if (hard.length) lines.push("");
   }
-  lines.push("## Interpretation", "", "REVIEW means an abrupt structural signature change was measured. It is not an automatic assertion that the product behavior is wrong. Likely owners are source-correlated candidates; inspect the JSON/CDP evidence before assigning causality.", "");
+  if (report.localeComparisons.length) {
+    lines.push("## Cross-locale geometry differences", "");
+    for (const comparison of report.localeComparisons) {
+      lines.push(`### ${comparison.component} · ${comparison.width}×${comparison.height}: LOCALE GEOMETRY DIFFERENCE — HUMAN REVIEW`, "");
+      for (const difference of comparison.differences.slice(0, 10)) lines.push(`- ${difference.selector} — ${difference.property}: FR ${difference.fr} / EN ${difference.en}${difference.delta == null ? "" : ` (FR−EN ${difference.delta})`}`);
+      lines.push("");
+    }
+  }
+  lines.push("## Interpretation", "", "RESPONSIVE TRANSITION compares adjacent widths inside one locale. LOCALE GEOMETRY DIFFERENCE compares FR and EN at the same component and viewport and is human-review evidence, not a failure. HARD is reserved for objective invariants. Likely source owners are diagnostic candidates; inspect the JSON/CDP evidence before assigning causality.", "");
   return lines.join("\n");
 }
 
@@ -97,6 +108,7 @@ export async function runAudit(options = {}) {
   const inventory = options.inventory || loadOrBuildInventory();
   const matrix = options.matrix || writeMatrix(buildMatrix(inventory));
   const components = options.components || Object.keys(componentRegistry);
+  const locales = options.locales || selectLocales();
   const widths = options.widths || matrix.widths;
   const height = options.height || matrix.defaultHeight;
   const server = await startStaticServer();
@@ -119,22 +131,25 @@ export async function runAudit(options = {}) {
   const samples = [];
   const transitions = [];
   const hardFindings = [];
-  const previousByComponent = new Map();
+  const previousByLocaleAndComponent = new Map();
   try {
-    await page.goto(server.url, { waitUntil: "domcontentloaded" });
-    await waitForDashboard(page);
-    for (const width of widths) {
-      await page.setViewportSize({ width, height });
-      await page.waitForTimeout(100);
-      const errorsAtWidthStart = consoleErrors.length;
-      for (const name of components) {
+    for (const locale of locales) {
+      const errorsAtLocaleStart = consoleErrors.length;
+      await page.goto(localeUrl(server.url, locale), { waitUntil: "domcontentloaded" });
+      await waitForDashboard(page);
+      for (const [widthIndex, width] of widths.entries()) {
+        await page.setViewportSize({ width, height });
+        await page.waitForTimeout(100);
+        const errorsAtWidthStart = widthIndex === 0 ? errorsAtLocaleStart : consoleErrors.length;
+        for (const name of components) {
         const definition = componentRegistry[name];
         await activateComponent(page, definition);
-        const sample = await collectComponent(page, name, definition, { width, height }, consoleErrors.slice(errorsAtWidthStart));
+        const sample = await collectComponent(page, name, definition, { width, height }, locale, consoleErrors.slice(errorsAtWidthStart));
         samples.push(sample);
-        for (const failure of sample.hardFailures) hardFindings.push({ component: name, width, height, failure });
+        for (const failure of sample.hardFailures) hardFindings.push({ component: name, locale, width, height, failure });
 
-        const previous = previousByComponent.get(name);
+        const previousKey = `${locale}:${name}`;
+        const previous = previousByLocaleAndComponent.get(previousKey);
         if (previous) {
           const changes = compareSnapshots(previous, sample);
           if (changes.length) {
@@ -142,6 +157,7 @@ export async function runAudit(options = {}) {
             const cdp = session ? await cdpMatchedRules(session, definition.selector, changedProperties, stylesheets) : [];
             transitions.push({
               component: name,
+              locale,
               previousWidth: previous.viewport.width,
               currentWidth: width,
               changes,
@@ -151,15 +167,16 @@ export async function runAudit(options = {}) {
             });
           }
         }
-        previousByComponent.set(name, sample);
+        previousByLocaleAndComponent.set(previousKey, sample);
 
         if (options.screenshots && sample.root.present && sample.root.visible) {
           const directory = path.join(artifactsRoot, "screenshots", name);
           fs.mkdirSync(directory, { recursive: true });
-          await page.locator(definition.selector).first().screenshot({ path: path.join(directory, `${name}-${width}x${height}.png`), animations: "disabled" });
+          await page.locator(definition.selector).first().screenshot({ path: path.join(directory, `${name}-${locale}-${width}x${height}.png`), animations: "disabled" });
         }
       }
-      console.log(`Audited ${width}×${height}`);
+        console.log(`Audited ${locale.toUpperCase()} ${width}×${height}`);
+      }
     }
   } finally {
     await context.close();
@@ -167,7 +184,18 @@ export async function runAudit(options = {}) {
     await server.close();
   }
 
-  const report = { schemaVersion: 1, generatedAt: new Date().toISOString(), inventory: relativeToRepo(inventoryJsonPath), widths, height, components, samples, transitions, hardFindings };
+  const localeComparisons = [];
+  if (locales.includes("fr") && locales.includes("en")) {
+    const sampleIndex = new Map(samples.map(sample => [`${sample.component}:${sample.viewport.width}:${sample.viewport.height}:${sample.locale}`, sample]));
+    for (const name of components) for (const width of widths) {
+      const fr = sampleIndex.get(`${name}:${width}:${height}:fr`);
+      const en = sampleIndex.get(`${name}:${width}:${height}:en`);
+      if (!fr || !en) continue;
+      const differences = compareLocaleSnapshots(fr, en);
+      if (differences.length) localeComparisons.push({ component: name, width, height, locales: ["fr", "en"], differences, classification: "locale-geometry-difference-human-review" });
+    }
+  }
+  const report = { schemaVersion: 2, generatedAt: new Date().toISOString(), inventory: relativeToRepo(inventoryJsonPath), widths, height, components, locales, samples, transitions, localeComparisons, hardFindings };
   fs.mkdirSync(artifactsRoot, { recursive: true });
   fs.writeFileSync(auditJsonPath, JSON.stringify(report, null, 2) + "\n");
   fs.writeFileSync(auditSummaryPath, reportMarkdown(report));
@@ -179,12 +207,13 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const inventory = loadOrBuildInventory();
   const matrix = writeMatrix(buildMatrix(inventory));
   const components = selectComponents(String(args.component || args.components || ""));
+  const locales = selectLocales(String(args.locale || args.locales || ""));
   const widths = parseWidths(args.widths, matrix, args.localize);
   const height = args.height ? Number(args.height) : matrix.defaultHeight;
   if (!Number.isInteger(height) || height < 320) throw new Error("--height must be an integer >= 320");
-  const report = await runAudit({ inventory, matrix, components, widths, height, headed: Boolean(args.headed), screenshots: Boolean(args.screenshots), cdp: args.cdp !== "false" });
+  const report = await runAudit({ inventory, matrix, components, locales, widths, height, headed: Boolean(args.headed), screenshots: Boolean(args.screenshots), cdp: args.cdp !== "false" });
   console.log(`Wrote ${relativeToRepo(auditJsonPath)}`);
   console.log(`Wrote ${relativeToRepo(auditSummaryPath)}`);
-  console.log(`${report.transitions.length} transitions require human review; ${report.hardFindings.length} hard invariant findings were recorded.`);
+  console.log(`${report.transitions.length} responsive transitions and ${report.localeComparisons.length} locale geometry comparisons require human review; ${report.hardFindings.length} hard invariant findings were recorded.`);
   if (args["fail-on-hard"] && report.hardFindings.length) process.exitCode = 1;
 }

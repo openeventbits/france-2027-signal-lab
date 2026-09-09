@@ -44,7 +44,7 @@ export async function startStaticServer(root = repoRoot) {
   });
   const address = server.address();
   return {
-    url: `http://127.0.0.1:${address.port}/index.html`,
+    url: `http://127.0.0.1:${address.port}/`,
     close: () => new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()))
   };
 }

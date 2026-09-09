@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { buildInventory, parseWidthThresholds } from "../src/inventory.mjs";
 import { buildMatrix } from "../src/matrix.mjs";
 import { componentRegistry } from "../src/registry.mjs";
+import { localeUrl, selectLocales } from "../src/locales.mjs";
 
 test("parses inclusive and exclusive media range semantics", () => {
   expect(parseWidthThresholds("(1024px <= width < 1399px)")).toEqual([
@@ -11,6 +12,14 @@ test("parses inclusive and exclusive media range semantics", () => {
   expect(parseWidthThresholds("(max-width: 719px)")).toEqual([
     { valuePx: 719, comparator: "<=", inclusive: true, feature: "width" }
   ]);
+});
+
+test("locale model defaults to canonical French and rejects unsupported values", () => {
+  expect(selectLocales()).toEqual(["fr"]);
+  expect(selectLocales("fr,en")).toEqual(["fr", "en"]);
+  expect(() => selectLocales("de")).toThrow(/Unsupported locale/);
+  expect(new URL(localeUrl("http://127.0.0.1:1234/", "fr")).search).toBe("");
+  expect(new URL(localeUrl("http://127.0.0.1:1234/", "en")).searchParams.get("lang")).toBe("en");
 });
 
 test("inventory exposes known CSS and JavaScript responsive owners", () => {
@@ -31,4 +40,7 @@ test("matrix derives B-1/B/B+1 and registry has the requested logical components
     "masthead", "what-changed", "race", "status", "media", "workspace-controls",
     "candidates", "agenda", "issues", "events", "runoff", "footer"
   ]);
+  expect(componentRegistry.masthead.probes).toEqual(expect.arrayContaining([
+    ".masthead-language", "[data-fr27-language='fr']", "[data-fr27-language='en']"
+  ]));
 });

@@ -8,10 +8,10 @@
     "matrix": "node src/matrix.mjs",
     "audit": "node src/audit.mjs",
     "audit:masthead": "node src/audit.mjs --component masthead",
-    "screenshots": "node src/audit.mjs --component masthead,what-changed,race,events --widths 700,699 --screenshots",
+    "screenshots": "node src/audit.mjs --component masthead --locale fr,en --widths 1023,699 --screenshots",
     "test": "playwright test",
     "test:tooling": "playwright test tests/inventory.spec.mjs",
-    "test:behavior": "playwright test tests/media-pulse.spec.mjs",
+    "test:behavior": "playwright test tests/media-pulse.spec.mjs tests/language-switch.spec.mjs",
     "test:screenshots": "playwright test tests/screenshots.spec.mjs"
   },
   "devDependencies": {
