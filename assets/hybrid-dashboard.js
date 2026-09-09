@@ -9240,20 +9240,7 @@
     setActiveSignalView(next, { scrollWorkspace: shouldScroll });
   }
 
-  function retainLegacyComparison() {
-    const legacy = document.querySelector(".intelligence-grid");
-    const polling = document.getElementById("polling-evidence-lab");
-    if (!legacy || !polling || legacy.closest(".hybrid-legacy")) return;
-    const details = document.createElement("details");
-    details.className = "hybrid-legacy";
-    const summary = document.createElement("summary");
-    summary.textContent = "Legacy middle layout — comparison only";
-    details.append(summary, legacy);
-    polling.insertAdjacentElement("afterend", details);
-  }
-
   loadRunoffArchive();
-  retainLegacyComparison();
   renderAll();
   window.addEventListener("hashchange", handleSignalHashChange);
   document.addEventListener("hybrid:dataset", renderAll);

@@ -22,7 +22,7 @@ let source = fs.readFileSync(
   "utf8"
 );
 source = source.replace(
-  /\s+retainLegacyComparison\(\);\s+renderAll\(\);\s+window\.addEventListener\("hashchange", handleSignalHashChange\);\s+document\.addEventListener\("hybrid:dataset", renderAll\);/,
+  /\s+renderAll\(\);\s+window\.addEventListener\("hashchange", handleSignalHashChange\);\s+document\.addEventListener\("hybrid:dataset", renderAll\);/,
   ""
 );
 const input = JSON.parse(fs.readFileSync(0, "utf8"));

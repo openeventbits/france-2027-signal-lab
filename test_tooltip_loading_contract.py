@@ -83,16 +83,21 @@ class UnifiedTooltipContractTests(unittest.TestCase):
         ]
         self.assertIn('setAttribute("data-fr27-tooltip"', explanatory_helper)
         self.assertIn('setAttribute("tabindex", "0")', explanatory_helper)
-        for label in (
-            "Agenda methodology",
-            "Policy Issues methodology",
-            "Schedule methodology",
-            "Event evidence methodology",
+        for translation_key in (
+            "agenda_workspace.methodology_label",
+            "policy_workspace.methodology_label",
+            "events_workspace.schedule_methodology_aria",
+            "events_workspace.evidence_methodology_aria",
         ):
-            self.assertRegex(
-                HYBRID,
-                rf'<button[^>]+aria-label="{re.escape(label)}"[^>]+data-fr27-tooltip',
-            )
+            translation = HYBRID.index(f'translate("{translation_key}"')
+            tag_start = HYBRID.rfind("<button", 0, translation)
+            tag_end = HYBRID.index(">", translation)
+            self.assertGreaterEqual(tag_start, 0)
+            markup = HYBRID[tag_start : tag_end + 1]
+            self.assertIn('type="button"', markup)
+            self.assertIn("aria-label=", markup)
+            self.assertIn(f'translate("{translation_key}"', markup)
+            self.assertIn("data-fr27-tooltip=", markup)
 
     def test_hud_metrics_have_explicit_explanatory_info_triggers(self):
         expected = {

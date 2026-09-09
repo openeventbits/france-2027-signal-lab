@@ -297,17 +297,16 @@ class BatchALocalizationTests(unittest.TestCase):
             self.assertIsNotNone(tag)
             self.assertNotIn('data-i18n="', tag.group(0))
 
-    def test_source_derived_evidence_and_legacy_comparison_remain_untranslated(self):
+    def test_source_derived_evidence_remains_untranslated_and_legacy_is_unreachable(self):
         self.assertIn('<h4 lang="fr">${escapeHtml(event.title)}</h4>', HYBRID)
         self.assertIn("<strong>${escapeHtml(observation.pollster)}</strong>", HYBRID)
-        legacy_start = HYBRID.index("  function retainLegacyComparison()")
-        legacy_end = HYBRID.index("\n\n  loadRunoffArchive();", legacy_start)
-        legacy = HYBRID[legacy_start:legacy_end]
-        self.assertIn(
-            'summary.textContent = "Legacy middle layout — comparison only";',
-            legacy,
-        )
-        self.assertNotIn("translate(", legacy)
+        self.assertNotIn("retainLegacyComparison", HYBRID)
+        self.assertNotIn("Legacy middle layout — comparison only", HYBRID)
+        legacy = re.search(
+            r'<section class="intelligence-grid"[^>]+>', INDEX,
+        ).group(0)
+        self.assertIn(" hidden", legacy)
+        self.assertIn('aria-hidden="true"', legacy)
 
 
 if __name__ == "__main__":

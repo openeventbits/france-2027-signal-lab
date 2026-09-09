@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 INDEX_PATH = ROOT / "index.html"
 MANIFEST_PATH = ROOT / "publication_manifest.json"
+EN_LOCALE_PATH = ROOT / "locales" / "en.js"
 
 CANDIDATE_SIGNALS_PATH = ROOT / "candidate_signals.json"
 VISIBILITY_HISTORY_PATH = ROOT / "candidate_visibility_history.json"
@@ -17,6 +18,18 @@ def function_body(source, function_name, next_function_name):
     start = source.index(f"function {function_name}(")
     end = source.index(f"function {next_function_name}(", start)
     return source[start:end]
+
+
+def locale_catalog(path):
+    source = path.read_text(encoding="utf-8")
+    match = re.search(
+        r"const messages = Object\.freeze\((\{.*?\})\);",
+        source,
+        re.DOTALL,
+    )
+    if match is None:
+        raise AssertionError(f"Localization catalog missing from {path}")
+    return json.loads(match.group(1))
 
 
 def run_comparison_script(index_source, expression):
@@ -89,6 +102,7 @@ class FrontendPublicationFactsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.index = INDEX_PATH.read_text(encoding="utf-8")
+        cls.en_catalog = locale_catalog(EN_LOCALE_PATH)
 
     def test_publication_manifest_is_loaded_with_dashboard_data(self):
         self.assertIn(
@@ -352,18 +366,26 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             "renderMastheadMetadata",
             "pollFieldworkLabel",
         )
-        self.assertIn('"Snapshot published "', renderer)
+        self.assertIn('"masthead_freshness.snapshot_published"', renderer)
+        self.assertIn('"Snapshot published {datetime}"', renderer)
+        self.assertEqual(
+            "Snapshot published {datetime}",
+            self.en_catalog["masthead_freshness.snapshot_published"],
+        )
         self.assertIn("manifest.published_at", renderer)
         self.assertIn("mastheadLaneSummaries(manifest)", renderer)
         self.assertIn('countdown.setAttribute(', renderer)
         self.assertIn('"data-fr27-tooltip"', renderer)
         self.assertNotIn('id="masthead-updated"', self.index)
         self.assertNotIn('id="masthead-lanes"', self.index)
-        self.assertIn('"Polls checked "', self.index)
-        self.assertIn('"Poll evidence through "', self.index)
+        self.assertIn('"masthead_freshness.polls_checked"', self.index)
+        self.assertIn('"masthead_freshness.poll_evidence_through"', self.index)
         self.assertIn("formatManifestEvidenceDate(polls.data_as_of)", self.index)
-        self.assertIn('"Poll freshness unavailable"', self.index)
-        self.assertIn('"Poll data unavailable"', self.index)
+        self.assertIn(
+            '"masthead_freshness.poll_freshness_unavailable"',
+            self.index,
+        )
+        self.assertIn('"masthead_freshness.poll_data_unavailable"', self.index)
         self.assertNotIn('"Poll check unknown"', self.index)
         self.assertNotIn("Published data checked", self.index)
 
@@ -373,10 +395,21 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             "renderMastheadMetadata",
             "pollFieldworkLabel",
         )
+        lane_summaries = function_body(
+            self.index,
+            "mastheadLaneSummaries",
+            "renderMastheadMetadata",
+        )
         self.assertNotIn("recentChanges", renderer)
         self.assertNotIn("last_successful_check_at", renderer)
-        self.assertIn("lanes.recent_changes", self.index)
-        self.assertIn('"Changes checked "', self.index)
+        self.assertIn("lanes.recent_changes", lane_summaries)
+        self.assertIn("changes.last_success_at", lane_summaries)
+        self.assertIn('"masthead_freshness.changes_checked"', lane_summaries)
+        self.assertIn('"Changes checked {time}"', lane_summaries)
+        self.assertEqual(
+            "Changes checked {time}",
+            self.en_catalog["masthead_freshness.changes_checked"],
+        )
 
     def test_recent_changes_source_universe_matches_loaded_news(self):
         validator = function_body(

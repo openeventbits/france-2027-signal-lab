@@ -1172,6 +1172,7 @@
       align-items: stretch; margin-top: 16px;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
+    .intelligence-grid[hidden] { display: none !important; }
     .intelligence-grid > .panel { min-width: 0; }
     .intelligence-grid .closest-runoff {
       display: flex; flex-direction: column; margin-top: 0; overflow: visible;
@@ -7229,13 +7230,29 @@
     letter-spacing: .07em;
   }
 
+
+  .fr27-hud-info-popover p,
+  .fr27-hud-info-independence,
+  .fr27-hud-info-note {
+    font-family: inherit;
+    font-size: 11.2px;
+    font-weight: 400;
+    font-style: normal;
+    line-height: 1.5;
+    letter-spacing: normal;
+  }
+
   .fr27-hud-info-popover p {
     margin: 13px 0;
     color: #aec0c9;
-    font-size: 11.2px;
-    line-height: 1.5;
   }
 
+  .fr27-hud-info-independence,
+  .fr27-hud-info-note {
+    display: block;
+    margin-top: 11px;
+    color: #8299a5;
+  }
   .fr27-hud-info-rules {
     display: grid;
     gap: 7px;
@@ -7268,12 +7285,62 @@
     color: #9185bd;
   }
 
-  .fr27-hud-info-note {
-    display: block;
-    margin-top: 11px;
-    color: #78909c;
+  html[lang="fr"] .fr27-hud-info-rule-line.boundary {
+    flex-wrap: wrap;
+    row-gap: 5px;
+    white-space: normal;
+  }
+
+  html[lang="fr"] .fr27-hud-info-rule-line.boundary span {
+    white-space: nowrap;
+  }
+
+  html[lang="fr"] .fr27-hud-info-rule-line.boundary span:last-child {
+    flex-basis: 100%;
+  }
+
+  html[lang="fr"] .fr27-hud-info-rule-line.boundary span:last-child::before {
+    display: none;
+  }
+
+
+
+  .fr27-hud-info-rights {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 4px 14px;
+    margin-top: 12px;
+    padding-top: 11px;
+    border-top: 1px solid rgba(45, 70, 85, .52);
+  }
+
+  .fr27-hud-info-rights strong {
+    grid-column: 1 / -1;
+    color: #9eb3bd;
     font-size: 9.2px;
-    line-height: 1.45;
+    line-height: 1.2;
+    letter-spacing: .08em;
+  }
+
+  .fr27-hud-info-rights span {
+    color: #718b98;
+    font-size: 9.2px;
+    line-height: 1.3;
+    letter-spacing: .035em;
+  }
+
+  .fr27-hud-info-rights a {
+    color: #54c7df;
+    font-size: 9.2px;
+    font-weight: 750;
+    line-height: 1.3;
+    letter-spacing: .06em;
+  }
+
+  .fr27-hud-info-rights a:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
   }
 
   /* Persistent rail */
@@ -7529,7 +7596,7 @@
           <span class="masthead-language-divider" aria-hidden="true">|</span>
           <a href="?lang=en" data-fr27-language="en" lang="en" hreflang="en" aria-label="English">EN</a>
         </nav>
-        <div class="masthead-countdown" id="masthead-countdown" data-clock-target="first" data-i18n-aria-label="dashboard.first_round_election_countdown" aria-label="First-round election countdown" data-fr27-tooltip="Loading snapshot and evidence freshness" tabindex="0">
+        <div class="masthead-countdown" id="masthead-countdown" data-clock-target="first" data-i18n-aria-label="dashboard.first_round_election_countdown" aria-label="First-round election countdown" data-i18n-fr27-tooltip="masthead_freshness.loading" data-fr27-tooltip="Loading snapshot and evidence freshness" tabindex="0">
           <span class="masthead-countdown-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false">
               <rect x="4" y="6" width="16" height="14" rx="2"></rect>
@@ -7621,7 +7688,7 @@
               aria-live="polite"
               data-i18n-aria-label="race_glance.reported_scores_list" aria-label="Reported candidate scores for the selected scenario. Scroll to view all candidates."
               tabindex="0"
-            ><div class="fr27-skeleton-region" role="status" aria-label="Loading candidate scores"><div class="fr27-skeleton-race" aria-hidden="true"><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span></div></div></div>
+            ><div class="fr27-skeleton-region" role="status" data-i18n-aria-label="dashboard.loading_candidate_scores" aria-label="Loading candidate scores"><div class="fr27-skeleton-race" aria-hidden="true"><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span></div></div></div>
             <div
               class="race-scroll-fade"
               id="race-scroll-fade"
@@ -7739,7 +7806,7 @@
     <section id="hybrid-signal-board" class="hybrid-root" data-i18n-aria-label="dashboard.hybrid_signal_board" aria-label="Hybrid Signal Board">
       <div class="fr27-skeleton-region" role="status" data-i18n-aria-label="signal_board.loading_signal_board" aria-label="Loading the Signal Board"><div class="fr27-skeleton-workspace" aria-hidden="true"><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:58%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:38px"></span></section><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:46%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:72%;--fr27-skeleton-height:22px"></span><div class="fr27-skeleton-chart"><span class="fr27-skeleton-block" style="--fr27-skeleton-height:42%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:72%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:58%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:86%"></span></div></section><section class="fr27-skeleton-card"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:54%;--fr27-skeleton-height:11px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:46px"></span></section></div></div>
     </section>
-    <section class="intelligence-grid" aria-label="Election intelligence">
+    <section class="intelligence-grid" aria-label="Election intelligence" hidden aria-hidden="true">
       <article class="panel closest-runoff runoff-spotlight" aria-labelledby="closest-runoff-title">
         <div class="panel-head closest-runoff-head">
           <div class="runoff-head-title">
@@ -8199,7 +8266,7 @@
                 id="fr27-hud-info-toggle"
                 class="fr27-hud-command"
                 aria-haspopup="dialog"
-                aria-controls="method-disclosure"
+                aria-controls="fr27-hud-info-popover"
                 aria-expanded="false"
                 data-i18n-fr27-tooltip="hud.about_signal_lab"
                 data-fr27-tooltip="About France 2027 Signal Lab"
@@ -8286,10 +8353,28 @@
           </div>
         </div>
 
+        <small class="fr27-hud-info-independence" data-i18n="hud.independence_statement">
+          Independent project · no affiliation with the candidates, parties,
+          pollsters, publishers or public authorities monitored.
+        </small>
+
         <small class="fr27-hud-info-note" data-i18n="hud.ai_portraits_note">
           Candidate portraits are AI-generated illustrations
           for visual identification.
         </small>
+
+        <div class="fr27-hud-info-rights">
+          <strong data-i18n="hud.rights_licences">RIGHTS &amp; LICENCES</strong>
+          <span data-i18n="hud.licence_summary">POLYFORM NC · CC BY-NC 4.0</span>
+          <a
+            href="https://github.com/openeventbits/france-2027-signal-lab/blob/main/NOTICE"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n="hud.licence_details"
+            data-i18n-aria-label="hud.open_licensing_notice"
+            aria-label="Open rights and licensing details in a new tab"
+          >DETAILS ↗</a>
+        </div>
       </aside>
 
       <div class="visually-hidden" data-i18n="hud.accessibility_summary">
@@ -8403,18 +8488,23 @@
 
     function formatMastheadParisDateTime(value) {
       const date = new Date(value);
-      if (!Number.isFinite(date.getTime())) return "time unavailable";
+      if (!Number.isFinite(date.getTime())) {
+        return translate("masthead_freshness.time_unknown", "time unknown");
+      }
 
       const parts = Object.fromEntries(
-        new Intl.DateTimeFormat("en-GB", {
-          timeZone: "Europe/Paris",
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          hourCycle: "h23"
-        })
+        new Intl.DateTimeFormat(
+          globalThis.FR27I18N?.localeTag || "en-GB",
+          {
+            timeZone: "Europe/Paris",
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hourCycle: "h23"
+          }
+        )
           .formatToParts(date)
           .filter(part => part.type !== "literal")
           .map(part => [part.type, part.value])
@@ -8425,22 +8515,33 @@
 
     function formatMastheadParisClock(value) {
       const date = new Date(value);
-      if (!Number.isFinite(date.getTime())) return "time unknown";
-      return new Intl.DateTimeFormat("en-GB", {
-        timeZone: "Europe/Paris",
-        day: "numeric",
-        month: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-        hourCycle: "h23"
-      }).format(date).replace(",", " ·");
+      if (!Number.isFinite(date.getTime())) {
+        return translate("masthead_freshness.time_unknown", "time unknown");
+      }
+      const parts = Object.fromEntries(
+        new Intl.DateTimeFormat(
+          globalThis.FR27I18N?.localeTag || "en-GB",
+          {
+            timeZone: "Europe/Paris",
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+            hourCycle: "h23"
+          }
+        )
+          .formatToParts(date)
+          .filter(part => part.type !== "literal")
+          .map(part => [part.type, part.value])
+      );
+      return `${parts.day} ${parts.month} · ${parts.hour}:${parts.minute}`;
     }
 
     function formatManifestEvidenceDate(value) {
       if (typeof value !== "string" || !value) return "";
       if (value.includes("T")) return formatMastheadParisClock(value);
       return /^\d{4}-\d{2}-\d{2}$/.test(value)
-        ? new Intl.DateTimeFormat("en-GB", {
+        ? new Intl.DateTimeFormat(globalThis.FR27I18N?.localeTag || "en-GB", {
             day: "numeric",
             month: "short",
             timeZone: "UTC"
@@ -8448,10 +8549,41 @@
         : "";
     }
 
-    function unavailableLaneLabel(label, lane) {
-      if (!lane || lane.timestamp_status === "missing") return label + " unavailable";
-      if (!lane.valid || lane.timestamp_status === "invalid") return label + " invalid";
-      return label + " time unknown";
+    function mastheadLaneLabel(laneId) {
+      const fallbacks = {
+        polls: "Polls",
+        runoff: "Runoff",
+        news: "News",
+        claims: "Claims",
+        recent_changes: "Changes"
+      };
+      return translate(
+        `masthead_freshness.lane.${laneId}`,
+        fallbacks[laneId] || laneId
+      );
+    }
+
+    function unavailableLaneLabel(laneId, lane) {
+      const label = mastheadLaneLabel(laneId);
+      if (!lane || lane.timestamp_status === "missing") {
+        return translate(
+          "masthead_freshness.lane_unavailable",
+          "{lane} unavailable",
+          { lane: label }
+        );
+      }
+      if (!lane.valid || lane.timestamp_status === "invalid") {
+        return translate(
+          "masthead_freshness.lane_invalid",
+          "{lane} invalid",
+          { lane: label }
+        );
+      }
+      return translate(
+        "masthead_freshness.lane_time_unknown",
+        "{lane} time unknown",
+        { lane: label }
+      );
     }
 
     function mastheadLaneSummaries(manifest) {
@@ -8463,45 +8595,72 @@
       if (polls?.available && polls.valid) {
         const pollTime = polls.last_success_at || polls.generated_at;
         if (polls.timestamp_status === "known" && pollTime) {
-          summaries.push("Polls checked " + formatMastheadParisClock(pollTime));
+          summaries.push(translate(
+            "masthead_freshness.polls_checked",
+            "Polls checked {time}",
+            { time: formatMastheadParisClock(pollTime) }
+          ));
         } else if (polls.data_as_of) {
-          summaries.push(
-            "Poll evidence through " +
-            formatManifestEvidenceDate(polls.data_as_of)
-          );
+          summaries.push(translate(
+            "masthead_freshness.poll_evidence_through",
+            "Poll evidence through {date}",
+            { date: formatManifestEvidenceDate(polls.data_as_of) }
+          ));
         } else {
-          summaries.push("Poll freshness unavailable");
+          summaries.push(translate(
+            "masthead_freshness.poll_freshness_unavailable",
+            "Poll freshness unavailable"
+          ));
         }
       } else {
-        summaries.push("Poll data unavailable");
+        summaries.push(translate(
+          "masthead_freshness.poll_data_unavailable",
+          "Poll data unavailable"
+        ));
       }
 
       const runoff = lanes.runoff;
       if (runoff?.available && runoff.valid && runoff.data_as_of) {
-        summaries.push("Runoff through " + formatManifestEvidenceDate(runoff.data_as_of));
+        summaries.push(translate(
+          "masthead_freshness.runoff_through",
+          "Runoff through {date}",
+          { date: formatManifestEvidenceDate(runoff.data_as_of) }
+        ));
       } else {
-        summaries.push(unavailableLaneLabel("Runoff", runoff));
+        summaries.push(unavailableLaneLabel("runoff", runoff));
       }
 
       const news = lanes.news;
       if (news?.available && news.valid && news.timestamp_status === "known" && news.generated_at) {
-        summaries.push("News updated " + formatMastheadParisClock(news.generated_at));
+        summaries.push(translate(
+          "masthead_freshness.news_updated",
+          "News updated {time}",
+          { time: formatMastheadParisClock(news.generated_at) }
+        ));
       } else {
-        summaries.push(unavailableLaneLabel("News", news));
+        summaries.push(unavailableLaneLabel("news", news));
       }
 
       const claims = lanes.claims;
       if (claims?.available && claims.valid && claims.data_as_of) {
-        summaries.push("Claims through " + formatManifestEvidenceDate(claims.data_as_of));
+        summaries.push(translate(
+          "masthead_freshness.claims_through",
+          "Claims through {date}",
+          { date: formatManifestEvidenceDate(claims.data_as_of) }
+        ));
       } else {
-        summaries.push(unavailableLaneLabel("Claims", claims));
+        summaries.push(unavailableLaneLabel("claims", claims));
       }
 
       const changes = lanes.recent_changes;
       if (changes?.available && changes.valid && changes.timestamp_status === "known" && changes.last_success_at) {
-        summaries.push("Changes checked " + formatMastheadParisClock(changes.last_success_at));
+        summaries.push(translate(
+          "masthead_freshness.changes_checked",
+          "Changes checked {time}",
+          { time: formatMastheadParisClock(changes.last_success_at) }
+        ));
       } else {
-        summaries.push(unavailableLaneLabel("Changes", changes));
+        summaries.push(unavailableLaneLabel("recent_changes", changes));
       }
       return summaries;
     }
@@ -8515,7 +8674,10 @@
       if (manifestLoading) {
         countdown.setAttribute(
           "data-fr27-tooltip",
-          "Loading snapshot and evidence freshness"
+          translate(
+            "masthead_freshness.loading",
+            "Loading snapshot and evidence freshness"
+          )
         );
         countdown.setAttribute("aria-busy", "true");
         return;
@@ -8523,11 +8685,23 @@
 
       const snapshotLabel =
         manifest && Number.isFinite(dashboardTimestamp(manifest.published_at))
-          ? "Snapshot published " + formatMastheadParisDateTime(manifest.published_at)
-          : "Snapshot publication unavailable";
+          ? translate(
+              "masthead_freshness.snapshot_published",
+              "Snapshot published {datetime}",
+              { datetime: formatMastheadParisDateTime(manifest.published_at) }
+            )
+          : translate(
+              "masthead_freshness.snapshot_unavailable",
+              "Snapshot publication unavailable"
+            );
       const summaries = mastheadLaneSummaries(manifest);
       const laneLabel =
-        summaries.length ? summaries.join(" · ") : "Lane metadata unavailable";
+        summaries.length
+          ? summaries.join(" · ")
+          : translate(
+              "masthead_freshness.lane_metadata_unavailable",
+              "Lane metadata unavailable"
+            );
 
       countdown.setAttribute(
         "data-fr27-tooltip",
@@ -10871,6 +11045,7 @@
       "Manque de contexte": { label: "Missing context", tone: "is-missing-context" },
       "C’est plus compliqué": { label: "More complicated", tone: "is-nuanced" },
       "En partie vrai": { label: "Partly true", tone: "is-partly-true" },
+      "Plutôt Vrai": { label: "Mostly true", tone: "is-mostly-true" },
       "Plutôt vrai": { label: "Mostly true", tone: "is-mostly-true" },
       "Vrai": { label: "True", tone: "is-true" },
       "Vidéo manipulée": { label: "Manipulated video", tone: "is-manipulated-video" }

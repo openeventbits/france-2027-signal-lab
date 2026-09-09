@@ -62,9 +62,15 @@
       "Newest campaign/election record with this candidate matched in the headline."
     );
   const POLICY_AGENDA_SEMANTICS =
-    "Candidate × policy-issue coverage associations derived from the published multi-label Policy Issues layer over the 30-day window. These measure media coverage association, not candidate priorities, positions, issue ownership, ideology, or policy support.";
+    translate(
+      "candidate.agenda_profile.policy_semantics",
+      "Candidate × policy-issue coverage associations derived from the published multi-label Policy Issues layer over the 30-day window. These measure media coverage association, not candidate priorities, positions, issue ownership, ideology, or policy support."
+    );
   const CAMPAIGN_AGENDA_SEMANTICS =
-    "Candidate-linked campaign/election records classified into the published Campaign Agenda themes over the 30-day window. These describe campaign and race-process coverage, not substantive policy priorities or positions.";
+    translate(
+      "candidate.agenda_profile.campaign_semantics",
+      "Candidate-linked campaign/election records classified into the published Campaign Agenda themes over the 30-day window. These describe campaign and race-process coverage, not substantive policy priorities or positions."
+    );
   const AGENDA_PROFILE_LABELS = Object.freeze({
     economy_public_finances: "Economy / finances",
     work_purchasing_power_pensions: "Work / purchasing power",
@@ -255,6 +261,36 @@
       `candidate.tier.${String(value || "").toLowerCase()}`,
       humanizeStatus(value)
     );
+  }
+
+  const candidacySummaryKeysByRecordIdentity = Object.freeze({
+    "bruno-retailleau|declared|2026-02-12": "candidate.candidacy_summary.bruno-retailleau",
+    "dominique-de-villepin|active_potential|2026-05-29": "candidate.candidacy_summary.dominique-de-villepin",
+    "edouard-philippe|declared|2024-09-03": "candidate.candidacy_summary.edouard-philippe",
+    "francois-hollande|active_potential|2026-02-13": "candidate.candidacy_summary.francois-hollande",
+    "gabriel-attal|declared|2026-05-22": "candidate.candidacy_summary.gabriel-attal",
+    "jean-luc-melenchon|declared|2026-05-03": "candidate.candidacy_summary.jean-luc-melenchon",
+    "marine-le-pen|declared|2026-07-07": "candidate.candidacy_summary.marine-le-pen",
+    "nathalie-arthaud|declared|2025-12-08": "candidate.candidacy_summary.nathalie-arthaud",
+    "nicolas-dupont-aignan|declared|2026-01-14": "candidate.candidacy_summary.nicolas-dupont-aignan"
+  });
+
+  function candidacySummaryKey(candidate) {
+    const candidacy = candidate?.candidacy;
+    if (!candidacy) return "";
+
+    const recordIdentity = [
+      candidate.candidate_id,
+      candidacy.status,
+      candidacy.source_date
+    ].join("|");
+    return candidacySummaryKeysByRecordIdentity[recordIdentity] || "";
+  }
+
+  function candidacyStatusNote(candidate) {
+    const fallback = candidate?.candidacy?.status_note || MISSING;
+    const key = candidacySummaryKey(candidate);
+    return key ? translate(key, fallback) : fallback;
   }
 
   function counted(value, kind) {
@@ -906,7 +942,7 @@
     const note = createElement(
       "p",
       "candidate-signals-candidacy-note",
-      candidacy.status_note || MISSING
+      candidacyStatusNote(candidate)
     );
 
     const source = createElement(
@@ -1338,8 +1374,8 @@
     if (!profile) return null;
 
     const mode = profile.profile_mode === "policy"
-      ? "POLICY"
-      : "CAMPAIGN";
+      ? translate("candidate.agenda_profile.mode_policy", "POLICY")
+      : translate("candidate.agenda_profile.mode_campaign", "CAMPAIGN");
     const semantics = profile.profile_mode === "policy"
       ? POLICY_AGENDA_SEMANTICS
       : CAMPAIGN_AGENDA_SEMANTICS;
@@ -1347,9 +1383,17 @@
       profile.period_start,
       profile.period_end
     );
-    const metadata = `${mode} · ${profile.window_days}D · ${
-      numberText(profile.association_count)
-    } LINKS · ${period} — ${semantics}`;
+    const metadata = translate(
+      "candidate.agenda_profile.metadata",
+      "{mode} · {window}D · {count} LINKS · {period} — {semantics}",
+      {
+        mode,
+        window: profile.window_days,
+        count: numberText(profile.association_count),
+        period,
+        semantics
+      }
+    );
 
     return agendaSummaryCard(
       profile,
@@ -1360,8 +1404,10 @@
         ),
         countField: "association_count",
         metadata,
-        emptyMessage:
+        emptyMessage: translate(
+          "candidate.agenda_profile.empty_current",
           "No classified topic coverage in the current 30-day window."
+        )
       }
     );
   }
@@ -1388,8 +1434,10 @@
           "candidate.agenda_profile.since_tracking",
           "AGENDA PROFILE · SINCE TRACKING"
         );
-    const unavailableMessage =
-      "Cumulative Agenda Profile is unavailable for this candidate.";
+    const unavailableMessage = translate(
+      "candidate.agenda_profile.unavailable_cumulative",
+      "Cumulative Agenda Profile is unavailable for this candidate."
+    );
 
     if (!record?.cumulative_profile) {
       return agendaSummaryCard(
@@ -1405,17 +1453,23 @@
 
     const profile = record.cumulative_profile;
     const mode = profile.profile_mode === "policy"
-      ? "POLICY"
-      : "CAMPAIGN";
+      ? translate("candidate.agenda_profile.mode_policy", "POLICY")
+      : translate("candidate.agenda_profile.mode_campaign", "CAMPAIGN");
     const period = formatDateRange(
       profile.period_start,
       profile.period_end
     );
-    const metadata = `${mode} · ${
-      numberText(profile.association_count)
-    } LINKS · ${period} — Cumulative Agenda Profile since ${
-      formatDisplayDate(record.tracking_start)
-    }, through ${formatDisplayDate(profile.period_end)}, based on accepted News Wire evidence. Policy mode is used when at least 3 substantive policy topics are observed; otherwise campaign-topic fallback is used. Displays the four leading non-zero topics. Coverage/topic evidence, not candidate support or sentiment.`;
+    const metadata = translate(
+      "candidate.agenda_profile.cumulative_metadata",
+      "{mode} · {count} LINKS · {period} — Cumulative Agenda Profile since {start}, through {end}, based on accepted News Wire evidence. Policy mode is used when at least 3 substantive policy topics are observed; otherwise campaign-topic fallback is used. Displays the four leading non-zero topics. Coverage/topic evidence, not candidate support or sentiment.",
+      {
+        mode,
+        count: numberText(profile.association_count),
+        period,
+        start: formatDisplayDate(record.tracking_start),
+        end: formatDisplayDate(profile.period_end)
+      }
+    );
 
     return agendaSummaryCard(
       profile,
@@ -1423,8 +1477,10 @@
         title,
         countField: "count",
         metadata,
-        emptyMessage:
+        emptyMessage: translate(
+          "candidate.agenda_profile.empty_since_tracking",
           "No classified topic coverage since tracking began."
+        )
       }
     );
   }
