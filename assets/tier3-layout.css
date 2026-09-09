@@ -4799,15 +4799,12 @@
 }
 
 /* =========================================================
- * TIER 3 MASTHEAD — HOLD DESKTOP ROW THROUGH 700
+ * TIER 3 MASTHEAD — COMPONENT-LOCAL RESPONSIVE CONTRACT
  *
- * Legacy max-width:719px CSS flips the masthead into a
- * column and gives masthead-data a 210px flex basis.
- *
- * Preserve the established Tier-3 masthead from 700–719px.
- * Widths below 700px will receive their own narrow treatment.
+ * Historical max-width rules remain in the shared source,
+ * but Masthead geometry is owned here from 521–1023px.
  * ========================================================= */
-@media (700px <= width < 720px) {
+@media (680px <= width < 1024px) {
 
   html.fr27-tier3-active .masthead {
     flex-direction: row !important;
@@ -4845,6 +4842,71 @@
 
   html.fr27-tier3-active .masthead-countdown {
     margin-left: auto !important;
+  }
+}
+
+@media (521px <= width < 680px) {
+
+  html.fr27-tier3-active .masthead {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch !important;
+    gap: 8px;
+
+    height: auto !important;
+    min-height: 0;
+    max-height: none !important;
+    padding: 7px 12px 8px;
+  }
+
+  html.fr27-tier3-active .masthead .brand {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    align-items: center;
+    min-width: 0;
+  }
+
+  html.fr27-tier3-active .masthead h1 {
+    display: grid;
+    gap: 1px;
+    margin: 0;
+    white-space: normal;
+  }
+
+  html.fr27-tier3-active .masthead h1 span {
+    display: block;
+  }
+
+  html.fr27-tier3-active .masthead h1::after {
+    margin-top: 4px;
+  }
+
+  html.fr27-tier3-active .masthead-tagline {
+    margin-top: 2px;
+  }
+
+  html.fr27-tier3-active .masthead-tools {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 9px;
+
+    width: 100% !important;
+    min-width: 0;
+    flex: initial !important;
+    margin-left: 0;
+  }
+
+  html.fr27-tier3-active .masthead-language {
+    width: max-content;
+  }
+
+  html.fr27-tier3-active .masthead-countdown {
+    width: max-content;
+    min-width: 176px;
+    min-height: 44px;
+    margin: 0 !important;
   }
 }
 
