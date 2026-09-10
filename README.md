@@ -1,12 +1,18 @@
 # France 2027 Signal Lab
 
+**English** · [Français](README.fr.md)
+
 **Source-linked signals from the French presidential race.**
 
 **France 2027 Signal Lab (FR27)** is an independent public election-monitoring and research dashboard for the 2027 French presidential election.
 
 It brings together published polling, candidate and campaign activity, policy and campaign-agenda signals, media coverage, fact-checking, campaign events, and second-round testing in one inspectable public product.
 
-**Live dashboard:** https://openeventbits.github.io/france-2027-signal-lab/
+**Live dashboard**
+
+French · https://france2027.app/
+
+English · https://france2027.app/?lang=en
 
 **Repository:** https://github.com/openeventbits/france-2027-signal-lab
 
