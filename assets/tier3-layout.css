@@ -3434,7 +3434,7 @@
  *
  * Schedule Watch is intentionally omitted in Tier 3.
  * ========================================================= */
-@media (699px <= width < 1024px) {
+@media (width < 1024px) {
 
   html.fr27-tier3-active
     #signal-events-panel
@@ -3495,7 +3495,7 @@
  *
  * Schedule Watch is not shown.
  * ========================================================= */
-@media (699px <= width < 1024px) {
+@media (width < 1024px) {
 
   html.fr27-tier3-active
     #signal-events-panel {
@@ -3782,7 +3782,7 @@
  * Schedule Watch no longer establishes a peer-row height.
  * Let Event Dossier end where its real evidence ends.
  * ========================================================= */
-@media (699px <= width < 1024px) {
+@media (width < 1024px) {
 
   html.fr27-tier3-active
     #signal-events-panel
@@ -4815,7 +4815,7 @@
  *
  * Tier 3 uses the natural schedule height instead.
  * ========================================================= */
-@media (699px <= width < 1024px) {
+@media (width < 1024px) {
 
   html.fr27-tier3-active
     #signal-events-panel
@@ -4828,21 +4828,22 @@
 }
 
 /* =========================================================
- * TIER 3 EVENTS — HOLD TABLET GEOMETRY THROUGH 699
+ * TIER 3 EVENTS — CANONICAL COMPACT GEOMETRY
  *
- * Legacy max-width:760px rules prematurely switch Events
- * into its old mobile stack.
+ * Preserve one compact Events architecture throughout Tier 3.
  *
- * Preserve the approved 761px Tier-3 architecture through
- * 699px:
+ * Component-local fit limits below only reflow the structures
+ * that have reached a measured content boundary:
  *
- *   schedule title + filters on one row
+ *   schedule title + filters on one row through 422px
  *   DATE/TIME | VENUE | FORMAT
  *   INVOLVEMENT/DETAILS | SOURCE EVIDENCE
  *
- * Widths below 699px receive their own narrow treatment.
+ *   Event Details becomes one column at 682px
+ *   Dossier cards stack at 430px
+ *   schedule header becomes two rows at 522px
  * ========================================================= */
-@media (699px <= width < 761px) {
+@media (width < 1024px) {
 
   /* -------------------------------------------------------
    * 12-WEEK SCHEDULE HEADER
@@ -4938,6 +4939,92 @@
 
     min-width: 0 !important;
     min-height: 0 !important;
+  }
+}
+
+/* Event Details reaches its FR-led fit boundary at 682px. */
+@media (width <= 682px) {
+  html.fr27-tier3-active
+    #signal-events-panel
+    .hybrid-events-dossier-context
+    dl {
+
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+  }
+}
+
+/* Keep the analytical/evidence cards paired through 431px. */
+@media (width <= 430px) {
+  html.fr27-tier3-active
+    #signal-events-panel
+    .hybrid-events-dossier-grid {
+
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+  }
+}
+
+/* All controls remain visible; the timeline is the sole X-scroll owner. */
+@media (width <= 522px) {
+  html.fr27-tier3-active
+    #signal-events-panel
+    .hybrid-events-ops-rail {
+
+    grid-template-rows:
+      58px minmax(0, 1fr) !important;
+  }
+
+  html.fr27-tier3-active
+    #signal-events-panel
+    .hybrid-events-ops-rail-head {
+
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: 17px 24px !important;
+    grid-template-areas: "title" "controls" !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+    gap: 5px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: 58px !important;
+    min-height: 58px !important;
+    padding: 6px 9px !important;
+    overflow: hidden !important;
+  }
+
+  html.fr27-tier3-active
+    #signal-events-panel
+    .hybrid-events-ops-titleline {
+
+    grid-area: title !important;
+    min-width: 0 !important;
+  }
+
+  html.fr27-tier3-active
+    #signal-events-panel
+    .hybrid-events-ops-head-controls {
+
+    grid-area: controls !important;
+    grid-column: auto !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    justify-content: stretch !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  html.fr27-tier3-active
+    #signal-events-panel
+    .hybrid-events-ops-filters {
+
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    justify-content: space-between !important;
+    gap: 4px !important;
   }
 }
 /* What Changed: bound the intrinsic filter rail at narrow widths. */

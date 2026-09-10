@@ -26,7 +26,7 @@ test("inventory exposes known CSS and JavaScript responsive owners", () => {
   const inventory = buildInventory();
   expect(inventory.css.mediaRuleCount).toBeGreaterThan(100);
   expect(inventory.css.containerRuleCount).toBeGreaterThan(0);
-  expect(inventory.thresholds).toEqual(expect.arrayContaining([699, 700, 719, 720, 760, 761, 1023, 1024, 1399]));
+  expect(inventory.thresholds).toEqual(expect.arrayContaining([430, 522, 682, 700, 719, 720, 760, 1023, 1024, 1399]));
   expect(inventory.javascript.owners.some(owner => owner.kind === "matchMedia" && owner.file === "assets/tier3-layout.js")).toBe(true);
   expect(inventory.javascript.owners.some(owner => owner.kind === "mutation-observer" && owner.file === "assets/tier2-layout.js")).toBe(true);
 });

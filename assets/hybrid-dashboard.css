@@ -5517,44 +5517,12 @@ border: 0;
 }
 
 @media (max-width: 1023px) {
-  .hybrid-panel#signal-events-panel {
-    overflow-y: auto;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-workspace {
-    height: auto;
-    grid-template-rows: auto auto 22px;
-    overflow: visible;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
-    min-height: 158px;
-  }
-
   .hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
     gap: 5px;
   }
 
   .hybrid-panel#signal-events-panel .hybrid-events-filter {
     padding-inline: 5px;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-main {
-    grid-template-columns: 1fr 1fr;
-    height: auto;
-    min-height: 0;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-upcoming,
-  .hybrid-panel#signal-events-panel .hybrid-events-dossier,
-  .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
-    height: auto;
-    min-height: 470px;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
-    grid-column: 1 / -1;
-    min-height: 390px;
   }
 
   .hybrid-panel#signal-events-panel .hybrid-events-ops-legend {
@@ -5569,50 +5537,6 @@ border: 0;
 }
 
 @media (max-width: 760px) {
-  .hybrid-panel#signal-events-panel {
-    padding: 6px;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-workspace,
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-main {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
-    grid-template-rows: auto minmax(60px, auto);
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-rail-head {
-    min-height: 58px;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "title"
-      "controls";
-    row-gap: 5px;
-    padding: 6px 9px;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-titleline {
-    grid-area: title;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
-    grid-area: controls;
-    grid-column: auto;
-    justify-content: flex-start;
-    overflow-x: auto;
-    padding-bottom: 2px;
-  }
-
-
-  .hybrid-panel#signal-events-panel .hybrid-events-upcoming,
-  .hybrid-panel#signal-events-panel .hybrid-events-dossier,
-  .hybrid-panel#signal-events-panel .hybrid-events-schedule-watch {
-    grid-column: 1;
-    min-height: 440px;
-  }
-
   .hybrid-panel#signal-events-panel .hybrid-events-upcoming-row {
     grid-template-columns: 58px 38px minmax(0, 1fr);
     gap: 6px;
@@ -5631,21 +5555,6 @@ border: 0;
   .hybrid-panel#signal-events-panel .hybrid-events-upcoming-right {
     grid-column: 3;
     width: fit-content;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-dossier-lede,
-  .hybrid-panel#signal-events-panel .hybrid-events-dossier-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-dossier-lede > div {
-    padding-left: 0;
-    border-left: 0;
-    border-top: 1px solid rgba(35, 86, 114, .42);
-  }
-
-  .hybrid-panel#signal-events-panel .hybrid-events-dossier-lede > div:first-child {
-    border-top: 0;
   }
 
   .hybrid-panel#signal-events-panel .hybrid-events-history-item {
@@ -6343,39 +6252,6 @@ border: 0;
   cursor: pointer;
 }
 
-@media (max-width: 760px) {
-.hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
-    grid-template-rows: auto minmax(60px, auto) 22px;
-  }
-
-.hybrid-panel#signal-events-panel .hybrid-events-ops-rail-head {
-    min-height: 58px;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "title"
-      "controls";
-    row-gap: 5px;
-    padding: 6px 9px;
-  }
-
-.hybrid-panel#signal-events-panel .hybrid-events-ops-titleline {
-    grid-area: title;
-  }
-
-.hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
-    grid-area: controls;
-    grid-column: auto;
-    justify-content: flex-start;
-    overflow-x: auto;
-    padding-bottom: 2px;
-  }
-
-.hybrid-panel#signal-events-panel .hybrid-events-watch-material-item {
-    grid-template-columns: 1fr;
-  }
-
-}
-
 .hybrid-panel#signal-events-panel .hybrid-events-ops-rail {
   display: grid;
   grid-template-rows: 34px minmax(0, 1fr);
@@ -6816,24 +6692,6 @@ border: 0;
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-legend p:last-child {
   text-align: right;
-}
-
-@media (max-width: 760px) {
-.hybrid-panel#signal-events-panel .hybrid-events-ops-rail-head {
-    align-items: flex-start;
-    flex-direction: column;
-    padding-block: 8px;
-  }
-
-.hybrid-panel#signal-events-panel .hybrid-events-ops-head-controls {
-    width: 100%;
-    overflow-x: auto;
-  }
-
-.hybrid-panel#signal-events-panel .hybrid-events-ops-legend > div {
-    overflow-x: auto;
-  }
-
 }
 
 .hybrid-panel#signal-events-panel .hybrid-events-ops-week-count {
