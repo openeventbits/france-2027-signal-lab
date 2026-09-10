@@ -18,9 +18,7 @@ English · https://france2027.app/?lang=en
 
 https://github.com/openeventbits/france-2027-signal-lab
 
-![Espace Candidats de France 2027 Signal Lab](docs/assets/candidate-workspace.jpg)
 
-*Capture de la version en production. Les données et la couverture des sources évoluent à mesure que de nouveaux éléments sont publiés.*
 
 ## Ce que fait France 2027 Signal Lab
 
@@ -40,7 +38,7 @@ Ses principaux espaces comprennent les éléments suivants.
 
 * **Événements de campagne.** Les activités programmées, les dossiers documentés liés aux événements, le suivi du calendrier et les changements de programme.
 
-* **Second tour.** Les tests publiés pour le second tour, les confrontations les plus fréquentes, les écarts et l’historique des scénarios comparables.
+* **Second tour.** Les sondages publiés portant sur le second tour, les confrontations les plus fréquentes, les écarts et l’historique des scénarios comparables.
 
 La couverture peut également être consultée dans le **Lecteur de couverture électorale** et dans **Analyse de la couverture**. L’espace **Réseau de sources** donne une vue sur l’univers de collecte configuré par FR27.
 
@@ -64,10 +62,21 @@ Lorsqu’un élément ne peut pas être extrait, rapproché, classé, daté ou a
 
 ## Espaces d’analyse
 
-| Enjeux et politiques publiques | Événements de campagne |
+### Candidats
+
+![Espace Candidats de France 2027 Signal Lab](docs/assets/candidate-workspace-fr.jpg)
+
+Sondages, activité de campagne, thèmes associés, structure de la couverture médiatique, éléments faisant l’objet d’un examen critique et dossiers sourcés.
+
+| Agenda de campagne | Enjeux et politiques publiques |
 | --- | --- |
-| ![Espace Enjeux et politiques publiques de France 2027 Signal Lab](docs/assets/policy-issues-workspace.jpg) | ![Espace Événements de campagne de France 2027 Signal Lab](docs/assets/campaign-events-workspace.jpg) |
-| Évolution des thèmes, variations hebdomadaires, associations avec les candidats et éléments sourcés. | Calendrier vérifié, dossiers documentés, événements à venir et historique des changements de programme. |
+| ![Espace Agenda de campagne de France 2027 Signal Lab](docs/assets/campaign-agenda-workspace-fr.jpg) | ![Espace Enjeux et politiques publiques de France 2027 Signal Lab](docs/assets/policy-issues-workspace-fr.jpg) |
+| Priorités de campagne, évolution des thèmes, associations avec les candidats et éléments sourcés. | Évolution des enjeux, variations hebdomadaires, associations avec les candidats et éléments sourcés. |
+
+| Événements de campagne | Second tour |
+| --- | --- |
+| ![Espace Événements de campagne de France 2027 Signal Lab](docs/assets/campaign-events-workspace-fr.jpg) | ![Espace Second tour de France 2027 Signal Lab](docs/assets/runoff-workspace-fr.jpg) |
+| Calendrier vérifié, dossiers documentés, événements à venir et historique des changements de programme. | Sondages publiés sur le second tour, confrontations les plus fréquentes, écarts observés et historique des scénarios comparables. |
 
 ## Précautions d’interprétation
 
