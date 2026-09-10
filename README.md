@@ -1,18 +1,22 @@
 # France 2027 Signal Lab
 
+**English** · [Français](README.fr.md)
+
 **Source-linked signals from the French presidential race.**
 
 **France 2027 Signal Lab (FR27)** is an independent public election-monitoring and research dashboard for the 2027 French presidential election.
 
-It brings together published polling, candidate and campaign activity, policy and campaign-agenda signals, media coverage, fact-checking, campaign events, and second-round testing in one inspectable public product.
+It brings together published polling, candidate and campaign activity, campaign-agenda and policy signals, media coverage, fact-checking, campaign events, and published second-round polling in one inspectable public product.
 
-**Live dashboard:** https://openeventbits.github.io/france-2027-signal-lab/
+**Live dashboard**
+
+French · https://france2027.app/
+
+English · https://france2027.app/?lang=en
 
 **Repository:** https://github.com/openeventbits/france-2027-signal-lab
 
-![France 2027 Signal Lab candidate workspace](docs/assets/candidate-workspace.jpg)
 
-*Production snapshot. Live figures and source coverage change as new evidence is published.*
 
 ## What France 2027 Signal Lab does
 
@@ -24,9 +28,9 @@ Its principal surfaces include:
 - **Race at a Glance** — individual first-round poll events with fieldwork, hypothesis, candidate configuration, source, and comparison context.
 - **Media Pulse** — source-linked coverage monitoring, including candidate visibility, topics, publishers, and recent activity.
 - **Candidates** — candidate-level polling, campaign attention, agenda evidence, coverage structure, scrutiny, and source-linked dossiers.
-- **Agenda and Issues** — evolving campaign-strategy and substantive policy-topic evidence.
+- **Agenda and Issues** — evolving campaign priorities, substantive issues, candidate associations, and source-linked evidence.
 - **Campaign Events** — scheduled activity, evidence-backed event dossiers, calendar monitoring, and schedule changes.
-- **Runoff** — published second-round tests, common matchups, margins, and comparable matchup history.
+- **Runoff** — published second-round polling, common matchups, margins, and comparable matchup history.
 
 Coverage can also be inspected through the **Election Coverage Reader** and **Coverage Analysis**, while **Source Network** exposes information about the configured collection universe.
 
@@ -50,10 +54,21 @@ When evidence cannot be parsed, reconciled, classified, dated, or attributed wit
 
 ## Analytical workspaces
 
-| Policy Issues | Campaign Events |
+### Candidates
+
+![France 2027 Signal Lab candidate workspace](docs/assets/candidate-workspace.jpg)
+
+Candidate-level polling, campaign attention, agenda evidence, coverage structure, scrutiny, and source-linked dossiers.
+
+| Campaign Agenda | Policy Issues |
 | --- | --- |
-| ![France 2027 Signal Lab policy issues workspace](docs/assets/policy-issues-workspace.jpg) | ![France 2027 Signal Lab campaign events workspace](docs/assets/campaign-events-workspace.jpg) |
-| Topic evolution, weekly shifts, candidate associations, and source-linked evidence. | Verified schedule evidence, event dossiers, upcoming activity, and schedule-watch history. |
+| ![France 2027 Signal Lab campaign agenda workspace](docs/assets/campaign-agenda-workspace.jpg) | ![France 2027 Signal Lab policy issues workspace](docs/assets/policy-issues-workspace.jpg) |
+| Campaign priorities, their evolution, candidate associations, and source-linked evidence. | Issue evolution, weekly shifts, candidate associations, and source-linked evidence. |
+
+| Campaign Events | Runoff |
+| --- | --- |
+| ![France 2027 Signal Lab campaign events workspace](docs/assets/campaign-events-workspace.jpg) | ![France 2027 Signal Lab runoff workspace](docs/assets/runoff-workspace.jpg) |
+| Verified schedule evidence, event dossiers, upcoming activity, and schedule-watch history. | Published second-round scenarios, common matchups, observed margins, and comparable matchup history. |
 
 ## Evidence safeguards
 
@@ -61,7 +76,7 @@ Some FR27 metrics require particular care in interpretation.
 
 First-round polling is stored as complete poll events rather than disconnected candidate scores. Comparable polling history requires compatible scenarios, and incomplete source scenarios remain explicitly incomplete.
 
-Wikipedia Attention measures French Wikipedia **article-reading attention**. It is not a measure of unique individuals, sentiment, approval, electoral support, or voting intention.
+Wikipedia Attention measures views of French-language Wikipedia articles. It is not a measure of unique individuals, sentiment, approval, electoral support, or voting intention.
 
 Media Pulse describes accepted coverage within the FR27 source universe. Candidate visibility and topic coverage should therefore be read as corpus measurements rather than measures of electoral support.
 
@@ -115,7 +130,7 @@ The repository is publicly accessible and **source-available**, but its software
 
 - Original France 2027 Signal Lab software is licensed under the **PolyForm Noncommercial License 1.0.0**.
 - Protected original non-software material is licensed under the **Creative Commons Attribution-NonCommercial 4.0 International Licence (CC BY-NC 4.0)** unless otherwise indicated.
-- Third-party material remains subject to the rights, licences, source terms, or legal rules applicable to that material.
+- Third-party material remains subject to the rights, licenses, source terms, or legal rules applicable to that material.
 
 Commercial use of protected original France 2027 Signal Lab material requires separate permission.
 
@@ -135,6 +150,6 @@ France 2027 Signal Lab is an independently developed public research project. It
 
 FR27 is actively tracking a developing election. Datasets, candidate status, source coverage, classifications, interfaces, and production methods may evolve as new evidence becomes available.
 
-For permissions or commercial licensing enquiries:
+For permissions or commercial licensing inquiries:
 
 **contact@france2027.app**
