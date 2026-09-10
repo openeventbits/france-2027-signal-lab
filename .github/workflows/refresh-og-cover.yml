@@ -138,10 +138,7 @@ jobs:
               -Force
           }
           finally {
-            if (
-              $server
-              -and -not $server.HasExited
-            ) {
+            if ($server -and -not $server.HasExited) {
               Stop-Process `
                 -Id $server.Id `
                 -Force
@@ -218,10 +215,7 @@ jobs:
             )
 
           if ($unexpected.Count -gt 0) {
-            throw (
-              "Unexpected changed files: "
-              + ($unexpected -join ", ")
-            )
+            throw ("Unexpected changed files: " + ($unexpected -join ", "))
           }
 
           git config user.name `
@@ -239,10 +233,7 @@ jobs:
             (git rev-parse origin/main).Trim()
 
           if ($baseSha -ne $upstreamSha) {
-            throw (
-              "main moved during OG capture; "
-              + "run the workflow again"
-            )
+            throw "main moved during OG capture; run the workflow again"
           }
 
           git add -- `
