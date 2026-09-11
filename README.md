@@ -15,9 +15,9 @@ English · https://france2027.app/?lang=en
 
 **Repository:** https://github.com/openeventbits/france-2027-signal-lab
 
-![France 2027 Signal Lab candidate workspace](docs/assets/candidate-workspace.jpg)
+![Race at a Glance — France 2027 Signal Lab](docs/assets/readme-race-at-a-glance-en.jpg)
 
-*Candidate workspace. Live figures, source coverage, and candidate status evolve as new evidence is published.*
+*Race at a Glance. First-round poll events are shown individually, with their sources, fieldwork and candidate configurations.*
 
 ## What FR27 tracks
 
@@ -47,12 +47,12 @@ When evidence cannot be parsed, reconciled, classified, dated, or attributed wit
 
 Detailed measurement definitions and limitations are documented in [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).
 
-## Explore the workspaces
+## Core briefing panels
 
-| Campaign Events | Runoff |
+| What Changed | Media Pulse |
 | --- | --- |
-| ![France 2027 Signal Lab campaign events workspace](docs/assets/campaign-events-workspace.jpg) | ![France 2027 Signal Lab runoff workspace](docs/assets/runoff-workspace.jpg) |
-| Verified schedule evidence, event dossiers, upcoming activity, and schedule changes. | Published second-round polling, common matchups, observed margins, and comparable matchup history. |
+| ![What Changed — France 2027 Signal Lab](docs/assets/readme-what-changed-en.jpg) | ![Media Pulse — France 2027 Signal Lab](docs/assets/readme-media-pulse-en.jpg) |
+| Recent campaign, polling, runoff, fact-check, and material legal developments. | Source-linked election coverage, including candidate visibility, topics, publishers, and recent activity. |
 
 ## Built for inspection
 

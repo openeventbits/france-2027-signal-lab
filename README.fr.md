@@ -15,9 +15,9 @@ English · https://france2027.app/?lang=en
 
 **Dépôt GitHub :** https://github.com/openeventbits/france-2027-signal-lab
 
-![Espace Candidats de France 2027 Signal Lab](docs/assets/candidate-workspace-fr.jpg)
+![Rapport de force — France 2027 Signal Lab](docs/assets/readme-race-at-a-glance-fr.jpg)
 
-*Espace Candidats. Les données, la couverture des sources et le statut des candidats évoluent à mesure que de nouveaux éléments sont publiés.*
+*Rapport de force. Les sondages de premier tour sont présentés individuellement, avec leurs sources, leurs dates de terrain et leurs configurations de candidatures.*
 
 ## Ce que suit FR27
 
@@ -47,12 +47,12 @@ Lorsqu’un élément ne peut pas être extrait, rapproché, classé, daté ou a
 
 Les définitions détaillées des mesures et leurs limites sont présentées dans [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).
 
-## Explorer les espaces d’analyse
+## Panneaux de synthèse
 
-| Événements de campagne | Second tour |
+| Évolutions | Dynamique médiatique |
 | --- | --- |
-| ![Espace Événements de campagne de France 2027 Signal Lab](docs/assets/campaign-events-workspace-fr.jpg) | ![Espace Second tour de France 2027 Signal Lab](docs/assets/runoff-workspace-fr.jpg) |
-| Calendrier vérifié, dossiers documentés, événements à venir et changements de programme. | Sondages publiés sur le second tour, confrontations les plus fréquentes, écarts observés et historique des scénarios comparables. |
+| ![Évolutions — France 2027 Signal Lab](docs/assets/readme-what-changed-fr.jpg) | ![Dynamique médiatique — France 2027 Signal Lab](docs/assets/readme-media-pulse-fr.jpg) |
+| Évolutions récentes concernant la campagne, les sondages, le second tour, les vérifications factuelles et les développements juridiques significatifs. | Couverture électorale sourcée, notamment la visibilité des candidats, les thèmes, les éditeurs et l’activité récente. |
 
 ## Un produit conçu pour être inspectable
 
