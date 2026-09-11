@@ -16,7 +16,7 @@ The architecture is designed around several constraints:
 - current-data validation should test structure and relationships rather than depend on fragile snapshot counts;
 - live-source failure should not unnecessarily destroy last-good public state;
 - automated writers should not publish conflicting partial states;
-- frontend behavior should consume explicit published semantics rather than independently recreate research rules; and
+- frontend behavior should consume explicit published semantics for core data contracts; bounded presentation metrics may be derived deterministically from published atomic evidence when their rules are documented and tested; and
 - historical evidence and deterministic identities should remain stable across routine updates.
 
 FR27 therefore favors explicit files, contracts, and publication boundaries over an opaque service layer.
@@ -197,7 +197,7 @@ For example:
 
 Derived artifacts should retain enough provenance to identify their upstream evidence class.
 
-The frontend should not need to reconstruct research rules from presentation state.
+The frontend should not infer or recreate core research semantics from presentation state. Bounded presentation metrics may be derived deterministically from published atomic evidence when their rules are documented and tested, as with Race at a Glance's previous-poll difference.
 
 ## Public data artifacts
 

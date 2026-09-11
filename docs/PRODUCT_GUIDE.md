@@ -4,7 +4,7 @@
 
 This guide explains how to read the public product: what each major workspace shows, how the different surfaces relate to one another, and what conclusions should — and should not — be drawn from them.
 
-**Live dashboard:** https://openeventbits.github.io/france-2027-signal-lab/
+**Live dashboard:** https://france2027.app/
 
 The screenshots in this guide are production snapshots. Live values, candidate status, coverage, events, and source activity change as new evidence is published.
 

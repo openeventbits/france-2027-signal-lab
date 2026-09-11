@@ -138,6 +138,8 @@ The source poll remains the evidentiary basis of the observation.
 
 FR27-created identifiers, normalized candidate names, scenario keys, validation states, and comparability relationships are derived metadata used to preserve structure and prevent incompatible observations from being merged.
 
+Race at a Glance's **previous-poll difference** is a presentation-time derivation from the atomic published observations in `polls.json`. It is not source polling, a polling average, or a strict comparability relationship. When the nearest earlier observation differs in polling institute or candidate field, that context is explicitly classified and surfaced with the displayed difference.
+
 ### Commission notice provenance
 
 Polling publication is supported by `commission_notice_registry.json`.

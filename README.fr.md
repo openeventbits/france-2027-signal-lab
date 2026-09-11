@@ -16,7 +16,7 @@ Plutôt que de réduire des signaux de nature différente à une moyenne de sond
 
 ![Rapport de force — France 2027 Signal Lab](docs/assets/readme-race-at-a-glance-fr.jpg)
 
-*Rapport de force présente séparément les sondages publiés de premier tour, avec leurs sources, leurs dates de terrain, les configurations de candidatures testées et le contexte nécessaire à leur comparaison.*
+*Rapport de force présente séparément les sondages publiés de premier tour, avec leurs sources, leurs dates de terrain, les configurations de candidatures testées et, pour chaque candidat, l'écart brut avec l'observation de premier tour antérieure la plus proche. Un symbole † signale les comparaisons où l'institut de sondage ou le champ de candidatures a changé.*
 
 ## Pourquoi FR27 existe
 
@@ -31,7 +31,7 @@ Le lecteur peut voir ce qui a changé depuis sa dernière visite ; déterminer s
 | Espace | Ce qu'il permet d'examiner |
 | --- | --- |
 | **Évolutions** | Un registre sourcé des développements significatifs de la campagne, des sondages, du second tour, des vérifications factuelles et des changements juridiques ou procéduraux importants. |
-| **Rapport de force** | Les sondages publiés de premier tour avec leurs dates de terrain, leurs sources, les configurations complètes de candidatures et un contexte de comparaison tenant compte de ces configurations. |
+| **Rapport de force** | Les sondages publiés de premier tour avec leurs dates de terrain, leurs sources, les configurations complètes de candidatures et les écarts bruts par rapport à l'observation antérieure la plus proche de chaque candidat ; les changements de contexte sont signalés et ne sont pas présentés comme des tendances comparables. |
 | **Dynamique médiatique** | La visibilité des candidats, les médias, les thèmes, l'activité et les évolutions de couverture dans le corpus électoral retenu par FR27. |
 | **Candidats** | Pour chaque candidat : sondages, attention sur Wikipédia, visibilité médiatique, signaux d'agenda, vérifications et dossier sourcé. |
 | **Agenda** | Les thèmes liés au processus de campagne et à la stratégie politique, leur persistance, leur évolution et les éléments qui les documentent. |
