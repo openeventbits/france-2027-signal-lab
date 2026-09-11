@@ -1295,10 +1295,6 @@
  * independently measured ranges below.
  */
 @media (width <= 350px) {
-  html.fr27-tier3-active .masthead-tools {
-    grid-template-columns: minmax(0, 1fr);
-    justify-items: start;
-  }
 
   html.fr27-tier3-active .context-strip {
     grid-template-columns: minmax(0, 1fr);
@@ -5011,7 +5007,7 @@
  * TIER 3 MASTHEAD — COMPONENT-LOCAL RESPONSIVE CONTRACT
  *
  * Historical max-width rules remain in the shared source,
- * but Masthead geometry is owned here from 521–1023px.
+ * but Masthead geometry is owned here throughout Tier 3.
  * ========================================================= */
 @media (680px <= width < 1024px) {
 
@@ -5054,9 +5050,11 @@
   }
 }
 
-@media (521px <= width < 680px) {
+@media (width < 680px) {
 
   html.fr27-tier3-active .masthead {
+    --fr27-tier3-compact-control-height: 44px;
+
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     align-items: stretch !important;
@@ -5075,10 +5073,15 @@
     min-width: 0;
   }
 
+  html.fr27-tier3-active .masthead .mark {
+    border-radius: 14px;
+  }
+
   html.fr27-tier3-active .masthead h1 {
     display: grid;
     gap: 1px;
     margin: 0;
+    letter-spacing: .065em;
     white-space: normal;
   }
 
@@ -5087,18 +5090,22 @@
   }
 
   html.fr27-tier3-active .masthead h1::after {
+    height: 2px;
     margin-top: 4px;
   }
 
   html.fr27-tier3-active .masthead-tagline {
     margin-top: 2px;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
   }
 
   html.fr27-tier3-active .masthead-tools {
-    display: grid;
-    grid-template-columns: auto auto;
+    display: flex;
+    flex-wrap: wrap;
     align-items: center !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
     gap: 9px;
 
     width: 100% !important;
@@ -5109,14 +5116,77 @@
 
   html.fr27-tier3-active .masthead-language {
     width: 96px;
-    height: 44px;
+    height: var(--fr27-tier3-compact-control-height);
   }
 
   html.fr27-tier3-active .masthead-countdown {
+    grid-template-columns: 23px minmax(0, 1fr);
+    grid-template-rows: none;
+    gap: 9px;
     width: max-content;
     min-width: 176px;
-    min-height: 44px;
+    min-height: var(--fr27-tier3-compact-control-height);
     margin: 0 !important;
+    padding: 7px 10px;
+  }
+
+  html.fr27-tier3-active .masthead-countdown-icon {
+    width: 23px;
+    height: 23px;
+  }
+
+  html.fr27-tier3-active .masthead-countdown-icon svg {
+    width: 21px;
+    height: 21px;
+    stroke-width: 1.6;
+  }
+
+  html.fr27-tier3-active .masthead-countdown-copy {
+    grid-column: auto;
+    grid-row: auto;
+    gap: 7px;
+  }
+
+  html.fr27-tier3-active .masthead-countdown-text {
+    gap: 3px;
+  }
+
+  html.fr27-tier3-active .masthead-countdown-line {
+    gap: 3px;
+  }
+
+  html.fr27-tier3-active .masthead-countdown .clock-count.is-word {
+    font-size: 12px;
+  }
+
+  html.fr27-tier3-active .masthead-countdown .clock-unit {
+    font-size: 8px;
+  }
+
+  html.fr27-tier3-active .masthead-countdown-label,
+  html.fr27-tier3-active .masthead-countdown-date {
+    font-size: 9px;
+  }
+}
+
+@media (width < 332px) {
+
+  html.fr27-tier3-active .masthead-tools {
+    gap: 8px;
+  }
+
+  html.fr27-tier3-active .masthead-countdown {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    min-width: 0;
+  }
+
+  html.fr27-tier3-active .masthead-countdown-icon {
+    display: none;
+  }
+
+  html.fr27-tier3-active .masthead-countdown .clock-count {
+    font-size: 22px;
   }
 }
 
