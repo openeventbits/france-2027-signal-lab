@@ -16,7 +16,7 @@ Rather than collapse different signals into a polling average, proprietary candi
 
 ![Race at a Glance — France 2027 Signal Lab](docs/assets/readme-race-at-a-glance-en.jpg)
 
-*Race at a Glance presents published first-round poll events individually, with their sources, fieldwork dates, tested candidate configurations, and comparison context.*
+*Race at a Glance presents published first-round poll events individually, with their sources, fieldwork dates, tested candidate configurations, and each candidate's raw difference from the nearest earlier first-round poll observation. A † flag marks comparisons where the polling institute or candidate field changed.*
 
 ## Why FR27 exists
 
@@ -31,7 +31,7 @@ A reader can use FR27 to see what changed since the last visit; determine whethe
 | Surface | What it exposes |
 | --- | --- |
 | **What Changed** | A source-linked ledger of material developments across campaign activity, polling, runoff evidence, fact-checks, and significant legal or procedural changes. |
-| **Race at a Glance** | Published first-round poll events with fieldwork dates, source links, complete candidate configurations, and configuration-aware comparison context. |
+| **Race at a Glance** | Published first-round poll events with fieldwork dates, source links, complete candidate configurations, and raw differences from each candidate's nearest earlier first-round observation; context changes are flagged rather than treated as comparable trends. |
 | **Media Pulse** | Candidate visibility, publishers, topics, activity, and coverage shifts inside the accepted FR27 election-coverage corpus. |
 | **Candidates** | Candidate-level polling evidence, Wikipedia attention, media visibility, agenda signals, scrutiny, and source-linked dossiers. |
 | **Campaign Agenda** | Campaign-process and political-strategy themes, their persistence and movement, and the evidence behind them. |
