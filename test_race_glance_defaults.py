@@ -158,6 +158,11 @@ const context = {
       deltas: []
     };
   },
+  deriveRacePreviousPollDifference() {
+    return {
+      classification: "NO_PRIOR"
+    };
+  },
   formatComparableChange() {
     throw new Error("No-prior Race renderer must own its localized state");
   },
@@ -335,14 +340,14 @@ class RaceGlanceDefaultTests(unittest.TestCase):
             self.source,
         )
         self.assertIn(
-            'hasComparableChange ? "available" : "unavailable"',
+            'hasPreviousDifference ? "available" : "unavailable"',
             self.source,
         )
         self.assertIn(
-            '"dashboard.vs_prior_match",',
+            '"dashboard.vs_previous_poll",',
             self.source,
         )
-        self.assertIn('"VS PRIOR MATCH"', self.source)
+        self.assertIn('"VS PREV. POLL"', self.source)
         self.assertIn(
             'data-fr27-tooltip="${escapeAttribute(comparisonExplanation)}"',
             self.source,
@@ -521,7 +526,7 @@ class RaceGlanceDefaultTests(unittest.TestCase):
         self.assertIn("CANDIDATE", rows)
         self.assertIn("REPORTED SCORE", rows)
         self.assertIn("RESULT", rows)
-        self.assertIn("VS PRIOR MATCH", rows)
+        self.assertIn("VS PREV. POLL", rows)
         self.assertEqual(result["fieldwork"], "2–3 Sept 2026")
         self.assertEqual(result["compactDate"], "3 Sept")
         self.assertEqual(

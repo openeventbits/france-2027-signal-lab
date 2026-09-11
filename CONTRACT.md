@@ -18,6 +18,21 @@
    configuration. It does not depend on the hypothesis label, pollster, fieldwork dates,
    source URL, array position, or ingestion time. When uncertain, treat events as
    incompatible. **Under-inclusion is safer than a misleading trendline.**
+
+   **Race at a Glance previous-poll differences are a separate descriptive quantity,
+   not a relaxation of this comparability rule.** For a candidate in the selected
+   first-round event, Race at a Glance may report the arithmetic difference from that
+   candidate's nearest earlier first-round poll observation by `fieldwork_end`.
+   Within that nearest earlier fieldwork date, an exact `scenario_key` is preferred.
+   If none exists, the hypothesis with the smallest symmetric difference between the
+   current and previous candidate sets is used. Equally preferred hypotheses are usable
+   only when they report the same score for that candidate; otherwise the prior
+   observation is ambiguous and no single difference is published.
+
+   The resulting number is classified separately according to whether the polling
+   institute and/or candidate field changed. A raw previous-poll difference must not be
+   represented as a comparable trend or as evidence of voter movement when those
+   contexts changed.
 4. No missing value is ever invented. Footnote/citation markers are stripped before
    parsing numbers (`"34[a]"` → `34`, `"12,5 %"` → `12.5`, `"–"` → missing). If a cell
    can't be parsed cleanly and unambiguously, the field is omitted rather than guessed.

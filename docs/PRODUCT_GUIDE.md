@@ -33,7 +33,8 @@ The upper part of the dashboard provides shared context before the specialist wo
 Key surfaces include:
 
 - **What Changed** — recent material developments detected across FR27 datasets and accepted election coverage;
-- **Race at a Glance** — recent first-round polling evidence;
+- **Race at a Glance** — recent first-round polling evidence, including the
+  candidate's raw difference from the nearest earlier first-round poll observation;
 - **Media Pulse** — current coverage activity and candidate visibility;
 - **Source Network** — information about the configured collection universe and source activity; and
 - **Election Clock** — key timing context for the 2027 election cycle.
@@ -261,6 +262,16 @@ Each published poll event retains its own:
 FR27 does not publish a house polling average.
 
 A polling trend is shown only where the relevant events satisfy the project's comparability rules. Different candidate configurations are not silently combined.
+
+Race at a Glance uses a separate **previous-poll difference** for orientation. It
+subtracts the candidate's nearest earlier first-round published observation from the
+current selected observation using fieldwork chronology. If the polling institute or
+candidate field changed, the number is visibly flagged and its tooltip exposes that
+context. Such a value is a raw difference between published observations, not a
+like-for-like trend and not evidence that voter intention moved by that amount.
+
+If the nearest earlier evidence cannot be resolved to one previous score, Race at a
+Glance shows no single difference rather than choosing arbitrarily.
 
 Partial or unresolved source evidence remains partial or unresolved rather than being completed with inferred values.
 
