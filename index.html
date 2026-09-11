@@ -8013,27 +8013,24 @@
                 </svg>
               </button>
 
-              <button
-                type="button"
+              <a
                 id="fr27-hud-share"
                 class="fr27-hud-command share"
-                data-i18n-fr27-tooltip="hud.share_dashboard"
-                data-fr27-tooltip="Share dashboard"
-                data-i18n-aria-label="hud.share_current_view"
-                aria-label="Share current view"
+                href="https://x.com/fr27signal"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-fr27-tooltip="FR27 on X · @fr27signal"
+                aria-label="FR27 on X · @fr27signal"
+                title="FR27 on X · @fr27signal"
               >
                 <svg
                   viewBox="0 0 24 24"
                   aria-hidden="true"
                   focusable="false"
                 >
-                  <circle cx="18" cy="5" r="2.4"></circle>
-                  <circle cx="6" cy="12" r="2.4"></circle>
-                  <circle cx="18" cy="19" r="2.4"></circle>
-                  <path d="M8.1 10.8 15.8 6.3"></path>
-                  <path d="m8.1 13.2 7.7 4.5"></path>
+                  <path fill="currentColor" stroke="none" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.264 2.25H8.09l4.713 6.231zm-1.161 17.52h1.833L7.095 4.126H5.127z"></path>
                 </svg>
-              </button>
+              </a>
 
               <button
                 type="button"
@@ -13674,9 +13671,6 @@
   const content =
     hud.querySelector(".fr27-app-hud-content");
 
-  const shareToggle =
-    hud.querySelector("#fr27-hud-share");
-
   const emailToggle =
     hud.querySelector("#fr27-hud-email-toggle");
 
@@ -13696,75 +13690,6 @@
     document.documentElement;
 
   if (!shell || !toggle || !content) return;
-
-  if (shareToggle) {
-    const copyCurrentUrl = async () => {
-      const url = window.location.href;
-
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(url);
-        return;
-      }
-
-      const field = document.createElement("textarea");
-      field.value = url;
-      field.setAttribute("readonly", "");
-      field.style.position = "fixed";
-      field.style.opacity = "0";
-      document.body.appendChild(field);
-      field.select();
-      document.execCommand("copy");
-      field.remove();
-    };
-
-    shareToggle.addEventListener("click", async () => {
-      try {
-        if (navigator.share) {
-          await navigator.share({
-            title: document.title,
-            url: window.location.href,
-          });
-          return;
-        }
-
-        await copyCurrentUrl();
-
-        const originalTooltip = shareToggle.dataset.fr27Tooltip;
-        const originalLabel = shareToggle.getAttribute("aria-label");
-
-        shareToggle.dataset.fr27Tooltip = hudTranslate(
-          "hud.link_copied",
-          "Link copied"
-        );
-        shareToggle.setAttribute(
-          "aria-label",
-          hudTranslate("hud.link_copied", "Link copied")
-        );
-
-        window.setTimeout(() => {
-          shareToggle.dataset.fr27Tooltip = originalTooltip || hudTranslate(
-            "hud.share_dashboard",
-            "Share dashboard"
-          );
-          shareToggle.setAttribute(
-            "aria-label",
-            originalLabel || hudTranslate(
-              "hud.share_current_view",
-              "Share current view"
-            )
-          );
-        }, 1600);
-      } catch (error) {
-        if (error && error.name === "AbortError") return;
-
-        try {
-          await copyCurrentUrl();
-        } catch (_) {
-          // Leave the control functional without surfacing console noise.
-        }
-      }
-    });
-  }
 
   let expanded = true;
 

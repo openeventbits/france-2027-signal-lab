@@ -9516,8 +9516,7 @@ border: 0;
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-current-scope,
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-observations,
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-unresolved-grid,
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range,
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-grid {
+  .hybrid-panel#signal-runoff-panel .hybrid-runoff-window-range {
     grid-template-columns: 1fr;
   }
 
@@ -9530,124 +9529,8 @@ border: 0;
     align-items: start;
   }
 
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-head {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-head label {
-    grid-template-columns: 1fr;
-  }
-
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-footprint-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
-    grid-template-areas:
-      "candidate-left candidate-right margin"
-      "instrument instrument instrument";
-    gap: 6px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation > .hybrid-runoff-candidate:not(.is-right) {
-    grid-area: candidate-left;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation > .hybrid-runoff-instrument {
-    grid-area: instrument;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation > .hybrid-runoff-candidate.is-right {
-    grid-area: candidate-right;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate,
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate.is-right {
-    justify-content: center;
-    text-align: center;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile {
-    grid-area: margin;
-    grid-template-columns: 1fr;
-    justify-content: center;
-    align-self: stretch;
-    padding: 0 0 0 5px;
-    border-top: 0;
-    border-left: 1px solid rgba(29, 75, 103, .68);
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-head {
-    display: none;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row {
-    grid-template-columns: 1fr;
-    padding: 5px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row > span {
-    border-right: 0;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-result::before {
-    color: rgb(112, 140, 158);
-    font-size: 8px;
-    font-weight: 730;
-    line-height: 8.8px;
-    letter-spacing: .88px;
-    content: "SOURCE RESULT";
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-margins::before {
-    color: rgb(112, 140, 158);
-    font-size: 8px;
-    font-weight: 730;
-    line-height: 8.8px;
-    letter-spacing: .88px;
-    content: "REPORTED MARGINS";
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-legend {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-legend > span:last-child {
-    margin-left: 0;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology {
-    grid-template-columns: 1fr;
-    gap: 5px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-position {
-    grid-template-columns: 12px minmax(78px, .58fr) minmax(0, 1fr);
-    align-items: start;
-    gap: 6px;
-    text-align: left;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-node {
-    margin-top: 2px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-position time {
-    min-height: 0;
-    margin-top: 0;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-entry {
-    justify-items: start;
-    padding: 0 0 4px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
-    min-height: 0;
   }
 }
 /* RUNOFF BOUNDED STRUCTURAL POLISH V2 ΓÇö owned panel only. */
@@ -10149,28 +10032,6 @@ border: 0;
     width: auto;
     padding-left: 0;
     border-left: 0;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row {
-    grid-template-columns: minmax(0, 1fr);
-    padding: 5px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-matrix-row > span {
-    min-width: 0;
-    border-right: 0;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-source-observation {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 48px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-candidate {
-    grid-template-rows: 14px 44px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-margin-tile {
-    border: 1px solid var(--hybrid-runoff-line-medium);
   }
 
   .hybrid-panel#signal-runoff-panel .hybrid-runoff-chronology.has-shared-window {
@@ -11119,40 +10980,6 @@ border: 0;
     min-height: 64px;
   }
 }
-
-@media (max-width: 679px) {
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row {
-    display: grid;
-    grid-template-columns: 1fr;
-    min-height: 0;
-    padding: 8px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-row > span {
-    padding: 7px 5px;
-    border-right: 0;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-matchup strong {
-    font-size: 12.5px;
-    line-height: 14px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-result {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 5px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-common .hybrid-runoff-matrix-legend > span:last-child {
-    margin-left: 0;
-  }
-}
-
 
 /* RUNOFF COMMON MATCHUPS LEGEND V2
    Remove the redundant methodology note and turn the legend
@@ -12432,51 +12259,6 @@ border: 0;
   display: none;
 }
 
-/* Intermediate layout: Panels 1 and 2 remain paired; catalogue spans below. */
-
-@media (max-width: 1023px) {
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-others {
-    grid-column: 1 / -1;
-    height: 240px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
-    grid-template-columns: minmax(180px, 1.1fr) minmax(190px, .9fr);
-  }
-}
-
-/* Single-column workspace. */
-
-@media (max-width: 820px) {
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-others {
-    grid-column: auto;
-    height: 280px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
-    grid-template-columns: minmax(130px, 1fr) minmax(125px, .9fr);
-  }
-}
-
-/* Compact/mobile card stacking. */
-
-@media (max-width: 560px) {
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "title"
-      "meta"
-      "score"
-      "foot";
-    gap: 5px;
-    min-height: 0;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score {
-    grid-template-columns: auto minmax(80px, 1fr) auto;
-  }
-}
-
 /* RUNOFF DENSE ARCHIVE POLISH V3
    Working archive renderers preserved.
    Other Tested Matchups becomes a border-light terminal row list.
@@ -12780,33 +12562,6 @@ border: 0;
     min-width: 168px;
   }
 }
-
-@media (max-width: 679px) {
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "title"
-      "meta"
-      "score"
-      "foot";
-    gap: 5px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score {
-    justify-content: start;
-    grid-template-columns:
-      auto
-      minmax(80px, 118px)
-      auto;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-foot {
-    display: flex;
-    justify-content: flex-start;
-    gap: 7px;
-  }
-}
-
 
 /* RUNOFF ARCHIVE OPTICAL POLISH V1
    Remove residual card chrome, improve record density and typography,
@@ -13138,35 +12893,6 @@ border: 0;
     width: 184px;
     min-width: 184px;
     padding-inline: 13px;
-  }
-}
-
-@media (max-width: 679px) {
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-card {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "title"
-      "meta"
-      "score"
-      "foot";
-    gap: 5px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score {
-    justify-content: start;
-    grid-template-columns:
-      auto
-      minmax(86px, 118px)
-      auto;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-other-score .hybrid-runoff-compact-rail {
-    width: 118px;
-    max-width: 118px;
-  }
-
-  .hybrid-panel#signal-runoff-panel .hybrid-runoff-history-select {
-    min-width: 100%;
   }
 }
 

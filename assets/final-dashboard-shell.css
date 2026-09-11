@@ -3908,6 +3908,11 @@ h1 {
   --fr27-workspace-portrait-size: 46px;
 }
 
+@media (min-width: 1400px) {
+  .masthead-language a {
+    font-size: 11px;
+  }
+}
 @media (min-width: 1240px) and (max-width: 1399px) {
   :root {
     --fr27-desktop-shell-inline-padding: 16px;
@@ -4027,6 +4032,35 @@ h1 {
     min-width: 0;
     flex: 1 1 auto;
     flex-wrap: nowrap;
+  }
+
+  .masthead-language {
+    display: inline-flex;
+    align-items: stretch;
+    flex: 0 0 96px;
+    gap: 0;
+    width: 96px;
+    height: var(--fr27-desktop-countdown-min-height);
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 6px;
+  }
+
+  .masthead-language a {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  .masthead-language-divider {
+    flex: 0 0 1px;
+    width: 1px;
+    background: #3f6075;
+    color: transparent;
+    font-size: 0;
   }
 
   .masthead-data {

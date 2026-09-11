@@ -72,6 +72,36 @@
     margin-left: auto;
   }
 
+  html.fr27-tier3-active .masthead-language {
+    display: inline-flex;
+    align-items: stretch;
+    align-self: auto;
+    flex: 0 0 96px;
+    gap: 0;
+    width: 96px;
+    height: 50px;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 6px;
+  }
+
+  html.fr27-tier3-active .masthead-language a {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  html.fr27-tier3-active .masthead-language-divider {
+    flex: 0 0 1px;
+    width: 1px;
+    background: #3f6075;
+    color: transparent;
+    font-size: 0;
+  }
+
   html.fr27-tier3-active .masthead-countdown {
     min-width: 176px;
     min-height: 50px;
@@ -1265,6 +1295,11 @@
  * independently measured ranges below.
  */
 @media (width <= 350px) {
+  html.fr27-tier3-active .masthead-tools {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+
   html.fr27-tier3-active .context-strip {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: repeat(3, 90px);
@@ -2541,11 +2576,16 @@
     .fr27-app-hud
     .fr27-app-hud-content.fr27-linear-console {
 
+    height: 59px !important;
+    min-height: 0 !important;
+    box-sizing: border-box !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+
     grid-template-columns:
-      minmax(0, 18fr)
-      minmax(0, 16fr)
-      minmax(0, 46fr)
-      minmax(0, 20fr) !important;
+      minmax(96px, 18fr)
+      minmax(78px, 16fr)
+      minmax(0, 40fr)
+      minmax(120px, 26fr) !important;
 
     padding-inline: 6px !important;
   }
@@ -2765,8 +2805,7 @@
 
     align-items: flex-end !important;
 
-    padding-inline:
-      8px 10px !important;
+    padding-inline: 0 !important;
   }
 
 
@@ -2776,7 +2815,7 @@
 
     justify-content: flex-end !important;
 
-    gap: 8px !important;
+    gap: 4px !important;
 
     width: auto !important;
   }
@@ -2786,10 +2825,10 @@
     .fr27-app-hud
     .fr27-hud-command {
 
-    flex-basis: 31px !important;
+    flex-basis: 27px !important;
 
-    width: 31px !important;
-    height: 31px !important;
+    width: 27px !important;
+    height: 27px !important;
   }
 
 
@@ -2802,8 +2841,8 @@
     #fr27-hud-info-toggle
     .fr27-info-icon {
 
-    width: 18px !important;
-    height: 18px !important;
+    width: 17px !important;
+    height: 17px !important;
   }
 }
 
@@ -3828,7 +3867,7 @@
  *
  * No Runoff data, rendering or interaction logic changes.
  * ========================================================= */
-@media (700px <= width < 1024px) {
+@media (width < 1024px) {
 
   /* -------------------------------------------------------
    * ROOT
@@ -4152,7 +4191,7 @@
  * Preserve all runoff evidence.
  * Reduce geometry, not information.
  * ========================================================= */
-@media (700px <= width < 1024px) {
+@media (width < 1024px) {
 
   /* Major card */
   html.fr27-tier3-active
@@ -4202,6 +4241,38 @@
     padding: 3px 5px !important;
 
     min-height: 0 !important;
+
+    grid-template-areas: none !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-closest
+    .hybrid-runoff-source-observation
+    > * {
+
+    grid-area: auto !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-closest
+    .hybrid-runoff-candidate {
+
+    justify-content: start !important;
+    text-align: left !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-closest
+    .hybrid-runoff-candidate.is-right {
+
+    justify-content: end !important;
+    text-align: right !important;
   }
 
 
@@ -4315,7 +4386,7 @@
  * Preserve the locked analytical design.
  * Reduce vertical geometry only.
  * ========================================================= */
-@media (700px <= width < 1024px) {
+@media (width < 1024px) {
 
   html.fr27-tier3-active
     #signal-runoff-panel
@@ -4355,7 +4426,44 @@
     .hybrid-runoff-common
     .hybrid-runoff-matrix-head {
 
+    display: grid !important;
+
     min-height: 20px !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-head,
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-row {
+
+    width: auto !important;
+    min-width: 0 !important;
+
+    grid-template-columns:
+      minmax(135px, 1.3fr)
+      minmax(105px, 1fr)
+      minmax(105px, 1fr)
+      minmax(56px, .55fr) !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-result::before,
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-margins::before {
+
+    content: none !important;
   }
 
 
@@ -4417,8 +4525,8 @@
 /* =========================================================
  * TIER 3 RUNOFF — REMOVE OTHER TESTED MATCHUPS
  *
- * Preserve the evidence in the underlying model.
- * Remove only the long archive catalogue from Tier 3.
+ * Preserve the catalogue in the underlying model.
+ * Do not render it in Tier 3.
  * ========================================================= */
 @media (width < 1024px) {
 
@@ -4429,7 +4537,6 @@
     display: none !important;
   }
 }
-
 /* =========================================================
  * TIER 3 RUNOFF — REMOVE REDUNDANT CLOSEST MATCHUP TITLE
  *
@@ -4449,20 +4556,312 @@
 }
 
 /* =========================================================
- * TIER 3 RUNOFF — REMOVE REDUNDANT CLOSEST MATCHUP TITLE
+ * TIER 3 RUNOFF — MEASURED PANEL 1 REFLOW
  *
- * Candidate names are already explicit in both pollster
- * observations, so the repeated matchup heading adds no
- * information and creates unnecessary vertical space.
+ * 618px is the last clean four-track width.
+ * ========================================================= */
+@media (width <= 617px) {
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-closest
+    .hybrid-runoff-source-observation {
+
+    box-sizing: border-box !important;
+
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr)
+      48px !important;
+
+    grid-template-areas:
+      "candidate-left candidate-right margin"
+      "instrument instrument instrument" !important;
+
+    grid-template-rows: auto auto !important;
+
+    gap: 6px !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+
+    overflow: visible !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-closest
+    .hybrid-runoff-source-observation
+    > * {
+
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-source-observation
+    > .hybrid-runoff-candidate:not(.is-right) {
+
+    grid-area: candidate-left !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-source-observation
+    > .hybrid-runoff-candidate.is-right {
+
+    grid-area: candidate-right !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-source-observation
+    > .hybrid-runoff-instrument {
+
+    grid-area: instrument !important;
+
+    width: auto !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-source-observation
+    > .hybrid-runoff-margin-tile {
+
+    grid-area: margin !important;
+
+    width: auto !important;
+    min-width: 0 !important;
+  }
+}
+
+/* =========================================================
+ * TIER 3 RUNOFF — MEASURED PANEL 2 REFLOW
+ *
+ * 601px is the last clean compact-matrix width.
+ * All source evidence becomes a vertical reading sequence.
+ * ========================================================= */
+@media (width <= 600px) {
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix {
+
+    overflow: visible !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-head {
+
+    display: none !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-row {
+
+    display: grid !important;
+
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-auto-rows: max-content !important;
+
+    align-content: start !important;
+
+    gap: 0 !important;
+
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+
+    padding: 6px !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-row
+    > span {
+
+    width: auto !important;
+    min-width: 0 !important;
+
+    padding: 1px 5px !important;
+
+    border-right: 0 !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-result,
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-margins {
+
+    min-height: 0 !important;
+
+    align-content: start !important;
+
+    row-gap: 2px !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-margins {
+
+    display: grid !important;
+    justify-items: center !important;
+
+    padding: 1px 5px !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-margins
+    strong {
+
+    position: static !important;
+    top: auto !important;
+
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+
+    padding: 0 !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-result::before,
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-margins::before {
+
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: rgb(112, 140, 158);
+
+    font-size: 8px;
+    font-weight: 730;
+    line-height: 9px;
+    letter-spacing: .7px;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-result::before {
+
+    content: attr(data-runoff-source) !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-margins::before {
+
+    content: "MARGINS" !important;
+  }
+
+
+  html:lang(fr).fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-common
+    .hybrid-runoff-matrix-margins::before {
+
+    content: "ÉCARTS" !important;
+  }
+}
+
+/* =========================================================
+ * TIER 3 RUNOFF — MEASURED HISTORY HEADER REFLOW
+ *
+ * 446px is the last clean inline width in French.
+ * The chronology remains an independent X-scroll owner.
  * ========================================================= */
 @media (width < 1024px) {
 
   html.fr27-tier3-active
     #signal-runoff-panel
-    .hybrid-runoff-closest
-    > h4 {
+    .hybrid-runoff-history-head {
 
-    display: none !important;
+    align-items: center !important;
+    flex-direction: row !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-history-head
+    label {
+
+    grid-template-columns: auto minmax(280px, 1fr) !important;
+  }
+}
+
+
+@media (width <= 445px) {
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-history-head {
+
+    align-items: stretch !important;
+    flex-direction: column !important;
+
+    gap: 6px !important;
+
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-history-head
+    label {
+
+    grid-template-columns: minmax(0, 1fr) !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-runoff-panel
+    .hybrid-runoff-history-select {
+
+    width: 100% !important;
+    min-width: 0 !important;
   }
 }
 
@@ -4709,7 +5108,8 @@
   }
 
   html.fr27-tier3-active .masthead-language {
-    width: max-content;
+    width: 96px;
+    height: 44px;
   }
 
   html.fr27-tier3-active .masthead-countdown {
@@ -5232,24 +5632,22 @@
  * TIER 3 FOOTER — TWO-ROW NARROW TELEMETRY HUD
  *
  * The one-row telemetry composition fits through 513px.
- * At 512px and below, keep time, sources and actions in the
- * first row and give the three dataset metrics the full
- * second row. No legacy countdown/polls composition returns.
+ * At 512px and below, keep time and sources in the first row,
+ * give dataset metrics the second row and actions the third.
+ * No legacy countdown/polls composition returns.
  * ========================================================= */
 @media (width <= 512px) {
   html.fr27-tier3-active {
-    --fr27-app-hud-height: 112px !important;
-    --fr27-app-hud-open-safe: 118px !important;
+    --fr27-app-hud-height: 154px !important;
+    --fr27-app-hud-open-safe: 160px !important;
   }
 
   html.fr27-tier3-active
     .fr27-app-hud
     .fr27-app-hud-content.fr27-linear-console {
     grid-template-columns:
-      minmax(91px, 1fr)
-      minmax(63px, .75fr)
-      auto !important;
-    grid-template-rows: 58px 49px !important;
+      repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: 58px 49px 42px !important;
     padding-inline: 6px !important;
   }
 
@@ -5329,11 +5727,11 @@
   }
 
   html.fr27-tier3-active .fr27-app-hud .fr27-zone-utility {
-    grid-column: 3 !important;
-    grid-row: 1 !important;
+    grid-column: 1 / -1 !important;
+    grid-row: 3 !important;
     align-items: flex-end !important;
-    height: 58px !important;
-    padding-inline: 0 !important;
+    height: 42px !important;
+    padding-inline: 6px !important;
   }
 
   html.fr27-tier3-active .fr27-app-hud .fr27-linear-actions {

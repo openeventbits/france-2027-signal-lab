@@ -3952,11 +3952,11 @@
             <span class="hybrid-runoff-matrix-matchup" role="rowheader">${selected ? `<small>${escapeHtml(translate("runoff_workspace.closest_common_matchup", "CLOSEST COMMON MATCHUP"))}</small>` : ""}<strong>${escapeHtml(matchup.candidates[0] || "")}<br>vs ${escapeHtml(matchup.candidates[1] || "")}</strong></span>
             ${pollsters.map(name => {
               const result = matchup.results.find(item => item.pollster === name);
-              if (!result) return `<span class="hybrid-runoff-matrix-result" role="cell">—</span>`;
+              if (!result) return `<span class="hybrid-runoff-matrix-result" role="cell" data-runoff-source="${escapeAttribute(name)}">—</span>`;
               const scores = runoffScoresForCandidates(result, matchup.candidates);
-              return `<span class="hybrid-runoff-matrix-result" role="cell"><span class="hybrid-runoff-matrix-score is-left">${runoffPercent(scores[0])}</span>${runoffCompactRail(result, matchup.candidates)}<span class="hybrid-runoff-matrix-score is-right">${runoffPercent(scores[1])}</span></span>`;
+              return `<span class="hybrid-runoff-matrix-result" role="cell" data-runoff-source="${escapeAttribute(name)}"><span class="hybrid-runoff-matrix-score is-left">${runoffPercent(scores[0])}</span>${runoffCompactRail(result, matchup.candidates)}<span class="hybrid-runoff-matrix-score is-right">${runoffPercent(scores[1])}</span></span>`;
             }).join("")}
-            <span class="hybrid-runoff-matrix-margins" role="cell"><strong>${margins.map(value => runoffDisplayNumber(value)).join(" / ")}</strong><small>pts</small></span>
+            <span class="hybrid-runoff-matrix-margins" role="cell" data-runoff-label="${escapeAttribute(translate("runoff_workspace.margins", "MARGINS"))}"><strong>${margins.map(value => runoffDisplayNumber(value)).join(" / ")}</strong><small>pts</small></span>
           </div>`;
         }).join("")}
       </div>` : `<div class="hybrid-runoff-local-state" role="status">${escapeHtml(translate("runoff_workspace.no_common_matrix", "No common exact-window matchup matrix is available for this status."))}</div>`}
