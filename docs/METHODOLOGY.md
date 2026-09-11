@@ -138,6 +138,43 @@ FR27 does not silently join two scenarios merely because:
 
 When comparability is uncertain, FR27 treats the events as incompatible.
 
+### Race at a Glance previous-poll difference
+
+Race at a Glance also exposes a narrower descriptive quantity: the arithmetic
+difference between a candidate's score in the selected current first-round poll
+scenario and that candidate's nearest earlier first-round poll observation.
+
+This is **not the same thing as a comparable polling trend**.
+
+The previous observation is selected by source fieldwork chronology:
+
+1. consider only earlier first-round observations in which the candidate has a
+   published numeric score;
+2. use the nearest earlier `fieldwork_end`;
+3. within that earlier fieldwork date, prefer an exact `scenario_key`;
+4. if no exact scenario exists, prefer the hypothesis whose candidate set has the
+   smallest symmetric difference from the current candidate set; and
+5. if equally preferred hypotheses report different scores for the candidate, treat
+   the previous observation as ambiguous and publish no single difference.
+
+The comparison is then classified according to its context:
+
+- **DIRECT** — same polling institute and same candidate field;
+- **FIELD_CHANGED** — same institute, different candidate field;
+- **POLLSTER_CHANGED** — different institute, same candidate field;
+- **POLLSTER_AND_FIELD_CHANGED** — both changed;
+- **NO_PRIOR** — no eligible earlier observation exists; or
+- **AMBIGUOUS_PRIOR** — the nearest eligible evidence does not resolve to one
+  previous score.
+
+When the institute or candidate field changed, the displayed number remains a factual
+difference between two published observations, but it is flagged as a raw difference.
+It must not be read as a like-for-like trend, a house-effect-adjusted estimate, or
+evidence that voter intention itself moved by that amount.
+
+This Race at a Glance rule does not alter `scenario_key`, event identity, or the
+stricter comparability rules used for polling histories and other trend surfaces.
+
 ### Complete and partial scenarios
 
 FR27 validates the total of the candidate scores reported by the source.

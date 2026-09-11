@@ -525,8 +525,8 @@ class FrontendPublicationFactsTests(unittest.TestCase):
         self.assertRegex(
             renderer,
             re.compile(
-                r"deriveComparableChange\(\s*events,\s*"
-                r"candidate\.name,\s*event\.fieldwork_end,\s*event\s*\)",
+                r"deriveRacePreviousPollDifference\(\s*events,\s*"
+                r"candidate\.name,\s*event\s*\)",
                 re.DOTALL,
             ),
         )
@@ -665,12 +665,12 @@ class FrontendPublicationFactsTests(unittest.TestCase):
 
     def test_poll_semantic_labels_and_comparison_tooltip_are_updated(self):
         self.assertIn("LATEST FIELDWORK", self.index)
-        self.assertIn("VS PRIOR MATCH", self.index)
+        self.assertIn("VS PREV. POLL", self.index)
         self.assertIn(
-            "Nearest earlier poll from the same pollster testing the same candidate field.",
+            "Difference from the candidate's nearest earlier first-round poll observation. Context changes are flagged in the comparison tooltip.",
             self.index,
         )
-        self.assertNotIn("CHANGE VS PREV", self.index.upper())
+        self.assertNotIn("VS PRIOR MATCH", self.index)
         self.assertNotIn('title="Nearest earlier poll', self.index)
         self.assertIn('<div class="race-column-head">', self.index)
 
@@ -728,11 +728,330 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             },
         )
 
+    def test_race_previous_poll_difference_is_universal_and_separate(self):
+        fixtures = """
+          (() => {
+            const current = {
+              event_id: "current",
+              pollster: "OpinionWay",
+              round: "first_round",
+              fieldwork_end: "2026-09-09",
+              scenario_key: "current-field",
+              candidates: [
+                {name: "Candidate", score: 14},
+                {name: "Shared", score: 20},
+                {name: "Newcomer", score: 2}
+              ]
+            };
+            const priorClosestField = {
+              event_id: "prior-close",
+              pollster: "OpinionWay",
+              round: "first_round",
+              fieldwork_end: "2026-09-03",
+              scenario_key: "prior-close-field",
+              candidates: [
+                {name: "Candidate", score: 13},
+                {name: "Shared", score: 21}
+              ]
+            };
+            const priorWorseField = {
+              event_id: "prior-far",
+              pollster: "OpinionWay",
+              round: "first_round",
+              fieldwork_end: "2026-09-03",
+              scenario_key: "prior-far-field",
+              candidates: [
+                {name: "Candidate", score: 7},
+                {name: "Shared", score: 21},
+                {name: "Alternative", score: 15}
+              ]
+            };
+            const olderExactField = {
+              event_id: "older-exact",
+              pollster: "Other",
+              round: "first_round",
+              fieldwork_end: "2026-09-02",
+              scenario_key: "current-field",
+              candidates: [
+                {name: "Candidate", score: 12},
+                {name: "Shared", score: 20},
+                {name: "Newcomer", score: 3}
+              ]
+            };
+
+            const fieldChanged = deriveRacePreviousPollDifference(
+              [current, priorClosestField, priorWorseField, olderExactField],
+              "Candidate",
+              current
+            );
+
+            const crossCurrent = {
+              event_id: "cross-current",
+              pollster: "Ipsos",
+              round: "first_round",
+              fieldwork_end: "2026-08-20",
+              scenario_key: "same-field",
+              candidates: [{name: "Candidate", score: 16}]
+            };
+            const crossPrior = {
+              event_id: "cross-prior",
+              pollster: "Harris",
+              round: "first_round",
+              fieldwork_end: "2026-08-15",
+              scenario_key: "same-field",
+              candidates: [{name: "Candidate", score: 14}]
+            };
+            const pollsterChanged = deriveRacePreviousPollDifference(
+              [crossCurrent, crossPrior],
+              "Candidate",
+              crossCurrent
+            );
+
+            const directCurrent = {
+              event_id: "direct-current",
+              pollster: "Elabe",
+              round: "first_round",
+              fieldwork_end: "2026-07-20",
+              scenario_key: "direct-field",
+              candidates: [{name: "Candidate", score: 18}]
+            };
+            const directPrior = {
+              event_id: "direct-prior",
+              pollster: "Elabe",
+              round: "first_round",
+              fieldwork_end: "2026-07-10",
+              scenario_key: "direct-field",
+              candidates: [{name: "Candidate", score: 17}]
+            };
+            const direct = deriveRacePreviousPollDifference(
+              [directCurrent, directPrior],
+              "Candidate",
+              directCurrent
+            );
+
+            const ambiguousCurrent = {
+              event_id: "amb-current",
+              pollster: "A",
+              round: "first_round",
+              fieldwork_end: "2026-06-20",
+              scenario_key: "amb-field",
+              candidates: [{name: "Candidate", score: 20}]
+            };
+            const ambiguousPriorA = {
+              event_id: "amb-prior-a",
+              pollster: "A",
+              round: "first_round",
+              fieldwork_end: "2026-06-10",
+              scenario_key: "amb-field",
+              candidates: [{name: "Candidate", score: 18}]
+            };
+            const ambiguousPriorB = {
+              event_id: "amb-prior-b",
+              pollster: "A",
+              round: "first_round",
+              fieldwork_end: "2026-06-10",
+              scenario_key: "amb-field",
+              candidates: [{name: "Candidate", score: 17}]
+            };
+            const ambiguous = deriveRacePreviousPollDifference(
+              [ambiguousCurrent, ambiguousPriorA, ambiguousPriorB],
+              "Candidate",
+              ambiguousCurrent
+            );
+
+            return {
+              fieldChanged: {
+                classification: fieldChanged.classification,
+                previous: fieldChanged.previous.event_id,
+                delta: fieldChanged.delta,
+                fieldDistance: fieldChanged.fieldDistance
+              },
+              pollsterChanged: {
+                classification: pollsterChanged.classification,
+                previous: pollsterChanged.previous.event_id,
+                delta: pollsterChanged.delta
+              },
+              direct: {
+                classification: direct.classification,
+                delta: direct.delta
+              },
+              ambiguous: ambiguous.classification
+            };
+          })()
+        """
+        result = run_comparison_script(self.index, fixtures)
+        self.assertEqual(
+            result,
+            {
+                "fieldChanged": {
+                    "classification": "FIELD_CHANGED",
+                    "previous": "prior-close",
+                    "delta": 1,
+                    "fieldDistance": 1,
+                },
+                "pollsterChanged": {
+                    "classification": "POLLSTER_CHANGED",
+                    "previous": "cross-prior",
+                    "delta": 2,
+                },
+                "direct": {
+                    "classification": "DIRECT",
+                    "delta": 1,
+                },
+                "ambiguous": "AMBIGUOUS_PRIOR",
+            },
+        )
+
+    def test_race_previous_poll_difference_handles_remaining_edge_cases(self):
+        fixtures = """
+          (() => {
+            const changedCurrent = {
+              event_id: "changed-current",
+              pollster: "Institute A",
+              round: "first_round",
+              fieldwork_end: "2026-05-20",
+              scenario_key: "field-current",
+              candidates: [
+                {name: "Candidate", score: 15},
+                {name: "Shared", score: 20},
+                {name: "New", score: 5}
+              ]
+            };
+            const changedPrior = {
+              event_id: "changed-prior",
+              pollster: "Institute B",
+              round: "first_round",
+              fieldwork_end: "2026-05-15",
+              scenario_key: "field-prior",
+              candidates: [
+                {name: "Candidate", score: 12},
+                {name: "Shared", score: 21}
+              ]
+            };
+            const bothChanged = deriveRacePreviousPollDifference(
+              [changedCurrent, changedPrior],
+              "Candidate",
+              changedCurrent
+            );
+
+            const tiedCurrent = {
+              event_id: "tie-current",
+              pollster: "Institute C",
+              round: "first_round",
+              fieldwork_end: "2026-05-10",
+              scenario_key: "tie-current-field",
+              candidates: [
+                {name: "Candidate", score: 20},
+                {name: "Alpha", score: 10},
+                {name: "Beta", score: 10}
+              ]
+            };
+            const tiedPriorA = {
+              event_id: "tie-a",
+              pollster: "Institute A",
+              round: "first_round",
+              fieldwork_end: "2026-05-05",
+              scenario_key: "tie-a-field",
+              candidates: [
+                {name: "Candidate", score: 18},
+                {name: "Alpha", score: 11}
+              ]
+            };
+            const tiedPriorB = {
+              event_id: "tie-b",
+              pollster: "Institute B",
+              round: "first_round",
+              fieldwork_end: "2026-05-05",
+              scenario_key: "tie-b-field",
+              candidates: [
+                {name: "Candidate", score: 18},
+                {name: "Beta", score: 11}
+              ]
+            };
+            const tiedSameScore = deriveRacePreviousPollDifference(
+              [tiedCurrent, tiedPriorA, tiedPriorB],
+              "Candidate",
+              tiedCurrent
+            );
+
+            const noPriorCurrent = {
+              event_id: "no-prior-current",
+              pollster: "Institute A",
+              round: "first_round",
+              fieldwork_end: "2026-04-10",
+              scenario_key: "no-prior-field",
+              candidates: [{name: "Candidate", score: 17}]
+            };
+            const future = {
+              event_id: "future",
+              pollster: "Institute A",
+              round: "first_round",
+              fieldwork_end: "2026-04-11",
+              scenario_key: "no-prior-field",
+              candidates: [{name: "Candidate", score: 16}]
+            };
+            const wrongRound = {
+              event_id: "wrong-round",
+              pollster: "Institute A",
+              round: "runoff",
+              fieldwork_end: "2026-04-05",
+              scenario_key: "no-prior-field",
+              candidates: [{name: "Candidate", score: 16}]
+            };
+            const candidateAbsent = {
+              event_id: "candidate-absent",
+              pollster: "Institute A",
+              round: "first_round",
+              fieldwork_end: "2026-04-05",
+              scenario_key: "other-field",
+              candidates: [{name: "Someone Else", score: 16}]
+            };
+            const noPrior = deriveRacePreviousPollDifference(
+              [noPriorCurrent, future, wrongRound, candidateAbsent],
+              "Candidate",
+              noPriorCurrent
+            );
+
+            return {
+              bothChanged: {
+                classification: bothChanged.classification,
+                delta: bothChanged.delta,
+                fieldDistance: bothChanged.fieldDistance
+              },
+              tiedSameScore: {
+                classification: tiedSameScore.classification,
+                delta: tiedSameScore.delta,
+                previousScore: tiedSameScore.previousScore,
+                hasPrevious: Boolean(tiedSameScore.previous)
+              },
+              noPrior: noPrior.classification
+            };
+          })()
+        """
+        result = run_comparison_script(self.index, fixtures)
+        self.assertEqual(
+            result,
+            {
+                "bothChanged": {
+                    "classification": "POLLSTER_AND_FIELD_CHANGED",
+                    "delta": 3,
+                    "fieldDistance": 1,
+                },
+                "tiedSameScore": {
+                    "classification": "POLLSTER_AND_FIELD_CHANGED",
+                    "delta": 2,
+                    "previousScore": 18,
+                    "hasPrevious": True,
+                },
+                "noPrior": "NO_PRIOR",
+            },
+        )
+
     def test_comparison_requires_same_round_and_scenario(self):
         comparison = function_body(
             self.index,
             "deriveComparableChange",
-            "formatComparableDelta",
+            "raceCandidateField",
         )
         self.assertIn("previous.round !== current.round", comparison)
         self.assertIn(
