@@ -275,12 +275,14 @@ class SearchFoundationTests(unittest.TestCase):
         )
         self.assertIn("CE QUI A CHANGÉ", french_changes)
         self.assertIn("14 DERNIERS JOURS", french_changes)
-        self.assertIn("LA COURSE EN UN COUP D’ŒIL", french_race)
-        self.assertIn("aucune moyenne de sondages", french_race)
+        self.assertIn("RAPPORT DE FORCE", french_race)
+        self.assertIn("Aucune moyenne", self.root_html)
+        self.assertNotIn('class="race-interpretation"', french_race)
         self.assertIn("WHAT CHANGED", english_changes)
         self.assertIn("LAST 14 DAYS", english_changes)
         self.assertIn("RACE AT A GLANCE", english_race)
-        self.assertIn("no polling average", english_race)
+        self.assertIn("No averages", self.english_html)
+        self.assertNotIn('class="race-interpretation"', english_race)
 
         board = self.candidate_signals["featured_poll_board"]
         for document_region in (french_race, english_race):
