@@ -2336,26 +2336,16 @@ class DesktopWorkspaceStabilizationTests(
             self.assertIn(panel_id, self.hybrid_css)
 
     def test_candidates_compact_desktop_keeps_three_columns(self):
-        desktop = self.candidate_css[
-            self.candidate_css.index(
-                "@media (min-width: 1024px)"
-            ):
-            self.candidate_css.index(
-                "/* Legacy tablet layout only."
-            )
-        ]
-
-        for column in (
-            "minmax(0, 27fr)",
-            "minmax(0, 36fr)",
-            "minmax(0, 37fr)",
-        ):
-            self.assertIn(column, desktop)
-
-        self.assertIn(
-            "@media (min-width: 760px) "
-            "and (max-width: 1023px)",
+        self.assertRegex(
             self.candidate_css,
+            (
+                r"(?s)@media\s*\(min-width:\s*1024px\)\s*\{"
+                r"\s*\.candidate-signals-workspace\s*\{[^}]*"
+                r"grid-template-columns:\s*"
+                r"minmax\(0,\s*27fr\)\s*"
+                r"minmax\(0,\s*36fr\)\s*"
+                r"minmax\(0,\s*37fr\);"
+            ),
         )
         self.assertIn(
             "gap: var(--fr27-workspace-gap);",

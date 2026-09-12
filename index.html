@@ -2515,41 +2515,6 @@
         font-size: 10px;
       }
 
-      .race-glance .panel-head {
-        grid-template-columns: 1fr;
-        align-items: start;
-      }
-
-      .hypothesis-label {
-        max-width: 100%;
-      }
-
-      .race-glance .bar-row {
-        grid-template-columns: minmax(0, 1fr) 44px 72px;
-        gap: 5px 7px;
-        min-height: 43px;
-        padding: 3px 0;
-      }
-
-      .race-candidate {
-        grid-column: 1;
-        grid-row: 1;
-      }
-
-      .race-glance .score {
-        grid-column: 2;
-        grid-row: 1;
-      }
-
-      .race-change {
-        grid-column: 3;
-        grid-row: 1;
-      }
-
-      .race-glance .track {
-        grid-column: 1 / -1;
-        grid-row: 2;
-      }
     }
 
     @media (max-width: 430px) {
@@ -2704,26 +2669,6 @@
       line-height: 1;
       font-variant-numeric: tabular-nums;
     }
-
-    @media (max-width: 719px) {
-      .race-candidate .candidate-monogram {
-        width: 31px;
-        height: 31px;
-      }
-
-      .race-glance .candidate {
-        font-size: 11.5px;
-      }
-
-      .race-glance .score {
-        font-size: 13px;
-      }
-
-      .race-change strong {
-        font-size: 9.5px;
-      }
-    }
-
 
     /* Fix 3: rebalance race information columns */
     @media (min-width: 720px) {
@@ -4534,152 +4479,6 @@
       }
     }
 
-    @media (max-width: 719px) {
-      .race-glance {
-        height: auto;
-        min-height: 0;
-        max-height: none;
-        overflow: hidden;
-      }
-
-      .race-glance .race-glance-head {
-        grid-template-columns: 1fr;
-        align-items: start;
-        min-height: 0;
-        padding: 10px 11px 8px;
-      }
-
-      .race-poll-tabs {
-        width: 100%;
-      }
-
-      .race-poll-tab {
-        min-height: 34px;
-      }
-
-      .race-event-controls {
-        grid-template-columns: 1fr;
-        gap: 7px;
-        padding: 7px 11px;
-      }
-
-      .race-scenario-control {
-        grid-template-columns: 58px minmax(0, 1fr);
-      }
-
-      .race-scroll-shell {
-        flex: 0 0 auto;
-        height: 292px;
-      }
-
-      .race-glance .bars {
-        padding-inline: 10px;
-      }
-
-      .race-column-head,
-      .race-glance .bar-row {
-        grid-template-columns: minmax(0, 1fr) 48px 82px;
-        gap: 5px 7px;
-      }
-
-      .race-column-head {
-        min-height: 21px;
-      }
-
-      .race-column-head-bar {
-        display: none;
-      }
-
-      .race-column-head-candidate {
-        grid-column: 1;
-      }
-
-      .race-column-head-result {
-        grid-column: 2;
-      }
-
-      .race-column-head-change {
-        grid-column: 3;
-      }
-
-      .race-glance .bar-row {
-        min-height: 52px;
-        padding: 4px 0;
-      }
-
-      .race-candidate {
-        grid-column: 1;
-        grid-row: 1;
-      }
-
-      .race-glance .score {
-        grid-column: 2;
-        grid-row: 1;
-        font-size: 12px;
-      }
-
-      .race-change {
-        grid-column: 3;
-        grid-row: 1;
-      }
-
-      .race-glance .track {
-        grid-column: 1 / -1;
-        grid-row: 2;
-      }
-
-      .race-candidate .candidate-monogram {
-        width: 36px;
-        height: 36px;
-      }
-
-      .race-glance .candidate {
-        overflow: visible;
-        font-size: 11px;
-        line-height: 1.2;
-        text-overflow: clip;
-        white-space: normal;
-        overflow-wrap: anywhere;
-      }
-    }
-
-    @media (max-width: 430px) {
-      .race-glance .race-glance-head {
-        padding-inline: 9px;
-      }
-
-      .race-poll-tabs {
-        gap: 3px;
-      }
-
-      .race-poll-tab {
-        min-height: 33px;
-        padding: 5px 4px;
-      }
-
-      .race-event-controls {
-        padding-inline: 9px;
-      }
-
-      .race-glance .bars {
-        padding-inline: 8px;
-      }
-
-      .race-column-head,
-      .race-glance .bar-row {
-        grid-template-columns: minmax(0, 1fr) 45px 76px;
-        gap: 5px;
-      }
-
-      .race-glance .candidate {
-        font-size: 10.5px;
-      }
-
-      .race-change strong {
-        font-size: 8.5px;
-      }
-    }
-
     @media (prefers-reduced-motion: reduce) {
       .race-poll-tab,
       .race-glance .fill {
@@ -4719,33 +4518,6 @@
           minmax(160px, 1.2fr)
           minmax(120px, 2.25fr)
           54px;
-      }
-    }
-
-    @media (max-width: 719px) {
-      .race-glance
-        .race-poll-panel.is-no-comparison
-        .race-column-head,
-      .race-glance
-        .race-poll-panel.is-no-comparison
-        .bar-row {
-        grid-template-columns: minmax(0, 1fr) 48px;
-      }
-
-      .race-poll-panel.is-no-comparison
-        .race-column-head-result {
-        grid-column: 2;
-      }
-    }
-
-    @media (max-width: 430px) {
-      .race-glance
-        .race-poll-panel.is-no-comparison
-        .race-column-head,
-      .race-glance
-        .race-poll-panel.is-no-comparison
-        .bar-row {
-        grid-template-columns: minmax(0, 1fr) 45px;
       }
     }
 
@@ -7578,6 +7350,8 @@
   <link rel="stylesheet" href="assets/topic-coverage-modal.css">
   <link rel="stylesheet" href="assets/final-dashboard-shell.css">
   <link rel="stylesheet" href="assets/candidate-signals.css">
+  <link rel="stylesheet" href="assets/tier2-layout.css">
+  <link rel="stylesheet" href="assets/tier3-layout.css">
 </head>
 <body>
   <main class="shell">
@@ -8245,27 +8019,25 @@
                 </svg>
               </button>
 
-              <button
-                type="button"
+              <a
                 id="fr27-hud-share"
                 class="fr27-hud-command share"
-                data-i18n-fr27-tooltip="hud.share_dashboard"
-                data-fr27-tooltip="Share dashboard"
-                data-i18n-aria-label="hud.share_current_view"
-                aria-label="Share current view"
+                href="https://x.com/fr27signal"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-i18n-fr27-tooltip="hud.open_x_profile"
+                data-fr27-tooltip="FR27 on X · @fr27signal"
+                data-i18n-aria-label="hud.open_x_profile"
+                aria-label="FR27 on X · @fr27signal"
               >
                 <svg
                   viewBox="0 0 24 24"
                   aria-hidden="true"
                   focusable="false"
                 >
-                  <circle cx="18" cy="5" r="2.4"></circle>
-                  <circle cx="6" cy="12" r="2.4"></circle>
-                  <circle cx="18" cy="19" r="2.4"></circle>
-                  <path d="M8.1 10.8 15.8 6.3"></path>
-                  <path d="m8.1 13.2 7.7 4.5"></path>
+                  <path fill="currentColor" stroke="none" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.264 2.25H8.09l4.713 6.231zm-1.161 17.52h1.833L7.095 4.126H5.127z"></path>
                 </svg>
-              </button>
+              </a>
 
               <button
                 type="button"
@@ -14133,6 +13905,8 @@
   <script src="assets/candidate-visibility-history.js"></script>
   <script src="assets/candidate-agenda-history.js"></script>
     <script src="assets/hybrid-dashboard.js"></script>
+    <script src="assets/tier2-layout.js"></script>
+    <script src="assets/tier3-layout.js"></script>
 <!-- FR27 APPLICATION HUD CONTROLLER -->
 <script>
 (function () {
@@ -14161,9 +13935,6 @@
   const content =
     hud.querySelector(".fr27-app-hud-content");
 
-  const shareToggle =
-    hud.querySelector("#fr27-hud-share");
-
   const emailToggle =
     hud.querySelector("#fr27-hud-email-toggle");
 
@@ -14183,75 +13954,6 @@
     document.documentElement;
 
   if (!shell || !toggle || !content) return;
-
-  if (shareToggle) {
-    const copyCurrentUrl = async () => {
-      const url = window.location.href;
-
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(url);
-        return;
-      }
-
-      const field = document.createElement("textarea");
-      field.value = url;
-      field.setAttribute("readonly", "");
-      field.style.position = "fixed";
-      field.style.opacity = "0";
-      document.body.appendChild(field);
-      field.select();
-      document.execCommand("copy");
-      field.remove();
-    };
-
-    shareToggle.addEventListener("click", async () => {
-      try {
-        if (navigator.share) {
-          await navigator.share({
-            title: document.title,
-            url: window.location.href,
-          });
-          return;
-        }
-
-        await copyCurrentUrl();
-
-        const originalTooltip = shareToggle.dataset.fr27Tooltip;
-        const originalLabel = shareToggle.getAttribute("aria-label");
-
-        shareToggle.dataset.fr27Tooltip = hudTranslate(
-          "hud.link_copied",
-          "Link copied"
-        );
-        shareToggle.setAttribute(
-          "aria-label",
-          hudTranslate("hud.link_copied", "Link copied")
-        );
-
-        window.setTimeout(() => {
-          shareToggle.dataset.fr27Tooltip = originalTooltip || hudTranslate(
-            "hud.share_dashboard",
-            "Share dashboard"
-          );
-          shareToggle.setAttribute(
-            "aria-label",
-            originalLabel || hudTranslate(
-              "hud.share_current_view",
-              "Share current view"
-            )
-          );
-        }, 1600);
-      } catch (error) {
-        if (error && error.name === "AbortError") return;
-
-        try {
-          await copyCurrentUrl();
-        } catch (_) {
-          // Leave the control functional without surfacing console noise.
-        }
-      }
-    });
-  }
 
   let expanded = true;
 
