@@ -419,6 +419,7 @@ def run_workspace(
     candidate_visibility_history=None,
     candidate_agenda_history=None,
     locale=None,
+    normalized_state=None,
 ):
     script = r"""
 const fs = require("fs");
@@ -571,7 +572,7 @@ if (input.locale) {
 vm.runInNewContext(fs.readFileSync("assets/candidate-signals.js", "utf8"), context);
 vm.runInNewContext(fs.readFileSync("assets/candidate-signals-workspace.js", "utf8"), context);
 
-const state = windowObject.France2027CandidateSignals.normalize(input.payload);
+const state = input.normalizedState || windowObject.France2027CandidateSignals.normalize(input.payload);
 const api = windowObject.France2027CandidateSignalsWorkspace;
 const mount = new MiniNode("div");
 let selected = input.selectedId;
@@ -982,6 +983,7 @@ process.stdout.write(JSON.stringify(details()));
                 "candidateAgendaHistory":
                     candidate_agenda_history,
                 "locale": locale,
+                "normalizedState": normalized_state,
             }
         ),
         cwd=ROOT,
@@ -1286,30 +1288,41 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             1,
         )
 
-    def test_monitor_orders_point_scores_then_range_only_then_not_tested(self):
-        def row(identifier, score=None, state="reported"):
+    def test_monitor_orders_featured_then_prior_main_secondary_then_never_tested(self):
+        def row(
+            identifier,
+            *,
+            featured=None,
+            featured_max=None,
+            tier="main",
+            history=None,
+            history_max=None,
+        ):
             value = json.loads(json.dumps(self.rows[0]))
             value["candidate_id"] = identifier
             value["candidate_name"] = identifier.replace("-", " ").title()
-            polling = value["polling"]
+            value["candidacy"] = {"display_tier": tier}
 
-            if state == "reported":
+            polling = value["polling"]
+            if featured is not None or featured_max is not None:
+                maximum = featured if featured_max is None else featured_max
+                minimum = featured if featured is not None else maximum
                 polling.update(
                     {
                         "evidence_state": "reported",
                         "hypothesis_count": 1,
-                        "range_min": score if score is not None else 4.0,
-                        "range_max": score if score is not None else 6.0,
-                        "selected_hypothesis_score": score,
+                        "range_min": minimum,
+                        "range_max": maximum,
+                        "selected_hypothesis_score": featured,
                         "selected_hypothesis_rank": (
-                            1 if score is not None else None
+                            1 if featured is not None else None
                         ),
                     }
                 )
             else:
                 polling.update(
                     {
-                        "evidence_state": "not_tested",
+                        "evidence_state": "not_observed",
                         "hypothesis_count": None,
                         "range_min": None,
                         "range_max": None,
@@ -1318,30 +1331,74 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
                     }
                 )
 
+            observations = []
+            if history is not None or history_max is not None:
+                maximum = history if history_max is None else history_max
+                minimum = history if history is not None else maximum
+                observations.append(
+                    {
+                        "package_key": '["History Poll","2026-06-29","2026-06-30",1000]',
+                        "pollster": "History Poll",
+                        "fieldwork_start": "2026-06-29",
+                        "fieldwork_end": "2026-06-30",
+                        "sample_size": 1000,
+                        "hypothesis_count": 1,
+                        "selected_score": history,
+                        "range_min": minimum,
+                        "range_max": maximum,
+                        "source_urls": ["https://example.test/history"],
+                    }
+                )
+
+            value["poll_history"] = {
+                "evidence_state": "reported" if observations else "not_observed",
+                "observation_count": len(observations),
+                "period_start": "2026-06-30" if observations else None,
+                "period_end": "2026-06-30" if observations else None,
+                "observations": observations,
+            }
+
             return value
 
         rows = [
-            row("low-score", 5),
-            row("equal-a", 10),
-            row("range-only"),
-            row("equal-b", 10),
-            row("not-tested", state="not_tested"),
+            row("featured-low", featured=5),
+            row("prior-secondary-high", tier="secondary", history=20),
+            row("featured-range-only", featured_max=19),
+            row("prior-main-low", history=4),
+            row("prior-main-range-only", history_max=12),
+            row("never-main"),
+            row("featured-high", featured=34),
+            row("prior-secondary-low", tier="secondary", history=3),
+            row("never-secondary", tier="secondary"),
         ]
 
-        result = run_workspace(payload(rows))
+        normalized_state = {
+            "status": "ready",
+            "reason": None,
+            "candidates": rows,
+            "metadata": {},
+        }
+        result = run_workspace(
+            payload(rows),
+            normalized_state=normalized_state,
+        )
         expected = [
-            "equal-a",
-            "equal-b",
-            "low-score",
-            "range-only",
-            "not-tested",
+            "featured-high",
+            "featured-range-only",
+            "featured-low",
+            "prior-main-range-only",
+            "prior-main-low",
+            "prior-secondary-high",
+            "prior-secondary-low",
+            "never-main",
+            "never-secondary",
         ]
 
         self.assertEqual(result["candidateOrder"], expected)
-        self.assertEqual(result["resolved"], "equal-a")
+        self.assertEqual(result["resolved"], "featured-high")
         self.assertEqual(
             result["pressed"],
-            ["true", "false", "false", "false", "false"],
+            ["true"] + ["false"] * (len(expected) - 1),
         )
         self.assertNotIn(".sort(", self.workspace_js)
         self.assertIn(
@@ -1364,10 +1421,6 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
             for candidate in published["candidates"]
             if candidate["candidate_id"] in active_ids
         ]
-        by_id = {
-            candidate["candidate_id"]: candidate
-            for candidate in source_active
-        }
 
         self.assertEqual(
             len(result["candidateOrder"]),
@@ -1375,55 +1428,61 @@ class CandidateSignalsWorkspaceTests(unittest.TestCase):
         )
         self.assertEqual(set(result["candidateOrder"]), active_ids)
 
-        groups = []
-        point_scores = []
-        range_only = []
-        not_tested = []
+        def numeric_score(primary, fallback):
+            if isinstance(primary, (int, float)):
+                return float(primary)
+            if isinstance(fallback, (int, float)):
+                return float(fallback)
+            return None
 
-        for identifier in result["candidateOrder"]:
-            polling = by_id[identifier]["polling"]
-            score = polling["selected_hypothesis_score"]
-
-            if (
-                polling["evidence_state"] == "reported"
-                and isinstance(score, (int, float))
-            ):
-                groups.append(0)
-                point_scores.append(float(score))
-            elif polling["evidence_state"] == "reported":
-                groups.append(1)
-                range_only.append(identifier)
-            else:
-                groups.append(2)
-                not_tested.append(identifier)
-
-        source_range_only = [
-            candidate["candidate_id"]
-            for candidate in source_active
-            if (
-                candidate["polling"]["evidence_state"] == "reported"
-                and candidate["polling"]["selected_hypothesis_score"]
-                is None
+        def latest_history(candidate):
+            observations = candidate.get("poll_history", {}).get(
+                "observations",
+                [],
             )
-        ]
-        source_not_tested = [
+            valid = [
+                observation
+                for observation in observations
+                if isinstance(observation.get("fieldwork_end"), str)
+            ]
+            return max(
+                valid,
+                key=lambda observation: observation["fieldwork_end"],
+                default=None,
+            )
+
+        def ordering_key(candidate):
+            polling = candidate["polling"]
+
+            if polling["evidence_state"] == "reported":
+                score = numeric_score(
+                    polling["selected_hypothesis_score"],
+                    polling["range_max"],
+                )
+                return (0, -(score if score is not None else -1))
+
+            observation = latest_history(candidate)
+            if observation is not None:
+                score = numeric_score(
+                    observation["selected_score"],
+                    observation["range_max"],
+                )
+                tier = candidate["candidacy"]["display_tier"]
+                group = 2 if tier == "secondary" else 1
+                return (group, -(score if score is not None else -1))
+
+            return (3, 0)
+
+        expected = [
             candidate["candidate_id"]
-            for candidate in source_active
-            if candidate["polling"]["evidence_state"] != "reported"
+            for candidate in sorted(source_active, key=ordering_key)
         ]
 
-        self.assertEqual(groups, sorted(groups))
-        self.assertEqual(
-            point_scores,
-            sorted(point_scores, reverse=True),
-        )
-        self.assertEqual(range_only, source_range_only)
-        self.assertEqual(not_tested, source_not_tested)
+        self.assertEqual(result["candidateOrder"], expected)
         self.assertEqual(
             result["resolved"],
             result["candidateOrder"][0],
         )
-
     def test_dynamic_active_workspace_search_and_main_only_filter(self):
         published = dynamic_schema_12_payload()
         initial = run_workspace(published)
