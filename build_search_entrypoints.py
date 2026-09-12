@@ -49,7 +49,7 @@ COPY = {
         "open_source": "Ouvrir la source ↗",
         "supporting_one": "+1 source concordante",
         "supporting_many": "+{count} sources concordantes",
-        "race": "LA COURSE EN UN COUP D’ŒIL",
+        "race": "RAPPORT DE FORCE",
         "methodology": (
             "Éléments reliés à leurs sources · aucune moyenne de sondages · "
             "aucune prévision · aucun conseil de vote"
@@ -340,7 +340,6 @@ def render_race(model: dict[str, Any], language: str) -> str:
     return f'''      <div class="panel-head race-glance-head">
         <div class="race-heading">
           <h2 id="race-glance-title" data-i18n="dashboard.race_at_a_glance">{_escape(copy["race"])}</h2>
-          <p class="race-interpretation">{_escape(copy["methodology"])}</p>
         </div>
         <div class="race-poll-tabs" id="race-poll-tabs" role="tablist" aria-label="{_escape(copy["reported_scores"])}" aria-busy="false"></div>
       </div>
