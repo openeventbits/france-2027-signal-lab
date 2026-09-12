@@ -19,7 +19,7 @@ test("locale model defaults to canonical French and rejects unsupported values",
   expect(selectLocales("fr,en")).toEqual(["fr", "en"]);
   expect(() => selectLocales("de")).toThrow(/Unsupported locale/);
   expect(new URL(localeUrl("http://127.0.0.1:1234/", "fr")).search).toBe("");
-  expect(new URL(localeUrl("http://127.0.0.1:1234/", "en")).searchParams.get("lang")).toBe("en");
+  expect(new URL(localeUrl("http://127.0.0.1:1234/", "en")).pathname).toBe("/en/");
 });
 
 test("inventory exposes known CSS and JavaScript responsive owners", () => {

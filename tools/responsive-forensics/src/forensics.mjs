@@ -124,7 +124,7 @@ export async function collectComponent(page, name, definition, viewport, request
     const hardFailures = [];
     const activeLanguageLinks = [...document.querySelectorAll("[data-fr27-language][aria-current='page']")].map(element => element.getAttribute("data-fr27-language"));
     const runtimeLocale = globalThis.FR27I18N?.locale || null;
-    const requestedLangParameter = new URL(location.href).searchParams.get("lang");
+    const expectedLocalePath = requestedLocale === "en" ? "/en/" : "/";
     const localeVerification = {
       requested: requestedLocale,
       resolved: {
@@ -139,7 +139,7 @@ export async function collectComponent(page, name, definition, viewport, request
       },
       matchesRequested: documentElement.lang === requestedLocale && runtimeLocale === requestedLocale &&
         activeLanguageLinks.length === 1 && activeLanguageLinks[0] === requestedLocale &&
-        (requestedLocale === "fr" ? requestedLangParameter === null : requestedLangParameter === "en")
+        location.pathname === expectedLocalePath
     };
     if (!localeVerification.matchesRequested) hardFailures.push({ type: "requested-locale-not-resolved", localeVerification });
     if (documentOverflow) hardFailures.push({ type: "document-horizontal-overflow", scrollWidth: Math.max(documentElement.scrollWidth, body?.scrollWidth || 0), clientWidth: documentElement.clientWidth });

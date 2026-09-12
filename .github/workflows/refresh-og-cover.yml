@@ -190,6 +190,14 @@ jobs:
 
           Write-Host "OG cache version: $version"
 
+      - name: Regenerate localized search entrypoints
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          python .\build_search_entrypoints.py
+          python -m unittest test_search_foundation.py
+
       - name: Commit refreshed cover
         id: commit
         shell: pwsh
@@ -203,6 +211,7 @@ jobs:
 
           $allowed = @(
             "assets/og-cover.png",
+            "en/index.html",
             "index.html"
           )
 
@@ -238,6 +247,7 @@ jobs:
 
           git add -- `
             assets/og-cover.png `
+            en/index.html `
             index.html
 
           git diff --cached --quiet

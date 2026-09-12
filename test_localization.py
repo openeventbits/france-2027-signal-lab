@@ -1193,7 +1193,7 @@ class LocalizationFoundationTests(unittest.TestCase):
             )
             self.assertEqual(
                 parse_qs(english.query),
-                {"campaign": ["2027"], "lang": ["en"]},
+                {"campaign": ["2027"]},
             )
 
         self.assertEqual(result["normalizedHash"], "#signal-candidates")

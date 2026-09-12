@@ -16,7 +16,11 @@
   const requestedLocale =
     global.location &&
     new URLSearchParams(global.location.search).get("lang");
-  const locale = normalizeLocale(requestedLocale);
+  const documentLocale =
+    documentElement && documentElement.lang;
+  const locale = requestedLocale
+    ? normalizeLocale(requestedLocale)
+    : normalizeLocale(documentLocale);
   const localeTag = locale === "fr" ? "fr-FR" : "en-GB";
 
   if (documentElement) {
@@ -146,16 +150,54 @@
 
   const buildLocaleUrl = targetLocale => {
     const target = normalizeLocale(targetLocale);
-    const next = new URL(global.location.href);
+    const current = new URL(global.location.href);
+    const next = new URL(
+      target === "en" ? "en/" : "",
+      siteRootUrl()
+    );
 
-    if (target === "en") {
-      next.searchParams.set("lang", "en");
-    } else {
-      next.searchParams.delete("lang");
-    }
+    current.searchParams.delete("lang");
+    next.search = current.searchParams.toString();
+    next.hash = current.hash;
 
     return next.toString();
   };
+
+  const migrateLegacyLocaleUrl = () => {
+    if (
+      !requestedLocale ||
+      normalizeLocale(requestedLocale) !== "en" ||
+      !global.location ||
+      !global.document ||
+      !documentElement
+    ) {
+      return false;
+    }
+
+    const current = new URL(global.location.href);
+    const target = buildLocaleUrl("en");
+
+    if (current.toString() === target) {
+      return false;
+    }
+
+    if (typeof global.location.replace === "function") {
+      global.location.replace(target);
+      return true;
+    }
+
+    if (
+      global.history &&
+      typeof global.history.replaceState === "function"
+    ) {
+      global.history.replaceState(null, "", target);
+      return true;
+    }
+
+    return false;
+  };
+
+  migrateLegacyLocaleUrl();
 
   const applyDocumentTitle = () => {
     if (!documentElement || !global.document) {
