@@ -597,6 +597,11 @@
   font-size: 25px;
 }
 
+.candidate-signals-poll-summary
+  .candidate-signals-summary-primary.is-textual {
+  font-size: 14px;
+}
+
 .candidate-signals-poll-gauge {
   grid-column: 1 / -1;
   grid-row: 2;
@@ -1339,7 +1344,7 @@
 }
 
 .candidate-signals-poll-summary
-  .candidate-signals-summary-primary {
+  .candidate-signals-summary-primary:not(.is-textual) {
   font-size: 28px;
 }
 

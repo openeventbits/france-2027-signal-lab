@@ -2384,10 +2384,21 @@
   html.fr27-tier3-active
     #signal-candidates-panel
     .candidate-signals-poll-summary
-    .candidate-signals-summary-primary {
+    .candidate-signals-summary-primary:not(.is-textual) {
 
     font-size: 30px !important;
     line-height: 1 !important;
+  }
+
+
+  html.fr27-tier3-active
+    #signal-candidates-panel
+    .candidate-signals-poll-summary
+    .candidate-signals-summary-primary.is-textual {
+
+    font-size: 14px !important;
+    line-height: 1.15 !important;
+    letter-spacing: 0 !important;
   }
 
 
@@ -5166,6 +5177,24 @@
   html.fr27-tier3-active .masthead-countdown-label,
   html.fr27-tier3-active .masthead-countdown-date {
     font-size: 9px;
+  }
+}
+
+/*
+ * French compact masthead micro-boundary.
+ * Constrain the longer localized countdown to the space
+ * remaining beside the language control.
+ */
+@media (332px <= width <= 350px) {
+
+  html[lang="fr"].fr27-tier3-active .masthead-countdown {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 0;
+  }
+
+  html[lang="fr"].fr27-tier3-active .masthead-countdown-copy {
+    min-width: 0;
   }
 }
 
