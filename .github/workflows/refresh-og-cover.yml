@@ -1,0 +1,276 @@
+name: Refresh OG cover
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: production-data-update
+  cancel-in-progress: false
+
+jobs:
+  refresh-og-cover:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out current main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install temporary Playwright
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $toolDir =
+            Join-Path $env:RUNNER_TEMP "fr27-og-tool"
+
+          New-Item `
+            -ItemType Directory `
+            -Force `
+            -Path $toolDir |
+            Out-Null
+
+          Push-Location $toolDir
+
+          try {
+            npm init -y | Out-Null
+            npm install --save-exact playwright@1.63.0
+            npx playwright install chromium
+          }
+          finally {
+            Pop-Location
+          }
+
+          "FR27_OG_TOOL_DIR=$toolDir" |
+            Out-File `
+              -FilePath $env:GITHUB_ENV `
+              -Append `
+              -Encoding utf8
+
+      - name: Capture current OG cover
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $server =
+            Start-Process python `
+              -ArgumentList `
+                "-m",
+                "http.server",
+                "8000",
+                "--bind",
+                "127.0.0.1" `
+              -WorkingDirectory $env:GITHUB_WORKSPACE `
+              -PassThru `
+              -WindowStyle Hidden
+
+          try {
+            $ready = $false
+
+            for ($attempt = 1; $attempt -le 20; $attempt++) {
+              try {
+                Invoke-WebRequest `
+                  -Uri "http://127.0.0.1:8000/" `
+                  -UseBasicParsing |
+                  Out-Null
+
+                $ready = $true
+                break
+              }
+              catch {
+                Start-Sleep -Seconds 1
+              }
+            }
+
+            if (-not $ready) {
+              throw "Local FR27 server did not become ready"
+            }
+
+            $captureScript =
+              Join-Path `
+                $env:FR27_OG_TOOL_DIR `
+                "capture-og-cover.cjs"
+
+            Copy-Item `
+              ".github/scripts/capture-og-cover.cjs" `
+              $captureScript `
+              -Force
+
+            $captureOutput =
+              Join-Path `
+                $env:RUNNER_TEMP `
+                "og-cover.png"
+
+            $env:FR27_OG_URL =
+              "http://127.0.0.1:8000/"
+
+            $env:FR27_OG_OUTPUT =
+              $captureOutput
+
+            Push-Location $env:FR27_OG_TOOL_DIR
+
+            try {
+              node ".\capture-og-cover.cjs"
+            }
+            finally {
+              Pop-Location
+            }
+
+            Copy-Item `
+              $captureOutput `
+              ".\assets\og-cover.png" `
+              -Force
+          }
+          finally {
+            if ($server -and -not $server.HasExited) {
+              Stop-Process `
+                -Id $server.Id `
+                -Force
+            }
+          }
+
+      - name: Bust social image cache
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $path = ".\index.html"
+          $text =
+            [System.IO.File]::ReadAllText($path)
+
+          $pattern =
+            'https://france2027\.app/assets/og-cover\.png(?:\?v=[^"]+)?'
+
+          $matches =
+            [regex]::Matches(
+              $text,
+              $pattern
+            )
+
+          if ($matches.Count -ne 2) {
+            throw "Expected exactly two OG-cover URL references"
+          }
+
+          $version =
+            [DateTime]::UtcNow.ToString(
+              "yyyyMMdd-HHmmss"
+            )
+
+          $replacement =
+            "https://france2027.app/assets/og-cover.png?v=$version"
+
+          $text =
+            [regex]::Replace(
+              $text,
+              $pattern,
+              $replacement
+            )
+
+          [System.IO.File]::WriteAllText(
+            $path,
+            $text,
+            [System.Text.UTF8Encoding]::new($false)
+          )
+
+          Write-Host "OG cache version: $version"
+
+      - name: Commit refreshed cover
+        id: commit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          git diff --check
+
+          $changed =
+            @(git diff --name-only)
+
+          $allowed = @(
+            "assets/og-cover.png",
+            "index.html"
+          )
+
+          $unexpected =
+            @(
+              $changed |
+                Where-Object {
+                  $_ -notin $allowed
+                }
+            )
+
+          if ($unexpected.Count -gt 0) {
+            throw ("Unexpected changed files: " + ($unexpected -join ", "))
+          }
+
+          git config user.name `
+            "github-actions[bot]"
+
+          git config user.email `
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          $baseSha =
+            (git rev-parse HEAD).Trim()
+
+          git fetch origin main
+
+          $upstreamSha =
+            (git rev-parse origin/main).Trim()
+
+          if ($baseSha -ne $upstreamSha) {
+            throw "main moved during OG capture; run the workflow again"
+          }
+
+          git add -- `
+            assets/og-cover.png `
+            index.html
+
+          git diff --cached --quiet
+          $hasChanges = ($LASTEXITCODE -ne 0)
+
+          if ($hasChanges) {
+            git commit -m "Refresh OG cover"
+            git push origin HEAD:main
+            "changed=true" |
+              Out-File `
+                -FilePath $env:GITHUB_OUTPUT `
+                -Append `
+                -Encoding utf8
+          }
+          else {
+            "changed=false" |
+              Out-File `
+                -FilePath $env:GITHUB_OUTPUT `
+                -Append `
+                -Encoding utf8
+          }
+
+      - name: Request GitHub Pages rebuild
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          curl \
+            --fail-with-body \
+            --location \
+            --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "X-GitHub-Api-Version: 2026-03-10" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/pages/builds"

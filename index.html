@@ -4,16 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Sondages sourcés, actualité électorale, couverture des candidats et vérifications pour la présidentielle française de 2027. Aucune moyenne, aucune prévision, aucun conseil de vote.">
-  <link rel="canonical" href="https://openeventbits.github.io/france-2027-signal-lab/">
+  <link rel="canonical" href="https://france2027.app/">
   <meta name="theme-color" content="#050b14">
   <meta name="color-scheme" content="dark">
   <meta name="application-name" content="France 2027 Signal Lab">
   <meta property="og:title" content="France 2027 Signal Lab — Signaux électoraux sourcés">
   <meta property="og:description" content="Sondages sourcés, actualité électorale, couverture des candidats et vérifications pour la présidentielle française de 2027. Aucune moyenne, aucune prévision, aucun conseil de vote.">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://openeventbits.github.io/france-2027-signal-lab/">
+  <meta property="og:url" content="https://france2027.app/">
+  <meta property="og:image" content="https://france2027.app/assets/og-cover.png?v=20260911-145754">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="France 2027 Signal Lab election dashboard">
   <meta property="og:site_name" content="France 2027 Signal Lab">
-  <meta name="twitter:card" content="summary">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://france2027.app/assets/og-cover.png?v=20260911-145754">
   <meta name="twitter:title" content="France 2027 Signal Lab — Signaux électoraux sourcés">
   <meta name="twitter:description" content="Sondages sourcés, actualité électorale, couverture des candidats et vérifications pour la présidentielle française de 2027. Aucune moyenne, aucune prévision, aucun conseil de vote.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3QgeD0iMSIgeT0iMSIgd2lkdGg9IjMwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbD0iIzA3MTUyMiIvPjxwYXRoIGQ9Ik02IDE2QTEwIDEwIDAgMCAxIDE2IDZNMjYgMTZBMTAgMTAgMCAwIDEgMTYgMjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzI2OGNmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNMTAgMTZBNiA2IDAgMCAxIDE2IDEwTTIyIDE2QTYgNiAwIDAgMSAxNiAyMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzVkNWZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjIuNSIgZmlsbD0iIzM1ZDVmZiIvPjwvc3ZnPg==">
@@ -11789,6 +11795,213 @@
       return { classification, retained, deltas };
     }
 
+    function raceCandidateField(event) {
+      return new Set(
+        (Array.isArray(event?.candidates) ? event.candidates : [])
+          .map(candidate => normalizeComparableText(candidate?.name))
+          .filter(Boolean)
+      );
+    }
+
+    function raceCandidateFieldDistance(current, previous) {
+      const currentField = raceCandidateField(current);
+      const previousField = raceCandidateField(previous);
+      let distance = 0;
+
+      currentField.forEach(name => {
+        if (!previousField.has(name)) distance += 1;
+      });
+      previousField.forEach(name => {
+        if (!currentField.has(name)) distance += 1;
+      });
+
+      return distance;
+    }
+
+    function raceCandidateFieldChanges(current, previous) {
+      const currentField = raceCandidateField(current);
+      const previousField = raceCandidateField(previous);
+
+      const addedCandidates = (Array.isArray(current?.candidates)
+        ? current.candidates
+        : []
+      )
+        .map(candidate => candidate?.name)
+        .filter(name =>
+          typeof name === "string" &&
+          !previousField.has(normalizeComparableText(name))
+        );
+
+      const removedCandidates = (Array.isArray(previous?.candidates)
+        ? previous.candidates
+        : []
+      )
+        .map(candidate => candidate?.name)
+        .filter(name =>
+          typeof name === "string" &&
+          !currentField.has(normalizeComparableText(name))
+        );
+
+      return { addedCandidates, removedCandidates };
+    }
+
+    function deriveRacePreviousPollDifference(
+      events,
+      candidateName,
+      current
+    ) {
+      const dayMs = 86400000;
+      const currentScore = candidateScore(current, candidateName);
+      const currentTime = Date.parse(
+        `${current?.fieldwork_end ?? ""}T00:00:00Z`
+      );
+
+      if (
+        currentScore === null ||
+        !Number.isFinite(currentTime) ||
+        typeof current?.round !== "string"
+      ) {
+        return { classification: "NO_PRIOR" };
+      }
+
+      const priorPool = (Array.isArray(events) ? events : [])
+        .map(previous => {
+          const previousScore = candidateScore(previous, candidateName);
+          const previousTime = Date.parse(
+            `${previous?.fieldwork_end ?? ""}T00:00:00Z`
+          );
+          const gap = (currentTime - previousTime) / dayMs;
+
+          if (
+            previousScore === null ||
+            previous?.round !== current.round ||
+            !Number.isFinite(previousTime) ||
+            !Number.isInteger(gap) ||
+            gap <= 0
+          ) {
+            return null;
+          }
+
+          return {
+            previous,
+            previousScore,
+            previousTime,
+            gap,
+            fieldDistance: raceCandidateFieldDistance(
+              current,
+              previous
+            )
+          };
+        })
+        .filter(Boolean);
+
+      if (!priorPool.length) {
+        return { classification: "NO_PRIOR" };
+      }
+
+      const nearestPreviousTime = Math.max(
+        ...priorPool.map(item => item.previousTime)
+      );
+      const nearestDatePool = priorPool.filter(
+        item => item.previousTime === nearestPreviousTime
+      );
+
+      const exactScenarioPool = nearestDatePool.filter(item =>
+        typeof current.scenario_key === "string" &&
+        typeof item.previous?.scenario_key === "string" &&
+        item.previous.scenario_key === current.scenario_key
+      );
+
+      let preferredPool = exactScenarioPool;
+
+      if (!preferredPool.length) {
+        const minimumFieldDistance = Math.min(
+          ...nearestDatePool.map(item => item.fieldDistance)
+        );
+        preferredPool = nearestDatePool.filter(
+          item => item.fieldDistance === minimumFieldDistance
+        );
+      }
+
+      const distinctScores = [
+        ...new Set(preferredPool.map(item => item.previousScore))
+      ];
+
+      if (distinctScores.length !== 1) {
+        return {
+          classification: "AMBIGUOUS_PRIOR",
+          candidates: preferredPool.map(item => item.previous),
+          fieldDistance: Math.min(
+            ...preferredPool.map(item => item.fieldDistance)
+          )
+        };
+      }
+
+      const currentPollster = normalizeComparableText(current.pollster);
+
+      preferredPool.sort((a, b) => {
+        const aSamePollster =
+          normalizeComparableText(a.previous.pollster) ===
+          currentPollster;
+        const bSamePollster =
+          normalizeComparableText(b.previous.pollster) ===
+          currentPollster;
+
+        return (
+          Number(bSamePollster) - Number(aSamePollster) ||
+          normalizeComparableText(a.previous.pollster)
+            .localeCompare(
+              normalizeComparableText(b.previous.pollster),
+              "fr"
+            ) ||
+          String(a.previous.event_id ?? "")
+            .localeCompare(String(b.previous.event_id ?? ""))
+        );
+      });
+
+      const selected = preferredPool[0];
+      const previous = selected.previous;
+      const previousScore = selected.previousScore;
+      const samePollster =
+        normalizeComparableText(previous.pollster) === currentPollster;
+      const sameField =
+        typeof current.scenario_key === "string" &&
+        typeof previous.scenario_key === "string" &&
+        previous.scenario_key === current.scenario_key;
+
+      let classification;
+      if (samePollster && sameField) {
+        classification = "DIRECT";
+      } else if (samePollster) {
+        classification = "FIELD_CHANGED";
+      } else if (sameField) {
+        classification = "POLLSTER_CHANGED";
+      } else {
+        classification = "POLLSTER_AND_FIELD_CHANGED";
+      }
+
+      const fieldChanges = raceCandidateFieldChanges(
+        current,
+        previous
+      );
+
+      return {
+        classification,
+        current,
+        previous,
+        currentScore,
+        previousScore,
+        delta: Number(
+          (currentScore - previousScore).toFixed(10)
+        ),
+        gap: selected.gap,
+        fieldDistance: selected.fieldDistance,
+        samePollster,
+        sameField,
+        ...fieldChanges
+      };
+    }
+
     function formatComparableDelta(value) {
       const rounded = Math.round(value * 10) / 10;
       if (rounded > 0) return `+${rounded}`;
@@ -12330,75 +12543,125 @@
       return String(rounded);
     }
 
-    function formatRaceComparableChange(change) {
-      if (change.classification === "NO COMPARABLE PRIOR") {
+    function formatRacePreviousPollDifference(change) {
+      if (!change || change.classification === "NO_PRIOR") {
         return {
           value: "—",
           meta: translate(
-            "race_glance.no_prior_match",
-            "No prior match"
+            "race_glance.no_previous_poll",
+            "No earlier first-round poll observation for this candidate."
           ),
           tone: "is-missing"
         };
       }
 
-      const formatted = formatComparableChange(change);
-      const detail = change.retained.length === 1
-        ? `${change.retained[0].gap}d · ${change.retained[0].current.pollster}`
-        : translate(
-            "race_glance.comparison_count",
-            "{gaps} · {count} comparisons",
-            {
-              gaps: [...new Set(
-                change.retained.map(comparison => comparison.gap)
-              )]
-                .sort((a, b) => a - b)
-                .map(gap => `${gap}d`)
-                .join(", "),
-              count: change.retained.length
-            }
-          );
-
-      if (change.classification === "MIXED") {
+      if (change.classification === "AMBIGUOUS_PRIOR") {
         return {
-          ...formatted,
-          value: translate(
-            "race_glance.varies",
-            "VARIES"
-          ),
+          value: "—",
           meta: translate(
-            "race_glance.direction_varies",
-            "Direction varies across retained comparable scenarios " +
-              "from earlier poll events. {detail}",
-            { detail }
+            "race_glance.ambiguous_previous_poll",
+            "The nearest earlier poll is ambiguous across equally valid scenarios, so no single difference is shown."
+          ),
+          tone: "is-missing"
+        };
+      }
+
+      const deltaValue = `${formatComparableDelta(change.delta)} pts`;
+      const flagged = change.classification !== "DIRECT";
+      const displayValue = deltaValue + (flagged ? "†" : "");
+      const tone = change.delta === 0
+        ? "is-zero"
+        : change.delta > 0
+          ? "is-positive"
+          : "is-negative";
+
+      const currentDetail = translate(
+        "race_glance.current_observation_detail",
+        "Current: {pollster} · fieldwork {fieldwork} · {score}.",
+        {
+          pollster: change.current.pollster,
+          fieldwork: raceFieldworkRange(
+            change.current.fieldwork_start,
+            change.current.fieldwork_end
+          ),
+          score: formatScore(change.currentScore)
+        }
+      );
+
+      const previousDetail = translate(
+        "race_glance.previous_observation_detail",
+        "Previous: {pollster} · fieldwork {fieldwork} · {score}.",
+        {
+          pollster: change.previous.pollster,
+          fieldwork: raceFieldworkRange(
+            change.previous.fieldwork_start,
+            change.previous.fieldwork_end
+          ),
+          score: formatScore(change.previousScore)
+        }
+      );
+
+      const differenceDetail = translate(
+        "race_glance.previous_difference_detail",
+        "Difference: {value}.",
+        { value: deltaValue }
+      );
+
+      const contextKey = {
+        DIRECT: "race_glance.context_direct",
+        FIELD_CHANGED: "race_glance.context_field_changed",
+        POLLSTER_CHANGED: "race_glance.context_pollster_changed",
+        POLLSTER_AND_FIELD_CHANGED:
+          "race_glance.context_pollster_and_field_changed"
+      }[change.classification];
+
+      const contextFallback = {
+        DIRECT: "Same polling institute and candidate field.",
+        FIELD_CHANGED: "Candidate field changed.",
+        POLLSTER_CHANGED: "Polling institute changed.",
+        POLLSTER_AND_FIELD_CHANGED:
+          "Polling institute and candidate field changed."
+      }[change.classification] || "";
+
+      const contextDetail = contextKey
+        ? translate(contextKey, contextFallback)
+        : "";
+
+      let fieldDetail = "";
+      if (!change.sameField) {
+        const added = change.addedCandidates?.length
+          ? change.addedCandidates.join(", ")
+          : translate("race_glance.none", "none");
+        const removed = change.removedCandidates?.length
+          ? change.removedCandidates.join(", ")
+          : translate("race_glance.none", "none");
+
+        fieldDetail = translate(
+          "race_glance.field_change_detail",
+          "Added: {added}. Removed: {removed}.",
+          { added, removed }
+        );
+      }
+
+      const caveat = flagged
+        ? translate(
+            "race_glance.raw_difference_caveat",
+            "Raw difference between published observations; this is not a like-for-like trend and does not by itself imply voter movement."
           )
-        };
-      }
-
-      if (change.classification !== "SAME-DIRECTION RANGE") {
-        return {
-          ...formatted,
-          meta: detail
-        };
-      }
-
-      const magnitudes = change.deltas
-        .map(delta => Math.round(Math.abs(delta) * 10) / 10)
-        .sort((a, b) => a - b);
+        : "";
 
       return {
-        ...formatted,
-        value:
-          formatRaceComparableMagnitude(magnitudes[0]) +
-          "–" +
-          formatRaceComparableMagnitude(magnitudes.at(-1)) +
-          " pts",
-        meta: translate(
-          "race_glance.range_comparison",
-          "Range across retained comparable scenarios from earlier " +
-            "poll events. {detail}",
-          { detail }
-        )
+        value: displayValue,
+        ariaValue: deltaValue,
+        meta: [
+          currentDetail,
+          previousDetail,
+          differenceDetail,
+          contextDetail,
+          fieldDetail,
+          caveat
+        ].filter(Boolean).join(" "),
+        tone
       };
     }
 
@@ -12423,30 +12686,29 @@
       bars.scrollTop = 0;
 
       const comparisonLabel = translate(
-        "dashboard.vs_prior_match",
-        "VS PRIOR MATCH"
+        "dashboard.vs_previous_poll",
+        "VS PREV. POLL"
       );
       const comparisonExplanation = translate(
-        "dashboard.vs_prior_match_explanation",
-        "Nearest earlier poll from the same pollster testing the same candidate field."
+        "dashboard.vs_previous_poll_explanation",
+        "Difference from the candidate's nearest earlier first-round poll observation. Context changes are flagged in the comparison tooltip."
       );
       bars.dataset.comparisonLabel = comparisonLabel;
 
-      let hasComparableChange = false;
+      let hasPreviousDifference = false;
 
       const rows = ordered.map(candidate => {
-        const change = deriveComparableChange(
+        const change = deriveRacePreviousPollDifference(
           events,
           candidate.name,
-          event.fieldwork_end,
           event
         );
 
         const formattedChange =
-          formatRaceComparableChange(change);
+          formatRacePreviousPollDifference(change);
 
         if (formattedChange.value !== "—") {
-          hasComparableChange = true;
+          hasPreviousDifference = true;
         }
 
         const scoreWidth = Math.max(
@@ -12458,14 +12720,15 @@
         );
 
         const changeAria = formattedChange.value === "—"
-          ? translate(
-              "race_glance.no_comparable_prior_result",
-              "No comparable prior result"
-            )
+          ? formattedChange.meta
           : translate(
-              "race_glance.comparable_change",
-              "Comparable change {value}",
-              { value: formattedChange.value }
+              "race_glance.previous_poll_difference",
+              "Difference from previous poll {value}",
+              {
+                value:
+                  formattedChange.ariaValue ||
+                  formattedChange.value.replace("†", "")
+              }
             );
 
         const changeGlyph =
@@ -12527,7 +12790,7 @@
 
       racePollPanel.classList.remove("is-no-comparison");
       racePollPanel.dataset.comparisonState =
-        hasComparableChange ? "available" : "unavailable";
+        hasPreviousDifference ? "available" : "unavailable";
 
       bars.innerHTML = `
         <div class="race-column-head">
@@ -14269,5 +14532,8 @@
 }());
 </script>
 <!-- /FR27 APPLICATION HUD CONTROLLER -->
+<!-- Cloudflare Web Analytics -->
+<script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "59b5349dd1f14025ba6baa733dae0b19"}'></script>
+<!-- End Cloudflare Web Analytics -->
 </body>
 </html>
