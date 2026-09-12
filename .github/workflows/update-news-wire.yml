@@ -726,6 +726,21 @@ jobs:
             echo "candidate_signals_changed=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Rebuild semantic search entrypoints
+        id: search_entrypoints
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -B build_search_entrypoints.py
+          python -B build_search_entrypoints.py --check
+
+          if git diff --quiet -- index.html en/index.html; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Rebuild and validate publication manifest
         id: publication_manifest
         env:
@@ -760,7 +775,7 @@ jobs:
 
       - name: Commit changed rolling news data
         id: commit
-        if: steps.promote.outputs.changed == 'true' || steps.icons.outputs.changed == 'true' || steps.candidate_signals.outputs.candidate_signals_changed == 'true' || steps.publication_manifest.outputs.publication_manifest_changed == 'true'
+        if: steps.promote.outputs.changed == 'true' || steps.icons.outputs.changed == 'true' || steps.candidate_signals.outputs.candidate_signals_changed == 'true' || steps.search_entrypoints.outputs.changed == 'true' || steps.publication_manifest.outputs.publication_manifest_changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -777,6 +792,8 @@ jobs:
             candidate_signals.json \
             candidate_agenda_history.json \
             candidate_visibility_history.json \
+            index.html \
+            en/index.html \
             publication_manifest.json \
             source_icons.json \
             assets/source-icons
@@ -825,17 +842,20 @@ jobs:
             --candidacy-status candidate_candidacy_status.json \
             --previous /tmp/candidate_agenda_history-upstream.json \
             --output candidate_agenda_history.json
+          python -B build_search_entrypoints.py
           python -B build_publication_manifest.py \
             --published-at "$post_rebase_published_at"
 
           if ! git diff --quiet -- \
-            recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json publication_manifest.json
+            recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json \
+            index.html en/index.html publication_manifest.json
           then
             post_rebase_published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
             python -B build_publication_manifest.py \
               --published-at "$post_rebase_published_at"
             git add -- \
-              recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json publication_manifest.json
+              recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json \
+              index.html en/index.html publication_manifest.json
             git commit --amend --no-edit
           fi
 
@@ -857,13 +877,16 @@ jobs:
             --previous candidate_agenda_history.json \
             --output candidate_agenda_history.json \
             --check
+          python -B build_search_entrypoints.py
+          python -B build_search_entrypoints.py --check
           python -B build_publication_manifest.py \
             --published-at "$final_published_at"
           python -B build_publication_manifest.py \
             --check \
             --published-at "$final_published_at"
           git diff --exit-code -- \
-            recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json publication_manifest.json
+            recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json \
+            index.html en/index.html publication_manifest.json
           for attempt in 1 2 3; do
             if push_output="$(git push origin "HEAD:$target_branch" 2>&1)"; then
               printf '%s\n' "$push_output"

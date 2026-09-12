@@ -167,6 +167,7 @@
     .what-changed-list[data-count="2"] { grid-template-rows: 1.15fr .85fr; }
     .what-changed-list[data-count="1"] { grid-template-rows: 1fr; }
     .what-changed-list:not([data-count]) { align-items: center; }
+    .semantic-snapshot-list { margin: 0; padding: 0; list-style: none; }
     .what-changed-item {
       display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; gap: 9px 12px; padding: 13px 0;
       border-bottom: 1px solid #143149;
@@ -7408,93 +7409,145 @@
 
     <section class="hero-grid" data-i18n-aria-label="dashboard.top_briefing" aria-label="Top briefing">
       <article class="panel what-changed" aria-labelledby="what-changed-title">
-
-<div class="panel-head">
-          <h2 id="what-changed-title" data-i18n="dashboard.what_changed">WHAT CHANGED</h2>
-          <div
-            class="changes-ledger-summary"
-            id="changes-ledger-summary"
-            aria-live="polite"
-            data-i18n-aria-label="what_changed.loading_count"
-            aria-label="Loading source-linked update count"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:112px"></span></div>
+        <!-- FR27 SEMANTIC SNAPSHOT: WHAT CHANGED START -->
+      <div class="panel-head">
+        <h2 id="what-changed-title" data-i18n="dashboard.what_changed">WHAT CHANGED</h2>
+        <div class="changes-ledger-summary" id="changes-ledger-summary" aria-live="polite">55 CHANGES · LAST 14 DAYS</div>
+      </div>
+      <div class="what-changed-list" id="what-changed-list" aria-live="polite" aria-busy="false" data-fr27-semantic-snapshot="true">
+        <div class="changes-ledger-scroll" tabindex="0">
+        <ol class="semantic-snapshot-list" aria-label="Chronological source-linked changes">
+          <li class="changes-ledger-entry" data-category="campaign" data-fr27-change-id="campaign-9061ac48be27cdd1afbc">
+            <time class="changes-ledger-time" datetime="2026-09-12T12:29:52Z">12 Sep 2026</time>
+            <span class="changes-ledger-beacon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle class="changes-ledger-shape" cx="12" cy="12" r="8"></circle><circle class="changes-ledger-fill" cx="12" cy="12" r="2.5"></circle></svg></span>
+            <div class="changes-ledger-copy">
+              <div class="changes-ledger-category">CAMPAIGN</div>
+              <h3 class="changes-ledger-headline">Présidentielle : comment Natacha Polony prépare secrètement son entrée en campagne</h3>
+              <div class="changes-ledger-meta">
+                <span class="changes-ledger-meta-text">Published · Le Point</span>
+                <a class="changes-ledger-source" href="https://news.google.com/rss/articles/CBMi2AFBVV95cUxPNE91SUhPdUUzSWROMTdmcldQM1dHWlgxWG1lcFBNcURpZUhWLTZYVEFheVkxWjd6TXE3aDJSWGh1SEk0Zk15STVhUFRJaXN1cm1nRFZMdDlWSm1oNTR4N2NDNVBTckdhZEJQLW1RZFd5RmJBS0JpdW1abEtzM0N3TjRfeXk5SGlVZl9YUWpneUpINWd1TDVNYTVwQUVhTFN6SXdkaVFvM1ZYZnpwUFNqZEFacVFONzhHWVRNa2t1QzQtRXVVQ1FoR0N6aTY3ZGtBOXoxa0hTMzg?oc=5" target="_blank" rel="noopener noreferrer">Open source ↗</a>
+              </div>
+            </div>
+            <div class="changes-ledger-visual" aria-hidden="true"><span class="changes-ledger-wordmark">Le Point</span></div>
+          </li>
+          <li class="changes-ledger-entry" data-category="campaign" data-fr27-change-id="campaign-a4e14cc8429eb697f441">
+            <time class="changes-ledger-time" datetime="2026-09-12T09:31:45Z">12 Sep 2026</time>
+            <span class="changes-ledger-beacon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle class="changes-ledger-shape" cx="12" cy="12" r="8"></circle><circle class="changes-ledger-fill" cx="12" cy="12" r="2.5"></circle></svg></span>
+            <div class="changes-ledger-copy">
+              <div class="changes-ledger-category">CAMPAIGN</div>
+              <h3 class="changes-ledger-headline">Présidentielle 2027 : qui sont les candidats ? Qui pourrait se lancer dans la course ? Notre suivi en temps réel</h3>
+              <div class="changes-ledger-meta">
+                <span class="changes-ledger-meta-text">Published · Le Parisien</span>
+                <a class="changes-ledger-source" href="https://news.google.com/rss/articles/CBMikgJBVV95cUxOOWd3eGZzV0U1eTQ4WXRQOF9HWk1KaWhqTzRVTE5fZWpEckVvb0tOWFVYSC0yYjItcjN0UGk4d0NEckpTejhwTktXSjdRWS1sRi1JOENLTEZkYUVCeWZpeHRQbnduXzFtUUo2aXdoajZ3VlptRDhTUHFPMGUtMk9xNmRkeGpwalhZRHQ3MmRMNXdNU01CWHhyV2EyVk5OcGxfYVRkNFhGaFZfYUgzaDFFVnNLWUtLVF9MSjE2dEN2QUxfN0xYc3JyUERLOUFWQWU0Z0FVYlpTMHlERklnT1pTdEl6ZVpaci12dGJZSERONHBtbWt3b3VYRll0a0VfYW5FWk9haTVYQjhYSUpONlpKNHdB?oc=5" target="_blank" rel="noopener noreferrer">Open source ↗</a>
+              </div>
+            </div>
+            <div class="changes-ledger-visual" aria-hidden="true"><span class="changes-ledger-wordmark">Le Parisien</span></div>
+          </li>
+          <li class="changes-ledger-entry" data-category="campaign" data-fr27-change-id="campaign-f99315faadb5ca177bde">
+            <time class="changes-ledger-time" datetime="2026-09-11T12:34:17Z">11 Sep 2026</time>
+            <span class="changes-ledger-beacon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle class="changes-ledger-shape" cx="12" cy="12" r="8"></circle><circle class="changes-ledger-fill" cx="12" cy="12" r="2.5"></circle></svg></span>
+            <div class="changes-ledger-copy">
+              <div class="changes-ledger-category">CAMPAIGN</div>
+              <h3 class="changes-ledger-headline">VIDÉO. Châteaubriant : « Il faut arrêter de mettre en concurrence nos producteurs » appuie Raphaël Glucksmann</h3>
+              <div class="changes-ledger-meta">
+                <span class="changes-ledger-meta-text">Published · Ouest-France</span>
+                <a class="changes-ledger-source" href="https://news.google.com/rss/articles/CBMisgJBVV95cUxPRHAzMzBvZGdfWWVDc2RiMHZQejFTbDZqMmp1S1pteGN5dWR5ZFN0anVMUmh4YnJwckRVdkU1OVY0RFBha3NRR0pjZl9RSS0zbS1jeWFubFVrcDljRHpqeFA0UFVvZW01WHJ4ZFdpWllUcWFhclUwY0dpRll1aXNzQkZzN0l3dG9NV0NRT1lTSHBXSmwzcW1LblluY3lLMVdmZl82bHp0REx4QzI0dGRDblM3eE9OWThSM2gzS2NnTGVORGNzN3NkV3ExblBvWFNkZUlXQWowZWNWQ0lUZm9tUXFuREVJUXY2THRTd2s2eGhYWU5qSWJibWpNX0dQUERsN3JMdlJSZlFyS2RDX1RNSnp0OGRJX0FUZDFZQTh1SEhEb0NKVkxTN0JhN0xlb2lpRlE?oc=5" target="_blank" rel="noopener noreferrer">Open source ↗</a>
+              </div>
+            </div>
+            <div class="changes-ledger-visual" aria-hidden="true"><span class="changes-ledger-wordmark">Ouest-France</span></div>
+          </li>
+        </ol>
         </div>
-
-<div class="what-changed-list" id="what-changed-list" aria-live="polite" aria-busy="true" data-i18n-aria-label="what_changed.loading" aria-label="Loading source-linked dashboard changes">
-          <div class="fr27-skeleton-region" aria-hidden="true"><div class="fr27-skeleton-briefing"><span class="fr27-skeleton-row"><span class="fr27-skeleton-block fr27-skeleton-source"></span><span class="fr27-skeleton-row-copy"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:88%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:46%;--fr27-skeleton-height:7px"></span></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block fr27-skeleton-source"></span><span class="fr27-skeleton-row-copy"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:74%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:52%;--fr27-skeleton-height:7px"></span></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block fr27-skeleton-source"></span><span class="fr27-skeleton-row-copy"><span class="fr27-skeleton-block" style="--fr27-skeleton-width:82%"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:38%;--fr27-skeleton-height:7px"></span></span></span></div></div>
-        </div>
+      </div>
+<!-- FR27 SEMANTIC SNAPSHOT: WHAT CHANGED END -->
       </article>
 
       <article class="panel race-glance" aria-labelledby="race-glance-title">
-        <div class="panel-head race-glance-head">
-          <div class="race-heading">
-            <h2 id="race-glance-title" data-i18n="dashboard.race_at_a_glance">RACE AT A GLANCE</h2>
-          </div>
-          <div
-            class="race-poll-tabs"
-            id="race-poll-tabs"
-            role="tablist"
-            data-i18n-aria-label="dashboard.latest_first_round_poll_events" aria-label="Latest first-round poll events"
-            aria-busy="true"
-          ></div>
+        <!-- FR27 SEMANTIC SNAPSHOT: RACE AT A GLANCE START -->
+      <div class="panel-head race-glance-head">
+        <div class="race-heading">
+          <h2 id="race-glance-title" data-i18n="dashboard.race_at_a_glance">RACE AT A GLANCE</h2>
+          <p class="race-interpretation">Source-linked evidence · no polling average · no forecast · no voting advice</p>
         </div>
-
-        <div
-          class="race-poll-panel"
-          id="race-poll-panel"
-          role="tabpanel"
-          tabindex="0"
-        >
-          <div class="race-event-controls">
-            <div class="race-event" aria-live="polite">
-              <div class="race-event-title" id="latest-title" data-i18n-aria-label="race_glance.loading_latest_poll" aria-label="Loading latest poll"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:160px;--fr27-skeleton-height:12px"></span></div>
-              <div class="race-event-detail" id="latest-sub"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:110px;--fr27-skeleton-height:7px"></span></div>
-            </div>
-
-            <div class="race-scenario-control">
-              <label class="hypothesis-label" for="hypothesis-select" data-i18n="race_glance.scenario">SCENARIO</label>
-              <select
-                id="hypothesis-select"
-                disabled
-                data-i18n-aria-label="dashboard.choose_a_reported_first_round_poll_scenario" aria-label="Choose a reported first-round poll scenario"
-              ></select>
-              <div
-                class="race-scenario-static"
-                id="race-scenario-static"
-                aria-live="polite"
-                hidden
-              ></div>
-            </div>
+        <div class="race-poll-tabs" id="race-poll-tabs" role="tablist" aria-label="Reported scores for the selected hypothesis" aria-busy="false"></div>
+      </div>
+      <div class="race-poll-panel is-no-comparison" id="race-poll-panel" role="tabpanel" tabindex="0" data-fr27-semantic-snapshot="true" data-selected-event-id="4376dd89b093d716c183e4e392030e69f9182d2e5211d1a3ef45fd69c0bbe9a8" data-scenario-key="1e3a3d6a6feddb531b0b44b1109cf81b3954bbbb33e1b01018303c1a6ae7be65">
+        <div class="race-event-controls">
+          <div class="race-event" aria-live="polite">
+            <div class="race-event-title" id="latest-title">OpinionWay · Fieldwork <time datetime="2026-09-08">8 Sep 2026</time>–<time datetime="2026-09-09">9 Sep 2026</time></div>
+            <div class="race-event-detail" id="latest-sub">Sample <data value="1001">1,001</data> · 2 published hypotheses</div>
           </div>
-
-          <div class="race-scroll-shell">
-            <div
-              class="bars"
-              id="bars"
-              aria-live="polite"
-              data-i18n-aria-label="race_glance.reported_scores_list" aria-label="Reported candidate scores for the selected scenario. Scroll to view all candidates."
-              tabindex="0"
-            ><div class="fr27-skeleton-region" role="status" data-i18n-aria-label="dashboard.loading_candidate_scores" aria-label="Loading candidate scores"><div class="fr27-skeleton-race" aria-hidden="true"><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-circle"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-height:7px"></span><span class="fr27-skeleton-block" style="--fr27-skeleton-width:30px;--fr27-skeleton-height:12px"></span></span></div></div></div>
-            <div
-              class="race-scroll-fade"
-              id="race-scroll-fade"
-              aria-hidden="true"
-              hidden
-            ></div>
-          </div>
-
-          <div id="race-more" hidden></div>
-          <div id="meta" hidden></div>
-
-          <div class="race-footer">
-            <a
-              id="race-source"
-              class="media-pulse-dashboard-cta"
-              target="_blank"
-              rel="noopener noreferrer"
-              hidden
-            >View full results &#8599;</a>
+          <div class="race-scenario-control">
+            <label class="hypothesis-label" for="hypothesis-select">SCENARIO</label>
+            <select id="hypothesis-select" hidden disabled aria-disabled="true"></select>
+            <div class="race-scenario-static" id="race-scenario-static">Selected hypothesis · French source — Nathalie Arthaud, Jean-Luc Mélenchon, Fabien Roussel, Marine Tondelier, Raphaël Glucksmann, Gabriel Attal, Bruno Retailleau, Nicolas Dupont-Aignan, Marine Le Pen, Éric Zemmour</div>
           </div>
         </div>
+        <div class="race-scroll-shell">
+          <div class="bars" id="bars" aria-live="polite" aria-label="Reported scores for the selected hypothesis" tabindex="0">
+            <div class="race-column-head" aria-hidden="true"><span>CANDIDATE</span><span>REPORTED SCORE</span><span class="race-column-head-result">RESULT</span></div>
+            <ol class="semantic-snapshot-list" aria-label="Reported scores for the selected hypothesis">
+              <li class="bar-row" data-fr27-candidate-id="marine-le-pen">
+                <div class="race-candidate"><div class="candidate">Marine Le Pen</div></div>
+                <div class="track" aria-hidden="true"><div class="fill" style="width:34%"></div></div>
+                <data class="score" value="34">34%</data>
+              </li>
+              <li class="bar-row" data-fr27-candidate-id="jean-luc-melenchon">
+                <div class="race-candidate"><div class="candidate">Jean-Luc Mélenchon</div></div>
+                <div class="track" aria-hidden="true"><div class="fill" style="width:15%"></div></div>
+                <data class="score" value="15">15%</data>
+              </li>
+              <li class="bar-row" data-fr27-candidate-id="gabriel-attal">
+                <div class="race-candidate"><div class="candidate">Gabriel Attal</div></div>
+                <div class="track" aria-hidden="true"><div class="fill" style="width:14%"></div></div>
+                <data class="score" value="14">14%</data>
+              </li>
+              <li class="bar-row" data-fr27-candidate-id="raphael-glucksmann">
+                <div class="race-candidate"><div class="candidate">Raphaël Glucksmann</div></div>
+                <div class="track" aria-hidden="true"><div class="fill" style="width:12%"></div></div>
+                <data class="score" value="12">12%</data>
+              </li>
+              <li class="bar-row" data-fr27-candidate-id="bruno-retailleau">
+                <div class="race-candidate"><div class="candidate">Bruno Retailleau</div></div>
+                <div class="track" aria-hidden="true"><div class="fill" style="width:12%"></div></div>
+                <data class="score" value="12">12%</data>
+              </li>
+              <li class="bar-row" data-fr27-candidate-id="marine-tondelier">
+                <div class="race-candidate"><div class="candidate">Marine Tondelier</div></div>
+                <div class="track" aria-hidden="true"><div class="fill" style="width:4%"></div></div>
+                <data class="score" value="4">4%</data>
+              </li>
+              <li class="bar-row" data-fr27-candidate-id="eric-zemmour">
+                <div class="race-candidate"><div class="candidate">Éric Zemmour</div></div>
+                <div class="track" aria-hidden="true"><div class="fill" style="width:4%"></div></div>
+                <data class="score" value="4">4%</data>
+              </li>
+              <li class="bar-row" data-fr27-candidate-id="fabien-roussel">
+                <div class="race-candidate"><div class="candidate">Fabien Roussel</div></div>
+                <div class="track" aria-hidden="true"><div class="fill" style="width:2%"></div></div>
+                <data class="score" value="2">2%</data>
+              </li>
+              <li class="bar-row" data-fr27-candidate-id="nicolas-dupont-aignan">
+                <div class="race-candidate"><div class="candidate">Nicolas Dupont-Aignan</div></div>
+                <div class="track" aria-hidden="true"><div class="fill" style="width:2%"></div></div>
+                <data class="score" value="2">2%</data>
+              </li>
+              <li class="bar-row" data-fr27-candidate-id="nathalie-arthaud">
+                <div class="race-candidate"><div class="candidate">Nathalie Arthaud</div></div>
+                <div class="track" aria-hidden="true"><div class="fill" style="width:1%"></div></div>
+                <data class="score" value="1">1%</data>
+              </li>
+            </ol>
+          </div>
+          <div class="race-scroll-fade" id="race-scroll-fade" aria-hidden="true" hidden></div>
+        </div>
+        <div id="race-more" hidden></div>
+        <div id="meta" hidden></div>
+        <div class="race-footer">
+        <a id="race-source" class="media-pulse-dashboard-cta" href="https://www.lesechos.fr/elections/presidentielle/sondage-presidentielle-2027-tous-les-resultats-du-barometre-presitrack-2250959" target="_blank" rel="noopener noreferrer">View poll source ↗</a>
+        </div>
+      </div>
+<!-- FR27 SEMANTIC SNAPSHOT: RACE AT A GLANCE END -->
       </article>
 
       <article
@@ -9310,6 +9363,15 @@
       if (!container) return;
 
       const ledger = deriveRecentChangeLedger();
+
+      if (
+        (ledger.loading || ledger.unavailable) &&
+        container.dataset.fr27SemanticSnapshot === "true"
+      ) {
+        return;
+      }
+
+      container.removeAttribute("data-fr27-semantic-snapshot");
 
       const categories = [
         { key: "all", label: translate("what_changed.filter.all", "ALL"), matches: () => true },
@@ -12872,6 +12934,10 @@
     }
 
     function renderMeta(event) {
+      document
+        .querySelectorAll('[data-fr27-semantic-race-source="extra"]')
+        .forEach(sourceLink => sourceLink.remove());
+
       const sample = event.sample_size
         ? racePollNumber(event.sample_size)
         : translate(
@@ -13736,6 +13802,24 @@
     loadClaimsUnderScrutiny();
     loadCampaignEvents();
 
+    const deliveredRaceSnapshot = (() => {
+      const panel = $("#race-poll-panel");
+      const tabs = $("#race-poll-tabs");
+
+      if (
+        !panel ||
+        !tabs ||
+        panel.dataset.fr27SemanticSnapshot !== "true"
+      ) {
+        return null;
+      }
+
+      return {
+        panel: panel.cloneNode(true),
+        tabs: tabs.cloneNode(true)
+      };
+    })();
+
     fetch("polls.json", { cache: "no-store" })
       .then(response => {
         if (!response.ok) {
@@ -13866,8 +13950,30 @@
           },
           latest.publication_date || latest.fieldwork_end
         );
+
+        $("#race-poll-panel")?.removeAttribute(
+          "data-fr27-semantic-snapshot"
+        );
       })
       .catch(error => {
+        const snapshotPanel = $("#race-poll-panel");
+
+        if (
+          deliveredRaceSnapshot &&
+          snapshotPanel?.dataset.fr27SemanticSnapshot === "true"
+        ) {
+          $("#race-poll-tabs")?.replaceWith(
+            deliveredRaceSnapshot.tabs.cloneNode(true)
+          );
+          snapshotPanel.replaceWith(
+            deliveredRaceSnapshot.panel.cloneNode(true)
+          );
+          pollingEvidenceFeature.showError(error);
+          document.documentElement.dataset.ready = "snapshot";
+          markDataset("polls", "error");
+          return;
+        }
+
         const tablist = $("#race-poll-tabs");
         tablist.replaceChildren();
         tablist.setAttribute("aria-busy", "false");

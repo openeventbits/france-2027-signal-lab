@@ -491,6 +491,16 @@ jobs:
           )
           PY
 
+      - name: Rebuild semantic search entrypoints on registry change
+        if: steps.registry.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec 2> >(tee /tmp/candidate-universe-error.txt >&2)
+
+          python -B build_search_entrypoints.py
+          python -B build_search_entrypoints.py --check
+
       - name: Rebuild publication manifest on registry change
         id: manifest
         if: steps.registry.outputs.changed == 'true'
@@ -539,7 +549,7 @@ jobs:
           unexpected="$(
             git status --porcelain=v1 --untracked-files=all \
               | sed -E 's/^...//' \
-              | grep -Ev '^(candidate_candidacy_status|candidate_signals|candidate_agenda_history|candidate_visibility_history|campaign_events|publication_manifest)\.json$' \
+              | grep -Ev '^((candidate_candidacy_status|candidate_signals|candidate_agenda_history|candidate_visibility_history|campaign_events|publication_manifest)\.json|index\.html|en/index\.html)$' \
               || true
           )"
           if [[ -n "$unexpected" ]]; then
@@ -572,6 +582,8 @@ jobs:
             candidate_signals.json \
             candidate_agenda_history.json \
             candidate_visibility_history.json \
+            index.html \
+            en/index.html \
             publication_manifest.json
           git diff --cached --check
           git commit -m "Update candidate universe" -- \
@@ -580,6 +592,8 @@ jobs:
             candidate_signals.json \
             candidate_agenda_history.json \
             candidate_visibility_history.json \
+            index.html \
+            en/index.html \
             publication_manifest.json
 
           git fetch origin main
@@ -643,6 +657,7 @@ jobs:
               build_manifest,
               validate_manifest,
           )
+          from build_search_entrypoints import generate_entrypoints
           from candidate_candidacy_status import load_candidate_candidacy_status
           from candidate_visibility_history_contract import (
               serialize_candidate_visibility_history,
@@ -703,6 +718,8 @@ jobs:
               serialize_candidate_agenda_history(agenda_history),
           )
 
+          generate_entrypoints()
+
           published_at = datetime.now(timezone.utc).replace(
               microsecond=0
           ).isoformat().replace("+00:00", "Z")
@@ -716,6 +733,8 @@ jobs:
             candidate_signals.json \
             candidate_agenda_history.json \
             candidate_visibility_history.json \
+            index.html \
+            en/index.html \
             publication_manifest.json
           then
             git add -- \
@@ -723,6 +742,8 @@ jobs:
               candidate_signals.json \
               candidate_agenda_history.json \
               candidate_visibility_history.json \
+              index.html \
+              en/index.html \
               publication_manifest.json
             git diff --cached --check
             git commit --amend --no-edit
@@ -731,7 +752,7 @@ jobs:
           unexpected="$(
             git status --porcelain=v1 --untracked-files=all \
               | sed -E 's/^...//' \
-              | grep -Ev '^(candidate_candidacy_status|candidate_signals|candidate_agenda_history|candidate_visibility_history|campaign_events|publication_manifest)\.json$' \
+              | grep -Ev '^((candidate_candidacy_status|candidate_signals|candidate_agenda_history|candidate_visibility_history|campaign_events|publication_manifest)\.json|index\.html|en/index\.html)$' \
               || true
           )"
           if [[ -n "$unexpected" ]]; then
@@ -751,6 +772,8 @@ jobs:
             --previous candidate_agenda_history.json \
             --output candidate_agenda_history.json \
             --check
+          python -B build_search_entrypoints.py
+          python -B build_search_entrypoints.py --check
           python -B build_publication_manifest.py \
             --published-at "$final_published_at"
           python -B build_publication_manifest.py \
@@ -762,6 +785,8 @@ jobs:
             candidate_signals.json \
             candidate_agenda_history.json \
             candidate_visibility_history.json \
+            index.html \
+            en/index.html \
             publication_manifest.json
           git push origin HEAD:main
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
