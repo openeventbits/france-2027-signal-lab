@@ -1583,6 +1583,34 @@
         )
       );
 
+      let pollDetailTracked = false;
+
+      info.addEventListener(
+        "click",
+        function () {
+          if (pollDetailTracked) return;
+
+          const captured =
+            window.FR27Analytics?.track(
+              "poll_detail_open",
+              {
+                candidate_id:
+                  candidate.candidate_id || "",
+                pollster:
+                  pollster === MISSING
+                    ? ""
+                    : pollster,
+                evidence_type:
+                  "poll_evidence_info"
+              }
+            );
+
+          if (captured) {
+            pollDetailTracked = true;
+          }
+        }
+      );
+
       const title = card.querySelector(
         ".candidate-signals-analysis-card-title"
       );
@@ -4311,6 +4339,37 @@
       "details",
       "candidate-signals-dossier-details"
     );
+
+    let evidenceOpenTracked = false;
+
+    details.addEventListener(
+      "toggle",
+      function () {
+        if (
+          !details.open ||
+          evidenceOpenTracked
+        ) {
+          return;
+        }
+
+        const captured =
+          window.FR27Analytics?.track(
+            "evidence_open",
+            {
+              workspace: "candidates",
+              candidate_id:
+                candidate.candidate_id || "",
+              evidence_type:
+                "candidate_dossier_full_evidence"
+            }
+          );
+
+        if (captured) {
+          evidenceOpenTracked = true;
+        }
+      }
+    );
+
     const summary = createElement(
       "summary",
       "candidate-signals-dossier-details-summary",

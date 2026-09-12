@@ -33,6 +33,7 @@
     <script src="assets/localization.js"></script>
     <link rel="stylesheet" href="assets/fr27-ui.css">
     <script src="assets/fr27-ui.js"></script>
+  <script src="assets/fr27-analytics.js"></script>
   <link rel="stylesheet" href="assets/hybrid-dashboard.css">
   <style>
     :root {
@@ -14408,6 +14409,13 @@
               document.execCommand("copy");
               field.remove();
             }
+
+            window.FR27Analytics?.track(
+              "professional_conversion",
+              {
+                action: "contact_email_copy"
+              }
+            );
 
             contactCopy.textContent = hudTranslate(
               "hud.copied",
