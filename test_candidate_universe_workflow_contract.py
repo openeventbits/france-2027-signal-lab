@@ -267,9 +267,9 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
             "Verify bounded generated-file scope",
         )
         allowed_pattern = (
-            "^(candidate_candidacy_status|candidate_signals|"
+            "^((candidate_candidacy_status|candidate_signals|"
             "candidate_agenda_history|candidate_visibility_history|campaign_events|"
-            "publication_manifest)\\.json$"
+            "publication_manifest)\\.json|index\\.html|en/index\\.html)$"
         )
         self.assertIn(allowed_pattern, scope)
 
@@ -288,6 +288,8 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
             "candidate_signals.json",
             "candidate_agenda_history.json",
             "candidate_visibility_history.json",
+            "index.html",
+            "en/index.html",
             "publication_manifest.json",
         ):
             self.assertIn(required, stage)

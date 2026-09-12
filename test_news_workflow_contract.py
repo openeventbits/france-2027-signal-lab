@@ -80,7 +80,8 @@ class NewsWorkflowContractTests(unittest.TestCase):
             )
 
         self.assertIn(
-            "recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json publication_manifest.json",
+            "recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json \\\n"
+            "            index.html en/index.html publication_manifest.json",
             reconciliation,
         )
 
@@ -95,7 +96,8 @@ class NewsWorkflowContractTests(unittest.TestCase):
             final_validation,
         )
         self.assertIn(
-            "recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json publication_manifest.json",
+            "recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json \\\n"
+            "            index.html en/index.html publication_manifest.json",
             final_validation,
         )
 
