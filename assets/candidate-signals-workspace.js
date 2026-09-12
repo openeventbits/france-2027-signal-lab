@@ -5201,22 +5201,74 @@
     return section;
   }
 
-  function selectedPollScore(candidate) {
-    const polling = candidate?.polling;
-    if (
-      polling?.evidence_state !== "reported" ||
-      !hasValue(polling.selected_hypothesis_score)
-    ) {
-      return null;
+  function numericPollOrderScore(primary, fallback) {
+    if (hasValue(primary)) {
+      const score = Number(primary);
+      if (Number.isFinite(score)) return score;
     }
 
-    const score = Number(polling.selected_hypothesis_score);
-    return Number.isFinite(score) ? score : null;
+    if (hasValue(fallback)) {
+      const score = Number(fallback);
+      if (Number.isFinite(score)) return score;
+    }
+
+    return null;
+  }
+
+  function featuredPollOrderScore(candidate) {
+    const polling = candidate?.polling;
+    if (polling?.evidence_state !== "reported") return null;
+
+    return numericPollOrderScore(
+      polling.selected_hypothesis_score,
+      polling.range_max
+    );
+  }
+
+  function latestHistoricalPollObservation(candidate) {
+    const observations = candidate?.poll_history?.observations;
+    if (!Array.isArray(observations) || !observations.length) return null;
+
+    let latest = null;
+
+    for (const observation of observations) {
+      if (!hasValue(observation?.fieldwork_end)) continue;
+
+      if (
+        latest === null ||
+        String(observation.fieldwork_end) > String(latest.fieldwork_end)
+      ) {
+        latest = observation;
+      }
+    }
+
+    return latest;
+  }
+
+  function historicalPollOrderScore(candidate) {
+    const observation = latestHistoricalPollObservation(candidate);
+    if (!observation) return null;
+
+    return numericPollOrderScore(
+      observation.selected_score,
+      observation.range_max
+    );
   }
 
   function pollOrderGroup(candidate) {
-    if (selectedPollScore(candidate) !== null) return 0;
-    return candidate?.polling?.evidence_state === "reported" ? 1 : 2;
+    if (candidate?.polling?.evidence_state === "reported") return 0;
+
+    if (latestHistoricalPollObservation(candidate)) {
+      return candidate?.candidacy?.display_tier === "secondary" ? 2 : 1;
+    }
+
+    return 3;
+  }
+
+  function pollOrderScore(candidate, group) {
+    if (group === 0) return featuredPollOrderScore(candidate);
+    if (group === 1 || group === 2) return historicalPollOrderScore(candidate);
+    return null;
   }
 
   function orderWorkspaceCandidates(candidates) {
@@ -5224,15 +5276,20 @@
 
     candidates.forEach(candidate => {
       const group = pollOrderGroup(candidate);
-      const score = selectedPollScore(candidate);
+      const score = pollOrderScore(candidate, group);
+
       const insertion = ordered.findIndex(existing => {
         const existingGroup = pollOrderGroup(existing);
 
         if (group !== existingGroup) return group < existingGroup;
-        if (group !== 0) return false;
+        if (group === 3) return false;
 
-        const existingScore = selectedPollScore(existing);
-        return existingScore !== null && score > existingScore;
+        const existingScore = pollOrderScore(existing, existingGroup);
+
+        if (score === null) return false;
+        if (existingScore === null) return true;
+
+        return score > existingScore;
       });
 
       if (insertion === -1) {
@@ -5244,7 +5301,6 @@
 
     return ordered;
   }
-
   function activeWorkspaceCandidates(candidates, metadata) {
     const field = metadata?.activeMonitoringField ||
       metadata?.presidentialField;
