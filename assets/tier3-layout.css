@@ -5699,34 +5699,36 @@
 }
 
 /* =========================================================
- * TIER 3 FOOTER — TWO-ROW NARROW TELEMETRY HUD
+ * TIER 3 FOOTER - REDUCED RESPONSIVE HUD
  *
- * The one-row telemetry composition fits through 513px.
- * At 512px and below, keep time and sources in the first row,
- * give dataset metrics the second row and actions the third.
+ * 650px and above: compact Tier-3 telemetry remains intact.
+ * 360px through 649px: one reduced row with time, sources
+ * and utility actions; dataset-scale metrics are omitted.
+ * Below 360px: source status is omitted; time and actions remain.
  * No legacy countdown/polls composition returns.
  * ========================================================= */
-@media (width <= 512px) {
+@media (width < 650px) {
   html.fr27-tier3-active {
-    --fr27-app-hud-height: 154px !important;
-    --fr27-app-hud-open-safe: 160px !important;
+    --fr27-app-hud-height: 64px !important;
+    --fr27-app-hud-open-safe: 70px !important;
   }
 
   html.fr27-tier3-active
     .fr27-app-hud
     .fr27-app-hud-content.fr27-linear-console {
     grid-template-columns:
-      repeat(2, minmax(0, 1fr)) !important;
-    grid-template-rows: 58px 49px 42px !important;
+      minmax(82px, 1fr)
+      minmax(82px, 1fr)
+      minmax(116px, 1.35fr) !important;
+    grid-template-rows: 59px !important;
+    height: 59px !important;
     padding-inline: 6px !important;
   }
 
   html.fr27-tier3-active .fr27-app-hud .fr27-zone-countdown,
   html.fr27-tier3-active .fr27-app-hud .fr27-zone-method-sub,
   html.fr27-tier3-active .fr27-app-hud .fr27-source-stat:nth-child(2),
-  html.fr27-tier3-active
-    .fr27-app-hud
-    .fr27-linear-publication-cell:nth-child(3) {
+  html.fr27-tier3-active .fr27-app-hud .fr27-zone-scale {
     display: none !important;
   }
 
@@ -5735,7 +5737,7 @@
     grid-row: 1 !important;
     grid-template-rows: 8px 21px 9px !important;
     row-gap: 3px !important;
-    height: 58px !important;
+    height: 59px !important;
     padding-inline: 5px !important;
   }
 
@@ -5750,7 +5752,7 @@
   html.fr27-tier3-active .fr27-app-hud .fr27-zone-infra {
     grid-column: 2 !important;
     grid-row: 1 !important;
-    height: 58px !important;
+    height: 59px !important;
     padding-inline: 4px !important;
   }
 
@@ -5797,17 +5799,20 @@
   }
 
   html.fr27-tier3-active .fr27-app-hud .fr27-zone-utility {
-    grid-column: 1 / -1 !important;
-    grid-row: 3 !important;
-    align-items: flex-end !important;
-    height: 42px !important;
-    padding-inline: 6px !important;
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    align-items: center !important;
+    height: 59px !important;
+    padding-inline: 2px !important;
   }
 
   html.fr27-tier3-active .fr27-app-hud .fr27-linear-actions {
-    justify-content: flex-end !important;
-    gap: 4px !important;
-    width: auto !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    align-items: center !important;
+    justify-items: center !important;
+    gap: 0 !important;
+    width: 100% !important;
   }
 
   html.fr27-tier3-active .fr27-app-hud .fr27-hud-command {
@@ -5824,36 +5829,40 @@
     width: 17px !important;
     height: 17px !important;
   }
+}
 
-  html.fr27-tier3-active .fr27-app-hud .fr27-zone-scale {
-    display: flex !important;
-    grid-column: 1 / -1 !important;
-    grid-row: 2 !important;
-    height: 49px !important;
-    padding-inline: 0 !important;
-    border-top: 1px solid rgba(55, 80, 95, .52) !important;
-    border-left: 0 !important;
+/* Narrowest Tier-3 HUD: keep only time and utility actions. */
+@media (width < 360px) {
+  html.fr27-tier3-active {
+    --fr27-app-hud-height: 64px !important;
+    --fr27-app-hud-open-safe: 70px !important;
   }
 
-  html.fr27-tier3-active .fr27-app-hud .fr27-zone-scale-body {
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    width: 100% !important;
-    height: 48px !important;
+  html.fr27-tier3-active
+    .fr27-app-hud
+    .fr27-app-hud-content.fr27-linear-console {
+    grid-template-columns:
+      minmax(92px, 1fr)
+      minmax(116px, 1.4fr) !important;
+    grid-template-rows: 59px !important;
+    height: 59px !important;
   }
 
-  html.fr27-tier3-active .fr27-app-hud .fr27-linear-publication-cell {
-    grid-template-rows: 19px 9px !important;
-    row-gap: 4px !important;
-    padding-inline: 5px !important;
+  html.fr27-tier3-active .fr27-app-hud .fr27-zone-infra {
+    display: none !important;
   }
 
-  html.fr27-tier3-active .fr27-app-hud .fr27-linear-publication-cell strong {
-    font-size: 18px !important;
+  html.fr27-tier3-active .fr27-app-hud .fr27-zone-live {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    height: 59px !important;
   }
 
-  html.fr27-tier3-active .fr27-app-hud .fr27-linear-publication-cell span {
-    font-size: 8px !important;
-    line-height: 1 !important;
+  html.fr27-tier3-active .fr27-app-hud .fr27-zone-utility {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    align-items: center !important;
+    height: 59px !important;
+    padding-inline: 2px !important;
   }
 }

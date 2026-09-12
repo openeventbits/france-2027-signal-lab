@@ -638,6 +638,7 @@
     "hud.public_monitoring_interface": "INTERFACE PUBLIQUE DE SUIVI",
     "hud.rights_licences": "DROITS & LICENCES",
     "hud.publishers_explanation": "Médias distincts représentés dans les articles électoraux retenus pendant la fenêtre de sources actuelle de la dynamique médiatique. Ce nombre peut être inférieur à celui des DOMAINES, car toutes les sources approuvées ne fournissent pas d’articles électoraux retenus pendant cette période.",
+    "hud.open_x_profile": "FR27 sur X · @fr27signal",
     "hud.share_current_view": "Partager la vue actuelle",
     "hud.share_dashboard": "Partager",
     "hud.source_linked": "LIÉES AUX SOURCES",

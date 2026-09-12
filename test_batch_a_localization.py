@@ -253,7 +253,7 @@ class BatchALocalizationTests(unittest.TestCase):
             "hud.utility_links",
             "hud.open_github_repository",
             "hud.contact_signal_lab",
-            "hud.share_current_view",
+            "hud.open_x_profile",
             "hud.project_information",
         )
         tooltip_keys = (
@@ -263,7 +263,7 @@ class BatchALocalizationTests(unittest.TestCase):
             "hud.publishers_explanation",
             "hud.view_repository",
             "hud.contact",
-            "hud.share_dashboard",
+            "hud.open_x_profile",
             "hud.about_signal_lab",
         )
         for key in aria_keys:

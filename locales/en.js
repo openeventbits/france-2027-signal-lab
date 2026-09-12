@@ -1186,6 +1186,7 @@
     "hud.public_monitoring_interface": "PUBLIC MONITORING INTERFACE",
     "hud.rights_licences": "RIGHTS & LICENCES",
     "hud.publishers_explanation": "Distinct publishers represented in accepted election news during the current Media Pulse source window. This can be lower than DOMAINS because not every approved source contributes accepted election news in the window.",
+    "hud.open_x_profile": "FR27 on X · @fr27signal",
     "hud.share_current_view": "Share current view",
     "hud.share_dashboard": "Share dashboard",
     "hud.source_linked": "SOURCE-LINKED",
