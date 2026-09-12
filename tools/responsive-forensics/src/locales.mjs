@@ -19,7 +19,5 @@ export function selectLocales(raw = "") {
 
 export function localeUrl(baseUrl, locale) {
   if (!localeRegistry[locale]) throw new Error(`Unsupported locale: ${locale}`);
-  const url = new URL("/", baseUrl);
-  if (locale === "en") url.searchParams.set("lang", "en");
-  return url.toString();
+  return new URL(locale === "en" ? "/en/" : "/", baseUrl).toString();
 }
