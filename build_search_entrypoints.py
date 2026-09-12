@@ -432,8 +432,8 @@ def _localize_english_head(source: str) -> str:
         text,
         (
             '<meta name="description" content="'
-            "Sondages sourcés, actualité électorale, couverture des candidats "
-            "et vérifications pour la présidentielle française de 2027. "
+            "Sondages sourcés, actualité électorale et vérifications "
+            "pour la présidentielle française de 2027. "
             'Aucune moyenne, aucune prévision, aucun conseil de vote.">'
         ),
         f'<meta name="description" content="{ENGLISH_DESCRIPTION}">',
@@ -455,8 +455,8 @@ def _localize_english_head(source: str) -> str:
         text,
         (
             '<meta property="og:description" content="'
-            "Sondages sourcés, actualité électorale, couverture des candidats "
-            "et vérifications pour la présidentielle française de 2027. "
+            "Sondages sourcés, actualité électorale et vérifications "
+            "pour la présidentielle française de 2027. "
             'Aucune moyenne, aucune prévision, aucun conseil de vote.">'
         ),
         f'<meta property="og:description" content="{ENGLISH_DESCRIPTION}">',
@@ -478,8 +478,8 @@ def _localize_english_head(source: str) -> str:
         text,
         (
             '<meta name="twitter:description" content="'
-            "Sondages sourcés, actualité électorale, couverture des candidats "
-            "et vérifications pour la présidentielle française de 2027. "
+            "Sondages sourcés, actualité électorale et vérifications "
+            "pour la présidentielle française de 2027. "
             'Aucune moyenne, aucune prévision, aucun conseil de vote.">'
         ),
         f'<meta name="twitter:description" content="{ENGLISH_DESCRIPTION}">',

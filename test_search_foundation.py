@@ -43,8 +43,8 @@ FRENCH_TITLE = "France 2027 Signal Lab — Signaux électoraux sourcés"
 ENGLISH_TITLE = "France 2027 Signal Lab — Source-Linked Election Signals"
 
 FRENCH_DESCRIPTION = (
-    "Sondages sourcés, actualité électorale, couverture des candidats et "
-    "vérifications pour la présidentielle française de 2027. "
+    "Sondages sourcés, actualité électorale et vérifications pour la "
+    "présidentielle française de 2027. "
     "Aucune moyenne, aucune prévision, aucun conseil de vote."
 )
 ENGLISH_DESCRIPTION = (
