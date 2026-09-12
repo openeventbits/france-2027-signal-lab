@@ -8059,6 +8059,13 @@
         selectedCandidateId:
           state.selectedCandidateSignalsId,
         onSelect(candidateId) {
+          window.FR27Analytics?.track(
+            "candidate_dossier_open",
+            {
+              candidate_id: candidateId
+            }
+          );
+
           state.selectedCandidateSignalsId =
             candidateId;
           renderCandidateSignalsPanel();
@@ -8087,8 +8094,12 @@
     return selectedCandidateId;
   }
 
+  let workspaceExposureTracked = false;
+
   function setActiveSignalView(view, options = {}) {
     if (!views[view]) view = defaultView;
+
+    const previousView = state.activeView;
 
     if (view !== "candidates") {
       closeCandidateScrutinyPopover({
@@ -8097,6 +8108,28 @@
     }
 
     state.activeView = view;
+
+    if (
+      !workspaceExposureTracked ||
+      previousView !== view
+    ) {
+      const captured =
+        window.FR27Analytics?.track(
+          "workspace_open",
+          {
+            workspace: view,
+            source:
+              workspaceExposureTracked
+                ? "navigation"
+                : "initial"
+          }
+        );
+
+      if (captured) {
+        workspaceExposureTracked = true;
+      }
+    }
+
     mount.querySelectorAll("[data-hybrid-card]").forEach(card => {
       const active = card.dataset.hybridCard === view;
       card.classList.toggle("is-selected", active);
@@ -8116,6 +8149,16 @@
     if (options.scrollWorkspace) scrollWorkspaceIfNeeded(view);
   }
 
+  window.addEventListener(
+    "fr27:analytics-ready",
+    function () {
+      if (!workspaceExposureTracked) {
+        setActiveSignalView(
+          state.activeView
+        );
+      }
+    }
+  );
   function revealActiveTab(tab) {
     const container = tab.closest(".hybrid-tabs");
     if (!container || container.scrollWidth <= container.clientWidth) return;
@@ -8239,7 +8282,28 @@
 
     mount.querySelectorAll("button[data-hybrid-event-id]").forEach(button => {
       button.addEventListener("click", () => {
-        state.selectedCampaignEventId = button.dataset.hybridEventId;
+        const previousEventId =
+          state.selectedCampaignEventId;
+
+        state.selectedCampaignEventId =
+          button.dataset.hybridEventId;
+
+        if (
+          state.selectedCampaignEventId &&
+          state.selectedCampaignEventId !==
+            previousEventId
+        ) {
+          window.FR27Analytics?.track(
+            "campaign_event_open",
+            {
+              event_id:
+                state.selectedCampaignEventId,
+              event_type:
+                button.dataset.eventType || ""
+            }
+          );
+        }
+
         if (button.dataset.hybridEventWeek) {
           state.selectedCampaignEventWeekStart = button.dataset.hybridEventWeek;
         }
