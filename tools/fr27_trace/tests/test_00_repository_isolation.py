@@ -89,6 +89,7 @@ class RepositoryIsolationTests(unittest.TestCase):
         run_python(
             "import socket\n"
             "import subprocess\n"
+            "import sys\n"
             "def forbidden(*args, **kwargs):\n"
             "    raise AssertionError('import attempted network or process activity')\n"
             "socket.socket = forbidden\n"
@@ -96,14 +97,36 @@ class RepositoryIsolationTests(unittest.TestCase):
             "subprocess.run = forbidden\n"
             "import tools.fr27_trace.render\n"
             "import tools.fr27_trace.coverage_anatomy\n"
+            "import tools.fr27_trace.flash_shift\n"
             "import tools.fr27_trace.render.cli\n"
             "import tools.fr27_trace.render.model\n"
-            "import tools.fr27_trace.render.paths"
+            "import tools.fr27_trace.render.paths\n"
+            "assert 'build_candidate_attention' not in sys.modules"
         )
         self.assertEqual(
             before_import,
             repository_snapshot(),
             "renderer import changed the repository tree",
+        )
+
+    def test_production_attention_contract_import_is_side_effect_free(self) -> None:
+        before_import = repository_snapshot()
+        run_python(
+            "import socket\n"
+            "import subprocess\n"
+            "import sys\n"
+            "def forbidden(*args, **kwargs):\n"
+            "    raise AssertionError('import attempted network or process activity')\n"
+            "socket.socket = forbidden\n"
+            "subprocess.Popen = forbidden\n"
+            "subprocess.run = forbidden\n"
+            "import candidate_attention_contract\n"
+            "import tools.fr27_trace.flash_shift"
+        )
+        self.assertEqual(
+            before_import,
+            repository_snapshot(),
+            "Candidate Attention contract or Flash/Shift import changed the repository tree",
         )
 
     def test_milestone_defines_no_forbidden_integration_modules(self) -> None:

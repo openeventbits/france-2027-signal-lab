@@ -12,6 +12,11 @@ from ..coverage_anatomy import (
     CoverageAnatomyError,
     validate_coverage_anatomy_evidence,
 )
+from ..flash_shift import (
+    CLASSIFICATION_LABELS,
+    FlashShiftError,
+    validate_flash_shift_evidence,
+)
 
 
 FAMILY_LABELS = {
@@ -46,6 +51,7 @@ _MAX_LENGTHS = {
 }
 
 _COVERAGE_FIELD_TYPE = "coverage_anatomy"
+_FLASH_SHIFT_FIELD_TYPE = "flash_shift"
 _COVERAGE_ROW_DEFINITIONS = (
     ("share", "COVERAGE SHARE", "percent", "OF PERIOD CANDIDATE-LINKED COVERAGE"),
     ("publisher_count", "PUBLISHERS", "count", "PUBLISHER COUNT"),
@@ -125,6 +131,76 @@ def _coverage_field_payload(trace: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _signed_percent(value: int | float) -> str:
+    return f"{value:+.1f}%"
+
+
+def _flash_shift_field_payload(trace: Mapping[str, Any]) -> dict[str, Any]:
+    if trace["family"] != "candidate" or trace["detector_id"] != "flash_shift.v1":
+        raise RenderModelError(
+            "flash_shift field requires family='candidate' and detector_id='flash_shift.v1'"
+        )
+    try:
+        validate_flash_shift_evidence(trace["evidence"])
+    except FlashShiftError as exc:
+        raise RenderModelError(f"invalid Flash/Shift evidence: {exc}") from exc
+
+    evidence = trace["evidence"]
+    flag = evidence["classification"]["value"]
+    if flag not in CLASSIFICATION_LABELS:
+        raise RenderModelError("flash_shift field requires an eligible classification")
+    previous = evidence["previous_7"]
+    latest = evidence["latest_7"]
+    observations = [
+        (day, "previous") for day in previous["daily_views"]
+    ] + [
+        (day, "latest") for day in latest["daily_views"]
+    ]
+    maximum = max(day["views"]["value"] for day, _window in observations)
+    peak_date = evidence["metrics"]["latest_7_peak_date"]["value"]
+    days = []
+    for day, window in observations:
+        views = day["views"]["value"]
+        days.append(
+            {
+                "date": day["date"],
+                "dateLabel": day["date"][5:].replace("-", "/"),
+                "views": views,
+                "viewsLabel": f"{views:,}",
+                "window": window,
+                "heightPercent": 0 if maximum == 0 else round(views / maximum * 100, 4),
+                "isPeak": window == "latest" and day["date"] == peak_date,
+            }
+        )
+
+    metrics = evidence["metrics"]
+    previous_total = metrics["previous_7_views"]["value"]
+    latest_total = metrics["latest_7_views"]["value"]
+    raw_change = metrics["change_7_pct"]["value"]
+    peak_removed = metrics["change_7_peak_removed_pct"]["value"]
+    peak_share = metrics["latest_7_peak_share"]["value"]
+    return {
+        "componentLabel": "FLASH / SHIFT · WIKIPEDIA ATTENTION",
+        "classificationLabel": CLASSIFICATION_LABELS[flag],
+        "previousLabel": "PREVIOUS 7 DAYS",
+        "previousDates": f"{previous['start']} — {previous['end']}",
+        "latestLabel": "LATEST 7 DAYS",
+        "latestDates": f"{latest['start']} — {latest['end']}",
+        "days": days,
+        "summary": [
+            {"key": "previous", "label": "PREVIOUS 7D", "value": f"{previous_total:,}"},
+            {"key": "latest", "label": "LATEST 7D", "value": f"{latest_total:,}"},
+            {"key": "change", "label": "CHANGE", "value": _signed_percent(raw_change)},
+            {
+                "key": "peak_removed",
+                "label": "PEAK-REMOVED",
+                "value": _signed_percent(peak_removed),
+            },
+            {"key": "peak_share", "label": "PEAK SHARE", "value": f"{peak_share * 100:.1f}%"},
+        ],
+    }
+
+
 @dataclass(frozen=True)
 class TraceRenderModel:
     """Validated TRACE identity plus non-identity presentation metadata."""
@@ -178,10 +254,15 @@ class TraceRenderModel:
         if renderer_version != RENDERER_VERSION:
             raise RenderModelError(f"renderer_version must be {RENDERER_VERSION!r}")
         field_type = presentation.get("field_type")
-        if field_type is not None and field_type != _COVERAGE_FIELD_TYPE:
+        if field_type is not None and field_type not in {
+            _COVERAGE_FIELD_TYPE,
+            _FLASH_SHIFT_FIELD_TYPE,
+        }:
             raise RenderModelError("presentation.field_type is not supported")
         if field_type == _COVERAGE_FIELD_TYPE:
             _coverage_field_payload(trace)
+        elif field_type == _FLASH_SHIFT_FIELD_TYPE:
+            _flash_shift_field_payload(trace)
 
         return cls(
             trace=deepcopy(dict(trace)),
@@ -225,4 +306,6 @@ class TraceRenderModel:
         }
         if self.field_type == _COVERAGE_FIELD_TYPE:
             payload["field"] = _coverage_field_payload(self.trace)
+        elif self.field_type == _FLASH_SHIFT_FIELD_TYPE:
+            payload["field"] = _flash_shift_field_payload(self.trace)
         return payload
