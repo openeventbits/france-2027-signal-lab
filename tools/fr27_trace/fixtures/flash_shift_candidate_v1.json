@@ -1,0 +1,123 @@
+{
+  "trace": {
+    "trace_schema_version": "1",
+    "status": "draft",
+    "family": "candidate",
+    "detector_id": "flash_shift.v1",
+    "primary_entity_ids": [
+      "synthetic-candidate-alpha"
+    ],
+    "observation_window": {
+      "start": "2026-08-18",
+      "end": "2026-08-31"
+    },
+    "evidence": {
+      "classification": {
+        "availability": "observed",
+        "unit": "candidate_attention_interpretation_flag",
+        "value": "event_amplified"
+      },
+      "latest_7": {
+        "daily_views": [
+          {
+            "date": "2026-08-25",
+            "views": {"availability": "observed", "unit": "pageviews", "value": 600}
+          },
+          {
+            "date": "2026-08-26",
+            "views": {"availability": "observed", "unit": "pageviews", "value": 600}
+          },
+          {
+            "date": "2026-08-27",
+            "views": {"availability": "observed", "unit": "pageviews", "value": 600}
+          },
+          {
+            "date": "2026-08-28",
+            "views": {"availability": "observed", "unit": "pageviews", "value": 5000}
+          },
+          {
+            "date": "2026-08-29",
+            "views": {"availability": "observed", "unit": "pageviews", "value": 600}
+          },
+          {
+            "date": "2026-08-30",
+            "views": {"availability": "observed", "unit": "pageviews", "value": 600}
+          },
+          {
+            "date": "2026-08-31",
+            "views": {"availability": "observed", "unit": "pageviews", "value": 600}
+          }
+        ],
+        "end": "2026-08-31",
+        "start": "2026-08-25"
+      },
+      "metrics": {
+        "change_7_pct": {"availability": "observed", "unit": "percent", "value": 22.9},
+        "change_7_peak_removed_pct": {"availability": "observed", "unit": "percent", "value": -40},
+        "latest_7_peak_date": {"availability": "observed", "unit": "utc_date", "value": "2026-08-28"},
+        "latest_7_peak_share": {"availability": "observed", "unit": "ratio", "value": 0.5814},
+        "latest_7_peak_views": {"availability": "observed", "unit": "pageviews", "value": 5000},
+        "latest_7_views": {"availability": "observed", "unit": "pageviews", "value": 8600},
+        "previous_7_views": {"availability": "observed", "unit": "pageviews", "value": 7000}
+      },
+      "previous_7": {
+        "daily_views": [
+          {
+            "date": "2026-08-18",
+            "views": {"availability": "observed", "unit": "pageviews", "value": 1000}
+          },
+          {
+            "date": "2026-08-19",
+            "views": {"availability": "observed", "unit": "pageviews", "value": 1000}
+          },
+          {
+            "date": "2026-08-20",
+            "views": {"availability": "observed", "unit": "pageviews", "value": 1000}
+          },
+          {
+            "date": "2026-08-21",
+            "views": {"availability": "observed", "unit": "pageviews", "value": 1000}
+          },
+          {
+            "date": "2026-08-22",
+            "views": {"availability": "observed", "unit": "pageviews", "value": 1000}
+          },
+          {
+            "date": "2026-08-23",
+            "views": {"availability": "observed", "unit": "pageviews", "value": 1000}
+          },
+          {
+            "date": "2026-08-24",
+            "views": {"availability": "observed", "unit": "pageviews", "value": 1000}
+          }
+        ],
+        "end": "2026-08-24",
+        "start": "2026-08-18"
+      },
+      "source": {
+        "availability": "observed",
+        "unit": "wikimedia_pageview_scope",
+        "value": {
+          "access": "all-access",
+          "agent": "user",
+          "granularity": "daily",
+          "metric": "pageviews",
+          "project": "fr.wikipedia.org"
+        }
+      }
+    },
+    "evidence_snapshot_hash": "638ba70f1036eb9ad623c21abf24b7cf917e61a10e9211e64e3a0d846e8e92e1",
+    "trace_key": "trace_5c8b4a155253c126975186343c2c0b89b6ecf05a1b52894b434277350c1b0eed"
+  },
+  "presentation": {
+    "language": "en",
+    "display_label": "SYNTHETIC CANDIDATE ALPHA",
+    "finding": "ATTENTION ROSE, BUT FELL AFTER REMOVING THE PEAK DAY.",
+    "qualifier": "Latest 7 days +22.9%; peak-removed comparison -40.0%.",
+    "source_scope": "FR27 WIKIPEDIA ATTENTION",
+    "methodological_boundary": "PAGEVIEWS ≠ SUPPORT OR SENTIMENT",
+    "observation_window_display": "2026-08-18 — 2026-08-31",
+    "renderer_version": "trace-shell.v1",
+    "field_type": "flash_shift"
+  }
+}

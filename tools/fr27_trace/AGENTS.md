@@ -75,3 +75,27 @@ the TRACE FIELD. Do not create a Coverage Anatomy public family. Do not add
 candidate ranking, publication thresholds, automatic findings, production
 writes, registry mutation, website integration, publication logic, animation,
 workflows, or scheduling.
+
+Task 04 expands the current boundary only to:
+
+- one frozen synthetic Flash/Shift event-amplified fixture;
+- detector identity `flash_shift.v1` inside public family `candidate`;
+- one explicit-candidate, read-only adapter for schema-1.1
+  `candidate_attention.json`;
+- reuse of the side-effect-free production artifact validator plus one
+  TRACE-local frozen parity guard for the existing production classifier;
+- an exact final-14-day evidence slice and eligible-or-suppressed result;
+- one `flash_shift` field payload and field renderer inside the frozen Task 02
+  shell;
+- one ignored local `_trace_output/task-04-flash-shift.png` smoke artifact;
+- focused classifier, extraction, identity, renderer, and isolation tests;
+- Task 04 documentation.
+
+Flash/Shift is not a public family and must not import the production builder
+at runtime. It must not call Wikimedia, accept an arbitrary live source path,
+fall back to `candidate_signals.json`, select or rank candidates, invent
+thresholds, generate political prose, imply causal events, or treat pageviews
+as support, sentiment, approval, unique people, or voting intention. Stable,
+low-base, and unavailable records are valid suppressions; malformed evidence
+fails closed. A material production classifier change requires deliberate
+review and detector versioning rather than a silent `flash_shift.v1` change.

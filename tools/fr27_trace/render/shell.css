@@ -244,6 +244,7 @@ body {
 .lane-guides i:last-child { border-bottom: 1px solid var(--line); }
 
 .trace-field.coverage-anatomy .shell-only { display: none; }
+.trace-field.flash-shift .shell-only { display: none; }
 
 .coverage-field {
   position: absolute;
@@ -385,6 +386,195 @@ body {
 .coverage-value-current {
   grid-column: 4;
   border-left-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.flash-field {
+  position: absolute;
+  inset: 8px 16px 10px;
+}
+
+.flash-topline {
+  position: absolute;
+  top: 4px;
+  right: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flash-kicker {
+  color: var(--muted-soft);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .075em;
+  line-height: 1;
+}
+
+.flash-classification {
+  padding: 5px 8px 4px;
+  border: 1px solid var(--cyan);
+  border-radius: 3px;
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .11em;
+  line-height: 1;
+}
+
+.flash-period {
+  position: absolute;
+  top: 38px;
+  display: flex;
+  width: 50%;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 12px;
+}
+
+.flash-period-previous {
+  left: 0;
+  padding-left: 0;
+  padding-right: 22px;
+}
+
+.flash-period-latest {
+  right: 0;
+  padding-right: 0;
+  padding-left: 22px;
+  border-left: 1px solid var(--line-strong);
+}
+
+.flash-period-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .09em;
+  line-height: 1;
+}
+
+.flash-period-latest .flash-period-label { color: var(--cyan); }
+
+.flash-period-dates {
+  color: var(--muted-soft);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .035em;
+  line-height: 1;
+}
+
+.flash-chart {
+  position: absolute;
+  top: 64px;
+  right: 0;
+  left: 0;
+  display: grid;
+  height: 244px;
+  grid-template-columns: repeat(14, 1fr);
+  border-bottom: 1px solid var(--line-strong);
+  background-image: linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+  background-size: 100% 61px;
+}
+
+.flash-day {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 9px;
+}
+
+.flash-day:nth-child(8) { border-left: 1px solid var(--line-strong); }
+
+.flash-bar {
+  position: relative;
+  width: 100%;
+  min-height: 2px;
+  border-top: 1px solid var(--muted);
+  background: color-mix(in srgb, var(--muted) 46%, transparent);
+}
+
+.flash-day-latest .flash-bar {
+  border-top-color: var(--cyan);
+  background: color-mix(in srgb, var(--cyan) 64%, transparent);
+}
+
+.flash-day-peak .flash-bar {
+  border-top-color: var(--amber);
+  box-shadow: 0 -2px 0 -1px var(--amber);
+}
+
+.flash-value {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  color: var(--muted-soft);
+  font-size: 8px;
+  font-weight: 650;
+  line-height: 1;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.flash-day-latest .flash-value { color: var(--cyan); }
+.flash-day-peak .flash-value { color: var(--amber); }
+
+.flash-date {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  color: var(--muted-soft);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: .025em;
+  line-height: 1;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.flash-summary {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  height: 88px;
+  grid-template-columns: repeat(5, 1fr);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.flash-summary-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding-left: 16px;
+  border-left: 1px solid var(--line);
+}
+
+.flash-summary-item:first-child { border-left: 0; }
+
+.flash-summary-label {
+  color: var(--muted-soft);
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: .065em;
+  line-height: 1;
+}
+
+.flash-summary-value {
+  color: var(--text);
+  font-size: 25px;
+  font-weight: 720;
+  letter-spacing: -.015em;
+  line-height: 1;
+}
+
+.flash-summary-item[data-summary="latest"] .flash-summary-value,
+.flash-summary-item[data-summary="change"] .flash-summary-value {
   color: var(--cyan);
 }
 
