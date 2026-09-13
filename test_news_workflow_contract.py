@@ -11,6 +11,31 @@ class NewsWorkflowContractTests(unittest.TestCase):
     def setUpClass(cls):
         cls.text = WORKFLOW.read_text(encoding="utf-8")
 
+    def test_checkout_pins_current_main(self):
+        checkout_start = self.text.index(
+            "- name: Check out repository"
+        )
+        checkout_end = self.text.index(
+            "- name: Set up Python",
+            checkout_start,
+        )
+        checkout = self.text[
+            checkout_start:checkout_end
+        ]
+
+        self.assertIn(
+            "uses: actions/checkout@v7",
+            checkout,
+        )
+        self.assertIn(
+            "ref: main",
+            checkout,
+        )
+        self.assertIn(
+            "fetch-depth: 0",
+            checkout,
+        )
+
     def test_hourly_schedule_and_explicit_registry(self):
         self.assertIn('cron: "23 * * * *"', self.text)
         self.assertIn("workflow_dispatch:", self.text)
