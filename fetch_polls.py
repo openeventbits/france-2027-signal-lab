@@ -103,6 +103,22 @@ REVIEWED_CANDIDATE_SPELLINGS = (
 )
 
 
+def semantic_runoff_payload(value):
+    """Remove fetch metadata that does not change runoff meaning."""
+    if not isinstance(value, dict):
+        return value
+
+    semantic = value.copy()
+    semantic.pop("generated_at", None)
+
+    source = semantic.get("source")
+    if isinstance(source, dict):
+        semantic["source"] = source.copy()
+        semantic["source"].pop("revision_id", None)
+
+    return semantic
+
+
 def cell_text(cell: object) -> str:
     """Return the visible text from a pandas read_html cell."""
     value = cell[0] if isinstance(cell, tuple) else cell
