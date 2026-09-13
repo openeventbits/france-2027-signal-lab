@@ -53,6 +53,93 @@ PRE_CUTOVER_COMMISSION_REGISTRY = (
 )
 
 
+class SemanticRunoffPayloadTests(unittest.TestCase):
+    def test_revision_metadata_and_generated_at_are_not_semantic(self):
+        from fetch_polls import semantic_runoff_payload
+
+        base = {
+            "schema_version": "1.0",
+            "generated_at": "2026-09-12T20:34:29Z",
+            "source": {
+                "page_url": "https://fr.wikipedia.org/wiki/example",
+                "revision_id": "239435834",
+                "license": "CC BY-SA 4.0",
+            },
+            "events": [
+                {
+                    "pollster": "Example",
+                    "fieldwork_end": "2026-09-10",
+                    "candidates": [
+                        {"name": "Candidate A", "value": 48},
+                        {"name": "Candidate B", "value": 52},
+                    ],
+                }
+            ],
+        }
+
+        metadata_only = copy.deepcopy(base)
+        metadata_only["generated_at"] = "2026-09-13T04:46:28Z"
+        metadata_only["source"]["revision_id"] = "239440616"
+
+        self.assertEqual(
+            semantic_runoff_payload(base),
+            semantic_runoff_payload(metadata_only),
+        )
+
+        changed_value = copy.deepcopy(metadata_only)
+        changed_value["events"][0]["candidates"][0]["value"] = 49
+
+        self.assertNotEqual(
+            semantic_runoff_payload(base),
+            semantic_runoff_payload(changed_value),
+        )
+
+        changed_source = copy.deepcopy(metadata_only)
+        changed_source["source"]["page_url"] = (
+            "https://fr.wikipedia.org/wiki/different-source"
+        )
+
+        self.assertNotEqual(
+            semantic_runoff_payload(base),
+            semantic_runoff_payload(changed_source),
+        )
+
+    def test_poll_workflow_uses_shared_runoff_semantics(self):
+        workflow = (
+            ROOT / ".github/workflows/update-polls.yml"
+        ).read_text(encoding="utf-8")
+
+        validation = workflow.split(
+            "- name: Validate and stage fetched data", 1
+        )[1].split(
+            "- name: Rebuild Candidate Signals", 1
+        )[0]
+
+        self.assertIn(
+            "semantic_runoff_payload,",
+            validation,
+        )
+        self.assertEqual(
+            validation.count("semantic_runoff_payload("),
+            4,
+        )
+        self.assertNotIn(
+            "def semantic_payload(",
+            validation,
+        )
+
+        production_tests = workflow.split(
+            "- name: Test polling production contract", 1
+        )[1].split(
+            "- name: Fetch polls into temporary files", 1
+        )[0]
+
+        self.assertIn(
+            "test_fetch_polls.SemanticRunoffPayloadTests",
+            production_tests,
+        )
+
+
 class WikipediaSourceSelectionTests(unittest.TestCase):
     def test_default_source_remains_english_and_scheduled_source_is_french(self):
         self.assertTrue(SOURCE_URL.startswith("https://en.wikipedia.org/"))

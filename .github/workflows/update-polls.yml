@@ -40,6 +40,7 @@ jobs:
           test_commission_notice_coverage.CommissionNoticeCoverageTests
           test_fetch_polls.CandidateNameEvidenceTests
           test_fetch_polls.PollEventContractTests
+          test_fetch_polls.SemanticRunoffPayloadTests
           test_fetch_polls.SemanticFirstRoundDiscoveryTests
           test_fetch_polls.WikipediaSourceSelectionTests.test_default_source_remains_english_and_scheduled_source_is_french
           test_fetch_polls.WikipediaSourceSelectionTests.test_english_source_accepts_prepared_previous_second_round_argument
@@ -81,6 +82,7 @@ jobs:
           from fetch_polls import (
               filter_rejected_poll_waves,
               load_poll_wave_overrides,
+              semantic_runoff_payload,
           )
           from poll_contract import FIRST_ROUND, PollContractError, validate_poll_events
           from poll_migration import load_migration_registry
@@ -315,21 +317,12 @@ jobs:
           ):
               raise SystemExit("agree status lacks selected matchup")
 
-          def semantic_payload(value):
-              if not isinstance(value, dict):
-                  return value
-              return {
-                  key: item
-                  for key, item in value.items()
-                  if key != "generated_at"
-              }
-
           changed = (
               fetched != current
-              or semantic_payload(second_round)
-              != semantic_payload(current_second_round)
-              or semantic_payload(closest)
-              != semantic_payload(current_closest)
+              or semantic_runoff_payload(second_round)
+              != semantic_runoff_payload(current_second_round)
+              or semantic_runoff_payload(closest)
+              != semantic_runoff_payload(current_closest)
           )
 
           registry_changed = current_registry != fetched_registry
@@ -343,7 +336,7 @@ jobs:
           if not changed:
               print(
                   "No semantic poll, runoff, or Commission registry "
-                  "change was detected; generated_at is ignored."
+                  "change was detected; generated_at and source revision_id are ignored."
               )
               raise SystemExit(0)
 
