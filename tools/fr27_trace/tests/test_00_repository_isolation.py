@@ -84,11 +84,23 @@ class RepositoryIsolationTests(unittest.TestCase):
             "draft construction changed the repository tree",
         )
 
-    def test_milestone_defines_no_output_or_integration_modules(self) -> None:
+    def test_render_module_imports_leave_repository_unchanged(self) -> None:
+        before_import = repository_snapshot()
+        run_python(
+            "import tools.fr27_trace.render\n"
+            "import tools.fr27_trace.render.cli\n"
+            "import tools.fr27_trace.render.model\n"
+            "import tools.fr27_trace.render.paths"
+        )
+        self.assertEqual(
+            before_import,
+            repository_snapshot(),
+            "renderer import changed the repository tree",
+        )
+
+    def test_milestone_defines_no_forbidden_integration_modules(self) -> None:
         forbidden_names = {
             "detector.py",
-            "renderer.py",
-            "playwright.py",
             "publisher.py",
             "registry.py",
         }

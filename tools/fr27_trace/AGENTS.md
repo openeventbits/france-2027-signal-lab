@@ -37,7 +37,7 @@ If any path outside the authorized write scope changed, stop and report it rathe
 
 ## Current task boundary
 
-Until explicitly expanded by the user, implementation is limited to:
+Task 01 is complete and frozen. Its historical boundary remains:
 
 - TRACE v1 data contract
 - deterministic evidence canonicalization
@@ -45,4 +45,16 @@ Until explicitly expanded by the user, implementation is limited to:
 - frozen fixtures
 - tests, including repository-isolation tests
 
-Do not implement detectors, rendering, Playwright, live-data integration, registry mutation, website integration, or publication logic yet.
+Task 02 expands the current boundary only to:
+
+- a presentation-only render model outside TRACE evidence and identity
+- a fixed 1280 x 720 universal TRACE shell
+- a neutral TRACE FIELD geometry placeholder
+- one frozen synthetic Candidate-family shell fixture
+- explicit local Playwright/Chromium PNG capture
+- fail-closed output paths beneath repository-root `_trace_output/`
+- renderer-focused tests and task documentation
+
+Do not change the Task 01 identity model. Do not implement detectors, family
+visualizations, live-data integration, registry mutation, website integration,
+publication logic, animation, workflows, or scheduling.
