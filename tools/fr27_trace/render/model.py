@@ -8,6 +8,10 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..contract import ContractError, validate_trace
+from ..coverage_anatomy import (
+    CoverageAnatomyError,
+    validate_coverage_anatomy_evidence,
+)
 
 
 FAMILY_LABELS = {
@@ -30,7 +34,7 @@ _REQUIRED_PRESENTATION_FIELDS = frozenset(
         "renderer_version",
     }
 )
-_OPTIONAL_PRESENTATION_FIELDS = frozenset({"qualifier"})
+_OPTIONAL_PRESENTATION_FIELDS = frozenset({"qualifier", "field_type"})
 _MAX_LENGTHS = {
     "display_label": 48,
     "finding": 120,
@@ -41,7 +45,14 @@ _MAX_LENGTHS = {
     "renderer_version": 32,
 }
 
-
+_COVERAGE_FIELD_TYPE = "coverage_anatomy"
+_COVERAGE_ROW_DEFINITIONS = (
+    ("share", "COVERAGE SHARE", "percent", "OF PERIOD CANDIDATE-LINKED COVERAGE"),
+    ("publisher_count", "PUBLISHERS", "count", "PUBLISHER COUNT"),
+    ("story_cluster_count", "STORY CLUSTERS", "count", "STORY CLUSTER COUNT"),
+    ("leading_story_share", "LARGEST STORY", "percent", "OF CANDIDATE-LINKED COVERAGE"),
+    ("leading_publisher_share", "TOP PUBLISHER", "percent", "OF CANDIDATE-LINKED COVERAGE"),
+)
 class RenderModelError(ValueError):
     """Raised when presentation data cannot safely fit the frozen shell."""
 
@@ -62,6 +73,58 @@ def _one_line_text(value: Any, field: str, *, required: bool = True) -> str | No
     return value
 
 
+def _coverage_value(
+    period: Mapping[str, Any],
+    metric: str,
+) -> int | float:
+    return period["candidate_metrics"][metric]["value"]
+
+
+def _format_coverage_value(value: int | float, kind: str) -> str:
+    if kind == "count":
+        if type(value) is not int:
+            raise RenderModelError("Coverage Anatomy count values must be integers")
+        return str(value)
+    if value > 1:
+        raise RenderModelError("Coverage Anatomy ratio values must be at most one")
+    percentage = f"{value * 100:.1f}".rstrip("0").rstrip(".")
+    return f"{percentage}%"
+
+
+def _coverage_field_payload(trace: Mapping[str, Any]) -> dict[str, Any]:
+    if trace["family"] != "candidate" or trace["detector_id"] != "coverage_anatomy.v1":
+        raise RenderModelError(
+            "coverage_anatomy field requires family='candidate' and detector_id='coverage_anatomy.v1'"
+        )
+    try:
+        validate_coverage_anatomy_evidence(trace["evidence"])
+    except CoverageAnatomyError as exc:
+        raise RenderModelError(f"invalid Coverage Anatomy evidence: {exc}") from exc
+
+    prior = trace["evidence"]["prior_period"]
+    current = trace["evidence"]["current_period"]
+    rows = []
+    for key, label, kind, unit_label in _COVERAGE_ROW_DEFINITIONS:
+        prior_value = _coverage_value(prior, key)
+        current_value = _coverage_value(current, key)
+        rows.append(
+            {
+                "key": key,
+                "label": label,
+                "unitLabel": unit_label,
+                "prior": _format_coverage_value(prior_value, kind),
+                "current": _format_coverage_value(current_value, kind),
+            }
+        )
+    return {
+        "priorLabel": "PRIOR",
+        "priorDates": f"{prior['start']} — {prior['end']}",
+        "currentLabel": "CURRENT",
+        "currentDates": f"{current['start']} — {current['end']}",
+        "rows": rows,
+    }
+
+
 @dataclass(frozen=True)
 class TraceRenderModel:
     """Validated TRACE identity plus non-identity presentation metadata."""
@@ -75,6 +138,7 @@ class TraceRenderModel:
     methodological_boundary: str
     observation_window_display: str
     renderer_version: str
+    field_type: str | None
 
     @classmethod
     def from_document(cls, document: Mapping[str, Any]) -> "TraceRenderModel":
@@ -113,6 +177,11 @@ class TraceRenderModel:
         )
         if renderer_version != RENDERER_VERSION:
             raise RenderModelError(f"renderer_version must be {RENDERER_VERSION!r}")
+        field_type = presentation.get("field_type")
+        if field_type is not None and field_type != _COVERAGE_FIELD_TYPE:
+            raise RenderModelError("presentation.field_type is not supported")
+        if field_type == _COVERAGE_FIELD_TYPE:
+            _coverage_field_payload(trace)
 
         return cls(
             trace=deepcopy(dict(trace)),
@@ -131,6 +200,7 @@ class TraceRenderModel:
                 "observation_window_display",
             ),
             renderer_version=renderer_version,
+            field_type=field_type,
         )
 
     @property
@@ -140,7 +210,7 @@ class TraceRenderModel:
     def to_payload(self) -> dict[str, Any]:
         """Return the minimal DOM payload; evidence stays in the validated TRACE object."""
 
-        return {
+        payload = {
             "family": self.family_label,
             "status": "TRACE DRAFT",
             "language": self.language,
@@ -151,4 +221,8 @@ class TraceRenderModel:
             "methodologicalBoundary": self.methodological_boundary,
             "observationWindow": self.observation_window_display,
             "rendererVersion": self.renderer_version,
+            "fieldType": self.field_type or "shell_preview",
         }
+        if self.field_type == _COVERAGE_FIELD_TYPE:
+            payload["field"] = _coverage_field_payload(self.trace)
+        return payload

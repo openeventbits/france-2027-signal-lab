@@ -29,17 +29,36 @@
       </section>
 
       <section class="trace-field" aria-label="TRACE field shell preview">
-        <div class="field-heading">TRACE FIELD / SHELL PREVIEW</div>
-        <div class="axis-label axis-start">WINDOW START</div>
-        <div class="axis-label axis-end">WINDOW END</div>
-        <div class="time-axis" aria-hidden="true"></div>
-        <div class="vertical-guides" aria-hidden="true">
+        <div class="field-heading shell-only">TRACE FIELD / SHELL PREVIEW</div>
+        <div class="axis-label axis-start shell-only">WINDOW START</div>
+        <div class="axis-label axis-end shell-only">WINDOW END</div>
+        <div class="time-axis shell-only" aria-hidden="true"></div>
+        <div class="vertical-guides shell-only" aria-hidden="true">
           <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
         </div>
-        <div class="lane-guides" aria-hidden="true">
+        <div class="lane-guides shell-only" aria-hidden="true">
           <i></i><i></i><i></i><i></i><i></i><i></i>
         </div>
-        <div class="field-note">NEUTRAL DEVELOPMENT GEOMETRY · NO DETECTOR SEMANTICS</div>
+        <div class="field-note shell-only">NEUTRAL DEVELOPMENT GEOMETRY · NO DETECTOR SEMANTICS</div>
+
+        <div class="coverage-field" data-coverage-field hidden>
+          <div class="coverage-kicker">COVERAGE ANATOMY · COMPARATIVE STRUCTURE</div>
+          <div class="coverage-period coverage-period-prior">
+            <span class="coverage-period-label" data-coverage="priorLabel"></span>
+            <span class="coverage-period-dates" data-coverage="priorDates"></span>
+          </div>
+          <div class="coverage-direction" aria-hidden="true">
+            <span></span>
+            <svg viewBox="0 0 32 12" focusable="false">
+              <path d="M1 6h27M23 1l5 5-5 5"></path>
+            </svg>
+          </div>
+          <div class="coverage-period coverage-period-current">
+            <span class="coverage-period-label" data-coverage="currentLabel"></span>
+            <span class="coverage-period-dates" data-coverage="currentDates"></span>
+          </div>
+          <div class="coverage-rows" data-coverage-rows></div>
+        </div>
       </section>
 
       <div class="footer-divider" aria-hidden="true"></div>

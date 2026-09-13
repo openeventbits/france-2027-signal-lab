@@ -55,6 +55,23 @@ Task 02 expands the current boundary only to:
 - fail-closed output paths beneath repository-root `_trace_output/`
 - renderer-focused tests and task documentation
 
-Do not change the Task 01 identity model. Do not implement detectors, family
-visualizations, live-data integration, registry mutation, website integration,
-publication logic, animation, workflows, or scheduling.
+Task 02 shell geometry, branding, typography, palette, and all regions outside
+the TRACE FIELD are complete and frozen.
+
+Task 03 expands the current boundary only to:
+
+- one frozen synthetic Coverage Anatomy fixture;
+- detector identity `coverage_anatomy.v1` inside public family `candidate`;
+- one explicit-candidate, read-only adapter for
+  `news_wire.json:candidate_visibility`;
+- one `coverage_anatomy` field payload and field renderer inside the frozen
+  Task 02 shell;
+- one ignored local `_trace_output/task-03-coverage-anatomy.png` smoke artifact;
+- focused extractor, identity, renderer, and isolation tests;
+- Task 03 documentation.
+
+Do not change the Task 01 identity model or any Task 02 shell geometry outside
+the TRACE FIELD. Do not create a Coverage Anatomy public family. Do not add
+candidate ranking, publication thresholds, automatic findings, production
+writes, registry mutation, website integration, publication logic, animation,
+workflows, or scheduling.

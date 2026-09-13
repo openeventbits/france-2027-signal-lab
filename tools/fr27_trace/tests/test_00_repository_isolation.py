@@ -87,7 +87,15 @@ class RepositoryIsolationTests(unittest.TestCase):
     def test_render_module_imports_leave_repository_unchanged(self) -> None:
         before_import = repository_snapshot()
         run_python(
+            "import socket\n"
+            "import subprocess\n"
+            "def forbidden(*args, **kwargs):\n"
+            "    raise AssertionError('import attempted network or process activity')\n"
+            "socket.socket = forbidden\n"
+            "subprocess.Popen = forbidden\n"
+            "subprocess.run = forbidden\n"
             "import tools.fr27_trace.render\n"
+            "import tools.fr27_trace.coverage_anatomy\n"
             "import tools.fr27_trace.render.cli\n"
             "import tools.fr27_trace.render.model\n"
             "import tools.fr27_trace.render.paths"
