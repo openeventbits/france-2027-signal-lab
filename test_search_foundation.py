@@ -450,20 +450,20 @@ class SearchFoundationTests(unittest.TestCase):
             ):
                 generate_entrypoints(**paths)
 
-    def test_runtime_preserves_snapshot_until_valid_data_replaces_it(self):
+    def test_runtime_preserves_snapshot_only_when_recent_changes_unavailable(self):
         runtime = self.root_html
-        loading_guard = (
-            '(ledger.loading || ledger.unavailable) &&\n'
+        unavailable_guard = (
+            'ledger.unavailable &&\n'
             '        container.dataset.fr27SemanticSnapshot === "true"'
         )
-        self.assertIn(loading_guard, runtime)
+        self.assertIn(unavailable_guard, runtime)
         self.assertIn(
             'container.removeAttribute("data-fr27-semantic-snapshot")',
             runtime,
         )
         self.assertLess(
-            runtime.index(loading_guard),
-            runtime.index("container.replaceChildren()", runtime.index(loading_guard)),
+            runtime.index(unavailable_guard),
+            runtime.index("container.replaceChildren()", runtime.index(unavailable_guard)),
         )
         self.assertIn("const deliveredRaceSnapshot = (() => {", runtime)
         self.assertIn(
