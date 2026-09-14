@@ -98,10 +98,12 @@ class RepositoryIsolationTests(unittest.TestCase):
             "import tools.fr27_trace.render\n"
             "import tools.fr27_trace.coverage_anatomy\n"
             "import tools.fr27_trace.flash_shift\n"
+            "import tools.fr27_trace.signal_braid\n"
             "import tools.fr27_trace.render.cli\n"
             "import tools.fr27_trace.render.model\n"
             "import tools.fr27_trace.render.paths\n"
-            "assert 'build_candidate_attention' not in sys.modules"
+            "assert 'build_candidate_attention' not in sys.modules\n"
+            "assert 'build_candidate_signals' not in sys.modules"
         )
         self.assertEqual(
             before_import,
@@ -121,7 +123,9 @@ class RepositoryIsolationTests(unittest.TestCase):
             "subprocess.Popen = forbidden\n"
             "subprocess.run = forbidden\n"
             "import candidate_attention_contract\n"
-            "import tools.fr27_trace.flash_shift"
+            "import tools.fr27_trace.flash_shift\n"
+            "import tools.fr27_trace.signal_braid\n"
+            "assert 'build_candidate_signals' not in sys.modules"
         )
         self.assertEqual(
             before_import,

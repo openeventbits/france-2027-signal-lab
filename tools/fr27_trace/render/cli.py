@@ -16,17 +16,33 @@ CAPTURE_SCRIPT = Path(__file__).with_name("capture.cjs")
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Render the frozen TRACE shell to PNG")
-    parser.add_argument("--fixture", required=True, help="TRACE-local frozen fixture JSON")
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--fixture", help="TRACE-local frozen fixture JSON")
+    source.add_argument(
+        "--candidate-id",
+        help="explicit canonical candidate ID for the fixed read-only Task 05 adapter",
+    )
     parser.add_argument("--output", required=True, help="PNG beneath _trace_output/")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     arguments = _parser().parse_args(argv)
-    source = fixture_path(arguments.fixture)
     destination = resolve_output_path(arguments.output)
-    with source.open(encoding="utf-8") as fixture_file:
-        model = TraceRenderModel.from_document(json.load(fixture_file))
+    if arguments.fixture is not None:
+        source = fixture_path(arguments.fixture)
+        with source.open(encoding="utf-8") as fixture_file:
+            document = json.load(fixture_file)
+    else:
+        from ..signal_braid import (
+            build_signal_braid_document,
+            extract_live_signal_braid,
+        )
+
+        document = build_signal_braid_document(
+            extract_live_signal_braid(arguments.candidate_id)
+        )
+    model = TraceRenderModel.from_document(document)
 
     destination.parent.mkdir(parents=True, exist_ok=True)
     completed = subprocess.run(

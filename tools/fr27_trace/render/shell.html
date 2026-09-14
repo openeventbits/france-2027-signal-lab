@@ -76,6 +76,49 @@
           <div class="flash-chart" data-flash-chart aria-label="Fourteen daily Wikipedia pageview observations"></div>
           <div class="flash-summary" data-flash-summary></div>
         </div>
+
+        <div class="signal-braid-field" data-signal-braid-field hidden>
+          <div class="braid-topline">
+            <span class="braid-kicker" data-braid="componentLabel"></span>
+            <span class="braid-calendar" data-braid="calendarLabel"></span>
+          </div>
+          <div class="braid-date-axis" data-braid-date-axis></div>
+          <div class="braid-lanes">
+            <section class="braid-lane braid-media" data-braid-lane="media">
+              <div class="braid-lane-label">
+                <strong data-braid-media="label"></strong>
+                <span data-braid-media="unitLabel"></span>
+                <em data-braid-media="maximumLabel"></em>
+              </div>
+              <div class="braid-plot braid-bars" data-braid-media-plot></div>
+            </section>
+            <section class="braid-lane braid-wikipedia" data-braid-lane="wikipedia">
+              <div class="braid-lane-label">
+                <strong data-braid-wikipedia="label"></strong>
+                <span data-braid-wikipedia="unitLabel"></span>
+                <em data-braid-wikipedia="maximumLabel"></em>
+              </div>
+              <div class="braid-plot braid-bars" data-braid-wikipedia-plot></div>
+            </section>
+            <section class="braid-lane braid-agenda" data-braid-lane="agenda">
+              <div class="braid-lane-label braid-agenda-label">
+                <div class="agenda-lane-title">
+                  <strong data-braid-agenda="label"></strong>
+                  <span data-braid-agenda="unitLabel"></span>
+                </div>
+                <div class="agenda-row-labels" data-braid-agenda-labels></div>
+              </div>
+              <div class="braid-agenda-matrix" data-braid-agenda-matrix></div>
+            </section>
+            <section class="braid-lane braid-polls" data-braid-lane="pollTests">
+              <div class="braid-lane-label">
+                <strong data-braid-polls="label"></strong>
+                <span data-braid-polls="unitLabel"></span>
+              </div>
+              <div class="braid-plot braid-poll-plot" data-braid-poll-plot></div>
+            </section>
+          </div>
+        </div>
       </section>
 
       <div class="footer-divider" aria-hidden="true"></div>

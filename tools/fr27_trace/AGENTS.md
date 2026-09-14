@@ -99,3 +99,29 @@ as support, sentiment, approval, unique people, or voting intention. Stable,
 low-base, and unavailable records are valid suppressions; malformed evidence
 fails closed. A material production classifier change requires deliberate
 review and detector versioning rather than a silent `flash_shift.v1` change.
+
+Task 05 expands the current boundary only to:
+
+- one frozen synthetic Signal Braid fixture;
+- detector identity `signal_braid.v1` inside public family `candidate`;
+- exactly four visible lanes: Media, Wikipedia, Agenda / Issues, and Poll Tests;
+- an exact 28-complete-UTC-day common window selected from validated fixed
+  production artifacts for one explicit canonical candidate ID;
+- a deterministic composition requiring two fully observed longitudinal lanes
+  and either a contained eligible Task 04 child or an accepted first-round poll
+  package ending in the parent window;
+- narrow selected child references for Task 04 and compatible Task 03 traces;
+- one `signal_braid` field payload and renderer inside the frozen Task 02 shell;
+- one ignored local `_trace_output/task-05-candidate-trace.png` smoke artifact;
+- focused extraction, suppression, child compatibility, identity, renderer,
+  isolation, and live-smoke tests; and
+- Task 05 documentation.
+
+Media and Agenda share candidate-linked news evidence. They are distinct
+observable lanes, not independent corroborating sources. Lanes share time but
+not units and are never mathematically combined. Do not add a score,
+correlation, ranking, trend, momentum measure, causal connector, political
+interpretation, party/candidate color, event-red styling, polling performance,
+status, events, scrutiny, General Visibility, or another media scope. Task 05
+must not import `build_candidate_signals.py`, accept arbitrary live source
+paths, write production data, or auto-select a candidate.
