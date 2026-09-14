@@ -11,7 +11,7 @@ FR27 is built around a practical question: **what changed in the race, and what 
 Rather than collapse different signals into a polling average, proprietary candidate score, forecast, probability of victory, or voting recommendation, FR27 preserves the structure, context, and provenance needed to inspect the evidence itself.
 
 **Live product:** https://france2027.app/<br>
-**English interface:** https://france2027.app/?lang=en<br>
+**English interface:** https://france2027.app/en/<br>
 **Repository:** https://github.com/openeventbits/france-2027-signal-lab
 
 ![Race at a Glance — France 2027 Signal Lab](docs/assets/readme-race-at-a-glance-en.jpg)

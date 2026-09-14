@@ -11,7 +11,7 @@ FR27 est construit autour d'une question pratique : **qu'est-ce qui a changé da
 Plutôt que de réduire des signaux de nature différente à une moyenne de sondages, un score propriétaire attribué aux candidats, une prévision, une probabilité de victoire ou une recommandation de vote, FR27 préserve la structure, le contexte et la provenance nécessaires pour examiner les éléments eux-mêmes.
 
 **Produit en ligne :** https://france2027.app/<br>
-**Interface en anglais :** https://france2027.app/?lang=en<br>
+**Interface en anglais :** https://france2027.app/en/<br>
 **Dépôt GitHub :** https://github.com/openeventbits/france-2027-signal-lab
 
 ![Rapport de force — France 2027 Signal Lab](docs/assets/readme-race-at-a-glance-fr.jpg)
