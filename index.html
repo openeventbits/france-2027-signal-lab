@@ -9363,7 +9363,7 @@
       const ledger = deriveRecentChangeLedger();
 
       if (
-        (ledger.loading || ledger.unavailable) &&
+        ledger.unavailable &&
         container.dataset.fr27SemanticSnapshot === "true"
       ) {
         return;
