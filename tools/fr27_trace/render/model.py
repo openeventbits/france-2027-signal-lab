@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 from ..contract import ContractError, validate_trace
@@ -16,6 +17,15 @@ from ..flash_shift import (
     CLASSIFICATION_LABELS,
     FlashShiftError,
     validate_flash_shift_evidence,
+)
+from ..signal_braid import (
+    DETECTOR_ID as SIGNAL_BRAID_DETECTOR_ID,
+    FIELD_TYPE as SIGNAL_BRAID_FIELD_TYPE,
+    SignalBraidError,
+    signal_braid_finding,
+    signal_braid_qualifier,
+    signal_braid_window_display,
+    validate_signal_braid_evidence,
 )
 
 
@@ -52,6 +62,7 @@ _MAX_LENGTHS = {
 
 _COVERAGE_FIELD_TYPE = "coverage_anatomy"
 _FLASH_SHIFT_FIELD_TYPE = "flash_shift"
+_SIGNAL_BRAID_FIELD_TYPE = SIGNAL_BRAID_FIELD_TYPE
 _COVERAGE_ROW_DEFINITIONS = (
     ("share", "COVERAGE SHARE", "percent", "OF PERIOD CANDIDATE-LINKED COVERAGE"),
     ("publisher_count", "PUBLISHERS", "count", "PUBLISHER COUNT"),
@@ -201,6 +212,221 @@ def _flash_shift_field_payload(trace: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+_AGENDA_CODES = {
+    "economy_public_finances": "ECONOMY",
+    "work_purchasing_power_pensions": "WORK",
+    "immigration_identity_secularism": "IMMIGR.",
+    "security_justice": "SECURITY",
+    "health_education_public_services": "SERVICES",
+    "climate_energy_agriculture": "CLIMATE",
+    "europe_defence_foreign_affairs": "EUROPE",
+    "institutions_democracy_territories": "INSTIT.",
+    "legal_eligibility": "LEGAL",
+    "selection_strategy": "STRATEGY",
+    "candidacies_endorsements": "CANDIDACY",
+    "rules_calendar": "RULES",
+    "positioning_integrity": "POSITION",
+    "polls_race": "POLLING",
+}
+
+
+def _series_points(
+    rows: list[Mapping[str, Any]], value_key: str
+) -> tuple[list[dict[str, Any]], int]:
+    values = [row[value_key]["value"] for row in rows]
+    maximum = max(values, default=0)
+    points = []
+    for index, (row, value) in enumerate(zip(rows, values, strict=True)):
+        points.append(
+            {
+                "date": row["date"],
+                "dateLabel": row["date"][5:].replace("-", "/"),
+                "value": value,
+                "valueLabel": f"{value:,}",
+                "heightPercent": 0 if maximum == 0 else round(value / maximum * 100, 4),
+                "index": index,
+            }
+        )
+    return points, maximum
+
+
+def _window_position(day_string: str, start: date, *, offset: float) -> float:
+    index = (date.fromisoformat(day_string) - start).days
+    position = index + offset
+    return round(max(0.0, min(28.0, position)) / 28 * 100, 4)
+
+
+def _annotation_payload(
+    annotation: Mapping[str, Any],
+    *,
+    start: date,
+    label: str,
+) -> dict[str, Any]:
+    value = annotation["value"]
+    window = value["observation_window"]
+    left = _window_position(window["start"], start, offset=0)
+    right = _window_position(window["end"], start, offset=1)
+    return {
+        "label": label,
+        "leftPercent": left,
+        "widthPercent": round(right - left, 4),
+        "start": window["start"],
+        "end": window["end"],
+    }
+
+
+def _signal_braid_field_payload(trace: Mapping[str, Any]) -> dict[str, Any]:
+    if trace["family"] != "candidate" or trace["detector_id"] != SIGNAL_BRAID_DETECTOR_ID:
+        raise RenderModelError(
+            "signal_braid field requires family='candidate' and detector_id='signal_braid.v1'"
+        )
+    try:
+        validate_signal_braid_evidence(
+            trace["evidence"],
+            observation_window=trace["observation_window"],
+        )
+    except SignalBraidError as exc:
+        raise RenderModelError(f"invalid Signal Braid evidence: {exc}") from exc
+
+    evidence = trace["evidence"]
+    calendar = evidence["calendar"]["value"]
+    start = date.fromisoformat(calendar["start"])
+    media_rows = evidence["media"]["series"]["value"]
+    media_points, media_max = _series_points(media_rows, "record_count")
+
+    wiki_series = evidence["wikipedia"]["series"]
+    if wiki_series["availability"] == "observed":
+        wikipedia_points, wikipedia_max = _series_points(wiki_series["value"], "views")
+    else:
+        wikipedia_points, wikipedia_max = [], 0
+
+    agenda_semantics = evidence["agenda"]["semantics"]["value"]
+    policy_ids = agenda_semantics["policy_topic_ids"]
+    campaign_ids = agenda_semantics["campaign_topic_ids"]
+    agenda_days = evidence["agenda"]["days"]
+    agenda_rows = []
+    for section, topic_ids, count_key in (
+        ("policy", policy_ids, "policy_counts"),
+        ("campaign", campaign_ids, "campaign_counts"),
+    ):
+        agenda_rows.append(
+            {
+                "kind": "section",
+                "section": section,
+                "label": section.upper(),
+            }
+        )
+        for topic_index, topic_id in enumerate(topic_ids):
+            marks = []
+            for day_index, day in enumerate(agenda_days):
+                active = (
+                    day["availability"] == "observed"
+                    and day["value"][count_key][topic_index] > 0
+                )
+                marks.append(
+                    {
+                        "date": day["date"],
+                        "index": day_index,
+                        "availability": day["availability"],
+                        "active": active,
+                    }
+                )
+            agenda_rows.append(
+                {
+                    "kind": "topic",
+                    "section": section,
+                    "id": topic_id,
+                    "code": _AGENDA_CODES[topic_id],
+                    "marks": marks,
+                }
+            )
+
+    poll_tests = evidence["poll_tests"]
+    packages = []
+    for package in poll_tests.get("value", []):
+        continues_left = date.fromisoformat(package["fieldwork_start"]) < start
+        left = _window_position(package["fieldwork_start"], start, offset=0.5)
+        endpoint = _window_position(package["fieldwork_end"], start, offset=0.5)
+        packages.append(
+            {
+                "pollster": package["pollster"],
+                "fieldworkStart": package["fieldwork_start"],
+                "fieldworkEnd": package["fieldwork_end"],
+                "leftPercent": left,
+                "widthPercent": round(endpoint - left, 4),
+                "endpointPercent": endpoint,
+                "continuesLeft": continues_left,
+            }
+        )
+
+    annotations = evidence["annotations"]
+    flash_annotation = None
+    if "flash_shift" in annotations:
+        classification = annotations["flash_shift"]["value"]["classification"]
+        flash_annotation = _annotation_payload(
+            annotations["flash_shift"],
+            start=start,
+            label=CLASSIFICATION_LABELS[classification],
+        )
+    coverage_annotation = None
+    if "coverage_anatomy" in annotations:
+        coverage_annotation = _annotation_payload(
+            annotations["coverage_anatomy"],
+            start=start,
+            label="COVERAGE ANATOMY",
+        )
+
+    ticks = []
+    for index in (0, 7, 14, 21, 27):
+        day_string = date.fromordinal(start.toordinal() + index).isoformat()
+        ticks.append(
+            {
+                "date": day_string,
+                "label": day_string[5:].replace("-", "/"),
+                "leftPercent": round((index + 0.5) / 28 * 100, 4),
+            }
+        )
+    return {
+        "componentLabel": "SIGNAL BRAID · 28-DAY CANDIDATE TRACE",
+        "calendarLabel": f"{calendar['start']} — {calendar['end']} · UTC",
+        "ticks": ticks,
+        "media": {
+            "availability": "observed",
+            "label": "MEDIA",
+            "unitLabel": "CANDIDATE-LINKED RECORDS · LOCAL SCALE",
+            "maximumLabel": f"MAX {media_max:,}",
+            "points": media_points,
+            "annotation": coverage_annotation,
+        },
+        "wikipedia": {
+            "availability": wiki_series["availability"],
+            "label": "WIKIPEDIA",
+            "unitLabel": "RAW PAGEVIEWS · LOCAL SCALE",
+            "maximumLabel": f"MAX {wikipedia_max:,}" if wikipedia_points else "UNAVAILABLE",
+            "points": wikipedia_points,
+            "annotation": flash_annotation,
+            "stateLabel": wiki_series.get("reason", ""),
+        },
+        "agenda": {
+            "availability": (
+                "observed"
+                if all(day["availability"] == "observed" for day in agenda_days)
+                else "partially_not_observed"
+            ),
+            "label": "AGENDA / ISSUES",
+            "unitLabel": "CATEGORICAL TOPIC ASSOCIATIONS",
+            "rows": agenda_rows,
+        },
+        "pollTests": {
+            "availability": poll_tests["availability"],
+            "label": "POLL TESTS",
+            "unitLabel": "ACCEPTED FIRST-ROUND PACKAGES · FIELDWORK",
+            "packages": packages,
+            "stateLabel": poll_tests.get("reason", ""),
+        },
+    }
+
+
 @dataclass(frozen=True)
 class TraceRenderModel:
     """Validated TRACE identity plus non-identity presentation metadata."""
@@ -257,12 +483,37 @@ class TraceRenderModel:
         if field_type is not None and field_type not in {
             _COVERAGE_FIELD_TYPE,
             _FLASH_SHIFT_FIELD_TYPE,
+            _SIGNAL_BRAID_FIELD_TYPE,
         }:
             raise RenderModelError("presentation.field_type is not supported")
         if field_type == _COVERAGE_FIELD_TYPE:
             _coverage_field_payload(trace)
         elif field_type == _FLASH_SHIFT_FIELD_TYPE:
             _flash_shift_field_payload(trace)
+        elif field_type == _SIGNAL_BRAID_FIELD_TYPE:
+            _signal_braid_field_payload(trace)
+            try:
+                expected_window_display = signal_braid_window_display(
+                    trace["observation_window"]
+                )
+                expected_finding = signal_braid_finding(trace["evidence"])
+                expected_qualifier = signal_braid_qualifier(trace["evidence"])
+            except SignalBraidError as exc:
+                raise RenderModelError(
+                    f"invalid Signal Braid presentation basis: {exc}"
+                ) from exc
+            if presentation["observation_window_display"] != expected_window_display:
+                raise RenderModelError(
+                    "Signal Braid observation_window_display disagrees with canonical window"
+                )
+            if presentation["finding"] != expected_finding:
+                raise RenderModelError(
+                    "Signal Braid finding does not match its deterministic trigger mapping"
+                )
+            if presentation.get("qualifier") != expected_qualifier:
+                raise RenderModelError(
+                    "Signal Braid qualifier does not match its deterministic poll mapping"
+                )
 
         return cls(
             trace=deepcopy(dict(trace)),
@@ -308,4 +559,6 @@ class TraceRenderModel:
             payload["field"] = _coverage_field_payload(self.trace)
         elif self.field_type == _FLASH_SHIFT_FIELD_TYPE:
             payload["field"] = _flash_shift_field_payload(self.trace)
+        elif self.field_type == _SIGNAL_BRAID_FIELD_TYPE:
+            payload["field"] = _signal_braid_field_payload(self.trace)
         return payload

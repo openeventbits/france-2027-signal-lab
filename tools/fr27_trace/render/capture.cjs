@@ -44,6 +44,111 @@ function assertPngDimensions(output) {
   }
 }
 
+async function assertSignalBraidGeometry(page, model) {
+  if (model.fieldType !== "signal_braid") return;
+  const audit = await page.evaluate(() => {
+    const tolerance = 0.25;
+    const inside = (inner, outer) => (
+      inner.left >= outer.left - tolerance
+      && inner.right <= outer.right + tolerance
+      && inner.top >= outer.top - tolerance
+      && inner.bottom <= outer.bottom + tolerance
+    );
+    const labels = Array.from(document.querySelectorAll(".agenda-topic-label"));
+    const labelRects = labels.map((label) => ({
+      topic: label.dataset.topic,
+      rect: label.getBoundingClientRect(),
+      clips: label.scrollWidth > label.clientWidth || label.scrollHeight > label.clientHeight,
+    }));
+    const labelOverlaps = [];
+    for (let index = 1; index < labelRects.length; index += 1) {
+      const previous = labelRects[index - 1];
+      const current = labelRects[index];
+      if (previous.rect.bottom > current.rect.top + tolerance) {
+        labelOverlaps.push([previous.topic, current.topic]);
+      }
+    }
+
+    const matrix = document.querySelector("[data-braid-agenda-matrix]").getBoundingClientRect();
+    const marks = Array.from(document.querySelectorAll(".agenda-incidence"));
+    const escapedMarks = marks.filter((mark) => {
+      const cell = mark.parentElement.getBoundingClientRect();
+      const row = mark.closest(".agenda-topic-row").getBoundingClientRect();
+      const rect = mark.getBoundingClientRect();
+      return !inside(rect, cell) || !inside(rect, row) || !inside(rect, matrix);
+    }).map((mark) => [mark.dataset.topic, mark.dataset.date]);
+
+    const simultaneousByDate = new Map();
+    marks.forEach((mark) => {
+      const positions = simultaneousByDate.get(mark.dataset.date) || [];
+      positions.push(mark.closest(".agenda-topic-row").getBoundingClientRect().top);
+      simultaneousByDate.set(mark.dataset.date, positions);
+    });
+    const collapsedSimultaneous = Array.from(simultaneousByDate.entries())
+      .filter(([, positions]) => positions.length > 1 && new Set(positions).size !== positions.length)
+      .map(([day]) => day);
+
+    const mediaCells = Array.from(document.querySelectorAll("[data-braid-media-plot] .braid-bar-day"));
+    const wikiCells = Array.from(document.querySelectorAll("[data-braid-wikipedia-plot] .braid-bar-day"));
+    const firstAgendaRow = document.querySelector(".agenda-topic-row");
+    const referenceAgendaCells = firstAgendaRow
+      ? Array.from(firstAgendaRow.querySelectorAll(".agenda-mark-cell"))
+      : [];
+    const misalignedDates = [];
+    referenceAgendaCells.forEach((cell, index) => {
+      const agendaRect = cell.getBoundingClientRect();
+      for (const [lane, candidates] of [["media", mediaCells], ["wikipedia", wikiCells]]) {
+        if (candidates.length === 0) continue;
+        const candidateRect = candidates[index].getBoundingClientRect();
+        if (
+          cell.dataset.date !== candidates[index].dataset.date
+          || Math.abs(agendaRect.left - candidateRect.left) > tolerance
+          || Math.abs(agendaRect.right - candidateRect.right) > tolerance
+        ) {
+          misalignedDates.push([lane, index]);
+        }
+      }
+    });
+    const mediaPlot = document.querySelector("[data-braid-media-plot]").getBoundingClientRect();
+    const pollPlot = document.querySelector("[data-braid-poll-plot]").getBoundingClientRect();
+    const plotAlignment = {
+      agendaMediaLeft: Math.abs(matrix.left - mediaPlot.left),
+      agendaMediaRight: Math.abs(matrix.right - mediaPlot.right),
+      agendaPollLeft: Math.abs(matrix.left - pollPlot.left),
+      agendaPollRight: Math.abs(matrix.right - pollPlot.right),
+    };
+    return {
+      labelCount: labels.length,
+      labelClips: labelRects.filter((item) => item.clips).map((item) => item.topic),
+      labelOverlaps,
+      markCount: marks.length,
+      escapedMarks,
+      collapsedSimultaneous,
+      agendaDateCellCount: referenceAgendaCells.length,
+      misalignedDates,
+      plotAlignment,
+    };
+  });
+  const expectedMarks = model.field.agenda.rows
+    .filter((row) => row.kind === "topic")
+    .reduce((total, row) => total + row.marks.filter((mark) => mark.active).length, 0);
+  const plotDeltas = Object.values(audit.plotAlignment);
+  if (
+    audit.labelCount !== 14
+    || audit.labelClips.length
+    || audit.labelOverlaps.length
+    || audit.markCount !== expectedMarks
+    || audit.escapedMarks.length
+    || audit.collapsedSimultaneous.length
+    || audit.agendaDateCellCount !== 28
+    || audit.misalignedDates.length
+    || plotDeltas.some((delta) => delta > 0.25)
+  ) {
+    throw new Error(`Signal Braid geometry audit failed: ${JSON.stringify(audit)}`);
+  }
+  console.log(`Signal Braid geometry: ${JSON.stringify(audit)}`);
+}
+
 async function main() {
   const output = outputPathFromArguments(process.argv.slice(2));
   const model = JSON.parse(await readStdin());
@@ -70,6 +175,7 @@ async function main() {
       await document.fonts.ready;
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     });
+    await assertSignalBraidGeometry(page, model);
 
     const geometry = await page.evaluate(() => {
       const canvas = document.querySelector(".trace-canvas").getBoundingClientRect();
@@ -123,4 +229,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { outputPathFromArguments };
+module.exports = { assertSignalBraidGeometry, outputPathFromArguments };
