@@ -39,6 +39,7 @@ from candidate_identity import (
 
 API_ENDPOINT = "https://fr.wikipedia.org/w/api.php"
 PAGE_TITLE = "Candidatures à l'élection présidentielle française de 2027"
+SOCIALIST_PRIMARY_PAGE_TITLE = "Primaire présidentielle socialiste française de 2026"
 SOURCE_PUBLISHER = "French Wikipedia"
 PAGE_URL = (
     "https://fr.wikipedia.org/wiki/"
@@ -95,6 +96,21 @@ SECTION_RULES: dict[str, SectionRule] = {
     ),
 }
 
+SOCIALIST_PRIMARY_SECTION_RULES: dict[str, SectionRule] = {
+    "Candidats officiels": SectionRule(
+        "primary_contender",
+        "main",
+        "Listed in the French Wikipedia 2026 Socialist primary page as an official primary candidate.",
+        "table",
+    ),
+    "Candidatures n'ayant pas abouti": SectionRule(
+        "ruled_out",
+        "hidden",
+        "Listed in the French Wikipedia 2026 Socialist primary page as a candidacy that did not proceed.",
+        "list",
+    ),
+}
+
 _ACTIVE_STATUSES = frozenset(
     {"declared", "primary_contender", "active_potential"}
 )
@@ -130,6 +146,7 @@ FetchJson = Callable[[Mapping[str, str]], Any]
 class RevisionSnapshot:
     revision_id: int
     revision_timestamp: str
+    page_title: str = PAGE_TITLE
 
     @property
     def revision_date(self) -> str:
@@ -139,7 +156,7 @@ class RevisionSnapshot:
     def permanent_url(self) -> str:
         return (
             "https://fr.wikipedia.org/w/index.php?"
-            + urlencode({"title": PAGE_TITLE, "oldid": self.revision_id})
+            + urlencode({"title": self.page_title, "oldid": self.revision_id})
         )
 
 
@@ -149,10 +166,53 @@ class ExtractedCandidate:
     section_title: str
     requested_article_title: str | None
     wikipedia_article: dict[str, Any] | None = None
+    source_page_title: str = PAGE_TITLE
 
     @property
     def has_personal_article(self) -> bool:
         return self.requested_article_title is not None
+
+
+def section_rule_for_candidate(
+    candidate: ExtractedCandidate,
+) -> SectionRule:
+    """Return source-specific semantics for one extracted candidate."""
+
+    if candidate.source_page_title == PAGE_TITLE:
+        rules = SECTION_RULES
+    elif candidate.source_page_title == SOCIALIST_PRIMARY_PAGE_TITLE:
+        rules = SOCIALIST_PRIMARY_SECTION_RULES
+    else:
+        _fail(
+            "unsupported candidate source page: "
+            f"{candidate.source_page_title!r}"
+        )
+
+    rule = rules.get(candidate.section_title)
+    if rule is None:
+        _fail(
+            "candidate section is not configured for source page: "
+            f"{candidate.section_title!r} on "
+            f"{candidate.source_page_title!r}"
+        )
+    return rule
+
+
+def effective_rule_for_candidate(
+    candidate: ExtractedCandidate,
+    previous: Mapping[str, Any] | None,
+) -> SectionRule:
+    """Apply source precedence while restricting supplemental identity creation."""
+
+    if candidate.source_page_title == SOCIALIST_PRIMARY_PAGE_TITLE:
+        if previous is None:
+            _fail(
+                "supplemental source cannot create a new candidate identity: "
+                f"{candidate.candidate_name!r}"
+            )
+        return section_rule_for_candidate(candidate)
+
+    return section_rule_for_candidate(candidate)
 
 
 @dataclass(frozen=True)
@@ -517,6 +577,7 @@ def _table_rows(table: _HtmlNode) -> list[_HtmlNode]:
 def _extract_candidate_table(
     table: _HtmlNode,
     section_title: str,
+    source_page_title: str,
 ) -> list[ExtractedCandidate]:
     rows = _table_rows(table)
     candidate_column: int | None = None
@@ -557,6 +618,7 @@ def _extract_candidate_table(
                 candidate_name,
                 section_title,
                 _personal_article_title(cell, candidate_name),
+                source_page_title=source_page_title,
             )
         )
     return extracted
@@ -565,6 +627,7 @@ def _extract_candidate_table(
 def _extract_candidate_list(
     candidate_list: _HtmlNode,
     section_title: str,
+    source_page_title: str,
 ) -> list[ExtractedCandidate]:
     extracted: list[ExtractedCandidate] = []
     for item in _direct_elements(candidate_list, {"li"}):
@@ -574,17 +637,22 @@ def _extract_candidate_list(
                 candidate_name,
                 section_title,
                 _personal_article_title(item, candidate_name),
+                source_page_title=source_page_title,
             )
         )
     return extracted
 
 
-def _record_heading(node: _HtmlNode, state: _SectionState) -> None:
+def _record_heading(
+    node: _HtmlNode,
+    state: _SectionState,
+    section_rules: Mapping[str, SectionRule],
+) -> None:
     level = int(node.tag[1])
     title = _text_content(node)
     while state.semantic_stack and state.semantic_stack[-1][0] >= level:
         state.semantic_stack.pop()
-    if title not in SECTION_RULES:
+    if title not in section_rules:
         return
     if title in state.found_sections:
         _fail(f"required semantic section appears more than once: {title!r}")
@@ -592,26 +660,53 @@ def _record_heading(node: _HtmlNode, state: _SectionState) -> None:
     state.semantic_stack.append((level, title))
 
 
-def _scan_document(node: _HtmlNode, state: _SectionState) -> None:
+def _scan_document(
+    node: _HtmlNode,
+    state: _SectionState,
+    section_rules: Mapping[str, SectionRule],
+    source_page_title: str,
+) -> None:
     for child in node.children:
         if not isinstance(child, _HtmlNode):
             continue
         if child.tag in _HEADING_TAGS:
-            _record_heading(child, state)
+            _record_heading(child, state, section_rules)
             continue
         owner = state.owner
         if child.tag == "table":
-            if owner is not None and SECTION_RULES[owner].structured_kind == "table":
-                state.candidates.extend(_extract_candidate_table(child, owner))
+            if owner is not None and section_rules[owner].structured_kind == "table":
+                state.candidates.extend(
+                    _extract_candidate_table(
+                        child,
+                        owner,
+                        source_page_title,
+                    )
+                )
             continue
         if child.tag == "ul":
-            if owner is not None and SECTION_RULES[owner].structured_kind == "list":
-                state.candidates.extend(_extract_candidate_list(child, owner))
+            if owner is not None and section_rules[owner].structured_kind == "list":
+                state.candidates.extend(
+                    _extract_candidate_list(
+                        child,
+                        owner,
+                        source_page_title,
+                    )
+                )
             continue
-        _scan_document(child, state)
+        _scan_document(
+            child,
+            state,
+            section_rules,
+            source_page_title,
+        )
 
 
-def extract_candidates(parsed_html: str) -> list[ExtractedCandidate]:
+def extract_candidates(
+    parsed_html: str,
+    *,
+    section_rules: Mapping[str, SectionRule] = SECTION_RULES,
+    source_page_title: str = PAGE_TITLE,
+) -> list[ExtractedCandidate]:
     """Extract section-owned candidate records from MediaWiki parse HTML."""
 
     if not isinstance(parsed_html, str) or not parsed_html.strip():
@@ -626,8 +721,13 @@ def extract_candidates(parsed_html: str) -> list[ExtractedCandidate]:
         ) from error
 
     state = _SectionState()
-    _scan_document(parser.root, state)
-    missing_sections = sorted(set(SECTION_RULES) - state.found_sections)
+    _scan_document(
+        parser.root,
+        state,
+        section_rules,
+        source_page_title,
+    )
+    missing_sections = sorted(set(section_rules) - state.found_sections)
     if missing_sections:
         _fail(f"required semantic sections are missing: {missing_sections}")
     if not state.candidates:
@@ -657,11 +757,47 @@ def extract_candidates(parsed_html: str) -> list[ExtractedCandidate]:
         ) from error
 
     if not any(
-        SECTION_RULES[candidate.section_title].status in _ACTIVE_STATUSES
+        section_rules[candidate.section_title].status in _ACTIVE_STATUSES
         for candidate in state.candidates
     ):
         _fail("no active candidates were extracted")
     return state.candidates
+
+
+def merge_candidate_extractions(
+    primary: list[ExtractedCandidate],
+    supplemental: list[ExtractedCandidate],
+) -> list[ExtractedCandidate]:
+    """Merge supplemental candidates without overriding the primary source."""
+
+    merged = list(primary)
+    primary_keys = {
+        normalized_candidate_key(candidate.candidate_name)
+        for candidate in primary
+    }
+    supplemental_keys: set[str] = set()
+
+    for candidate in supplemental:
+        key = normalized_candidate_key(candidate.candidate_name)
+        if key in supplemental_keys:
+            _fail(
+                "duplicate candidate identity in supplemental source: "
+                f"{candidate.candidate_name!r}"
+            )
+        supplemental_keys.add(key)
+        if key in primary_keys:
+            continue
+        merged.append(candidate)
+
+    try:
+        candidate_identity_map(
+            candidate.candidate_name for candidate in merged
+        )
+    except CandidateIdentityError as error:
+        raise CandidateCandidacyFetchError(
+            f"candidate identity collision after source merge: {error}"
+        ) from error
+    return merged
 
 
 def _default_fetch_json(params: Mapping[str, str]) -> Any:
@@ -680,6 +816,8 @@ def _default_fetch_json(params: Mapping[str, str]) -> Any:
 
 def fetch_current_revision(
     fetch_json: FetchJson = _default_fetch_json,
+    *,
+    page_title: str = PAGE_TITLE,
 ) -> RevisionSnapshot:
     """Fetch the latest revision ID and timestamp for the configured page."""
 
@@ -692,7 +830,7 @@ def fetch_current_revision(
             "rvprop": "ids|timestamp",
             "rvslots": "main",
             "rvlimit": "1",
-            "titles": PAGE_TITLE,
+            "titles": page_title,
         }
     )
     try:
@@ -729,12 +867,18 @@ def fetch_current_revision(
         ) from error
     if parsed_timestamp.tzinfo != timezone.utc:
         _fail("MediaWiki revision timestamp must be UTC")
-    return RevisionSnapshot(revision_id, revision_timestamp)
+    return RevisionSnapshot(
+        revision_id,
+        revision_timestamp,
+        page_title=page_title,
+    )
 
 
 def fetch_parsed_revision(
     revision_id: int,
     fetch_json: FetchJson = _default_fetch_json,
+    *,
+    page_title: str = PAGE_TITLE,
 ) -> str:
     """Fetch parsed HTML for exactly ``revision_id`` using ``oldid``."""
 
@@ -762,7 +906,7 @@ def fetch_parsed_revision(
             "MediaWiki parse response revision does not match requested oldid: "
             f"expected {revision_id}, got {parsed_revision_id!r}"
         )
-    if parsed_title != PAGE_TITLE:
+    if parsed_title != page_title:
         _fail(
             "MediaWiki parse response title does not match configured page: "
             f"{parsed_title!r}"
@@ -1185,10 +1329,34 @@ def _status_source_fields(
         "status_as_of": revision.revision_date,
         "source_date": revision.revision_date,
         "source_url": revision.permanent_url,
-        "source_title": PAGE_TITLE,
+        "source_title": revision.page_title,
         "source_publisher": SOURCE_PUBLISHER,
         "status_note": rule.status_note,
     }
+
+
+def _evidence_revision_for_candidate(
+    candidate: ExtractedCandidate,
+    revision: RevisionSnapshot,
+    supplemental_revision: RevisionSnapshot | None,
+) -> RevisionSnapshot:
+    if candidate.source_page_title == PAGE_TITLE:
+        return revision
+    if candidate.source_page_title == SOCIALIST_PRIMARY_PAGE_TITLE:
+        if (
+            supplemental_revision is None
+            or supplemental_revision.page_title
+            != SOCIALIST_PRIMARY_PAGE_TITLE
+        ):
+            _fail(
+                "supplemental candidate is missing its matching revision: "
+                f"{candidate.candidate_name!r}"
+            )
+        return supplemental_revision
+    _fail(
+        "unsupported candidate source page: "
+        f"{candidate.source_page_title!r}"
+    )
 
 
 def _retained_status_source_fields(
@@ -1223,6 +1391,8 @@ def _build_payload_details(
     parsed_html: str,
     *,
     previous_registry: dict[str, Any] | None = None,
+    supplemental_candidates: tuple[ExtractedCandidate, ...] = (),
+    supplemental_revision: RevisionSnapshot | None = None,
     curated_sources: tuple[CuratedCandidacySource, ...] = (),
     article_resolver: Callable[[str], dict[str, Any]] | None = None,
     article_fetch_json: FetchJson | None = None,
@@ -1234,6 +1404,11 @@ def _build_payload_details(
     tuple[tuple[str, str, str], ...],
 ]:
     extracted = extract_candidates(parsed_html)
+    if supplemental_candidates:
+        extracted = merge_candidate_extractions(
+            extracted,
+            list(supplemental_candidates),
+        )
     if article_resolver is not None and article_fetch_json is not None:
         _fail("only one Wikipedia article resolution strategy may be used")
     if article_fetch_json is not None:
@@ -1274,8 +1449,13 @@ def _build_payload_details(
     curated_by_id = {source.candidate_id: source for source in curated_sources}
 
     for candidate in extracted:
-        rule = SECTION_RULES[candidate.section_title]
         previous = matches[candidate.candidate_name]
+        rule = effective_rule_for_candidate(candidate, previous)
+        evidence_revision = _evidence_revision_for_candidate(
+            candidate,
+            revision,
+            supplemental_revision,
+        )
         if previous is None:
             try:
                 identifier = candidate_id(candidate.candidate_name)
@@ -1290,7 +1470,7 @@ def _build_payload_details(
                 )
             used_ids.add(identifier)
             new_ids.append(identifier)
-            source_fields = _status_source_fields(revision, rule)
+            source_fields = _status_source_fields(evidence_revision, rule)
         else:
             identifier = previous["candidate_id"]
             if previous["candidate_name"] != candidate.candidate_name:
@@ -1301,7 +1481,7 @@ def _build_payload_details(
                         candidate.candidate_name,
                     )
                 )
-            if revision.revision_date < previous["status_as_of"]:
+            if evidence_revision.revision_date < previous["status_as_of"]:
                 rule = SectionRule(
                     previous["status"],
                     previous["display_tier"],
@@ -1313,11 +1493,11 @@ def _build_payload_details(
                 previous["status"] != rule.status
                 or previous["display_tier"] != rule.display_tier
             ):
-                source_fields = _status_source_fields(revision, rule)
+                source_fields = _status_source_fields(evidence_revision, rule)
             else:
                 source_fields = _retained_status_source_fields(previous)
         curated = curated_by_id.get(identifier)
-        freshness_floor = revision.revision_date
+        freshness_floor = evidence_revision.revision_date
         if previous is not None:
             freshness_floor = max(freshness_floor, previous["status_as_of"])
         if curated is not None and curated.status_as_of < freshness_floor:
@@ -1432,6 +1612,8 @@ def build_payload(
     parsed_html: str,
     *,
     previous_registry: dict[str, Any] | None = None,
+    supplemental_candidates: tuple[ExtractedCandidate, ...] = (),
+    supplemental_revision: RevisionSnapshot | None = None,
     article_resolver: Callable[[str], dict[str, Any]] | None = None,
 ) -> tuple[dict[str, Any], tuple[ExtractedCandidate, ...]]:
     """Build and validate one deterministic schema-v2 registry payload."""
@@ -1441,6 +1623,8 @@ def build_payload(
             revision,
             parsed_html,
             previous_registry=previous_registry,
+            supplemental_candidates=supplemental_candidates,
+            supplemental_revision=supplemental_revision,
             article_resolver=article_resolver,
         )
     )
@@ -1461,10 +1645,28 @@ def fetch_candidate_candidacy_status(
             revision.revision_id,
             fetch_json,
         )
+        supplemental_revision = fetch_current_revision(
+            fetch_json,
+            page_title=SOCIALIST_PRIMARY_PAGE_TITLE,
+        )
+        supplemental_html = fetch_parsed_revision(
+            supplemental_revision.revision_id,
+            fetch_json,
+            page_title=SOCIALIST_PRIMARY_PAGE_TITLE,
+        )
+        supplemental_candidates = tuple(
+            extract_candidates(
+                supplemental_html,
+                section_rules=SOCIALIST_PRIMARY_SECTION_RULES,
+                source_page_title=SOCIALIST_PRIMARY_PAGE_TITLE,
+            )
+        )
         details = _build_payload_details(
             revision,
             parsed_html,
             previous_registry=previous_registry,
+            supplemental_candidates=supplemental_candidates,
+            supplemental_revision=supplemental_revision,
             curated_sources=curated_sources,
             article_fetch_json=fetch_json,
         )
