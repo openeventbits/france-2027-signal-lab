@@ -3525,6 +3525,13 @@ class NewsWireRelevanceTests(unittest.TestCase):
             with (
                 patch("fetch_news_wire.SOURCES", sources),
                 patch(
+                    "fetch_news_wire.active_news_candidate_roster",
+                    return_value=[
+                        "Jean-Luc Mélenchon",
+                        "Raphaël Glucksmann",
+                    ],
+                ),
+                patch(
                     "fetch_news_wire.generate_discovery_queries",
                     return_value=discovery_queries,
                 ),
