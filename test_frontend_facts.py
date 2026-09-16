@@ -104,6 +104,14 @@ class FrontendPublicationFactsTests(unittest.TestCase):
         cls.index = INDEX_PATH.read_text(encoding="utf-8")
         cls.en_catalog = locale_catalog(EN_LOCALE_PATH)
 
+    def test_harris_pollster_icon_alias_is_present_in_both_shells(self):
+        en_index = (ROOT / "en" / "index.html").read_text(
+            encoding="utf-8"
+        )
+        alias = '["harris", "harris interactive"]'
+        self.assertIn(alias, self.index)
+        self.assertIn(alias, en_index)
+
     def test_publication_manifest_is_loaded_with_dashboard_data(self):
         self.assertIn(
             'fetch("publication_manifest.json", { cache: "no-store" })',
