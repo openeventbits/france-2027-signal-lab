@@ -23,6 +23,18 @@ class DynamicTargetTests(unittest.TestCase):
             encoding="utf-8",
         )
 
+    def test_ipsos_is_configured_as_pollster_target(self):
+        targets = icons.configured_icon_targets()
+
+        self.assertIn(
+            {
+                "name": "Ipsos",
+                "feed_url": "https://www.ipsos.com/fr-fr",
+                "entity_type": "pollster",
+            },
+            targets,
+        )
+
     def test_surfaced_publishers_resolve_from_policy(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

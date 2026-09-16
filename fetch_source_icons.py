@@ -34,6 +34,7 @@ POLLSTER_HOMEPAGES = {
     "Verian": "https://www.veriangroup.com/fr/",
     "OpinionWay": "https://www.opinion-way.com/",
     "Ifop": "https://www.ifop.com/",
+    "Ipsos": "https://www.ipsos.com/fr-fr",
     "Harris Interactive": "https://harris-interactive.fr/",
 }
 
