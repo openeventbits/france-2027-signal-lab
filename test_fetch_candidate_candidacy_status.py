@@ -77,6 +77,29 @@ def fixture_html(
     """
 
 
+def supplemental_fixture_html(
+    *,
+    official_names: tuple[str, ...] = ("François Primaire",),
+    unsuccessful_names: tuple[str, ...] = (),
+) -> str:
+    unsuccessful = "".join(
+        (
+            "<li>"
+            f'<a href="/wiki/{name.replace(" ", "_")}">{name}</a>'
+            "</li>"
+        )
+        for name in unsuccessful_names
+    )
+    return f"""
+    <div class="mw-parser-output">
+      <h2>Candidats officiels</h2>
+      {candidate_table(*official_names)}
+      <h2>Candidatures n'ayant pas abouti</h2>
+      <ul>{unsuccessful}</ul>
+    </div>
+    """
+
+
 def query_response(
     *,
     revision_id: int = REVISION_ID,
@@ -116,6 +139,9 @@ _DEFAULT_RESPONSE = object()
 
 
 class FakeFetch:
+    supplemental_revision_id = 8765432
+    supplemental_revision_timestamp = "2026-09-16T12:00:00Z"
+
     def __init__(
         self,
         query=_DEFAULT_RESPONSE,
@@ -130,9 +156,40 @@ class FakeFetch:
     def __call__(self, params):
         copied = dict(params)
         self.calls.append(copied)
+
         if copied.get("action") == "query" and copied.get("prop") == "revisions":
-            return copy.deepcopy(self.query)
+            title = copied["titles"]
+            if title == collector.PAGE_TITLE:
+                return copy.deepcopy(self.query)
+            if title == collector.SOCIALIST_PRIMARY_PAGE_TITLE:
+                return {
+                    "query": {
+                        "pages": [
+                            {
+                                "pageid": 321,
+                                "title": collector.SOCIALIST_PRIMARY_PAGE_TITLE,
+                                "revisions": [
+                                    {
+                                        "revid": self.supplemental_revision_id,
+                                        "timestamp": self.supplemental_revision_timestamp,
+                                    }
+                                ],
+                            }
+                        ]
+                    }
+                }
+            raise AssertionError(f"unexpected revision title: {title!r}")
+
         if copied.get("action") == "parse":
+            if copied["oldid"] == str(self.supplemental_revision_id):
+                return {
+                    "parse": {
+                        "title": collector.SOCIALIST_PRIMARY_PAGE_TITLE,
+                        "pageid": 321,
+                        "revid": self.supplemental_revision_id,
+                        "text": supplemental_fixture_html(),
+                    }
+                }
             return copy.deepcopy(self.parsed)
         if copied.get("action") == "query" and copied.get("prop") == "info":
             title = copied["titles"]
@@ -154,6 +211,84 @@ class FakeFetch:
                     }
                 }
             return copy.deepcopy(response)
+        raise AssertionError(f"unexpected MediaWiki action: {copied!r}")
+
+
+class DualSourceFakeFetch:
+    supplemental_revision_id = 8765432
+    supplemental_revision_timestamp = "2026-09-16T12:00:00Z"
+
+    def __init__(
+        self,
+        *,
+        main_html: str | None = None,
+        supplemental_html: str | None = None,
+    ):
+        self.main_html = fixture_html() if main_html is None else main_html
+        self.supplemental_html = (
+            supplemental_fixture_html()
+            if supplemental_html is None
+            else supplemental_html
+        )
+        self.calls: list[dict[str, str]] = []
+
+    def __call__(self, params):
+        copied = dict(params)
+        self.calls.append(copied)
+
+        if copied.get("action") == "query" and copied.get("prop") == "revisions":
+            title = copied["titles"]
+            if title == collector.PAGE_TITLE:
+                return query_response()
+            if title == collector.SOCIALIST_PRIMARY_PAGE_TITLE:
+                return {
+                    "query": {
+                        "pages": [
+                            {
+                                "pageid": 321,
+                                "title": collector.SOCIALIST_PRIMARY_PAGE_TITLE,
+                                "revisions": [
+                                    {
+                                        "revid": self.supplemental_revision_id,
+                                        "timestamp": self.supplemental_revision_timestamp,
+                                    }
+                                ],
+                            }
+                        ]
+                    }
+                }
+            raise AssertionError(f"unexpected revision title: {title!r}")
+
+        if copied.get("action") == "parse":
+            oldid = copied["oldid"]
+            if oldid == str(REVISION_ID):
+                return parse_response(self.main_html)
+            if oldid == str(self.supplemental_revision_id):
+                return {
+                    "parse": {
+                        "title": collector.SOCIALIST_PRIMARY_PAGE_TITLE,
+                        "pageid": 321,
+                        "revid": self.supplemental_revision_id,
+                        "text": self.supplemental_html,
+                    }
+                }
+            raise AssertionError(f"unexpected parse oldid: {oldid!r}")
+
+        if copied.get("action") == "query" and copied.get("prop") == "info":
+            requested_titles = copied["titles"].split("|")
+            return {
+                "query": {
+                    "pages": [
+                        {
+                            "pageid": 2000 + index,
+                            "ns": 0,
+                            "title": requested_title,
+                        }
+                        for index, requested_title in enumerate(requested_titles)
+                    ]
+                }
+            }
+
         raise AssertionError(f"unexpected MediaWiki action: {copied!r}")
 
 
@@ -406,11 +541,31 @@ class MediaWikiApiTests(unittest.TestCase):
         self.assertEqual(result.revision.revision_id, REVISION_ID)
         self.assertEqual(result.revision.revision_timestamp, REVISION_TIMESTAMP)
         self.assertEqual(
-            [call["action"] for call in fake.calls[:2]],
-            ["query", "parse"],
+            [
+                (
+                    call["action"],
+                    call.get("titles"),
+                    call.get("oldid"),
+                )
+                for call in fake.calls[:4]
+            ],
+            [
+                ("query", collector.PAGE_TITLE, None),
+                ("parse", None, str(REVISION_ID)),
+                (
+                    "query",
+                    collector.SOCIALIST_PRIMARY_PAGE_TITLE,
+                    None,
+                ),
+                (
+                    "parse",
+                    None,
+                    str(fake.supplemental_revision_id),
+                ),
+            ],
         )
         self.assertTrue(
-            all(call.get("prop") == "info" for call in fake.calls[2:])
+            all(call.get("prop") == "info" for call in fake.calls[4:])
         )
         self.assertEqual(
             sum(call.get("prop") == "info" for call in fake.calls),
@@ -438,6 +593,167 @@ class MediaWikiApiTests(unittest.TestCase):
             "required semantic sections are missing",
             message,
         )
+
+
+    def test_supplemental_status_change_uses_supplied_revision_provenance(self):
+        name = "Alexis Supplémentaire"
+
+        previous, _ = collector.build_payload(
+            collector.RevisionSnapshot(
+                REVISION_ID,
+                REVISION_TIMESTAMP,
+            ),
+            fixture_html(
+                primary_names=("François Primaire", name),
+            ),
+        )
+
+        current_revision = collector.RevisionSnapshot(
+            REVISION_ID + 1,
+            "2026-08-07T04:05:00Z",
+        )
+        supplemental_revision = collector.RevisionSnapshot(
+            8765432,
+            "2026-09-16T12:00:00Z",
+            page_title=collector.SOCIALIST_PRIMARY_PAGE_TITLE,
+        )
+        supplemental_candidate = collector.ExtractedCandidate(
+            candidate_name=name,
+            section_title="Candidatures n'ayant pas abouti",
+            requested_article_title=name,
+            source_page_title=collector.SOCIALIST_PRIMARY_PAGE_TITLE,
+        )
+
+        payload, _ = collector.build_payload(
+            current_revision,
+            fixture_html(),
+            previous_registry=previous,
+            supplemental_candidates=(supplemental_candidate,),
+            supplemental_revision=supplemental_revision,
+        )
+
+        candidate = next(
+            row
+            for row in payload["candidates"]
+            if row["candidate_name"] == name
+        )
+
+        self.assertEqual(candidate["upstream_presence"], "present")
+        self.assertEqual(candidate["status"], "ruled_out")
+        self.assertEqual(candidate["display_tier"], "hidden")
+        self.assertEqual(
+            candidate["status_as_of"],
+            supplemental_revision.revision_date,
+        )
+        self.assertEqual(
+            candidate["source_date"],
+            supplemental_revision.revision_date,
+        )
+        self.assertEqual(
+            candidate["source_title"],
+            collector.SOCIALIST_PRIMARY_PAGE_TITLE,
+        )
+        self.assertEqual(
+            candidate["source_url"],
+            supplemental_revision.permanent_url,
+        )
+        self.assertEqual(
+            candidate["source_publisher"],
+            collector.SOURCE_PUBLISHER,
+        )
+
+
+    def test_dual_source_fetch_applies_supplemental_status_with_its_provenance(self):
+        name = "Alexis Supplémentaire"
+
+        previous, _ = collector.build_payload(
+            collector.RevisionSnapshot(
+                REVISION_ID,
+                REVISION_TIMESTAMP,
+            ),
+            fixture_html(
+                primary_names=("François Primaire", name),
+            ),
+        )
+
+        fake = DualSourceFakeFetch(
+            main_html=fixture_html(),
+            supplemental_html=supplemental_fixture_html(
+                unsuccessful_names=(name,),
+            ),
+        )
+
+        result = collector.fetch_candidate_candidacy_status(
+            fake,
+            previous_registry=previous,
+        )
+
+        candidate = next(
+            row
+            for row in result.payload["candidates"]
+            if row["candidate_name"] == name
+        )
+
+        self.assertEqual(candidate["upstream_presence"], "present")
+        self.assertEqual(candidate["status"], "ruled_out")
+        self.assertEqual(candidate["display_tier"], "hidden")
+        self.assertEqual(
+            candidate["status_as_of"],
+            "2026-09-16",
+        )
+        self.assertEqual(
+            candidate["source_date"],
+            "2026-09-16",
+        )
+        self.assertEqual(
+            candidate["source_title"],
+            collector.SOCIALIST_PRIMARY_PAGE_TITLE,
+        )
+        self.assertIn(
+            f"oldid={fake.supplemental_revision_id}",
+            candidate["source_url"],
+        )
+
+        self.assertEqual(
+            [
+                (
+                    call["action"],
+                    call.get("titles"),
+                    call.get("oldid"),
+                )
+                for call in fake.calls[:4]
+            ],
+            [
+                ("query", collector.PAGE_TITLE, None),
+                ("parse", None, str(REVISION_ID)),
+                (
+                    "query",
+                    collector.SOCIALIST_PRIMARY_PAGE_TITLE,
+                    None,
+                ),
+                (
+                    "parse",
+                    None,
+                    str(fake.supplemental_revision_id),
+                ),
+            ],
+        )
+
+    def test_dual_source_fetch_fails_closed_on_malformed_supplemental_page(self):
+        fake = DualSourceFakeFetch(
+            supplemental_html=(
+                '<div class="mw-parser-output">'
+                "<h2>Candidats officiels</h2>"
+                + candidate_table("François Primaire")
+                + "</div>"
+            ),
+        )
+
+        with self.assertRaisesRegex(
+            collector.CandidateCandidacyFetchError,
+            "required semantic sections are missing",
+        ):
+            collector.fetch_candidate_candidacy_status(fake)
 
     def test_revision_only_refresh_reports_no_semantic_change(self):
         previous = collector.fetch_candidate_candidacy_status(
