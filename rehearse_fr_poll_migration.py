@@ -1200,6 +1200,154 @@ def _load_second_round_evidence_reconciliation() -> dict[str, Any]:
     return payload
 
 
+def _classify_second_round_evidence_lifecycle(
+    previous_second: list[dict[str, Any]],
+    payload: dict[str, Any],
+) -> str:
+    """Classify the persisted corpus against the bounded ten-record contract."""
+
+    current_by_id = {
+        event["event_id"]: event
+        for event in previous_second
+    }
+
+    pre_transition = 0
+    applied = 0
+
+    for record in payload["second_round_reconciliations"]:
+        action = record["action"]
+        previous_id = record["previous_event_id"]
+
+        previous_key = factual_key_from_dict(
+            record["previous_event_factual_key"],
+            "second-round lifecycle previous factual key",
+        )
+        canonical_key = factual_key_from_dict(
+            record["canonical_factual_key"],
+            "second-round lifecycle canonical factual key",
+        )
+
+        if action == "retain_existing":
+            event = current_by_id.get(previous_id)
+            if event is None:
+                raise RehearsalError(
+                    "second-round evidence retained event is absent"
+                )
+
+            event_key = exact_factual_key(
+                event,
+                sample_scope=event.get(
+                    "sample_scope",
+                    "reported",
+                ),
+            )
+            if event_key != canonical_key:
+                raise RehearsalError(
+                    "second-round evidence retained event facts changed"
+                )
+            continue
+
+        if action == "correct_retained_sample":
+            event = current_by_id.get(previous_id)
+            if event is None:
+                raise RehearsalError(
+                    "second-round evidence corrected event is absent"
+                )
+
+            event_key = exact_factual_key(
+                event,
+                sample_scope=event.get(
+                    "sample_scope",
+                    "reported",
+                ),
+            )
+
+            if event_key == previous_key:
+                pre_transition += 1
+            elif event_key == canonical_key:
+                applied += 1
+            else:
+                raise RehearsalError(
+                    "second-round evidence corrected event facts changed"
+                )
+            continue
+
+        if action == "supersede_event":
+            replacement_id = record["replacement_event_id"]
+            old_event = current_by_id.get(previous_id)
+            replacement = current_by_id.get(replacement_id)
+
+            if old_event is not None and replacement is not None:
+                raise RehearsalError(
+                    "second-round evidence supersession contains both "
+                    "old and replacement event IDs"
+                )
+
+            if old_event is not None:
+                old_key = exact_factual_key(
+                    old_event,
+                    sample_scope=old_event.get(
+                        "sample_scope",
+                        "reported",
+                    ),
+                )
+                if old_key != previous_key:
+                    raise RehearsalError(
+                        "second-round evidence superseded event facts changed"
+                    )
+                pre_transition += 1
+                continue
+
+            if replacement is None:
+                raise RehearsalError(
+                    "reviewed mapping supersession replacement is absent"
+                )
+
+            replacement_key = exact_factual_key(
+                replacement,
+                sample_scope=replacement.get(
+                    "sample_scope",
+                    "reported",
+                ),
+            )
+            if replacement_key != canonical_key:
+                raise RehearsalError(
+                    "reviewed mapping supersession replacement facts changed"
+                )
+
+            if (
+                replacement["source_url"]
+                != record["incoming_source_url"]
+                or replacement.get("migration_source_locator")
+                != record["source_locator"]
+            ):
+                raise RehearsalError(
+                    "second-round evidence replacement provenance changed"
+                )
+
+            applied += 1
+            continue
+
+        raise RehearsalError(
+            "unsupported second-round evidence lifecycle action"
+        )
+
+    if pre_transition and applied:
+        raise RehearsalError(
+            "mixed second-round evidence lifecycle state"
+        )
+
+    if pre_transition == 6:
+        return "pre_evidence"
+
+    if applied == 6:
+        return "applied"
+
+    raise RehearsalError(
+        "second-round evidence lifecycle state is incomplete"
+    )
+
+
 def _assert_reviewed_post_audit_semantics(
     parsed: dict[str, Any],
     source_records: dict[str, Any],
@@ -1436,10 +1584,29 @@ def reconcile_french_production_source(
                 raise RehearsalError("ambiguous registry incoming factual identity")
             mapping_by_incoming[key] = record
 
+    successor_payload = _load_second_round_evidence_reconciliation()
+    second_round_evidence_state = (
+        _classify_second_round_evidence_lifecycle(
+            previous_second,
+            successor_payload,
+        )
+    )
+
     second_round_successors_by_incoming: dict[Any, dict[str, Any]] = {}
-    if parsed["revid"] >= SECOND_ROUND_EVIDENCE_REVISION:
-        successor_payload = _load_second_round_evidence_reconciliation()
-        for record in successor_payload["second_round_reconciliations"]:
+    second_round_successors_by_reviewed: dict[Any, dict[str, Any]] = {}
+
+    for record in successor_payload["second_round_reconciliations"]:
+        reviewed_key = factual_key_from_dict(
+            record["reviewed_factual_key"],
+            "second-round successor reviewed factual key",
+        )
+        if reviewed_key in second_round_successors_by_reviewed:
+            raise RehearsalError(
+                "duplicate reviewed second-round successor factual identity"
+            )
+        second_round_successors_by_reviewed[reviewed_key] = record
+
+        if parsed["revid"] >= SECOND_ROUND_EVIDENCE_REVISION:
             incoming_key = factual_key_from_dict(
                 record["incoming_factual_key"],
                 "second-round successor incoming factual key",
@@ -1449,6 +1616,75 @@ def reconcile_french_production_source(
                     "duplicate incoming second-round successor factual identity"
                 )
             second_round_successors_by_incoming[incoming_key] = record
+
+    audited_second_round_by_key: dict[Any, dict[str, Any]] = {}
+    for audited_record in audited[SECOND_ROUND]:
+        audited_key = exact_factual_key(
+            audited_record,
+            sample_scope="reported",
+        )
+        if audited_key not in second_round_successors_by_reviewed:
+            continue
+        if audited_key in audited_second_round_by_key:
+            raise RehearsalError(
+                "duplicate audited reviewed second-round factual identity"
+            )
+        audited_second_round_by_key[audited_key] = audited_record
+
+    if (
+        set(audited_second_round_by_key)
+        != set(second_round_successors_by_reviewed)
+    ):
+        raise RehearsalError(
+            "second-round evidence reviewed keys do not match "
+            "the audited historical fixture"
+        )
+
+    historical_second_round_evidence_replay = False
+
+    if (
+        parsed["revid"] < SECOND_ROUND_EVIDENCE_REVISION
+        and second_round_evidence_state == "applied"
+    ):
+        reviewed_rows_seen: set[Any] = set()
+
+        for source_record in source_records[SECOND_ROUND]:
+            reviewed_key = exact_factual_key(
+                source_record,
+                sample_scope="reported",
+            )
+
+            if reviewed_key not in second_round_successors_by_reviewed:
+                continue
+
+            if reviewed_key in reviewed_rows_seen:
+                raise SourceDriftError(
+                    "historical second-round evidence row is duplicated"
+                )
+
+            trusted = audited_second_round_by_key[reviewed_key]
+
+            if (
+                source_record["source_url"] != trusted["source_url"]
+                or source_record["source_locator"]
+                != trusted["source_locator"]
+            ):
+                raise SourceDriftError(
+                    "historical second-round evidence provenance changed"
+                )
+
+            reviewed_rows_seen.add(reviewed_key)
+
+        expected_reviewed_rows = set(
+            second_round_successors_by_reviewed
+        )
+
+        if reviewed_rows_seen != expected_reviewed_rows:
+            raise SourceDriftError(
+                "historical second-round evidence replay is incomplete"
+            )
+
+        historical_second_round_evidence_replay = True
 
     addition_by_audited_key: dict[Any, dict[str, Any]] = {}
     for round_name in (FIRST_ROUND, SECOND_ROUND):
@@ -1515,6 +1751,11 @@ def reconcile_french_production_source(
         "correct_retained_sample": 0,
         "supersede_event": 0,
     }
+    second_round_evidence_already_applied = {
+        "retain_existing": 0,
+        "correct_retained_sample": 0,
+        "supersede_event": 0,
+    }
     superseded_second_round_event_ids: set[str] = set()
     classified_canonical_keys: set[Any] = set()
     source_keys: set[Any] = set()
@@ -1527,6 +1768,29 @@ def reconcile_french_production_source(
             source_keys.add(raw_key)
             if raw_key in identity_skip_keys:
                 ambiguous_skips += 1
+                continue
+
+            if (
+                round_name == SECOND_ROUND
+                and historical_second_round_evidence_replay
+                and raw_key in second_round_successors_by_reviewed
+            ):
+                record = second_round_successors_by_reviewed[raw_key]
+
+                canonical = factual_key_from_dict(
+                    record["canonical_factual_key"],
+                    "historical second-round replay canonical factual key",
+                )
+
+                if canonical in classified_canonical_keys:
+                    raise RehearsalError(
+                        "duplicate canonical factual identity"
+                    )
+
+                classified_canonical_keys.add(canonical)
+                second_round_evidence_already_applied[
+                    record["action"]
+                ] += 1
                 continue
 
             if (
@@ -1903,6 +2167,9 @@ def reconcile_french_production_source(
         "reviewed_canonical_introduced": reviewed_canonical_introduced,
         "second_round_evidence_reconciliations": (
             second_round_evidence_actions
+        ),
+        "second_round_evidence_already_applied": (
+            second_round_evidence_already_applied
         ),
         "superseded_second_round_event_ids": sorted(
             superseded_second_round_event_ids
