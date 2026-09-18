@@ -9,11 +9,15 @@ from fetch_polls import (
 )
 from poll_contract import make_event_id
 from poll_migration import (
+    FRENCH_FIXTURE,
     exact_factual_key,
     load_mediawiki_fixture,
     parse_french_frozen_fixture,
 )
-from rehearse_fr_poll_migration import reconcile_french_production_source
+from rehearse_fr_poll_migration import (
+    RehearsalError,
+    reconcile_french_production_source,
+)
 
 
 ROOT = Path(__file__).parent
@@ -51,6 +55,10 @@ COMMISSION_IFOP_HEXAGONE = (
 
 SUPERSEDED_IFOP_EVENT_ID = (
     "aa99294773918e4dc5adaffaba64d09f714516d7e4b579a7344a0ed4b97d468a"
+)
+
+REPLACEMENT_IFOP_EVENT_ID = (
+    "aef3b324f95d30232427645bc4571fc487509755f70742b012b9301db9a16649"
 )
 
 
@@ -443,6 +451,321 @@ class CurrentSecondRoundEvidenceDriftTests(unittest.TestCase):
                     previous_second,
                     [],
                 )
+
+    def test_historical_fixture_accepts_exact_registered_successor_after_supersession(self):
+        previous_first = json.loads(
+            (ROOT / "polls.json").read_text(encoding="utf-8")
+        )
+        payload = json.loads(
+            (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
+        )
+        previous_second = payload["events"]
+
+        historical_fixture = load_mediawiki_fixture(
+            FRENCH_FIXTURE,
+            238906992,
+        )
+
+        result = reconcile_french_production_source(
+            historical_fixture,
+            previous_first,
+            previous_second,
+        )
+
+        after = {
+            event["event_id"]: event
+            for event in result.second_round_events
+        }
+
+        self.assertNotIn(SUPERSEDED_IFOP_EVENT_ID, after)
+        self.assertIn(REPLACEMENT_IFOP_EVENT_ID, after)
+
+    def test_historical_fixture_rejects_missing_registered_successor(self):
+        previous_first = json.loads(
+            (ROOT / "polls.json").read_text(encoding="utf-8")
+        )
+        payload = json.loads(
+            (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
+        )
+        previous_second = [
+            event
+            for event in payload["events"]
+            if event["event_id"] != REPLACEMENT_IFOP_EVENT_ID
+        ]
+
+        historical_fixture = load_mediawiki_fixture(
+            FRENCH_FIXTURE,
+            238906992,
+        )
+
+        with self.assertRaisesRegex(
+            RehearsalError,
+            "reviewed mapping supersession replacement is absent",
+        ):
+            reconcile_french_production_source(
+                historical_fixture,
+                previous_first,
+                previous_second,
+            )
+
+    def test_historical_fixture_rejects_mutated_registered_successor(self):
+        previous_first = json.loads(
+            (ROOT / "polls.json").read_text(encoding="utf-8")
+        )
+        payload = json.loads(
+            (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
+        )
+        previous_second = json.loads(json.dumps(payload["events"]))
+
+        replacement = next(
+            event
+            for event in previous_second
+            if event["event_id"] == REPLACEMENT_IFOP_EVENT_ID
+        )
+        replacement["sample_size"] = 1839
+
+        historical_fixture = load_mediawiki_fixture(
+            FRENCH_FIXTURE,
+            238906992,
+        )
+
+        with self.assertRaisesRegex(
+            RehearsalError,
+            "reviewed mapping supersession replacement facts changed",
+        ):
+            reconcile_french_production_source(
+                historical_fixture,
+                previous_first,
+                previous_second,
+            )
+
+    def test_current_evidence_application_is_idempotent_on_second_pass(self):
+        previous_first = read_previous_first()
+        previous_second = read_previous_second()
+
+        first = reconcile_french_production_source(
+            self.fixture,
+            previous_first,
+            previous_second,
+        )
+
+        second = reconcile_french_production_source(
+            self.fixture,
+            first.first_round_events,
+            first.second_round_events,
+        )
+
+        first_first = {
+            event["event_id"]: event
+            for event in first.first_round_events
+        }
+        second_first = {
+            event["event_id"]: event
+            for event in second.first_round_events
+        }
+        first_second = {
+            event["event_id"]: event
+            for event in first.second_round_events
+        }
+        second_second = {
+            event["event_id"]: event
+            for event in second.second_round_events
+        }
+
+        self.assertEqual(second_first, first_first)
+        self.assertEqual(second_second, first_second)
+        self.assertEqual(
+            second.report["superseded_second_round_event_ids"],
+            [],
+        )
+
+    def test_historical_fixture_post_evidence_replay_is_exact_noop_for_all_ten_records(self):
+        previous_first = json.loads(
+            (ROOT / "polls.json").read_text(encoding="utf-8")
+        )
+        payload = json.loads(
+            (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
+        )
+        previous_second = payload["events"]
+
+        historical_fixture = load_mediawiki_fixture(
+            FRENCH_FIXTURE,
+            238906992,
+        )
+
+        result = reconcile_french_production_source(
+            historical_fixture,
+            previous_first,
+            previous_second,
+        )
+
+        before_first = {
+            event["event_id"]: event
+            for event in previous_first
+        }
+        after_first = {
+            event["event_id"]: event
+            for event in result.first_round_events
+        }
+        before_second = {
+            event["event_id"]: event
+            for event in previous_second
+        }
+        after_second = {
+            event["event_id"]: event
+            for event in result.second_round_events
+        }
+
+        self.assertEqual(after_first, before_first)
+        self.assertEqual(after_second, before_second)
+        self.assertEqual(
+            result.report["second_round_evidence_already_applied"],
+            {
+                "retain_existing": 4,
+                "correct_retained_sample": 5,
+                "supersede_event": 1,
+            },
+        )
+        self.assertEqual(
+            result.report["superseded_second_round_event_ids"],
+            [],
+        )
+
+    def test_historical_fixture_rejects_mixed_pre_and_post_evidence_state(self):
+        previous_first = json.loads(
+            (ROOT / "polls.json").read_text(encoding="utf-8")
+        )
+        payload = json.loads(
+            (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
+        )
+        previous_second = json.loads(json.dumps(payload["events"]))
+
+        pre_transition = {
+            event["event_id"]: event
+            for event in read_previous_second()
+        }
+
+        corrected_id = (
+            "f7a3b8a301038c0e4233e412894d9c43e1ebf44e9a68243a145cdc2b8f4c3436"
+        )
+
+        previous_second = [
+            pre_transition[corrected_id]
+            if event["event_id"] == corrected_id
+            else event
+            for event in previous_second
+        ]
+
+        historical_fixture = load_mediawiki_fixture(
+            FRENCH_FIXTURE,
+            238906992,
+        )
+
+        with self.assertRaisesRegex(
+            RehearsalError,
+            "mixed second-round evidence lifecycle state",
+        ):
+            reconcile_french_production_source(
+                historical_fixture,
+                previous_first,
+                previous_second,
+            )
+
+    def test_historical_fixture_rejects_both_superseded_and_replacement_ids(self):
+        previous_first = json.loads(
+            (ROOT / "polls.json").read_text(encoding="utf-8")
+        )
+        payload = json.loads(
+            (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
+        )
+        previous_second = json.loads(json.dumps(payload["events"]))
+
+        old_event = next(
+            event
+            for event in read_previous_second()
+            if event["event_id"] == SUPERSEDED_IFOP_EVENT_ID
+        )
+        previous_second.append(old_event)
+
+        historical_fixture = load_mediawiki_fixture(
+            FRENCH_FIXTURE,
+            238906992,
+        )
+
+        with self.assertRaisesRegex(
+            RehearsalError,
+            "second-round evidence supersession contains both old and replacement event IDs",
+        ):
+            reconcile_french_production_source(
+                historical_fixture,
+                previous_first,
+                previous_second,
+            )
+
+    def test_historical_fixture_rejects_mutated_corrected_event_facts(self):
+        previous_first = json.loads(
+            (ROOT / "polls.json").read_text(encoding="utf-8")
+        )
+        payload = json.loads(
+            (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
+        )
+        previous_second = json.loads(json.dumps(payload["events"]))
+
+        corrected_id = (
+            "f7a3b8a301038c0e4233e412894d9c43e1ebf44e9a68243a145cdc2b8f4c3436"
+        )
+        corrected = next(
+            event
+            for event in previous_second
+            if event["event_id"] == corrected_id
+        )
+        corrected["sample_size"] = 813
+
+        historical_fixture = load_mediawiki_fixture(
+            FRENCH_FIXTURE,
+            238906992,
+        )
+
+        with self.assertRaisesRegex(
+            RehearsalError,
+            "second-round evidence corrected event facts changed",
+        ):
+            reconcile_french_production_source(
+                historical_fixture,
+                previous_first,
+                previous_second,
+            )
+
+    def test_historical_fixture_rejects_mutated_replacement_provenance(self):
+        previous_first = json.loads(
+            (ROOT / "polls.json").read_text(encoding="utf-8")
+        )
+        payload = json.loads(
+            (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
+        )
+        previous_second = json.loads(json.dumps(payload["events"]))
+
+        replacement = next(
+            event
+            for event in previous_second
+            if event["event_id"] == REPLACEMENT_IFOP_EVENT_ID
+        )
+        replacement["migration_source_locator"] = "FR-R4r999"
+
+        historical_fixture = load_mediawiki_fixture(
+            FRENCH_FIXTURE,
+            238906992,
+        )
+
+        with self.assertRaisesRegex(
+            RehearsalError,
+            "second-round evidence replacement provenance changed",
+        ):
+            reconcile_french_production_source(
+                historical_fixture,
+                previous_first,
+                previous_second,
+            )
 
     def test_five_odoxa_events_only_change_sample_size(self):
         previous_first = read_previous_first()
