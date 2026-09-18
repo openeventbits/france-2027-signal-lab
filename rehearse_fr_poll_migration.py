@@ -66,6 +66,10 @@ REVIEWED_POST_AUDIT_FRENCH_FIXTURE = (
     ROOT
     / "test_fixtures/fr27_polling/fr_mediawiki_239248634.json"
 )
+SECOND_ROUND_EVIDENCE_RECONCILIATION = (
+    ROOT / "fr27_poll_second_round_evidence_reconciliation.json"
+)
+SECOND_ROUND_EVIDENCE_REVISION = 239587014
 REVIEWED_FAIL_CLOSED_SOURCE_REFRESHES = {
     (
         "opinionway",
@@ -902,6 +906,300 @@ def _is_reviewed_accepted_source_refresh(
     ) in REVIEWED_ACCEPTED_SOURCE_REFRESHES
 
 
+def _load_second_round_evidence_reconciliation() -> dict[str, Any]:
+    """Load the bounded reviewed second-round evidence successor contract."""
+
+    try:
+        payload = json.loads(
+            SECOND_ROUND_EVIDENCE_RECONCILIATION.read_text(
+                encoding="utf-8"
+            )
+        )
+    except (OSError, json.JSONDecodeError) as error:
+        raise RehearsalError(
+            "second-round evidence reconciliation cannot be loaded"
+        ) from error
+
+    if not isinstance(payload, dict) or set(payload) != {
+        "schema_version",
+        "source_revision",
+        "second_round_reconciliations",
+    }:
+        raise RehearsalError(
+            "second-round evidence reconciliation top level is malformed"
+        )
+
+    if payload.get("schema_version") != "1.0":
+        raise RehearsalError(
+            "second-round evidence reconciliation schema is unsupported"
+        )
+
+    source = payload.get("source_revision")
+    expected_fixture = (
+        "test_fixtures/fr27_polling/"
+        f"fr_mediawiki_{SECOND_ROUND_EVIDENCE_REVISION}.json"
+    )
+
+    if (
+        not isinstance(source, dict)
+        or set(source) != {
+            "revision_id",
+            "page_url",
+            "fixture",
+            "fixture_sha256",
+        }
+        or source.get("revision_id") != SECOND_ROUND_EVIDENCE_REVISION
+        or source.get("fixture") != expected_fixture
+    ):
+        raise RehearsalError(
+            "second-round evidence source revision is malformed"
+        )
+
+    fixture_sha256 = source.get("fixture_sha256")
+    if (
+        not isinstance(fixture_sha256, str)
+        or len(fixture_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in fixture_sha256)
+    ):
+        raise RehearsalError(
+            "second-round evidence fixture SHA-256 is malformed"
+        )
+
+    fixture_path = ROOT / expected_fixture
+    try:
+        actual_fixture_sha256 = hashlib.sha256(
+            fixture_path.read_bytes()
+        ).hexdigest()
+    except OSError as error:
+        raise RehearsalError(
+            "second-round evidence fixture cannot be read"
+        ) from error
+
+    if actual_fixture_sha256 != fixture_sha256:
+        raise RehearsalError(
+            "second-round evidence fixture SHA-256 changed"
+        )
+
+    records = payload.get("second_round_reconciliations")
+    if not isinstance(records, list) or len(records) != 10:
+        raise RehearsalError(
+            "second-round evidence reconciliation must contain exactly ten records"
+        )
+
+    allowed_actions = {
+        "retain_existing",
+        "correct_retained_sample",
+        "supersede_event",
+    }
+    expected_action_counts = {
+        "retain_existing": 4,
+        "correct_retained_sample": 5,
+        "supersede_event": 1,
+    }
+
+    action_counts = {
+        action: 0
+        for action in allowed_actions
+    }
+    seen_locators: set[str] = set()
+    seen_previous_ids: set[str] = set()
+    seen_reviewed_keys: set[Any] = set()
+    seen_incoming_keys: set[Any] = set()
+    seen_canonical_keys: set[Any] = set()
+
+    for index, record in enumerate(records):
+        context = (
+            "second_round_reconciliations"
+            f"[{index}]"
+        )
+
+        if not isinstance(record, dict):
+            raise RehearsalError(f"{context} must be an object")
+
+        action = record.get("action")
+        required = {
+            "source_locator",
+            "previous_event_id",
+            "action",
+            "reviewed_factual_key",
+            "previous_event_factual_key",
+            "incoming_factual_key",
+            "canonical_factual_key",
+            "incoming_source_url",
+            "evidence_urls",
+            "review_reason",
+        }
+
+        if action == "supersede_event":
+            required.add("replacement_event_id")
+
+        if set(record) != required:
+            raise RehearsalError(f"{context} fields are malformed")
+
+        if action not in allowed_actions:
+            raise RehearsalError(f"{context}.action is unsupported")
+
+        action_counts[action] += 1
+
+        locator = record["source_locator"]
+        if (
+            not isinstance(locator, str)
+            or not locator.startswith("FR-R")
+            or locator in seen_locators
+        ):
+            raise RehearsalError(
+                f"{context}.source_locator is malformed or duplicated"
+            )
+        seen_locators.add(locator)
+
+        previous_id = record["previous_event_id"]
+        if (
+            not isinstance(previous_id, str)
+            or len(previous_id) != 64
+            or any(
+                character not in "0123456789abcdef"
+                for character in previous_id
+            )
+            or previous_id in seen_previous_ids
+        ):
+            raise RehearsalError(
+                f"{context}.previous_event_id is malformed or duplicated"
+            )
+        seen_previous_ids.add(previous_id)
+
+        keys = {}
+        for field in (
+            "reviewed_factual_key",
+            "previous_event_factual_key",
+            "incoming_factual_key",
+            "canonical_factual_key",
+        ):
+            try:
+                key = factual_key_from_dict(
+                    record[field],
+                    f"{context}.{field}",
+                )
+            except ValueError as error:
+                raise RehearsalError(
+                    f"{context}.{field} is malformed"
+                ) from error
+
+            if key.round != SECOND_ROUND:
+                raise RehearsalError(
+                    f"{context}.{field} is not second round"
+                )
+
+            keys[field] = key
+
+        reviewed_key = keys["reviewed_factual_key"]
+        incoming_key = keys["incoming_factual_key"]
+        canonical_key = keys["canonical_factual_key"]
+        previous_key = keys["previous_event_factual_key"]
+
+        if reviewed_key in seen_reviewed_keys:
+            raise RehearsalError(
+                "duplicate reviewed second-round successor key"
+            )
+        if incoming_key in seen_incoming_keys:
+            raise RehearsalError(
+                "duplicate incoming second-round successor key"
+            )
+        if canonical_key in seen_canonical_keys:
+            raise RehearsalError(
+                "duplicate canonical second-round successor key"
+            )
+
+        seen_reviewed_keys.add(reviewed_key)
+        seen_incoming_keys.add(incoming_key)
+        seen_canonical_keys.add(canonical_key)
+
+        incoming_source_url = record["incoming_source_url"]
+        if (
+            not isinstance(incoming_source_url, str)
+            or not incoming_source_url.startswith(("http://", "https://"))
+        ):
+            raise RehearsalError(
+                f"{context}.incoming_source_url is malformed"
+            )
+
+        evidence_urls = record["evidence_urls"]
+        if (
+            not isinstance(evidence_urls, list)
+            or not evidence_urls
+            or not all(
+                isinstance(url, str)
+                and url.startswith(("http://", "https://"))
+                for url in evidence_urls
+            )
+        ):
+            raise RehearsalError(
+                f"{context}.evidence_urls is malformed"
+            )
+
+        if (
+            not isinstance(record["review_reason"], str)
+            or not record["review_reason"].strip()
+        ):
+            raise RehearsalError(
+                f"{context}.review_reason is malformed"
+            )
+
+        if action == "retain_existing":
+            if previous_key != canonical_key:
+                raise RehearsalError(
+                    f"{context} retain_existing must preserve canonical facts"
+                )
+
+        elif action == "correct_retained_sample":
+            stable_fields = (
+                "pollster_identity",
+                "fieldwork_start",
+                "fieldwork_end",
+                "candidates",
+            )
+            if any(
+                getattr(previous_key, field)
+                != getattr(canonical_key, field)
+                for field in stable_fields
+            ):
+                raise RehearsalError(
+                    f"{context} sample correction changes non-sample facts"
+                )
+
+            if canonical_key.sample_scope != "matchup_respondents":
+                raise RehearsalError(
+                    f"{context} sample correction lacks matchup respondent scope"
+                )
+
+        elif action == "supersede_event":
+            replacement_id = record["replacement_event_id"]
+
+            if (
+                not isinstance(replacement_id, str)
+                or len(replacement_id) != 64
+                or any(
+                    character not in "0123456789abcdef"
+                    for character in replacement_id
+                )
+                or replacement_id == previous_id
+            ):
+                raise RehearsalError(
+                    f"{context}.replacement_event_id is malformed"
+                )
+
+            if canonical_key != incoming_key:
+                raise RehearsalError(
+                    f"{context} supersession canonical key must equal incoming"
+                )
+
+    if action_counts != expected_action_counts:
+        raise RehearsalError(
+            "second-round evidence reconciliation action counts changed"
+        )
+
+    return payload
+
+
 def _assert_reviewed_post_audit_semantics(
     parsed: dict[str, Any],
     source_records: dict[str, Any],
@@ -932,6 +1230,21 @@ def _assert_reviewed_post_audit_semantics(
         if old_key != canonical_key:
             continue
         reviewed_replacements[(canonical_key.round, canonical_key)] = record
+
+    second_round_successors_by_reviewed: dict[Any, dict[str, Any]] = {}
+    if parsed["revid"] >= SECOND_ROUND_EVIDENCE_REVISION:
+        successor_payload = _load_second_round_evidence_reconciliation()
+        for record in successor_payload["second_round_reconciliations"]:
+            reviewed_key = factual_key_from_dict(
+                record["reviewed_factual_key"],
+                "second-round successor reviewed factual key",
+            )
+            if reviewed_key in second_round_successors_by_reviewed:
+                raise RehearsalError(
+                    "duplicate reviewed second-round successor factual identity"
+                )
+            second_round_successors_by_reviewed[reviewed_key] = record
+
     drift: list[str] = []
     for round_name in (FIRST_ROUND, SECOND_ROUND):
         previous_keys: set[Any] = set()
@@ -958,19 +1271,40 @@ def _assert_reviewed_post_audit_semantics(
         missing = []
         for reviewed_key in set(reviewed_by_key) - set(incoming_by_key):
             replacement = reviewed_replacements.get((round_name, reviewed_key))
-            if replacement is None:
-                missing.append(reviewed_key)
+            if replacement is not None:
+                incoming_key = factual_key_from_dict(
+                    replacement["incoming_factual_key"],
+                    "reviewed reconciliation incoming factual key",
+                )
+                incoming = incoming_by_key.get(incoming_key)
+                if (
+                    incoming is None
+                    or incoming["source_url"]
+                    != replacement["incoming_source_url"]
+                ):
+                    missing.append(reviewed_key)
                 continue
-            incoming_key = factual_key_from_dict(
-                replacement["incoming_factual_key"],
-                "reviewed reconciliation incoming factual key",
+
+            successor = (
+                second_round_successors_by_reviewed.get(reviewed_key)
+                if round_name == SECOND_ROUND
+                else None
             )
-            incoming = incoming_by_key.get(incoming_key)
-            if (
-                incoming is None
-                or incoming["source_url"] != replacement["incoming_source_url"]
-            ):
-                missing.append(reviewed_key)
+            if successor is not None:
+                incoming_key = factual_key_from_dict(
+                    successor["incoming_factual_key"],
+                    "second-round successor incoming factual key",
+                )
+                incoming = incoming_by_key.get(incoming_key)
+                if (
+                    incoming is None
+                    or incoming["source_url"]
+                    != successor["incoming_source_url"]
+                ):
+                    missing.append(reviewed_key)
+                continue
+
+            missing.append(reviewed_key)
         missing.sort()
         if missing:
             drift.append(
@@ -1102,6 +1436,20 @@ def reconcile_french_production_source(
                 raise RehearsalError("ambiguous registry incoming factual identity")
             mapping_by_incoming[key] = record
 
+    second_round_successors_by_incoming: dict[Any, dict[str, Any]] = {}
+    if parsed["revid"] >= SECOND_ROUND_EVIDENCE_REVISION:
+        successor_payload = _load_second_round_evidence_reconciliation()
+        for record in successor_payload["second_round_reconciliations"]:
+            incoming_key = factual_key_from_dict(
+                record["incoming_factual_key"],
+                "second-round successor incoming factual key",
+            )
+            if incoming_key in second_round_successors_by_incoming:
+                raise RehearsalError(
+                    "duplicate incoming second-round successor factual identity"
+                )
+            second_round_successors_by_incoming[incoming_key] = record
+
     addition_by_audited_key: dict[Any, dict[str, Any]] = {}
     for round_name in (FIRST_ROUND, SECOND_ROUND):
         for record in migration_registry["french_additions"][round_name]:
@@ -1162,6 +1510,12 @@ def reconcile_french_production_source(
     normal_additions = {FIRST_ROUND: 0, SECOND_ROUND: 0}
     reviewed_canonical_introduced = {FIRST_ROUND: 0, SECOND_ROUND: 0}
     ambiguous_skips = 0
+    second_round_evidence_actions = {
+        "retain_existing": 0,
+        "correct_retained_sample": 0,
+        "supersede_event": 0,
+    }
+    superseded_second_round_event_ids: set[str] = set()
     classified_canonical_keys: set[Any] = set()
     source_keys: set[Any] = set()
 
@@ -1173,6 +1527,194 @@ def reconcile_french_production_source(
             source_keys.add(raw_key)
             if raw_key in identity_skip_keys:
                 ambiguous_skips += 1
+                continue
+
+            if (
+                round_name == SECOND_ROUND
+                and raw_key in second_round_successors_by_incoming
+            ):
+                record = second_round_successors_by_incoming[raw_key]
+
+                if (
+                    parsed["revid"] == SECOND_ROUND_EVIDENCE_REVISION
+                    and source_record["source_locator"]
+                    != record["source_locator"]
+                ):
+                    raise SourceDriftError(
+                        "reviewed second-round successor locator changed "
+                        "inside the audited revision"
+                    )
+
+                if (
+                    source_record["source_url"]
+                    != record["incoming_source_url"]
+                ):
+                    raise SourceDriftError(
+                        f"{source_record['source_locator']} reviewed "
+                        "second-round successor provenance changed"
+                    )
+
+                previous_key = factual_key_from_dict(
+                    record["previous_event_factual_key"],
+                    "second-round successor previous factual key",
+                )
+                canonical = factual_key_from_dict(
+                    record["canonical_factual_key"],
+                    "second-round successor canonical factual key",
+                )
+
+                if canonical in classified_canonical_keys:
+                    raise RehearsalError(
+                        "duplicate canonical factual identity"
+                    )
+                classified_canonical_keys.add(canonical)
+
+                previous_id = record["previous_event_id"]
+                action = record["action"]
+
+                current_by_id = {
+                    event["event_id"]: event
+                    for event in reconciled[SECOND_ROUND]
+                }
+
+                if action == "retain_existing":
+                    retained = current_by_id.get(previous_id)
+                    if retained is None:
+                        raise RehearsalError(
+                            "reviewed second-round retained event is absent"
+                        )
+
+                    retained_key = exact_factual_key(
+                        retained,
+                        sample_scope=retained.get(
+                            "sample_scope",
+                            "reported",
+                        ),
+                    )
+                    if retained_key not in {previous_key, canonical}:
+                        raise RehearsalError(
+                            "reviewed second-round retained event facts changed"
+                        )
+
+                elif action == "correct_retained_sample":
+                    retained = current_by_id.get(previous_id)
+                    if retained is None:
+                        raise RehearsalError(
+                            "reviewed second-round sample correction "
+                            "references an absent event"
+                        )
+
+                    retained_key = exact_factual_key(
+                        retained,
+                        sample_scope=retained.get(
+                            "sample_scope",
+                            "reported",
+                        ),
+                    )
+                    if retained_key not in {previous_key, canonical}:
+                        raise RehearsalError(
+                            "reviewed second-round sample correction "
+                            "starts from unexpected facts"
+                        )
+
+                    retained["sample_size"] = canonical.sample_size
+                    retained["sample_scope"] = canonical.sample_scope
+
+                    corrected_key = exact_factual_key(
+                        retained,
+                        sample_scope=retained["sample_scope"],
+                    )
+                    if corrected_key != canonical:
+                        raise RehearsalError(
+                            "reviewed second-round sample correction "
+                            "did not produce canonical facts"
+                        )
+
+                    validate_second_round_event(retained)
+
+                elif action == "supersede_event":
+                    replacement_id = record["replacement_event_id"]
+                    old_event = current_by_id.get(previous_id)
+                    replacement = current_by_id.get(replacement_id)
+
+                    if old_event is not None and replacement is not None:
+                        raise RehearsalError(
+                            "reviewed second-round supersession contains "
+                            "both old and replacement event IDs"
+                        )
+
+                    if old_event is not None:
+                        old_key = exact_factual_key(
+                            old_event,
+                            sample_scope=old_event.get(
+                                "sample_scope",
+                                "reported",
+                            ),
+                        )
+                        if old_key != previous_key:
+                            raise RehearsalError(
+                                "reviewed second-round supersession starts "
+                                "from unexpected facts"
+                            )
+
+                        replacement = _make_normal_second_event(
+                            source_record
+                        )
+
+                        if replacement["event_id"] != replacement_id:
+                            raise RehearsalError(
+                                "reviewed second-round replacement event ID changed"
+                            )
+
+                        replacement_key = exact_factual_key(
+                            replacement,
+                            sample_scope=replacement.get(
+                                "sample_scope",
+                                "reported",
+                            ),
+                        )
+                        if replacement_key != canonical:
+                            raise RehearsalError(
+                                "reviewed second-round replacement facts changed"
+                            )
+
+                        reconciled[SECOND_ROUND] = [
+                            event
+                            for event in reconciled[SECOND_ROUND]
+                            if event["event_id"] != previous_id
+                        ]
+                        reconciled[SECOND_ROUND].append(replacement)
+
+                        previous_ids[SECOND_ROUND].discard(previous_id)
+                        previous_ids[SECOND_ROUND].add(replacement_id)
+                        superseded_second_round_event_ids.add(previous_id)
+
+                    elif replacement is not None:
+                        replacement_key = exact_factual_key(
+                            replacement,
+                            sample_scope=replacement.get(
+                                "sample_scope",
+                                "reported",
+                            ),
+                        )
+                        if replacement_key != canonical:
+                            raise RehearsalError(
+                                "reviewed second-round replacement "
+                                "event facts changed"
+                            )
+
+                    else:
+                        raise RehearsalError(
+                            "reviewed second-round supersession has "
+                            "neither old nor replacement event"
+                        )
+
+                else:
+                    raise RehearsalError(
+                        "unsupported second-round evidence action"
+                    )
+
+                second_round_evidence_actions[action] += 1
                 continue
 
             if raw_key in mapping_by_incoming:
@@ -1321,8 +1863,15 @@ def reconcile_french_production_source(
         if len(ids) != len(set(ids)):
             raise RehearsalError(f"duplicate {round_name} event IDs after reconciliation")
         original_ids = {event["event_id"] for event in original}
-        if not original_ids <= set(ids):
-            raise RehearsalError(f"{round_name} historical event ID loss")
+        missing_original_ids = original_ids - set(ids)
+
+        if round_name == SECOND_ROUND:
+            missing_original_ids -= superseded_second_round_event_ids
+
+        if missing_original_ids:
+            raise RehearsalError(
+                f"{round_name} historical event ID loss"
+            )
 
     exact_second = [
         exact_factual_key(
@@ -1352,6 +1901,12 @@ def reconcile_french_production_source(
         "audited_additions_introduced": audited_additions_introduced,
         "normal_post_audit_additions": normal_additions,
         "reviewed_canonical_introduced": reviewed_canonical_introduced,
+        "second_round_evidence_reconciliations": (
+            second_round_evidence_actions
+        ),
+        "superseded_second_round_event_ids": sorted(
+            superseded_second_round_event_ids
+        ),
         "source_only_migrations": mapped["source_only"],
         "reviewed_reconciliations": mapped["reviewed"],
         "exact_retained": exact_retained,

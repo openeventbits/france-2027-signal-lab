@@ -2100,7 +2100,25 @@ def integrate_french_migration_source(
         event["event_id"] for event in migration.second_round_events
     }
     missing_first = previous_first_ids - final_first_ids
-    missing_second = previous_second_ids - final_second_ids
+
+    reported_superseded_second = set(
+        migration.report.get("superseded_second_round_event_ids", [])
+    )
+    if not reported_superseded_second <= previous_second_ids:
+        raise ValueError(
+            "French migration reported unknown superseded second-round event IDs"
+        )
+    if reported_superseded_second & final_second_ids:
+        raise ValueError(
+            "French migration retained an event reported as superseded"
+        )
+
+    missing_second = (
+        previous_second_ids
+        - final_second_ids
+        - reported_superseded_second
+    )
+
     if missing_first:
         raise ValueError(
             f"French migration lost {len(missing_first)} first-round event IDs"
