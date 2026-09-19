@@ -893,6 +893,51 @@ def _factual_key_label(key: Any) -> str:
     )
 
 
+def _second_round_source_adopted_sample_key(
+    record: dict[str, Any],
+) -> Any | None:
+    """Return the raw-source key when it adopts a reviewed matchup sample.
+
+    The source still reports a table sample value, so its scope remains
+    ``reported``.  Only reviewed ``correct_retained_sample`` records qualify,
+    and every non-sample factual field must remain identical.
+    """
+
+    if record.get("action") != "correct_retained_sample":
+        return None
+
+    incoming = factual_key_from_dict(
+        record["incoming_factual_key"],
+        "second-round successor incoming factual key",
+    )
+    canonical = factual_key_from_dict(
+        record["canonical_factual_key"],
+        "second-round successor canonical factual key",
+    )
+
+    if (
+        incoming.round != SECOND_ROUND
+        or canonical.round != SECOND_ROUND
+        or incoming.pollster_identity != canonical.pollster_identity
+        or incoming.fieldwork_start != canonical.fieldwork_start
+        or incoming.fieldwork_end != canonical.fieldwork_end
+        or incoming.candidates != canonical.candidates
+        or incoming.sample_scope != "reported"
+        or canonical.sample_scope != "matchup_respondents"
+    ):
+        raise RehearsalError(
+            "reviewed second-round sample correction changes non-sample facts"
+        )
+
+    adopted = incoming.to_dict()
+    adopted["sample_size"] = canonical.sample_size
+
+    return factual_key_from_dict(
+        adopted,
+        "second-round source-adopted sample factual key",
+    )
+
+
 def _is_reviewed_accepted_source_refresh(
     key: Any, reviewed_source: str, incoming_source: str
 ) -> bool:
@@ -1443,10 +1488,21 @@ def _assert_reviewed_post_audit_semantics(
                     successor["incoming_factual_key"],
                     "second-round successor incoming factual key",
                 )
-                incoming = incoming_by_key.get(incoming_key)
+                accepted_keys = [incoming_key]
+                adopted_key = _second_round_source_adopted_sample_key(
+                    successor
+                )
+                if adopted_key is not None:
+                    accepted_keys.append(adopted_key)
+
+                matches = [
+                    incoming_by_key[key]
+                    for key in accepted_keys
+                    if key in incoming_by_key
+                ]
                 if (
-                    incoming is None
-                    or incoming["source_url"]
+                    len(matches) != 1
+                    or matches[0]["source_url"]
                     != successor["incoming_source_url"]
                 ):
                     missing.append(reviewed_key)
@@ -1611,11 +1667,17 @@ def reconcile_french_production_source(
                 record["incoming_factual_key"],
                 "second-round successor incoming factual key",
             )
-            if incoming_key in second_round_successors_by_incoming:
-                raise RehearsalError(
-                    "duplicate incoming second-round successor factual identity"
-                )
-            second_round_successors_by_incoming[incoming_key] = record
+            accepted_source_keys = [incoming_key]
+            adopted_key = _second_round_source_adopted_sample_key(record)
+            if adopted_key is not None:
+                accepted_source_keys.append(adopted_key)
+
+            for accepted_key in accepted_source_keys:
+                if accepted_key in second_round_successors_by_incoming:
+                    raise RehearsalError(
+                        "duplicate incoming second-round successor factual identity"
+                    )
+                second_round_successors_by_incoming[accepted_key] = record
 
     audited_second_round_by_key: dict[Any, dict[str, Any]] = {}
     for audited_record in audited[SECOND_ROUND]:
