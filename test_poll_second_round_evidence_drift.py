@@ -3,6 +3,8 @@ import json
 import unittest
 from pathlib import Path
 
+from lxml import html as lxml_html
+
 from fetch_polls import (
     SECOND_ROUND,
     integrate_french_migration_source,
@@ -10,6 +12,7 @@ from fetch_polls import (
 from poll_contract import make_event_id
 from poll_migration import (
     FRENCH_FIXTURE,
+    _french_runoff_table_plan,
     exact_factual_key,
     load_mediawiki_fixture,
     parse_french_frozen_fixture,
@@ -253,6 +256,71 @@ class CurrentSecondRoundEvidenceDriftTests(unittest.TestCase):
                     tuple(key.candidates),
                 )
                 self.assertEqual(actual, expected)
+
+    def test_source_can_adopt_reviewed_matchup_samples(self):
+        fixture = json.loads(json.dumps(self.fixture))
+        document = lxml_html.fromstring(fixture["text"])
+        replacements = {
+            "FR-R7r2": 776,
+            "FR-R8r2": 795,
+            "FR-R10r4": 812,
+            "FR-R10r5": 803,
+        }
+        replaced = set()
+
+        for family_locator, table in _french_runoff_table_plan(
+            document.xpath("//table")
+        ):
+            rows = table.xpath(".//tr[td]")
+            for row_index, row in enumerate(rows):
+                locator = f"{family_locator}r{row_index}"
+                if locator not in replacements:
+                    continue
+
+                cells = row.xpath("./td")
+                if len(cells) < 3:
+                    raise AssertionError(
+                        f"{locator} lacks the expected sample cell"
+                    )
+
+                cells[2].clear()
+                cells[2].text = str(replacements[locator])
+                replaced.add(locator)
+
+        self.assertEqual(replaced, set(replacements))
+
+        fixture["text"] = lxml_html.tostring(
+            document,
+            encoding="unicode",
+        )
+        fixture["revid"] += 1
+
+        result = reconcile_french_production_source(
+            fixture,
+            read_previous_first(),
+            read_previous_second(),
+        )
+
+        after = {
+            event["event_id"]: event
+            for event in result.second_round_events
+        }
+
+        for event_id, sample_size in RETAINED_SAMPLE_CORRECTIONS.items():
+            with self.subTest(event_id=event_id):
+                self.assertEqual(
+                    after[event_id]["sample_size"],
+                    sample_size,
+                )
+
+        self.assertEqual(
+            result.report["second_round_evidence_reconciliations"],
+            {
+                "retain_existing": 4,
+                "correct_retained_sample": 5,
+                "supersede_event": 1,
+            },
+        )
 
     def test_one_ifop_event_is_explicitly_superseded(self):
         previous_first = read_previous_first()
