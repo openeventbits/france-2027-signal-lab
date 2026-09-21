@@ -110,7 +110,7 @@ PHASE4_SUPPORTING_TEST_FILES = (
 )
 PHASE4_PROTECTED_LOGIC_SHA256 = {
     "poll_contract.py": "ba1c4e39db699293c859aa0740f57d4ba20dcd5b75bf31fb88f6f93c9af0a629",
-    "commission_notice_discovery.py": "c3c4b448630bc5bcb5b319e9c798807a31bf7b900be615501eef2c35a113c879",
+    "commission_notice_discovery.py": "c9b8f3186f14b3febcc994aea9700426ae71c6c54b763e34171b375ba6afe58f",
     "commission_notice_coverage.py": "0f467cccb64cb9bfc73ce58f4b874cf6d145233c8bad6736c8bd603a9b19c1b4",
 }
 PRODUCTION_ENGLISH_SOURCE = {
