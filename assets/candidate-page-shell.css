@@ -1,0 +1,443 @@
+/*
+ * Marine Le Pen reference page — production FR27 shell transplant.
+ * The dashboard remains unchanged; these rules reproduce its resolved visual
+ * cascade for the standalone prototype's existing semantic markup.
+ */
+.candidate-page {
+  --final-bg: #020711;
+  --final-panel: #061321;
+  --final-panel-raised: #081827;
+  --final-panel-soft: #0a1c2c;
+  --final-line: #173a52;
+  --final-line-strong: #245a76;
+  --final-text: #e8f2f8;
+  --final-muted: #8ca6b7;
+  --final-muted-soft: #688496;
+  --final-cyan: #35d8ff;
+  --final-blue: #268cff;
+  --final-violet: #8b79ff;
+  --final-green: #48d8ad;
+  --final-warn: #ffbd58;
+  --final-radius: 6px;
+  --fr27-brand-bleu-nuit: #172a46;
+  --fr27-brand-bleu-france: #2f5fa7;
+  --fr27-brand-ivoire: #f4f1ea;
+  --fr27-type-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --fr27-type-panel-heading: 14px;
+  --fr27-type-module-heading: 10.5px;
+  --fr27-type-primary: 12.5px;
+  --fr27-type-body: 11.5px;
+  --fr27-type-meta: 10px;
+  --fr27-type-micro: 9px;
+  --fr27-type-control: 10.5px;
+  --fr27-type-action: 11px;
+  --fr27-num-display: 28px;
+  --fr27-num-focal: 26px;
+  --fr27-num-kpi: 20px;
+  --fr27-num-row: 14px;
+  --fr27-num-support: 11px;
+  --fr27-num-micro: 9px;
+  --bg: var(--final-bg);
+  --panel: var(--final-panel);
+  --panel-2: var(--final-panel-raised);
+  --panel-3: #07121f;
+  --line: var(--final-line);
+  --line-strong: var(--final-line-strong);
+  --text: var(--final-text);
+  --muted: var(--final-muted);
+  --cyan: var(--final-cyan);
+  --blue: var(--final-blue);
+  --violet: var(--final-violet);
+  --green: var(--final-green);
+  --warn: var(--final-warn);
+  --danger: #ff6b78;
+  --shadow: 0 14px 38px rgba(0, 0, 0, .20), inset 0 1px rgba(255, 255, 255, .018);
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 78% -12%, rgba(36, 104, 160, .18), transparent 34rem),
+    radial-gradient(circle at 8% 18%, rgba(38, 140, 255, .065), transparent 26rem),
+    linear-gradient(180deg, #030a14 0%, var(--final-bg) 58%);
+  color: var(--final-text);
+  font-family: var(--fr27-type-sans);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.candidate-page *,
+.candidate-page *::before,
+.candidate-page *::after { box-sizing: border-box; }
+
+.candidate-page a {
+  color: var(--final-cyan);
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+.candidate-page a:hover { color: #8cecff; text-decoration: underline; }
+.candidate-page a:focus-visible,
+.candidate-page button:focus-visible { outline: 2px solid var(--final-cyan); outline-offset: 2px; }
+
+.candidate-page .candidate-shell {
+  width: 100%;
+  max-width: 1780px;
+  margin-inline: auto;
+  padding: 22px 24px 34px;
+}
+
+.candidate-page .candidate-masthead {
+  min-height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 13px;
+  border-block: 1px solid rgba(39, 92, 121, .72);
+  background: rgba(7, 18, 31, .90);
+}
+
+.candidate-page .candidate-brand {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--fr27-brand-ivoire);
+}
+
+.candidate-page .candidate-brand:hover { color: var(--fr27-brand-ivoire); text-decoration: none; }
+
+.candidate-page .candidate-mark {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--final-blue);
+  border-radius: 14px;
+  background: rgba(7, 21, 34, .92);
+  box-shadow: inset 0 0 18px rgba(38, 140, 255, .16), 0 0 14px rgba(38, 140, 255, .05);
+}
+
+.candidate-page .candidate-mark svg { width: 42px; height: 42px; display: block; }
+.candidate-page .candidate-brand-copy { min-width: 0; display: block; }
+
+.candidate-page .candidate-brand-copy strong {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  color: var(--fr27-brand-ivoire);
+  font-size: clamp(22px, 1.5vw, 26px);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: .065em;
+  white-space: nowrap;
+}
+
+.candidate-page .candidate-brand-copy strong::after {
+  display: block;
+  width: 100%;
+  height: 2px;
+  margin-top: 6px;
+  background: linear-gradient(90deg, #0055a4 0 33.333%, #fff 33.333% 66.666%, #ef4135 66.666% 100%);
+  content: "";
+}
+
+.candidate-page .candidate-brand-copy em { color: inherit; font-style: normal; }
+.candidate-page .candidate-brand-copy small {
+  display: block;
+  margin-top: 6px;
+  color: #94adbd;
+  font-size: var(--fr27-type-body);
+  line-height: 1.35;
+}
+
+.candidate-page .candidate-masthead-tools {
+  min-width: 0;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  color: var(--final-muted);
+}
+
+.candidate-page .candidate-language {
+  width: 96px;
+  height: 52px;
+  flex: 0 0 96px;
+  display: inline-flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #23445d;
+  border-radius: 6px;
+  background: rgba(7, 21, 34, .56);
+  color: transparent;
+}
+
+.candidate-page .candidate-language a {
+  min-width: 0;
+  min-height: 0;
+  display: inline-grid;
+  flex: 1 1 0;
+  place-items: center;
+  padding: 0;
+  color: #839fb2;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.candidate-page .candidate-language span {
+  width: 1px;
+  flex: 0 0 1px;
+  background: #3f6075;
+  color: transparent;
+  font-size: 0;
+}
+
+.candidate-page .candidate-language a:hover { color: var(--final-text); background: rgba(25, 58, 80, .26); text-decoration: none; }
+.candidate-page .candidate-language a[aria-current="page"] { color: var(--final-cyan); background: rgba(38, 140, 255, .14); }
+
+.candidate-page .candidate-countdown {
+  position: relative;
+  width: max-content;
+  min-width: 206px;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: 23px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 7px 12px;
+  border: 1px solid #285b78;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(18, 49, 70, .94), rgba(6, 21, 35, .94));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .20), inset 0 1px rgba(255, 255, 255, .025);
+}
+
+.candidate-page .candidate-countdown-icon {
+  width: 23px;
+  height: 23px;
+  display: grid;
+  place-items: center;
+  color: #8eb4c8;
+}
+
+.candidate-page .candidate-countdown-icon svg {
+  width: 21px;
+  height: 21px;
+  display: block;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.candidate-page .candidate-countdown-copy {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+}
+
+.candidate-page .candidate-countdown-value {
+  grid-column: 1;
+  grid-row: 1;
+  color: var(--final-cyan);
+  font-size: var(--fr27-num-display);
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -.035em;
+}
+
+.candidate-page .candidate-countdown-text {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+}
+
+.candidate-page .candidate-countdown-line {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  transform: translateY(-1px);
+  white-space: nowrap;
+}
+
+.candidate-page .candidate-countdown-unit {
+  margin: 0;
+  color: #8fa9bb;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: .035em;
+  text-transform: lowercase;
+}
+
+.candidate-page .candidate-countdown-label {
+  color: #dcecf6;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.candidate-page .candidate-countdown-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  color: #89a5b7;
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.candidate-page .candidate-tooltip-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  margin-left: 2px;
+  border: 1px solid #50758a;
+  border-radius: 50%;
+  color: #8eb4c8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: none;
+}
+
+.candidate-page .candidate-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--final-line);
+  border-radius: var(--final-radius);
+  background: linear-gradient(180deg, rgba(10, 27, 43, .98), rgba(5, 17, 29, .98));
+  box-shadow: var(--shadow);
+}
+
+.candidate-page .candidate-panel-head {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 11px;
+  border-bottom: 1px solid rgba(31, 78, 105, .72);
+  background: linear-gradient(180deg, rgba(13, 34, 52, .78), rgba(7, 23, 37, .34));
+}
+
+.candidate-page .candidate-panel-head h3 {
+  margin: 0;
+  color: #e7f0f5;
+  font-size: var(--fr27-type-module-heading);
+  font-weight: 760;
+  line-height: 1.05;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+}
+
+.candidate-page .candidate-panel-head > span,
+.candidate-page .candidate-panel-head > time {
+  color: var(--final-muted);
+  font-size: var(--fr27-type-meta);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.candidate-page .candidate-panel-body { padding: 13px; }
+
+.candidate-page ::-webkit-scrollbar { width: 8px; height: 8px; }
+.candidate-page ::-webkit-scrollbar-track { background: #061522; }
+.candidate-page ::-webkit-scrollbar-thumb { border: 2px solid #061522; border-radius: 999px; background: #315f79; }
+
+@media (min-width: 1240px) and (max-width: 1399px) {
+  .candidate-page .candidate-language a { font-size: 10px; }
+  .candidate-page .candidate-shell { padding-inline: 16px; }
+  .candidate-page .candidate-masthead { gap: 12px; padding: 8px 11px; }
+  .candidate-page .candidate-brand { gap: 10px; }
+  .candidate-page .candidate-mark { width: 46px; height: 46px; flex-basis: 46px; }
+  .candidate-page .candidate-mark svg { width: 36px; height: 36px; }
+  .candidate-page .candidate-brand-copy strong { font-size: 22px; }
+  .candidate-page .candidate-masthead-tools { gap: 8px; }
+  .candidate-page .candidate-countdown { min-width: 178px; min-height: 48px; padding: 6px 10px; }
+  .candidate-page .candidate-language { height: 48px; }
+}
+
+@media (min-width: 1024px) and (max-width: 1239px) {
+  .candidate-page .candidate-language a { font-size: 10px; }
+  .candidate-page .candidate-shell { padding-inline: 12px; }
+  .candidate-page .candidate-masthead { min-height: 76px; gap: 8px; padding: 7px 8px; }
+  .candidate-page .candidate-brand { gap: 8px; }
+  .candidate-page .candidate-mark { width: 40px; height: 40px; flex-basis: 40px; }
+  .candidate-page .candidate-mark svg { width: 32px; height: 32px; }
+  .candidate-page .candidate-brand-copy strong { font-size: 18px; }
+  .candidate-page .candidate-brand-copy small { font-size: var(--fr27-type-body); }
+  .candidate-page .candidate-masthead-tools { gap: 6px; }
+  .candidate-page .candidate-language { height: 44px; }
+  .candidate-page .candidate-countdown { min-width: 150px; min-height: 44px; padding: 5px 7px; }
+}
+
+@media (min-width: 680px) and (max-width: 1023px) {
+  .candidate-page .candidate-language a { font-size: 10px; }
+  .candidate-page .candidate-shell { padding: 12px 12px 28px; }
+  .candidate-page .candidate-masthead { min-height: 78px; flex-wrap: nowrap; gap: 14px; padding: 9px 12px; }
+  .candidate-page .candidate-brand { flex: 0 0 auto; gap: 12px; }
+  .candidate-page .candidate-mark { width: 48px; height: 48px; flex-basis: 48px; }
+  .candidate-page .candidate-mark svg { width: 40px; height: 40px; }
+  .candidate-page .candidate-brand-copy strong { font-size: clamp(19px, 2.45vw, 24px); line-height: 1.05; }
+  .candidate-page .candidate-brand-copy small { margin-top: 5px; font-size: 11px; line-height: 1.25; }
+  .candidate-page .candidate-masthead-tools { min-width: 176px; flex: 0 1 auto; gap: 8px; margin-left: auto; }
+  .candidate-page .candidate-language { width: 96px; height: 50px; flex-basis: 96px; }
+  .candidate-page .candidate-countdown { min-width: 176px; min-height: 50px; padding: 6px 10px; }
+  .candidate-page .candidate-countdown-value { font-size: 27px; line-height: 1; }
+}
+
+@media (max-width: 679px) {
+  .candidate-page .candidate-language a { font-size: 10px; }
+  .candidate-page .candidate-shell { padding: 12px 12px 20px; }
+  .candidate-page .candidate-masthead {
+    --candidate-compact-control-height: 44px;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 8px;
+    padding: 7px 12px 8px;
+  }
+  .candidate-page .candidate-brand { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 12px; }
+  .candidate-page .candidate-mark { width: 48px; height: 48px; flex-basis: 48px; border-radius: 14px; }
+  .candidate-page .candidate-mark svg { width: 40px; height: 40px; }
+  .candidate-page .candidate-brand-copy strong { display: grid; gap: 1px; font-size: 19px; line-height: 1.05; white-space: normal; }
+  .candidate-page .candidate-brand-copy strong::after { height: 2px; margin-top: 4px; }
+  .candidate-page .candidate-brand-copy em { display: block; }
+  .candidate-page .candidate-brand-copy small { margin-top: 2px; font-size: 11px; line-height: 1.25; white-space: normal; }
+  .candidate-page .candidate-masthead-tools { width: 100%; display: flex; flex: initial; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 9px; margin-left: 0; }
+  .candidate-page .candidate-language { width: 96px; height: var(--candidate-compact-control-height); flex: 0 0 96px; }
+  .candidate-page .candidate-countdown { width: max-content; min-width: 176px; min-height: var(--candidate-compact-control-height); gap: 9px; padding: 7px 10px; }
+  .candidate-page .candidate-countdown-icon { width: 23px; height: 23px; }
+  .candidate-page .candidate-countdown-icon svg { width: 21px; height: 21px; stroke-width: 1.6; }
+  .candidate-page .candidate-countdown-copy { gap: 7px; }
+  .candidate-page .candidate-countdown-text { gap: 3px; }
+  .candidate-page .candidate-countdown-line { gap: 3px; }
+  .candidate-page .candidate-countdown-value { font-size: 27px; }
+  .candidate-page .candidate-countdown-unit { font-size: 8px; }
+  .candidate-page .candidate-countdown-label,
+  .candidate-page .candidate-countdown-date { font-size: 9px; }
+}
+
