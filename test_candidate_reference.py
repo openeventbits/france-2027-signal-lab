@@ -1310,7 +1310,7 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
             "UPCOMING EVENTS",
             "DATA FRESHNESS",
             "SOURCES &amp; METHODOLOGY",
-            "OPEN MONITOR",
+            "OPEN THE MONITOR",
         )
 
         for text in expected:

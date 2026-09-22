@@ -1218,87 +1218,107 @@
         const section = document.getElementById("scrutiny");
         if (!section) return;
 
-        const panels = Array.from(section.querySelectorAll(".candidate-panel"));
-        if (!panels.length) return;
+        const panels = Array.from(
+            section.querySelectorAll(":scope .candidate-accountability-grid > .candidate-panel")
+        );
 
-        const findPanel = (needle) =>
+        if (panels.length < 2) return;
+
+        const findPanel = (fr, en) =>
             panels.find((panel) => {
-                const heading =
-                    panel.querySelector("h3, .candidate-panel-title, .candidate-panel-heading");
-                const text = (heading ? heading.textContent : panel.textContent || "")
+                const heading = panel.querySelector(
+                    "h3, .candidate-panel-title, .candidate-panel-heading"
+                );
+
+                const text = (heading ? heading.textContent : "")
                     .replace(/\s+/g, " ")
                     .trim()
                     .toUpperCase();
-                return text.includes(needle);
+
+                return (
+                    text.includes(fr.toUpperCase()) ||
+                    text.includes(en.toUpperCase())
+                );
             });
 
         const listPanel =
-            findPanel(candidateText("AFFIRMATIONS SOUS EXAMEN", "CLAIMS UNDER SCRUTINY")) || panels[0] || null;
+            findPanel("AFFIRMATIONS SOUS EXAMEN", "CLAIMS UNDER SCRUTINY") ||
+            panels[0];
+
         const statusPanel =
-            findPanel(candidateText("STATUT DE CANDIDATURE", "CANDIDACY STATUS")) || panels[1] || null;
+            findPanel("STATUT DE CANDIDATURE", "CANDIDACY STATUS") ||
+            panels[1];
 
         if (!listPanel || !statusPanel || listPanel === statusPanel) return;
 
         listPanel.classList.add("candidate-scrutiny-panel--list");
         statusPanel.classList.add("candidate-scrutiny-panel--status");
 
-        let scrollBody = listPanel.querySelector(":scope > .candidate-scrutiny-scroll-body");
-        if (!scrollBody) {
-            scrollBody = document.createElement("div");
-            scrollBody.className = "candidate-scrutiny-scroll-body";
+        const listBody = listPanel.querySelector(":scope > .candidate-panel-body");
+        if (!listBody) return;
 
-            const children = Array.from(listPanel.children);
-            if (children.length > 1) {
-                children.slice(1).forEach((node) => scrollBody.appendChild(node));
-                listPanel.appendChild(scrollBody);
-            } else {
-                return;
-            }
-        }
+        listBody.classList.add("candidate-scrutiny-scroll-body");
 
-        Array.from(scrollBody.querySelectorAll("button, a")).forEach((control) => {
-            const label = (control.textContent || "").replace(/\s+/g, " ").trim();
-            if (label.toUpperCase() === candidateText("Afficher plus de vérifications", "Show more reviews").toUpperCase()) {
-                control.remove();
-            }
+        /*
+         * Once JavaScript enhancement is active, expose every projected
+         * scrutiny record inside the bounded scroll region. The archive
+         * button is no longer needed for this panel.
+         */
+        listBody.querySelectorAll("[data-archive-extra]").forEach((item) => {
+            item.hidden = false;
         });
 
-        const syncHeights = () => {
-            if (window.matchMedia("(max-width: 759.98px)").matches) {
-                listPanel.style.height = "";
-                listPanel.style.maxHeight = "";
-                return;
-            }
+        listBody.querySelectorAll("[data-archive-toggle]").forEach((button) => {
+            button.remove();
+        });
 
-            const statusHeight = Math.ceil(statusPanel.getBoundingClientRect().height);
+        const mobileQuery = window.matchMedia("(max-width: 759.98px)");
+
+        const syncHeights = () => {
+            listPanel.style.removeProperty("height");
+            listPanel.style.removeProperty("max-height");
+
+            if (mobileQuery.matches) return;
+
+            const statusHeight = Math.ceil(
+                statusPanel.getBoundingClientRect().height
+            );
+
             if (statusHeight > 0) {
                 listPanel.style.height = `${statusHeight}px`;
                 listPanel.style.maxHeight = `${statusHeight}px`;
             }
         };
 
-        syncHeights();
+        const scheduleSync = () => {
+            window.requestAnimationFrame(syncHeights);
+        };
 
-        if (!listPanel.__fr27ScrutinyResizeBound) {
-            window.addEventListener("resize", () => {
-                window.requestAnimationFrame(syncHeights);
-            });
+        scheduleSync();
 
-            if ("ResizeObserver" in window) {
-                const observer = new ResizeObserver(() => {
-                    window.requestAnimationFrame(syncHeights);
-                });
-                observer.observe(statusPanel);
-                observer.observe(listPanel);
-                listPanel.__fr27ScrutinyResizeObserver = observer;
-            }
+        window.addEventListener("resize", scheduleSync, { passive: true });
 
-            listPanel.__fr27ScrutinyResizeBound = true;
+        if (typeof mobileQuery.addEventListener === "function") {
+            mobileQuery.addEventListener("change", scheduleSync);
+        }
+
+        if ("ResizeObserver" in window) {
+            const observer = new ResizeObserver(scheduleSync);
+            observer.observe(statusPanel);
+            listPanel.__fr27ScrutinyResizeObserver = observer;
+        }
+
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(scheduleSync);
         }
     }
 
     if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initScrutinyScrollPanels, { once: true });
+        document.addEventListener(
+            "DOMContentLoaded",
+            initScrutinyScrollPanels,
+            { once: true }
+        );
     } else {
         initScrutinyScrollPanels();
     }
