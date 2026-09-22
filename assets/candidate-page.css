@@ -1573,43 +1573,67 @@
 /* === END MEDIA SCROLL FEEDS === */
 
 /* === FR27 SCRUTINY SCROLL PATCH START === */
+
+/*
+   SCRUTINY GEOMETRY CONTRACT
+
+   Desktop/tablet:
+   - candidacy-status card determines its own natural content height
+   - claims card is locked to that measured height by JS
+   - only the claims panel body scrolls
+
+   Mobile:
+   - cards return to natural stacked height
+   - claims body remains independently bounded
+*/
+
+.candidate-page #scrutiny .candidate-accountability-grid {
+    align-items: start;
+}
+
 .candidate-page #scrutiny .candidate-scrutiny-panel--list,
 .candidate-page #scrutiny .candidate-scrutiny-panel--status {
     align-self: start;
 }
 
+.candidate-page #scrutiny .candidate-scrutiny-panel--status {
+    height: max-content;
+}
+
 .candidate-page #scrutiny .candidate-scrutiny-panel--list {
     display: flex;
     flex-direction: column;
+    min-height: 0;
     overflow: hidden;
 }
 
-.candidate-page #scrutiny .candidate-scrutiny-scroll-body {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-right: 6px;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(150, 170, 190, 0.7) rgba(8, 28, 48, 0.95);
+.candidate-page #scrutiny .candidate-scrutiny-panel--list > .candidate-panel-head {
+    flex: 0 0 auto;
 }
 
-.candidate-page #scrutiny .candidate-scrutiny-scroll-body::-webkit-scrollbar {
+.candidate-page #scrutiny .candidate-scrutiny-panel--list > .candidate-panel-body.candidate-scrutiny-scroll-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(150, 170, 190, .70) rgba(8, 28, 48, .95);
+}
+
+.candidate-page #scrutiny .candidate-scrutiny-panel--list > .candidate-panel-body.candidate-scrutiny-scroll-body::-webkit-scrollbar {
     width: 8px;
 }
 
-.candidate-page #scrutiny .candidate-scrutiny-scroll-body::-webkit-scrollbar-track {
-    background: rgba(8, 28, 48, 0.95);
+.candidate-page #scrutiny .candidate-scrutiny-panel--list > .candidate-panel-body.candidate-scrutiny-scroll-body::-webkit-scrollbar-track {
+    background: rgba(8, 28, 48, .95);
     border-radius: 999px;
 }
 
-.candidate-page #scrutiny .candidate-scrutiny-scroll-body::-webkit-scrollbar-thumb {
-    background: rgba(150, 170, 190, 0.7);
+.candidate-page #scrutiny .candidate-scrutiny-panel--list > .candidate-panel-body.candidate-scrutiny-scroll-body::-webkit-scrollbar-thumb {
+    background: rgba(150, 170, 190, .70);
     border-radius: 999px;
-}
-
-.candidate-page #scrutiny .candidate-scrutiny-scroll-body > *:last-child {
-    margin-bottom: 0;
 }
 
 @media (max-width: 759.98px) {
@@ -1618,19 +1642,18 @@
         max-height: none !important;
     }
 
-    .candidate-page #scrutiny .candidate-scrutiny-scroll-body {
+    .candidate-page #scrutiny .candidate-scrutiny-panel--list > .candidate-panel-body.candidate-scrutiny-scroll-body {
+        flex: none;
         max-height: 380px;
         overflow-y: auto;
-        overflow-x: hidden;
         padding-right: 4px;
-        overscroll-behavior: contain;
-        scrollbar-gutter: auto;
     }
 
-    .candidate-page #scrutiny .candidate-scrutiny-scroll-body::-webkit-scrollbar {
+    .candidate-page #scrutiny .candidate-scrutiny-panel--list > .candidate-panel-body.candidate-scrutiny-scroll-body::-webkit-scrollbar {
         width: 6px;
     }
 }
+
 /* === FR27 SCRUTINY SCROLL PATCH END === */
 
 /* === ATTENTION MOBILE HEIGHT RESTORE START === */
@@ -2912,3 +2935,43 @@
     display: none !important;
   }
 }
+/* === FR27 UNIVERSAL HUD MICRO-POLISH LOCK ===
+   Final standalone-page dock polish.
+   Structure, dimensions and responsive architecture are frozen.
+*/
+@media (min-width: 1101px) {
+  .candidate-page .fr27-app-hud .fr27-zone-meta,
+  .candidate-page .fr27-app-hud .fr27-zone-countdown .fr27-zone-title {
+    color: #9bb0bc;
+    font-size: 9px;
+  }
+
+  .candidate-page .fr27-app-hud .fr27-source-stat > span:not(.fr27-source-icon) {
+    color: #9aafb9;
+    font-size: 9px;
+  }
+
+  .candidate-page .fr27-app-hud .fr27-dashboard-cta {
+    border-color: rgba(67, 203, 232, .52);
+    background: rgba(7, 29, 42, .70);
+    box-shadow: inset 0 1px 0 rgba(67, 203, 232, .055);
+  }
+
+  .candidate-page .fr27-app-hud .fr27-dashboard-cta strong {
+    color: #4fd5ef;
+    font-size: 11.2px;
+  }
+
+  .candidate-page .fr27-app-hud .fr27-linear-actions {
+    gap: 7px;
+  }
+
+  .candidate-page .fr27-app-hud .fr27-hud-command {
+    line-height: 1;
+  }
+
+  .candidate-page .fr27-app-hud .fr27-hud-command svg {
+    display: block;
+  }
+}
+/* === END FR27 UNIVERSAL HUD MICRO-POLISH LOCK === */
