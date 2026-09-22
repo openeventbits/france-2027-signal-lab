@@ -1,0 +1,1687 @@
+/*
+ * Marine Le Pen reference page — production FR27 shell transplant.
+ * The dashboard remains unchanged; these rules reproduce its resolved visual
+ * cascade for the standalone prototype's existing semantic markup.
+ */
+.polling-page {
+  --final-bg: #020711;
+  --final-panel: #061321;
+  --final-panel-raised: #081827;
+  --final-panel-soft: #0a1c2c;
+  --final-line: #173a52;
+  --final-line-strong: #245a76;
+  --final-text: #e8f2f8;
+  --final-muted: #8ca6b7;
+  --final-muted-soft: #688496;
+  --final-cyan: #35d8ff;
+  --final-blue: #268cff;
+  --final-violet: #8b79ff;
+  --final-green: #48d8ad;
+  --final-warn: #ffbd58;
+  --final-radius: 6px;
+  --fr27-brand-bleu-nuit: #172a46;
+  --fr27-brand-bleu-france: #2f5fa7;
+  --fr27-brand-ivoire: #f4f1ea;
+  --fr27-type-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --fr27-type-panel-heading: 14px;
+  --fr27-type-module-heading: 10.5px;
+  --fr27-type-primary: 12.5px;
+  --fr27-type-body: 11.5px;
+  --fr27-type-meta: 10px;
+  --fr27-type-micro: 9px;
+  --fr27-type-control: 10.5px;
+  --fr27-type-action: 11px;
+  --fr27-num-display: 28px;
+  --fr27-num-focal: 26px;
+  --fr27-num-kpi: 20px;
+  --fr27-num-row: 14px;
+  --fr27-num-support: 11px;
+  --fr27-num-micro: 9px;
+  --bg: var(--final-bg);
+  --panel: var(--final-panel);
+  --panel-2: var(--final-panel-raised);
+  --panel-3: #07121f;
+  --line: var(--final-line);
+  --line-strong: var(--final-line-strong);
+  --text: var(--final-text);
+  --muted: var(--final-muted);
+  --cyan: var(--final-cyan);
+  --blue: var(--final-blue);
+  --violet: var(--final-violet);
+  --green: var(--final-green);
+  --warn: var(--final-warn);
+  --danger: #ff6b78;
+  --shadow: 0 14px 38px rgba(0, 0, 0, .20), inset 0 1px rgba(255, 255, 255, .018);
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 78% -12%, rgba(36, 104, 160, .18), transparent 34rem),
+    radial-gradient(circle at 8% 18%, rgba(38, 140, 255, .065), transparent 26rem),
+    linear-gradient(180deg, #030a14 0%, var(--final-bg) 58%);
+  color: var(--final-text);
+  font-family: var(--fr27-type-sans);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.polling-page *,
+.polling-page *::before,
+.polling-page *::after { box-sizing: border-box; }
+
+.polling-page a {
+  color: var(--final-cyan);
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+.polling-page a:hover { color: #8cecff; text-decoration: underline; }
+.polling-page a:focus-visible,
+.polling-page button:focus-visible { outline: 2px solid var(--final-cyan); outline-offset: 2px; }
+
+.polling-page .polling-shell {
+  width: 100%;
+  max-width: 1780px;
+  margin-inline: auto;
+  padding: 22px 24px 34px;
+}
+
+.polling-page .candidate-masthead {
+  min-height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 13px;
+  border-block: 1px solid rgba(39, 92, 121, .72);
+  background: rgba(7, 18, 31, .90);
+}
+
+.polling-page .candidate-brand {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--fr27-brand-ivoire);
+}
+
+.polling-page .candidate-brand:hover { color: var(--fr27-brand-ivoire); text-decoration: none; }
+
+.polling-page .candidate-mark {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--final-blue);
+  border-radius: 14px;
+  background: rgba(7, 21, 34, .92);
+  box-shadow: inset 0 0 18px rgba(38, 140, 255, .16), 0 0 14px rgba(38, 140, 255, .05);
+}
+
+.polling-page .candidate-mark svg { width: 42px; height: 42px; display: block; }
+.polling-page .candidate-brand-copy { min-width: 0; display: block; }
+
+.polling-page .candidate-brand-copy strong {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  color: var(--fr27-brand-ivoire);
+  font-size: clamp(22px, 1.5vw, 26px);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: .065em;
+  white-space: nowrap;
+}
+
+.polling-page .candidate-brand-copy strong::after {
+  display: block;
+  width: 100%;
+  height: 2px;
+  margin-top: 6px;
+  background: linear-gradient(90deg, #0055a4 0 33.333%, #fff 33.333% 66.666%, #ef4135 66.666% 100%);
+  content: "";
+}
+
+.polling-page .candidate-brand-copy em { color: inherit; font-style: normal; }
+.polling-page .candidate-brand-copy small {
+  display: block;
+  margin-top: 6px;
+  color: #94adbd;
+  font-size: var(--fr27-type-body);
+  line-height: 1.35;
+}
+
+.polling-page .candidate-masthead-tools {
+  min-width: 0;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  color: var(--final-muted);
+}
+
+.polling-page .candidate-language {
+  width: 96px;
+  height: 52px;
+  flex: 0 0 96px;
+  display: inline-flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #23445d;
+  border-radius: 6px;
+  background: rgba(7, 21, 34, .56);
+  color: transparent;
+}
+
+.polling-page .candidate-language a {
+  min-width: 0;
+  min-height: 0;
+  display: inline-grid;
+  flex: 1 1 0;
+  place-items: center;
+  padding: 0;
+  color: #839fb2;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.polling-page .candidate-language span {
+  width: 1px;
+  flex: 0 0 1px;
+  background: #3f6075;
+  color: transparent;
+  font-size: 0;
+}
+
+.polling-page .candidate-language a:hover { color: var(--final-text); background: rgba(25, 58, 80, .26); text-decoration: none; }
+.polling-page .candidate-language a[aria-current="page"] { color: var(--final-cyan); background: rgba(38, 140, 255, .14); }
+
+.polling-page .candidate-countdown {
+  position: relative;
+  width: max-content;
+  min-width: 206px;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: 23px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 7px 12px;
+  border: 1px solid #285b78;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(18, 49, 70, .94), rgba(6, 21, 35, .94));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .20), inset 0 1px rgba(255, 255, 255, .025);
+}
+
+.polling-page .candidate-countdown-icon {
+  width: 23px;
+  height: 23px;
+  display: grid;
+  place-items: center;
+  color: #8eb4c8;
+}
+
+.polling-page .candidate-countdown-icon svg {
+  width: 21px;
+  height: 21px;
+  display: block;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.polling-page .candidate-countdown-copy {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+}
+
+.polling-page .candidate-countdown-value {
+  grid-column: 1;
+  grid-row: 1;
+  color: var(--final-cyan);
+  font-size: var(--fr27-num-display);
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -.035em;
+}
+
+.polling-page .candidate-countdown-text {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+}
+
+.polling-page .candidate-countdown-line {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  transform: translateY(-1px);
+  white-space: nowrap;
+}
+
+.polling-page .candidate-countdown-unit {
+  margin: 0;
+  color: #8fa9bb;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: .035em;
+  text-transform: lowercase;
+}
+
+.polling-page .candidate-countdown-label {
+  color: #dcecf6;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.polling-page .candidate-countdown-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  color: #89a5b7;
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.polling-page .candidate-tooltip-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  margin-left: 2px;
+  border: 1px solid #50758a;
+  border-radius: 50%;
+  color: #8eb4c8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: none;
+}
+
+.polling-page .candidate-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--final-line);
+  border-radius: var(--final-radius);
+  background: linear-gradient(180deg, rgba(10, 27, 43, .98), rgba(5, 17, 29, .98));
+  box-shadow: var(--shadow);
+}
+
+.polling-page .candidate-panel-head {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 11px;
+  border-bottom: 1px solid rgba(31, 78, 105, .72);
+  background: linear-gradient(180deg, rgba(13, 34, 52, .78), rgba(7, 23, 37, .34));
+}
+
+.polling-page .candidate-panel-head h3 {
+  margin: 0;
+  color: #e7f0f5;
+  font-size: var(--fr27-type-module-heading);
+  font-weight: 760;
+  line-height: 1.05;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+}
+
+.polling-page .candidate-panel-head > span,
+.polling-page .candidate-panel-head > time {
+  color: var(--final-muted);
+  font-size: var(--fr27-type-meta);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.polling-page .candidate-panel-body { padding: 13px; }
+
+.polling-page ::-webkit-scrollbar { width: 8px; height: 8px; }
+.polling-page ::-webkit-scrollbar-track { background: #061522; }
+.polling-page ::-webkit-scrollbar-thumb { border: 2px solid #061522; border-radius: 999px; background: #315f79; }
+
+@media (min-width: 1240px) and (max-width: 1399px) {
+  .polling-page .candidate-language a { font-size: 10px; }
+  .polling-page .polling-shell { padding-inline: 16px; }
+  .polling-page .candidate-masthead { gap: 12px; padding: 8px 11px; }
+  .polling-page .candidate-brand { gap: 10px; }
+  .polling-page .candidate-mark { width: 46px; height: 46px; flex-basis: 46px; }
+  .polling-page .candidate-mark svg { width: 36px; height: 36px; }
+  .polling-page .candidate-brand-copy strong { font-size: 22px; }
+  .polling-page .candidate-masthead-tools { gap: 8px; }
+  .polling-page .candidate-countdown { min-width: 178px; min-height: 48px; padding: 6px 10px; }
+  .polling-page .candidate-language { height: 48px; }
+}
+
+@media (min-width: 1024px) and (max-width: 1239px) {
+  .polling-page .candidate-language a { font-size: 10px; }
+  .polling-page .polling-shell { padding-inline: 12px; }
+  .polling-page .candidate-masthead { min-height: 76px; gap: 8px; padding: 7px 8px; }
+  .polling-page .candidate-brand { gap: 8px; }
+  .polling-page .candidate-mark { width: 40px; height: 40px; flex-basis: 40px; }
+  .polling-page .candidate-mark svg { width: 32px; height: 32px; }
+  .polling-page .candidate-brand-copy strong { font-size: 18px; }
+  .polling-page .candidate-brand-copy small { font-size: var(--fr27-type-body); }
+  .polling-page .candidate-masthead-tools { gap: 6px; }
+  .polling-page .candidate-language { height: 44px; }
+  .polling-page .candidate-countdown { min-width: 150px; min-height: 44px; padding: 5px 7px; }
+}
+
+@media (min-width: 680px) and (max-width: 1023px) {
+  .polling-page .candidate-language a { font-size: 10px; }
+  .polling-page .polling-shell { padding: 12px 12px 28px; }
+  .polling-page .candidate-masthead { min-height: 78px; flex-wrap: nowrap; gap: 14px; padding: 9px 12px; }
+  .polling-page .candidate-brand { flex: 0 0 auto; gap: 12px; }
+  .polling-page .candidate-mark { width: 48px; height: 48px; flex-basis: 48px; }
+  .polling-page .candidate-mark svg { width: 40px; height: 40px; }
+  .polling-page .candidate-brand-copy strong { font-size: clamp(19px, 2.45vw, 24px); line-height: 1.05; }
+  .polling-page .candidate-brand-copy small { margin-top: 5px; font-size: 11px; line-height: 1.25; }
+  .polling-page .candidate-masthead-tools { min-width: 176px; flex: 0 1 auto; gap: 8px; margin-left: auto; }
+  .polling-page .candidate-language { width: 96px; height: 50px; flex-basis: 96px; }
+  .polling-page .candidate-countdown { min-width: 176px; min-height: 50px; padding: 6px 10px; }
+  .polling-page .candidate-countdown-value { font-size: 27px; line-height: 1; }
+}
+
+@media (max-width: 679px) {
+  .polling-page .candidate-language a { font-size: 10px; }
+  .polling-page .polling-shell { padding: 12px 12px 20px; }
+  .polling-page .candidate-masthead {
+    --candidate-compact-control-height: 44px;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 8px;
+    padding: 7px 12px 8px;
+  }
+  .polling-page .candidate-brand { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 12px; }
+  .polling-page .candidate-mark { width: 48px; height: 48px; flex-basis: 48px; border-radius: 14px; }
+  .polling-page .candidate-mark svg { width: 40px; height: 40px; }
+  .polling-page .candidate-brand-copy strong { display: grid; gap: 1px; font-size: 19px; line-height: 1.05; white-space: normal; }
+  .polling-page .candidate-brand-copy strong::after { height: 2px; margin-top: 4px; }
+  .polling-page .candidate-brand-copy em { display: block; }
+  .polling-page .candidate-brand-copy small { margin-top: 2px; font-size: 11px; line-height: 1.25; white-space: normal; }
+  .polling-page .candidate-masthead-tools { width: 100%; display: flex; flex: initial; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 9px; margin-left: 0; }
+  .polling-page .candidate-language { width: 96px; height: var(--candidate-compact-control-height); flex: 0 0 96px; }
+  .polling-page .candidate-countdown { width: max-content; min-width: 176px; min-height: var(--candidate-compact-control-height); gap: 9px; padding: 7px 10px; }
+  .polling-page .candidate-countdown-icon { width: 23px; height: 23px; }
+  .polling-page .candidate-countdown-icon svg { width: 21px; height: 21px; stroke-width: 1.6; }
+  .polling-page .candidate-countdown-copy { gap: 7px; }
+  .polling-page .candidate-countdown-text { gap: 3px; }
+  .polling-page .candidate-countdown-line { gap: 3px; }
+  .polling-page .candidate-countdown-value { font-size: 27px; }
+  .polling-page .candidate-countdown-unit { font-size: 8px; }
+  .polling-page .candidate-countdown-label,
+  .polling-page .candidate-countdown-date { font-size: 9px; }
+}
+
+/* ================================================================
+   FR27 APPLICATION HUD — CANDIDATE-PAGE TRANSPLANT
+   Authoritative dashboard implementation adapted to candidate shell.
+
+   Architecture:
+   - desktop / tablet: one compact system rail in three visual groups
+     (live + countdown) / (source metrics) / (dashboard + utilities)
+   - below 750px: two-row reflow using the same groups and controls
+   - below 420px: tighter typography and command spacing, no hidden controls
+   ================================================================ */
+
+.polling-page {
+  --fr27-app-hud-height: 78px;
+  --fr27-app-hud-rail-height: 5px;
+  --fr27-app-hud-open-safe: 84px;
+  --fr27-app-hud-closed-safe: 40px;
+  scroll-padding-bottom: var(--fr27-app-hud-open-safe);
+}
+
+.polling-page .polling-shell {
+  padding-bottom: var(--fr27-app-hud-open-safe) !important;
+  transition: padding-bottom 220ms cubic-bezier(.22, .8, .24, 1);
+}
+
+.polling-page.fr27-app-hud-collapsed {
+  scroll-padding-bottom: var(--fr27-app-hud-closed-safe);
+}
+
+.polling-page.fr27-app-hud-collapsed .polling-shell {
+  padding-bottom: var(--fr27-app-hud-closed-safe) !important;
+}
+
+.polling-page #candidate-app-hud.fr27-app-hud {
+  position: fixed;
+  z-index: 980;
+  left: var(--fr27-app-hud-left, 0px);
+  right: auto;
+  bottom: 0;
+  display: block !important;
+  width: var(--fr27-app-hud-width, 100%);
+  height: var(--fr27-app-hud-height);
+  margin: 0 !important;
+  padding: 0;
+  border-top: 0;
+  color: #a7bac6;
+  font-size: 10px;
+  line-height: 1;
+  text-align: left;
+  overflow: visible;
+  transform: translateY(0);
+  filter: drop-shadow(0 -12px 24px rgba(0, 0, 0, .32));
+  transition: transform 230ms cubic-bezier(.22, .8, .24, 1), filter 180ms ease;
+}
+
+.polling-page #candidate-app-hud.fr27-app-hud[data-expanded="false"] {
+  transform: translateY(calc(var(--fr27-app-hud-height) - var(--fr27-app-hud-rail-height)));
+  filter: drop-shadow(0 -7px 15px rgba(0, 0, 0, .28));
+}
+
+.polling-page .fr27-app-hud-surface {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(47, 76, 94, .68);
+  border-bottom: 0;
+  border-radius: 7px 7px 0 0;
+  background: #04111d;
+  box-shadow: inset 0 1px 0 rgba(123, 158, 176, .025), inset 0 -1px 0 rgba(49, 74, 89, .16);
+}
+
+.polling-page .fr27-app-hud-toggle {
+  position: absolute;
+  z-index: 30;
+  top: -9px;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(48, 78, 96, .78);
+  border-bottom-color: rgba(38, 62, 78, .92);
+  clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 100%, 0 100%);
+  background: #061522;
+  color: #3dcbed;
+  cursor: pointer;
+  transform: translateX(-50%);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, .28);
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.polling-page .fr27-app-hud-toggle:hover {
+  border-color: rgba(67, 111, 134, .92);
+  background: #081b2a;
+  color: #70ddf6;
+}
+
+.polling-page .fr27-app-hud-toggle:focus-visible,
+.polling-page .fr27-hud-command:focus-visible,
+.polling-page .fr27-dashboard-cta:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.polling-page .fr27-app-hud-toggle svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 220ms ease;
+}
+
+.polling-page #candidate-app-hud.fr27-app-hud[data-expanded="false"] .fr27-app-hud-toggle svg {
+  transform: rotate(180deg);
+}
+
+.polling-page .fr27-app-hud .fr27-app-hud-content.fr27-linear-console {
+  display: grid;
+  grid-template-columns:
+    minmax(138px, .9fr)
+    minmax(128px, .78fr)
+    minmax(220px, 1.28fr)
+    minmax(240px, 1.5fr)
+    minmax(150px, auto);
+  align-items: stretch;
+  width: 100%;
+  height: calc(var(--fr27-app-hud-height) - var(--fr27-app-hud-rail-height));
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0 8px;
+  overflow: hidden;
+  background: #051420;
+}
+
+.polling-page .fr27-linear-console > * {
+  min-width: 0;
+  border-left: 0;
+}
+
+/* Three macro groups: live system / corpus status / actions. */
+.polling-page .fr27-app-hud .fr27-zone-infra,
+.polling-page .fr27-app-hud .fr27-zone-dashboard {
+  border-left: 1px solid rgba(55, 80, 95, .42);
+}
+
+.polling-page .fr27-app-hud .fr27-linear-zone {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  height: 100%;
+  padding: 0 12px;
+}
+
+.polling-page .fr27-app-hud .fr27-zone-live,
+.polling-page .fr27-app-hud .fr27-zone-countdown {
+  display: grid;
+  grid-template-rows: 9px 24px 10px;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  align-items: start;
+  row-gap: 4px;
+}
+
+.polling-page .fr27-app-hud .fr27-zone-meta,
+.polling-page .fr27-app-hud .fr27-zone-countdown .fr27-zone-title {
+  align-self: end;
+  grid-row: 1;
+  margin: 0;
+  color: #8da8b6;
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.polling-page .fr27-app-hud .fr27-zone-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: .035em;
+}
+
+.polling-page .fr27-app-hud .fr27-zone-meta span:last-child {
+  color: #48b7d3;
+}
+
+.polling-page .fr27-app-hud .fr27-zone-live .fr27-zone-meta::after {
+  width: 5px;
+  height: 5px;
+  margin-left: 1px;
+  border-radius: 50%;
+  content: "";
+  background: #62c9ea;
+  box-shadow: 0 0 5px rgba(98, 201, 234, .24);
+}
+
+.polling-page .fr27-app-hud .fr27-live-main,
+.polling-page .fr27-app-hud .fr27-countdown-main {
+  display: contents;
+}
+
+.polling-page .fr27-app-hud #fr27-hud-paris-time {
+  align-self: center;
+  grid-row: 2;
+  color: #e9f0f3;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em;
+  opacity: .94;
+  white-space: nowrap;
+}
+
+.polling-page .fr27-app-hud #fr27-hud-paris-date {
+  align-self: start;
+  grid-row: 3;
+  color: #4ebbd2;
+  font-size: 9px;
+  font-weight: 710;
+  line-height: 1;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.polling-page .fr27-app-hud .fr27-countdown-value-row {
+  display: flex;
+  align-self: center;
+  align-items: baseline;
+  gap: 4px;
+  grid-row: 2;
+  white-space: nowrap;
+}
+
+.polling-page .fr27-app-hud #fr27-hud-countdown-days {
+  color: #39d0ed;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 23px;
+  font-weight: 620;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.polling-page .fr27-app-hud .fr27-countdown-unit {
+  margin-top: 3px;
+  color: #8da4b0;
+  font-size: 8.5px;
+  font-weight: 740;
+  line-height: 1;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+
+.polling-page .fr27-app-hud .fr27-countdown-date {
+  align-self: start;
+  grid-row: 3;
+  color: #8f91ad;
+  font-size: 9px;
+  font-weight: 710;
+  line-height: 1;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.polling-page .fr27-app-hud .fr27-zone-infra-body,
+.polling-page .fr27-app-hud .fr27-source-main {
+  width: 100%;
+  height: 52px;
+  min-width: 0;
+}
+
+.polling-page .fr27-app-hud .fr27-zone-infra-body {
+  display: block;
+  overflow: hidden;
+}
+
+.polling-page .fr27-app-hud .fr27-source-main {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  margin: 0;
+}
+
+.polling-page .fr27-app-hud .fr27-source-stat {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 20px;
+  grid-template-rows: 9px 22px;
+  grid-template-areas: "label label" "value icon";
+  align-content: center;
+  align-items: center;
+  justify-content: center;
+  column-gap: 5px;
+  row-gap: 5px;
+  min-width: 0;
+  padding: 0 8px;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.polling-page .fr27-app-hud .fr27-source-stat:nth-child(2)::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 1px;
+  height: 34px;
+  content: "";
+  background: rgba(58, 86, 102, .30);
+  transform: translateY(-50%);
+}
+
+.polling-page .fr27-app-hud .fr27-source-stat > strong {
+  grid-area: value;
+  align-self: center;
+  justify-self: end;
+  color: #d6e5eb;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 21px;
+  font-weight: 660;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.polling-page .fr27-app-hud .fr27-source-stat:first-child strong {
+  color: #3fcce8;
+}
+
+.polling-page .fr27-app-hud .fr27-source-stat:nth-child(2) strong {
+  color: #c0ced5;
+}
+
+.polling-page .fr27-app-hud .fr27-source-stat > span:not(.fr27-source-icon) {
+  grid-area: label;
+  align-self: end;
+  justify-self: center;
+  color: #8da3af;
+  font-size: 8.5px;
+  font-weight: 710;
+  line-height: 1;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.polling-page .fr27-app-hud .fr27-source-icon {
+  grid-area: icon;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  justify-self: start;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 0;
+  color: #8298a4;
+  background: transparent;
+}
+
+.polling-page .fr27-app-hud .fr27-source-icon svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.55;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.polling-page .fr27-app-hud .fr27-zone-dashboard {
+  align-items: center;
+  padding-inline: 16px 8px;
+}
+
+.polling-page .fr27-app-hud .fr27-dashboard-cta {
+  display: grid;
+  grid-template-rows: auto auto;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  width: clamp(190px, 78%, 390px);
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(59, 179, 207, .38);
+  border-radius: 5px;
+  background: rgba(7, 25, 37, .50);
+  color: #8da8b6;
+  line-height: 1;
+  transition: border-color 130ms ease, background 130ms ease, color 130ms ease, box-shadow 130ms ease;
+}
+
+.polling-page .fr27-app-hud .fr27-dashboard-cta:focus-visible {
+  outline-offset: 2px;
+}
+
+.polling-page .fr27-app-hud .fr27-dashboard-cta span {
+  font-size: 8px;
+  font-weight: 710;
+  letter-spacing: .055em;
+}
+
+.polling-page .fr27-app-hud .fr27-dashboard-cta strong {
+  color: #43cbe8;
+  font-size: 11px;
+  font-weight: 780;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+.polling-page .fr27-app-hud .fr27-dashboard-cta:hover {
+  border-color: rgba(67, 203, 232, .72);
+  background: rgba(9, 32, 46, .84);
+  color: #70ddf6;
+  box-shadow: inset 0 1px 0 rgba(67, 203, 232, .10);
+  text-decoration: none;
+}
+
+.polling-page .fr27-app-hud .fr27-zone-utility {
+  align-items: center;
+  padding-inline: 6px 10px;
+}
+
+.polling-page .fr27-app-hud .fr27-linear-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: max-content;
+  max-width: 100%;
+  height: auto;
+  padding: 0;
+}
+
+.polling-page .fr27-app-hud .fr27-hud-command {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(62, 91, 108, .68);
+  border-radius: 5px;
+  background: #071925;
+  color: #88a9b8;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 130ms ease, background 130ms ease, color 130ms ease;
+}
+
+.polling-page .fr27-app-hud a.fr27-hud-command:hover,
+.polling-page .fr27-app-hud #fr27-hud-info-toggle:hover {
+  border-color: rgba(59, 179, 207, .72);
+  background: #09202e;
+  color: #43cbe8;
+  text-decoration: none;
+}
+
+.polling-page .fr27-app-hud .fr27-hud-command.github {
+  color: #b4c4cb;
+}
+
+.polling-page .fr27-app-hud .fr27-hud-command.email {
+  color: #63c9df;
+}
+
+.polling-page .fr27-app-hud .fr27-hud-command.share {
+  color: #86a9b8;
+}
+
+.polling-page .fr27-app-hud #fr27-hud-info-toggle {
+  color: #9f96c7;
+}
+
+.polling-page .fr27-app-hud .fr27-hud-command svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.polling-page .fr27-app-hud .fr27-hud-command.github svg,
+.polling-page .fr27-app-hud .fr27-hud-command.share svg {
+  fill: currentColor;
+  stroke: none;
+  opacity: .96;
+}
+
+.polling-page .fr27-hud-contact-popover,
+.polling-page .fr27-hud-info-popover {
+  position: absolute;
+  z-index: 51;
+  bottom: calc(100% + 10px);
+  border: 1px solid rgba(51, 83, 103, .74);
+  border-radius: 7px;
+  background: #061724;
+  color: #8ea5b2;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .46);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity 130ms ease, transform 150ms ease;
+}
+
+.polling-page .fr27-hud-contact-popover {
+  right: 80px;
+  width: 248px;
+  padding: 13px 14px 12px;
+}
+
+.polling-page .fr27-hud-info-popover {
+  right: 8px;
+  width: min(430px, calc(100vw - 32px));
+  padding: 16px 17px 15px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .52);
+}
+
+.polling-page .fr27-hud-contact-popover::after,
+.polling-page .fr27-hud-info-popover::after {
+  position: absolute;
+  bottom: -5px;
+  width: 8px;
+  height: 8px;
+  content: "";
+  background: #061724;
+  border-right: 1px solid rgba(51, 83, 103, .74);
+  border-bottom: 1px solid rgba(51, 83, 103, .74);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.polling-page .fr27-hud-contact-popover::after {
+  right: 46px;
+}
+
+.polling-page .fr27-hud-info-popover::after {
+  right: 19px;
+}
+
+.polling-page .fr27-hud-contact-popover[aria-hidden="false"],
+.polling-page .fr27-hud-info-popover[aria-hidden="false"] {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.polling-page .fr27-hud-contact-head,
+.polling-page .fr27-hud-info-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid rgba(45, 70, 85, .52);
+}
+
+.polling-page .fr27-hud-contact-head strong,
+.polling-page .fr27-hud-info-head strong {
+  color: #d6e5eb;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+
+.polling-page .fr27-hud-contact-head span,
+.polling-page .fr27-hud-info-head span {
+  color: #58c9df;
+  font-size: 8.5px;
+  font-weight: 750;
+  letter-spacing: .08em;
+}
+
+.polling-page .fr27-hud-contact-address {
+  margin: 12px 0 10px;
+  color: #c8d9e0;
+  font-size: 11.5px;
+  font-weight: 620;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.polling-page .fr27-hud-contact-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 25px;
+  padding: 0 9px;
+  border: 1px solid rgba(56, 157, 181, .62);
+  border-radius: 4px;
+  background: rgba(8, 31, 44, .72);
+  color: #67d3e7;
+  font: inherit;
+  font-size: 8.7px;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: .06em;
+  cursor: pointer;
+}
+
+.polling-page .fr27-hud-contact-copy:hover {
+  border-color: rgba(76, 196, 221, .72);
+  background: #09202e;
+  color: #73d8ec;
+}
+
+.polling-page .fr27-hud-info-popover p,
+.polling-page .fr27-hud-info-independence,
+.polling-page .fr27-hud-info-note {
+  font-family: inherit;
+  font-size: 11.2px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.5;
+  letter-spacing: normal;
+}
+
+.polling-page .fr27-hud-info-popover p {
+  margin: 13px 0;
+  color: #aec0c9;
+}
+
+.polling-page .fr27-hud-info-independence,
+.polling-page .fr27-hud-info-note {
+  display: block;
+  margin-top: 11px;
+  color: #8299a5;
+}
+
+.polling-page .fr27-hud-info-rules {
+  display: grid;
+  gap: 7px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(45, 70, 85, .52);
+  font-size: 9.5px;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: .045em;
+}
+
+.polling-page .fr27-hud-info-rule-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 5px;
+}
+
+.polling-page .fr27-hud-info-rule-line span {
+  white-space: nowrap;
+}
+
+.polling-page .fr27-hud-info-rule-line span + span::before {
+  margin: 0 7px;
+  content: "·";
+  opacity: .52;
+}
+
+.polling-page .fr27-hud-info-rule-line.primary {
+  color: #54c7df;
+}
+
+.polling-page .fr27-hud-info-rule-line.boundary {
+  color: #9185bd;
+}
+
+.polling-page .fr27-hud-info-rights {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 4px 14px;
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(45, 70, 85, .52);
+}
+
+.polling-page .fr27-hud-info-rights strong {
+  grid-column: 1 / -1;
+  color: #9eb3bd;
+  font-size: 9.2px;
+  line-height: 1.2;
+  letter-spacing: .08em;
+}
+
+.polling-page .fr27-hud-info-rights span,
+.polling-page .fr27-hud-info-rights a {
+  font-size: 9.2px;
+  line-height: 1.3;
+  letter-spacing: .035em;
+}
+
+.polling-page .fr27-hud-info-rights span {
+  color: #718b98;
+}
+
+.polling-page .fr27-hud-info-rights a {
+  color: #54c7df;
+  font-weight: 750;
+  letter-spacing: .06em;
+}
+
+.polling-page .fr27-app-hud-rail {
+  position: absolute;
+  z-index: 4;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--fr27-app-hud-rail-height);
+  border-top: 1px solid rgba(43, 66, 81, .18);
+  background: #051420;
+  transition: transform 230ms cubic-bezier(.22, .8, .24, 1);
+}
+
+.polling-page #candidate-app-hud.fr27-app-hud[data-expanded="false"] .fr27-app-hud-content {
+  pointer-events: none;
+}
+
+.polling-page #candidate-app-hud.fr27-app-hud[data-expanded="false"] .fr27-app-hud-rail {
+  transform: translateY(calc(var(--fr27-app-hud-rail-height) - var(--fr27-app-hud-height)));
+}
+
+/* Desktop compression: preserve group hierarchy instead of shrinking every cell equally. */
+@media (max-width: 1280px) {
+  .polling-page .fr27-app-hud .fr27-app-hud-content.fr27-linear-console {
+    grid-template-columns: minmax(128px, .88fr) minmax(118px, .76fr) minmax(200px, 1.18fr) minmax(220px, 1.34fr) minmax(142px, auto);
+    padding-inline: 6px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-linear-zone {
+    padding-inline: 9px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-dashboard {
+    padding-inline: 12px 6px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-utility {
+    padding-inline: 5px 8px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-dashboard-cta {
+    width: clamp(185px, 82%, 310px);
+    height: 36px;
+  }
+
+  .polling-page .fr27-app-hud #fr27-hud-paris-time {
+    font-size: 20px;
+  }
+
+  .polling-page .fr27-app-hud #fr27-hud-countdown-days {
+    font-size: 21px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-stat > strong {
+    font-size: 19px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .polling-page {
+    --fr27-app-hud-height: 68px;
+    --fr27-app-hud-open-safe: 74px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-app-hud-content.fr27-linear-console {
+    grid-template-columns: minmax(112px, .9fr) minmax(104px, .78fr) minmax(176px, 1.12fr) minmax(190px, 1.26fr) minmax(128px, auto);
+    padding-inline: 4px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-linear-zone {
+    padding-inline: 6px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-dashboard {
+    padding-inline: 8px 4px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-utility {
+    padding-inline: 4px 6px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-live,
+  .polling-page .fr27-app-hud .fr27-zone-countdown {
+    grid-template-rows: 8px 21px 9px;
+    row-gap: 3px;
+  }
+
+  .polling-page .fr27-app-hud #fr27-hud-paris-time {
+    font-size: 18px;
+  }
+
+  .polling-page .fr27-app-hud #fr27-hud-paris-date,
+  .polling-page .fr27-app-hud .fr27-countdown-date {
+    font-size: 8px;
+  }
+
+  .polling-page .fr27-app-hud #fr27-hud-countdown-days {
+    font-size: 19px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-countdown-unit {
+    font-size: 8px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-infra-body,
+  .polling-page .fr27-app-hud .fr27-source-main {
+    height: 46px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-stat {
+    grid-template-columns: auto 17px;
+    grid-template-rows: 8px 19px;
+    column-gap: 3px;
+    row-gap: 4px;
+    padding-inline: 4px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-stat > strong {
+    font-size: 17px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-stat > span:not(.fr27-source-icon) {
+    font-size: 7.8px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-dashboard-cta {
+    width: min(94%, 250px);
+    height: 33px;
+    gap: 3px;
+    padding-inline: 8px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-dashboard-cta strong {
+    font-size: 9.8px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-dashboard-cta span {
+    font-size: 7.3px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-linear-actions {
+    gap: 4px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-hud-command {
+    flex-basis: 27px;
+    width: 27px;
+    height: 27px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-hud-command svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* Deliberate two-row console below 750px. */
+@media (max-width: 749.98px) {
+  .polling-page {
+    --fr27-app-hud-height: 111px;
+    --fr27-app-hud-open-safe: 117px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-app-hud-content.fr27-linear-console {
+    height: calc(var(--fr27-app-hud-height) - var(--fr27-app-hud-rail-height));
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-rows: 52px 54px;
+    grid-template-areas:
+      "live live live countdown countdown countdown infra infra infra infra infra infra"
+      "dashboard dashboard dashboard dashboard dashboard dashboard dashboard dashboard utility utility utility utility";
+    align-items: stretch;
+    padding-inline: 4px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-live { grid-area: live; }
+  .polling-page .fr27-app-hud .fr27-zone-countdown { grid-area: countdown; }
+  .polling-page .fr27-app-hud .fr27-zone-infra { grid-area: infra; }
+  .polling-page .fr27-app-hud .fr27-zone-dashboard { grid-area: dashboard; }
+  .polling-page .fr27-app-hud .fr27-zone-utility { grid-area: utility; }
+
+  /* Row 1: four equal instrument cells with one shared vertical rhythm. */
+  .polling-page .fr27-app-hud .fr27-linear-console > * {
+    border-left: 0;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-live,
+  .polling-page .fr27-app-hud .fr27-zone-countdown,
+  .polling-page .fr27-app-hud .fr27-zone-infra {
+    height: 52px;
+    min-height: 0;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-countdown,
+  .polling-page .fr27-app-hud .fr27-zone-infra {
+    border-left: 1px solid rgba(55, 80, 95, .28);
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-live,
+  .polling-page .fr27-app-hud .fr27-zone-countdown {
+    grid-template-rows: 8px 20px 8px;
+    align-content: center;
+    align-items: center;
+    justify-content: stretch;
+    padding: 0 5px;
+    row-gap: 3px;
+    text-align: center;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-meta {
+    justify-content: center;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-countdown .fr27-zone-title,
+  .polling-page .fr27-app-hud #fr27-hud-paris-time,
+  .polling-page .fr27-app-hud #fr27-hud-paris-date,
+  .polling-page .fr27-app-hud .fr27-countdown-value-row,
+  .polling-page .fr27-app-hud .fr27-countdown-date {
+    justify-self: center;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-infra {
+    padding: 0;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-infra-body,
+  .polling-page .fr27-app-hud .fr27-source-main {
+    width: 100%;
+    height: 52px;
+    min-height: 0;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-stat {
+    height: 52px;
+    grid-template-columns: auto 16px;
+    grid-template-rows: 8px 20px 8px;
+    grid-template-areas:
+      "label label"
+      "value icon"
+      ". .";
+    align-content: center;
+    justify-content: center;
+    justify-items: center;
+    column-gap: 3px;
+    row-gap: 3px;
+    padding-inline: 5px;
+    text-align: center;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-stat:nth-child(2)::before {
+    display: block;
+    height: 28px;
+    background: rgba(58, 86, 102, .24);
+  }
+
+  .polling-page .fr27-app-hud #fr27-hud-paris-time { font-size: 17px; }
+
+  .polling-page .fr27-app-hud #fr27-hud-paris-date,
+  .polling-page .fr27-app-hud .fr27-countdown-date {
+    font-size: 7.7px;
+    letter-spacing: .025em;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-meta,
+  .polling-page .fr27-app-hud .fr27-zone-countdown .fr27-zone-title {
+    font-size: 7.7px;
+    letter-spacing: .025em;
+  }
+
+  .polling-page .fr27-app-hud #fr27-hud-countdown-days { font-size: 18px; }
+  .polling-page .fr27-app-hud .fr27-countdown-unit { font-size: 7.7px; }
+  .polling-page .fr27-app-hud .fr27-source-stat > strong { font-size: 17px; }
+
+  .polling-page .fr27-app-hud .fr27-source-stat > span:not(.fr27-source-icon) {
+    font-size: 7.5px;
+    letter-spacing: .025em;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-icon {
+    width: 15px;
+    height: 15px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-icon svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  /* Row 2 is one action zone: a dominant command plus grouped utilities. */
+  .polling-page .fr27-app-hud .fr27-zone-dashboard,
+  .polling-page .fr27-app-hud .fr27-zone-utility {
+    height: 54px;
+    min-height: 0;
+    border-top: 1px solid rgba(55, 80, 95, .40);
+    background: rgba(3, 15, 25, .38);
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-dashboard {
+    display: flex;
+    align-items: center;
+    justify-content: stretch;
+    padding: 7px 4px 7px 8px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-dashboard-cta {
+    width: 100%;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 0 12px;
+    border-color: rgba(59, 179, 207, .52);
+    border-radius: 4px;
+    background: rgba(7, 29, 42, .78);
+  }
+
+  .polling-page .fr27-app-hud .fr27-dashboard-cta span { display: none; }
+
+  .polling-page .fr27-app-hud .fr27-dashboard-cta strong {
+    display: block;
+    font-size: 10.2px;
+    line-height: 1;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-utility {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: stretch;
+    padding: 7px 8px 7px 4px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-linear-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 100%;
+    height: 38px;
+    gap: 0;
+    margin: 0;
+    padding: 3px;
+    border: 1px solid rgba(62, 91, 108, .58);
+    border-radius: 4px;
+    background: rgba(7, 25, 37, .72);
+  }
+
+  .polling-page .fr27-app-hud .fr27-hud-command {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 26px;
+    height: 30px;
+    border-color: transparent;
+    border-radius: 2px;
+    background: transparent;
+  }
+
+  .polling-page .fr27-app-hud .fr27-hud-command + .fr27-hud-command {
+    border-left-color: rgba(62, 91, 108, .46);
+  }
+
+  .polling-page .fr27-app-hud .fr27-hud-command svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .polling-page .fr27-hud-contact-popover {
+    right: 4px;
+    width: min(248px, calc(100vw - 24px));
+  }
+
+  .polling-page .fr27-hud-info-popover {
+    right: 4px;
+    width: calc(100% - 8px);
+  }
+}
+
+@media (max-width: 420px) {
+  .polling-page .fr27-app-hud .fr27-app-hud-content.fr27-linear-console {
+    padding-inline: 2px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-live,
+  .polling-page .fr27-app-hud .fr27-zone-countdown {
+    padding-inline: 4px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-meta,
+  .polling-page .fr27-app-hud .fr27-zone-countdown .fr27-zone-title {
+    font-size: 7.2px;
+    letter-spacing: .005em;
+  }
+
+  .polling-page .fr27-app-hud #fr27-hud-paris-time { font-size: 15.5px; }
+
+  .polling-page .fr27-app-hud #fr27-hud-paris-date,
+  .polling-page .fr27-app-hud .fr27-countdown-date {
+    font-size: 7.1px;
+    letter-spacing: 0;
+  }
+
+  .polling-page .fr27-app-hud #fr27-hud-countdown-days { font-size: 16.5px; }
+  .polling-page .fr27-app-hud .fr27-countdown-unit { font-size: 7.1px; }
+
+  .polling-page .fr27-app-hud .fr27-source-stat {
+    grid-template-columns: auto 14px;
+    column-gap: 2px;
+    padding-inline: 3px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-stat > strong { font-size: 15.5px; }
+
+  .polling-page .fr27-app-hud .fr27-source-stat > span:not(.fr27-source-icon) {
+    font-size: 7px;
+    letter-spacing: .005em;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-icon svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-dashboard { padding-inline: 6px 3px; }
+
+  .polling-page .fr27-app-hud .fr27-dashboard-cta {
+    width: 100%;
+    height: 36px;
+    padding-inline: 4px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-dashboard-cta strong {
+    font-size: 8.7px;
+    letter-spacing: .02em;
+  }
+
+  .polling-page .fr27-app-hud .fr27-zone-utility { padding-inline: 3px 6px; }
+
+  .polling-page .fr27-app-hud .fr27-linear-actions {
+    height: 36px;
+    padding: 2px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-hud-command {
+    flex-basis: 0;
+    width: auto;
+    min-width: 24px;
+    height: 27px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .polling-page .polling-shell,
+  .polling-page #candidate-app-hud.fr27-app-hud,
+  .polling-page .fr27-app-hud-toggle svg,
+  .polling-page .fr27-app-hud-rail,
+  .polling-page .fr27-hud-command,
+  .polling-page .fr27-dashboard-cta,
+  .polling-page .fr27-hud-contact-popover,
+  .polling-page .fr27-hud-info-popover {
+    transition: none;
+  }
+}
+
+@media print {
+  .polling-page #candidate-app-hud.fr27-app-hud {
+    display: none !important;
+  }
+}
+
+/* === FR27 UNIVERSAL HUD MICRO-POLISH LOCK ===
+   Final standalone-page dock polish.
+   Structure, dimensions and responsive architecture are frozen.
+*/
+@media (min-width: 1101px) {
+  .polling-page .fr27-app-hud .fr27-zone-meta,
+  .polling-page .fr27-app-hud .fr27-zone-countdown .fr27-zone-title {
+    color: #9bb0bc;
+    font-size: 9px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-stat > span:not(.fr27-source-icon) {
+    color: #9aafb9;
+    font-size: 9px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-dashboard-cta {
+    border-color: rgba(67, 203, 232, .52);
+    background: rgba(7, 29, 42, .70);
+    box-shadow: inset 0 1px 0 rgba(67, 203, 232, .055);
+  }
+
+  .polling-page .fr27-app-hud .fr27-dashboard-cta strong {
+    color: #4fd5ef;
+    font-size: 11.2px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-linear-actions {
+    gap: 7px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-hud-command {
+    line-height: 1;
+  }
+
+  .polling-page .fr27-app-hud .fr27-hud-command svg {
+    display: block;
+  }
+}
+/* === END FR27 UNIVERSAL HUD MICRO-POLISH LOCK === */
