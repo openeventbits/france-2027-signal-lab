@@ -8,6 +8,8 @@ wave grouping semantics already used by Race at a Glance.
 from __future__ import annotations
 
 import argparse
+import re
+import unicodedata
 import hashlib
 import json
 import os
@@ -208,6 +210,61 @@ def _scenario_projection(
         "candidates": candidates,
     }
 
+
+def _route_slug_component(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", str(value))
+    ascii_value = "".join(
+        character
+        for character in normalized
+        if not unicodedata.combining(character)
+    )
+    slug = re.sub(r"[^a-zA-Z0-9]+", "-", ascii_value.lower()).strip("-")
+    if not slug:
+        raise PollExplorerError("Poll wave route component is empty.")
+    return slug
+
+
+def poll_wave_page_slug(
+    *,
+    fieldwork_end: str,
+    pollster: str,
+    wave_id: str,
+) -> str:
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", fieldwork_end):
+        raise PollExplorerError(
+            f"Invalid poll wave fieldwork end date for route: {fieldwork_end!r}"
+        )
+
+    match = re.fullmatch(r"wave-([0-9a-f]{16})", wave_id)
+    if match is None:
+        raise PollExplorerError(
+            f"Invalid canonical poll wave identifier for route: {wave_id!r}"
+        )
+
+    pollster_slug = _route_slug_component(pollster)
+    wave_token = match.group(1)
+
+    return f"{fieldwork_end}-{pollster_slug}-{wave_token}"
+
+
+def poll_wave_page_paths(
+    *,
+    fieldwork_end: str,
+    pollster: str,
+    wave_id: str,
+) -> tuple[str, str, str]:
+    slug = poll_wave_page_slug(
+        fieldwork_end=fieldwork_end,
+        pollster=pollster,
+        wave_id=wave_id,
+    )
+    return (
+        slug,
+        f"/sondages/{slug}/",
+        f"/en/sondages/{slug}/",
+    )
+
+
 def build_poll_explorer(polls: Any) -> dict[str, Any]:
     indexed_events = validated_first_round_events(polls)
     packages = build_poll_packages(polls)
@@ -257,8 +314,17 @@ def build_poll_explorer(polls: Any) -> dict[str, Any]:
             )
         ]
 
+        page_slug, page_path_fr, page_path_en = poll_wave_page_paths(
+            fieldwork_end=package["fieldwork_end"],
+            pollster=package["pollster"],
+            wave_id=wave_id,
+        )
+
         wave = {
             "wave_id": wave_id,
+            "page_slug": page_slug,
+            "page_path_fr": page_path_fr,
+            "page_path_en": page_path_en,
             "pollster": package["pollster"],
             "fieldwork_start": package["fieldwork_start"],
             "fieldwork_end": package["fieldwork_end"],

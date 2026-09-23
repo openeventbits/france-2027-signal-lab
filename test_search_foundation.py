@@ -506,11 +506,41 @@ class SearchFoundationTests(unittest.TestCase):
                 )
                 self.assertLess(first_generator, first_manifest)
                 commit = workflow.index("git commit")
-                stage = workflow[workflow.rfind("git add --", 0, commit) : commit]
+                stage_marker = (
+                    "git add -A --"
+                    if name == "polls"
+                    else "git add --"
+                )
+                stage_start = workflow.rfind(
+                    stage_marker,
+                    0,
+                    commit,
+                )
+                self.assertGreaterEqual(
+                    stage_start,
+                    0,
+                )
+                stage = workflow[
+                    stage_start:commit
+                ]
                 self.assertIn("index.html", stage)
                 self.assertIn("en/index.html", stage)
-                self.assertNotIn("git add -A", workflow)
-                self.assertNotIn("git add --all", workflow)
+
+                if name == "polls":
+                    self.assertIn(
+                        "git add -A --",
+                        stage,
+                    )
+                else:
+                    self.assertNotIn(
+                        "git add -A",
+                        workflow,
+                    )
+
+                self.assertNotIn(
+                    "git add --all",
+                    workflow,
+                )
 
         for name in ("news", "claims", "candidate_universe"):
             with self.subTest(post_rebase=name):
@@ -578,6 +608,14 @@ class SearchFoundationTests(unittest.TestCase):
                 "commission_notice_registry.json",
                 "recent_changes.json",
                 "candidate_signals.json",
+                "poll_explorer.json",
+                "poll_pages_manifest.json",
+                "route_registry.json",
+                "sitemap.xml",
+                "sitemap-core.xml",
+                "sitemap-polls.xml",
+                "sondages",
+                "en/sondages",
                 "index.html",
                 "en/index.html",
                 "publication_manifest.json",
@@ -628,27 +666,109 @@ class SearchFoundationTests(unittest.TestCase):
                     self.assertLess(workflow.index(marker), generator)
                 self.assertLess(generator, manifest_step)
 
-                stage_start = workflow.index("git add --")
-                stage_end = workflow.index("git commit", stage_start)
-                stage = workflow[stage_start:stage_end]
+                stage_marker = (
+                    "git add -A --"
+                    if name == "polls"
+                    else "git add --"
+                )
+                stage_start = workflow.index(
+                    stage_marker
+                )
+                stage_end = workflow.index(
+                    "git commit",
+                    stage_start,
+                )
+                stage = workflow[
+                    stage_start:stage_end
+                ]
+
                 staged_paths = set(
                     re.findall(
-                        r"[A-Za-z0-9_./-]+(?:\.json|\.html)", stage
+                        r"[A-Za-z0-9_./-]+"
+                        r"(?:\.json|\.html|\.xml)",
+                        stage,
                     )
                 )
-                if "assets/source-icons" in stage:
-                    staged_paths.add("assets/source-icons")
-                self.assertEqual(staged_paths, expected_stage_sets[name])
 
-    def test_sitemap_contains_only_canonical_language_urls(self):
+                for directory in (
+                    "sondages",
+                    "en/sondages",
+                    "assets/source-icons",
+                ):
+                    pattern = (
+                        r"(?<![A-Za-z0-9_./-])"
+                        + re.escape(directory)
+                        + r"(?![A-Za-z0-9_./-])"
+                    )
+
+                    if re.search(
+                        pattern,
+                        stage,
+                    ):
+                        staged_paths.add(
+                            directory
+                        )
+
+                self.assertEqual(
+                    staged_paths,
+                    expected_stage_sets[name],
+                )
+
+    def test_sitemap_is_family_index_with_canonical_urls(self):
         tree = ET.parse(SITEMAP)
-        namespace = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-        urls = [
+        namespace = {
+            "sm": "http://www.sitemaps.org/schemas/sitemap/0.9"
+        }
+
+        sitemap_urls = [
             node.text
-            for node in tree.findall("sm:url/sm:loc", namespace)
+            for node in tree.findall(
+                "sm:sitemap/sm:loc",
+                namespace,
+            )
         ]
-        self.assertEqual(urls, [ROOT_URL, ENGLISH_URL])
-        for url in urls:
+
+        self.assertEqual(
+            sitemap_urls,
+            [
+                "https://france2027.app/sitemap-core.xml",
+                "https://france2027.app/sitemap-polls.xml",
+            ],
+        )
+
+        discovered = []
+
+        for filename in (
+            "sitemap-core.xml",
+            "sitemap-polls.xml",
+        ):
+            child = ET.parse(ROOT / filename)
+
+            discovered.extend(
+                node.text
+                for node in child.findall(
+                    "sm:url/sm:loc",
+                    namespace,
+                )
+            )
+
+        self.assertIn(ROOT_URL, discovered)
+        self.assertIn(ENGLISH_URL, discovered)
+        self.assertIn(
+            "https://france2027.app/sondages/",
+            discovered,
+        )
+        self.assertIn(
+            "https://france2027.app/en/sondages/",
+            discovered,
+        )
+
+        self.assertEqual(
+            len(discovered),
+            len(set(discovered)),
+        )
+
+        for url in discovered:
             self.assertNotIn("www.", url)
             self.assertNotIn("?lang=", url)
 

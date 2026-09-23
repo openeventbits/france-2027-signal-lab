@@ -2627,3 +2627,44 @@ body {
   }
 }
 /* === END FR27 ANALYTICAL ROW STABILITY LOCK === */
+
+/* === FR27 POLLING LAB INTERNAL GRAPH LINKS === */
+
+.polling-wave-context-link,
+.polling-inspector-wave-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.polling-wave-context-link:hover,
+.polling-wave-context-link:focus-visible,
+.polling-inspector-wave-link:hover,
+.polling-inspector-wave-link:focus-visible {
+  color: var(--polling-cyan, #35d5ff);
+}
+
+.polling-wave-open-link {
+  color: var(--polling-cyan, #35d5ff);
+  font-size: inherit;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.polling-wave-open-link:hover,
+.polling-wave-open-link:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.polling-inspector-wave-link {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 2px;
+  color: var(--polling-text, #dbe9f1);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+}

@@ -27,6 +27,9 @@
       noWaveAvailable: "Aucune vague disponible.",
       uniqueValue: "VALEUR UNIQUE",
       source: "SOURCE ↗",
+      openPoll: "OUVRIR →",
+      pollPage: "SONDAGE",
+      pageUnavailable: "PAGE INDISPONIBLE",
       sources: "SOURCES",
       selectInstitute: "Sélectionnez un institut pour ouvrir son répertoire de vagues.",
       alreadySelected: "DÉJÀ SÉLECTIONNÉ",
@@ -117,6 +120,9 @@
       noWaveAvailable: "No wave available.",
       uniqueValue: "SINGLE VALUE",
       source: "SOURCE ↗",
+      openPoll: "OPEN →",
+      pollPage: "POLL",
+      pageUnavailable: "PAGE UNAVAILABLE",
       sources: "SOURCES",
       selectInstitute: "Select a pollster to open its wave directory.",
       alreadySelected: "ALREADY SELECTED",
@@ -250,7 +256,15 @@
     const waveIds = new Set();
     const eventIds = new Set();
     for (const wave of data.waves) {
-      if (!isObject(wave) || typeof wave.wave_id !== "string" || !Array.isArray(wave.scenarios)) {
+      if (
+        !isObject(wave)
+        || typeof wave.wave_id !== "string"
+        || typeof wave.page_path_fr !== "string"
+        || typeof wave.page_path_en !== "string"
+        || !wave.page_path_fr.startsWith("/sondages/")
+        || !wave.page_path_en.startsWith("/en/sondages/")
+        || !Array.isArray(wave.scenarios)
+      ) {
         throw new Error(uiText("malformedWave"));
       }
       if (waveIds.has(wave.wave_id)) throw new Error(uiText("duplicateWaveId"));
@@ -293,13 +307,49 @@
     return new Intl.NumberFormat(LOCALE_TAG).format(value);
   }
 
-  function safeHttpUrl(value) {
-    try {
-      const url = new URL(String(value), window.location.href);
-      return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
-    } catch (_error) {
-      return "";
+  function wavePagePath(wave) {
+    const key = PAGE_LANG === "en" ? "page_path_en" : "page_path_fr";
+    const value = wave?.[key];
+
+    return typeof value === "string" && value.startsWith("/")
+      ? value
+      : "";
+  }
+
+  function scenarioPageHref(wave, scenario) {
+    const base = wavePagePath(wave);
+    if (!base) return "";
+
+    const index = Array.isArray(wave?.scenarios)
+      ? wave.scenarios.findIndex(
+          (item) => item?.event_id === scenario?.event_id
+        )
+      : -1;
+
+    return index >= 0
+      ? `${base}#scenario-${index + 1}`
+      : base;
+  }
+
+  function createWavePageLink(
+    wave,
+    text,
+    className = "polling-wave-context-link"
+  ) {
+    const link = document.createElement("a");
+    const href = wavePagePath(wave);
+
+    link.className = className;
+    link.textContent = text;
+
+    if (href) {
+      link.href = href;
+    } else {
+      link.removeAttribute("href");
+      link.setAttribute("aria-disabled", "true");
     }
+
+    return link;
   }
 
   function candidateById(candidateId) {
@@ -768,23 +818,40 @@
     }
     resultBlock.append(resultLabel, resultList);
 
-    const source = document.createElement("a");
-    source.className = "polling-inspector-source";
-    const href = safeHttpUrl(scenario.source_url);
-    if (href) {
-      source.href = href;
-      source.target = "_blank";
-      source.rel = "noopener noreferrer";
-      source.textContent = uiText("viewPublishedSource");
+    const waveContext = createWavePageLink(
+      wave,
+      `${wave.pollster} · ${formatDate(
+        wave.fieldwork_start,
+        { short: true }
+      )}–${formatDate(
+        wave.fieldwork_end,
+        { short: true }
+      )}`,
+      "polling-inspector-wave-link"
+    );
+
+    const openPage = document.createElement("a");
+    openPage.className = "polling-inspector-source";
+
+    const pageHref = scenarioPageHref(wave, scenario);
+
+    if (pageHref) {
+      openPage.href = pageHref;
+      openPage.textContent = uiText("openPoll");
     } else {
-      source.removeAttribute("href");
-      source.textContent = uiText("sourceUnavailable");
-      source.setAttribute("aria-disabled", "true");
+      openPage.removeAttribute("href");
+      openPage.textContent = uiText("pageUnavailable");
+      openPage.setAttribute("aria-disabled", "true");
     }
 
     nodes.inspectorContent.append(summary, metadata);
     if (seriesBlock) nodes.inspectorContent.append(seriesBlock);
-    nodes.inspectorContent.append(scenarioBlock, resultBlock, source);
+    nodes.inspectorContent.append(
+      scenarioBlock,
+      resultBlock,
+      waveContext,
+      openPage
+    );
   }
 
   function renderChartLegend() {
@@ -1241,28 +1308,18 @@
     }
   }
 
-  function sourceCellForWave(wave) {
+  function openCellForWave(wave) {
     const cell = document.createElement("div");
     cell.className = "polling-wave-source-cell";
-    const urls = (wave.source_urls || []).map(safeHttpUrl).filter(Boolean);
-    if (urls.length === 0) {
-      cell.textContent = "—";
-      return cell;
-    }
 
-    const link = document.createElement("a");
-    link.href = urls[0];
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = uiText("source");
-    cell.append(link);
+    cell.append(
+      createWavePageLink(
+        wave,
+        uiText("openPoll"),
+        "polling-wave-open-link"
+      )
+    );
 
-    if (urls.length > 1) {
-      const count = document.createElement("span");
-      count.className = "polling-source-count";
-      count.textContent = `${urls.length} ${uiText("sources")}`;
-      cell.append(count);
-    }
     return cell;
   }
 
@@ -1272,7 +1329,7 @@
     table.className = "polling-wave-table";
     const thead = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    [uiText("fieldwork"), uiText("pollster"), uiText("scenarios"), uiText("sample"), uiText("candidates"), uiText("sourceLabel")].forEach((label) => {
+    [uiText("fieldwork"), uiText("pollster"), uiText("scenarios"), uiText("sample"), uiText("candidates"), uiText("pollPage")].forEach((label) => {
       const th = document.createElement("th");
       th.scope = "col";
       th.textContent = label;
@@ -1294,12 +1351,23 @@
       values.forEach((value, index) => {
         const cell = document.createElement("td");
         cell.dataset.label = labels[index];
-        cell.textContent = value;
+
+        if (index <= 1) {
+          cell.append(
+            createWavePageLink(
+              wave,
+              value
+            )
+          );
+        } else {
+          cell.textContent = value;
+        }
+
         row.append(cell);
       });
       const sourceCell = document.createElement("td");
-      sourceCell.dataset.label = uiText("sourceLabel");
-      sourceCell.append(sourceCellForWave(wave));
+      sourceCell.dataset.label = uiText("pollPage");
+      sourceCell.append(openCellForWave(wave));
       row.append(sourceCell);
       tbody.append(row);
     }
@@ -1313,7 +1381,7 @@
     table.className = "polling-wave-table polling-browse-wave-table";
     const thead = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    [uiText("fieldwork"), uiText("pollster"), uiText("scenarios"), uiText("sample"), uiText("candidates"), uiText("sourceLabel")].forEach((label) => {
+    [uiText("fieldwork"), uiText("pollster"), uiText("scenarios"), uiText("sample"), uiText("candidates"), uiText("pollPage")].forEach((label) => {
       const th = document.createElement("th");
       th.scope = "col";
       th.textContent = label;
@@ -1335,12 +1403,23 @@
       values.forEach((value, index) => {
         const cell = document.createElement("td");
         cell.dataset.label = labels[index];
-        cell.textContent = value;
+
+        if (index <= 1) {
+          cell.append(
+            createWavePageLink(
+              wave,
+              value
+            )
+          );
+        } else {
+          cell.textContent = value;
+        }
+
         row.append(cell);
       });
       const sourceCell = document.createElement("td");
-      sourceCell.dataset.label = uiText("sourceLabel");
-      sourceCell.append(sourceCellForWave(wave));
+      sourceCell.dataset.label = uiText("pollPage");
+      sourceCell.append(openCellForWave(wave));
       row.append(sourceCell);
       tbody.append(row);
     }
@@ -1480,9 +1559,20 @@
       const row = document.createElement("div");
       row.className = "polling-browse-candidate-wave";
       const date = document.createElement("span");
-      date.textContent = formatDate(wave.fieldwork_end, { short: true });
+      date.append(
+        createWavePageLink(
+          wave,
+          formatDate(wave.fieldwork_end, { short: true })
+        )
+      );
+
       const pollster = document.createElement("strong");
-      pollster.textContent = wave.pollster;
+      pollster.append(
+        createWavePageLink(
+          wave,
+          wave.pollster
+        )
+      );
       const score = document.createElement("span");
       score.textContent = scoreMeta.minimum === scoreMeta.maximum
         ? formatScore(scoreMeta.minimum)

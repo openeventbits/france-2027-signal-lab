@@ -74,6 +74,251 @@ class PollExplorerContractTests(unittest.TestCase):
             all(re.fullmatch(r"wave-[0-9a-f]{16}", wave_id) for wave_id in wave_ids)
         )
 
+    def test_wave_page_routes_are_unique_and_stable(self):
+        slugs = [wave["page_slug"] for wave in self.payload["waves"]]
+        paths_fr = [wave["page_path_fr"] for wave in self.payload["waves"]]
+        paths_en = [wave["page_path_en"] for wave in self.payload["waves"]]
+
+        self.assertEqual(len(slugs), len(set(slugs)))
+        self.assertEqual(len(paths_fr), len(set(paths_fr)))
+        self.assertEqual(len(paths_en), len(set(paths_en)))
+
+        for wave in self.payload["waves"]:
+            with self.subTest(wave_id=wave["wave_id"]):
+                token = wave["wave_id"].removeprefix("wave-")
+
+                expected_slug = explorer.poll_wave_page_slug(
+                    fieldwork_end=wave["fieldwork_end"],
+                    pollster=wave["pollster"],
+                    wave_id=wave["wave_id"],
+                )
+
+                self.assertEqual(wave["page_slug"], expected_slug)
+                self.assertTrue(wave["page_slug"].endswith(f"-{token}"))
+                self.assertRegex(
+                    wave["page_slug"],
+                    r"^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*-[0-9a-f]{16}$",
+                )
+                self.assertEqual(
+                    wave["page_path_fr"],
+                    f"/sondages/{wave['page_slug']}/",
+                )
+                self.assertEqual(
+                    wave["page_path_en"],
+                    f"/en/sondages/{wave['page_slug']}/",
+                )
+
+
+    def test_wave_route_slug_normalizes_pollster_names(self):
+        slug = explorer.poll_wave_page_slug(
+            fieldwork_end="2026-09-10",
+            pollster="Ifop/Hexagone",
+            wave_id="wave-0123456789abcdef",
+        )
+        self.assertEqual(
+            slug,
+            "2026-09-10-ifop-hexagone-0123456789abcdef",
+        )
+
+        accented = explorer.poll_wave_page_slug(
+            fieldwork_end="2026-09-10",
+            pollster="Élan Études",
+            wave_id="wave-fedcba9876543210",
+        )
+        self.assertEqual(
+            accented,
+            "2026-09-10-elan-etudes-fedcba9876543210",
+        )
+
+
+    def test_wave_route_identity_does_not_depend_on_collision_state(self):
+        first = explorer.poll_wave_page_slug(
+            fieldwork_end="2025-10-01",
+            pollster="Cluster17",
+            wave_id="wave-443d8f942e9b4eca",
+        )
+        second = explorer.poll_wave_page_slug(
+            fieldwork_end="2025-10-01",
+            pollster="Cluster17",
+            wave_id="wave-aaaaaaaaaaaaaaaa",
+        )
+
+        self.assertNotEqual(first, second)
+        self.assertTrue(first.startswith("2025-10-01-cluster17-"))
+        self.assertTrue(second.startswith("2025-10-01-cluster17-"))
+
+
+    def test_polling_lab_internal_wave_graph_contract(self):
+        script = (
+            ROOT / "assets" / "polling-lab.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            'const key = PAGE_LANG === "en" '
+            '? "page_path_en" : "page_path_fr";',
+            script,
+        )
+
+        fr_start = script.index(
+            '    fr: Object.freeze({'
+        )
+        en_start = script.index(
+            '    en: Object.freeze({'
+        )
+        ui_end = script.index(
+            "\n    })\n  });",
+            en_start,
+        )
+
+        fr_block = script[fr_start:en_start]
+        en_block = script[en_start:ui_end]
+
+        self.assertEqual(
+            fr_block.count('openPoll: "OUVRIR →"'),
+            1,
+        )
+        self.assertEqual(
+            fr_block.count('pollPage: "SONDAGE"'),
+            1,
+        )
+        self.assertEqual(
+            fr_block.count(
+                'pageUnavailable: "PAGE INDISPONIBLE"'
+            ),
+            1,
+        )
+
+        self.assertNotIn(
+            'openPoll: "OPEN →"',
+            fr_block,
+        )
+
+        self.assertEqual(
+            en_block.count('openPoll: "OPEN →"'),
+            1,
+        )
+        self.assertEqual(
+            en_block.count('pollPage: "POLL"'),
+            1,
+        )
+        self.assertEqual(
+            en_block.count(
+                'pageUnavailable: "PAGE UNAVAILABLE"'
+            ),
+            1,
+        )
+
+        self.assertNotIn(
+            'openPoll: "OUVRIR →"',
+            en_block,
+        )
+
+
+    def test_polling_lab_no_longer_links_directly_to_poll_sources(self):
+        script = (
+            ROOT / "assets" / "polling-lab.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertNotIn(
+            "scenario.source_url",
+            script,
+        )
+
+        self.assertNotIn(
+            "(wave.source_urls || [])",
+            script,
+        )
+
+        self.assertNotIn(
+            "safeHttpUrl(",
+            script,
+        )
+
+        self.assertNotIn(
+            'target = "_blank"',
+            script[
+                script.index("function openCellForWave"):
+                script.index("function renderLatestWaves")
+            ],
+        )
+
+    def test_inspector_links_to_exact_generated_scenario_anchor(self):
+        script = (
+            ROOT / "assets" / "polling-lab.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            "function scenarioPageHref(wave, scenario)",
+            script,
+        )
+
+        self.assertIn(
+            "item?.event_id === scenario?.event_id",
+            script,
+        )
+
+        self.assertIn(
+            "`${base}#scenario-${index + 1}`",
+            script,
+        )
+
+        self.assertIn(
+            '"polling-inspector-wave-link"',
+            script,
+        )
+
+    def test_wave_directories_use_descriptive_internal_links(self):
+        script = (
+            ROOT / "assets" / "polling-lab.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            "function createWavePageLink(",
+            script,
+        )
+
+        self.assertGreaterEqual(
+            script.count(
+                "createWavePageLink("
+            ),
+            6,
+        )
+
+        self.assertIn(
+            "function openCellForWave(wave)",
+            script,
+        )
+
+        self.assertIn(
+            'uiText("pollPage")',
+            script,
+        )
+
+        self.assertNotIn(
+            "sourceCellForWave",
+            script,
+        )
+
+    def test_every_wave_internal_destination_is_language_safe(self):
+        for wave in self.payload["waves"]:
+            with self.subTest(
+                wave_id=wave["wave_id"]
+            ):
+                self.assertRegex(
+                    wave["page_path_fr"],
+                    r"^/sondages/"
+                    r"\d{4}-\d{2}-\d{2}-"
+                    r"[a-z0-9-]+-[0-9a-f]{16}/$",
+                )
+
+                self.assertRegex(
+                    wave["page_path_en"],
+                    r"^/en/sondages/"
+                    r"\d{4}-\d{2}-\d{2}-"
+                    r"[a-z0-9-]+-[0-9a-f]{16}/$",
+                )
+
+
     def test_scenario_event_ids_are_unique_and_belong_to_one_wave(self):
         event_ids = [
             scenario["event_id"]
@@ -298,12 +543,48 @@ class PollExplorerContractTests(unittest.TestCase):
         self.assertIn("item.wave.wave_id", frontend)
         self.assertIn(".size >= 2", frontend)
 
-    def test_historical_observation_inspector_links_source_evidence(self):
-        frontend = (ROOT / "assets" / "polling-lab.js").read_text(encoding="utf-8")
-        self.assertIn("renderInspector", frontend)
-        self.assertIn("scenario.source_url", frontend)
-        self.assertIn("scenario.candidates", frontend)
-        self.assertIn("published_candidate_name", frontend)
+    def test_historical_observation_inspector_links_internal_evidence_page(self):
+        frontend = (
+            ROOT / "assets" / "polling-lab.js"
+        ).read_text(encoding="utf-8")
+
+        # Published source evidence remains in the canonical data.
+        historical_sources = [
+            scenario.get("source_url")
+            for wave in self.payload["waves"]
+            for scenario in wave["scenarios"]
+            if scenario.get("source_url")
+        ]
+
+        self.assertTrue(historical_sources)
+
+        # But the Polling Lab now routes readers through the
+        # canonical internal poll-wave evidence page.
+        self.assertNotIn(
+            "scenario.source_url",
+            frontend,
+        )
+
+        self.assertIn(
+            "function scenarioPageHref(wave, scenario)",
+            frontend,
+        )
+
+        self.assertIn(
+            "item?.event_id === scenario?.event_id",
+            frontend,
+        )
+
+        self.assertIn(
+            "`${base}#scenario-${index + 1}`",
+            frontend,
+        )
+
+        self.assertIn(
+            'openPage.textContent = uiText("openPoll")',
+            frontend,
+        )
+
 
     def test_comparable_dumbbell_supports_series_focus_and_persistent_selection(self):
         frontend = (ROOT / "assets" / "polling-lab.js").read_text(encoding="utf-8")
