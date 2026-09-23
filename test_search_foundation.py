@@ -506,13 +506,8 @@ class SearchFoundationTests(unittest.TestCase):
                 )
                 self.assertLess(first_generator, first_manifest)
                 commit = workflow.index("git commit")
-                stage_marker = (
-                    "git add -A --"
-                    if name == "polls"
-                    else "git add --"
-                )
                 stage_start = workflow.rfind(
-                    stage_marker,
+                    "git add --",
                     0,
                     commit,
                 )
@@ -525,18 +520,10 @@ class SearchFoundationTests(unittest.TestCase):
                 ]
                 self.assertIn("index.html", stage)
                 self.assertIn("en/index.html", stage)
-
-                if name == "polls":
-                    self.assertIn(
-                        "git add -A --",
-                        stage,
-                    )
-                else:
-                    self.assertNotIn(
-                        "git add -A",
-                        workflow,
-                    )
-
+                self.assertNotIn(
+                    "git add -A",
+                    workflow,
+                )
                 self.assertNotIn(
                     "git add --all",
                     workflow,
@@ -667,13 +654,8 @@ class SearchFoundationTests(unittest.TestCase):
                     self.assertLess(workflow.index(marker), generator)
                 self.assertLess(generator, manifest_step)
 
-                stage_marker = (
-                    "git add -A --"
-                    if name == "polls"
-                    else "git add --"
-                )
                 stage_start = workflow.index(
-                    stage_marker
+                    "git add --"
                 )
                 stage_end = workflow.index(
                     "git commit",
