@@ -1446,6 +1446,32 @@
       payload.window_days
     );
 
+    const corpus =
+      payload.corpus_counts &&
+      typeof payload.corpus_counts === "object"
+        ? payload.corpus_counts
+        : {};
+
+    const corpusMetricOrNull = value =>
+      Number.isInteger(value) && value >= 0
+        ? value
+        : null;
+
+    const corpusAcceptedNewsCount =
+      corpusMetricOrNull(
+        corpus.accepted_election_news
+      );
+
+    const corpusCandidateWatchCount =
+      corpusMetricOrNull(
+        corpus.candidate_watch
+      );
+
+    const corpusPublisherCount =
+      corpusMetricOrNull(
+        corpus.accepted_news_publishers
+      );
+
     const activityWindowDays =
       dailyActivity.length;
 
@@ -1472,6 +1498,9 @@
         ),
       candidateWatchCount:
         coverageItems.length,
+      corpusAcceptedNewsCount,
+      corpusCandidateWatchCount,
+      corpusPublisherCount,
       acceptedNewsPublisherCount:
         publisherCount,
       topPublishers,
@@ -9172,6 +9201,39 @@
     syncTopMediaShiftQualityLabel(candidateComparison.label);
 
     if (topMediaMetrics) {
+      const corpusAttributes = [
+        [
+          "data-corpus-accepted-news",
+          model.corpusAcceptedNewsCount
+        ],
+        [
+          "data-corpus-publishers",
+          model.corpusPublisherCount
+        ],
+        [
+          "data-corpus-candidate-watch",
+          model.corpusCandidateWatchCount
+        ]
+      ];
+
+      corpusAttributes.forEach(
+        ([attribute, value]) => {
+          if (
+            Number.isInteger(value) &&
+            value >= 0
+          ) {
+            topMediaMetrics.setAttribute(
+              attribute,
+              String(value)
+            );
+          } else {
+            topMediaMetrics.removeAttribute(
+              attribute
+            );
+          }
+        }
+      );
+
       if (model.state === "ready") {
         const metrics = [
           {

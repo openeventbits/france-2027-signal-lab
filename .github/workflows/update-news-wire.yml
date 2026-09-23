@@ -45,6 +45,8 @@ jobs:
             test_candidate_agenda_history_contract.py \
             test_build_candidate_agenda_history.py \
             test_campaign_agenda_evidence.py \
+            test_news_corpus_ledger.py \
+            test_hud_corpus_counts.py \
             test_news_workflow_contract.py \
             test_workflow_media_pulse_contract.py \
             test_recent_changes.py \
@@ -57,6 +59,7 @@ jobs:
           set -euo pipefail
 
           cp news_inventory.json /tmp/news_inventory.json
+          cp news_corpus_ledger.json /tmp/news_corpus_ledger.json
           cp source_health.json /tmp/source_health.json
 
           python fetch_news_wire.py \
@@ -67,6 +70,10 @@ jobs:
             --output /tmp/news_wire.json \
             --window-days 30 \
             --max-items 0
+
+          python -B update_news_corpus_ledger.py \
+            --ledger /tmp/news_corpus_ledger.json \
+            --wire /tmp/news_wire.json
 
           python -B build_candidate_visibility_history.py \
             --news /tmp/news_wire.json \
@@ -146,10 +153,15 @@ jobs:
               has_substantive_change,
               validate_source_health,
           )
+          from update_news_corpus_ledger import (
+              corpus_counts,
+              validate_ledger as validate_corpus_ledger,
+          )
 
 
           CURRENT_INVENTORY = Path("news_inventory.json")
           CURRENT_WIRE = Path("news_wire.json")
+          CURRENT_CORPUS = Path("news_corpus_ledger.json")
           CURRENT_LEDGER = Path("recent_changes.json")
           CURRENT_HEALTH = Path("source_health.json")
           CURRENT_HISTORY = Path(
@@ -165,6 +177,7 @@ jobs:
 
           TEMP_INVENTORY = Path("/tmp/news_inventory.json")
           TEMP_WIRE = Path("/tmp/news_wire.json")
+          TEMP_CORPUS = Path("/tmp/news_corpus_ledger.json")
           TEMP_LEDGER = Path("/tmp/recent_changes.json")
           TEMP_HEALTH = Path("/tmp/source_health.json")
           TEMP_HISTORY = Path(
@@ -197,6 +210,7 @@ jobs:
 
           current_inventory = load_json(CURRENT_INVENTORY)
           current_wire = load_json(CURRENT_WIRE)
+          current_corpus = load_json(CURRENT_CORPUS)
           current_ledger = load_json(CURRENT_LEDGER)
           current_health = load_json(CURRENT_HEALTH)
           current_history = load_json(CURRENT_HISTORY)
@@ -205,6 +219,7 @@ jobs:
 
           inventory = load_json(TEMP_INVENTORY)
           wire = load_json(TEMP_WIRE)
+          corpus = load_json(TEMP_CORPUS)
           ledger = load_json(TEMP_LEDGER)
           health = load_json(TEMP_HEALTH)
           history = load_json(TEMP_HISTORY)
@@ -220,6 +235,23 @@ jobs:
           expected_direct_source_count = len(configured_sources)
 
           validate_output(wire)
+          validate_corpus_ledger(current_corpus)
+          validate_corpus_ledger(corpus)
+
+          if current_wire.get("corpus_counts") != corpus_counts(
+              current_corpus
+          ):
+              fail(
+                  "current news-wire corpus_counts do not match "
+                  "the current corpus ledger"
+              )
+
+          if wire.get("corpus_counts") != corpus_counts(corpus):
+              fail(
+                  "generated news-wire corpus_counts do not match "
+                  "the generated corpus ledger"
+              )
+
           validate_source_health(current_health)
           validate_source_health(health)
           validate_candidate_visibility_history(
@@ -557,6 +589,9 @@ jobs:
                       "candidate_roster"
                   ),
                   "window_days": payload.get("window_days"),
+                  "corpus_counts": payload.get(
+                      "corpus_counts"
+                  ),
                   "source_status": [
                       {
                           "name": source.get("name"),
@@ -612,6 +647,9 @@ jobs:
           inventory_changed = (
               current_inventory != inventory
           )
+          corpus_changed = (
+              current_corpus != corpus
+          )
           wire_changed = (
               scrub(wire_projection(current_wire))
               != scrub(wire_projection(wire))
@@ -632,6 +670,7 @@ jobs:
 
           changed = (
               inventory_changed
+              or corpus_changed
               or wire_changed
               or ledger_changed
               or health_changed
@@ -647,6 +686,10 @@ jobs:
               shutil.copyfile(
                   TEMP_WIRE,
                   CURRENT_WIRE,
+              )
+              shutil.copyfile(
+                  TEMP_CORPUS,
+                  CURRENT_CORPUS,
               )
               shutil.copyfile(
                   TEMP_LEDGER,
@@ -699,6 +742,7 @@ jobs:
           print(
               "Changes detected: "
               f"inventory={inventory_changed}, "
+              f"corpus={corpus_changed}, "
               f"wire={wire_changed}, "
               f"ledger={ledger_changed}, "
               f"source_health={health_changed}, "
@@ -787,6 +831,7 @@ jobs:
 
           git add -- \
             news_inventory.json \
+            news_corpus_ledger.json \
             news_wire.json \
             recent_changes.json \
             source_health.json \
@@ -825,6 +870,9 @@ jobs:
             > /tmp/candidate_agenda_history-upstream.json
 
           post_rebase_published_at="$(python -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
+          python -B update_news_corpus_ledger.py \
+            --ledger news_corpus_ledger.json \
+            --wire news_wire.json
           python generate_recent_changes.py \
             --news news_wire.json \
             --polls polls.json \
@@ -848,6 +896,7 @@ jobs:
             --published-at "$post_rebase_published_at"
 
           if ! git diff --quiet -- \
+            news_corpus_ledger.json news_wire.json \
             recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json \
             index.html en/index.html publication_manifest.json
           then
@@ -855,12 +904,16 @@ jobs:
             python -B build_publication_manifest.py \
               --published-at "$post_rebase_published_at"
             git add -- \
+              news_corpus_ledger.json news_wire.json \
               recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json \
               index.html en/index.html publication_manifest.json
             git commit --amend --no-edit
           fi
 
           final_published_at="$(python -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
+          python -B update_news_corpus_ledger.py \
+            --ledger news_corpus_ledger.json \
+            --wire news_wire.json
           python -B -c 'from candidate_candidacy_status import load_candidate_candidacy_status; load_candidate_candidacy_status("candidate_candidacy_status.json")'
           python -B build_candidate_signals.py --candidacy-status candidate_candidacy_status.json
           python -B build_candidate_visibility_history.py \
@@ -886,6 +939,7 @@ jobs:
             --check \
             --published-at "$final_published_at"
           git diff --exit-code -- \
+            news_corpus_ledger.json news_wire.json \
             recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json \
             index.html en/index.html publication_manifest.json
           for attempt in 1 2 3; do
