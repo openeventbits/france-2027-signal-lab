@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import io
 import json
 import os
 import re
+import socket
 import tempfile
+import time
 import unicodedata
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
+from http.client import RemoteDisconnected
 from pathlib import Path
 from typing import Any, Callable, Iterable
+from urllib.error import HTTPError, URLError
 from urllib.parse import unquote, urljoin, urlparse
 from urllib.request import (
     HTTPRedirectHandler,
@@ -32,6 +37,23 @@ SOURCE_NAME = "Commission des sondages"
 SCHEMA_VERSION = "1.0"
 USER_AGENT = "France2027SignalLab/1.0 (contact: malatazen@gmail.com)"
 OFFICIAL_HOST = "www.commission-des-sondages.fr"
+FETCH_MAX_ATTEMPTS = 4
+FETCH_RETRY_DELAYS = (1.0, 2.0, 4.0)
+TRANSIENT_HTTP_STATUSES = frozenset(
+    {408, 425, 429, 500, 502, 503, 504}
+)
+TRANSIENT_OS_ERRNOS = frozenset(
+    {
+        errno.ECONNABORTED,
+        errno.ECONNREFUSED,
+        errno.ECONNRESET,
+        errno.EHOSTUNREACH,
+        errno.ENETRESET,
+        errno.ENETUNREACH,
+        errno.EPIPE,
+        errno.ETIMEDOUT,
+    }
+)
 CLASSIFICATIONS = {
     "eligible",
     "excluded_non_voting",
@@ -174,6 +196,40 @@ class DiscoveryResult:
 FetchFunction = Callable[[str, str], FetchResult]
 
 
+def _is_transient_fetch_error(error: BaseException) -> bool:
+    """Return whether one official HTTP failure is safe to retry."""
+    if isinstance(error, HTTPError):
+        return error.code in TRANSIENT_HTTP_STATUSES
+
+    if isinstance(error, URLError):
+        reason = error.reason
+        return (
+            isinstance(reason, BaseException)
+            and _is_transient_fetch_error(reason)
+        )
+
+    if isinstance(error, socket.gaierror):
+        return error.errno == socket.EAI_AGAIN
+
+    if isinstance(
+        error,
+        (
+            TimeoutError,
+            ConnectionResetError,
+            ConnectionAbortedError,
+            ConnectionRefusedError,
+            BrokenPipeError,
+            RemoteDisconnected,
+        ),
+    ):
+        return True
+
+    if isinstance(error, OSError):
+        return error.errno in TRANSIENT_OS_ERRNOS
+
+    return False
+
+
 def normalize_text(value: str) -> str:
     """Normalize accents, capitalization, punctuation, and whitespace."""
     decomposed = unicodedata.normalize("NFKD", value)
@@ -222,7 +278,7 @@ def fetch_official_url(
     *,
     timeout: int = 20,
 ) -> FetchResult:
-    """Fetch one official URL while rejecting off-origin redirects."""
+    """Fetch one official URL with bounded transient-failure retries."""
     _require_official_url(url)
     request = Request(
         url,
@@ -230,11 +286,32 @@ def fetch_official_url(
         headers={"User-Agent": USER_AGENT},
     )
     opener = build_opener(_OfficialRedirectHandler())
-    with opener.open(request, timeout=timeout) as response:
-        final_url = _require_official_url(response.geturl())
-        content = response.read() if method != "HEAD" else b""
-        content_type = response.headers.get_content_type()
-    return FetchResult(content, final_url, content_type)
+
+    for attempt in range(FETCH_MAX_ATTEMPTS):
+        try:
+            with opener.open(request, timeout=timeout) as response:
+                final_url = _require_official_url(response.geturl())
+                content = (
+                    response.read()
+                    if method != "HEAD"
+                    else b""
+                )
+                content_type = response.headers.get_content_type()
+
+            return FetchResult(content, final_url, content_type)
+
+        except Exception as error:
+            final_attempt = attempt == FETCH_MAX_ATTEMPTS - 1
+
+            if (
+                final_attempt
+                or not _is_transient_fetch_error(error)
+            ):
+                raise
+
+            time.sleep(FETCH_RETRY_DELAYS[attempt])
+
+    raise AssertionError("unreachable official fetch retry state")
 
 
 def _month_context(anchor: Any) -> tuple[int, int]:

@@ -3,6 +3,8 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
+from urllib.error import HTTPError, URLError
 
 from commission_notice_discovery import (
     CommissionNoticeError,
@@ -13,6 +15,7 @@ from commission_notice_discovery import (
     discover_registry,
     empty_registry,
     extract_official_fieldwork_dates,
+    fetch_official_url,
     load_registry,
     notice_identity,
     parse_notice_index,
@@ -246,6 +249,200 @@ class FieldworkExtractionTests(unittest.TestCase):
                 "vague B du 9 au 10 juillet 2026."
             )
         )
+
+
+class FetchRetryTests(unittest.TestCase):
+    class Headers:
+        @staticmethod
+        def get_content_type():
+            return "text/html"
+
+    class Response:
+        def __init__(self, content=b"ok", final_url=INDEX_URL):
+            self.content = content
+            self.final_url = final_url
+            self.headers = FetchRetryTests.Headers()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return False
+
+        def geturl(self):
+            return self.final_url
+
+        def read(self):
+            return self.content
+
+    class SequenceOpener:
+        def __init__(self, outcomes):
+            self.outcomes = list(outcomes)
+            self.calls = 0
+
+        def open(self, request, timeout):
+            self.calls += 1
+            outcome = self.outcomes.pop(0)
+
+            if isinstance(outcome, BaseException):
+                raise outcome
+
+            return outcome
+
+    def test_connection_reset_retries_then_succeeds(self):
+        opener = self.SequenceOpener(
+            [
+                URLError(
+                    ConnectionResetError(
+                        104,
+                        "Connection reset by peer",
+                    )
+                ),
+                self.Response(b"recovered"),
+            ]
+        )
+
+        with (
+            patch(
+                "commission_notice_discovery.build_opener",
+                return_value=opener,
+            ),
+            patch(
+                "commission_notice_discovery.time.sleep"
+            ) as sleeper,
+        ):
+            result = fetch_official_url(INDEX_URL)
+
+        self.assertEqual(result.content, b"recovered")
+        self.assertEqual(opener.calls, 2)
+        sleeper.assert_called_once_with(1.0)
+
+    def test_timeout_retries_then_succeeds(self):
+        opener = self.SequenceOpener(
+            [
+                URLError(TimeoutError("timed out")),
+                self.Response(),
+            ]
+        )
+
+        with (
+            patch(
+                "commission_notice_discovery.build_opener",
+                return_value=opener,
+            ),
+            patch(
+                "commission_notice_discovery.time.sleep"
+            ) as sleeper,
+        ):
+            fetch_official_url(INDEX_URL)
+
+        self.assertEqual(opener.calls, 2)
+        sleeper.assert_called_once_with(1.0)
+
+    def test_transient_http_status_retries_then_succeeds(self):
+        opener = self.SequenceOpener(
+            [
+                HTTPError(
+                    INDEX_URL,
+                    503,
+                    "Service Unavailable",
+                    {},
+                    None,
+                ),
+                self.Response(),
+            ]
+        )
+
+        with (
+            patch(
+                "commission_notice_discovery.build_opener",
+                return_value=opener,
+            ),
+            patch(
+                "commission_notice_discovery.time.sleep"
+            ) as sleeper,
+        ):
+            fetch_official_url(INDEX_URL)
+
+        self.assertEqual(opener.calls, 2)
+        sleeper.assert_called_once_with(1.0)
+
+    def test_repeated_transient_failure_still_fails_closed(self):
+        opener = self.SequenceOpener(
+            [
+                URLError(
+                    ConnectionResetError(
+                        104,
+                        "Connection reset by peer",
+                    )
+                )
+                for _ in range(4)
+            ]
+        )
+
+        with (
+            patch(
+                "commission_notice_discovery.build_opener",
+                return_value=opener,
+            ),
+            patch(
+                "commission_notice_discovery.time.sleep"
+            ) as sleeper,
+            self.assertRaises(URLError),
+        ):
+            fetch_official_url(INDEX_URL)
+
+        self.assertEqual(opener.calls, 4)
+        self.assertEqual(
+            [call.args[0] for call in sleeper.call_args_list],
+            [1.0, 2.0, 4.0],
+        )
+
+    def test_permanent_http_error_is_not_retried(self):
+        opener = self.SequenceOpener(
+            [
+                HTTPError(
+                    INDEX_URL,
+                    404,
+                    "Not Found",
+                    {},
+                    None,
+                )
+            ]
+        )
+
+        with (
+            patch(
+                "commission_notice_discovery.build_opener",
+                return_value=opener,
+            ),
+            patch(
+                "commission_notice_discovery.time.sleep"
+            ) as sleeper,
+            self.assertRaises(HTTPError),
+        ):
+            fetch_official_url(INDEX_URL)
+
+        self.assertEqual(opener.calls, 1)
+        sleeper.assert_not_called()
+
+    def test_successful_first_request_has_no_retry_delay(self):
+        opener = self.SequenceOpener([self.Response()])
+
+        with (
+            patch(
+                "commission_notice_discovery.build_opener",
+                return_value=opener,
+            ),
+            patch(
+                "commission_notice_discovery.time.sleep"
+            ) as sleeper,
+        ):
+            result = fetch_official_url(INDEX_URL)
+
+        self.assertEqual(result.content, b"ok")
+        self.assertEqual(opener.calls, 1)
+        sleeper.assert_not_called()
 
 
 class RegistryDiscoveryTests(unittest.TestCase):
