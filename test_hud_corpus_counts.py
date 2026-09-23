@@ -95,6 +95,75 @@ class HudCorpusCountsTests(unittest.TestCase):
             self.hybrid,
         )
 
+    def test_media_pulse_top_scope_labels_are_explicit_and_compact(self):
+        expected_en = {
+            "accepted_news": "items · 30d",
+            "publishers": "media · 30d",
+            "recent_14d": "recent · 14d",
+            "candidate_watch": "watch · 30d",
+        }
+
+        expected_fr = {
+            "accepted_news": "éléments · 30 j",
+            "publishers": "médias · 30 j",
+            "recent_14d": "récent · 14 j",
+            "candidate_watch": "suivi · 30 j",
+        }
+
+        for metric in expected_en:
+            with self.subTest(metric=metric):
+                # Preserve the analytical metric identity.
+                self.assertIn(
+                    f'key: "media_pulse.metric.{metric}"',
+                    self.hybrid,
+                )
+
+                # Only the top-panel presentation label changes.
+                self.assertIn(
+                    f'translate("media_pulse.top_metric.{metric}"',
+                    self.hybrid,
+                )
+
+                self.assertIn(
+                    (
+                        f'"media_pulse.top_metric.{metric}": '
+                        f'"{expected_en[metric]}"'
+                    ),
+                    self.en,
+                )
+
+                self.assertIn(
+                    (
+                        f'"media_pulse.top_metric.{metric}": '
+                        f'"{expected_fr[metric]}"'
+                    ),
+                    self.fr,
+                )
+
+        # Dataset Scale / HUD labels remain on the original
+        # cumulative semantic keys.
+        for name, shell in self.shells.items():
+            with self.subTest(shell=name):
+                for metric in (
+                    "accepted_news",
+                    "publishers",
+                    "candidate_watch",
+                ):
+                    self.assertIn(
+                        (
+                            'data-i18n="media_pulse.metric.'
+                            f'{metric}"'
+                        ),
+                        shell,
+                    )
+                    self.assertNotIn(
+                        (
+                            'data-i18n="media_pulse.top_metric.'
+                            f'{metric}"'
+                        ),
+                        shell,
+                    )
+
     def test_hybrid_projects_corpus_counts_for_hud_only(self):
         for token in (
             "payload.corpus_counts",

@@ -911,25 +911,36 @@ class FinalDashboardShellTests(unittest.TestCase):
         section = self.js[start:end]
 
         metric_contracts = {
-            "media_pulse.metric.accepted_news":
+            "media_pulse.metric.accepted_news": (
                 "model.electionNewsCount",
-            "media_pulse.metric.publishers":
+                "media_pulse.top_metric.accepted_news",
+            ),
+            "media_pulse.metric.publishers": (
                 "model.acceptedNewsPublisherCount",
-            "media_pulse.metric.recent_14d":
+                "media_pulse.top_metric.publishers",
+            ),
+            "media_pulse.metric.recent_14d": (
                 "model.activityItemCount",
-            "media_pulse.metric.candidate_watch":
+                "media_pulse.top_metric.recent_14d",
+            ),
+            "media_pulse.metric.candidate_watch": (
                 "model.candidateWatchCount",
+                "media_pulse.top_metric.candidate_watch",
+            ),
         }
 
         self.assertIn("const metrics = [", section)
         self.assertIn('class="top-media-header-metric"', section)
 
-        for key, value_expression in metric_contracts.items():
+        for (
+            key,
+            (value_expression, label_key),
+        ) in metric_contracts.items():
             self.assertRegex(
                 section,
                 rf'key: "{re.escape(key)}",\s+'
                 rf'value:\s*{re.escape(value_expression)},\s+'
-                rf'label: translate\(\s*"{re.escape(key)}",',
+                rf'label: translate\(\s*"{re.escape(label_key)}",',
             )
 
     def test_media_model_derives_ranked_top_publishers(self):

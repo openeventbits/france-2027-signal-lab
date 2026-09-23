@@ -9239,23 +9239,23 @@
           {
             key: "media_pulse.metric.accepted_news",
             value: model.electionNewsCount,
-            label: translate("media_pulse.metric.accepted_news", "accepted news")
+            label: translate("media_pulse.top_metric.accepted_news", "items · 30d")
           },
           {
             key: "media_pulse.metric.publishers",
             value:
               model.acceptedNewsPublisherCount,
-            label: translate("media_pulse.metric.publishers", "publishers")
+            label: translate("media_pulse.top_metric.publishers", "media · 30d")
           },
           {
             key: "media_pulse.metric.recent_14d",
             value: model.activityItemCount,
-            label: translate("media_pulse.metric.recent_14d", "recent (14d)")
+            label: translate("media_pulse.top_metric.recent_14d", "recent · 14d")
           },
           {
             key: "media_pulse.metric.candidate_watch",
             value: model.candidateWatchCount,
-            label: translate("media_pulse.metric.candidate_watch", "candidate-watch")
+            label: translate("media_pulse.top_metric.candidate_watch", "watch · 30d")
           }
         ];
 
