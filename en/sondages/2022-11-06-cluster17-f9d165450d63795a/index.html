@@ -63,8 +63,27 @@
         <div class="poll-detail-hero-main">
           <div>
             <div class="poll-detail-eyebrow">FIRST-ROUND POLL WAVE</div>
-            <h1 class="poll-detail-title" id="poll-wave-title">Cluster17</h1>
-            <p class="poll-detail-deck">Published results from Cluster17 for fieldwork conducted from 4 November 2022 to 6 November 2022. Scenarios are kept separate to preserve the exact composition of the ballots tested.</p>
+            <div class="poll-detail-title-line">
+              <h1 class="poll-detail-title" id="poll-wave-title">Cluster17</h1>
+
+              <span class="poll-detail-tooltip-wrap">
+                <button
+                  type="button"
+                  class="poll-detail-tooltip-trigger"
+                  data-poll-tooltip-trigger
+                  aria-label="About this poll wave"
+                  aria-describedby="poll-wave-note"
+                  aria-controls="poll-wave-note"
+                  aria-expanded="false"
+                >i</button>
+
+                <span
+                  class="poll-detail-tooltip"
+                  id="poll-wave-note"
+                  role="tooltip"
+                >Published results from Cluster17 for fieldwork conducted from 4 November 2022 to 6 November 2022. Scenarios are kept separate to preserve the exact composition of the ballots tested.</span>
+              </span>
+            </div>
           </div>
           <a class="poll-detail-source-cta" href="https://cluster17.com/wp-content/uploads/2022/11/sondage_presidentielle_081122_C17_Notice_technique_Commission_des.pdf" target="_blank" rel="noopener noreferrer">SOURCE ↗</a>
         </div>
@@ -74,9 +93,9 @@
             <span>POLLSTER</span>
             <strong>Cluster17</strong>
           </div>
-          <div class="poll-detail-metric">
+          <div class="poll-detail-metric poll-detail-metric-fieldwork">
             <span>FIELDWORK</span>
-            <strong>4 November 2022 → 6 November 2022</strong>
+            <strong>4–6 November 2022</strong>
           </div>
           <div class="poll-detail-metric">
             <span>SAMPLE</span>
@@ -97,67 +116,30 @@
         </div>
       </section>
 
-      <div class="poll-detail-grid">
-        <div class="poll-detail-main-column">
-          <section class="poll-detail-panel" aria-labelledby="wave-scenarios-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">PUBLISHED RESULTS</div>
-                <h2 id="wave-scenarios-title">WAVE SCENARIOS</h2>
-              </div>
 
-              <div class="poll-detail-panel-tools">
-                <span class="poll-detail-panel-status">1 SCENARIO</span>
-                
-              </div>
-            </div>
 
-            <div class="poll-detail-scenario-list">
-              <details class="poll-detail-scenario" id="scenario-1" data-scenario-index="1" open><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCENARIO 1</span><span class="poll-detail-scenario-status is-complete">COMPLETE SCENARIO</span></div><h3>FIRST ROUND — Nathalie Arthaud, Philippe Poutou, Fabien Roussel, Jean-Luc Mélenchon, Anne Hidalgo, Yannick Jadot, Emmanuel Macron, Jean Lassalle, Valérie Pécresse, Nicolas Dupont-Aignan, Marine Le Pen, Éric Zemmour</h3><div class="poll-detail-scenario-meta"><span>12 CANDIDATES</span><span>PUBLISHED TOTAL 100 %</span><span>SOURCE AVAILABLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OPEN" data-close-label="COLLAPSE">COLLAPSE</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDATE</th><th>PUBLISHED SCORE</th></tr></thead><tbody><tr><td>Nathalie Arthaud</td><td class="poll-detail-score">0.5 %</td></tr><tr><td>Philippe Poutou</td><td class="poll-detail-score">1 %</td></tr><tr><td>Fabien Roussel</td><td class="poll-detail-score">3 %</td></tr><tr><td>Jean-Luc Mélenchon</td><td class="poll-detail-score">20 %</td></tr><tr><td>Anne Hidalgo</td><td class="poll-detail-score">1 %</td></tr><tr><td>Yannick Jadot</td><td class="poll-detail-score">5 %</td></tr><tr><td>Emmanuel Macron</td><td class="poll-detail-score">30 %</td></tr><tr><td>Jean Lassalle</td><td class="poll-detail-score">2.5 %</td></tr><tr><td>Valérie Pécresse</td><td class="poll-detail-score">3 %</td></tr><tr><td>Nicolas Dupont-Aignan</td><td class="poll-detail-score">2.5 %</td></tr><tr><td>Marine Le Pen</td><td class="poll-detail-score">25.5 %</td></tr><tr><td>Éric Zemmour</td><td class="poll-detail-score">6 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>EVENT ID: 3c0cd997f71cfae9083cef3505aaa2d8ee6b10fa7cc940a9c224b1cf02664310</span><span>PUBLISHED TOTAL: 100 %</span><a href="https://cluster17.com/wp-content/uploads/2022/11/sondage_presidentielle_081122_C17_Notice_technique_Commission_des.pdf" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details>
-            </div>
-          </section>
+      <section
+        class="poll-detail-panel poll-detail-results"
+        aria-labelledby="wave-scenarios-title"
+      >
+        <div class="poll-detail-panel-head">
+          <div>
+            <div class="poll-detail-eyebrow">PUBLISHED RESULTS</div>
+            <h2 id="wave-scenarios-title">WAVE SCENARIOS</h2>
+          </div>
+
+          <div class="poll-detail-panel-tools">
+            <span class="poll-detail-panel-status">1 SCENARIO</span>
+
+          </div>
         </div>
 
-        <aside class="poll-detail-side-column">
-          <section class="poll-detail-panel poll-detail-overview" aria-labelledby="wave-overview-title"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">WAVE</div><h2 id="wave-overview-title">WAVE OVERVIEW</h2></div></div><div class="poll-detail-overview-list"><div class="poll-detail-summary-row"><span>SCENARIOS</span><strong>1</strong></div><div class="poll-detail-summary-row"><span>CANDIDATES TESTED</span><strong>12</strong></div><div class="poll-detail-summary-row"><span>SAMPLE</span><strong>n=2,151</strong></div><div class="poll-detail-summary-row"><span>FIELDWORK</span><strong>4 November 2022 → 6 November 2022</strong></div><div class="poll-detail-summary-row"><span>SOURCES</span><strong>1</strong></div></div></section>
+        <div class="poll-detail-scenario-list">
+          <details class="poll-detail-scenario" id="scenario-1" data-scenario-index="1" open><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCENARIO 1</span><span class="poll-detail-scenario-status is-complete">COMPLETE SCENARIO</span></div><h3>FIRST ROUND — Nathalie Arthaud, Philippe Poutou, Fabien Roussel, Jean-Luc Mélenchon, Anne Hidalgo, Yannick Jadot, Emmanuel Macron, Jean Lassalle, Valérie Pécresse, Nicolas Dupont-Aignan, Marine Le Pen, Éric Zemmour</h3><div class="poll-detail-scenario-meta"><span>12 CANDIDATES</span><span>PUBLISHED TOTAL 100 %</span><span>SOURCE AVAILABLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OPEN" data-close-label="COLLAPSE">COLLAPSE</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDATE</th><th>PUBLISHED SCORE</th></tr></thead><tbody><tr><td>Nathalie Arthaud</td><td class="poll-detail-score">0.5 %</td></tr><tr><td>Philippe Poutou</td><td class="poll-detail-score">1 %</td></tr><tr><td>Fabien Roussel</td><td class="poll-detail-score">3 %</td></tr><tr><td>Jean-Luc Mélenchon</td><td class="poll-detail-score">20 %</td></tr><tr><td>Anne Hidalgo</td><td class="poll-detail-score">1 %</td></tr><tr><td>Yannick Jadot</td><td class="poll-detail-score">5 %</td></tr><tr><td>Emmanuel Macron</td><td class="poll-detail-score">30 %</td></tr><tr><td>Jean Lassalle</td><td class="poll-detail-score">2.5 %</td></tr><tr><td>Valérie Pécresse</td><td class="poll-detail-score">3 %</td></tr><tr><td>Nicolas Dupont-Aignan</td><td class="poll-detail-score">2.5 %</td></tr><tr><td>Marine Le Pen</td><td class="poll-detail-score">25.5 %</td></tr><tr><td>Éric Zemmour</td><td class="poll-detail-score">6 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>EVENT ID: 3c0cd997f71cfae9083cef3505aaa2d8ee6b10fa7cc940a9c224b1cf02664310</span><span>PUBLISHED TOTAL: 100 %</span><a href="https://cluster17.com/wp-content/uploads/2022/11/sondage_presidentielle_081122_C17_Notice_technique_Commission_des.pdf" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details>
+        </div>
+      </section>
 
-          
-
-          
-
-          <section class="poll-detail-panel" aria-labelledby="wave-sources-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">EVIDENCE</div>
-                <h2 id="wave-sources-title">PUBLISHED SOURCES</h2>
-              </div>
-              <span class="poll-detail-panel-status">1</span>
-            </div>
-
-            <div class="poll-detail-source-list">
-              <div class="poll-detail-source-item"><strong>PUBLISHED SOURCE 1</strong><span>cluster17.com</span><a href="https://cluster17.com/wp-content/uploads/2022/11/sondage_presidentielle_081122_C17_Notice_technique_Commission_des.pdf" target="_blank" rel="noopener noreferrer">OPEN SOURCE ↗</a></div>
-            </div>
-          </section>
-
-          <section class="poll-detail-panel" aria-labelledby="wave-navigation-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">DIRECTORY</div>
-                <h2 id="wave-navigation-title">ADJACENT WAVES</h2>
-              </div>
-            </div>
-
-            <div class="poll-detail-nav">
-              <a href="/en/sondages/2023-03-31-ifop-23ec5fda2b758947/"><small>NEWER WAVE</small><strong>Ifop · 31 March 2023</strong></a>
-              <a href="/en/sondages/2022-10-26-ifop-197782194f3a692c/"><small>OLDER WAVE</small><strong>Ifop · 26 October 2022</strong></a>
-            </div>
-
-            <div class="poll-detail-back">
-              <a class="poll-detail-back-cta" href="/en/sondages/">BACK TO POLLING LAB</a>
-            </div>
-          </section>
-        </aside>
-      </div>
+      <section class="poll-detail-panel poll-detail-related" aria-labelledby="related-polls-title"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">CONTINUE EXPLORING</div><h2 id="related-polls-title">MORE POLLS</h2></div><span class="poll-detail-panel-status">6</span></div><div class="poll-detail-related-grid"><a class="poll-detail-related-card" href="/en/sondages/2023-04-13-opinionway-567a25c2b694c1c5/"><span class="poll-detail-related-pollster">OpinionWay</span><span class="poll-detail-related-date">12–13 April 2023</span><span class="poll-detail-related-meta"><span>1 SCENARIO</span><span>9 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a><a class="poll-detail-related-card" href="/en/sondages/2023-04-07-harris-interactive-c7429a4c6b656c12/"><span class="poll-detail-related-pollster">Harris Interactive</span><span class="poll-detail-related-date">6–7 April 2023</span><span class="poll-detail-related-meta"><span>4 SCENARIOS</span><span>14 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a><a class="poll-detail-related-card" href="/en/sondages/2023-04-06-odoxa-19bffae821723630/"><span class="poll-detail-related-pollster">Odoxa</span><span class="poll-detail-related-date">5–6 April 2023</span><span class="poll-detail-related-meta"><span>1 SCENARIO</span><span>12 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a><a class="poll-detail-related-card" href="/en/sondages/2023-04-05-elabe-c5cda1822452a37f/"><span class="poll-detail-related-pollster">Elabe</span><span class="poll-detail-related-date">3–5 April 2023</span><span class="poll-detail-related-meta"><span>1 SCENARIO</span><span>12 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a><a class="poll-detail-related-card" href="/en/sondages/2023-03-31-ifop-23ec5fda2b758947/"><span class="poll-detail-related-pollster">Ifop</span><span class="poll-detail-related-date">30–31 March 2023</span><span class="poll-detail-related-meta"><span>6 SCENARIOS</span><span>19 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a><a class="poll-detail-related-card" href="/en/sondages/2022-10-26-ifop-197782194f3a692c/"><span class="poll-detail-related-pollster">Ifop</span><span class="poll-detail-related-date">25–26 October 2022</span><span class="poll-detail-related-meta"><span>1 SCENARIO</span><span>12 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a></div><div class="poll-detail-related-footer"><a class="poll-detail-related-all" href="/en/sondages/">VIEW ALL POLLS →</a></div></section>
     </div>
 
 <footer id="candidate-app-hud" class="fr27-app-hud" data-expanded="true" aria-label="France 2027 Signal Lab system dock">

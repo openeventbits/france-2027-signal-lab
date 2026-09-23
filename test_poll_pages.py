@@ -316,48 +316,89 @@ class PollPageGeneratorTests(unittest.TestCase):
                 self.assertNotIn("data-poll-expand-all", document)
                 self.assertNotIn("data-poll-collapse-all", document)
 
-    def test_phase2_scenario_navigation_matches_wave_count(self):
+    def test_compact_date_ranges_and_generated_harris_pages(self):
+        cases = (
+            ("2026-09-08", "2026-09-10", "en", "8–10 September 2026"),
+            ("2026-09-08", "2026-09-10", "fr", "8–10 septembre 2026"),
+            ("2026-08-31", "2026-09-02", "en", "31 Aug–2 Sep 2026"),
+            ("2026-08-31", "2026-09-02", "fr", "31 août–2 sept. 2026"),
+            ("2025-12-30", "2026-01-02", "en", "30 Dec 2025–2 Jan 2026"),
+            ("2025-12-30", "2026-01-02", "fr", "30 déc. 2025–2 janv. 2026"),
+            ("2026-09-08", "2026-09-08", "en", "8 September 2026"),
+            ("2026-09-08", "2026-09-08", "fr", "8 septembre 2026"),
+        )
+
+        for start, end, language, expected in cases:
+            with self.subTest(
+                start=start,
+                end=end,
+                language=language,
+            ):
+                self.assertEqual(
+                    pages.format_date_range(start, end, language),
+                    expected,
+                )
+
         temporary, root, _manifest = self.build_temp()
         self.addCleanup(temporary.cleanup)
 
-        for wave in self.explorer["waves"]:
-            fr = (
-                root / pages.page_file_from_url(wave["page_path_fr"])
-            ).read_text(encoding="utf-8")
+        wave = next(
+            wave
+            for wave in self.explorer["waves"]
+            if wave["page_slug"]
+            == "2026-09-10-harris-73b34108d6ec9da8"
+        )
 
-            en = (
-                root / pages.page_file_from_url(wave["page_path_en"])
-            ).read_text(encoding="utf-8")
+        fr = (
+            root / pages.page_file_from_url(wave["page_path_fr"])
+        ).read_text(encoding="utf-8")
 
-            fr_links = re.findall(
-                r'class="poll-detail-scenario-nav-link"',
-                fr,
-            )
+        en = (
+            root / pages.page_file_from_url(wave["page_path_en"])
+        ).read_text(encoding="utf-8")
 
-            en_links = re.findall(
-                r'class="poll-detail-scenario-nav-link"',
-                en,
-            )
-
-            expected = (
-                wave["scenario_count"]
-                if wave["scenario_count"] > 1
-                else 0
-            )
-
-            self.assertEqual(len(fr_links), expected)
-            self.assertEqual(len(en_links), expected)
-
-            if expected:
-                for index in range(1, expected + 1):
-                    self.assertIn(
-                        f'href="#scenario-{index}"',
-                        fr,
-                    )
-                    self.assertIn(
-                        f'href="#scenario-{index}"',
-                        en,
-                    )
+        self.assertIn(
+            '<div class="poll-detail-metric poll-detail-metric-fieldwork">',
+            fr,
+        )
+        self.assertIn("<strong>8–10 septembre 2026</strong>", fr)
+        self.assertIn("<strong>8–10 September 2026</strong>", en)
+        self.assertIn(
+            '<span class="poll-detail-related-date">'
+            "31 août–2 sept. 2026</span>",
+            fr,
+        )
+        self.assertIn(
+            '<span class="poll-detail-related-date">'
+            "31 Aug–2 Sep 2026</span>",
+            en,
+        )
+        self.assertNotIn(
+            "8 septembre 2026 → 10 septembre 2026",
+            fr,
+        )
+        self.assertNotIn(
+            "8 September 2026 → 10 September 2026",
+            en,
+        )
+        self.assertIn(
+            '<a class="poll-detail-related-all" href="/sondages/">'
+            "VOIR TOUS LES SONDAGES →</a>",
+            fr,
+        )
+        self.assertIn(
+            '<a class="poll-detail-related-all" href="/en/sondages/">'
+            "VIEW ALL POLLS →</a>",
+            en,
+        )
+        self.assertNotIn(
+            '<a class="poll-detail-back-cta" href="/sondages/">',
+            fr,
+        )
+        self.assertNotIn(
+            '<a class="poll-detail-back-cta" href="/en/sondages/">',
+            en,
+        )
 
     def test_phase2_uses_dashboard_purple_not_green_for_status(self):
         css = (ROOT / "assets/poll-page.css").read_text(
@@ -382,34 +423,40 @@ class PollPageGeneratorTests(unittest.TestCase):
             css,
         )
 
-    def test_phase2_right_rail_is_sticky_on_desktop(self):
+    def test_related_poll_directory_cta_is_text_only(self):
         css = (ROOT / "assets/poll-page.css").read_text(
             encoding="utf-8"
         )
 
-        self.assertIn(
-            ".poll-detail-side-column {\n"
-            "    position: sticky;",
+        match = re.search(
+            r"\.poll-detail-related-all \{(?P<body>.*?)\n\}",
             css,
+            flags=re.DOTALL,
         )
+
+        self.assertIsNotNone(match)
+        body = match.group("body")
+        self.assertIn("min-height: 0;", body)
+        self.assertIn("padding: 2px 0;", body)
+        self.assertIn("border: 0;", body)
+        self.assertIn("border-radius: 0;", body)
+        self.assertIn("background: transparent;", body)
+        self.assertIn("color: var(--poll-detail-cyan);", body)
+
         self.assertIn(
-            ".poll-detail-scenario-nav-list",
+            ".poll-detail-related-all:focus-visible",
             css,
         )
 
-    def test_phase2_navigation_js_is_standalone(self):
+    def test_phase2_disclosure_controls_js_is_standalone(self):
         script = (ROOT / "assets/poll-page.js").read_text(
             encoding="utf-8"
         )
 
-        self.assertIn(
-            "FR27 POLL DETAIL PHASE 2 — SCENARIO NAVIGATION",
-            script,
-        )
-        self.assertIn("data-scenario-target", script)
         self.assertIn("data-poll-expand-all", script)
         self.assertIn("data-poll-collapse-all", script)
-        self.assertIn("openFromHash", script)
+        self.assertIn(".poll-detail-scenario-toggle-text", script)
+        self.assertIn('details.addEventListener("toggle"', script)
 
         self.assertNotIn("state.", script)
         self.assertNotIn("nodes.", script)
@@ -670,5 +717,248 @@ class PollPageGeneratorTests(unittest.TestCase):
             )
 
 
+
+    def test_pollster_note_is_moved_into_accessible_tooltip(self):
+        temporary, root, _manifest = self.build_temp()
+        self.addCleanup(temporary.cleanup)
+
+        wave = self.explorer["waves"][0]
+
+        fr = (
+            root
+            / pages.page_file_from_url(
+                wave["page_path_fr"]
+            )
+        ).read_text(encoding="utf-8")
+
+        en = (
+            root
+            / pages.page_file_from_url(
+                wave["page_path_en"]
+            )
+        ).read_text(encoding="utf-8")
+
+        for document in (fr, en):
+            self.assertNotIn(
+                'class="poll-detail-deck"',
+                document,
+            )
+
+            self.assertIn(
+                "data-poll-tooltip-trigger",
+                document,
+            )
+
+            self.assertIn(
+                'aria-describedby="poll-wave-note"',
+                document,
+            )
+
+            self.assertIn(
+                'aria-controls="poll-wave-note"',
+                document,
+            )
+
+            self.assertIn(
+                'aria-expanded="false"',
+                document,
+            )
+
+            self.assertIn(
+                'id="poll-wave-note"',
+                document,
+            )
+
+            self.assertIn(
+                'role="tooltip"',
+                document,
+            )
+
+        self.assertIn(
+            "Les scénarios sont présentés séparément afin "
+            "de préserver la composition exacte des bulletins testés.",
+            fr,
+        )
+
+        self.assertIn(
+            "Scenarios are kept separate to preserve "
+            "the exact composition of the ballots tested.",
+            en,
+        )
+
+        css = (
+            ROOT / "assets" / "poll-page.css"
+        ).read_text(encoding="utf-8")
+
+        js = (
+            ROOT / "assets" / "poll-page.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            ".poll-detail-tooltip-trigger",
+            css,
+        )
+
+        self.assertIn(
+            '.poll-detail-tooltip-wrap[data-open="true"] '
+            ".poll-detail-tooltip",
+            css,
+        )
+
+        self.assertIn(
+            "[data-poll-tooltip-trigger]",
+            js,
+        )
+
+        self.assertIn(
+            '"aria-expanded"',
+            js,
+        )
+
+        self.assertIn(
+            '"Escape"',
+            js,
+        )
+
+
+    def test_phase4_uses_simple_flow_and_related_poll_discovery(self):
+        temporary, root, _manifest = self.build_temp()
+        self.addCleanup(temporary.cleanup)
+
+        wave_index = max(
+            range(len(self.explorer["waves"])),
+            key=lambda index:
+                self.explorer["waves"][index]["scenario_count"],
+        )
+
+        wave = self.explorer["waves"][wave_index]
+
+        document = (
+            root
+            / pages.page_file_from_url(
+                wave["page_path_en"]
+            )
+        ).read_text(encoding="utf-8")
+
+        # Removed duplicate support UI.
+        self.assertNotIn(
+            'id="scenario-navigation-title"',
+            document,
+        )
+
+        self.assertNotIn(
+            'id="wave-sources-title"',
+            document,
+        )
+
+        self.assertNotIn(
+            'class="poll-detail-support-stack"',
+            document,
+        )
+
+        self.assertNotIn(
+            'class="poll-detail-support-row"',
+            document,
+        )
+
+        # Core reading flow remains.
+        self.assertIn(
+            'class="poll-detail-panel poll-detail-results"',
+            document,
+        )
+
+        self.assertIn(
+            'class="poll-detail-panel poll-detail-related"',
+            document,
+        )
+
+        # Six deterministic nearby poll links.
+        expected_related = pages.nearby_waves(
+            self.explorer["waves"],
+            wave_index,
+            limit=6,
+        )
+
+        self.assertEqual(
+            len(expected_related),
+            6,
+        )
+
+        self.assertEqual(
+            document.count(
+                'class="poll-detail-related-card"'
+            ),
+            6,
+        )
+
+        for related in expected_related:
+            self.assertIn(
+                f'href="{related["page_path_en"]}"',
+                document,
+            )
+
+        # Discovery appears after the actual poll evidence.
+        hero_position = document.index(
+            'class="poll-detail-hero"'
+        )
+
+        results_position = document.index(
+            'class="poll-detail-panel poll-detail-results"'
+        )
+
+        related_position = document.index(
+            'class="poll-detail-panel poll-detail-related"'
+        )
+
+        self.assertLess(
+            hero_position,
+            results_position,
+        )
+
+        self.assertLess(
+            results_position,
+            related_position,
+        )
+
+        if "poll-detail-variation-panel" in document:
+            variation_position = document.index(
+                "poll-detail-variation-panel"
+            )
+
+            self.assertLess(
+                hero_position,
+                variation_position,
+            )
+
+            self.assertLess(
+                variation_position,
+                results_position,
+            )
+
+        # Generator must not emit trailing whitespace.
+        for line in document.splitlines():
+            self.assertEqual(
+                line,
+                line.rstrip(),
+            )
+
+        css = (
+            ROOT / "assets" / "poll-page.css"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            ".poll-detail-related-grid",
+            css,
+        )
+
+        self.assertIn(
+            ".poll-detail-related-card",
+            css,
+        )
+
+        self.assertNotIn(
+            "FLAT HORIZONTAL SUPPORT LAYOUT",
+            css,
+        )
 if __name__ == "__main__":
     unittest.main()

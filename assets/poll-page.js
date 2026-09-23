@@ -373,3 +373,63 @@
     openFromHash({ scroll: true });
   });
 })();
+
+/* FR27 POLL DETAIL — POLLSTER NOTE TOOLTIP */
+(() => {
+  "use strict";
+
+  const trigger = document.querySelector(
+    "[data-poll-tooltip-trigger]"
+  );
+
+  if (!trigger) return;
+
+  const wrapper = trigger.closest(
+    ".poll-detail-tooltip-wrap"
+  );
+
+  if (!wrapper) return;
+
+  const setOpen = open => {
+    wrapper.dataset.open = open ? "true" : "false";
+    trigger.setAttribute(
+      "aria-expanded",
+      String(open)
+    );
+  };
+
+  trigger.addEventListener("click", event => {
+    event.stopPropagation();
+
+    const open =
+      wrapper.dataset.open === "true";
+
+    setOpen(!open);
+  });
+
+  document.addEventListener("click", event => {
+    if (wrapper.contains(event.target)) return;
+    setOpen(false);
+  });
+
+  window.addEventListener(
+    "keydown",
+    event => {
+      if (
+        event.key !== "Escape" ||
+        wrapper.dataset.open !== "true"
+      ) {
+        return;
+      }
+
+      setOpen(false);
+
+      trigger.focus({
+        preventScroll: true
+      });
+
+      event.stopImmediatePropagation();
+    },
+    true
+  );
+})();

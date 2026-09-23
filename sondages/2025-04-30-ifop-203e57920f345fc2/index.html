@@ -63,8 +63,27 @@
         <div class="poll-detail-hero-main">
           <div>
             <div class="poll-detail-eyebrow">VAGUE DE SONDAGE · PREMIER TOUR</div>
-            <h1 class="poll-detail-title" id="poll-wave-title">Ifop</h1>
-            <p class="poll-detail-deck">Résultats publiés par Ifop pour une vague de terrain du 29 avril 2025 au 30 avril 2025. Les scénarios sont présentés séparément afin de préserver la composition exacte des bulletins testés.</p>
+            <div class="poll-detail-title-line">
+              <h1 class="poll-detail-title" id="poll-wave-title">Ifop</h1>
+
+              <span class="poll-detail-tooltip-wrap">
+                <button
+                  type="button"
+                  class="poll-detail-tooltip-trigger"
+                  data-poll-tooltip-trigger
+                  aria-label="À propos de cette vague de sondage"
+                  aria-describedby="poll-wave-note"
+                  aria-controls="poll-wave-note"
+                  aria-expanded="false"
+                >i</button>
+
+                <span
+                  class="poll-detail-tooltip"
+                  id="poll-wave-note"
+                  role="tooltip"
+                >Résultats publiés par Ifop pour une vague de terrain du 29 avril 2025 au 30 avril 2025. Les scénarios sont présentés séparément afin de préserver la composition exacte des bulletins testés.</span>
+              </span>
+            </div>
           </div>
           <a class="poll-detail-source-cta" href="https://www.commission-des-sondages.fr/notices/files/notices/2025/mai/9930-pres-ifop-hexagone-5-mai.pdf" target="_blank" rel="noopener noreferrer">SOURCE ↗</a>
         </div>
@@ -74,9 +93,9 @@
             <span>INSTITUT</span>
             <strong>Ifop</strong>
           </div>
-          <div class="poll-detail-metric">
+          <div class="poll-detail-metric poll-detail-metric-fieldwork">
             <span>TERRAIN</span>
-            <strong>29 avril 2025 → 30 avril 2025</strong>
+            <strong>29–30 avril 2025</strong>
           </div>
           <div class="poll-detail-metric">
             <span>ÉCHANTILLON</span>
@@ -97,67 +116,30 @@
         </div>
       </section>
 
-      <div class="poll-detail-grid">
-        <div class="poll-detail-main-column">
-          <section class="poll-detail-panel" aria-labelledby="wave-scenarios-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">RÉSULTATS PUBLIÉS</div>
-                <h2 id="wave-scenarios-title">SCÉNARIOS DE LA VAGUE</h2>
-              </div>
+      <details class="poll-detail-panel poll-detail-side-disclosure poll-detail-variation-panel"><summary class="poll-detail-side-summary"><div><div class="poll-detail-eyebrow">MÊME SONDAGE · BULLETINS DIFFÉRENTS</div><h2>VARIATION ENTRE SCÉNARIOS PUBLIÉS</h2></div><span class="poll-detail-side-summary-action">OUVRIR<i class="poll-detail-side-summary-icon"></i></span></summary><div class="poll-detail-summary-list"><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Édouard Philippe</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>21 %–23 % · Δ 2 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Éric Zemmour</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>4 %–5 % · Δ 1 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Fabien Roussel</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>2 %–2 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">François Ruffin</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>5 %–5,5 % · Δ 0,5 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Jean-Luc Mélenchon</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>10 %–10 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Marine Le Pen</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>32 %–34 % · Δ 2 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Marine Tondelier</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>4 %–4 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Nathalie Arthaud</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>0,5 %–1 % · Δ 0,5 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Nicolas Dupont-Aignan</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>2 %–2 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Raphaël Glucksmann</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>10 %–10 % · Δ 0 pts</strong></div></div></details>
 
-              <div class="poll-detail-panel-tools">
-                <span class="poll-detail-panel-status">2 SCÉNARIOS</span>
-                <div class="poll-detail-panel-actions"><button type="button" data-poll-expand-all>TOUT OUVRIR</button><button type="button" data-poll-collapse-all>TOUT RÉDUIRE</button></div>
-              </div>
-            </div>
+      <section
+        class="poll-detail-panel poll-detail-results"
+        aria-labelledby="wave-scenarios-title"
+      >
+        <div class="poll-detail-panel-head">
+          <div>
+            <div class="poll-detail-eyebrow">RÉSULTATS PUBLIÉS</div>
+            <h2 id="wave-scenarios-title">SCÉNARIOS DE LA VAGUE</h2>
+          </div>
 
-            <div class="poll-detail-scenario-list">
-              <details class="poll-detail-scenario" id="scenario-1" data-scenario-index="1"><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCÉNARIO 1</span><span class="poll-detail-scenario-status is-complete">SCÉNARIO COMPLET</span></div><h3>PREMIER TOUR — Bruno Retailleau, Édouard Philippe, Éric Zemmour, Fabien Roussel, François Ruffin, Jean-Luc Mélenchon, Marine Le Pen, Marine Tondelier, Nathalie Arthaud, Nicolas Dupont-Aignan, Raphaël Glucksmann</h3><div class="poll-detail-scenario-meta"><span>11 CANDIDATS</span><span>TOTAL PUBLIÉ 100 %</span><span>SOURCE DISPONIBLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OUVRIR" data-close-label="RÉDUIRE">OUVRIR</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDAT</th><th>SCORE PUBLIÉ</th></tr></thead><tbody><tr><td>Bruno Retailleau</td><td class="poll-detail-score">9 %</td></tr><tr><td>Édouard Philippe</td><td class="poll-detail-score">21 %</td></tr><tr><td>Éric Zemmour</td><td class="poll-detail-score">4 %</td></tr><tr><td>Fabien Roussel</td><td class="poll-detail-score">2 %</td></tr><tr><td>François Ruffin</td><td class="poll-detail-score">5,5 %</td></tr><tr><td>Jean-Luc Mélenchon</td><td class="poll-detail-score">10 %</td></tr><tr><td>Marine Le Pen</td><td class="poll-detail-score">32 %</td></tr><tr><td>Marine Tondelier</td><td class="poll-detail-score">4 %</td></tr><tr><td>Nathalie Arthaud</td><td class="poll-detail-score">0,5 %</td></tr><tr><td>Nicolas Dupont-Aignan</td><td class="poll-detail-score">2 %</td></tr><tr><td>Raphaël Glucksmann</td><td class="poll-detail-score">10 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>ID ÉVÉNEMENT: f516e9bcdabf4d06e47644823026c1c1d0bcd4d49fbc5d87c51e467e077c1689</span><span>TOTAL PUBLIÉ: 100 %</span><a href="https://www.commission-des-sondages.fr/notices/files/notices/2025/mai/9930-pres-ifop-hexagone-5-mai.pdf" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details><details class="poll-detail-scenario" id="scenario-2" data-scenario-index="2"><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCÉNARIO 2</span><span class="poll-detail-scenario-status is-complete">SCÉNARIO COMPLET</span></div><h3>PREMIER TOUR — Édouard Philippe, Éric Zemmour, Fabien Roussel, François Ruffin, Jean-Luc Mélenchon, Laurent Wauquiez, Marine Le Pen, Marine Tondelier, Nathalie Arthaud, Nicolas Dupont-Aignan, Raphaël Glucksmann</h3><div class="poll-detail-scenario-meta"><span>11 CANDIDATS</span><span>TOTAL PUBLIÉ 100 %</span><span>SOURCE DISPONIBLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OUVRIR" data-close-label="RÉDUIRE">OUVRIR</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDAT</th><th>SCORE PUBLIÉ</th></tr></thead><tbody><tr><td>Édouard Philippe</td><td class="poll-detail-score">23 %</td></tr><tr><td>Éric Zemmour</td><td class="poll-detail-score">5 %</td></tr><tr><td>Fabien Roussel</td><td class="poll-detail-score">2 %</td></tr><tr><td>François Ruffin</td><td class="poll-detail-score">5 %</td></tr><tr><td>Jean-Luc Mélenchon</td><td class="poll-detail-score">10 %</td></tr><tr><td>Laurent Wauquiez</td><td class="poll-detail-score">4 %</td></tr><tr><td>Marine Le Pen</td><td class="poll-detail-score">34 %</td></tr><tr><td>Marine Tondelier</td><td class="poll-detail-score">4 %</td></tr><tr><td>Nathalie Arthaud</td><td class="poll-detail-score">1 %</td></tr><tr><td>Nicolas Dupont-Aignan</td><td class="poll-detail-score">2 %</td></tr><tr><td>Raphaël Glucksmann</td><td class="poll-detail-score">10 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>ID ÉVÉNEMENT: 9e3f93658cd0a6ca2e0c3621d896fb2fcd982a825dc2bdc194bd37776dd55fe2</span><span>TOTAL PUBLIÉ: 100 %</span><a href="https://www.commission-des-sondages.fr/notices/files/notices/2025/mai/9930-pres-ifop-hexagone-5-mai.pdf" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details>
-            </div>
-          </section>
+          <div class="poll-detail-panel-tools">
+            <span class="poll-detail-panel-status">2 SCÉNARIOS</span>
+            <div class="poll-detail-panel-actions"><button type="button" data-poll-expand-all>TOUT OUVRIR</button><button type="button" data-poll-collapse-all>TOUT RÉDUIRE</button></div>
+          </div>
         </div>
 
-        <aside class="poll-detail-side-column">
-          <section class="poll-detail-panel poll-detail-overview" aria-labelledby="wave-overview-title"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">VAGUE</div><h2 id="wave-overview-title">VUE D’ENSEMBLE</h2></div></div><div class="poll-detail-overview-list"><div class="poll-detail-summary-row"><span>SCÉNARIOS</span><strong>2</strong></div><div class="poll-detail-summary-row"><span>CANDIDATS TESTÉS</span><strong>12</strong></div><div class="poll-detail-summary-row"><span>ÉCHANTILLON</span><strong>n=1 838</strong></div><div class="poll-detail-summary-row"><span>TERRAIN</span><strong>29 avril 2025 → 30 avril 2025</strong></div><div class="poll-detail-summary-row"><span>SOURCES</span><strong>1</strong></div></div></section>
+        <div class="poll-detail-scenario-list">
+          <details class="poll-detail-scenario" id="scenario-1" data-scenario-index="1"><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCÉNARIO 1</span><span class="poll-detail-scenario-status is-complete">SCÉNARIO COMPLET</span></div><h3>PREMIER TOUR — Bruno Retailleau, Édouard Philippe, Éric Zemmour, Fabien Roussel, François Ruffin, Jean-Luc Mélenchon, Marine Le Pen, Marine Tondelier, Nathalie Arthaud, Nicolas Dupont-Aignan, Raphaël Glucksmann</h3><div class="poll-detail-scenario-meta"><span>11 CANDIDATS</span><span>TOTAL PUBLIÉ 100 %</span><span>SOURCE DISPONIBLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OUVRIR" data-close-label="RÉDUIRE">OUVRIR</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDAT</th><th>SCORE PUBLIÉ</th></tr></thead><tbody><tr><td>Bruno Retailleau</td><td class="poll-detail-score">9 %</td></tr><tr><td>Édouard Philippe</td><td class="poll-detail-score">21 %</td></tr><tr><td>Éric Zemmour</td><td class="poll-detail-score">4 %</td></tr><tr><td>Fabien Roussel</td><td class="poll-detail-score">2 %</td></tr><tr><td>François Ruffin</td><td class="poll-detail-score">5,5 %</td></tr><tr><td>Jean-Luc Mélenchon</td><td class="poll-detail-score">10 %</td></tr><tr><td>Marine Le Pen</td><td class="poll-detail-score">32 %</td></tr><tr><td>Marine Tondelier</td><td class="poll-detail-score">4 %</td></tr><tr><td>Nathalie Arthaud</td><td class="poll-detail-score">0,5 %</td></tr><tr><td>Nicolas Dupont-Aignan</td><td class="poll-detail-score">2 %</td></tr><tr><td>Raphaël Glucksmann</td><td class="poll-detail-score">10 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>ID ÉVÉNEMENT: f516e9bcdabf4d06e47644823026c1c1d0bcd4d49fbc5d87c51e467e077c1689</span><span>TOTAL PUBLIÉ: 100 %</span><a href="https://www.commission-des-sondages.fr/notices/files/notices/2025/mai/9930-pres-ifop-hexagone-5-mai.pdf" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details><details class="poll-detail-scenario" id="scenario-2" data-scenario-index="2"><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCÉNARIO 2</span><span class="poll-detail-scenario-status is-complete">SCÉNARIO COMPLET</span></div><h3>PREMIER TOUR — Édouard Philippe, Éric Zemmour, Fabien Roussel, François Ruffin, Jean-Luc Mélenchon, Laurent Wauquiez, Marine Le Pen, Marine Tondelier, Nathalie Arthaud, Nicolas Dupont-Aignan, Raphaël Glucksmann</h3><div class="poll-detail-scenario-meta"><span>11 CANDIDATS</span><span>TOTAL PUBLIÉ 100 %</span><span>SOURCE DISPONIBLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OUVRIR" data-close-label="RÉDUIRE">OUVRIR</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDAT</th><th>SCORE PUBLIÉ</th></tr></thead><tbody><tr><td>Édouard Philippe</td><td class="poll-detail-score">23 %</td></tr><tr><td>Éric Zemmour</td><td class="poll-detail-score">5 %</td></tr><tr><td>Fabien Roussel</td><td class="poll-detail-score">2 %</td></tr><tr><td>François Ruffin</td><td class="poll-detail-score">5 %</td></tr><tr><td>Jean-Luc Mélenchon</td><td class="poll-detail-score">10 %</td></tr><tr><td>Laurent Wauquiez</td><td class="poll-detail-score">4 %</td></tr><tr><td>Marine Le Pen</td><td class="poll-detail-score">34 %</td></tr><tr><td>Marine Tondelier</td><td class="poll-detail-score">4 %</td></tr><tr><td>Nathalie Arthaud</td><td class="poll-detail-score">1 %</td></tr><tr><td>Nicolas Dupont-Aignan</td><td class="poll-detail-score">2 %</td></tr><tr><td>Raphaël Glucksmann</td><td class="poll-detail-score">10 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>ID ÉVÉNEMENT: 9e3f93658cd0a6ca2e0c3621d896fb2fcd982a825dc2bdc194bd37776dd55fe2</span><span>TOTAL PUBLIÉ: 100 %</span><a href="https://www.commission-des-sondages.fr/notices/files/notices/2025/mai/9930-pres-ifop-hexagone-5-mai.pdf" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details>
+        </div>
+      </section>
 
-          <section class="poll-detail-panel poll-detail-scenario-nav" aria-labelledby="scenario-navigation-title"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">RÉPERTOIRE</div><h2 id="scenario-navigation-title">NAVIGATION DES SCÉNARIOS</h2></div><span class="poll-detail-panel-status">2</span></div><nav class="poll-detail-scenario-nav-list" aria-label="Scenario navigation"><a class="poll-detail-scenario-nav-link" href="#scenario-1" data-scenario-target="scenario-1" aria-label="Ouvrir le scénario 1"><span class="poll-detail-scenario-nav-number">01</span><span class="poll-detail-scenario-nav-copy"><strong class="is-complete">COMPLET</strong><small>11 CANDIDATS</small></span></a><a class="poll-detail-scenario-nav-link" href="#scenario-2" data-scenario-target="scenario-2" aria-label="Ouvrir le scénario 2"><span class="poll-detail-scenario-nav-number">02</span><span class="poll-detail-scenario-nav-copy"><strong class="is-complete">COMPLET</strong><small>11 CANDIDATS</small></span></a></nav></section>
-
-          <details class="poll-detail-panel poll-detail-side-disclosure"><summary class="poll-detail-side-summary"><div><div class="poll-detail-eyebrow">MÊME SONDAGE · BULLETINS DIFFÉRENTS</div><h2>VARIATION ENTRE SCÉNARIOS PUBLIÉS</h2></div><span class="poll-detail-side-summary-action">OUVRIR<i class="poll-detail-side-summary-icon"></i></span></summary><div class="poll-detail-summary-list"><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Édouard Philippe</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>21 %–23 % · Δ 2 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Éric Zemmour</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>4 %–5 % · Δ 1 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Fabien Roussel</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>2 %–2 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">François Ruffin</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>5 %–5,5 % · Δ 0,5 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Jean-Luc Mélenchon</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>10 %–10 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Marine Le Pen</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>32 %–34 % · Δ 2 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Marine Tondelier</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>4 %–4 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Nathalie Arthaud</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>0,5 %–1 % · Δ 0,5 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Nicolas Dupont-Aignan</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>2 %–2 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Raphaël Glucksmann</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>10 %–10 % · Δ 0 pts</strong></div></div></details>
-
-          <section class="poll-detail-panel" aria-labelledby="wave-sources-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">PREUVES</div>
-                <h2 id="wave-sources-title">SOURCES PUBLIÉES</h2>
-              </div>
-              <span class="poll-detail-panel-status">1</span>
-            </div>
-
-            <div class="poll-detail-source-list">
-              <div class="poll-detail-source-item"><strong>SOURCE PUBLIÉE 1</strong><span>commission-des-sondages.fr</span><a href="https://www.commission-des-sondages.fr/notices/files/notices/2025/mai/9930-pres-ifop-hexagone-5-mai.pdf" target="_blank" rel="noopener noreferrer">OUVRIR LA SOURCE ↗</a></div>
-            </div>
-          </section>
-
-          <section class="poll-detail-panel" aria-labelledby="wave-navigation-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">RÉPERTOIRE</div>
-                <h2 id="wave-navigation-title">VAGUES ADJACENTES</h2>
-              </div>
-            </div>
-
-            <div class="poll-detail-nav">
-              <a href="/sondages/2025-05-19-harris-interactive-469567083592d535/"><small>VAGUE PLUS RÉCENTE</small><strong>Harris Interactive · 19 mai 2025</strong></a>
-              <a href="/sondages/2025-04-25-harris-interactive-992ebe9408dfa053/"><small>VAGUE PRÉCÉDENTE</small><strong>Harris Interactive · 25 avril 2025</strong></a>
-            </div>
-
-            <div class="poll-detail-back">
-              <a class="poll-detail-back-cta" href="/sondages/">RETOUR AU POLLING LAB</a>
-            </div>
-          </section>
-        </aside>
-      </div>
+      <section class="poll-detail-panel poll-detail-related" aria-labelledby="related-polls-title"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">POURSUIVRE L’EXPLORATION</div><h2 id="related-polls-title">AUTRES SONDAGES</h2></div><span class="poll-detail-panel-status">6</span></div><div class="poll-detail-related-grid"><a class="poll-detail-related-card" href="/sondages/2025-09-25-ifop-1b8a5e94cbe09e4e/"><span class="poll-detail-related-pollster">Ifop</span><span class="poll-detail-related-date">24–25 septembre 2025</span><span class="poll-detail-related-meta"><span>6 SCÉNARIOS</span><span>15 CANDIDATS</span></span><span class="poll-detail-related-open">OUVRIR LE SONDAGE →</span></a><a class="poll-detail-related-card" href="/sondages/2025-05-20-ifop-ce2a3169ce1e8fc6/"><span class="poll-detail-related-pollster">Ifop</span><span class="poll-detail-related-date">19–20 mai 2025</span><span class="poll-detail-related-meta"><span>2 SCÉNARIOS</span><span>11 CANDIDATS</span></span><span class="poll-detail-related-open">OUVRIR LE SONDAGE →</span></a><a class="poll-detail-related-card" href="/sondages/2025-05-19-harris-interactive-469567083592d535/"><span class="poll-detail-related-pollster">Harris Interactive</span><span class="poll-detail-related-date">19 mai 2025</span><span class="poll-detail-related-meta"><span>4 SCÉNARIOS</span><span>11 CANDIDATS</span></span><span class="poll-detail-related-open">OUVRIR LE SONDAGE →</span></a><a class="poll-detail-related-card" href="/sondages/2025-04-25-harris-interactive-992ebe9408dfa053/"><span class="poll-detail-related-pollster">Harris Interactive</span><span class="poll-detail-related-date">24–25 avril 2025</span><span class="poll-detail-related-meta"><span>3 SCÉNARIOS</span><span>0 CANDIDATS</span></span><span class="poll-detail-related-open">OUVRIR LE SONDAGE →</span></a><a class="poll-detail-related-card" href="/sondages/2025-04-24-odoxa-75c0f8df587c817e/"><span class="poll-detail-related-pollster">Odoxa</span><span class="poll-detail-related-date">23–24 avril 2025</span><span class="poll-detail-related-meta"><span>2 SCÉNARIOS</span><span>12 CANDIDATS</span></span><span class="poll-detail-related-open">OUVRIR LE SONDAGE →</span></a><a class="poll-detail-related-card" href="/sondages/2025-04-18-ifop-hexagone-7caf285766449d85/"><span class="poll-detail-related-pollster">Ifop/Hexagone</span><span class="poll-detail-related-date">11–18 avril 2025</span><span class="poll-detail-related-meta"><span>8 SCÉNARIOS</span><span>15 CANDIDATS</span></span><span class="poll-detail-related-open">OUVRIR LE SONDAGE →</span></a></div><div class="poll-detail-related-footer"><a class="poll-detail-related-all" href="/sondages/">VOIR TOUS LES SONDAGES →</a></div></section>
     </div>
 
 <footer id="candidate-app-hud" class="fr27-app-hud" data-expanded="true" aria-label="Dock système France 2027 Signal Lab">

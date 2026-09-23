@@ -63,8 +63,27 @@
         <div class="poll-detail-hero-main">
           <div>
             <div class="poll-detail-eyebrow">VAGUE DE SONDAGE · PREMIER TOUR</div>
-            <h1 class="poll-detail-title" id="poll-wave-title">Odoxa</h1>
-            <p class="poll-detail-deck">Résultats publiés par Odoxa pour une vague de terrain du 25 mars 2026 au 26 mars 2026. Les scénarios sont présentés séparément afin de préserver la composition exacte des bulletins testés.</p>
+            <div class="poll-detail-title-line">
+              <h1 class="poll-detail-title" id="poll-wave-title">Odoxa</h1>
+
+              <span class="poll-detail-tooltip-wrap">
+                <button
+                  type="button"
+                  class="poll-detail-tooltip-trigger"
+                  data-poll-tooltip-trigger
+                  aria-label="À propos de cette vague de sondage"
+                  aria-describedby="poll-wave-note"
+                  aria-controls="poll-wave-note"
+                  aria-expanded="false"
+                >i</button>
+
+                <span
+                  class="poll-detail-tooltip"
+                  id="poll-wave-note"
+                  role="tooltip"
+                >Résultats publiés par Odoxa pour une vague de terrain du 25 mars 2026 au 26 mars 2026. Les scénarios sont présentés séparément afin de préserver la composition exacte des bulletins testés.</span>
+              </span>
+            </div>
           </div>
           <a class="poll-detail-source-cta" href="https://www.odoxa.fr/sondage/spectaculaire-come-back-dedouard-philippe-il-remporterait-aujourdhui-la-presidentielle/" target="_blank" rel="noopener noreferrer">SOURCE ↗</a>
         </div>
@@ -74,9 +93,9 @@
             <span>INSTITUT</span>
             <strong>Odoxa</strong>
           </div>
-          <div class="poll-detail-metric">
+          <div class="poll-detail-metric poll-detail-metric-fieldwork">
             <span>TERRAIN</span>
-            <strong>25 mars 2026 → 26 mars 2026</strong>
+            <strong>25–26 mars 2026</strong>
           </div>
           <div class="poll-detail-metric">
             <span>ÉCHANTILLON</span>
@@ -97,67 +116,30 @@
         </div>
       </section>
 
-      <div class="poll-detail-grid">
-        <div class="poll-detail-main-column">
-          <section class="poll-detail-panel" aria-labelledby="wave-scenarios-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">RÉSULTATS PUBLIÉS</div>
-                <h2 id="wave-scenarios-title">SCÉNARIOS DE LA VAGUE</h2>
-              </div>
+      <details class="poll-detail-panel poll-detail-side-disclosure poll-detail-variation-panel"><summary class="poll-detail-side-summary"><div><div class="poll-detail-eyebrow">MÊME SONDAGE · BULLETINS DIFFÉRENTS</div><h2>VARIATION ENTRE SCÉNARIOS PUBLIÉS</h2></div><span class="poll-detail-side-summary-action">OUVRIR<i class="poll-detail-side-summary-icon"></i></span></summary><div class="poll-detail-summary-list"><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Arthaud</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>1 %–1 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Roussel</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>2 %–2 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Mélenchon</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>12 %–13 % · Δ 1 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Raphaël Glucksmann</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>10 %–10 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Tondelier</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>4 %–5 % · Δ 1 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Philippe</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>21 %–25 % · Δ 4 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Dupont-Aignan</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>2 %–2 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Bardella</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>34 %–38 % · Δ 4 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Knafo</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>5 %–5 % · Δ 0 pts</strong></div></div></details>
 
-              <div class="poll-detail-panel-tools">
-                <span class="poll-detail-panel-status">2 SCÉNARIOS</span>
-                <div class="poll-detail-panel-actions"><button type="button" data-poll-expand-all>TOUT OUVRIR</button><button type="button" data-poll-collapse-all>TOUT RÉDUIRE</button></div>
-              </div>
-            </div>
+      <section
+        class="poll-detail-panel poll-detail-results"
+        aria-labelledby="wave-scenarios-title"
+      >
+        <div class="poll-detail-panel-head">
+          <div>
+            <div class="poll-detail-eyebrow">RÉSULTATS PUBLIÉS</div>
+            <h2 id="wave-scenarios-title">SCÉNARIOS DE LA VAGUE</h2>
+          </div>
 
-            <div class="poll-detail-scenario-list">
-              <details class="poll-detail-scenario" id="scenario-1" data-scenario-index="1"><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCÉNARIO 1</span><span class="poll-detail-scenario-status is-complete">SCÉNARIO COMPLET</span></div><h3>PREMIER TOUR — Arthaud, Roussel, Mélenchon, Raphaël Glucksmann, Tondelier, Philippe, Dupont-Aignan, Bardella, Knafo</h3><div class="poll-detail-scenario-meta"><span>9 CANDIDATS</span><span>TOTAL PUBLIÉ 100 %</span><span>SOURCE DISPONIBLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OUVRIR" data-close-label="RÉDUIRE">OUVRIR</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDAT</th><th>SCORE PUBLIÉ</th></tr></thead><tbody><tr><td>Arthaud</td><td class="poll-detail-score">1 %</td></tr><tr><td>Roussel</td><td class="poll-detail-score">2 %</td></tr><tr><td>Mélenchon</td><td class="poll-detail-score">13 %</td></tr><tr><td>Raphaël Glucksmann</td><td class="poll-detail-score">10 %</td></tr><tr><td>Tondelier</td><td class="poll-detail-score">4 %</td></tr><tr><td>Philippe</td><td class="poll-detail-score">25 %</td></tr><tr><td>Dupont-Aignan</td><td class="poll-detail-score">2 %</td></tr><tr><td>Bardella</td><td class="poll-detail-score">38 %</td></tr><tr><td>Knafo</td><td class="poll-detail-score">5 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>ID ÉVÉNEMENT: 1170aa1b0093a8a1a7786f8c5ca6278a7e2782142f4b603c13054231f3edfe92</span><span>TOTAL PUBLIÉ: 100 %</span><a href="https://www.odoxa.fr/sondage/spectaculaire-come-back-dedouard-philippe-il-remporterait-aujourdhui-la-presidentielle/" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details><details class="poll-detail-scenario" id="scenario-2" data-scenario-index="2"><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCÉNARIO 2</span><span class="poll-detail-scenario-status is-complete">SCÉNARIO COMPLET</span></div><h3>PREMIER TOUR — Arthaud, Roussel, Mélenchon, Raphaël Glucksmann, Tondelier, Philippe, Retailleau, Dupont-Aignan, Bardella, Knafo</h3><div class="poll-detail-scenario-meta"><span>10 CANDIDATS</span><span>TOTAL PUBLIÉ 100 %</span><span>SOURCE DISPONIBLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OUVRIR" data-close-label="RÉDUIRE">OUVRIR</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDAT</th><th>SCORE PUBLIÉ</th></tr></thead><tbody><tr><td>Arthaud</td><td class="poll-detail-score">1 %</td></tr><tr><td>Roussel</td><td class="poll-detail-score">2 %</td></tr><tr><td>Mélenchon</td><td class="poll-detail-score">12 %</td></tr><tr><td>Raphaël Glucksmann</td><td class="poll-detail-score">10 %</td></tr><tr><td>Tondelier</td><td class="poll-detail-score">5 %</td></tr><tr><td>Philippe</td><td class="poll-detail-score">21 %</td></tr><tr><td>Retailleau</td><td class="poll-detail-score">8 %</td></tr><tr><td>Dupont-Aignan</td><td class="poll-detail-score">2 %</td></tr><tr><td>Bardella</td><td class="poll-detail-score">34 %</td></tr><tr><td>Knafo</td><td class="poll-detail-score">5 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>ID ÉVÉNEMENT: e1aef033c6d431d9a0647acde7fb397780344ad73f7fd8f29fc83ee1a497656b</span><span>TOTAL PUBLIÉ: 100 %</span><a href="https://www.odoxa.fr/sondage/spectaculaire-come-back-dedouard-philippe-il-remporterait-aujourdhui-la-presidentielle/" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details>
-            </div>
-          </section>
+          <div class="poll-detail-panel-tools">
+            <span class="poll-detail-panel-status">2 SCÉNARIOS</span>
+            <div class="poll-detail-panel-actions"><button type="button" data-poll-expand-all>TOUT OUVRIR</button><button type="button" data-poll-collapse-all>TOUT RÉDUIRE</button></div>
+          </div>
         </div>
 
-        <aside class="poll-detail-side-column">
-          <section class="poll-detail-panel poll-detail-overview" aria-labelledby="wave-overview-title"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">VAGUE</div><h2 id="wave-overview-title">VUE D’ENSEMBLE</h2></div></div><div class="poll-detail-overview-list"><div class="poll-detail-summary-row"><span>SCÉNARIOS</span><strong>2</strong></div><div class="poll-detail-summary-row"><span>CANDIDATS TESTÉS</span><strong>10</strong></div><div class="poll-detail-summary-row"><span>ÉCHANTILLON</span><strong>n=1 005</strong></div><div class="poll-detail-summary-row"><span>TERRAIN</span><strong>25 mars 2026 → 26 mars 2026</strong></div><div class="poll-detail-summary-row"><span>SOURCES</span><strong>1</strong></div></div></section>
+        <div class="poll-detail-scenario-list">
+          <details class="poll-detail-scenario" id="scenario-1" data-scenario-index="1"><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCÉNARIO 1</span><span class="poll-detail-scenario-status is-complete">SCÉNARIO COMPLET</span></div><h3>PREMIER TOUR — Arthaud, Roussel, Mélenchon, Raphaël Glucksmann, Tondelier, Philippe, Dupont-Aignan, Bardella, Knafo</h3><div class="poll-detail-scenario-meta"><span>9 CANDIDATS</span><span>TOTAL PUBLIÉ 100 %</span><span>SOURCE DISPONIBLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OUVRIR" data-close-label="RÉDUIRE">OUVRIR</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDAT</th><th>SCORE PUBLIÉ</th></tr></thead><tbody><tr><td>Arthaud</td><td class="poll-detail-score">1 %</td></tr><tr><td>Roussel</td><td class="poll-detail-score">2 %</td></tr><tr><td>Mélenchon</td><td class="poll-detail-score">13 %</td></tr><tr><td>Raphaël Glucksmann</td><td class="poll-detail-score">10 %</td></tr><tr><td>Tondelier</td><td class="poll-detail-score">4 %</td></tr><tr><td>Philippe</td><td class="poll-detail-score">25 %</td></tr><tr><td>Dupont-Aignan</td><td class="poll-detail-score">2 %</td></tr><tr><td>Bardella</td><td class="poll-detail-score">38 %</td></tr><tr><td>Knafo</td><td class="poll-detail-score">5 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>ID ÉVÉNEMENT: 1170aa1b0093a8a1a7786f8c5ca6278a7e2782142f4b603c13054231f3edfe92</span><span>TOTAL PUBLIÉ: 100 %</span><a href="https://www.odoxa.fr/sondage/spectaculaire-come-back-dedouard-philippe-il-remporterait-aujourdhui-la-presidentielle/" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details><details class="poll-detail-scenario" id="scenario-2" data-scenario-index="2"><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCÉNARIO 2</span><span class="poll-detail-scenario-status is-complete">SCÉNARIO COMPLET</span></div><h3>PREMIER TOUR — Arthaud, Roussel, Mélenchon, Raphaël Glucksmann, Tondelier, Philippe, Retailleau, Dupont-Aignan, Bardella, Knafo</h3><div class="poll-detail-scenario-meta"><span>10 CANDIDATS</span><span>TOTAL PUBLIÉ 100 %</span><span>SOURCE DISPONIBLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OUVRIR" data-close-label="RÉDUIRE">OUVRIR</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDAT</th><th>SCORE PUBLIÉ</th></tr></thead><tbody><tr><td>Arthaud</td><td class="poll-detail-score">1 %</td></tr><tr><td>Roussel</td><td class="poll-detail-score">2 %</td></tr><tr><td>Mélenchon</td><td class="poll-detail-score">12 %</td></tr><tr><td>Raphaël Glucksmann</td><td class="poll-detail-score">10 %</td></tr><tr><td>Tondelier</td><td class="poll-detail-score">5 %</td></tr><tr><td>Philippe</td><td class="poll-detail-score">21 %</td></tr><tr><td>Retailleau</td><td class="poll-detail-score">8 %</td></tr><tr><td>Dupont-Aignan</td><td class="poll-detail-score">2 %</td></tr><tr><td>Bardella</td><td class="poll-detail-score">34 %</td></tr><tr><td>Knafo</td><td class="poll-detail-score">5 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>ID ÉVÉNEMENT: e1aef033c6d431d9a0647acde7fb397780344ad73f7fd8f29fc83ee1a497656b</span><span>TOTAL PUBLIÉ: 100 %</span><a href="https://www.odoxa.fr/sondage/spectaculaire-come-back-dedouard-philippe-il-remporterait-aujourdhui-la-presidentielle/" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details>
+        </div>
+      </section>
 
-          <section class="poll-detail-panel poll-detail-scenario-nav" aria-labelledby="scenario-navigation-title"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">RÉPERTOIRE</div><h2 id="scenario-navigation-title">NAVIGATION DES SCÉNARIOS</h2></div><span class="poll-detail-panel-status">2</span></div><nav class="poll-detail-scenario-nav-list" aria-label="Scenario navigation"><a class="poll-detail-scenario-nav-link" href="#scenario-1" data-scenario-target="scenario-1" aria-label="Ouvrir le scénario 1"><span class="poll-detail-scenario-nav-number">01</span><span class="poll-detail-scenario-nav-copy"><strong class="is-complete">COMPLET</strong><small>9 CANDIDATS</small></span></a><a class="poll-detail-scenario-nav-link" href="#scenario-2" data-scenario-target="scenario-2" aria-label="Ouvrir le scénario 2"><span class="poll-detail-scenario-nav-number">02</span><span class="poll-detail-scenario-nav-copy"><strong class="is-complete">COMPLET</strong><small>10 CANDIDATS</small></span></a></nav></section>
-
-          <details class="poll-detail-panel poll-detail-side-disclosure"><summary class="poll-detail-side-summary"><div><div class="poll-detail-eyebrow">MÊME SONDAGE · BULLETINS DIFFÉRENTS</div><h2>VARIATION ENTRE SCÉNARIOS PUBLIÉS</h2></div><span class="poll-detail-side-summary-action">OUVRIR<i class="poll-detail-side-summary-icon"></i></span></summary><div class="poll-detail-summary-list"><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Arthaud</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>1 %–1 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Roussel</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>2 %–2 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Mélenchon</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>12 %–13 % · Δ 1 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Raphaël Glucksmann</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>10 %–10 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Tondelier</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>4 %–5 % · Δ 1 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Philippe</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>21 %–25 % · Δ 4 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Dupont-Aignan</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>2 %–2 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Bardella</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>34 %–38 % · Δ 4 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Knafo</span> · TESTÉ DANS 2 SCÉNARIOS</span><strong>5 %–5 % · Δ 0 pts</strong></div></div></details>
-
-          <section class="poll-detail-panel" aria-labelledby="wave-sources-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">PREUVES</div>
-                <h2 id="wave-sources-title">SOURCES PUBLIÉES</h2>
-              </div>
-              <span class="poll-detail-panel-status">1</span>
-            </div>
-
-            <div class="poll-detail-source-list">
-              <div class="poll-detail-source-item"><strong>SOURCE PUBLIÉE 1</strong><span>odoxa.fr</span><a href="https://www.odoxa.fr/sondage/spectaculaire-come-back-dedouard-philippe-il-remporterait-aujourdhui-la-presidentielle/" target="_blank" rel="noopener noreferrer">OUVRIR LA SOURCE ↗</a></div>
-            </div>
-          </section>
-
-          <section class="poll-detail-panel" aria-labelledby="wave-navigation-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">RÉPERTOIRE</div>
-                <h2 id="wave-navigation-title">VAGUES ADJACENTES</h2>
-              </div>
-            </div>
-
-            <div class="poll-detail-nav">
-              <a href="/sondages/2026-03-27-opinionway-267ae41fe1b89059/"><small>VAGUE PLUS RÉCENTE</small><strong>OpinionWay · 27 mars 2026</strong></a>
-              <a href="/sondages/2026-03-22-harris-interactive-343c93797c244f9d/"><small>VAGUE PRÉCÉDENTE</small><strong>Harris Interactive · 22 mars 2026</strong></a>
-            </div>
-
-            <div class="poll-detail-back">
-              <a class="poll-detail-back-cta" href="/sondages/">RETOUR AU POLLING LAB</a>
-            </div>
-          </section>
-        </aside>
-      </div>
+      <section class="poll-detail-panel poll-detail-related" aria-labelledby="related-polls-title"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">POURSUIVRE L’EXPLORATION</div><h2 id="related-polls-title">AUTRES SONDAGES</h2></div><span class="poll-detail-panel-status">6</span></div><div class="poll-detail-related-grid"><a class="poll-detail-related-card" href="/sondages/2026-04-22-harris-interactive-9774a13a1e534a37/"><span class="poll-detail-related-pollster">Harris Interactive</span><span class="poll-detail-related-date">22 avril 2026</span><span class="poll-detail-related-meta"><span>2 SCÉNARIOS</span><span>11 CANDIDATS</span></span><span class="poll-detail-related-open">OUVRIR LE SONDAGE →</span></a><a class="poll-detail-related-card" href="/sondages/2026-03-27-elabe-df7c904f459058dd/"><span class="poll-detail-related-pollster">Elabe</span><span class="poll-detail-related-date">25–27 mars 2026</span><span class="poll-detail-related-meta"><span>7 SCÉNARIOS</span><span>19 CANDIDATS</span></span><span class="poll-detail-related-open">OUVRIR LE SONDAGE →</span></a><a class="poll-detail-related-card" href="/sondages/2026-03-27-opinionway-267ae41fe1b89059/"><span class="poll-detail-related-pollster">OpinionWay</span><span class="poll-detail-related-date">26–27 mars 2026</span><span class="poll-detail-related-meta"><span>2 SCÉNARIOS</span><span>9 CANDIDATS</span></span><span class="poll-detail-related-open">OUVRIR LE SONDAGE →</span></a><a class="poll-detail-related-card" href="/sondages/2026-03-22-harris-interactive-343c93797c244f9d/"><span class="poll-detail-related-pollster">Harris Interactive</span><span class="poll-detail-related-date">22 mars 2026</span><span class="poll-detail-related-meta"><span>2 SCÉNARIOS</span><span>11 CANDIDATS</span></span><span class="poll-detail-related-open">OUVRIR LE SONDAGE →</span></a><a class="poll-detail-related-card" href="/sondages/2026-02-27-ifop-66a0009167209cbb/"><span class="poll-detail-related-pollster">Ifop</span><span class="poll-detail-related-date">26–27 février 2026</span><span class="poll-detail-related-meta"><span>12 SCÉNARIOS</span><span>18 CANDIDATS</span></span><span class="poll-detail-related-open">OUVRIR LE SONDAGE →</span></a><a class="poll-detail-related-card" href="/sondages/2026-02-06-ifop-30dab745bc8e97ec/"><span class="poll-detail-related-pollster">Ifop</span><span class="poll-detail-related-date">1–6 février 2026</span><span class="poll-detail-related-meta"><span>1 SCÉNARIO</span><span>12 CANDIDATS</span></span><span class="poll-detail-related-open">OUVRIR LE SONDAGE →</span></a></div><div class="poll-detail-related-footer"><a class="poll-detail-related-all" href="/sondages/">VOIR TOUS LES SONDAGES →</a></div></section>
     </div>
 
 <footer id="candidate-app-hud" class="fr27-app-hud" data-expanded="true" aria-label="Dock système France 2027 Signal Lab">

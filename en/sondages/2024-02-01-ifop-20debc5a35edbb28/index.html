@@ -63,8 +63,27 @@
         <div class="poll-detail-hero-main">
           <div>
             <div class="poll-detail-eyebrow">FIRST-ROUND POLL WAVE</div>
-            <h1 class="poll-detail-title" id="poll-wave-title">Ifop</h1>
-            <p class="poll-detail-deck">Published results from Ifop for fieldwork conducted from 31 January 2024 to 1 February 2024. Scenarios are kept separate to preserve the exact composition of the ballots tested.</p>
+            <div class="poll-detail-title-line">
+              <h1 class="poll-detail-title" id="poll-wave-title">Ifop</h1>
+
+              <span class="poll-detail-tooltip-wrap">
+                <button
+                  type="button"
+                  class="poll-detail-tooltip-trigger"
+                  data-poll-tooltip-trigger
+                  aria-label="About this poll wave"
+                  aria-describedby="poll-wave-note"
+                  aria-controls="poll-wave-note"
+                  aria-expanded="false"
+                >i</button>
+
+                <span
+                  class="poll-detail-tooltip"
+                  id="poll-wave-note"
+                  role="tooltip"
+                >Published results from Ifop for fieldwork conducted from 31 January 2024 to 1 February 2024. Scenarios are kept separate to preserve the exact composition of the ballots tested.</span>
+              </span>
+            </div>
           </div>
           <a class="poll-detail-source-cta" href="https://www.ifop.com/wp-content/uploads/2024/02/120604-Resultats.pdf" target="_blank" rel="noopener noreferrer">SOURCE ↗</a>
         </div>
@@ -74,9 +93,9 @@
             <span>POLLSTER</span>
             <strong>Ifop</strong>
           </div>
-          <div class="poll-detail-metric">
+          <div class="poll-detail-metric poll-detail-metric-fieldwork">
             <span>FIELDWORK</span>
-            <strong>31 January 2024 → 1 February 2024</strong>
+            <strong>31 Jan–1 Feb 2024</strong>
           </div>
           <div class="poll-detail-metric">
             <span>SAMPLE</span>
@@ -97,67 +116,30 @@
         </div>
       </section>
 
-      <div class="poll-detail-grid">
-        <div class="poll-detail-main-column">
-          <section class="poll-detail-panel" aria-labelledby="wave-scenarios-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">PUBLISHED RESULTS</div>
-                <h2 id="wave-scenarios-title">WAVE SCENARIOS</h2>
-              </div>
+      <details class="poll-detail-panel poll-detail-side-disclosure poll-detail-variation-panel"><summary class="poll-detail-side-summary"><div><div class="poll-detail-eyebrow">SAME POLL · DIFFERENT BALLOTS</div><h2>VARIATION ACROSS PUBLISHED SCENARIOS</h2></div><span class="poll-detail-side-summary-action">OPEN<i class="poll-detail-side-summary-icon"></i></span></summary><div class="poll-detail-summary-list"><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Nathalie Arthaud</span> · TESTED IN 2 SCENARIOS</span><strong>1.5 %–1.5 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Philippe Poutou</span> · TESTED IN 2 SCENARIOS</span><strong>1.5 %–1.5 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Fabien Roussel</span> · TESTED IN 2 SCENARIOS</span><strong>4 %–4.5 % · Δ 0.5 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Jean-Luc Mélenchon</span> · TESTED IN 2 SCENARIOS</span><strong>14 %–14 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Olivier Faure</span> · TESTED IN 2 SCENARIOS</span><strong>2 %–2 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Marine Tondelier</span> · TESTED IN 2 SCENARIOS</span><strong>2 %–2.5 % · Δ 0.5 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Jean Lassalle</span> · TESTED IN 2 SCENARIOS</span><strong>3 %–3 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Laurent Wauquiez</span> · TESTED IN 2 SCENARIOS</span><strong>4.5 %–5.5 % · Δ 1 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Nicolas Dupont-Aignan</span> · TESTED IN 2 SCENARIOS</span><strong>2.5 %–2.5 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Marine Le Pen</span> · TESTED IN 2 SCENARIOS</span><strong>36 %–36 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Éric Zemmour</span> · TESTED IN 2 SCENARIOS</span><strong>6 %–6 % · Δ 0 pts</strong></div></div></details>
 
-              <div class="poll-detail-panel-tools">
-                <span class="poll-detail-panel-status">2 SCENARIOS</span>
-                <div class="poll-detail-panel-actions"><button type="button" data-poll-expand-all>EXPAND ALL</button><button type="button" data-poll-collapse-all>COLLAPSE ALL</button></div>
-              </div>
-            </div>
+      <section
+        class="poll-detail-panel poll-detail-results"
+        aria-labelledby="wave-scenarios-title"
+      >
+        <div class="poll-detail-panel-head">
+          <div>
+            <div class="poll-detail-eyebrow">PUBLISHED RESULTS</div>
+            <h2 id="wave-scenarios-title">WAVE SCENARIOS</h2>
+          </div>
 
-            <div class="poll-detail-scenario-list">
-              <details class="poll-detail-scenario" id="scenario-1" data-scenario-index="1"><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCENARIO 1</span><span class="poll-detail-scenario-status is-complete">COMPLETE SCENARIO</span></div><h3>FIRST ROUND — Nathalie Arthaud, Philippe Poutou, Fabien Roussel, Jean-Luc Mélenchon, Olivier Faure, Marine Tondelier, Gabriel Attal, Jean Lassalle, Laurent Wauquiez, Nicolas Dupont-Aignan, Marine Le Pen, Éric Zemmour</h3><div class="poll-detail-scenario-meta"><span>12 CANDIDATES</span><span>PUBLISHED TOTAL 100 %</span><span>SOURCE AVAILABLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OPEN" data-close-label="COLLAPSE">OPEN</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDATE</th><th>PUBLISHED SCORE</th></tr></thead><tbody><tr><td>Nathalie Arthaud</td><td class="poll-detail-score">1.5 %</td></tr><tr><td>Philippe Poutou</td><td class="poll-detail-score">1.5 %</td></tr><tr><td>Fabien Roussel</td><td class="poll-detail-score">4 %</td></tr><tr><td>Jean-Luc Mélenchon</td><td class="poll-detail-score">14 %</td></tr><tr><td>Olivier Faure</td><td class="poll-detail-score">2 %</td></tr><tr><td>Marine Tondelier</td><td class="poll-detail-score">2 %</td></tr><tr><td>Gabriel Attal</td><td class="poll-detail-score">22 %</td></tr><tr><td>Jean Lassalle</td><td class="poll-detail-score">3 %</td></tr><tr><td>Laurent Wauquiez</td><td class="poll-detail-score">5.5 %</td></tr><tr><td>Nicolas Dupont-Aignan</td><td class="poll-detail-score">2.5 %</td></tr><tr><td>Marine Le Pen</td><td class="poll-detail-score">36 %</td></tr><tr><td>Éric Zemmour</td><td class="poll-detail-score">6 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>EVENT ID: 5a1fc18bf7055baa1f32c5bf30a5daf60ea63a8edb42689e4099fa958b4faece</span><span>PUBLISHED TOTAL: 100 %</span><a href="https://www.ifop.com/wp-content/uploads/2024/02/120604-Resultats.pdf" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details><details class="poll-detail-scenario" id="scenario-2" data-scenario-index="2"><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCENARIO 2</span><span class="poll-detail-scenario-status is-complete">COMPLETE SCENARIO</span></div><h3>FIRST ROUND — Nathalie Arthaud, Philippe Poutou, Fabien Roussel, Jean-Luc Mélenchon, Olivier Faure, Marine Tondelier, Édouard Philippe, Jean Lassalle, Laurent Wauquiez, Nicolas Dupont-Aignan, Marine Le Pen, Éric Zemmour</h3><div class="poll-detail-scenario-meta"><span>12 CANDIDATES</span><span>PUBLISHED TOTAL 100 %</span><span>SOURCE AVAILABLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OPEN" data-close-label="COLLAPSE">OPEN</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDATE</th><th>PUBLISHED SCORE</th></tr></thead><tbody><tr><td>Nathalie Arthaud</td><td class="poll-detail-score">1.5 %</td></tr><tr><td>Philippe Poutou</td><td class="poll-detail-score">1.5 %</td></tr><tr><td>Fabien Roussel</td><td class="poll-detail-score">4.5 %</td></tr><tr><td>Jean-Luc Mélenchon</td><td class="poll-detail-score">14 %</td></tr><tr><td>Olivier Faure</td><td class="poll-detail-score">2 %</td></tr><tr><td>Marine Tondelier</td><td class="poll-detail-score">2.5 %</td></tr><tr><td>Édouard Philippe</td><td class="poll-detail-score">22 %</td></tr><tr><td>Jean Lassalle</td><td class="poll-detail-score">3 %</td></tr><tr><td>Laurent Wauquiez</td><td class="poll-detail-score">4.5 %</td></tr><tr><td>Nicolas Dupont-Aignan</td><td class="poll-detail-score">2.5 %</td></tr><tr><td>Marine Le Pen</td><td class="poll-detail-score">36 %</td></tr><tr><td>Éric Zemmour</td><td class="poll-detail-score">6 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>EVENT ID: 851add23db63bfc19b66c837384a5adc1bd58f4c3cbb18e108abb8da6bfc230a</span><span>PUBLISHED TOTAL: 100 %</span><a href="https://www.ifop.com/wp-content/uploads/2024/02/120604-Resultats.pdf" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details>
-            </div>
-          </section>
+          <div class="poll-detail-panel-tools">
+            <span class="poll-detail-panel-status">2 SCENARIOS</span>
+            <div class="poll-detail-panel-actions"><button type="button" data-poll-expand-all>EXPAND ALL</button><button type="button" data-poll-collapse-all>COLLAPSE ALL</button></div>
+          </div>
         </div>
 
-        <aside class="poll-detail-side-column">
-          <section class="poll-detail-panel poll-detail-overview" aria-labelledby="wave-overview-title"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">WAVE</div><h2 id="wave-overview-title">WAVE OVERVIEW</h2></div></div><div class="poll-detail-overview-list"><div class="poll-detail-summary-row"><span>SCENARIOS</span><strong>2</strong></div><div class="poll-detail-summary-row"><span>CANDIDATES TESTED</span><strong>13</strong></div><div class="poll-detail-summary-row"><span>SAMPLE</span><strong>n=1,081</strong></div><div class="poll-detail-summary-row"><span>FIELDWORK</span><strong>31 January 2024 → 1 February 2024</strong></div><div class="poll-detail-summary-row"><span>SOURCES</span><strong>1</strong></div></div></section>
+        <div class="poll-detail-scenario-list">
+          <details class="poll-detail-scenario" id="scenario-1" data-scenario-index="1"><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCENARIO 1</span><span class="poll-detail-scenario-status is-complete">COMPLETE SCENARIO</span></div><h3>FIRST ROUND — Nathalie Arthaud, Philippe Poutou, Fabien Roussel, Jean-Luc Mélenchon, Olivier Faure, Marine Tondelier, Gabriel Attal, Jean Lassalle, Laurent Wauquiez, Nicolas Dupont-Aignan, Marine Le Pen, Éric Zemmour</h3><div class="poll-detail-scenario-meta"><span>12 CANDIDATES</span><span>PUBLISHED TOTAL 100 %</span><span>SOURCE AVAILABLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OPEN" data-close-label="COLLAPSE">OPEN</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDATE</th><th>PUBLISHED SCORE</th></tr></thead><tbody><tr><td>Nathalie Arthaud</td><td class="poll-detail-score">1.5 %</td></tr><tr><td>Philippe Poutou</td><td class="poll-detail-score">1.5 %</td></tr><tr><td>Fabien Roussel</td><td class="poll-detail-score">4 %</td></tr><tr><td>Jean-Luc Mélenchon</td><td class="poll-detail-score">14 %</td></tr><tr><td>Olivier Faure</td><td class="poll-detail-score">2 %</td></tr><tr><td>Marine Tondelier</td><td class="poll-detail-score">2 %</td></tr><tr><td>Gabriel Attal</td><td class="poll-detail-score">22 %</td></tr><tr><td>Jean Lassalle</td><td class="poll-detail-score">3 %</td></tr><tr><td>Laurent Wauquiez</td><td class="poll-detail-score">5.5 %</td></tr><tr><td>Nicolas Dupont-Aignan</td><td class="poll-detail-score">2.5 %</td></tr><tr><td>Marine Le Pen</td><td class="poll-detail-score">36 %</td></tr><tr><td>Éric Zemmour</td><td class="poll-detail-score">6 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>EVENT ID: 5a1fc18bf7055baa1f32c5bf30a5daf60ea63a8edb42689e4099fa958b4faece</span><span>PUBLISHED TOTAL: 100 %</span><a href="https://www.ifop.com/wp-content/uploads/2024/02/120604-Resultats.pdf" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details><details class="poll-detail-scenario" id="scenario-2" data-scenario-index="2"><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCENARIO 2</span><span class="poll-detail-scenario-status is-complete">COMPLETE SCENARIO</span></div><h3>FIRST ROUND — Nathalie Arthaud, Philippe Poutou, Fabien Roussel, Jean-Luc Mélenchon, Olivier Faure, Marine Tondelier, Édouard Philippe, Jean Lassalle, Laurent Wauquiez, Nicolas Dupont-Aignan, Marine Le Pen, Éric Zemmour</h3><div class="poll-detail-scenario-meta"><span>12 CANDIDATES</span><span>PUBLISHED TOTAL 100 %</span><span>SOURCE AVAILABLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OPEN" data-close-label="COLLAPSE">OPEN</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDATE</th><th>PUBLISHED SCORE</th></tr></thead><tbody><tr><td>Nathalie Arthaud</td><td class="poll-detail-score">1.5 %</td></tr><tr><td>Philippe Poutou</td><td class="poll-detail-score">1.5 %</td></tr><tr><td>Fabien Roussel</td><td class="poll-detail-score">4.5 %</td></tr><tr><td>Jean-Luc Mélenchon</td><td class="poll-detail-score">14 %</td></tr><tr><td>Olivier Faure</td><td class="poll-detail-score">2 %</td></tr><tr><td>Marine Tondelier</td><td class="poll-detail-score">2.5 %</td></tr><tr><td>Édouard Philippe</td><td class="poll-detail-score">22 %</td></tr><tr><td>Jean Lassalle</td><td class="poll-detail-score">3 %</td></tr><tr><td>Laurent Wauquiez</td><td class="poll-detail-score">4.5 %</td></tr><tr><td>Nicolas Dupont-Aignan</td><td class="poll-detail-score">2.5 %</td></tr><tr><td>Marine Le Pen</td><td class="poll-detail-score">36 %</td></tr><tr><td>Éric Zemmour</td><td class="poll-detail-score">6 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>EVENT ID: 851add23db63bfc19b66c837384a5adc1bd58f4c3cbb18e108abb8da6bfc230a</span><span>PUBLISHED TOTAL: 100 %</span><a href="https://www.ifop.com/wp-content/uploads/2024/02/120604-Resultats.pdf" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details>
+        </div>
+      </section>
 
-          <section class="poll-detail-panel poll-detail-scenario-nav" aria-labelledby="scenario-navigation-title"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">DIRECTORY</div><h2 id="scenario-navigation-title">SCENARIO NAVIGATION</h2></div><span class="poll-detail-panel-status">2</span></div><nav class="poll-detail-scenario-nav-list" aria-label="Scenario navigation"><a class="poll-detail-scenario-nav-link" href="#scenario-1" data-scenario-target="scenario-1" aria-label="Open scenario 1"><span class="poll-detail-scenario-nav-number">01</span><span class="poll-detail-scenario-nav-copy"><strong class="is-complete">COMPLETE</strong><small>12 CANDIDATES</small></span></a><a class="poll-detail-scenario-nav-link" href="#scenario-2" data-scenario-target="scenario-2" aria-label="Open scenario 2"><span class="poll-detail-scenario-nav-number">02</span><span class="poll-detail-scenario-nav-copy"><strong class="is-complete">COMPLETE</strong><small>12 CANDIDATES</small></span></a></nav></section>
-
-          <details class="poll-detail-panel poll-detail-side-disclosure"><summary class="poll-detail-side-summary"><div><div class="poll-detail-eyebrow">SAME POLL · DIFFERENT BALLOTS</div><h2>VARIATION ACROSS PUBLISHED SCENARIOS</h2></div><span class="poll-detail-side-summary-action">OPEN<i class="poll-detail-side-summary-icon"></i></span></summary><div class="poll-detail-summary-list"><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Nathalie Arthaud</span> · TESTED IN 2 SCENARIOS</span><strong>1.5 %–1.5 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Philippe Poutou</span> · TESTED IN 2 SCENARIOS</span><strong>1.5 %–1.5 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Fabien Roussel</span> · TESTED IN 2 SCENARIOS</span><strong>4 %–4.5 % · Δ 0.5 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Jean-Luc Mélenchon</span> · TESTED IN 2 SCENARIOS</span><strong>14 %–14 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Olivier Faure</span> · TESTED IN 2 SCENARIOS</span><strong>2 %–2 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Marine Tondelier</span> · TESTED IN 2 SCENARIOS</span><strong>2 %–2.5 % · Δ 0.5 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Jean Lassalle</span> · TESTED IN 2 SCENARIOS</span><strong>3 %–3 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Laurent Wauquiez</span> · TESTED IN 2 SCENARIOS</span><strong>4.5 %–5.5 % · Δ 1 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Nicolas Dupont-Aignan</span> · TESTED IN 2 SCENARIOS</span><strong>2.5 %–2.5 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Marine Le Pen</span> · TESTED IN 2 SCENARIOS</span><strong>36 %–36 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Éric Zemmour</span> · TESTED IN 2 SCENARIOS</span><strong>6 %–6 % · Δ 0 pts</strong></div></div></details>
-
-          <section class="poll-detail-panel" aria-labelledby="wave-sources-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">EVIDENCE</div>
-                <h2 id="wave-sources-title">PUBLISHED SOURCES</h2>
-              </div>
-              <span class="poll-detail-panel-status">1</span>
-            </div>
-
-            <div class="poll-detail-source-list">
-              <div class="poll-detail-source-item"><strong>PUBLISHED SOURCE 1</strong><span>ifop.com</span><a href="https://www.ifop.com/wp-content/uploads/2024/02/120604-Resultats.pdf" target="_blank" rel="noopener noreferrer">OPEN SOURCE ↗</a></div>
-            </div>
-          </section>
-
-          <section class="poll-detail-panel" aria-labelledby="wave-navigation-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">DIRECTORY</div>
-                <h2 id="wave-navigation-title">ADJACENT WAVES</h2>
-              </div>
-            </div>
-
-            <div class="poll-detail-nav">
-              <a href="/en/sondages/2024-04-05-cluster17-73c9b0777575d3a3/"><small>NEWER WAVE</small><strong>Cluster17 · 5 April 2024</strong></a>
-              <a href="/en/sondages/2024-01-10-ifop-61b0cf21ce56c3e1/"><small>OLDER WAVE</small><strong>Ifop · 10 January 2024</strong></a>
-            </div>
-
-            <div class="poll-detail-back">
-              <a class="poll-detail-back-cta" href="/en/sondages/">BACK TO POLLING LAB</a>
-            </div>
-          </section>
-        </aside>
-      </div>
+      <section class="poll-detail-panel poll-detail-related" aria-labelledby="related-polls-title"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">CONTINUE EXPLORING</div><h2 id="related-polls-title">MORE POLLS</h2></div><span class="poll-detail-panel-status">6</span></div><div class="poll-detail-related-grid"><a class="poll-detail-related-card" href="/en/sondages/2024-07-08-harris-interactive-af7f25608d9f5fb9/"><span class="poll-detail-related-pollster">Harris Interactive</span><span class="poll-detail-related-date">7–8 July 2024</span><span class="poll-detail-related-meta"><span>4 SCENARIOS</span><span>13 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a><a class="poll-detail-related-card" href="/en/sondages/2024-04-18-ifop-38f0f267cba6b4e5/"><span class="poll-detail-related-pollster">Ifop</span><span class="poll-detail-related-date">16–18 April 2024</span><span class="poll-detail-related-meta"><span>10 SCENARIOS</span><span>19 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a><a class="poll-detail-related-card" href="/en/sondages/2024-04-05-cluster17-73c9b0777575d3a3/"><span class="poll-detail-related-pollster">Cluster17</span><span class="poll-detail-related-date">2–5 April 2024</span><span class="poll-detail-related-meta"><span>3 SCENARIOS</span><span>8 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a><a class="poll-detail-related-card" href="/en/sondages/2024-01-10-ifop-61b0cf21ce56c3e1/"><span class="poll-detail-related-pollster">Ifop</span><span class="poll-detail-related-date">9–10 January 2024</span><span class="poll-detail-related-meta"><span>4 SCENARIOS</span><span>14 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a><a class="poll-detail-related-card" href="/en/sondages/2023-10-25-ifop-f56eac5bc180c247/"><span class="poll-detail-related-pollster">Ifop</span><span class="poll-detail-related-date">24–25 October 2023</span><span class="poll-detail-related-meta"><span>5 SCENARIOS</span><span>16 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a><a class="poll-detail-related-card" href="/en/sondages/2023-10-20-cluster17-30bb60d3928744ea/"><span class="poll-detail-related-pollster">Cluster17</span><span class="poll-detail-related-date">18–20 October 2023</span><span class="poll-detail-related-meta"><span>1 SCENARIO</span><span>12 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a></div><div class="poll-detail-related-footer"><a class="poll-detail-related-all" href="/en/sondages/">VIEW ALL POLLS →</a></div></section>
     </div>
 
 <footer id="candidate-app-hud" class="fr27-app-hud" data-expanded="true" aria-label="France 2027 Signal Lab system dock">

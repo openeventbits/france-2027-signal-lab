@@ -47,6 +47,38 @@ EN_MONTHS = (
     "December",
 )
 
+FR_MONTHS_ABBREVIATED = (
+    "",
+    "janv.",
+    "févr.",
+    "mars",
+    "avr.",
+    "mai",
+    "juin",
+    "juil.",
+    "août",
+    "sept.",
+    "oct.",
+    "nov.",
+    "déc.",
+)
+
+EN_MONTHS_ABBREVIATED = (
+    "",
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+)
+
 
 class PollPageError(ValueError):
     pass
@@ -94,6 +126,42 @@ def format_date(value: str, language: str) -> str:
     if language == "fr":
         return f"{day} {FR_MONTHS[month]} {year}"
     return f"{day} {EN_MONTHS[month]} {year}"
+
+
+def format_date_range(start: str, end: str, language: str) -> str:
+    start_year, start_month, start_day = _iso_parts(start)
+    end_year, end_month, end_day = _iso_parts(end)
+
+    if (start_year, start_month, start_day) == (
+        end_year,
+        end_month,
+        end_day,
+    ):
+        return format_date(start, language)
+
+    if language == "fr":
+        full_months = FR_MONTHS
+        abbreviated_months = FR_MONTHS_ABBREVIATED
+    else:
+        full_months = EN_MONTHS
+        abbreviated_months = EN_MONTHS_ABBREVIATED
+
+    if start_year == end_year and start_month == end_month:
+        return (
+            f"{start_day}–{end_day} "
+            f"{full_months[start_month]} {start_year}"
+        )
+
+    if start_year == end_year:
+        return (
+            f"{start_day} {abbreviated_months[start_month]}–"
+            f"{end_day} {abbreviated_months[end_month]} {start_year}"
+        )
+
+    return (
+        f"{start_day} {abbreviated_months[start_month]} {start_year}–"
+        f"{end_day} {abbreviated_months[end_month]} {end_year}"
+    )
 
 
 def format_integer(value: Any, language: str) -> str:
@@ -521,114 +589,159 @@ def candidate_variation_rows(
 
 
 
-def render_scenario_navigation(
-    wave: dict[str, Any],
-    language: str,
-) -> str:
-    rows: list[str] = []
+def nearby_waves(
+    waves: list[dict[str, Any]],
+    index: int,
+    *,
+    limit: int = 6,
+) -> list[dict[str, Any]]:
+    """
+    Return the nearest waves in corpus chronology.
 
-    for index, scenario in enumerate(wave.get("scenarios", []), start=1):
-        candidates = scenario.get("candidates", [])
-        partial = bool(scenario.get("partial_scenario"))
+    The explorer is ordered newest to oldest. Selection is based
+    only on chronological proximity in that ordered corpus.
+    """
+    if index < 0 or index >= len(waves):
+        raise PollPageError(
+            f"Wave index outside corpus: {index}"
+        )
 
-        if language == "fr":
-            status = "PARTIEL" if partial else "COMPLET"
-            candidate_word = (
-                "CANDIDAT" if len(candidates) == 1 else "CANDIDATS"
+    if limit <= 0:
+        return []
+
+    ranked = sorted(
+        (
+            (
+                abs(candidate_index - index),
+                candidate_index,
+                candidate,
             )
-            aria = f"Ouvrir le scénario {index}"
-        else:
-            status = "PARTIAL" if partial else "COMPLETE"
-            candidate_word = (
-                "CANDIDATE" if len(candidates) == 1 else "CANDIDATES"
-            )
-            aria = f"Open scenario {index}"
-
-        status_class = "is-partial" if partial else "is-complete"
-
-        rows.append(
-            f'<a class="poll-detail-scenario-nav-link" '
-            f'href="#scenario-{index}" '
-            f'data-scenario-target="scenario-{index}" '
-            f'aria-label="{_escape(aria)}">'
-            f'<span class="poll-detail-scenario-nav-number">'
-            f"{index:02d}"
-            "</span>"
-            '<span class="poll-detail-scenario-nav-copy">'
-            f'<strong class="{status_class}">{status}</strong>'
-            f"<small>{len(candidates)} {candidate_word}</small>"
-            "</span>"
-            "</a>"
-        )
-
-    return "".join(rows)
-
-def render_sources(wave: dict[str, Any], language: str) -> str:
-    rows = []
-
-    for number, url in enumerate(wave_sources(wave), start=1):
-        domain = source_domain(url)
-        label = (
-            f"SOURCE PUBLIÉE {number}"
-            if language == "fr"
-            else f"PUBLISHED SOURCE {number}"
-        )
-
-        rows.append(
-            '<div class="poll-detail-source-item">'
-            f"<strong>{_escape(label)}</strong>"
-            f"<span>{_escape(domain)}</span>"
-            f'<a href="{_escape(url)}" target="_blank" rel="noopener noreferrer">'
-            f"{'OUVRIR LA SOURCE ↗' if language == 'fr' else 'OPEN SOURCE ↗'}"
-            "</a>"
-            "</div>"
-        )
-
-    if rows:
-        return "".join(rows)
-
-    return (
-        '<div class="poll-detail-note">'
-        + (
-            "Aucune URL de source publiée n’est disponible pour cette vague."
-            if language == "fr"
-            else "No published source URL is available for this wave."
-        )
-        + "</div>"
+            for candidate_index, candidate
+            in enumerate(waves)
+            if candidate_index != index
+        ),
+        key=lambda item: (
+            item[0],
+            item[1],
+        ),
     )
 
+    selected = ranked[:limit]
 
-def render_navigation_link(
-    target: dict[str, Any] | None,
+    # Present the selected cards in normal corpus chronology:
+    # newer -> older.
+    selected.sort(
+        key=lambda item: item[1]
+    )
+
+    return [
+        candidate
+        for _distance, _index, candidate
+        in selected
+    ]
+
+
+def render_related_polls(
+    waves: list[dict[str, Any]],
     language: str,
-    direction: str,
+    poll_lab_href: str,
 ) -> str:
-    if direction == "newer":
-        label = "VAGUE PLUS RÉCENTE" if language == "fr" else "NEWER WAVE"
+    if not waves:
+        return ""
+
+    if language == "fr":
+        eyebrow = "POURSUIVRE L’EXPLORATION"
+        title = "AUTRES SONDAGES"
+        open_label = "OUVRIR LE SONDAGE →"
+        view_all = "VOIR TOUS LES SONDAGES →"
+        scenario_single = "SCÉNARIO"
+        scenario_plural = "SCÉNARIOS"
+        candidate_single = "CANDIDAT"
+        candidate_plural = "CANDIDATS"
     else:
-        label = "VAGUE PRÉCÉDENTE" if language == "fr" else "OLDER WAVE"
+        eyebrow = "CONTINUE EXPLORING"
+        title = "MORE POLLS"
+        open_label = "OPEN POLL →"
+        view_all = "VIEW ALL POLLS →"
+        scenario_single = "SCENARIO"
+        scenario_plural = "SCENARIOS"
+        candidate_single = "CANDIDATE"
+        candidate_plural = "CANDIDATES"
 
-    if target is None:
-        unavailable = "AUCUNE" if language == "fr" else "NONE"
-        return (
-            '<div class="poll-detail-nav-placeholder">'
-            f"<small>{label}</small><strong>{unavailable}</strong>"
-            "</div>"
+    cards: list[str] = []
+
+    for wave in waves:
+        href = (
+            wave["page_path_fr"]
+            if language == "fr"
+            else wave["page_path_en"]
         )
 
-    href = (
-        target["page_path_fr"]
-        if language == "fr"
-        else target["page_path_en"]
-    )
+        date_range = format_date_range(
+            wave["fieldwork_start"],
+            wave["fieldwork_end"],
+            language,
+        )
 
-    date = format_date(target["fieldwork_end"], language)
+        scenario_count = int(
+            wave.get("scenario_count", 0)
+        )
+
+        candidate_count = len(
+            wave.get("candidate_ids", [])
+        )
+
+        scenario_word = (
+            scenario_single
+            if scenario_count == 1
+            else scenario_plural
+        )
+
+        candidate_word = (
+            candidate_single
+            if candidate_count == 1
+            else candidate_plural
+        )
+
+        cards.append(
+            f'<a class="poll-detail-related-card" '
+            f'href="{_escape(href)}">'
+            '<span class="poll-detail-related-pollster">'
+            f'{_escape(wave["pollster"])}'
+            "</span>"
+            '<span class="poll-detail-related-date">'
+            f"{_escape(date_range)}"
+            "</span>"
+            '<span class="poll-detail-related-meta">'
+            f"<span>{scenario_count} {scenario_word}</span>"
+            f"<span>{candidate_count} {candidate_word}</span>"
+            "</span>"
+            '<span class="poll-detail-related-open">'
+            f"{open_label}"
+            "</span>"
+            "</a>"
+        )
 
     return (
-        f'<a href="{_escape(href)}">'
-        f"<small>{label}</small>"
-        f"<strong>{_escape(target['pollster'])} · {_escape(date)}</strong>"
+        '<section class="poll-detail-panel poll-detail-related" '
+        'aria-labelledby="related-polls-title">'
+        '<div class="poll-detail-panel-head">'
+        "<div>"
+        f'<div class="poll-detail-eyebrow">{eyebrow}</div>'
+        f'<h2 id="related-polls-title">{title}</h2>'
+        "</div>"
+        f'<span class="poll-detail-panel-status">{len(waves)}</span>'
+        "</div>"
+        '<div class="poll-detail-related-grid">'
+        f'{"".join(cards)}'
+        "</div>"
+        '<div class="poll-detail-related-footer">'
+        f'<a class="poll-detail-related-all" '
+        f'href="{_escape(poll_lab_href)}">'
+        f"{view_all}"
         "</a>"
+        "</div>"
+        "</section>"
     )
 
 
@@ -639,8 +752,7 @@ def render_page(
     wave_count: int,
     header: str,
     footer: str,
-    newer: dict[str, Any] | None,
-    older: dict[str, Any] | None,
+    related_waves: list[dict[str, Any]],
 ) -> bytes:
     if language not in {"fr", "en"}:
         raise PollPageError(f"Unsupported page language: {language}")
@@ -661,6 +773,11 @@ def render_page(
 
     start = format_date(wave["fieldwork_start"], language)
     end = format_date(wave["fieldwork_end"], language)
+    fieldwork_range = format_date_range(
+        wave["fieldwork_start"],
+        wave["fieldwork_end"],
+        language,
+    )
     sample = format_integer(wave.get("sample_size"), language)
     scenarios = int(wave["scenario_count"])
     candidate_count = len(wave.get("candidate_ids", []))
@@ -678,6 +795,7 @@ def render_page(
             f"du {start} au {end}. Les scénarios sont présentés séparément afin "
             "de préserver la composition exacte des bulletins testés."
         )
+        tooltip_label = "À propos de cette vague de sondage"
         metric_pollster = "INSTITUT"
         metric_fieldwork = "TERRAIN"
         metric_sample = "ÉCHANTILLON"
@@ -687,12 +805,7 @@ def render_page(
         scenarios_title = "SCÉNARIOS DE LA VAGUE"
         variation_eyebrow = "MÊME SONDAGE · BULLETINS DIFFÉRENTS"
         variation_title = "VARIATION ENTRE SCÉNARIOS PUBLIÉS"
-        sources_eyebrow = "PREUVES"
-        sources_title = "SOURCES PUBLIÉES"
-        navigation_eyebrow = "RÉPERTOIRE"
-        navigation_title = "VAGUES ADJACENTES"
         open_source = "SOURCE ↗"
-        back = "RETOUR AU POLLING LAB"
         boundary = (
             "<span>AUCUNE MOYENNE DE SONDAGES</span>"
             "<span>AUCUNE PRÉVISION</span>"
@@ -714,6 +827,7 @@ def render_page(
             f"from {start} to {end}. Scenarios are kept separate to preserve "
             "the exact composition of the ballots tested."
         )
+        tooltip_label = "About this poll wave"
         metric_pollster = "POLLSTER"
         metric_fieldwork = "FIELDWORK"
         metric_sample = "SAMPLE"
@@ -723,12 +837,7 @@ def render_page(
         scenarios_title = "WAVE SCENARIOS"
         variation_eyebrow = "SAME POLL · DIFFERENT BALLOTS"
         variation_title = "VARIATION ACROSS PUBLISHED SCENARIOS"
-        sources_eyebrow = "EVIDENCE"
-        sources_title = "PUBLISHED SOURCES"
-        navigation_eyebrow = "DIRECTORY"
-        navigation_title = "ADJACENT WAVES"
         open_source = "SOURCE ↗"
-        back = "BACK TO POLLING LAB"
         boundary = (
             "<span>NO POLLING AVERAGES</span>"
             "<span>NO FORECAST</span>"
@@ -770,6 +879,12 @@ def render_page(
 
     poll_lab_href = "/sondages/" if language == "fr" else "/en/sondages/"
 
+    related_polls_markup = render_related_polls(
+        related_waves,
+        language,
+        poll_lab_href,
+    )
+
     home_href = "/" if language == "fr" else "/en/"
     home_url = f"https://france2027.app{home_href}"
     poll_lab_url = f"https://france2027.app{poll_lab_href}"
@@ -782,22 +897,12 @@ def render_page(
     og_locale_alternate = "en_GB" if language == "fr" else "fr_FR"
 
     if language == "fr":
-        overview_eyebrow = "VAGUE"
-        overview_title = "VUE D’ENSEMBLE"
-        scenario_nav_eyebrow = "RÉPERTOIRE"
-        scenario_nav_title = "NAVIGATION DES SCÉNARIOS"
         expand_all_label = "TOUT OUVRIR"
         collapse_all_label = "TOUT RÉDUIRE"
-        overview_sources_label = "SOURCES"
         variation_expand_label = "OUVRIR"
     else:
-        overview_eyebrow = "WAVE"
-        overview_title = "WAVE OVERVIEW"
-        scenario_nav_eyebrow = "DIRECTORY"
-        scenario_nav_title = "SCENARIO NAVIGATION"
         expand_all_label = "EXPAND ALL"
         collapse_all_label = "COLLAPSE ALL"
-        overview_sources_label = "SOURCES"
         variation_expand_label = "OPEN"
 
     scenario_controls_markup = ""
@@ -814,63 +919,12 @@ def render_page(
             "</div>"
         )
 
-    overview_markup = (
-        '<section class="poll-detail-panel poll-detail-overview" '
-        'aria-labelledby="wave-overview-title">'
-        '<div class="poll-detail-panel-head">'
-        "<div>"
-        f'<div class="poll-detail-eyebrow">{overview_eyebrow}</div>'
-        f'<h2 id="wave-overview-title">{overview_title}</h2>'
-        "</div>"
-        "</div>"
-        '<div class="poll-detail-overview-list">'
-        '<div class="poll-detail-summary-row">'
-        f"<span>{metric_scenarios}</span><strong>{scenarios}</strong>"
-        "</div>"
-        '<div class="poll-detail-summary-row">'
-        f"<span>{metric_candidates}</span><strong>{candidate_count}</strong>"
-        "</div>"
-        '<div class="poll-detail-summary-row">'
-        f"<span>{metric_sample}</span><strong>n={_escape(sample)}</strong>"
-        "</div>"
-        '<div class="poll-detail-summary-row">'
-        f"<span>{metric_fieldwork}</span>"
-        f"<strong>{_escape(start)} → {_escape(end)}</strong>"
-        "</div>"
-        '<div class="poll-detail-summary-row">'
-        f"<span>{overview_sources_label}</span>"
-        f"<strong>{len(sources)}</strong>"
-        "</div>"
-        "</div>"
-        "</section>"
-    )
-
-    scenario_nav_markup = ""
-
-    if scenarios > 1:
-        scenario_nav_markup = (
-            '<section class="poll-detail-panel poll-detail-scenario-nav" '
-            'aria-labelledby="scenario-navigation-title">'
-            '<div class="poll-detail-panel-head">'
-            "<div>"
-            f'<div class="poll-detail-eyebrow">{scenario_nav_eyebrow}</div>'
-            f'<h2 id="scenario-navigation-title">{scenario_nav_title}</h2>'
-            "</div>"
-            f'<span class="poll-detail-panel-status">{scenarios}</span>'
-            "</div>"
-            '<nav class="poll-detail-scenario-nav-list" '
-            'aria-label="Scenario navigation">'
-            f"{render_scenario_navigation(wave, language)}"
-            "</nav>"
-            "</section>"
-        )
-
     variation_panel_markup = ""
 
     if variation_rows:
         variation_panel_markup = (
             '<details class="poll-detail-panel '
-            'poll-detail-side-disclosure">'
+            'poll-detail-side-disclosure poll-detail-variation-panel">'
             '<summary class="poll-detail-side-summary">'
             "<div>"
             f'<div class="poll-detail-eyebrow">{variation_eyebrow}</div>'
@@ -995,8 +1049,27 @@ def render_page(
         <div class="poll-detail-hero-main">
           <div>
             <div class="poll-detail-eyebrow">{eyebrow}</div>
-            <h1 class="poll-detail-title" id="poll-wave-title">{_escape(wave['pollster'])}</h1>
-            <p class="poll-detail-deck">{_escape(deck)}</p>
+            <div class="poll-detail-title-line">
+              <h1 class="poll-detail-title" id="poll-wave-title">{_escape(wave['pollster'])}</h1>
+
+              <span class="poll-detail-tooltip-wrap">
+                <button
+                  type="button"
+                  class="poll-detail-tooltip-trigger"
+                  data-poll-tooltip-trigger
+                  aria-label="{_escape(tooltip_label)}"
+                  aria-describedby="poll-wave-note"
+                  aria-controls="poll-wave-note"
+                  aria-expanded="false"
+                >i</button>
+
+                <span
+                  class="poll-detail-tooltip"
+                  id="poll-wave-note"
+                  role="tooltip"
+                >{_escape(deck)}</span>
+              </span>
+            </div>
           </div>
           {first_source_cta}
         </div>
@@ -1006,9 +1079,9 @@ def render_page(
             <span>{metric_pollster}</span>
             <strong>{_escape(wave['pollster'])}</strong>
           </div>
-          <div class="poll-detail-metric">
+          <div class="poll-detail-metric poll-detail-metric-fieldwork">
             <span>{metric_fieldwork}</span>
-            <strong>{_escape(start)} → {_escape(end)}</strong>
+            <strong>{_escape(fieldwork_range)}</strong>
           </div>
           <div class="poll-detail-metric">
             <span>{metric_sample}</span>
@@ -1029,67 +1102,30 @@ def render_page(
         </div>
       </section>
 
-      <div class="poll-detail-grid">
-        <div class="poll-detail-main-column">
-          <section class="poll-detail-panel" aria-labelledby="wave-scenarios-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">{scenarios_eyebrow}</div>
-                <h2 id="wave-scenarios-title">{scenarios_title}</h2>
-              </div>
+      {variation_panel_markup}
 
-              <div class="poll-detail-panel-tools">
-                <span class="poll-detail-panel-status">{scenario_status}</span>
-                {scenario_controls_markup}
-              </div>
-            </div>
+      <section
+        class="poll-detail-panel poll-detail-results"
+        aria-labelledby="wave-scenarios-title"
+      >
+        <div class="poll-detail-panel-head">
+          <div>
+            <div class="poll-detail-eyebrow">{scenarios_eyebrow}</div>
+            <h2 id="wave-scenarios-title">{scenarios_title}</h2>
+          </div>
 
-            <div class="poll-detail-scenario-list">
-              {scenario_markup}
-            </div>
-          </section>
+          <div class="poll-detail-panel-tools">
+            <span class="poll-detail-panel-status">{scenario_status}</span>
+            {scenario_controls_markup}
+          </div>
         </div>
 
-        <aside class="poll-detail-side-column">
-          {overview_markup}
+        <div class="poll-detail-scenario-list">
+          {scenario_markup}
+        </div>
+      </section>
 
-          {scenario_nav_markup}
-
-          {variation_panel_markup}
-
-          <section class="poll-detail-panel" aria-labelledby="wave-sources-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">{sources_eyebrow}</div>
-                <h2 id="wave-sources-title">{sources_title}</h2>
-              </div>
-              <span class="poll-detail-panel-status">{len(sources)}</span>
-            </div>
-
-            <div class="poll-detail-source-list">
-              {render_sources(wave, language)}
-            </div>
-          </section>
-
-          <section class="poll-detail-panel" aria-labelledby="wave-navigation-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">{navigation_eyebrow}</div>
-                <h2 id="wave-navigation-title">{navigation_title}</h2>
-              </div>
-            </div>
-
-            <div class="poll-detail-nav">
-              {render_navigation_link(newer, language, "newer")}
-              {render_navigation_link(older, language, "older")}
-            </div>
-
-            <div class="poll-detail-back">
-              <a class="poll-detail-back-cta" href="{poll_lab_href}">{back}</a>
-            </div>
-          </section>
-        </aside>
-      </div>
+      {related_polls_markup}
     </div>
 
 {prepared_footer}
@@ -1097,6 +1133,11 @@ def render_page(
 </body>
 </html>
 '''
+
+    document = "\n".join(
+        line.rstrip()
+        for line in document.splitlines()
+    ) + "\n"
 
     return document.encode("utf-8")
 
@@ -1219,8 +1260,11 @@ def expected_artifacts(
     artifacts: dict[Path, bytes] = {}
 
     for index, wave in enumerate(waves):
-        newer = waves[index - 1] if index > 0 else None
-        older = waves[index + 1] if index + 1 < len(waves) else None
+        related = nearby_waves(
+            waves,
+            index,
+            limit=6,
+        )
 
         for language in ("fr", "en"):
             path_key = "page_path_fr" if language == "fr" else "page_path_en"
@@ -1232,8 +1276,7 @@ def expected_artifacts(
                 wave_count=wave_count,
                 header=shell[language]["header"],
                 footer=shell[language]["footer"],
-                newer=newer,
-                older=older,
+                related_waves=related,
             )
 
     manifest = manifest_payload(waves)

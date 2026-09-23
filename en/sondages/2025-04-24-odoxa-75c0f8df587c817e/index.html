@@ -63,8 +63,27 @@
         <div class="poll-detail-hero-main">
           <div>
             <div class="poll-detail-eyebrow">FIRST-ROUND POLL WAVE</div>
-            <h1 class="poll-detail-title" id="poll-wave-title">Odoxa</h1>
-            <p class="poll-detail-deck">Published results from Odoxa for fieldwork conducted from 23 April 2025 to 24 April 2025. Scenarios are kept separate to preserve the exact composition of the ballots tested.</p>
+            <div class="poll-detail-title-line">
+              <h1 class="poll-detail-title" id="poll-wave-title">Odoxa</h1>
+
+              <span class="poll-detail-tooltip-wrap">
+                <button
+                  type="button"
+                  class="poll-detail-tooltip-trigger"
+                  data-poll-tooltip-trigger
+                  aria-label="About this poll wave"
+                  aria-describedby="poll-wave-note"
+                  aria-controls="poll-wave-note"
+                  aria-expanded="false"
+                >i</button>
+
+                <span
+                  class="poll-detail-tooltip"
+                  id="poll-wave-note"
+                  role="tooltip"
+                >Published results from Odoxa for fieldwork conducted from 23 April 2025 to 24 April 2025. Scenarios are kept separate to preserve the exact composition of the ballots tested.</span>
+              </span>
+            </div>
           </div>
           <a class="poll-detail-source-cta" href="https://www.odoxa.fr/sondage/presidentielle-le-pen-ou-bardella-seraient-en-tete-au-premier-tour-mais-battus-par-philippe-au-second/" target="_blank" rel="noopener noreferrer">SOURCE ↗</a>
         </div>
@@ -74,9 +93,9 @@
             <span>POLLSTER</span>
             <strong>Odoxa</strong>
           </div>
-          <div class="poll-detail-metric">
+          <div class="poll-detail-metric poll-detail-metric-fieldwork">
             <span>FIELDWORK</span>
-            <strong>23 April 2025 → 24 April 2025</strong>
+            <strong>23–24 April 2025</strong>
           </div>
           <div class="poll-detail-metric">
             <span>SAMPLE</span>
@@ -97,67 +116,30 @@
         </div>
       </section>
 
-      <div class="poll-detail-grid">
-        <div class="poll-detail-main-column">
-          <section class="poll-detail-panel" aria-labelledby="wave-scenarios-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">PUBLISHED RESULTS</div>
-                <h2 id="wave-scenarios-title">WAVE SCENARIOS</h2>
-              </div>
+      <details class="poll-detail-panel poll-detail-side-disclosure poll-detail-variation-panel"><summary class="poll-detail-side-summary"><div><div class="poll-detail-eyebrow">SAME POLL · DIFFERENT BALLOTS</div><h2>VARIATION ACROSS PUBLISHED SCENARIOS</h2></div><span class="poll-detail-side-summary-action">OPEN<i class="poll-detail-side-summary-icon"></i></span></summary><div class="poll-detail-summary-list"><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Arthaud</span> · TESTED IN 2 SCENARIOS</span><strong>1 %–1 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Poutou</span> · TESTED IN 2 SCENARIOS</span><strong>2 %–2 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Roussel</span> · TESTED IN 2 SCENARIOS</span><strong>3 %–3 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Mélenchon</span> · TESTED IN 2 SCENARIOS</span><strong>12 %–12 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Raphaël Glucksmann</span> · TESTED IN 2 SCENARIOS</span><strong>11.5 %–12 % · Δ 0.5 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Tondelier</span> · TESTED IN 2 SCENARIOS</span><strong>3 %–4 % · Δ 1 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Philippe</span> · TESTED IN 2 SCENARIOS</span><strong>20 %–20.5 % · Δ 0.5 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Retailleau</span> · TESTED IN 2 SCENARIOS</span><strong>9.5 %–10 % · Δ 0.5 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Dupont-Aignan</span> · TESTED IN 2 SCENARIOS</span><strong>2 %–2 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Zemmour</span> · TESTED IN 2 SCENARIOS</span><strong>3 %–3 % · Δ 0 pts</strong></div></div></details>
 
-              <div class="poll-detail-panel-tools">
-                <span class="poll-detail-panel-status">2 SCENARIOS</span>
-                <div class="poll-detail-panel-actions"><button type="button" data-poll-expand-all>EXPAND ALL</button><button type="button" data-poll-collapse-all>COLLAPSE ALL</button></div>
-              </div>
-            </div>
+      <section
+        class="poll-detail-panel poll-detail-results"
+        aria-labelledby="wave-scenarios-title"
+      >
+        <div class="poll-detail-panel-head">
+          <div>
+            <div class="poll-detail-eyebrow">PUBLISHED RESULTS</div>
+            <h2 id="wave-scenarios-title">WAVE SCENARIOS</h2>
+          </div>
 
-            <div class="poll-detail-scenario-list">
-              <details class="poll-detail-scenario" id="scenario-1" data-scenario-index="1"><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCENARIO 1</span><span class="poll-detail-scenario-status is-complete">COMPLETE SCENARIO</span></div><h3>FIRST ROUND — Arthaud, Poutou, Roussel, Mélenchon, Raphaël Glucksmann, Tondelier, Philippe, Retailleau, Dupont-Aignan, Bardella, Zemmour</h3><div class="poll-detail-scenario-meta"><span>11 CANDIDATES</span><span>PUBLISHED TOTAL 100 %</span><span>SOURCE AVAILABLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OPEN" data-close-label="COLLAPSE">OPEN</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDATE</th><th>PUBLISHED SCORE</th></tr></thead><tbody><tr><td>Arthaud</td><td class="poll-detail-score">1 %</td></tr><tr><td>Poutou</td><td class="poll-detail-score">2 %</td></tr><tr><td>Roussel</td><td class="poll-detail-score">3 %</td></tr><tr><td>Mélenchon</td><td class="poll-detail-score">12 %</td></tr><tr><td>Raphaël Glucksmann</td><td class="poll-detail-score">12 %</td></tr><tr><td>Tondelier</td><td class="poll-detail-score">4 %</td></tr><tr><td>Philippe</td><td class="poll-detail-score">20 %</td></tr><tr><td>Retailleau</td><td class="poll-detail-score">9.5 %</td></tr><tr><td>Dupont-Aignan</td><td class="poll-detail-score">2 %</td></tr><tr><td>Bardella</td><td class="poll-detail-score">31.5 %</td></tr><tr><td>Zemmour</td><td class="poll-detail-score">3 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>EVENT ID: 27d791d8867552f960918eac70698642ba79c11bbdfc741ceeb745e537d3e304</span><span>PUBLISHED TOTAL: 100 %</span><a href="https://www.odoxa.fr/sondage/presidentielle-le-pen-ou-bardella-seraient-en-tete-au-premier-tour-mais-battus-par-philippe-au-second/" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details><details class="poll-detail-scenario" id="scenario-2" data-scenario-index="2"><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCENARIO 2</span><span class="poll-detail-scenario-status is-complete">COMPLETE SCENARIO</span></div><h3>FIRST ROUND — Nathalie Arthaud, Philippe Poutou, Fabien Roussel, Jean-Luc Mélenchon, Raphaël Glucksmann, Marine Tondelier, Édouard Philippe, Bruno Retailleau, Nicolas Dupont-Aignan, Marine Le Pen, Éric Zemmour</h3><div class="poll-detail-scenario-meta"><span>11 CANDIDATES</span><span>PUBLISHED TOTAL 100 %</span><span>SOURCE AVAILABLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OPEN" data-close-label="COLLAPSE">OPEN</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDATE</th><th>PUBLISHED SCORE</th></tr></thead><tbody><tr><td>Nathalie Arthaud</td><td class="poll-detail-score">1 %</td></tr><tr><td>Philippe Poutou</td><td class="poll-detail-score">2 %</td></tr><tr><td>Fabien Roussel</td><td class="poll-detail-score">3 %</td></tr><tr><td>Jean-Luc Mélenchon</td><td class="poll-detail-score">12 %</td></tr><tr><td>Raphaël Glucksmann</td><td class="poll-detail-score">11.5 %</td></tr><tr><td>Marine Tondelier</td><td class="poll-detail-score">3 %</td></tr><tr><td>Édouard Philippe</td><td class="poll-detail-score">20.5 %</td></tr><tr><td>Bruno Retailleau</td><td class="poll-detail-score">10 %</td></tr><tr><td>Nicolas Dupont-Aignan</td><td class="poll-detail-score">2 %</td></tr><tr><td>Marine Le Pen</td><td class="poll-detail-score">32 %</td></tr><tr><td>Éric Zemmour</td><td class="poll-detail-score">3 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>EVENT ID: 677a643d08ff23f0397842e02a76b8001b30126cd3e8b0bfa7ed61b73a8e53fb</span><span>PUBLISHED TOTAL: 100 %</span><a href="https://www.odoxa.fr/sondage/presidentielle-le-pen-ou-bardella-seraient-en-tete-au-premier-tour-mais-battus-par-philippe-au-second/" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details>
-            </div>
-          </section>
+          <div class="poll-detail-panel-tools">
+            <span class="poll-detail-panel-status">2 SCENARIOS</span>
+            <div class="poll-detail-panel-actions"><button type="button" data-poll-expand-all>EXPAND ALL</button><button type="button" data-poll-collapse-all>COLLAPSE ALL</button></div>
+          </div>
         </div>
 
-        <aside class="poll-detail-side-column">
-          <section class="poll-detail-panel poll-detail-overview" aria-labelledby="wave-overview-title"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">WAVE</div><h2 id="wave-overview-title">WAVE OVERVIEW</h2></div></div><div class="poll-detail-overview-list"><div class="poll-detail-summary-row"><span>SCENARIOS</span><strong>2</strong></div><div class="poll-detail-summary-row"><span>CANDIDATES TESTED</span><strong>12</strong></div><div class="poll-detail-summary-row"><span>SAMPLE</span><strong>n=1,005</strong></div><div class="poll-detail-summary-row"><span>FIELDWORK</span><strong>23 April 2025 → 24 April 2025</strong></div><div class="poll-detail-summary-row"><span>SOURCES</span><strong>1</strong></div></div></section>
+        <div class="poll-detail-scenario-list">
+          <details class="poll-detail-scenario" id="scenario-1" data-scenario-index="1"><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCENARIO 1</span><span class="poll-detail-scenario-status is-complete">COMPLETE SCENARIO</span></div><h3>FIRST ROUND — Arthaud, Poutou, Roussel, Mélenchon, Raphaël Glucksmann, Tondelier, Philippe, Retailleau, Dupont-Aignan, Bardella, Zemmour</h3><div class="poll-detail-scenario-meta"><span>11 CANDIDATES</span><span>PUBLISHED TOTAL 100 %</span><span>SOURCE AVAILABLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OPEN" data-close-label="COLLAPSE">OPEN</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDATE</th><th>PUBLISHED SCORE</th></tr></thead><tbody><tr><td>Arthaud</td><td class="poll-detail-score">1 %</td></tr><tr><td>Poutou</td><td class="poll-detail-score">2 %</td></tr><tr><td>Roussel</td><td class="poll-detail-score">3 %</td></tr><tr><td>Mélenchon</td><td class="poll-detail-score">12 %</td></tr><tr><td>Raphaël Glucksmann</td><td class="poll-detail-score">12 %</td></tr><tr><td>Tondelier</td><td class="poll-detail-score">4 %</td></tr><tr><td>Philippe</td><td class="poll-detail-score">20 %</td></tr><tr><td>Retailleau</td><td class="poll-detail-score">9.5 %</td></tr><tr><td>Dupont-Aignan</td><td class="poll-detail-score">2 %</td></tr><tr><td>Bardella</td><td class="poll-detail-score">31.5 %</td></tr><tr><td>Zemmour</td><td class="poll-detail-score">3 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>EVENT ID: 27d791d8867552f960918eac70698642ba79c11bbdfc741ceeb745e537d3e304</span><span>PUBLISHED TOTAL: 100 %</span><a href="https://www.odoxa.fr/sondage/presidentielle-le-pen-ou-bardella-seraient-en-tete-au-premier-tour-mais-battus-par-philippe-au-second/" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details><details class="poll-detail-scenario" id="scenario-2" data-scenario-index="2"><summary class="poll-detail-scenario-summary"><div class="poll-detail-scenario-summary-main"><div class="poll-detail-scenario-kicker"><span class="poll-detail-scenario-number">SCENARIO 2</span><span class="poll-detail-scenario-status is-complete">COMPLETE SCENARIO</span></div><h3>FIRST ROUND — Nathalie Arthaud, Philippe Poutou, Fabien Roussel, Jean-Luc Mélenchon, Raphaël Glucksmann, Marine Tondelier, Édouard Philippe, Bruno Retailleau, Nicolas Dupont-Aignan, Marine Le Pen, Éric Zemmour</h3><div class="poll-detail-scenario-meta"><span>11 CANDIDATES</span><span>PUBLISHED TOTAL 100 %</span><span>SOURCE AVAILABLE</span></div></div><span class="poll-detail-scenario-toggle" aria-hidden="true"><span class="poll-detail-scenario-toggle-text" data-open-label="OPEN" data-close-label="COLLAPSE">OPEN</span><i class="poll-detail-scenario-toggle-icon"></i></span></summary><div class="poll-detail-scenario-body"><div class="poll-detail-table-wrap"><table class="poll-detail-table"><thead><tr><th>CANDIDATE</th><th>PUBLISHED SCORE</th></tr></thead><tbody><tr><td>Nathalie Arthaud</td><td class="poll-detail-score">1 %</td></tr><tr><td>Philippe Poutou</td><td class="poll-detail-score">2 %</td></tr><tr><td>Fabien Roussel</td><td class="poll-detail-score">3 %</td></tr><tr><td>Jean-Luc Mélenchon</td><td class="poll-detail-score">12 %</td></tr><tr><td>Raphaël Glucksmann</td><td class="poll-detail-score">11.5 %</td></tr><tr><td>Marine Tondelier</td><td class="poll-detail-score">3 %</td></tr><tr><td>Édouard Philippe</td><td class="poll-detail-score">20.5 %</td></tr><tr><td>Bruno Retailleau</td><td class="poll-detail-score">10 %</td></tr><tr><td>Nicolas Dupont-Aignan</td><td class="poll-detail-score">2 %</td></tr><tr><td>Marine Le Pen</td><td class="poll-detail-score">32 %</td></tr><tr><td>Éric Zemmour</td><td class="poll-detail-score">3 %</td></tr></tbody></table></div><div class="poll-detail-scenario-foot"><span>EVENT ID: 677a643d08ff23f0397842e02a76b8001b30126cd3e8b0bfa7ed61b73a8e53fb</span><span>PUBLISHED TOTAL: 100 %</span><a href="https://www.odoxa.fr/sondage/presidentielle-le-pen-ou-bardella-seraient-en-tete-au-premier-tour-mais-battus-par-philippe-au-second/" target="_blank" rel="noopener noreferrer">SOURCE ↗</a></div></div></details>
+        </div>
+      </section>
 
-          <section class="poll-detail-panel poll-detail-scenario-nav" aria-labelledby="scenario-navigation-title"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">DIRECTORY</div><h2 id="scenario-navigation-title">SCENARIO NAVIGATION</h2></div><span class="poll-detail-panel-status">2</span></div><nav class="poll-detail-scenario-nav-list" aria-label="Scenario navigation"><a class="poll-detail-scenario-nav-link" href="#scenario-1" data-scenario-target="scenario-1" aria-label="Open scenario 1"><span class="poll-detail-scenario-nav-number">01</span><span class="poll-detail-scenario-nav-copy"><strong class="is-complete">COMPLETE</strong><small>11 CANDIDATES</small></span></a><a class="poll-detail-scenario-nav-link" href="#scenario-2" data-scenario-target="scenario-2" aria-label="Open scenario 2"><span class="poll-detail-scenario-nav-number">02</span><span class="poll-detail-scenario-nav-copy"><strong class="is-complete">COMPLETE</strong><small>11 CANDIDATES</small></span></a></nav></section>
-
-          <details class="poll-detail-panel poll-detail-side-disclosure"><summary class="poll-detail-side-summary"><div><div class="poll-detail-eyebrow">SAME POLL · DIFFERENT BALLOTS</div><h2>VARIATION ACROSS PUBLISHED SCENARIOS</h2></div><span class="poll-detail-side-summary-action">OPEN<i class="poll-detail-side-summary-icon"></i></span></summary><div class="poll-detail-summary-list"><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Arthaud</span> · TESTED IN 2 SCENARIOS</span><strong>1 %–1 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Poutou</span> · TESTED IN 2 SCENARIOS</span><strong>2 %–2 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Roussel</span> · TESTED IN 2 SCENARIOS</span><strong>3 %–3 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Mélenchon</span> · TESTED IN 2 SCENARIOS</span><strong>12 %–12 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Raphaël Glucksmann</span> · TESTED IN 2 SCENARIOS</span><strong>11.5 %–12 % · Δ 0.5 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Tondelier</span> · TESTED IN 2 SCENARIOS</span><strong>3 %–4 % · Δ 1 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Philippe</span> · TESTED IN 2 SCENARIOS</span><strong>20 %–20.5 % · Δ 0.5 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Retailleau</span> · TESTED IN 2 SCENARIOS</span><strong>9.5 %–10 % · Δ 0.5 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Dupont-Aignan</span> · TESTED IN 2 SCENARIOS</span><strong>2 %–2 % · Δ 0 pts</strong></div><div class="poll-detail-summary-row"><span><span class="poll-detail-variation-name">Zemmour</span> · TESTED IN 2 SCENARIOS</span><strong>3 %–3 % · Δ 0 pts</strong></div></div></details>
-
-          <section class="poll-detail-panel" aria-labelledby="wave-sources-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">EVIDENCE</div>
-                <h2 id="wave-sources-title">PUBLISHED SOURCES</h2>
-              </div>
-              <span class="poll-detail-panel-status">1</span>
-            </div>
-
-            <div class="poll-detail-source-list">
-              <div class="poll-detail-source-item"><strong>PUBLISHED SOURCE 1</strong><span>odoxa.fr</span><a href="https://www.odoxa.fr/sondage/presidentielle-le-pen-ou-bardella-seraient-en-tete-au-premier-tour-mais-battus-par-philippe-au-second/" target="_blank" rel="noopener noreferrer">OPEN SOURCE ↗</a></div>
-            </div>
-          </section>
-
-          <section class="poll-detail-panel" aria-labelledby="wave-navigation-title">
-            <div class="poll-detail-panel-head">
-              <div>
-                <div class="poll-detail-eyebrow">DIRECTORY</div>
-                <h2 id="wave-navigation-title">ADJACENT WAVES</h2>
-              </div>
-            </div>
-
-            <div class="poll-detail-nav">
-              <a href="/en/sondages/2025-04-25-harris-interactive-992ebe9408dfa053/"><small>NEWER WAVE</small><strong>Harris Interactive · 25 April 2025</strong></a>
-              <a href="/en/sondages/2025-04-18-ifop-hexagone-7caf285766449d85/"><small>OLDER WAVE</small><strong>Ifop/Hexagone · 18 April 2025</strong></a>
-            </div>
-
-            <div class="poll-detail-back">
-              <a class="poll-detail-back-cta" href="/en/sondages/">BACK TO POLLING LAB</a>
-            </div>
-          </section>
-        </aside>
-      </div>
+      <section class="poll-detail-panel poll-detail-related" aria-labelledby="related-polls-title"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">CONTINUE EXPLORING</div><h2 id="related-polls-title">MORE POLLS</h2></div><span class="poll-detail-panel-status">6</span></div><div class="poll-detail-related-grid"><a class="poll-detail-related-card" href="/en/sondages/2025-05-19-harris-interactive-469567083592d535/"><span class="poll-detail-related-pollster">Harris Interactive</span><span class="poll-detail-related-date">19 May 2025</span><span class="poll-detail-related-meta"><span>4 SCENARIOS</span><span>11 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a><a class="poll-detail-related-card" href="/en/sondages/2025-04-30-ifop-203e57920f345fc2/"><span class="poll-detail-related-pollster">Ifop</span><span class="poll-detail-related-date">29–30 April 2025</span><span class="poll-detail-related-meta"><span>2 SCENARIOS</span><span>12 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a><a class="poll-detail-related-card" href="/en/sondages/2025-04-25-harris-interactive-992ebe9408dfa053/"><span class="poll-detail-related-pollster">Harris Interactive</span><span class="poll-detail-related-date">24–25 April 2025</span><span class="poll-detail-related-meta"><span>3 SCENARIOS</span><span>0 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a><a class="poll-detail-related-card" href="/en/sondages/2025-04-18-ifop-hexagone-7caf285766449d85/"><span class="poll-detail-related-pollster">Ifop/Hexagone</span><span class="poll-detail-related-date">11–18 April 2025</span><span class="poll-detail-related-meta"><span>8 SCENARIOS</span><span>15 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a><a class="poll-detail-related-card" href="/en/sondages/2025-04-04-elabe-0976ef75f2c0252e/"><span class="poll-detail-related-pollster">Elabe</span><span class="poll-detail-related-date">2–4 April 2025</span><span class="poll-detail-related-meta"><span>9 SCENARIOS</span><span>17 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a><a class="poll-detail-related-card" href="/en/sondages/2025-03-31-harris-interactive-8f8c73aa8bd91bff/"><span class="poll-detail-related-pollster">Harris Interactive</span><span class="poll-detail-related-date">31 March 2025</span><span class="poll-detail-related-meta"><span>2 SCENARIOS</span><span>12 CANDIDATES</span></span><span class="poll-detail-related-open">OPEN POLL →</span></a></div><div class="poll-detail-related-footer"><a class="poll-detail-related-all" href="/en/sondages/">VIEW ALL POLLS →</a></div></section>
     </div>
 
 <footer id="candidate-app-hud" class="fr27-app-hud" data-expanded="true" aria-label="France 2027 Signal Lab system dock">
