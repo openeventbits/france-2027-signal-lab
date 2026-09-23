@@ -412,6 +412,26 @@ jobs:
             --claims claims_under_scrutiny.json \
             --output recent_changes.json
 
+      - name: Rebuild Polling Lab and poll detail pages
+        id: poll_publication
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -B build_poll_explorer.py
+          python -B build_poll_pages.py
+          python -B build_poll_pages.py --check
+
+          if [[ -n "$(git status --porcelain -- \
+            poll_explorer.json \
+            poll_pages_manifest.json \
+            sondages \
+            en/sondages)" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Rebuild semantic search entrypoints
         id: search_entrypoints
         shell: bash
@@ -427,16 +447,49 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Rebuild route registry and sitemaps
+        id: search_artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          effective_date="$(date -u +'%Y-%m-%d')"
+          echo "effective_date=$effective_date" >> "$GITHUB_OUTPUT"
+
+          python -B build_route_registry.py \
+            --effective-date "$effective_date"
+          python -B build_route_registry.py --check
+
+          python -B build_sitemaps.py
+          python -B build_sitemaps.py --check
+
+          if [[ -n "$(git status --porcelain -- \
+            route_registry.json \
+            sitemap.xml \
+            sitemap-core.xml \
+            sitemap-polls.xml)" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Rebuild and validate publication manifest
         id: publication_manifest
         env:
           SOURCE_CHANGED: ${{ steps.validate.outputs.changed }}
           CANDIDATE_SIGNALS_CHANGED: ${{ steps.candidate_signals.outputs.candidate_signals_changed }}
+          POLL_PUBLICATION_CHANGED: ${{ steps.poll_publication.outputs.changed }}
+          SEARCH_ENTRYPOINTS_CHANGED: ${{ steps.search_entrypoints.outputs.changed }}
+          SEARCH_ARTIFACTS_CHANGED: ${{ steps.search_artifacts.outputs.changed }}
         shell: bash
         run: |
           set -euo pipefail
 
-          if [[ "$SOURCE_CHANGED" == "true" || "$CANDIDATE_SIGNALS_CHANGED" == "true" ]]; then
+          if [[ "$SOURCE_CHANGED" == "true" \
+            || "$CANDIDATE_SIGNALS_CHANGED" == "true" \
+            || "$POLL_PUBLICATION_CHANGED" == "true" \
+            || "$SEARCH_ENTRYPOINTS_CHANGED" == "true" \
+            || "$SEARCH_ARTIFACTS_CHANGED" == "true" ]]; then
             published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           elif published_at="$(python -c 'import json; from build_publication_manifest import _utc_timestamp; print(_utc_timestamp(json.load(open("publication_manifest.json", encoding="utf-8")).get("published_at"), field="published_at"))' 2>/dev/null)"; then
             :
@@ -459,18 +512,36 @@ jobs:
             echo "publication_manifest_changed=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Test poll publication and search contract
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: >-
+          python -B -m unittest -v
+          test_poll_explorer.py
+          test_poll_pages.py
+          test_route_registry.py
+          test_search_foundation.py
+
       - name: Commit changed poll data
         id: commit
         env:
           POLL_DATA_CHANGED: ${{ steps.validate.outputs.changed }}
           CANDIDATE_SIGNALS_CHANGED: ${{ steps.candidate_signals.outputs.candidate_signals_changed }}
+          POLL_PUBLICATION_CHANGED: ${{ steps.poll_publication.outputs.changed }}
           SEARCH_ENTRYPOINTS_CHANGED: ${{ steps.search_entrypoints.outputs.changed }}
+          SEARCH_ARTIFACTS_CHANGED: ${{ steps.search_artifacts.outputs.changed }}
           PUBLICATION_MANIFEST_CHANGED: ${{ steps.publication_manifest.outputs.publication_manifest_changed }}
+          ROUTE_EFFECTIVE_DATE: ${{ steps.search_artifacts.outputs.effective_date }}
         shell: bash
         run: |
           set -euo pipefail
 
-          if [[ "$POLL_DATA_CHANGED" != "true" && "$CANDIDATE_SIGNALS_CHANGED" != "true" && "$SEARCH_ENTRYPOINTS_CHANGED" != "true" && "$PUBLICATION_MANIFEST_CHANGED" != "true" ]]; then
+          if [[ "$POLL_DATA_CHANGED" != "true" \
+            && "$CANDIDATE_SIGNALS_CHANGED" != "true" \
+            && "$POLL_PUBLICATION_CHANGED" != "true" \
+            && "$SEARCH_ENTRYPOINTS_CHANGED" != "true" \
+            && "$SEARCH_ARTIFACTS_CHANGED" != "true" \
+            && "$PUBLICATION_MANIFEST_CHANGED" != "true" ]]; then
             echo "No poll or derived publication changes detected."
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -484,22 +555,52 @@ jobs:
             polls.json second_round_polls.json closest_tested_runoff.json \
             commission_notice_registry.json \
             recent_changes.json candidate_signals.json \
+            poll_explorer.json poll_pages_manifest.json \
+            sondages en/sondages \
             index.html en/index.html \
+            route_registry.json \
+            sitemap.xml sitemap-core.xml sitemap-polls.xml \
             publication_manifest.json
           git commit -m "Update polls data"
 
           published_at="$(python -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
+          effective_date="$ROUTE_EFFECTIVE_DATE"
+
+          if [[ -z "$effective_date" ]]; then
+            echo "Missing route-registry effective date." >&2
+            exit 1
+          fi
+
           python -B -c 'from candidate_candidacy_status import load_candidate_candidacy_status; load_candidate_candidacy_status("candidate_candidacy_status.json")'
           python -B build_candidate_signals.py --candidacy-status candidate_candidacy_status.json
+
+          python -B build_poll_explorer.py
+          python -B build_poll_pages.py
+          python -B build_poll_pages.py --check
+
           python -B build_search_entrypoints.py
           python -B build_search_entrypoints.py --check
+
+          python -B build_route_registry.py \
+            --effective-date "$effective_date"
+          python -B build_route_registry.py --check
+
+          python -B build_sitemaps.py
+          python -B build_sitemaps.py --check
+
           python -B build_publication_manifest.py \
             --published-at "$published_at"
           python -B build_publication_manifest.py \
             --check \
             --published-at "$published_at"
+
           git diff --exit-code -- \
-            candidate_signals.json index.html en/index.html \
+            candidate_signals.json \
+            poll_explorer.json poll_pages_manifest.json \
+            sondages en/sondages \
+            index.html en/index.html \
+            route_registry.json \
+            sitemap.xml sitemap-core.xml sitemap-polls.xml \
             publication_manifest.json
 
           git push origin HEAD:main
