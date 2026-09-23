@@ -7994,12 +7994,12 @@
 
               <div class="fr27-linear-publication-cell">
                 <strong id="fr27-hud-news-value" class="fr27-hud-metric-loading" data-i18n-aria-label="hud.loading_accepted_news_count" aria-label="Loading accepted news count">—</strong>
-                <span data-i18n="media_pulse.metric.accepted_news">ACCEPTED NEWS</span>
+                <span class="fr27-hud-label-with-info" id="fr27-hud-news-info" data-i18n-fr27-tooltip="hud.accepted_news_explanation" data-fr27-tooltip="Unique accepted election-news records accumulated since FR27 News Wire monitoring began. This cumulative total does not decrease when records leave the rolling Media Pulse window." data-fr27-tooltip-affordance="term" tabindex="0"><span data-i18n="media_pulse.metric.accepted_news">ACCEPTED NEWS</span></span>
               </div>
 
               <div class="fr27-linear-publication-cell">
                 <strong id="fr27-hud-publishers-value" class="fr27-hud-metric-loading" data-i18n-aria-label="hud.loading_publisher_count" aria-label="Loading publisher count">—</strong>
-                <span class="fr27-hud-label-with-info" id="fr27-hud-publishers-info" data-i18n-fr27-tooltip="hud.publishers_explanation" data-fr27-tooltip="Distinct publishers represented in accepted election news during the current Media Pulse source window. This can be lower than DOMAINS because not every approved source contributes accepted election news in the window." data-fr27-tooltip-affordance="term" tabindex="0"><span data-i18n="media_pulse.metric.publishers">PUBLISHERS</span></span>
+                <span class="fr27-hud-label-with-info" id="fr27-hud-publishers-info" data-i18n-fr27-tooltip="hud.publishers_explanation" data-fr27-tooltip="Distinct publishers represented in accepted election news since FR27 News Wire monitoring began. This cumulative total can grow as new publishers enter the accepted corpus." data-fr27-tooltip-affordance="term" tabindex="0"><span data-i18n="media_pulse.metric.publishers">PUBLISHERS</span></span>
               </div>
 
               <div class="fr27-linear-publication-cell">
@@ -8009,7 +8009,7 @@
 
               <div class="fr27-linear-publication-cell">
                 <strong id="fr27-hud-candidate-watch-value" class="fr27-hud-metric-loading" data-i18n-aria-label="hud.loading_candidate_watch_count" aria-label="Loading candidate-watch count">—</strong>
-                <span data-i18n="media_pulse.metric.candidate_watch">CANDIDATE WATCH</span>
+                <span class="fr27-hud-label-with-info" id="fr27-hud-candidate-watch-info" data-i18n-fr27-tooltip="hud.candidate_watch_explanation" data-fr27-tooltip="Unique candidate-watch records accumulated since FR27 News Wire monitoring began. This cumulative total does not decrease when records leave the rolling Media Pulse window." data-fr27-tooltip-affordance="term" tabindex="0"><span data-i18n="media_pulse.metric.candidate_watch">CANDIDATE WATCH</span></span>
               </div>
 
             </div>
@@ -14322,6 +14322,30 @@
     return digits || null;
   }
 
+  function fr27HudExtractCorpusMetric(attributeName) {
+    const metricsNode =
+      document.getElementById(
+        "top-media-pulse-metrics"
+      );
+
+    if (
+      !metricsNode ||
+      hud.contains(metricsNode)
+    ) {
+      return null;
+    }
+
+    const value = String(
+      metricsNode.getAttribute(
+        attributeName
+      ) || ""
+    ).trim();
+
+    return /^\d+$/.test(value)
+      ? value
+      : null;
+  }
+
   function fr27HudExtractContextMetric(metricKey) {
     const metric = Array.from(
       document.querySelectorAll("[data-context-metric]")
@@ -14358,17 +14382,17 @@
       );
 
     const news =
-      fr27HudExtractExactMetric(
-        "media_pulse.metric.accepted_news"
+      fr27HudExtractCorpusMetric(
+        "data-corpus-accepted-news"
       );
 
     /*
-     * Exact-only for publishers so TOP PUBLISHERS
-     * cannot accidentally supply an individual outlet count.
+     * Dataset Scale publisher count is cumulative.
+     * Do not substitute the rolling Media Pulse value.
      */
     const publishers =
-      fr27HudExtractExactMetric(
-        "media_pulse.metric.publishers"
+      fr27HudExtractCorpusMetric(
+        "data-corpus-publishers"
       );
 
     const recent =
@@ -14377,8 +14401,8 @@
       );
 
     const candidateWatch =
-      fr27HudExtractExactMetric(
-        "media_pulse.metric.candidate_watch"
+      fr27HudExtractCorpusMetric(
+        "data-corpus-candidate-watch"
       );
 
     const resolveHudMetric = function (node, value) {

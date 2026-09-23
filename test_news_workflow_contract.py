@@ -105,7 +105,8 @@ class NewsWorkflowContractTests(unittest.TestCase):
             )
 
         self.assertIn(
-            "recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json \\\n"
+            "news_corpus_ledger.json news_wire.json \\\n"
+            "            recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json \\\n"
             "            index.html en/index.html publication_manifest.json",
             reconciliation,
         )
@@ -121,7 +122,8 @@ class NewsWorkflowContractTests(unittest.TestCase):
             final_validation,
         )
         self.assertIn(
-            "recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json \\\n"
+            "news_corpus_ledger.json news_wire.json \\\n"
+            "            recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json \\\n"
             "            index.html en/index.html publication_manifest.json",
             final_validation,
         )
@@ -220,6 +222,100 @@ class NewsWorkflowContractTests(unittest.TestCase):
             final.count("python -B build_candidate_agenda_history.py"), 2
         )
         self.assertIn("--check", final)
+
+
+    def test_corpus_ledger_is_transactional_persistent_and_rebase_safe(self):
+        promotion = self.text.index(
+            "- name: Validate and promote generated data"
+        )
+
+        before_promotion = self.text[:promotion]
+
+        self.assertIn(
+            "cp news_corpus_ledger.json /tmp/news_corpus_ledger.json",
+            before_promotion,
+        )
+        self.assertIn(
+            "python -B update_news_corpus_ledger.py",
+            before_promotion,
+        )
+        self.assertIn(
+            "--ledger /tmp/news_corpus_ledger.json",
+            before_promotion,
+        )
+        self.assertIn(
+            "--wire /tmp/news_wire.json",
+            before_promotion,
+        )
+
+        promotion_text = self.text[promotion:]
+
+        for required in (
+            "CURRENT_CORPUS",
+            "TEMP_CORPUS",
+            "validate_corpus_ledger(current_corpus)",
+            "validate_corpus_ledger(corpus)",
+            "current_corpus != corpus",
+        ):
+            self.assertIn(
+                required,
+                promotion_text,
+            )
+
+        commit = self.text[
+            self.text.index(
+                "- name: Commit changed rolling news data"
+            ):
+        ]
+
+        self.assertIn(
+            "news_corpus_ledger.json",
+            commit,
+        )
+
+        rebase = 'git rebase "origin/$target_branch"'
+        post_rebase = commit[
+            commit.index(rebase):
+        ]
+
+        corpus_update = post_rebase.index(
+            "python -B update_news_corpus_ledger.py"
+        )
+        recent_changes = post_rebase.index(
+            "python generate_recent_changes.py"
+        )
+
+        self.assertLess(
+            corpus_update,
+            recent_changes,
+        )
+
+        reconciliation = post_rebase[
+            corpus_update:recent_changes
+        ]
+
+        self.assertIn(
+            "--ledger news_corpus_ledger.json",
+            reconciliation,
+        )
+        self.assertIn(
+            "--wire news_wire.json",
+            reconciliation,
+        )
+
+        # One reconciliation immediately after rebase and one
+        # final idempotence reconciliation before the push gate.
+        self.assertGreaterEqual(
+            post_rebase.count(
+                "python -B update_news_corpus_ledger.py"
+            ),
+            2,
+        )
+
+        self.assertIn(
+            "news_corpus_ledger.json news_wire.json",
+            post_rebase,
+        )
 
 
     def test_push_retries_only_transient_commit_refs_failure(self):

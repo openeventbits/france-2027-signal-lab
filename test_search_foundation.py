@@ -584,6 +584,7 @@ class SearchFoundationTests(unittest.TestCase):
             },
             "news": {
                 "news_inventory.json",
+                "news_corpus_ledger.json",
                 "news_wire.json",
                 "recent_changes.json",
                 "source_health.json",
