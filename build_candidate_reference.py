@@ -28,6 +28,7 @@ from candidate_candidacy_status import (
     active_candidate_records,
     validate_candidate_candidacy_status,
 )
+from candidate_portraits import resolve_candidate_portrait
 from candidate_visibility_history_contract import (
     validate_candidate_visibility_history,
 )
@@ -40,6 +41,9 @@ from poll_contract import validate_poll_events
 CANDIDATE_ID = "marine-le-pen"
 SCHEMA_VERSION = "1.0"
 ROOT = Path(__file__).resolve().parent
+PUBLIC_ORIGIN = "https://france2027.app"
+FR27_FAVICON_MARKUP = '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3QgeD0iMSIgeT0iMSIgd2lkdGg9IjMwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbD0iIzA3MTUyMiIvPjxwYXRoIGQ9Ik02IDE2QTEwIDEwIDAgMCAxIDE2IDZNMjYgMTZBMTAgMTAgMCAwIDEgMTYgMjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzI2OGNmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNMTAgMTZBNiA2IDAgMCAxIDE2IDEwTTIyIDE2QTYgNiAwIDAgMSAxNiAyMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzVkNWZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjIuNSIgZmlsbD0iIzM1ZDVmZiIvPjwvc3ZnPg==">'
+DEFAULT_OG_IMAGE = 'https://france2027.app/assets/og-cover.png?v=20260919-053105'
 OUTPUT_PATH = ROOT / "candidates" / CANDIDATE_ID / "data.json"
 HTML_OUTPUT_PATH = ROOT / "candidates" / CANDIDATE_ID / "index.html"
 HTML_OUTPUT_PATH_EN = ROOT / "en" / "candidates" / CANDIDATE_ID / "index.html"
@@ -132,11 +136,6 @@ def validate_sources(sources: dict[str, Any], root: Path = ROOT) -> None:
     for event in runoff["events"]:
         validate_second_round_event(event)
 
-    candidate = _one(status["candidates"], field="candidate_id", value=CANDIDATE_ID)
-    if candidate["candidate_name"] != "Marine Le Pen":
-        raise CandidateReferenceError("canonical candidate name drifted")
-    if candidate["status"] != "declared":
-        raise CandidateReferenceError("Marine Le Pen is no longer declared")
 
 
 def derive_hud_metrics(sources: dict[str, Any]) -> dict[str, int]:
@@ -257,33 +256,81 @@ def _topic_projection(profile: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_projection(sources: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
-    validate_sources(sources, root)
+def _projection_portrait_path(candidate_name: str, root: Path) -> str | None:
+    """Resolve a portrait through the root dashboard's canonical registry."""
+
+    return resolve_candidate_portrait(
+        candidate_name,
+        index_path=root / "index.html",
+    )
+
+
+def _agenda_daily_topic_count(
+    day: dict[str, Any],
+    topic_id: str,
+) -> int:
+    """Return one daily topic count across policy/campaign taxonomies."""
+
+    for bucket_name in ("policy_counts", "campaign_counts"):
+        bucket = day.get(bucket_name)
+        if isinstance(bucket, dict) and topic_id in bucket:
+            value = bucket[topic_id]
+            if not isinstance(value, int) or isinstance(value, bool):
+                raise CandidateReferenceError(
+                    f"agenda daily count for {topic_id!r} is invalid"
+                )
+            return value
+
+    return 0
+
+
+def build_projection(
+    sources: dict[str, Any],
+    root: Path = ROOT,
+    *,
+    candidate_id: str = CANDIDATE_ID,
+    _sources_validated: bool = False,
+) -> dict[str, Any]:
+    if not _sources_validated:
+        validate_sources(sources, root)
     status_payload = sources["candidate_candidacy_status"]
+
+    active_ids = {
+        candidate["candidate_id"]
+        for candidate in active_candidate_records(status_payload)
+    }
+    if candidate_id not in active_ids:
+        raise CandidateReferenceError(
+            f"candidate {candidate_id!r} is not in the active monitoring field"
+        )
+
     candidate_status = _one(
-        status_payload["candidates"], field="candidate_id", value=CANDIDATE_ID
+        status_payload["candidates"], field="candidate_id", value=candidate_id
     )
     candidate_name = candidate_status["candidate_name"]
     signals_payload = sources["candidate_signals"]
-    signals = _one(signals_payload["candidates"], field="candidate_id", value=CANDIDATE_ID)
+    signals = _one(signals_payload["candidates"], field="candidate_id", value=candidate_id)
     visibility = _one(
         sources["candidate_visibility_history"]["candidates"],
         field="candidate_id",
-        value=CANDIDATE_ID,
+        value=candidate_id,
     )
     agenda = _one(
         sources["candidate_agenda_history"]["candidates"],
         field="candidate_id",
-        value=CANDIDATE_ID,
+        value=candidate_id,
     )
     attention = _one(
         sources["candidate_attention"]["candidates"],
         field="candidate_id",
-        value=CANDIDATE_ID,
+        value=candidate_id,
     )
 
     polling = signals["polling"]
-    if (
+    poll_history = signals["poll_history"]
+    poll_observations = poll_history.get("observations", [])
+
+    if candidate_id == CANDIDATE_ID and (
         polling["evidence_state"] != "reported"
         or polling["range_min"] != 33
         or polling["range_max"] != 36
@@ -293,10 +340,61 @@ def build_projection(sources: dict[str, Any], root: Path = ROOT) -> dict[str, An
             "current Marine polling evidence is not the locked 33-36 / 5-hypothesis package"
         )
 
+    current_poll_observation = None
+
+    if polling["evidence_state"] == "reported":
+        if not poll_observations:
+            raise CandidateReferenceError(
+                "reported polling state has no candidate poll-history observation"
+            )
+
+        current_poll_observation = poll_observations[-1]
+
+        if (
+            current_poll_observation["range_min"] != polling["range_min"]
+            or current_poll_observation["range_max"] != polling["range_max"]
+            or current_poll_observation["hypothesis_count"]
+            != polling["hypothesis_count"]
+        ):
+            raise CandidateReferenceError(
+                "current polling state does not reconcile to latest candidate observation"
+            )
+
+    poll_fieldwork_start = (
+        current_poll_observation["fieldwork_start"]
+        if current_poll_observation
+        else None
+    )
+    poll_fieldwork_end = (
+        current_poll_observation["fieldwork_end"]
+        if current_poll_observation
+        else None
+    )
+    poll_pollster = (
+        current_poll_observation["pollster"]
+        if current_poll_observation
+        else None
+    )
+    poll_sample_size = (
+        current_poll_observation["sample_size"]
+        if current_poll_observation
+        else None
+    )
+    poll_source_urls = (
+        current_poll_observation["source_urls"]
+        if current_poll_observation
+        else []
+    )
+
     news = sources["news_wire"]
     period = news["candidate_visibility"]["current_period"]
-    candidate_metric = _one(
-        period["candidate_metrics"], field="candidate", value=candidate_name
+    candidate_metric = next(
+        (
+            item
+            for item in period["candidate_metrics"]
+            if item.get("candidate") == candidate_name
+        ),
+        None,
     )
     current_records = [
         item
@@ -307,15 +405,42 @@ def build_projection(sources: dict[str, Any], root: Path = ROOT) -> dict[str, An
     ]
     current_records.sort(key=lambda item: (item["published_at"], item["id"]), reverse=True)
     publisher_counts = Counter(item["publisher"] for item in current_records)
-    if len(current_records) != signals["campaign_attention"]["record_count"]:
+
+    signal_media = signals["campaign_attention"]
+    signal_record_count = signal_media.get("record_count")
+    signal_publisher_count = signal_media.get("publisher_count")
+
+    if signal_record_count is None:
+        if current_records:
+            raise CandidateReferenceError(
+                "Candidate Signals has no current media count but records were projected"
+            )
+    elif len(current_records) != signal_record_count:
         raise CandidateReferenceError(
             "projected campaign/election records do not reconcile to Candidate Signals"
         )
-    if candidate_metric["record_count"] != signals["campaign_attention"]["record_count"]:
-        raise CandidateReferenceError(
-            "News Wire candidate metric does not reconcile to Candidate Signals"
-        )
-    if len(publisher_counts) != signals["campaign_attention"]["publisher_count"]:
+
+    if candidate_metric is None:
+        if current_records:
+            raise CandidateReferenceError(
+                "News Wire candidate metric is missing for projected current records"
+            )
+    else:
+        metric_record_count = candidate_metric.get("record_count")
+        if (
+            signal_record_count is not None
+            and metric_record_count != signal_record_count
+        ):
+            raise CandidateReferenceError(
+                "News Wire candidate metric does not reconcile to Candidate Signals"
+            )
+
+    if signal_publisher_count is None:
+        if publisher_counts:
+            raise CandidateReferenceError(
+                "Candidate Signals has no publisher count but publishers were projected"
+            )
+    elif len(publisher_counts) != signal_publisher_count:
         raise CandidateReferenceError(
             "projected publisher count does not reconcile to Candidate Signals"
         )
@@ -324,7 +449,7 @@ def build_projection(sources: dict[str, Any], root: Path = ROOT) -> dict[str, An
         review
         for review in sources["claims_under_scrutiny"]["reviews"]
         if any(
-            association["candidate_id"] == CANDIDATE_ID
+            association["candidate_id"] == candidate_id
             for association in review.get("candidate_associations", [])
         )
     ]
@@ -334,7 +459,7 @@ def build_projection(sources: dict[str, Any], root: Path = ROOT) -> dict[str, An
         relationship = next(
             association["relationship"]
             for association in review["candidate_associations"]
-            if association["candidate_id"] == CANDIDATE_ID
+            if association["candidate_id"] == candidate_id
         )
         review_projection.append(
             {
@@ -352,7 +477,7 @@ def build_projection(sources: dict[str, Any], root: Path = ROOT) -> dict[str, An
     changes = [
         item
         for item in sources["recent_changes"]["items"]
-        if CANDIDATE_ID in item.get("candidate_ids", [])
+        if candidate_id in item.get("candidate_ids", [])
     ][:MAX_RECENT_CHANGES]
     change_projection = [
         {
@@ -372,7 +497,7 @@ def build_projection(sources: dict[str, Any], root: Path = ROOT) -> dict[str, An
         all_events.extend(
             (lane, event)
             for event in event_payload[lane]
-            if CANDIDATE_ID in event.get("candidate_ids", [])
+            if candidate_id in event.get("candidate_ids", [])
         )
     reference_date = date.fromisoformat(period["end_date"])
     upcoming = sorted(
@@ -408,7 +533,10 @@ def build_projection(sources: dict[str, Any], root: Path = ROOT) -> dict[str, An
     agenda_evolution = [
         {
             "date": day["date"],
-            "counts": {topic_id: day["policy_counts"][topic_id] for topic_id in top_topic_ids},
+            "counts": {
+                topic_id: _agenda_daily_topic_count(day, topic_id)
+                for topic_id in top_topic_ids
+            },
         }
         for day in agenda["daily_series"]
     ]
@@ -429,7 +557,9 @@ def build_projection(sources: dict[str, Any], root: Path = ROOT) -> dict[str, An
             "publisher_count": item["publisher_count"],
             "active_day_count": item["active_day_count"],
         }
-        for item in candidate_metric["story_clusters"][:MAX_STORY_CLUSTERS]
+        for item in (
+            (candidate_metric or {}).get("story_clusters") or []
+        )[:MAX_STORY_CLUSTERS]
     ]
     coverage = [
         {
@@ -450,14 +580,14 @@ def build_projection(sources: dict[str, Any], root: Path = ROOT) -> dict[str, An
     }
     projection = {
         "schema_version": SCHEMA_VERSION,
-        "candidate_id": CANDIDATE_ID,
+        "candidate_id": candidate_id,
         "candidate": {
-            "candidate_id": CANDIDATE_ID,
+            "candidate_id": candidate_id,
             "candidate_name": candidate_name,
             "status": candidate_status["status"],
             "display_tier": candidate_status["display_tier"],
             "status_as_of": candidate_status["status_as_of"],
-            "portrait_path": "/assets/candidates/lepen.png",
+            "portrait_path": _projection_portrait_path(candidate_name, root),
         },
         "dossier": {
             "polling": {
@@ -465,11 +595,11 @@ def build_projection(sources: dict[str, Any], root: Path = ROOT) -> dict[str, An
                 "range_min": polling["range_min"],
                 "range_max": polling["range_max"],
                 "hypothesis_count": polling["hypothesis_count"],
-                "fieldwork_start": signals_payload["featured_polling_package"]["fieldwork_start"],
-                "fieldwork_end": signals_payload["featured_polling_package"]["fieldwork_end"],
-                "pollster": signals_payload["featured_polling_package"]["pollster"],
-                "sample_size": signals_payload["featured_polling_package"]["sample_size"],
-                "source_urls": signals_payload["featured_polling_package"]["source_urls"],
+                "fieldwork_start": poll_fieldwork_start,
+                "fieldwork_end": poll_fieldwork_end,
+                "pollster": poll_pollster,
+                "sample_size": poll_sample_size,
+                "source_urls": poll_source_urls,
             },
             "media_pulse": media,
         },
@@ -484,11 +614,11 @@ def build_projection(sources: dict[str, Any], root: Path = ROOT) -> dict[str, An
                 "range_min": polling["range_min"],
                 "range_max": polling["range_max"],
                 "hypothesis_count": polling["hypothesis_count"],
-                "fieldwork_start": signals_payload["featured_polling_package"]["fieldwork_start"],
-                "fieldwork_end": signals_payload["featured_polling_package"]["fieldwork_end"],
-                "pollster": signals_payload["featured_polling_package"]["pollster"],
-                "sample_size": signals_payload["featured_polling_package"]["sample_size"],
-                "source_urls": signals_payload["featured_polling_package"]["source_urls"],
+                "fieldwork_start": poll_fieldwork_start,
+                "fieldwork_end": poll_fieldwork_end,
+                "pollster": poll_pollster,
+                "sample_size": poll_sample_size,
+                "source_urls": poll_source_urls,
             },
             "first_round_history": signals["poll_history"],
             "tested_runoffs": _runoff_projection(
@@ -563,24 +693,68 @@ def build_projection(sources: dict[str, Any], root: Path = ROOT) -> dict[str, An
             "agenda_topics": MAX_AGENDA_TOPICS,
         },
     }
-    validate_projection(projection)
+    validate_projection(
+        projection,
+        candidate_id=candidate_id,
+    )
     return projection
 
 
-def validate_projection(payload: Any) -> None:
+def validate_projection(
+    payload: Any,
+    *,
+    candidate_id: str | None = None,
+) -> None:
     if not isinstance(payload, dict) or payload.get("schema_version") != SCHEMA_VERSION:
         raise CandidateReferenceError("projection schema_version is invalid")
-    if payload.get("candidate_id") != CANDIDATE_ID:
+
+    projected_candidate_id = payload.get("candidate_id")
+    if not isinstance(projected_candidate_id, str) or not projected_candidate_id:
         raise CandidateReferenceError("projection candidate_id is invalid")
+
+    if candidate_id is not None and projected_candidate_id != candidate_id:
+        raise CandidateReferenceError(
+            "projection candidate_id does not match requested candidate"
+        )
+
     candidate = payload.get("candidate", {})
-    if candidate.get("candidate_id") != CANDIDATE_ID or candidate.get("status") != "declared":
-        raise CandidateReferenceError("projection candidate identity/status is invalid")
+    if candidate.get("candidate_id") != projected_candidate_id:
+        raise CandidateReferenceError("projection candidate identity is invalid")
+
+    if candidate.get("display_tier") not in {"main", "secondary"}:
+        raise CandidateReferenceError(
+            "projection candidate is outside the active monitoring field"
+        )
+
     current = payload["polling"]["current"]
-    if (current["range_min"], current["range_max"], current["hypothesis_count"]) != (33, 36, 5):
-        raise CandidateReferenceError("projection polling headline evidence drifted")
+
+    if projected_candidate_id == CANDIDATE_ID:
+        if candidate.get("status") != "declared":
+            raise CandidateReferenceError(
+                "Marine reference candidacy status drifted"
+            )
+
+        if (
+            current["range_min"],
+            current["range_max"],
+            current["hypothesis_count"],
+        ) != (33, 36, 5):
+            raise CandidateReferenceError(
+                "projection polling headline evidence drifted"
+            )
     media = payload["media"]
-    if media["available_record_count"] != payload["dossier"]["media_pulse"]["record_count"]:
-        raise CandidateReferenceError("projection Media Pulse record count is inconsistent")
+    media_record_count = payload["dossier"]["media_pulse"].get("record_count")
+
+    if media_record_count is None:
+        if media["available_record_count"] != 0:
+            raise CandidateReferenceError(
+                "projection Media Pulse empty state has current records"
+            )
+    elif media["available_record_count"] != media_record_count:
+        raise CandidateReferenceError(
+            "projection Media Pulse record count is inconsistent"
+        )
+
     if len(media["recent_history"]) != 29:
         raise CandidateReferenceError("projection media history must contain 29 complete days")
     bounds = payload["bounds"]
@@ -698,7 +872,7 @@ def _archive_items(items: list[str], *, initial: int, label: str) -> str:
     button = ""
     if len(items) > initial:
         button = (
-            '<button class="candidate-archive-toggle" type="button" '
+            '<button class="candidate-archive-toggle" type="button" lang="fr" '
             f'data-archive-toggle aria-expanded="false">Afficher plus de {_h(label)}</button>'
         )
     return (
@@ -713,6 +887,32 @@ def _agenda_count_label(count: int, singular: str, plural: str) -> str:
     return f'{_number(count)} {singular if count == 1 else plural}'
 
 
+CAMPAIGN_TOPIC_LABELS_FR = {
+    "legal_eligibility": "ÉLIGIBILITÉ JURIDIQUE",
+    "selection_strategy": "PRIMAIRES & STRATÉGIE DE PARTI",
+    "candidacies_endorsements": "CANDIDATURES & SOUTIENS",
+    "rules_calendar": "RÈGLES & CALENDRIER",
+    "positioning_integrity": "POSITIONNEMENT & COHÉRENCE",
+    "polls_race": "SONDAGES & DYNAMIQUE DE COURSE",
+}
+
+
+def _candidate_topic_label_fr(topic: dict[str, Any]) -> str:
+    """Resolve every supported policy or campaign agenda topic."""
+
+    topic_id = topic["id"]
+
+    if topic_id in TOPIC_LABELS_FR:
+        return TOPIC_LABELS_FR[topic_id]
+
+    if topic_id in CAMPAIGN_TOPIC_LABELS_FR:
+        return CAMPAIGN_TOPIC_LABELS_FR[topic_id]
+
+    raise CandidateReferenceError(
+        f"unsupported candidate agenda topic id: {topic_id!r}"
+    )
+
+
 def _render_topic_profile(
     profile: dict[str, Any],
     topic_ids: list[str],
@@ -724,7 +924,7 @@ def _render_topic_profile(
 
     for topic_id in topic_ids:
         topic = topics_by_id[topic_id]
-        label = TOPIC_LABELS_FR[topic_id]
+        label = _candidate_topic_label_fr(topic)
         tooltip_id = f'agenda-topic-{tooltip_prefix}-{topic_id}-note'
         share = _percent(topic["share"])
         association_count = _agenda_count_label(
@@ -755,6 +955,85 @@ def _render_topic_profile(
 
     return '<ul class="candidate-topic-list">' + "".join(rows) + '</ul>'
 
+def _candidate_status_label_fr(
+    status: str,
+    *,
+    reference_candidate: bool = False,
+) -> str:
+    """Return a neutral display label for an active candidacy status."""
+
+    # Preserve the frozen Marine reference presentation.
+    if reference_candidate and status == "declared":
+        return "DÉCLARÉE"
+
+    labels = {
+        "declared": "CANDIDATURE DÉCLARÉE",
+        "party_selected": "CANDIDATURE SÉLECTIONNÉE PAR UN PARTI",
+        "primary_contender": "CANDIDATURE EN SÉLECTION",
+        "active_potential": "CANDIDATURE POTENTIELLE",
+        "conditional": "CANDIDATURE CONDITIONNELLE",
+    }
+
+    try:
+        return labels[status]
+    except KeyError as exc:
+        raise CandidateReferenceError(
+            f"unsupported active candidacy status: {status!r}"
+        ) from exc
+
+
+def _candidate_initials(candidate_name: str) -> str:
+    parts = [
+        part
+        for part in candidate_name.replace("-", " ").split()
+        if part
+    ]
+
+    return "".join(
+        part[0]
+        for part in parts[:2]
+    ).upper()
+
+
+def _candidate_portrait_html(
+    candidate: dict[str, Any],
+) -> str:
+    """Render the projected portrait or a safe initials fallback."""
+
+    candidate_name = candidate["candidate_name"]
+    portrait_path = candidate.get("portrait_path")
+
+    if portrait_path:
+        return (
+            '<img class="candidate-portrait" '
+            f'src="{_h(portrait_path)}" '
+            f'alt="Portrait illustré de {_h(candidate_name)}" '
+            'width="160" height="160">'
+        )
+
+    return (
+        '<div class="candidate-portrait candidate-portrait-fallback" '
+        'role="img" '
+        f'aria-label="Portrait non disponible pour {_h(candidate_name)}">'
+        '<span aria-hidden="true">'
+        f'{_h(_candidate_initials(candidate_name))}'
+        '</span>'
+        '</div>'
+    )
+
+
+def _candidate_empty_state(
+    title: str,
+    detail: str,
+) -> str:
+    return (
+        '<div class="candidate-empty-state">'
+        f'<strong>{_h(title)}</strong>'
+        f'<span>{_h(detail)}</span>'
+        '</div>'
+    )
+
+
 def _render_candidate_structure_html(
     payload: dict[str, Any], hud_metrics: dict[str, int] | None = None
 ) -> bytes:
@@ -768,11 +1047,364 @@ def _render_candidate_structure_html(
     current_poll = payload["polling"]["current"]
     media = payload["media"]
     attention = payload["attention"]
-    poll_range = (
-        f'{_number(current_poll["range_min"])}–{_number(current_poll["range_max"])}%'
+
+    candidate_name = candidate["candidate_name"]
+
+    attention_state = attention["evidence_state"]
+
+    if attention_state == "observed":
+        attention_available = True
+
+        attention_definition = (
+            "Pages vues de l’article Wikipédia en français. "
+            "Ce signal ne mesure pas le soutien."
+        )
+
+        attention_summary_body = (
+            '<div class="candidate-stat-grid is-large">'
+            f'<div><strong>{_number(attention["latest_7_views"])}</strong>'
+            '<span>7 derniers jours</span></div>'
+            f'<div><strong>{_number(attention["latest_28_views"])}</strong>'
+            '<span>28 derniers jours</span></div>'
+            f'<div><strong>{_number(attention["latest_7_peak_views"])}</strong>'
+            '<span>pic sur 7 jours</span></div>'
+            f'<div><strong>{_number(attention["period_peak_views"])}</strong>'
+            '<span>pic de période</span></div>'
+            '</div>'
+            + _source_link(
+                attention["wikipedia_article"]["url"],
+                "Ouvrir l’article Wikipédia ↗",
+            )
+        )
+
+        attention_history_meta = (
+            f'{len(attention["daily_series"])} jours'
+        )
+
+        attention_history_body = (
+            '<div class="candidate-chart" '
+            'data-chart="attention-history" '
+            'role="img" '
+            'aria-label="Pages vues quotidiennes de l’article '
+            f'Wikipédia de {_h(candidate_name)}">'
+            '<p class="candidate-chart-fallback">'
+            f'Historique du '
+            f'{_fr_date(attention["daily_series"][0]["date"])} '
+            f'au {_fr_date(attention["daily_series"][-1]["date"])}.'
+            '</p>'
+            '</div>'
+        )
+
+    elif attention_state == "unavailable_no_personal_article":
+        attention_available = False
+
+        attention_definition = (
+            "Aucun article Wikipédia en français dédié n’est "
+            "disponible pour cette candidature dans le suivi publié. "
+            "Aucune métrique de pages vues n’est donc affichée."
+        )
+
+        attention_summary_body = _candidate_empty_state(
+            "Attention Wikipédia indisponible",
+            (
+                "Aucun article Wikipédia en français dédié n’est "
+                "disponible pour cette candidature dans le suivi "
+                "publié. Les métriques de pages vues ne sont donc "
+                "pas calculées."
+            ),
+        )
+
+        attention_history_meta = "aucune série"
+
+        attention_history_body = _candidate_empty_state(
+            "Historique indisponible",
+            (
+                "Aucune série de pages vues n’est publiée sans "
+                "article Wikipédia en français dédié."
+            ),
+        )
+
+    else:
+        raise CandidateReferenceError(
+            "unsupported Wikipedia attention evidence state: "
+            f"{attention_state!r}"
+        )
+
+    reference_candidate = candidate["candidate_id"] == CANDIDATE_ID
+
+    status_label = _candidate_status_label_fr(
+        candidate["status"],
+        reference_candidate=reference_candidate,
     )
-    poll_hypotheses = _hypothesis_text(current_poll["hypothesis_count"])
-    poll_headline = f"{poll_range} · {poll_hypotheses}"
+
+    portrait_html = _candidate_portrait_html(candidate)
+
+    hypothesis_count = current_poll.get("hypothesis_count")
+
+    if reference_candidate and hypothesis_count == 5:
+        poll_tested_phrase = "les cinq hypothèses testées"
+    elif hypothesis_count == 1:
+        poll_tested_phrase = "l’hypothèse testée"
+    elif isinstance(hypothesis_count, int):
+        poll_tested_phrase = (
+            f"les {_number(hypothesis_count)} hypothèses testées"
+        )
+    else:
+        poll_tested_phrase = "les hypothèses testées"
+
+    if reference_candidate:
+        agenda_definition = (
+            "Thèmes associés à Marine Le Pen dans la couverture suivie. "
+            "Ils décrivent la composition de la couverture médiatique, "
+            "pas les priorités ou positions de la candidate."
+        )
+
+        scrutiny_by_copy = (
+            "affirmation attribuée à Marine Le Pen"
+        )
+
+        scrutiny_about_copy = (
+            "Marine Le Pen est mentionnée ; l’affirmation est "
+            "attribuée à une autre personne"
+        )
+
+        candidacy_copy = (
+            "Cette source documente l’annonce publique de candidature "
+            "enregistrée par France 2027 Signal Lab."
+        )
+
+        events_definition = (
+            "Événements de campagne publiés associés à Marine Le Pen."
+        )
+
+    else:
+        agenda_definition = (
+            "Thèmes associés à cette candidature dans la couverture "
+            "suivie. Ils décrivent la composition de la couverture "
+            "médiatique, pas les priorités ou positions de la personne "
+            "suivie."
+        )
+
+        scrutiny_by_copy = (
+            "affirmation enregistrée comme attribuée à cette candidature"
+        )
+
+        scrutiny_about_copy = (
+            "cette candidature est mentionnée ; l’affirmation est "
+            "attribuée à une autre personne"
+        )
+
+        candidacy_copy = (
+            "Cette source documente le statut de candidature enregistré "
+            "par France 2027 Signal Lab."
+        )
+
+        events_definition = (
+            "Événements de campagne publiés associés à cette candidature."
+        )
+    poll_reported = (
+        current_poll["evidence_state"] == "reported"
+    )
+
+    if poll_reported:
+        poll_range = (
+            f'{_number(current_poll["range_min"])}–'
+            f'{_number(current_poll["range_max"])}%'
+        )
+        poll_hypotheses = _hypothesis_text(
+            current_poll["hypothesis_count"]
+        )
+        poll_headline = f"{poll_range} · {poll_hypotheses}"
+
+        poll_metric_meta = (
+            f'{_h(current_poll["pollster"])} · terrain du '
+            f'{_fr_date(current_poll["fieldwork_start"])} au '
+            f'{_fr_date(current_poll["fieldwork_end"])}'
+        )
+
+        current_poll_body = (
+            '<div class="candidate-poll-readout">'
+            f'<strong>{poll_range}</strong>'
+            f'<span>{poll_hypotheses}</span>'
+            '</div>'
+            '<p>Fourchette des scores publiés pour '
+            f'{_h(candidate_name)} dans {poll_tested_phrase} '
+            'lors de la dernière vague. France 2027 Signal Lab '
+            'n’en calcule pas de moyenne.</p>'
+            '<dl class="candidate-compact-facts">'
+            f'<div><dt>Institut</dt><dd>'
+            f'{_h(current_poll["pollster"])}</dd></div>'
+            f'<div><dt>Échantillon</dt><dd>'
+            f'{_number(current_poll["sample_size"])}</dd></div>'
+            f'<div><dt>Terrain</dt><dd>'
+            f'{_fr_date(current_poll["fieldwork_start"])} — '
+            f'{_fr_date(current_poll["fieldwork_end"])}</dd></div>'
+            '</dl>'
+            + _source_link(
+                current_poll["source_urls"][0],
+                "Voir la source du sondage ↗",
+            )
+        )
+
+    else:
+        poll_range = "—"
+        poll_hypotheses = (
+            "aucune observation dans la dernière vague"
+        )
+        poll_headline = "NON OBSERVÉ"
+
+        poll_metric_meta = (
+            "aucune observation dans la dernière vague"
+        )
+
+        current_poll_body = _candidate_empty_state(
+            "Non observé dans la dernière vague",
+            (
+                "Aucun score n’est publié pour cette candidature "
+                "dans la dernière vague de référence. "
+                "Les observations historiques restent disponibles "
+                "lorsqu’elles existent."
+            ),
+        )
+
+    media_summary = media["summary"]
+    dossier_media = dossier["media_pulse"]
+
+    media_reported = (
+        media_summary["evidence_state"] == "reported"
+    )
+
+    if media_reported:
+        dossier_media_share = _percent(
+            dossier_media["share"]
+        )
+
+        dossier_media_records = _number(
+            dossier_media["record_count"]
+        )
+
+        dossier_media_publishers = _number(
+            dossier_media["publisher_count"]
+        )
+
+        dossier_media_articles_meta = (
+            f'articles · '
+            f'{_number(dossier_media["active_day_count"])} jours actifs'
+        )
+
+        dossier_media_publishers_meta = (
+            "sur la fenêtre courante de 7 jours"
+        )
+
+        media_summary_body = (
+            '<div class="candidate-media-readout">'
+            f'<strong>{_percent(media_summary["share"])}</strong>'
+            '<span>PART DE LA COUVERTURE ÉLECTION + CAMPAGNE</span>'
+            '</div>'
+            f'<p>Part des articles associés à {_h(candidate_name)} '
+            'dans les périmètres « élection » et « campagne ».</p>'
+            '<div class="candidate-stat-grid">'
+            f'<div><strong>{_number(media_summary["record_count"])}</strong>'
+            '<span>articles</span></div>'
+            f'<div><strong>{_number(media_summary["publisher_count"])}</strong>'
+            '<span>éditeurs</span></div>'
+            f'<div><strong>{_number(media_summary["story_cluster_count"])}</strong>'
+            '<span>groupes narratifs</span></div>'
+            f'<div><strong>{_number(media_summary["active_day_count"])}</strong>'
+            '<span>jours actifs</span></div>'
+            '</div>'
+        )
+
+        media_structure_body = (
+            '<div class="candidate-media-structure">'
+            '<section class="candidate-media-structure-module '
+            'candidate-media-scope-module">'
+            '<h4>PÉRIMÈTRE</h4>'
+            '<div class="candidate-media-scope-grid">'
+            '<div class="candidate-media-scope-item '
+            'candidate-media-scope-election">'
+            '<div class="candidate-media-scope-head">'
+            '<span>ÉLECTION</span>'
+            f'<strong>{_percent(media_summary["scope_shares"]["election"])}</strong>'
+            '</div>'
+            '<span class="candidate-media-scope-meta">'
+            f'{_number(media_summary["scope_counts"]["election"])} articles'
+            '</span>'
+            '<span class="candidate-media-structure-track" aria-hidden="true">'
+            '<span style="--structure-share:'
+            f'{media_summary["scope_shares"]["election"]}'
+            '"></span>'
+            '</span>'
+            '</div>'
+            '<div class="candidate-media-scope-item '
+            'candidate-media-scope-campaign">'
+            '<div class="candidate-media-scope-head">'
+            '<span>CAMPAGNE</span>'
+            f'<strong>{_percent(media_summary["scope_shares"]["campaign"])}</strong>'
+            '</div>'
+            '<span class="candidate-media-scope-meta">'
+            f'{_number(media_summary["scope_counts"]["campaign"])} articles'
+            '</span>'
+            '<span class="candidate-media-structure-track" aria-hidden="true">'
+            '<span style="--structure-share:'
+            f'{media_summary["scope_shares"]["campaign"]}'
+            '"></span>'
+            '</span>'
+            '</div>'
+            '</div>'
+            '</section>'
+            '<div class="candidate-media-structure-lower">'
+            '<section class="candidate-media-structure-module">'
+            '<h4>PLACEMENT DE LA MENTION</h4>'
+            '<div class="candidate-media-mention-grid">'
+            '<div><span>Dans le titre</span>'
+            f'<strong>{_number(media_summary["headline_match_count"])}</strong>'
+            '</div>'
+            '<div><span>Résumé uniquement</span>'
+            f'<strong>{_number(media_summary["summary_only_match_count"])}</strong>'
+            '</div>'
+            '</div>'
+            '</section>'
+            '<section class="candidate-media-structure-module '
+            'candidate-media-concentration">'
+            '<h4>PREMIER ÉDITEUR</h4>'
+            '<div class="candidate-media-leading-publisher '
+            'candidate-media-leading-publisher-only">'
+            f'<strong>{_h(media_summary["concentration"]["leading_publisher"])}</strong>'
+            '</div>'
+            '</section>'
+            '</div>'
+            '</div>'
+        )
+
+    else:
+        dossier_media_share = "NON OBSERVÉ"
+        dossier_media_records = "—"
+        dossier_media_publishers = "—"
+
+        dossier_media_articles_meta = (
+            "non observé dans la fenêtre courante"
+        )
+
+        dossier_media_publishers_meta = (
+            "non observé dans la fenêtre courante"
+        )
+
+        media_summary_body = _candidate_empty_state(
+            "Non observé dans la fenêtre courante",
+            (
+                "Aucun article associé à cette candidature n’est "
+                "disponible dans la fenêtre courante."
+            ),
+        )
+
+        media_structure_body = _candidate_empty_state(
+            "Structure de couverture indisponible",
+            (
+                "La structure de couverture nécessite au moins un "
+                "article associé dans la fenêtre courante."
+            ),
+        )
 
     change_items = []
     for item in payload["now"]["recent_changes"]:
@@ -891,6 +1523,18 @@ def _render_candidate_structure_html(
             '</section>'
         )
 
+    runoff_groups_html = (
+        "".join(runoff_groups)
+        if runoff_groups
+        else _candidate_empty_state(
+            "Aucun duel de second tour observé",
+            (
+                "Aucune configuration de second tour associée à cette "
+                "candidature n’est publiée dans le corpus suivi."
+            ),
+        )
+    )
+
     publisher_items = [
         '<div class="candidate-ranked-copy">'
         f'<strong>{_h(item["publisher"])}</strong>'
@@ -916,6 +1560,47 @@ def _render_candidate_structure_html(
         )
 
     coverage_items = [render_coverage_item(item) for item in media["latest_coverage"]]
+    publisher_list_html = (
+        '<ol class="candidate-ranked-list">'
+        + "".join(
+            f'<li>{item}</li>'
+            for item in publisher_items
+        )
+        + '</ol>'
+        if publisher_items
+        else _candidate_empty_state(
+            "Aucun éditeur observé",
+            (
+                "Aucun éditeur n’est disponible sans article associé "
+                "dans la fenêtre courante."
+            ),
+        )
+    )
+
+    cluster_list_html = (
+        "".join(cluster_items)
+        if cluster_items
+        else _candidate_empty_state(
+            "Aucun groupe narratif observé",
+            (
+                "Aucun groupe narratif n’est disponible sans article "
+                "associé dans la fenêtre courante."
+            ),
+        )
+    )
+
+    coverage_list_html = (
+        "".join(coverage_items)
+        if coverage_items
+        else _candidate_empty_state(
+            "Aucune couverture récente",
+            (
+                "Aucun article récent associé n’est disponible dans "
+                "la fenêtre courante."
+            ),
+        )
+    )
+
     actualite_coverage_items = coverage_items[:5]
     actualite_article_count = len(actualite_coverage_items)
     actualite_article_label = (
@@ -944,6 +1629,18 @@ def _render_candidate_structure_html(
             f'{_source_link(review["review_url"])}'
             "</div></article>"
         )
+
+    scrutiny_reviews_html = (
+        _archive_items(review_items, initial=4, label="vérifications")
+        if review_items
+        else _candidate_empty_state(
+            "Aucune vérification associée",
+            (
+                "Aucune vérification publiée n’est associée à cette "
+                "candidature dans le corpus suivi."
+            ),
+        )
+    )
 
     def render_event(event: dict[str, Any]) -> str:
         place = " · ".join(
@@ -1001,17 +1698,37 @@ def _render_candidate_structure_html(
     agenda_current_period = _agenda_count_label(
         agenda_current["day_count"], "dernier jour", "derniers jours"
     )
-    agenda_current_topics = _render_topic_profile(
-        agenda_current,
-        agenda_topic_order,
-        agenda_current_period,
-        "current",
+    agenda_current_topics = (
+        _render_topic_profile(
+            agenda_current,
+            agenda_topic_order,
+            agenda_current_period,
+            "current",
+        )
+        if agenda_current["association_count"]
+        else _candidate_empty_state(
+            "Aucune activité thématique observée",
+            (
+                "Aucune association thématique n’est observée pour cette "
+                "candidature dans la fenêtre courante."
+            ),
+        )
     )
-    agenda_cumulative_topics = _render_topic_profile(
-        agenda_cumulative,
-        agenda_topic_order,
-        "depuis le début du suivi",
-        "cumulative",
+    agenda_cumulative_topics = (
+        _render_topic_profile(
+            agenda_cumulative,
+            agenda_topic_order,
+            "depuis le début du suivi",
+            "cumulative",
+        )
+        if agenda_cumulative["association_count"]
+        else _candidate_empty_state(
+            "Aucune activité thématique observée",
+            (
+                "Aucune association thématique n’est observée pour cette "
+                "candidature depuis le début du suivi publié."
+            ),
+        )
     )
     agenda_current_meta = (
         _agenda_count_label(
@@ -1026,6 +1743,40 @@ def _render_candidate_structure_html(
         )
         + " · "
         + _agenda_count_label(agenda_cumulative["day_count"], "jour", "jours")
+    )
+    poll_history = payload["polling"]["first_round_history"]
+    poll_history_body = (
+        '<div class="candidate-chart candidate-poll-history-chart" '
+        'data-chart="poll-history" role="group" '
+        f'aria-label="Historique des scores publiés au premier tour de {_h(candidate_name)}">'
+        '<p class="candidate-chart-fallback">Du '
+        f'{_fr_date(poll_history["period_start"])} au '
+        f'{_fr_date(poll_history["period_end"])}. '
+        'Activez JavaScript pour la visualisation interactive.</p></div>'
+        if poll_history["observation_count"]
+        else _candidate_empty_state(
+            "Aucun historique de premier tour observé",
+            (
+                "Aucune observation de premier tour associée à cette "
+                "candidature n’est publiée dans le corpus suivi."
+            ),
+        )
+    )
+    agenda_history_body = (
+        '<div class="candidate-chart candidate-agenda-history-chart" '
+        'data-chart="agenda-history" role="group" '
+        f'aria-label="Évolution quotidienne des thèmes associés à {_h(candidate_name)}">'
+        '<p class="candidate-chart-fallback">Série quotidienne du '
+        f'{_fr_date(agenda_cumulative["period_start"])} au '
+        f'{_fr_date(agenda_cumulative["period_end"])}.</p></div>'
+        if agenda_cumulative["association_count"]
+        else _candidate_empty_state(
+            "Historique thématique indisponible",
+            (
+                "Aucune série thématique n’est affichée sans association "
+                "observée depuis le début du suivi publié."
+            ),
+        )
     )
     source_dates = payload["freshness"]["candidate_signal_evidence_dates"]
 
@@ -1061,21 +1812,21 @@ def _render_candidate_structure_html(
       </div>
     </header>
 
-    <nav class="candidate-breadcrumb" aria-label="Fil d’Ariane"><a href="/#candidates">CANDIDATS</a><span aria-hidden="true">/</span><span aria-current="page">MARINE LE PEN</span></nav>
+    <nav class="candidate-breadcrumb" aria-label="Fil d’Ariane"><a href="/#candidates">CANDIDATS</a><span aria-hidden="true">/</span><span aria-current="page">{_h(candidate_name.upper())}</span></nav>
 
     <section class="candidate-dossier" aria-labelledby="candidate-name">
-      <img class="candidate-portrait" src="{_h(candidate["portrait_path"])}" alt="Portrait illustré de Marine Le Pen" width="160" height="160">
+      {portrait_html}
       <div class="candidate-dossier-copy">
         <div class="candidate-eyebrow">DOSSIER CANDIDAT</div>
         <h1 id="candidate-name">{_h(candidate["candidate_name"])}</h1>
-        <div class="candidate-status-row"><span class="candidate-status">DÉCLARÉE</span><span>Statut vérifié au {_fr_date(candidate["status_as_of"])}</span></div>
+        <div class="candidate-status-row"><span class="candidate-status">{_h(status_label)}</span><span>Statut vérifié au {_fr_date(candidate["status_as_of"])}</span></div>
         <p>Synthèse descriptive des données publiées par France 2027 Signal Lab. Aucune moyenne · aucune prévision · aucun conseil de vote.</p>
       </div>
       <dl class="candidate-dossier-metrics">
-        <div><dt>DONNÉES DE SONDAGE</dt><dd>{poll_headline}</dd><small>{_h(current_poll["pollster"])} · terrain du {_fr_date(current_poll["fieldwork_start"])} au {_fr_date(current_poll["fieldwork_end"])}</small></div>
-        <div><dt>MEDIA PULSE</dt><dd>{_percent(dossier["media_pulse"]["share"])}</dd><small>part de la couverture élection + campagne, pas un indicateur de soutien</small></div>
-        <div><dt>ARTICLES</dt><dd>{_number(dossier["media_pulse"]["record_count"])}</dd><small>articles · {_number(dossier["media_pulse"]["active_day_count"])} jours actifs</small></div>
-        <div><dt>ÉDITEURS</dt><dd>{_number(dossier["media_pulse"]["publisher_count"])}</dd><small>sur la fenêtre courante de 7 jours</small></div>
+        <div><dt>DONNÉES DE SONDAGE</dt><dd>{poll_headline}</dd><small>{poll_metric_meta}</small></div>
+        <div><dt>MEDIA PULSE</dt><dd>{dossier_media_share}</dd><small>part de la couverture élection + campagne, pas un indicateur de soutien</small></div>
+        <div><dt>ARTICLES</dt><dd>{dossier_media_records}</dd><small>{dossier_media_articles_meta}</small></div>
+        <div><dt>ÉDITEURS</dt><dd>{dossier_media_publishers}</dd><small>{dossier_media_publishers_meta}</small></div>
       </dl>
     </section>
 
@@ -1095,51 +1846,51 @@ def _render_candidate_structure_html(
     <section class="candidate-section" id="polling" aria-labelledby="polling-title">
       <header class="candidate-section-head"><div class="candidate-section-title-row"><h2 id="polling-title">SONDAGES</h2><span class="candidate-section-info-wrap"><button class="candidate-section-info" type="button" aria-label="Contexte de cette section" aria-describedby="polling-note">i</button><span class="candidate-section-tooltip" id="polling-note" role="tooltip">Scores publiés par hypothèse. Aucune moyenne, aucun lissage ni interpolation.</span></span></div></header>
       <div class="candidate-polling-grid">
-        <article class="candidate-panel candidate-current-poll"><div class="candidate-panel-head"><h3>DERNIÈRE VAGUE</h3></div><div class="candidate-panel-body"><div class="candidate-poll-readout"><strong>{poll_range}</strong><span>{poll_hypotheses}</span></div><p>Fourchette des scores publiés pour Marine Le Pen dans les cinq hypothèses testées lors de la dernière vague. France 2027 Signal Lab n’en calcule pas de moyenne.</p><dl class="candidate-compact-facts"><div><dt>Institut</dt><dd>{_h(current_poll["pollster"])}</dd></div><div><dt>Échantillon</dt><dd>{_number(current_poll["sample_size"])}</dd></div><div><dt>Terrain</dt><dd>{_fr_date(current_poll["fieldwork_start"])} — {_fr_date(current_poll["fieldwork_end"])}</dd></div></dl>{_source_link(current_poll["source_urls"][0], "Voir la source du sondage ↗")}</div></article>
-        <article class="candidate-panel candidate-chart-panel candidate-poll-history-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>HISTORIQUE DU PREMIER TOUR</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur l’historique du premier tour" aria-describedby="poll-history-note">i</button><span class="candidate-section-tooltip" id="poll-history-note" role="tooltip">Chaque marque représente une observation publiée. Une barre verticale indique la fourchette entre hypothèses lorsqu’elle existe. Aucune moyenne, aucun lissage ni interpolation.</span></span></div><span>{_number(payload["polling"]["first_round_history"]["observation_count"])} vagues</span></div><div class="candidate-panel-body"><div class="candidate-chart candidate-poll-history-chart" data-chart="poll-history" role="group" aria-label="Historique des scores publiés au premier tour de Marine Le Pen"><p class="candidate-chart-fallback">Du {_fr_date(payload["polling"]["first_round_history"]["period_start"])} au {_fr_date(payload["polling"]["first_round_history"]["period_end"])}. Activez JavaScript pour la visualisation interactive.</p></div></div></article>
+        <article class="candidate-panel candidate-current-poll"><div class="candidate-panel-head"><h3>DERNIÈRE VAGUE</h3></div><div class="candidate-panel-body">{current_poll_body}</div></article>
+        <article class="candidate-panel candidate-chart-panel candidate-poll-history-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>HISTORIQUE DU PREMIER TOUR</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur l’historique du premier tour" aria-describedby="poll-history-note">i</button><span class="candidate-section-tooltip" id="poll-history-note" role="tooltip">Chaque marque représente une observation publiée. Une barre verticale indique la fourchette entre hypothèses lorsqu’elle existe. Aucune moyenne, aucun lissage ni interpolation.</span></span></div><span>{_number(poll_history["observation_count"])} vagues</span></div><div class="candidate-panel-body">{poll_history_body}</div></article>
       </div>
-      <article class="candidate-panel candidate-runoff-panel"><div class="candidate-panel-head candidate-runoff-panel-head"><div class="candidate-panel-title-row"><h3>DUELS DE SECOND TOUR TESTÉS</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur les duels de second tour testés" aria-describedby="runoff-history-note">i</button><span class="candidate-section-tooltip" id="runoff-history-note" role="tooltip">Pour chaque duel, France 2027 Signal Lab affiche au maximum les trois observations les plus récentes, classées par fin de terrain. Les observations plus anciennes restent dans le corpus source. Aucune moyenne ni interpolation n’est calculée.</span></span></div><span>{runoff_header_meta}</span></div><div class="candidate-panel-body candidate-runoff-groups">{"".join(runoff_groups)}</div><p class="candidate-panel-foot">Uniquement les configurations effectivement testées et publiées. Aucune moyenne n’est calculée.</p></article>
+      <article class="candidate-panel candidate-runoff-panel"><div class="candidate-panel-head candidate-runoff-panel-head"><div class="candidate-panel-title-row"><h3>DUELS DE SECOND TOUR TESTÉS</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur les duels de second tour testés" aria-describedby="runoff-history-note">i</button><span class="candidate-section-tooltip" id="runoff-history-note" role="tooltip">Pour chaque duel, France 2027 Signal Lab affiche au maximum les trois observations les plus récentes, classées par fin de terrain. Les observations plus anciennes restent dans le corpus source. Aucune moyenne ni interpolation n’est calculée.</span></span></div><span>{runoff_header_meta}</span></div><div class="candidate-panel-body candidate-runoff-groups">{runoff_groups_html}</div><p class="candidate-panel-foot">Uniquement les configurations effectivement testées et publiées. Aucune moyenne n’est calculée.</p></article>
     </section>
 
     <section class="candidate-section" id="media" aria-labelledby="media-title">
       <header class="candidate-section-head"><div class="candidate-section-title-row"><h2 id="media-title">MEDIA PULSE &amp; COUVERTURE</h2><span class="candidate-section-info-wrap"><button class="candidate-section-info" type="button" aria-label="Contexte de cette section" aria-describedby="media-note">i</button><span class="candidate-section-tooltip" id="media-note" role="tooltip">Visibilité dans la couverture suivie : volume, éditeurs, composition et concentration.</span></span></div></header>
       <div class="candidate-media-grid">
-        <article class="candidate-panel candidate-media-summary"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>MEDIA PULSE</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Définition de Media Pulse" aria-describedby="media-pulse-note">i</button><span class="candidate-section-tooltip" id="media-pulse-note" role="tooltip">Media Pulse mesure la part des articles associés à Marine Le Pen dans les périmètres « élection » et « campagne ». Il ne mesure ni soutien, ni approbation, ni sentiment, ni intention de vote.</span></span></div><span>7 derniers jours publiés</span></div><div class="candidate-panel-body"><div class="candidate-media-readout"><strong>{_percent(media["summary"]["share"])}</strong><span>PART DE LA COUVERTURE ÉLECTION + CAMPAGNE</span></div><p>Part des articles associés à Marine Le Pen dans les périmètres « élection » et « campagne ».</p><div class="candidate-stat-grid"><div><strong>{_number(media["summary"]["record_count"])}</strong><span>articles</span></div><div><strong>{_number(media["summary"]["publisher_count"])}</strong><span>éditeurs</span></div><div><strong>{_number(media["summary"]["story_cluster_count"])}</strong><span>groupes narratifs</span></div><div><strong>{_number(media["summary"]["active_day_count"])}</strong><span>jours actifs</span></div></div></div></article>
-        <article class="candidate-panel candidate-chart-panel candidate-media-history-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>TENDANCE RÉCENTE DE COUVERTURE</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur la tendance récente de couverture" aria-describedby="media-history-note">i</button><span class="candidate-section-tooltip" id="media-history-note" role="tooltip">Part quotidienne des articles du périmètre « élection + campagne » associés à Marine Le Pen. La série couvre 29 jours UTC complets et ne mesure ni soutien, ni approbation, ni sentiment, ni intention de vote.</span></span></div><span>29 jours complets · UTC</span></div><div class="candidate-panel-body"><div class="candidate-chart candidate-media-history-chart" data-chart="media-history" role="group" aria-label="Historique récent de la part quotidienne de couverture de Marine Le Pen"><p class="candidate-chart-fallback">Historique publié du {_fr_date(media["recent_history"][0]["date"])} au {_fr_date(media["recent_history"][-1]["date"])}.</p></div></div></article>
-        <article class="candidate-panel candidate-media-structure-panel"><div class="candidate-panel-head"><h3>STRUCTURE DE LA COUVERTURE</h3></div><div class="candidate-panel-body"><div class="candidate-media-structure"><section class="candidate-media-structure-module candidate-media-scope-module"><h4>PÉRIMÈTRE</h4><div class="candidate-media-scope-grid"><div class="candidate-media-scope-item candidate-media-scope-election"><div class="candidate-media-scope-head"><span>ÉLECTION</span><strong>{_percent(media["summary"]["scope_shares"]["election"])}</strong></div><span class="candidate-media-scope-meta">{_number(media["summary"]["scope_counts"]["election"])} articles</span><span class="candidate-media-structure-track" aria-hidden="true"><span style="--structure-share:{media["summary"]["scope_shares"]["election"]}"></span></span></div><div class="candidate-media-scope-item candidate-media-scope-campaign"><div class="candidate-media-scope-head"><span>CAMPAGNE</span><strong>{_percent(media["summary"]["scope_shares"]["campaign"])}</strong></div><span class="candidate-media-scope-meta">{_number(media["summary"]["scope_counts"]["campaign"])} articles</span><span class="candidate-media-structure-track" aria-hidden="true"><span style="--structure-share:{media["summary"]["scope_shares"]["campaign"]}"></span></span></div></div></section><div class="candidate-media-structure-lower"><section class="candidate-media-structure-module"><h4>PLACEMENT DE LA MENTION</h4><div class="candidate-media-mention-grid"><div><span>Dans le titre</span><strong>{_number(media["summary"]["headline_match_count"])}</strong></div><div><span>Résumé uniquement</span><strong>{_number(media["summary"]["summary_only_match_count"])}</strong></div></div></section><section class="candidate-media-structure-module candidate-media-concentration"><h4>PREMIER ÉDITEUR</h4><div class="candidate-media-leading-publisher candidate-media-leading-publisher-only"><strong>{_h(media["summary"]["concentration"]["leading_publisher"])}</strong></div></section></div></div></div></article>
-        <article class="candidate-panel candidate-publishers-panel"><div class="candidate-panel-head"><h3>PRINCIPAUX ÉDITEURS</h3><span>{len(publisher_items)} éditeurs</span></div><div class="candidate-panel-body"><ol class="candidate-ranked-list">{"".join(f'<li>{item}</li>' for item in publisher_items)}</ol></div></article>
-        <article class="candidate-panel candidate-story-clusters-panel"><div class="candidate-panel-head"><h3>PRINCIPAUX GROUPES NARRATIFS</h3><span>{len(cluster_items)} groupes</span></div><div class="candidate-panel-body candidate-scroll-feed">{"".join(cluster_items)}</div></article>
-        <article class="candidate-panel candidate-latest-coverage"><div class="candidate-panel-head"><h3>DERNIÈRE COUVERTURE</h3><span>{len(coverage_items)} articles</span></div><div class="candidate-panel-body candidate-scroll-feed">{"".join(coverage_items)}</div></article>
+        <article class="candidate-panel candidate-media-summary"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>MEDIA PULSE</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Définition de Media Pulse" aria-describedby="media-pulse-note">i</button><span class="candidate-section-tooltip" id="media-pulse-note" role="tooltip">Media Pulse mesure la part des articles associés à {_h(candidate_name)} dans les périmètres « élection » et « campagne ». Il ne mesure ni soutien, ni approbation, ni sentiment, ni intention de vote.</span></span></div><span>7 derniers jours publiés</span></div><div class="candidate-panel-body">{media_summary_body}</div></article>
+        <article class="candidate-panel candidate-chart-panel candidate-media-history-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>TENDANCE RÉCENTE DE COUVERTURE</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur la tendance récente de couverture" aria-describedby="media-history-note">i</button><span class="candidate-section-tooltip" id="media-history-note" role="tooltip">Part quotidienne des articles du périmètre « élection + campagne » associés à {_h(candidate_name)}. La série couvre 29 jours UTC complets et ne mesure ni soutien, ni approbation, ni sentiment, ni intention de vote.</span></span></div><span>29 jours complets · UTC</span></div><div class="candidate-panel-body"><div class="candidate-chart candidate-media-history-chart" data-chart="media-history" role="group" aria-label="Historique récent de la part quotidienne de couverture de {_h(candidate_name)}"><p class="candidate-chart-fallback">Historique publié du {_fr_date(media["recent_history"][0]["date"])} au {_fr_date(media["recent_history"][-1]["date"])}.</p></div></div></article>
+        <article class="candidate-panel candidate-media-structure-panel"><div class="candidate-panel-head"><h3>STRUCTURE DE LA COUVERTURE</h3></div><div class="candidate-panel-body">{media_structure_body}</div></article>
+        <article class="candidate-panel candidate-publishers-panel"><div class="candidate-panel-head"><h3>PRINCIPAUX ÉDITEURS</h3><span>{len(publisher_items)} éditeurs</span></div><div class="candidate-panel-body">{publisher_list_html}</div></article>
+        <article class="candidate-panel candidate-story-clusters-panel"><div class="candidate-panel-head"><h3>PRINCIPAUX GROUPES NARRATIFS</h3><span>{len(cluster_items)} groupes</span></div><div class="candidate-panel-body candidate-scroll-feed">{cluster_list_html}</div></article>
+        <article class="candidate-panel candidate-latest-coverage"><div class="candidate-panel-head"><h3>DERNIÈRE COUVERTURE</h3><span>{len(coverage_items)} articles</span></div><div class="candidate-panel-body candidate-scroll-feed">{coverage_list_html}</div></article>
       </div>
     </section>
 
     <section class="candidate-section" id="agenda" aria-labelledby="agenda-title">
-      <header class="candidate-section-head"><div class="candidate-section-title-row"><h2 id="agenda-title">AGENDA &amp; ENJEUX</h2><span class="candidate-section-info-wrap"><button class="candidate-section-info" type="button" aria-label="Contexte de cette section" aria-describedby="agenda-note">i</button><span class="candidate-section-tooltip" id="agenda-note" role="tooltip">Thèmes associés à Marine Le Pen dans la couverture suivie. Ils décrivent la composition de la couverture médiatique, pas les priorités ou positions de la candidate.</span></span></div></header>
+      <header class="candidate-section-head"><div class="candidate-section-title-row"><h2 id="agenda-title">AGENDA &amp; ENJEUX</h2><span class="candidate-section-info-wrap"><button class="candidate-section-info" type="button" aria-label="Contexte de cette section" aria-describedby="agenda-note">i</button><span class="candidate-section-tooltip" id="agenda-note" role="tooltip">{_h(agenda_definition)}</span></span></div></header>
       <div class="candidate-agenda-grid">
         <article class="candidate-panel candidate-agenda-profile candidate-agenda-profile-current"><div class="candidate-panel-head"><h3>PROFIL THÉMATIQUE · 30 J</h3><span>{agenda_current_meta}</span></div><div class="candidate-panel-body">{agenda_current_topics}</div></article>
         <article class="candidate-panel candidate-agenda-profile candidate-agenda-profile-cumulative"><div class="candidate-panel-head"><h3>PROFIL THÉMATIQUE · DEPUIS LE DÉBUT</h3><span>{agenda_cumulative_meta}</span></div><div class="candidate-panel-body">{agenda_cumulative_topics}</div></article>
-        <article class="candidate-panel candidate-chart-panel candidate-agenda-history-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>ÉVOLUTION DES THÈMES</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur l’évolution des thèmes" aria-describedby="agenda-history-note">i</button><span class="candidate-section-tooltip" id="agenda-history-note" role="tooltip">Comptages quotidiens des associations thématiques, sans moyenne, lissage ni interpolation.</span></span></div><span>{len(payload["agenda"]["evolution_topic_ids"])} thèmes principaux</span></div><div class="candidate-panel-body"><div class="candidate-chart candidate-agenda-history-chart" data-chart="agenda-history" role="group" aria-label="Évolution quotidienne des thèmes associés à Marine Le Pen"><p class="candidate-chart-fallback">Série quotidienne du {_fr_date(agenda_cumulative["period_start"])} au {_fr_date(agenda_cumulative["period_end"])}.</p></div></div></article>
+        <article class="candidate-panel candidate-chart-panel candidate-agenda-history-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>ÉVOLUTION DES THÈMES</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur l’évolution des thèmes" aria-describedby="agenda-history-note">i</button><span class="candidate-section-tooltip" id="agenda-history-note" role="tooltip">Comptages quotidiens des associations thématiques, sans moyenne, lissage ni interpolation.</span></span></div><span>{len(payload["agenda"]["evolution_topic_ids"])} thèmes principaux</span></div><div class="candidate-panel-body">{agenda_history_body}</div></article>
       </div>
     </section>
 
     <section class="candidate-section" id="scrutiny" aria-labelledby="scrutiny-title">
       <header class="candidate-section-head"><div class="candidate-section-title-row"><h2 id="scrutiny-title">VÉRIFICATIONS</h2><span class="candidate-section-info-wrap"><button class="candidate-section-info" type="button" aria-label="Contexte de cette section" aria-describedby="scrutiny-note">i</button><span class="candidate-section-tooltip" id="scrutiny-note" role="tooltip">Vérifications publiées et source confirmant le statut de candidature.</span></span></div></header>
       <div class="candidate-accountability-grid">
-        <article class="candidate-panel"><div class="candidate-panel-head"><h3>AFFIRMATIONS SOUS EXAMEN</h3><span>{payload["accountability"]["review_count"]} vérifications</span></div><div class="candidate-panel-body"><div class="candidate-scrutiny-key"><span><b>PAR</b> — affirmation attribuée à Marine Le Pen</span><span><b>À PROPOS</b> — Marine Le Pen est mentionnée ; l’affirmation est attribuée à une autre personne</span></div>{_archive_items(review_items, initial=4, label="vérifications")}<p class="candidate-method-note">Le nombre de vérifications publiées ne mesure pas l’exactitude globale d’une personnalité politique.</p></div></article>
-        <article class="candidate-panel"><div class="candidate-panel-head"><h3>STATUT DE CANDIDATURE</h3><span>DÉCLARÉE</span></div><div class="candidate-panel-body"><div class="candidate-evidence-status"><span aria-hidden="true"></span><strong>Statut confirmé</strong></div><h4>{_h(evidence["source_title"])}</h4><p>Cette source documente l’annonce publique de candidature enregistrée par France 2027 Signal Lab.</p><dl class="candidate-compact-facts"><div><dt>Source</dt><dd>{_h(evidence["source_publisher"])}</dd></div><div><dt>Date de la source</dt><dd>{_fr_date(evidence["source_date"])}</dd></div><div><dt>Statut vérifié au</dt><dd>{_fr_date(evidence["status_as_of"])}</dd></div></dl>{_source_link(evidence["source_url"], "Ouvrir la source ↗")}</div></article>
+        <article class="candidate-panel"><div class="candidate-panel-head"><h3>AFFIRMATIONS SOUS EXAMEN</h3><span>{payload["accountability"]["review_count"]} vérifications</span></div><div class="candidate-panel-body"><div class="candidate-scrutiny-key"><span><b>PAR</b> — {_h(scrutiny_by_copy)}</span><span><b>À PROPOS</b> — {_h(scrutiny_about_copy)}</span></div>{scrutiny_reviews_html}<p class="candidate-method-note">Le nombre de vérifications publiées ne mesure pas l’exactitude globale d’une personnalité politique.</p></div></article>
+        <article class="candidate-panel"><div class="candidate-panel-head"><h3>STATUT DE CANDIDATURE</h3><span>{_h(status_label)}</span></div><div class="candidate-panel-body"><div class="candidate-evidence-status"><span aria-hidden="true"></span><strong>Statut confirmé</strong></div><h4>{_h(evidence["source_title"])}</h4><p>{_h(candidacy_copy)}</p><dl class="candidate-compact-facts"><div><dt>Source</dt><dd>{_h(evidence["source_publisher"])}</dd></div><div><dt>Date de la source</dt><dd>{_fr_date(evidence["source_date"])}</dd></div><div><dt>Statut vérifié au</dt><dd>{_fr_date(evidence["status_as_of"])}</dd></div></dl>{_source_link(evidence["source_url"], "Ouvrir la source ↗")}</div></article>
       </div>
     </section>
 
     <section class="candidate-section" id="attention" aria-labelledby="attention-title">
-      <header class="candidate-section-head"><div class="candidate-section-title-row"><h2 id="attention-title">ATTENTION PUBLIQUE</h2><span class="candidate-section-info-wrap"><button class="candidate-section-info" type="button" aria-label="Contexte de cette section" aria-describedby="attention-note">i</button><span class="candidate-section-tooltip" id="attention-note" role="tooltip">Pages vues de l’article Wikipédia en français. Ce signal ne mesure pas le soutien.</span></span></div></header>
+      <header class="candidate-section-head"><div class="candidate-section-title-row"><h2 id="attention-title">ATTENTION PUBLIQUE</h2><span class="candidate-section-info-wrap"><button class="candidate-section-info" type="button" aria-label="Contexte de cette section" aria-describedby="attention-note">i</button><span class="candidate-section-tooltip" id="attention-note" role="tooltip">{_h(attention_definition)}</span></span></div></header>
       <div class="candidate-attention-grid">
-        <article class="candidate-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>PAGES VUES WIKIPÉDIA</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur les pages vues Wikipédia" aria-describedby="attention-summary-note">i</button><span class="candidate-section-tooltip" id="attention-summary-note" role="tooltip">Les pages vues Wikipédia mesurent la consultation de l’article. Elles ne mesurent ni soutien, ni sentiment, ni approbation, ni intention de vote.</span></span></div><span>pages vues</span></div><div class="candidate-panel-body"><div class="candidate-stat-grid is-large"><div><strong>{_number(attention["latest_7_views"])}</strong><span>7 derniers jours</span></div><div><strong>{_number(attention["latest_28_views"])}</strong><span>28 derniers jours</span></div><div><strong>{_number(attention["latest_7_peak_views"])}</strong><span>pic sur 7 jours</span></div><div><strong>{_number(attention["period_peak_views"])}</strong><span>pic de période</span></div></div>{_source_link(attention["wikipedia_article"]["url"], "Ouvrir l’article Wikipédia ↗")}</div></article>
-        <article class="candidate-panel candidate-chart-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>HISTORIQUE DES PAGES VUES</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur l’historique des pages vues" aria-describedby="attention-history-note">i</button><span class="candidate-section-tooltip" id="attention-history-note" role="tooltip">Pages vues quotidiennes de l’article Wikipédia en français. Des visites répétées peuvent être incluses.</span></span></div><span>{len(attention["daily_series"])} jours</span></div><div class="candidate-panel-body"><div class="candidate-chart" data-chart="attention-history" role="img" aria-label="Pages vues quotidiennes de l’article Wikipédia de Marine Le Pen"><p class="candidate-chart-fallback">Historique du {_fr_date(attention["daily_series"][0]["date"])} au {_fr_date(attention["daily_series"][-1]["date"])}.</p></div></div></article>
+        <article class="candidate-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>PAGES VUES WIKIPÉDIA</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur les pages vues Wikipédia" aria-describedby="attention-summary-note">i</button><span class="candidate-section-tooltip" id="attention-summary-note" role="tooltip">Les pages vues Wikipédia mesurent la consultation de l’article. Elles ne mesurent ni soutien, ni sentiment, ni approbation, ni intention de vote.</span></span></div><span>pages vues</span></div><div class="candidate-panel-body">{attention_summary_body}</div></article>
+        <article class="candidate-panel candidate-chart-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>HISTORIQUE DES PAGES VUES</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur l’historique des pages vues" aria-describedby="attention-history-note">i</button><span class="candidate-section-tooltip" id="attention-history-note" role="tooltip">Pages vues quotidiennes de l’article Wikipédia en français. Des visites répétées peuvent être incluses.</span></span></div><span>{attention_history_meta}</span></div><div class="candidate-panel-body">{attention_history_body}</div></article>
       </div>
     </section>
 
     <section class="candidate-section" id="events" aria-labelledby="events-title">
-      <header class="candidate-section-head"><div class="candidate-section-title-row"><h2 id="events-title">ÉVÉNEMENTS</h2><span class="candidate-section-info-wrap"><button class="candidate-section-info" type="button" aria-label="Contexte de cette section" aria-describedby="events-note">i</button><span class="candidate-section-tooltip" id="events-note" role="tooltip">Événements de campagne publiés associés à Marine Le Pen.</span></span></div></header>
+      <header class="candidate-section-head"><div class="candidate-section-title-row"><h2 id="events-title">ÉVÉNEMENTS</h2><span class="candidate-section-info-wrap"><button class="candidate-section-info" type="button" aria-label="Contexte de cette section" aria-describedby="events-note">i</button><span class="candidate-section-tooltip" id="events-note" role="tooltip">{_h(events_definition)}</span></span></div></header>
       <div class="candidate-events-grid"><article class="candidate-panel"><div class="candidate-panel-head"><h3>ÉVÉNEMENTS À VENIR</h3><span>au {_fr_date(payload["events"]["reference_date"])}</span></div><div class="candidate-panel-body candidate-event-list">{upcoming_html}</div></article><article class="candidate-panel"><div class="candidate-panel-head"><h3>ÉVÉNEMENTS RÉCENTS</h3><span>historique récent</span></div><div class="candidate-panel-body candidate-event-list">{recent_html}</div></article></div>
     </section>
 
@@ -1498,12 +2249,211 @@ def _candidate_date_en(value: str) -> str:
     return result
 
 
+_CANDIDATE_TEXT_EN.update({
+    "CANDIDATURE DÉCLARÉE": "DECLARED CANDIDACY",
+    "CANDIDATURE SÉLECTIONNÉE PAR UN PARTI": "PARTY-SELECTED CANDIDACY",
+    "CANDIDATURE EN SÉLECTION": "CANDIDACY IN SELECTION",
+    "CANDIDATURE POTENTIELLE": "POTENTIAL CANDIDACY",
+    "CANDIDATURE CONDITIONNELLE": "CONDITIONAL CANDIDACY",
+    "Thèmes associés à cette candidature dans la couverture suivie. Ils décrivent la composition de la couverture médiatique, pas les priorités ou positions de la personne suivie.": (
+        "Topics associated with this candidacy in monitored coverage. "
+        "They describe the composition of media coverage, not the "
+        "monitored person's priorities or positions."
+    ),
+    "affirmation enregistrée comme attribuée à cette candidature": (
+        "claim recorded as attributed to this candidacy"
+    ),
+    "cette candidature est mentionnée ; l’affirmation est attribuée à une autre personne": (
+        "this candidacy is mentioned; the claim is attributed to another person"
+    ),
+    "Cette source documente le statut de candidature enregistré par France 2027 Signal Lab.": (
+        "This source documents the candidacy status recorded by "
+        "France 2027 Signal Lab."
+    ),
+    "Événements de campagne publiés associés à cette candidature.": (
+        "Published campaign events associated with this candidacy."
+    ),
+})
+
+
+_CANDIDATE_TEXT_EN.update({
+    "NON OBSERVÉ": "NOT OBSERVED",
+    "aucune observation dans la dernière vague": (
+        "no observation in the latest wave"
+    ),
+    "Non observé dans la dernière vague": (
+        "Not observed in the latest wave"
+    ),
+    "Aucun score n’est publié pour cette candidature dans la dernière vague de référence. Les observations historiques restent disponibles lorsqu’elles existent.": (
+        "No score is published for this candidacy in the latest "
+        "reference wave. Published historical observations remain "
+        "available when they exist."
+    ),
+    "ÉLIGIBILITÉ JURIDIQUE": "LEGAL ELIGIBILITY",
+    "PRIMAIRES & STRATÉGIE DE PARTI": (
+        "PRIMARIES & PARTY STRATEGY"
+    ),
+    "CANDIDATURES & SOUTIENS": (
+        "CANDIDACIES & ENDORSEMENTS"
+    ),
+    "RÈGLES & CALENDRIER": "RULES & CALENDAR",
+    "POSITIONNEMENT & COHÉRENCE": (
+        "POSITIONING & INTEGRITY"
+    ),
+    "SONDAGES & DYNAMIQUE DE COURSE": (
+        "POLLING & RACE NARRATIVES"
+    ),
+    "Aucun historique de premier tour observé": (
+        "No first-round history observed"
+    ),
+    "Aucune observation de premier tour associée à cette candidature n’est publiée dans le corpus suivi.": (
+        "No first-round observation associated with this candidacy "
+        "is published in the monitored corpus."
+    ),
+    "Aucun duel de second tour observé": (
+        "No runoff observed"
+    ),
+    "Aucune configuration de second tour associée à cette candidature n’est publiée dans le corpus suivi.": (
+        "No runoff configuration associated with this candidacy "
+        "is published in the monitored corpus."
+    ),
+    "Aucune activité thématique observée": (
+        "No thematic activity observed"
+    ),
+    "Aucune association thématique n’est observée pour cette candidature dans la fenêtre courante.": (
+        "No thematic association is observed for this candidacy "
+        "in the current window."
+    ),
+    "Aucune association thématique n’est observée pour cette candidature depuis le début du suivi publié.": (
+        "No thematic association is observed for this candidacy "
+        "since the start of published monitoring."
+    ),
+    "Historique thématique indisponible": (
+        "Thematic history unavailable"
+    ),
+    "Aucune série thématique n’est affichée sans association observée depuis le début du suivi publié.": (
+        "No thematic series is displayed without an observed "
+        "association since the start of published monitoring."
+    ),
+    "Aucune vérification associée": (
+        "No associated review"
+    ),
+    "Aucune vérification publiée n’est associée à cette candidature dans le corpus suivi.": (
+        "No published review is associated with this candidacy "
+        "in the monitored corpus."
+    ),
+})
+
+
+_CANDIDATE_TEXT_EN.update({
+    "non observé dans la fenêtre courante": (
+        "not observed in the current window"
+    ),
+    "Non observé dans la fenêtre courante": (
+        "Not observed in the current window"
+    ),
+    "Aucun article associé à cette candidature n’est disponible dans la fenêtre courante.": (
+        "No article associated with this candidacy is available "
+        "in the current window."
+    ),
+    "Structure de couverture indisponible": (
+        "Coverage structure unavailable"
+    ),
+    "La structure de couverture nécessite au moins un article associé dans la fenêtre courante.": (
+        "Coverage structure requires at least one associated article "
+        "in the current window."
+    ),
+    "Aucun éditeur observé": "No publisher observed",
+    "Aucun éditeur n’est disponible sans article associé dans la fenêtre courante.": (
+        "No publisher is available without an associated article "
+        "in the current window."
+    ),
+    "Aucun groupe narratif observé": (
+        "No story cluster observed"
+    ),
+    "Aucun groupe narratif n’est disponible sans article associé dans la fenêtre courante.": (
+        "No story cluster is available without an associated article "
+        "in the current window."
+    ),
+    "Aucune couverture récente": "No recent coverage",
+    "Aucun article récent associé n’est disponible dans la fenêtre courante.": (
+        "No recent associated article is available "
+        "in the current window."
+    ),
+})
+
+
+_CANDIDATE_TEXT_EN.update({
+    "Attention Wikipédia indisponible": (
+        "Wikipedia attention unavailable"
+    ),
+    "Aucun article Wikipédia en français dédié n’est disponible pour cette candidature dans le suivi publié. Les métriques de pages vues ne sont donc pas calculées.": (
+        "No dedicated French-language Wikipedia article is available "
+        "for this candidacy in the published monitoring data. "
+        "Pageview metrics are therefore not calculated."
+    ),
+    "Aucun article Wikipédia en français dédié n’est disponible pour cette candidature dans le suivi publié. Aucune métrique de pages vues n’est donc affichée.": (
+        "No dedicated French-language Wikipedia article is available "
+        "for this candidacy in the published monitoring data. "
+        "No pageview metric is therefore displayed."
+    ),
+    "Historique indisponible": (
+        "History unavailable"
+    ),
+    "Aucune série de pages vues n’est publiée sans article Wikipédia en français dédié.": (
+        "No pageview series is published without a dedicated "
+        "French-language Wikipedia article."
+    ),
+    "aucune série": "no series",
+})
+
+
 def _candidate_dynamic_en(value: str) -> str:
     text = _candidate_date_en(value)
     text = re.sub(r"(?<=\d)\u202f(?=\d)", ",", text)
     text = re.sub(r"(?<=\d),(?=\d{1,2}%\b)", ".", text)
 
     rules = (
+        (
+            r"^Portrait illustré de (.+)$",
+            r"Illustrated portrait of \1",
+        ),
+        (
+            r"^Portrait non disponible pour (.+)$",
+            r"Portrait unavailable for \1",
+        ),
+        (
+            r"^Fourchette des scores publiés pour (.+) dans .+ lors de la dernière vague\. France 2027 Signal Lab n’en calcule pas de moyenne\.$",
+            r"Range of published scores for \1 across the hypotheses tested in the latest wave. France 2027 Signal Lab does not calculate an average.",
+        ),
+        (
+            r"^Historique des scores publiés au premier tour de (.+)$",
+            r"History of \1's published first-round scores",
+        ),
+        (
+            r"^Media Pulse mesure la part des articles associés à (.+) dans les périmètres « élection » et « campagne »\. Il ne mesure ni soutien, ni approbation, ni sentiment, ni intention de vote\.$",
+            r"Media Pulse measures the share of articles associated with \1 in the election and campaign scopes. It does not measure support, approval, sentiment or voting intention.",
+        ),
+        (
+            r"^Part des articles associés à (.+) dans les périmètres « élection » et « campagne »\.$",
+            r"Share of articles associated with \1 in the election and campaign scopes.",
+        ),
+        (
+            r"^Part quotidienne des articles du périmètre « élection \+ campagne » associés à (.+)\. La série couvre 29 jours UTC complets et ne mesure ni soutien, ni approbation, ni sentiment, ni intention de vote\.$",
+            r"Daily share of election + campaign articles associated with \1. The series covers 29 complete UTC days and does not measure support, approval, sentiment or voting intention.",
+        ),
+        (
+            r"^Historique récent de la part quotidienne de couverture de (.+)$",
+            r"Recent history of \1's daily coverage share",
+        ),
+        (
+            r"^Évolution quotidienne des thèmes associés à (.+)$",
+            r"Daily evolution of topics associated with \1",
+        ),
+        (
+            r"^Pages vues quotidiennes de l’article Wikipédia de (.+)$",
+            r"Daily pageviews of \1's French Wikipedia article",
+        ),
         (r"^Statut vérifié au (.+)$", r"Status verified as of \1"),
         (r"^(\d+) hypothèse$", r"\1 hypothesis"),
         (r"^(\d+) hypothèses$", r"\1 hypotheses"),
@@ -1580,6 +2530,150 @@ def _candidate_dynamic_en(value: str) -> str:
     return text
 
 
+# === EN COMPOSITIONAL UI COMPLETION ===
+_CANDIDATE_TEXT_EN.update({
+    "jours": "days",
+    "CAMPAGNE": "CAMPAIGN",
+    "ÉLECTION": "ELECTION",
+    "pic sur 7 jours": "7-day peak",
+    "pic de période": "period peak",
+})
+
+_CANDIDATE_ATTR_EN.update({
+    "Page candidat en français": "French candidate page",
+    "FR27 sur X · @fr27signal": "FR27 on X · @fr27signal",
+    "Pages vues quotidiennes de l’article Wikipédia de Marine Le Pen":
+        "Daily pageviews of Marine Le Pen's French Wikipedia article",
+    "Liens utilitaires": "Utility links",
+})
+
+
+def _candidate_date_fragment_en(value: str) -> str:
+    months = (
+        ("janv.", "Jan"),
+        ("févr.", "Feb"),
+        ("mars", "Mar"),
+        ("avr.", "Apr"),
+        ("mai", "May"),
+        ("juin", "Jun"),
+        ("juil.", "Jul"),
+        ("août", "Aug"),
+        ("sept.", "Sep"),
+        ("oct.", "Oct"),
+        ("nov.", "Nov"),
+        ("déc.", "Dec"),
+    )
+
+    translated = value
+    for source, target in months:
+        translated = translated.replace(
+            f" {source} ",
+            f" {target} ",
+        )
+
+    return translated
+
+
+def _candidate_period_en(value: str) -> str | None:
+    if value == "depuis le début du suivi":
+        return "since tracking began"
+
+    match = re.fullmatch(r"(\d+) derniers jours", value)
+    if match:
+        return f"last {match.group(1)} days"
+
+    match = re.fullmatch(r"(\d+) dernier jour", value)
+    if match:
+        return f"last {match.group(1)} day"
+
+    return None
+
+
+def _candidate_product_ui_en(value: str) -> str | None:
+    """Translate generated compositional UI strings on the English route."""
+
+    if value == "sur la fenêtre courante de 7 jours":
+        return "in the current 7-day window"
+
+    match = re.fullmatch(r"(.+) · (\d+) hypothèse(?:s)?", value)
+    if match:
+        count = int(match.group(2))
+        noun = "hypothesis" if count == 1 else "hypotheses"
+        return f"{match.group(1)} · {count} {noun}"
+
+    match = re.fullmatch(r"(.+) · terrain du (.+) au (.+)", value)
+    if match:
+        start = _candidate_date_fragment_en(match.group(2))
+        end = _candidate_date_fragment_en(match.group(3))
+        return (
+            f"{match.group(1)} · fieldwork from "
+            f"{start} to {end}"
+        )
+
+    match = re.fullmatch(
+        r"(\d+) à venir · (\d+) récent(?:s)?",
+        value,
+    )
+    if match:
+        return f"{match.group(1)} upcoming · {match.group(2)} recent"
+
+    if value.startswith("Période : "):
+        period = _candidate_period_en(value.removeprefix("Période : "))
+        if period is not None:
+            return f"Period: {period}"
+
+    match = re.fullmatch(
+        r"(.+)\. Part du profil : ([0-9]+,[0-9]+%)\. "
+        r"(\d+) association(?:s)?\. Période : (.+)\.",
+        value,
+    )
+    if match:
+        topic, share, count_raw, period_raw = match.groups()
+        topic_en = _CANDIDATE_TEXT_EN.get(topic)
+        period_en = _candidate_period_en(period_raw)
+
+        if topic_en is not None and period_en is not None:
+            count = int(count_raw)
+            association_label = (
+                "association" if count == 1 else "associations"
+            )
+            share_en = share.replace(",", ".")
+            return (
+                f"{topic_en}. Profile share: {share_en}. "
+                f"{count} {association_label}. Period: {period_en}."
+            )
+
+    match = re.fullmatch(r"Part du profil : ([0-9]+),([0-9]+)%", value)
+    if match:
+        return f"Profile share: {match.group(1)}.{match.group(2)}%"
+
+    match = re.fullmatch(r"Associations : (\d+)", value)
+    if match:
+        return f"Associations: {match.group(1)}"
+
+    match = re.fullmatch(
+        r"(\d+) association(?:s)? · (\d+) jours",
+        value,
+    )
+    if match:
+        association_count = int(match.group(1))
+        day_count = int(match.group(2))
+        association_label = (
+            "association" if association_count == 1 else "associations"
+        )
+        day_label = "day" if day_count == 1 else "days"
+        return (
+            f"{association_count} {association_label} · "
+            f"{day_count} {day_label}"
+        )
+
+    match = re.fullmatch(r"(\d+),(\d+)%", value)
+    if match:
+        return f"{match.group(1)}.{match.group(2)}%"
+
+    return None
+
+
 def _candidate_translate_en(value: str, *, protected: bool = False) -> str:
     if protected:
         return value
@@ -1587,11 +2681,30 @@ def _candidate_translate_en(value: str, *, protected: bool = False) -> str:
     if value in _CANDIDATE_TEXT_EN:
         return _CANDIDATE_TEXT_EN[value]
 
+    product_ui = _candidate_product_ui_en(value)
+    if product_ui is not None:
+        return product_ui
+
     translated = _candidate_dynamic_en(value)
 
     # Small compositional interface fragments only.
     translated = translated.replace(" · éditeurs", " · publishers")
     translated = translated.replace(" · jours actifs", " · active days")
+    translated = translated.replace("CAMPAGNE · ", "CAMPAIGN · ")
+    translated = translated.replace("ÉLECTION · ", "ELECTION · ")
+    translated = translated.replace(
+        "Activez JavaScript pour la visualisation interactive.",
+        "Enable JavaScript for the interactive visualization.",
+    )
+
+    # English-route numeric punctuation for unprotected UI strings.
+    translated = re.sub(r"(?<=\d),(?=\d+%)", ".", translated)
+
+    # Correct singular forms in generated compositional metadata.
+    translated = re.sub(r"\b1 publishers\b", "1 publisher", translated)
+    translated = re.sub(r"\b1 clusters\b", "1 cluster", translated)
+    translated = re.sub(r"\b1 articles\b", "1 article", translated)
+    translated = re.sub(r"\b1 active days\b", "1 active day", translated)
 
     return translated
 
@@ -1689,26 +2802,112 @@ class _CandidateEnglishHTMLParser(HTMLParser):
         )
 
 
-def _candidate_apply_language_shell(document: str, lang: str) -> str:
-    locale = CANDIDATE_LOCALES[lang]
+def _candidate_locale_contract(
+    payload: dict[str, Any],
+    lang: str,
+) -> dict[str, str]:
+    """Return deterministic search/navigation metadata for one candidate route."""
+
+    candidate = payload["candidate"]
+    candidate_id = candidate["candidate_id"]
+    candidate_name = candidate["candidate_name"]
+
+    fr_path = f"/candidates/{candidate_id}/"
+    en_path = f"/en/candidates/{candidate_id}/"
+
+    if lang == "fr":
+        return {
+            "lang": "fr",
+            "locale_tag": "fr-FR",
+            "og_locale": "fr_FR",
+            "canonical": f"{PUBLIC_ORIGIN}{fr_path}",
+            "fr_path": fr_path,
+            "en_path": en_path,
+            "title": f"{candidate_name} \u2014 France 2027 Signal Lab",
+            "description": (
+                f"Dossier sourc\u00e9 de {candidate_name} pour l\u2019\u00e9lection "
+                "pr\u00e9sidentielle fran\u00e7aise de 2027 : sondages, couverture "
+                "m\u00e9diatique, agenda, v\u00e9rifications et attention publique."
+            ),
+        }
+
+    if lang == "en":
+        return {
+            "lang": "en",
+            "locale_tag": "en-GB",
+            "og_locale": "en_GB",
+            "canonical": f"{PUBLIC_ORIGIN}{en_path}",
+            "fr_path": fr_path,
+            "en_path": en_path,
+            "title": (
+                f"{candidate_name} \u2014 Candidate Dossier | "
+                "France 2027 Signal Lab"
+            ),
+            "description": (
+                f"Source-linked {candidate_name} candidate dossier for France's "
+                "2027 presidential election: polls, media coverage, agenda, "
+                "scrutiny and public attention. No averages, no forecast, "
+                "no voting advice."
+            ),
+        }
+
+    raise CandidateReferenceError(
+        f"unsupported candidate locale: {lang}"
+    )
+
+
+def _candidate_apply_language_shell(
+    document: str,
+    lang: str,
+    payload: dict[str, Any],
+) -> str:
+    locale = _candidate_locale_contract(payload, lang)
+
+    candidate_id = payload["candidate"]["candidate_id"]
+    candidate_name = payload["candidate"]["candidate_name"]
 
     document, count = re.subn(
-        r'<html lang="fr" data-page-candidate-id="marine-le-pen">',
-        f'<html lang="{locale["lang"]}" data-page-candidate-id="marine-le-pen">',
+        r'<html lang="fr" data-page-candidate-id="[^"]+">',
+        (
+            f'<html lang="{locale["lang"]}" '
+            f'data-page-candidate-id="{html.escape(candidate_id, quote=True)}">'
+        ),
         document,
         count=1,
     )
     if count != 1:
-        raise CandidateReferenceError("candidate HTML lang shell drifted")
+        raise CandidateReferenceError(
+            "candidate HTML lang shell drifted"
+        )
+
+    document, count = re.subn(
+        r'<meta name="robots" content="[^"]*">',
+        (
+            '<meta name="robots" '
+            'content="index,follow,max-image-preview:large">'
+        ),
+        document,
+        count=1,
+    )
+    if count != 1:
+        raise CandidateReferenceError(
+            "candidate robots shell drifted"
+        )
 
     document, count = re.subn(
         r'<meta name="description" content="[^"]*">',
-        f'<meta name="description" content="{html.escape(locale["description"], quote=True)}">',
+        (
+            '<meta name="description" content="'
+            + html.escape(locale["description"], quote=True)
+            + '">'
+        ),
         document,
         count=1,
     )
     if count != 1:
-        raise CandidateReferenceError("candidate meta description shell drifted")
+        raise CandidateReferenceError(
+            "candidate meta description shell drifted"
+        )
 
     document, count = re.subn(
         r"<title>.*?</title>",
@@ -1717,16 +2916,80 @@ def _candidate_apply_language_shell(document: str, lang: str) -> str:
         count=1,
     )
     if count != 1:
-        raise CandidateReferenceError("candidate title shell drifted")
+        raise CandidateReferenceError(
+            "candidate title shell drifted"
+        )
 
-    seo = (
-        f'<link rel="canonical" href="{locale["canonical"]}">\n'
-        '<link rel="alternate" hreflang="fr" '
-        'href="https://france2027.app/candidates/marine-le-pen/">\n'
-        '<link rel="alternate" hreflang="en" '
-        'href="https://france2027.app/en/candidates/marine-le-pen/">\n'
-        '<link rel="alternate" hreflang="x-default" '
-        'href="https://france2027.app/candidates/marine-le-pen/">'
+    fr_url = f'{PUBLIC_ORIGIN}{locale["fr_path"]}'
+    en_url = f'{PUBLIC_ORIGIN}{locale["en_path"]}'
+
+    alternate_locale = (
+        "en_GB"
+        if locale["og_locale"] == "fr_FR"
+        else "fr_FR"
+    )
+
+    seo = "\n".join(
+        (
+            f'<link rel="canonical" href="{locale["canonical"]}">',
+            f'<link rel="alternate" hreflang="fr" href="{fr_url}">',
+            f'<link rel="alternate" hreflang="en" href="{en_url}">',
+            f'<link rel="alternate" hreflang="x-default" href="{fr_url}">',
+            FR27_FAVICON_MARKUP,
+            '<meta name="application-name" content="France 2027 Signal Lab">',
+            '<meta property="og:type" content="website">',
+            '<meta property="og:site_name" content="France 2027 Signal Lab">',
+            (
+                '<meta property="og:title" content="'
+                + html.escape(locale["title"], quote=True)
+                + '">'
+            ),
+            (
+                '<meta property="og:description" content="'
+                + html.escape(locale["description"], quote=True)
+                + '">'
+            ),
+            (
+                '<meta property="og:url" content="'
+                + html.escape(locale["canonical"], quote=True)
+                + '">'
+            ),
+            (
+                '<meta property="og:locale" content="'
+                + locale["og_locale"]
+                + '">'
+            ),
+            (
+                '<meta property="og:locale:alternate" content="'
+                + alternate_locale
+                + '">'
+            ),
+            (
+                '<meta property="og:image" content="'
+                + html.escape(DEFAULT_OG_IMAGE, quote=True)
+                + '">'
+            ),
+            (
+                '<meta property="og:image:alt" '
+                'content="France 2027 Signal Lab">'
+            ),
+            '<meta name="twitter:card" content="summary_large_image">',
+            (
+                '<meta name="twitter:title" content="'
+                + html.escape(locale["title"], quote=True)
+                + '">'
+            ),
+            (
+                '<meta name="twitter:description" content="'
+                + html.escape(locale["description"], quote=True)
+                + '">'
+            ),
+            (
+                '<meta name="twitter:image" content="'
+                + html.escape(DEFAULT_OG_IMAGE, quote=True)
+                + '">'
+            ),
+        )
     )
 
     description_match = re.search(
@@ -1734,7 +2997,9 @@ def _candidate_apply_language_shell(document: str, lang: str) -> str:
         document,
     )
     if not description_match:
-        raise CandidateReferenceError("candidate description insertion point drifted")
+        raise CandidateReferenceError(
+            "candidate description insertion point drifted"
+        )
 
     document = (
         document[:description_match.end()]
@@ -1745,27 +3010,29 @@ def _candidate_apply_language_shell(document: str, lang: str) -> str:
 
     if lang == "fr":
         language_nav = (
-            '<nav class="candidate-language" aria-label="Langue de l’interface">'
-            '<a href="/candidates/marine-le-pen/" lang="fr" hreflang="fr" '
-            'aria-label="Français" aria-current="page">FR</a>'
+            '<nav class="candidate-language" '
+            'aria-label="Langue de l\u2019interface">'
+            f'<a href="{locale["fr_path"]}" lang="fr" hreflang="fr" '
+            'aria-label="Fran\u00e7ais" aria-current="page">FR</a>'
             '<span aria-hidden="true">|</span>'
-            '<a href="/en/candidates/marine-le-pen/" '
+            f'<a href="{locale["en_path"]}" '
             'data-candidate-language-peer '
-            'data-candidate-peer-base="/en/candidates/marine-le-pen/" '
+            f'data-candidate-peer-base="{locale["en_path"]}" '
             'lang="en" hreflang="en" aria-label="English" '
             'title="English candidate page">EN</a>'
             '</nav>'
         )
     else:
         language_nav = (
-            '<nav class="candidate-language" aria-label="Interface language">'
-            '<a href="/candidates/marine-le-pen/" '
+            '<nav class="candidate-language" '
+            'aria-label="Interface language">'
+            f'<a href="{locale["fr_path"]}" '
             'data-candidate-language-peer '
-            'data-candidate-peer-base="/candidates/marine-le-pen/" '
-            'lang="fr" hreflang="fr" aria-label="Français" '
-            'title="Page candidat en français">FR</a>'
+            f'data-candidate-peer-base="{locale["fr_path"]}" '
+            'lang="fr" hreflang="fr" aria-label="Fran\u00e7ais" '
+            'title="Page candidat en fran\u00e7ais">FR</a>'
             '<span aria-hidden="true">|</span>'
-            '<a href="/en/candidates/marine-le-pen/" lang="en" hreflang="en" '
+            f'<a href="{locale["en_path"]}" lang="en" hreflang="en" '
             'aria-label="English" aria-current="page">EN</a>'
             '</nav>'
         )
@@ -1778,7 +3045,53 @@ def _candidate_apply_language_shell(document: str, lang: str) -> str:
         flags=re.DOTALL,
     )
     if count != 1:
-        raise CandidateReferenceError("candidate language navigation drifted")
+        raise CandidateReferenceError(
+            "candidate language navigation drifted"
+        )
+
+    metadata = json.dumps(
+        {
+            "candidate_id": candidate_id,
+            "data_url": f"/candidates/{candidate_id}/data.json",
+            "schema_version": SCHEMA_VERSION,
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+
+    document, count = re.subn(
+        (
+            r'<script id="candidate-reference-metadata" '
+            r'type="application/json">.*?</script>'
+        ),
+        (
+            '<script id="candidate-reference-metadata" '
+            f'type="application/json">{metadata}</script>'
+        ),
+        document,
+        count=1,
+        flags=re.DOTALL,
+    )
+    if count != 1:
+        raise CandidateReferenceError(
+            "candidate reference metadata drifted"
+        )
+
+    # Keep the visible proper name synchronized with the projection.
+    document, count = re.subn(
+        r'<h1 id="candidate-name">.*?</h1>',
+        (
+            '<h1 id="candidate-name">'
+            + html.escape(candidate_name)
+            + '</h1>'
+        ),
+        document,
+        count=1,
+    )
+    if count != 1:
+        raise CandidateReferenceError(
+            "candidate visible identity drifted"
+        )
 
     if lang == "en":
         document = document.replace(
@@ -1787,13 +3100,10 @@ def _candidate_apply_language_shell(document: str, lang: str) -> str:
             1,
         )
         document = document.replace(
-            '<a href="/#candidates">CANDIDATS</a>',
-            '<a href="/en/#candidates">CANDIDATES</a>',
-            1,
-        )
-        document = document.replace(
-            '<a class="fr27-dashboard-cta" href="https://france2027.app/">',
-            '<a class="fr27-dashboard-cta" href="https://france2027.app/en/">',
+            '<a class="fr27-dashboard-cta" '
+            'href="https://france2027.app/">',
+            '<a class="fr27-dashboard-cta" '
+            'href="https://france2027.app/en/">',
             1,
         )
 
@@ -1807,10 +3117,20 @@ def render_html(
     lang: str = "fr",
 ) -> bytes:
     if lang not in CANDIDATE_LOCALES:
-        raise CandidateReferenceError(f"unsupported candidate locale: {lang}")
+        raise CandidateReferenceError(
+            f"unsupported candidate locale: {lang}"
+        )
 
-    raw = _render_candidate_structure_html(payload, hud_metrics).decode("utf-8")
-    raw = _candidate_apply_language_shell(raw, lang)
+    raw = _render_candidate_structure_html(
+        payload,
+        hud_metrics,
+    ).decode("utf-8")
+
+    raw = _candidate_apply_language_shell(
+        raw,
+        lang,
+        payload,
+    )
 
     if lang == "fr":
         return raw.encode("utf-8")
@@ -1821,30 +3141,101 @@ def render_html(
     rendered = "".join(parser.parts)
 
     # HTMLParser lowercases attribute names; SVG viewBox is case-sensitive.
-    rendered = rendered.replace(" viewbox=", " viewBox=")
+    rendered = rendered.replace(
+        " viewbox=",
+        " viewBox=",
+    )
 
     # Source-originated h4 content remains in its published language.
     # These three h4 elements are product-interface labels.
     interface_h4 = {
-        "PÉRIMÈTRE": "SCOPE",
+        "P\u00c9RIM\u00c8TRE": "SCOPE",
         "PLACEMENT DE LA MENTION": "MENTION PLACEMENT",
-        "PREMIER ÉDITEUR": "TOP PUBLISHER",
+        "PREMIER \u00c9DITEUR": "TOP PUBLISHER",
     }
+
     for fr_label, en_label in interface_h4.items():
         rendered = rendered.replace(
             f'<h4 lang="fr">{fr_label}</h4>',
             f"<h4>{en_label}</h4>",
         )
 
-    # English remains bound to the same language-neutral projection.
-    if (
-        '"data_url":"/candidates/marine-le-pen/data.json"'
-        not in rendered
-    ):
-        raise CandidateReferenceError("English candidate data URL drifted")
+    candidate_id = payload["candidate"]["candidate_id"]
+    expected_data_url = (
+        f'"data_url":"/candidates/{candidate_id}/data.json"'
+    )
+
+    if expected_data_url not in rendered:
+        raise CandidateReferenceError(
+            "English candidate data URL drifted"
+        )
 
     return rendered.encode("utf-8")
 
+
+def build_all_active_artifacts(
+    sources: dict[str, Any],
+    root: Path = ROOT,
+) -> dict[Path, bytes]:
+    """Build every active bilingual dossier and both generated hubs in memory."""
+
+    from candidate_hub import build_hub_model, render_hub
+
+    validate_sources(sources, root)
+    records = active_candidate_records(sources["candidate_candidacy_status"])
+    projections = [
+        build_projection(
+            sources,
+            root,
+            candidate_id=record["candidate_id"],
+            _sources_validated=True,
+        )
+        for record in records
+    ]
+    hud_metrics = derive_hud_metrics(sources)
+    artifacts: dict[Path, bytes] = {}
+
+    for projection in projections:
+        candidate_id = projection["candidate_id"]
+        artifacts[Path("candidates") / candidate_id / "data.json"] = (
+            serialize_projection(projection)
+        )
+        artifacts[Path("candidates") / candidate_id / "index.html"] = render_html(
+            projection,
+            hud_metrics,
+            lang="fr",
+        )
+        artifacts[
+            Path("en") / "candidates" / candidate_id / "index.html"
+        ] = render_html(
+            projection,
+            hud_metrics,
+            lang="en",
+        )
+
+    hub_model = build_hub_model(
+        sources["candidate_candidacy_status"],
+        projections,
+    )
+    artifacts[Path("candidates") / "index.html"] = render_hub(
+        hub_model,
+        lang="fr",
+        favicon_markup=FR27_FAVICON_MARKUP,
+        og_image=DEFAULT_OG_IMAGE,
+    )
+    artifacts[Path("en") / "candidates" / "index.html"] = render_hub(
+        hub_model,
+        lang="en",
+        favicon_markup=FR27_FAVICON_MARKUP,
+        og_image=DEFAULT_OG_IMAGE,
+    )
+    return artifacts
+
+
+
+def _newline_equivalent(left: bytes, right: bytes) -> bool:
+    """Compare generated text while ignoring CRLF/LF checkout conversion."""
+    return left.replace(b"\r\n", b"\n") == right.replace(b"\r\n", b"\n")
 
 
 def atomic_write(path: Path, content: bytes) -> None:
@@ -1868,6 +3259,16 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, default=OUTPUT_PATH)
     parser.add_argument("--html-output", type=Path, default=HTML_OUTPUT_PATH)
     parser.add_argument("--html-output-en", type=Path, default=HTML_OUTPUT_PATH_EN)
+    parser.add_argument(
+        "--all-active",
+        action="store_true",
+        help="generate every active FR/EN dossier plus both Candidates hubs",
+    )
+    parser.add_argument(
+        "--site-output-root",
+        type=Path,
+        help="destination root for --all-active (defaults to --root)",
+    )
     parser.add_argument("--check", action="store_true")
     return parser.parse_args()
 
@@ -1875,6 +3276,36 @@ def _parse_args() -> argparse.Namespace:
 def main() -> int:
     args = _parse_args()
     sources = load_sources(args.root)
+
+    if args.all_active:
+        output_root = args.site_output_root or args.root
+        if not output_root.is_absolute():
+            output_root = args.root / output_root
+        artifacts = build_all_active_artifacts(sources, args.root)
+
+        if args.check:
+            for relative_path, content in artifacts.items():
+                target = output_root / relative_path
+                if (
+                    not target.exists()
+                    or not _newline_equivalent(target.read_bytes(), content)
+                ):
+                    raise SystemExit(f"stale generated candidate artifact: {target}")
+            active_count = len(
+                active_candidate_records(sources["candidate_candidacy_status"])
+            )
+            print(
+                "all-active candidate artifacts are current: "
+                f"{active_count} FR + {active_count} EN dossiers and 2 hubs"
+            )
+            return 0
+
+        for relative_path, content in artifacts.items():
+            target = output_root / relative_path
+            atomic_write(target, content)
+            print(f"wrote {target}")
+        return 0
+
     serialized = serialize_projection(build_projection(sources, args.root))
     projection = json.loads(serialized)
     hud_metrics = derive_hud_metrics(sources)
@@ -1892,9 +3323,15 @@ def main() -> int:
     if args.check:
         if not output.exists() or output.read_bytes() != serialized:
             raise SystemExit(f"stale candidate reference projection: {output}")
-        if not html_output.exists() or html_output.read_bytes() != rendered_html:
+        if (
+            not html_output.exists()
+            or not _newline_equivalent(html_output.read_bytes(), rendered_html)
+        ):
             raise SystemExit(f"stale candidate reference HTML: {html_output}")
-        if not html_output_en.exists() or html_output_en.read_bytes() != rendered_html_en:
+        if (
+            not html_output_en.exists()
+            or not _newline_equivalent(html_output_en.read_bytes(), rendered_html_en)
+        ):
             raise SystemExit(f"stale English candidate reference HTML: {html_output_en}")
         print(f"candidate reference projection and bilingual HTML are current: {output}")
         return 0

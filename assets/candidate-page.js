@@ -871,18 +871,97 @@
   };
 
   const initLocalNavigation = () => {
-    const links = [...document.querySelectorAll(".candidate-local-nav a")];
+    const nav = document.querySelector(".candidate-local-nav");
+    if (!nav) return;
+
+    const links = [...nav.querySelectorAll(":scope > a")];
     const targets = links
       .map(link => document.querySelector(link.getAttribute("href")))
       .filter(Boolean);
-    if (!("IntersectionObserver" in window) || !targets.length) return;
+
+    if (!links.length || !targets.length) return;
+
+    const mobileControl = document.createElement("div");
+    mobileControl.className = "candidate-local-nav-mobile";
+
+    const mobileLabel = document.createElement("span");
+    mobileLabel.className = "candidate-local-nav-mobile-label";
+    mobileLabel.textContent = "SECTION";
+
+    const mobileSelect = document.createElement("select");
+    mobileSelect.className = "candidate-local-nav-mobile-select";
+    mobileSelect.setAttribute(
+      "aria-label",
+      nav.getAttribute("aria-label") || "Dossier sections"
+    );
+
+    links.forEach(link => {
+      const option = document.createElement("option");
+      option.value = link.getAttribute("href");
+      option.textContent = link.textContent.trim();
+      mobileSelect.append(option);
+    });
+
+    const knownHash = links.some(
+      link => link.getAttribute("href") === window.location.hash
+    );
+    mobileSelect.value = knownHash
+      ? window.location.hash
+      : links[0].getAttribute("href");
+
+    mobileControl.append(mobileLabel, mobileSelect);
+    nav.append(mobileControl);
+    nav.classList.add("has-mobile-selector");
+
+    mobileSelect.addEventListener("change", () => {
+      const target = document.querySelector(mobileSelect.value);
+      if (!target) return;
+
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+
+      target.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "start",
+      });
+
+      if (window.history && window.history.pushState) {
+        window.history.pushState(null, "", mobileSelect.value);
+      }
+    });
+
+    if (!("IntersectionObserver" in window)) return;
+
     const visible = new Map();
     const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => visible.set(entry.target.id, entry.isIntersecting ? entry.intersectionRatio : 0));
-      const active = [...visible.entries()].sort((left, right) => right[1] - left[1])[0];
+      entries.forEach(entry => {
+        visible.set(
+          entry.target.id,
+          entry.isIntersecting ? entry.intersectionRatio : 0
+        );
+      });
+
+      const active = [...visible.entries()]
+        .sort((left, right) => right[1] - left[1])[0];
+
       if (!active || active[1] <= 0) return;
-      links.forEach(link => link.classList.toggle("is-active", link.getAttribute("href") === `#${active[0]}`));
-    }, { rootMargin: "-52px 0px -65% 0px", threshold: [0, .15, .5, 1] });
+
+      const activeHref = `#${active[0]}`;
+
+      links.forEach(link => {
+        link.classList.toggle(
+          "is-active",
+          link.getAttribute("href") === activeHref
+        );
+      });
+
+      mobileSelect.value = activeHref;
+    }, {
+      rootMargin: "-52px 0px -65% 0px",
+      threshold: [0, .15, .5, 1],
+    });
+
     targets.forEach(target => observer.observe(target));
   };
 

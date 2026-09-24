@@ -46,6 +46,25 @@
   grid-area: identity;
   min-width: 0;
 }
+.candidate-page .candidate-portrait-fallback {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(53, 216, 255, .22);
+  background:
+    radial-gradient(
+      circle at 50% 38%,
+      rgba(53, 216, 255, .10),
+      transparent 54%
+    ),
+    rgba(5, 17, 29, .86);
+  color: var(--final-cyan);
+  font-size: 30px;
+  font-weight: 780;
+  letter-spacing: .06em;
+  user-select: none;
+}
+
 .candidate-page .candidate-eyebrow,
 .candidate-page .candidate-kicker {
   color: var(--final-cyan);
@@ -2975,3 +2994,120 @@
   }
 }
 /* === END FR27 UNIVERSAL HUD MICRO-POLISH LOCK === */
+
+/* === FR27 POLLING-LAB VISUAL ALIGNMENT: NAV + ACTIONS ===
+   Harmonizes candidate-page controls with the frozen Polling Lab language.
+   No layout, typography, panel, chart or responsive geometry changes.
+*/
+.candidate-page .candidate-local-nav {
+  background: linear-gradient(
+    180deg,
+    rgba(10, 27, 43, .98),
+    rgba(5, 18, 30, .98)
+  );
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .22),
+              inset 0 1px rgba(255, 255, 255, .018);
+}
+
+.candidate-page .candidate-local-nav a {
+  border-right-color: rgba(31, 73, 98, .72);
+  color: #91a8b7;
+}
+
+.candidate-page .candidate-local-nav a:hover {
+  color: #cfe2ed;
+  background: rgba(53, 216, 255, .025);
+}
+
+.candidate-page .candidate-local-nav a.is-active,
+.candidate-page .candidate-local-nav:not(:has(a.is-active)) a:first-child {
+  position: relative;
+  color: var(--final-cyan);
+  background: transparent;
+  box-shadow: none;
+}
+
+.candidate-page .candidate-local-nav a.is-active::after,
+.candidate-page .candidate-local-nav:not(:has(a.is-active)) a:first-child::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 34px;
+  height: 2px;
+  transform: translateX(-50%);
+  background: var(--final-cyan);
+}
+
+.candidate-page .candidate-archive-toggle {
+  min-height: 38px;
+  padding: 7px 12px;
+  border: 1px solid var(--final-line-strong);
+  border-radius: 4px;
+  background: #071827;
+  color: var(--final-cyan);
+  font-weight: 760;
+  letter-spacing: .045em;
+}
+
+.candidate-page .candidate-archive-toggle:hover {
+  border-color: var(--final-cyan);
+  background: #082033;
+  color: var(--final-text);
+}
+/* === END FR27 POLLING-LAB VISUAL ALIGNMENT === */
+
+/* === FR27 MOBILE LOCAL NAV SELECTOR ===
+   Tier 3 replaces the compressed seven-tab row with one section selector.
+   The original anchor navigation remains in the DOM as the no-JS fallback.
+*/
+.candidate-page .candidate-local-nav-mobile {
+  display: none;
+}
+
+@media (max-width: 759.98px) {
+  .candidate-page .candidate-local-nav.has-mobile-selector {
+    overflow: hidden;
+  }
+
+  .candidate-page .candidate-local-nav.has-mobile-selector > a {
+    display: none;
+  }
+
+  .candidate-page .candidate-local-nav-mobile {
+    width: 100%;
+    min-height: var(--candidate-nav-height);
+    display: grid;
+    grid-template-columns: 78px minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .candidate-page .candidate-local-nav-mobile-label {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    border-right: 1px solid rgba(31, 73, 98, .72);
+    color: #91a8b7;
+    font: 760 var(--fr27-type-control)/1 var(--fr27-type-sans);
+    letter-spacing: .065em;
+  }
+
+  .candidate-page .candidate-local-nav-mobile-select {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    border-radius: 0;
+    padding: 0 12px;
+    background: #061522;
+    color: var(--final-cyan);
+    font: 760 var(--fr27-type-control)/1 var(--fr27-type-sans);
+    letter-spacing: .055em;
+    cursor: pointer;
+  }
+
+  .candidate-page .candidate-local-nav-mobile-select:focus-visible {
+    outline: 1px solid var(--final-cyan);
+    outline-offset: -2px;
+  }
+}
+/* === END FR27 MOBILE LOCAL NAV SELECTOR === */
