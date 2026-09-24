@@ -29,6 +29,7 @@ from candidate_candidacy_status import (
     validate_candidate_candidacy_status,
 )
 from candidate_portraits import resolve_candidate_portrait
+from candidate_page_contract import project_candidate_page_index
 from candidate_visibility_history_contract import (
     validate_candidate_visibility_history,
 )
@@ -58,6 +59,7 @@ MAX_SCRUTINY_REVIEWS = 12
 MAX_UPCOMING_EVENTS = 6
 MAX_RECENT_EVENTS = 8
 MAX_AGENDA_TOPICS = 4
+MAX_RELATED_CANDIDATES = 8
 
 SOURCE_FILES = {
     "candidate_signals": "candidate_signals.json",
@@ -263,6 +265,70 @@ def _projection_portrait_path(candidate_name: str, root: Path) -> str | None:
         candidate_name,
         index_path=root / "index.html",
     )
+
+
+def _related_candidate_projection(
+    candidacy_payload: dict[str, Any],
+    current_candidate_id: str,
+    root: Path,
+    *,
+    limit: int = MAX_RELATED_CANDIDATES,
+) -> list[dict[str, Any]]:
+    """Select declared candidacies after the current profile alphabetically.
+
+    The canonical candidate-page index supplies the neutral alphabetical
+    ordering. Starting immediately after the current profile, the sequence
+    wraps once and retains only records whose factual status is ``declared``.
+    The current profile is never returned.
+    """
+
+    index = project_candidate_page_index(candidacy_payload)
+    candidates = index["candidates"]
+
+    if len(candidates) <= 1 or limit <= 0:
+        return []
+
+    ids = [
+        candidate["candidate_id"]
+        for candidate in candidates
+    ]
+
+    try:
+        current_index = ids.index(current_candidate_id)
+    except ValueError as exc:
+        raise CandidateReferenceError(
+            "current candidate is missing from canonical page index"
+        ) from exc
+
+    rotated = (
+        candidates[current_index + 1:]
+        + candidates[:current_index]
+    )
+
+    eligible = [
+        candidate
+        for candidate in rotated
+        if (
+            candidate["status"] == "declared"
+            and candidate["candidate_id"] != current_candidate_id
+        )
+    ]
+
+    selected = eligible[:limit]
+
+    return [
+        {
+            "candidate_id": candidate["candidate_id"],
+            "candidate_name": candidate["candidate_name"],
+            "status": candidate["status"],
+            "routes": dict(candidate["routes"]),
+            "portrait_path": _projection_portrait_path(
+                candidate["candidate_name"],
+                root,
+            ),
+        }
+        for candidate in selected
+    ]
 
 
 def _agenda_daily_topic_count(
@@ -589,6 +655,11 @@ def build_projection(
             "status_as_of": candidate_status["status_as_of"],
             "portrait_path": _projection_portrait_path(candidate_name, root),
         },
+        "related_candidates": _related_candidate_projection(
+            status_payload,
+            candidate_id,
+            root,
+        ),
         "dossier": {
             "polling": {
                 "evidence_state": polling["evidence_state"],
@@ -691,6 +762,7 @@ def build_projection(
             "upcoming_events": MAX_UPCOMING_EVENTS,
             "recent_events": MAX_RECENT_EVENTS,
             "agenda_topics": MAX_AGENDA_TOPICS,
+            "related_candidates": MAX_RELATED_CANDIDATES,
         },
     }
     validate_projection(
@@ -725,6 +797,46 @@ def validate_projection(
         raise CandidateReferenceError(
             "projection candidate is outside the active monitoring field"
         )
+
+    related_candidates = payload.get(
+        "related_candidates"
+    )
+
+    if not isinstance(related_candidates, list):
+        raise CandidateReferenceError(
+            "projection related candidates are invalid"
+        )
+
+    related_ids = [
+        item.get("candidate_id")
+        for item in related_candidates
+    ]
+
+    if projected_candidate_id in related_ids:
+        raise CandidateReferenceError(
+            "projection related candidates contain the current candidate"
+        )
+
+    if len(related_ids) != len(set(related_ids)):
+        raise CandidateReferenceError(
+            "projection related candidates contain duplicates"
+        )
+
+    for item in related_candidates:
+        candidate_id_value = item.get("candidate_id")
+        routes = item.get("routes")
+
+        if (
+            not isinstance(candidate_id_value, str)
+            or not isinstance(routes, dict)
+            or routes.get("fr")
+            != f"/candidates/{candidate_id_value}/"
+            or routes.get("en")
+            != f"/en/candidates/{candidate_id_value}/"
+        ):
+            raise CandidateReferenceError(
+                "projection related candidate route is invalid"
+            )
 
     current = payload["polling"]["current"]
 
@@ -767,6 +879,7 @@ def validate_projection(
         "scrutiny_reviews": len(payload["accountability"]["reviews"]),
         "upcoming_events": len(payload["events"]["upcoming"]),
         "recent_events": len(payload["events"]["recent"]),
+        "related_candidates": len(payload["related_candidates"]),
     }
     for key, actual in bounded.items():
         if actual > bounds[key]:
@@ -1031,6 +1144,92 @@ def _candidate_empty_state(
         f'<strong>{_h(title)}</strong>'
         f'<span>{_h(detail)}</span>'
         '</div>'
+    )
+
+
+def _candidate_related_portrait_html(
+    candidate: dict[str, Any],
+) -> str:
+    candidate_name = candidate["candidate_name"]
+    portrait_path = candidate.get("portrait_path")
+
+    if portrait_path:
+        return (
+            '<span class="candidate-related-portrait">'
+            '<img '
+            f'src="{_h(portrait_path)}" '
+            f'alt="Portrait illustré de {_h(candidate_name)}" '
+            'width="52" height="52">'
+            '</span>'
+        )
+
+    return (
+        '<span class="candidate-related-portrait '
+        'candidate-related-portrait-fallback" '
+        'role="img" '
+        f'aria-label="Portrait non disponible pour {_h(candidate_name)}">'
+        '<span aria-hidden="true">'
+        f'{_h(_candidate_initials(candidate_name))}'
+        '</span>'
+        '</span>'
+    )
+
+
+def _render_related_candidates(
+    candidates: list[dict[str, Any]],
+    current_status: str,
+) -> str:
+    if not candidates:
+        return ""
+
+    title = (
+        "AUTRES CANDIDATURES DÉCLARÉES"
+        if current_status == "declared"
+        else "CANDIDATURES DÉCLARÉES"
+    )
+
+    cards: list[str] = []
+
+    for candidate in candidates:
+        cards.append(
+            '<a class="candidate-related-card" '
+            f'href="{_h(candidate["routes"]["fr"])}">'
+            f'{_candidate_related_portrait_html(candidate)}'
+            '<span class="candidate-related-copy">'
+            '<span class="candidate-related-name">'
+            f'{_h(candidate["candidate_name"])}'
+            '</span>'
+            '</span>'
+            '<span class="candidate-related-open">'
+            'OUVRIR LE PROFIL →'
+            '</span>'
+            '</a>'
+        )
+
+    return (
+        '<section class="candidate-section candidate-related" '
+        'id="related-candidates" '
+        'aria-labelledby="related-candidates-title">'
+        '<div class="candidate-related-panel-head">'
+        '<div>'
+        '<div class="candidate-related-eyebrow">'
+        'POURSUIVRE L’EXPLORATION'
+        '</div>'
+        '<h2 id="related-candidates-title">'
+        f'{title}'
+        '</h2>'
+        '</div>'
+        '</div>'
+        '<div class="candidate-related-grid">'
+        f'{"".join(cards)}'
+        '</div>'
+        '<div class="candidate-related-footer">'
+        '<a class="candidate-related-all" '
+        'href="/candidates/">'
+        'VOIR TOUS LES CANDIDATS →'
+        '</a>'
+        '</div>'
+        '</section>'
     )
 
 
@@ -1778,7 +1977,10 @@ def _render_candidate_structure_html(
             ),
         )
     )
-    source_dates = payload["freshness"]["candidate_signal_evidence_dates"]
+    related_candidates_section = _render_related_candidates(
+        payload["related_candidates"],
+        candidate["status"],
+    )
 
     document = f'''<!doctype html>
 <html lang="fr" data-page-candidate-id="{CANDIDATE_ID}">
@@ -1818,9 +2020,8 @@ def _render_candidate_structure_html(
       {portrait_html}
       <div class="candidate-dossier-copy">
         <div class="candidate-eyebrow">DOSSIER CANDIDAT</div>
-        <h1 id="candidate-name">{_h(candidate["candidate_name"])}</h1>
+        <div class="candidate-name-row"><h1 id="candidate-name">{_h(candidate["candidate_name"])}</h1><span class="candidate-section-info-wrap candidate-name-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur ce dossier" aria-describedby="candidate-dossier-note">i</button><span class="candidate-section-tooltip" id="candidate-dossier-note" role="tooltip">Synthèse descriptive des données publiées par France 2027 Signal Lab. Aucune moyenne · aucune prévision · aucun conseil de vote.</span></span></div>
         <div class="candidate-status-row"><span class="candidate-status">{_h(status_label)}</span><span>Statut vérifié au {_fr_date(candidate["status_as_of"])}</span></div>
-        <p>Synthèse descriptive des données publiées par France 2027 Signal Lab. Aucune moyenne · aucune prévision · aucun conseil de vote.</p>
       </div>
       <dl class="candidate-dossier-metrics">
         <div><dt>DONNÉES DE SONDAGE</dt><dd>{poll_headline}</dd><small>{poll_metric_meta}</small></div>
@@ -1894,10 +2095,7 @@ def _render_candidate_structure_html(
       <div class="candidate-events-grid"><article class="candidate-panel"><div class="candidate-panel-head"><h3>ÉVÉNEMENTS À VENIR</h3><span>au {_fr_date(payload["events"]["reference_date"])}</span></div><div class="candidate-panel-body candidate-event-list">{upcoming_html}</div></article><article class="candidate-panel"><div class="candidate-panel-head"><h3>ÉVÉNEMENTS RÉCENTS</h3><span>historique récent</span></div><div class="candidate-panel-body candidate-event-list">{recent_html}</div></article></div>
     </section>
 
-    <section class="candidate-section candidate-sources" id="sources" aria-labelledby="sources-title">
-      <header class="candidate-section-head"><div class="candidate-section-title-row"><h2 id="sources-title">SOURCES &amp; MÉTHODOLOGIE</h2><span class="candidate-section-info-wrap"><button class="candidate-section-info" type="button" aria-label="Contexte de cette section" aria-describedby="sources-note">i</button><span class="candidate-section-tooltip" id="sources-note" role="tooltip">Définitions, périmètres, sources et dates de mise à jour.</span></span></div></header>
-      <div class="candidate-sources-grid"><article class="candidate-panel"><div class="candidate-panel-head"><h3>DÉFINITIONS</h3></div><div class="candidate-panel-body"><dl class="candidate-definition-list"><div><dt>Données de sondage</dt><dd>Fourchette des scores publiés dans les différentes hypothèses d’une même vague. Aucune moyenne n’est calculée.</dd></div><div><dt>Media Pulse</dt><dd>Part de la couverture « élection + campagne » associée à la candidate. Ce n’est pas une mesure d’opinion ou de soutien.</dd></div><div><dt>Attention Wikipédia</dt><dd>Pages vues de l’article français. Ce n’est pas une mesure de soutien, de sentiment ou d’intention de vote.</dd></div><div><dt>PAR / À PROPOS</dt><dd>PAR désigne l’auteur enregistré de l’affirmation. À PROPOS désigne une candidate mentionnée dans une affirmation attribuée à autrui.</dd></div></dl></div></article><article class="candidate-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>FRAÎCHEUR DES DONNÉES</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur la fraîcheur des données" aria-describedby="sources-freshness-note">i</button><span class="candidate-section-tooltip" id="sources-freshness-note" role="tooltip">Données de France 2027 Signal Lab validées aux dates indiquées ci-dessus. Aucune moyenne · aucune prévision · aucun conseil de vote.</span></span></div></div><div class="candidate-panel-body"><dl class="candidate-compact-facts"><div><dt>Sondages</dt><dd>{_fr_date(source_dates["polling"])}</dd></div><div><dt>Couverture</dt><dd>{_fr_date(payload["freshness"]["media_period_end"])}</dd></div><div><dt>Agenda</dt><dd>{_fr_date(payload["freshness"]["agenda_data_as_of"])}</dd></div><div><dt>Attention</dt><dd>{_fr_date(payload["freshness"]["attention_period_end"])}</dd></div><div><dt>Vérifications</dt><dd>{_fr_date(source_dates["scrutiny"])}</dd></div><div><dt>Candidature</dt><dd>{_fr_date(candidate["status_as_of"])}</dd></div></dl></div></article></div>
-    </section>
+    {related_candidates_section}
 
     <footer id="candidate-app-hud" class="fr27-app-hud" data-expanded="true" aria-label="Dock système France 2027 Signal Lab">
       <button class="fr27-app-hud-toggle" id="fr27-app-hud-toggle" type="button" aria-expanded="true" aria-controls="fr27-app-hud-surface" aria-label="Réduire le dock système" data-fr27-tooltip="Réduire le dock système"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.5 8.5 12 14l5.5-5.5"></path></svg></button>
@@ -2019,6 +2217,11 @@ _CANDIDATE_TEXT_EN = {
     "ÉVÉNEMENTS À VENIR": "UPCOMING EVENTS",
     "ÉVÉNEMENTS RÉCENTS": "RECENT EVENTS",
     "historique récent": "recent history",
+    "POURSUIVRE L’EXPLORATION": "CONTINUE EXPLORING",
+    "AUTRES CANDIDATURES DÉCLARÉES": "OTHER DECLARED CANDIDATES",
+    "CANDIDATURES DÉCLARÉES": "DECLARED CANDIDATES",
+    "OUVRIR LE PROFIL →": "OPEN PROFILE →",
+    "VOIR TOUS LES CANDIDATS →": "VIEW ALL CANDIDATES →",
     "SOURCES & MÉTHODOLOGIE": "SOURCES & METHODOLOGY",
     "DÉFINITIONS": "DEFINITIONS",
     "Données de sondage": "Polling data",
@@ -2181,6 +2384,7 @@ _CANDIDATE_ATTR_EN = {
     "Langue de l’interface": "Interface language",
     "Compte à rebours avant le premier tour": "First-round election countdown",
     "Fil d’Ariane": "Breadcrumb",
+    "Informations sur ce dossier": "Information about this dossier",
     "Portrait illustré de Marine Le Pen": "Illustrated portrait of Marine Le Pen",
     "Sections du dossier": "Dossier sections",
     "Contexte de cette section": "Section context",
@@ -3104,6 +3308,27 @@ def _candidate_apply_language_shell(
             'href="https://france2027.app/">',
             '<a class="fr27-dashboard-cta" '
             'href="https://france2027.app/en/">',
+            1,
+        )
+
+        document = re.sub(
+            (
+                r'(<a class="candidate-related-card" '
+                r'href=")/candidates/'
+            ),
+            r'\1/en/candidates/',
+            document,
+        )
+
+        document = document.replace(
+            (
+                '<a class="candidate-related-all" '
+                'href="/candidates/">'
+            ),
+            (
+                '<a class="candidate-related-all" '
+                'href="/en/candidates/">'
+            ),
             1,
         )
 

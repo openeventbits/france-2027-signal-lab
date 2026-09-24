@@ -710,7 +710,7 @@ class CandidateReferenceTests(unittest.TestCase):
                 )
         self.assertEqual(positions, sorted(positions))
 
-        full_events = self._section_html("events", "sources")
+        full_events = self._section_html("events", "related-candidates")
         self.assertEqual(
             full_events.count('class="candidate-event-item"'),
             len(upcoming) + len(recent),
@@ -764,7 +764,7 @@ class CandidateReferenceTests(unittest.TestCase):
         ):
             self.assertNotIn(obsolete, self.css + self.javascript)
 
-        full_events = self._section_html("events", "sources")
+        full_events = self._section_html("events", "related-candidates")
         self.assertNotIn("data-archive-toggle", full_events)
         self.assertNotIn("Afficher plus", full_events)
         self.assertNotIn("Show more", full_events)
@@ -829,7 +829,17 @@ class CandidateReferenceTests(unittest.TestCase):
         self.assertEqual(relationships, {"by", "about"})
         self.assertIn(">PAR<", self.html)
         self.assertIn(">À PROPOS<", self.html)
-        self.assertIn("PAR désigne l’auteur enregistré", self.html)
+        self.assertIn(
+            "affirmation attribuée à Marine Le Pen",
+            self.html,
+        )
+        self.assertIn(
+            (
+                "Marine Le Pen est mentionnée ; l’affirmation est "
+                "attribuée à une autre personne"
+            ),
+            self.html,
+        )
 
     def test_all_active_candidates_have_valid_projection_shapes(self):
         active = reference.active_candidate_records(
@@ -1269,6 +1279,182 @@ class CandidateReferenceTests(unittest.TestCase):
         finally:
             reference.validate_sources = original_validate_sources
 
+    def test_related_profiles_use_declared_candidacy_rotation(self):
+        page_index = reference.project_candidate_page_index(
+            self.sources["candidate_candidacy_status"]
+        )
+
+        ordered = page_index["candidates"]
+
+        current_index = next(
+            index
+            for index, item in enumerate(ordered)
+            if item["candidate_id"] == "marine-le-pen"
+        )
+
+        rotated = (
+            ordered[current_index + 1:]
+            + ordered[:current_index]
+        )
+
+        expected = [
+            item["candidate_id"]
+            for item in rotated
+            if item["status"] == "declared"
+        ][:8]
+
+        actual = [
+            item["candidate_id"]
+            for item in self.projection["related_candidates"]
+        ]
+
+        self.assertEqual(actual, expected)
+        self.assertLessEqual(len(actual), 8)
+        self.assertEqual(len(actual), len(set(actual)))
+        self.assertNotIn("marine-le-pen", actual)
+
+        self.assertTrue(
+            all(
+                item["status"] == "declared"
+                for item in self.projection["related_candidates"]
+            )
+        )
+
+        hud = reference.derive_hud_metrics(self.sources)
+
+        rendered_fr = reference.render_html(
+            self.projection,
+            hud,
+            lang="fr",
+        ).decode("utf-8")
+
+        rendered_en = reference.render_html(
+            self.projection,
+            hud,
+            lang="en",
+        ).decode("utf-8")
+
+        self.assertIn(
+            "POURSUIVRE L’EXPLORATION",
+            rendered_fr,
+        )
+
+        self.assertIn(
+            (
+                '<h2 id="related-candidates-title">'
+                "AUTRES CANDIDATURES DÉCLARÉES"
+                "</h2>"
+            ),
+            rendered_fr,
+        )
+
+        self.assertIn(
+            (
+                '<h2 id="related-candidates-title">'
+                "OTHER DECLARED CANDIDATES"
+                "</h2>"
+            ),
+            rendered_en,
+        )
+
+        self.assertIn(
+            'href="/candidates/">'
+            "VOIR TOUS LES CANDIDATS →",
+            rendered_fr,
+        )
+
+        self.assertIn(
+            'href="/en/candidates/">'
+            "VIEW ALL CANDIDATES →",
+            rendered_en,
+        )
+
+        self.assertNotIn(
+            "candidate-related-status",
+            rendered_fr,
+        )
+
+        for item in self.projection["related_candidates"]:
+            candidate_id = item["candidate_id"]
+
+            self.assertIn(
+                f'href="/candidates/{candidate_id}/"',
+                rendered_fr,
+            )
+
+            self.assertIn(
+                f'href="/en/candidates/{candidate_id}/"',
+                rendered_en,
+            )
+
+        non_declared = reference.build_projection(
+            self.sources,
+            ROOT,
+            candidate_id="marine-tondelier",
+        )
+
+        self.assertNotEqual(
+            non_declared["candidate"]["status"],
+            "declared",
+        )
+
+        self.assertTrue(
+            all(
+                item["status"] == "declared"
+                for item in non_declared["related_candidates"]
+            )
+        )
+
+        non_declared_fr = reference.render_html(
+            non_declared,
+            hud,
+            lang="fr",
+        ).decode("utf-8")
+
+        non_declared_en = reference.render_html(
+            non_declared,
+            hud,
+            lang="en",
+        ).decode("utf-8")
+
+        self.assertIn(
+            (
+                '<h2 id="related-candidates-title">'
+                "CANDIDATURES DÉCLARÉES"
+                "</h2>"
+            ),
+            non_declared_fr,
+        )
+
+        self.assertIn(
+            (
+                '<h2 id="related-candidates-title">'
+                "DECLARED CANDIDATES"
+                "</h2>"
+            ),
+            non_declared_en,
+        )
+
+        self.assertNotIn(
+            'id="sources"',
+            rendered_fr,
+        )
+
+        self.assertNotIn(
+            'id="sources"',
+            rendered_en,
+        )
+
+        self.assertIn(
+            'id="related-candidates"',
+            rendered_fr,
+        )
+
+        self.assertIn(
+            ".candidate-related-grid",
+            self.css,
+        )
+
     def test_projection_is_bounded(self):
         payload = self.published
         bounds = payload["bounds"]
@@ -1306,7 +1492,7 @@ class CandidateReferenceTests(unittest.TestCase):
             'id="scrutiny"',
             'id="attention"',
             'id="events"',
-            'id="sources"',
+            'id="related-candidates"',
             'id="candidate-app-hud"',
         ]
         offsets = [self.html.index(token) for token in expected_order]
@@ -1318,10 +1504,47 @@ class CandidateReferenceTests(unittest.TestCase):
             "DERNIÈRE VAGUE",
             "MEDIA PULSE",
             "STATUT DE CANDIDATURE",
-            "FRAÎCHEUR DES DONNÉES",
+            "POURSUIVRE L’EXPLORATION",
+            "AUTRES CANDIDATURES DÉCLARÉES",
         ):
             self.assertIn(text, self.html)
         self.assertIn("<h1 id=\"candidate-name\">Marine Le Pen</h1>", self.html)
+
+    def test_dossier_description_is_an_accessible_localized_name_tooltip(self):
+        note_fr = (
+            "Synthèse descriptive des données publiées par France 2027 Signal Lab. "
+            "Aucune moyenne · aucune prévision · aucun conseil de vote."
+        )
+        note_en = (
+            "Descriptive summary of data published by France 2027 Signal Lab. "
+            "No average · no forecast · no voting advice."
+        )
+        rendered_en = reference.render_html(
+            self.projection,
+            reference.derive_hud_metrics(self.sources),
+            lang="en",
+        ).decode("utf-8")
+
+        for document, note, label in (
+            (self.html, note_fr, "Informations sur ce dossier"),
+            (rendered_en, note_en, "Information about this dossier"),
+        ):
+            self.assertIn('<div class="candidate-name-row">', document)
+            self.assertIn('<h1 id="candidate-name">Marine Le Pen</h1>', document)
+            self.assertIn(
+                f'aria-label="{label}" aria-describedby="candidate-dossier-note"',
+                document,
+            )
+            self.assertIn(
+                '<span class="candidate-section-tooltip" '
+                'id="candidate-dossier-note" role="tooltip">'
+                + note
+                + "</span>",
+                document,
+            )
+            self.assertNotIn(f"<p>{note}</p>", document)
+
+        self.assertNotIn(".candidate-dossier-copy > p", self.css)
 
     def test_candidate_application_hud_structure_and_static_metrics(self):
         self.assertNotIn('class="candidate-footer"', self.html)
@@ -1532,7 +1755,7 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
         def section(document):
             match = self.re.search(
                 r'<section class="candidate-section" id="events".*?'
-                r'(?=<section class="candidate-section candidate-sources")',
+                r'(?=<section class="candidate-section candidate-related")',
                 document,
                 flags=self.re.DOTALL,
             )
@@ -1954,7 +2177,7 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
             "scrutiny",
             "attention",
             "events",
-            "sources",
+            "related-candidates",
         ]
 
         def ids(document):
@@ -2020,8 +2243,9 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
             "CANDIDACY STATUS",
             "WIKIPEDIA PAGEVIEWS",
             "UPCOMING EVENTS",
-            "DATA FRESHNESS",
-            "SOURCES &amp; METHODOLOGY",
+            "CONTINUE EXPLORING",
+            "OTHER DECLARED CANDIDATES",
+            "VIEW ALL CANDIDATES →",
             "OPEN THE MONITOR",
         )
 
@@ -2056,7 +2280,9 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
             ">VÉRIFICATIONS<",
             ">ÉVÉNEMENTS<",
             "DOSSIER CANDIDAT",
-            "FRAÎCHEUR DES DONNÉES",
+            "POURSUIVRE L’EXPLORATION",
+            "AUTRES CANDIDATURES DÉCLARÉES",
+            "VOIR TOUS LES CANDIDATS →",
         )
 
         for text in expected:
