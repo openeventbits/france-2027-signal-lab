@@ -32,18 +32,59 @@ class RouteRegistryTests(unittest.TestCase):
             POLL_MANIFEST.read_text(encoding="utf-8")
         )
 
-    def test_registry_has_expected_current_route_census(self):
+    def test_registry_matches_manifest_route_census(self):
+        wave_count = self.manifest["wave_count"]
+        page_count = self.manifest["page_count"]
+        pages = self.manifest["pages"]
+
+        self.assertEqual(len(pages), wave_count)
+        self.assertEqual(page_count, wave_count * 2)
+
+        expected_poll_routes = 2 + page_count
+        expected_total_routes = 2 + expected_poll_routes
+
         self.assertEqual(
             self.registry["route_count"],
-            134,
+            expected_total_routes,
         )
 
         self.assertEqual(
             self.registry["family_counts"],
             {
                 "core": 2,
-                "polls": 132,
+                "polls": expected_poll_routes,
             },
+        )
+
+    def test_new_poll_wave_adds_exactly_one_language_pair(self):
+        empty_manifest = {"pages": []}
+        one_wave_manifest = {
+            "pages": [
+                {
+                    "wave_id": "wave-regression",
+                    "page_path_fr": "/sondages/regression/",
+                    "page_path_en": "/en/sondages/regression/",
+                }
+            ]
+        }
+
+        before = routes.discover_routes(empty_manifest)
+        after = routes.discover_routes(one_wave_manifest)
+
+        self.assertEqual(len(before), 4)
+        self.assertEqual(len(after), 6)
+        self.assertEqual(len(after) - len(before), 2)
+
+        added = [
+            route
+            for route in after
+            if route["route_key"] == "poll-wave:wave-regression"
+        ]
+
+        self.assertEqual(len(added), 2)
+        self.assertEqual(
+            {route["language"] for route in added},
+            {"fr", "en"},
         )
 
     def test_every_registered_source_file_exists(self):
