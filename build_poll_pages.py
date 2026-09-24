@@ -263,6 +263,56 @@ def _extract_block(document: str, marker: str, closing_tag: str) -> str:
     return document[start : end + len(closing_tag)]
 
 
+def _site_favicon_link(template_root: Path) -> str:
+    document = (
+        template_root / "index.html"
+    ).read_text(encoding="utf-8")
+
+    matches = re.findall(
+        r'<link\s+rel="icon"\s+'
+        r'type="image/svg\+xml"\s+'
+        r'href="data:image/svg\+xml;base64,[^"]+">',
+        document,
+        flags=re.IGNORECASE,
+    )
+
+    if len(matches) != 1:
+        raise PollPageError(
+            "Root template must expose exactly one SVG favicon."
+        )
+
+    return matches[0]
+
+
+def _site_og_image_url(template_root: Path) -> str:
+    document = (
+        template_root / "index.html"
+    ).read_text(encoding="utf-8")
+
+    matches = re.findall(
+        r'<meta\s+property="og:image"\s+'
+        r'content="([^"]+)">',
+        document,
+        flags=re.IGNORECASE,
+    )
+
+    if len(matches) != 1:
+        raise PollPageError(
+            "Root template must expose exactly one og:image."
+        )
+
+    value = matches[0]
+
+    if not value.startswith(
+        "https://france2027.app/assets/og-cover.png"
+    ):
+        raise PollPageError(
+            "Root og:image is not the FR27 OG cover."
+        )
+
+    return value
+
+
 def load_shell_templates(template_root: Path) -> dict[str, dict[str, str]]:
     templates: dict[str, dict[str, str]] = {}
 
@@ -752,6 +802,8 @@ def render_page(
     wave_count: int,
     header: str,
     footer: str,
+    favicon: str,
+    og_image_url: str,
     related_waves: list[dict[str, Any]],
 ) -> bytes:
     if language not in {"fr", "en"}:
@@ -1010,6 +1062,7 @@ def render_page(
   <link rel="alternate" hreflang="fr" href="{_escape(canonical_fr)}">
   <link rel="alternate" hreflang="en" href="{_escape(canonical_en)}">
   <link rel="alternate" hreflang="x-default" href="{_escape(canonical_fr)}">
+  {favicon}
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="France 2027 Signal Lab">
@@ -1018,8 +1071,14 @@ def render_page(
   <meta property="og:title" content="{_escape(title)}">
   <meta property="og:description" content="{_escape(description)}">
   <meta property="og:url" content="{_escape(canonical)}">
+  <meta property="og:image" content="{_escape(og_image_url)}">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="France 2027 Signal Lab election dashboard">
 
-  <meta name="twitter:card" content="summary">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="{_escape(og_image_url)}">
   <meta name="twitter:title" content="{_escape(title)}">
   <meta name="twitter:description" content="{_escape(description)}">
 
@@ -1255,6 +1314,8 @@ def expected_artifacts(
 ) -> tuple[dict[Path, bytes], dict[str, Any]]:
     waves = validate_explorer(explorer)
     shell = load_shell_templates(template_root)
+    favicon = _site_favicon_link(template_root)
+    og_image_url = _site_og_image_url(template_root)
     wave_count = len(waves)
 
     artifacts: dict[Path, bytes] = {}
@@ -1276,6 +1337,8 @@ def expected_artifacts(
                 wave_count=wave_count,
                 header=shell[language]["header"],
                 footer=shell[language]["footer"],
+                favicon=favicon,
+                og_image_url=og_image_url,
                 related_waves=related,
             )
 

@@ -775,15 +775,47 @@ class SearchFoundationTests(unittest.TestCase):
             workflow,
         )
         self.assertIn(
-            "python -m unittest test_search_foundation.py",
+            "python -B build_poll_pages.py",
             workflow,
         )
         self.assertIn(
-            '"en/index.html",',
+            "python -B build_poll_pages.py --check",
+            workflow,
+        )
+        self.assertIn(
+            "python -B build_route_registry.py --check",
+            workflow,
+        )
+        self.assertIn(
+            "python -B build_sitemaps.py --check",
+            workflow,
+        )
+        self.assertIn(
+            r'".\sondages\index.html"',
+            workflow,
+        )
+        self.assertIn(
+            r'".\en\sondages\index.html"',
             workflow,
         )
         self.assertIn(
             "            en/index.html `",
+            workflow,
+        )
+        self.assertIn(
+            "            sondages `",
+            workflow,
+        )
+        self.assertIn(
+            "            en/sondages",
+            workflow,
+        )
+        self.assertNotIn(
+            "git add -A",
+            workflow,
+        )
+        self.assertNotIn(
+            "git add --all",
             workflow,
         )
 

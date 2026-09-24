@@ -125,6 +125,140 @@ class PollPageGeneratorTests(unittest.TestCase):
                     document,
                 )
 
+    def test_polling_routes_share_site_og_cover(self):
+        root_document = (
+            ROOT / "index.html"
+        ).read_text(encoding="utf-8")
+
+        match = re.search(
+            r'<meta\s+property="og:image"\s+'
+            r'content="([^"]+)">',
+            root_document,
+            flags=re.IGNORECASE,
+        )
+
+        self.assertIsNotNone(match)
+        og_image_url = match.group(1)
+
+        expected_og = (
+            f'<meta property="og:image" '
+            f'content="{og_image_url}">'
+        )
+
+        expected_twitter = (
+            f'<meta name="twitter:image" '
+            f'content="{og_image_url}">'
+        )
+
+        expected_card = (
+            '<meta name="twitter:card" '
+            'content="summary_large_image">'
+        )
+
+        for relative in (
+            Path("sondages/index.html"),
+            Path("en/sondages/index.html"),
+        ):
+            document = (
+                ROOT / relative
+            ).read_text(encoding="utf-8")
+
+            self.assertEqual(
+                document.count(expected_og),
+                1,
+            )
+            self.assertEqual(
+                document.count(expected_twitter),
+                1,
+            )
+            self.assertEqual(
+                document.count(expected_card),
+                1,
+            )
+
+        temporary, root, _manifest = self.build_temp()
+        self.addCleanup(temporary.cleanup)
+
+        for wave in self.explorer["waves"]:
+            for key in (
+                "page_path_fr",
+                "page_path_en",
+            ):
+                relative = pages.page_file_from_url(
+                    wave[key]
+                )
+
+                document = (
+                    root / relative
+                ).read_text(encoding="utf-8")
+
+                self.assertEqual(
+                    document.count(expected_og),
+                    1,
+                )
+                self.assertEqual(
+                    document.count(expected_twitter),
+                    1,
+                )
+                self.assertEqual(
+                    document.count(expected_card),
+                    1,
+                )
+
+
+    def test_polling_routes_share_site_favicon(self):
+        root_document = (
+            ROOT / "index.html"
+        ).read_text(encoding="utf-8")
+
+        match = re.search(
+            r'<link\s+rel="icon"\s+'
+            r'type="image/svg\+xml"\s+'
+            r'href="data:image/svg\+xml;base64,[^"]+">',
+            root_document,
+            flags=re.IGNORECASE,
+        )
+
+        self.assertIsNotNone(match)
+        favicon = match.group(0)
+
+        for relative in (
+            Path("sondages/index.html"),
+            Path("en/sondages/index.html"),
+        ):
+            document = (
+                ROOT / relative
+            ).read_text(encoding="utf-8")
+
+            self.assertEqual(
+                document.count(favicon),
+                1,
+                relative.as_posix(),
+            )
+
+        temporary, root, _manifest = self.build_temp()
+        self.addCleanup(temporary.cleanup)
+
+        for wave in self.explorer["waves"]:
+            for key in (
+                "page_path_fr",
+                "page_path_en",
+            ):
+                relative = pages.page_file_from_url(
+                    wave[key]
+                )
+
+                document = (
+                    root / relative
+                ).read_text(encoding="utf-8")
+
+                self.assertEqual(
+                    document.count(favicon),
+                    1,
+                    relative.as_posix(),
+                )
+
+
     def test_every_page_contains_all_scenarios(self):
         temporary, root, _manifest = self.build_temp()
         self.addCleanup(temporary.cleanup)
@@ -564,7 +698,7 @@ class PollPageGeneratorTests(unittest.TestCase):
 
                 self.assertIn(
                     '<meta name="twitter:card" '
-                    'content="summary">',
+                    'content="summary_large_image">',
                     document,
                 )
 
