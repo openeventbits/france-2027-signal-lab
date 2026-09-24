@@ -39,14 +39,137 @@ class CandidateReferenceTests(unittest.TestCase):
         cls.shell_css = SHELL_CSS_PATH.read_text(encoding="utf-8")
         cls.javascript = JS_PATH.read_text(encoding="utf-8")
 
+    def test_candidate_search_head_is_indexable_and_uses_root_brand_contract(self):
+        root_html = (ROOT / "index.html").read_text(encoding="utf-8")
+
+        favicon = re.search(
+            r'<link rel="icon" type="image/svg\+xml" '
+            r'href="data:image/svg\+xml;base64,[^"]+">',
+            root_html,
+        )
+        self.assertIsNotNone(favicon)
+
+        rendered_fr = reference.render_html(
+            self.projection,
+            reference.derive_hud_metrics(self.sources),
+            lang="fr",
+        ).decode("utf-8")
+
+        rendered_en = reference.render_html(
+            self.projection,
+            reference.derive_hud_metrics(self.sources),
+            lang="en",
+        ).decode("utf-8")
+
+        for rendered, canonical in (
+            (
+                rendered_fr,
+                "https://france2027.app/candidates/marine-le-pen/",
+            ),
+            (
+                rendered_en,
+                "https://france2027.app/en/candidates/marine-le-pen/",
+            ),
+        ):
+            self.assertIn(
+                '<meta name="robots" '
+                'content="index,follow,max-image-preview:large">',
+                rendered,
+            )
+            self.assertIn(favicon.group(0), rendered)
+            self.assertIn(
+                f'<link rel="canonical" href="{canonical}">',
+                rendered,
+            )
+            self.assertIn(
+                '<link rel="alternate" hreflang="fr" '
+                'href="https://france2027.app/candidates/marine-le-pen/">',
+                rendered,
+            )
+            self.assertIn(
+                '<link rel="alternate" hreflang="en" '
+                'href="https://france2027.app/en/candidates/marine-le-pen/">',
+                rendered,
+            )
+            self.assertIn(
+                '<link rel="alternate" hreflang="x-default" '
+                'href="https://france2027.app/candidates/marine-le-pen/">',
+                rendered,
+            )
+            self.assertIn(
+                '<meta property="og:site_name" '
+                'content="France 2027 Signal Lab">',
+                rendered,
+            )
+            self.assertIn(
+                '<meta property="og:image" content="',
+                rendered,
+            )
+            self.assertIn(
+                '<meta name="twitter:card" '
+                'content="summary_large_image">',
+                rendered,
+            )
+            self.assertNotIn(
+                'content="noindex,nofollow"',
+                rendered,
+            )
+
+        synthetic = {
+            "candidate": {
+                "candidate_id": "gabriel-attal",
+                "candidate_name": "Gabriel Attal",
+            }
+        }
+
+        fr_contract = reference._candidate_locale_contract(
+            synthetic,
+            "fr",
+        )
+        en_contract = reference._candidate_locale_contract(
+            synthetic,
+            "en",
+        )
+
+        self.assertEqual(
+            fr_contract["canonical"],
+            "https://france2027.app/candidates/gabriel-attal/",
+        )
+        self.assertEqual(
+            en_contract["canonical"],
+            "https://france2027.app/en/candidates/gabriel-attal/",
+        )
+        self.assertIn(
+            "Gabriel Attal",
+            fr_contract["title"],
+        )
+        self.assertIn(
+            "Gabriel Attal",
+            en_contract["description"],
+        )
+
     def test_generated_projection_and_html_are_current(self):
         self.assertEqual(
             DATA_PATH.read_bytes(),
             reference.serialize_projection(self.projection),
         )
-        self.assertEqual(
-            HTML_PATH.read_bytes(),
-            reference.render_html(self.projection),
+        self.assertTrue(
+            reference._newline_equivalent(
+                HTML_PATH.read_bytes(),
+                reference.render_html(self.projection),
+            )
+        )
+
+    def test_generated_html_check_tolerates_only_line_ending_conversion(self):
+        expected = b"<main>alpha\nbeta</main>"
+        windows_checkout = b"<main>alpha\r\nbeta</main>"
+        changed_content = b"<main>alpha\r\ngamma</main>"
+
+        self.assertTrue(
+            reference._newline_equivalent(windows_checkout, expected)
+        )
+        self.assertFalse(
+            reference._newline_equivalent(changed_content, expected)
         )
 
     def test_canonical_identity_and_declared_status_are_locked(self):
@@ -56,6 +179,31 @@ class CandidateReferenceTests(unittest.TestCase):
         self.assertEqual(self.published["candidate"]["candidate_name"], "Marine Le Pen")
         self.assertEqual(self.published["candidate"]["status"], "declared")
         self.assertNotIn("affiliation", self.published["candidate"])
+
+    def test_projection_candidate_id_is_parameterized_and_active_scoped(self):
+        explicit = reference.build_projection(
+            self.sources,
+            ROOT,
+            candidate_id=reference.CANDIDATE_ID,
+        )
+        self.assertEqual(explicit, self.projection)
+
+        registry = self.sources["candidate_candidacy_status"]
+        hidden = next(
+            candidate
+            for candidate in registry["candidates"]
+            if candidate["display_tier"] == "hidden"
+        )
+
+        with self.assertRaisesRegex(
+            reference.CandidateReferenceError,
+            "not in the active monitoring field",
+        ):
+            reference.build_projection(
+                self.sources,
+                ROOT,
+                candidate_id=hidden["candidate_id"],
+            )
 
     def test_current_polling_defaults_to_range_and_hypothesis_count(self):
         current = self.published["polling"]["current"]
@@ -683,6 +831,444 @@ class CandidateReferenceTests(unittest.TestCase):
         self.assertIn(">À PROPOS<", self.html)
         self.assertIn("PAR désigne l’auteur enregistré", self.html)
 
+    def test_all_active_candidates_have_valid_projection_shapes(self):
+        active = reference.active_candidate_records(
+            self.sources["candidate_candidacy_status"]
+        )
+
+        original_validate_sources = reference.validate_sources
+        reference.validate_sources = lambda *_args, **_kwargs: None
+
+        try:
+            projected = [
+                reference.build_projection(
+                    self.sources,
+                    ROOT,
+                    candidate_id=candidate["candidate_id"],
+                )
+                for candidate in active
+            ]
+        finally:
+            reference.validate_sources = original_validate_sources
+
+        self.assertEqual(len(projected), len(active))
+
+        self.assertEqual(
+            {payload["candidate_id"] for payload in projected},
+            {candidate["candidate_id"] for candidate in active},
+        )
+
+        for payload in projected:
+            reference.validate_projection(
+                payload,
+                candidate_id=payload["candidate_id"],
+            )
+
+            if (
+                payload["polling"]["current"]["evidence_state"]
+                == "not_observed"
+            ):
+                self.assertIsNone(
+                    payload["polling"]["current"]["pollster"]
+                )
+                self.assertIsNone(
+                    payload["polling"]["current"]["fieldwork_start"]
+                )
+                self.assertEqual(
+                    payload["polling"]["current"]["source_urls"],
+                    [],
+                )
+
+    def test_generic_candidate_identity_helpers_preserve_reference_and_fallbacks(self):
+        self.assertEqual(
+            reference._candidate_status_label_fr(
+                "declared",
+                reference_candidate=True,
+            ),
+            "DÉCLARÉE",
+        )
+
+        self.assertEqual(
+            reference._candidate_status_label_fr(
+                "declared",
+            ),
+            "CANDIDATURE DÉCLARÉE",
+        )
+
+        self.assertEqual(
+            reference._candidate_status_label_fr(
+                "active_potential",
+            ),
+            "CANDIDATURE POTENTIELLE",
+        )
+
+        fallback = reference._candidate_portrait_html(
+            {
+                "candidate_name": "Example Candidate",
+                "portrait_path": None,
+            }
+        )
+
+        self.assertIn(
+            "candidate-portrait-fallback",
+            fallback,
+        )
+        self.assertIn(">EC<", fallback)
+        self.assertNotIn("<img", fallback)
+
+        portrait = reference._candidate_portrait_html(
+            {
+                "candidate_name": "Marine Le Pen",
+                "portrait_path": "/assets/candidates/lepen.png",
+            }
+        )
+
+        self.assertIn(
+            'src="/assets/candidates/lepen.png"',
+            portrait,
+        )
+        self.assertIn(
+            "Portrait illustré de Marine Le Pen",
+            portrait,
+        )
+
+    def test_not_observed_poll_and_campaign_agenda_render_without_null_assumptions(self):
+        original_validate_sources = reference.validate_sources
+        reference.validate_sources = lambda *_args, **_kwargs: None
+
+        try:
+            bruno = reference.build_projection(
+                self.sources,
+                ROOT,
+                candidate_id="bruno-le-maire",
+            )
+
+            self.assertEqual(
+                bruno["polling"]["current"]["evidence_state"],
+                "not_observed",
+            )
+
+            bruno_fr = reference.render_html(
+                bruno,
+                reference.derive_hud_metrics(self.sources),
+                lang="fr",
+            ).decode("utf-8")
+
+            bruno_en = reference.render_html(
+                bruno,
+                reference.derive_hud_metrics(self.sources),
+                lang="en",
+            ).decode("utf-8")
+
+            self.assertIn(
+                "Non observé dans la dernière vague",
+                bruno_fr,
+            )
+
+            self.assertIn(
+                "Not observed in the latest wave",
+                bruno_en,
+            )
+
+            nathalie = reference.build_projection(
+                self.sources,
+                ROOT,
+                candidate_id="nathalie-arthaud",
+            )
+
+            topic_ids = {
+                topic["id"]
+                for topic in nathalie["agenda"]["current"]["topics"]
+            }
+
+            self.assertIn(
+                "candidacies_endorsements",
+                topic_ids,
+            )
+
+            self.assertEqual(
+                reference._candidate_topic_label_fr(
+                    {"id": "candidacies_endorsements"}
+                ),
+                "CANDIDATURES & SOUTIENS",
+            )
+
+            nathalie_fr = reference.render_html(
+                nathalie,
+                reference.derive_hud_metrics(self.sources),
+                lang="fr",
+            ).decode("utf-8")
+
+            self.assertIn(
+                "Aucune activité thématique observée",
+                nathalie_fr,
+            )
+
+        finally:
+            reference.validate_sources = original_validate_sources
+
+    def test_not_observed_media_uses_explicit_empty_states_and_keeps_history(self):
+        original_validate_sources = reference.validate_sources
+        reference.validate_sources = lambda *_args, **_kwargs: None
+
+        try:
+            payload = reference.build_projection(
+                self.sources,
+                ROOT,
+                candidate_id="nathalie-arthaud",
+            )
+
+            self.assertEqual(
+                payload["media"]["summary"]["evidence_state"],
+                "not_observed",
+            )
+
+            self.assertEqual(
+                len(payload["media"]["recent_history"]),
+                29,
+            )
+
+            hud = reference.derive_hud_metrics(
+                self.sources
+            )
+
+            rendered_fr = reference.render_html(
+                payload,
+                hud,
+                lang="fr",
+            ).decode("utf-8")
+
+            rendered_en = reference.render_html(
+                payload,
+                hud,
+                lang="en",
+            ).decode("utf-8")
+
+            for phrase in (
+                "Non observé dans la fenêtre courante",
+                "Structure de couverture indisponible",
+                "Aucun éditeur observé",
+                "Aucun groupe narratif observé",
+                "Aucune couverture récente",
+            ):
+                self.assertIn(
+                    phrase,
+                    rendered_fr,
+                )
+
+            for phrase in (
+                "Not observed in the current window",
+                "Coverage structure unavailable",
+                "No publisher observed",
+                "No story cluster observed",
+                "No recent coverage",
+            ):
+                self.assertIn(
+                    phrase,
+                    rendered_en,
+                )
+
+            self.assertIn(
+                'data-chart="media-history"',
+                rendered_fr,
+            )
+
+            self.assertIn(
+                'data-chart="media-history"',
+                rendered_en,
+            )
+
+        finally:
+            reference.validate_sources = original_validate_sources
+
+    def test_unavailable_wikipedia_attention_uses_explicit_bilingual_empty_states(self):
+        original_validate_sources = reference.validate_sources
+        reference.validate_sources = lambda *_args, **_kwargs: None
+
+        try:
+            hud = reference.derive_hud_metrics(
+                self.sources
+            )
+
+            unavailable = reference.build_projection(
+                self.sources,
+                ROOT,
+                candidate_id="benoit-mathieu",
+            )
+
+            self.assertEqual(
+                unavailable["attention"]["evidence_state"],
+                "unavailable_no_personal_article",
+            )
+
+            self.assertIsNone(
+                unavailable["attention"]["wikipedia_article"],
+            )
+
+            self.assertEqual(
+                unavailable["attention"]["daily_series"],
+                [],
+            )
+
+            rendered_fr = reference.render_html(
+                unavailable,
+                hud,
+                lang="fr",
+            ).decode("utf-8")
+
+            rendered_en = reference.render_html(
+                unavailable,
+                hud,
+                lang="en",
+            ).decode("utf-8")
+
+            for phrase in (
+                "Attention Wikipédia indisponible",
+                "Historique indisponible",
+                "aucune série",
+            ):
+                self.assertIn(
+                    phrase,
+                    rendered_fr,
+                )
+
+            for phrase in (
+                "Wikipedia attention unavailable",
+                "History unavailable",
+                "no series",
+            ):
+                self.assertIn(
+                    phrase,
+                    rendered_en,
+                )
+
+            self.assertNotIn(
+                'data-chart="attention-history"',
+                rendered_fr,
+            )
+
+            self.assertNotIn(
+                'data-chart="attention-history"',
+                rendered_en,
+            )
+
+            observed = reference.build_projection(
+                self.sources,
+                ROOT,
+                candidate_id="marine-le-pen",
+            )
+
+            observed_fr = reference.render_html(
+                observed,
+                hud,
+                lang="fr",
+            ).decode("utf-8")
+
+            observed_en = reference.render_html(
+                observed,
+                hud,
+                lang="en",
+            ).decode("utf-8")
+
+            self.assertIn(
+                'data-chart="attention-history"',
+                observed_fr,
+            )
+
+            self.assertIn(
+                'data-chart="attention-history"',
+                observed_en,
+            )
+
+            self.assertIn(
+                "Ouvrir l’article Wikipédia",
+                observed_fr,
+            )
+
+            self.assertIn(
+                "Open Wikipedia article",
+                observed_en,
+            )
+
+        finally:
+            reference.validate_sources = original_validate_sources
+
+    def test_zero_evidence_sections_use_bilingual_empty_states_without_empty_charts(self):
+        original_validate_sources = reference.validate_sources
+        reference.validate_sources = lambda *_args, **_kwargs: None
+
+        try:
+            hud = reference.derive_hud_metrics(self.sources)
+            sparse = reference.build_projection(
+                self.sources,
+                ROOT,
+                candidate_id="benoit-mathieu",
+            )
+            sparse_fr = reference.render_html(
+                sparse,
+                hud,
+                lang="fr",
+            ).decode("utf-8")
+            sparse_en = reference.render_html(
+                sparse,
+                hud,
+                lang="en",
+            ).decode("utf-8")
+
+            for phrase in (
+                "Aucun historique de premier tour observé",
+                "Aucun duel de second tour observé",
+                "Aucune activité thématique observée",
+                "Historique thématique indisponible",
+                "Aucune vérification associée",
+                "Aucun événement publié",
+            ):
+                self.assertIn(phrase, sparse_fr)
+
+            for phrase in (
+                "No first-round history observed",
+                "No runoff observed",
+                "No thematic activity observed",
+                "Thematic history unavailable",
+                "No associated review",
+                "No published events",
+            ):
+                self.assertIn(phrase, sparse_en)
+
+            for document in (sparse_fr, sparse_en):
+                self.assertNotIn('data-chart="poll-history"', document)
+                self.assertNotIn('data-chart="agenda-history"', document)
+                self.assertNotIn(">None<", document)
+                self.assertNotIn(">null<", document)
+
+            historical = reference.build_projection(
+                self.sources,
+                ROOT,
+                candidate_id="francis-lalanne",
+            )
+            historical_fr = reference.render_html(
+                historical,
+                hud,
+                lang="fr",
+            ).decode("utf-8")
+
+            self.assertEqual(
+                historical["agenda"]["current"]["association_count"],
+                0,
+            )
+            self.assertGreater(
+                historical["agenda"]["since_tracking"]["association_count"],
+                0,
+            )
+            self.assertIn(
+                "Aucune activité thématique observée",
+                historical_fr,
+            )
+            self.assertIn('data-chart="agenda-history"', historical_fr)
+
+        finally:
+            reference.validate_sources = original_validate_sources
+
     def test_projection_is_bounded(self):
         payload = self.published
         bounds = payload["bounds"]
@@ -847,6 +1433,42 @@ class CandidateReferenceTests(unittest.TestCase):
         )
         for term in prohibited:
             self.assertNotIn(term, self.visible_text)
+
+    def test_mobile_local_navigation_selector_is_progressive_enhancement(self):
+        root = Path(__file__).resolve().parent
+        css = (root / "assets" / "candidate-page.css").read_text(
+            encoding="utf-8"
+        )
+        js = (root / "assets" / "candidate-page.js").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("candidate-local-nav-mobile", css)
+        self.assertIn(
+            "@media (max-width: 759.98px)",
+            css,
+        )
+        self.assertIn(
+            ".candidate-local-nav.has-mobile-selector > a",
+            css,
+        )
+
+        self.assertIn(
+            'mobileControl.className = "candidate-local-nav-mobile"',
+            js,
+        )
+        self.assertIn(
+            'mobileSelect.className = "candidate-local-nav-mobile-select"',
+            js,
+        )
+        self.assertIn(
+            'mobileSelect.value = activeHref',
+            js,
+        )
+        self.assertIn(
+            'nav.classList.add("has-mobile-selector")',
+            js,
+        )
 
     def test_javascript_only_enhances_existing_html(self):
         self.assertNotIn("document.body.innerHTML", self.javascript)
@@ -1109,6 +1731,96 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
 
         self.assertNotIn("candidate-page-en.css", self.en)
         self.assertNotIn("candidate-page-en.js", self.en)
+
+    def test_english_generated_compositional_ui_is_localized(self):
+        expected = (
+            "33–36% · 5 hypotheses",
+            "Harris · fieldwork from 8 Sep 2026 to 10 Sep 2026",
+            "in the current 7-day window",
+            "1 upcoming · 4 recent",
+            "Period: last 30 days",
+            "Period: since tracking began",
+            "Profile share: 41.9%",
+            "Associations: 18",
+            "44 associations · 51 days",
+            "FR27 on X · @fr27signal",
+            "Economy and public finances. Profile share: 41.9%. "
+            "18 associations. Period: last 30 days.",
+            "Economy and public finances. Profile share: 43.2%. "
+            "19 associations. Period: since tracking began.",
+            "28.1%",
+        )
+
+        for value in expected:
+            self.assertIn(value, self.en)
+
+        forbidden = (
+            "5 hypothèses",
+            "terrain du",
+            "sur la fenêtre courante de 7 jours",
+            "1 à venir · 4 récents",
+            "Période : 30 derniers jours",
+            "Période : depuis le début du suivi",
+            "Part du profil :",
+            "Associations :",
+            "44 associations · 51 jours",
+            "FR27 sur X · @fr27signal",
+            "28,1%",
+        )
+
+        for value in forbidden:
+            self.assertNotIn(value, self.en)
+
+        # Source-language evidence and scrutiny vocabulary intentionally remain French.
+        self.assertIn(
+            "Présidentielle 2027 : pour sa rentrée politique",
+            self.en,
+        )
+        self.assertIn("Afficher plus de vérifications", self.en)
+
+    def test_english_route_has_no_remaining_compositional_locale_leaks(self):
+        expected = (
+            "Harris · fieldwork from 8 Sep 2026 to 10 Sep 2026",
+            '<span class="candidate-countdown-unit">days</span>',
+            "CAMPAIGN · actu.fr",
+            "ELECTION · Franceinfo Politique",
+            "Enable JavaScript for the interactive visualization.",
+            "7-day peak",
+            "period peak",
+            "Daily pageviews of Marine Le Pen&#x27;s French Wikipedia article",
+            'title="French candidate page"',
+            'aria-label="Utility links"',
+            "27 articles · 21.8%",
+            "3 articles · 1 publisher",
+        )
+
+        for value in expected:
+            self.assertIn(value, self.en)
+
+        forbidden = (
+            "fieldwork from 8 sept. 2026",
+            '<span class="candidate-countdown-unit">jours</span>',
+            "CAMPAGNE · actu.fr",
+            "ÉLECTION · Franceinfo Politique",
+            "Activez JavaScript pour la visualisation interactive.",
+            ">pic sur 7 jours<",
+            ">pic de période<",
+            'title="Page candidat en français"',
+            'aria-label="Liens utilitaires"',
+            "27 articles · 21,8%",
+            "3 articles · 1 publishers",
+        )
+
+        for value in forbidden:
+            self.assertNotIn(value, self.en)
+
+    def test_intentionally_french_scrutiny_control_is_language_tagged(self):
+        self.assertIn(
+            '<button class="candidate-archive-toggle" type="button" lang="fr" '
+            'data-archive-toggle aria-expanded="false">'
+            'Afficher plus de vérifications</button>',
+            self.en,
+        )
 
     def test_english_runoff_interface_copy_is_localized(self):
         expected_english = (
