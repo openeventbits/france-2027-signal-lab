@@ -186,6 +186,30 @@ class RouteRegistryTests(unittest.TestCase):
 
         self.assertEqual(first, second)
 
+    def test_semantic_hash_ignores_og_cover_cache_version(self):
+        first_html = (
+            '<meta property="og:image" '
+            'content="https://france2027.app/assets/'
+            'og-cover.png?v=20260923-090129">'
+        ).encode("utf-8")
+
+        second_html = (
+            '<meta property="og:image" '
+            'content="https://france2027.app/assets/'
+            'og-cover.png?v=20270101-120000">'
+        ).encode("utf-8")
+
+        first = hashlib.sha256(
+            routes._semantic_html_bytes(first_html)
+        ).hexdigest()
+
+        second = hashlib.sha256(
+            routes._semantic_html_bytes(second_html)
+        ).hexdigest()
+
+        self.assertEqual(first, second)
+
+
     def test_unchanged_content_preserves_lastmod(self):
         with tempfile.TemporaryDirectory() as directory:
             temp = Path(directory)

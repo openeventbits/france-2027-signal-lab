@@ -173,6 +173,17 @@ def _semantic_html_bytes(data: bytes) -> bytes:
             flags=re.IGNORECASE | re.DOTALL,
         )
 
+    text = re.sub(
+        r'https://france2027\.app/assets/og-cover\.png'
+        r'(?:\?v=[^"&<\s]+)?',
+        (
+            "https://france2027.app/assets/"
+            "og-cover.png?v=__OG_VERSION__"
+        ),
+        text,
+        flags=re.IGNORECASE,
+    )
+
     text = text.replace("\r\n", "\n").replace("\r", "\n")
 
     return text.encode("utf-8")

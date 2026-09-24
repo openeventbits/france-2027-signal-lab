@@ -153,22 +153,14 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
 
-          $path = ".\index.html"
-          $text =
-            [System.IO.File]::ReadAllText($path)
+          $paths = @(
+            ".\index.html",
+            ".\sondages\index.html",
+            ".\en\sondages\index.html"
+          )
 
           $pattern =
             'https://france2027\.app/assets/og-cover\.png(?:\?v=[^"]+)?'
-
-          $matches =
-            [regex]::Matches(
-              $text,
-              $pattern
-            )
-
-          if ($matches.Count -ne 2) {
-            throw "Expected exactly two OG-cover URL references"
-          }
 
           $version =
             [DateTime]::UtcNow.ToString(
@@ -178,18 +170,36 @@ jobs:
           $replacement =
             "https://france2027.app/assets/og-cover.png?v=$version"
 
-          $text =
-            [regex]::Replace(
-              $text,
-              $pattern,
-              $replacement
-            )
+          foreach ($path in $paths) {
+            $text =
+              [System.IO.File]::ReadAllText($path)
 
-          [System.IO.File]::WriteAllText(
-            $path,
-            $text,
-            [System.Text.UTF8Encoding]::new($false)
-          )
+            $matches =
+              [regex]::Matches(
+                $text,
+                $pattern
+              )
+
+            if ($matches.Count -ne 2) {
+              throw (
+                "Expected exactly two OG-cover URL references in " +
+                $path
+              )
+            }
+
+            $text =
+              [regex]::Replace(
+                $text,
+                $pattern,
+                $replacement
+              )
+
+            [System.IO.File]::WriteAllText(
+              $path,
+              $text,
+              [System.Text.UTF8Encoding]::new($false)
+            )
+          }
 
           Write-Host "OG cache version: $version"
 
@@ -199,7 +209,11 @@ jobs:
           $ErrorActionPreference = "Stop"
 
           python .\build_search_entrypoints.py
-          python -m unittest test_search_foundation.py
+          python -B build_poll_pages.py
+          python -B build_poll_pages.py --check
+          python -B build_route_registry.py --check
+          python -B build_sitemaps.py --check
+          python -m unittest test_search_foundation.py test_poll_pages.py test_route_registry.py
 
       - name: Commit refreshed cover
         id: commit
@@ -212,7 +226,7 @@ jobs:
           $changed =
             @(git diff --name-only)
 
-          $allowed = @(
+          $allowedExact = @(
             "assets/og-cover.png",
             "en/index.html",
             "index.html"
@@ -222,7 +236,9 @@ jobs:
             @(
               $changed |
                 Where-Object {
-                  $_ -notin $allowed
+                  $_ -notin $allowedExact -and
+                  $_ -notmatch '^sondages/(?:[^/]+/)?index\.html$' -and
+                  $_ -notmatch '^en/sondages/(?:[^/]+/)?index\.html$'
                 }
             )
 
@@ -251,7 +267,9 @@ jobs:
           git add -- `
             assets/og-cover.png `
             en/index.html `
-            index.html
+            index.html `
+            sondages `
+            en/sondages
 
           git diff --cached --quiet
           $hasChanges = ($LASTEXITCODE -ne 0)
