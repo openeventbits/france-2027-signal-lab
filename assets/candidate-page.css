@@ -79,7 +79,15 @@
   align-items: baseline;
   gap: 5px;
 }
+.candidate-page .candidate-name-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
 .candidate-page .candidate-dossier-copy h1 {
+  min-width: 0;
   margin: 6px 0;
   color: #f2f8fb;
   font-size: clamp(27px, 2.25vw, 34px);
@@ -87,12 +95,8 @@
   line-height: 1.08;
   letter-spacing: -.02em;
 }
-.candidate-page .candidate-dossier-copy > p {
-  max-width: 58ch;
-  margin: 13px 0 0;
-  color: #91aaba;
-  font-size: 12px;
-  line-height: 1.48;
+.candidate-page .candidate-name-info-wrap .candidate-section-tooltip {
+  max-width: min(430px, calc(100vw - 32px));
 }
 .candidate-page .candidate-status-row { display: flex; align-items: center; gap: 8px; color: var(--final-muted); font-size: var(--fr27-type-meta); }
 .candidate-page .candidate-status {
@@ -683,7 +687,6 @@
   .candidate-page .candidate-dossier { grid-template-columns: 76px minmax(0, 1fr); column-gap: 13px; row-gap: 13px; min-height: 0; padding: 13px; }
   .candidate-page .candidate-portrait { width: 76px; height: 76px; }
   .candidate-page .candidate-dossier-copy h1 { font-size: 27px; }
-  .candidate-page .candidate-dossier-copy > p { display: none; }
   .candidate-page .candidate-status-row { align-items: flex-start; flex-direction: column; gap: 5px; }
   .candidate-page .candidate-dossier-metrics { grid-template-columns: 1fr 1fr; margin: 4px -13px -13px; padding: 0 13px; }
   .candidate-page .candidate-dossier-metrics > div { min-height: 0; padding: 12px 11px 13px; border-right: 0; border-bottom: 1px solid rgba(35, 86, 114, .46); }
@@ -798,13 +801,8 @@
    Evidence-band geometry remains untouched.
 */
 @media (min-width: 1350px) {
-
   .candidate-page .candidate-dossier {
     row-gap: 8px;
-  }
-
-  .candidate-page .candidate-dossier-copy > p {
-    max-width: none;
   }
 }
 /* === END PHASE 3.9 WIDE DOSSIER IDENTITY BALANCE === */
@@ -3111,3 +3109,187 @@
   }
 }
 /* === END FR27 MOBILE LOCAL NAV SELECTOR === */
+/* === FR27 CANDIDATE EXPLORE FURTHER === */
+.candidate-page .candidate-related {
+  margin-top: 14px;
+  padding: 0;
+  border: 1px solid var(--final-line);
+  background: rgba(5, 17, 29, .76);
+}
+
+.candidate-page .candidate-related-panel-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 16px 12px;
+}
+
+.candidate-page .candidate-related-eyebrow {
+  margin-bottom: 4px;
+  color: var(--final-cyan);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.candidate-page .candidate-related-panel-head h2 {
+  margin: 0;
+  color: var(--final-text);
+  font-size: 16px;
+  font-weight: 760;
+  letter-spacing: .045em;
+}
+
+.candidate-page .candidate-related-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+  border-top: 1px solid var(--final-line);
+}
+
+.candidate-page .candidate-related-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: start;
+  gap: 3px 9px;
+  min-width: 0;
+  min-height: 64px;
+  padding: 8px 10px;
+  border: 1px solid rgba(111, 162, 196, .18);
+  border-radius: 7px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(13, 34, 53, .19),
+      rgba(4, 16, 27, .24)
+    );
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.candidate-page .candidate-related-card:hover,
+.candidate-page .candidate-related-card:focus-visible {
+  border-color: var(--final-line-strong);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(14, 43, 64, .28),
+      rgba(5, 22, 36, .34)
+    );
+}
+
+.candidate-page .candidate-related-portrait {
+  grid-row: 1 / span 2;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(53, 216, 255, .22);
+  border-radius: 50%;
+  background: #071522;
+}
+
+.candidate-page .candidate-related-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.candidate-page .candidate-related-portrait-fallback {
+  color: var(--final-cyan);
+  font-size: 15px;
+  font-weight: 780;
+  letter-spacing: .055em;
+}
+
+.candidate-page .candidate-related-copy {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 5px;
+}
+
+.candidate-page .candidate-related-name {
+  overflow: hidden;
+  color: var(--final-text);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.candidate-page .candidate-related-open {
+  grid-column: 2;
+  align-self: start;
+  margin-top: 0;
+  color: var(--final-cyan);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .065em;
+  text-transform: uppercase;
+}
+
+.candidate-page .candidate-related-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 5px 12px 6px;
+  border-top: 1px solid var(--final-line);
+}
+
+.candidate-page .candidate-related-all {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 0;
+  color: var(--final-cyan);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .065em;
+  line-height: 1.3;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.candidate-page .candidate-related-all:hover,
+.candidate-page .candidate-related-all:focus-visible {
+  color: #dff8ff;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.candidate-page .candidate-related-all:focus-visible {
+  outline: none;
+}
+
+@media (min-width: 1050px) and (max-width: 1349.98px) {
+  .candidate-page .candidate-related-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 760px) and (max-width: 1049.98px) {
+  .candidate-page .candidate-related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 759px) {
+  .candidate-page .candidate-related-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .candidate-page .candidate-related-card {
+    min-height: 64px;
+  }
+}
+/* === END FR27 CANDIDATE EXPLORE FURTHER === */
