@@ -1260,13 +1260,31 @@ class FinalDashboardShellTests(unittest.TestCase):
             self.html + "\n" + self.js,
         )
 
+        race_footer_match = re.search(
+            r'<div class="race-footer">(.*?)</div>',
+            self.html,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(race_footer_match)
+
+        race_source_cta_count = len(
+            re.findall(
+                r'<a\b[^>]*class="media-pulse-dashboard-cta"[^>]*>',
+                race_footer_match.group(1),
+            )
+        )
+        self.assertGreaterEqual(race_source_cta_count, 1)
+
         self.assertCountEqual(
             class_attributes,
-            [
-                "media-pulse-dashboard-cta",
-                "top-media-panel-link ecm-open media-pulse-dashboard-cta",
-                "top-media-panel-link tcm-open media-pulse-dashboard-cta",
-            ],
+            (
+                ["media-pulse-dashboard-cta"]
+                * race_source_cta_count
+                + [
+                    "top-media-panel-link ecm-open media-pulse-dashboard-cta",
+                    "top-media-panel-link tcm-open media-pulse-dashboard-cta",
+                ]
+            ),
         )
         self.assertRegex(
             self.html,
