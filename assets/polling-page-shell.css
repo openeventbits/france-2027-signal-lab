@@ -781,7 +781,7 @@
 }
 
 .polling-page .fr27-app-hud .fr27-source-stat:nth-child(2) strong {
-  color: #c0ced5;
+  color: #a58cf2;
 }
 
 .polling-page .fr27-app-hud .fr27-source-stat > span:not(.fr27-source-icon) {
@@ -1176,6 +1176,54 @@
 
 .polling-page #candidate-app-hud.fr27-app-hud[data-expanded="false"] .fr27-app-hud-rail {
   transform: translateY(calc(var(--fr27-app-hud-rail-height) - var(--fr27-app-hud-height)));
+}
+
+/* FR27 MAIN FOOTER SOURCE-METRIC PARITY — WIDE DESKTOP */
+@media (min-width: 1281px) {
+  .polling-page .fr27-app-hud .fr27-zone-infra-body,
+  .polling-page .fr27-app-hud .fr27-source-main {
+    height: 56px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-stat {
+    grid-template-columns: auto 24px;
+    grid-template-rows: 10px 24px;
+    column-gap: 7px;
+    row-gap: 6px;
+    padding: 0 7px;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-stat:nth-child(2) {
+    justify-self: stretch;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-stat:nth-child(2)::before {
+    height: 42px;
+    background: rgba(58, 86, 102, .42);
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-stat > strong {
+    font-size: 20px;
+    font-weight: 680;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .polling-page .fr27-app-hud
+    .fr27-source-stat > span:not(.fr27-source-icon) {
+    letter-spacing: .055em;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-icon {
+    width: 20px;
+    height: 20px;
+    color: #95a7b1;
+  }
+
+  .polling-page .fr27-app-hud .fr27-source-icon svg {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 /* Desktop compression: preserve group hierarchy instead of shrinking every cell equally. */
