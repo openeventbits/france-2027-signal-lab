@@ -1,6 +1,9 @@
 name: Refresh OG cover
 
 on:
+  schedule:
+    - cron: "45 8 * * *"
+      timezone: "Europe/Skopje"
   workflow_dispatch:
 
 permissions:
@@ -212,6 +215,7 @@ jobs:
           python -B build_poll_pages.py
           python -B build_poll_pages.py --check
           python -B build_route_registry.py --check
+          python -B build_sitemaps.py
           python -B build_sitemaps.py --check
           python -m unittest test_search_foundation.py test_poll_pages.py test_route_registry.py
 
