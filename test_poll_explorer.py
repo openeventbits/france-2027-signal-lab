@@ -672,6 +672,33 @@ class PollExplorerContractTests(unittest.TestCase):
         self.assertEqual(metrics["institute_count"], len(self.payload["institutes"]))
 
 
+    def test_polling_hud_count_tracks_source_wave_metric(self):
+        frontend = (
+            ROOT / "assets" / "polling-lab.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            'hudPollsValue: byId("fr27-hud-polls-value")',
+            frontend,
+        )
+        self.assertIn(
+            "nodes.hudPollsValue.textContent = "
+            "formatInteger(metrics.wave_count);",
+            frontend,
+        )
+
+        placeholder = (
+            '<strong id="fr27-hud-polls-value">—</strong>'
+        )
+
+        for relative in (
+            Path("sondages/index.html"),
+            Path("en/sondages/index.html"),
+        ):
+            html = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertIn(placeholder, html)
+
+
     def test_polling_lab_uses_shared_standalone_visual_contract(self):
         styles = (ROOT / "assets" / "polling-lab.css").read_text(encoding="utf-8")
         self.assertIn("/* === STANDALONE FR27 VISUAL CONTRACT ===", styles)

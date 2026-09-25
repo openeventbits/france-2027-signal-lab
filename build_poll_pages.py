@@ -387,7 +387,7 @@ def prepare_footer(
     wave_count: int,
 ) -> str:
     result, count = re.subn(
-        r'(<strong id="fr27-hud-polls-value">)\d+(</strong>)',
+        r'(<strong id="fr27-hud-polls-value">)(?:\d+|—)(</strong>)',
         rf"\g<1>{wave_count}\g<2>",
         footer,
         count=1,

@@ -443,6 +443,7 @@
   function renderMetrics() {
     const { metrics } = state.data;
     nodes.metricWaves.textContent = formatInteger(metrics.wave_count);
+    nodes.hudPollsValue.textContent = formatInteger(metrics.wave_count);
     nodes.metricScenarios.textContent = formatInteger(metrics.scenario_count);
     nodes.metricCandidates.textContent = formatInteger(state.pickerCandidates.length);
     nodes.metricInstitutes.textContent = formatInteger(metrics.institute_count);
@@ -1749,6 +1750,7 @@
       metricCandidates: byId("metric-candidates"),
       metricInstitutes: byId("metric-institutes"),
       metricPeriod: byId("metric-period"),
+      hudPollsValue: byId("fr27-hud-polls-value"),
       candidateSearch: byId("candidate-search"),
       candidateAdd: byId("candidate-add"),
       candidateResults: byId("candidate-results"),
