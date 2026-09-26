@@ -28,6 +28,12 @@ def _load_json(path: Path | str) -> Any:
 def _atomic_write(path: Path, content: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
+    if path.exists() and _same_text_artifact(
+        path.read_bytes(),
+        content,
+    ):
+        return
+
     with tempfile.NamedTemporaryFile(
         mode="wb",
         dir=path.parent,
@@ -45,6 +51,18 @@ def _atomic_write(path: Path, content: bytes) -> None:
     except BaseException:
         temporary.unlink(missing_ok=True)
         raise
+
+
+def _same_text_artifact(
+    current: bytes,
+    expected: bytes,
+) -> bool:
+    """Compare generated XML without platform newline churn."""
+
+    return current.replace(b"\r\n", b"\n") == expected.replace(
+        b"\r\n",
+        b"\n",
+    )
 
 
 def _family_filename(family: str) -> str:
@@ -263,7 +281,10 @@ def check_from_paths(
             )
             continue
 
-        if target.read_bytes() != expected:
+        if not _same_text_artifact(
+            target.read_bytes(),
+            expected,
+        ):
             errors.append(
                 f"out of date: {relative.as_posix()}"
             )

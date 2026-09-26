@@ -1,13 +1,21 @@
 (() => {
   "use strict";
 
-  const CANDIDATE_ID = "marine-le-pen";
+  const pageCandidateId = () =>
+    String(document.documentElement.dataset.pageCandidateId || "").trim();
   const SVG_NS = "http://www.w3.org/2000/svg";
   const candidateLocale = document.documentElement.lang.toLowerCase().startsWith("en")
     ? "en"
     : "fr";
   const candidateLocaleTag = candidateLocale === "en" ? "en-GB" : "fr-FR";
   const candidateText = (fr, en) => candidateLocale === "en" ? en : fr;
+
+  const candidateNameFor = projection =>
+    String(
+      projection?.candidate?.candidate_name
+      || projection?.candidate_id
+      || candidateText("cette candidature", "this candidate")
+    );
 
   const topicLabels = Object.freeze(candidateLocale === "en" ? {
     economy_public_finances: "Economy and public finances",
@@ -133,15 +141,52 @@
     });
   };
 
+  const addTimeDateLabels = (frame, startTime, endTime) => {
+    if (!Number.isFinite(startTime) || !Number.isFinite(endTime)) return;
+
+    const ratios = startTime === endTime ? [0.5] : [0, 0.5, 1];
+
+    ratios.forEach((ratio, position) => {
+      const time = startTime + (endTime - startTime) * ratio;
+      const label = svgElement("text", {
+        x: frame.margin.left + ratio * frame.innerWidth,
+        y: frame.height - 8,
+        "text-anchor": ratios.length === 1
+          ? "middle"
+          : position === 0
+            ? "start"
+            : position === ratios.length - 1
+              ? "end"
+              : "middle",
+        class: "candidate-chart-axis"
+      });
+
+      label.textContent = formatDate(
+        new Date(time).toISOString().slice(0, 10)
+      );
+
+      frame.svg.append(label);
+    });
+  };
+
   const pathFor = (points, x, y, valueFor) =>
     points.map((point, index) => `${index ? "L" : "M"}${x(index, points.length).toFixed(2)},${y(valueFor(point)).toFixed(2)}`).join(" ");
 
   const renderPollHistory = (container, projection) => {
     const points = projection.polling.first_round_history.observations;
     if (!points.length) return;
+
+    const fieldworkTimes = points.map(point =>
+      Date.parse(`${String(point.fieldwork_end).slice(0, 10)}T12:00:00Z`)
+    );
+
+    if (fieldworkTimes.some(value => !Number.isFinite(value))) return;
+
+    const startTime = Math.min(...fieldworkTimes);
+    const endTime = Math.max(...fieldworkTimes);
     const chartLabel = candidateText(
-      `${formatNumber(points.length)} observations chronologiques de sondages pour Marine Le Pen. Les points sont des scores exacts de l’hypothèse sélectionnée et les barres des fourchettes publiées. Aucune moyenne ni interpolation.`,
-      `${formatNumber(points.length)} chronological poll observations for Marine Le Pen. Points are exact scores for the selected hypothesis and bars are published ranges. No average or interpolation.`
+      `${formatNumber(points.length)} observations chronologiques de sondages de premier tour pour ${candidateNameFor(projection)}. La position horizontale suit la date de fin de terrain. Les points sont des scores exacts de l’hypothèse sélectionnée et les barres des fourchettes publiées. Aucune moyenne ni interpolation.`,
+      `${formatNumber(points.length)} chronological first-round poll observations for ${candidateNameFor(projection)}. Horizontal position follows the fieldwork end date. Points are exact scores for the selected hypothesis and bars are published ranges. No average or interpolation.`
     );
     const frame = chartFrame(container, {
       maxY: 50,
@@ -150,6 +195,14 @@
       width: Math.max(320, Math.round(container.clientWidth || 920)),
       height: 230
     });
+
+    const xForTime = value => (
+      startTime === endTime
+        ? frame.margin.left + frame.innerWidth / 2
+        : frame.margin.left
+          + ((value - startTime) / (endTime - startTime)) * frame.innerWidth
+    );
+
     frame.svg.removeAttribute("aria-hidden");
     frame.svg.setAttribute("role", "group");
     frame.svg.setAttribute("aria-label", chartLabel);
@@ -249,7 +302,7 @@
     };
 
     points.forEach((point, index) => {
-      const x = frame.x(index, points.length);
+      const x = xForTime(fieldworkTimes[index]);
       const minimumY = frame.y(point.range_min);
       const maximumY = frame.y(point.range_max);
       const selected = point.selected_score === null
@@ -369,7 +422,7 @@
 
       frame.svg.append(trigger);
     });
-    addDateLabels(frame, points);
+    addTimeDateLabels(frame, startTime, endTime);
 
     document.addEventListener("pointerdown", event => {
       if (activeTrigger && !container.contains(event.target)) hideTooltip();
@@ -446,8 +499,8 @@
       height: 230
     });
     const chartLabel = candidateText(
-      `${formatNumber(points.length)} observations quotidiennes de la part de couverture associée à Marine Le Pen sur 29 jours UTC complets. Ce signal ne mesure ni soutien, ni approbation, ni sentiment, ni intention de vote.`,
-      `${formatNumber(points.length)} daily observations of Marine Le Pen's coverage share across 29 complete UTC days. This signal does not measure support, approval, sentiment or voting intention.`
+      `${formatNumber(points.length)} observations quotidiennes de la part de couverture associée à ${candidateNameFor(projection)} sur 29 jours UTC complets. Ce signal ne mesure ni soutien, ni approbation, ni sentiment, ni intention de vote.`,
+      `${formatNumber(points.length)} daily observations of ${candidateNameFor(projection)}'s coverage share across 29 complete UTC days. This signal does not measure support, approval, sentiment or voting intention.`
     );
     frame.svg.removeAttribute("aria-hidden");
     frame.svg.setAttribute("role", "group");
@@ -665,8 +718,8 @@
       height: 210
     });
     const chartLabel = candidateText(
-      `${formatNumber(points.length)} observations quotidiennes des associations thématiques liées à Marine Le Pen. Comptages bruts, sans moyenne, lissage ni interpolation.`,
-      `${formatNumber(points.length)} daily observations of topic associations linked to Marine Le Pen. Raw counts, with no average, smoothing or interpolation.`
+      `${formatNumber(points.length)} observations quotidiennes des associations thématiques liées à ${candidateNameFor(projection)}. Comptages bruts, sans moyenne, lissage ni interpolation.`,
+      `${formatNumber(points.length)} daily observations of topic associations linked to ${candidateNameFor(projection)}. Raw counts, with no average, smoothing or interpolation.`
     );
     frame.svg.removeAttribute("aria-hidden");
     frame.svg.setAttribute("role", "group");
@@ -965,221 +1018,24 @@
     targets.forEach(target => observer.observe(target));
   };
 
-  const initClocks = () => {
-    const election = new Date("2027-04-18T00:00:00+02:00");
-    const countdown = document.querySelector("[data-countdown] .candidate-countdown-value");
-    const hudCountdown = document.getElementById("fr27-hud-countdown-days");
-    const refreshCountdown = () => {
-      const days = Math.max(
-        0,
-        Math.ceil((election.getTime() - Date.now()) / 86400000)
-      );
-      if (countdown) countdown.textContent = formatNumber(days);
-      if (hudCountdown) hudCountdown.textContent = formatNumber(days);
-    };
-    refreshCountdown();
-    window.setInterval(refreshCountdown, 60000);
-  };
-
-  // FR27 APPLICATION HUD CONTROLLER
-  const initApplicationHud = () => {
-    const hud = document.querySelector("#candidate-app-hud.fr27-app-hud");
-    if (!hud) return;
-
-    const shell = hud.closest(".candidate-shell") || document.querySelector(".candidate-shell");
-    const toggle = hud.querySelector("#fr27-app-hud-toggle");
-    const content = hud.querySelector(".fr27-app-hud-content");
-    const emailToggle = hud.querySelector("#fr27-hud-email-toggle");
-    const contactPopover = hud.querySelector("#fr27-hud-contact-popover");
-    const contactCopy = hud.querySelector("#fr27-hud-contact-copy");
-    const infoToggle = hud.querySelector("#fr27-hud-info-toggle");
-    const infoPopover = hud.querySelector("#fr27-hud-info-popover");
-    const root = document.body;
-    if (!shell || !toggle || !content || !root) return;
-
-    let expanded = true;
-
-    const syncHudGeometry = () => {
-      const rect = shell.getBoundingClientRect();
-      const style = window.getComputedStyle(shell);
-      const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
-      const paddingRight = Number.parseFloat(style.paddingRight) || 0;
-      const left = rect.left + paddingLeft;
-      const width = Math.max(0, rect.width - paddingLeft - paddingRight);
-      hud.style.setProperty("--fr27-app-hud-left", `${left.toFixed(2)}px`);
-      hud.style.setProperty("--fr27-app-hud-width", `${width.toFixed(2)}px`);
-    };
-
-    const setInfoOpen = open => {
-      if (!infoToggle || !infoPopover) return;
-      infoToggle.setAttribute("aria-expanded", String(open));
-      infoPopover.setAttribute("aria-hidden", String(!open));
-    };
-    const closeInfo = () => setInfoOpen(false);
-
-    const setContactOpen = open => {
-      if (!emailToggle || !contactPopover) return;
-      emailToggle.setAttribute("aria-expanded", String(open));
-      contactPopover.setAttribute("aria-hidden", String(!open));
-    };
-    const closeContact = () => setContactOpen(false);
-
-    const renderHudState = () => {
-      hud.dataset.expanded = expanded ? "true" : "false";
-      root.classList.toggle("fr27-app-hud-collapsed", !expanded);
-      toggle.setAttribute("aria-expanded", String(expanded));
-      const label = expanded
-        ? candidateText("Réduire le dock système", "Collapse system dock")
-        : candidateText("Développer le dock système", "Expand system dock");
-      toggle.setAttribute("aria-label", label);
-      toggle.dataset.fr27Tooltip = label;
-      content.setAttribute("aria-hidden", String(!expanded));
-      if ("inert" in content) content.inert = !expanded;
-      if (!expanded) {
-        closeContact();
-        closeInfo();
-      }
-    };
-
-    const timeNode = hud.querySelector("#fr27-hud-paris-time");
-    const dateNode = hud.querySelector("#fr27-hud-paris-date");
-    const zoneNode = hud.querySelector("#fr27-hud-paris-zone");
-    const timeFormatter = new Intl.DateTimeFormat(candidateLocaleTag, {
-      timeZone: "Europe/Paris",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hourCycle: "h23"
-    });
-    const dateFormatter = new Intl.DateTimeFormat(candidateLocaleTag, {
-      timeZone: "Europe/Paris",
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    });
-    const zoneFormatter = new Intl.DateTimeFormat(candidateLocaleTag, {
-      timeZone: "Europe/Paris",
-      timeZoneName: "shortOffset"
-    });
-
-    const refreshParisClock = () => {
-      if (!timeNode || !dateNode || !zoneNode) return;
-      const now = new Date();
-      timeNode.textContent = timeFormatter.format(now);
-      timeNode.dateTime = now.toISOString();
-      dateNode.textContent = dateFormatter
-        .format(now)
-        .replace(",", "")
-        .toLocaleUpperCase(candidateLocaleTag);
-      const zonePart = zoneFormatter
-        .formatToParts(now)
-        .find(part => part.type === "timeZoneName");
-      if (zonePart) {
-        zoneNode.textContent = zonePart.value
-          .replace("UTC+", "UTC+")
-          .replace("UTC−", "UTC-")
-          .replace("GMT+", "UTC+")
-          .replace("GMT-", "UTC-")
-          .replace("GMT", "UTC");
-      }
-    };
-
-    refreshParisClock();
-    window.setInterval(refreshParisClock, 1000);
-
-    toggle.addEventListener("click", () => {
-      expanded = !expanded;
-      renderHudState();
-    });
-
-    if (emailToggle && contactPopover) {
-      emailToggle.addEventListener("click", event => {
-        event.stopPropagation();
-        const open = emailToggle.getAttribute("aria-expanded") === "true";
-        closeInfo();
-        setContactOpen(!open);
-      });
-      contactPopover.addEventListener("click", event => event.stopPropagation());
-    }
-
-    if (contactCopy) {
-      contactCopy.addEventListener("click", async () => {
-        const address = "contact@france2027.app";
-        try {
-          if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(address);
-          } else {
-            const field = document.createElement("textarea");
-            field.value = address;
-            field.setAttribute("readonly", "");
-            field.style.position = "fixed";
-            field.style.opacity = "0";
-            document.body.append(field);
-            field.select();
-            document.execCommand("copy");
-            field.remove();
-          }
-          contactCopy.textContent = candidateText("COPIÉE", "COPIED");
-          window.setTimeout(() => { contactCopy.textContent = candidateText("COPIER L’ADRESSE", "COPY ADDRESS"); }, 1600);
-        } catch (_) {
-          contactCopy.textContent = candidateText("ÉCHEC DE LA COPIE", "COPY FAILED");
-          window.setTimeout(() => { contactCopy.textContent = candidateText("COPIER L’ADRESSE", "COPY ADDRESS"); }, 1600);
-        }
-      });
-    }
-
-    if (infoToggle && infoPopover) {
-      infoToggle.addEventListener("click", event => {
-        event.stopPropagation();
-        const open = infoToggle.getAttribute("aria-expanded") === "true";
-        closeContact();
-        setInfoOpen(!open);
-      });
-      infoPopover.addEventListener("click", event => event.stopPropagation());
-    }
-
-    document.addEventListener("click", () => {
-      closeContact();
-      closeInfo();
-    });
-
-    window.addEventListener("keydown", event => {
-      if (event.key !== "Escape") return;
-      if (emailToggle?.getAttribute("aria-expanded") === "true") {
-        closeContact();
-        emailToggle.focus({ preventScroll: true });
-        return;
-      }
-      if (infoToggle?.getAttribute("aria-expanded") === "true") {
-        closeInfo();
-        infoToggle.focus({ preventScroll: true });
-        return;
-      }
-      if (expanded) {
-        expanded = false;
-        renderHudState();
-        toggle.focus({ preventScroll: true });
-      }
-    });
-
-    renderHudState();
-    syncHudGeometry();
-    window.addEventListener("resize", syncHudGeometry, { passive: true });
-    if ("ResizeObserver" in window) {
-      const observer = new ResizeObserver(syncHudGeometry);
-      observer.observe(shell);
-    }
-  };
-
   const loadProjection = async () => {
     const metadata = document.getElementById("candidate-reference-metadata");
     if (!metadata) throw new Error("candidate reference metadata is unavailable");
     const settings = JSON.parse(metadata.textContent);
-    if (settings.candidate_id !== CANDIDATE_ID) throw new Error("candidate identity mismatch");
+    const pageId = pageCandidateId();
+
+    if (!pageId || settings.candidate_id !== pageId) {
+      throw new Error("candidate identity mismatch");
+    }
+
     const response = await fetch(settings.data_url, { cache: "no-store", credentials: "same-origin" });
     if (!response.ok) throw new Error(`candidate projection request failed: ${response.status}`);
     const projection = await response.json();
-    if (projection.schema_version !== settings.schema_version || projection.candidate_id !== CANDIDATE_ID) {
+    if (
+      projection.schema_version !== settings.schema_version
+      || projection.candidate_id !== settings.candidate_id
+      || projection.candidate?.candidate_id !== settings.candidate_id
+    ) {
       throw new Error("candidate projection contract mismatch");
     }
     return projection;
@@ -1200,8 +1056,6 @@
     initCandidateLanguageToggle();
     initArchives();
     initLocalNavigation();
-    initClocks();
-    initApplicationHud();
     try {
       renderCharts(await loadProjection());
       document.documentElement.dataset.candidateEnhanced = "true";
@@ -1337,19 +1191,6 @@
         if (!listBody) return;
 
         listBody.classList.add("candidate-scrutiny-scroll-body");
-
-        /*
-         * Once JavaScript enhancement is active, expose every projected
-         * scrutiny record inside the bounded scroll region. The archive
-         * button is no longer needed for this panel.
-         */
-        listBody.querySelectorAll("[data-archive-extra]").forEach((item) => {
-            item.hidden = false;
-        });
-
-        listBody.querySelectorAll("[data-archive-toggle]").forEach((button) => {
-            button.remove();
-        });
 
         const mobileQuery = window.matchMedia("(max-width: 759.98px)");
 

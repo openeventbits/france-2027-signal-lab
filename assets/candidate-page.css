@@ -2089,7 +2089,7 @@
 }
 
 .candidate-page .fr27-app-hud .fr27-source-stat:nth-child(2) strong {
-  color: #c0ced5;
+  color: #a58cf2;
 }
 
 .candidate-page .fr27-app-hud .fr27-source-stat > span:not(.fr27-source-icon) {
@@ -2484,6 +2484,54 @@
 
 .candidate-page #candidate-app-hud.fr27-app-hud[data-expanded="false"] .fr27-app-hud-rail {
   transform: translateY(calc(var(--fr27-app-hud-rail-height) - var(--fr27-app-hud-height)));
+}
+
+/* FR27 MAIN FOOTER SOURCE-METRIC PARITY — WIDE DESKTOP */
+@media (min-width: 1281px) {
+  .candidate-page .fr27-app-hud .fr27-zone-infra-body,
+  .candidate-page .fr27-app-hud .fr27-source-main {
+    height: 56px;
+  }
+
+  .candidate-page .fr27-app-hud .fr27-source-stat {
+    grid-template-columns: auto 24px;
+    grid-template-rows: 10px 24px;
+    column-gap: 7px;
+    row-gap: 6px;
+    padding: 0 7px;
+  }
+
+  .candidate-page .fr27-app-hud .fr27-source-stat:nth-child(2) {
+    justify-self: stretch;
+  }
+
+  .candidate-page .fr27-app-hud .fr27-source-stat:nth-child(2)::before {
+    height: 42px;
+    background: rgba(58, 86, 102, .42);
+  }
+
+  .candidate-page .fr27-app-hud .fr27-source-stat > strong {
+    font-size: 20px;
+    font-weight: 680;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .candidate-page .fr27-app-hud
+    .fr27-source-stat > span:not(.fr27-source-icon) {
+    letter-spacing: .055em;
+  }
+
+  .candidate-page .fr27-app-hud .fr27-source-icon {
+    width: 20px;
+    height: 20px;
+    color: #95a7b1;
+  }
+
+  .candidate-page .fr27-app-hud .fr27-source-icon svg {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 /* Desktop compression: preserve group hierarchy instead of shrinking every cell equally. */
@@ -2952,6 +3000,7 @@
     display: none !important;
   }
 }
+
 /* === FR27 UNIVERSAL HUD MICRO-POLISH LOCK ===
    Final standalone-page dock polish.
    Structure, dimensions and responsive architecture are frozen.

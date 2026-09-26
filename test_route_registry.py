@@ -1,20 +1,24 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import re
 import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from unittest import mock
 
 import build_route_registry as routes
 import build_sitemaps as sitemaps
+from candidate_page_contract import project_candidate_route_index
 
 
 ROOT = Path(__file__).resolve().parent
 REGISTRY = ROOT / "route_registry.json"
 POLL_MANIFEST = ROOT / "poll_pages_manifest.json"
+CANDIDATE_REGISTRY = ROOT / "candidate_candidacy_status.json"
 
 SM = {
     "sm": "http://www.sitemaps.org/schemas/sitemap/0.9",
@@ -31,6 +35,13 @@ class RouteRegistryTests(unittest.TestCase):
         cls.manifest = json.loads(
             POLL_MANIFEST.read_text(encoding="utf-8")
         )
+        cls.candidate_registry = json.loads(
+            CANDIDATE_REGISTRY.read_text(encoding="utf-8")
+        )
+        cls.candidate_index = project_candidate_route_index(
+            cls.candidate_registry,
+            ROOT,
+        )
 
     def test_registry_matches_manifest_route_census(self):
         wave_count = self.manifest["wave_count"]
@@ -41,7 +52,12 @@ class RouteRegistryTests(unittest.TestCase):
         self.assertEqual(page_count, wave_count * 2)
 
         expected_poll_routes = 2 + page_count
-        expected_total_routes = 2 + expected_poll_routes
+        expected_candidate_routes = (
+            2 + 2 * self.candidate_index["counts"]["published"]
+        )
+        expected_total_routes = (
+            2 + expected_candidate_routes + expected_poll_routes
+        )
 
         self.assertEqual(
             self.registry["route_count"],
@@ -52,6 +68,7 @@ class RouteRegistryTests(unittest.TestCase):
             self.registry["family_counts"],
             {
                 "core": 2,
+                "candidates": expected_candidate_routes,
                 "polls": expected_poll_routes,
             },
         )
@@ -71,8 +88,6 @@ class RouteRegistryTests(unittest.TestCase):
         before = routes.discover_routes(empty_manifest)
         after = routes.discover_routes(one_wave_manifest)
 
-        self.assertEqual(len(before), 4)
-        self.assertEqual(len(after), 6)
         self.assertEqual(len(after) - len(before), 2)
 
         added = [
@@ -168,12 +183,33 @@ class RouteRegistryTests(unittest.TestCase):
                 + page["page_path_fr"],
                 canonicals,
             )
-
             self.assertIn(
                 "https://france2027.app"
                 + page["page_path_en"],
                 canonicals,
             )
+
+    def test_candidate_lifecycle_routes_are_all_registered(self):
+        candidate_routes = [
+            route
+            for route in self.registry["routes"]
+            if route["family"] == "candidates"
+            and route["kind"] != "hub"
+        ]
+        expected = {
+            f"https://france2027.app{path}"
+            for candidate in self.candidate_index["candidates"]
+            for path in candidate["routes"].values()
+        }
+
+        self.assertEqual(
+            {route["canonical_url"] for route in candidate_routes},
+            expected,
+        )
+        self.assertEqual(
+            len(candidate_routes),
+            2 * self.candidate_index["counts"]["published"],
+        )
 
     def test_titles_and_descriptions_are_present(self):
         for route in self.registry["routes"]:
@@ -250,6 +286,38 @@ class RouteRegistryTests(unittest.TestCase):
 
         self.assertEqual(first, second)
 
+    def test_candidate_detail_hash_includes_published_projection(self):
+        candidate_id = self.candidate_index["candidates"][0][
+            "candidate_id"
+        ]
+        source = ROOT / "candidates" / candidate_id / "index.html"
+
+        with mock.patch.object(
+            routes,
+            "_semantic_json_bytes",
+            side_effect=(b"projection-one", b"projection-two"),
+        ):
+            first = routes._candidate_detail_content_hash(
+                root=ROOT,
+                source_path=source,
+                candidate_id=candidate_id,
+            )
+            second = routes._candidate_detail_content_hash(
+                root=ROOT,
+                source_path=source,
+                candidate_id=candidate_id,
+            )
+
+        self.assertNotEqual(first, second)
+
+    def test_candidate_detail_hash_excludes_css_dependencies(self):
+        implementation = inspect.getsource(
+            routes._candidate_detail_content_hash
+        )
+
+        self.assertNotIn(".css", implementation)
+        self.assertNotIn("candidate-page.css", implementation)
+
 
     def test_unchanged_content_preserves_lastmod(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -292,6 +360,7 @@ class SitemapTests(unittest.TestCase):
         cls.registry = json.loads(
             REGISTRY.read_text(encoding="utf-8")
         )
+        cls.families = sorted(cls.registry["family_counts"])
 
     def test_sitemap_index_lists_current_families(self):
         tree = ET.parse(ROOT / "sitemap.xml")
@@ -307,15 +376,15 @@ class SitemapTests(unittest.TestCase):
         self.assertEqual(
             urls,
             [
-                "https://france2027.app/sitemap-core.xml",
-                "https://france2027.app/sitemap-polls.xml",
+                f"https://france2027.app/sitemap-{family}.xml"
+                for family in self.families
             ],
         )
 
     def test_every_canonical_url_occurs_once_in_family_sitemaps(self):
         discovered = []
 
-        for family in ("core", "polls"):
+        for family in self.families:
             tree = ET.parse(
                 ROOT / f"sitemap-{family}.xml"
             )
@@ -344,7 +413,7 @@ class SitemapTests(unittest.TestCase):
         )
 
     def test_family_sitemaps_include_lastmod(self):
-        for family in ("core", "polls"):
+        for family in self.families:
             tree = ET.parse(
                 ROOT / f"sitemap-{family}.xml"
             )
@@ -365,7 +434,7 @@ class SitemapTests(unittest.TestCase):
                 )
 
     def test_family_sitemaps_include_hreflang_triplet(self):
-        for family in ("core", "polls"):
+        for family in self.families:
             tree = ET.parse(
                 ROOT / f"sitemap-{family}.xml"
             )
@@ -399,7 +468,7 @@ class SitemapTests(unittest.TestCase):
         )
 
     def test_no_sitemap_url_uses_www_or_lang_query(self):
-        for family in ("core", "polls"):
+        for family in self.families:
             tree = ET.parse(
                 ROOT / f"sitemap-{family}.xml"
             )

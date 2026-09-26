@@ -8,7 +8,7 @@
 
   if (!search || !status || !count || !cards.length) return;
 
-  const normalize = (value) => value
+  const normalize = value => value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLocaleLowerCase();
@@ -18,7 +18,7 @@
     const selectedStatus = status.value;
     let visible = 0;
 
-    cards.forEach((card) => {
+    cards.forEach(card => {
       const matchesName = !query || normalize(card.dataset.candidateName || "").includes(query);
       const matchesStatus = !selectedStatus || card.dataset.candidateStatus === selectedStatus;
       const show = matchesName && matchesStatus;

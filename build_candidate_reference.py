@@ -14,9 +14,11 @@ import re
 from html.parser import HTMLParser
 import json
 import os
+import shutil
 import tempfile
 from collections import Counter
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -29,7 +31,11 @@ from candidate_candidacy_status import (
     validate_candidate_candidacy_status,
 )
 from candidate_portraits import resolve_candidate_portrait
-from candidate_page_contract import project_candidate_page_index
+from candidate_page_contract import (
+    is_archived_candidacy_status,
+    project_candidate_page_index,
+    project_candidate_page_lifecycle,
+)
 from candidate_visibility_history_contract import (
     validate_candidate_visibility_history,
 )
@@ -55,6 +61,7 @@ MAX_RUNOFF_EVENTS_PER_MATCHUP = 3
 MAX_TOP_PUBLISHERS = 10
 MAX_STORY_CLUSTERS = 8
 MAX_LATEST_COVERAGE = 12
+MAX_LATEST_NEWS = 5
 MAX_SCRUTINY_REVIEWS = 12
 MAX_UPCOMING_EVENTS = 6
 MAX_RECENT_EVENTS = 8
@@ -141,7 +148,7 @@ def validate_sources(sources: dict[str, Any], root: Path = ROOT) -> None:
 
 
 def derive_hud_metrics(sources: dict[str, Any]) -> dict[str, int]:
-    """Derive global HUD metrics from the dashboard's source contracts."""
+    """Derive the static domain metric from the dashboard source contract."""
 
     source_network = sources["publication_manifest"].get("source_network")
     if not isinstance(source_network, dict):
@@ -152,25 +159,19 @@ def derive_hud_metrics(sources: dict[str, Any]) -> dict[str, int]:
             "publication_manifest approved_publisher_domains is invalid"
         )
 
-    polls = sources["polls"]
-    validate_poll_events(polls)
-    poll_package_keys = {
-        (
-            event["pollster"],
-            event["fieldwork_start"],
-            event["fieldwork_end"],
-            event["sample_size"],
-        )
-        for event in polls
-        if event.get("round") == "first_round"
-    }
-    if not poll_package_keys:
-        raise CandidateReferenceError("no first-round poll packages are available")
-    return {"domains": domains, "poll_packages": len(poll_package_keys)}
+    return {"domains": domains}
 
 
 def _event_date(value: dict[str, Any]) -> date:
     return date.fromisoformat(value["scheduled_start"][:10])
+
+
+def _event_reference_date() -> date:
+    """Return the current civil date used for event classification."""
+
+    return datetime.now(
+        ZoneInfo("Europe/Paris")
+    ).date()
 
 
 def _event_projection(event: dict[str, Any], lane: str) -> dict[str, Any]:
@@ -293,17 +294,16 @@ def _related_candidate_projection(
         for candidate in candidates
     ]
 
-    try:
+    if current_candidate_id in ids:
         current_index = ids.index(current_candidate_id)
-    except ValueError as exc:
-        raise CandidateReferenceError(
-            "current candidate is missing from canonical page index"
-        ) from exc
-
-    rotated = (
-        candidates[current_index + 1:]
-        + candidates[:current_index]
-    )
+        rotated = (
+            candidates[current_index + 1:]
+            + candidates[:current_index]
+        )
+    else:
+        # Retained archive dossiers are outside the active page index. Their
+        # related links still draw only from current declared candidacies.
+        rotated = candidates
 
     eligible = [
         candidate
@@ -356,6 +356,8 @@ def build_projection(
     *,
     candidate_id: str = CANDIDATE_ID,
     _sources_validated: bool = False,
+    _allow_archived: bool = False,
+    _attention_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not _sources_validated:
         validate_sources(sources, root)
@@ -365,14 +367,20 @@ def build_projection(
         candidate["candidate_id"]
         for candidate in active_candidate_records(status_payload)
     }
-    if candidate_id not in active_ids:
+    candidate_status = _one(
+        status_payload["candidates"], field="candidate_id", value=candidate_id
+    )
+    archived = is_archived_candidacy_status(
+        candidate_status["status"]
+    )
+
+    if candidate_id not in active_ids and not (
+        _allow_archived and archived
+    ):
         raise CandidateReferenceError(
             f"candidate {candidate_id!r} is not in the active monitoring field"
         )
 
-    candidate_status = _one(
-        status_payload["candidates"], field="candidate_id", value=candidate_id
-    )
     candidate_name = candidate_status["candidate_name"]
     signals_payload = sources["candidate_signals"]
     signals = _one(signals_payload["candidates"], field="candidate_id", value=candidate_id)
@@ -386,25 +394,25 @@ def build_projection(
         field="candidate_id",
         value=candidate_id,
     )
-    attention = _one(
-        sources["candidate_attention"]["candidates"],
-        field="candidate_id",
-        value=candidate_id,
+    attention = next(
+        (
+            item
+            for item in sources["candidate_attention"]["candidates"]
+            if item.get("candidate_id") == candidate_id
+        ),
+        None,
     )
+
+    if attention is None:
+        if not archived or _attention_snapshot is None:
+            raise CandidateReferenceError(
+                f"candidate attention is unavailable for {candidate_id!r}"
+            )
+        attention = _attention_snapshot
 
     polling = signals["polling"]
     poll_history = signals["poll_history"]
     poll_observations = poll_history.get("observations", [])
-
-    if candidate_id == CANDIDATE_ID and (
-        polling["evidence_state"] != "reported"
-        or polling["range_min"] != 33
-        or polling["range_max"] != 36
-        or polling["hypothesis_count"] != 5
-    ):
-        raise CandidateReferenceError(
-            "current Marine polling evidence is not the locked 33-36 / 5-hypothesis package"
-        )
 
     current_poll_observation = None
 
@@ -470,6 +478,21 @@ def build_projection(
         and period["start_date"] <= item["published_at"][:10] <= period["end_date"]
     ]
     current_records.sort(key=lambda item: (item["published_at"], item["id"]), reverse=True)
+
+    latest_news_records = [
+        item
+        for item in news["candidate_watch"]
+        if candidate_name in item.get("candidates", [])
+        and item.get("coverage_scope")
+        in news["candidate_visibility"]["primary_scopes"]
+    ]
+    latest_news_records.sort(
+        key=lambda item: (
+            item["published_at"],
+            item["id"],
+        ),
+        reverse=True,
+    )
     publisher_counts = Counter(item["publisher"] for item in current_records)
 
     signal_media = signals["campaign_attention"]
@@ -565,7 +588,7 @@ def build_projection(
             for event in event_payload[lane]
             if candidate_id in event.get("candidate_ids", [])
         )
-    reference_date = date.fromisoformat(period["end_date"])
+    reference_date = _event_reference_date()
     upcoming = sorted(
         (
             _event_projection(event, lane)
@@ -639,6 +662,18 @@ def build_projection(
         for item in current_records[:MAX_LATEST_COVERAGE]
     ]
 
+    latest_news = [
+        {
+            "id": item["id"],
+            "publisher": item["publisher"],
+            "published_at": item["published_at"],
+            "headline": item["headline"],
+            "url": item["url"],
+            "coverage_scope": item["coverage_scope"],
+        }
+        for item in latest_news_records[:MAX_LATEST_NEWS]
+    ]
+
     source_generated = {
         name: payload.get("generated_at")
         for name, payload in sources.items()
@@ -676,6 +711,7 @@ def build_projection(
         },
         "now": {
             "latest_development": signals["latest_development"],
+            "latest_news": latest_news,
             "next_or_recent_event": next_or_recent,
             "recent_changes": change_projection,
         },
@@ -753,6 +789,7 @@ def build_projection(
         },
         "bounds": {
             "recent_changes": MAX_RECENT_CHANGES,
+            "latest_news": MAX_LATEST_NEWS,
             "runoff_matchups": MAX_RUNOFF_MATCHUPS,
             "runoff_events_per_matchup": MAX_RUNOFF_EVENTS_PER_MATCHUP,
             "top_publishers": MAX_TOP_PUBLISHERS,
@@ -793,9 +830,17 @@ def validate_projection(
     if candidate.get("candidate_id") != projected_candidate_id:
         raise CandidateReferenceError("projection candidate identity is invalid")
 
-    if candidate.get("display_tier") not in {"main", "secondary"}:
+    active_tier = candidate.get("display_tier") in {
+        "main",
+        "secondary",
+    }
+    archived_status = is_archived_candidacy_status(
+        candidate.get("status", "")
+    )
+
+    if not active_tier and not archived_status:
         raise CandidateReferenceError(
-            "projection candidate is outside the active monitoring field"
+            "projection candidate is outside the active or archive lifecycle"
         )
 
     related_candidates = payload.get(
@@ -846,14 +891,6 @@ def validate_projection(
                 "Marine reference candidacy status drifted"
             )
 
-        if (
-            current["range_min"],
-            current["range_max"],
-            current["hypothesis_count"],
-        ) != (33, 36, 5):
-            raise CandidateReferenceError(
-                "projection polling headline evidence drifted"
-            )
     media = payload["media"]
     media_record_count = payload["dossier"]["media_pulse"].get("record_count")
 
@@ -872,6 +909,7 @@ def validate_projection(
     bounds = payload["bounds"]
     bounded = {
         "recent_changes": len(payload["now"]["recent_changes"]),
+        "latest_news": len(payload["now"]["latest_news"]),
         "runoff_matchups": len(payload["polling"]["tested_runoffs"]),
         "top_publishers": len(media["top_publishers"]),
         "story_clusters": len(media["top_story_clusters"]),
@@ -1800,7 +1838,10 @@ def _render_candidate_structure_html(
         )
     )
 
-    actualite_coverage_items = coverage_items[:5]
+    actualite_coverage_items = [
+        render_coverage_item(item)
+        for item in payload["now"]["latest_news"]
+    ]
     actualite_article_count = len(actualite_coverage_items)
     actualite_article_label = (
         f"{actualite_article_count} article"
@@ -1830,7 +1871,12 @@ def _render_candidate_structure_html(
         )
 
     scrutiny_reviews_html = (
-        _archive_items(review_items, initial=4, label="vérifications")
+        '<ol class="candidate-evidence-list">'
+        + "".join(
+            f"<li>{item}</li>"
+            for item in review_items
+        )
+        + "</ol>"
         if review_items
         else _candidate_empty_state(
             "Aucune vérification associée",
@@ -1942,6 +1988,10 @@ def _render_candidate_structure_html(
         )
         + " · "
         + _agenda_count_label(agenda_cumulative["day_count"], "jour", "jours")
+        + " · "
+        + agenda_cumulative["period_start"]
+        + " → "
+        + agenda_cumulative["period_end"]
     )
     poll_history = payload["polling"]["first_round_history"]
     poll_history_body = (
@@ -1981,6 +2031,9 @@ def _render_candidate_structure_html(
         payload["related_candidates"],
         candidate["status"],
     )
+    from candidate_hub import render_candidate_hud
+
+    candidate_hud = render_candidate_hud("fr", hud_metrics["domains"])
 
     document = f'''<!doctype html>
 <html lang="fr" data-page-candidate-id="{CANDIDATE_ID}">
@@ -1997,6 +2050,7 @@ def _render_candidate_structure_html(
   <link rel="stylesheet" href="/assets/candidate-page.css">
   <script src="/assets/fr27-ui.js" defer></script>
   <script src="/assets/candidate-page.js" defer></script>
+  <script src="/assets/candidate-family-hud.js" defer></script>
 </head>
 <body class="candidate-page">
   <main class="candidate-shell">
@@ -2014,7 +2068,7 @@ def _render_candidate_structure_html(
       </div>
     </header>
 
-    <nav class="candidate-breadcrumb" aria-label="Fil d’Ariane"><a href="/#candidates">CANDIDATS</a><span aria-hidden="true">/</span><span aria-current="page">{_h(candidate_name.upper())}</span></nav>
+    <nav class="candidate-breadcrumb" aria-label="Fil d’Ariane"><a href="/candidates/">CANDIDATS</a><span aria-hidden="true">/</span><span aria-current="page">{_h(candidate_name.upper())}</span></nav>
 
     <section class="candidate-dossier" aria-labelledby="candidate-name">
       {portrait_html}
@@ -2048,7 +2102,7 @@ def _render_candidate_structure_html(
       <header class="candidate-section-head"><div class="candidate-section-title-row"><h2 id="polling-title">SONDAGES</h2><span class="candidate-section-info-wrap"><button class="candidate-section-info" type="button" aria-label="Contexte de cette section" aria-describedby="polling-note">i</button><span class="candidate-section-tooltip" id="polling-note" role="tooltip">Scores publiés par hypothèse. Aucune moyenne, aucun lissage ni interpolation.</span></span></div></header>
       <div class="candidate-polling-grid">
         <article class="candidate-panel candidate-current-poll"><div class="candidate-panel-head"><h3>DERNIÈRE VAGUE</h3></div><div class="candidate-panel-body">{current_poll_body}</div></article>
-        <article class="candidate-panel candidate-chart-panel candidate-poll-history-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>HISTORIQUE DU PREMIER TOUR</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur l’historique du premier tour" aria-describedby="poll-history-note">i</button><span class="candidate-section-tooltip" id="poll-history-note" role="tooltip">Chaque marque représente une observation publiée. Une barre verticale indique la fourchette entre hypothèses lorsqu’elle existe. Aucune moyenne, aucun lissage ni interpolation.</span></span></div><span>{_number(poll_history["observation_count"])} vagues</span></div><div class="candidate-panel-body">{poll_history_body}</div></article>
+        <article class="candidate-panel candidate-chart-panel candidate-poll-history-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>HISTORIQUE DES SONDAGES · 1ER TOUR</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur l’historique des sondages du premier tour" aria-describedby="poll-history-note">i</button><span class="candidate-section-tooltip" id="poll-history-note" role="tooltip">Chaque marque représente une observation de sondage de premier tour regroupée par institut, dates de terrain et taille d’échantillon. Un point indique le score exact de l’hypothèse sélectionnée lorsqu’il existe. Une barre verticale indique la fourchette publiée entre hypothèses. La position horizontale suit la date de fin de terrain. Aucune moyenne, aucun lissage ni interpolation.</span></span></div><span>{_number(poll_history["observation_count"])} observations</span></div><div class="candidate-panel-body">{poll_history_body}</div></article>
       </div>
       <article class="candidate-panel candidate-runoff-panel"><div class="candidate-panel-head candidate-runoff-panel-head"><div class="candidate-panel-title-row"><h3>DUELS DE SECOND TOUR TESTÉS</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur les duels de second tour testés" aria-describedby="runoff-history-note">i</button><span class="candidate-section-tooltip" id="runoff-history-note" role="tooltip">Pour chaque duel, France 2027 Signal Lab affiche au maximum les trois observations les plus récentes, classées par fin de terrain. Les observations plus anciennes restent dans le corpus source. Aucune moyenne ni interpolation n’est calculée.</span></span></div><span>{runoff_header_meta}</span></div><div class="candidate-panel-body candidate-runoff-groups">{runoff_groups_html}</div><p class="candidate-panel-foot">Uniquement les configurations effectivement testées et publiées. Aucune moyenne n’est calculée.</p></article>
     </section>
@@ -2097,30 +2151,7 @@ def _render_candidate_structure_html(
 
     {related_candidates_section}
 
-    <footer id="candidate-app-hud" class="fr27-app-hud" data-expanded="true" aria-label="Dock système France 2027 Signal Lab">
-      <button class="fr27-app-hud-toggle" id="fr27-app-hud-toggle" type="button" aria-expanded="true" aria-controls="fr27-app-hud-surface" aria-label="Réduire le dock système" data-fr27-tooltip="Réduire le dock système"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.5 8.5 12 14l5.5-5.5"></path></svg></button>
-      <div class="fr27-app-hud-surface" id="fr27-app-hud-surface">
-        <div class="fr27-app-hud-content fr27-linear-console" aria-hidden="false">
-          <section class="fr27-linear-zone fr27-zone-live" aria-label="Heure de Paris"><div class="fr27-zone-meta"><span>PARIS</span><span>/ <span id="fr27-hud-paris-zone">UTC+2</span></span></div><div class="fr27-zone-main fr27-live-main"><time id="fr27-hud-paris-time" datetime="">--:--:--</time><span id="fr27-hud-paris-date">—</span></div></section>
-          <section class="fr27-linear-zone fr27-zone-countdown" aria-label="Compte à rebours électoral"><div class="fr27-zone-title">COMPTE À REBOURS</div><div class="fr27-zone-main fr27-countdown-main"><div class="fr27-countdown-value-row"><strong id="fr27-hud-countdown-days">—</strong><span class="fr27-countdown-unit">JOURS</span></div><time class="fr27-countdown-date" datetime="2027-04-18">18 AVR 2027</time></div></section>
-          <section class="fr27-linear-zone fr27-zone-infra" aria-label="Univers de sources et sondages"><div class="fr27-zone-infra-body"><div class="fr27-source-main">
-            <div class="fr27-source-stat"><strong id="fr27-hud-domains-value">{hud_metrics["domains"]}</strong><span class="fr27-source-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="8"></circle><path d="M4 12h16"></path><path d="M12 4c2.2 2.2 3.3 4.9 3.3 8s-1.1 5.8-3.3 8"></path><path d="M12 4c-2.2 2.2-3.3 4.9-3.3 8s1.1 5.8 3.3 8"></path></svg></span><span class="fr27-hud-label-with-info" id="fr27-hud-domains-info" data-fr27-tooltip="Domaines éditeurs approuvés configurés dans l’univers de sources FR27. Il s’agit du registre surveillé, pas du nombre d’éditeurs représentés dans les actualités électorales retenues." data-fr27-tooltip-affordance="term" tabindex="0">DOMAINES</span></div>
-            <div class="fr27-source-stat"><strong id="fr27-hud-polls-value">{hud_metrics["poll_packages"]}</strong><span class="fr27-source-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="9" cy="8.5" r="3"></circle><path d="M3.5 19c.6-3.3 2.4-5 5.5-5s4.9 1.7 5.5 5"></path><path d="M16 6.5a2.7 2.7 0 0 1 0 5.4"></path><path d="M15.5 14c2.7.3 4.2 1.8 4.8 4.5"></path></svg></span><span class="fr27-hud-label-with-info" id="fr27-hud-polls-info" data-fr27-tooltip="Paquets de sondages de premier tour distincts dans le corpus chargé, et non instituts. Les hypothèses partageant institut, dates de terrain et taille d’échantillon comptent pour un paquet." data-fr27-tooltip-affordance="term" tabindex="0">SONDAGES</span></div>
-          </div></div></section>
-          <section class="fr27-linear-zone fr27-zone-dashboard" aria-label="Tableau de bord principal"><a class="fr27-dashboard-cta" href="https://france2027.app/"><span>TABLEAU DE BORD</span><strong>OUVRIR LE MONITEUR ↗</strong></a></section>
-          <section class="fr27-linear-zone fr27-zone-utility" aria-label="Liens utilitaires"><div class="fr27-linear-actions">
-            <a class="fr27-hud-command github" href="https://github.com/openeventbits/france-2027-signal-lab" target="_blank" rel="noreferrer" data-fr27-tooltip="Voir le dépôt" aria-label="Ouvrir le dépôt GitHub"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.04c-3.34.73-4.04-1.42-4.04-1.42-.55-1.37-1.33-1.73-1.33-1.73-1.09-.74.08-.73.08-.73 1.2.08 1.83 1.21 1.83 1.21 1.08 1.82 2.82 1.29 3.5.99.11-.76.42-1.29.76-1.59-2.67-.3-5.48-1.31-5.48-5.84 0-1.29.47-2.34 1.23-3.16-.12-.3-.53-1.53.12-3.18 0 0 1.01-.32 3.3 1.21a11.6 11.6 0 0 1 6 0c2.29-1.53 3.3-1.21 3.3-1.21.65 1.65.24 2.88.12 3.18.77.82 1.23 1.87 1.23 3.16 0 4.54-2.81 5.54-5.49 5.84.43.37.81 1.09.81 2.19v3.25c0 .32.22.7.83.58A12 12 0 0 0 12 .5Z"></path></svg></a>
-            <button type="button" id="fr27-hud-email-toggle" class="fr27-hud-command email" data-fr27-tooltip="Contact" aria-label="Contacter France 2027 Signal Lab" aria-haspopup="dialog" aria-controls="fr27-hud-contact-popover" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3.25" y="5.5" width="17.5" height="13" rx="1.7"></rect><path d="m4.6 7.1 7.4 5.55 7.4-5.55"></path></svg></button>
-            <a id="fr27-hud-share" class="fr27-hud-command share" href="https://x.com/fr27signal" target="_blank" rel="noopener noreferrer" data-fr27-tooltip="FR27 sur X · @fr27signal" aria-label="FR27 sur X · @fr27signal"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" stroke="none" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.264 2.25H8.09l4.713 6.231zm-1.161 17.52h1.833L7.095 4.126H5.127z"></path></svg></a>
-            <button type="button" id="fr27-hud-info-toggle" class="fr27-hud-command" aria-haspopup="dialog" aria-controls="fr27-hud-info-popover" aria-expanded="false" data-fr27-tooltip="À propos de France 2027 Signal Lab" aria-label="Informations sur le projet"><svg class="fr27-info-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.25"></circle><path d="M12 10.8v5"></path><path d="M12 7.7h.01"></path></svg></button>
-          </div></section>
-        </div>
-        <div class="fr27-app-hud-rail" aria-hidden="true"><i></i></div>
-      </div>
-      <aside class="fr27-hud-contact-popover" id="fr27-hud-contact-popover" aria-hidden="true" aria-label="Contacter France 2027 Signal Lab"><div class="fr27-hud-contact-head"><strong>CONTACT</strong><span>EMAIL</span></div><div class="fr27-hud-contact-address">contact@france2027.app</div><button type="button" class="fr27-hud-contact-copy" id="fr27-hud-contact-copy" aria-live="polite">COPIER L’ADRESSE</button></aside>
-      <aside class="fr27-hud-info-popover" id="fr27-hud-info-popover" aria-hidden="true" aria-label="Informations sur le projet"><div class="fr27-hud-info-head"><strong>FRANCE 2027 SIGNAL LAB</strong><span>INTERFACE PUBLIQUE DE SUIVI</span></div><p>Suivi sourcé de la présidentielle française de 2027 à partir de sondages, d’éléments de campagne, de médias et de données d’attention publique.</p><div class="fr27-hud-info-rules"><div class="fr27-hud-info-rule-line primary"><span>DONNÉES PUBLIQUES</span><span>LIÉES AUX SOURCES</span><span>DESCRIPTIF</span></div><div class="fr27-hud-info-rule-line boundary"><span>AUCUNE MOYENNE DE SONDAGES</span><span>AUCUNE PRÉVISION</span><span>AUCUN CONSEIL DE VOTE</span></div></div><small class="fr27-hud-info-independence">Projet indépendant · aucune affiliation avec les candidats, partis, instituts de sondage, éditeurs ou autorités publiques suivis.</small><small class="fr27-hud-info-note">Les portraits des candidates et candidats sont des illustrations générées par IA à des fins d’identification visuelle.</small><div class="fr27-hud-info-rights"><strong>DROITS &amp; LICENCES</strong><span>POLYFORM NC · CC BY-NC 4.0</span><a href="https://github.com/openeventbits/france-2027-signal-lab/blob/main/NOTICE" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir les détails des droits et licences dans un nouvel onglet">DÉTAILS ↗</a></div></aside>
-      <div class="visually-hidden">Données descriptives issues de sources publiques. Aucune moyenne. Aucune prévision. Aucun conseil de vote.</div>
-    </footer>
+    {candidate_hud}
   </main>
   <script id="candidate-reference-metadata" type="application/json">{{"candidate_id":"{CANDIDATE_ID}","data_url":"/candidates/marine-le-pen/data.json","schema_version":"{SCHEMA_VERSION}"}}</script>
 </body>
@@ -2186,7 +2217,7 @@ _CANDIDATE_TEXT_EN = {
     "DERNIÈRES ACTUALITÉS": "LATEST NEWS",
     "CE QUI A CHANGÉ": "WHAT CHANGED",
     "DERNIÈRE VAGUE": "LATEST WAVE",
-    "HISTORIQUE DU PREMIER TOUR": "FIRST-ROUND HISTORY",
+    "HISTORIQUE DES SONDAGES · 1ER TOUR": "FIRST-ROUND POLL HISTORY",
     "DUELS DE SECOND TOUR TESTÉS": "TESTED RUNOFFS",
     "MEDIA PULSE & COUVERTURE": "MEDIA PULSE & COVERAGE",
     "MEDIA PULSE": "MEDIA PULSE",
@@ -2291,8 +2322,8 @@ _CANDIDATE_TEXT_EN = {
 
     "Fourchette des scores publiés pour Marine Le Pen dans les cinq hypothèses testées lors de la dernière vague. France 2027 Signal Lab n’en calcule pas de moyenne.":
         "Range of published Marine Le Pen scores across the five hypotheses tested in the latest wave. France 2027 Signal Lab does not calculate an average.",
-    "Chaque marque représente une observation publiée. Une barre verticale indique la fourchette entre hypothèses lorsqu’elle existe. Aucune moyenne, aucun lissage ni interpolation.":
-        "Each mark represents a published observation. A vertical bar shows the range across hypotheses when one exists. No average, smoothing or interpolation.",
+    "Chaque marque représente une observation de sondage de premier tour regroupée par institut, dates de terrain et taille d’échantillon. Un point indique le score exact de l’hypothèse sélectionnée lorsqu’il existe. Une barre verticale indique la fourchette publiée entre hypothèses. La position horizontale suit la date de fin de terrain. Aucune moyenne, aucun lissage ni interpolation.":
+        "Each mark represents a first-round poll observation grouped by pollster, fieldwork dates and sample size. A point shows the exact selected-hypothesis score when available. A vertical bar shows the published range across hypotheses. Horizontal position follows the fieldwork end date. No average, smoothing or interpolation.",
     "Pour chaque duel, France 2027 Signal Lab affiche au maximum les trois observations les plus récentes, classées par fin de terrain. Les observations plus anciennes restent dans le corpus source. Aucune moyenne ni interpolation n’est calculée.":
         "For each runoff, France 2027 Signal Lab shows at most the three most recent observations, ordered by fieldwork end date. Older observations remain in the source corpus. No average or interpolation is calculated.",
     "Uniquement les configurations effectivement testées et publiées. Aucune moyenne n’est calculée.":
@@ -2388,7 +2419,7 @@ _CANDIDATE_ATTR_EN = {
     "Portrait illustré de Marine Le Pen": "Illustrated portrait of Marine Le Pen",
     "Sections du dossier": "Dossier sections",
     "Contexte de cette section": "Section context",
-    "Informations sur l’historique du premier tour": "First-round history information",
+    "Informations sur l’historique des sondages du premier tour": "First-round poll history information",
     "Informations sur les duels de second tour testés": "Tested runoff information",
     "Définition de Media Pulse": "Media Pulse definition",
     "Informations sur la tendance récente de couverture": "Recent coverage trend information",
@@ -2896,6 +2927,38 @@ def _candidate_translate_en(value: str, *, protected: bool = False) -> str:
     translated = translated.replace(" · jours actifs", " · active days")
     translated = translated.replace("CAMPAGNE · ", "CAMPAIGN · ")
     translated = translated.replace("ÉLECTION · ", "ELECTION · ")
+
+    # Dynamic Agenda metadata can append an exact tracking range.
+    # Localize jour/jours when the day count is one component of
+    # a longer compositional interface string.
+    translated = re.sub(
+        r" · (\d+) jour(?= · |$)",
+        r" · \1 day",
+        translated,
+    )
+    translated = re.sub(
+        r" · (\d+) jours(?= · |$)",
+        r" · \1 days",
+        translated,
+    )
+
+    # Scrutiny explanatory copy follows an inline relationship label.
+    translated = translated.replace(
+        "— affirmation attribuée à Marine Le Pen",
+        "— claim attributed to Marine Le Pen",
+    )
+    translated = translated.replace(
+        "— Marine Le Pen est mentionnée ; l’affirmation est attribuée à une autre personne",
+        "— Marine Le Pen is mentioned; the claim is attributed to another person",
+    )
+    translated = translated.replace(
+        "— affirmation enregistrée comme attribuée à cette candidature",
+        "— claim recorded as attributed to this candidacy",
+    )
+    translated = translated.replace(
+        "— cette candidature est mentionnée ; l’affirmation est attribuée à une autre personne",
+        "— this candidacy is mentioned; the claim is attributed to another person",
+    )
     translated = translated.replace(
         "Activez JavaScript pour la visualisation interactive.",
         "Enable JavaScript for the interactive visualization.",
@@ -3311,6 +3374,21 @@ def _candidate_apply_language_shell(
             1,
         )
 
+        document, breadcrumb_count = re.subn(
+            (
+                r'(<nav class="candidate-breadcrumb"[^>]*>'
+                r'<a href=")/candidates/(")'
+            ),
+            r'\1/en/candidates/\2',
+            document,
+            count=1,
+        )
+
+        if breadcrumb_count != 1:
+            raise CandidateReferenceError(
+                "English candidate breadcrumb route drifted"
+            )
+
         document = re.sub(
             (
                 r'(<a class="candidate-related-card" '
@@ -3345,6 +3423,8 @@ def render_html(
         raise CandidateReferenceError(
             f"unsupported candidate locale: {lang}"
         )
+    if hud_metrics is None:
+        hud_metrics = derive_hud_metrics(load_sources(ROOT))
 
     raw = _render_candidate_structure_html(
         payload,
@@ -3370,6 +3450,18 @@ def render_html(
         " viewbox=",
         " viewBox=",
     )
+
+    from candidate_hub import render_candidate_hud
+
+    rendered, replacement_count = re.subn(
+        r'<footer id="candidate-app-hud".*?</footer>',
+        render_candidate_hud("en", hud_metrics["domains"]),
+        rendered,
+        count=1,
+        flags=re.DOTALL,
+    )
+    if replacement_count != 1:
+        raise CandidateReferenceError("candidate HUD replacement failed")
 
     # Source-originated h4 content remains in its published language.
     # These three h4 elements are product-interface labels.
@@ -3401,21 +3493,70 @@ def render_html(
 def build_all_active_artifacts(
     sources: dict[str, Any],
     root: Path = ROOT,
+    *,
+    site_root: Path | None = None,
 ) -> dict[Path, bytes]:
-    """Build every active bilingual dossier and both generated hubs in memory."""
+    """Build current dossiers, retained archives and both generated hubs."""
 
     from candidate_hub import build_hub_model, render_hub
 
     validate_sources(sources, root)
-    records = active_candidate_records(sources["candidate_candidacy_status"])
-    projections = [
+    site_root = site_root or root
+    registry = sources["candidate_candidacy_status"]
+    lifecycle = project_candidate_page_lifecycle(
+        registry,
+        site_root,
+    )
+    active_records = active_candidate_records(registry)
+    active_projections = [
         build_projection(
             sources,
             root,
             candidate_id=record["candidate_id"],
             _sources_validated=True,
         )
-        for record in records
+        for record in active_records
+    ]
+    records_by_id = {
+        record["candidate_id"]: record
+        for record in registry["candidates"]
+    }
+    archived_projections = []
+
+    for candidate_id in lifecycle["retained_archived_ids"]:
+        data_path = (
+            site_root
+            / "candidates"
+            / candidate_id
+            / "data.json"
+        )
+        prior = json.loads(
+            data_path.read_text(encoding="utf-8")
+        )
+        attention_snapshot = prior.get("attention")
+
+        if not isinstance(attention_snapshot, dict):
+            raise CandidateReferenceError(
+                "retained archive lacks an attention snapshot: "
+                f"{candidate_id}"
+            )
+
+        archived_projections.append(
+            build_projection(
+                sources,
+                root,
+                candidate_id=records_by_id[candidate_id][
+                    "candidate_id"
+                ],
+                _sources_validated=True,
+                _allow_archived=True,
+                _attention_snapshot=attention_snapshot,
+            )
+        )
+
+    projections = [
+        *active_projections,
+        *archived_projections,
     ]
     hud_metrics = derive_hud_metrics(sources)
     artifacts: dict[Path, bytes] = {}
@@ -3439,22 +3580,56 @@ def build_all_active_artifacts(
         )
 
     hub_model = build_hub_model(
-        sources["candidate_candidacy_status"],
-        projections,
+        registry,
+        active_projections,
+        sources["candidate_signals"],
     )
     artifacts[Path("candidates") / "index.html"] = render_hub(
         hub_model,
         lang="fr",
         favicon_markup=FR27_FAVICON_MARKUP,
         og_image=DEFAULT_OG_IMAGE,
+        hud_metrics=hud_metrics,
     )
     artifacts[Path("en") / "candidates" / "index.html"] = render_hub(
         hub_model,
         lang="en",
         favicon_markup=FR27_FAVICON_MARKUP,
         og_image=DEFAULT_OG_IMAGE,
+        hud_metrics=hud_metrics,
     )
     return artifacts
+
+
+def prune_candidate_dossier_directories(
+    output_root: Path,
+    candidate_ids: Iterable[str],
+) -> None:
+    """Remove only lifecycle-classified candidate dossier directories."""
+
+    output_root = output_root.resolve()
+    parents = (
+        (output_root / "candidates").resolve(),
+        (output_root / "en" / "candidates").resolve(),
+    )
+
+    for candidate_id in candidate_ids:
+        if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", candidate_id):
+            raise CandidateReferenceError(
+                f"unsafe candidate directory identifier: {candidate_id!r}"
+            )
+
+        for parent in parents:
+            target = (parent / candidate_id).resolve()
+
+            if target.parent != parent:
+                raise CandidateReferenceError(
+                    f"unsafe candidate directory target: {target}"
+                )
+
+            if target.exists():
+                shutil.rmtree(target)
+                print(f"pruned {target}")
 
 
 
@@ -3506,9 +3681,23 @@ def main() -> int:
         output_root = args.site_output_root or args.root
         if not output_root.is_absolute():
             output_root = args.root / output_root
-        artifacts = build_all_active_artifacts(sources, args.root)
+        lifecycle = project_candidate_page_lifecycle(
+            sources["candidate_candidacy_status"],
+            output_root,
+        )
+        artifacts = build_all_active_artifacts(
+            sources,
+            args.root,
+            site_root=output_root,
+        )
 
         if args.check:
+            if lifecycle["prunable_ids"]:
+                raise SystemExit(
+                    "stale candidate dossier directories: "
+                    + ", ".join(lifecycle["prunable_ids"])
+                )
+
             for relative_path, content in artifacts.items():
                 target = output_root / relative_path
                 if (
@@ -3519,11 +3708,20 @@ def main() -> int:
             active_count = len(
                 active_candidate_records(sources["candidate_candidacy_status"])
             )
+            archived_count = len(
+                lifecycle["retained_archived_ids"]
+            )
             print(
                 "all-active candidate artifacts are current: "
-                f"{active_count} FR + {active_count} EN dossiers and 2 hubs"
+                f"{active_count} FR + {active_count} EN dossiers, "
+                f"{archived_count} retained archive dossiers and 2 hubs"
             )
             return 0
+
+        prune_candidate_dossier_directories(
+            output_root,
+            lifecycle["prunable_ids"],
+        )
 
         for relative_path, content in artifacts.items():
             target = output_root / relative_path

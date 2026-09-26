@@ -599,6 +599,7 @@ class SearchFoundationTests(unittest.TestCase):
                 "poll_pages_manifest.json",
                 "route_registry.json",
                 "sitemap.xml",
+                "sitemap-candidates.xml",
                 "sitemap-core.xml",
                 "sitemap-polls.xml",
                 "sondages",
@@ -698,6 +699,12 @@ class SearchFoundationTests(unittest.TestCase):
                 )
 
     def test_sitemap_is_family_index_with_canonical_urls(self):
+        route_registry = json.loads(
+            (ROOT / "route_registry.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        families = sorted(route_registry["family_counts"])
         tree = ET.parse(SITEMAP)
         namespace = {
             "sm": "http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -714,16 +721,16 @@ class SearchFoundationTests(unittest.TestCase):
         self.assertEqual(
             sitemap_urls,
             [
-                "https://france2027.app/sitemap-core.xml",
-                "https://france2027.app/sitemap-polls.xml",
+                f"https://france2027.app/sitemap-{family}.xml"
+                for family in families
             ],
         )
 
         discovered = []
 
         for filename in (
-            "sitemap-core.xml",
-            "sitemap-polls.xml",
+            f"sitemap-{family}.xml"
+            for family in families
         ):
             child = ET.parse(ROOT / filename)
 

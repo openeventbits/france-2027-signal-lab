@@ -10,10 +10,13 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from candidate_page_contract import project_candidate_route_index
+
 
 ROOT = Path(__file__).resolve().parent
 REGISTRY_PATH = ROOT / "route_registry.json"
 POLL_MANIFEST_PATH = ROOT / "poll_pages_manifest.json"
+CANDIDATE_REGISTRY_PATH = ROOT / "candidate_candidacy_status.json"
 
 SCHEMA_VERSION = "1.0"
 BASE_URL = "https://france2027.app"
@@ -300,6 +303,57 @@ def _polling_hub_content_hash(
     return digest.hexdigest()
 
 
+def _candidate_detail_content_hash(
+    *,
+    root: Path,
+    source_path: Path,
+    candidate_id: str,
+) -> str:
+    """Hash rendered detail HTML plus its canonical published projection.
+
+    CSS is intentionally excluded so cosmetic-only changes do not advance a
+    candidate route's semantic ``lastmod``.
+    """
+
+    data_path = (
+        root
+        / "candidates"
+        / candidate_id
+        / "data.json"
+    )
+
+    if not data_path.exists():
+        raise RouteRegistryError(
+            "Candidate semantic dependency missing: "
+            f"{data_path.relative_to(root).as_posix()}"
+        )
+
+    components = (
+        (
+            "html",
+            _semantic_html_bytes(source_path.read_bytes()),
+        ),
+        (
+            "candidate_projection",
+            _semantic_json_bytes(data_path),
+        ),
+    )
+    digest = hashlib.sha256()
+
+    for label, content in components:
+        encoded_label = label.encode("utf-8")
+        digest.update(
+            len(encoded_label).to_bytes(4, byteorder="big")
+        )
+        digest.update(encoded_label)
+        digest.update(
+            len(content).to_bytes(8, byteorder="big")
+        )
+        digest.update(content)
+
+    return digest.hexdigest()
+
+
 def _route_content_hash(
     *,
     route: dict[str, Any],
@@ -313,6 +367,17 @@ def _route_content_hash(
         return _polling_hub_content_hash(
             root=root,
             source_path=source_path,
+        )
+
+    if (
+        route.get("family") == "candidates"
+        and route.get("kind")
+        in {"candidate-detail", "candidate-archive"}
+    ):
+        return _candidate_detail_content_hash(
+            root=root,
+            source_path=source_path,
+            candidate_id=route["entity_id"],
         )
 
     return _content_hash(source_path)
@@ -357,6 +422,9 @@ def _route_pair(
 
 def discover_routes(
     poll_manifest: dict[str, Any],
+    candidate_registry: dict[str, Any] | None = None,
+    *,
+    root: Path = ROOT,
 ) -> list[dict[str, Any]]:
     routes: list[dict[str, Any]] = []
 
@@ -370,6 +438,44 @@ def discover_routes(
             path_en="/en/",
         )
     )
+
+    routes.extend(
+        _route_pair(
+            route_key="candidates",
+            family="candidates",
+            kind="hub",
+            entity_id="candidates",
+            path_fr="/candidates/",
+            path_en="/en/candidates/",
+        )
+    )
+
+    if candidate_registry is None:
+        candidate_registry = _load_json(
+            root / "candidate_candidacy_status.json"
+        )
+
+    candidate_index = project_candidate_route_index(
+        candidate_registry,
+        root,
+    )
+
+    for candidate in candidate_index["candidates"]:
+        candidate_id = candidate["candidate_id"]
+        routes.extend(
+            _route_pair(
+                route_key=f"candidate:{candidate_id}",
+                family="candidates",
+                kind=(
+                    "candidate-detail"
+                    if candidate["lifecycle"] == "active"
+                    else "candidate-archive"
+                ),
+                entity_id=candidate_id,
+                path_fr=candidate["routes"]["fr"],
+                path_en=candidate["routes"]["en"],
+            )
+        )
 
     routes.extend(
         _route_pair(
@@ -425,9 +531,15 @@ def current_snapshot(
     *,
     root: Path,
     poll_manifest_path: Path,
+    candidate_registry_path: Path = CANDIDATE_REGISTRY_PATH,
 ) -> list[dict[str, Any]]:
     poll_manifest = _load_json(poll_manifest_path)
-    routes = discover_routes(poll_manifest)
+    candidate_registry = _load_json(candidate_registry_path)
+    routes = discover_routes(
+        poll_manifest,
+        candidate_registry,
+        root=root,
+    )
 
     seen_ids: set[str] = set()
     seen_urls: set[str] = set()
@@ -510,6 +622,7 @@ def build_registry(
     *,
     root: Path = ROOT,
     poll_manifest_path: Path = POLL_MANIFEST_PATH,
+    candidate_registry_path: Path = CANDIDATE_REGISTRY_PATH,
     existing_registry_path: Path = REGISTRY_PATH,
     effective_date: str,
 ) -> dict[str, Any]:
@@ -518,6 +631,7 @@ def build_registry(
     snapshot = current_snapshot(
         root=root,
         poll_manifest_path=poll_manifest_path,
+        candidate_registry_path=candidate_registry_path,
     )
 
     previous_by_id: dict[str, dict[str, Any]] = {}
@@ -596,6 +710,7 @@ def check_registry(
     *,
     root: Path = ROOT,
     poll_manifest_path: Path = POLL_MANIFEST_PATH,
+    candidate_registry_path: Path = CANDIDATE_REGISTRY_PATH,
     registry_path: Path = REGISTRY_PATH,
 ) -> list[str]:
     if not registry_path.exists():
@@ -609,6 +724,7 @@ def check_registry(
     snapshot = current_snapshot(
         root=root,
         poll_manifest_path=poll_manifest_path,
+        candidate_registry_path=candidate_registry_path,
     )
 
     registered = registry.get("routes")
@@ -732,6 +848,12 @@ def _parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--candidate-registry",
+        type=Path,
+        default=CANDIDATE_REGISTRY_PATH,
+    )
+
+    parser.add_argument(
         "--output",
         type=Path,
         default=REGISTRY_PATH,
@@ -757,6 +879,7 @@ def main(argv: list[str] | None = None) -> int:
             errors = check_registry(
                 root=ROOT,
                 poll_manifest_path=arguments.poll_manifest,
+                candidate_registry_path=arguments.candidate_registry,
                 registry_path=arguments.output,
             )
 
@@ -784,6 +907,7 @@ def main(argv: list[str] | None = None) -> int:
         payload = build_registry(
             root=ROOT,
             poll_manifest_path=arguments.poll_manifest,
+            candidate_registry_path=arguments.candidate_registry,
             existing_registry_path=arguments.output,
             effective_date=arguments.effective_date,
         )

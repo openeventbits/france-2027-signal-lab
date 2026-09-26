@@ -81,6 +81,7 @@
 .candidate-page a:hover { color: #8cecff; text-decoration: underline; }
 .candidate-page a:focus-visible,
 .candidate-page button:focus-visible { outline: 2px solid var(--final-cyan); outline-offset: 2px; }
+.candidate-page .fr27-app-hud-toggle { font: inherit; }
 
 .candidate-page .candidate-shell {
   width: 100%;
@@ -427,9 +428,15 @@
   .candidate-page .candidate-brand-copy strong::after { height: 2px; margin-top: 4px; }
   .candidate-page .candidate-brand-copy em { display: block; }
   .candidate-page .candidate-brand-copy small { margin-top: 2px; font-size: 11px; line-height: 1.25; white-space: normal; }
-  .candidate-page .candidate-masthead-tools { width: 100%; display: flex; flex: initial; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 9px; margin-left: 0; }
-  .candidate-page .candidate-language { width: 96px; height: var(--candidate-compact-control-height); flex: 0 0 96px; }
-  .candidate-page .candidate-countdown { width: max-content; min-width: 176px; min-height: var(--candidate-compact-control-height); gap: 9px; padding: 7px 10px; }
+  /*
+   * Keep the compact controls on one deterministic row for normal
+   * phone widths. Previously their intrinsic widths sat exactly on
+   * the 365/366px boundary and flex-wrap changed the masthead by one
+   * pixel of viewport width.
+   */
+  .candidate-page .candidate-masthead-tools { width: 100%; display: flex; flex: initial; flex-wrap: nowrap; align-items: center; justify-content: flex-start; gap: 8px; margin-left: 0; }
+  .candidate-page .candidate-language { width: 92px; height: var(--candidate-compact-control-height); flex: 0 0 92px; }
+  .candidate-page .candidate-countdown { width: auto; min-width: 0; min-height: var(--candidate-compact-control-height); flex: 1 1 0; gap: 9px; padding: 7px 8px; }
   .candidate-page .candidate-countdown-icon { width: 23px; height: 23px; }
   .candidate-page .candidate-countdown-icon svg { width: 21px; height: 21px; stroke-width: 1.6; }
   .candidate-page .candidate-countdown-copy { gap: 7px; }
@@ -441,3 +448,24 @@
   .candidate-page .candidate-countdown-date { font-size: 9px; }
 }
 
+/*
+ * Below 360px we intentionally stack the controls instead of relying
+ * on incidental flex wrapping.
+ */
+@media (max-width: 359px) {
+  .candidate-page .candidate-masthead-tools {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .candidate-page .candidate-language {
+    width: 96px;
+    flex: 0 0 96px;
+  }
+
+  .candidate-page .candidate-countdown {
+    width: 100%;
+    min-width: 0;
+    flex: 1 0 100%;
+  }
+}

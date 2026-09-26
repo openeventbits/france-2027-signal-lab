@@ -466,6 +466,7 @@ jobs:
           if [[ -n "$(git status --porcelain -- \
             route_registry.json \
             sitemap.xml \
+            sitemap-candidates.xml \
             sitemap-core.xml \
             sitemap-polls.xml)" ]]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -559,7 +560,7 @@ jobs:
             sondages en/sondages \
             index.html en/index.html \
             route_registry.json \
-            sitemap.xml sitemap-core.xml sitemap-polls.xml \
+            sitemap.xml sitemap-candidates.xml sitemap-core.xml sitemap-polls.xml \
             publication_manifest.json
           git commit -m "Update polls data"
 
@@ -600,7 +601,7 @@ jobs:
             sondages en/sondages \
             index.html en/index.html \
             route_registry.json \
-            sitemap.xml sitemap-core.xml sitemap-polls.xml \
+            sitemap.xml sitemap-candidates.xml sitemap-core.xml sitemap-polls.xml \
             publication_manifest.json
 
           git push origin HEAD:main

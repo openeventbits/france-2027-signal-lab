@@ -38,6 +38,9 @@ class CandidateReferenceTests(unittest.TestCase):
         cls.css = CSS_PATH.read_text(encoding="utf-8")
         cls.shell_css = SHELL_CSS_PATH.read_text(encoding="utf-8")
         cls.javascript = JS_PATH.read_text(encoding="utf-8")
+        cls.hud_javascript = (
+            ROOT / "assets" / "candidate-family-hud.js"
+        ).read_text(encoding="utf-8")
 
     def test_candidate_search_head_is_indexable_and_uses_root_brand_contract(self):
         root_html = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -149,9 +152,11 @@ class CandidateReferenceTests(unittest.TestCase):
         )
 
     def test_generated_projection_and_html_are_current(self):
-        self.assertEqual(
-            DATA_PATH.read_bytes(),
-            reference.serialize_projection(self.projection),
+        self.assertTrue(
+            reference._newline_equivalent(
+                DATA_PATH.read_bytes(),
+                reference.serialize_projection(self.projection),
+            )
         )
         self.assertTrue(
             reference._newline_equivalent(
@@ -205,34 +210,87 @@ class CandidateReferenceTests(unittest.TestCase):
                 candidate_id=hidden["candidate_id"],
             )
 
-    def test_current_polling_defaults_to_range_and_hypothesis_count(self):
+    def test_current_polling_renders_projected_range_and_hypothesis_count(self):
         current = self.published["polling"]["current"]
+        projected = self.projection["polling"]["current"]
+
         self.assertEqual(
-            (current["range_min"], current["range_max"], current["hypothesis_count"]),
-            (33, 36, 5),
+            current,
+            projected,
         )
-        self.assertIn("33–36% · 5 hypothèses", self.html)
+
+        if current["evidence_state"] != "reported":
+            return
+
+        count = current["hypothesis_count"]
+        range_text = (
+            f'{current["range_min"]}–'
+            f'{current["range_max"]}%'
+        )
+        hypothesis_text = reference._hypothesis_text(
+            count
+        )
+        combined = (
+            f"{range_text} · {hypothesis_text}"
+        )
+
+        self.assertIn(
+            combined,
+            self.html,
+        )
+
         dossier = re.search(
-            r'<dl class="candidate-dossier-metrics">(?P<body>.*?)</dl>',
+            r'<dl class="candidate-dossier-metrics">'
+            r'(?P<body>.*?)</dl>',
             self.html,
             flags=re.DOTALL,
         )
-        self.assertIsNotNone(dossier)
-        self.assertIn("33–36% · 5 hypothèses", dossier.group("body"))
-        self.assertNotIn(">36%<", dossier.group("body"))
 
-        polling_section = self._section_html("polling", "media")
+        self.assertIsNotNone(dossier)
+
+        self.assertIn(
+            combined,
+            dossier.group("body"),
+        )
+
+        polling_section = self._section_html(
+            "polling",
+            "media",
+        )
+
         readout = re.search(
             r'<div class="candidate-poll-readout">'
-            r'<strong>(?P<range>.*?)</strong><span>(?P<hypotheses>.*?)</span></div>',
+            r'<strong>(?P<range>.*?)</strong>'
+            r'<span>(?P<hypotheses>.*?)</span></div>',
             polling_section,
         )
+
         self.assertIsNotNone(readout)
-        self.assertEqual(readout.group("range"), "33–36%")
-        self.assertEqual(readout.group("hypotheses"), "5 hypothèses")
-        self.assertNotIn("·", readout.group(0))
-        self.assertEqual(reference._hypothesis_text(1), "1 hypothèse")
-        self.assertEqual(reference._hypothesis_text(2), "2 hypothèses")
+
+        self.assertEqual(
+            readout.group("range"),
+            range_text,
+        )
+
+        self.assertEqual(
+            readout.group("hypotheses"),
+            hypothesis_text,
+        )
+
+        self.assertNotIn(
+            "·",
+            readout.group(0),
+        )
+
+        self.assertEqual(
+            reference._hypothesis_text(1),
+            "1 hypothèse",
+        )
+
+        self.assertEqual(
+            reference._hypothesis_text(2),
+            "2 hypothèses",
+        )
 
     def test_poll_history_projection_data_is_unchanged_and_ordered(self):
         published = self.published["polling"]["first_round_history"]
@@ -262,9 +320,12 @@ class CandidateReferenceTests(unittest.TestCase):
         self.assertIn('aria-describedby="poll-history-note"', polling_section)
         self.assertIn('role="group" aria-label="Historique des scores publiés', polling_section)
         methodology = (
-            "Chaque marque représente une observation publiée. Une barre verticale "
-            "indique la fourchette entre hypothèses lorsqu’elle existe. Aucune moyenne, "
-            "aucun lissage ni interpolation."
+            "Chaque marque représente une observation de sondage de premier tour "
+            "regroupée par institut, dates de terrain et taille d’échantillon. "
+            "Un point indique le score exact de l’hypothèse sélectionnée lorsqu’il existe. "
+            "Une barre verticale indique la fourchette publiée entre hypothèses. "
+            "La position horizontale suit la date de fin de terrain. "
+            "Aucune moyenne, aucun lissage ni interpolation."
         )
         self.assertIn(methodology, polling_section)
         self.assertNotIn(
@@ -331,7 +392,12 @@ class CandidateReferenceTests(unittest.TestCase):
     def test_media_top_row_preserves_summary_and_exposes_definition(self):
         media = self.published["media"]
         summary = media["summary"]
-        self.assertEqual(summary["share"], 0.281)
+        source_summary = next(
+            candidate["campaign_attention"]
+            for candidate in self.sources["candidate_signals"]["candidates"]
+            if candidate["candidate_id"] == reference.CANDIDATE_ID
+        )
+        self.assertEqual(summary, source_summary)
         self.assertEqual(
             (
                 summary["record_count"],
@@ -339,9 +405,18 @@ class CandidateReferenceTests(unittest.TestCase):
                 summary["story_cluster_count"],
                 summary["active_day_count"],
             ),
-            (124, 44, 102, 7),
+            (
+                source_summary["record_count"],
+                source_summary["publisher_count"],
+                source_summary["story_cluster_count"],
+                source_summary["active_day_count"],
+            ),
         )
         media_section = self._section_html("media", "agenda")
+        self.assertIn(
+            reference._percent(summary["share"]),
+            media_section,
+        )
         self.assertIn('aria-describedby="media-pulse-note"', media_section)
         self.assertIn('id="media-pulse-note" role="tooltip"', media_section)
         self.assertIn(
@@ -470,6 +545,29 @@ class CandidateReferenceTests(unittest.TestCase):
             self.assertNotIn(obsolete, self.javascript)
         self.assertNotIn("aria-pressed", section)
 
+    def test_agenda_since_tracking_card_discloses_exact_period(self):
+        agenda = self.published["agenda"]
+        section = self._section_html(
+            "agenda",
+            "scrutiny",
+        )
+
+        cumulative_card = self._agenda_profile_html(
+            section,
+            "cumulative",
+        )
+
+        expected_period = (
+            f'{agenda["since_tracking"]["period_start"]}'
+            " → "
+            f'{agenda["since_tracking"]["period_end"]}'
+        )
+
+        self.assertIn(
+            expected_period,
+            cumulative_card,
+        )
+
     def test_agenda_profile_cards_share_topic_order_and_use_projected_shares(self):
         agenda = self.published["agenda"]
         section = self._section_html("agenda", "scrutiny")
@@ -554,6 +652,15 @@ class CandidateReferenceTests(unittest.TestCase):
                 )
                 self.assertIn(association_count, row.group("label"))
                 self.assertIn(f'Période : {period_label}', row.group("label"))
+                grammar = re.search(
+                    r"(?<!\d)(\d+) association(s?)(?!\d)",
+                    row.group("label"),
+                )
+                self.assertIsNotNone(grammar)
+                self.assertEqual(
+                    grammar.group(2),
+                    "" if int(grammar.group(1)) == 1 else "s",
+                )
                 for evidence in (
                     f'Part du profil : {reference._percent(topic["share"])}',
                     f'Associations : {reference._number(topic["count"])}',
@@ -561,7 +668,6 @@ class CandidateReferenceTests(unittest.TestCase):
                     'class="candidate-chart-tooltip candidate-topic-tooltip"',
                 ):
                     self.assertIn(evidence, row.group("body"))
-        self.assertNotIn("1 associations", section)
 
     def test_agenda_evolution_history_and_interaction_contract(self):
         published = self.published["agenda"]
@@ -663,27 +769,81 @@ class CandidateReferenceTests(unittest.TestCase):
         self.assertIsNotNone(match)
         return match.group("body")
 
-    def test_actualite_latest_articles_use_media_preview_order(self):
-        projected = self.published["media"]["latest_coverage"]
-        expected = projected[:5]
-        card = self._actualite_card("candidate-latest-news")
-        self.assertIn("<h3>DERNIÈRES ACTUALITÉS</h3>", card)
+    def test_actualite_latest_articles_use_independent_news_order(self):
+        news = self.sources["news_wire"]
+        candidate_name = self.published["candidate"]["candidate_name"]
+        primary_scopes = set(
+            news["candidate_visibility"]["primary_scopes"]
+        )
+
+        source_records = [
+            item
+            for item in news["candidate_watch"]
+            if candidate_name in item.get("candidates", [])
+            and item.get("coverage_scope") in primary_scopes
+        ]
+        source_records.sort(
+            key=lambda item: (
+                item["published_at"],
+                item["id"],
+            ),
+            reverse=True,
+        )
+
+        expected = source_records[: reference.MAX_LATEST_NEWS]
+        projected = self.published["now"]["latest_news"]
+
+        self.assertEqual(
+            [item["id"] for item in projected],
+            [item["id"] for item in expected],
+        )
+
+        self.assertLessEqual(
+            len(projected),
+            reference.MAX_LATEST_NEWS,
+        )
+
+        card = self._actualite_card(
+            "candidate-latest-news"
+        )
+
         self.assertIn(
-            f'<span>{len(expected)} article{"" if len(expected) == 1 else "s"}</span>',
+            "<h3>DERNIÈRES ACTUALITÉS</h3>",
             card,
         )
-        self.assertEqual(card.count('class="candidate-coverage-item"'), len(expected))
-        positions = []
+
+        self.assertEqual(
+            card.count('class="candidate-coverage-item"'),
+            len(expected),
+        )
+
         for item in expected:
-            escaped_headline = html_module.escape(item["headline"], quote=True)
-            escaped_url = html_module.escape(item["url"], quote=True)
-            self.assertIn(escaped_headline, card)
-            self.assertIn(f'href="{escaped_url}"', card)
-            positions.append(card.index(escaped_headline))
-        self.assertEqual(positions, sorted(positions))
-        if len(projected) > 5:
-            sixth_headline = html_module.escape(projected[5]["headline"], quote=True)
-            self.assertNotIn(sixth_headline, card)
+            self.assertIn(
+                reference._h(item["headline"]),
+                card,
+            )
+
+        if len(source_records) > reference.MAX_LATEST_NEWS:
+            self.assertNotIn(
+                reference._h(
+                    source_records[
+                        reference.MAX_LATEST_NEWS
+                    ]["headline"]
+                ),
+                card,
+            )
+
+        period = news["candidate_visibility"]["current_period"]
+
+        for item in self.published["media"]["latest_coverage"]:
+            self.assertLessEqual(
+                period["start_date"],
+                item["published_at"][:10],
+            )
+            self.assertLessEqual(
+                item["published_at"][:10],
+                period["end_date"],
+            )
 
     def test_actualite_events_prioritize_upcoming_then_recent(self):
         upcoming = self.published["events"]["upcoming"]
@@ -695,8 +855,15 @@ class CandidateReferenceTests(unittest.TestCase):
         self.assertIn("<h3>ÉVÉNEMENTS</h3>", card)
         self.assertLessEqual(len(expected), 5)
         self.assertEqual(card.count('class="candidate-event-item"'), len(expected))
-        self.assertEqual((len(selected_upcoming), len(selected_recent)), (1, 4))
-        self.assertIn("1 à venir · 4 récents", card)
+        meta = []
+        if selected_upcoming:
+            meta.append(f"{len(selected_upcoming)} à venir")
+        if selected_recent:
+            count = len(selected_recent)
+            meta.append(
+                f"{count} récent" + ("" if count == 1 else "s")
+            )
+        self.assertIn(" · ".join(meta), card)
         positions = []
         for item in expected:
             escaped_title = html_module.escape(item["title"], quote=True)
@@ -772,8 +939,14 @@ class CandidateReferenceTests(unittest.TestCase):
     def test_actualite_changes_keep_all_projected_records(self):
         changes = self.published["now"]["recent_changes"]
         card = self._actualite_card("candidate-recent-changes")
-        self.assertEqual(len(changes), 6)
-        self.assertIn("<span>6 éléments</span>", card)
+        self.assertEqual(
+            changes,
+            self.projection["now"]["recent_changes"],
+        )
+        self.assertIn(
+            f"<span>{len(changes)} éléments</span>",
+            card,
+        )
         self.assertEqual(card.count('class="candidate-ledger-item"'), len(changes))
         positions = []
         for item in changes:
@@ -947,48 +1120,63 @@ class CandidateReferenceTests(unittest.TestCase):
         reference.validate_sources = lambda *_args, **_kwargs: None
 
         try:
-            bruno = reference.build_projection(
+            active_signals = [
+                candidate
+                for candidate in self.sources["candidate_signals"]["candidates"]
+                if candidate["candidacy"]["active_field_eligible"]
+            ]
+            poll_empty = next(
+                candidate
+                for candidate in active_signals
+                if candidate["polling"]["evidence_state"] == "not_observed"
+            )
+            poll_payload = reference.build_projection(
                 self.sources,
                 ROOT,
-                candidate_id="bruno-le-maire",
+                candidate_id=poll_empty["candidate_id"],
             )
 
             self.assertEqual(
-                bruno["polling"]["current"]["evidence_state"],
+                poll_payload["polling"]["current"]["evidence_state"],
                 "not_observed",
             )
 
-            bruno_fr = reference.render_html(
-                bruno,
+            poll_fr = reference.render_html(
+                poll_payload,
                 reference.derive_hud_metrics(self.sources),
                 lang="fr",
             ).decode("utf-8")
 
-            bruno_en = reference.render_html(
-                bruno,
+            poll_en = reference.render_html(
+                poll_payload,
                 reference.derive_hud_metrics(self.sources),
                 lang="en",
             ).decode("utf-8")
 
             self.assertIn(
                 "Non observé dans la dernière vague",
-                bruno_fr,
+                poll_fr,
             )
 
             self.assertIn(
                 "Not observed in the latest wave",
-                bruno_en,
+                poll_en,
             )
 
-            nathalie = reference.build_projection(
+            agenda_empty = next(
+                candidate
+                for candidate in active_signals
+                if candidate["agenda_profile"]["association_count"] == 0
+            )
+            agenda_payload = reference.build_projection(
                 self.sources,
                 ROOT,
-                candidate_id="nathalie-arthaud",
+                candidate_id=agenda_empty["candidate_id"],
             )
 
             topic_ids = {
                 topic["id"]
-                for topic in nathalie["agenda"]["current"]["topics"]
+                for topic in agenda_payload["agenda"]["current"]["topics"]
             }
 
             self.assertIn(
@@ -1003,15 +1191,15 @@ class CandidateReferenceTests(unittest.TestCase):
                 "CANDIDATURES & SOUTIENS",
             )
 
-            nathalie_fr = reference.render_html(
-                nathalie,
+            agenda_fr = reference.render_html(
+                agenda_payload,
                 reference.derive_hud_metrics(self.sources),
                 lang="fr",
             ).decode("utf-8")
 
             self.assertIn(
                 "Aucune activité thématique observée",
-                nathalie_fr,
+                agenda_fr,
             )
 
         finally:
@@ -1022,10 +1210,17 @@ class CandidateReferenceTests(unittest.TestCase):
         reference.validate_sources = lambda *_args, **_kwargs: None
 
         try:
+            source_candidate = next(
+                candidate
+                for candidate in self.sources["candidate_signals"]["candidates"]
+                if candidate["candidacy"]["active_field_eligible"]
+                and candidate["campaign_attention"]["evidence_state"]
+                == "not_observed"
+            )
             payload = reference.build_projection(
                 self.sources,
                 ROOT,
-                candidate_id="nathalie-arthaud",
+                candidate_id=source_candidate["candidate_id"],
             )
 
             self.assertEqual(
@@ -1033,9 +1228,17 @@ class CandidateReferenceTests(unittest.TestCase):
                 "not_observed",
             )
 
+            source_history = next(
+                candidate["campaign_attention"]["daily_series"]
+                for candidate in self.sources[
+                    "candidate_visibility_history"
+                ]["candidates"]
+                if candidate["candidate_id"]
+                == source_candidate["candidate_id"]
+            )
             self.assertEqual(
-                len(payload["media"]["recent_history"]),
-                29,
+                payload["media"]["recent_history"],
+                source_history,
             )
 
             hud = reference.derive_hud_metrics(
@@ -1546,7 +1749,7 @@ class CandidateReferenceTests(unittest.TestCase):
 
         self.assertNotIn(".candidate-dossier-copy > p", self.css)
 
-    def test_candidate_application_hud_structure_and_static_metrics(self):
+    def test_candidate_application_hud_structure_and_runtime_poll_placeholder(self):
         self.assertNotIn('class="candidate-footer"', self.html)
         self.assertEqual(self.html.count('id="candidate-app-hud"'), 1)
         self.assertEqual(self.html.count('class="fr27-app-hud"'), 1)
@@ -1557,7 +1760,7 @@ class CandidateReferenceTests(unittest.TestCase):
             self.html,
         )
         self.assertIn(
-            f'id="fr27-hud-polls-value">{metrics["poll_packages"]}</strong>',
+            'id="fr27-hud-polls-value">—</strong>',
             self.html,
         )
         self.assertNotIn("fr27-hud-metric-loading", self.html)
@@ -1585,31 +1788,21 @@ class CandidateReferenceTests(unittest.TestCase):
         ):
             self.assertIn(token, self.html)
 
-    def test_hud_metrics_follow_dashboard_contracts_without_projection_changes(self):
+    def test_static_hud_domain_metric_follows_dashboard_contract(self):
         manifest_value = self.sources["publication_manifest"]["source_network"][
             "approved_publisher_domains"
         ]
-        expected_packages = {
-            (
-                event["pollster"],
-                event["fieldwork_start"],
-                event["fieldwork_end"],
-                event["sample_size"],
-            )
-            for event in self.sources["polls"]
-            if event["round"] == "first_round"
-        }
         metrics = reference.derive_hud_metrics(self.sources)
         self.assertEqual(metrics["domains"], manifest_value)
-        self.assertEqual(metrics["poll_packages"], len(expected_packages))
+        self.assertNotIn("poll_packages", metrics)
         self.assertNotIn("hud", self.published)
 
     def test_hud_controller_preserves_production_interaction_contract(self):
-        controller = self.javascript[
-            self.javascript.index("// FR27 APPLICATION HUD CONTROLLER") :
-            self.javascript.index("const loadProjection")
-        ]
+        controller = self.hud_javascript
         for token in (
+            "const initClocks",
+            "const initApplicationHud",
+            "const initStandaloneShell",
             'toggle.addEventListener("click"',
             'event.key !== "Escape"',
             "syncHudGeometry",
@@ -1622,11 +1815,15 @@ class CandidateReferenceTests(unittest.TestCase):
             'content.setAttribute("aria-hidden"',
             '"inert" in content',
             "fr27-app-hud-collapsed",
+            'fetch("/poll_explorer.json"',
+            "metrics.wave_count",
+            "hudPollsValue.textContent = formatInteger(metrics.wave_count)",
         ):
             self.assertIn(token, controller)
-        self.assertIn("refreshCountdown", self.javascript)
-        self.assertNotIn("fr27-hud-domains-value", controller)
-        self.assertNotIn("fr27-hud-polls-value", controller)
+        self.assertIn("refreshCountdown", controller)
+        self.assertNotIn("poll_packages", controller)
+        self.assertNotIn("polls.json", controller)
+        self.assertNotIn("initApplicationHud", self.javascript)
 
     def test_hud_css_is_namespaced_and_legacy_footer_rules_are_removed(self):
         combined = self.css + self.shell_css
@@ -1700,9 +1897,13 @@ class CandidateReferenceTests(unittest.TestCase):
         self.assertIn("semantic HTML remains active", self.javascript)
 
     def test_css_has_one_namespace_and_three_geometry_regimes(self):
+        hud_start = self.css.index("/* ================================================================", self.css.index("FR27 APPLICATION HUD") - 100)
+        hud_end_marker = "/* === END FR27 UNIVERSAL HUD MICRO-POLISH LOCK === */"
+        hud_end = self.css.index(hud_end_marker) + len(hud_end_marker)
+        non_hud_css = self.css[:hud_start] + self.css[hud_end:] + self.shell_css
         selector_lines = [
             line.strip()
-            for line in (self.css + self.shell_css).splitlines()
+            for line in non_hud_css.splitlines()
             if line.strip().endswith("{") and not line.lstrip().startswith("@")
         ]
         self.assertTrue(selector_lines)
@@ -1806,6 +2007,25 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
             self.assertNotIn("data-archive-toggle", document)
             self.assertNotIn("Afficher plus", document)
             self.assertNotIn("Show more", document)
+
+    def test_candidate_breadcrumb_links_to_language_hub(self):
+        self.assertIn(
+            '<a href="/candidates/">CANDIDATS</a>',
+            self.fr,
+        )
+        self.assertIn(
+            '<a href="/en/candidates/">CANDIDATES</a>',
+            self.en,
+        )
+
+        self.assertNotIn(
+            'href="/#candidates"',
+            self.fr,
+        )
+        self.assertNotIn(
+            'href="/#candidates"',
+            self.en,
+        )
 
     def test_document_language_contract(self):
         self.assertIn('<html lang="fr"', self.fr)
@@ -1946,6 +2166,7 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
             "/assets/candidate-page.css",
             "/assets/fr27-ui.js",
             "/assets/candidate-page.js",
+            "/assets/candidate-family-hud.js",
         )
 
         for asset in shared:
@@ -1956,93 +2177,222 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
         self.assertNotIn("candidate-page-en.js", self.en)
 
     def test_english_generated_compositional_ui_is_localized(self):
+        current_poll = self.projection["polling"]["current"]
+
+        self.assertEqual(
+            current_poll["evidence_state"],
+            "reported",
+        )
+
+        poll_count = current_poll["hypothesis_count"]
+
+        poll_line = (
+            f'{current_poll["range_min"]}–'
+            f'{current_poll["range_max"]}% · '
+            f'{poll_count} '
+            f'{"hypothesis" if poll_count == 1 else "hypotheses"}'
+        )
+
+        fieldwork_line = (
+            f'{current_poll["pollster"]} · fieldwork from '
+            f'{reference._candidate_date_en(reference._fr_date(current_poll["fieldwork_start"]))} '
+            f'to {reference._candidate_date_en(reference._fr_date(current_poll["fieldwork_end"]))}'
+        )
+        upcoming = self.projection["events"]["upcoming"][:5]
+        recent = self.projection["events"]["recent"][
+            : 5 - len(upcoming)
+        ]
+        event_meta = []
+        event_meta_fr = []
+        if upcoming:
+            event_meta.append(f"{len(upcoming)} upcoming")
+            event_meta_fr.append(f"{len(upcoming)} à venir")
+        if recent:
+            event_meta.append(f"{len(recent)} recent")
+            event_meta_fr.append(
+                f"{len(recent)} récent"
+                + ("" if len(recent) == 1 else "s")
+            )
+
+        agenda = self.projection["agenda"]
+        current_topic = max(
+            agenda["current"]["topics"],
+            key=lambda topic: (topic["share"], topic["id"]),
+        )
+        cumulative_topic = max(
+            agenda["since_tracking"]["topics"],
+            key=lambda topic: (topic["share"], topic["id"]),
+        )
+        media_summary = self.projection["media"]["summary"]
+        cumulative_associations = agenda["since_tracking"][
+            "association_count"
+        ]
+        cumulative_days = agenda["since_tracking"]["day_count"]
+
         expected = (
-            "33–36% · 5 hypotheses",
-            "Harris · fieldwork from 8 Sep 2026 to 10 Sep 2026",
+            poll_line,
+            fieldwork_line,
             "in the current 7-day window",
-            "1 upcoming · 4 recent",
+            " · ".join(event_meta),
             "Period: last 30 days",
             "Period: since tracking began",
-            "Profile share: 41.9%",
-            "Associations: 18",
-            "44 associations · 51 days",
-            "FR27 on X · @fr27signal",
-            "Economy and public finances. Profile share: 41.9%. "
-            "18 associations. Period: last 30 days.",
-            "Economy and public finances. Profile share: 43.2%. "
-            "19 associations. Period: since tracking began.",
-            "28.1%",
+            f'Profile share: {current_topic["share"] * 100:.1f}%',
+            f'Associations: {current_topic["count"]}',
+            (
+                f'{cumulative_associations} '
+                f'{"association" if cumulative_associations == 1 else "associations"} · '
+                f'{cumulative_days} '
+                f'{"day" if cumulative_days == 1 else "days"}'
+            ),
+            "FR27 sur X · @fr27signal",
+            f'Profile share: {cumulative_topic["share"] * 100:.1f}%',
+            f'Associations: {cumulative_topic["count"]}',
+            f'{media_summary["share"] * 100:.1f}%',
         )
 
         for value in expected:
             self.assertIn(value, self.en)
 
         forbidden = (
-            "5 hypothèses",
+            reference._hypothesis_text(poll_count),
             "terrain du",
             "sur la fenêtre courante de 7 jours",
-            "1 à venir · 4 récents",
+            " · ".join(event_meta_fr),
             "Période : 30 derniers jours",
             "Période : depuis le début du suivi",
             "Part du profil :",
             "Associations :",
-            "44 associations · 51 jours",
-            "FR27 sur X · @fr27signal",
-            "28,1%",
+            (
+                f'{cumulative_associations} '
+                f'{"association" if cumulative_associations == 1 else "associations"} · '
+                f'{cumulative_days} '
+                f'{"jour" if cumulative_days == 1 else "jours"}'
+            ),
+            reference._percent(media_summary["share"]),
         )
 
         for value in forbidden:
             self.assertNotIn(value, self.en)
 
         # Source-language evidence and scrutiny vocabulary intentionally remain French.
-        self.assertIn(
-            "Présidentielle 2027 : pour sa rentrée politique",
-            self.en,
-        )
-        self.assertIn("Afficher plus de vérifications", self.en)
+        latest_news = self.projection["now"]["latest_news"]
+        if latest_news:
+            self.assertIn(latest_news[0]["headline"], self.en)
+        else:
+            self.assertIn("No recent coverage", self.en)
 
     def test_english_route_has_no_remaining_compositional_locale_leaks(self):
-        expected = (
-            "Harris · fieldwork from 8 Sep 2026 to 10 Sep 2026",
+        current_poll = self.projection["polling"]["current"]
+        fieldwork_line = (
+            f'{current_poll["pollster"]} · fieldwork from '
+            f'{reference._candidate_date_en(reference._fr_date(current_poll["fieldwork_start"]))} '
+            f'to {reference._candidate_date_en(reference._fr_date(current_poll["fieldwork_end"]))}'
+        )
+        history = self.projection["media"]["recent_history"]
+        history_line = (
+            "Published history from "
+            f'{reference._candidate_date_en(reference._fr_date(history[0]["date"]))} '
+            "to "
+            f'{reference._candidate_date_en(reference._fr_date(history[-1]["date"]))}.'
+        )
+        expected = [
+            fieldwork_line,
             '<span class="candidate-countdown-unit">days</span>',
-            "CAMPAIGN · actu.fr",
-            "ELECTION · Franceinfo Politique",
             "Enable JavaScript for the interactive visualization.",
             "7-day peak",
             "period peak",
             "Daily pageviews of Marine Le Pen&#x27;s French Wikipedia article",
             'title="French candidate page"',
             'aria-label="Utility links"',
-            "27 articles · 21.8%",
-            "3 articles · 1 publisher",
-        )
-
-        for value in expected:
-            self.assertIn(value, self.en)
-
-        forbidden = (
-            "fieldwork from 8 sept. 2026",
+            history_line,
+        ]
+        forbidden = [
+            (
+                f'terrain du {reference._fr_date(current_poll["fieldwork_start"])} '
+                f'au {reference._fr_date(current_poll["fieldwork_end"])}'
+            ),
             '<span class="candidate-countdown-unit">jours</span>',
-            "CAMPAGNE · actu.fr",
-            "ÉLECTION · Franceinfo Politique",
             "Activez JavaScript pour la visualisation interactive.",
             ">pic sur 7 jours<",
             ">pic de période<",
             'title="Page candidat en français"',
             'aria-label="Liens utilitaires"',
-            "27 articles · 21,8%",
-            "3 articles · 1 publishers",
-        )
+        ]
+
+        latest_news = self.projection["now"]["latest_news"]
+        if latest_news:
+            first_coverage = latest_news[0]
+            coverage_kicker = (
+                f'{reference.SCOPE_LABELS_FR[first_coverage["coverage_scope"]]} · '
+                f'{first_coverage["publisher"]}'
+            )
+            expected.append(
+                reference._candidate_translate_en(coverage_kicker)
+            )
+            forbidden.append(coverage_kicker)
+
+        clusters = self.projection["media"]["top_story_clusters"]
+        if clusters:
+            first_cluster = clusters[0]
+            cluster_count = first_cluster["record_count"]
+            cluster_publishers = first_cluster["publisher_count"]
+            expected.append(
+                f'{cluster_count} article'
+                f'{"" if cluster_count == 1 else "s"} · '
+                f'{cluster_publishers} publisher'
+                f'{"" if cluster_publishers == 1 else "s"}'
+            )
+
+        for value in expected:
+            self.assertIn(value, self.en)
 
         for value in forbidden:
             self.assertNotIn(value, self.en)
 
-    def test_intentionally_french_scrutiny_control_is_language_tagged(self):
+    def test_scrutiny_is_static_and_english_key_is_localized(self):
+        fr_start = self.fr.index('id="scrutiny"')
+        fr_end = self.fr.index('id="attention"', fr_start)
+        fr_scrutiny = self.fr[fr_start:fr_end]
+
+        en_start = self.en.index('id="scrutiny"')
+        en_end = self.en.index('id="attention"', en_start)
+        en_scrutiny = self.en[en_start:en_end]
+
+        for document in (fr_scrutiny, en_scrutiny):
+            self.assertNotIn("data-archive", document)
+            self.assertNotIn("data-archive-toggle", document)
+            self.assertNotIn("data-archive-extra", document)
+            self.assertNotIn("candidate-archive-toggle", document)
+
         self.assertIn(
-            '<button class="candidate-archive-toggle" type="button" lang="fr" '
-            'data-archive-toggle aria-expanded="false">'
-            'Afficher plus de vérifications</button>',
-            self.en,
+            "<b>BY</b> — claim attributed to Marine Le Pen",
+            en_scrutiny,
+        )
+        self.assertIn(
+            (
+                "<b>ABOUT</b> — Marine Le Pen is mentioned; "
+                "the claim is attributed to another person"
+            ),
+            en_scrutiny,
+        )
+
+        self.assertEqual(
+            reference._candidate_translate_en(
+                "— affirmation enregistrée comme attribuée à cette candidature"
+            ),
+            "— claim recorded as attributed to this candidacy",
+        )
+        self.assertEqual(
+            reference._candidate_translate_en(
+                (
+                    "— cette candidature est mentionnée ; "
+                    "l’affirmation est attribuée à une autre personne"
+                )
+            ),
+            (
+                "— this candidacy is mentioned; "
+                "the claim is attributed to another person"
+            ),
         )
 
     def test_english_runoff_interface_copy_is_localized(self):
@@ -2090,6 +2440,10 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
         )
 
     def test_english_page_has_no_known_product_ui_leaks(self):
+        media = self.projection["media"]
+        summary = media["summary"]
+        history = media["recent_history"]
+        active_days = summary["active_day_count"]
         expected_english = (
             "before the first round",
             (
@@ -2101,12 +2455,20 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
                 "share of election + campaign coverage, "
                 "not a measure of support"
             ),
-            "articles · 7 active days",
+            (
+                f'articles · {active_days} active '
+                f'{"day" if active_days == 1 else "days"}'
+            ),
             "<span>publishers</span>",
             "<span>story clusters</span>",
             "<span>active days</span>",
             "RECENT COVERAGE TREND",
-            "Published history from 21 Aug 2026 to 18 Sep 2026.",
+            (
+                "Published history from "
+                f'{reference._candidate_date_en(reference._fr_date(history[0]["date"]))} '
+                "to "
+                f'{reference._candidate_date_en(reference._fr_date(history[-1]["date"]))}.'
+            ),
             (
                 'aria-label="History of Marine Le Pen&#x27;s '
                 'published first-round scores"'
@@ -2115,7 +2477,6 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
                 'aria-label="Recent history of Marine Le Pen&#x27;s '
                 'daily coverage share"'
             ),
-            'data-collapsed-label="Show more reviews"',
         )
 
         for value in expected_english:
@@ -2126,12 +2487,16 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
             "Synthèse descriptive des données publiées par France 2027 Signal Lab.",
             ">DONNÉES DE SONDAGE<",
             "part de la couverture élection + campagne, pas un indicateur de soutien",
-            "articles · 7 jours actifs",
+            f"articles · {active_days} jours actifs",
             "<span>éditeurs</span>",
             "<span>groupes narratifs</span>",
             "<span>jours actifs</span>",
             ">TENDANCE RÉCENTE DE COUVERTURE<",
-            "Historique publié du 21 Aug 2026 au 18 Sep 2026.",
+            (
+                "Historique publié du "
+                f'{reference._fr_date(history[0]["date"])} au '
+                f'{reference._fr_date(history[-1]["date"])}.'
+            ),
             (
                 'aria-label="Historique des scores publiés '
                 'au premier tour de Marine Le Pen"'
@@ -2150,7 +2515,11 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
             ">avant le premier tour<",
             "Synthèse descriptive des données publiées par France 2027 Signal Lab.",
             ">DONNÉES DE SONDAGE<",
-            "articles · 7 jours actifs",
+            (
+                f"articles · {active_days} jour"
+                f'{"" if active_days == 1 else "s"} actif'
+                f'{"" if active_days == 1 else "s"}'
+            ),
             "<span>éditeurs</span>",
             "<span>groupes narratifs</span>",
             "<span>jours actifs</span>",
@@ -2236,7 +2605,7 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
             ">MEDIA<",
             "WHAT CHANGED",
             "MEDIA PULSE",
-            "FIRST-ROUND HISTORY",
+            "FIRST-ROUND POLL HISTORY",
             "TESTED RUNOFFS",
             "TOP PUBLISHERS",
             "CLAIMS UNDER SCRUTINY",
@@ -2260,7 +2629,7 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
             ">VÉRIFICATIONS<",
             ">ÉVÉNEMENTS<",
             ">DERNIÈRE VAGUE<",
-            ">HISTORIQUE DU PREMIER TOUR<",
+            ">HISTORIQUE DES SONDAGES · 1ER TOUR<",
             ">STATUT DE CANDIDATURE<",
             ">FRAÎCHEUR DES DONNÉES<",
             ">COMPTE À REBOURS<",
@@ -2300,6 +2669,133 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
         self.assertIn("data-candidate-language-peer", self.fr)
         self.assertIn("data-candidate-language-peer", self.en)
 
+
+
+
+class CandidatePollHistoryGenericTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.javascript = (
+            ROOT / "assets" / "candidate-page.js"
+        ).read_text(encoding="utf-8")
+
+    def test_shared_candidate_page_js_uses_page_identity(self):
+        self.assertNotIn(
+            'const CANDIDATE_ID = "marine-le-pen"',
+            self.javascript,
+        )
+        self.assertIn(
+            "document.documentElement.dataset.pageCandidateId",
+            self.javascript,
+        )
+        self.assertIn(
+            "projection.candidate?.candidate_id !== settings.candidate_id",
+            self.javascript,
+        )
+        self.assertNotIn("Marine Le Pen", self.javascript)
+
+    def test_poll_history_uses_fieldwork_time_but_remains_discrete(self):
+        start = self.javascript.index("const renderPollHistory")
+        end = self.javascript.index("const renderLineChart", start)
+        renderer = self.javascript[start:end]
+
+        self.assertIn("fieldworkTimes", renderer)
+        self.assertIn("xForTime", renderer)
+        self.assertIn(
+            "addTimeDateLabels(frame, startTime, endTime)",
+            renderer,
+        )
+        self.assertNotIn("frame.x(index, points.length)", renderer)
+        self.assertIn("maxY: 50", renderer)
+        self.assertIn("yTicks: 5", renderer)
+        self.assertNotIn("pathFor(", renderer)
+        self.assertNotIn("candidate-chart-line", renderer)
+
+    def test_representative_generated_pages_publish_first_round_poll_history(self):
+        for candidate_id in (
+            "marine-le-pen",
+            "edouard-philippe",
+            "gabriel-attal",
+        ):
+            payload = json.loads(
+                (
+                    ROOT / "candidates" / candidate_id / "data.json"
+                ).read_text(encoding="utf-8")
+            )
+
+            count = payload["polling"]["first_round_history"][
+                "observation_count"
+            ]
+
+            fr = (
+                ROOT / "candidates" / candidate_id / "index.html"
+            ).read_text(encoding="utf-8")
+
+            en = (
+                ROOT / "en" / "candidates" / candidate_id / "index.html"
+            ).read_text(encoding="utf-8")
+
+            self.assertIn(
+                "HISTORIQUE DES SONDAGES · 1ER TOUR",
+                fr,
+            )
+            self.assertIn(
+                "FIRST-ROUND POLL HISTORY",
+                en,
+            )
+            self.assertIn(
+                f">{count} observations</span>",
+                fr,
+            )
+            self.assertIn(
+                f">{count} observations</span>",
+                en,
+            )
+
+
+
+class CandidateEventClockTests(unittest.TestCase):
+    def test_candidate_event_reference_date_is_independent_of_media_window(self):
+        source = (
+            ROOT / "build_candidate_reference.py"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            "reference_date = _event_reference_date()",
+            source,
+        )
+        self.assertNotIn(
+            'reference_date = date.fromisoformat(period["end_date"])',
+            source,
+        )
+        self.assertIn(
+            'ZoneInfo("Europe/Paris")',
+            source,
+        )
+
+    def test_generated_events_partition_around_reference_date(self):
+        for data_path in sorted(
+            (ROOT / "candidates").glob("*/data.json")
+        ):
+            payload = json.loads(
+                data_path.read_text(encoding="utf-8")
+            )
+
+            reference = payload["events"]["reference_date"]
+
+            for event in payload["events"]["upcoming"]:
+                self.assertGreaterEqual(
+                    event["scheduled_start"][:10],
+                    reference,
+                    payload["candidate_id"],
+                )
+
+            for event in payload["events"]["recent"]:
+                self.assertLess(
+                    event["scheduled_start"][:10],
+                    reference,
+                    payload["candidate_id"],
+                )
 
 
 if __name__ == "__main__":

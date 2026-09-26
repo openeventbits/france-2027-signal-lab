@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import copy
 import unicodedata
 import unittest
 from pathlib import Path
@@ -9,7 +10,11 @@ from candidate_candidacy_status import (
     active_candidate_records,
     project_active_monitoring_field,
 )
-from candidate_page_contract import project_candidate_page_index
+from candidate_page_contract import (
+    ARCHIVED_CANDIDACY_STATUSES,
+    project_candidate_page_index,
+    project_candidate_page_lifecycle,
+)
 
 
 ROOT = Path(__file__).resolve().parent
@@ -133,6 +138,77 @@ class CandidatePageContractTests(unittest.TestCase):
         self.assertIn(
             '"active": len(records)',
             source,
+        )
+
+    def test_temporarily_missing_is_distinct_from_active_and_archive(self):
+        lifecycle = project_candidate_page_lifecycle(
+            self.registry,
+            ROOT,
+        )
+        missing_ids = {
+            candidate["candidate_id"]
+            for candidate in self.registry["candidates"]
+            if candidate.get("upstream_presence")
+            == "temporarily_missing"
+        }
+
+        self.assertEqual(
+            set(lifecycle["temporarily_missing_ids"]),
+            missing_ids,
+        )
+        self.assertTrue(
+            missing_ids.isdisjoint(lifecycle["active_ids"])
+        )
+        self.assertTrue(
+            missing_ids.isdisjoint(
+                lifecycle["retained_archived_ids"]
+            )
+        )
+        self.assertNotIn(
+            "primary_contender",
+            ARCHIVED_CANDIDACY_STATUSES,
+        )
+
+    def test_only_explicit_archive_status_can_retain_an_old_dossier(self):
+        candidate_id = self.index["candidates"][0]["candidate_id"]
+
+        archived = copy.deepcopy(self.registry)
+        record = next(
+            candidate
+            for candidate in archived["candidates"]
+            if candidate["candidate_id"] == candidate_id
+        )
+        record["status"] = "withdrawn"
+        record["display_tier"] = "hidden"
+        archived_lifecycle = project_candidate_page_lifecycle(
+            archived,
+            ROOT,
+        )
+
+        self.assertIn(
+            candidate_id,
+            archived_lifecycle["retained_archived_ids"],
+        )
+        self.assertNotIn(
+            candidate_id,
+            archived_lifecycle["prunable_ids"],
+        )
+
+        record["status"] = "declared"
+        record["display_tier"] = "main"
+        record["upstream_presence"] = "temporarily_missing"
+        missing_lifecycle = project_candidate_page_lifecycle(
+            archived,
+            ROOT,
+        )
+
+        self.assertIn(
+            candidate_id,
+            missing_lifecycle["prunable_ids"],
+        )
+        self.assertNotIn(
+            candidate_id,
+            missing_lifecycle["retained_archived_ids"],
         )
 
 

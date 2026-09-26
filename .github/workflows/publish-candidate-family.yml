@@ -1,0 +1,209 @@
+name: Publish candidate family
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "candidate_signals.json"
+      - "candidate_visibility_history.json"
+      - "candidate_agenda_history.json"
+      - "candidate_attention.json"
+      - "candidate_candidacy_status.json"
+      - "claims_under_scrutiny.json"
+      - "recent_changes.json"
+      - "campaign_events.json"
+      - "polls.json"
+      - "second_round_polls.json"
+      - "news_wire.json"
+      - "publication_manifest.json"
+      - "build_candidate_reference.py"
+      - "candidate_candidacy_status.py"
+      - "candidate_page_contract.py"
+      - "candidate_hub.py"
+      - "build_route_registry.py"
+      - "build_sitemaps.py"
+      - "assets/candidate-page-shell.css"
+      - "assets/candidate-page.css"
+      - "assets/candidate-page.js"
+      - "assets/candidate-hub.css"
+      - "assets/candidate-hub.js"
+      - "assets/candidate-family-hud.js"
+      - "assets/candidate-hub-directory.js"
+      - ".github/workflows/publish-candidate-family.yml"
+
+  # Automated production writers normally push with GITHUB_TOKEN.
+  # Those pushes do not create another push-triggered workflow run,
+  # so follow the writers through workflow_run as well.
+  workflow_run:
+    workflows:
+      - "Update polls"
+      - "Update Election News Wire"
+      - "Update Claims Under Scrutiny"
+      - "Update candidate universe"
+      - "Update candidate attention"
+      - "Validate campaign events"
+    types:
+      - completed
+    branches:
+      - main
+
+  schedule:
+    - cron: "41 10 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: production-data-update
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build and validate candidate publication
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          effective_date="$(date -u +'%Y-%m-%d')"
+          echo "effective_date=$effective_date" >> "$GITHUB_OUTPUT"
+
+          python -B build_candidate_reference.py --all-active
+          python -B build_candidate_reference.py --all-active --check
+
+          python -B build_route_registry.py \
+            --effective-date "$effective_date"
+          python -B build_route_registry.py --check
+
+          python -B build_sitemaps.py
+          python -B build_sitemaps.py --check
+
+          python -B -m unittest -v \
+            test_candidate_page_contract \
+            test_candidate_reference \
+            test_candidate_hub \
+            test_candidate_family_publication \
+            test_route_registry \
+            test_search_foundation
+
+          git diff --check
+          git diff --exit-code -- sitemap-core.xml sitemap-polls.xml
+
+      - name: Commit generated candidate publication
+        id: commit
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$(git status --porcelain -- \
+            candidates en/candidates \
+            route_registry.json sitemap.xml sitemap-candidates.xml)" ]]; then
+            echo "Candidate publication is already current."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -- \
+            candidates en/candidates \
+            route_registry.json sitemap.xml sitemap-candidates.xml
+          git commit -m "Refresh candidate family"
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Rebase, reconcile and push
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          ROUTE_EFFECTIVE_DATE: ${{ steps.build.outputs.effective_date }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch origin main
+          git rebase origin/main
+
+          python -B build_candidate_reference.py --all-active
+          python -B build_candidate_reference.py --all-active --check
+
+          python -B build_route_registry.py \
+            --effective-date "$ROUTE_EFFECTIVE_DATE"
+          python -B build_route_registry.py --check
+
+          python -B build_sitemaps.py
+          python -B build_sitemaps.py --check
+
+          python -B -m unittest -v \
+            test_candidate_page_contract \
+            test_candidate_reference \
+            test_candidate_hub \
+            test_candidate_family_publication \
+            test_route_registry \
+            test_search_foundation
+
+          git diff --check
+          git diff --exit-code -- sitemap-core.xml sitemap-polls.xml
+
+          git add -- \
+            candidates en/candidates \
+            route_registry.json sitemap.xml sitemap-candidates.xml
+
+          if ! git diff --cached --quiet; then
+            git commit --amend --no-edit
+          fi
+
+          if [[ -n "$(git status --porcelain -- \
+            candidates en/candidates \
+            route_registry.json sitemap.xml sitemap-candidates.xml \
+            sitemap-core.xml sitemap-polls.xml)" ]]; then
+            echo "Candidate publication artifacts are not clean before push."
+            git status --short -- \
+              candidates en/candidates \
+              route_registry.json sitemap.xml sitemap-candidates.xml \
+              sitemap-core.xml sitemap-polls.xml
+            exit 1
+          fi
+
+          git push origin HEAD:main
+
+      # A commit pushed by a workflow using GITHUB_TOKEN does not
+      # automatically trigger a GitHub Pages build. Request one only
+      # after the generated candidate publication has landed.
+      - name: Request GitHub Pages build
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl \
+            --fail-with-body \
+            --location \
+            --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "X-GitHub-Api-Version: 2026-03-10" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/pages/builds"
