@@ -130,6 +130,28 @@ class CandidateFamilyPublicationWorkflowTests(
             self.trigger,
         )
 
+    def test_python_runtime_dependencies_are_installed(self):
+        self.assertIn(
+            "uses: actions/setup-python@v6",
+            self.text,
+        )
+
+        self.assertIn(
+            "python -m pip install --disable-pip-version-check",
+            self.text,
+        )
+
+        for package in (
+            "pandas",
+            "lxml",
+            "pypdf",
+        ):
+            with self.subTest(package=package):
+                self.assertIn(
+                    package,
+                    self.text,
+                )
+
     def test_pipeline_rebuilds_and_checks_candidate_family_and_sitemap(self):
         self.assertGreaterEqual(
             self.text.count(
