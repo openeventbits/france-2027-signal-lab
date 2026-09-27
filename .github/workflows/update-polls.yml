@@ -420,7 +420,9 @@ jobs:
 
           python -B build_poll_explorer.py
           python -B build_poll_pages.py
+          python -B build_poll_hub_static_links.py
           python -B build_poll_pages.py --check
+          python -B build_poll_hub_static_links.py --check
 
           if [[ -n "$(git status --porcelain -- \
             poll_explorer.json \
@@ -520,6 +522,7 @@ jobs:
           python -B -m unittest -v
           test_poll_explorer.py
           test_poll_pages.py
+          test_poll_hub_static_links.py
           test_route_registry.py
           test_search_foundation.py
 
@@ -577,7 +580,9 @@ jobs:
 
           python -B build_poll_explorer.py
           python -B build_poll_pages.py
+          python -B build_poll_hub_static_links.py
           python -B build_poll_pages.py --check
+          python -B build_poll_hub_static_links.py --check
 
           python -B build_search_entrypoints.py
           python -B build_search_entrypoints.py --check
