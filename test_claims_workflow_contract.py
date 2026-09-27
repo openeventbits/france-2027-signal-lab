@@ -20,6 +20,23 @@ class ClaimsWorkflowContractTests(unittest.TestCase):
         )
         self.assertIn("--existing-claims claims_under_scrutiny.json", self.text)
 
+    def test_candidate_registry_updates_trigger_claims_refresh(self):
+        trigger = self.text.split("\npermissions:", 1)[0]
+
+        self.assertIn("push:", trigger)
+        self.assertIn('- "candidate_candidacy_status.json"', trigger)
+        self.assertIn("workflow_run:", trigger)
+        self.assertIn('- "Update candidate universe"', trigger)
+        self.assertIn("- completed", trigger)
+        self.assertIn(
+            "github.event_name != 'workflow_run' ||",
+            self.text,
+        )
+        self.assertIn(
+            "github.event.workflow_run.conclusion == 'success'",
+            self.text,
+        )
+
     def test_poll_roster_arguments_are_removed(self):
         fetch_start = self.text.index("python fetch_claims_under_scrutiny.py")
         fetch_end = self.text.index("- name: Validate", fetch_start)
