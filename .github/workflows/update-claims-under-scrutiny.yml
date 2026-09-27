@@ -5,6 +5,20 @@ on:
   schedule:
     - cron: "47 7,17 * * *"
 
+  push:
+    branches:
+      - main
+    paths:
+      - "candidate_candidacy_status.json"
+
+  workflow_run:
+    workflows:
+      - "Update candidate universe"
+    types:
+      - completed
+    branches:
+      - main
+
 permissions:
   contents: write
   pages: write
@@ -15,6 +29,9 @@ concurrency:
 
 jobs:
   update-claims-under-scrutiny:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
 
     steps:

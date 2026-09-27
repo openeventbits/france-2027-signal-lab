@@ -56,7 +56,6 @@ class CandidateFamilyPublicationWorkflowTests(
             "Update polls",
             "Update Election News Wire",
             "Update Claims Under Scrutiny",
-            "Update candidate universe",
             "Update candidate attention",
             "Validate campaign events",
         )
@@ -78,6 +77,37 @@ class CandidateFamilyPublicationWorkflowTests(
         self.assertIn(
             "- completed",
             self.trigger,
+        )
+
+    def test_candidate_universe_waits_for_claims_refresh(self):
+        self.assertNotIn(
+            '- "Update candidate universe"',
+            self.trigger,
+        )
+
+        dependency = self.text.index(
+            "- name: Check candidate publication dependencies"
+        )
+        build = self.text.index(
+            "- name: Build and validate candidate publication"
+        )
+        dependency_block = self.text[dependency:build]
+
+        self.assertLess(dependency, build)
+        self.assertIn("validate_public_bundle", dependency_block)
+        self.assertIn(
+            "candidacy_payload=candidacy",
+            dependency_block,
+        )
+        self.assertIn(
+            "candidate query does not match active registry projection",
+            dependency_block,
+        )
+        self.assertGreaterEqual(
+            self.text.count(
+                "if: steps.dependencies.outputs.ready == 'true'"
+            ),
+            2,
         )
 
     def test_workflow_run_requires_success(self):

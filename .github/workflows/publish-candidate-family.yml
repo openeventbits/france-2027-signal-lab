@@ -40,7 +40,6 @@ on:
       - "Update polls"
       - "Update Election News Wire"
       - "Update Claims Under Scrutiny"
-      - "Update candidate universe"
       - "Update candidate attention"
       - "Validate campaign events"
     types:
@@ -84,8 +83,87 @@ jobs:
           python -m pip install --disable-pip-version-check
           pandas lxml pypdf
 
+      - name: Check candidate publication dependencies
+        id: dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -B - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          from candidate_candidacy_status import (
+              load_candidate_candidacy_status,
+          )
+          from fetch_claims_under_scrutiny import (
+              CollectorError,
+              validate_public_bundle,
+          )
+
+          candidacy = load_candidate_candidacy_status(
+              "candidate_candidacy_status.json"
+          )
+          claims = json.loads(
+              Path("claims_under_scrutiny.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+
+          ready = True
+          reason = ""
+
+          try:
+              validate_public_bundle(
+                  claims,
+                  expected_archive_window_days=365,
+                  candidacy_payload=candidacy,
+              )
+          except CollectorError as error:
+              if str(error) != (
+                  "candidate query does not match active registry projection"
+              ):
+                  raise
+
+              ready = False
+              claims_revision = claims["candidate_query"].get(
+                  "source_revision_id",
+                  "unknown",
+              )
+              registry_revision = candidacy["source"]["revision_id"]
+              reason = (
+                  "Candidate publication deferred: Claims Under Scrutiny "
+                  f"references Candidate Registry revision {claims_revision}; "
+                  f"current registry revision is {registry_revision}."
+              )
+
+          with Path(os.environ["GITHUB_OUTPUT"]).open(
+              "a",
+              encoding="utf-8",
+          ) as output:
+              output.write(f"ready={str(ready).lower()}\n")
+
+          if ready:
+              print("Candidate publication dependencies are aligned.")
+          else:
+              print(reason)
+              summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+              if summary_path:
+                  with Path(summary_path).open(
+                      "a",
+                      encoding="utf-8",
+                  ) as summary:
+                      summary.write(
+                          "## Candidate publication deferred\n\n"
+                          + reason
+                          + "\n"
+                      )
+          PY
+
       - name: Build and validate candidate publication
         id: build
+        if: steps.dependencies.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -116,6 +194,7 @@ jobs:
 
       - name: Commit generated candidate publication
         id: commit
+        if: steps.dependencies.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
