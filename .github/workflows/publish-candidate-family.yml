@@ -190,7 +190,6 @@ jobs:
             test_search_foundation
 
           git diff --check
-          git diff --exit-code -- sitemap-core.xml sitemap-polls.xml
 
       - name: Commit generated candidate publication
         id: commit
@@ -201,7 +200,8 @@ jobs:
 
           if [[ -z "$(git status --porcelain -- \
             candidates en/candidates \
-            route_registry.json sitemap.xml sitemap-candidates.xml)" ]]; then
+            route_registry.json sitemap.xml sitemap-candidates.xml \
+            sitemap-core.xml sitemap-polls.xml)" ]]; then
             echo "Candidate publication is already current."
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -213,7 +213,8 @@ jobs:
 
           git add -- \
             candidates en/candidates \
-            route_registry.json sitemap.xml sitemap-candidates.xml
+            route_registry.json sitemap.xml sitemap-candidates.xml \
+            sitemap-core.xml sitemap-polls.xml
           git commit -m "Refresh candidate family"
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -248,11 +249,11 @@ jobs:
             test_search_foundation
 
           git diff --check
-          git diff --exit-code -- sitemap-core.xml sitemap-polls.xml
 
           git add -- \
             candidates en/candidates \
-            route_registry.json sitemap.xml sitemap-candidates.xml
+            route_registry.json sitemap.xml sitemap-candidates.xml \
+            sitemap-core.xml sitemap-polls.xml
 
           if ! git diff --cached --quiet; then
             git commit --amend --no-edit
