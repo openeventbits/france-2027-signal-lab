@@ -234,7 +234,8 @@ class CandidateFamilyPublicationWorkflowTests(
                 "git add -- \\\n"
                 "            candidates en/candidates \\\n"
                 "            route_registry.json sitemap.xml "
-                "sitemap-candidates.xml"
+                "sitemap-candidates.xml \\\n"
+                "            sitemap-core.xml sitemap-polls.xml"
             ),
             self.text,
         )
@@ -313,17 +314,64 @@ class CandidateFamilyPublicationWorkflowTests(
         self.assertIn("ref: main", self.text)
         self.assertIn("group: production-data-update", self.text)
 
-    def test_core_and_poll_sitemaps_are_validation_only(self):
-        self.assertIn(
+    def test_all_sitemap_families_are_reconciled_atomically(self):
+        self.assertNotIn(
             "git diff --exit-code -- sitemap-core.xml sitemap-polls.xml",
             self.text,
         )
-        stage = self.text[
-            self.text.index("git add --"):
-            self.text.index("git commit -m")
+
+        commit_start = self.text.index(
+            "- name: Commit generated candidate publication"
+        )
+        rebase_start = self.text.index(
+            "- name: Rebase, reconcile and push",
+            commit_start,
+        )
+
+        initial_commit = self.text[
+            commit_start:rebase_start
         ]
-        self.assertNotIn("sitemap-core.xml", stage)
-        self.assertNotIn("sitemap-polls.xml", stage)
+        rebase = self.text[rebase_start:]
+
+        for section in (
+            initial_commit,
+            rebase,
+        ):
+            with self.subTest(
+                phase=(
+                    "initial"
+                    if section is initial_commit
+                    else "rebase"
+                )
+            ):
+                self.assertIn(
+                    "sitemap-core.xml",
+                    section,
+                )
+                self.assertIn(
+                    "sitemap-polls.xml",
+                    section,
+                )
+
+        no_change_start = initial_commit.index(
+            'git status --porcelain --'
+        )
+        no_change_end = initial_commit.index(
+            ' ]]; then',
+            no_change_start,
+        )
+        no_change = initial_commit[
+            no_change_start:no_change_end
+        ]
+
+        self.assertIn(
+            "sitemap-core.xml",
+            no_change,
+        )
+        self.assertIn(
+            "sitemap-polls.xml",
+            no_change,
+        )
 
 
 if __name__ == "__main__":
