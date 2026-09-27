@@ -217,7 +217,7 @@ jobs:
           python -B build_route_registry.py --check
           python -B build_sitemaps.py
           python -B build_sitemaps.py --check
-          python -m unittest test_search_foundation.py test_poll_pages.py test_route_registry.py
+          python -m unittest test_search_foundation.py test_poll_pages.py test_poll_hub_static_links.py test_route_registry.py
 
       - name: Commit refreshed cover
         id: commit
