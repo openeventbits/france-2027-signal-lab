@@ -599,7 +599,10 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
                         "load_candidate_candidacy_status" in line
                         or build_marker in line
                         or "--candidacy-status candidate_candidacy_status.json" in line
-                        or line == '"candidate_candidacy_status.json"'
+                        or line in {
+                            '"candidate_candidacy_status.json"',
+                            '- "candidate_candidacy_status.json"',
+                        }
                     )
                     for prohibited in (
                         "git add",
