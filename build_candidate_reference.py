@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from build_candidate_signals import validate_candidate_signals
+from build_poll_pages import PollPageError, validate_explorer
 from campaign_events_contract import validate_campaign_events_artifact
 from candidate_agenda_history_contract import validate_candidate_agenda_history
 from candidate_attention_contract import validate_candidate_attention
@@ -105,6 +106,186 @@ def _one(items: Iterable[dict[str, Any]], *, field: str, value: str) -> dict[str
         )
     return matches[0]
 
+
+def build_poll_wave_link_index(explorer: Any) -> dict[tuple[Any, ...], dict[str, Any]]:
+    try:
+        waves = validate_explorer(explorer)
+    except (AttributeError, KeyError, PollPageError, TypeError, ValueError) as error:
+        raise CandidateReferenceError(
+            f"invalid poll_explorer.json: {error}"
+        ) from error
+
+    index: dict[tuple[Any, ...], dict[str, Any]] = {}
+    seen_identities: set[tuple[Any, ...]] = set()
+    for wave_index, wave in enumerate(waves):
+        context = f"poll_explorer.json waves[{wave_index}]"
+        pollster = wave.get("pollster")
+        if not isinstance(pollster, str) or not pollster.strip():
+            raise CandidateReferenceError(f"{context} has an invalid pollster")
+
+        parsed_dates = []
+        for field in ("fieldwork_start", "fieldwork_end"):
+            value = wave.get(field)
+            if not isinstance(value, str):
+                raise CandidateReferenceError(f"{context}.{field} is not an ISO date")
+            try:
+                parsed_dates.append(date.fromisoformat(value))
+            except ValueError as error:
+                raise CandidateReferenceError(
+                    f"{context}.{field} is not a valid ISO date: {value!r}"
+                ) from error
+        if parsed_dates[0] > parsed_dates[1]:
+            raise CandidateReferenceError(f"{context} has reversed fieldwork dates")
+
+        sample_size = wave.get("sample_size")
+        if (
+            isinstance(sample_size, bool)
+            or not isinstance(sample_size, int)
+            or sample_size < 1
+        ):
+            raise CandidateReferenceError(
+                f"{context}.sample_size must be a positive integer"
+            )
+
+        candidate_ids = wave.get("candidate_ids")
+        if (
+            not isinstance(candidate_ids, list)
+            or any(
+                not isinstance(candidate_id, str) or not candidate_id.strip()
+                for candidate_id in candidate_ids
+            )
+        ):
+            raise CandidateReferenceError(
+                f"{context}.candidate_ids must be a list of non-empty strings"
+            )
+        if not candidate_ids:
+            scenario_candidates = [
+                candidate
+                for scenario in wave.get("scenarios", [])
+                if isinstance(scenario, dict)
+                for candidate in scenario.get("candidates", [])
+                if isinstance(candidate, dict)
+            ]
+            ballot_only = bool(scenario_candidates) and all(
+                candidate.get("identity_type") == "ballot_label"
+                for candidate in scenario_candidates
+            )
+            if not ballot_only:
+                raise CandidateReferenceError(
+                    f"{context}.candidate_ids must be non-empty for a person wave"
+                )
+
+        path_fr = wave.get("page_path_fr")
+        path_en = wave.get("page_path_en")
+        if not isinstance(path_fr, str) or not path_fr.startswith("/sondages/"):
+            raise CandidateReferenceError(f"{context}.page_path_fr is invalid")
+        if not isinstance(path_en, str) or not path_en.startswith("/en/sondages/"):
+            raise CandidateReferenceError(f"{context}.page_path_en is invalid")
+
+        key = (
+            pollster,
+            wave["fieldwork_start"],
+            wave["fieldwork_end"],
+            sample_size,
+        )
+        if key in seen_identities:
+            raise CandidateReferenceError(
+                f"duplicate poll-wave package identity: {key!r}"
+            )
+        seen_identities.add(key)
+        if not candidate_ids:
+            continue
+        index[key] = wave
+    return index
+
+
+def load_poll_wave_link_index(
+    root: Path = ROOT,
+) -> dict[tuple[Any, ...], dict[str, Any]]:
+    path = root / "poll_explorer.json"
+    try:
+        explorer = _load(path)
+    except FileNotFoundError as error:
+        raise CandidateReferenceError(
+            f"poll explorer source is missing: {path}"
+        ) from error
+    except OSError as error:
+        raise CandidateReferenceError(
+            f"could not read poll explorer source {path}: {error}"
+        ) from error
+    except json.JSONDecodeError as error:
+        raise CandidateReferenceError(
+            "malformed poll explorer JSON at "
+            f"{path}: line {error.lineno}, column {error.colno}"
+        ) from error
+    return build_poll_wave_link_index(explorer)
+
+
+def _poll_history_wave_key(observation: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        observation.get("pollster"),
+        observation.get("fieldwork_start"),
+        observation.get("fieldwork_end"),
+        observation.get("sample_size"),
+    )
+
+
+def _resolve_poll_history_wave(
+    observation: dict[str, Any],
+    poll_wave_index: dict[tuple[Any, ...], dict[str, Any]],
+    *,
+    candidate_id: str,
+) -> dict[str, Any]:
+    key = _poll_history_wave_key(observation)
+    try:
+        wave = poll_wave_index[key]
+    except KeyError as error:
+        raise CandidateReferenceError(
+            f"candidate {candidate_id!r} poll-history observation "
+            f"does not resolve to a published poll wave: {key!r}"
+        ) from error
+    if candidate_id not in wave["candidate_ids"]:
+        raise CandidateReferenceError(
+            f"candidate {candidate_id!r} is absent from matched poll wave "
+            f"{wave.get('wave_id')!r} for identity {key!r}"
+        )
+    return wave
+
+
+def _render_poll_history_link_directory(
+    payload: dict[str, Any],
+    poll_wave_index: dict[tuple[Any, ...], dict[str, Any]],
+    *,
+    lang: str,
+) -> str:
+    observations = payload["polling"]["first_round_history"].get("observations", [])
+    rows = []
+    candidate_id = payload.get("candidate_id")
+    if observations and (not isinstance(candidate_id, str) or not candidate_id):
+        raise CandidateReferenceError(
+            "candidate poll-history observations require a candidate_id"
+        )
+    for observation in reversed(observations):
+        wave = _resolve_poll_history_wave(
+            observation,
+            poll_wave_index,
+            candidate_id=candidate_id,
+        )
+        href = wave["page_path_fr"] if lang == "fr" else wave["page_path_en"]
+        pollster = str(observation.get("pollster") or "—")
+        date_label = _poll_wave_date_label(
+            observation.get("fieldwork_start"),
+            observation.get("fieldwork_end"),
+            lang=lang,
+        )
+        separator = chr(0x00B7)
+        link_label = f"{pollster} {separator} {date_label}" if date_label else pollster
+        rows.append(
+            '<li><a class="candidate-poll-history-wave-link" '
+            f'href="{_h(href)}">{_h(link_label)}</a></li>'
+        )
+    label = "Vagues de sondage publiées" if lang == "fr" else "Published poll waves"
+    return f'<details class="candidate-poll-history-directory"><summary>{_h(label)} · {len(rows)}</summary><ol>{"".join(rows)}</ol></details>' if rows else ""
 
 def validate_sources(sources: dict[str, Any], root: Path = ROOT) -> None:
     status = sources["candidate_candidacy_status"]
@@ -983,6 +1164,12 @@ MONTHS_FR = (
 )
 
 
+MONTHS_EN = (
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+)
+
+
 def _h(value: Any) -> str:
     return html.escape("" if value is None else str(value), quote=True)
 
@@ -992,6 +1179,39 @@ def _fr_date(value: str | None) -> str:
         return "Date non publiée"
     parsed = date.fromisoformat(value[:10])
     return f"{parsed.day} {MONTHS_FR[parsed.month - 1]} {parsed.year}"
+
+
+
+def _poll_wave_date_label(
+    fieldwork_start: str | None,
+    fieldwork_end: str | None,
+    *,
+    lang: str,
+) -> str:
+    if not fieldwork_start or not fieldwork_end:
+        return ""
+
+    start = date.fromisoformat(fieldwork_start[:10])
+    end = date.fromisoformat(fieldwork_end[:10])
+    months = MONTHS_FR if lang == "fr" else MONTHS_EN
+    dash = chr(0x2013)
+
+    if start == end:
+        return f"{start.day} {months[start.month - 1]} {start.year}"
+
+    if start.year == end.year and start.month == end.month:
+        return f"{start.day}{dash}{end.day} {months[end.month - 1]} {end.year}"
+
+    if start.year == end.year:
+        return (
+            f"{start.day} {months[start.month - 1]}{dash}"
+            f"{end.day} {months[end.month - 1]} {end.year}"
+        )
+
+    return (
+        f"{start.day} {months[start.month - 1]} {start.year}{dash}"
+        f"{end.day} {months[end.month - 1]} {end.year}"
+    )
 
 
 def _number(value: int | float) -> str:
@@ -3418,6 +3638,8 @@ def render_html(
     hud_metrics: dict[str, int] | None = None,
     *,
     lang: str = "fr",
+    poll_wave_index: dict[tuple[Any, ...], dict[str, Any]] | None = None,
+    root: Path = ROOT,
 ) -> bytes:
     if lang not in CANDIDATE_LOCALES:
         raise CandidateReferenceError(
@@ -3436,6 +3658,38 @@ def render_html(
         lang,
         payload,
     )
+
+    if poll_wave_index is None:
+        poll_wave_index = load_poll_wave_link_index(root)
+
+    poll_history_directory = _render_poll_history_link_directory(
+        payload,
+        poll_wave_index,
+        lang=lang,
+    )
+
+    if poll_history_directory:
+        panel_marker = (
+            '<article class="candidate-panel candidate-chart-panel '
+            'candidate-poll-history-panel">'
+        )
+        panel_start = raw.find(panel_marker)
+        body_start = raw.find(
+            '<div class="candidate-panel-body">',
+            panel_start,
+        )
+        body_end = raw.find("</div></article>", body_start)
+
+        if panel_start < 0 or body_start < 0 or body_end < 0:
+            raise CandidateReferenceError(
+                "candidate poll-history directory insertion failed"
+            )
+
+        raw = (
+            raw[:body_end]
+            + poll_history_directory
+            + raw[body_end:]
+        )
 
     if lang == "fr":
         return raw.encode("utf-8")
@@ -3559,6 +3813,7 @@ def build_all_active_artifacts(
         *archived_projections,
     ]
     hud_metrics = derive_hud_metrics(sources)
+    poll_wave_index = load_poll_wave_link_index(root)
     artifacts: dict[Path, bytes] = {}
 
     for projection in projections:
@@ -3570,6 +3825,7 @@ def build_all_active_artifacts(
             projection,
             hud_metrics,
             lang="fr",
+            poll_wave_index=poll_wave_index,
         )
         artifacts[
             Path("en") / "candidates" / candidate_id / "index.html"
@@ -3577,6 +3833,7 @@ def build_all_active_artifacts(
             projection,
             hud_metrics,
             lang="en",
+            poll_wave_index=poll_wave_index,
         )
 
     hub_model = build_hub_model(
@@ -3732,8 +3989,19 @@ def main() -> int:
     serialized = serialize_projection(build_projection(sources, args.root))
     projection = json.loads(serialized)
     hud_metrics = derive_hud_metrics(sources)
-    rendered_html = render_html(projection, hud_metrics, lang="fr")
-    rendered_html_en = render_html(projection, hud_metrics, lang="en")
+    poll_wave_index = load_poll_wave_link_index(args.root)
+    rendered_html = render_html(
+        projection,
+        hud_metrics,
+        lang="fr",
+        poll_wave_index=poll_wave_index,
+    )
+    rendered_html_en = render_html(
+        projection,
+        hud_metrics,
+        lang="en",
+        poll_wave_index=poll_wave_index,
+    )
     output = args.output if args.output.is_absolute() else args.root / args.output
     html_output = (
         args.html_output if args.html_output.is_absolute() else args.root / args.html_output

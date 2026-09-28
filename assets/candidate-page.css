@@ -328,6 +328,75 @@
 .candidate-page .candidate-panel-info-wrap .candidate-section-tooltip { left: 10px; max-width: min(390px, calc(100vw - 32px)); }
 .candidate-page .candidate-poll-history-chart { min-height: 230px; overflow: visible; }
 .candidate-page .candidate-poll-history-chart svg { height: 230px; }
+
+.candidate-page .candidate-poll-history-directory {
+  margin-top: 9px;
+  overflow: hidden;
+  border: 1px solid rgba(35, 86, 114, .62);
+  border-radius: 3px;
+  background: rgba(3, 15, 26, .42);
+}
+
+.candidate-page .candidate-poll-history-directory summary {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 7px 10px;
+  color: #9eb8c6;
+  font-size: var(--fr27-type-meta);
+  font-weight: 720;
+  letter-spacing: .025em;
+  cursor: pointer;
+  user-select: none;
+}
+
+.candidate-page .candidate-poll-history-directory summary:hover,
+.candidate-page .candidate-poll-history-directory summary:focus-visible {
+  color: var(--final-cyan);
+  background: rgba(20, 54, 76, .26);
+  outline: none;
+}
+
+.candidate-page .candidate-poll-history-directory[open] summary {
+  border-bottom: 1px solid rgba(35, 86, 114, .52);
+}
+
+.candidate-page .candidate-poll-history-directory ol {
+  max-height: 260px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.candidate-page .candidate-poll-history-directory li {
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid rgba(35, 86, 114, .38);
+}
+
+.candidate-page .candidate-poll-history-directory li:last-child {
+  border-bottom: 0;
+}
+
+.candidate-page .candidate-poll-history-wave-link {
+  display: block;
+  padding: 7px 10px;
+  color: #b7ccd7;
+  font-size: var(--fr27-type-meta);
+  font-weight: 680;
+  line-height: 1.3;
+  transition: color 120ms ease, background-color 120ms ease;
+}
+
+.candidate-page .candidate-poll-history-wave-link:hover,
+.candidate-page .candidate-poll-history-wave-link:focus-visible {
+  color: var(--final-cyan);
+  background: rgba(16, 39, 61, .58);
+  text-decoration: none;
+  outline: none;
+}
 .candidate-page .candidate-chart-fallback { margin: 0; padding: 40px 20px; color: var(--final-muted); text-align: center; }
 .candidate-page .candidate-chart-grid { stroke: rgba(51, 103, 128, .34); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .candidate-page .candidate-chart-axis { fill: var(--final-muted-soft); font-family: var(--fr27-type-sans); font-size: var(--fr27-num-micro); font-variant-numeric: tabular-nums; }
