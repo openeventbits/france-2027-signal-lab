@@ -824,12 +824,11 @@ class CandidateReferenceTests(unittest.TestCase):
             )
 
         if len(source_records) > reference.MAX_LATEST_NEWS:
+            excluded = source_records[
+                reference.MAX_LATEST_NEWS
+            ]
             self.assertNotIn(
-                reference._h(
-                    source_records[
-                        reference.MAX_LATEST_NEWS
-                    ]["headline"]
-                ),
+                f'href="{reference._h(excluded["url"])}"',
                 card,
             )
 
