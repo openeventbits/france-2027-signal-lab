@@ -14,6 +14,7 @@ on:
       - "recent_changes.json"
       - "campaign_events.json"
       - "polls.json"
+      - "poll_explorer.json"
       - "second_round_polls.json"
       - "news_wire.json"
       - "publication_manifest.json"
@@ -184,6 +185,7 @@ jobs:
           python -B -m unittest -v \
             test_candidate_page_contract \
             test_candidate_reference \
+            test_candidate_poll_links \
             test_candidate_hub \
             test_candidate_family_publication \
             test_route_registry \
@@ -243,6 +245,7 @@ jobs:
           python -B -m unittest -v \
             test_candidate_page_contract \
             test_candidate_reference \
+            test_candidate_poll_links \
             test_candidate_hub \
             test_candidate_family_publication \
             test_route_registry \
