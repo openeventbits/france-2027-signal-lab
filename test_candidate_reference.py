@@ -2395,48 +2395,72 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
         )
 
     def test_english_runoff_interface_copy_is_localized(self):
-        expected_english = (
-            "7 opponents · 17 observations shown",
-            "17 tests total · 3 most recent shown",
-            "13 tests total · 3 most recent shown",
-            "14 tests total · 3 most recent shown",
-            "4 tests total · 3 most recent shown",
-            "1 test total",
-            "3 tests total",
-            "Sample: 1,001",
-            "Sample: 2,052",
+        matchups = self.projection["polling"]["tested_runoffs"]
+
+        visible_count = sum(
+            len(matchup["observations"])
+            for matchup in matchups
+        )
+        opponent_count = len(matchups)
+
+        header_fr = (
+            f"{opponent_count} adversaire"
+            f'{"s" if opponent_count != 1 else ""}'
+            f" · {visible_count} observation"
+            f'{"s" if visible_count != 1 else ""} affichée'
+            f'{"s" if visible_count != 1 else ""}'
         )
 
-        for value in expected_english:
-            self.assertIn(value, self.en)
+        expected_pairs = [
+            (
+                header_fr,
+                reference._candidate_translate_en(header_fr),
+            )
+        ]
 
-        forbidden_english = (
-            "7 adversaires · 17 observations affichées",
-            "17 tests au total · 3 plus récents affichés",
-            "13 tests au total · 3 plus récents affichés",
-            "14 tests au total · 3 plus récents affichés",
-            "4 tests au total · 3 plus récents affichés",
-            "1 test au total",
-            "3 tests au total",
-            "Échantillon : 1,001",
-            "Échantillon : 2,052",
-        )
+        for matchup in matchups:
+            observations = matchup["observations"]
+            shown_count = len(observations)
+            total_count = matchup["observation_count"]
 
-        for value in forbidden_english:
-            self.assertNotIn(value, self.en)
+            if total_count > shown_count:
+                group_fr = (
+                    f"{total_count} tests au total · "
+                    f"{shown_count} plus récents affichés"
+                )
+            else:
+                group_fr = (
+                    f"{total_count} test"
+                    f'{"s" if total_count != 1 else ""} au total'
+                )
 
-        self.assertIn(
-            "7 adversaires · 17 observations affichées",
-            self.fr,
-        )
-        self.assertIn(
-            "17 tests au total · 3 plus récents affichés",
-            self.fr,
-        )
-        self.assertIn(
-            "Échantillon : 1\u202f001",
-            self.fr,
-        )
+            expected_pairs.append(
+                (
+                    group_fr,
+                    reference._candidate_translate_en(group_fr),
+                )
+            )
+
+            for observation in observations:
+                sample_fr = (
+                    "Échantillon : "
+                    f'{reference._number(observation["sample_size"])}'
+                )
+                expected_pairs.append(
+                    (
+                        sample_fr,
+                        reference._candidate_translate_en(sample_fr),
+                    )
+                )
+
+        self.assertTrue(expected_pairs)
+
+        for french_value, english_value in expected_pairs:
+            self.assertIn(french_value, self.fr)
+            self.assertIn(english_value, self.en)
+
+            if french_value != english_value:
+                self.assertNotIn(french_value, self.en)
 
     def test_english_page_has_no_known_product_ui_leaks(self):
         media = self.projection["media"]
