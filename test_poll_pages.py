@@ -476,12 +476,19 @@ class PollPageGeneratorTests(unittest.TestCase):
         temporary, root, _manifest = self.build_temp()
         self.addCleanup(temporary.cleanup)
 
-        wave = next(
-            wave
-            for wave in self.explorer["waves"]
-            if wave["page_slug"]
+        wave_index = next(
+            index
+            for index, candidate in enumerate(self.explorer["waves"])
+            if candidate["page_slug"]
             == "2026-09-10-harris-73b34108d6ec9da8"
         )
+        wave = self.explorer["waves"][wave_index]
+        related = pages.nearby_waves(
+            self.explorer["waves"],
+            wave_index,
+            limit=6,
+        )
+        self.assertEqual(len(related), 6)
 
         fr = (
             root / pages.page_file_from_url(wave["page_path_fr"])
@@ -497,16 +504,50 @@ class PollPageGeneratorTests(unittest.TestCase):
         )
         self.assertIn("<strong>8–10 septembre 2026</strong>", fr)
         self.assertIn("<strong>8–10 September 2026</strong>", en)
-        self.assertIn(
-            '<span class="poll-detail-related-date">'
-            "31 août–2 sept. 2026</span>",
-            fr,
+        self.assertEqual(
+            fr.count('<a class="poll-detail-related-card"'),
+            6,
         )
-        self.assertIn(
-            '<span class="poll-detail-related-date">'
-            "31 Aug–2 Sep 2026</span>",
-            en,
+        self.assertEqual(
+            en.count('<a class="poll-detail-related-card"'),
+            6,
         )
+
+        for related_wave in related:
+            fr_date = pages.format_date_range(
+                related_wave["fieldwork_start"],
+                related_wave["fieldwork_end"],
+                "fr",
+            )
+            en_date = pages.format_date_range(
+                related_wave["fieldwork_start"],
+                related_wave["fieldwork_end"],
+                "en",
+            )
+
+            with self.subTest(
+                related_poll=related_wave["page_slug"],
+            ):
+                self.assertIn(
+                    '<a class="poll-detail-related-card" '
+                    f'href="{related_wave["page_path_fr"]}">',
+                    fr,
+                )
+                self.assertIn(
+                    '<span class="poll-detail-related-date">'
+                    f"{fr_date}</span>",
+                    fr,
+                )
+                self.assertIn(
+                    '<a class="poll-detail-related-card" '
+                    f'href="{related_wave["page_path_en"]}">',
+                    en,
+                )
+                self.assertIn(
+                    '<span class="poll-detail-related-date">'
+                    f"{en_date}</span>",
+                    en,
+                )
         self.assertNotIn(
             "8 septembre 2026 → 10 septembre 2026",
             fr,
