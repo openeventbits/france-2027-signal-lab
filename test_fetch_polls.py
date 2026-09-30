@@ -978,6 +978,30 @@ class PollEventContractTests(unittest.TestCase):
         self.assertFalse(event["partial_scenario"])
         self.assertIsNone(event["unreported_share"])
 
+    def test_rounded_complete_scenario_total_102(self):
+        event = self.parse_one(
+            (
+                ("Nathalie Arthaud", "1"),
+                ("Jean-Luc Melenchon", "17"),
+                ("Fabien Roussel", "2"),
+                ("Marine Tondelier", "3"),
+                ("Raphael Glucksmann", "8"),
+                ("Gabriel Attal", "9"),
+                ("Edouard Philippe", "12"),
+                ("Bruno Retailleau", "8"),
+                ("Nicolas Dupont-Aignan", "2"),
+                ("Marine Le Pen", "34"),
+                ("Eric Zemmour", "6"),
+            )
+        )
+        self.assertEqual(event["reported_total"], 102)
+        self.assertEqual(
+            event["completeness_status"],
+            "complete",
+        )
+        self.assertFalse(event["partial_scenario"])
+        self.assertIsNone(event["unreported_share"])
+
     def test_partial_scenario_total_97(self):
         event = self.parse_one(
             (("Edouard Philippe", "30"), ("Eric Zemmour", "30"), ("Glucksmann", "37"))
@@ -1043,7 +1067,7 @@ class PollEventContractTests(unittest.TestCase):
             candidates=(
                 ("Edouard Philippe", "30"),
                 ("Eric Zemmour", "30"),
-                ("Glucksmann", "42"),
+                ("Glucksmann", "43"),
             ),
         )
 
@@ -1062,7 +1086,7 @@ class PollEventContractTests(unittest.TestCase):
             skipped[0],
         )
         self.assertIn(
-            "reported total is impossible: 102",
+            "reported total is impossible: 103",
             skipped[0],
         )
         self.assertIn(

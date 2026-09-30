@@ -109,7 +109,7 @@ PHASE4_SUPPORTING_TEST_FILES = (
     "test_poll_migration.py",
 )
 PHASE4_PROTECTED_LOGIC_SHA256 = {
-    "poll_contract.py": "ba1c4e39db699293c859aa0740f57d4ba20dcd5b75bf31fb88f6f93c9af0a629",
+    "poll_contract.py": "d2dc32ad925acb6f0cb6b55e2019358c65ecc367c3f21e7542c4bee3db55077f",
     "commission_notice_discovery.py": "c9b8f3186f14b3febcc994aea9700426ae71c6c54b763e34171b375ba6afe58f",
     "commission_notice_coverage.py": "0f467cccb64cb9bfc73ce58f4b874cf6d145233c8bad6736c8bd603a9b19c1b4",
 }

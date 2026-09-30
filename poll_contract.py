@@ -18,8 +18,10 @@ COMPLETE = "complete"
 PARTIAL = "partial"
 COMPLETENESS_STATES = {COMPLETE, PARTIAL}
 MIN_COMPLETE_TOTAL = 99.0
-MAX_COMPLETE_TOTAL = 101.0
-MAX_POSSIBLE_TOTAL = 101.0
+# Published whole-number candidate shares can legitimately sum to 102
+# after independent rounding. Totals above 102 remain fail-closed.
+MAX_COMPLETE_TOTAL = 102.0
+MAX_POSSIBLE_TOTAL = 102.0
 
 
 class PollContractError(ValueError):
