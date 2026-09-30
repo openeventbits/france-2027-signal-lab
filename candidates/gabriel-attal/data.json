@@ -234,7 +234,7 @@
     },
     "first_round_history": {
       "evidence_state": "reported",
-      "observation_count": 43,
+      "observation_count": 44,
       "period_start": "2023-09-01",
       "period_end": "2026-09-24",
       "observations": [
@@ -842,6 +842,20 @@
           ]
         },
         {
+          "package_key": "[\"YouGov\",\"2026-09-17\",\"2026-09-21\",1103]",
+          "pollster": "YouGov",
+          "fieldwork_start": "2026-09-17",
+          "fieldwork_end": "2026-09-21",
+          "sample_size": 1103,
+          "hypothesis_count": 4,
+          "selected_score": 8,
+          "range_min": 8,
+          "range_max": 14,
+          "source_urls": [
+            "https://www.commission-des-sondages.fr/notices/files/notices/2026/septembre/10270-pres-iv-yougov-huffpost-23-septembre.pdf"
+          ]
+        },
+        {
           "package_key": "[\"Harris\",\"2026-09-22\",\"2026-09-24\",1974]",
           "pollster": "Harris",
           "fieldwork_start": "2026-09-22",
@@ -860,9 +874,19 @@
     "tested_runoffs": [
       {
         "opponent": "Marine Le Pen",
-        "observation_count": 14,
-        "latest_fieldwork_end": "2026-09-10",
+        "observation_count": 15,
+        "latest_fieldwork_end": "2026-09-21",
         "observations": [
+          {
+            "event_id": "7e2c238b851f64c11214c4bff0c0b1f7c7fbd4e7b78aa139b50603406aac6d10",
+            "pollster": "YouGov",
+            "fieldwork_start": "2026-09-17",
+            "fieldwork_end": "2026-09-21",
+            "sample_size": 1103,
+            "candidate_score": 43,
+            "opponent_score": 57,
+            "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/septembre/10270-pres-iv-yougov-huffpost-23-septembre.pdf"
+          },
           {
             "event_id": "be671844a99b635ba38079bae2bebbe482a910a6735cb5e6e37ede5bcd92e53d",
             "pollster": "Harris",
@@ -882,16 +906,6 @@
             "candidate_score": 45,
             "opponent_score": 55,
             "source_url": "https://www.lejdd.fr/politique/sondage-presidentielle-le-pen-loin-devant-melenchon-en-dynamique-182721"
-          },
-          {
-            "event_id": "7fd25f847baee63471275a29b1a1a895173290aa3229e486f3fa1fb93664eb57",
-            "pollster": "Elabe",
-            "fieldwork_start": "2026-08-26",
-            "fieldwork_end": "2026-08-28",
-            "sample_size": 1503,
-            "candidate_score": 43,
-            "opponent_score": 57,
-            "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/aout/10245-pres-iv-elabe-29-aout.pdf"
           }
         ]
       },
@@ -2618,9 +2632,9 @@
     "source_generated_at": {
       "candidate_attention": "2026-09-29T15:28:46Z",
       "claims_under_scrutiny": "2026-09-30T10:25:58Z",
-      "recent_changes": "2026-09-30T13:34:18.472477Z",
+      "recent_changes": "2026-09-30T13:50:41.776110Z",
       "campaign_events": "2026-09-28T07:23:27Z",
-      "second_round_polls": "2026-09-29T12:51:35.044345Z",
+      "second_round_polls": "2026-09-30T13:50:35.650314Z",
       "news_wire": "2026-09-30T13:33:16.994716Z"
     },
     "media_period_end": "2026-09-30",

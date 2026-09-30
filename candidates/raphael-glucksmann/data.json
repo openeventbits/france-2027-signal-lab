@@ -289,7 +289,7 @@
     },
     "first_round_history": {
       "evidence_state": "reported",
-      "observation_count": 47,
+      "observation_count": 48,
       "period_start": "2024-07-07",
       "period_end": "2026-09-24",
       "observations": [
@@ -951,6 +951,20 @@
           ]
         },
         {
+          "package_key": "[\"YouGov\",\"2026-09-17\",\"2026-09-21\",1103]",
+          "pollster": "YouGov",
+          "fieldwork_start": "2026-09-17",
+          "fieldwork_end": "2026-09-21",
+          "sample_size": 1103,
+          "hypothesis_count": 4,
+          "selected_score": 5,
+          "range_min": 5,
+          "range_max": 9,
+          "source_urls": [
+            "https://www.commission-des-sondages.fr/notices/files/notices/2026/septembre/10270-pres-iv-yougov-huffpost-23-septembre.pdf"
+          ]
+        },
+        {
           "package_key": "[\"Harris\",\"2026-09-22\",\"2026-09-24\",1974]",
           "pollster": "Harris",
           "fieldwork_start": "2026-09-22",
@@ -969,9 +983,19 @@
     "tested_runoffs": [
       {
         "opponent": "Marine Le Pen",
-        "observation_count": 4,
-        "latest_fieldwork_end": "2026-08-28",
+        "observation_count": 5,
+        "latest_fieldwork_end": "2026-09-21",
         "observations": [
+          {
+            "event_id": "0afbaa084764711d790a215088f938b11d1db89e223edbdb3aa78b3a28e616d6",
+            "pollster": "YouGov",
+            "fieldwork_start": "2026-09-17",
+            "fieldwork_end": "2026-09-21",
+            "sample_size": 1103,
+            "candidate_score": 41,
+            "opponent_score": 59,
+            "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/septembre/10270-pres-iv-yougov-huffpost-23-septembre.pdf"
+          },
           {
             "event_id": "3d55e96e5c62583c84916a4a1737ce103e5079e61b3f5bea26b846117ce89518",
             "pollster": "Elabe",
@@ -991,16 +1015,6 @@
             "candidate_score": 45,
             "opponent_score": 55,
             "source_url": "https://www.sudradio.fr//wp-content//uploads//2026//08//122732-Resultats-ENSEMBLE-fin-aout-2026.pdf"
-          },
-          {
-            "event_id": "45a7ee98282253fb385a50f0b0d085f782f353cc0a0a2858bd7b6b29c9567d84",
-            "pollster": "Cluster17",
-            "fieldwork_start": "2026-07-22",
-            "fieldwork_end": "2026-07-24",
-            "sample_size": 1506,
-            "candidate_score": 44,
-            "opponent_score": 56,
-            "source_url": "https://legrandcontinent.eu/fr/2026/08/31/marine-le-pen-peut-elle-encore-perdre-lelection-presidentielle/"
           }
         ]
       },
@@ -2679,9 +2693,9 @@
     "source_generated_at": {
       "candidate_attention": "2026-09-29T15:28:46Z",
       "claims_under_scrutiny": "2026-09-30T10:25:58Z",
-      "recent_changes": "2026-09-30T13:34:18.472477Z",
+      "recent_changes": "2026-09-30T13:50:41.776110Z",
       "campaign_events": "2026-09-28T07:23:27Z",
-      "second_round_polls": "2026-09-29T12:51:35.044345Z",
+      "second_round_polls": "2026-09-30T13:50:35.650314Z",
       "news_wire": "2026-09-30T13:33:16.994716Z"
     },
     "media_period_end": "2026-09-30",
