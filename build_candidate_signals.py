@@ -34,6 +34,10 @@ from candidate_identity import (
     normalized_candidate_key,
     resolve_candidate_name,
 )
+from poll_contract import (
+    MAX_COMPLETE_TOTAL,
+    MIN_COMPLETE_TOTAL,
+)
 from fetch_news_wire import (
     CAMPAIGN_AGENDA_TOPICS,
     POLICY_AGENDA_TOPICS,
@@ -373,7 +377,11 @@ def _validate_first_round_event(
     if completeness_status == "complete":
         if (
             partial_scenario is not False
-            or not 99 <= reported_total <= 101
+            or not (
+                MIN_COMPLETE_TOTAL
+                <= reported_total
+                <= MAX_COMPLETE_TOTAL
+            )
             or unreported_share is not None
         ):
             raise CandidateSignalsError(
@@ -383,7 +391,7 @@ def _validate_first_round_event(
         expected_unreported = 100 - reported_total
         if (
             partial_scenario is not True
-            or not 0 < reported_total < 99
+            or not 0 < reported_total < MIN_COMPLETE_TOTAL
             or isinstance(unreported_share, bool)
             or not isinstance(unreported_share, (int, float))
             or not math.isfinite(float(unreported_share))
