@@ -44,7 +44,12 @@ def poll_event(
         if isinstance(score, (int, float)) and not isinstance(score, bool)
     ]
     total = sum(numeric_scores)
-    complete = len(numeric_scores) == len(candidates) and 99 <= total <= 101
+    complete = (
+        len(numeric_scores) == len(candidates)
+        and builder.MIN_COMPLETE_TOTAL
+        <= total
+        <= builder.MAX_COMPLETE_TOTAL
+    )
     value = {
         "event_id": event_id
         or f"{pollster}-{fieldwork_start}-{fieldwork_end}-{sample_size}-{scenario_key}",
@@ -518,6 +523,48 @@ class PollPackageTests(unittest.TestCase):
                 cls.candidacy_status
             )
         )
+
+    def test_shared_poll_contract_accepts_102_and_rejects_103(self):
+        rounded = poll_event(
+            event_id="rounded-102",
+            candidates=[
+                ("Candidate A", 60),
+                ("Candidate B", 42),
+            ],
+        )
+
+        validated = builder.validated_first_round_events(
+            [rounded]
+        )
+
+        self.assertEqual(len(validated), 1)
+        self.assertEqual(
+            validated[0][1]["reported_total"],
+            102,
+        )
+        self.assertEqual(
+            validated[0][1]["completeness_status"],
+            "complete",
+        )
+        self.assertFalse(
+            validated[0][1]["partial_scenario"]
+        )
+        self.assertIsNone(
+            validated[0][1]["unreported_share"]
+        )
+
+        impossible = copy.deepcopy(rounded)
+        impossible["event_id"] = "impossible-103"
+        impossible["candidates"][1]["score"] = 43
+        impossible["reported_total"] = 103
+
+        with self.assertRaisesRegex(
+            builder.CandidateSignalsError,
+            "inconsistent complete-scenario metadata",
+        ):
+            builder.validated_first_round_events(
+                [impossible]
+            )
 
     def test_exact_package_key_and_sample_size_separation(self):
         first = poll_event(sample_size=1000, event_id="one")
