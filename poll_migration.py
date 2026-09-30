@@ -64,6 +64,18 @@ AUDITED_FRENCH_RUNOFF_HEADINGS = (
 )
 POST_AUDIT_HOLLANDE_LE_PEN_HEADING = "hypothese hollande le pen"
 POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR = "FR-POST-HOLLANDE-LE-PEN"
+POST_AUDIT_PHILIPPE_MELENCHON_HEADING = "hypothese philippe melenchon"
+POST_AUDIT_PHILIPPE_MELENCHON_LOCATOR = "FR-POST-PHILIPPE-MELENCHON"
+POST_AUDIT_FRENCH_RUNOFF_FAMILIES = (
+    (
+        POST_AUDIT_HOLLANDE_LE_PEN_HEADING,
+        POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR,
+    ),
+    (
+        POST_AUDIT_PHILIPPE_MELENCHON_HEADING,
+        POST_AUDIT_PHILIPPE_MELENCHON_LOCATOR,
+    ),
+)
 FRENCH_FIRST_ROUND_SECTION = "sondages concernant le premier tour"
 FRENCH_SECOND_ROUND_SECTION = "sondages concernant le second tour"
 
@@ -995,6 +1007,58 @@ def parse_french_fieldwork(value: str, *, default_year: int | None) -> tuple[str
     raise ValueError(f"unparsed French fieldwork date: {value!r}")
 
 
+class _FrenchRunoffSourceYearError(ValueError):
+    """A yearless runoff row lacks reviewed source-year evidence."""
+
+
+def _parse_french_runoff_fieldwork(
+    value: str,
+    *,
+    source_url: str,
+    locator: str,
+) -> tuple[str, str]:
+    """Parse runoff fieldwork, recovering a missing year only from Commission provenance."""
+
+    try:
+        return parse_french_fieldwork(
+            value,
+            default_year=None,
+        )
+    except ValueError as error:
+        if "lacks a year" not in str(error):
+            raise
+
+    parsed_url = urlparse(source_url)
+
+    if (
+        parsed_url.scheme != "https"
+        or parsed_url.netloc
+        != "www.commission-des-sondages.fr"
+    ):
+        raise _FrenchRunoffSourceYearError(
+            f"{locator} yearless runoff date lacks "
+            "reviewed Commission notice year"
+        )
+
+    match = re.match(
+        r"^/notices/files/notices/(20\d{2})/",
+        parsed_url.path,
+    )
+
+    if match is None:
+        raise _FrenchRunoffSourceYearError(
+            f"{locator} yearless runoff date lacks "
+            "reviewed Commission notice year"
+        )
+
+    source_year = int(match.group(1))
+
+    return parse_french_fieldwork(
+        value,
+        default_year=source_year,
+    )
+
+
 def _parse_french_score(value: object) -> float | None:
     """Parse the numeric prefix used by French cells with candidate links."""
 
@@ -1202,7 +1266,8 @@ def _french_runoff_table_plan(tables: list[object]) -> list[tuple[str, object]]:
     """Select reviewed runoff families without tying legacy locators to positions."""
 
     reviewed_headings = set(AUDITED_FRENCH_RUNOFF_HEADINGS) | {
-        POST_AUDIT_HOLLANDE_LE_PEN_HEADING
+        heading
+        for heading, _locator in POST_AUDIT_FRENCH_RUNOFF_FAMILIES
     }
     by_heading: dict[str, object] = {}
     runoff_tables = [
@@ -1228,14 +1293,17 @@ def _french_runoff_table_plan(tables: list[object]) -> list[tuple[str, object]]:
         (f"FR-R{family_index}", by_heading[heading])
         for family_index, heading in enumerate(AUDITED_FRENCH_RUNOFF_HEADINGS, start=1)
     ]
-    if POST_AUDIT_HOLLANDE_LE_PEN_HEADING in by_heading:
-        plan.insert(
-            6,
-            (
-                POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR,
-                by_heading[POST_AUDIT_HOLLANDE_LE_PEN_HEADING],
-            ),
-        )
+    for heading, locator in reversed(
+        POST_AUDIT_FRENCH_RUNOFF_FAMILIES
+    ):
+        if heading in by_heading:
+            plan.insert(
+                6,
+                (
+                    locator,
+                    by_heading[heading],
+                ),
+            )
     return plan
 
 
@@ -1410,7 +1478,13 @@ def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
             if not pollster or not fieldwork or sample_size is None or not source_url:
                 continue
             try:
-                start, end = parse_french_fieldwork(fieldwork, default_year=None)
+                start, end = _parse_french_runoff_fieldwork(
+                    fieldwork,
+                    source_url=source_url,
+                    locator=locator,
+                )
+            except _FrenchRunoffSourceYearError:
+                raise
             except ValueError:
                 continue
             candidates: list[dict[str, Any]] = []

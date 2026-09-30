@@ -28,6 +28,7 @@ from poll_migration import (
     ENGLISH_FIXTURE,
     FRENCH_FIXTURE,
     POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR,
+    POST_AUDIT_PHILIPPE_MELENCHON_LOCATOR,
     _header_candidate,
     _header_value,
     _validate_first_round_candidate_headers,
@@ -249,6 +250,102 @@ def post_audit_hollande_reordered_runoff_fixture() -> dict:
     return parsed
 
 
+def post_audit_philippe_melenchon_runoff_fixture() -> dict:
+    parsed = copy.deepcopy(
+        load_mediawiki_fixture(
+            REVIEWED_POST_AUDIT_FRENCH_FIXTURE,
+            REVIEWED_POST_AUDIT_FRENCH_REVISION,
+        )
+    )
+
+    sections = parsed["tocdata"]["sections"]
+    hollande_index = next(
+        index
+        for index, section in enumerate(sections)
+        if section["line"] == "Hypothèse Hollande – Le Pen"
+    )
+
+    sections.insert(
+        hollande_index + 1,
+        {
+            "tocLevel": 3,
+            "hLevel": 4,
+            "line": "Hypothèse Philippe – Mélenchon",
+            "number": "4.1.8",
+            "index": "18",
+            "anchor": "Hypothèse_Philippe_–_Mélenchon",
+        },
+    )
+
+    document = lxml_html.fromstring(parsed["text"])
+
+    hollande_heading = document.xpath(
+        '//h4[@id="Hypothèse_Hollande_–_Le_Pen"]'
+    )[0].getparent()
+
+    hollande_table = hollande_heading.getnext()
+
+    heading = lxml_html.fragment_fromstring(
+        '<div class="mw-heading mw-heading4">'
+        '<h4 id="Hypothèse_Philippe_–_Mélenchon">'
+        "Hypothèse Philippe – Mélenchon"
+        "</h4></div>"
+    )
+
+    table = lxml_html.fragment_fromstring(
+        """
+        <table class="wikitable">
+          <tbody>
+            <tr>
+              <th rowspan="3">Sondeur</th>
+              <th rowspan="3">Dates</th>
+              <th rowspan="3">Échantillon</th>
+              <th></th>
+              <th></th>
+            </tr>
+            <tr>
+              <th>
+                <a href="/wiki/%C3%89douard_Philippe">Philippe</a>
+                (HOR)
+              </th>
+              <th>
+                <a href="/wiki/Jean-Luc_M%C3%A9lenchon">Mélenchon</a>
+                (LFI)
+              </th>
+            </tr>
+            <tr><td></td><td></td></tr>
+            <tr>
+              <td>
+                <a href="https://www.commission-des-sondages.fr/notices/files/notices/2026/septembre/10270-pres-iv-yougov-huffpost-23-septembre.pdf">
+                  YouGov
+                </a>
+              </td>
+              <td>17 - 21 septembre</td>
+              <td>1 103</td>
+              <td>61</td>
+              <td>39</td>
+            </tr>
+          </tbody>
+        </table>
+        """
+    )
+
+    hollande_table.addnext(heading)
+    heading.addnext(table)
+
+    parsed["text"] = lxml_html.tostring(
+        document,
+        encoding="unicode",
+    )
+
+    # Keep this synthetic fixture immediately after the reviewed
+    # post-audit baseline.  Live-source validation below exercises
+    # the actual current revision independently.
+    parsed["revid"] = REVIEWED_POST_AUDIT_FRENCH_REVISION + 1
+
+    return parsed
+
+
 def minimal_named_candidate_fixture(order: tuple[str, ...]) -> dict:
     parsed = copy.deepcopy(
         load_mediawiki_fixture(
@@ -453,6 +550,38 @@ class FrozenFixtureTests(unittest.TestCase):
         self.assertEqual(len(self.fr_parsed["first_round"]), 191)
         self.assertEqual(len(self.fr_parsed["second_round"]), 48)
         self.assertEqual(len(self.fr_parsed["rejected"]), 8)
+
+        reviewed_source_rejections = [
+            message
+            for message in self.en_skipped
+            if "rejected after official-source review" in message
+        ]
+
+        self.assertEqual(len(reviewed_source_rejections), 2)
+
+        self.assertTrue(
+            any(
+                "Harris Interactive 22 Mar 2026" in message
+                and "100-point published total" in message
+                for message in reviewed_source_rejections
+            )
+        )
+
+        self.assertTrue(
+            any(
+                "Ifop/Hexagone" in message
+                and "Dominique de Villepin" in message
+                for message in reviewed_source_rejections
+            )
+        )
+
+        censored = [
+            message
+            for message in self.en_skipped
+            if "censored score" in message
+        ]
+        self.assertEqual(len(censored), 1)
+        self.assertIn("OpinionWay", censored[0])
 
     def test_french_section_structure_and_all_eleven_runoff_families(self) -> None:
         headings = [section["line"] for section in self.fr["tocdata"]["sections"]]
@@ -1106,6 +1235,114 @@ class FrozenFixtureTests(unittest.TestCase):
         ]
         self.assertEqual(len(added), 1)
 
+    def test_known_philippe_melenchon_family_is_a_normal_post_audit_addition(
+        self,
+    ) -> None:
+        parsed = parse_french_frozen_fixture(
+            post_audit_philippe_melenchon_runoff_fixture()
+        )
+
+        new_locator = (
+            f"{POST_AUDIT_PHILIPPE_MELENCHON_LOCATOR}r1"
+        )
+
+        records = {
+            record["source_locator"]: record
+            for record in parsed["second_round"]
+        }
+
+        self.assertIn(new_locator, records)
+
+        record = records[new_locator]
+
+        self.assertEqual(record["pollster"], "YouGov")
+        self.assertEqual(record["fieldwork_start"], "2026-09-17")
+        self.assertEqual(record["fieldwork_end"], "2026-09-21")
+        self.assertEqual(record["sample_size"], 1103)
+
+        self.assertEqual(
+            record["candidates"],
+            [
+                {"name": "Édouard Philippe", "score": 61},
+                {"name": "Jean-Luc Mélenchon", "score": 39},
+            ],
+        )
+
+        self.assertEqual(
+            record["source_url"],
+            (
+                "https://www.commission-des-sondages.fr/notices/files/"
+                "notices/2026/septembre/"
+                "10270-pres-iv-yougov-huffpost-23-septembre.pdf"
+            ),
+        )
+
+        baseline = reconcile_french_production_source(
+            self.reviewed_post_audit_fr,
+            read_post_audit_first_round(),
+            read_post_audit_second_round(),
+        )
+
+        result = reconcile_french_production_source(
+            post_audit_philippe_melenchon_runoff_fixture(),
+            read_post_audit_first_round(),
+            read_post_audit_second_round(),
+        )
+
+        self.assertEqual(
+            len(result.first_round_events),
+            len(baseline.first_round_events),
+        )
+
+        self.assertEqual(
+            len(result.second_round_events),
+            len(baseline.second_round_events) + 1,
+        )
+
+        self.assertEqual(
+            result.report["normal_post_audit_additions"][FIRST_ROUND],
+            baseline.report["normal_post_audit_additions"][FIRST_ROUND],
+        )
+
+        self.assertEqual(
+            result.report["normal_post_audit_additions"][SECOND_ROUND],
+            baseline.report["normal_post_audit_additions"][SECOND_ROUND] + 1,
+        )
+
+        baseline_second_ids = {
+            event["event_id"]
+            for event in baseline.second_round_events
+        }
+
+        result_second_ids = {
+            event["event_id"]
+            for event in result.second_round_events
+        }
+
+        self.assertLessEqual(
+            baseline_second_ids,
+            result_second_ids,
+        )
+
+        added = [
+            event
+            for event in result.second_round_events
+            if event.get("migration_source_locator") == new_locator
+        ]
+
+        self.assertEqual(len(added), 1)
+
+        self.assertEqual(
+            added[0]["matchup_key"],
+            make_scenario_key(
+                [
+                    "Édouard Philippe",
+                    "Jean-Luc Mélenchon",
+                ],
+                round_name=SECOND_ROUND,
+            ),
+        )
+
     def test_runoff_families_and_candidate_headers_remain_strict(self) -> None:
         previous_first = read_pre_cutover_first_round()
         previous_second = read_pre_cutover_second_round()
@@ -1137,6 +1374,52 @@ class FrozenFixtureTests(unittest.TestCase):
                 mutated,
                 previous_first,
                 previous_second,
+            )
+
+        yearless_without_source_year = (
+            post_audit_philippe_melenchon_runoff_fixture()
+        )
+        document = lxml_html.fromstring(
+            yearless_without_source_year["text"]
+        )
+
+        heading = document.xpath(
+            '//h4[@id="Hypothèse_Philippe_–_Mélenchon"]'
+        )[0].getparent()
+
+        table = heading.getnext()
+
+        source_link = next(
+            link
+            for link in table.xpath(".//a[@href]")
+            if "10270-pres-iv-yougov-huffpost-23-septembre.pdf"
+            in link.get("href", "")
+        )
+
+        source_link.set(
+            "href",
+            "https://example.test/yearless-yougov",
+        )
+
+        yearless_without_source_year["text"] = (
+            lxml_html.tostring(
+                document,
+                encoding="unicode",
+            )
+        )
+
+        with (
+            self.subTest(drift="yearless runoff source year"),
+            self.assertRaisesRegex(
+                ValueError,
+                (
+                    "yearless runoff date lacks "
+                    "reviewed Commission notice year"
+                ),
+            ),
+        ):
+            parse_french_frozen_fixture(
+                yearless_without_source_year
             )
 
         missing_table = post_audit_hollande_runoff_fixture()

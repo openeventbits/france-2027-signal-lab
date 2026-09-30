@@ -51,6 +51,21 @@ MEDIAWIKI_API_URL = "https://en.wikipedia.org/w/api.php"
 SOURCE_PAGE = "Opinion_polling_for_the_2027_French_presidential_election"
 WIKIPEDIA_LICENSE = "CC BY-SA 4.0"
 WIKIPEDIA_SOURCES = ("english", "french")
+
+# Exact English-Wikipedia events whose published source documents were
+# reviewed and contradict the transcribed candidate cells.  These must
+# remain excluded even though a genuinely rounded published scenario can
+# legitimately total 102.
+REVIEWED_ENGLISH_WIKIPEDIA_EVENT_REJECTIONS = {
+    "81b1f43029909049084bef9133448944875362eb295e632514a005aeb064e43a": (
+        "reviewed Toluna Harris report gives the March 2026 Gabriel Attal "
+        "hypothesis a 100-point published total"
+    ),
+    "b98b6411f9e8c860e24d00fb260c2c5fb728fc2991e497f9c0f550085b95fd43": (
+        "reviewed Ifop/Hexagone report does not include Dominique de "
+        "Villepin in this April 2025 Philippe hypothesis"
+    ),
+}
 FRENCH_SOURCE_URL = (
     "https://fr.wikipedia.org/wiki/"
     "Liste_de_sondages_sur_l%27%C3%A9lection_pr%C3%A9sidentielle_"
@@ -807,6 +822,21 @@ def parse_wikipedia_first_round_html(
                     f"table {table_order} row {row_index}: "
                     f"Wikipedia row rejected by poll contract: "
                     f"{error}"
+                )
+                continue
+
+            reviewed_rejection = (
+                REVIEWED_ENGLISH_WIKIPEDIA_EVENT_REJECTIONS.get(
+                    event["event_id"]
+                )
+            )
+
+            if reviewed_rejection:
+                skipped.append(
+                    f"{pollster} {fieldwork_raw} "
+                    f"table {table_order} row {row_index}: "
+                    "Wikipedia row rejected after official-source review: "
+                    f"{reviewed_rejection}"
                 )
                 continue
 
@@ -2315,6 +2345,7 @@ def main() -> None:
             from poll_migration import (
                 AUDITED_FRENCH_RUNOFF_HEADINGS,
                 POST_AUDIT_HOLLANDE_LE_PEN_HEADING,
+                POST_AUDIT_PHILIPPE_MELENCHON_HEADING,
                 load_mediawiki_fixture,
             )
             from rehearse_fr_poll_migration import (
@@ -2351,6 +2382,7 @@ def main() -> None:
                 for heading in (
                     *AUDITED_FRENCH_RUNOFF_HEADINGS,
                     POST_AUDIT_HOLLANDE_LE_PEN_HEADING,
+                    POST_AUDIT_PHILIPPE_MELENCHON_HEADING,
                 )
             )
         except (
