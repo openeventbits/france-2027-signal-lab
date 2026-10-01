@@ -31,6 +31,7 @@ from poll_migration import (
     POST_AUDIT_PHILIPPE_MELENCHON_LOCATOR,
     _header_candidate,
     _header_value,
+    _row_candidate,
     _validate_first_round_candidate_headers,
     apply_wave_scoped_pollster_alias,
     candidate_identity,
@@ -499,6 +500,47 @@ class FrozenFixtureTests(unittest.TestCase):
 
         self.assertEqual(_header_candidate(pandas_2_header), (None, True))
         self.assertEqual(_header_candidate(pandas_3_header), (None, True))
+
+    def test_named_column_row_link_overrides_header_candidate(self) -> None:
+        substitutions = (
+            (
+                ("3 Royal (PS)", "/wiki/S%C3%A9gol%C3%A8ne_Royal"),
+                "Ségolène Royal",
+            ),
+            (
+                ("3 Guedj (PS)", "/wiki/J%C3%A9r%C3%B4me_Guedj"),
+                "Jérôme Guedj",
+            ),
+            (
+                ("1 Maurel (GRS)", "/wiki/Emmanuel_Maurel"),
+                "Emmanuel Maurel",
+            ),
+        )
+
+        for value, expected in substitutions:
+            with self.subTest(expected=expected):
+                self.assertEqual(
+                    _row_candidate(
+                        value,
+                        "Raphaël Glucksmann",
+                        False,
+                    ),
+                    expected,
+                )
+
+    def test_unreviewed_explicit_row_candidate_link_fails_closed(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "unreviewed explicit row candidate link",
+        ):
+            _row_candidate(
+                (
+                    "3 Mystery Candidate",
+                    "/wiki/Mystery_Candidate",
+                ),
+                "Raphaël Glucksmann",
+                False,
+            )
 
     def test_pandas_duplicate_unknown_header_remains_fail_closed(self) -> None:
         unknown_header = (
