@@ -122,6 +122,7 @@ MIGRATION_CANDIDATE_NAMES = (
     "David Lisnard",
     "Dominique de Villepin",
     "Emmanuel Macron",
+    "Emmanuel Maurel",
     "Fabien Roussel",
     "François Bayrou",
     "François Hollande",
@@ -131,6 +132,7 @@ MIGRATION_CANDIDATE_NAMES = (
     "Jean Castex",
     "Jean Lassalle",
     "Jean-Luc Mélenchon",
+    "Jérôme Guedj",
     "Jordan Bardella",
     "Laurent Wauquiez",
     "Marine Le Pen",
@@ -146,6 +148,7 @@ MIGRATION_CANDIDATE_NAMES = (
     "Raphaël Glucksmann",
     "Sandrine Rousseau",
     "Sarah Knafo",
+    "Ségolène Royal",
     "Sébastien Lecornu",
     "Teddy Riner",
     "Xavier Bertrand",
@@ -1150,9 +1153,14 @@ def _header_candidate(column: object) -> tuple[str | None, bool]:
 
 def _row_candidate(value: object, header_name: str | None, generic: bool) -> str:
     raw = cell_text(value)
-    linked = _candidate_from_link(cell_link(value))
+    row_link = cell_link(value)
+    linked = _candidate_from_link(row_link)
     if linked:
         return linked
+    if row_link and "/wiki/" in row_link:
+        raise ValueError(
+            f"unreviewed explicit row candidate link: {row_link!r}"
+        )
     if not generic and header_name:
         return header_name
     suffix = re.sub(r"^[<>]?\s*\d+(?:[.,]\d+)?\s*", "", raw).strip()
