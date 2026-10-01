@@ -347,6 +347,42 @@ def post_audit_philippe_melenchon_runoff_fixture() -> dict:
     return parsed
 
 
+def post_audit_melenchon_philippe_runoff_fixture() -> dict:
+    parsed = post_audit_philippe_melenchon_runoff_fixture()
+    section = next(
+        section
+        for section in parsed["tocdata"]["sections"]
+        if section["line"] == "Hypothèse Philippe – Mélenchon"
+    )
+    section["line"] = "Hypothèse Mélenchon – Philippe"
+    section["anchor"] = "Hypothèse_Mélenchon_–_Philippe"
+
+    document = lxml_html.fromstring(parsed["text"])
+    heading = document.xpath(
+        '//h4[@id="Hypothèse_Philippe_–_Mélenchon"]'
+    )[0]
+    heading.set("id", "Hypothèse_Mélenchon_–_Philippe")
+    heading.text = "Hypothèse Mélenchon – Philippe"
+    table = heading.getparent().getnext()
+
+    candidate_header_row = table.xpath(".//tr")[1]
+    candidate_headers = candidate_header_row.xpath("./th")
+    for header in candidate_headers:
+        candidate_header_row.remove(header)
+    for header in reversed(candidate_headers):
+        candidate_header_row.append(header)
+
+    data_row = table.xpath(".//tr")[3]
+    score_cells = data_row.xpath("./td")[3:]
+    for cell in score_cells:
+        data_row.remove(cell)
+    for cell in reversed(score_cells):
+        data_row.append(cell)
+
+    parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+    return parsed
+
+
 def minimal_named_candidate_fixture(order: tuple[str, ...]) -> dict:
     parsed = copy.deepcopy(
         load_mediawiki_fixture(
@@ -1383,6 +1419,105 @@ class FrozenFixtureTests(unittest.TestCase):
                 ],
                 round_name=SECOND_ROUND,
             ),
+        )
+
+    def test_reviewed_philippe_melenchon_heading_orders_share_identity(
+        self,
+    ) -> None:
+        canonical_source = post_audit_philippe_melenchon_runoff_fixture()
+        reversed_source = post_audit_melenchon_philippe_runoff_fixture()
+        locator = f"{POST_AUDIT_PHILIPPE_MELENCHON_LOCATOR}r1"
+
+        canonical_record = next(
+            record
+            for record in parse_french_frozen_fixture(canonical_source)[
+                "second_round"
+            ]
+            if record["source_locator"] == locator
+        )
+        reversed_record = next(
+            record
+            for record in parse_french_frozen_fixture(reversed_source)[
+                "second_round"
+            ]
+            if record["source_locator"] == locator
+        )
+
+        self.assertEqual(
+            exact_factual_key(canonical_record),
+            exact_factual_key(reversed_record),
+        )
+        self.assertEqual(
+            {
+                candidate["name"]: candidate["score"]
+                for candidate in reversed_record["candidates"]
+            },
+            {"Jean-Luc Mélenchon": 39, "Édouard Philippe": 61},
+        )
+        self.assertEqual(reversed_record["pollster"], "YouGov")
+        self.assertEqual(reversed_record["fieldwork_start"], "2026-09-17")
+        self.assertEqual(reversed_record["fieldwork_end"], "2026-09-21")
+        self.assertEqual(reversed_record["sample_size"], 1103)
+        self.assertTrue(reversed_record["source_url"].endswith(
+            "/10270-pres-iv-yougov-huffpost-23-septembre.pdf"
+        ))
+
+        canonical_result = reconcile_french_production_source(
+            canonical_source,
+            read_post_audit_first_round(),
+            read_post_audit_second_round(),
+        )
+        canonical_event = next(
+            event
+            for event in canonical_result.second_round_events
+            if event.get("migration_source_locator") == locator
+        )
+        self.assertEqual(
+            canonical_event["event_id"],
+            "f6df923b62a79fa7df1d65b9a8223650eb172610c1282b09587fbbbf440b7721",
+        )
+        historical_ids = {
+            event["event_id"] for event in canonical_result.second_round_events
+        }
+
+        reversed_result = reconcile_french_production_source(
+            reversed_source,
+            canonical_result.first_round_events,
+            canonical_result.second_round_events,
+        )
+        reversed_ids = {
+            event["event_id"] for event in reversed_result.second_round_events
+        }
+        matching_events = [
+            event
+            for event in reversed_result.second_round_events
+            if event["pollster"] == "YouGov"
+            and event["fieldwork_start"] == "2026-09-17"
+            and event["fieldwork_end"] == "2026-09-21"
+            and event["sample_size"] == 1103
+            and {
+                candidate["name"]: candidate["score"]
+                for candidate in event["candidates"]
+            }
+            == {"Jean-Luc Mélenchon": 39, "Édouard Philippe": 61}
+        ]
+
+        self.assertEqual(reversed_ids, historical_ids)
+        self.assertEqual(len(matching_events), 1)
+        self.assertEqual(matching_events[0], canonical_event)
+
+        repeated = reconcile_french_production_source(
+            reversed_source,
+            reversed_result.first_round_events,
+            reversed_result.second_round_events,
+        )
+        self.assertEqual(
+            repeated.first_round_events,
+            reversed_result.first_round_events,
+        )
+        self.assertEqual(
+            repeated.second_round_events,
+            reversed_result.second_round_events,
         )
 
     def test_runoff_families_and_candidate_headers_remain_strict(self) -> None:

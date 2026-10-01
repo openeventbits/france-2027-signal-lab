@@ -66,6 +66,9 @@ POST_AUDIT_HOLLANDE_LE_PEN_HEADING = "hypothese hollande le pen"
 POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR = "FR-POST-HOLLANDE-LE-PEN"
 POST_AUDIT_PHILIPPE_MELENCHON_HEADING = "hypothese philippe melenchon"
 POST_AUDIT_PHILIPPE_MELENCHON_LOCATOR = "FR-POST-PHILIPPE-MELENCHON"
+REVIEWED_FRENCH_RUNOFF_HEADING_ALIASES = {
+    "hypothese melenchon philippe": POST_AUDIT_PHILIPPE_MELENCHON_HEADING,
+}
 POST_AUDIT_FRENCH_RUNOFF_FAMILIES = (
     (
         POST_AUDIT_HOLLANDE_LE_PEN_HEADING,
@@ -78,6 +81,12 @@ POST_AUDIT_FRENCH_RUNOFF_FAMILIES = (
 )
 FRENCH_FIRST_ROUND_SECTION = "sondages concernant le premier tour"
 FRENCH_SECOND_ROUND_SECTION = "sondages concernant le second tour"
+
+
+def canonical_french_runoff_heading(heading: str) -> str:
+    """Map one explicitly reviewed presentation-order alias to its family."""
+
+    return REVIEWED_FRENCH_RUNOFF_HEADING_ALIASES.get(heading, heading)
 
 ALLOWED_ROUNDS = {FIRST_ROUND, SECOND_ROUND}
 ALLOWED_SAMPLE_SCOPES = {
@@ -1284,9 +1293,10 @@ def _french_runoff_table_plan(tables: list[object]) -> list[tuple[str, object]]:
         if _section_heading(table) == FRENCH_SECOND_ROUND_SECTION
     ]
     for table in runoff_tables:
-        heading = _preceding_heading(table)
+        raw_heading = _preceding_heading(table)
+        heading = canonical_french_runoff_heading(raw_heading)
         if heading not in reviewed_headings:
-            raise ValueError(f"unreviewed French runoff family {heading!r}")
+            raise ValueError(f"unreviewed French runoff family {raw_heading!r}")
         if heading in by_heading:
             raise ValueError(f"French runoff family {heading!r} exposes multiple tables")
         by_heading[heading] = table
