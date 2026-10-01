@@ -2346,6 +2346,7 @@ def main() -> None:
                 AUDITED_FRENCH_RUNOFF_HEADINGS,
                 POST_AUDIT_HOLLANDE_LE_PEN_HEADING,
                 POST_AUDIT_PHILIPPE_MELENCHON_HEADING,
+                canonical_french_runoff_heading,
                 load_mediawiki_fixture,
             )
             from rehearse_fr_poll_migration import (
@@ -2374,7 +2375,9 @@ def main() -> None:
                 overrides,
             )
             current_headings = {
-                normalize_identity(str(section.get("line", "")))
+                canonical_french_runoff_heading(
+                    normalize_identity(str(section.get("line", "")))
+                )
                 for section in parsed_french["tocdata"]["sections"]
             }
             reviewed_runoff_family_count = sum(
