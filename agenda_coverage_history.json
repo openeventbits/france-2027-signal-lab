@@ -1,0 +1,4420 @@
+{
+  "schema_version": "1.0",
+  "data_as_of": "2026-10-02T20:03:45.133458Z",
+  "period": {
+    "start_date": "2026-07-23",
+    "end_date": "2026-10-01",
+    "days": 71,
+    "day_boundary": "UTC",
+    "current_utc_day_excluded": true
+  },
+  "reconstruction": {
+    "classification_source": "retained news_wire.json campaign_agenda.evolution snapshots",
+    "initial_inventory_at": "2026-07-22T21:07:55.297861Z",
+    "initial_inventory_commit": "629dd29c9d4a96e5fcbd6584c68e4ffbe0d8c94f",
+    "start_rule": "first complete UTC day after persistent relevant-news inventory initialization",
+    "historical_classifier_policy": "retain each published snapshot classification; never reclassify old headlines",
+    "missing_canonical_topic_policy": "zero-fill canonical topics absent from an older snapshot",
+    "peak_tie_break": "source_day_count descending, item_count descending, date ascending",
+    "prohibited_proxy": "candidate_agenda_history.json is not used as media-volume history"
+  },
+  "denominator": {
+    "single_label": true,
+    "item_name": "classified Campaign Agenda items",
+    "item_formula": "topic item_count / total classified Agenda items",
+    "source_day_name": "Campaign Agenda topic source-days",
+    "source_day_formula": "topic source_day_count / total Agenda topic source-days",
+    "zero_denominator_share": 0.0,
+    "note": "Source-days are summed within topics; one publisher/date may contribute to different topic source-day totals through different single-label items."
+  },
+  "daily": [
+    {
+      "date": "2026-07-23",
+      "total_classified_agenda_items": 7,
+      "total_agenda_topic_source_days": 7,
+      "source_snapshot_at": "2026-08-21T23:43:37.815903Z"
+    },
+    {
+      "date": "2026-07-24",
+      "total_classified_agenda_items": 1,
+      "total_agenda_topic_source_days": 1,
+      "source_snapshot_at": "2026-08-22T23:39:54.110279Z"
+    },
+    {
+      "date": "2026-07-25",
+      "total_classified_agenda_items": 2,
+      "total_agenda_topic_source_days": 2,
+      "source_snapshot_at": "2026-08-23T23:40:28.516211Z"
+    },
+    {
+      "date": "2026-07-26",
+      "total_classified_agenda_items": 7,
+      "total_agenda_topic_source_days": 7,
+      "source_snapshot_at": "2026-08-24T23:41:45.229635Z"
+    },
+    {
+      "date": "2026-07-27",
+      "total_classified_agenda_items": 2,
+      "total_agenda_topic_source_days": 2,
+      "source_snapshot_at": "2026-08-25T23:43:49.838437Z"
+    },
+    {
+      "date": "2026-07-28",
+      "total_classified_agenda_items": 4,
+      "total_agenda_topic_source_days": 4,
+      "source_snapshot_at": "2026-08-26T23:45:14.044033Z"
+    },
+    {
+      "date": "2026-07-29",
+      "total_classified_agenda_items": 1,
+      "total_agenda_topic_source_days": 1,
+      "source_snapshot_at": "2026-08-27T20:36:12.678044Z"
+    },
+    {
+      "date": "2026-07-30",
+      "total_classified_agenda_items": 0,
+      "total_agenda_topic_source_days": 0,
+      "source_snapshot_at": "2026-08-28T18:50:41.468392Z"
+    },
+    {
+      "date": "2026-07-31",
+      "total_classified_agenda_items": 3,
+      "total_agenda_topic_source_days": 3,
+      "source_snapshot_at": "2026-08-29T21:49:20.718138Z"
+    },
+    {
+      "date": "2026-08-01",
+      "total_classified_agenda_items": 1,
+      "total_agenda_topic_source_days": 1,
+      "source_snapshot_at": "2026-08-30T21:15:27.117968Z"
+    },
+    {
+      "date": "2026-08-02",
+      "total_classified_agenda_items": 1,
+      "total_agenda_topic_source_days": 1,
+      "source_snapshot_at": "2026-08-31T23:56:06.411433Z"
+    },
+    {
+      "date": "2026-08-03",
+      "total_classified_agenda_items": 9,
+      "total_agenda_topic_source_days": 8,
+      "source_snapshot_at": "2026-09-01T21:52:04.142042Z"
+    },
+    {
+      "date": "2026-08-04",
+      "total_classified_agenda_items": 4,
+      "total_agenda_topic_source_days": 4,
+      "source_snapshot_at": "2026-09-02T21:54:11.426356Z"
+    },
+    {
+      "date": "2026-08-05",
+      "total_classified_agenda_items": 10,
+      "total_agenda_topic_source_days": 10,
+      "source_snapshot_at": "2026-09-03T21:46:33.075885Z"
+    },
+    {
+      "date": "2026-08-06",
+      "total_classified_agenda_items": 6,
+      "total_agenda_topic_source_days": 5,
+      "source_snapshot_at": "2026-09-04T21:34:45.389594Z"
+    },
+    {
+      "date": "2026-08-07",
+      "total_classified_agenda_items": 9,
+      "total_agenda_topic_source_days": 9,
+      "source_snapshot_at": "2026-09-05T23:01:46.993082Z"
+    },
+    {
+      "date": "2026-08-08",
+      "total_classified_agenda_items": 35,
+      "total_agenda_topic_source_days": 32,
+      "source_snapshot_at": "2026-09-06T21:27:41.336494Z"
+    },
+    {
+      "date": "2026-08-09",
+      "total_classified_agenda_items": 5,
+      "total_agenda_topic_source_days": 5,
+      "source_snapshot_at": "2026-09-07T23:36:26.231815Z"
+    },
+    {
+      "date": "2026-08-10",
+      "total_classified_agenda_items": 32,
+      "total_agenda_topic_source_days": 28,
+      "source_snapshot_at": "2026-09-08T21:56:43.685409Z"
+    },
+    {
+      "date": "2026-08-11",
+      "total_classified_agenda_items": 10,
+      "total_agenda_topic_source_days": 10,
+      "source_snapshot_at": "2026-09-09T21:46:48.605407Z"
+    },
+    {
+      "date": "2026-08-12",
+      "total_classified_agenda_items": 10,
+      "total_agenda_topic_source_days": 8,
+      "source_snapshot_at": "2026-09-10T21:42:59.344663Z"
+    },
+    {
+      "date": "2026-08-13",
+      "total_classified_agenda_items": 2,
+      "total_agenda_topic_source_days": 2,
+      "source_snapshot_at": "2026-09-11T21:47:39.173846Z"
+    },
+    {
+      "date": "2026-08-14",
+      "total_classified_agenda_items": 2,
+      "total_agenda_topic_source_days": 2,
+      "source_snapshot_at": "2026-09-12T22:25:05.279004Z"
+    },
+    {
+      "date": "2026-08-15",
+      "total_classified_agenda_items": 2,
+      "total_agenda_topic_source_days": 2,
+      "source_snapshot_at": "2026-09-13T22:30:09.766047Z"
+    },
+    {
+      "date": "2026-08-16",
+      "total_classified_agenda_items": 3,
+      "total_agenda_topic_source_days": 3,
+      "source_snapshot_at": "2026-09-14T23:14:20.896683Z"
+    },
+    {
+      "date": "2026-08-17",
+      "total_classified_agenda_items": 64,
+      "total_agenda_topic_source_days": 52,
+      "source_snapshot_at": "2026-09-15T23:02:18.234109Z"
+    },
+    {
+      "date": "2026-08-18",
+      "total_classified_agenda_items": 24,
+      "total_agenda_topic_source_days": 18,
+      "source_snapshot_at": "2026-09-16T23:03:26.627583Z"
+    },
+    {
+      "date": "2026-08-19",
+      "total_classified_agenda_items": 17,
+      "total_agenda_topic_source_days": 14,
+      "source_snapshot_at": "2026-09-17T23:02:48.150980Z"
+    },
+    {
+      "date": "2026-08-20",
+      "total_classified_agenda_items": 12,
+      "total_agenda_topic_source_days": 12,
+      "source_snapshot_at": "2026-09-18T22:41:16.721793Z"
+    },
+    {
+      "date": "2026-08-21",
+      "total_classified_agenda_items": 4,
+      "total_agenda_topic_source_days": 4,
+      "source_snapshot_at": "2026-09-19T23:15:33.166771Z"
+    },
+    {
+      "date": "2026-08-22",
+      "total_classified_agenda_items": 17,
+      "total_agenda_topic_source_days": 12,
+      "source_snapshot_at": "2026-09-20T22:33:39.517978Z"
+    },
+    {
+      "date": "2026-08-23",
+      "total_classified_agenda_items": 62,
+      "total_agenda_topic_source_days": 43,
+      "source_snapshot_at": "2026-09-21T23:24:11.243675Z"
+    },
+    {
+      "date": "2026-08-24",
+      "total_classified_agenda_items": 94,
+      "total_agenda_topic_source_days": 63,
+      "source_snapshot_at": "2026-09-22T23:03:35.961817Z"
+    },
+    {
+      "date": "2026-08-25",
+      "total_classified_agenda_items": 55,
+      "total_agenda_topic_source_days": 40,
+      "source_snapshot_at": "2026-09-23T23:48:43.198211Z"
+    },
+    {
+      "date": "2026-08-26",
+      "total_classified_agenda_items": 70,
+      "total_agenda_topic_source_days": 44,
+      "source_snapshot_at": "2026-09-24T22:32:09.886786Z"
+    },
+    {
+      "date": "2026-08-27",
+      "total_classified_agenda_items": 47,
+      "total_agenda_topic_source_days": 33,
+      "source_snapshot_at": "2026-09-25T22:31:35.601277Z"
+    },
+    {
+      "date": "2026-08-28",
+      "total_classified_agenda_items": 36,
+      "total_agenda_topic_source_days": 24,
+      "source_snapshot_at": "2026-09-26T22:59:39.949500Z"
+    },
+    {
+      "date": "2026-08-29",
+      "total_classified_agenda_items": 60,
+      "total_agenda_topic_source_days": 41,
+      "source_snapshot_at": "2026-09-27T22:22:14.049122Z"
+    },
+    {
+      "date": "2026-08-30",
+      "total_classified_agenda_items": 73,
+      "total_agenda_topic_source_days": 50,
+      "source_snapshot_at": "2026-09-28T22:10:17.293331Z"
+    },
+    {
+      "date": "2026-08-31",
+      "total_classified_agenda_items": 42,
+      "total_agenda_topic_source_days": 32,
+      "source_snapshot_at": "2026-09-29T22:32:26.104229Z"
+    },
+    {
+      "date": "2026-09-01",
+      "total_classified_agenda_items": 17,
+      "total_agenda_topic_source_days": 17,
+      "source_snapshot_at": "2026-09-30T23:58:17.096322Z"
+    },
+    {
+      "date": "2026-09-02",
+      "total_classified_agenda_items": 48,
+      "total_agenda_topic_source_days": 32,
+      "source_snapshot_at": "2026-10-01T22:03:42.735516Z"
+    },
+    {
+      "date": "2026-09-03",
+      "total_classified_agenda_items": 33,
+      "total_agenda_topic_source_days": 23,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-04",
+      "total_classified_agenda_items": 45,
+      "total_agenda_topic_source_days": 33,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-05",
+      "total_classified_agenda_items": 24,
+      "total_agenda_topic_source_days": 19,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-06",
+      "total_classified_agenda_items": 67,
+      "total_agenda_topic_source_days": 56,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-07",
+      "total_classified_agenda_items": 35,
+      "total_agenda_topic_source_days": 20,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-08",
+      "total_classified_agenda_items": 41,
+      "total_agenda_topic_source_days": 25,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-09",
+      "total_classified_agenda_items": 58,
+      "total_agenda_topic_source_days": 30,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-10",
+      "total_classified_agenda_items": 53,
+      "total_agenda_topic_source_days": 30,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-11",
+      "total_classified_agenda_items": 20,
+      "total_agenda_topic_source_days": 15,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-12",
+      "total_classified_agenda_items": 17,
+      "total_agenda_topic_source_days": 14,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-13",
+      "total_classified_agenda_items": 37,
+      "total_agenda_topic_source_days": 20,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-14",
+      "total_classified_agenda_items": 31,
+      "total_agenda_topic_source_days": 22,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-15",
+      "total_classified_agenda_items": 26,
+      "total_agenda_topic_source_days": 20,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-16",
+      "total_classified_agenda_items": 122,
+      "total_agenda_topic_source_days": 60,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-17",
+      "total_classified_agenda_items": 42,
+      "total_agenda_topic_source_days": 28,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-18",
+      "total_classified_agenda_items": 27,
+      "total_agenda_topic_source_days": 22,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-19",
+      "total_classified_agenda_items": 31,
+      "total_agenda_topic_source_days": 24,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-20",
+      "total_classified_agenda_items": 51,
+      "total_agenda_topic_source_days": 23,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-21",
+      "total_classified_agenda_items": 29,
+      "total_agenda_topic_source_days": 21,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-22",
+      "total_classified_agenda_items": 47,
+      "total_agenda_topic_source_days": 32,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-23",
+      "total_classified_agenda_items": 73,
+      "total_agenda_topic_source_days": 35,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-24",
+      "total_classified_agenda_items": 77,
+      "total_agenda_topic_source_days": 59,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-25",
+      "total_classified_agenda_items": 29,
+      "total_agenda_topic_source_days": 24,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-26",
+      "total_classified_agenda_items": 4,
+      "total_agenda_topic_source_days": 4,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-27",
+      "total_classified_agenda_items": 6,
+      "total_agenda_topic_source_days": 5,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-28",
+      "total_classified_agenda_items": 23,
+      "total_agenda_topic_source_days": 19,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-29",
+      "total_classified_agenda_items": 11,
+      "total_agenda_topic_source_days": 10,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-09-30",
+      "total_classified_agenda_items": 18,
+      "total_agenda_topic_source_days": 15,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    },
+    {
+      "date": "2026-10-01",
+      "total_classified_agenda_items": 29,
+      "total_agenda_topic_source_days": 20,
+      "source_snapshot_at": "2026-10-02T20:03:45.133458Z"
+    }
+  ],
+  "topics": [
+    {
+      "id": "legal_eligibility",
+      "labels": {
+        "fr": "Affaires judiciaires et éligibilité",
+        "en": "Legal cases & eligibility"
+      },
+      "total_items": 46,
+      "total_source_days": 43,
+      "active_days": 9,
+      "first_observation": "2026-08-06",
+      "last_observation": "2026-09-19",
+      "peak_day": {
+        "date": "2026-08-08",
+        "item_count": 33,
+        "source_day_count": 30
+      },
+      "maximum_rolling_30d_source_days": 39,
+      "historical_qualified": true,
+      "daily": [
+        {
+          "date": "2026-07-23",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 7,
+          "total_agenda_topic_source_days": 7,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-24",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-25",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-26",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 7,
+          "total_agenda_topic_source_days": 7,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-27",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-28",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-29",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-30",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 0,
+          "total_agenda_topic_source_days": 0,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-31",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 3,
+          "total_agenda_topic_source_days": 3,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-01",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-02",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-03",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 9,
+          "total_agenda_topic_source_days": 8,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-04",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-05",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-06",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 6,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.16666666666666666,
+          "topic_source_day_share": 0.2
+        },
+        {
+          "date": "2026-08-07",
+          "item_count": 4,
+          "source_day_count": 4,
+          "total_classified_agenda_items": 9,
+          "total_agenda_topic_source_days": 9,
+          "topic_item_share": 0.4444444444444444,
+          "topic_source_day_share": 0.4444444444444444
+        },
+        {
+          "date": "2026-08-08",
+          "item_count": 33,
+          "source_day_count": 30,
+          "total_classified_agenda_items": 35,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.9428571428571428,
+          "topic_source_day_share": 0.9375
+        },
+        {
+          "date": "2026-08-09",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 5,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-10",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 32,
+          "total_agenda_topic_source_days": 28,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-11",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-12",
+          "item_count": 3,
+          "source_day_count": 3,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 8,
+          "topic_item_share": 0.3,
+          "topic_source_day_share": 0.375
+        },
+        {
+          "date": "2026-08-13",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-14",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-15",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-16",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 3,
+          "total_agenda_topic_source_days": 3,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-17",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 64,
+          "total_agenda_topic_source_days": 52,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-18",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 24,
+          "total_agenda_topic_source_days": 18,
+          "topic_item_share": 0.041666666666666664,
+          "topic_source_day_share": 0.05555555555555555
+        },
+        {
+          "date": "2026-08-19",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 14,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-20",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 12,
+          "total_agenda_topic_source_days": 12,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-21",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-22",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 12,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-23",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 62,
+          "total_agenda_topic_source_days": 43,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-24",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 94,
+          "total_agenda_topic_source_days": 63,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-25",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 55,
+          "total_agenda_topic_source_days": 40,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-26",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 70,
+          "total_agenda_topic_source_days": 44,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-27",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 47,
+          "total_agenda_topic_source_days": 33,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-28",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 36,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 60,
+          "total_agenda_topic_source_days": 41,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 73,
+          "total_agenda_topic_source_days": 50,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 42,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 17,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 48,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 33,
+          "total_agenda_topic_source_days": 23,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 45,
+          "total_agenda_topic_source_days": 33,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 24,
+          "total_agenda_topic_source_days": 19,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-06",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 67,
+          "total_agenda_topic_source_days": 56,
+          "topic_item_share": 0.014925373134328358,
+          "topic_source_day_share": 0.017857142857142856
+        },
+        {
+          "date": "2026-09-07",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 35,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.02857142857142857,
+          "topic_source_day_share": 0.05
+        },
+        {
+          "date": "2026-09-08",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 41,
+          "total_agenda_topic_source_days": 25,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 58,
+          "total_agenda_topic_source_days": 30,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 53,
+          "total_agenda_topic_source_days": 30,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 20,
+          "total_agenda_topic_source_days": 15,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 14,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 37,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 31,
+          "total_agenda_topic_source_days": 22,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 26,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 122,
+          "total_agenda_topic_source_days": 60,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-17",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 42,
+          "total_agenda_topic_source_days": 28,
+          "topic_item_share": 0.023809523809523808,
+          "topic_source_day_share": 0.03571428571428571
+        },
+        {
+          "date": "2026-09-18",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 27,
+          "total_agenda_topic_source_days": 22,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 31,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.03225806451612903,
+          "topic_source_day_share": 0.041666666666666664
+        },
+        {
+          "date": "2026-09-20",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 51,
+          "total_agenda_topic_source_days": 23,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 21,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 47,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 73,
+          "total_agenda_topic_source_days": 35,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 77,
+          "total_agenda_topic_source_days": 59,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-27",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 6,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-28",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 23,
+          "total_agenda_topic_source_days": 19,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-29",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 11,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-30",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 18,
+          "total_agenda_topic_source_days": 15,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-10-01",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        }
+      ]
+    },
+    {
+      "id": "selection_strategy",
+      "labels": {
+        "fr": "Primaires et stratégies partisanes",
+        "en": "Primaries & party strategy"
+      },
+      "total_items": 1145,
+      "total_source_days": 700,
+      "active_days": 60,
+      "first_observation": "2026-07-23",
+      "last_observation": "2026-10-01",
+      "peak_day": {
+        "date": "2026-09-16",
+        "item_count": 114,
+        "source_day_count": 52
+      },
+      "maximum_rolling_30d_source_days": 542,
+      "historical_qualified": true,
+      "daily": [
+        {
+          "date": "2026-07-23",
+          "item_count": 3,
+          "source_day_count": 3,
+          "total_classified_agenda_items": 7,
+          "total_agenda_topic_source_days": 7,
+          "topic_item_share": 0.42857142857142855,
+          "topic_source_day_share": 0.42857142857142855
+        },
+        {
+          "date": "2026-07-24",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-25",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-26",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 7,
+          "total_agenda_topic_source_days": 7,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-27",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-28",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-29",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-30",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 0,
+          "total_agenda_topic_source_days": 0,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-31",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 3,
+          "total_agenda_topic_source_days": 3,
+          "topic_item_share": 0.3333333333333333,
+          "topic_source_day_share": 0.3333333333333333
+        },
+        {
+          "date": "2026-08-01",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 1.0,
+          "topic_source_day_share": 1.0
+        },
+        {
+          "date": "2026-08-02",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-03",
+          "item_count": 7,
+          "source_day_count": 6,
+          "total_classified_agenda_items": 9,
+          "total_agenda_topic_source_days": 8,
+          "topic_item_share": 0.7777777777777778,
+          "topic_source_day_share": 0.75
+        },
+        {
+          "date": "2026-08-04",
+          "item_count": 3,
+          "source_day_count": 3,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.75,
+          "topic_source_day_share": 0.75
+        },
+        {
+          "date": "2026-08-05",
+          "item_count": 8,
+          "source_day_count": 8,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.8,
+          "topic_source_day_share": 0.8
+        },
+        {
+          "date": "2026-08-06",
+          "item_count": 3,
+          "source_day_count": 3,
+          "total_classified_agenda_items": 6,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.5,
+          "topic_source_day_share": 0.6
+        },
+        {
+          "date": "2026-08-07",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 9,
+          "total_agenda_topic_source_days": 9,
+          "topic_item_share": 0.2222222222222222,
+          "topic_source_day_share": 0.2222222222222222
+        },
+        {
+          "date": "2026-08-08",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 35,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.02857142857142857,
+          "topic_source_day_share": 0.03125
+        },
+        {
+          "date": "2026-08-09",
+          "item_count": 4,
+          "source_day_count": 4,
+          "total_classified_agenda_items": 5,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.8,
+          "topic_source_day_share": 0.8
+        },
+        {
+          "date": "2026-08-10",
+          "item_count": 25,
+          "source_day_count": 22,
+          "total_classified_agenda_items": 32,
+          "total_agenda_topic_source_days": 28,
+          "topic_item_share": 0.78125,
+          "topic_source_day_share": 0.7857142857142857
+        },
+        {
+          "date": "2026-08-11",
+          "item_count": 8,
+          "source_day_count": 8,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.8,
+          "topic_source_day_share": 0.8
+        },
+        {
+          "date": "2026-08-12",
+          "item_count": 7,
+          "source_day_count": 5,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 8,
+          "topic_item_share": 0.7,
+          "topic_source_day_share": 0.625
+        },
+        {
+          "date": "2026-08-13",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.5,
+          "topic_source_day_share": 0.5
+        },
+        {
+          "date": "2026-08-14",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.5,
+          "topic_source_day_share": 0.5
+        },
+        {
+          "date": "2026-08-15",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-16",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 3,
+          "total_agenda_topic_source_days": 3,
+          "topic_item_share": 0.3333333333333333,
+          "topic_source_day_share": 0.3333333333333333
+        },
+        {
+          "date": "2026-08-17",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 64,
+          "total_agenda_topic_source_days": 52,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-18",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 24,
+          "total_agenda_topic_source_days": 18,
+          "topic_item_share": 0.041666666666666664,
+          "topic_source_day_share": 0.05555555555555555
+        },
+        {
+          "date": "2026-08-19",
+          "item_count": 6,
+          "source_day_count": 5,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 14,
+          "topic_item_share": 0.35294117647058826,
+          "topic_source_day_share": 0.35714285714285715
+        },
+        {
+          "date": "2026-08-20",
+          "item_count": 4,
+          "source_day_count": 4,
+          "total_classified_agenda_items": 12,
+          "total_agenda_topic_source_days": 12,
+          "topic_item_share": 0.3333333333333333,
+          "topic_source_day_share": 0.3333333333333333
+        },
+        {
+          "date": "2026-08-21",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-22",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 12,
+          "topic_item_share": 0.11764705882352941,
+          "topic_source_day_share": 0.16666666666666666
+        },
+        {
+          "date": "2026-08-23",
+          "item_count": 9,
+          "source_day_count": 8,
+          "total_classified_agenda_items": 62,
+          "total_agenda_topic_source_days": 43,
+          "topic_item_share": 0.14516129032258066,
+          "topic_source_day_share": 0.18604651162790697
+        },
+        {
+          "date": "2026-08-24",
+          "item_count": 24,
+          "source_day_count": 14,
+          "total_classified_agenda_items": 94,
+          "total_agenda_topic_source_days": 63,
+          "topic_item_share": 0.2553191489361702,
+          "topic_source_day_share": 0.2222222222222222
+        },
+        {
+          "date": "2026-08-25",
+          "item_count": 37,
+          "source_day_count": 23,
+          "total_classified_agenda_items": 55,
+          "total_agenda_topic_source_days": 40,
+          "topic_item_share": 0.6727272727272727,
+          "topic_source_day_share": 0.575
+        },
+        {
+          "date": "2026-08-26",
+          "item_count": 48,
+          "source_day_count": 29,
+          "total_classified_agenda_items": 70,
+          "total_agenda_topic_source_days": 44,
+          "topic_item_share": 0.6857142857142857,
+          "topic_source_day_share": 0.6590909090909091
+        },
+        {
+          "date": "2026-08-27",
+          "item_count": 13,
+          "source_day_count": 9,
+          "total_classified_agenda_items": 47,
+          "total_agenda_topic_source_days": 33,
+          "topic_item_share": 0.2765957446808511,
+          "topic_source_day_share": 0.2727272727272727
+        },
+        {
+          "date": "2026-08-28",
+          "item_count": 28,
+          "source_day_count": 16,
+          "total_classified_agenda_items": 36,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.7777777777777778,
+          "topic_source_day_share": 0.6666666666666666
+        },
+        {
+          "date": "2026-08-29",
+          "item_count": 38,
+          "source_day_count": 23,
+          "total_classified_agenda_items": 60,
+          "total_agenda_topic_source_days": 41,
+          "topic_item_share": 0.6333333333333333,
+          "topic_source_day_share": 0.5609756097560976
+        },
+        {
+          "date": "2026-08-30",
+          "item_count": 51,
+          "source_day_count": 33,
+          "total_classified_agenda_items": 73,
+          "total_agenda_topic_source_days": 50,
+          "topic_item_share": 0.6986301369863014,
+          "topic_source_day_share": 0.66
+        },
+        {
+          "date": "2026-08-31",
+          "item_count": 28,
+          "source_day_count": 20,
+          "total_classified_agenda_items": 42,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.6666666666666666,
+          "topic_source_day_share": 0.625
+        },
+        {
+          "date": "2026-09-01",
+          "item_count": 15,
+          "source_day_count": 15,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 17,
+          "topic_item_share": 0.8823529411764706,
+          "topic_source_day_share": 0.8823529411764706
+        },
+        {
+          "date": "2026-09-02",
+          "item_count": 36,
+          "source_day_count": 21,
+          "total_classified_agenda_items": 48,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.75,
+          "topic_source_day_share": 0.65625
+        },
+        {
+          "date": "2026-09-03",
+          "item_count": 17,
+          "source_day_count": 12,
+          "total_classified_agenda_items": 33,
+          "total_agenda_topic_source_days": 23,
+          "topic_item_share": 0.5151515151515151,
+          "topic_source_day_share": 0.5217391304347826
+        },
+        {
+          "date": "2026-09-04",
+          "item_count": 29,
+          "source_day_count": 17,
+          "total_classified_agenda_items": 45,
+          "total_agenda_topic_source_days": 33,
+          "topic_item_share": 0.6444444444444445,
+          "topic_source_day_share": 0.5151515151515151
+        },
+        {
+          "date": "2026-09-05",
+          "item_count": 4,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 24,
+          "total_agenda_topic_source_days": 19,
+          "topic_item_share": 0.16666666666666666,
+          "topic_source_day_share": 0.05263157894736842
+        },
+        {
+          "date": "2026-09-06",
+          "item_count": 23,
+          "source_day_count": 22,
+          "total_classified_agenda_items": 67,
+          "total_agenda_topic_source_days": 56,
+          "topic_item_share": 0.34328358208955223,
+          "topic_source_day_share": 0.39285714285714285
+        },
+        {
+          "date": "2026-09-07",
+          "item_count": 17,
+          "source_day_count": 5,
+          "total_classified_agenda_items": 35,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.4857142857142857,
+          "topic_source_day_share": 0.25
+        },
+        {
+          "date": "2026-09-08",
+          "item_count": 29,
+          "source_day_count": 15,
+          "total_classified_agenda_items": 41,
+          "total_agenda_topic_source_days": 25,
+          "topic_item_share": 0.7073170731707317,
+          "topic_source_day_share": 0.6
+        },
+        {
+          "date": "2026-09-09",
+          "item_count": 46,
+          "source_day_count": 22,
+          "total_classified_agenda_items": 58,
+          "total_agenda_topic_source_days": 30,
+          "topic_item_share": 0.7931034482758621,
+          "topic_source_day_share": 0.7333333333333333
+        },
+        {
+          "date": "2026-09-10",
+          "item_count": 47,
+          "source_day_count": 25,
+          "total_classified_agenda_items": 53,
+          "total_agenda_topic_source_days": 30,
+          "topic_item_share": 0.8867924528301887,
+          "topic_source_day_share": 0.8333333333333334
+        },
+        {
+          "date": "2026-09-11",
+          "item_count": 12,
+          "source_day_count": 7,
+          "total_classified_agenda_items": 20,
+          "total_agenda_topic_source_days": 15,
+          "topic_item_share": 0.6,
+          "topic_source_day_share": 0.4666666666666667
+        },
+        {
+          "date": "2026-09-12",
+          "item_count": 6,
+          "source_day_count": 4,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 14,
+          "topic_item_share": 0.35294117647058826,
+          "topic_source_day_share": 0.2857142857142857
+        },
+        {
+          "date": "2026-09-13",
+          "item_count": 20,
+          "source_day_count": 8,
+          "total_classified_agenda_items": 37,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.5405405405405406,
+          "topic_source_day_share": 0.4
+        },
+        {
+          "date": "2026-09-14",
+          "item_count": 7,
+          "source_day_count": 6,
+          "total_classified_agenda_items": 31,
+          "total_agenda_topic_source_days": 22,
+          "topic_item_share": 0.22580645161290322,
+          "topic_source_day_share": 0.2727272727272727
+        },
+        {
+          "date": "2026-09-15",
+          "item_count": 19,
+          "source_day_count": 13,
+          "total_classified_agenda_items": 26,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.7307692307692307,
+          "topic_source_day_share": 0.65
+        },
+        {
+          "date": "2026-09-16",
+          "item_count": 114,
+          "source_day_count": 52,
+          "total_classified_agenda_items": 122,
+          "total_agenda_topic_source_days": 60,
+          "topic_item_share": 0.9344262295081968,
+          "topic_source_day_share": 0.8666666666666667
+        },
+        {
+          "date": "2026-09-17",
+          "item_count": 31,
+          "source_day_count": 18,
+          "total_classified_agenda_items": 42,
+          "total_agenda_topic_source_days": 28,
+          "topic_item_share": 0.7380952380952381,
+          "topic_source_day_share": 0.6428571428571429
+        },
+        {
+          "date": "2026-09-18",
+          "item_count": 15,
+          "source_day_count": 12,
+          "total_classified_agenda_items": 27,
+          "total_agenda_topic_source_days": 22,
+          "topic_item_share": 0.5555555555555556,
+          "topic_source_day_share": 0.5454545454545454
+        },
+        {
+          "date": "2026-09-19",
+          "item_count": 18,
+          "source_day_count": 12,
+          "total_classified_agenda_items": 31,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.5806451612903226,
+          "topic_source_day_share": 0.5
+        },
+        {
+          "date": "2026-09-20",
+          "item_count": 46,
+          "source_day_count": 18,
+          "total_classified_agenda_items": 51,
+          "total_agenda_topic_source_days": 23,
+          "topic_item_share": 0.9019607843137255,
+          "topic_source_day_share": 0.782608695652174
+        },
+        {
+          "date": "2026-09-21",
+          "item_count": 22,
+          "source_day_count": 14,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 21,
+          "topic_item_share": 0.7586206896551724,
+          "topic_source_day_share": 0.6666666666666666
+        },
+        {
+          "date": "2026-09-22",
+          "item_count": 40,
+          "source_day_count": 25,
+          "total_classified_agenda_items": 47,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.851063829787234,
+          "topic_source_day_share": 0.78125
+        },
+        {
+          "date": "2026-09-23",
+          "item_count": 70,
+          "source_day_count": 33,
+          "total_classified_agenda_items": 73,
+          "total_agenda_topic_source_days": 35,
+          "topic_item_share": 0.958904109589041,
+          "topic_source_day_share": 0.9428571428571428
+        },
+        {
+          "date": "2026-09-24",
+          "item_count": 50,
+          "source_day_count": 35,
+          "total_classified_agenda_items": 77,
+          "total_agenda_topic_source_days": 59,
+          "topic_item_share": 0.6493506493506493,
+          "topic_source_day_share": 0.5932203389830508
+        },
+        {
+          "date": "2026-09-25",
+          "item_count": 10,
+          "source_day_count": 5,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.3448275862068966,
+          "topic_source_day_share": 0.20833333333333334
+        },
+        {
+          "date": "2026-09-26",
+          "item_count": 3,
+          "source_day_count": 3,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.75,
+          "topic_source_day_share": 0.75
+        },
+        {
+          "date": "2026-09-27",
+          "item_count": 2,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 6,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.3333333333333333,
+          "topic_source_day_share": 0.2
+        },
+        {
+          "date": "2026-09-28",
+          "item_count": 2,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 23,
+          "total_agenda_topic_source_days": 19,
+          "topic_item_share": 0.08695652173913043,
+          "topic_source_day_share": 0.05263157894736842
+        },
+        {
+          "date": "2026-09-29",
+          "item_count": 2,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 11,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.18181818181818182,
+          "topic_source_day_share": 0.1
+        },
+        {
+          "date": "2026-09-30",
+          "item_count": 5,
+          "source_day_count": 5,
+          "total_classified_agenda_items": 18,
+          "total_agenda_topic_source_days": 15,
+          "topic_item_share": 0.2777777777777778,
+          "topic_source_day_share": 0.3333333333333333
+        },
+        {
+          "date": "2026-10-01",
+          "item_count": 23,
+          "source_day_count": 15,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.7931034482758621,
+          "topic_source_day_share": 0.75
+        }
+      ]
+    },
+    {
+      "id": "candidacies_endorsements",
+      "labels": {
+        "fr": "Candidatures et soutiens",
+        "en": "Candidacies & endorsements"
+      },
+      "total_items": 555,
+      "total_source_days": 452,
+      "active_days": 61,
+      "first_observation": "2026-07-23",
+      "last_observation": "2026-10-01",
+      "peak_day": {
+        "date": "2026-08-17",
+        "item_count": 61,
+        "source_day_count": 50
+      },
+      "maximum_rolling_30d_source_days": 343,
+      "historical_qualified": true,
+      "daily": [
+        {
+          "date": "2026-07-23",
+          "item_count": 3,
+          "source_day_count": 3,
+          "total_classified_agenda_items": 7,
+          "total_agenda_topic_source_days": 7,
+          "topic_item_share": 0.42857142857142855,
+          "topic_source_day_share": 0.42857142857142855
+        },
+        {
+          "date": "2026-07-24",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-25",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 1.0,
+          "topic_source_day_share": 1.0
+        },
+        {
+          "date": "2026-07-26",
+          "item_count": 5,
+          "source_day_count": 5,
+          "total_classified_agenda_items": 7,
+          "total_agenda_topic_source_days": 7,
+          "topic_item_share": 0.7142857142857143,
+          "topic_source_day_share": 0.7142857142857143
+        },
+        {
+          "date": "2026-07-27",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.5,
+          "topic_source_day_share": 0.5
+        },
+        {
+          "date": "2026-07-28",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.25,
+          "topic_source_day_share": 0.25
+        },
+        {
+          "date": "2026-07-29",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 1.0,
+          "topic_source_day_share": 1.0
+        },
+        {
+          "date": "2026-07-30",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 0,
+          "total_agenda_topic_source_days": 0,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-31",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 3,
+          "total_agenda_topic_source_days": 3,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-01",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-02",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-03",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 9,
+          "total_agenda_topic_source_days": 8,
+          "topic_item_share": 0.2222222222222222,
+          "topic_source_day_share": 0.25
+        },
+        {
+          "date": "2026-08-04",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-05",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.1,
+          "topic_source_day_share": 0.1
+        },
+        {
+          "date": "2026-08-06",
+          "item_count": 2,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 6,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.3333333333333333,
+          "topic_source_day_share": 0.2
+        },
+        {
+          "date": "2026-08-07",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 9,
+          "total_agenda_topic_source_days": 9,
+          "topic_item_share": 0.2222222222222222,
+          "topic_source_day_share": 0.2222222222222222
+        },
+        {
+          "date": "2026-08-08",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 35,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.02857142857142857,
+          "topic_source_day_share": 0.03125
+        },
+        {
+          "date": "2026-08-09",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 5,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.2,
+          "topic_source_day_share": 0.2
+        },
+        {
+          "date": "2026-08-10",
+          "item_count": 6,
+          "source_day_count": 5,
+          "total_classified_agenda_items": 32,
+          "total_agenda_topic_source_days": 28,
+          "topic_item_share": 0.1875,
+          "topic_source_day_share": 0.17857142857142858
+        },
+        {
+          "date": "2026-08-11",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.2,
+          "topic_source_day_share": 0.2
+        },
+        {
+          "date": "2026-08-12",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 8,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-13",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-14",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.5,
+          "topic_source_day_share": 0.5
+        },
+        {
+          "date": "2026-08-15",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-16",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 3,
+          "total_agenda_topic_source_days": 3,
+          "topic_item_share": 0.6666666666666666,
+          "topic_source_day_share": 0.6666666666666666
+        },
+        {
+          "date": "2026-08-17",
+          "item_count": 61,
+          "source_day_count": 50,
+          "total_classified_agenda_items": 64,
+          "total_agenda_topic_source_days": 52,
+          "topic_item_share": 0.953125,
+          "topic_source_day_share": 0.9615384615384616
+        },
+        {
+          "date": "2026-08-18",
+          "item_count": 21,
+          "source_day_count": 15,
+          "total_classified_agenda_items": 24,
+          "total_agenda_topic_source_days": 18,
+          "topic_item_share": 0.875,
+          "topic_source_day_share": 0.8333333333333334
+        },
+        {
+          "date": "2026-08-19",
+          "item_count": 10,
+          "source_day_count": 8,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 14,
+          "topic_item_share": 0.5882352941176471,
+          "topic_source_day_share": 0.5714285714285714
+        },
+        {
+          "date": "2026-08-20",
+          "item_count": 8,
+          "source_day_count": 8,
+          "total_classified_agenda_items": 12,
+          "total_agenda_topic_source_days": 12,
+          "topic_item_share": 0.6666666666666666,
+          "topic_source_day_share": 0.6666666666666666
+        },
+        {
+          "date": "2026-08-21",
+          "item_count": 3,
+          "source_day_count": 3,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.75,
+          "topic_source_day_share": 0.75
+        },
+        {
+          "date": "2026-08-22",
+          "item_count": 13,
+          "source_day_count": 8,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 12,
+          "topic_item_share": 0.7647058823529411,
+          "topic_source_day_share": 0.6666666666666666
+        },
+        {
+          "date": "2026-08-23",
+          "item_count": 52,
+          "source_day_count": 34,
+          "total_classified_agenda_items": 62,
+          "total_agenda_topic_source_days": 43,
+          "topic_item_share": 0.8387096774193549,
+          "topic_source_day_share": 0.7906976744186046
+        },
+        {
+          "date": "2026-08-24",
+          "item_count": 47,
+          "source_day_count": 37,
+          "total_classified_agenda_items": 94,
+          "total_agenda_topic_source_days": 63,
+          "topic_item_share": 0.5,
+          "topic_source_day_share": 0.5873015873015873
+        },
+        {
+          "date": "2026-08-25",
+          "item_count": 13,
+          "source_day_count": 12,
+          "total_classified_agenda_items": 55,
+          "total_agenda_topic_source_days": 40,
+          "topic_item_share": 0.23636363636363636,
+          "topic_source_day_share": 0.3
+        },
+        {
+          "date": "2026-08-26",
+          "item_count": 12,
+          "source_day_count": 9,
+          "total_classified_agenda_items": 70,
+          "total_agenda_topic_source_days": 44,
+          "topic_item_share": 0.17142857142857143,
+          "topic_source_day_share": 0.20454545454545456
+        },
+        {
+          "date": "2026-08-27",
+          "item_count": 30,
+          "source_day_count": 20,
+          "total_classified_agenda_items": 47,
+          "total_agenda_topic_source_days": 33,
+          "topic_item_share": 0.6382978723404256,
+          "topic_source_day_share": 0.6060606060606061
+        },
+        {
+          "date": "2026-08-28",
+          "item_count": 7,
+          "source_day_count": 7,
+          "total_classified_agenda_items": 36,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.19444444444444445,
+          "topic_source_day_share": 0.2916666666666667
+        },
+        {
+          "date": "2026-08-29",
+          "item_count": 11,
+          "source_day_count": 11,
+          "total_classified_agenda_items": 60,
+          "total_agenda_topic_source_days": 41,
+          "topic_item_share": 0.18333333333333332,
+          "topic_source_day_share": 0.2682926829268293
+        },
+        {
+          "date": "2026-08-30",
+          "item_count": 15,
+          "source_day_count": 11,
+          "total_classified_agenda_items": 73,
+          "total_agenda_topic_source_days": 50,
+          "topic_item_share": 0.2054794520547945,
+          "topic_source_day_share": 0.22
+        },
+        {
+          "date": "2026-08-31",
+          "item_count": 9,
+          "source_day_count": 7,
+          "total_classified_agenda_items": 42,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.21428571428571427,
+          "topic_source_day_share": 0.21875
+        },
+        {
+          "date": "2026-09-01",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 17,
+          "topic_item_share": 0.058823529411764705,
+          "topic_source_day_share": 0.058823529411764705
+        },
+        {
+          "date": "2026-09-02",
+          "item_count": 6,
+          "source_day_count": 6,
+          "total_classified_agenda_items": 48,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.125,
+          "topic_source_day_share": 0.1875
+        },
+        {
+          "date": "2026-09-03",
+          "item_count": 14,
+          "source_day_count": 9,
+          "total_classified_agenda_items": 33,
+          "total_agenda_topic_source_days": 23,
+          "topic_item_share": 0.42424242424242425,
+          "topic_source_day_share": 0.391304347826087
+        },
+        {
+          "date": "2026-09-04",
+          "item_count": 13,
+          "source_day_count": 13,
+          "total_classified_agenda_items": 45,
+          "total_agenda_topic_source_days": 33,
+          "topic_item_share": 0.28888888888888886,
+          "topic_source_day_share": 0.3939393939393939
+        },
+        {
+          "date": "2026-09-05",
+          "item_count": 8,
+          "source_day_count": 7,
+          "total_classified_agenda_items": 24,
+          "total_agenda_topic_source_days": 19,
+          "topic_item_share": 0.3333333333333333,
+          "topic_source_day_share": 0.3684210526315789
+        },
+        {
+          "date": "2026-09-06",
+          "item_count": 35,
+          "source_day_count": 28,
+          "total_classified_agenda_items": 67,
+          "total_agenda_topic_source_days": 56,
+          "topic_item_share": 0.5223880597014925,
+          "topic_source_day_share": 0.5
+        },
+        {
+          "date": "2026-09-07",
+          "item_count": 13,
+          "source_day_count": 11,
+          "total_classified_agenda_items": 35,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.37142857142857144,
+          "topic_source_day_share": 0.55
+        },
+        {
+          "date": "2026-09-08",
+          "item_count": 3,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 41,
+          "total_agenda_topic_source_days": 25,
+          "topic_item_share": 0.07317073170731707,
+          "topic_source_day_share": 0.08
+        },
+        {
+          "date": "2026-09-09",
+          "item_count": 9,
+          "source_day_count": 5,
+          "total_classified_agenda_items": 58,
+          "total_agenda_topic_source_days": 30,
+          "topic_item_share": 0.15517241379310345,
+          "topic_source_day_share": 0.16666666666666666
+        },
+        {
+          "date": "2026-09-10",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 53,
+          "total_agenda_topic_source_days": 30,
+          "topic_item_share": 0.03773584905660377,
+          "topic_source_day_share": 0.06666666666666667
+        },
+        {
+          "date": "2026-09-11",
+          "item_count": 5,
+          "source_day_count": 5,
+          "total_classified_agenda_items": 20,
+          "total_agenda_topic_source_days": 15,
+          "topic_item_share": 0.25,
+          "topic_source_day_share": 0.3333333333333333
+        },
+        {
+          "date": "2026-09-12",
+          "item_count": 4,
+          "source_day_count": 4,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 14,
+          "topic_item_share": 0.23529411764705882,
+          "topic_source_day_share": 0.2857142857142857
+        },
+        {
+          "date": "2026-09-13",
+          "item_count": 6,
+          "source_day_count": 5,
+          "total_classified_agenda_items": 37,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.16216216216216217,
+          "topic_source_day_share": 0.25
+        },
+        {
+          "date": "2026-09-14",
+          "item_count": 4,
+          "source_day_count": 3,
+          "total_classified_agenda_items": 31,
+          "total_agenda_topic_source_days": 22,
+          "topic_item_share": 0.12903225806451613,
+          "topic_source_day_share": 0.13636363636363635
+        },
+        {
+          "date": "2026-09-15",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 26,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "item_count": 4,
+          "source_day_count": 4,
+          "total_classified_agenda_items": 122,
+          "total_agenda_topic_source_days": 60,
+          "topic_item_share": 0.03278688524590164,
+          "topic_source_day_share": 0.06666666666666667
+        },
+        {
+          "date": "2026-09-17",
+          "item_count": 7,
+          "source_day_count": 6,
+          "total_classified_agenda_items": 42,
+          "total_agenda_topic_source_days": 28,
+          "topic_item_share": 0.16666666666666666,
+          "topic_source_day_share": 0.21428571428571427
+        },
+        {
+          "date": "2026-09-18",
+          "item_count": 12,
+          "source_day_count": 10,
+          "total_classified_agenda_items": 27,
+          "total_agenda_topic_source_days": 22,
+          "topic_item_share": 0.4444444444444444,
+          "topic_source_day_share": 0.45454545454545453
+        },
+        {
+          "date": "2026-09-19",
+          "item_count": 10,
+          "source_day_count": 9,
+          "total_classified_agenda_items": 31,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.3225806451612903,
+          "topic_source_day_share": 0.375
+        },
+        {
+          "date": "2026-09-20",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 51,
+          "total_agenda_topic_source_days": 23,
+          "topic_item_share": 0.0392156862745098,
+          "topic_source_day_share": 0.08695652173913043
+        },
+        {
+          "date": "2026-09-21",
+          "item_count": 7,
+          "source_day_count": 7,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 21,
+          "topic_item_share": 0.2413793103448276,
+          "topic_source_day_share": 0.3333333333333333
+        },
+        {
+          "date": "2026-09-22",
+          "item_count": 7,
+          "source_day_count": 7,
+          "total_classified_agenda_items": 47,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.14893617021276595,
+          "topic_source_day_share": 0.21875
+        },
+        {
+          "date": "2026-09-23",
+          "item_count": 3,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 73,
+          "total_agenda_topic_source_days": 35,
+          "topic_item_share": 0.0410958904109589,
+          "topic_source_day_share": 0.05714285714285714
+        },
+        {
+          "date": "2026-09-24",
+          "item_count": 7,
+          "source_day_count": 5,
+          "total_classified_agenda_items": 77,
+          "total_agenda_topic_source_days": 59,
+          "topic_item_share": 0.09090909090909091,
+          "topic_source_day_share": 0.0847457627118644
+        },
+        {
+          "date": "2026-09-25",
+          "item_count": 16,
+          "source_day_count": 16,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.5517241379310345,
+          "topic_source_day_share": 0.6666666666666666
+        },
+        {
+          "date": "2026-09-26",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.25,
+          "topic_source_day_share": 0.25
+        },
+        {
+          "date": "2026-09-27",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 6,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.3333333333333333,
+          "topic_source_day_share": 0.4
+        },
+        {
+          "date": "2026-09-28",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 23,
+          "total_agenda_topic_source_days": 19,
+          "topic_item_share": 0.08695652173913043,
+          "topic_source_day_share": 0.10526315789473684
+        },
+        {
+          "date": "2026-09-29",
+          "item_count": 4,
+          "source_day_count": 4,
+          "total_classified_agenda_items": 11,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.36363636363636365,
+          "topic_source_day_share": 0.4
+        },
+        {
+          "date": "2026-09-30",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 18,
+          "total_agenda_topic_source_days": 15,
+          "topic_item_share": 0.1111111111111111,
+          "topic_source_day_share": 0.13333333333333333
+        },
+        {
+          "date": "2026-10-01",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.034482758620689655,
+          "topic_source_day_share": 0.05
+        }
+      ]
+    },
+    {
+      "id": "rules_calendar",
+      "labels": {
+        "fr": "Règles, calendrier et organisation de la campagne",
+        "en": "Rules, calendar & campaign mechanics"
+      },
+      "total_items": 38,
+      "total_source_days": 37,
+      "active_days": 27,
+      "first_observation": "2026-07-23",
+      "last_observation": "2026-10-01",
+      "peak_day": {
+        "date": "2026-09-08",
+        "item_count": 5,
+        "source_day_count": 5
+      },
+      "maximum_rolling_30d_source_days": 26,
+      "historical_qualified": true,
+      "daily": [
+        {
+          "date": "2026-07-23",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 7,
+          "total_agenda_topic_source_days": 7,
+          "topic_item_share": 0.14285714285714285,
+          "topic_source_day_share": 0.14285714285714285
+        },
+        {
+          "date": "2026-07-24",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 1.0,
+          "topic_source_day_share": 1.0
+        },
+        {
+          "date": "2026-07-25",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-26",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 7,
+          "total_agenda_topic_source_days": 7,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-27",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.5,
+          "topic_source_day_share": 0.5
+        },
+        {
+          "date": "2026-07-28",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.5,
+          "topic_source_day_share": 0.5
+        },
+        {
+          "date": "2026-07-29",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-30",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 0,
+          "total_agenda_topic_source_days": 0,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-31",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 3,
+          "total_agenda_topic_source_days": 3,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-01",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-02",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-03",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 9,
+          "total_agenda_topic_source_days": 8,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-04",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-05",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.1,
+          "topic_source_day_share": 0.1
+        },
+        {
+          "date": "2026-08-06",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 6,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-07",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 9,
+          "total_agenda_topic_source_days": 9,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-08",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 35,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-09",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 5,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-10",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 32,
+          "total_agenda_topic_source_days": 28,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-11",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-12",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 8,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-13",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-14",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-15",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.5,
+          "topic_source_day_share": 0.5
+        },
+        {
+          "date": "2026-08-16",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 3,
+          "total_agenda_topic_source_days": 3,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-17",
+          "item_count": 2,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 64,
+          "total_agenda_topic_source_days": 52,
+          "topic_item_share": 0.03125,
+          "topic_source_day_share": 0.019230769230769232
+        },
+        {
+          "date": "2026-08-18",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 24,
+          "total_agenda_topic_source_days": 18,
+          "topic_item_share": 0.041666666666666664,
+          "topic_source_day_share": 0.05555555555555555
+        },
+        {
+          "date": "2026-08-19",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 14,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-20",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 12,
+          "total_agenda_topic_source_days": 12,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-21",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.25,
+          "topic_source_day_share": 0.25
+        },
+        {
+          "date": "2026-08-22",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 12,
+          "topic_item_share": 0.058823529411764705,
+          "topic_source_day_share": 0.08333333333333333
+        },
+        {
+          "date": "2026-08-23",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 62,
+          "total_agenda_topic_source_days": 43,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-24",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 94,
+          "total_agenda_topic_source_days": 63,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-25",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 55,
+          "total_agenda_topic_source_days": 40,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-26",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 70,
+          "total_agenda_topic_source_days": 44,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-27",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 47,
+          "total_agenda_topic_source_days": 33,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-28",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 36,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 60,
+          "total_agenda_topic_source_days": 41,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 73,
+          "total_agenda_topic_source_days": 50,
+          "topic_item_share": 0.0273972602739726,
+          "topic_source_day_share": 0.04
+        },
+        {
+          "date": "2026-08-31",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 42,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.047619047619047616,
+          "topic_source_day_share": 0.0625
+        },
+        {
+          "date": "2026-09-01",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 17,
+          "topic_item_share": 0.058823529411764705,
+          "topic_source_day_share": 0.058823529411764705
+        },
+        {
+          "date": "2026-09-02",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 48,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.020833333333333332,
+          "topic_source_day_share": 0.03125
+        },
+        {
+          "date": "2026-09-03",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 33,
+          "total_agenda_topic_source_days": 23,
+          "topic_item_share": 0.06060606060606061,
+          "topic_source_day_share": 0.08695652173913043
+        },
+        {
+          "date": "2026-09-04",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 45,
+          "total_agenda_topic_source_days": 33,
+          "topic_item_share": 0.022222222222222223,
+          "topic_source_day_share": 0.030303030303030304
+        },
+        {
+          "date": "2026-09-05",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 24,
+          "total_agenda_topic_source_days": 19,
+          "topic_item_share": 0.08333333333333333,
+          "topic_source_day_share": 0.10526315789473684
+        },
+        {
+          "date": "2026-09-06",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 67,
+          "total_agenda_topic_source_days": 56,
+          "topic_item_share": 0.014925373134328358,
+          "topic_source_day_share": 0.017857142857142856
+        },
+        {
+          "date": "2026-09-07",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 35,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "item_count": 5,
+          "source_day_count": 5,
+          "total_classified_agenda_items": 41,
+          "total_agenda_topic_source_days": 25,
+          "topic_item_share": 0.12195121951219512,
+          "topic_source_day_share": 0.2
+        },
+        {
+          "date": "2026-09-09",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 58,
+          "total_agenda_topic_source_days": 30,
+          "topic_item_share": 0.034482758620689655,
+          "topic_source_day_share": 0.06666666666666667
+        },
+        {
+          "date": "2026-09-10",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 53,
+          "total_agenda_topic_source_days": 30,
+          "topic_item_share": 0.018867924528301886,
+          "topic_source_day_share": 0.03333333333333333
+        },
+        {
+          "date": "2026-09-11",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 20,
+          "total_agenda_topic_source_days": 15,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 14,
+          "topic_item_share": 0.058823529411764705,
+          "topic_source_day_share": 0.07142857142857142
+        },
+        {
+          "date": "2026-09-13",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 37,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 31,
+          "total_agenda_topic_source_days": 22,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 26,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.038461538461538464,
+          "topic_source_day_share": 0.05
+        },
+        {
+          "date": "2026-09-16",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 122,
+          "total_agenda_topic_source_days": 60,
+          "topic_item_share": 0.00819672131147541,
+          "topic_source_day_share": 0.016666666666666666
+        },
+        {
+          "date": "2026-09-17",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 42,
+          "total_agenda_topic_source_days": 28,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 27,
+          "total_agenda_topic_source_days": 22,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 31,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.03225806451612903,
+          "topic_source_day_share": 0.041666666666666664
+        },
+        {
+          "date": "2026-09-20",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 51,
+          "total_agenda_topic_source_days": 23,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 21,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 47,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 73,
+          "total_agenda_topic_source_days": 35,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 77,
+          "total_agenda_topic_source_days": 59,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-27",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 6,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-28",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 23,
+          "total_agenda_topic_source_days": 19,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-29",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 11,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-30",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 18,
+          "total_agenda_topic_source_days": 15,
+          "topic_item_share": 0.05555555555555555,
+          "topic_source_day_share": 0.06666666666666667
+        },
+        {
+          "date": "2026-10-01",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.034482758620689655,
+          "topic_source_day_share": 0.05
+        }
+      ]
+    },
+    {
+      "id": "positioning_integrity",
+      "labels": {
+        "fr": "Positionnement et image politique",
+        "en": "Positioning & political image"
+      },
+      "total_items": 7,
+      "total_source_days": 5,
+      "active_days": 4,
+      "first_observation": "2026-08-19",
+      "last_observation": "2026-09-25",
+      "peak_day": {
+        "date": "2026-09-17",
+        "item_count": 2,
+        "source_day_count": 2
+      },
+      "maximum_rolling_30d_source_days": 4,
+      "historical_qualified": true,
+      "daily": [
+        {
+          "date": "2026-07-23",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 7,
+          "total_agenda_topic_source_days": 7,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-24",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-25",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-26",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 7,
+          "total_agenda_topic_source_days": 7,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-27",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-28",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-29",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-30",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 0,
+          "total_agenda_topic_source_days": 0,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-31",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 3,
+          "total_agenda_topic_source_days": 3,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-01",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-02",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-03",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 9,
+          "total_agenda_topic_source_days": 8,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-04",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-05",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-06",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 6,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-07",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 9,
+          "total_agenda_topic_source_days": 9,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-08",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 35,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-09",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 5,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-10",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 32,
+          "total_agenda_topic_source_days": 28,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-11",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-12",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 8,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-13",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-14",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-15",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-16",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 3,
+          "total_agenda_topic_source_days": 3,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-17",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 64,
+          "total_agenda_topic_source_days": 52,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-18",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 24,
+          "total_agenda_topic_source_days": 18,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-19",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 14,
+          "topic_item_share": 0.058823529411764705,
+          "topic_source_day_share": 0.07142857142857142
+        },
+        {
+          "date": "2026-08-20",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 12,
+          "total_agenda_topic_source_days": 12,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-21",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-22",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 12,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-23",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 62,
+          "total_agenda_topic_source_days": 43,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-24",
+          "item_count": 3,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 94,
+          "total_agenda_topic_source_days": 63,
+          "topic_item_share": 0.031914893617021274,
+          "topic_source_day_share": 0.015873015873015872
+        },
+        {
+          "date": "2026-08-25",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 55,
+          "total_agenda_topic_source_days": 40,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-26",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 70,
+          "total_agenda_topic_source_days": 44,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-27",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 47,
+          "total_agenda_topic_source_days": 33,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-28",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 36,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 60,
+          "total_agenda_topic_source_days": 41,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 73,
+          "total_agenda_topic_source_days": 50,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 42,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 17,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 48,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 33,
+          "total_agenda_topic_source_days": 23,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 45,
+          "total_agenda_topic_source_days": 33,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 24,
+          "total_agenda_topic_source_days": 19,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-06",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 67,
+          "total_agenda_topic_source_days": 56,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 35,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 41,
+          "total_agenda_topic_source_days": 25,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 58,
+          "total_agenda_topic_source_days": 30,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 53,
+          "total_agenda_topic_source_days": 30,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 20,
+          "total_agenda_topic_source_days": 15,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 14,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 37,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 31,
+          "total_agenda_topic_source_days": 22,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 26,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 122,
+          "total_agenda_topic_source_days": 60,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-17",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 42,
+          "total_agenda_topic_source_days": 28,
+          "topic_item_share": 0.047619047619047616,
+          "topic_source_day_share": 0.07142857142857142
+        },
+        {
+          "date": "2026-09-18",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 27,
+          "total_agenda_topic_source_days": 22,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 31,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 51,
+          "total_agenda_topic_source_days": 23,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 21,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 47,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 73,
+          "total_agenda_topic_source_days": 35,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 77,
+          "total_agenda_topic_source_days": 59,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.034482758620689655,
+          "topic_source_day_share": 0.041666666666666664
+        },
+        {
+          "date": "2026-09-26",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-27",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 6,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-28",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 23,
+          "total_agenda_topic_source_days": 19,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-29",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 11,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-30",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 18,
+          "total_agenda_topic_source_days": 15,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-10-01",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        }
+      ]
+    },
+    {
+      "id": "polls_race",
+      "labels": {
+        "fr": "Sondages et rapports de force",
+        "en": "Polling & race narratives"
+      },
+      "total_items": 225,
+      "total_source_days": 179,
+      "active_days": 44,
+      "first_observation": "2026-07-26",
+      "last_observation": "2026-10-01",
+      "peak_day": {
+        "date": "2026-09-24",
+        "item_count": 20,
+        "source_day_count": 19
+      },
+      "maximum_rolling_30d_source_days": 124,
+      "historical_qualified": true,
+      "daily": [
+        {
+          "date": "2026-07-23",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 7,
+          "total_agenda_topic_source_days": 7,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-24",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-25",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-26",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 7,
+          "total_agenda_topic_source_days": 7,
+          "topic_item_share": 0.2857142857142857,
+          "topic_source_day_share": 0.2857142857142857
+        },
+        {
+          "date": "2026-07-27",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-28",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.25,
+          "topic_source_day_share": 0.25
+        },
+        {
+          "date": "2026-07-29",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-30",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 0,
+          "total_agenda_topic_source_days": 0,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-07-31",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 3,
+          "total_agenda_topic_source_days": 3,
+          "topic_item_share": 0.6666666666666666,
+          "topic_source_day_share": 0.6666666666666666
+        },
+        {
+          "date": "2026-08-01",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-02",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 1,
+          "total_agenda_topic_source_days": 1,
+          "topic_item_share": 1.0,
+          "topic_source_day_share": 1.0
+        },
+        {
+          "date": "2026-08-03",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 9,
+          "total_agenda_topic_source_days": 8,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-04",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.25,
+          "topic_source_day_share": 0.25
+        },
+        {
+          "date": "2026-08-05",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-06",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 6,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-07",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 9,
+          "total_agenda_topic_source_days": 9,
+          "topic_item_share": 0.1111111111111111,
+          "topic_source_day_share": 0.1111111111111111
+        },
+        {
+          "date": "2026-08-08",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 35,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-09",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 5,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-10",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 32,
+          "total_agenda_topic_source_days": 28,
+          "topic_item_share": 0.03125,
+          "topic_source_day_share": 0.03571428571428571
+        },
+        {
+          "date": "2026-08-11",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-12",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 10,
+          "total_agenda_topic_source_days": 8,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-13",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.5,
+          "topic_source_day_share": 0.5
+        },
+        {
+          "date": "2026-08-14",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-15",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 2,
+          "total_agenda_topic_source_days": 2,
+          "topic_item_share": 0.5,
+          "topic_source_day_share": 0.5
+        },
+        {
+          "date": "2026-08-16",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 3,
+          "total_agenda_topic_source_days": 3,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-17",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 64,
+          "total_agenda_topic_source_days": 52,
+          "topic_item_share": 0.015625,
+          "topic_source_day_share": 0.019230769230769232
+        },
+        {
+          "date": "2026-08-18",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 24,
+          "total_agenda_topic_source_days": 18,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-19",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 14,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-20",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 12,
+          "total_agenda_topic_source_days": 12,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-21",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-08-22",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 12,
+          "topic_item_share": 0.058823529411764705,
+          "topic_source_day_share": 0.08333333333333333
+        },
+        {
+          "date": "2026-08-23",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 62,
+          "total_agenda_topic_source_days": 43,
+          "topic_item_share": 0.016129032258064516,
+          "topic_source_day_share": 0.023255813953488372
+        },
+        {
+          "date": "2026-08-24",
+          "item_count": 20,
+          "source_day_count": 11,
+          "total_classified_agenda_items": 94,
+          "total_agenda_topic_source_days": 63,
+          "topic_item_share": 0.2127659574468085,
+          "topic_source_day_share": 0.1746031746031746
+        },
+        {
+          "date": "2026-08-25",
+          "item_count": 5,
+          "source_day_count": 5,
+          "total_classified_agenda_items": 55,
+          "total_agenda_topic_source_days": 40,
+          "topic_item_share": 0.09090909090909091,
+          "topic_source_day_share": 0.125
+        },
+        {
+          "date": "2026-08-26",
+          "item_count": 10,
+          "source_day_count": 6,
+          "total_classified_agenda_items": 70,
+          "total_agenda_topic_source_days": 44,
+          "topic_item_share": 0.14285714285714285,
+          "topic_source_day_share": 0.13636363636363635
+        },
+        {
+          "date": "2026-08-27",
+          "item_count": 4,
+          "source_day_count": 4,
+          "total_classified_agenda_items": 47,
+          "total_agenda_topic_source_days": 33,
+          "topic_item_share": 0.0851063829787234,
+          "topic_source_day_share": 0.12121212121212122
+        },
+        {
+          "date": "2026-08-28",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 36,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.027777777777777776,
+          "topic_source_day_share": 0.041666666666666664
+        },
+        {
+          "date": "2026-08-29",
+          "item_count": 11,
+          "source_day_count": 7,
+          "total_classified_agenda_items": 60,
+          "total_agenda_topic_source_days": 41,
+          "topic_item_share": 0.18333333333333332,
+          "topic_source_day_share": 0.17073170731707318
+        },
+        {
+          "date": "2026-08-30",
+          "item_count": 5,
+          "source_day_count": 4,
+          "total_classified_agenda_items": 73,
+          "total_agenda_topic_source_days": 50,
+          "topic_item_share": 0.0684931506849315,
+          "topic_source_day_share": 0.08
+        },
+        {
+          "date": "2026-08-31",
+          "item_count": 3,
+          "source_day_count": 3,
+          "total_classified_agenda_items": 42,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.07142857142857142,
+          "topic_source_day_share": 0.09375
+        },
+        {
+          "date": "2026-09-01",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 17,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "item_count": 5,
+          "source_day_count": 4,
+          "total_classified_agenda_items": 48,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.10416666666666667,
+          "topic_source_day_share": 0.125
+        },
+        {
+          "date": "2026-09-03",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 33,
+          "total_agenda_topic_source_days": 23,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 45,
+          "total_agenda_topic_source_days": 33,
+          "topic_item_share": 0.044444444444444446,
+          "topic_source_day_share": 0.06060606060606061
+        },
+        {
+          "date": "2026-09-05",
+          "item_count": 10,
+          "source_day_count": 9,
+          "total_classified_agenda_items": 24,
+          "total_agenda_topic_source_days": 19,
+          "topic_item_share": 0.4166666666666667,
+          "topic_source_day_share": 0.47368421052631576
+        },
+        {
+          "date": "2026-09-06",
+          "item_count": 7,
+          "source_day_count": 4,
+          "total_classified_agenda_items": 67,
+          "total_agenda_topic_source_days": 56,
+          "topic_item_share": 0.1044776119402985,
+          "topic_source_day_share": 0.07142857142857142
+        },
+        {
+          "date": "2026-09-07",
+          "item_count": 4,
+          "source_day_count": 3,
+          "total_classified_agenda_items": 35,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.11428571428571428,
+          "topic_source_day_share": 0.15
+        },
+        {
+          "date": "2026-09-08",
+          "item_count": 4,
+          "source_day_count": 3,
+          "total_classified_agenda_items": 41,
+          "total_agenda_topic_source_days": 25,
+          "topic_item_share": 0.0975609756097561,
+          "topic_source_day_share": 0.12
+        },
+        {
+          "date": "2026-09-09",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 58,
+          "total_agenda_topic_source_days": 30,
+          "topic_item_share": 0.017241379310344827,
+          "topic_source_day_share": 0.03333333333333333
+        },
+        {
+          "date": "2026-09-10",
+          "item_count": 3,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 53,
+          "total_agenda_topic_source_days": 30,
+          "topic_item_share": 0.05660377358490566,
+          "topic_source_day_share": 0.06666666666666667
+        },
+        {
+          "date": "2026-09-11",
+          "item_count": 3,
+          "source_day_count": 3,
+          "total_classified_agenda_items": 20,
+          "total_agenda_topic_source_days": 15,
+          "topic_item_share": 0.15,
+          "topic_source_day_share": 0.2
+        },
+        {
+          "date": "2026-09-12",
+          "item_count": 6,
+          "source_day_count": 5,
+          "total_classified_agenda_items": 17,
+          "total_agenda_topic_source_days": 14,
+          "topic_item_share": 0.35294117647058826,
+          "topic_source_day_share": 0.35714285714285715
+        },
+        {
+          "date": "2026-09-13",
+          "item_count": 11,
+          "source_day_count": 7,
+          "total_classified_agenda_items": 37,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.2972972972972973,
+          "topic_source_day_share": 0.35
+        },
+        {
+          "date": "2026-09-14",
+          "item_count": 20,
+          "source_day_count": 13,
+          "total_classified_agenda_items": 31,
+          "total_agenda_topic_source_days": 22,
+          "topic_item_share": 0.6451612903225806,
+          "topic_source_day_share": 0.5909090909090909
+        },
+        {
+          "date": "2026-09-15",
+          "item_count": 6,
+          "source_day_count": 6,
+          "total_classified_agenda_items": 26,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.23076923076923078,
+          "topic_source_day_share": 0.3
+        },
+        {
+          "date": "2026-09-16",
+          "item_count": 3,
+          "source_day_count": 3,
+          "total_classified_agenda_items": 122,
+          "total_agenda_topic_source_days": 60,
+          "topic_item_share": 0.02459016393442623,
+          "topic_source_day_share": 0.05
+        },
+        {
+          "date": "2026-09-17",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 42,
+          "total_agenda_topic_source_days": 28,
+          "topic_item_share": 0.023809523809523808,
+          "topic_source_day_share": 0.03571428571428571
+        },
+        {
+          "date": "2026-09-18",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 27,
+          "total_agenda_topic_source_days": 22,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "item_count": 1,
+          "source_day_count": 1,
+          "total_classified_agenda_items": 31,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.03225806451612903,
+          "topic_source_day_share": 0.041666666666666664
+        },
+        {
+          "date": "2026-09-20",
+          "item_count": 3,
+          "source_day_count": 3,
+          "total_classified_agenda_items": 51,
+          "total_agenda_topic_source_days": 23,
+          "topic_item_share": 0.058823529411764705,
+          "topic_source_day_share": 0.13043478260869565
+        },
+        {
+          "date": "2026-09-21",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 21,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 47,
+          "total_agenda_topic_source_days": 32,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 73,
+          "total_agenda_topic_source_days": 35,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "item_count": 20,
+          "source_day_count": 19,
+          "total_classified_agenda_items": 77,
+          "total_agenda_topic_source_days": 59,
+          "topic_item_share": 0.2597402597402597,
+          "topic_source_day_share": 0.3220338983050847
+        },
+        {
+          "date": "2026-09-25",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 24,
+          "topic_item_share": 0.06896551724137931,
+          "topic_source_day_share": 0.08333333333333333
+        },
+        {
+          "date": "2026-09-26",
+          "item_count": 0,
+          "source_day_count": 0,
+          "total_classified_agenda_items": 4,
+          "total_agenda_topic_source_days": 4,
+          "topic_item_share": 0.0,
+          "topic_source_day_share": 0.0
+        },
+        {
+          "date": "2026-09-27",
+          "item_count": 2,
+          "source_day_count": 2,
+          "total_classified_agenda_items": 6,
+          "total_agenda_topic_source_days": 5,
+          "topic_item_share": 0.3333333333333333,
+          "topic_source_day_share": 0.4
+        },
+        {
+          "date": "2026-09-28",
+          "item_count": 19,
+          "source_day_count": 16,
+          "total_classified_agenda_items": 23,
+          "total_agenda_topic_source_days": 19,
+          "topic_item_share": 0.8260869565217391,
+          "topic_source_day_share": 0.8421052631578947
+        },
+        {
+          "date": "2026-09-29",
+          "item_count": 5,
+          "source_day_count": 5,
+          "total_classified_agenda_items": 11,
+          "total_agenda_topic_source_days": 10,
+          "topic_item_share": 0.45454545454545453,
+          "topic_source_day_share": 0.5
+        },
+        {
+          "date": "2026-09-30",
+          "item_count": 10,
+          "source_day_count": 7,
+          "total_classified_agenda_items": 18,
+          "total_agenda_topic_source_days": 15,
+          "topic_item_share": 0.5555555555555556,
+          "topic_source_day_share": 0.4666666666666667
+        },
+        {
+          "date": "2026-10-01",
+          "item_count": 4,
+          "source_day_count": 3,
+          "total_classified_agenda_items": 29,
+          "total_agenda_topic_source_days": 20,
+          "topic_item_share": 0.13793103448275862,
+          "topic_source_day_share": 0.15
+        }
+      ]
+    }
+  ]
+}
