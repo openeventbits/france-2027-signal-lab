@@ -1,0 +1,5152 @@
+{
+  "schema_version": "1.0",
+  "data_as_of": "2026-10-02T12:51:25.006062Z",
+  "period": {
+    "start_date": "2026-07-23",
+    "end_date": "2026-10-01",
+    "days": 71,
+    "day_boundary": "UTC",
+    "current_utc_day_excluded": true
+  },
+  "reconstruction": {
+    "source": "retained news_wire.json Policy Agenda evolution snapshots",
+    "initial_inventory_at": "2026-07-22T21:07:55.297861Z",
+    "initial_inventory_commit": "629dd29c9d4a96e5fcbd6584c68e4ffbe0d8c94f",
+    "start_rule": "first complete UTC day after persistent relevant-news inventory initialization",
+    "coverage_measure": "article-derived multilabel Policy Agenda item counts",
+    "prohibited_proxy": "candidate association history is not used"
+  },
+  "denominator": {
+    "name": "accepted relevant-news article corpus",
+    "unit": "unique accepted relevant-news article IDs by UTC publication day",
+    "formula": "issue item_count / corpus item_count × 100",
+    "multilabel": true,
+    "note_fr": "Un article peut relever de plusieurs enjeux; la somme des parts peut donc dépasser 100 %.",
+    "note_en": "An article may belong to several issues, so issue shares may sum above 100%."
+  },
+  "corpus": {
+    "total_item_count": 5903,
+    "publisher_count": 122,
+    "publisher_day_count": 2471,
+    "first_observation": "2026-07-23",
+    "last_observation": "2026-10-01",
+    "daily": [
+      {
+        "date": "2026-07-23",
+        "item_count": 45,
+        "publisher_count": 27,
+        "source_snapshot_at": "2026-08-21T23:43:37.815903Z"
+      },
+      {
+        "date": "2026-07-24",
+        "item_count": 25,
+        "publisher_count": 21,
+        "source_snapshot_at": "2026-08-22T23:39:54.110279Z"
+      },
+      {
+        "date": "2026-07-25",
+        "item_count": 10,
+        "publisher_count": 10,
+        "source_snapshot_at": "2026-08-23T23:40:28.516211Z"
+      },
+      {
+        "date": "2026-07-26",
+        "item_count": 12,
+        "publisher_count": 12,
+        "source_snapshot_at": "2026-08-24T23:41:45.229635Z"
+      },
+      {
+        "date": "2026-07-27",
+        "item_count": 13,
+        "publisher_count": 13,
+        "source_snapshot_at": "2026-08-25T23:43:49.838437Z"
+      },
+      {
+        "date": "2026-07-28",
+        "item_count": 13,
+        "publisher_count": 11,
+        "source_snapshot_at": "2026-08-26T23:45:14.044033Z"
+      },
+      {
+        "date": "2026-07-29",
+        "item_count": 26,
+        "publisher_count": 20,
+        "source_snapshot_at": "2026-08-27T20:36:12.678044Z"
+      },
+      {
+        "date": "2026-07-30",
+        "item_count": 23,
+        "publisher_count": 16,
+        "source_snapshot_at": "2026-08-28T18:50:41.468392Z"
+      },
+      {
+        "date": "2026-07-31",
+        "item_count": 21,
+        "publisher_count": 19,
+        "source_snapshot_at": "2026-08-29T21:49:20.718138Z"
+      },
+      {
+        "date": "2026-08-01",
+        "item_count": 10,
+        "publisher_count": 9,
+        "source_snapshot_at": "2026-08-30T21:15:27.117968Z"
+      },
+      {
+        "date": "2026-08-02",
+        "item_count": 9,
+        "publisher_count": 8,
+        "source_snapshot_at": "2026-08-31T23:56:06.411433Z"
+      },
+      {
+        "date": "2026-08-03",
+        "item_count": 23,
+        "publisher_count": 17,
+        "source_snapshot_at": "2026-09-01T21:52:04.142042Z"
+      },
+      {
+        "date": "2026-08-04",
+        "item_count": 45,
+        "publisher_count": 29,
+        "source_snapshot_at": "2026-09-02T21:54:11.426356Z"
+      },
+      {
+        "date": "2026-08-05",
+        "item_count": 61,
+        "publisher_count": 34,
+        "source_snapshot_at": "2026-09-03T21:46:33.075885Z"
+      },
+      {
+        "date": "2026-08-06",
+        "item_count": 67,
+        "publisher_count": 39,
+        "source_snapshot_at": "2026-09-04T21:34:45.389594Z"
+      },
+      {
+        "date": "2026-08-07",
+        "item_count": 50,
+        "publisher_count": 29,
+        "source_snapshot_at": "2026-09-05T23:01:46.993082Z"
+      },
+      {
+        "date": "2026-08-08",
+        "item_count": 46,
+        "publisher_count": 37,
+        "source_snapshot_at": "2026-09-06T21:27:41.336494Z"
+      },
+      {
+        "date": "2026-08-09",
+        "item_count": 23,
+        "publisher_count": 13,
+        "source_snapshot_at": "2026-09-07T23:36:26.231815Z"
+      },
+      {
+        "date": "2026-08-10",
+        "item_count": 63,
+        "publisher_count": 36,
+        "source_snapshot_at": "2026-09-08T21:56:43.685409Z"
+      },
+      {
+        "date": "2026-08-11",
+        "item_count": 30,
+        "publisher_count": 23,
+        "source_snapshot_at": "2026-09-09T21:46:48.605407Z"
+      },
+      {
+        "date": "2026-08-12",
+        "item_count": 29,
+        "publisher_count": 18,
+        "source_snapshot_at": "2026-09-10T21:42:59.344663Z"
+      },
+      {
+        "date": "2026-08-13",
+        "item_count": 8,
+        "publisher_count": 6,
+        "source_snapshot_at": "2026-09-11T21:47:39.173846Z"
+      },
+      {
+        "date": "2026-08-14",
+        "item_count": 12,
+        "publisher_count": 10,
+        "source_snapshot_at": "2026-09-12T22:25:05.279004Z"
+      },
+      {
+        "date": "2026-08-15",
+        "item_count": 10,
+        "publisher_count": 10,
+        "source_snapshot_at": "2026-09-13T22:30:09.766047Z"
+      },
+      {
+        "date": "2026-08-16",
+        "item_count": 27,
+        "publisher_count": 24,
+        "source_snapshot_at": "2026-09-14T23:14:20.896683Z"
+      },
+      {
+        "date": "2026-08-17",
+        "item_count": 93,
+        "publisher_count": 53,
+        "source_snapshot_at": "2026-09-15T23:02:18.234109Z"
+      },
+      {
+        "date": "2026-08-18",
+        "item_count": 70,
+        "publisher_count": 43,
+        "source_snapshot_at": "2026-09-16T23:03:26.627583Z"
+      },
+      {
+        "date": "2026-08-19",
+        "item_count": 59,
+        "publisher_count": 37,
+        "source_snapshot_at": "2026-09-17T23:02:48.150980Z"
+      },
+      {
+        "date": "2026-08-20",
+        "item_count": 63,
+        "publisher_count": 35,
+        "source_snapshot_at": "2026-09-18T22:41:16.721793Z"
+      },
+      {
+        "date": "2026-08-21",
+        "item_count": 87,
+        "publisher_count": 38,
+        "source_snapshot_at": "2026-09-19T23:15:33.166771Z"
+      },
+      {
+        "date": "2026-08-22",
+        "item_count": 126,
+        "publisher_count": 45,
+        "source_snapshot_at": "2026-09-20T22:33:39.517978Z"
+      },
+      {
+        "date": "2026-08-23",
+        "item_count": 215,
+        "publisher_count": 60,
+        "source_snapshot_at": "2026-09-21T23:24:11.243675Z"
+      },
+      {
+        "date": "2026-08-24",
+        "item_count": 194,
+        "publisher_count": 61,
+        "source_snapshot_at": "2026-09-22T23:03:35.961817Z"
+      },
+      {
+        "date": "2026-08-25",
+        "item_count": 153,
+        "publisher_count": 52,
+        "source_snapshot_at": "2026-09-23T23:48:43.198211Z"
+      },
+      {
+        "date": "2026-08-26",
+        "item_count": 174,
+        "publisher_count": 51,
+        "source_snapshot_at": "2026-09-24T22:32:09.886786Z"
+      },
+      {
+        "date": "2026-08-27",
+        "item_count": 152,
+        "publisher_count": 42,
+        "source_snapshot_at": "2026-09-25T22:31:35.601277Z"
+      },
+      {
+        "date": "2026-08-28",
+        "item_count": 104,
+        "publisher_count": 34,
+        "source_snapshot_at": "2026-09-26T22:59:39.949500Z"
+      },
+      {
+        "date": "2026-08-29",
+        "item_count": 138,
+        "publisher_count": 52,
+        "source_snapshot_at": "2026-09-27T22:22:14.049122Z"
+      },
+      {
+        "date": "2026-08-30",
+        "item_count": 181,
+        "publisher_count": 48,
+        "source_snapshot_at": "2026-09-28T22:10:17.293331Z"
+      },
+      {
+        "date": "2026-08-31",
+        "item_count": 113,
+        "publisher_count": 49,
+        "source_snapshot_at": "2026-09-29T22:32:26.104229Z"
+      },
+      {
+        "date": "2026-09-01",
+        "item_count": 78,
+        "publisher_count": 37,
+        "source_snapshot_at": "2026-09-30T23:58:17.096322Z"
+      },
+      {
+        "date": "2026-09-02",
+        "item_count": 132,
+        "publisher_count": 45,
+        "source_snapshot_at": "2026-10-01T22:03:42.735516Z"
+      },
+      {
+        "date": "2026-09-03",
+        "item_count": 139,
+        "publisher_count": 46,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-04",
+        "item_count": 110,
+        "publisher_count": 44,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-05",
+        "item_count": 112,
+        "publisher_count": 35,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-06",
+        "item_count": 137,
+        "publisher_count": 51,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-07",
+        "item_count": 114,
+        "publisher_count": 39,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-08",
+        "item_count": 133,
+        "publisher_count": 44,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-09",
+        "item_count": 136,
+        "publisher_count": 46,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-10",
+        "item_count": 126,
+        "publisher_count": 46,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-11",
+        "item_count": 84,
+        "publisher_count": 40,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-12",
+        "item_count": 110,
+        "publisher_count": 38,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-13",
+        "item_count": 127,
+        "publisher_count": 44,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-14",
+        "item_count": 125,
+        "publisher_count": 45,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-15",
+        "item_count": 82,
+        "publisher_count": 37,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-16",
+        "item_count": 189,
+        "publisher_count": 62,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-17",
+        "item_count": 132,
+        "publisher_count": 41,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-18",
+        "item_count": 134,
+        "publisher_count": 57,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-19",
+        "item_count": 82,
+        "publisher_count": 33,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-20",
+        "item_count": 101,
+        "publisher_count": 37,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-21",
+        "item_count": 90,
+        "publisher_count": 35,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-22",
+        "item_count": 102,
+        "publisher_count": 45,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-23",
+        "item_count": 156,
+        "publisher_count": 57,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-24",
+        "item_count": 139,
+        "publisher_count": 60,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-25",
+        "item_count": 71,
+        "publisher_count": 38,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-26",
+        "item_count": 29,
+        "publisher_count": 20,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-27",
+        "item_count": 37,
+        "publisher_count": 27,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-28",
+        "item_count": 53,
+        "publisher_count": 31,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-29",
+        "item_count": 71,
+        "publisher_count": 35,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-09-30",
+        "item_count": 72,
+        "publisher_count": 34,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      },
+      {
+        "date": "2026-10-01",
+        "item_count": 77,
+        "publisher_count": 31,
+        "source_snapshot_at": "2026-10-02T12:51:25.006062Z"
+      }
+    ]
+  },
+  "issues": [
+    {
+      "id": "economy_public_finances",
+      "labels": {
+        "fr": "Économie & finances publiques",
+        "en": "Economy & public finances"
+      },
+      "total_item_count": 122,
+      "publisher_day_count": 102,
+      "active_day_count": 41,
+      "first_observation": "2026-07-23",
+      "last_observation": "2026-10-01",
+      "peak": {
+        "date": "2026-08-23",
+        "item_count": 13
+      },
+      "daily": [
+        {
+          "date": "2026-07-23",
+          "item_count": 5,
+          "publisher_count": 4,
+          "corpus_item_count": 45,
+          "corpus_publisher_count": 27,
+          "corpus_share_percent": 11.1111
+        },
+        {
+          "date": "2026-07-24",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 25,
+          "corpus_publisher_count": 21,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-25",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 12,
+          "corpus_publisher_count": 12,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-27",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 13,
+          "corpus_publisher_count": 13,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 13,
+          "corpus_publisher_count": 11,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-29",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 26,
+          "corpus_publisher_count": 20,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-30",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 16,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-31",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 21,
+          "corpus_publisher_count": 19,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-01",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 9,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-02",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 9,
+          "corpus_publisher_count": 8,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-03",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 17,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-04",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 45,
+          "corpus_publisher_count": 29,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-05",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 61,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-06",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 67,
+          "corpus_publisher_count": 39,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-07",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 50,
+          "corpus_publisher_count": 29,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-08",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 46,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-09",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 13,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-10",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 63,
+          "corpus_publisher_count": 36,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-11",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 30,
+          "corpus_publisher_count": 23,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-12",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 29,
+          "corpus_publisher_count": 18,
+          "corpus_share_percent": 3.4483
+        },
+        {
+          "date": "2026-08-13",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 8,
+          "corpus_publisher_count": 6,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-14",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 12,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 8.3333
+        },
+        {
+          "date": "2026-08-15",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-16",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 27,
+          "corpus_publisher_count": 24,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-17",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 93,
+          "corpus_publisher_count": 53,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-18",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 70,
+          "corpus_publisher_count": 43,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-19",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 59,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 5.0847
+        },
+        {
+          "date": "2026-08-20",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 63,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 1.5873
+        },
+        {
+          "date": "2026-08-21",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 87,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-22",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 126,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 2.381
+        },
+        {
+          "date": "2026-08-23",
+          "item_count": 13,
+          "publisher_count": 12,
+          "corpus_item_count": 215,
+          "corpus_publisher_count": 60,
+          "corpus_share_percent": 6.0465
+        },
+        {
+          "date": "2026-08-24",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 194,
+          "corpus_publisher_count": 61,
+          "corpus_share_percent": 1.5464
+        },
+        {
+          "date": "2026-08-25",
+          "item_count": 6,
+          "publisher_count": 6,
+          "corpus_item_count": 153,
+          "corpus_publisher_count": 52,
+          "corpus_share_percent": 3.9216
+        },
+        {
+          "date": "2026-08-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 174,
+          "corpus_publisher_count": 51,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-27",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 152,
+          "corpus_publisher_count": 42,
+          "corpus_share_percent": 1.3158
+        },
+        {
+          "date": "2026-08-28",
+          "item_count": 4,
+          "publisher_count": 3,
+          "corpus_item_count": 104,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 3.8462
+        },
+        {
+          "date": "2026-08-29",
+          "item_count": 6,
+          "publisher_count": 4,
+          "corpus_item_count": 138,
+          "corpus_publisher_count": 52,
+          "corpus_share_percent": 4.3478
+        },
+        {
+          "date": "2026-08-30",
+          "item_count": 2,
+          "publisher_count": 1,
+          "corpus_item_count": 181,
+          "corpus_publisher_count": 48,
+          "corpus_share_percent": 1.105
+        },
+        {
+          "date": "2026-08-31",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 113,
+          "corpus_publisher_count": 49,
+          "corpus_share_percent": 1.7699
+        },
+        {
+          "date": "2026-09-01",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 78,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 3.8462
+        },
+        {
+          "date": "2026-09-02",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 132,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.7576
+        },
+        {
+          "date": "2026-09-03",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 139,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.7194
+        },
+        {
+          "date": "2026-09-04",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 110,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 112,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 1.7857
+        },
+        {
+          "date": "2026-09-06",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 137,
+          "corpus_publisher_count": 51,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 114,
+          "corpus_publisher_count": 39,
+          "corpus_share_percent": 1.7544
+        },
+        {
+          "date": "2026-09-08",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 133,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.7519
+        },
+        {
+          "date": "2026-09-09",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 136,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 1.4706
+        },
+        {
+          "date": "2026-09-10",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 126,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.7937
+        },
+        {
+          "date": "2026-09-11",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 84,
+          "corpus_publisher_count": 40,
+          "corpus_share_percent": 1.1905
+        },
+        {
+          "date": "2026-09-12",
+          "item_count": 8,
+          "publisher_count": 6,
+          "corpus_item_count": 110,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 7.2727
+        },
+        {
+          "date": "2026-09-13",
+          "item_count": 7,
+          "publisher_count": 2,
+          "corpus_item_count": 127,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 5.5118
+        },
+        {
+          "date": "2026-09-14",
+          "item_count": 4,
+          "publisher_count": 3,
+          "corpus_item_count": 125,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 3.2
+        },
+        {
+          "date": "2026-09-15",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 82,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 1.2195
+        },
+        {
+          "date": "2026-09-16",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 189,
+          "corpus_publisher_count": 62,
+          "corpus_share_percent": 1.0582
+        },
+        {
+          "date": "2026-09-17",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 132,
+          "corpus_publisher_count": 41,
+          "corpus_share_percent": 2.2727
+        },
+        {
+          "date": "2026-09-18",
+          "item_count": 3,
+          "publisher_count": 2,
+          "corpus_item_count": 134,
+          "corpus_publisher_count": 57,
+          "corpus_share_percent": 2.2388
+        },
+        {
+          "date": "2026-09-19",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 82,
+          "corpus_publisher_count": 33,
+          "corpus_share_percent": 2.439
+        },
+        {
+          "date": "2026-09-20",
+          "item_count": 3,
+          "publisher_count": 1,
+          "corpus_item_count": 101,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 2.9703
+        },
+        {
+          "date": "2026-09-21",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 90,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 3.3333
+        },
+        {
+          "date": "2026-09-22",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 102,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.9804
+        },
+        {
+          "date": "2026-09-23",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 156,
+          "corpus_publisher_count": 57,
+          "corpus_share_percent": 0.641
+        },
+        {
+          "date": "2026-09-24",
+          "item_count": 5,
+          "publisher_count": 4,
+          "corpus_item_count": 139,
+          "corpus_publisher_count": 60,
+          "corpus_share_percent": 3.5971
+        },
+        {
+          "date": "2026-09-25",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 71,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 29,
+          "corpus_publisher_count": 20,
+          "corpus_share_percent": 3.4483
+        },
+        {
+          "date": "2026-09-27",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 37,
+          "corpus_publisher_count": 27,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-28",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 53,
+          "corpus_publisher_count": 31,
+          "corpus_share_percent": 1.8868
+        },
+        {
+          "date": "2026-09-29",
+          "item_count": 5,
+          "publisher_count": 4,
+          "corpus_item_count": 71,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 7.0423
+        },
+        {
+          "date": "2026-09-30",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 72,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 1.3889
+        },
+        {
+          "date": "2026-10-01",
+          "item_count": 5,
+          "publisher_count": 4,
+          "corpus_item_count": 77,
+          "corpus_publisher_count": 31,
+          "corpus_share_percent": 6.4935
+        }
+      ]
+    },
+    {
+      "id": "work_purchasing_power_pensions",
+      "labels": {
+        "fr": "Travail, pouvoir d’achat & retraites",
+        "en": "Work, purchasing power & pensions"
+      },
+      "total_item_count": 209,
+      "publisher_day_count": 169,
+      "active_day_count": 45,
+      "first_observation": "2026-07-23",
+      "last_observation": "2026-10-01",
+      "peak": {
+        "date": "2026-08-27",
+        "item_count": 22
+      },
+      "daily": [
+        {
+          "date": "2026-07-23",
+          "item_count": 5,
+          "publisher_count": 5,
+          "corpus_item_count": 45,
+          "corpus_publisher_count": 27,
+          "corpus_share_percent": 11.1111
+        },
+        {
+          "date": "2026-07-24",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 25,
+          "corpus_publisher_count": 21,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-25",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 12,
+          "corpus_publisher_count": 12,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-27",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 13,
+          "corpus_publisher_count": 13,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 13,
+          "corpus_publisher_count": 11,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-29",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 26,
+          "corpus_publisher_count": 20,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-30",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 16,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-31",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 21,
+          "corpus_publisher_count": 19,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-01",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 9,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-02",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 9,
+          "corpus_publisher_count": 8,
+          "corpus_share_percent": 22.2222
+        },
+        {
+          "date": "2026-08-03",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 17,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-04",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 45,
+          "corpus_publisher_count": 29,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-05",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 61,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-06",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 67,
+          "corpus_publisher_count": 39,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-07",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 50,
+          "corpus_publisher_count": 29,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-08",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 46,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-09",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 13,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-10",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 63,
+          "corpus_publisher_count": 36,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-11",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 30,
+          "corpus_publisher_count": 23,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-12",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 29,
+          "corpus_publisher_count": 18,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-13",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 8,
+          "corpus_publisher_count": 6,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-14",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 12,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-15",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 10.0
+        },
+        {
+          "date": "2026-08-16",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 27,
+          "corpus_publisher_count": 24,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-17",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 93,
+          "corpus_publisher_count": 53,
+          "corpus_share_percent": 2.1505
+        },
+        {
+          "date": "2026-08-18",
+          "item_count": 6,
+          "publisher_count": 6,
+          "corpus_item_count": 70,
+          "corpus_publisher_count": 43,
+          "corpus_share_percent": 8.5714
+        },
+        {
+          "date": "2026-08-19",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 59,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 5.0847
+        },
+        {
+          "date": "2026-08-20",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 63,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 4.7619
+        },
+        {
+          "date": "2026-08-21",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 87,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 2.2989
+        },
+        {
+          "date": "2026-08-22",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 126,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.7937
+        },
+        {
+          "date": "2026-08-23",
+          "item_count": 3,
+          "publisher_count": 2,
+          "corpus_item_count": 215,
+          "corpus_publisher_count": 60,
+          "corpus_share_percent": 1.3953
+        },
+        {
+          "date": "2026-08-24",
+          "item_count": 9,
+          "publisher_count": 9,
+          "corpus_item_count": 194,
+          "corpus_publisher_count": 61,
+          "corpus_share_percent": 4.6392
+        },
+        {
+          "date": "2026-08-25",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 153,
+          "corpus_publisher_count": 52,
+          "corpus_share_percent": 1.9608
+        },
+        {
+          "date": "2026-08-26",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 174,
+          "corpus_publisher_count": 51,
+          "corpus_share_percent": 0.5747
+        },
+        {
+          "date": "2026-08-27",
+          "item_count": 22,
+          "publisher_count": 16,
+          "corpus_item_count": 152,
+          "corpus_publisher_count": 42,
+          "corpus_share_percent": 14.4737
+        },
+        {
+          "date": "2026-08-28",
+          "item_count": 4,
+          "publisher_count": 4,
+          "corpus_item_count": 104,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 3.8462
+        },
+        {
+          "date": "2026-08-29",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 138,
+          "corpus_publisher_count": 52,
+          "corpus_share_percent": 2.1739
+        },
+        {
+          "date": "2026-08-30",
+          "item_count": 10,
+          "publisher_count": 6,
+          "corpus_item_count": 181,
+          "corpus_publisher_count": 48,
+          "corpus_share_percent": 5.5249
+        },
+        {
+          "date": "2026-08-31",
+          "item_count": 7,
+          "publisher_count": 6,
+          "corpus_item_count": 113,
+          "corpus_publisher_count": 49,
+          "corpus_share_percent": 6.1947
+        },
+        {
+          "date": "2026-09-01",
+          "item_count": 7,
+          "publisher_count": 5,
+          "corpus_item_count": 78,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 8.9744
+        },
+        {
+          "date": "2026-09-02",
+          "item_count": 5,
+          "publisher_count": 5,
+          "corpus_item_count": 132,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 3.7879
+        },
+        {
+          "date": "2026-09-03",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 139,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 1.4388
+        },
+        {
+          "date": "2026-09-04",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 110,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.9091
+        },
+        {
+          "date": "2026-09-05",
+          "item_count": 4,
+          "publisher_count": 4,
+          "corpus_item_count": 112,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 3.5714
+        },
+        {
+          "date": "2026-09-06",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 137,
+          "corpus_publisher_count": 51,
+          "corpus_share_percent": 1.4599
+        },
+        {
+          "date": "2026-09-07",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 114,
+          "corpus_publisher_count": 39,
+          "corpus_share_percent": 2.6316
+        },
+        {
+          "date": "2026-09-08",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 133,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 1.5038
+        },
+        {
+          "date": "2026-09-09",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 136,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 1.4706
+        },
+        {
+          "date": "2026-09-10",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 126,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "item_count": 4,
+          "publisher_count": 1,
+          "corpus_item_count": 84,
+          "corpus_publisher_count": 40,
+          "corpus_share_percent": 4.7619
+        },
+        {
+          "date": "2026-09-12",
+          "item_count": 4,
+          "publisher_count": 1,
+          "corpus_item_count": 110,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 3.6364
+        },
+        {
+          "date": "2026-09-13",
+          "item_count": 6,
+          "publisher_count": 1,
+          "corpus_item_count": 127,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 4.7244
+        },
+        {
+          "date": "2026-09-14",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 125,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 1.6
+        },
+        {
+          "date": "2026-09-15",
+          "item_count": 8,
+          "publisher_count": 6,
+          "corpus_item_count": 82,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 9.7561
+        },
+        {
+          "date": "2026-09-16",
+          "item_count": 8,
+          "publisher_count": 8,
+          "corpus_item_count": 189,
+          "corpus_publisher_count": 62,
+          "corpus_share_percent": 4.2328
+        },
+        {
+          "date": "2026-09-17",
+          "item_count": 4,
+          "publisher_count": 4,
+          "corpus_item_count": 132,
+          "corpus_publisher_count": 41,
+          "corpus_share_percent": 3.0303
+        },
+        {
+          "date": "2026-09-18",
+          "item_count": 7,
+          "publisher_count": 4,
+          "corpus_item_count": 134,
+          "corpus_publisher_count": 57,
+          "corpus_share_percent": 5.2239
+        },
+        {
+          "date": "2026-09-19",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 82,
+          "corpus_publisher_count": 33,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 101,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.9901
+        },
+        {
+          "date": "2026-09-21",
+          "item_count": 6,
+          "publisher_count": 3,
+          "corpus_item_count": 90,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 6.6667
+        },
+        {
+          "date": "2026-09-22",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 102,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 2.9412
+        },
+        {
+          "date": "2026-09-23",
+          "item_count": 6,
+          "publisher_count": 6,
+          "corpus_item_count": 156,
+          "corpus_publisher_count": 57,
+          "corpus_share_percent": 3.8462
+        },
+        {
+          "date": "2026-09-24",
+          "item_count": 4,
+          "publisher_count": 3,
+          "corpus_item_count": 139,
+          "corpus_publisher_count": 60,
+          "corpus_share_percent": 2.8777
+        },
+        {
+          "date": "2026-09-25",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 71,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 1.4085
+        },
+        {
+          "date": "2026-09-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 29,
+          "corpus_publisher_count": 20,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-27",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 37,
+          "corpus_publisher_count": 27,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-28",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 53,
+          "corpus_publisher_count": 31,
+          "corpus_share_percent": 1.8868
+        },
+        {
+          "date": "2026-09-29",
+          "item_count": 15,
+          "publisher_count": 11,
+          "corpus_item_count": 71,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 21.1268
+        },
+        {
+          "date": "2026-09-30",
+          "item_count": 8,
+          "publisher_count": 6,
+          "corpus_item_count": 72,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 11.1111
+        },
+        {
+          "date": "2026-10-01",
+          "item_count": 6,
+          "publisher_count": 6,
+          "corpus_item_count": 77,
+          "corpus_publisher_count": 31,
+          "corpus_share_percent": 7.7922
+        }
+      ]
+    },
+    {
+      "id": "immigration_identity_secularism",
+      "labels": {
+        "fr": "Immigration, identité & laïcité",
+        "en": "Immigration, identity & secularism"
+      },
+      "total_item_count": 93,
+      "publisher_day_count": 75,
+      "active_day_count": 26,
+      "first_observation": "2026-08-02",
+      "last_observation": "2026-09-30",
+      "peak": {
+        "date": "2026-08-21",
+        "item_count": 15
+      },
+      "daily": [
+        {
+          "date": "2026-07-23",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 45,
+          "corpus_publisher_count": 27,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-24",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 25,
+          "corpus_publisher_count": 21,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-25",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 12,
+          "corpus_publisher_count": 12,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-27",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 13,
+          "corpus_publisher_count": 13,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 13,
+          "corpus_publisher_count": 11,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-29",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 26,
+          "corpus_publisher_count": 20,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-30",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 16,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-31",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 21,
+          "corpus_publisher_count": 19,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-01",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 9,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-02",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 9,
+          "corpus_publisher_count": 8,
+          "corpus_share_percent": 33.3333
+        },
+        {
+          "date": "2026-08-03",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 17,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-04",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 45,
+          "corpus_publisher_count": 29,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-05",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 61,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-06",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 67,
+          "corpus_publisher_count": 39,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-07",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 50,
+          "corpus_publisher_count": 29,
+          "corpus_share_percent": 2.0
+        },
+        {
+          "date": "2026-08-08",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 46,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-09",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 13,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-10",
+          "item_count": 4,
+          "publisher_count": 4,
+          "corpus_item_count": 63,
+          "corpus_publisher_count": 36,
+          "corpus_share_percent": 6.3492
+        },
+        {
+          "date": "2026-08-11",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 30,
+          "corpus_publisher_count": 23,
+          "corpus_share_percent": 3.3333
+        },
+        {
+          "date": "2026-08-12",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 29,
+          "corpus_publisher_count": 18,
+          "corpus_share_percent": 3.4483
+        },
+        {
+          "date": "2026-08-13",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 8,
+          "corpus_publisher_count": 6,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-14",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 12,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-15",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-16",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 27,
+          "corpus_publisher_count": 24,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-17",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 93,
+          "corpus_publisher_count": 53,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-18",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 70,
+          "corpus_publisher_count": 43,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-19",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 59,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-20",
+          "item_count": 5,
+          "publisher_count": 5,
+          "corpus_item_count": 63,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 7.9365
+        },
+        {
+          "date": "2026-08-21",
+          "item_count": 15,
+          "publisher_count": 6,
+          "corpus_item_count": 87,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 17.2414
+        },
+        {
+          "date": "2026-08-22",
+          "item_count": 10,
+          "publisher_count": 5,
+          "corpus_item_count": 126,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 7.9365
+        },
+        {
+          "date": "2026-08-23",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 215,
+          "corpus_publisher_count": 60,
+          "corpus_share_percent": 0.4651
+        },
+        {
+          "date": "2026-08-24",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 194,
+          "corpus_publisher_count": 61,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-25",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 153,
+          "corpus_publisher_count": 52,
+          "corpus_share_percent": 0.6536
+        },
+        {
+          "date": "2026-08-26",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 174,
+          "corpus_publisher_count": 51,
+          "corpus_share_percent": 1.1494
+        },
+        {
+          "date": "2026-08-27",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 152,
+          "corpus_publisher_count": 42,
+          "corpus_share_percent": 0.6579
+        },
+        {
+          "date": "2026-08-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 104,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 138,
+          "corpus_publisher_count": 52,
+          "corpus_share_percent": 2.1739
+        },
+        {
+          "date": "2026-08-30",
+          "item_count": 7,
+          "publisher_count": 5,
+          "corpus_item_count": 181,
+          "corpus_publisher_count": 48,
+          "corpus_share_percent": 3.8674
+        },
+        {
+          "date": "2026-08-31",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 113,
+          "corpus_publisher_count": 49,
+          "corpus_share_percent": 0.885
+        },
+        {
+          "date": "2026-09-01",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 78,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 132,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 1.5152
+        },
+        {
+          "date": "2026-09-03",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 139,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "item_count": 4,
+          "publisher_count": 3,
+          "corpus_item_count": 110,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 3.6364
+        },
+        {
+          "date": "2026-09-05",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 112,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 2.6786
+        },
+        {
+          "date": "2026-09-06",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 137,
+          "corpus_publisher_count": 51,
+          "corpus_share_percent": 0.7299
+        },
+        {
+          "date": "2026-09-07",
+          "item_count": 5,
+          "publisher_count": 4,
+          "corpus_item_count": 114,
+          "corpus_publisher_count": 39,
+          "corpus_share_percent": 4.386
+        },
+        {
+          "date": "2026-09-08",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 133,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 1.5038
+        },
+        {
+          "date": "2026-09-09",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 136,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 126,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 84,
+          "corpus_publisher_count": 40,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 110,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 1.8182
+        },
+        {
+          "date": "2026-09-13",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 127,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 125,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 82,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 189,
+          "corpus_publisher_count": 62,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-17",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 132,
+          "corpus_publisher_count": 41,
+          "corpus_share_percent": 2.2727
+        },
+        {
+          "date": "2026-09-18",
+          "item_count": 13,
+          "publisher_count": 13,
+          "corpus_item_count": 134,
+          "corpus_publisher_count": 57,
+          "corpus_share_percent": 9.7015
+        },
+        {
+          "date": "2026-09-19",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 82,
+          "corpus_publisher_count": 33,
+          "corpus_share_percent": 1.2195
+        },
+        {
+          "date": "2026-09-20",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 101,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 90,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 102,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 156,
+          "corpus_publisher_count": 57,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 139,
+          "corpus_publisher_count": 60,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 71,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 29,
+          "corpus_publisher_count": 20,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-27",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 37,
+          "corpus_publisher_count": 27,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 53,
+          "corpus_publisher_count": 31,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-29",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 71,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-30",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 72,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 1.3889
+        },
+        {
+          "date": "2026-10-01",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 77,
+          "corpus_publisher_count": 31,
+          "corpus_share_percent": 0.0
+        }
+      ]
+    },
+    {
+      "id": "security_justice",
+      "labels": {
+        "fr": "Sécurité & justice",
+        "en": "Security & justice"
+      },
+      "total_item_count": 24,
+      "publisher_day_count": 23,
+      "active_day_count": 16,
+      "first_observation": "2026-08-27",
+      "last_observation": "2026-10-01",
+      "peak": {
+        "date": "2026-09-07",
+        "item_count": 5
+      },
+      "daily": [
+        {
+          "date": "2026-07-23",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 45,
+          "corpus_publisher_count": 27,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-24",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 25,
+          "corpus_publisher_count": 21,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-25",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 12,
+          "corpus_publisher_count": 12,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-27",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 13,
+          "corpus_publisher_count": 13,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 13,
+          "corpus_publisher_count": 11,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-29",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 26,
+          "corpus_publisher_count": 20,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-30",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 16,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-31",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 21,
+          "corpus_publisher_count": 19,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-01",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 9,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-02",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 9,
+          "corpus_publisher_count": 8,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-03",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 17,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-04",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 45,
+          "corpus_publisher_count": 29,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-05",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 61,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-06",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 67,
+          "corpus_publisher_count": 39,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-07",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 50,
+          "corpus_publisher_count": 29,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-08",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 46,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-09",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 13,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-10",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 63,
+          "corpus_publisher_count": 36,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-11",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 30,
+          "corpus_publisher_count": 23,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-12",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 29,
+          "corpus_publisher_count": 18,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-13",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 8,
+          "corpus_publisher_count": 6,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-14",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 12,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-15",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-16",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 27,
+          "corpus_publisher_count": 24,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-17",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 93,
+          "corpus_publisher_count": 53,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-18",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 70,
+          "corpus_publisher_count": 43,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-19",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 59,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-20",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 63,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-21",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 87,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-22",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 126,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-23",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 215,
+          "corpus_publisher_count": 60,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-24",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 194,
+          "corpus_publisher_count": 61,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-25",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 153,
+          "corpus_publisher_count": 52,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 174,
+          "corpus_publisher_count": 51,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-27",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 152,
+          "corpus_publisher_count": 42,
+          "corpus_share_percent": 0.6579
+        },
+        {
+          "date": "2026-08-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 104,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 138,
+          "corpus_publisher_count": 52,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 181,
+          "corpus_publisher_count": 48,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 113,
+          "corpus_publisher_count": 49,
+          "corpus_share_percent": 0.885
+        },
+        {
+          "date": "2026-09-01",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 78,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 132,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 139,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 110,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-05",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 112,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-06",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 137,
+          "corpus_publisher_count": 51,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "item_count": 5,
+          "publisher_count": 4,
+          "corpus_item_count": 114,
+          "corpus_publisher_count": 39,
+          "corpus_share_percent": 4.386
+        },
+        {
+          "date": "2026-09-08",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 133,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.7519
+        },
+        {
+          "date": "2026-09-09",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 136,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.7353
+        },
+        {
+          "date": "2026-09-10",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 126,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.7937
+        },
+        {
+          "date": "2026-09-11",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 84,
+          "corpus_publisher_count": 40,
+          "corpus_share_percent": 1.1905
+        },
+        {
+          "date": "2026-09-12",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 110,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 127,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.7874
+        },
+        {
+          "date": "2026-09-14",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 125,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 82,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 189,
+          "corpus_publisher_count": 62,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-17",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 132,
+          "corpus_publisher_count": 41,
+          "corpus_share_percent": 1.5152
+        },
+        {
+          "date": "2026-09-18",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 134,
+          "corpus_publisher_count": 57,
+          "corpus_share_percent": 1.4925
+        },
+        {
+          "date": "2026-09-19",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 82,
+          "corpus_publisher_count": 33,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 101,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.9901
+        },
+        {
+          "date": "2026-09-21",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 90,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 2.2222
+        },
+        {
+          "date": "2026-09-22",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 102,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.9804
+        },
+        {
+          "date": "2026-09-23",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 156,
+          "corpus_publisher_count": 57,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 139,
+          "corpus_publisher_count": 60,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 71,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 2.8169
+        },
+        {
+          "date": "2026-09-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 29,
+          "corpus_publisher_count": 20,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-27",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 37,
+          "corpus_publisher_count": 27,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 53,
+          "corpus_publisher_count": 31,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-29",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 71,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-30",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 72,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 1.3889
+        },
+        {
+          "date": "2026-10-01",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 77,
+          "corpus_publisher_count": 31,
+          "corpus_share_percent": 1.2987
+        }
+      ]
+    },
+    {
+      "id": "health_education_public_services",
+      "labels": {
+        "fr": "Santé, éducation & services publics",
+        "en": "Health, education & public services"
+      },
+      "total_item_count": 45,
+      "publisher_day_count": 42,
+      "active_day_count": 18,
+      "first_observation": "2026-08-23",
+      "last_observation": "2026-09-30",
+      "peak": {
+        "date": "2026-09-17",
+        "item_count": 7
+      },
+      "daily": [
+        {
+          "date": "2026-07-23",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 45,
+          "corpus_publisher_count": 27,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-24",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 25,
+          "corpus_publisher_count": 21,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-25",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 12,
+          "corpus_publisher_count": 12,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-27",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 13,
+          "corpus_publisher_count": 13,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 13,
+          "corpus_publisher_count": 11,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-29",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 26,
+          "corpus_publisher_count": 20,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-30",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 16,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-31",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 21,
+          "corpus_publisher_count": 19,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-01",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 9,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-02",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 9,
+          "corpus_publisher_count": 8,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-03",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 17,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-04",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 45,
+          "corpus_publisher_count": 29,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-05",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 61,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-06",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 67,
+          "corpus_publisher_count": 39,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-07",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 50,
+          "corpus_publisher_count": 29,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-08",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 46,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-09",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 13,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-10",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 63,
+          "corpus_publisher_count": 36,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-11",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 30,
+          "corpus_publisher_count": 23,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-12",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 29,
+          "corpus_publisher_count": 18,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-13",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 8,
+          "corpus_publisher_count": 6,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-14",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 12,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-15",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-16",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 27,
+          "corpus_publisher_count": 24,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-17",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 93,
+          "corpus_publisher_count": 53,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-18",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 70,
+          "corpus_publisher_count": 43,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-19",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 59,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-20",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 63,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-21",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 87,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-22",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 126,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-23",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 215,
+          "corpus_publisher_count": 60,
+          "corpus_share_percent": 0.4651
+        },
+        {
+          "date": "2026-08-24",
+          "item_count": 4,
+          "publisher_count": 4,
+          "corpus_item_count": 194,
+          "corpus_publisher_count": 61,
+          "corpus_share_percent": 2.0619
+        },
+        {
+          "date": "2026-08-25",
+          "item_count": 5,
+          "publisher_count": 5,
+          "corpus_item_count": 153,
+          "corpus_publisher_count": 52,
+          "corpus_share_percent": 3.268
+        },
+        {
+          "date": "2026-08-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 174,
+          "corpus_publisher_count": 51,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-27",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 152,
+          "corpus_publisher_count": 42,
+          "corpus_share_percent": 0.6579
+        },
+        {
+          "date": "2026-08-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 104,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 138,
+          "corpus_publisher_count": 52,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "item_count": 4,
+          "publisher_count": 4,
+          "corpus_item_count": 181,
+          "corpus_publisher_count": 48,
+          "corpus_share_percent": 2.2099
+        },
+        {
+          "date": "2026-08-31",
+          "item_count": 5,
+          "publisher_count": 5,
+          "corpus_item_count": 113,
+          "corpus_publisher_count": 49,
+          "corpus_share_percent": 4.4248
+        },
+        {
+          "date": "2026-09-01",
+          "item_count": 4,
+          "publisher_count": 3,
+          "corpus_item_count": 78,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 5.1282
+        },
+        {
+          "date": "2026-09-02",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 132,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.7576
+        },
+        {
+          "date": "2026-09-03",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 139,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.7194
+        },
+        {
+          "date": "2026-09-04",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 110,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.9091
+        },
+        {
+          "date": "2026-09-05",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 112,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-06",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 137,
+          "corpus_publisher_count": 51,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 114,
+          "corpus_publisher_count": 39,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 133,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.7519
+        },
+        {
+          "date": "2026-09-09",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 136,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-10",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 126,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.7937
+        },
+        {
+          "date": "2026-09-11",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 84,
+          "corpus_publisher_count": 40,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 110,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 0.9091
+        },
+        {
+          "date": "2026-09-13",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 127,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 125,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-15",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 82,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 189,
+          "corpus_publisher_count": 62,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-17",
+          "item_count": 7,
+          "publisher_count": 6,
+          "corpus_item_count": 132,
+          "corpus_publisher_count": 41,
+          "corpus_share_percent": 5.303
+        },
+        {
+          "date": "2026-09-18",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 134,
+          "corpus_publisher_count": 57,
+          "corpus_share_percent": 1.4925
+        },
+        {
+          "date": "2026-09-19",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 82,
+          "corpus_publisher_count": 33,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-20",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 101,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 90,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-22",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 102,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.9804
+        },
+        {
+          "date": "2026-09-23",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 156,
+          "corpus_publisher_count": 57,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 139,
+          "corpus_publisher_count": 60,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 71,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 29,
+          "corpus_publisher_count": 20,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-27",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 37,
+          "corpus_publisher_count": 27,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 53,
+          "corpus_publisher_count": 31,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-29",
+          "item_count": 3,
+          "publisher_count": 2,
+          "corpus_item_count": 71,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 4.2254
+        },
+        {
+          "date": "2026-09-30",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 72,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 2.7778
+        },
+        {
+          "date": "2026-10-01",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 77,
+          "corpus_publisher_count": 31,
+          "corpus_share_percent": 0.0
+        }
+      ]
+    },
+    {
+      "id": "climate_energy_agriculture",
+      "labels": {
+        "fr": "Climat, énergie & agriculture",
+        "en": "Climate, energy & agriculture"
+      },
+      "total_item_count": 113,
+      "publisher_day_count": 100,
+      "active_day_count": 42,
+      "first_observation": "2026-07-23",
+      "last_observation": "2026-10-01",
+      "peak": {
+        "date": "2026-08-26",
+        "item_count": 11
+      },
+      "daily": [
+        {
+          "date": "2026-07-23",
+          "item_count": 2,
+          "publisher_count": 1,
+          "corpus_item_count": 45,
+          "corpus_publisher_count": 27,
+          "corpus_share_percent": 4.4444
+        },
+        {
+          "date": "2026-07-24",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 25,
+          "corpus_publisher_count": 21,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-25",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 12,
+          "corpus_publisher_count": 12,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-27",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 13,
+          "corpus_publisher_count": 13,
+          "corpus_share_percent": 7.6923
+        },
+        {
+          "date": "2026-07-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 13,
+          "corpus_publisher_count": 11,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-29",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 26,
+          "corpus_publisher_count": 20,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-30",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 16,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-31",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 21,
+          "corpus_publisher_count": 19,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-01",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 9,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-02",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 9,
+          "corpus_publisher_count": 8,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-03",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 17,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-04",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 45,
+          "corpus_publisher_count": 29,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-05",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 61,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 1.6393
+        },
+        {
+          "date": "2026-08-06",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 67,
+          "corpus_publisher_count": 39,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-07",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 50,
+          "corpus_publisher_count": 29,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-08",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 46,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-09",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 13,
+          "corpus_share_percent": 4.3478
+        },
+        {
+          "date": "2026-08-10",
+          "item_count": 7,
+          "publisher_count": 7,
+          "corpus_item_count": 63,
+          "corpus_publisher_count": 36,
+          "corpus_share_percent": 11.1111
+        },
+        {
+          "date": "2026-08-11",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 30,
+          "corpus_publisher_count": 23,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-12",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 29,
+          "corpus_publisher_count": 18,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-13",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 8,
+          "corpus_publisher_count": 6,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-14",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 12,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-15",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-16",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 27,
+          "corpus_publisher_count": 24,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-17",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 93,
+          "corpus_publisher_count": 53,
+          "corpus_share_percent": 2.1505
+        },
+        {
+          "date": "2026-08-18",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 70,
+          "corpus_publisher_count": 43,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-19",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 59,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 5.0847
+        },
+        {
+          "date": "2026-08-20",
+          "item_count": 4,
+          "publisher_count": 3,
+          "corpus_item_count": 63,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 6.3492
+        },
+        {
+          "date": "2026-08-21",
+          "item_count": 3,
+          "publisher_count": 2,
+          "corpus_item_count": 87,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 3.4483
+        },
+        {
+          "date": "2026-08-22",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 126,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.7937
+        },
+        {
+          "date": "2026-08-23",
+          "item_count": 5,
+          "publisher_count": 5,
+          "corpus_item_count": 215,
+          "corpus_publisher_count": 60,
+          "corpus_share_percent": 2.3256
+        },
+        {
+          "date": "2026-08-24",
+          "item_count": 4,
+          "publisher_count": 4,
+          "corpus_item_count": 194,
+          "corpus_publisher_count": 61,
+          "corpus_share_percent": 2.0619
+        },
+        {
+          "date": "2026-08-25",
+          "item_count": 7,
+          "publisher_count": 6,
+          "corpus_item_count": 153,
+          "corpus_publisher_count": 52,
+          "corpus_share_percent": 4.5752
+        },
+        {
+          "date": "2026-08-26",
+          "item_count": 11,
+          "publisher_count": 10,
+          "corpus_item_count": 174,
+          "corpus_publisher_count": 51,
+          "corpus_share_percent": 6.3218
+        },
+        {
+          "date": "2026-08-27",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 152,
+          "corpus_publisher_count": 42,
+          "corpus_share_percent": 1.3158
+        },
+        {
+          "date": "2026-08-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 104,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 138,
+          "corpus_publisher_count": 52,
+          "corpus_share_percent": 1.4493
+        },
+        {
+          "date": "2026-08-30",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 181,
+          "corpus_publisher_count": 48,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 113,
+          "corpus_publisher_count": 49,
+          "corpus_share_percent": 1.7699
+        },
+        {
+          "date": "2026-09-01",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 78,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 1.2821
+        },
+        {
+          "date": "2026-09-02",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 132,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-03",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 139,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 110,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.9091
+        },
+        {
+          "date": "2026-09-05",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 112,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 1.7857
+        },
+        {
+          "date": "2026-09-06",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 137,
+          "corpus_publisher_count": 51,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-07",
+          "item_count": 7,
+          "publisher_count": 7,
+          "corpus_item_count": 114,
+          "corpus_publisher_count": 39,
+          "corpus_share_percent": 6.1404
+        },
+        {
+          "date": "2026-09-08",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 133,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.7519
+        },
+        {
+          "date": "2026-09-09",
+          "item_count": 2,
+          "publisher_count": 1,
+          "corpus_item_count": 136,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 1.4706
+        },
+        {
+          "date": "2026-09-10",
+          "item_count": 4,
+          "publisher_count": 3,
+          "corpus_item_count": 126,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 3.1746
+        },
+        {
+          "date": "2026-09-11",
+          "item_count": 2,
+          "publisher_count": 1,
+          "corpus_item_count": 84,
+          "corpus_publisher_count": 40,
+          "corpus_share_percent": 2.381
+        },
+        {
+          "date": "2026-09-12",
+          "item_count": 2,
+          "publisher_count": 1,
+          "corpus_item_count": 110,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 1.8182
+        },
+        {
+          "date": "2026-09-13",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 127,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.7874
+        },
+        {
+          "date": "2026-09-14",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 125,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.8
+        },
+        {
+          "date": "2026-09-15",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 82,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-16",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 189,
+          "corpus_publisher_count": 62,
+          "corpus_share_percent": 1.0582
+        },
+        {
+          "date": "2026-09-17",
+          "item_count": 6,
+          "publisher_count": 6,
+          "corpus_item_count": 132,
+          "corpus_publisher_count": 41,
+          "corpus_share_percent": 4.5455
+        },
+        {
+          "date": "2026-09-18",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 134,
+          "corpus_publisher_count": 57,
+          "corpus_share_percent": 2.2388
+        },
+        {
+          "date": "2026-09-19",
+          "item_count": 3,
+          "publisher_count": 1,
+          "corpus_item_count": 82,
+          "corpus_publisher_count": 33,
+          "corpus_share_percent": 3.6585
+        },
+        {
+          "date": "2026-09-20",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 101,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 1.9802
+        },
+        {
+          "date": "2026-09-21",
+          "item_count": 3,
+          "publisher_count": 1,
+          "corpus_item_count": 90,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 3.3333
+        },
+        {
+          "date": "2026-09-22",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 102,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.9804
+        },
+        {
+          "date": "2026-09-23",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 156,
+          "corpus_publisher_count": 57,
+          "corpus_share_percent": 1.2821
+        },
+        {
+          "date": "2026-09-24",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 139,
+          "corpus_publisher_count": 60,
+          "corpus_share_percent": 1.4388
+        },
+        {
+          "date": "2026-09-25",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 71,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 29,
+          "corpus_publisher_count": 20,
+          "corpus_share_percent": 6.8966
+        },
+        {
+          "date": "2026-09-27",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 37,
+          "corpus_publisher_count": 27,
+          "corpus_share_percent": 2.7027
+        },
+        {
+          "date": "2026-09-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 53,
+          "corpus_publisher_count": 31,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-29",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 71,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 1.4085
+        },
+        {
+          "date": "2026-09-30",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 72,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 2.7778
+        },
+        {
+          "date": "2026-10-01",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 77,
+          "corpus_publisher_count": 31,
+          "corpus_share_percent": 1.2987
+        }
+      ]
+    },
+    {
+      "id": "europe_defence_foreign_affairs",
+      "labels": {
+        "fr": "Europe, défense & affaires étrangères",
+        "en": "Europe, defence & foreign affairs"
+      },
+      "total_item_count": 121,
+      "publisher_day_count": 103,
+      "active_day_count": 32,
+      "first_observation": "2026-08-04",
+      "last_observation": "2026-10-01",
+      "peak": {
+        "date": "2026-09-24",
+        "item_count": 13
+      },
+      "daily": [
+        {
+          "date": "2026-07-23",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 45,
+          "corpus_publisher_count": 27,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-24",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 25,
+          "corpus_publisher_count": 21,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-25",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 12,
+          "corpus_publisher_count": 12,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-27",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 13,
+          "corpus_publisher_count": 13,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 13,
+          "corpus_publisher_count": 11,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-29",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 26,
+          "corpus_publisher_count": 20,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-30",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 16,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-31",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 21,
+          "corpus_publisher_count": 19,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-01",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 9,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-02",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 9,
+          "corpus_publisher_count": 8,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-03",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 17,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-04",
+          "item_count": 5,
+          "publisher_count": 5,
+          "corpus_item_count": 45,
+          "corpus_publisher_count": 29,
+          "corpus_share_percent": 11.1111
+        },
+        {
+          "date": "2026-08-05",
+          "item_count": 12,
+          "publisher_count": 11,
+          "corpus_item_count": 61,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 19.6721
+        },
+        {
+          "date": "2026-08-06",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 67,
+          "corpus_publisher_count": 39,
+          "corpus_share_percent": 2.9851
+        },
+        {
+          "date": "2026-08-07",
+          "item_count": 13,
+          "publisher_count": 12,
+          "corpus_item_count": 50,
+          "corpus_publisher_count": 29,
+          "corpus_share_percent": 26.0
+        },
+        {
+          "date": "2026-08-08",
+          "item_count": 5,
+          "publisher_count": 5,
+          "corpus_item_count": 46,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 10.8696
+        },
+        {
+          "date": "2026-08-09",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 13,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-10",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 63,
+          "corpus_publisher_count": 36,
+          "corpus_share_percent": 3.1746
+        },
+        {
+          "date": "2026-08-11",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 30,
+          "corpus_publisher_count": 23,
+          "corpus_share_percent": 3.3333
+        },
+        {
+          "date": "2026-08-12",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 29,
+          "corpus_publisher_count": 18,
+          "corpus_share_percent": 3.4483
+        },
+        {
+          "date": "2026-08-13",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 8,
+          "corpus_publisher_count": 6,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-14",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 12,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 8.3333
+        },
+        {
+          "date": "2026-08-15",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-16",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 27,
+          "corpus_publisher_count": 24,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-17",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 93,
+          "corpus_publisher_count": 53,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-18",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 70,
+          "corpus_publisher_count": 43,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-19",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 59,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 1.6949
+        },
+        {
+          "date": "2026-08-20",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 63,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-21",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 87,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-22",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 126,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-23",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 215,
+          "corpus_publisher_count": 60,
+          "corpus_share_percent": 0.4651
+        },
+        {
+          "date": "2026-08-24",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 194,
+          "corpus_publisher_count": 61,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-25",
+          "item_count": 4,
+          "publisher_count": 4,
+          "corpus_item_count": 153,
+          "corpus_publisher_count": 52,
+          "corpus_share_percent": 2.6144
+        },
+        {
+          "date": "2026-08-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 174,
+          "corpus_publisher_count": 51,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-27",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 152,
+          "corpus_publisher_count": 42,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 104,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 138,
+          "corpus_publisher_count": 52,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 181,
+          "corpus_publisher_count": 48,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-31",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 113,
+          "corpus_publisher_count": 49,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-01",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 78,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-02",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 132,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.7576
+        },
+        {
+          "date": "2026-09-03",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 139,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "item_count": 5,
+          "publisher_count": 5,
+          "corpus_item_count": 110,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 4.5455
+        },
+        {
+          "date": "2026-09-05",
+          "item_count": 9,
+          "publisher_count": 4,
+          "corpus_item_count": 112,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 8.0357
+        },
+        {
+          "date": "2026-09-06",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 137,
+          "corpus_publisher_count": 51,
+          "corpus_share_percent": 2.1898
+        },
+        {
+          "date": "2026-09-07",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 114,
+          "corpus_publisher_count": 39,
+          "corpus_share_percent": 2.6316
+        },
+        {
+          "date": "2026-09-08",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 133,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 136,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.7353
+        },
+        {
+          "date": "2026-09-10",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 126,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-11",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 84,
+          "corpus_publisher_count": 40,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-12",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 110,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 127,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 125,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.8
+        },
+        {
+          "date": "2026-09-15",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 82,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 1.2195
+        },
+        {
+          "date": "2026-09-16",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 189,
+          "corpus_publisher_count": 62,
+          "corpus_share_percent": 1.5873
+        },
+        {
+          "date": "2026-09-17",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 132,
+          "corpus_publisher_count": 41,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "item_count": 6,
+          "publisher_count": 2,
+          "corpus_item_count": 134,
+          "corpus_publisher_count": 57,
+          "corpus_share_percent": 4.4776
+        },
+        {
+          "date": "2026-09-19",
+          "item_count": 4,
+          "publisher_count": 3,
+          "corpus_item_count": 82,
+          "corpus_publisher_count": 33,
+          "corpus_share_percent": 4.878
+        },
+        {
+          "date": "2026-09-20",
+          "item_count": 3,
+          "publisher_count": 2,
+          "corpus_item_count": 101,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 2.9703
+        },
+        {
+          "date": "2026-09-21",
+          "item_count": 3,
+          "publisher_count": 1,
+          "corpus_item_count": 90,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 3.3333
+        },
+        {
+          "date": "2026-09-22",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 102,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.9804
+        },
+        {
+          "date": "2026-09-23",
+          "item_count": 8,
+          "publisher_count": 7,
+          "corpus_item_count": 156,
+          "corpus_publisher_count": 57,
+          "corpus_share_percent": 5.1282
+        },
+        {
+          "date": "2026-09-24",
+          "item_count": 13,
+          "publisher_count": 12,
+          "corpus_item_count": 139,
+          "corpus_publisher_count": 60,
+          "corpus_share_percent": 9.3525
+        },
+        {
+          "date": "2026-09-25",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 71,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 29,
+          "corpus_publisher_count": 20,
+          "corpus_share_percent": 3.4483
+        },
+        {
+          "date": "2026-09-27",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 37,
+          "corpus_publisher_count": 27,
+          "corpus_share_percent": 2.7027
+        },
+        {
+          "date": "2026-09-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 53,
+          "corpus_publisher_count": 31,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-29",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 71,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 1.4085
+        },
+        {
+          "date": "2026-09-30",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 72,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-10-01",
+          "item_count": 5,
+          "publisher_count": 4,
+          "corpus_item_count": 77,
+          "corpus_publisher_count": 31,
+          "corpus_share_percent": 6.4935
+        }
+      ]
+    },
+    {
+      "id": "institutions_democracy_territories",
+      "labels": {
+        "fr": "Institutions, démocratie & territoires",
+        "en": "Institutions, democracy & territories"
+      },
+      "total_item_count": 46,
+      "publisher_day_count": 45,
+      "active_day_count": 32,
+      "first_observation": "2026-07-23",
+      "last_observation": "2026-09-30",
+      "peak": {
+        "date": "2026-09-30",
+        "item_count": 3
+      },
+      "daily": [
+        {
+          "date": "2026-07-23",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 45,
+          "corpus_publisher_count": 27,
+          "corpus_share_percent": 2.2222
+        },
+        {
+          "date": "2026-07-24",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 25,
+          "corpus_publisher_count": 21,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-25",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 12,
+          "corpus_publisher_count": 12,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-27",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 13,
+          "corpus_publisher_count": 13,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 13,
+          "corpus_publisher_count": 11,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-29",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 26,
+          "corpus_publisher_count": 20,
+          "corpus_share_percent": 3.8462
+        },
+        {
+          "date": "2026-07-30",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 16,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-07-31",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 21,
+          "corpus_publisher_count": 19,
+          "corpus_share_percent": 9.5238
+        },
+        {
+          "date": "2026-08-01",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 9,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-02",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 9,
+          "corpus_publisher_count": 8,
+          "corpus_share_percent": 22.2222
+        },
+        {
+          "date": "2026-08-03",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 17,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-04",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 45,
+          "corpus_publisher_count": 29,
+          "corpus_share_percent": 4.4444
+        },
+        {
+          "date": "2026-08-05",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 61,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-06",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 67,
+          "corpus_publisher_count": 39,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-07",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 50,
+          "corpus_publisher_count": 29,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-08",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 46,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 2.1739
+        },
+        {
+          "date": "2026-08-09",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 23,
+          "corpus_publisher_count": 13,
+          "corpus_share_percent": 4.3478
+        },
+        {
+          "date": "2026-08-10",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 63,
+          "corpus_publisher_count": 36,
+          "corpus_share_percent": 1.5873
+        },
+        {
+          "date": "2026-08-11",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 30,
+          "corpus_publisher_count": 23,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-12",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 29,
+          "corpus_publisher_count": 18,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-13",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 8,
+          "corpus_publisher_count": 6,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-14",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 12,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-15",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 10,
+          "corpus_publisher_count": 10,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-16",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 27,
+          "corpus_publisher_count": 24,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-17",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 93,
+          "corpus_publisher_count": 53,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-18",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 70,
+          "corpus_publisher_count": 43,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-19",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 59,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-20",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 63,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-21",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 87,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-22",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 126,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.7937
+        },
+        {
+          "date": "2026-08-23",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 215,
+          "corpus_publisher_count": 60,
+          "corpus_share_percent": 0.4651
+        },
+        {
+          "date": "2026-08-24",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 194,
+          "corpus_publisher_count": 61,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-25",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 153,
+          "corpus_publisher_count": 52,
+          "corpus_share_percent": 0.6536
+        },
+        {
+          "date": "2026-08-26",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 174,
+          "corpus_publisher_count": 51,
+          "corpus_share_percent": 0.5747
+        },
+        {
+          "date": "2026-08-27",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 152,
+          "corpus_publisher_count": 42,
+          "corpus_share_percent": 1.3158
+        },
+        {
+          "date": "2026-08-28",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 104,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-29",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 138,
+          "corpus_publisher_count": 52,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-08-30",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 181,
+          "corpus_publisher_count": 48,
+          "corpus_share_percent": 0.5525
+        },
+        {
+          "date": "2026-08-31",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 113,
+          "corpus_publisher_count": 49,
+          "corpus_share_percent": 0.885
+        },
+        {
+          "date": "2026-09-01",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 78,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 2.5641
+        },
+        {
+          "date": "2026-09-02",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 132,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 2.2727
+        },
+        {
+          "date": "2026-09-03",
+          "item_count": 3,
+          "publisher_count": 2,
+          "corpus_item_count": 139,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 2.1583
+        },
+        {
+          "date": "2026-09-04",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 110,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.9091
+        },
+        {
+          "date": "2026-09-05",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 112,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 1.7857
+        },
+        {
+          "date": "2026-09-06",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 137,
+          "corpus_publisher_count": 51,
+          "corpus_share_percent": 0.7299
+        },
+        {
+          "date": "2026-09-07",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 114,
+          "corpus_publisher_count": 39,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-08",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 133,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-09",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 136,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.7353
+        },
+        {
+          "date": "2026-09-10",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 126,
+          "corpus_publisher_count": 46,
+          "corpus_share_percent": 0.7937
+        },
+        {
+          "date": "2026-09-11",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 84,
+          "corpus_publisher_count": 40,
+          "corpus_share_percent": 1.1905
+        },
+        {
+          "date": "2026-09-12",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 110,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-13",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 127,
+          "corpus_publisher_count": 44,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-14",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 125,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.8
+        },
+        {
+          "date": "2026-09-15",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 82,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 2.439
+        },
+        {
+          "date": "2026-09-16",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 189,
+          "corpus_publisher_count": 62,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-17",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 132,
+          "corpus_publisher_count": 41,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-18",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 134,
+          "corpus_publisher_count": 57,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-19",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 82,
+          "corpus_publisher_count": 33,
+          "corpus_share_percent": 1.2195
+        },
+        {
+          "date": "2026-09-20",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 101,
+          "corpus_publisher_count": 37,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-21",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 90,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 1.1111
+        },
+        {
+          "date": "2026-09-22",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 102,
+          "corpus_publisher_count": 45,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-23",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 156,
+          "corpus_publisher_count": 57,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-24",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 139,
+          "corpus_publisher_count": 60,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-25",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 71,
+          "corpus_publisher_count": 38,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-26",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 29,
+          "corpus_publisher_count": 20,
+          "corpus_share_percent": 0.0
+        },
+        {
+          "date": "2026-09-27",
+          "item_count": 2,
+          "publisher_count": 2,
+          "corpus_item_count": 37,
+          "corpus_publisher_count": 27,
+          "corpus_share_percent": 5.4054
+        },
+        {
+          "date": "2026-09-28",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 53,
+          "corpus_publisher_count": 31,
+          "corpus_share_percent": 1.8868
+        },
+        {
+          "date": "2026-09-29",
+          "item_count": 1,
+          "publisher_count": 1,
+          "corpus_item_count": 71,
+          "corpus_publisher_count": 35,
+          "corpus_share_percent": 1.4085
+        },
+        {
+          "date": "2026-09-30",
+          "item_count": 3,
+          "publisher_count": 3,
+          "corpus_item_count": 72,
+          "corpus_publisher_count": 34,
+          "corpus_share_percent": 4.1667
+        },
+        {
+          "date": "2026-10-01",
+          "item_count": 0,
+          "publisher_count": 0,
+          "corpus_item_count": 77,
+          "corpus_publisher_count": 31,
+          "corpus_share_percent": 0.0
+        }
+      ]
+    }
+  ]
+}
