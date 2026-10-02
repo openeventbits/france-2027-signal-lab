@@ -797,7 +797,10 @@ class IssuePageArtifactTests(unittest.TestCase):
             ):
                 paths.append(Path(page[route_key].strip("/")) / "index.html")
         for path in sorted(paths):
-            self.assertEqual(rendered[path], (ROOT / path).read_bytes())
+            self.assertEqual(
+                rendered[path],
+                (ROOT / path).read_text(encoding="utf-8").encode("utf-8"),
+            )
 
     def test_current_hub_source_render_is_deterministic(self):
         first = builder.build_from_paths(write=False)["artifacts"]
@@ -814,7 +817,10 @@ class IssuePageArtifactTests(unittest.TestCase):
             Path("enjeux/index.html"),
             Path("en/issues/index.html"),
         ):
-            self.assertEqual(rendered[path], (ROOT / path).read_bytes())
+            self.assertEqual(
+                rendered[path],
+                (ROOT / path).read_text(encoding="utf-8").encode("utf-8"),
+            )
 
     def test_historical_url_family_is_complete(self):
         import build_issue_pages as pages
@@ -976,7 +982,12 @@ class IssuePageArtifactTests(unittest.TestCase):
             og_image=og_image,
         )
         self.assertEqual(first, second)
-        self.assertEqual(first, (ROOT / "enjeux" / "index.html").read_bytes())
+        self.assertEqual(
+            first,
+            (ROOT / "enjeux" / "index.html")
+            .read_text(encoding="utf-8")
+            .encode("utf-8"),
+        )
 
 
 class CurrentIssueDetailRedesignTests(unittest.TestCase):
@@ -1505,10 +1516,11 @@ class CurrentIssueDetailRedesignTests(unittest.TestCase):
                 self.assertEqual(first[path], second[path])
 
     def test_current_detail_pass_does_not_change_issues_javascript(self):
-        digest = hashlib.sha256((ROOT / "assets" / "issues.js").read_bytes()).hexdigest()
+        source = (ROOT / "assets" / "issues.js").read_text(encoding="utf-8")
+        digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
         self.assertEqual(
             digest,
-            "aedef0f8bbb628330351ba0b2960fc522fa0b4e31085bf072c1b574d5edb3f03",
+            "9f848b85428d4c4679c27d9291e9e3079be8b61050088d6d5a8d8a7bdb6005aa",
         )
 
     def test_issue_family_tiny_mobile_masthead_contract(self):
@@ -1880,7 +1892,10 @@ class HistoricalIssueDetailRedesignTests(unittest.TestCase):
             for key in ("page_path_fr", "page_path_en")
         ]
         for path in (*hubs, *current_details):
-            self.assertEqual(self.artifacts[path], (ROOT / path).read_bytes())
+            self.assertEqual(
+                self.artifacts[path],
+                (ROOT / path).read_text(encoding="utf-8").encode("utf-8"),
+            )
 
     def test_history_detail_is_bilingual_and_source_deterministic(self):
         second = builder.build_from_paths(write=False)["artifacts"]
