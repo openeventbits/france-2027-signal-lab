@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parent
 REGISTRY = ROOT / "route_registry.json"
 POLL_MANIFEST = ROOT / "poll_pages_manifest.json"
 CANDIDATE_REGISTRY = ROOT / "candidate_candidacy_status.json"
+ISSUE_MANIFEST = ROOT / "issue_pages_manifest.json"
 
 SM = {
     "sm": "http://www.sitemaps.org/schemas/sitemap/0.9",
@@ -38,6 +39,9 @@ class RouteRegistryTests(unittest.TestCase):
         cls.candidate_registry = json.loads(
             CANDIDATE_REGISTRY.read_text(encoding="utf-8")
         )
+        cls.issue_manifest = json.loads(
+            ISSUE_MANIFEST.read_text(encoding="utf-8")
+        )
         cls.candidate_index = project_candidate_route_index(
             cls.candidate_registry,
             ROOT,
@@ -55,8 +59,12 @@ class RouteRegistryTests(unittest.TestCase):
         expected_candidate_routes = (
             2 + 2 * self.candidate_index["counts"]["published"]
         )
+        expected_issue_routes = self.issue_manifest["page_count"]
         expected_total_routes = (
-            2 + expected_candidate_routes + expected_poll_routes
+            2
+            + expected_candidate_routes
+            + expected_poll_routes
+            + expected_issue_routes
         )
 
         self.assertEqual(
@@ -69,9 +77,76 @@ class RouteRegistryTests(unittest.TestCase):
             {
                 "core": 2,
                 "candidates": expected_candidate_routes,
+                "issues": expected_issue_routes,
                 "polls": expected_poll_routes,
             },
         )
+
+
+    def test_new_issue_adds_current_and_history_language_pairs(self):
+        poll_manifest = json.loads(
+            (ROOT / "poll_pages_manifest.json")
+            .read_text(encoding="utf-8")
+        )
+
+        empty_issue_manifest = {
+            "schema_version": "1.0",
+            "issue_count": 0,
+            "page_count": 4,
+            "hubs": {
+                "fr": "/enjeux/",
+                "en": "/en/issues/",
+            },
+            "history_hubs": {
+                "fr": "/enjeux/historique/",
+                "en": "/en/issues/history/",
+            },
+            "pages": [],
+        }
+
+        one_issue_manifest = {
+            **empty_issue_manifest,
+            "issue_count": 1,
+            "page_count": 8,
+            "pages": [
+                {
+                    "issue_id": "security_justice",
+                    "lifecycle": "current",
+                    "page_path_fr": (
+                        "/enjeux/securite-justice/"
+                    ),
+                    "page_path_en": (
+                        "/en/issues/security-justice/"
+                    ),
+                    "history_page_path_fr": (
+                        "/enjeux/historique/"
+                        "securite-justice/"
+                    ),
+                    "history_page_path_en": (
+                        "/en/issues/history/"
+                        "security-justice/"
+                    ),
+                }
+            ],
+        }
+
+        before = routes.discover_routes(
+            poll_manifest,
+            root=ROOT,
+            issue_manifest=empty_issue_manifest,
+        )
+
+        after = routes.discover_routes(
+            poll_manifest,
+            root=ROOT,
+            issue_manifest=one_issue_manifest,
+        )
+
+        self.assertEqual(
+            len(after) - len(before),
+            4,
+        )
+
 
     def test_new_poll_wave_adds_exactly_one_language_pair(self):
         empty_manifest = {"pages": []}
@@ -210,6 +285,58 @@ class RouteRegistryTests(unittest.TestCase):
             len(candidate_routes),
             2 * self.candidate_index["counts"]["published"],
         )
+
+
+    def test_issue_manifest_is_sole_issue_membership_authority(self):
+        registry = json.loads(
+            (ROOT / "route_registry.json")
+            .read_text(encoding="utf-8")
+        )
+
+        manifest = json.loads(
+            (ROOT / "issue_pages_manifest.json")
+            .read_text(encoding="utf-8")
+        )
+
+        registered = {
+            route["canonical_url"]
+            for route in registry["routes"]
+            if route["family"] == "issues"
+        }
+
+        expected = {
+            "https://france2027.app/enjeux/",
+            "https://france2027.app/en/issues/",
+            (
+                "https://france2027.app"
+                "/enjeux/historique/"
+            ),
+            (
+                "https://france2027.app"
+                "/en/issues/history/"
+            ),
+        }
+
+        expected.update(
+            f"https://france2027.app{path}"
+            for page in manifest["pages"]
+            for path in (
+                page["page_path_fr"],
+                page["page_path_en"],
+                page[
+                    "history_page_path_fr"
+                ],
+                page[
+                    "history_page_path_en"
+                ],
+            )
+        )
+
+        self.assertEqual(
+            registered,
+            expected,
+        )
+
 
     def test_titles_and_descriptions_are_present(self):
         for route in self.registry["routes"]:

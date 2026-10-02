@@ -1,0 +1,461 @@
+name: Publish issue family
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "build_issue_coverage_history.py"
+      - "build_issue_pages.py"
+      - "issue_page_contract.py"
+      - "build_route_registry.py"
+      - "build_sitemaps.py"
+      - "poll_pages_manifest.json"
+      - "test_issue_pages.py"
+      - "test_route_registry.py"
+      - "test_search_foundation.py"
+      - "test_issue_family_automation.py"
+      - ".github/workflows/publish-issue-family.yml"
+
+  # The production writers use GITHUB_TOKEN, so their pushes do not reliably
+  # start another push-triggered workflow. Follow both authoritative producers.
+  workflow_run:
+    workflows:
+      - "Update polls"
+      - "Update Election News Wire"
+      - "Update candidate universe"
+    types:
+      - completed
+    branches:
+      - main
+
+  schedule:
+    - cron: "17 11 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: production-data-update
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out main with retained history
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: >-
+          python -m pip install --disable-pip-version-check
+          pandas lxml pypdf
+
+      - name: Validate inputs and derive publication context
+        id: publication_context
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -B - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          from build_publication_manifest import (
+              build_manifest,
+              validate_manifest,
+          )
+
+          required = (
+              "news_wire.json",
+              "candidate_agenda_history.json",
+              "candidate_candidacy_status.json",
+              "poll_pages_manifest.json",
+              "issue_pages_manifest.json",
+              "publication_manifest.json",
+          )
+          payloads = {}
+          for name in required:
+              path = Path(name)
+              if not path.is_file() or not os.access(path, os.R_OK):
+                  raise SystemExit(f"required readable input is missing: {name}")
+              try:
+                  payloads[name] = json.loads(path.read_text(encoding="utf-8"))
+              except (OSError, UnicodeError, json.JSONDecodeError) as error:
+                  raise SystemExit(f"required input is not readable JSON: {name}: {error}")
+
+          stored = payloads["publication_manifest.json"]
+          validate_manifest(stored)
+          published_at = stored["published_at"]
+          expected = build_manifest(Path.cwd(), published_at=published_at)
+          if stored != expected:
+              raise SystemExit(
+                  "publication_manifest.json is not synchronized with its inputs"
+              )
+
+          normalized = published_at
+          if normalized.endswith("Z"):
+              normalized = normalized[:-1] + "+00:00"
+          instant = datetime.fromisoformat(normalized)
+          if instant.tzinfo is None:
+              raise SystemExit("publication_manifest.json published_at must be timezone-aware")
+          route_effective_date = instant.astimezone(timezone.utc).date().isoformat()
+
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
+              output.write(f"published_at={published_at}\n")
+              output.write(f"route_effective_date={route_effective_date}\n")
+          PY
+
+          published_at="$(python -B -c \
+            'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
+          python -B build_publication_manifest.py \
+            --check \
+            --published-at "$published_at"
+
+      - name: Build, validate and prove deterministic publication
+        id: build
+        env:
+          ROUTE_EFFECTIVE_DATE: ${{ steps.publication_context.outputs.route_effective_date }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          assert_allowed_changes() {
+            local entry path unexpected=0
+            while IFS= read -r -d '' entry; do
+              path="${entry:3}"
+              case "$path" in
+                issue_coverage_history.json|issue_pages_manifest.json|enjeux/*|en/issues/*|route_registry.json|sitemap.xml|sitemap-core.xml|sitemap-candidates.xml|sitemap-polls.xml|sitemap-issues.xml)
+                  ;;
+                *)
+                  echo "Unexpected generated path: $path" >&2
+                  unexpected=1
+                  ;;
+              esac
+            done < <(git status --porcelain=v1 -z --untracked-files=all)
+            if [[ "$unexpected" -ne 0 ]]; then
+              return 1
+            fi
+          }
+
+          snapshot_generated_state() {
+            local label="$1"
+            git status --porcelain=v1 -z --untracked-files=all \
+              > "$RUNNER_TEMP/issues-$label.status"
+            git diff --binary -- \
+              issue_coverage_history.json issue_pages_manifest.json \
+              enjeux en/issues route_registry.json \
+              sitemap.xml sitemap-core.xml sitemap-candidates.xml \
+              sitemap-polls.xml sitemap-issues.xml \
+              > "$RUNNER_TEMP/issues-$label.diff"
+            python -B - "$RUNNER_TEMP/issues-$label.sha256" <<'PY'
+          import hashlib
+          import sys
+          from pathlib import Path
+
+          files = []
+          for name in (
+              "issue_coverage_history.json",
+              "issue_pages_manifest.json",
+              "route_registry.json",
+              "sitemap.xml",
+              "sitemap-core.xml",
+              "sitemap-candidates.xml",
+              "sitemap-polls.xml",
+              "sitemap-issues.xml",
+          ):
+              path = Path(name)
+              if path.is_file():
+                  files.append(path)
+          for root in (Path("enjeux"), Path("en/issues")):
+              if root.is_dir():
+                  files.extend(path for path in root.rglob("*") if path.is_file())
+
+          lines = []
+          for path in sorted(files, key=lambda item: item.as_posix()):
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              lines.append(f"{digest}  {path.as_posix()}")
+          Path(sys.argv[1]).write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+          }
+
+          python -B build_issue_coverage_history.py
+          python -B build_issue_coverage_history.py --check
+
+          python -B build_issue_pages.py
+          python -B build_issue_pages.py --check
+          python -B build_issue_pages.py --thin-audit
+
+          python -B -m unittest -v test_issue_pages
+
+          python -B build_route_registry.py \
+            --issue-manifest issue_pages_manifest.json \
+            --effective-date "$ROUTE_EFFECTIVE_DATE"
+          python -B build_route_registry.py \
+            --issue-manifest issue_pages_manifest.json \
+            --check
+
+          python -B build_sitemaps.py
+          python -B build_sitemaps.py --check
+
+          python -B -m unittest -v \
+            test_issue_pages \
+            test_route_registry \
+            test_search_foundation \
+            test_issue_family_automation
+
+          git diff --check
+          assert_allowed_changes
+          snapshot_generated_state first
+
+          python -B build_issue_coverage_history.py
+          python -B build_issue_coverage_history.py --check
+
+          python -B build_issue_pages.py
+          python -B build_issue_pages.py --check
+          python -B build_issue_pages.py --thin-audit
+
+          python -B build_route_registry.py \
+            --issue-manifest issue_pages_manifest.json \
+            --effective-date "$ROUTE_EFFECTIVE_DATE"
+          python -B build_route_registry.py \
+            --issue-manifest issue_pages_manifest.json \
+            --check
+
+          python -B build_sitemaps.py
+          python -B build_sitemaps.py --check
+
+          git diff --check
+          assert_allowed_changes
+          snapshot_generated_state second
+
+          cmp "$RUNNER_TEMP/issues-first.status" "$RUNNER_TEMP/issues-second.status"
+          cmp "$RUNNER_TEMP/issues-first.diff" "$RUNNER_TEMP/issues-second.diff"
+          cmp "$RUNNER_TEMP/issues-first.sha256" "$RUNNER_TEMP/issues-second.sha256"
+          echo "Deterministic regeneration introduced zero additional changes."
+
+      - name: Commit generated issue publication
+        id: commit
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$(git status --porcelain=v1 --untracked-files=all -- \
+            issue_coverage_history.json issue_pages_manifest.json \
+            enjeux en/issues route_registry.json \
+            sitemap.xml sitemap-core.xml sitemap-candidates.xml \
+            sitemap-polls.xml sitemap-issues.xml)" ]]; then
+            echo "Issue publication is already current."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -- \
+            issue_coverage_history.json issue_pages_manifest.json \
+            enjeux en/issues route_registry.json \
+            sitemap.xml sitemap-core.xml sitemap-candidates.xml \
+            sitemap-polls.xml sitemap-issues.xml
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "Issue publication has no staged byte change."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git commit -m "Refresh issue family"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Rebase, reconcile and push
+        id: reconcile
+        if: steps.commit.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          assert_allowed_changes() {
+            local entry path unexpected=0
+            while IFS= read -r -d '' entry; do
+              path="${entry:3}"
+              case "$path" in
+                issue_coverage_history.json|issue_pages_manifest.json|enjeux/*|en/issues/*|route_registry.json|sitemap.xml|sitemap-core.xml|sitemap-candidates.xml|sitemap-polls.xml|sitemap-issues.xml)
+                  ;;
+                *)
+                  echo "Unexpected path after reconciliation: $path" >&2
+                  unexpected=1
+                  ;;
+              esac
+            done < <(git status --porcelain=v1 -z --untracked-files=all)
+            if [[ "$unexpected" -ne 0 ]]; then
+              return 1
+            fi
+          }
+
+          git fetch origin main
+          git rebase origin/main
+
+          read -r published_at route_effective_date < <(
+            python -B - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          from build_publication_manifest import (
+              build_manifest,
+              validate_manifest,
+          )
+
+          required = (
+              "news_wire.json",
+              "candidate_agenda_history.json",
+              "candidate_candidacy_status.json",
+              "poll_pages_manifest.json",
+              "issue_pages_manifest.json",
+              "publication_manifest.json",
+          )
+          payloads = {}
+          for name in required:
+              path = Path(name)
+              if not path.is_file() or not os.access(path, os.R_OK):
+                  raise SystemExit(f"required readable input is missing after rebase: {name}")
+              try:
+                  payloads[name] = json.loads(path.read_text(encoding="utf-8"))
+              except (OSError, UnicodeError, json.JSONDecodeError) as error:
+                  raise SystemExit(f"required input is not readable JSON after rebase: {name}: {error}")
+
+          stored = payloads["publication_manifest.json"]
+          validate_manifest(stored)
+          published_at = stored["published_at"]
+          expected = build_manifest(Path.cwd(), published_at=published_at)
+          if stored != expected:
+              raise SystemExit(
+                  "publication_manifest.json is not synchronized after rebase"
+              )
+
+          normalized = published_at
+          if normalized.endswith("Z"):
+              normalized = normalized[:-1] + "+00:00"
+          instant = datetime.fromisoformat(normalized)
+          if instant.tzinfo is None:
+              raise SystemExit("publication_manifest.json published_at must be timezone-aware")
+          effective_date = instant.astimezone(timezone.utc).date().isoformat()
+          print(published_at, effective_date)
+          PY
+          )
+
+          python -B build_publication_manifest.py \
+            --check \
+            --published-at "$published_at"
+
+          python -B build_issue_coverage_history.py
+          python -B build_issue_coverage_history.py --check
+
+          python -B build_issue_pages.py
+          python -B build_issue_pages.py --check
+          python -B build_issue_pages.py --thin-audit
+
+          python -B build_route_registry.py \
+            --issue-manifest issue_pages_manifest.json \
+            --effective-date "$route_effective_date"
+          python -B build_route_registry.py \
+            --issue-manifest issue_pages_manifest.json \
+            --check
+
+          python -B build_sitemaps.py
+          python -B build_sitemaps.py --check
+
+          python -B -m unittest -v \
+            test_issue_pages \
+            test_route_registry \
+            test_search_foundation \
+            test_issue_family_automation
+
+          git diff --check
+          assert_allowed_changes
+
+          git add -- \
+            issue_coverage_history.json issue_pages_manifest.json \
+            enjeux en/issues route_registry.json \
+            sitemap.xml sitemap-core.xml sitemap-candidates.xml \
+            sitemap-polls.xml sitemap-issues.xml
+          git diff --cached --check
+
+          if ! git diff --cached --quiet; then
+            git commit --amend --no-edit
+          fi
+
+          if ! git diff --quiet origin/main -- \
+            issue_coverage_history.json issue_pages_manifest.json \
+            enjeux en/issues route_registry.json \
+            sitemap.xml sitemap-core.xml sitemap-candidates.xml \
+            sitemap-polls.xml sitemap-issues.xml; then
+            :
+          else
+            echo "The reconciled issue publication is already present on main."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ -n "$(git status --porcelain=v1 --untracked-files=all)" ]]; then
+            echo "Working tree is not clean after issue reconciliation." >&2
+            git status --short
+            exit 1
+          fi
+
+          for attempt in 1 2 3; do
+            if push_output="$(git push origin HEAD:main 2>&1)"; then
+              printf '%s\n' "$push_output"
+              break
+            fi
+
+            printf '%s\n' "$push_output" >&2
+            if [[ "$push_output" != *"fatal error in commit_refs"* || "$attempt" -eq 3 ]]; then
+              exit 1
+            fi
+            echo "GitHub reported transient commit_refs failure; retrying push." >&2
+            sleep $((attempt * 5))
+          done
+
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+      # GITHUB_TOKEN pushes do not reliably start Pages. Request the build only
+      # after a changed, fully reconciled publication was successfully pushed.
+      - name: Request GitHub Pages build
+        if: >-
+          steps.commit.outputs.changed == 'true' &&
+          steps.reconcile.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl \
+            --fail-with-body \
+            --location \
+            --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "X-GitHub-Api-Version: 2026-03-10" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/pages/builds"

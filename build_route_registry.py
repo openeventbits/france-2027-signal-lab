@@ -11,12 +11,14 @@ from pathlib import Path
 from typing import Any
 
 from candidate_page_contract import project_candidate_route_index
+from issue_page_contract import IssuePageContractError, validate_issue_manifest
 
 
 ROOT = Path(__file__).resolve().parent
 REGISTRY_PATH = ROOT / "route_registry.json"
 POLL_MANIFEST_PATH = ROOT / "poll_pages_manifest.json"
 CANDIDATE_REGISTRY_PATH = ROOT / "candidate_candidacy_status.json"
+ISSUE_MANIFEST_PATH = ROOT / "issue_pages_manifest.json"
 
 SCHEMA_VERSION = "1.0"
 BASE_URL = "https://france2027.app"
@@ -425,6 +427,7 @@ def discover_routes(
     candidate_registry: dict[str, Any] | None = None,
     *,
     root: Path = ROOT,
+    issue_manifest: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     routes: list[dict[str, Any]] = []
 
@@ -524,6 +527,68 @@ def discover_routes(
             )
         )
 
+    if issue_manifest is None:
+        issue_manifest = _load_json(
+            root / "issue_pages_manifest.json"
+        )
+
+    validate_issue_manifest(issue_manifest)
+
+    hubs = issue_manifest["hubs"]
+    routes.extend(
+        _route_pair(
+            route_key="issues-lab",
+            family="issues",
+            kind="hub",
+            entity_id="issues-lab",
+            path_fr=hubs["fr"],
+            path_en=hubs["en"],
+        )
+    )
+
+    history_hubs = issue_manifest.get("history_hubs")
+
+    if not isinstance(history_hubs, dict):
+        raise RouteRegistryError(
+            "Issue manifest has no historical hub pair."
+        )
+
+    routes.extend(
+        _route_pair(
+            route_key="issues-history",
+            family="issues",
+            kind="history-hub",
+            entity_id="issues-history",
+            path_fr=history_hubs["fr"],
+            path_en=history_hubs["en"],
+        )
+    )
+
+    for page in issue_manifest["pages"]:
+        issue_id = page["issue_id"]
+
+        routes.extend(
+            _route_pair(
+                route_key=f"issue:{issue_id}",
+                family="issues",
+                kind="issue-detail",
+                entity_id=issue_id,
+                path_fr=page["page_path_fr"],
+                path_en=page["page_path_en"],
+            )
+        )
+
+        routes.extend(
+            _route_pair(
+                route_key=f"issue-history:{issue_id}",
+                family="issues",
+                kind="issue-history-detail",
+                entity_id=issue_id,
+                path_fr=page["history_page_path_fr"],
+                path_en=page["history_page_path_en"],
+            )
+        )
+
     return routes
 
 
@@ -532,13 +597,16 @@ def current_snapshot(
     root: Path,
     poll_manifest_path: Path,
     candidate_registry_path: Path = CANDIDATE_REGISTRY_PATH,
+    issue_manifest_path: Path = ISSUE_MANIFEST_PATH,
 ) -> list[dict[str, Any]]:
     poll_manifest = _load_json(poll_manifest_path)
     candidate_registry = _load_json(candidate_registry_path)
+    issue_manifest = _load_json(issue_manifest_path)
     routes = discover_routes(
         poll_manifest,
         candidate_registry,
         root=root,
+        issue_manifest=issue_manifest,
     )
 
     seen_ids: set[str] = set()
@@ -623,6 +691,7 @@ def build_registry(
     root: Path = ROOT,
     poll_manifest_path: Path = POLL_MANIFEST_PATH,
     candidate_registry_path: Path = CANDIDATE_REGISTRY_PATH,
+    issue_manifest_path: Path = ISSUE_MANIFEST_PATH,
     existing_registry_path: Path = REGISTRY_PATH,
     effective_date: str,
 ) -> dict[str, Any]:
@@ -632,6 +701,7 @@ def build_registry(
         root=root,
         poll_manifest_path=poll_manifest_path,
         candidate_registry_path=candidate_registry_path,
+        issue_manifest_path=issue_manifest_path,
     )
 
     previous_by_id: dict[str, dict[str, Any]] = {}
@@ -711,6 +781,7 @@ def check_registry(
     root: Path = ROOT,
     poll_manifest_path: Path = POLL_MANIFEST_PATH,
     candidate_registry_path: Path = CANDIDATE_REGISTRY_PATH,
+    issue_manifest_path: Path = ISSUE_MANIFEST_PATH,
     registry_path: Path = REGISTRY_PATH,
 ) -> list[str]:
     if not registry_path.exists():
@@ -725,6 +796,7 @@ def check_registry(
         root=root,
         poll_manifest_path=poll_manifest_path,
         candidate_registry_path=candidate_registry_path,
+        issue_manifest_path=issue_manifest_path,
     )
 
     registered = registry.get("routes")
@@ -854,6 +926,12 @@ def _parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--issue-manifest",
+        type=Path,
+        default=ISSUE_MANIFEST_PATH,
+    )
+
+    parser.add_argument(
         "--output",
         type=Path,
         default=REGISTRY_PATH,
@@ -880,6 +958,7 @@ def main(argv: list[str] | None = None) -> int:
                 root=ROOT,
                 poll_manifest_path=arguments.poll_manifest,
                 candidate_registry_path=arguments.candidate_registry,
+                issue_manifest_path=arguments.issue_manifest,
                 registry_path=arguments.output,
             )
 
@@ -908,6 +987,7 @@ def main(argv: list[str] | None = None) -> int:
             root=ROOT,
             poll_manifest_path=arguments.poll_manifest,
             candidate_registry_path=arguments.candidate_registry,
+            issue_manifest_path=arguments.issue_manifest,
             existing_registry_path=arguments.output,
             effective_date=arguments.effective_date,
         )
@@ -918,6 +998,7 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     except (
+        IssuePageContractError,
         RouteRegistryError,
         OSError,
         json.JSONDecodeError,

@@ -826,6 +826,70 @@ class SearchFoundationTests(unittest.TestCase):
             workflow,
         )
 
+    def test_issue_family_search_metadata_is_complete(self):
+        manifest = json.loads(
+            (ROOT / "issue_pages_manifest.json").read_text(encoding="utf-8")
+        )
+        route_pairs = [
+            (
+                ROOT / "enjeux" / "index.html",
+                ROOT / "en" / "issues" / "index.html",
+                "https://france2027.app/enjeux/",
+                "https://france2027.app/en/issues/",
+            )
+        ]
+        route_pairs.extend(
+            (
+                ROOT / page["page_path_fr"].strip("/") / "index.html",
+                ROOT / page["page_path_en"].strip("/") / "index.html",
+                "https://france2027.app" + page["page_path_fr"],
+                "https://france2027.app" + page["page_path_en"],
+            )
+            for page in manifest["pages"]
+        )
+        titles = set()
+        descriptions = set()
+        for french_path, english_path, canonical_fr, canonical_en in route_pairs:
+            for path, language, canonical in (
+                (french_path, "fr", canonical_fr),
+                (english_path, "en", canonical_en),
+            ):
+                document = path.read_text(encoding="utf-8")
+                self.assertIn(f'<html lang="{language}">', document)
+                self.assertEqual(
+                    document.count(f'<link rel="canonical" href="{canonical}">'),
+                    1,
+                )
+                self.assertEqual(
+                    document.count(
+                        f'<link rel="alternate" hreflang="fr" href="{canonical_fr}">'
+                    ),
+                    1,
+                )
+                self.assertEqual(
+                    document.count(
+                        f'<link rel="alternate" hreflang="en" href="{canonical_en}">'
+                    ),
+                    1,
+                )
+                self.assertEqual(
+                    document.count(
+                        f'<link rel="alternate" hreflang="x-default" href="{canonical_fr}">'
+                    ),
+                    1,
+                )
+                title = re.search(r"<title>(.*?)</title>", document).group(1)
+                description = re.search(
+                    r'<meta name="description" content="([^"]+)">', document
+                ).group(1)
+                self.assertNotIn(title, titles)
+                self.assertNotIn(description, descriptions)
+                titles.add(title)
+                descriptions.add(description)
+                self.assertIn('property="og:title"', document)
+                self.assertIn('name="twitter:title"', document)
+                self.assertIn('"@type":"BreadcrumbList"', document)
+
 
 if __name__ == "__main__":
     unittest.main()
