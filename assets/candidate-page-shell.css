@@ -458,14 +458,20 @@
     gap: 8px;
   }
 
-  .candidate-page .candidate-language {
-    width: 96px;
-    flex: 0 0 96px;
-  }
-
+  /*
+   * Narrow-phone hierarchy:
+   * countdown first, language selector below.
+   */
   .candidate-page .candidate-countdown {
+    order: 1;
     width: 100%;
     min-width: 0;
     flex: 1 0 100%;
+  }
+
+  .candidate-page .candidate-language {
+    order: 2;
+    width: 96px;
+    flex: 0 0 96px;
   }
 }

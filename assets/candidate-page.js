@@ -188,12 +188,16 @@
       `${formatNumber(points.length)} observations chronologiques de sondages de premier tour pour ${candidateNameFor(projection)}. La position horizontale suit la date de fin de terrain. Les points sont des scores exacts de l’hypothèse sélectionnée et les barres des fourchettes publiées. Aucune moyenne ni interpolation.`,
       `${formatNumber(points.length)} chronological first-round poll observations for ${candidateNameFor(projection)}. Horizontal position follows the fieldwork end date. Points are exact scores for the selected hypothesis and bars are published ranges. No average or interpolation.`
     );
+    const pollHistoryHeight = window.matchMedia(
+      "(min-width: 1350px)"
+    ).matches ? 170 : 230;
+
     const frame = chartFrame(container, {
       maxY: 50,
       yTicks: 5,
       yFormatter: value => `${formatScore(value)}%`,
       width: Math.max(320, Math.round(container.clientWidth || 920)),
-      height: 230
+      height: pollHistoryHeight
     });
 
     const xForTime = value => (
