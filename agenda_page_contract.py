@@ -452,7 +452,12 @@ def project_agenda_pages(
             base_topic is not None and base_topic["display_eligible"]
         )
         historical_qualified = bool(history_topics[topic_id]["historical_qualified"])
-        retained = topic_id in previously_public
+        was_previously_public = topic_id in previously_public
+        retained = (
+            was_previously_public
+            and not current_qualified
+            and not historical_qualified
+        )
         if current_qualified:
             lifecycle = "current"
         elif historical_qualified:
@@ -461,7 +466,7 @@ def project_agenda_pages(
             lifecycle = "dormant"
         else:
             lifecycle = "unpublished"
-        public = current_qualified or historical_qualified or retained
+        public = current_qualified or historical_qualified or was_previously_public
         topics.append(
             {
                 "topic_id": topic_id,
