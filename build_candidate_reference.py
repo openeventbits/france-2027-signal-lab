@@ -31,6 +31,7 @@ from candidate_candidacy_status import (
     active_candidate_records,
     validate_candidate_candidacy_status,
 )
+from candidate_identity import normalized_candidate_key
 from candidate_portraits import resolve_candidate_portrait
 from candidate_page_contract import (
     is_archived_candidacy_status,
@@ -383,44 +384,146 @@ def _event_projection(event: dict[str, Any], lane: str) -> dict[str, Any]:
     }
 
 
-def _runoff_projection(events: list[dict[str, Any]], candidate_name: str) -> list[dict[str, Any]]:
-    grouped: dict[str, list[dict[str, Any]]] = {}
+def _candidate_registry_by_alias(
+    candidacy_payload: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Resolve canonical and retained previous names to registry records."""
+
+    records_by_alias: dict[str, dict[str, Any]] = {}
+
+    for candidate in candidacy_payload["candidates"]:
+        identity_names = [
+            candidate["candidate_name"],
+            *candidate.get("previous_names", []),
+        ]
+
+        for identity_name in identity_names:
+            alias_key = normalized_candidate_key(identity_name)
+            owner = records_by_alias.get(alias_key)
+
+            if (
+                owner is not None
+                and owner["candidate_id"] != candidate["candidate_id"]
+            ):
+                raise CandidateReferenceError(
+                    "candidate identity alias collision while projecting runoffs: "
+                    f"{identity_name!r}"
+                )
+
+            records_by_alias[alias_key] = candidate
+
+    return records_by_alias
+
+
+def _runoff_projection(
+    events: list[dict[str, Any]],
+    *,
+    candidate_id: str,
+    candidacy_payload: dict[str, Any],
+    active_candidate_ids: set[str],
+    root: Path,
+) -> list[dict[str, Any]]:
+    """Project raw runoff evidence through the current candidate universe."""
+
+    registry_by_alias = _candidate_registry_by_alias(candidacy_payload)
+    grouped: dict[str, dict[str, Any]] = {}
+
     for event in events:
-        names = [entry["name"] for entry in event["candidates"]]
-        if candidate_name not in names:
+        resolved = []
+
+        for entry in event["candidates"]:
+            candidate_record = registry_by_alias.get(
+                normalized_candidate_key(entry["name"])
+            )
+            if candidate_record is not None:
+                resolved.append((entry, candidate_record))
+
+        candidate_entries = [
+            (entry, record)
+            for entry, record in resolved
+            if record["candidate_id"] == candidate_id
+        ]
+
+        if len(candidate_entries) != 1:
             continue
-        opponent = next(name for name in names if name != candidate_name)
-        scores = {entry["name"]: entry["score"] for entry in event["candidates"]}
-        grouped.setdefault(opponent, []).append(
+
+        opponent_entries = [
+            (entry, record)
+            for entry, record in resolved
+            if record["candidate_id"] != candidate_id
+        ]
+
+        if len(opponent_entries) != 1:
+            continue
+
+        candidate_entry, _candidate_record = candidate_entries[0]
+        opponent_entry, opponent_record = opponent_entries[0]
+        opponent_id = opponent_record["candidate_id"]
+
+        # Current dossier presentation reuses the canonical active-monitoring
+        # predicate. Raw second-round polling remains untouched.
+        if opponent_id not in active_candidate_ids:
+            continue
+
+        bucket = grouped.setdefault(
+            opponent_id,
+            {
+                "opponent_id": opponent_id,
+                "opponent": opponent_record["candidate_name"],
+                "opponent_portrait_path": _projection_portrait_path(
+                    opponent_record["candidate_name"],
+                    root,
+                ),
+                "observations": [],
+            },
+        )
+
+        bucket["observations"].append(
             {
                 "event_id": event["event_id"],
                 "pollster": event["pollster"],
                 "fieldwork_start": event["fieldwork_start"],
                 "fieldwork_end": event["fieldwork_end"],
                 "sample_size": event["sample_size"],
-                "candidate_score": scores[candidate_name],
-                "opponent_score": scores[opponent],
+                "candidate_score": candidate_entry["score"],
+                "opponent_score": opponent_entry["score"],
                 "source_url": event["source_url"],
             }
         )
+
     matchups: list[dict[str, Any]] = []
-    for opponent, observations in grouped.items():
+
+    for bucket in grouped.values():
         ordered = sorted(
-            observations,
-            key=lambda item: (item["fieldwork_end"], item["event_id"]),
+            bucket["observations"],
+            key=lambda item: (
+                item["fieldwork_end"],
+                item["event_id"],
+            ),
             reverse=True,
         )
+
         matchups.append(
             {
-                "opponent": opponent,
+                "opponent_id": bucket["opponent_id"],
+                "opponent": bucket["opponent"],
+                "opponent_portrait_path": (
+                    bucket["opponent_portrait_path"]
+                ),
                 "observation_count": len(ordered),
                 "latest_fieldwork_end": ordered[0]["fieldwork_end"],
-                "observations": ordered[:MAX_RUNOFF_EVENTS_PER_MATCHUP],
+                "observations": ordered[
+                    :MAX_RUNOFF_EVENTS_PER_MATCHUP
+                ],
             }
         )
+
     return sorted(
         matchups,
-        key=lambda item: (item["latest_fieldwork_end"], item["opponent"]),
+        key=lambda item: (
+            item["latest_fieldwork_end"],
+            item["opponent"],
+        ),
         reverse=True,
     )[:MAX_RUNOFF_MATCHUPS]
 
@@ -440,13 +543,45 @@ def _topic_projection(profile: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _projection_portrait_path(candidate_name: str, root: Path) -> str | None:
-    """Resolve a portrait through the root dashboard's canonical registry."""
+def _topic_ids_by_displayed_share(
+    profile: dict[str, Any],
+) -> list[str]:
+    """Sort by displayed percentage; preserve canonical taxonomy order on ties."""
 
-    return resolve_candidate_portrait(
+    canonical_order = {
+        topic["id"]: index
+        for index, topic in enumerate(profile["topics"])
+    }
+
+    return [
+        topic["id"]
+        for topic in sorted(
+            profile["topics"],
+            key=lambda topic: (
+                -round(float(topic["share"]) * 100, 1),
+                canonical_order[topic["id"]],
+            ),
+        )
+    ]
+
+
+def _projection_portrait_path(candidate_name: str, root: Path) -> str | None:
+    """Resolve a verified portrait through the root dashboard registry."""
+
+    portrait_path = resolve_candidate_portrait(
         candidate_name,
         index_path=root / "index.html",
     )
+
+    if portrait_path is None:
+        return None
+
+    portrait_file = root / portrait_path.lstrip("/")
+
+    if not portrait_file.is_file():
+        return None
+
+    return portrait_path
 
 
 def _related_candidate_projection(
@@ -544,9 +679,10 @@ def build_projection(
         validate_sources(sources, root)
     status_payload = sources["candidate_candidacy_status"]
 
+    active_candidates = active_candidate_records(status_payload)
     active_ids = {
         candidate["candidate_id"]
-        for candidate in active_candidate_records(status_payload)
+        for candidate in active_candidates
     }
     candidate_status = _one(
         status_payload["candidates"], field="candidate_id", value=candidate_id
@@ -910,7 +1046,11 @@ def build_projection(
             },
             "first_round_history": signals["poll_history"],
             "tested_runoffs": _runoff_projection(
-                sources["second_round_polls"]["events"], candidate_name
+                sources["second_round_polls"]["events"],
+                candidate_id=candidate_id,
+                candidacy_payload=status_payload,
+                active_candidate_ids=active_ids,
+                root=root,
             ),
         },
         "media": {
@@ -1111,17 +1251,6 @@ def validate_projection(
 def serialize_projection(payload: dict[str, Any]) -> bytes:
     validate_projection(payload)
     return (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
-
-
-RUNOFF_PORTRAITS_FR = {
-    "Édouard Philippe": "/assets/candidates/philippe.png",
-    "Jean-Luc Mélenchon": "/assets/candidates/melenchon.png",
-    "Gabriel Attal": "/assets/candidates/attal.png",
-    "Raphaël Glucksmann": "/assets/candidates/glucksmann.png",
-    "François Hollande": "/assets/candidates/hollande.png",
-    "Bruno Retailleau": "/assets/candidates/retailleau.png",
-    "François Ruffin": "/assets/candidates/ruffin.png",
-}
 
 
 TOPIC_LABELS_FR = {
@@ -1940,13 +2069,8 @@ def _render_candidate_structure_html(
                 '</article>'
             )
 
-        opponent_portrait = RUNOFF_PORTRAITS_FR.get(matchup["opponent"])
-
-        opponent_initials = "".join(
-            part[0]
-            for part in matchup["opponent"].replace("-", " ").split()
-            if part
-        )[:2].upper()
+        opponent_portrait = matchup.get("opponent_portrait_path")
+        opponent_initials = _candidate_initials(matchup["opponent"])
 
         if opponent_portrait:
             opponent_portrait_html = (
@@ -1964,7 +2088,8 @@ def _render_candidate_structure_html(
             )
 
         runoff_groups.append(
-            '<section class="candidate-runoff-group">'
+            '<section class="candidate-runoff-group" '
+            f'data-opponent-id="{_h(matchup["opponent_id"])}">'
             '<div class="candidate-runoff-group-head">'
             f'{opponent_portrait_html}'
             '<div class="candidate-runoff-group-copy">'
@@ -2153,20 +2278,19 @@ def _render_candidate_structure_html(
     evidence = payload["accountability"]["candidacy_evidence"]
     agenda_current = payload["agenda"]["current"]
     agenda_cumulative = payload["agenda"]["since_tracking"]
-    agenda_topic_order = [
-        topic["id"]
-        for topic in sorted(
-            agenda_current["topics"],
-            key=lambda item: (-item["share"], item["id"]),
-        )
-    ]
+    agenda_current_topic_order = _topic_ids_by_displayed_share(
+        agenda_current
+    )
+    agenda_cumulative_topic_order = _topic_ids_by_displayed_share(
+        agenda_cumulative
+    )
     agenda_current_period = _agenda_count_label(
         agenda_current["day_count"], "dernier jour", "derniers jours"
     )
     agenda_current_topics = (
         _render_topic_profile(
             agenda_current,
-            agenda_topic_order,
+            agenda_current_topic_order,
             agenda_current_period,
             "current",
         )
@@ -2182,7 +2306,7 @@ def _render_candidate_structure_html(
     agenda_cumulative_topics = (
         _render_topic_profile(
             agenda_cumulative,
-            agenda_topic_order,
+            agenda_cumulative_topic_order,
             "depuis le début du suivi",
             "cumulative",
         )
@@ -2324,7 +2448,7 @@ def _render_candidate_structure_html(
         <article class="candidate-panel candidate-current-poll"><div class="candidate-panel-head"><h3>DERNIÈRE VAGUE</h3></div><div class="candidate-panel-body">{current_poll_body}</div></article>
         <article class="candidate-panel candidate-chart-panel candidate-poll-history-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>HISTORIQUE DES SONDAGES · 1ER TOUR</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur l’historique des sondages du premier tour" aria-describedby="poll-history-note">i</button><span class="candidate-section-tooltip" id="poll-history-note" role="tooltip">Chaque marque représente une observation de sondage de premier tour regroupée par institut, dates de terrain et taille d’échantillon. Un point indique le score exact de l’hypothèse sélectionnée lorsqu’il existe. Une barre verticale indique la fourchette publiée entre hypothèses. La position horizontale suit la date de fin de terrain. Aucune moyenne, aucun lissage ni interpolation.</span></span></div><span>{_number(poll_history["observation_count"])} observations</span></div><div class="candidate-panel-body">{poll_history_body}</div></article>
       </div>
-      <article class="candidate-panel candidate-runoff-panel"><div class="candidate-panel-head candidate-runoff-panel-head"><div class="candidate-panel-title-row"><h3>DUELS DE SECOND TOUR TESTÉS</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur les duels de second tour testés" aria-describedby="runoff-history-note">i</button><span class="candidate-section-tooltip" id="runoff-history-note" role="tooltip">Pour chaque duel, France 2027 Signal Lab affiche au maximum les trois observations les plus récentes, classées par fin de terrain. Les observations plus anciennes restent dans le corpus source. Aucune moyenne ni interpolation n’est calculée.</span></span></div><span>{runoff_header_meta}</span></div><div class="candidate-panel-body candidate-runoff-groups">{runoff_groups_html}</div><p class="candidate-panel-foot">Uniquement les configurations effectivement testées et publiées. Aucune moyenne n’est calculée.</p></article>
+      <article class="candidate-panel candidate-runoff-panel"><div class="candidate-panel-head candidate-runoff-panel-head"><div class="candidate-panel-title-row"><h3>DUELS DE SECOND TOUR TESTÉS</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur les duels de second tour testés" aria-describedby="runoff-history-note">i</button><span class="candidate-section-tooltip" id="runoff-history-note" role="tooltip">Pour chaque duel, France 2027 Signal Lab affiche au maximum les trois observations les plus récentes, classées par fin de terrain. Les observations plus anciennes restent dans le corpus source. Aucune moyenne ni interpolation n’est calculée.</span></span></div><span>{runoff_header_meta}</span></div><div class="candidate-panel-body candidate-runoff-groups">{runoff_groups_html}</div></article>
     </section>
 
     <section class="candidate-section" id="media" aria-labelledby="media-title">

@@ -366,7 +366,18 @@ class CandidateReferenceTests(unittest.TestCase):
         ]
         self.assertIn("maxY: 50", poll_renderer)
         self.assertIn("yTicks: 5", poll_renderer)
-        self.assertIn("height: 230", poll_renderer)
+        self.assertIn(
+            '"(min-width: 1350px)"',
+            poll_renderer,
+        )
+        self.assertIn(
+            ").matches ? 170 : 230",
+            poll_renderer,
+        )
+        self.assertIn(
+            "height: pollHistoryHeight",
+            poll_renderer,
+        )
         self.assertNotIn("pathFor(", poll_renderer)
         self.assertNotIn("candidate-chart-line", poll_renderer)
 
@@ -568,57 +579,128 @@ class CandidateReferenceTests(unittest.TestCase):
             cumulative_card,
         )
 
-    def test_agenda_profile_cards_share_topic_order_and_use_projected_shares(self):
+    def test_agenda_profile_cards_sort_independently_by_displayed_share(self):
         agenda = self.published["agenda"]
+        agenda_before = json.loads(
+            json.dumps(agenda, ensure_ascii=False)
+        )
         section = self._section_html("agenda", "scrutiny")
         cards = {
-            "current": self._agenda_profile_html(section, "current"),
-            "cumulative": self._agenda_profile_html(section, "cumulative"),
+            "current": self._agenda_profile_html(
+                section,
+                "current",
+            ),
+            "cumulative": self._agenda_profile_html(
+                section,
+                "cumulative",
+            ),
         }
-        expected_order = [
-            topic["id"]
-            for topic in sorted(
-                agenda["current"]["topics"],
-                key=lambda item: (-item["share"], item["id"]),
-            )
-        ]
-        for card in cards.values():
-            self.assertEqual(
-                re.findall(r'data-topic-id="([^"]+)"', card), expected_order
-            )
-            self.assertEqual(card.count('class="candidate-topic-row"'), 8)
+        profiles = {
+            "current": agenda["current"],
+            "cumulative": agenda["since_tracking"],
+        }
+
+        rendered_orders = {}
 
         for profile_name, card in cards.items():
-            profile = agenda[
-                "current" if profile_name == "current" else "since_tracking"
-            ]
-            topics_by_id = {topic["id"]: topic for topic in profile["topics"]}
+            profile = profiles[profile_name]
+            expected_order = (
+                reference._topic_ids_by_displayed_share(profile)
+            )
+            rendered_order = re.findall(
+                r'data-topic-id="([^"]+)"',
+                card,
+            )
+            rendered_orders[profile_name] = rendered_order
+
+            self.assertEqual(
+                rendered_order,
+                expected_order,
+            )
+            self.assertEqual(
+                card.count('class="candidate-topic-row"'),
+                8,
+            )
+
+            topics_by_id = {
+                topic["id"]: topic
+                for topic in profile["topics"]
+            }
+
             for topic_id in expected_order:
                 topic = topics_by_id[topic_id]
                 row = re.search(
-                    rf'<li class="candidate-topic-row"[^>]*data-topic-id="{topic_id}"'
+                    rf'<li class="candidate-topic-row"[^>]*'
+                    rf'data-topic-id="{topic_id}"'
                     rf'[^>]*>(?P<body>.*?)</li>',
                     card,
                     flags=re.DOTALL,
                 )
                 self.assertIsNotNone(row)
                 body = row.group("body")
+
                 self.assertIn(
-                    f'<strong>{reference._percent(topic["share"])}</strong>', body
-                )
-                self.assertIn(
-                    f'class="candidate-topic-bar" '
-                    f'style="--topic-share:{topic["share"]}"',
+                    (
+                        f'<strong>'
+                        f'{reference._percent(topic["share"])}'
+                        f'</strong>'
+                    ),
                     body,
                 )
-                self.assertNotIn(
-                    f'<strong>{reference._number(topic["count"])}</strong>', body
+                self.assertIn(
+                    (
+                        'class="candidate-topic-bar" '
+                        f'style="--topic-share:{topic["share"]}"'
+                    ),
+                    body,
                 )
-            zero_topics = [topic for topic in profile["topics"] if topic["share"] == 0]
+
+            zero_topics = [
+                topic
+                for topic in profile["topics"]
+                if topic["share"] == 0
+            ]
             self.assertGreater(len(zero_topics), 0)
+
             for topic in zero_topics:
-                self.assertIn(reference.TOPIC_LABELS_FR[topic["id"]], card)
+                self.assertIn(
+                    reference.TOPIC_LABELS_FR[topic["id"]],
+                    card,
+                )
                 self.assertIn("0,0%", card)
+
+        # Explicitly prove that sorting uses the displayed one-decimal
+        # percentage and preserves canonical source order on displayed ties.
+        synthetic_current = {
+            "topics": [
+                {"id": "topic-a", "share": 0.0821},
+                {"id": "topic-b", "share": 0.0824},
+                {"id": "topic-c", "share": 0.4290},
+            ]
+        }
+        synthetic_cumulative = {
+            "topics": [
+                {"id": "topic-a", "share": 0.2000},
+                {"id": "topic-b", "share": 0.5000},
+                {"id": "topic-c", "share": 0.3000},
+            ]
+        }
+
+        self.assertEqual(
+            reference._topic_ids_by_displayed_share(
+                synthetic_current
+            ),
+            ["topic-c", "topic-a", "topic-b"],
+        )
+        self.assertEqual(
+            reference._topic_ids_by_displayed_share(
+                synthetic_cumulative
+            ),
+            ["topic-b", "topic-c", "topic-a"],
+        )
+
+        # Sorting is presentation-only.
+        self.assertEqual(agenda, agenda_before)
 
     def test_agenda_profile_counts_remain_accessible_supporting_evidence(self):
         agenda = self.published["agenda"]
@@ -1046,6 +1128,26 @@ class CandidateReferenceTests(unittest.TestCase):
                 candidate_id=payload["candidate_id"],
             )
 
+            portrait_paths = [
+                payload["candidate"].get("portrait_path")
+            ]
+            portrait_paths.extend(
+                candidate.get("portrait_path")
+                for candidate in payload["related_candidates"]
+            )
+            portrait_paths.extend(
+                matchup.get("opponent_portrait_path")
+                for matchup in payload["polling"]["tested_runoffs"]
+            )
+
+            for portrait_path in portrait_paths:
+                if portrait_path is None:
+                    continue
+                self.assertTrue(
+                    (ROOT / portrait_path.lstrip("/")).is_file(),
+                    portrait_path,
+                )
+
             if (
                 payload["polling"]["current"]["evidence_state"]
                 == "not_observed"
@@ -1060,6 +1162,152 @@ class CandidateReferenceTests(unittest.TestCase):
                     payload["polling"]["current"]["source_urls"],
                     [],
                 )
+
+    def test_runoff_projection_filters_current_opponents_and_uses_canonical_portraits(self):
+        raw_runoffs = self.sources["second_round_polls"]
+        raw_before = json.dumps(
+            raw_runoffs,
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+
+        raw_philippe_bardella = [
+            event
+            for event in raw_runoffs["events"]
+            if {
+                "Édouard Philippe",
+                "Jordan Bardella",
+            }.issubset(
+                {
+                    candidate["name"]
+                    for candidate in event["candidates"]
+                }
+            )
+        ]
+        self.assertGreater(
+            len(raw_philippe_bardella),
+            0,
+        )
+
+        philippe = reference.build_projection(
+            self.sources,
+            ROOT,
+            candidate_id="edouard-philippe",
+        )
+
+        # Projection must never mutate the raw polling corpus.
+        self.assertEqual(
+            json.dumps(
+                raw_runoffs,
+                ensure_ascii=False,
+                sort_keys=True,
+            ),
+            raw_before,
+        )
+
+        matchups = philippe["polling"]["tested_runoffs"]
+        by_id = {
+            matchup["opponent_id"]: matchup
+            for matchup in matchups
+        }
+
+        self.assertNotIn(
+            "jordan-bardella",
+            by_id,
+        )
+        self.assertIn(
+            "marine-le-pen",
+            by_id,
+        )
+        self.assertIn(
+            "jean-luc-melenchon",
+            by_id,
+        )
+
+        self.assertFalse(
+            hasattr(reference, "RUNOFF_PORTRAITS_FR")
+        )
+
+        for matchup in matchups:
+            expected_portrait = (
+                reference._projection_portrait_path(
+                    matchup["opponent"],
+                    ROOT,
+                )
+            )
+            self.assertEqual(
+                matchup["opponent_portrait_path"],
+                expected_portrait,
+            )
+
+            if expected_portrait is not None:
+                self.assertTrue(
+                    (
+                        ROOT
+                        / expected_portrait.lstrip("/")
+                    ).is_file()
+                )
+
+        hud = reference.derive_hud_metrics(
+            self.sources
+        )
+        rendered_fr = reference.render_html(
+            philippe,
+            hud,
+            lang="fr",
+        ).decode("utf-8")
+        rendered_en = reference.render_html(
+            philippe,
+            hud,
+            lang="en",
+        ).decode("utf-8")
+
+        opponent_pattern = re.compile(
+            r'<section class="candidate-runoff-group" '
+            r'data-opponent-id="([^"]+)">'
+        )
+
+        fr_ids = opponent_pattern.findall(
+            rendered_fr
+        )
+        en_ids = opponent_pattern.findall(
+            rendered_en
+        )
+
+        self.assertEqual(
+            fr_ids,
+            en_ids,
+        )
+        self.assertNotIn(
+            "jordan-bardella",
+            fr_ids,
+        )
+        self.assertEqual(
+            fr_ids,
+            [
+                matchup["opponent_id"]
+                for matchup in matchups
+            ],
+        )
+
+        visible_count = sum(
+            len(matchup["observations"])
+            for matchup in matchups
+        )
+        opponent_count = len(matchups)
+
+        expected_header = (
+            f"{opponent_count} adversaire"
+            f'{"s" if opponent_count != 1 else ""}'
+            f" · {visible_count} observation"
+            f'{"s" if visible_count != 1 else ""} affichée'
+            f'{"s" if visible_count != 1 else ""}'
+        )
+
+        self.assertIn(
+            expected_header,
+            rendered_fr,
+        )
 
     def test_generic_candidate_identity_helpers_preserve_reference_and_fallbacks(self):
         self.assertEqual(
@@ -1654,6 +1902,55 @@ class CandidateReferenceTests(unittest.TestCase):
 
         self.assertIn(
             ".candidate-related-grid",
+            self.css,
+        )
+
+    def test_polling_runoff_methodology_is_tooltip_only_and_wide_chart_is_compact(self):
+        polling_section = self._section_html(
+            "polling",
+            "media",
+        )
+
+        self.assertIn(
+            'id="runoff-history-note"',
+            polling_section,
+        )
+        self.assertIn(
+            (
+                "Pour chaque duel, France 2027 Signal Lab affiche "
+                "au maximum les trois observations les plus récentes"
+            ),
+            polling_section,
+        )
+        self.assertNotIn(
+            (
+                "Uniquement les configurations effectivement "
+                "testées et publiées. Aucune moyenne n’est calculée."
+            ),
+            polling_section,
+        )
+
+        self.assertIn(
+            (
+                ".candidate-page .candidate-runoff-panel-head "
+                ".candidate-panel-info-wrap"
+            ),
+            self.css,
+        )
+        self.assertIn(
+            "left: -12px;",
+            self.css,
+        )
+        self.assertIn(
+            "@media (min-width: 1350px)",
+            self.css,
+        )
+        self.assertIn(
+            "min-height: 170px;",
+            self.css,
+        )
+        self.assertIn(
+            "height: 170px;",
             self.css,
         )
 

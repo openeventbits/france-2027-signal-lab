@@ -329,6 +329,21 @@
 .candidate-page .candidate-poll-history-chart { min-height: 230px; overflow: visible; }
 .candidate-page .candidate-poll-history-chart svg { height: 230px; }
 
+/*
+ * Wide two-column polling row:
+ * let the history card collapse toward the intrinsic height of
+ * the Latest Wave card rather than forcing both cards tall.
+ */
+@media (min-width: 1350px) {
+  .candidate-page .candidate-poll-history-chart {
+    min-height: 170px;
+  }
+
+  .candidate-page .candidate-poll-history-chart svg {
+    height: 170px;
+  }
+}
+
 .candidate-page .candidate-poll-history-directory {
   margin-top: 9px;
   overflow: hidden;
@@ -880,6 +895,26 @@
 
 .candidate-page .candidate-runoff-panel-head {
   overflow: visible;
+}
+
+/*
+ * Keep the runoff methodology tooltip visually attached to its info mark.
+ * The generic panel tooltip otherwise positions from the panel header.
+ */
+.candidate-page .candidate-runoff-panel-head .candidate-panel-info-wrap {
+  position: relative;
+}
+
+.candidate-page .candidate-runoff-panel-head .candidate-panel-info-wrap .candidate-section-tooltip {
+  left: -12px;
+  top: calc(100% + 6px);
+}
+
+@media (max-width: 759.98px) {
+  .candidate-page .candidate-runoff-panel-head .candidate-panel-info-wrap .candidate-section-tooltip {
+    right: -8px;
+    left: auto;
+  }
 }
 
 .candidate-page .candidate-runoff-groups {
