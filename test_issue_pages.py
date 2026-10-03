@@ -62,15 +62,94 @@ class IssuePageProjectionTests(unittest.TestCase):
         series["publisher_count"] = 0
         series["source_day_count"] = 0
         series["active_day_count"] = 0
+        series["previous_source_day_count"] = 0
+        series["latest_source_day_count"] = 0
+        series["previous_incidence"] = 0.0
+        series["latest_incidence"] = 0.0
+        series["incidence_change_pp"] = 0.0
         for day in series["daily_activity"]:
             day["item_count"] = 0
             day["source_day_count"] = 0
+            day["incidence"] = 0.0
 
     @staticmethod
     def _weaken_history(history, issue_id):
         for candidate in history["candidates"]:
             for day in candidate["daily_series"]:
                 day["policy_counts"][issue_id] = 0
+
+    def _precision_boundary_news(self):
+        news = copy.deepcopy(self.news)
+        evolution = news["policy_agenda"]["evolution"]
+        previous_dates = [
+            day["date"]
+            for day in evolution["accepted_daily_activity"]
+            if evolution["previous_start"] <= day["date"] <= evolution["previous_end"]
+        ]
+        latest_dates = [
+            day["date"]
+            for day in evolution["accepted_daily_activity"]
+            if evolution["latest_start"] <= day["date"] <= evolution["latest_end"]
+        ]
+        self.assertEqual(len(previous_dates), 7)
+        self.assertEqual(len(latest_dates), 7)
+
+        accepted_counts = {
+            **dict(zip(previous_dates, (44, 44, 44, 44, 43, 43, 43))),
+            **dict(zip(latest_dates, (31, 31, 30, 30, 30, 30, 30))),
+        }
+        for day in evolution["accepted_daily_activity"]:
+            if day["date"] in accepted_counts:
+                day["source_day_count"] = accepted_counts[day["date"]]
+
+        economy_counts = {
+            **dict(zip(previous_dates, (2, 1, 3, 1, 1, 4, 0))),
+            **dict(zip(latest_dates, (1, 0, 1, 4, 1, 4, 6))),
+        }
+        for topic in evolution["topics"]:
+            for day in topic["daily_activity"]:
+                accepted_count = next(
+                    accepted["source_day_count"]
+                    for accepted in evolution["accepted_daily_activity"]
+                    if accepted["date"] == day["date"]
+                )
+                day["accepted_source_day_count"] = accepted_count
+                if topic["id"] == "economy_public_finances" and day["date"] in economy_counts:
+                    day["source_day_count"] = economy_counts[day["date"]]
+                    day["item_count"] = max(day["item_count"], day["source_day_count"])
+                day["incidence"] = (
+                    round(day["source_day_count"] / accepted_count, 6)
+                    if accepted_count
+                    else 0.0
+                )
+
+            topic["item_count"] = sum(
+                day["item_count"] for day in topic["daily_activity"]
+            )
+            previous_count = sum(
+                day["source_day_count"]
+                for day in topic["daily_activity"]
+                if evolution["previous_start"]
+                <= day["date"]
+                <= evolution["previous_end"]
+            )
+            latest_count = sum(
+                day["source_day_count"]
+                for day in topic["daily_activity"]
+                if evolution["latest_start"] <= day["date"] <= evolution["latest_end"]
+            )
+            topic["previous_source_day_count"] = previous_count
+            topic["latest_source_day_count"] = latest_count
+            raw_previous = previous_count / 305
+            raw_latest = latest_count / 212
+            topic["previous_incidence"] = round(raw_previous, 6)
+            topic["latest_incidence"] = round(raw_latest, 6)
+            topic["incidence_change_pp"] = round(
+                (raw_latest - raw_previous) * 100,
+                3,
+            )
+
+        return news
 
     def test_all_canonical_roots_qualify_and_are_current(self):
         self.assertEqual(
@@ -186,6 +265,107 @@ class IssuePageProjectionTests(unittest.TestCase):
                 projected["incidence_change_pp"],
                 canonical["incidence_change_pp"],
             )
+
+    def test_current_week_incidence_uses_raw_ratio_precision(self):
+        news = self._precision_boundary_news()
+        evolution = news["policy_agenda"]["evolution"]
+        economy = next(
+            topic
+            for topic in evolution["topics"]
+            if topic["id"] == "economy_public_finances"
+        )
+        previous_denominator = sum(
+            day["source_day_count"]
+            for day in evolution["accepted_daily_activity"]
+            if evolution["previous_start"] <= day["date"] <= evolution["previous_end"]
+        )
+        latest_denominator = sum(
+            day["source_day_count"]
+            for day in evolution["accepted_daily_activity"]
+            if evolution["latest_start"] <= day["date"] <= evolution["latest_end"]
+        )
+        self.assertEqual(previous_denominator, 305)
+        self.assertEqual(latest_denominator, 212)
+        self.assertEqual(economy["previous_source_day_count"], 12)
+        self.assertEqual(economy["latest_source_day_count"], 17)
+        self.assertEqual(economy["previous_incidence"], 0.039344)
+        self.assertEqual(economy["latest_incidence"], 0.080189)
+        self.assertEqual(economy["incidence_change_pp"], 4.084)
+
+        projection = project_issue_pages(news, self.history)
+        projected = next(
+            issue
+            for issue in projection["issues"]
+            if issue["issue_id"] == "economy_public_finances"
+        )
+        self.assertEqual(
+            projected["current_coverage"]["comparison_7d"]["incidence_change_pp"],
+            4.084,
+        )
+
+        economy["incidence_change_pp"] = 4.085
+        with self.assertRaisesRegex(
+            IssuePageContractError,
+            "incidence change is inconsistent",
+        ):
+            project_issue_pages(news, self.history)
+
+    def test_current_week_incidence_rejects_reconciliation_corruption(self):
+        mutations = {
+            "previous numerator": lambda evolution, economy: economy.__setitem__(
+                "previous_source_day_count",
+                13,
+            ),
+            "latest numerator": lambda evolution, economy: economy.__setitem__(
+                "latest_source_day_count",
+                18,
+            ),
+            "previous incidence": lambda evolution, economy: economy.__setitem__(
+                "previous_incidence",
+                0.039345,
+            ),
+            "latest incidence": lambda evolution, economy: economy.__setitem__(
+                "latest_incidence",
+                0.080188,
+            ),
+            "accepted denominator": self._increase_previous_denominator,
+            "missing denominator series": lambda evolution, economy: evolution.pop(
+                "accepted_daily_activity"
+            ),
+            "inconsistent window": lambda evolution, economy: evolution.__setitem__(
+                "latest_end",
+                evolution["period_end"],
+            ),
+        }
+        for label, mutate in mutations.items():
+            with self.subTest(label=label):
+                news = self._precision_boundary_news()
+                evolution = news["policy_agenda"]["evolution"]
+                economy = next(
+                    topic
+                    for topic in evolution["topics"]
+                    if topic["id"] == "economy_public_finances"
+                )
+                mutate(evolution, economy)
+                with self.assertRaises(IssuePageContractError):
+                    project_issue_pages(news, self.history)
+
+    @staticmethod
+    def _increase_previous_denominator(evolution, _economy):
+        previous_start = evolution["previous_start"]
+        accepted = next(
+            day
+            for day in evolution["accepted_daily_activity"]
+            if day["date"] == previous_start
+        )
+        accepted["source_day_count"] += 1
+        for topic in evolution["topics"]:
+            day = next(
+                observation
+                for observation in topic["daily_activity"]
+                if observation["date"] == previous_start
+            )
+            day["accepted_source_day_count"] += 1
 
     def test_campaign_agenda_projection_uses_complete_week_single_label_counts(self):
         summary = self.projection["campaign_agenda"]

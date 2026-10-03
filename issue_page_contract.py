@@ -767,6 +767,67 @@ def project_issue_pages(
         evolution.get("latest_end"),
         "policy agenda latest_end",
     )
+    period_start_date = date.fromisoformat(period_start)
+    period_end_date = date.fromisoformat(period_end)
+    previous_start_date = date.fromisoformat(previous_start)
+    previous_end_date = date.fromisoformat(previous_end)
+    latest_start_date = date.fromisoformat(latest_start)
+    latest_end_date = date.fromisoformat(latest_end)
+    if (
+        period_start_date > period_end_date
+        or (previous_end_date - previous_start_date).days + 1 != comparison_days
+        or (latest_end_date - latest_start_date).days + 1 != comparison_days
+        or previous_end_date + timedelta(days=1) != latest_start_date
+        or previous_start_date < period_start_date
+        or latest_end_date != period_end_date - timedelta(days=1)
+    ):
+        raise IssuePageContractError(
+            "policy agenda complete-week comparison windows are inconsistent"
+        )
+
+    expected_period_dates = [
+        (period_start_date + timedelta(days=offset)).isoformat()
+        for offset in range((period_end_date - period_start_date).days + 1)
+    ]
+    if len(expected_period_dates) != 30:
+        raise IssuePageContractError(
+            "policy agenda coverage evolution must contain exactly 30 days"
+        )
+    accepted_daily = _require_list(
+        evolution.get("accepted_daily_activity"),
+        "policy_agenda.evolution.accepted_daily_activity",
+    )
+    accepted_by_date: dict[str, int] = {}
+    accepted_dates: list[str] = []
+    for observation in accepted_daily:
+        observation = _require_mapping(
+            observation,
+            "policy agenda accepted daily observation",
+        )
+        observation_date = _validate_iso_date(
+            observation.get("date"),
+            "policy agenda accepted daily date",
+        )
+        accepted_dates.append(observation_date)
+        accepted_by_date[observation_date] = _nonnegative_integer(
+            observation.get("source_day_count"),
+            "policy agenda accepted daily source_day_count",
+        )
+    if accepted_dates != expected_period_dates:
+        raise IssuePageContractError(
+            "policy agenda accepted daily dates do not match its period"
+        )
+
+    previous_denominator = sum(
+        count
+        for day, count in accepted_by_date.items()
+        if previous_start <= day <= previous_end
+    )
+    latest_denominator = sum(
+        count
+        for day, count in accepted_by_date.items()
+        if latest_start <= day <= latest_end
+    )
     route_map = _candidate_route_map(candidate_routes)
     history = _history_by_issue(agenda_history, route_map)
     previously_public = _previous_public_ids(previous_manifest)
@@ -780,20 +841,36 @@ def project_issue_pages(
         evolution_30d = []
         for observation in daily:
             observation = _require_mapping(observation, "issue daily observation")
+            observation_date = _validate_iso_date(
+                observation.get("date"), "daily date"
+            )
+            source_day_count = _nonnegative_integer(
+                observation.get("source_day_count"), "daily source_day_count"
+            )
+            accepted_source_day_count = _nonnegative_integer(
+                observation.get("accepted_source_day_count"),
+                "daily accepted_source_day_count",
+            )
+            if (
+                accepted_by_date.get(observation_date)
+                != accepted_source_day_count
+                or source_day_count > accepted_source_day_count
+            ):
+                raise IssuePageContractError(
+                    f"{issue_id} daily incidence denominator is inconsistent"
+                )
             evolution_30d.append(
                 {
-                    "date": _validate_iso_date(observation.get("date"), "daily date"),
+                    "date": observation_date,
                     "item_count": _nonnegative_integer(
                         observation.get("item_count"), "daily item_count"
                     ),
-                    "source_day_count": _nonnegative_integer(
-                        observation.get("source_day_count"), "daily source_day_count"
-                    ),
+                    "source_day_count": source_day_count,
                 }
             )
-        if len(evolution_30d) != 30:
+        if [item["date"] for item in evolution_30d] != expected_period_dates:
             raise IssuePageContractError(
-                f"{issue_id} coverage evolution must contain exactly 30 days"
+                f"{issue_id} coverage evolution dates do not match its period"
             )
         coverage_item_count = sum(item["item_count"] for item in evolution_30d)
         if coverage_item_count != series.get("item_count"):
@@ -809,6 +886,35 @@ def project_issue_pages(
             series.get("latest_source_day_count"),
             f"{issue_id} latest_source_day_count",
         )
+        reconstructed_previous_source_day_count = sum(
+            item["source_day_count"]
+            for item in evolution_30d
+            if previous_start <= item["date"] <= previous_end
+        )
+        reconstructed_latest_source_day_count = sum(
+            item["source_day_count"]
+            for item in evolution_30d
+            if latest_start <= item["date"] <= latest_end
+        )
+        if previous_source_day_count != reconstructed_previous_source_day_count:
+            raise IssuePageContractError(
+                f"{issue_id} previous_source_day_count is inconsistent with daily activity"
+            )
+        if latest_source_day_count != reconstructed_latest_source_day_count:
+            raise IssuePageContractError(
+                f"{issue_id} latest_source_day_count is inconsistent with daily activity"
+            )
+
+        raw_previous_incidence = (
+            previous_source_day_count / previous_denominator
+            if previous_denominator
+            else 0.0
+        )
+        raw_latest_incidence = (
+            latest_source_day_count / latest_denominator
+            if latest_denominator
+            else 0.0
+        )
         previous_incidence = _incidence(
             series.get("previous_incidence"),
             f"{issue_id} previous_incidence",
@@ -821,11 +927,19 @@ def project_issue_pages(
             series.get("incidence_change_pp"),
             f"{issue_id} incidence_change_pp",
         )
+        if previous_incidence != round(raw_previous_incidence, 6):
+            raise IssuePageContractError(
+                f"{issue_id} previous incidence is inconsistent with source-day counts"
+            )
+        if latest_incidence != round(raw_latest_incidence, 6):
+            raise IssuePageContractError(
+                f"{issue_id} latest incidence is inconsistent with source-day counts"
+            )
         expected_change_pp = round(
-            (latest_incidence - previous_incidence) * 100,
+            (raw_latest_incidence - raw_previous_incidence) * 100,
             3,
         )
-        if abs(incidence_change_pp - expected_change_pp) > 0.001:
+        if incidence_change_pp != expected_change_pp:
             raise IssuePageContractError(
                 f"{issue_id} incidence change is inconsistent with source incidence"
             )
