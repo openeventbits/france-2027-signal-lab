@@ -20,6 +20,7 @@ REGISTRY = ROOT / "route_registry.json"
 POLL_MANIFEST = ROOT / "poll_pages_manifest.json"
 CANDIDATE_REGISTRY = ROOT / "candidate_candidacy_status.json"
 ISSUE_MANIFEST = ROOT / "issue_pages_manifest.json"
+AGENDA_MANIFEST = ROOT / "agenda_pages_manifest.json"
 
 SM = {
     "sm": "http://www.sitemaps.org/schemas/sitemap/0.9",
@@ -42,6 +43,9 @@ class RouteRegistryTests(unittest.TestCase):
         cls.issue_manifest = json.loads(
             ISSUE_MANIFEST.read_text(encoding="utf-8")
         )
+        cls.agenda_manifest = json.loads(
+            AGENDA_MANIFEST.read_text(encoding="utf-8")
+        )
         cls.candidate_index = project_candidate_route_index(
             cls.candidate_registry,
             ROOT,
@@ -60,11 +64,18 @@ class RouteRegistryTests(unittest.TestCase):
             2 + 2 * self.candidate_index["counts"]["published"]
         )
         expected_issue_routes = self.issue_manifest["page_count"]
+        expected_agenda_routes = self.agenda_manifest["page_count"]
+        self.assertEqual(
+            expected_agenda_routes,
+            4 + 4 * self.agenda_manifest["public_topic_count"],
+        )
+        self.assertEqual(expected_agenda_routes, 28)
         expected_total_routes = (
             2
             + expected_candidate_routes
             + expected_poll_routes
             + expected_issue_routes
+            + expected_agenda_routes
         )
 
         self.assertEqual(
@@ -75,6 +86,7 @@ class RouteRegistryTests(unittest.TestCase):
         self.assertEqual(
             self.registry["family_counts"],
             {
+                "agenda": expected_agenda_routes,
                 "core": 2,
                 "candidates": expected_candidate_routes,
                 "issues": expected_issue_routes,
@@ -337,6 +349,71 @@ class RouteRegistryTests(unittest.TestCase):
             expected,
         )
 
+    def test_agenda_manifest_is_sole_agenda_membership_authority(self):
+        registered = {
+            route["canonical_url"]
+            for route in self.registry["routes"]
+            if route["family"] == "agenda"
+        }
+        expected = {
+            f"https://france2027.app{path}"
+            for path in (
+                *self.agenda_manifest["hubs"].values(),
+                *self.agenda_manifest["history_hubs"].values(),
+            )
+        }
+        expected.update(
+            f"https://france2027.app{path}"
+            for page in self.agenda_manifest["pages"]
+            for path in (
+                page["page_path_fr"],
+                page["page_path_en"],
+                page["history_page_path_fr"],
+                page["history_page_path_en"],
+            )
+        )
+
+        self.assertEqual(registered, expected)
+        self.assertEqual(len(registered), 28)
+
+    def test_agenda_route_keys_kinds_and_entities_are_correct(self):
+        agenda_routes = [
+            route
+            for route in self.registry["routes"]
+            if route["family"] == "agenda"
+        ]
+        expected = {
+            "agenda-lab": ("hub", "agenda-lab"),
+            "agenda-history": ("history-hub", "agenda-history"),
+        }
+        for page in self.agenda_manifest["pages"]:
+            topic_id = page["topic_id"]
+            expected[f"agenda:{topic_id}"] = (
+                "agenda-detail",
+                topic_id,
+            )
+            expected[f"agenda-history:{topic_id}"] = (
+                "agenda-history-detail",
+                topic_id,
+            )
+
+        by_key = {}
+        for route in agenda_routes:
+            by_key.setdefault(route["route_key"], []).append(route)
+
+        self.assertEqual(set(by_key), set(expected))
+        for route_key, pair in by_key.items():
+            with self.subTest(route_key=route_key):
+                self.assertEqual(len(pair), 2)
+                self.assertEqual(
+                    {route["language"] for route in pair},
+                    {"fr", "en"},
+                )
+                self.assertEqual(
+                    {(route["kind"], route["entity_id"]) for route in pair},
+                    {expected[route_key]},
+                )
+
 
     def test_titles_and_descriptions_are_present(self):
         for route in self.registry["routes"]:
@@ -507,6 +584,41 @@ class SitemapTests(unittest.TestCase):
                 for family in self.families
             ],
         )
+
+    def test_agenda_sitemap_matches_agenda_registry_routes(self):
+        agenda_path = ROOT / "sitemap-agenda.xml"
+        self.assertTrue(agenda_path.exists())
+
+        index = ET.parse(ROOT / "sitemap.xml")
+        agenda_index_url = "https://france2027.app/sitemap-agenda.xml"
+        self.assertEqual(
+            [
+                node.text
+                for node in index.findall("sm:sitemap/sm:loc", SM)
+            ].count(agenda_index_url),
+            1,
+        )
+
+        tree = ET.parse(agenda_path)
+        nodes = tree.findall("sm:url", SM)
+        canonicals = {
+            node.find("sm:loc", SM).text
+            for node in nodes
+        }
+        expected = {
+            route["canonical_url"]
+            for route in self.registry["routes"]
+            if route["family"] == "agenda"
+        }
+        self.assertEqual(canonicals, expected)
+        self.assertEqual(len(nodes), 28)
+
+        for node in nodes:
+            alternates = node.findall("xhtml:link", SM)
+            self.assertEqual(
+                {link.attrib["hreflang"] for link in alternates},
+                {"fr", "en", "x-default"},
+            )
 
     def test_every_canonical_url_occurs_once_in_family_sitemaps(self):
         discovered = []
