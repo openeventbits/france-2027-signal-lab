@@ -999,8 +999,17 @@ class AgendaPageTests(unittest.TestCase):
 
     def test_history_detail_complete_day_domain_and_every_ledger_cell(self):
         period = self.coverage["period"]
-        self.assertEqual((period["start_date"], period["end_date"], period["days"]),
-                         ("2026-07-23", "2026-10-02", 72))
+        # The historical start is contract-locked, while the end advances
+        # to the latest complete UTC day represented by the artifact.
+        start_day = date.fromisoformat(period["start_date"])
+        data_as_of_day = date.fromisoformat(self.coverage["data_as_of"][:10])
+        expected_end = data_as_of_day - timedelta(days=1)
+        expected_days = (expected_end - start_day).days + 1
+
+        self.assertEqual(period["start_date"], "2026-07-23")
+        self.assertEqual(period["end_date"], expected_end.isoformat())
+        self.assertEqual(period["days"], expected_days)
+        self.assertEqual(period["days"], len(self.coverage["daily"]))
         self.assertTrue(period["current_utc_day_excluded"])
         self.assertLess(period["end_date"], self.coverage["data_as_of"][:10])
         dates = [(date.fromisoformat(period["start_date"]) + timedelta(days=i)).isoformat()
