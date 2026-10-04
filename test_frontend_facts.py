@@ -428,11 +428,11 @@ class FrontendPublicationFactsTests(unittest.TestCase):
         self.assertNotIn("source_universe.length !== 19", validator)
         self.assertNotIn("source_universe.length !== 18", validator)
         self.assertIn(
-            "dashboardState.news?.feed_coverage?.direct_feeds",
+            "news?.feed_coverage?.direct_feeds",
             validator,
         )
         self.assertIn(
-            "sourceUniverse.length !== expectedDirectSourceCount",
+            "payload.source_universe.length !== expectedDirectSourceCount",
             validator,
         )
 
@@ -468,8 +468,9 @@ class FrontendPublicationFactsTests(unittest.TestCase):
               feed_coverage: { direct_feeds: directFeeds }
             };
             try {
-              validateRecentChangesPayload(payload(sourceUniverse));
-              return "ok";
+              const validated = validateRecentChangesPayload(payload(sourceUniverse));
+              return recentChangesProvenance(validated, dashboardState.news) === "mismatch"
+                ? "scoped coverage does not match" : "ok";
             } catch (error) {
               return error.message;
             }

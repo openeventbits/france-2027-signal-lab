@@ -7469,6 +7469,7 @@
         </ol>
         </div>
       </div>
+      <div id="what-changed-status" class="dashboard-refresh-status" role="status" aria-live="polite"></div>
 <!-- FR27 SEMANTIC SNAPSHOT: WHAT CHANGED END -->
       </article>
 
@@ -7559,33 +7560,1094 @@
 <!-- FR27 SEMANTIC SNAPSHOT: RACE AT A GLANCE END -->
       </article>
 
-      <article
-        class="panel top-media-pulse"
-        aria-labelledby="top-media-pulse-title"
-      >
+<!-- FR27 SEMANTIC SNAPSHOT: MEDIA PULSE START -->
+      <article class="panel top-media-pulse" aria-labelledby="top-media-pulse-title">
         <div class="panel-head top-media-pulse-head">
-          <div class="top-media-pulse-title-block">
-            <h2 id="top-media-pulse-title" data-i18n="media_pulse.title">
-              MEDIA PULSE
-            </h2>
-
-            <p data-i18n="media_pulse.subtitle">30-day activity · 14-day recent</p>
-          </div>
-          <div
-            class="top-media-pulse-metrics"
-            id="top-media-pulse-metrics"
-            aria-live="polite"
-           data-i18n-aria-label="media_pulse.loading_metrics" aria-label="Loading media metrics"><span class="fr27-skeleton-block fr27-skeleton-compact" aria-hidden="true" style="--fr27-skeleton-width:118px;--fr27-skeleton-height:18px"></span></div>
+          <div class="top-media-pulse-title-block"><h2 id="top-media-pulse-title" data-i18n="media_pulse.title">MEDIA PULSE</h2><p data-i18n="media_pulse.subtitle">30-day activity · 14-day recent</p></div>
+          <div class="top-media-pulse-metrics" id="top-media-pulse-metrics"><span class="top-media-header-metric" data-media-pulse-metric="media_pulse.metric.accepted_news"><strong>2365</strong><small>items · 30d</small></span><span class="top-media-header-metric" data-media-pulse-metric="media_pulse.metric.publishers"><strong>109</strong><small>media · 30d</small></span><span class="top-media-header-metric" data-media-pulse-metric="media_pulse.metric.recent_14d"><strong>822</strong><small>recent · 14d</small></span><span class="top-media-header-metric" data-media-pulse-metric="media_pulse.metric.candidate_watch"><strong>4120</strong><small>watch · 30d</small></span></div>
         </div>
-
+        <script type="application/json" id="published-media-snapshot">{"domain":"media","state":"ready","windowDays":30,"activityWindowDays":14,"activityItemCount":822,"electionNewsCount":2365,"candidateWatchCount":4120,"corpusAcceptedNewsCount":5334,"corpusCandidateWatchCount":8481,"corpusPublisherCount":125,"acceptedNewsPublisherCount":109,"topPublishers":[{"name":"BFMTV — Politique","count":371},{"name":"CNEWS","count":149},{"name":"Ouest-France","count":122},{"name":"La Dépêche du Midi","count":118},{"name":"Le Figaro","count":112}],"publisherRanking":[{"name":"BFMTV — Politique","count":371},{"name":"CNEWS","count":149},{"name":"Ouest-France","count":122},{"name":"La Dépêche du Midi","count":118},{"name":"Le Figaro","count":112},{"name":"Sud Ouest","count":108},{"name":"Le Monde","count":97},{"name":"Franceinfo Politique","count":85},{"name":"Europe 1","count":72},{"name":"Midi Libre","count":63},{"name":"Les Echos","count":48},{"name":"Le Dauphiné Libéré","count":47},{"name":"Le Parisien","count":45},{"name":"TF1 Info","count":42},{"name":"Libération","count":36},{"name":"Contexte","count":34},{"name":"HuffPost France — Headlines","count":30},{"name":"Le JDD","count":30},{"name":"actu.fr","count":28},{"name":"RTL","count":25},{"name":"La Croix","count":24},{"name":"Valeurs actuelles","count":24},{"name":"Ici","count":23},{"name":"L'Humanité","count":23},{"name":"Dernières Nouvelles d’Alsace","count":22},{"name":"L'Indépendant","count":21},{"name":"La Nouvelle République","count":21},{"name":"La Provence","count":20},{"name":"Le Bien Public","count":20},{"name":"RFI France","count":20},{"name":"Le Télégramme","count":19},{"name":"France 24 — France","count":17},{"name":"LCP — Actualités","count":17},{"name":"Le Républicain Lorrain","count":16},{"name":"L'Est Républicain","count":15},{"name":"20 Minutes","count":14},{"name":"Journal du Net","count":14},{"name":"Public Sénat","count":14},{"name":"Sud Radio","count":14},{"name":"Vosges Matin","count":14},{"name":"L'Alsace","count":13},{"name":"La République du Centre","count":13},{"name":"Le Canard enchaîné","count":13},{"name":"Le Journal de Saône-et-Loire","count":13},{"name":"Le Nouvel Obs — Politique","count":13},{"name":"Le Progrès","count":13},{"name":"L'Union","count":12},{"name":"La Lettre","count":12},{"name":"Centre Presse Aveyron","count":11},{"name":"L'Express","count":11},{"name":"Nord Littoral","count":11},{"name":"L'Opinion","count":10},{"name":"Mediapart — Articles","count":10},{"name":"Radio France","count":9},{"name":"L'Écho Républicain","count":8},{"name":"La Montagne","count":8},{"name":"La Voix du Nord","count":8},{"name":"Le Point","count":8},{"name":"Nice-Matin","count":8},{"name":"Courrier picard","count":7},{"name":"AEF info","count":6},{"name":"L'Yonne Républicaine","count":6},{"name":"Le Journal du Centre","count":6},{"name":"Le Populaire du Centre","count":6},{"name":"Challenges","count":5},{"name":"La Tribune","count":5},{"name":"Le Berry Républicain","count":5},{"name":"Atlantico","count":4},{"name":"Clicanoo","count":4},{"name":"Objectif Gard","count":4},{"name":"Paris Match","count":4},{"name":"Paris-Normandie","count":4},{"name":"Charente Libre","count":3},{"name":"Corse-Matin","count":3},{"name":"Télérama","count":3},{"name":"The Conversation","count":3},{"name":"Toute l'Europe","count":3},{"name":"Zinfos974","count":3},{"name":"Capital","count":2},{"name":"Courrier international","count":2},{"name":"L'Aisne Nouvelle","count":2},{"name":"L'Ardennais","count":2},{"name":"L'Est éclair","count":2},{"name":"La Marseillaise","count":2},{"name":"Le Moniteur","count":2},{"name":"Marianne","count":2},{"name":"POLITICO Europe","count":2},{"name":"RCI","count":2},{"name":"TV5MONDE","count":2},{"name":"Vie-publique — Discours publics","count":2},{"name":"achatpublic.info","count":1},{"name":"Agence France-Presse","count":1},{"name":"La Gazette des communes","count":1},{"name":"La Relève et La Peste","count":1},{"name":"La Vie","count":1},{"name":"Le Journal de la Haute-Marne","count":1},{"name":"Le Petit Bleu","count":1},{"name":"Le Petit Journal","count":1},{"name":"Le Quotidien de La Réunion","count":1},{"name":"Les Nouvelles calédoniennes","count":1},{"name":"Lyon Capitale","count":1},{"name":"Lyon Mag","count":1},{"name":"Mag'Centre","count":1},{"name":"Place Gre'net","count":1},{"name":"Politis","count":1},{"name":"Regards","count":1},{"name":"Slate France","count":1},{"name":"Tahiti Infos","count":1},{"name":"Telos","count":1}],"dailyActivity":[{"key":"2026-09-21","date":"2026-09-21T00:00:00.000Z","count":74},{"key":"2026-09-22","date":"2026-09-22T00:00:00.000Z","count":71},{"key":"2026-09-23","date":"2026-09-23T00:00:00.000Z","count":100},{"key":"2026-09-24","date":"2026-09-24T00:00:00.000Z","count":90},{"key":"2026-09-25","date":"2026-09-25T00:00:00.000Z","count":57},{"key":"2026-09-26","date":"2026-09-26T00:00:00.000Z","count":26},{"key":"2026-09-27","date":"2026-09-27T00:00:00.000Z","count":34},{"key":"2026-09-28","date":"2026-09-28T00:00:00.000Z","count":44},{"key":"2026-09-29","date":"2026-09-29T00:00:00.000Z","count":58},{"key":"2026-09-30","date":"2026-09-30T00:00:00.000Z","count":60},{"key":"2026-10-01","date":"2026-10-01T00:00:00.000Z","count":61},{"key":"2026-10-02","date":"2026-10-02T00:00:00.000Z","count":51},{"key":"2026-10-03","date":"2026-10-03T00:00:00.000Z","count":42},{"key":"2026-10-04","date":"2026-10-04T00:00:00.000Z","count":54}],"activityMax":100,"feedItems":[{"id":"42543c01b858be6d2b64","publisher":"Le Dauphiné Libéré","published_at":"2026-10-04T17:26:15Z","headline":"Élection présidentielle. Nicolas Dupont-Aignan, candidat à la présidentielle, attendu à Valence vendredi 16 octobre","url":"https://news.google.com/rss/articles/CBMi0gFBVV95cUxQcHplQjZpS2hNbFJQYXlDRGJFR3Bsdm5pQjJOTFhLNXVzbDFlVExiWmJadGhzZFlHTnNCczY3OEMtTGVjbGh1Wm1ybEFYYVRPLTExUjZsUjdESERDU3pGNHppXy1pZEZvN2VnVUYwcnRJSVZSTFh3dHlHWDNMNzlzMmJrWHF2bGI3Y25EZll5LVhPU1BNcHBlejFuc3B6bzZYdWw2RXM1N2Z6eUNBcXNRVUVpYUNKR2dxOFZfbS1vRnItRWctZ3NVOWhBQUhaZ01MMmc?oc=5","explicit_election":true,"candidates":["Nicolas Dupont-Aignan"],"candidate_matches":[{"candidate":"Nicolas Dupont-Aignan","matched_aliases":["dupont aignan","nicolas dupont aignan"],"locations":["headline","summary"]}]},{"id":"9ba62d1209135142f837","publisher":"Le Dauphiné Libéré","published_at":"2026-10-04T17:26:15Z","headline":"Vaucluse. Présidentielle 2027 : les Républicains se mobilisent autour de Bruno Retailleau","url":"https://news.google.com/rss/articles/CBMixwFBVV95cUxNbENzQ3Vtc1dkV2phVUxodi1PSmxmRW9UZlhRZk04NTdfRUkyczFCQ3BnWGRiUVhjY29QZmxhSURVNHFrdWpIdEZVbUZMMFh5bk9XT296VmJsZVkwOUdPQXRxdTlTZTR3N2ZQYUYxQXNuMTlLSjVhVUFkMEMzcVdRMzlvOGJCLUVUUGw1dUtwbUVkQ292X3FMUUdrdmVpZzZRWHJJdnRpaVAxTW1wV1N4RFNQSXFpSEpMVHJZbmtEQzMzMEh6bXNN?oc=5","explicit_election":true,"candidates":["Bruno Retailleau"],"candidate_matches":[{"candidate":"Bruno Retailleau","matched_aliases":["bruno retailleau"],"locations":["headline","summary"]}]},{"id":"01df6764014195b61fe9","publisher":"BFMTV — Politique","published_at":"2026-10-04T17:22:00Z","headline":"DIRECT. Présidentielle: pouvoir d'achat, climat, international... Les candidats à la primaire sociale-démocrate débattent sur BFMTV à 20h45","url":"https://www.bfmtv.com/politique/elections/presidentielle/direct-presidentielle-pouvoir-d-achat-climat-international-les-candidats-a-la-primaire-sociale-democrate-debattent-sur-bfmtv-a-20h45_LN-202610040361.html","explicit_election":true,"candidates":["Emmanuel Maurel","Jérôme Guedj","Olivier Faure","Raphaël Glucksmann","Ségolène Royal"],"candidate_matches":[{"candidate":"Emmanuel Maurel","matched_aliases":["emmanuel maurel"],"locations":["summary"]},{"candidate":"Jérôme Guedj","matched_aliases":["jerome guedj"],"locations":["summary"]},{"candidate":"Olivier Faure","matched_aliases":["olivier faure"],"locations":["summary"]},{"candidate":"Raphaël Glucksmann","matched_aliases":["raphael glucksmann"],"locations":["summary"]},{"candidate":"Ségolène Royal","matched_aliases":["segolene royal"],"locations":["summary"]}]},{"id":"0dc0003a17e95c49fea6","publisher":"HuffPost France — Headlines","published_at":"2026-10-04T17:11:57Z","headline":"Présidentielle 2027 : l’Arcom pourrait compter le temps de parole politique dans les podcasts de ces influenceurs ?","url":"https://www.huffingtonpost.fr/medias/article/presidentielle-2027-l-arcom-pourrait-compter-le-temps-de-parole-politique-dans-les-podcasts-de-ces-influenceurs_334787.html","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"acd7521eb9bc98c6f3a1","publisher":"L'Humanité","published_at":"2026-10-04T16:50:37Z","headline":"Présidentielle 2027 : Marine Le Pen veut l’austérité et l’assume","url":"https://news.google.com/rss/articles/CBMirgFBVV95cUxPZnVuTl9NQlNQS3RBN3o2S3A3NHFnUTd2bTNyVk9ON25UZ2YyZGt2VzFFMlZza2Y1RlQzVV9xcmliTmRvS1NTWU5ON3hmb0wwWlNkN1RKV0JweUJiM1RTUUwyVUFHVXdzbHZpLS1OQVNTaldxVnNiQlBLQkFnRk9JVERGeDgtazkyNmlfV0pXS1JseTBZN0twNk5LQy16dFJzenFmSmFLeXU4Z25lelE?oc=5","explicit_election":true,"candidates":["Marine Le Pen"],"candidate_matches":[{"candidate":"Marine Le Pen","matched_aliases":["marine le pen"],"locations":["headline","summary"]}]},{"id":"190fc80a23f4fd2b0a74","publisher":"Le Figaro","published_at":"2026-10-04T16:39:28Z","headline":"« Un vrai défi à relever ! » : la droite veut développer sa vision de l’écologie en vue de la présidentielle","url":"https://news.google.com/rss/articles/CBMi_wFBVV95cUxQTU83Tko2djQwQV9EZWpJYmxRS1VQLVlTNmxTaFNPblFZTXZvTU9yZzg1RHBhRWc5Xy1LcUkzMlAyR2QtRzF3bUNDTHNVRVdEOUpVaVpHWHI0NTNPRkhWWWhmcmpIWkZqMGpyV2hjVFVUdjYyOVRzcHNCVVlWeEI5QlZNcGVjT3p3ZWhIRWJQaURrTEVlYnRmRnN4bmZ5WXI0ZFJEZDNsTzduNThheEF2ZHdVbGdFcEhUcXJibkpkLVM4ZXdYMjdsZE9peEE2TmxNb0M1RlNCZWJCNks4U3ExR0swM2ZzdVVjRDE3X0VjV0tZSkJENDBHX2tFclpydlk?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"d660ed1938d42e56288e","publisher":"Midi Libre","published_at":"2026-10-04T16:24:00Z","headline":"Présidentielle 2027 : \"Raphaël Glucksmann prétend qu’il me pisse dessus\"… Les propos volés du candidat font réagir Jean-Luc Mélenchon et Ségolène Royal","url":"https://news.google.com/rss/articles/CBMinwJBVV95cUxQYm5lRHZKMlBpS01QY09Dd0lneWE1bUV3cVByYnBIdVVQU2lUSENZNTAtWXFfM01lMDAybnRvSzlRajFtQmRoLUxvREtGZlBETnNQa293Nl9vR1JxOGVTSm41ZFNnTzdlRlkzanhJSHFJdmEzU21SQjgzOEZRbXF4TEdVUEx0M1lyczJSVi1ZdFBYcXVycldvWExabzBMbjVzcUxVbGxCYUFhTlItNTdLZG83RFhKRkF1eTJsWmtWTXo4MlBPcUJuUGFSQUlGbDNPU1JPUFl0RHBEZzczWGdBcjllSzJOMnRSYnhFUjNkRE9KX01JRnB2WEltNTNNN0M3Sll2djM5MGtDX3ZHZGtQQ1hXUHlNaUY4SkFMcDF1Yw?oc=5","explicit_election":true,"candidates":["Jean-Luc Mélenchon","Raphaël Glucksmann","Ségolène Royal"],"candidate_matches":[{"candidate":"Jean-Luc Mélenchon","matched_aliases":["jean luc melenchon"],"locations":["headline","summary"]},{"candidate":"Raphaël Glucksmann","matched_aliases":["raphael glucksmann"],"locations":["headline","summary"]},{"candidate":"Ségolène Royal","matched_aliases":["segolene royal"],"locations":["headline","summary"]}]},{"id":"80bed8214d08b099f39c","publisher":"Le Figaro","published_at":"2026-10-04T15:05:16Z","headline":"Présidentielle 2027 : l’inflation contraint les meetings des candidats","url":"https://news.google.com/rss/articles/CBMi0wFBVV95cUxOYnhoc1JQX3ctdEFzZ2lHRUVhSFBnc2FnWXFfMDNDbFNCczJXcHVkSWdZRFh3RDYxNUxIODUyaG5JWGdJX1VYR09DUjJCS0M1VG5MeEJVQnNJWGdYYVMzSWdSZ2o5aUxhOGVTdE9Ia0o1akxoMFBjS2VJUGJ0LVF5MnlaQlUyUVBId2RaQlo3N0RXWG1DelB3dTdzVVJvbloycER2VVppZWs3ZlVJRGpTT1BrdC02XzN5T3hza25zUVpjX0pXTUdfc1lDM3h4ZFNBZUcw?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"3c867559f0f4a824c9d0","publisher":"La Dépêche du Midi","published_at":"2026-10-04T15:01:00Z","headline":"Présidentielle 2027 : \"On leur pisse dessus !\" Raphaël Glucksmann se lâche sur Jean-Luc Mélenchon et Marine Le Pen et ironise sur Ségolène Royal","url":"https://news.google.com/rss/articles/CBMi7gFBVV95cUxPTHAwS0tpc01QR3UzNkxzbklZbmgzNTduMnVVZ0VnYXFwSHUyUnJQYUJQdG1CSHVzdmFXbW55cXFZaEV5QzFxMUpxUUpMM3d2WFA4NjFvbFhKNDV4YnU2Ym9vT0pCb3dRbmhTbXc5X1pnd05WZ2pudnNPYjZNV3FHc0REcF9hUmd5YVRPOGhfX2wyMl9QOUlkajF3ZVVFY0VkdzVvd1ZoRk1rZjk3eG14bHpyLVREczFPNm1xOGJVWHdGQUlnSjI1NmRhWUE2UjFUNFNpTjZJMjFrSm1OSFdVYzNKNWx0c2NjQTNZMG5R?oc=5","explicit_election":true,"candidates":["Jean-Luc Mélenchon","Marine Le Pen","Raphaël Glucksmann","Ségolène Royal"],"candidate_matches":[{"candidate":"Jean-Luc Mélenchon","matched_aliases":["jean luc melenchon"],"locations":["headline","summary"]},{"candidate":"Marine Le Pen","matched_aliases":["marine le pen"],"locations":["headline","summary"]},{"candidate":"Raphaël Glucksmann","matched_aliases":["raphael glucksmann"],"locations":["headline","summary"]},{"candidate":"Ségolène Royal","matched_aliases":["segolene royal"],"locations":["headline","summary"]}]},{"id":"db5252bb20b4ec92a324","publisher":"TF1 Info","published_at":"2026-10-04T14:35:27Z","headline":"Présidentielle 2027 : Raphaël Glucksmann et Bruno Retailleau refusent la main tendue de Gabriel Attal pour une \"grande coalition\"","url":"https://news.google.com/rss/articles/CBMiogJBVV95cUxNc3U2anhZUnFMSE9TNklrd0dwUHVHQm5feS04RGxZMWl6OUlETVhPRnhpQ0trVm1sc2dmc1hyUFRfcUUxMkFNUGZzNFg2SlhEUmlXVTBWYW91R1F3VkhGMXBORkFNTUFRcWI2ZnQ2ZzhJWnNkU09sNkJDbGVLWmhDWFBZUHBwRVZmZDlPNk1UQWRtOXoySWFpYXJ4UmMwX09wdmVvTnJ5djBrZU5OdnNfUDJvb3BXOFZ5eUJTOTFsSmZpd2dTRGo5UHFUS0FPWjFsbjM0MTVZTF9TM3FFZzNOcFltcmxhdElqNUpZZWFqQnNTUDMyVXN0eXd1eTBkbHA0QVZkRmRIZFJHSmtxRVduenlqMFQ1aXROWFF5Ylk1czBGdw?oc=5","explicit_election":true,"candidates":["Bruno Retailleau","Gabriel Attal","Raphaël Glucksmann"],"candidate_matches":[{"candidate":"Bruno Retailleau","matched_aliases":["bruno retailleau"],"locations":["headline","summary"]},{"candidate":"Gabriel Attal","matched_aliases":["gabriel attal"],"locations":["headline","summary"]},{"candidate":"Raphaël Glucksmann","matched_aliases":["raphael glucksmann"],"locations":["headline","summary"]}]},{"id":"315f355d5168c203e60f","publisher":"Libération","published_at":"2026-10-04T13:33:43Z","headline":"Avant la présidentielle, l’Arcom envisage d’encadrer les vidéos et podcasts avec des invités politiques","url":"https://news.google.com/rss/articles/CBMigwJBVV95cUxQcHE1dnU3UUpRdTRxUmRLRXhqSzkya1ZSMWlrT0xaZmdMSzBtY29MdlpKaDEyejhGNHdCY1k5RUVYVmotMWZEbE9TY21WTUh5eU9jX080c3pRelFoa2NPY0hzUkRISkxIb3lTMVdCemk0SDN4RWN1R2txU2g0Y1pSMGFhUjQ2N2NHOExXZ1EyYnRYRy1mSUdLeWRqMXQ5dVNPakdkRVJYYnFhaXN0TWhJYkJBcC1GZE9zdEQ1S3cyd0otc2thaHExVTdsdGp5bDBNbXhMaFotNDR1dGZkRDN3VVRHQWpZWE1rOWRra1hLejZGRzJvQUlQbnU1UXc1YmRxbUZv?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"9c5887be2313104636b7","publisher":"Sud Ouest","published_at":"2026-10-04T12:42:01Z","headline":"Présidentielle 2027 : le camp de Raphaël Glucksmann rejette la main tendue par Gabriel Attal","url":"https://news.google.com/rss/articles/CBMi7AFBVV95cUxQZlY3Y1N0UnRva0d2a0hxbWx1SGRQbzFPQ1FuLTNzSDlMM0MteE0yZzhnS3RYdDN0MGxHY254SUlzQ1EwYzdkUUgxMm9NQl9rTVIzTmdYOXluQWNDbzhBZjAxY1FlUV83OENJa3dmNlpId0g5MERseUlxMkJ0Nl96dFdLZE9Qckd5dm5ubVdnb3Qyd2puTndGSHljVjc4aTUyZGdqc0FiaXBncEM5MnFpN21pMXhNd1FmZ2VpbG9FZWpQNmpjMTJBdWw3SHhGQTdfSW41Q3NMMVdsUEhaeXVDc09NMERyU0gxVWpwTQ?oc=5","explicit_election":true,"candidates":["Gabriel Attal","Raphaël Glucksmann"],"candidate_matches":[{"candidate":"Gabriel Attal","matched_aliases":["gabriel attal"],"locations":["headline","summary"]},{"candidate":"Raphaël Glucksmann","matched_aliases":["raphael glucksmann"],"locations":["headline","summary"]}]},{"id":"b6164ec87f6d8e3c9642","publisher":"CNEWS","published_at":"2026-10-04T12:30:56Z","headline":"Présidentielle 2027 : Laurent Wauquiez affirme que LR ne pratiquera pas «le petit jeu de la censure» pour le budget 2027","url":"https://news.google.com/rss/articles/CBMiuAFBVV95cUxPN3FFdzV0Y0g0SVhOMnBwU3l0S0R2ZlFGMDZ3U3dwOEZVbXcwU3VlMEtSRzhlNnVRUGUxZkU0WHhCUVdYWHUxNFFtbWExQTRyYzJJT0ZRb3A5c2NLeUpPNkM3elh0TlJISC14OXMtQkRvTnFIWmhsQ1JVekllRExNcnZRT3hPVm5QWGhYYXBDeUp6YjVxV19CQ2FVbTVuSTRQeDZWRHJ3TnNiQUpXa0lReVhrenZuMGVV0gG-AUFVX3lxTE8xRTNER2Juc0FzMFhsbkpqZ2dVZkwxRjJfdnMtclJ3cm9KdDI3X0EwaXZfdUFlTFJDTFFIVmNGa3kydlpDV21qeXlRZ0FnQXBiNGJEOU9FbWNYUl8wbUhBNlBZY2JnMXBYT0E2UDc1eEpwRGthM1YwZXBWVDBybHI1Ml9YMTNDaUlPUmo3dkxqUkNDZkJfYUl0YWdFVjd0V0FSY19qNV9QcTlMZElSLUpjdTJma3BhVjR0LUcxb3c?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"ceed576967ac9c27e7e1","publisher":"Le Monde","published_at":"2026-10-04T12:30:08Z","headline":"Pourquoi les partis politiques veulent maintenir une candidature à la présidentielle de 2027, même promise à un faible score","url":"https://news.google.com/rss/articles/CBMi3wFBVV95cUxQbEhrVzhEdXdrSWF3WWk2M0c0NWgyei1vOG1FLWVXczVmTDZDSVUzX3h6d21kY0pmbUZSdnRmNGZYOUpFS09QUmRhdWdGbVJSaTQ2SDdLazFGLVEyNEhoa2NKVGxHSXdCQVJXVXBSV2ZDcUpqUFdwZXhNRmNHQkVuSzdJMFNwbkI5djYyalJlVS1HeUZXVzBUVFhLSHAzTDZ5T1Q0SVZOS3RNWlBISTYtbEZYWkF0SXJqaWMzRzNjZ1phTFJJYnJjNUd1Wm9PaHc0dVVVTDJPWkpYRThWZWFB?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"f7c2e18f88873d77d046","publisher":"BFMTV — Politique","published_at":"2026-10-04T11:50:23Z","headline":"Présidentielle 2027: Fabien Roussel déclare que \"jamais\" il ne se retirera au profit d'une autre formation politique","url":"https://www.bfmtv.com/politique/elections/presidentielle/presidentielle-2027-fabien-roussel-declare-qu-il-ne-se-retirera-jamais-au-profit-d-une-autre-formation-politique_AV-202610040231.html","explicit_election":true,"candidates":["Fabien Roussel"],"candidate_matches":[{"candidate":"Fabien Roussel","matched_aliases":["fabien roussel"],"locations":["headline","summary"]}]},{"id":"28ee187346f5f697c69c","publisher":"Le Monde","published_at":"2026-10-04T11:34:14Z","headline":"Présidentielle 2027 : dans l’audiovisuel, les rédactions en ébullition sur la question du pluralisme","url":"https://news.google.com/rss/articles/CBMi-gFBVV95cUxOMnVLZHNlc2hRTG5BTkNUWVNGWW1KamlYenpTMWY4QW42RGdkWDhCOTdFU2lCU2prdjdlTi1mVkNGMGJiallpelhHTHJJd2syQmdGQXJyckd0d3BOUmxlRTJPdlNfQ1RmNnJudWNCSEdSWHRoUEJJeENBZVlnUlI2YzNzSzhNMmNPNmVOX0EyZE9yTUJQQktzMXNManoxXzlBRU9mWmlLeC1taUVIb2d6cDRBUC1sbVhqNTQ0WjZObVdXVS1TSEVJemZNMm9FUEE5NXFTTm9hdWhvUWU4RnFuVnZtOFF4Z1N5Tkl0dU5PVkoxNWl5eGZMei1R?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"e531306185aaac7a259e","publisher":"BFMTV — Politique","published_at":"2026-10-04T11:32:44Z","headline":"Fabien Roussel, candidat PCF à la présidentielle, s'exprime sur les mobilisations lycéennes","url":"https://www.bfmtv.com/politique/elections/presidentielle/video-fabien-roussel-candidat-pcf-a-la-presidentielle-s-exprime-sur-les-mobilisations-lyceennes_VN-202610040229.html","explicit_election":true,"candidates":["Fabien Roussel"],"candidate_matches":[{"candidate":"Fabien Roussel","matched_aliases":["fabien roussel"],"locations":["headline","summary"]}]},{"id":"e542044130ccbc75c2c1","publisher":"BFMTV — Politique","published_at":"2026-10-04T11:11:43Z","headline":"\"L'interdiction des partis sont le symbole des régimes dictatoriaux\", estime Fabien Roussel, candidat PCF à l’élection présidentielle, qui réagit à la proposition de Bruno Retailleau d'interdire La France insoumise","url":"https://www.bfmtv.com/politique/video-l-interdiction-des-partis-sont-le-symbole-des-regimes-dictatoriaux-estime-fabien-roussel-candidat-pcf-a-l-election-presidentielle-qui-reagit-a-la-proposition-de-bruno-retailleau-d-interdire-la-france-insoumise_VN-202610040223.html","explicit_election":true,"candidates":["Bruno Retailleau","Fabien Roussel"],"candidate_matches":[{"candidate":"Bruno Retailleau","matched_aliases":["bruno retailleau"],"locations":["headline","summary"]},{"candidate":"Fabien Roussel","matched_aliases":["fabien roussel"],"locations":["headline","summary"]}]},{"id":"e98db6b13cd305ef79f0","publisher":"BFMTV — Politique","published_at":"2026-10-04T11:06:02Z","headline":"LA MINUTE PRÉSIDENTIELLE - S'il était élu président, Fabien Roussel appellerait \"en premier le chancelier allemand pour échanger du travail à faire en commun\"","url":"https://www.bfmtv.com/politique/elections/presidentielle/video-la-minute-presidentielle-s-il-etait-elu-president-fabien-roussel-appellerait-en-premier-le-chancelier-allemand-pour-echanger-du-travail-a-faire-en-commun_VN-202610040221.html","explicit_election":true,"candidates":["Fabien Roussel"],"candidate_matches":[{"candidate":"Fabien Roussel","matched_aliases":["fabien roussel"],"locations":["headline","summary"]}]},{"id":"56c4ab34c0040e13b445","publisher":"BFMTV — Politique","published_at":"2026-10-04T11:02:23Z","headline":"Propos antisémites attribués à Jordan Bardella: Fabien Roussel, candidat PCF à la présidentielle, demande à ce que les \"élus soient rendus inéligibles\" quand de \"tels propos ont été prononcés\"","url":"https://www.bfmtv.com/politique/elections/presidentielle/video-propos-antisemites-attribues-a-jordan-bardella-fabien-roussel-candidat-pcf-a-la-presidentielle-demande-a-ce-que-les-elus-soient-rendus-ineligibles-quand-de-tels-propos-ont-ete-prononces_VN-202610040219.html","explicit_election":true,"candidates":["Fabien Roussel"],"candidate_matches":[{"candidate":"Fabien Roussel","matched_aliases":["fabien roussel"],"locations":["headline","summary"]}]},{"id":"cda042aed382c8b3806e","publisher":"BFMTV — Politique","published_at":"2026-10-04T11:00:46Z","headline":"Prix des carburants: “On va laisser Total nous faire les poches”, déplore Fabien Roussel, candidat PCF à l’élection présidentielle, qui plaide pour une nationalisation de TotalEnergies.","url":"https://www.bfmtv.com/politique/video-prix-des-carburants-on-va-laisser-total-nous-faire-les-poches-deplore-fabien-roussel-candidat-pcf-a-l-election-presidentielle-qui-plaide-pour-une-nationalisation-de-total-energies_VN-202610040217.html","explicit_election":true,"candidates":["Fabien Roussel"],"candidate_matches":[{"candidate":"Fabien Roussel","matched_aliases":["fabien roussel"],"locations":["headline","summary"]}]},{"id":"d90e23105778a85c0914","publisher":"BFMTV — Politique","published_at":"2026-10-04T10:57:10Z","headline":"Présidentielle: \"Jamais je ne me retirerai\" au profit d'une autre force à gauche, affirme Fabien Roussel, secrétaire national du PCF et candidat à l’élection présidentielle","url":"https://www.bfmtv.com/politique/video-presidentielle-jamais-je-ne-me-retirerai-au-profit-d-une-autre-force-a-gauche-affirme-fabien-roussel-secretaire-national-du-pcf-et-candidat-a-l-election-presidentielle_VN-202610040215.html","explicit_election":true,"candidates":["Fabien Roussel"],"candidate_matches":[{"candidate":"Fabien Roussel","matched_aliases":["fabien roussel"],"locations":["headline","summary"]}]},{"id":"00a3892cab7611217295","publisher":"BFMTV — Politique","published_at":"2026-10-04T10:54:46Z","headline":"Présidentielle: l’objectif pour la gauche est de “gagner le second tour”, déclare Fabien Roussel, secrétaire national du PCF et candidat à l’élection présidentielle","url":"https://www.bfmtv.com/politique/video-presidentielle-l-objectif-pour-la-gauche-est-de-gagner-le-second-tour-declare-fabien-roussel-secretaire-national-du-pcf-et-candidat-a-l-election-presidentielle_VN-202610040213.html","explicit_election":true,"candidates":["Fabien Roussel"],"candidate_matches":[{"candidate":"Fabien Roussel","matched_aliases":["fabien roussel"],"locations":["headline","summary"]}]},{"id":"be10f26d9afce839ef76","publisher":"Les Echos","published_at":"2026-10-04T10:53:32Z","headline":"Présidentielle 2027 : Gabriel Attal tente de reprendre la main en poussant l'idée d'une primaire","url":"https://news.google.com/rss/articles/CBMi4wFBVV95cUxNT2wxYzJZbERyQ2F4YUlhUTN5eDJmQVl1R0dKN29xN0NrN1o3aWVnYmIzeXlhTDNneW80X3dVa1F0X0hoZHczXzVYeWkzNUEzdlh6RHFOLWRNNzgtbVkwbjUyeWNYaTVoaVdqelloWFNaZlY0YVhSN1dXVllvajBfc2xyVmpIU1VzdXY2TEFFTE1oNTZMVF9Zck1Fa25VYUJ6NXFXZmZlZzcxc0JiT2JGNmdMOVZCZTR2cV9DS1FBV0h0b09JYmhkeW1tVW5zbG0wY1pBd04xX2NGNjJmVlkzOWNVNA?oc=5","explicit_election":true,"candidates":["Gabriel Attal"],"candidate_matches":[{"candidate":"Gabriel Attal","matched_aliases":["gabriel attal"],"locations":["headline","summary"]}]},{"id":"698e7d9ac07579f75c2b","publisher":"BFMTV — Politique","published_at":"2026-10-04T10:51:22Z","headline":"Colère des lycéens: Fabien Roussel, candidat PCF à la présidentielle, appelle les jeunes à remplir \"des cahiers de doléances\" et le gouvernement à \"entendre\"","url":"https://www.bfmtv.com/politique/elections/presidentielle/video-colere-des-lyceens-fabien-roussel-candidat-pcf-a-la-presidentielle-appelle-les-jeunes-a-remplir-des-cahiers-de-doleances-et-le-gouvernement-a-entendre_VN-202610040212.html","explicit_election":true,"candidates":["Fabien Roussel"],"candidate_matches":[{"candidate":"Fabien Roussel","matched_aliases":["fabien roussel"],"locations":["headline","summary"]}]},{"id":"fe92543f365840a9c343","publisher":"BFMTV — Politique","published_at":"2026-10-04T10:49:17Z","headline":"Fabien Roussel, candidat PCF à la présidentielle: \"J'ai des différences avec le Parti socialiste comme avec La France insoumise\"","url":"https://www.bfmtv.com/politique/elections/presidentielle/video-fabien-roussel-candidat-pcf-a-la-presidentielle-j-ai-des-differences-avec-le-parti-socialiste-comme-avec-la-france-insoumise_VN-202610040211.html","explicit_election":true,"candidates":["Fabien Roussel"],"candidate_matches":[{"candidate":"Fabien Roussel","matched_aliases":["fabien roussel"],"locations":["headline","summary"]}]},{"id":"3e09d451057cad084c7b","publisher":"BFMTV — Politique","published_at":"2026-10-04T10:47:28Z","headline":"Primaire socialiste: \"Ils ont des débats, c'est sain\", affirme Fabien Roussel, candidat PCF à la présidentielle","url":"https://www.bfmtv.com/politique/elections/presidentielle/video-primaire-socialiste-ils-ont-des-debats-c-est-sain-affirme-fabien-roussel-candidat-pcf-a-la-presidentielle_VN-202610040210.html","explicit_election":true,"candidates":["Fabien Roussel"],"candidate_matches":[{"candidate":"Fabien Roussel","matched_aliases":["fabien roussel"],"locations":["headline","summary"]}]},{"id":"f23b45c413bb5e789a1a","publisher":"BFMTV — Politique","published_at":"2026-10-04T10:30:25Z","headline":"Mobilisations lycéennes: \"Ceux qui sont à l'initiative de ces mouvements sont des organisations de jeunesse\", déclare Fabien Roussel, candidat PCF à la présidentielle","url":"https://www.bfmtv.com/politique/elections/presidentielle/video-mobilisations-lyceennes-ceux-qui-sont-a-l-initiative-de-ces-mouvements-sont-des-organisations-de-jeunesse-declare-fabien-roussel-candidat-pcf-a-la-presidentielle_VN-202610040205.html","explicit_election":true,"candidates":["Fabien Roussel"],"candidate_matches":[{"candidate":"Fabien Roussel","matched_aliases":["fabien roussel"],"locations":["headline","summary"]}]},{"id":"0641579e48b8a20ecf5e","publisher":"BFMTV — Politique","published_at":"2026-10-04T10:27:59Z","headline":"“Je mets en cause ses propos”, déclare Fabien Roussel, candidat PCF à la présidentielle, en réponse à Laurent Nuñez qui estime qu'il n'y a “pas d’interventions disproportionnées des forces de l’ordre” lors des mobilisations lycéennes","url":"https://www.bfmtv.com/politique/video-je-mets-en-cause-ses-propos-declare-fabien-roussel-candidat-pcf-a-la-presidentielle-en-reponse-a-laurent-nunez-qui-estime-qu-il-n-y-a-pas-d-interventions-disproportionnees-des-forces-de-l-ordre-lors-des-mobilisations-lyceennes_VN-202610040204.html","explicit_election":true,"candidates":["Fabien Roussel"],"candidate_matches":[{"candidate":"Fabien Roussel","matched_aliases":["fabien roussel"],"locations":["headline","summary"]}]},{"id":"c186dec41f7d9af3fa33","publisher":"BFMTV — Politique","published_at":"2026-10-04T10:22:25Z","headline":"Colère des lycéens: \"Aucune violence n'est justifiable, aucune violence n'est légitime\", affirme Fabien Roussel, candidat PCF à la présidentielle","url":"https://www.bfmtv.com/politique/elections/presidentielle/video-colere-des-lyceens-aucune-violence-n-est-justifiable-aucune-violence-n-est-legitime-affirme-fabien-roussel-candidat-pcf-a-la-presidentielle_VN-202610040201.html","explicit_election":true,"candidates":["Fabien Roussel"],"candidate_matches":[{"candidate":"Fabien Roussel","matched_aliases":["fabien roussel"],"locations":["headline","summary"]}]},{"id":"b0a7048011282baf9edd","publisher":"BFMTV — Politique","published_at":"2026-10-04T10:20:20Z","headline":"Violences en marge des mobilisations lycéennes: \"On devrait avoir une politique de maintien de l'ordre qui protège notre jeunesse\", affirme Fabien Roussel, candidat PCF à la présidentielle","url":"https://www.bfmtv.com/politique/elections/presidentielle/video-violences-en-marge-des-mobilisations-lyceennes-on-devrait-avoir-une-politique-de-maintien-de-l-ordre-qui-protege-notre-jeunesse-affirme-fabien-roussel-candidat-pcf-a-la-presidentielle_VN-202610040200.html","explicit_election":true,"candidates":["Fabien Roussel"],"candidate_matches":[{"candidate":"Fabien Roussel","matched_aliases":["fabien roussel"],"locations":["headline","summary"]}]},{"id":"2972c6ab7d5bb92aef1d","publisher":"HuffPost France — Headlines","published_at":"2026-10-04T10:15:35Z","headline":"Pour la présidentielle 2027, Gabriel Attal appelle à une large coalition (mais son idée fait pschitt)","url":"https://www.huffingtonpost.fr/politique/article/pour-la-presidentielle-2027-gabriel-attal-appelle-a-une-large-coalition-mais-son-idee-fait-pschitt_334721.html","explicit_election":true,"candidates":["Gabriel Attal"],"candidate_matches":[{"candidate":"Gabriel Attal","matched_aliases":["gabriel attal"],"locations":["headline"]}]},{"id":"26c5de313fad56c74f27","publisher":"BFMTV — Politique","published_at":"2026-10-04T10:15:00Z","headline":"Manifestations lycéennes du 6 octobre: \"Oui je serai à leurs côtés\", déclare Fabien Roussel, secrétaire national du PCF et candidat à l’élection présidentielle","url":"https://www.bfmtv.com/politique/video-manifestations-lyceennes-du-6-octobre-oui-je-serai-a-leurs-cotes-declare-fabien-roussel-secretaire-national-du-pcf-et-candidat-a-l-election-presidentielle_VN-202610040197.html","explicit_election":true,"candidates":["Fabien Roussel"],"candidate_matches":[{"candidate":"Fabien Roussel","matched_aliases":["fabien roussel"],"locations":["headline","summary"]}]},{"id":"188467de54230b699cda","publisher":"Europe 1","published_at":"2026-10-04T10:12:46Z","headline":"Présidentielle 2027 : «Si le RN l'emporte, j'espère qu'il y aura des mobilisations populaires puissantes», déclare Manuel Bompard","url":"https://news.google.com/rss/articles/CBMi8gFBVV95cUxQN1RiaGR3M1p1WkRBT0lBc0RoVGVMUEdfcGUwLXlJLU43S29oV3ZHRkdzd3RFQnd1M2V1ZHNOLXVNejNLWkpMY29weWxJWWZxMDBoTFZXeDg1WVUyYlN3RWxjd3VTbE1ScVkzclF6UHAtRkExY21uWXZsMFdnMjZFeTUtWmg1NUZQOTlQcTlHcXB4Y1FKSDVSb3cxcTRqY2pvYkRzNnNMRjlSQkZMR2l0RXRLbTcxZVU1eGlxUy1GWTRWSng1Qk9obU44dk10RXlZMXhlNlJOSGo2SG1ENkZ3ZGNpMVFXNERCQ00ydjRmZXdZQdIB9wFBVV95cUxNY0R1cElHbHl1dTdoQWFCWnVDRDZHV1JfUm8zQ2JkRE04bXkydjJGT3VwemJXcUQxVzVLdmNMUVA1NVRJMEh5clYySmVGb3FsOTFGVThROGU5dm1NbFQtbWxjTzl2ZWZ1bjRkQlZ6aE9DbWFobmZfQVR4Vi14TGNEaC1YLUw0SGZqZFowWnpOVkxjRS1kV0YzZ2Y5T0lXeXhRMDdEdzMzNmNGcFRrRVRKVFdldTZoWl9qWjRSZFRIZ1FlMlJHMEVCRUlYOEo1V2s2YlRRby1FZldLYUhvNXZoMm9HY3gzcmN6anBkLVV1UnI3Rk5JUHZn?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"ec31446c45a04f970549","publisher":"Le Parisien","published_at":"2026-10-04T09:54:13Z","headline":"Présidentielle 2027 : Sam Zirah, Legend, Hugo Décrypte… Les interviews politiques en ligne bientôt comptabilisées dans le temps de parole","url":"https://news.google.com/rss/articles/CBMiyAJBVV95cUxQcUlUQnpSUDV6cE9fdXh0aldVejc2Y0toVGk2QkRkUDZUU3dBdTBFTlI1Tm8wcDBqYm55NDRaaGlzU3dlaEFCNnFWamhFOHNFbngxTGNHRUhvMVFSaEZlQU5RRF9vMk80ZFNTRTJtM0R0MzNTMDZPYmdfdHZtS2g5UnFKenV0SG1ZQnBYcVc3TFpGdzBMVmw1T2hVOWJXQnc2Z2JhMzVuOHFsb2hHUzlZSWMwc2ZCVEZaVlgyRmQ1STNNNDRBRnNxMDFDaVp1cGs0dV9BeWFveWhPQXZVSlVGUkd0aXBfS2hDNUZ5X1ljNDljSVRrV19TTHFlamFDR2QydFQ3UGtJa1RjT3JkaEtMVTh5aTBfMXQ0Uk1mbmNTYmlGSlhoNVZVWU9ESHgtYjFPQU81dTQ4NmpQX2x3dk1yMGhGNFZ6ZEdh?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"2a13fa2ee1bb1579def7","publisher":"Sud Ouest","published_at":"2026-10-04T08:49:14Z","headline":"Présidentielle 2027 : l’Arcom réfléchit à de nouvelles règles pour les podcasts politiques avant l’élection","url":"https://news.google.com/rss/articles/CBMi5wFBVV95cUxQbVV2RldUNm4xRFNINnpqR3hfT3FuNXI4VjRNc21oX1JNN0xQZVBKcXlnblFSeE5GZTlXUVBiWkgxdUtod0lRcmI5bDdDV0lUQ2lJdGdaNlBZT1Frejg0eGRoQXY2T1p3UUNzTXQzNTYwQ0ExTXZ4dEhUMXZZbEtXaHBjVzBkQmU2RVM2dTBFR3E5ZlNWSTk2MEozTkg5Ujh4aU12Z0NScTRMODJQUmpHNVFIREVKNGNLQk05WVMxNTNfcDhLSmYxaFljR1BHMDR3WkdRLUNHcVVKRVBiQnlrbWtWck1XYXc?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"63a387922fb3cdd10c41","publisher":"Le Monde","published_at":"2026-10-04T08:48:50Z","headline":"Présidentielle 2027 : de « nouvelles règles » pour encadrer les podcasts politiques envisagées par l’Arcom","url":"https://news.google.com/rss/articles/CBMi-AFBVV95cUxOa0RqdURpSTlYWHJ4a1MxVmpQdU4wN3V2ZUcwR0pOeUtCUlZjLU83M1RWYVRKOWdXWlpiUnNsbXM3aUdqRWJ2R2laNGFmMmFHRVA0aDVnRzFPWHNLSGlFVGR0Qkw5enlIaE4wRWV3NVIxU29Za3UyQy1yZjQtVm5hZWRTX3NSajY4NlhVajhiX21pY1Z6N2dQdTd1WTR6bkZZOTVuRmN1MXRkR3VTMjg4bmtTZHdXS3Z6eFY1NTllUWk1TlkxQjdBQmJmUHNFV3RlZDZhY1dneUtTMlBiYlJSSGtOTUdEa3ozcjRmT3IxQktNTV9waG1uZQ?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"a3266edadbbc3d0b10d9","publisher":"Franceinfo Politique","published_at":"2026-10-04T08:48:17Z","headline":"Présidentielle 2027 : Edouard Philippe avance en silence, mais se prépare activement","url":"https://news.google.com/rss/articles/CBMi4AFBVV95cUxQaFVZYjBabDVsZ2lrY1Y3clo3TFJTSGYwNkU1enZhaUlkSmRqVHFMbmVnVFhkTVJHMUt0cXFKYk1fY0t2akdBRUJPTUxsSGhFTV9BSTlsV1c2VnVGVk1heElPY0laYVRkS0lvVHYwLWNPMmRnc0MxNWszd19pdUhTVVhuQnBGNTk1QWNBYXRxaTRmdXp5Ty1VTlA1NnlHRUs4NEd3Y1VNcDlfMGJhX3E3dm82V2cyOHhId21EYk1hbktXNkppeHpfcXdJN1I4WFo0elBWeTByMkRIZG42MmpBWg?oc=5","explicit_election":true,"candidates":["Édouard Philippe"],"candidate_matches":[{"candidate":"Édouard Philippe","matched_aliases":["edouard philippe"],"locations":["headline","summary"]}]},{"id":"45a701cde7b59be82dea","publisher":"Le Dauphiné Libéré","published_at":"2026-10-04T08:42:36Z","headline":"Médias. Podcasts politiques : l'Arcom réfléchit à « de nouvelles règles » pour la présidentielle 2027","url":"https://news.google.com/rss/articles/CBMi0AFBVV95cUxPRXhUVFcyblg1Y2toSEdOYnhSR1VObm9hblR2NGJ3bzlSOHU4RTRUdDJoT3Aya0xYV2RmdDF1UXhtVTlHVTRMY2NIb3U1b055SWlrMlpsaWVDLXhzUHpqbGxWNGRuMlpSMDJqSE5DVkxTc0JPNkZfR2RPcW5MdmdhTG1aYW1IdEJ4UjNvNF9nSlJTZVhpQXF5eTRXdGZ4eVhjODNQR21VSEJNaWMzTl9PeV9XZmdGaEZ0dWRpSmN4MmZnSENxanNmdzRYOTF4WXNG?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"16c5fadd8f6197d4ea12","publisher":"Sud Ouest","published_at":"2026-10-04T08:42:03Z","headline":"Présidentielle 2027 : Édouard Philippe, l’homme qui ne voulait pas « faire rêver »","url":"https://news.google.com/rss/articles/CBMi0wFBVV95cUxPZld6SmQtZWluNThDMzFXT2RmeTdkMEIwSkhQSVloUW1OV1hBMWlnUFViTk9XRHB4bC1oR3RLM1B0aWwza2dmXzVQdEQ3YnVWS1MyWms3QVBWWEVrMlk4NktmQWJMZWlBckxQb0NVUDhGVS0tbnpwVUxmbDNpOENrWUxEc0pPNlhxbEowOVZ4dHlaZ1U3eVpVZHd4dmotNlBCR0U1QlRFT3ctV2JjRXBpUHA3ZHhLa2hrZld0VXpCNElVaGp5TWFRUG9Ob2wtZ093U0Uw?oc=5","explicit_election":true,"candidates":["Édouard Philippe"],"candidate_matches":[{"candidate":"Édouard Philippe","matched_aliases":["edouard philippe"],"locations":["headline","summary"]}]},{"id":"0f14fd1c5baba1ae9d2c","publisher":"Le Petit Journal","published_at":"2026-10-04T08:09:29Z","headline":"Les républicains en ordre de marche pour les présidentielles","url":"https://news.google.com/rss/articles/CBMiswFBVV95cUxORnp3S1pJOTllbktUNUxUN3ZKMzhLQm5DZnF5UkRyVXJ5VDZxSkVjRGJZMk13Rjc1ZFhvWlVsdFA5UGVpdmp2VVdVNlpaenBXekR0NnUtZVdudkJZbUNpbEtXRWdpN2NoMWtuRnltalgxUGswWV9xUUhCTW94cC1zRTFnenlCWEpwSmhwaUc0ZHVFWHBpVFZ1eG9EQTZUZnZVazBKV1hranppa0NURVIxSXNhTdIBuAFBVV95cUxPVk40endQeFhqZ2hJSkVSMVJIalRHTUR0ekdLcC10VDlkZFh0cWhIeHJIOHRRbG1BOG1KcU5vVUNQTDdZWnlIVHdJZjRoelpaZ054ZHFKNWgyWE9Wa3FvTUlmRTByZkI0V25wTDB4U08weXZBbC0yUkVjcWw2ajBSaEdYNDl6WnVmd0gwZTZDSXVIVXJfZVJZYUNLV2VSTThISjRrV2pFdHhGSi16dVJOSEwzM0w2WmJF?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"c26ea54b6b96f30e3fb5","publisher":"Le Monde","published_at":"2026-10-04T08:00:08Z","headline":"Présidentielle 2027 : pourquoi la CSG divise autant les candidats","url":"https://news.google.com/rss/articles/CBMi1wFBVV95cUxOS3Jad0FmMU84OS1ueklfSkQzMlNMSFVGck54Y01zeVk4cGt1WmwtekUtcTFEU1pJMlFvYXRzOXR0VXFDMnZUUk1WQUNwR0dpVE5FcDR4aVNFMEdfS3hZeHE1NFN1b044UDlSYVlfQVRuSHdvSXVPcmk3TGhrVjgzdmNuZG9ZdGhfMHBNUVQ3VUg0emQ1Q3l2QUozYXdVVXZHbDk2c2hhZ3hHb0VobTMtdExjTEYzQk56MUZyYUZsQWFZcTNpZHEya2hJdm1odjJFVTNDSnpZdw?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"66a06763ef161c956287","publisher":"La Nouvelle République","published_at":"2026-10-04T07:14:34Z","headline":"Présidentielle 2027 : Marine Le Pen maintient \"totalement\" sa \"confiance\" à Jordan Bardella, accusé d’écrits antisémites","url":"https://news.google.com/rss/articles/CBMi9AFBVV95cUxQRUNhRDhRZldJMjNFY0p6bUNHajNtbkExUnAzN2l3R2VRNlkxV1VlMjBUX2hXTUtlUE9XdWZNblM5WDVoSWhFS0Fhd2w0NHJKaEF6V0hRWWpQSzVwaFpnS3lxQzBrWnphYVhLX2dkcURzZ19WNDlvUFNZZGM4cW9XaFgtOVlxWmNoMDFTaFRZbVphR2g3NHk1d20zSlpZS2ttZHNwYlF5NklLMXA3ZzRTcURwV1FvX0FEZlRLRDc4d1FScGdBSXVfYnIyRFY3ZjRrUHBCYl9Db2F5RnR4c1N2U1hxSHlOcThNT2s2RVlMeUVlUEFr?oc=5","explicit_election":true,"candidates":["Marine Le Pen"],"candidate_matches":[{"candidate":"Marine Le Pen","matched_aliases":["marine le pen"],"locations":["headline","summary"]}]},{"id":"9d2d2951368d5245e02b","publisher":"Le Figaro","published_at":"2026-10-04T06:57:29Z","headline":"Présidentielle 2027 : Gabriel Attal plaide pour une «grande coalition» rassemblant de la gauche social-démocrate à la droite républicaine","url":"https://news.google.com/rss/articles/CBMiqAJBVV95cUxNaml5cHQ3VFJ6LXYydFdSRzdhTEVkLWdDUTg2dzRhemJtU0o2bnNsV21KenRGdENNZXBVLWlCekVlRi1EY0FkNXEwSjFMaDItQjJQcGlpdWRSVEFOVHdRSUtfaUkzQm56Y0J5OUFWOUlqZFcwOXBMdG9JaFVFVHBYTjNhWGNiS2U3RXMzejF0X1htYU9OWmE1ZkJWa2pmT05aUTZzZlRRSHZKT0N3MUhoYlVVSE9NSEt0YU9LcjRtWmtlWHRtd0UzamhaeVF2cWRSZ1dsd3V1dkZKYVZrU1UyVzQ4QzNpNTFyYkVuS1V1TVZzajR4TzBOWFRSR0dDQkR3UHdDXzlLQlU3QU9mZTA2Q2gyZmhqLXh1R09tRlpIZmxQYThGaXE5bg?oc=5","explicit_election":true,"candidates":["Gabriel Attal"],"candidate_matches":[{"candidate":"Gabriel Attal","matched_aliases":["gabriel attal"],"locations":["headline","summary"]}]},{"id":"dee66051fc81da2e4b1d","publisher":"Le Parisien","published_at":"2026-10-04T05:52:30Z","headline":"Présidentielle 2027: un dernier débat pour départager les candidats de la primaire de la gauche ce dimanche soir","url":"https://news.google.com/rss/articles/CBMirAJBVV95cUxNYnQwRFhldlhDLWM0YldKUDVBTkZRTDVycnpULW9FRl9Tc3ZFMDBRQXV1ZkZMazl4RlkzNEdCZHRZeUNaRnB0WDJnVDBGeElzOWR0LXhnc0VpSjB5c3k5SmctVEMwVmFKSHZQZC1EcGFKM0U5UGFUbmVzYVZTOWxxX1lTVW0zekVabTZwM3RGRTZzT1pjUW85VWh0TjZweWxQcE1nUHBqTUI1XzNDb3g0ZDdrOWt4b28zclgzY1kxbEh1US1WWjAyRDdGUHVUOU0wNnh2dHZhOGZfc2ZuYlRZOXU3TFRjYzhhd0p6c290RnpHeU1pVjNZdUR3VWFtM3pDNy1FREJEaXAtVk90ZlNYZzFIbFJQZjIzb1hFQ1k1ei11X3A3NkxEZFFqZ3g?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"99be32984d9bd6825ab0","publisher":"L'Express","published_at":"2026-10-04T05:45:00Z","headline":"Présidentielle 2027 : ce que les candidats qui veulent taxer les riches oublient de vous dire","url":"https://news.google.com/rss/articles/CBMi8AFBVV95cUxNd2N5VVJaV3pxWk53VGxGV0pkcUZyeGZpUWVVMnNHbmV6Mlp1ZEFyZ0J1NTBvQTkxcG8yeTl6cEowMThlOXBLTHEyODRIUkpwWXA5eC1WTU9aMnBpZEp5RlRhT3ZmSGpYbnJ2RGViZThkYjN5aTBReEhnVEhMS2VyelNoclFoMTV0YUVsYmhwaDIxeEczX2NwZ2pmeDQ0SDJUZTliUUs3ZWNIQ3NST0JmbGNrSnZvcUtaZEc5U3FXbjYtbC1CRG1oZTZzZnJpVGlCN0hadnpVT1hPVkNCTHhJb1preUQ3ZFVDY04zVHZ1dWw?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"173ece361fde8cb8f690","publisher":"BFMTV — Politique","published_at":"2026-10-04T05:40:00Z","headline":"Dominique de Villepin, Bernard Cazeneuve, Xavier Bertrand... Pourquoi ils attendent pour se déclarer officiellement à la présidentielle","url":"https://www.bfmtv.com/politique/elections/presidentielle/dominique-de-villepin-bernard-cazeneuve-xavier-bertrand-pourquoi-ils-attendent-pour-se-declarer-officiellement-a-la-presidentielle_AN-202610040028.html","explicit_election":true,"candidates":["Bernard Cazeneuve","Dominique de Villepin","Xavier Bertrand"],"candidate_matches":[{"candidate":"Bernard Cazeneuve","matched_aliases":["bernard cazeneuve"],"locations":["headline"]},{"candidate":"Dominique de Villepin","matched_aliases":["de villepin","dominique de villepin"],"locations":["headline"]},{"candidate":"Xavier Bertrand","matched_aliases":["xavier bertrand"],"locations":["headline"]}]},{"id":"f474a09e66d3eb0d1e5b","publisher":"La Dépêche du Midi","published_at":"2026-10-04T05:21:00Z","headline":"Présidentielle 2027 : \"Une forte possibilité de dégradation des relations\"... Pourquoi l'arrivée de Marine Le Pen au pouvoir inquiète nos voisins européens en raison de ses liens avec la Russie","url":"https://news.google.com/rss/articles/CBMipgJBVV95cUxQRVhFQzhpbjRBc3gxRDhMal9oTWdzclk1M2lPQUtWaVBwM2VpVnpuR3NHeTl6dTdoeHZjNzNYb21JTGd3NnBEVEwya003M0lnRzNCaXZHTVJpcXFjaS1mbGFfNktfaUNGVmFMd1FlMVlJUE9rd1BBMkowemFtU1d1THNWOHNpaFNCSHJIa1FWYUNXV01UYlJ0OXZzelZwY2hZeWxiRjVhQXhremJtbU1aLV9Lbmo1QWlHV0w5LXFGRVhZSFQ4NGNJZnk2c0lmUnZuSXBDdUxvSHhSZXBnZTB0LU5QOGViXzZUYm1QNUhnUDE1cU56ZWltZzBPdkxLTjg5Y3NLaDB0WTBCRl85SXRaWlZXY0t3Q1RLeUhJR2MxMXRQZ2FfNHc?oc=5","explicit_election":true,"candidates":["Marine Le Pen"],"candidate_matches":[{"candidate":"Marine Le Pen","matched_aliases":["marine le pen"],"locations":["headline","summary"]}]},{"id":"140462bdb61567b898d6","publisher":"Ouest-France","published_at":"2026-10-04T05:09:04Z","headline":"Présidentielle 2027. « Après avoir payé son loyer, un étudiant n’a plus que 200 € pour finir le mois »","url":"https://news.google.com/rss/articles/CBMimAJBVV95cUxPVWdxS19icXlTUE4zMFdvQ1A5OE1GNk1lVUg4TUUyOGtQbkUwNlZ0ZFF5U0ppVDJLY3BsVzhGX2VUTkVYMFQ5Y1EzRUw1bmwtVlBac2VJMl9lOWZSdEZsZldqcV9JSGYzVmhfT3FzbFRGXzZFUjVneTI0Vy1BVkZJOUFsUVdIc3B3QVp6dWVFZUtkVTVkLTJYQi1HZ0hOY1FuYTI2WnRVM19ZU0ZmOE93QUpwTkR0RXJzQ0wtNTY4LWNWUDlLMHVKa00xNWVlbTR5Y2lrR2NTNno2TE5vSlJPazM1NHVaTUp0aTZ1RFJQNlZlSlVaU3pSZFVxVTg1V01OX2QwcDIwMUQyT3AwU3lRbVhrUEZtUGJ3?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]},{"id":"40449eb90f24ab1e7a62","publisher":"Midi Libre","published_at":"2026-10-04T05:01:00Z","headline":"Présidentielle 2027 : Le Pen, Mélenchon, Philippe… À sept mois du scrutin, malgré les sondages, les jeux ne sont pas faits","url":"https://news.google.com/rss/articles/CBMi9wFBVV95cUxPY19yU3o0dTZiY0RUN2VWRlNRZjN5LThNZGFHS3l2cjRvaE1KVnZ6aVkzVGRYdC0tTjViVlk2WGg0d0UyZTlLMFYxOUxzZ3BoZ2F3Y3pDNTFDU2lkX09lcWk1SC1XeVN4X0pUcDliME5ZczV4bnJjNXpyVmEweHlmaGZaTDRXVHplN0hNaFdneVF2MEJFUjhZUGk4RThEVmdvNnhyVS1JMFFtREprOUN0RENKRC11YmNPYkUxa3hJX01YMXl3Z2c0YTBWZUpxTGhham9NSnhVLUhhdmJ3TDhLMlNBeWZCd1RVdWpGSG80Q1Z0ZmdvcVVr?oc=5","explicit_election":true,"candidates":[],"candidate_matches":[]}],"candidateCoverageAvailable":true,"activeFieldVisibility":{"method":"share_of_active_candidate_linked_records","denominator_scope":"records_linked_to_at_least_one_active_monitoring_candidate","status_as_of":"2026-10-02","primary":{"current_period":{"start_date":"2026-09-28","end_date":"2026-10-04","record_count":260,"publisher_count":52},"prior_period":{"start_date":"2026-09-21","end_date":"2026-09-27","record_count":372,"publisher_count":70},"comparison_quality":{"status":"comparable","reason":"comparable","current_record_count":260,"prior_record_count":372,"current_publisher_count":52,"prior_publisher_count":70,"common_publisher_count":45,"publisher_union_count":77,"publisher_overlap_ratio":0.584,"record_count_ratio":1.431,"thresholds":{"minimum_period_records":10,"minimum_period_publishers":5,"minimum_common_publishers":5,"minimum_publisher_overlap_ratio":0.5,"maximum_record_count_ratio":2}},"main":[{"candidate_id":"edouard-philippe","candidate_name":"Édouard Philippe","status":"declared","display_tier":"main","current_record_count":58,"current_share":0.223,"prior_record_count":27,"prior_share":0.073,"share_change":0.15},{"candidate_id":"marine-le-pen","candidate_name":"Marine Le Pen","status":"declared","display_tier":"main","current_record_count":53,"current_share":0.204,"prior_record_count":26,"prior_share":0.07,"share_change":0.134},{"candidate_id":"raphael-glucksmann","candidate_name":"Raphaël Glucksmann","status":"primary_contender","display_tier":"main","current_record_count":39,"current_share":0.15,"prior_record_count":57,"prior_share":0.153,"share_change":-0.003},{"candidate_id":"gabriel-attal","candidate_name":"Gabriel Attal","status":"declared","display_tier":"main","current_record_count":31,"current_share":0.119,"prior_record_count":54,"prior_share":0.145,"share_change":-0.026},{"candidate_id":"jean-luc-melenchon","candidate_name":"Jean-Luc Mélenchon","status":"declared","display_tier":"main","current_record_count":28,"current_share":0.108,"prior_record_count":42,"prior_share":0.113,"share_change":-0.005},{"candidate_id":"bruno-retailleau","candidate_name":"Bruno Retailleau","status":"declared","display_tier":"main","current_record_count":25,"current_share":0.096,"prior_record_count":20,"prior_share":0.054,"share_change":0.042},{"candidate_id":"fabien-roussel","candidate_name":"Fabien Roussel","status":"declared","display_tier":"main","current_record_count":20,"current_share":0.077,"prior_record_count":3,"prior_share":0.008,"share_change":0.069},{"candidate_id":"olivier-faure","candidate_name":"Olivier Faure","status":"primary_contender","display_tier":"main","current_record_count":15,"current_share":0.058,"prior_record_count":26,"prior_share":0.07,"share_change":-0.012},{"candidate_id":"jerome-guedj","candidate_name":"Jérôme Guedj","status":"primary_contender","display_tier":"main","current_record_count":12,"current_share":0.046,"prior_record_count":10,"prior_share":0.027,"share_change":0.019},{"candidate_id":"segolene-royal","candidate_name":"Ségolène Royal","status":"primary_contender","display_tier":"main","current_record_count":9,"current_share":0.035,"prior_record_count":75,"prior_share":0.202,"share_change":-0.167},{"candidate_id":"david-lisnard","candidate_name":"David Lisnard","status":"primary_contender","display_tier":"main","current_record_count":7,"current_share":0.027,"prior_record_count":6,"prior_share":0.016,"share_change":0.011},{"candidate_id":"francois-ruffin","candidate_name":"François Ruffin","status":"primary_contender","display_tier":"main","current_record_count":5,"current_share":0.019,"prior_record_count":2,"prior_share":0.005,"share_change":0.014},{"candidate_id":"mira-markovic","candidate_name":"Mira Markovic","status":"declared","display_tier":"main","current_record_count":5,"current_share":0.019,"prior_record_count":0,"prior_share":0,"share_change":0.019},{"candidate_id":"xavier-bertrand","candidate_name":"Xavier Bertrand","status":"declared","display_tier":"main","current_record_count":5,"current_share":0.019,"prior_record_count":0,"prior_share":0,"share_change":0.019},{"candidate_id":"emmanuel-maurel","candidate_name":"Emmanuel Maurel","status":"primary_contender","display_tier":"main","current_record_count":4,"current_share":0.015,"prior_record_count":17,"prior_share":0.046,"share_change":-0.031},{"candidate_id":"olivier-becht","candidate_name":"Olivier Becht","status":"declared","display_tier":"main","current_record_count":2,"current_share":0.008,"prior_record_count":20,"prior_share":0.054,"share_change":-0.046},{"candidate_id":"nathalie-arthaud","candidate_name":"Nathalie Arthaud","status":"declared","display_tier":"main","current_record_count":2,"current_share":0.008,"prior_record_count":4,"prior_share":0.011,"share_change":-0.003},{"candidate_id":"nicolas-dupont-aignan","candidate_name":"Nicolas Dupont-Aignan","status":"declared","display_tier":"main","current_record_count":2,"current_share":0.008,"prior_record_count":4,"prior_share":0.011,"share_change":-0.003},{"candidate_id":"bernard-cazeneuve","candidate_name":"Bernard Cazeneuve","status":"declared","display_tier":"main","current_record_count":1,"current_share":0.004,"prior_record_count":0,"prior_share":0,"share_change":0.004},{"candidate_id":"marine-tondelier","candidate_name":"Marine Tondelier","status":"primary_contender","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":46,"prior_share":0.124,"share_change":-0.124},{"candidate_id":"eric-zemmour","candidate_name":"Éric Zemmour","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":2,"prior_share":0.005,"share_change":-0.005},{"candidate_id":"francois-asselineau","candidate_name":"François Asselineau","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":1,"prior_share":0.003,"share_change":-0.003},{"candidate_id":"anasse-kazib","candidate_name":"Anasse Kazib","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"benoit-mathieu","candidate_name":"Benoît Mathieu","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"delphine-batho","candidate_name":"Delphine Batho","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"florian-philippot","candidate_name":"Florian Philippot","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"francis-lalanne","candidate_name":"Francis Lalanne","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"karim-bouamrane","candidate_name":"Karim Bouamrane","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"manolo-mlekuz","candidate_name":"Manolo Mlekuz","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"selma-labib","candidate_name":"Selma Labib","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"sylvain-durif","candidate_name":"Sylvain Durif","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0}],"secondary":[{"candidate_id":"francois-hollande","candidate_name":"François Hollande","status":"active_potential","display_tier":"secondary","current_record_count":7,"current_share":0.027,"prior_record_count":4,"prior_share":0.011,"share_change":0.016},{"candidate_id":"dominique-de-villepin","candidate_name":"Dominique de Villepin","status":"active_potential","display_tier":"secondary","current_record_count":5,"current_share":0.019,"prior_record_count":11,"prior_share":0.03,"share_change":-0.011},{"candidate_id":"natacha-polony","candidate_name":"Natacha Polony","status":"active_potential","display_tier":"secondary","current_record_count":4,"current_share":0.015,"prior_record_count":2,"prior_share":0.005,"share_change":0.01},{"candidate_id":"teddy-riner","candidate_name":"Teddy Riner","status":"active_potential","display_tier":"secondary","current_record_count":2,"current_share":0.008,"prior_record_count":1,"prior_share":0.003,"share_change":0.005},{"candidate_id":"matthieu-pigasse","candidate_name":"Matthieu Pigasse","status":"active_potential","display_tier":"secondary","current_record_count":0,"current_share":0,"prior_record_count":17,"prior_share":0.046,"share_change":-0.046},{"candidate_id":"jean-noel-barrot","candidate_name":"Jean-Noël Barrot","status":"active_potential","display_tier":"secondary","current_record_count":0,"current_share":0,"prior_record_count":1,"prior_share":0.003,"share_change":-0.003},{"candidate_id":"aurore-berge","candidate_name":"Aurore Bergé","status":"active_potential","display_tier":"secondary","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"bruno-le-maire","candidate_name":"Bruno Le Maire","status":"active_potential","display_tier":"secondary","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"francois-baroin","candidate_name":"François Baroin","status":"active_potential","display_tier":"secondary","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"jean-lassalle","candidate_name":"Jean Lassalle","status":"active_potential","display_tier":"secondary","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"manuel-valls","candidate_name":"Manuel Valls","status":"active_potential","display_tier":"secondary","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"philippe-de-villiers","candidate_name":"Philippe de Villiers","status":"active_potential","display_tier":"secondary","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"sandrine-rousseau","candidate_name":"Sandrine Rousseau","status":"active_potential","display_tier":"secondary","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0}]},"general":{"current_period":{"start_date":"2026-09-28","end_date":"2026-10-04","record_count":549,"publisher_count":78},"prior_period":{"start_date":"2026-09-21","end_date":"2026-09-27","record_count":478,"publisher_count":71},"comparison_quality":{"status":"comparable","reason":"comparable","current_record_count":549,"prior_record_count":478,"current_publisher_count":78,"prior_publisher_count":71,"common_publisher_count":56,"publisher_union_count":93,"publisher_overlap_ratio":0.602,"record_count_ratio":1.149,"thresholds":{"minimum_period_records":10,"minimum_period_publishers":5,"minimum_common_publishers":5,"minimum_publisher_overlap_ratio":0.5,"maximum_record_count_ratio":2}},"main":[{"candidate_id":"marine-le-pen","candidate_name":"Marine Le Pen","status":"declared","display_tier":"main","current_record_count":147,"current_share":0.268,"prior_record_count":58,"prior_share":0.121,"share_change":0.147},{"candidate_id":"edouard-philippe","candidate_name":"Édouard Philippe","status":"declared","display_tier":"main","current_record_count":92,"current_share":0.168,"prior_record_count":30,"prior_share":0.063,"share_change":0.105},{"candidate_id":"jean-luc-melenchon","candidate_name":"Jean-Luc Mélenchon","status":"declared","display_tier":"main","current_record_count":89,"current_share":0.162,"prior_record_count":53,"prior_share":0.111,"share_change":0.051},{"candidate_id":"gabriel-attal","candidate_name":"Gabriel Attal","status":"declared","display_tier":"main","current_record_count":56,"current_share":0.102,"prior_record_count":54,"prior_share":0.113,"share_change":-0.011},{"candidate_id":"bruno-retailleau","candidate_name":"Bruno Retailleau","status":"declared","display_tier":"main","current_record_count":54,"current_share":0.098,"prior_record_count":44,"prior_share":0.092,"share_change":0.006},{"candidate_id":"raphael-glucksmann","candidate_name":"Raphaël Glucksmann","status":"primary_contender","display_tier":"main","current_record_count":42,"current_share":0.077,"prior_record_count":32,"prior_share":0.067,"share_change":0.01},{"candidate_id":"segolene-royal","candidate_name":"Ségolène Royal","status":"primary_contender","display_tier":"main","current_record_count":35,"current_share":0.064,"prior_record_count":53,"prior_share":0.111,"share_change":-0.047},{"candidate_id":"olivier-faure","candidate_name":"Olivier Faure","status":"primary_contender","display_tier":"main","current_record_count":17,"current_share":0.031,"prior_record_count":29,"prior_share":0.061,"share_change":-0.03},{"candidate_id":"jerome-guedj","candidate_name":"Jérôme Guedj","status":"primary_contender","display_tier":"main","current_record_count":9,"current_share":0.016,"prior_record_count":13,"prior_share":0.027,"share_change":-0.011},{"candidate_id":"david-lisnard","candidate_name":"David Lisnard","status":"primary_contender","display_tier":"main","current_record_count":8,"current_share":0.015,"prior_record_count":7,"prior_share":0.015,"share_change":0},{"candidate_id":"fabien-roussel","candidate_name":"Fabien Roussel","status":"declared","display_tier":"main","current_record_count":8,"current_share":0.015,"prior_record_count":7,"prior_share":0.015,"share_change":0},{"candidate_id":"marine-tondelier","candidate_name":"Marine Tondelier","status":"primary_contender","display_tier":"main","current_record_count":7,"current_share":0.013,"prior_record_count":25,"prior_share":0.052,"share_change":-0.039},{"candidate_id":"emmanuel-maurel","candidate_name":"Emmanuel Maurel","status":"primary_contender","display_tier":"main","current_record_count":7,"current_share":0.013,"prior_record_count":8,"prior_share":0.017,"share_change":-0.004},{"candidate_id":"francois-ruffin","candidate_name":"François Ruffin","status":"primary_contender","display_tier":"main","current_record_count":5,"current_share":0.009,"prior_record_count":4,"prior_share":0.008,"share_change":0.001},{"candidate_id":"eric-zemmour","candidate_name":"Éric Zemmour","status":"declared","display_tier":"main","current_record_count":4,"current_share":0.007,"prior_record_count":12,"prior_share":0.025,"share_change":-0.018},{"candidate_id":"nicolas-dupont-aignan","candidate_name":"Nicolas Dupont-Aignan","status":"declared","display_tier":"main","current_record_count":3,"current_share":0.005,"prior_record_count":7,"prior_share":0.015,"share_change":-0.01},{"candidate_id":"karim-bouamrane","candidate_name":"Karim Bouamrane","status":"declared","display_tier":"main","current_record_count":3,"current_share":0.005,"prior_record_count":0,"prior_share":0,"share_change":0.005},{"candidate_id":"bernard-cazeneuve","candidate_name":"Bernard Cazeneuve","status":"declared","display_tier":"main","current_record_count":2,"current_share":0.004,"prior_record_count":2,"prior_share":0.004,"share_change":0},{"candidate_id":"nathalie-arthaud","candidate_name":"Nathalie Arthaud","status":"declared","display_tier":"main","current_record_count":1,"current_share":0.002,"prior_record_count":3,"prior_share":0.006,"share_change":-0.004},{"candidate_id":"xavier-bertrand","candidate_name":"Xavier Bertrand","status":"declared","display_tier":"main","current_record_count":1,"current_share":0.002,"prior_record_count":1,"prior_share":0.002,"share_change":0},{"candidate_id":"mira-markovic","candidate_name":"Mira Markovic","status":"declared","display_tier":"main","current_record_count":1,"current_share":0.002,"prior_record_count":0,"prior_share":0,"share_change":0.002},{"candidate_id":"florian-philippot","candidate_name":"Florian Philippot","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":5,"prior_share":0.01,"share_change":-0.01},{"candidate_id":"francois-asselineau","candidate_name":"François Asselineau","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":2,"prior_share":0.004,"share_change":-0.004},{"candidate_id":"olivier-becht","candidate_name":"Olivier Becht","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":2,"prior_share":0.004,"share_change":-0.004},{"candidate_id":"francis-lalanne","candidate_name":"Francis Lalanne","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":1,"prior_share":0.002,"share_change":-0.002},{"candidate_id":"anasse-kazib","candidate_name":"Anasse Kazib","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"benoit-mathieu","candidate_name":"Benoît Mathieu","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"delphine-batho","candidate_name":"Delphine Batho","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"manolo-mlekuz","candidate_name":"Manolo Mlekuz","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"selma-labib","candidate_name":"Selma Labib","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0},{"candidate_id":"sylvain-durif","candidate_name":"Sylvain Durif","status":"declared","display_tier":"main","current_record_count":0,"current_share":0,"prior_record_count":0,"prior_share":0,"share_change":0}],"secondary":[{"candidate_id":"francois-hollande","candidate_name":"François Hollande","status":"active_potential","display_tier":"secondary","current_record_count":19,"current_share":0.035,"prior_record_count":23,"prior_share":0.048,"share_change":-0.013},{"candidate_id":"dominique-de-villepin","candidate_name":"Dominique de Villepin","status":"active_potential","display_tier":"secondary","current_record_count":18,"current_share":0.033,"prior_record_count":9,"prior_share":0.019,"share_change":0.014},{"candidate_id":"teddy-riner","candidate_name":"Teddy Riner","status":"active_potential","display_tier":"secondary","current_record_count":9,"current_share":0.016,"prior_record_count":17,"prior_share":0.036,"share_change":-0.02},{"candidate_id":"jean-noel-barrot","candidate_name":"Jean-Noël Barrot","status":"active_potential","display_tier":"secondary","current_record_count":5,"current_share":0.009,"prior_record_count":26,"prior_share":0.054,"share_change":-0.045},{"candidate_id":"aurore-berge","candidate_name":"Aurore Bergé","status":"active_potential","display_tier":"secondary","current_record_count":5,"current_share":0.009,"prior_record_count":6,"prior_share":0.013,"share_change":-0.004},{"candidate_id":"sandrine-rousseau","candidate_name":"Sandrine Rousseau","status":"active_potential","display_tier":"secondary","current_record_count":5,"current_share":0.009,"prior_record_count":6,"prior_share":0.013,"share_change":-0.004},{"candidate_id":"bruno-le-maire","candidate_name":"Bruno Le Maire","status":"active_potential","display_tier":"secondary","current_record_count":3,"current_share":0.005,"prior_record_count":2,"prior_share":0.004,"share_change":0.001},{"candidate_id":"francois-baroin","candidate_name":"François Baroin","status":"active_potential","display_tier":"secondary","current_record_count":3,"current_share":0.005,"prior_record_count":2,"prior_share":0.004,"share_change":0.001},{"candidate_id":"matthieu-pigasse","candidate_name":"Matthieu Pigasse","status":"active_potential","display_tier":"secondary","current_record_count":2,"current_share":0.004,"prior_record_count":19,"prior_share":0.04,"share_change":-0.036},{"candidate_id":"manuel-valls","candidate_name":"Manuel Valls","status":"active_potential","display_tier":"secondary","current_record_count":1,"current_share":0.002,"prior_record_count":1,"prior_share":0.002,"share_change":0},{"candidate_id":"natacha-polony","candidate_name":"Natacha Polony","status":"active_potential","display_tier":"secondary","current_record_count":1,"current_share":0.002,"prior_record_count":0,"prior_share":0,"share_change":0.002},{"candidate_id":"philippe-de-villiers","candidate_name":"Philippe de Villiers","status":"active_potential","display_tier":"secondary","current_record_count":0,"current_share":0,"prior_record_count":2,"prior_share":0.004,"share_change":-0.004},{"candidate_id":"jean-lassalle","candidate_name":"Jean Lassalle","status":"active_potential","display_tier":"secondary","current_record_count":0,"current_share":0,"prior_record_count":1,"prior_share":0.002,"share_change":-0.002}]}},"candidateCoverage":[{"id":"edouard-philippe","name":"Édouard Philippe","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":58,"previousCount":27,"latestShare":22.3,"previousShare":7.3,"changeAvailable":true,"delta":15,"changePp":15,"direction":"positive","latestItems":[],"previousItems":[]},{"id":"marine-le-pen","name":"Marine Le Pen","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":53,"previousCount":26,"latestShare":20.4,"previousShare":7.000000000000001,"changeAvailable":true,"delta":13.4,"changePp":13.4,"direction":"positive","latestItems":[],"previousItems":[]},{"id":"raphael-glucksmann","name":"Raphaël Glucksmann","status":"primary_contender","tier":"main","tierLabel":"MAIN","latestCount":39,"previousCount":57,"latestShare":15,"previousShare":15.299999999999999,"changeAvailable":true,"delta":-0.3,"changePp":-0.3,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"gabriel-attal","name":"Gabriel Attal","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":31,"previousCount":54,"latestShare":11.899999999999999,"previousShare":14.499999999999998,"changeAvailable":true,"delta":-2.6,"changePp":-2.6,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"jean-luc-melenchon","name":"Jean-Luc Mélenchon","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":28,"previousCount":42,"latestShare":10.8,"previousShare":11.3,"changeAvailable":true,"delta":-0.5,"changePp":-0.5,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"bruno-retailleau","name":"Bruno Retailleau","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":25,"previousCount":20,"latestShare":9.6,"previousShare":5.4,"changeAvailable":true,"delta":4.2,"changePp":4.2,"direction":"positive","latestItems":[],"previousItems":[]},{"id":"fabien-roussel","name":"Fabien Roussel","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":20,"previousCount":3,"latestShare":7.7,"previousShare":0.8,"changeAvailable":true,"delta":6.9,"changePp":6.9,"direction":"positive","latestItems":[],"previousItems":[]},{"id":"olivier-faure","name":"Olivier Faure","status":"primary_contender","tier":"main","tierLabel":"MAIN","latestCount":15,"previousCount":26,"latestShare":5.800000000000001,"previousShare":7.000000000000001,"changeAvailable":true,"delta":-1.2,"changePp":-1.2,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"jerome-guedj","name":"Jérôme Guedj","status":"primary_contender","tier":"main","tierLabel":"MAIN","latestCount":12,"previousCount":10,"latestShare":4.6,"previousShare":2.7,"changeAvailable":true,"delta":1.9,"changePp":1.9,"direction":"positive","latestItems":[],"previousItems":[]},{"id":"segolene-royal","name":"Ségolène Royal","status":"primary_contender","tier":"main","tierLabel":"MAIN","latestCount":9,"previousCount":75,"latestShare":3.5000000000000004,"previousShare":20.200000000000003,"changeAvailable":true,"delta":-16.7,"changePp":-16.7,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"david-lisnard","name":"David Lisnard","status":"primary_contender","tier":"main","tierLabel":"MAIN","latestCount":7,"previousCount":6,"latestShare":2.7,"previousShare":1.6,"changeAvailable":true,"delta":1.0999999999999999,"changePp":1.0999999999999999,"direction":"positive","latestItems":[],"previousItems":[]},{"id":"francois-hollande","name":"François Hollande","status":"active_potential","tier":"secondary","tierLabel":"SECONDARY","latestCount":7,"previousCount":4,"latestShare":2.7,"previousShare":1.0999999999999999,"changeAvailable":true,"delta":1.6,"changePp":1.6,"direction":"positive","latestItems":[],"previousItems":[]},{"id":"dominique-de-villepin","name":"Dominique de Villepin","status":"active_potential","tier":"secondary","tierLabel":"SECONDARY","latestCount":5,"previousCount":11,"latestShare":1.9,"previousShare":3,"changeAvailable":true,"delta":-1.0999999999999999,"changePp":-1.0999999999999999,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"francois-ruffin","name":"François Ruffin","status":"primary_contender","tier":"main","tierLabel":"MAIN","latestCount":5,"previousCount":2,"latestShare":1.9,"previousShare":0.5,"changeAvailable":true,"delta":1.4000000000000001,"changePp":1.4000000000000001,"direction":"positive","latestItems":[],"previousItems":[]},{"id":"mira-markovic","name":"Mira Markovic","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":5,"previousCount":0,"latestShare":1.9,"previousShare":0,"changeAvailable":true,"delta":1.9,"changePp":1.9,"direction":"positive","latestItems":[],"previousItems":[]},{"id":"xavier-bertrand","name":"Xavier Bertrand","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":5,"previousCount":0,"latestShare":1.9,"previousShare":0,"changeAvailable":true,"delta":1.9,"changePp":1.9,"direction":"positive","latestItems":[],"previousItems":[]},{"id":"emmanuel-maurel","name":"Emmanuel Maurel","status":"primary_contender","tier":"main","tierLabel":"MAIN","latestCount":4,"previousCount":17,"latestShare":1.5,"previousShare":4.6,"changeAvailable":true,"delta":-3.1,"changePp":-3.1,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"natacha-polony","name":"Natacha Polony","status":"active_potential","tier":"secondary","tierLabel":"SECONDARY","latestCount":4,"previousCount":2,"latestShare":1.5,"previousShare":0.5,"changeAvailable":true,"delta":1,"changePp":1,"direction":"positive","latestItems":[],"previousItems":[]},{"id":"olivier-becht","name":"Olivier Becht","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":2,"previousCount":20,"latestShare":0.8,"previousShare":5.4,"changeAvailable":true,"delta":-4.6,"changePp":-4.6,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"nathalie-arthaud","name":"Nathalie Arthaud","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":2,"previousCount":4,"latestShare":0.8,"previousShare":1.0999999999999999,"changeAvailable":true,"delta":-0.3,"changePp":-0.3,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"nicolas-dupont-aignan","name":"Nicolas Dupont-Aignan","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":2,"previousCount":4,"latestShare":0.8,"previousShare":1.0999999999999999,"changeAvailable":true,"delta":-0.3,"changePp":-0.3,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"teddy-riner","name":"Teddy Riner","status":"active_potential","tier":"secondary","tierLabel":"SECONDARY","latestCount":2,"previousCount":1,"latestShare":0.8,"previousShare":0.3,"changeAvailable":true,"delta":0.5,"changePp":0.5,"direction":"positive","latestItems":[],"previousItems":[]},{"id":"bernard-cazeneuve","name":"Bernard Cazeneuve","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":1,"previousCount":0,"latestShare":0.4,"previousShare":0,"changeAvailable":true,"delta":0.4,"changePp":0.4,"direction":"positive","latestItems":[],"previousItems":[]},{"id":"marine-tondelier","name":"Marine Tondelier","status":"primary_contender","tier":"main","tierLabel":"MAIN","latestCount":0,"previousCount":46,"latestShare":0,"previousShare":12.4,"changeAvailable":true,"delta":-12.4,"changePp":-12.4,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"matthieu-pigasse","name":"Matthieu Pigasse","status":"active_potential","tier":"secondary","tierLabel":"SECONDARY","latestCount":0,"previousCount":17,"latestShare":0,"previousShare":4.6,"changeAvailable":true,"delta":-4.6,"changePp":-4.6,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"eric-zemmour","name":"Éric Zemmour","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":0,"previousCount":2,"latestShare":0,"previousShare":0.5,"changeAvailable":true,"delta":-0.5,"changePp":-0.5,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"francois-asselineau","name":"François Asselineau","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":0,"previousCount":1,"latestShare":0,"previousShare":0.3,"changeAvailable":true,"delta":-0.3,"changePp":-0.3,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"jean-noel-barrot","name":"Jean-Noël Barrot","status":"active_potential","tier":"secondary","tierLabel":"SECONDARY","latestCount":0,"previousCount":1,"latestShare":0,"previousShare":0.3,"changeAvailable":true,"delta":-0.3,"changePp":-0.3,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"anasse-kazib","name":"Anasse Kazib","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":0,"previousCount":0,"latestShare":0,"previousShare":0,"changeAvailable":true,"delta":0,"changePp":0,"direction":"flat","latestItems":[],"previousItems":[]},{"id":"aurore-berge","name":"Aurore Bergé","status":"active_potential","tier":"secondary","tierLabel":"SECONDARY","latestCount":0,"previousCount":0,"latestShare":0,"previousShare":0,"changeAvailable":true,"delta":0,"changePp":0,"direction":"flat","latestItems":[],"previousItems":[]},{"id":"benoit-mathieu","name":"Benoît Mathieu","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":0,"previousCount":0,"latestShare":0,"previousShare":0,"changeAvailable":true,"delta":0,"changePp":0,"direction":"flat","latestItems":[],"previousItems":[]},{"id":"bruno-le-maire","name":"Bruno Le Maire","status":"active_potential","tier":"secondary","tierLabel":"SECONDARY","latestCount":0,"previousCount":0,"latestShare":0,"previousShare":0,"changeAvailable":true,"delta":0,"changePp":0,"direction":"flat","latestItems":[],"previousItems":[]},{"id":"delphine-batho","name":"Delphine Batho","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":0,"previousCount":0,"latestShare":0,"previousShare":0,"changeAvailable":true,"delta":0,"changePp":0,"direction":"flat","latestItems":[],"previousItems":[]},{"id":"florian-philippot","name":"Florian Philippot","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":0,"previousCount":0,"latestShare":0,"previousShare":0,"changeAvailable":true,"delta":0,"changePp":0,"direction":"flat","latestItems":[],"previousItems":[]},{"id":"francis-lalanne","name":"Francis Lalanne","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":0,"previousCount":0,"latestShare":0,"previousShare":0,"changeAvailable":true,"delta":0,"changePp":0,"direction":"flat","latestItems":[],"previousItems":[]},{"id":"francois-baroin","name":"François Baroin","status":"active_potential","tier":"secondary","tierLabel":"SECONDARY","latestCount":0,"previousCount":0,"latestShare":0,"previousShare":0,"changeAvailable":true,"delta":0,"changePp":0,"direction":"flat","latestItems":[],"previousItems":[]},{"id":"jean-lassalle","name":"Jean Lassalle","status":"active_potential","tier":"secondary","tierLabel":"SECONDARY","latestCount":0,"previousCount":0,"latestShare":0,"previousShare":0,"changeAvailable":true,"delta":0,"changePp":0,"direction":"flat","latestItems":[],"previousItems":[]},{"id":"karim-bouamrane","name":"Karim Bouamrane","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":0,"previousCount":0,"latestShare":0,"previousShare":0,"changeAvailable":true,"delta":0,"changePp":0,"direction":"flat","latestItems":[],"previousItems":[]},{"id":"manolo-mlekuz","name":"Manolo Mlekuz","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":0,"previousCount":0,"latestShare":0,"previousShare":0,"changeAvailable":true,"delta":0,"changePp":0,"direction":"flat","latestItems":[],"previousItems":[]},{"id":"manuel-valls","name":"Manuel Valls","status":"active_potential","tier":"secondary","tierLabel":"SECONDARY","latestCount":0,"previousCount":0,"latestShare":0,"previousShare":0,"changeAvailable":true,"delta":0,"changePp":0,"direction":"flat","latestItems":[],"previousItems":[]},{"id":"philippe-de-villiers","name":"Philippe de Villiers","status":"active_potential","tier":"secondary","tierLabel":"SECONDARY","latestCount":0,"previousCount":0,"latestShare":0,"previousShare":0,"changeAvailable":true,"delta":0,"changePp":0,"direction":"flat","latestItems":[],"previousItems":[]},{"id":"sandrine-rousseau","name":"Sandrine Rousseau","status":"active_potential","tier":"secondary","tierLabel":"SECONDARY","latestCount":0,"previousCount":0,"latestShare":0,"previousShare":0,"changeAvailable":true,"delta":0,"changePp":0,"direction":"flat","latestItems":[],"previousItems":[]},{"id":"selma-labib","name":"Selma Labib","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":0,"previousCount":0,"latestShare":0,"previousShare":0,"changeAvailable":true,"delta":0,"changePp":0,"direction":"flat","latestItems":[],"previousItems":[]},{"id":"sylvain-durif","name":"Sylvain Durif","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":0,"previousCount":0,"latestShare":0,"previousShare":0,"changeAvailable":true,"delta":0,"changePp":0,"direction":"flat","latestItems":[],"previousItems":[]}],"candidateCoverageLeaders":[{"id":"edouard-philippe","name":"Édouard Philippe","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":58,"previousCount":27,"latestShare":22.3,"previousShare":7.3,"changeAvailable":true,"delta":15,"changePp":15,"direction":"positive","latestItems":[],"previousItems":[]},{"id":"marine-le-pen","name":"Marine Le Pen","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":53,"previousCount":26,"latestShare":20.4,"previousShare":7.000000000000001,"changeAvailable":true,"delta":13.4,"changePp":13.4,"direction":"positive","latestItems":[],"previousItems":[]},{"id":"raphael-glucksmann","name":"Raphaël Glucksmann","status":"primary_contender","tier":"main","tierLabel":"MAIN","latestCount":39,"previousCount":57,"latestShare":15,"previousShare":15.299999999999999,"changeAvailable":true,"delta":-0.3,"changePp":-0.3,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"gabriel-attal","name":"Gabriel Attal","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":31,"previousCount":54,"latestShare":11.899999999999999,"previousShare":14.499999999999998,"changeAvailable":true,"delta":-2.6,"changePp":-2.6,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"jean-luc-melenchon","name":"Jean-Luc Mélenchon","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":28,"previousCount":42,"latestShare":10.8,"previousShare":11.3,"changeAvailable":true,"delta":-0.5,"changePp":-0.5,"direction":"negative","latestItems":[],"previousItems":[]},{"id":"bruno-retailleau","name":"Bruno Retailleau","status":"declared","tier":"main","tierLabel":"MAIN","latestCount":25,"previousCount":20,"latestShare":9.6,"previousShare":5.4,"changeAvailable":true,"delta":4.2,"changePp":4.2,"direction":"positive","latestItems":[],"previousItems":[]}],"comparisonQuality":{"status":"comparable","reason":"comparable","current_record_count":260,"prior_record_count":372,"current_publisher_count":52,"prior_publisher_count":70,"common_publisher_count":45,"publisher_union_count":77,"publisher_overlap_ratio":0.584,"record_count_ratio":1.431,"thresholds":{"minimum_period_records":10,"minimum_period_publishers":5,"minimum_common_publishers":5,"minimum_publisher_overlap_ratio":0.5,"maximum_record_count_ratio":2}},"latestCandidateArticleCount":260,"previousCandidateArticleCount":372,"latestStartKey":"2026-09-28","latestEndKey":"2026-10-04","previousStartKey":"2026-09-21","previousEndKey":"2026-09-27","latestPeriodLabel":"28 SEP–4 OCT","priorPeriodLabel":"21–27 SEP","topicCoverage":[{"id":"selection_strategy","label":"Primaries & party strategy","sourceDays":405,"itemCount":725,"publishers":75},{"id":"candidacies_endorsements","label":"Candidacies & endorsements","sourceDays":158,"itemCount":182,"publishers":54},{"id":"polls_race","label":"Polling & race narratives","sourceDays":123,"itemCount":151,"publishers":45},{"id":"rules_calendar","label":"Rules, calendar & campaign mechanics","sourceDays":21,"itemCount":21,"publishers":12},{"id":"legal_eligibility","label":"Legal cases & eligibility","sourceDays":4,"itemCount":4,"publishers":4}],"latestAcceptedAt":"2026-10-04T17:26:15Z","generatedAt":"2026-10-04T17:41:25.635146Z"}</script>
+        <div class="top-media-pulse-content" id="top-media-pulse-content" aria-busy="false" data-fr27-semantic-snapshot="true">
+      <div class="top-media-dashboard">
         <div
-          class="top-media-pulse-content"
-          id="top-media-pulse-content"
-          aria-live="polite"
+          class="top-media-tabs"
+          role="tablist"
+          aria-label="Media Pulse views"
         >
-          <div class="fr27-skeleton-region" role="status" data-i18n-aria-label="media_pulse.loading" aria-label="Loading Media Pulse"><div class="fr27-skeleton-media" aria-hidden="true"><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span><span class="fr27-skeleton-row"><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span><span class="fr27-skeleton-block"></span></span></div></div>
+          <button
+            id="top-media-overview-tab"
+            class="is-active"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="top-media-overview-panel"
+            tabindex="0"
+            data-top-media-tab="overview"
+          >
+            Overview
+          </button>
+
+          <button
+            id="top-media-coverage-tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="top-media-coverage-panel"
+            tabindex="-1"
+            data-top-media-tab="coverage"
+          >
+            Coverage
+          </button>
         </div>
+
+        <section
+          id="top-media-coverage-panel"
+          class="top-media-tab-panel top-media-latest"
+          role="tabpanel"
+          aria-labelledby="top-media-coverage-tab"
+          data-top-media-panel="coverage"
+          hidden
+        >
+          <div class="top-media-section-heading">
+            <h3>Latest election coverage</h3>
+
+            <span>
+              LATEST · 5
+            </span>
+          </div>
+
+          <div
+            class="top-media-coverage-list"
+            role="feed"
+            aria-label="Latest accepted election coverage"
+          >
+
+        <a
+          class="top-media-coverage-row"
+          href="https://news.google.com/rss/articles/CBMi0gFBVV95cUxQcHplQjZpS2hNbFJQYXlDRGJFR3Bsdm5pQjJOTFhLNXVzbDFlVExiWmJadGhzZFlHTnNCczY3OEMtTGVjbGh1Wm1ybEFYYVRPLTExUjZsUjdESERDU3pGNHppXy1pZEZvN2VnVUYwcnRJSVZSTFh3dHlHWDNMNzlzMmJrWHF2bGI3Y25EZll5LVhPU1BNcHBlejFuc3B6bzZYdWw2RXM1N2Z6eUNBcXNRVUVpYUNKR2dxOFZfbS1vRnItRWctZ3NVOWhBQUhaZ01MMmc?oc=5"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open Le Dauphiné Libéré article: Élection présidentielle. Nicolas Dupont-Aignan, candidat à la présidentielle, attendu à Valence vendredi 16 octobre"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T17:26:15Z"
+            >04 Oct 19:26</time>
+
+            <strong>
+              Le Dauphiné Libéré
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >Élection présidentielle. Nicolas Dupont-Aignan, candidat à la présidentielle, attendu à Valence vendredi 16 octobre</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://news.google.com/rss/articles/CBMixwFBVV95cUxNbENzQ3Vtc1dkV2phVUxodi1PSmxmRW9UZlhRZk04NTdfRUkyczFCQ3BnWGRiUVhjY29QZmxhSURVNHFrdWpIdEZVbUZMMFh5bk9XT296VmJsZVkwOUdPQXRxdTlTZTR3N2ZQYUYxQXNuMTlLSjVhVUFkMEMzcVdRMzlvOGJCLUVUUGw1dUtwbUVkQ292X3FMUUdrdmVpZzZRWHJJdnRpaVAxTW1wV1N4RFNQSXFpSEpMVHJZbmtEQzMzMEh6bXNN?oc=5"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open Le Dauphiné Libéré article: Vaucluse. Présidentielle 2027 : les Républicains se mobilisent autour de Bruno Retailleau"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T17:26:15Z"
+            >04 Oct 19:26</time>
+
+            <strong>
+              Le Dauphiné Libéré
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >Vaucluse. Présidentielle 2027 : les Républicains se mobilisent autour de Bruno Retailleau</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://www.bfmtv.com/politique/elections/presidentielle/direct-presidentielle-pouvoir-d-achat-climat-international-les-candidats-a-la-primaire-sociale-democrate-debattent-sur-bfmtv-a-20h45_LN-202610040361.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open BFMTV — Politique article: DIRECT. Présidentielle: pouvoir d&#39;achat, climat, international... Les candidats à la primaire sociale-démocrate débattent sur BFMTV à 20h45"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T17:22:00Z"
+            >04 Oct 19:22</time>
+
+            <strong>
+              BFMTV — Politique
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >DIRECT. Présidentielle: pouvoir d&#39;achat, climat, international... Les candidats à la primaire sociale-démocrate débattent sur BFMTV à 20h45</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://www.huffingtonpost.fr/medias/article/presidentielle-2027-l-arcom-pourrait-compter-le-temps-de-parole-politique-dans-les-podcasts-de-ces-influenceurs_334787.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open HuffPost France — Headlines article: Présidentielle 2027 : l’Arcom pourrait compter le temps de parole politique dans les podcasts de ces influenceurs ?"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T17:11:57Z"
+            >04 Oct 19:11</time>
+
+            <strong>
+              HuffPost France — Headlines
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >Présidentielle 2027 : l’Arcom pourrait compter le temps de parole politique dans les podcasts de ces influenceurs ?</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://news.google.com/rss/articles/CBMirgFBVV95cUxPZnVuTl9NQlNQS3RBN3o2S3A3NHFnUTd2bTNyVk9ON25UZ2YyZGt2VzFFMlZza2Y1RlQzVV9xcmliTmRvS1NTWU5ON3hmb0wwWlNkN1RKV0JweUJiM1RTUUwyVUFHVXdzbHZpLS1OQVNTaldxVnNiQlBLQkFnRk9JVERGeDgtazkyNmlfV0pXS1JseTBZN0twNk5LQy16dFJzenFmSmFLeXU4Z25lelE?oc=5"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open L&#39;Humanité article: Présidentielle 2027 : Marine Le Pen veut l’austérité et l’assume"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T16:50:37Z"
+            >04 Oct 18:50</time>
+
+            <strong>
+              L&#39;Humanité
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >Présidentielle 2027 : Marine Le Pen veut l’austérité et l’assume</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://news.google.com/rss/articles/CBMi_wFBVV95cUxQTU83Tko2djQwQV9EZWpJYmxRS1VQLVlTNmxTaFNPblFZTXZvTU9yZzg1RHBhRWc5Xy1LcUkzMlAyR2QtRzF3bUNDTHNVRVdEOUpVaVpHWHI0NTNPRkhWWWhmcmpIWkZqMGpyV2hjVFVUdjYyOVRzcHNCVVlWeEI5QlZNcGVjT3p3ZWhIRWJQaURrTEVlYnRmRnN4bmZ5WXI0ZFJEZDNsTzduNThheEF2ZHdVbGdFcEhUcXJibkpkLVM4ZXdYMjdsZE9peEE2TmxNb0M1RlNCZWJCNks4U3ExR0swM2ZzdVVjRDE3X0VjV0tZSkJENDBHX2tFclpydlk?oc=5"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open Le Figaro article: « Un vrai défi à relever ! » : la droite veut développer sa vision de l’écologie en vue de la présidentielle"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T16:39:28Z"
+            >04 Oct 18:39</time>
+
+            <strong>
+              Le Figaro
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >« Un vrai défi à relever ! » : la droite veut développer sa vision de l’écologie en vue de la présidentielle</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://news.google.com/rss/articles/CBMinwJBVV95cUxQYm5lRHZKMlBpS01QY09Dd0lneWE1bUV3cVByYnBIdVVQU2lUSENZNTAtWXFfM01lMDAybnRvSzlRajFtQmRoLUxvREtGZlBETnNQa293Nl9vR1JxOGVTSm41ZFNnTzdlRlkzanhJSHFJdmEzU21SQjgzOEZRbXF4TEdVUEx0M1lyczJSVi1ZdFBYcXVycldvWExabzBMbjVzcUxVbGxCYUFhTlItNTdLZG83RFhKRkF1eTJsWmtWTXo4MlBPcUJuUGFSQUlGbDNPU1JPUFl0RHBEZzczWGdBcjllSzJOMnRSYnhFUjNkRE9KX01JRnB2WEltNTNNN0M3Sll2djM5MGtDX3ZHZGtQQ1hXUHlNaUY4SkFMcDF1Yw?oc=5"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open Midi Libre article: Présidentielle 2027 : &quot;Raphaël Glucksmann prétend qu’il me pisse dessus&quot;… Les propos volés du candidat font réagir Jean-Luc Mélenchon et Ségolène Royal"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T16:24:00Z"
+            >04 Oct 18:24</time>
+
+            <strong>
+              Midi Libre
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >Présidentielle 2027 : &quot;Raphaël Glucksmann prétend qu’il me pisse dessus&quot;… Les propos volés du candidat font réagir Jean-Luc Mélenchon et Ségolène Royal</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://news.google.com/rss/articles/CBMi0wFBVV95cUxOYnhoc1JQX3ctdEFzZ2lHRUVhSFBnc2FnWXFfMDNDbFNCczJXcHVkSWdZRFh3RDYxNUxIODUyaG5JWGdJX1VYR09DUjJCS0M1VG5MeEJVQnNJWGdYYVMzSWdSZ2o5aUxhOGVTdE9Ia0o1akxoMFBjS2VJUGJ0LVF5MnlaQlUyUVBId2RaQlo3N0RXWG1DelB3dTdzVVJvbloycER2VVppZWs3ZlVJRGpTT1BrdC02XzN5T3hza25zUVpjX0pXTUdfc1lDM3h4ZFNBZUcw?oc=5"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open Le Figaro article: Présidentielle 2027 : l’inflation contraint les meetings des candidats"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T15:05:16Z"
+            >04 Oct 17:05</time>
+
+            <strong>
+              Le Figaro
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >Présidentielle 2027 : l’inflation contraint les meetings des candidats</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://news.google.com/rss/articles/CBMi7gFBVV95cUxPTHAwS0tpc01QR3UzNkxzbklZbmgzNTduMnVVZ0VnYXFwSHUyUnJQYUJQdG1CSHVzdmFXbW55cXFZaEV5QzFxMUpxUUpMM3d2WFA4NjFvbFhKNDV4YnU2Ym9vT0pCb3dRbmhTbXc5X1pnd05WZ2pudnNPYjZNV3FHc0REcF9hUmd5YVRPOGhfX2wyMl9QOUlkajF3ZVVFY0VkdzVvd1ZoRk1rZjk3eG14bHpyLVREczFPNm1xOGJVWHdGQUlnSjI1NmRhWUE2UjFUNFNpTjZJMjFrSm1OSFdVYzNKNWx0c2NjQTNZMG5R?oc=5"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open La Dépêche du Midi article: Présidentielle 2027 : &quot;On leur pisse dessus !&quot; Raphaël Glucksmann se lâche sur Jean-Luc Mélenchon et Marine Le Pen et ironise sur Ségolène Royal"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T15:01:00Z"
+            >04 Oct 17:01</time>
+
+            <strong>
+              La Dépêche du Midi
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >Présidentielle 2027 : &quot;On leur pisse dessus !&quot; Raphaël Glucksmann se lâche sur Jean-Luc Mélenchon et Marine Le Pen et ironise sur Ségolène Royal</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://news.google.com/rss/articles/CBMiogJBVV95cUxNc3U2anhZUnFMSE9TNklrd0dwUHVHQm5feS04RGxZMWl6OUlETVhPRnhpQ0trVm1sc2dmc1hyUFRfcUUxMkFNUGZzNFg2SlhEUmlXVTBWYW91R1F3VkhGMXBORkFNTUFRcWI2ZnQ2ZzhJWnNkU09sNkJDbGVLWmhDWFBZUHBwRVZmZDlPNk1UQWRtOXoySWFpYXJ4UmMwX09wdmVvTnJ5djBrZU5OdnNfUDJvb3BXOFZ5eUJTOTFsSmZpd2dTRGo5UHFUS0FPWjFsbjM0MTVZTF9TM3FFZzNOcFltcmxhdElqNUpZZWFqQnNTUDMyVXN0eXd1eTBkbHA0QVZkRmRIZFJHSmtxRVduenlqMFQ1aXROWFF5Ylk1czBGdw?oc=5"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open TF1 Info article: Présidentielle 2027 : Raphaël Glucksmann et Bruno Retailleau refusent la main tendue de Gabriel Attal pour une &quot;grande coalition&quot;"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T14:35:27Z"
+            >04 Oct 16:35</time>
+
+            <strong>
+              TF1 Info
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >Présidentielle 2027 : Raphaël Glucksmann et Bruno Retailleau refusent la main tendue de Gabriel Attal pour une &quot;grande coalition&quot;</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://news.google.com/rss/articles/CBMigwJBVV95cUxQcHE1dnU3UUpRdTRxUmRLRXhqSzkya1ZSMWlrT0xaZmdMSzBtY29MdlpKaDEyejhGNHdCY1k5RUVYVmotMWZEbE9TY21WTUh5eU9jX080c3pRelFoa2NPY0hzUkRISkxIb3lTMVdCemk0SDN4RWN1R2txU2g0Y1pSMGFhUjQ2N2NHOExXZ1EyYnRYRy1mSUdLeWRqMXQ5dVNPakdkRVJYYnFhaXN0TWhJYkJBcC1GZE9zdEQ1S3cyd0otc2thaHExVTdsdGp5bDBNbXhMaFotNDR1dGZkRDN3VVRHQWpZWE1rOWRra1hLejZGRzJvQUlQbnU1UXc1YmRxbUZv?oc=5"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open Libération article: Avant la présidentielle, l’Arcom envisage d’encadrer les vidéos et podcasts avec des invités politiques"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T13:33:43Z"
+            >04 Oct 15:33</time>
+
+            <strong>
+              Libération
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >Avant la présidentielle, l’Arcom envisage d’encadrer les vidéos et podcasts avec des invités politiques</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://news.google.com/rss/articles/CBMi7AFBVV95cUxQZlY3Y1N0UnRva0d2a0hxbWx1SGRQbzFPQ1FuLTNzSDlMM0MteE0yZzhnS3RYdDN0MGxHY254SUlzQ1EwYzdkUUgxMm9NQl9rTVIzTmdYOXluQWNDbzhBZjAxY1FlUV83OENJa3dmNlpId0g5MERseUlxMkJ0Nl96dFdLZE9Qckd5dm5ubVdnb3Qyd2puTndGSHljVjc4aTUyZGdqc0FiaXBncEM5MnFpN21pMXhNd1FmZ2VpbG9FZWpQNmpjMTJBdWw3SHhGQTdfSW41Q3NMMVdsUEhaeXVDc09NMERyU0gxVWpwTQ?oc=5"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open Sud Ouest article: Présidentielle 2027 : le camp de Raphaël Glucksmann rejette la main tendue par Gabriel Attal"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T12:42:01Z"
+            >04 Oct 14:42</time>
+
+            <strong>
+              Sud Ouest
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >Présidentielle 2027 : le camp de Raphaël Glucksmann rejette la main tendue par Gabriel Attal</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://news.google.com/rss/articles/CBMiuAFBVV95cUxPN3FFdzV0Y0g0SVhOMnBwU3l0S0R2ZlFGMDZ3U3dwOEZVbXcwU3VlMEtSRzhlNnVRUGUxZkU0WHhCUVdYWHUxNFFtbWExQTRyYzJJT0ZRb3A5c2NLeUpPNkM3elh0TlJISC14OXMtQkRvTnFIWmhsQ1JVekllRExNcnZRT3hPVm5QWGhYYXBDeUp6YjVxV19CQ2FVbTVuSTRQeDZWRHJ3TnNiQUpXa0lReVhrenZuMGVV0gG-AUFVX3lxTE8xRTNER2Juc0FzMFhsbkpqZ2dVZkwxRjJfdnMtclJ3cm9KdDI3X0EwaXZfdUFlTFJDTFFIVmNGa3kydlpDV21qeXlRZ0FnQXBiNGJEOU9FbWNYUl8wbUhBNlBZY2JnMXBYT0E2UDc1eEpwRGthM1YwZXBWVDBybHI1Ml9YMTNDaUlPUmo3dkxqUkNDZkJfYUl0YWdFVjd0V0FSY19qNV9QcTlMZElSLUpjdTJma3BhVjR0LUcxb3c?oc=5"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open CNEWS article: Présidentielle 2027 : Laurent Wauquiez affirme que LR ne pratiquera pas «le petit jeu de la censure» pour le budget 2027"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T12:30:56Z"
+            >04 Oct 14:30</time>
+
+            <strong>
+              CNEWS
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >Présidentielle 2027 : Laurent Wauquiez affirme que LR ne pratiquera pas «le petit jeu de la censure» pour le budget 2027</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://news.google.com/rss/articles/CBMi3wFBVV95cUxQbEhrVzhEdXdrSWF3WWk2M0c0NWgyei1vOG1FLWVXczVmTDZDSVUzX3h6d21kY0pmbUZSdnRmNGZYOUpFS09QUmRhdWdGbVJSaTQ2SDdLazFGLVEyNEhoa2NKVGxHSXdCQVJXVXBSV2ZDcUpqUFdwZXhNRmNHQkVuSzdJMFNwbkI5djYyalJlVS1HeUZXVzBUVFhLSHAzTDZ5T1Q0SVZOS3RNWlBISTYtbEZYWkF0SXJqaWMzRzNjZ1phTFJJYnJjNUd1Wm9PaHc0dVVVTDJPWkpYRThWZWFB?oc=5"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open Le Monde article: Pourquoi les partis politiques veulent maintenir une candidature à la présidentielle de 2027, même promise à un faible score"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T12:30:08Z"
+            >04 Oct 14:30</time>
+
+            <strong>
+              Le Monde
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >Pourquoi les partis politiques veulent maintenir une candidature à la présidentielle de 2027, même promise à un faible score</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://www.bfmtv.com/politique/elections/presidentielle/presidentielle-2027-fabien-roussel-declare-qu-il-ne-se-retirera-jamais-au-profit-d-une-autre-formation-politique_AV-202610040231.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open BFMTV — Politique article: Présidentielle 2027: Fabien Roussel déclare que &quot;jamais&quot; il ne se retirera au profit d&#39;une autre formation politique"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T11:50:23Z"
+            >04 Oct 13:50</time>
+
+            <strong>
+              BFMTV — Politique
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >Présidentielle 2027: Fabien Roussel déclare que &quot;jamais&quot; il ne se retirera au profit d&#39;une autre formation politique</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://news.google.com/rss/articles/CBMi-gFBVV95cUxOMnVLZHNlc2hRTG5BTkNUWVNGWW1KamlYenpTMWY4QW42RGdkWDhCOTdFU2lCU2prdjdlTi1mVkNGMGJiallpelhHTHJJd2syQmdGQXJyckd0d3BOUmxlRTJPdlNfQ1RmNnJudWNCSEdSWHRoUEJJeENBZVlnUlI2YzNzSzhNMmNPNmVOX0EyZE9yTUJQQktzMXNManoxXzlBRU9mWmlLeC1taUVIb2d6cDRBUC1sbVhqNTQ0WjZObVdXVS1TSEVJemZNMm9FUEE5NXFTTm9hdWhvUWU4RnFuVnZtOFF4Z1N5Tkl0dU5PVkoxNWl5eGZMei1R?oc=5"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open Le Monde article: Présidentielle 2027 : dans l’audiovisuel, les rédactions en ébullition sur la question du pluralisme"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T11:34:14Z"
+            >04 Oct 13:34</time>
+
+            <strong>
+              Le Monde
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >Présidentielle 2027 : dans l’audiovisuel, les rédactions en ébullition sur la question du pluralisme</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://www.bfmtv.com/politique/elections/presidentielle/video-fabien-roussel-candidat-pcf-a-la-presidentielle-s-exprime-sur-les-mobilisations-lyceennes_VN-202610040229.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open BFMTV — Politique article: Fabien Roussel, candidat PCF à la présidentielle, s&#39;exprime sur les mobilisations lycéennes"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T11:32:44Z"
+            >04 Oct 13:32</time>
+
+            <strong>
+              BFMTV — Politique
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >Fabien Roussel, candidat PCF à la présidentielle, s&#39;exprime sur les mobilisations lycéennes</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://www.bfmtv.com/politique/video-l-interdiction-des-partis-sont-le-symbole-des-regimes-dictatoriaux-estime-fabien-roussel-candidat-pcf-a-l-election-presidentielle-qui-reagit-a-la-proposition-de-bruno-retailleau-d-interdire-la-france-insoumise_VN-202610040223.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open BFMTV — Politique article: &quot;L&#39;interdiction des partis sont le symbole des régimes dictatoriaux&quot;, estime Fabien Roussel, candidat PCF à l’élection présidentielle, qui réagit à la proposition de Bruno Retailleau d&#39;interdire La France insoumise"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T11:11:43Z"
+            >04 Oct 13:11</time>
+
+            <strong>
+              BFMTV — Politique
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >&quot;L&#39;interdiction des partis sont le symbole des régimes dictatoriaux&quot;, estime Fabien Roussel, candidat PCF à l’élection présidentielle, qui réagit à la proposition de Bruno Retailleau d&#39;interdire La France insoumise</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://www.bfmtv.com/politique/elections/presidentielle/video-la-minute-presidentielle-s-il-etait-elu-president-fabien-roussel-appellerait-en-premier-le-chancelier-allemand-pour-echanger-du-travail-a-faire-en-commun_VN-202610040221.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open BFMTV — Politique article: LA MINUTE PRÉSIDENTIELLE - S&#39;il était élu président, Fabien Roussel appellerait &quot;en premier le chancelier allemand pour échanger du travail à faire en commun&quot;"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T11:06:02Z"
+            >04 Oct 13:06</time>
+
+            <strong>
+              BFMTV — Politique
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >LA MINUTE PRÉSIDENTIELLE - S&#39;il était élu président, Fabien Roussel appellerait &quot;en premier le chancelier allemand pour échanger du travail à faire en commun&quot;</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+        <a
+          class="top-media-coverage-row"
+          href="https://www.bfmtv.com/politique/elections/presidentielle/video-propos-antisemites-attribues-a-jordan-bardella-fabien-roussel-candidat-pcf-a-la-presidentielle-demande-a-ce-que-les-elus-soient-rendus-ineligibles-quand-de-tels-propos-ont-ete-prononces_VN-202610040219.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open BFMTV — Politique article: Propos antisémites attribués à Jordan Bardella: Fabien Roussel, candidat PCF à la présidentielle, demande à ce que les &quot;élus soient rendus inéligibles&quot; quand de &quot;tels propos ont été prononcés&quot;"
+        >
+          <span class="top-media-coverage-meta">
+            <time
+              datetime="2026-10-04T11:02:23Z"
+            >04 Oct 13:02</time>
+
+            <strong>
+              BFMTV — Politique
+            </strong>
+          </span>
+
+          <span class="top-media-coverage-copy">
+            <span
+              class="top-media-coverage-headline"
+              lang="fr"
+            >Propos antisémites attribués à Jordan Bardella: Fabien Roussel, candidat PCF à la présidentielle, demande à ce que les &quot;élus soient rendus inéligibles&quot; quand de &quot;tels propos ont été prononcés&quot;</span>
+
+            <span class="top-media-source-link">
+              Open source ↗
+            </span>
+          </span>
+        </a>
+
+          </div>
+
+
+          <button
+            class="top-media-panel-link ecm-open media-pulse-dashboard-cta"
+            type="button"
+            data-election-coverage-open
+            aria-haspopup="dialog"
+            aria-controls="election-coverage-modal"
+            aria-expanded="false"
+          >
+            Browse recent coverage →
+          </button>
+        </section>
+
+        <aside
+          id="top-media-overview-panel"
+          class="top-media-tab-panel is-active top-media-analysis"
+          role="tabpanel"
+          aria-labelledby="top-media-overview-tab"
+          data-top-media-panel="overview"
+        >
+          <section class="top-media-shift">
+            <div
+              class="top-media-section-heading"
+              aria-label="Active-field mention rate. Percentage of active-field-linked race records that mention each candidate. One record may mention multiple candidates, so rates can overlap and need not total 100 percent. Comparable change in active-field mention rate, in percentage points."
+            >
+              <h3>Active-field mention rate</h3>
+
+              <span
+                class="top-media-shift-quality"
+                data-fr27-tooltip="Comparable change in active-field mention rate, in percentage points."
+                data-fr27-tooltip-affordance="term"
+                tabindex="0"
+                aria-label="Comparable change in active-field mention rate, in percentage points."
+              >
+                Δ pp
+              </span>
+            </div>
+
+
+            <div
+              class="top-media-period-legend"
+              aria-label="Candidate mention rate among active-field-linked race records. One record may mention multiple candidates, so rates can overlap and need not total 100 percent. Current period 28 SEP–4 OCT; prior period 21–27 SEP."
+            >
+              <span class="is-current">
+                <i aria-hidden="true"></i>
+                <strong>CURRENT</strong>
+                <small>
+                  28 SEP–4 OCT
+                </small>
+              </span>
+
+              <span class="is-prior">
+                <i aria-hidden="true"></i>
+                <strong>PRIOR</strong>
+                <small>
+                  21–27 SEP
+                </small>
+              </span>
+            </div>
+
+            <div class="top-media-shift-list">
+
+              <button
+                class="top-media-shift-row"
+                type="button"
+                data-hybrid-media-candidate="Édouard Philippe"
+                aria-haspopup="dialog"
+                aria-controls="topic-coverage-modal"
+                aria-expanded="false"
+                aria-label="Édouard Philippe, MAIN: current active-field share 22.3%; prior active-field share 7.3%; comparable change +15pp."
+              >
+                <span class="top-media-shift-name">
+                  Édouard Philippe
+                  <small class="hybrid-status-chip">MAIN</small>
+                </span>
+                <strong>22.3%</strong>
+                <span class="top-media-shift-track" aria-hidden="true">
+                  <span
+                    class="top-media-shift-current"
+                    style="--top-current-share:73.60%"
+                  ></span>
+                  <i
+                    class="top-media-shift-prior"
+                    style="--top-prior-share:24.09%"
+                  ></i>
+                </span>
+                <em class="top-media-shift-prior-value">
+                  7.3%
+                </em>
+                <b class="is-up" aria-hidden="true">
+                  ▲ +15pp
+                </b>
+              </button>
+
+              <button
+                class="top-media-shift-row"
+                type="button"
+                data-hybrid-media-candidate="Marine Le Pen"
+                aria-haspopup="dialog"
+                aria-controls="topic-coverage-modal"
+                aria-expanded="false"
+                aria-label="Marine Le Pen, MAIN: current active-field share 20.4%; prior active-field share 7%; comparable change +13.4pp."
+              >
+                <span class="top-media-shift-name">
+                  Marine Le Pen
+                  <small class="hybrid-status-chip">MAIN</small>
+                </span>
+                <strong>20.4%</strong>
+                <span class="top-media-shift-track" aria-hidden="true">
+                  <span
+                    class="top-media-shift-current"
+                    style="--top-current-share:67.33%"
+                  ></span>
+                  <i
+                    class="top-media-shift-prior"
+                    style="--top-prior-share:23.10%"
+                  ></i>
+                </span>
+                <em class="top-media-shift-prior-value">
+                  7%
+                </em>
+                <b class="is-up" aria-hidden="true">
+                  ▲ +13.4pp
+                </b>
+              </button>
+
+              <button
+                class="top-media-shift-row"
+                type="button"
+                data-hybrid-media-candidate="Raphaël Glucksmann"
+                aria-haspopup="dialog"
+                aria-controls="topic-coverage-modal"
+                aria-expanded="false"
+                aria-label="Raphaël Glucksmann, MAIN: current active-field share 15%; prior active-field share 15.3%; comparable change -0.3pp."
+              >
+                <span class="top-media-shift-name">
+                  Raphaël Glucksmann
+                  <small class="hybrid-status-chip">MAIN</small>
+                </span>
+                <strong>15%</strong>
+                <span class="top-media-shift-track" aria-hidden="true">
+                  <span
+                    class="top-media-shift-current"
+                    style="--top-current-share:49.50%"
+                  ></span>
+                  <i
+                    class="top-media-shift-prior"
+                    style="--top-prior-share:50.50%"
+                  ></i>
+                </span>
+                <em class="top-media-shift-prior-value">
+                  15.3%
+                </em>
+                <b class="is-down" aria-hidden="true">
+                  ▼ -0.3pp
+                </b>
+              </button>
+
+              <button
+                class="top-media-shift-row"
+                type="button"
+                data-hybrid-media-candidate="Gabriel Attal"
+                aria-haspopup="dialog"
+                aria-controls="topic-coverage-modal"
+                aria-expanded="false"
+                aria-label="Gabriel Attal, MAIN: current active-field share 11.9%; prior active-field share 14.5%; comparable change -2.6pp."
+              >
+                <span class="top-media-shift-name">
+                  Gabriel Attal
+                  <small class="hybrid-status-chip">MAIN</small>
+                </span>
+                <strong>11.9%</strong>
+                <span class="top-media-shift-track" aria-hidden="true">
+                  <span
+                    class="top-media-shift-current"
+                    style="--top-current-share:39.27%"
+                  ></span>
+                  <i
+                    class="top-media-shift-prior"
+                    style="--top-prior-share:47.85%"
+                  ></i>
+                </span>
+                <em class="top-media-shift-prior-value">
+                  14.5%
+                </em>
+                <b class="is-down" aria-hidden="true">
+                  ▼ -2.6pp
+                </b>
+              </button>
+
+              <button
+                class="top-media-shift-row"
+                type="button"
+                data-hybrid-media-candidate="Jean-Luc Mélenchon"
+                aria-haspopup="dialog"
+                aria-controls="topic-coverage-modal"
+                aria-expanded="false"
+                aria-label="Jean-Luc Mélenchon, MAIN: current active-field share 10.8%; prior active-field share 11.3%; comparable change -0.5pp."
+              >
+                <span class="top-media-shift-name">
+                  Jean-Luc Mélenchon
+                  <small class="hybrid-status-chip">MAIN</small>
+                </span>
+                <strong>10.8%</strong>
+                <span class="top-media-shift-track" aria-hidden="true">
+                  <span
+                    class="top-media-shift-current"
+                    style="--top-current-share:35.64%"
+                  ></span>
+                  <i
+                    class="top-media-shift-prior"
+                    style="--top-prior-share:37.29%"
+                  ></i>
+                </span>
+                <em class="top-media-shift-prior-value">
+                  11.3%
+                </em>
+                <b class="is-down" aria-hidden="true">
+                  ▼ -0.5pp
+                </b>
+              </button>
+
+              <button
+                class="top-media-shift-row"
+                type="button"
+                data-hybrid-media-candidate="Bruno Retailleau"
+                aria-haspopup="dialog"
+                aria-controls="topic-coverage-modal"
+                aria-expanded="false"
+                aria-label="Bruno Retailleau, MAIN: current active-field share 9.6%; prior active-field share 5.4%; comparable change +4.2pp."
+              >
+                <span class="top-media-shift-name">
+                  Bruno Retailleau
+                  <small class="hybrid-status-chip">MAIN</small>
+                </span>
+                <strong>9.6%</strong>
+                <span class="top-media-shift-track" aria-hidden="true">
+                  <span
+                    class="top-media-shift-current"
+                    style="--top-current-share:31.68%"
+                  ></span>
+                  <i
+                    class="top-media-shift-prior"
+                    style="--top-prior-share:17.82%"
+                  ></i>
+                </span>
+                <em class="top-media-shift-prior-value">
+                  5.4%
+                </em>
+                <b class="is-up" aria-hidden="true">
+                  ▲ +4.2pp
+                </b>
+              </button>
+
+            </div>
+          </section>
+
+          <div class="top-media-support-grid">
+            <section>
+              <div class="top-media-section-heading">
+                <h3>Topic coverage</h3>
+              </div>
+
+              <div class="top-media-topic-list">
+
+          <button
+            class="top-media-topic-row"
+            type="button"
+            data-hybrid-media-topic="selection_strategy"
+            aria-haspopup="dialog"
+            aria-controls="topic-coverage-modal"
+            aria-expanded="false"
+            aria-label="Primaries &amp; party strategy: 405 source-days. Open topic coverage detail."
+          >
+            <span>
+              Primaries &amp; strategy
+            </span>
+
+            <i aria-hidden="true">
+              <b
+                style="--top-topic-width:100.00%"
+              ></b>
+            </i>
+
+            <strong>405</strong>
+          </button>
+
+          <button
+            class="top-media-topic-row"
+            type="button"
+            data-hybrid-media-topic="candidacies_endorsements"
+            aria-haspopup="dialog"
+            aria-controls="topic-coverage-modal"
+            aria-expanded="false"
+            aria-label="Candidacies &amp; endorsements: 158 source-days. Open topic coverage detail."
+          >
+            <span>
+              Candidacies &amp; endors.
+            </span>
+
+            <i aria-hidden="true">
+              <b
+                style="--top-topic-width:39.01%"
+              ></b>
+            </i>
+
+            <strong>158</strong>
+          </button>
+
+          <button
+            class="top-media-topic-row"
+            type="button"
+            data-hybrid-media-topic="polls_race"
+            aria-haspopup="dialog"
+            aria-controls="topic-coverage-modal"
+            aria-expanded="false"
+            aria-label="Polling &amp; race narratives: 123 source-days. Open topic coverage detail."
+          >
+            <span>
+              Polling &amp; race
+            </span>
+
+            <i aria-hidden="true">
+              <b
+                style="--top-topic-width:30.37%"
+              ></b>
+            </i>
+
+            <strong>123</strong>
+          </button>
+
+          <button
+            class="top-media-topic-row"
+            type="button"
+            data-hybrid-media-topic="rules_calendar"
+            aria-haspopup="dialog"
+            aria-controls="topic-coverage-modal"
+            aria-expanded="false"
+            aria-label="Rules, calendar &amp; campaign mechanics: 21 source-days. Open topic coverage detail."
+          >
+            <span>
+              Rules &amp; mechanics
+            </span>
+
+            <i aria-hidden="true">
+              <b
+                style="--top-topic-width:5.19%"
+              ></b>
+            </i>
+
+            <strong>21</strong>
+          </button>
+
+              </div>
+
+            </section>
+
+            <section>
+              <div class="top-media-section-heading">
+                <h3>Top publishers</h3>
+              </div>
+
+              <div class="top-media-publisher-list">
+
+            <div class="top-media-publisher-row">
+              <span aria-hidden="true">
+                01
+              </span>
+
+              <strong>
+                BFMTV — Politique
+              </strong>
+
+              <b>371</b>
+            </div>
+
+            <div class="top-media-publisher-row">
+              <span aria-hidden="true">
+                02
+              </span>
+
+              <strong>
+                CNEWS
+              </strong>
+
+              <b>149</b>
+            </div>
+
+            <div class="top-media-publisher-row">
+              <span aria-hidden="true">
+                03
+              </span>
+
+              <strong>
+                Ouest-France
+              </strong>
+
+              <b>122</b>
+            </div>
+
+            <div class="top-media-publisher-row">
+              <span aria-hidden="true">
+                04
+              </span>
+
+              <strong>
+                La Dépêche du Midi
+              </strong>
+
+              <b>118</b>
+            </div>
+
+            <div class="top-media-publisher-row">
+              <span aria-hidden="true">
+                05
+              </span>
+
+              <strong>
+                Le Figaro
+              </strong>
+
+              <b>112</b>
+            </div>
+
+              </div>
+            </section>
+          </div>
+
+          <button
+            class="top-media-panel-link tcm-open media-pulse-dashboard-cta"
+            type="button"
+            data-topic-coverage-open
+            aria-haspopup="dialog"
+            aria-controls="topic-coverage-modal"
+            aria-expanded="false"
+          >
+            Open coverage analysis →
+          </button>
+        </aside>
+      </div>
+</div>
+        <div id="top-media-pulse-status" class="dashboard-refresh-status" role="status" aria-live="polite"></div>
       </article>
+<!-- FR27 SEMANTIC SNAPSHOT: MEDIA PULSE END -->
     </section>
 
     <section class="context-strip" data-i18n-aria-label="dashboard.dashboard_context" aria-label="Dashboard context">
@@ -8322,7 +9384,8 @@
       else delete dashboardState.updatedAt[name];
       renderMastheadMetadata();
       renderContextStrip();
-      renderWhatChanged();
+      if (name === "recentChanges") renderWhatChanged();
+      if (name === "news" || name === "recentChanges") reconcileRecentChangesProvenance();
       document.dispatchEvent(new CustomEvent("hybrid:dataset", { detail: { name, status } }));
     }
 
@@ -9368,19 +10431,43 @@
       return article;
     }
 
+    function renderRecentChangesStatus() {
+      const status = $("#what-changed-status");
+      const container = $("#what-changed-list");
+      const lane = dashboardState.loadState.recentChanges;
+      if (container) {
+        container.setAttribute("aria-busy", String(lane === "loading"));
+        container.dataset.refreshState = lane === "error" ? "stale" : lane === "loaded" ? "ready" : "loading";
+      }
+      if (!status) return;
+      status.textContent = lane === "error"
+        ? translate("loading_status.stale", "Published snapshot · live update unavailable")
+        : lane === "loading"
+          ? translate("loading_status.updating", "Published snapshot · updating")
+          : dashboardState.recentChangesProvenance === "mismatch"
+            ? translate("loading_status.provenance", "Source coverage mismatch · published entries retained")
+            : "";
+    }
+
+    let whatChangedRenderedPayload = null;
+    let whatChangedRenderedFilter = null;
+    let whatChangedRenderedIconsReady = false;
+
     function renderWhatChanged() {
       const container = $("#what-changed-list");
       if (!container) return;
 
       const ledger = deriveRecentChangeLedger();
 
-      if (
-        ledger.unavailable &&
-        container.dataset.fr27SemanticSnapshot === "true"
-      ) {
-        return;
-      }
-
+      renderRecentChangesStatus();
+      // Refreshing or failed data must not erase a useful published/live view.
+      if (ledger.loading || ledger.unavailable) return;
+      if (whatChangedRenderedPayload === dashboardState.recentChanges &&
+          whatChangedRenderedFilter === whatChangedLedgerFilter &&
+          whatChangedRenderedIconsReady === (ledgerSourceIconState.status === "ready")) return;
+      whatChangedRenderedPayload = dashboardState.recentChanges;
+      whatChangedRenderedFilter = whatChangedLedgerFilter;
+      whatChangedRenderedIconsReady = ledgerSourceIconState.status === "ready";
       container.removeAttribute("data-fr27-semantic-snapshot");
 
       const categories = [
@@ -10303,18 +11390,6 @@
           new Set(sourceUniverse).size !== sourceUniverse.length) {
         throw new Error("recent_changes.json source_universe must contain unique, non-empty trimmed names");
       }
-      const expectedDirectSourceCount =
-        dashboardState.news?.feed_coverage?.direct_feeds;
-      if (!Number.isInteger(expectedDirectSourceCount) ||
-          expectedDirectSourceCount < 0) {
-        throw new Error("Current news direct-feed count is unavailable");
-      }
-      if (sourceUniverse.length !== expectedDirectSourceCount) {
-        throw new Error(
-          "recent_changes.json source_universe count does not match " +
-          "the current news direct-feed count"
-        );
-      }
       if (!Array.isArray(payload.items)) {
         throw new Error("recent_changes.json items must be a list");
       }
@@ -10369,8 +11444,26 @@
       return payload;
     }
 
+    function recentChangesProvenance(payload, news) {
+      const expectedDirectSourceCount = news?.feed_coverage?.direct_feeds;
+      if (!payload || !Number.isInteger(expectedDirectSourceCount) || expectedDirectSourceCount < 0) return "pending";
+      return payload.source_universe.length !== expectedDirectSourceCount ? "mismatch" : "matched";
+    }
+
+    function reconcileRecentChangesProvenance() {
+      const next = recentChangesProvenance(dashboardState.recentChanges, dashboardState.news);
+      if (next === "mismatch" && dashboardState.recentChangesProvenance !== next) {
+        console.warn("Recent Changes provenance: source_universe count does not match the current news direct-feed count");
+      }
+      dashboardState.recentChangesProvenance = next;
+      renderRecentChangesStatus();
+    }
+
+    let recentChangesRequest = null;
+    let newsWireRequest = null;
     function loadRecentChanges() {
-      fetch("recent_changes.json", { cache: "no-store" })
+      if (recentChangesRequest) return recentChangesRequest;
+      recentChangesRequest = fetch("recent_changes.json", { cache: "no-store" })
         .then(response => {
           if (!response.ok) throw new Error("recent_changes.json returned HTTP " + response.status);
           return response.json();
@@ -10383,16 +11476,20 @@
             payload,
             payload.last_successful_check_at
           );
+          return payload;
         })
         .catch(error => {
           console.warn("Recent Changes Ledger unavailable.", error);
           markDataset("recentChanges", "error");
+          return null;
         });
+      return recentChangesRequest;
     }
 
     function loadNewsWire() {
+      if (newsWireRequest) return newsWireRequest;
       setupSignalTabs();
-      return fetch("news_wire.json", { cache: "no-store" })
+      newsWireRequest = fetch("news_wire.json", { cache: "no-store" })
         .then(response => {
           if (!response.ok) throw new Error("news_wire.json returned HTTP " + response.status);
           return response.json();
@@ -10413,6 +11510,7 @@
           document.documentElement.dataset.newsReady = "true";
           markDataset("news", "loaded", payload, payload.generated_at);
           renderSignalDeskNote();
+          return payload;
         })
         .catch(error => {
           const errorMessage = escapeHtml(error.message);
@@ -10443,8 +11541,12 @@
           document.documentElement.dataset.newsReady = "error";
           markDataset("news", "error");
           renderSignalDeskNote();
+          return null;
         });
+      return newsWireRequest;
     }
+
+
     const electionClockTargets = Object.freeze([
       {
         key: "sponsorship",
@@ -13808,7 +14910,8 @@
     setInterval(renderElectionClock, 60 * 60 * 1000);
     loadPublicationManifest();
     loadClosestRunoff();
-    loadNewsWire().then(loadRecentChanges);
+    loadRecentChanges();
+    loadNewsWire();
     loadClaimsUnderScrutiny();
     loadCampaignEvents();
 

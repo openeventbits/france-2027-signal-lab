@@ -6,6 +6,9 @@ import argparse
 import html
 import json
 import os
+import re
+import shutil
+import subprocess
 import tempfile
 from datetime import date
 from pathlib import Path
@@ -39,6 +42,8 @@ WHAT_CHANGED_END = "<!-- FR27 SEMANTIC SNAPSHOT: WHAT CHANGED END -->"
 RACE_START = "<!-- FR27 SEMANTIC SNAPSHOT: RACE AT A GLANCE START -->"
 RACE_END = "<!-- FR27 SEMANTIC SNAPSHOT: RACE AT A GLANCE END -->"
 MAX_RECENT_CHANGES = 3
+MEDIA_START = "<!-- FR27 SEMANTIC SNAPSHOT: MEDIA PULSE START -->"
+MEDIA_END = "<!-- FR27 SEMANTIC SNAPSHOT: MEDIA PULSE END -->"
 
 COPY = {
     "fr": {
@@ -214,6 +219,7 @@ def construct_semantic_model(
     board = candidate_signals["featured_poll_board"]
     changes = recent_changes["items"][:MAX_RECENT_CHANGES]
     return {
+        "media": media_snapshot_model(candidate_signals),
         "race": {
             "pollster": board["pollster"],
             "fieldwork_start": board["fieldwork_start"],
@@ -298,7 +304,8 @@ def render_what_changed(model: dict[str, Any], language: str) -> str:
         <div class="changes-ledger-scroll" tabindex="0">
 {content}
         </div>
-      </div>'''
+      </div>
+      <div id="what-changed-status" class="dashboard-refresh-status" role="status" aria-live="polite"></div>'''
 
 
 def _render_candidate(candidate: dict[str, Any]) -> str:
@@ -392,6 +399,99 @@ def _replace_owned_region(
     return source[:start] + newline + localized + newline + source[end:]
 
 
+def _runtime_function(source: str, name: str, indent: int) -> str:
+    """Read a named top-level declaration; fail closed if its boundary changes."""
+    padding = " " * indent
+    match = re.search(r"(?ms)^" + padding + r"function " + re.escape(name)
+                      + r"\(.*?^" + padding + r"}", source)
+    if not match:
+        raise SearchEntrypointError(f"Media runtime function boundary missing: {name}")
+    return match.group(0)
+
+
+def media_snapshot_model(candidate_signals: dict[str, Any]) -> dict[str, Any]:
+    """Use the runtime model and renderer; never duplicate coverage calculations.
+
+    Node is already used by dashboard validation. This runs only pure functions
+    in an isolated VM, without fetch/browser execution or generated-file writes.
+    """
+    node = shutil.which("node")
+    if not node:
+        raise SearchEntrypointError("Node.js is required to render the shared Media snapshot")
+    dashboard = SOURCE.read_text(encoding="utf-8")
+    hybrid = (ROOT / "assets" / "hybrid-dashboard.js").read_text(encoding="utf-8")
+    functions = ["viewModelState", "utcDateKey", "formatMediaShare", "formatMediaPeriodRange",
+                 "isGeneralAgendaTopic", "isAgendaNonNegativeInteger", "isValidAgendaBaseTopics",
+                 "buildMediaViewModel", "topMediaComparisonPresentation", "renderTopMediaPulsePanel",
+                 "summaryState"]
+    code = "\n".join((ROOT / path).read_text(encoding="utf-8")
+                     for path in ("locales/en.js", "locales/fr.js", "assets/localization.js"))
+    code += "\n" + hybrid[hybrid.index("  const translate ="):hybrid.index("  const mount =")]
+    escape_start = dashboard.index("    const escapeHtml =")
+    escape_end = dashboard.index("    const candidatePortraitAlt", escape_start)
+    code += "\n" + dashboard[escape_start:escape_end]
+    for name in ("safeSourceUrl", "newestNewsItems", "validateNewsWirePayload"):
+        code += "\n" + _runtime_function(dashboard, name, 4)
+    for name in functions:
+        code += "\n" + _runtime_function(hybrid, name, 2)
+    code += '''
+      const number = value => Number.isFinite(Number(value)) ? Number(value) : 0;
+      const publishedMediaComparison = null;
+      const dashboardState = { news: validateNewsWirePayload(input.news), loadState: { news: "loaded" } };
+      const state = { candidateSignals: { status: "ready", metadata: { activeFieldVisibility: input.signals.active_field_visibility } } };
+      const model = buildMediaViewModel();
+      const metrics = [
+        ["accepted_news", model.electionNewsCount, "accepted_news"],
+        ["publishers", model.acceptedNewsPublisherCount, "publishers"],
+        ["recent_14d", model.activityItemCount, "recent_14d"],
+        ["candidate_watch", model.candidateWatchCount, "candidate_watch"]
+      ].map(([key, value, label]) => `<span class="top-media-header-metric" data-media-pulse-metric="media_pulse.metric.${key}"><strong>${value}</strong><small>${escapeHtml(translate("media_pulse.top_metric." + label, label))}</small></span>`).join("");
+      emit({ model, html: renderTopMediaPulsePanel(model), metrics,
+        title: translate("media_pulse.title", "Media Pulse"), subtitle: translate("media_pulse.subtitle", "30-day activity · 14-day recent"),
+        comparison: input.signals.active_field_visibility,
+        facts: { counts: [model.electionNewsCount, model.acceptedNewsPublisherCount, model.activityItemCount, model.candidateWatchCount],
+          candidates: model.candidateCoverageLeaders, topics: model.topicCoverage, publishers: model.topPublishers } });
+    '''
+    runner = '''
+      const fs = require("node:fs"), vm = require("node:vm");
+      const input = JSON.parse(fs.readFileSync(0, "utf8")); const result = {};
+      for (const lang of ["fr", "en"]) {
+        const context = { input, Intl, URL, URLSearchParams, console,
+          document: { documentElement: { lang, dataset: { siteRoot: "/" } }, readyState: "loading", addEventListener() {}, querySelectorAll() { return []; }, baseURI: "https://france2027.app/" },
+          location: { search: "", href: "https://france2027.app/", protocol: "https:", hostname: "france2027.app" },
+          addEventListener() {}, setTimeout() {}, emit(value) { result[lang] = value; } };
+        context.window = context;
+        vm.runInNewContext(input.code, context, { timeout: 10000 });
+      }
+      process.stdout.write(JSON.stringify(result));
+    '''
+    try:
+        completed = subprocess.run([node, "-e", runner], input=json.dumps({
+            "code": code, "news": _load_json(ROOT / "news_wire.json"), "signals": candidate_signals,
+        }), text=True, encoding="utf-8", capture_output=True, check=True, timeout=30)
+        snapshots = json.loads(completed.stdout)
+        for snapshot in snapshots.values():
+            snapshot["html"] = "\n".join(line.rstrip() for line in snapshot["html"].splitlines())
+        return snapshots
+    except (subprocess.SubprocessError, json.JSONDecodeError) as error:
+        detail = getattr(error, "stderr", "")
+        raise SearchEntrypointError(f"Shared Media snapshot failed: {error}\n{detail}") from error
+
+
+def render_media_snapshot(model: dict[str, Any], language: str) -> str:
+    media = model["media"][language]
+    snapshot_json = json.dumps(media["model"], ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
+    return f'''      <article class="panel top-media-pulse" aria-labelledby="top-media-pulse-title">
+        <div class="panel-head top-media-pulse-head">
+          <div class="top-media-pulse-title-block"><h2 id="top-media-pulse-title" data-i18n="media_pulse.title">{_escape(media["title"])}</h2><p data-i18n="media_pulse.subtitle">{_escape(media["subtitle"])}</p></div>
+          <div class="top-media-pulse-metrics" id="top-media-pulse-metrics">{media["metrics"]}</div>
+        </div>
+        <script type="application/json" id="published-media-snapshot">{snapshot_json}</script>
+        <div class="top-media-pulse-content" id="top-media-pulse-content" aria-busy="false" data-fr27-semantic-snapshot="true">{media["html"]}</div>
+        <div id="top-media-pulse-status" class="dashboard-refresh-status" role="status" aria-live="polite"></div>
+      </article>'''
+
+
 def render_semantic_regions(
     source: str,
     model: dict[str, Any],
@@ -406,13 +506,16 @@ def render_semantic_regions(
         render_what_changed(model, language),
         "What Changed semantic region",
     )
-    return _replace_owned_region(
+    text = _replace_owned_region(
         text,
         RACE_START,
         RACE_END,
         render_race(model, language),
         "Race at a Glance semantic region",
     )
+
+    return _replace_owned_region(text, MEDIA_START, MEDIA_END,
+                                 render_media_snapshot(model, language), "Media Pulse semantic region")
 
 
 def _localize_english_head(source: str) -> str:
@@ -516,6 +619,7 @@ def validate_document(text: str, language: str) -> None:
     for start_marker, end_marker, label in (
         (WHAT_CHANGED_START, WHAT_CHANGED_END, "What Changed"),
         (RACE_START, RACE_END, "Race at a Glance"),
+        (MEDIA_START, MEDIA_END, "Media Pulse"),
     ):
         if text.count(start_marker) != 1 or text.count(end_marker) != 1:
             raise SearchEntrypointError(

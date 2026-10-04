@@ -1,5 +1,7 @@
 (() => {
   "use strict";
+  // Script reinjection must not install a second set of global listeners/loaders.
+  if (window.hybridDashboard) return;
 
 
   const translate = (key, fallback, parameters) => {
@@ -182,6 +184,17 @@
   };
   let runoffArchiveRequest = null;
   let candidateScrutinyPopover = null;
+  const publishedMediaSnapshot = (() => {
+    try {
+      return JSON.parse(document.getElementById("published-media-snapshot")?.textContent || "null");
+    } catch { return null; }
+  })();
+  const publishedMediaComparison = publishedMediaSnapshot?.activeFieldVisibility || null;
+  const boundMediaActions = new WeakSet();
+  let renderedMediaNews = null;
+  let renderedMediaSignals = null;
+  const boundMediaTabs = new WeakSet();
+  let topMediaActiveTab = "overview";
   const candidateSignalsRequest =
     window.France2027CandidateSignals
       ?.load("candidate_signals.json")
@@ -1143,7 +1156,11 @@
     if (unavailable) {
       return {
         domain: "media",
-        ...unavailable
+        ...unavailable,
+        message: translate(
+          unavailable.state === "loading" ? "media_pulse.loading" : "media_pulse.data_unavailable",
+          unavailable.state === "loading" ? "Loading Media Pulse" : "Media data unavailable"
+        )
       };
     }
 
@@ -1164,7 +1181,7 @@
     const activeFieldVisibility =
       state.candidateSignals.status === "ready"
         ? state.candidateSignals.metadata?.activeFieldVisibility || null
-        : null;
+        : publishedMediaComparison;
     const activePrimary = activeFieldVisibility?.primary || null;
     const comparisonQuality = activePrimary?.comparison_quality || {
       status: "unavailable",
@@ -8555,7 +8572,7 @@
       candidateComparison.explanation;
 
     const shiftRows = !model.candidateCoverageAvailable
-      ? `<div class="hybrid-state is-compact">Active-field candidate comparison unavailable.</div>`
+      ? `<div class="hybrid-state is-compact">${escapeHtml(translate("loading_status.comparison_unavailable", "Published comparison · live comparison unavailable"))}</div>`
       : model.candidateCoverageLeaders
           .slice(0, 6)
           .map(item => {
@@ -8994,6 +9011,7 @@
           ? "overview"
           : "coverage";
 
+      topMediaActiveTab = activeView;
       tabs.forEach(tab => {
         const selected =
           tab.dataset.topMediaTab ===
@@ -9050,6 +9068,8 @@
     };
 
     tabs.forEach((tab, index) => {
+      if (boundMediaTabs.has(tab)) return;
+      boundMediaTabs.add(tab);
       tab.addEventListener(
         "click",
         () => {
@@ -9111,7 +9131,7 @@
       );
     });
 
-    activate("overview");
+    activate(topMediaActiveTab);
   }
 
   function bindElectionCoverageModal(
@@ -9122,7 +9142,8 @@
         "[data-election-coverage-open]"
       );
 
-    if (!button) return;
+    if (!button || boundMediaActions.has(button)) return;
+    boundMediaActions.add(button);
 
     button.addEventListener(
       "click",
@@ -9155,6 +9176,8 @@
     if (!buttons?.length) return;
 
     buttons.forEach(button => {
+      if (boundMediaActions.has(button)) return;
+      boundMediaActions.add(button);
       button.addEventListener(
         "click",
         event => {
@@ -9190,14 +9213,44 @@
     });
   }
 
+  function updateTopMediaStatus(model) {
+    if (!topMediaMount) return;
+    const pending = model.state === "loading";
+    topMediaMount.setAttribute("aria-busy", String(pending));
+    topMediaMount.dataset.refreshState = pending ? "loading" : model.state === "unavailable" ? "stale" : model.state;
+    const status = document.getElementById("top-media-pulse-status");
+    if (status) status.textContent = pending
+      ? translate("loading_status.updating", "Published snapshot · updating")
+      : model.state === "unavailable"
+        ? translate("loading_status.stale", "Published snapshot · live update unavailable")
+        : state.candidateSignals.status === "loading"
+          ? translate("loading_status.comparison_updating", "Published comparison · updating")
+          : state.candidateSignals.status !== "ready"
+            ? translate("loading_status.comparison_unavailable", "Published comparison · live comparison unavailable")
+            : "";
+  }
+
   function renderTopMediaPulse(model, agendaModel) {
     if (!topMediaMount) return;
+    updateTopMediaStatus(model);
+    // Keep both useful snapshot and last live view through refresh/failure.
+    if (model.state === "loading" || model.state === "unavailable") {
+      bindTopMediaTabs();
+      if (publishedMediaSnapshot && topMediaMount.dataset.fr27SemanticSnapshot === "true") {
+        bindElectionCoverageModal(publishedMediaSnapshot);
+        bindTopicCoverageModal(publishedMediaSnapshot, agendaModel);
+      }
+      return;
+    }
+    if (renderedMediaNews === dashboardState.news && renderedMediaSignals === state.candidateSignals) return;
+    const focusedTab = topMediaMount.contains(document.activeElement) ? document.activeElement.id : "";
+    const panelHTML = renderTopMediaPulsePanel(model);
+    topMediaMount.removeAttribute("data-fr27-semantic-snapshot");
 
     const candidateComparison =
       topMediaComparisonPresentation(model);
 
-    topMediaMount.innerHTML =
-      renderTopMediaPulsePanel(model);
+    topMediaMount.innerHTML = panelHTML;
     syncTopMediaShiftQualityLabel(candidateComparison.label);
 
     if (topMediaMetrics) {
@@ -9305,10 +9358,13 @@
     }
 
     bindTopMediaTabs();
+    if (focusedTab) document.getElementById(focusedTab)?.focus({ preventScroll: true });
     bindElectionCoverageModal(model);
     bindTopicCoverageModal(model, agendaModel);
     window.France2027TopicCoverageModal
       ?.reconcileReturnFocus?.();
+    renderedMediaNews = dashboardState.news;
+    renderedMediaSignals = state.candidateSignals;
   }
 
   function resolveSignalViewFromHash() {
@@ -9317,21 +9373,27 @@
     window.history.replaceState(
       null,
       "",
-      views[defaultView].hash
+      window.location.pathname + window.location.search + views[defaultView].hash
     );
     return defaultView;
   }
 
   function renderAll(event = null) {
+    const datasetLane = event?.detail?.name || "";
+    if (!datasetLane || datasetLane === "news") {
+      try {
+        const media = buildMediaViewModel();
+        let agenda = null;
+        try { agenda = buildAgendaViewModel(); } catch { /* Optional modal context. */ }
+        renderTopMediaPulse(media, agenda);
+      } catch (error) {
+        console.warn("Media Pulse update failed; published content retained", error);
+        updateTopMediaStatus({ state: "unavailable" });
+      }
+    }
     try {
       state.activeView = resolveSignalViewFromHash();
       const models = buildAllViewModels();
-      const datasetLane = event?.detail?.name || "";
-
-      if (!datasetLane || datasetLane === "news") {
-        renderTopMediaPulse(models.media, models.agenda);
-      }
-
       mount.innerHTML =
         renderFocusWorkspace(models);
         renderCandidateSignalsPanel();
@@ -9347,15 +9409,7 @@
       mount.innerHTML =
         `<div class="hybrid-state is-error" role="alert">The analytical workspace could not render. Existing dashboard evidence remains available below.</div>`;
 
-      if (topMediaMount) {
-        topMediaMount.innerHTML =
-          `<div class="hybrid-state is-error" role="alert">${escapeHtml(translate("media_pulse.render_failed", "Media Pulse could not render."))}</div>`;
-      }
 
-      if (topMediaMetrics) {
-        topMediaMetrics.textContent =
-          translate("media_pulse.unavailable", "Media Pulse unavailable");
-      }
     }
   }
 

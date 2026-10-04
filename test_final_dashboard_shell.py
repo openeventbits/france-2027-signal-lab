@@ -714,7 +714,7 @@ class FinalDashboardShellTests(unittest.TestCase):
 
     def test_top_media_mount_uses_existing_media_model(self):
         self.assertIn(
-            "renderTopMediaPulse(models.media, models.agenda);",
+            "renderTopMediaPulse(media, agenda);",
             self.js,
         )
 
@@ -994,7 +994,7 @@ class FinalDashboardShellTests(unittest.TestCase):
 
     def test_top_media_uses_mockup_visual_cues(self):
         self.assertIn(
-            "30-day activity · 14-day recent",
+            "activité sur 30 j · récent sur 14 j",
             self.html,
         )
         self.assertIn(
@@ -1227,7 +1227,8 @@ class FinalDashboardShellTests(unittest.TestCase):
                           self.js.index("function renderTopMediaPulsePanel("))
         ]
         self.assertIn("candidateCoverageAvailable = Boolean(activePrimary)", model)
-        self.assertIn("Active-field candidate comparison unavailable.", renderer)
+        self.assertIn('"loading_status.comparison_unavailable"', renderer)
+        self.assertIn("publishedMediaComparison", model)
         self.assertIn("tier: row.tier", model)
         self.assertIn('"media_pulse.tier_main"', model)
         self.assertIn('"media_pulse.tier_secondary"', model)
@@ -1283,7 +1284,7 @@ class FinalDashboardShellTests(unittest.TestCase):
                 + [
                     "top-media-panel-link ecm-open media-pulse-dashboard-cta",
                     "top-media-panel-link tcm-open media-pulse-dashboard-cta",
-                ]
+                ] * 2  # Published snapshot and runtime renderer use the same CTAs.
             ),
         )
         self.assertRegex(
@@ -1305,19 +1306,12 @@ class FinalDashboardShellTests(unittest.TestCase):
         )
         renderer = self.js[start:end]
 
-        guarded_render = re.search(
-            r'const datasetLane = event\?\.detail\?\.name \|\| "";'
-            r'.*?if \(!datasetLane \|\| datasetLane === "news"\)\s*\{'
-            r'\s*renderTopMediaPulse\(models\.media, models\.agenda\);'
-            r'\s*\}',
-            renderer,
-            re.DOTALL,
-        )
-        self.assertIsNotNone(guarded_render)
-        self.assertGreater(
-            renderer.index("mount.innerHTML"),
-            guarded_render.end(),
-        )
+        self.assertIn('if (!datasetLane || datasetLane === "news")', renderer)
+        self.assertIn("const media = buildMediaViewModel();", renderer)
+        self.assertIn("renderTopMediaPulse(media, agenda);", renderer)
+        self.assertLess(renderer.index("renderTopMediaPulse(media, agenda);"),
+                        renderer.index("const models = buildAllViewModels();"))
+        self.assertNotIn("topMediaMount.innerHTML", renderer)
         self.assertIn("renderAll();", self.js)
         self.assertIn(
             'document.addEventListener("hybrid:dataset", renderAll);',
@@ -1860,7 +1854,7 @@ class TopMediaProgressiveDisclosureTests(
             '"ArrowRight"',
             '"Home"',
             '"End"',
-            'activate("overview");',
+            'activate(topMediaActiveTab);',
             "bindTopMediaTabs();",
         ):
             self.assertIn(
@@ -1937,7 +1931,7 @@ class TopMediaProgressiveDisclosureTests(
         )
 
         self.assertIn(
-            'activate("overview");',
+            'activate(topMediaActiveTab);',
             self.javascript,
         )
 

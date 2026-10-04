@@ -204,9 +204,11 @@ class SearchFoundationTests(unittest.TestCase):
         )
         self.assertIn('ROOT / "candidate_signals.json"', script)
         self.assertIn('ROOT / "recent_changes.json"', script)
+        self.assertIn('ROOT / "news_wire.json"', script)
+        self.assertIn('validateNewsWirePayload(input.news)', script)
+        self.assertIn('const model = buildMediaViewModel();', script)
         for forbidden in (
             'ROOT / "polls.json"',
-            'ROOT / "news_wire.json"',
             'ROOT / "claims_under_scrutiny.json"',
         ):
             self.assertNotIn(forbidden, script)
@@ -450,11 +452,10 @@ class SearchFoundationTests(unittest.TestCase):
             ):
                 generate_entrypoints(**paths)
 
-    def test_runtime_preserves_snapshot_only_when_recent_changes_unavailable(self):
+    def test_runtime_preserves_published_or_live_content_while_loading_or_unavailable(self):
         runtime = self.root_html
         unavailable_guard = (
-            'ledger.unavailable &&\n'
-            '        container.dataset.fr27SemanticSnapshot === "true"'
+            'if (ledger.loading || ledger.unavailable) return;'
         )
         self.assertIn(unavailable_guard, runtime)
         self.assertIn(

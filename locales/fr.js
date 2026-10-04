@@ -6,6 +6,12 @@
     (global.FR27_LOCALES = Object.create(null));
 
   const messages = Object.freeze({
+    "loading_status.updating": "Instantané publié · mise à jour en cours",
+    "loading_status.stale": "Instantané publié · mise à jour indisponible",
+    "loading_status.provenance": "Écart de couverture des sources · entrées publiées conservées",
+    "loading_status.comparison_updating": "Comparaison publiée · mise à jour en cours",
+    "loading_status.comparison_unavailable": "Comparaison publiée · comparaison actualisée indisponible",
+
     "agenda_topic.legal_eligibility": "Affaires judiciaires et éligibilité",
     "agenda_topic.selection_strategy": "Primaires et stratégies partisanes",
     "agenda_topic.candidacies_endorsements": "Candidatures et soutiens",

@@ -75,6 +75,11 @@ const list = new Element("div", {
   "data-i18n-aria-label": "what_changed.loading",
   "aria-label": "Loading source-linked dashboard changes"
 });
+const status = new Element("div");
+const published = new Element("article", {}, "Published source evidence");
+published.className = "changes-ledger-entry";
+list.appendChild(published);
+list.dataset.fr27SemanticSnapshot = "true";
 const documentListeners = new Map();
 
 const walk = root => [root, ...root.children.flatMap(walk)];
@@ -136,6 +141,7 @@ const dashboardState = {
 };
 const elements = new Map([
   ["#what-changed-list", list],
+  ["#what-changed-status", status],
   ["#changes-ledger-summary", summary]
 ]);
 const context = {
@@ -160,6 +166,8 @@ const context = {
   title,
   summary,
   list,
+  status,
+  published,
   byClass,
   originalPayload,
   fetch() { return new Promise(() => {}); },
@@ -239,6 +247,9 @@ result = {
     ? byClass(list, "changes-ledger-category").map(node => node.textContent)
     : [],
   empty: byClass(list, "changes-ledger-empty").map(node => node.textContent),
+  status: status.textContent,
+  publishedRetained: list.children[0] === published,
+  busy: list.getAttribute("aria-busy"),
   payloadUnchanged: originalPayload === JSON.stringify(input.recentChanges)
 };`,
   context
@@ -418,8 +429,12 @@ class WhatChangedLocalizationTests(unittest.TestCase):
         error = run_harness(state="error", recent_changes=None)
         self.assertEqual(loading["summaryAria"], "Chargement du nombre d’évolutions")
         self.assertEqual(empty["empty"], ["Aucune évolution récente"])
-        self.assertEqual(error["summary"], "Indisponible")
-        self.assertEqual(error["empty"], ["Indisponible"])
+        self.assertEqual(error["empty"], [])
+        self.assertTrue(loading["publishedRetained"])
+        self.assertTrue(error["publishedRetained"])
+        self.assertEqual(loading["busy"], "true")
+        self.assertIn("mise à jour", loading["status"])
+        self.assertIn("indisponible", error["status"])
         self.assertNotIn("what_changed.", json.dumps([loading, empty, error]))
 
     def test_locale_switch_preserves_counts_filtering_and_payload(self):
