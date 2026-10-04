@@ -98,9 +98,9 @@ def _decimal(value: float, language: str, digits: int = 1) -> str:
     return text.replace(".", ",") if language == "fr" else text
 
 
-def _signed(value: float, language: str, suffix: str = "") -> str:
+def _signed(value: float, language: str, suffix: str = "", *, digits: int = 1) -> str:
     sign = "+" if value > 0 else "−" if value < 0 else ""
-    return f"{sign}{_decimal(abs(value), language)}{suffix}"
+    return f"{sign}{_decimal(abs(value), language, digits)}{suffix}"
 
 
 def _lifecycle_label(value: str, language: str) -> str:
@@ -583,6 +583,65 @@ def _microbars(
     )
 
 
+def _current_card_microbars(topic: dict[str, Any], language: str) -> str:
+    """Current hub only: Issues card geometry with Agenda source-day values."""
+    series = topic["current"]["daily_activity"]
+    comparison = topic["current"]["comparison"]
+    maximum = max((point["source_day_count"] for point in series), default=0) or 1
+    bars = []
+    for point in series:
+        day, value = point["date"], point["source_day_count"]
+        if comparison["previous_start"] <= day <= comparison["previous_end"]:
+            period_class = "is-previous"
+        elif comparison["latest_start"] <= day <= comparison["latest_end"]:
+            period_class = "is-recent"
+        elif day > comparison["latest_end"]:
+            period_class = "is-partial"
+        else:
+            period_class = "is-older"
+        height = 6 if value == 0 else max(12, value / maximum * 100)
+        unit = ("jour-source" if value == 1 else "jours-sources") if language == "fr" else ("source-day" if value == 1 else "source-days")
+        bars.append(
+            f'<i class="{period_class}" data-date="{_h(day)}" data-source-days="{value}" '
+            f'style="--agenda-bar:{height:.1f}%" '
+            f'title="{_h(_date(day, language))} · {value} {unit}"></i>'
+        )
+    label = "Jours-sources par jour sur 30 jours : " if language == "fr" else "Daily source-days over 30 days: "
+    return (
+        '<div class="agenda-card-microbars" role="img" '
+        f'aria-label="{_h(label + ", ".join(str(point["source_day_count"]) for point in series))}">'
+        + "".join(bars) + "</div>"
+    )
+
+
+
+def _historical_card_microbars(topic: dict[str, Any], language: str) -> str:
+    """Historical hub only: complete-day source-days in Issues temporal colors."""
+    series = topic["coverage_history"]["daily"]
+    comparison = topic["history_comparison"]
+    maximum = max((point["source_day_count"] for point in series), default=0) or 1
+    bars = []
+    for point in series:
+        day, value = point["date"], point["source_day_count"]
+        period_class = "is-older"
+        if comparison["previous_start"] <= day <= comparison["previous_end"]:
+            period_class = "is-previous"
+        elif comparison["latest_start"] <= day <= comparison["latest_end"]:
+            period_class = "is-recent"
+        height = 6 if value == 0 else max(12, value / maximum * 100)
+        unit = ("jour-source" if value == 1 else "jours-sources") if language == "fr" else ("source-day" if value == 1 else "source-days")
+        bars.append(
+            f'<i class="{period_class}" data-date="{_h(day)}" data-source-days="{value}" '
+            f'style="--agenda-bar:{height:.1f}%" '
+            f'title="{_h(_date(day, language))} · {value} {unit}"></i>'
+        )
+    label = "Jours-sources historiques par jour : " if language == "fr" else "Historical daily source-days: "
+    return (
+        f'<div class="agenda-card-microbars" style="--agenda-history-columns:{len(series)}" '
+        f'role="img" aria-label="{_h(label + ", ".join(str(point["source_day_count"]) for point in series))}">'
+        + "".join(bars) + "</div>"
+    )
+
 def _topic_card(topic: dict[str, Any], language: str, *, history: bool = False) -> str:
     label = topic["labels"][language]
     if history:
@@ -592,7 +651,7 @@ def _topic_card(topic: dict[str, Any], language: str, *, history: bool = False) 
         count_one = data["total_source_days"]
         count_two = data["active_days"]
         volume = data["total_items"]
-        microbars = _microbars(data["daily"], language=language)
+        microbars = _historical_card_microbars(topic, language)
         signal = f'{data["peak_day"]["source_day_count"]} · {_date(data["peak_day"]["date"], language)}'
         first_label = "JOURS-SOURCES · HIST." if language == "fr" else "SOURCE-DAYS · HISTORY"
         second_label = "JOURS ACTIFS" if language == "fr" else "ACTIVE DAYS"
@@ -607,7 +666,7 @@ def _topic_card(topic: dict[str, Any], language: str, *, history: bool = False) 
         count_one = data["source_day_count"]
         count_two = data["publisher_count"]
         volume = data["item_count"]
-        microbars = _microbars(data["daily_activity"], language=language)
+        microbars = _current_card_microbars(topic, language)
         signals = data["matched_term_counts"]
         signal = signals[0]["term"] if signals else "—"
         first_label = "JOURS-SOURCES · 30 J" if language == "fr" else "SOURCE-DAYS · 30D"
@@ -741,11 +800,17 @@ def _evidence_row(
     )
 
 
-def _candidate_rows(data: dict[str, Any], language: str, *, historical: bool = False) -> str:
+def _candidate_rows(
+    data: dict[str, Any],
+    language: str,
+    *,
+    historical: bool = False,
+    magnitude_maximum: int | None = None,
+) -> str:
     candidates = data["candidates"]
     if not candidates:
         return f'<p class="agenda-detail-note">{"Aucune association candidat × thème observée sur cette période." if language == "fr" else "No candidate × topic association was observed in this period."}</p>'
-    maximum = candidates[0]["association_count"] or 1
+    maximum = magnitude_maximum or candidates[0]["association_count"] or 1
     rows = []
     for candidate in candidates:
         route = candidate["routes"].get(language)
@@ -753,14 +818,72 @@ def _candidate_rows(data: dict[str, Any], language: str, *, historical: bool = F
         identity = f'<a href="{_h(route)}">{name}</a>' if route else f"<span>{name}</span>"
         count = candidate["association_count"]
         if historical:
+            association_unit = "association" if count == 1 else "associations"
+            days = candidate["observed_days"]
+            day_unit = ("jour" if days == 1 else "jours") if language == "fr" else ("day" if days == 1 else "days")
             rows.append(
-                f'<li><div class="agenda-history-candidate-primary">{identity}<strong>{count} associations</strong></div><span class="agenda-history-candidate-period">{_h(_period(candidate["first_association"], candidate["last_association"], language))} · {candidate["observed_days"]} {"jours" if language == "fr" else "days"}</span><i class="agenda-history-candidate-magnitude" style="--agenda-history-candidate-share:{count / maximum:.6f}"></i></li>'
+                f'<li><div class="agenda-history-candidate-primary">{identity}<strong>{count} {association_unit}</strong></div><span class="agenda-history-candidate-period">{_h(_period(candidate["first_association"], candidate["last_association"], language))} · {days} {day_unit}</span><i class="agenda-history-candidate-magnitude" style="--agenda-history-candidate-share:{count / maximum:.6f}"></i></li>'
             )
         else:
             rows.append(
                 f'<li>{identity}<strong>{count} {"associations"}</strong><i class="agenda-candidate-magnitude" style="--agenda-candidate-share:{count / maximum:.6f}"></i></li>'
             )
     return "".join(rows)
+
+
+def _candidate_columns(
+    data: dict[str, Any],
+    language: str,
+    *,
+    historical: bool = False,
+) -> str:
+    candidates = data["candidates"]
+
+    if not candidates:
+        return _candidate_rows(data, language, historical=historical)
+
+    maximum = max(candidate["association_count"] for candidate in candidates) or 1
+    prefix = "agenda-history-candidate" if historical else "agenda-candidate"
+
+    if len(candidates) <= 6:
+        groups = [candidates]
+        modifier = "is-single"
+    else:
+        split = (len(candidates) + 1) // 2
+        groups = [
+            candidates[:split],
+            candidates[split:],
+        ]
+        modifier = "is-split"
+
+    columns = []
+
+    for group in groups:
+        if not group:
+            continue
+
+        subset = dict(data)
+        subset["candidates"] = group
+
+        rows = _candidate_rows(
+            subset,
+            language,
+            historical=historical,
+            magnitude_maximum=maximum,
+        )
+
+        scroll_access = ' tabindex="0" aria-labelledby="agenda-history-candidates-title"' if historical else ""
+        columns.append(
+            f'<ul class="{prefix}-column"{scroll_access}>'
+            + rows
+            + "</ul>"
+        )
+
+    return (
+        f'<div class="{prefix}-ledgers {modifier}">'
+        + "".join(columns)
+        + "</div>"
+    )
 
 
 def _history_visual(topic: dict[str, Any], language: str, *, compact: bool = False) -> str:
@@ -780,26 +903,66 @@ def _history_visual(topic: dict[str, Any], language: str, *, compact: bool = Fal
     return f'''<div class="agenda-history-visual{detail}" data-history-panel data-volume-maximum="{maximum}" data-share-maximum="{share_maximum:.2f}"><div class="agenda-history-toolbar"><div class="polling-segments agenda-history-modes"><button type="button" data-history-mode="volume" aria-pressed="true">{'JOURS-SOURCES' if language == 'fr' else 'SOURCE-DAYS'}</button><button type="button" data-history-mode="share" aria-pressed="false">{'PART AGENDA' if language == 'fr' else 'AGENDA SHARE'}</button></div><span data-history-unit>{'JOURS-SOURCES PAR JOUR' if language == 'fr' else 'SOURCE-DAYS PER DAY'}</span></div><div class="agenda-history-detail-bars" style="--agenda-history-columns:{len(daily)}">{"".join(cells)}</div><div class="agenda-history-axis"><span>{_h(_date(daily[0]["date"], language))}</span><strong data-history-scale>0–{maximum} {'jours-sources' if language == 'fr' else 'source-days'}</strong><span>{_h(_date(daily[-1]["date"], language))}</span></div></div>'''
 
 
-def _history_overview(topics: list[dict[str, Any]], language: str) -> str:
-    rows = []
-    for topic in topics:
-        daily = topic["coverage_history"]["daily"]
-        maximum = max((point["source_day_count"] for point in daily), default=0) or 1
-        cells = "".join(
-            f'<span class="agenda-history-heat-cell" '
-            f'style="--agenda-history-heat:{0.04 + 0.96 * point["source_day_count"] / maximum:.6f}" '
-            f'title="{_h(_date(point["date"], language))} · {point["source_day_count"]}"></span>'
-            for point in daily
-        )
-        rows.append(
-            f'<article class="agenda-history-evolution-row"><a class="agenda-evolution-name" '
-            f'href="{_h(topic["routes"]["history_fr" if language == "fr" else "history_en"])}">'
-            f'{_h(topic["labels"][language])}</a><div class="agenda-history-heat-strip" '
-            f'style="grid-template-columns:repeat({len(daily)},minmax(2px,1fr))">{cells}</div>'
-            f'<div class="agenda-evolution-total"><strong>{topic["coverage_history"]["total_source_days"]}</strong>'
-            f'<small>{"JOURS-SOURCES" if language == "fr" else "SOURCE-DAYS"}</small></div></article>'
-        )
-    return '<div class="agenda-history-evolution-rows">' + "".join(rows) + "</div>"
+def _historical_composition(topics: list[dict[str, Any]], language: str) -> str:
+    """Reuse the cards' locked historical windows and source-day denominators."""
+    ordered = sorted(topics, key=lambda topic: (
+        -topic["history_comparison"]["latest_agenda_share"], topic["topic_id"]))
+    reference = ordered[0]["history_comparison"]
+    window_days = (date.fromisoformat(reference["latest_end"]) - date.fromisoformat(reference["latest_start"])).days + 1
+    previous_total = sum(topic["history_comparison"]["previous_source_day_count"] for topic in ordered)
+    latest_total = sum(topic["history_comparison"]["latest_source_day_count"] for topic in ordered)
+
+    def bar(field: str, class_name: str) -> str:
+        segments = []
+        for index, topic in enumerate(ordered, start=1):
+            percent = topic["history_comparison"][field] * 100
+            inner = f"<b>{index}</b>" if percent >= 7 else ""
+            segments.append(
+                f'<span class="agenda-agenda-segment {class_name}" data-topic-id="{_h(topic["topic_id"])}" '
+                f'style="--agenda-share:{percent:.6f}%" '
+                f'title="{_h(topic["labels"][language])} · {_h(_decimal(percent, language))}%">{inner}</span>'
+            )
+        aria = "Répartition historique des jours-sources" if language == "fr" else "Historical source-day distribution"
+        return f'<div class="agenda-agenda-bar" role="img" aria-label="{_h(aria)}">' + "".join(segments) + "</div>"
+
+    rows = "".join(
+        f'<div class="agenda-agenda-topic" data-topic-id="{_h(topic["topic_id"])}"><span class="agenda-agenda-key">{index}</span><span>{_h(topic["labels"][language])}</span><strong>{_h(_decimal(topic["history_comparison"]["previous_agenda_share"] * 100, language))}%</strong><strong>{_h(_decimal(topic["history_comparison"]["latest_agenda_share"] * 100, language))}%</strong></div>'
+        for index, topic in enumerate(ordered, start=1)
+    )
+    previous_label = f"{window_days} J ANTÉRIEURS" if language == "fr" else f"EARLIER {window_days}D"
+    latest_label = f"{window_days} J RÉCENTS" if language == "fr" else f"RECENT {window_days}D"
+    return f'''<div class="agenda-agenda-composition"><div class="agenda-agenda-period">
+      <div><span><strong>{previous_label}</strong><small>{_h(_period(reference["previous_start"], reference["previous_end"], language))} · n={previous_total}</small></span>{bar("previous_agenda_share", "is-previous")}</div>
+      <div><span><strong>{latest_label}</strong><small>{_h(_period(reference["latest_start"], reference["latest_end"], language))} · n={latest_total}</small></span>{bar("latest_agenda_share", "is-recent")}</div></div>
+      <div class="agenda-agenda-legend-head" aria-hidden="true"><span></span><span></span><strong>{'PRÉC.' if language == 'fr' else 'PREV.'}</strong><strong>{'RÉCENT' if language == 'fr' else 'RECENT'}</strong></div><div class="agenda-agenda-topics">{rows}</div></div>'''
+
+
+def _historical_evidence(coverage: dict[str, Any], topics: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Consume validated materialized evidence; never reconstruct source history."""
+    public_ids = {topic["topic_id"] for topic in topics}
+    items = [item for item in coverage["historical_evidence"]["items"] if item["topic_id"] in public_ids]
+    if {item["topic_id"] for item in items} != public_ids:
+        raise AgendaPageBuildError("Historical evidence must cover every public Agenda topic")
+    return [{**item, "topic_ids": [item["topic_id"]]} for item in items]
+
+
+def _hub_panel_header(
+    *, eyebrow: str, title: str, status: str, anchor: str,
+    method_label: str, method_note: str,
+) -> str:
+    """Use the Issues/Polling Lab title-info component for Agenda hub panels."""
+    return (
+        '<div class="polling-section-head"><div>'
+        f'<div class="polling-eyebrow">{_h(eyebrow)}</div>'
+        '<div class="polling-title-row">'
+        f'<h2 id="{anchor}-title">{_h(title)}</h2>'
+        '<span class="polling-title-info-wrap">'
+        f'<button class="polling-title-info" type="button" aria-label="{_h(method_label)}" '
+        f'aria-describedby="{anchor}-note">i</button>'
+        f'<span class="polling-title-tooltip" id="{anchor}-note" role="tooltip">{_h(method_note)}</span>'
+        '</span></div></div>'
+        f'<span class="polling-panel-status">{_h(status)}</span></div>'
+    )
 
 
 def _hub_common(
@@ -888,7 +1051,7 @@ def _hub_common(
             sum(topic["coverage_history"]["active_days"] for topic in topics),
         )
         movement = _movement_chart(topics, language, history=True)
-        companion = _history_overview(topics, language)
+        companion = _historical_composition(topics, language)
         gateway = "/agenda/" if french else "/en/agenda/"
     else:
         metric_values = (
@@ -905,17 +1068,30 @@ def _hub_common(
         if french
         else "A descriptive measure of recurring election themes observed in the monitored corpus. It is not public opinion, voter or candidate priorities, a representative measure of all media, or a forecast."
     )
+    history_period = projection["coverage_history_period"]
+    history_days = (date.fromisoformat(history_period["end_date"]) - date.fromisoformat(history_period["start_date"])).days + 1
+    gateway_period = (
+        _period(projection["evolution_period"]["period_start"], projection["evolution_period"]["period_end"], language)
+        if history else _period(history_period["start_date"], history_period["end_date"], language)
+    )
+    if history:
+        descriptor += (
+            " Les séries utilisent uniquement des jours UTC complets et les classifications publiées conservées. L’historique de couverture reconstruit est distinct de l’historique des associations de candidats."
+            if french else
+            " Series use complete UTC days and retained published classifications only. Reconstructed coverage history is separate from candidate association history."
+        )
     breadcrumb = (
         f'<nav class="polling-breadcrumb" aria-label="{"Fil d’Ariane" if french else "Breadcrumb"}"><a href="{"/" if french else "/en/"}">{"ACCUEIL" if french else "HOME"}</a><span>/</span>'
         + (f'<a href="{"/agenda/" if french else "/en/agenda/"}">AGENDA</a><span>/</span><span aria-current="page">{"HISTORIQUE" if french else "HISTORY"}</span>' if history else '<span aria-current="page">AGENDA</span>')
         + "</nav>"
     )
     evidence_rows = ""
-    if not history:
+    evidence_items = projection["historical_evidence"] if history else projection["latest_evidence"][:8]
+    if evidence_items:
         topic_by_id = {topic["topic_id"]: topic for topic in topics}
-        for item in projection["latest_evidence"][:8]:
+        for item in evidence_items:
             badges = '<div class="agenda-evidence-badges">' + "".join(
-                f'<a class="agenda-evidence-agenda" href="{_h(topic_by_id[topic_id]["routes"][language])}">{_h(topic_by_id[topic_id]["labels"][language])}</a>'
+                f'<a class="agenda-evidence-agenda" href="{_h(topic_by_id[topic_id]["routes"][("history_fr" if french else "history_en") if history else language])}">{_h(topic_by_id[topic_id]["labels"][language])}</a>'
                 for topic_id in item["topic_ids"]
             ) + "</div>"
             evidence_rows += _evidence_row(
@@ -924,16 +1100,117 @@ def _hub_common(
                 badges=badges,
                 hub=True,
             )
+    movement_header = _hub_panel_header(
+        eyebrow=("COMPARAISON · JOURS UTC COMPLETS" if french else "COMPARISON · COMPLETE UTC DAYS")
+        if history else ("COMPARAISON · SEMAINES COMPLÈTES" if french else "COMPARISON · COMPLETE WEEKS"),
+        title=("ÉVOLUTION HISTORIQUE" if french else "HISTORICAL MOVEMENT")
+        if history else ("CE QUI BOUGE" if french else "WHAT’S MOVING"),
+        status="PART AGENDA" if french else "AGENDA SHARE",
+        anchor="agenda-movement",
+        method_label="Méthode de comparaison de la part agenda" if french else "Agenda-share comparison method",
+        method_note=(
+            "Part agenda = jours-sources affectés au thème ÷ jours-sources affectés à tous les thèmes de l’agenda dans la même fenêtre. La comparaison porte sur les deux dernières fenêtres adjacentes de 28 jours UTC complets."
+            if french else
+            "Agenda share = source-days assigned to the topic ÷ source-days assigned to all agenda topics in the same window. The comparison uses the latest two adjacent windows of 28 complete UTC days."
+        ) if history else (
+            "Part agenda = jours-sources affectés au thème ÷ jours-sources affectés à tous les thèmes de l’agenda dans la même semaine complète. La comparaison porte sur deux fenêtres complètes de 7 jours."
+            if french else
+            "Agenda share = source-days assigned to the topic ÷ source-days assigned to all agenda topics in the same complete week. The comparison uses two complete 7-day windows."
+        ),
+    )
+    companion_header = _hub_panel_header(
+        eyebrow=("COMPOSITION HISTORIQUE" if french else "HISTORICAL COMPOSITION")
+        if history else ("CE DONT PARLE LA CAMPAGNE" if french else "CAMPAIGN THEMES"),
+        title=("CADENCE DE L’AGENDA" if french else "AGENDA CADENCE")
+        if history else ("AGENDA DE CAMPAGNE" if french else "CAMPAIGN AGENDA"),
+        status="ÉTIQUETTE UNIQUE" if french else "SINGLE-LABEL",
+        anchor="agenda-composition",
+        method_label=("Méthode de composition historique de l’Agenda" if french else "Historical Agenda composition method")
+        if history else ("Méthode de composition de l’Agenda de campagne" if french else "Campaign Agenda composition method"),
+        method_note=(
+            "Répartition à étiquette unique des jours-sources entre les six thèmes de l’agenda sur deux fenêtres adjacentes de 28 jours UTC complets. Chaque part utilise le total des jours-sources affectés aux six thèmes dans la même fenêtre ; n indique ce total. Les fenêtres sont identiques à celles des cartes et de la comparaison historique."
+            if french else
+            "Single-label distribution of source-days across the six agenda topics in two adjacent windows of 28 complete UTC days. Each share uses the total source-days assigned to all six topics in the same window; n gives that total. The windows match the cards and historical comparison."
+        ) if history else (
+            "Répartition à étiquette unique des affectations de jours-sources aux thèmes de l’agenda entre deux semaines complètes. Chaque part utilise le total des jours-sources affectés aux thèmes de l’agenda de la même semaine ; n indique ce total."
+            if french else
+            "Single-label distribution of source-day assignments to agenda topics across two complete weeks. Each share uses the total source-days assigned to agenda topics in the same week; n gives that total."
+        ),
+    )
+    comparison_markup = (
+        '<div class="agenda-comparison-grid">'
+        '<section class="polling-section agenda-movement-panel" aria-labelledby="agenda-movement-title">'
+        + movement_header + movement + '</section>'
+        '<section class="polling-section agenda-agenda-panel" aria-labelledby="agenda-composition-title">'
+        + companion_header + companion + '</section></div>'
+    )
+
     body_class = "polling-page agenda-page agenda-hub-page" + (" agenda-history-page" if history else "")
     return _document(f'''<!doctype html><html lang="{language}">{head}<body class="{body_class}"><main class="polling-shell">{header}
       {breadcrumb}
       <section class="polling-intro agenda-intro"><div class="polling-eyebrow">{'AGENDA · HISTORIQUE' if history and french else 'AGENDA · HISTORY' if history else 'AGENDA'}</div><div class="polling-title-row agenda-hub-title-row"><h1>{'HISTORIQUE DE L’AGENDA' if history and french else 'AGENDA HISTORY' if history else 'OBSERVATOIRE DE L’AGENDA' if french else 'CAMPAIGN AGENDA LAB'}</h1>{_tooltip('agenda-hub-method', 'Méthode' if french else 'Method', descriptor)}</div></section>
-      <section class="polling-metrics agenda-metrics" aria-label="{'Indicateurs' if french else 'Metrics'}"><div class="polling-metric"><span class="polling-metric-label">{'THÈMES' if french else 'TOPICS'}</span><strong>{metric_values[0]}</strong></div><div class="polling-metric"><span class="polling-metric-label">{'ARTICLES CLASSÉS' if french else 'CLASSIFIED ITEMS'}</span><strong>{metric_values[1]}</strong></div><div class="polling-metric"><span class="polling-metric-label">{'JOURS-SOURCES' if french else 'SOURCE-DAYS'}</span><strong>{metric_values[2]}</strong></div><div class="polling-metric"><span class="polling-metric-label">{'JOURS ACTIFS' if history and french else 'ACTIVE DAYS' if history else 'MÉDIAS' if french else 'PUBLISHERS'}</span><strong>{metric_values[3]}</strong></div><div class="polling-metric polling-metric-period"><span class="polling-metric-label">{'PÉRIODE' if french else 'PERIOD'}</span><strong>{_h(_period(period_start, period_end, language))}</strong></div></section>
-      <section class="polling-section agenda-landscape-panel"><div class="polling-section-head"><div><div class="polling-eyebrow">{'HISTORIQUE' if history and french else 'HISTORY' if history else '30 J' if french else '30D'}</div><h2>{'PAYSAGE HISTORIQUE DES THÈMES' if history and french else 'HISTORICAL TOPIC LANDSCAPE' if history else 'PAYSAGE DES THÈMES' if french else 'TOPIC LANDSCAPE'}</h2></div><span class="polling-panel-status">{len(topics)} {'THÈMES' if french else 'TOPICS'}</span></div><div class="agenda-landscape-toolbar"><div class="agenda-landscape-search"><input type="search" data-agenda-search placeholder="{'Rechercher un thème' if french else 'Search topics'}"></div><div class="agenda-sort-controls"><button type="button" data-agenda-sort="activity" aria-pressed="true">{'ACTIVITÉ' if french else 'ACTIVITY'}</button><button type="button" data-agenda-sort="movement" aria-pressed="false">{'MOUVEMENT' if french else 'MOVEMENT'}</button><button type="button" data-agenda-sort="volume" aria-pressed="false">VOLUME</button><button type="button" data-agenda-sort="az" aria-pressed="false">A–Z</button></div></div><div class="agenda-card-grid" data-agenda-card-grid>{cards}</div><div class="agenda-empty-state" data-agenda-empty hidden>{'Aucun thème correspondant.' if french else 'No matching topic.'}</div></section>
-      <div class="agenda-comparison-grid"><section class="polling-section agenda-movement-panel"><div class="polling-section-head"><div><div class="polling-eyebrow">{'COMPARAISON' if french else 'COMPARISON'}</div><h2>{'ÉVOLUTION HISTORIQUE' if history and french else 'HISTORICAL MOVEMENT' if history else 'CE QUI BOUGE' if french else 'WHAT’S MOVING'}</h2></div><span class="polling-panel-status">{'PART AGENDA' if french else 'AGENDA SHARE'}</span></div>{movement}</section><section class="polling-section agenda-agenda-panel"><div class="polling-section-head"><div><div class="polling-eyebrow">{'LONGUE DURÉE' if history and french else 'LONG RANGE' if history else 'SEMAINES COMPLÈTES' if french else 'COMPLETE WEEKS'}</div><h2>{'ÉVOLUTION DES JOURS-SOURCES' if history and french else 'SOURCE-DAY EVOLUTION' if history else 'COMPOSITION DE L’AGENDA' if french else 'AGENDA COMPOSITION'}</h2></div><span class="polling-panel-status">{'ÉTIQUETTE UNIQUE' if french else 'SINGLE-LABEL'}</span></div>{companion}</section></div>
-      {f'<section class="polling-section agenda-latest"><div class="polling-section-head"><div><div class="polling-eyebrow">SOURCES</div><h2>{"PREUVES SOURCÉES RÉCENTES" if french else "LATEST SOURCE-LINKED EVIDENCE"}</h2></div><span class="polling-panel-status">{min(8, len(projection["latest_evidence"]))}</span></div><div class="agenda-evidence-list">{evidence_rows}</div></section>' if not history else f'<section class="polling-section agenda-latest"><div class="polling-section-head"><div><div class="polling-eyebrow">{"MÉTHODE" if french else "METHOD"}</div><h2>{"PÉRIMÈTRE HISTORIQUE" if french else "HISTORICAL BOUNDARY"}</h2></div></div><p class="agenda-detail-note">{_h(descriptor)} {"Les séries utilisent uniquement des jours UTC complets et les classifications publiées conservées." if french else "Series use complete UTC days and retained published classifications only."}</p></section>'}
-      <section class="polling-section agenda-history-gateway is-compact"><div class="polling-section-head"><div><div class="polling-eyebrow">{'PROJECTION ACTUELLE' if history and french else 'CURRENT PROJECTION' if history else 'HISTORIQUE DISPONIBLE' if french else 'HISTORY AVAILABLE'}</div><h2>{'AGENDA ACTUEL' if history and french else 'CURRENT AGENDA' if history else 'HISTORIQUE DE L’AGENDA' if french else 'AGENDA HISTORY'}</h2></div><span class="polling-panel-status">{len(topics)}</span></div><div class="agenda-history-gateway-body"><div><strong>{'REVENIR AUX 30 DERNIERS JOURS' if history and french else 'RETURN TO THE LATEST 30 DAYS' if history else 'EXPLORER LA SÉRIE COMPLÈTE' if french else 'EXPLORE THE COMPLETE SERIES'}</strong><span>{_h(_period(period_start, period_end, language))}</span></div><a class="agenda-history-gateway-cta" href="{gateway}">{'OUVRIR →' if french else 'OPEN →'}</a></div></section>
+      <section class="polling-metrics agenda-metrics" aria-label="{'Indicateurs' if french else 'Metrics'}"><div class="polling-metric"><span class="polling-metric-label">{'THÈMES' if french else 'TOPICS'}</span><strong>{metric_values[0]}</strong></div><div class="polling-metric"><span class="polling-metric-label">{'ARTICLES CLASSÉS' if french else 'CLASSIFIED ITEMS'}</span><strong>{metric_values[1]}</strong></div><div class="polling-metric"><span class="polling-metric-label">{'JOURS-SOURCES' if french else 'SOURCE-DAYS'}</span><strong>{metric_values[2]}</strong></div><div class="polling-metric"><span class="polling-metric-label">{'JOURS-THÈMES ACTIFS' if history and french else 'ACTIVE TOPIC-DAYS' if history else 'MÉDIAS' if french else 'PUBLISHERS'}</span><strong>{metric_values[3]}</strong></div><div class="polling-metric polling-metric-period"><span class="polling-metric-label">{'PÉRIODE' if french else 'PERIOD'}</span><strong>{_h(_period(period_start, period_end, language))}</strong></div></section>
+      <section class="polling-section agenda-landscape-panel"><div class="polling-section-head"><div><div class="polling-eyebrow">{f'{history_days} J UTC' if history and french else f'{history_days} UTC DAYS' if history else '30 J' if french else '30D'}</div><h2>{'PAYSAGE HISTORIQUE DES THÈMES' if history and french else 'HISTORICAL TOPIC LANDSCAPE' if history else 'PAYSAGE DES THÈMES' if french else 'TOPIC LANDSCAPE'}</h2></div><span class="polling-panel-status">{len(topics)} {'THÈMES' if french else 'TOPICS'} · {f'{history_days} J' if french and history else f'{history_days} DAYS' if history else '30 J' if french else '30D'}</span></div><div class="agenda-landscape-toolbar"><div class="agenda-landscape-search"><input type="search" data-agenda-search placeholder="{'Rechercher un thème' if french else 'Search topics'}"></div><div class="agenda-sort-controls"><button type="button" data-agenda-sort="activity" aria-pressed="true">{'ACTIVITÉ' if french else 'ACTIVITY'}</button><button type="button" data-agenda-sort="movement" aria-pressed="false">{'MOUVEMENT' if french else 'MOVEMENT'}</button><button type="button" data-agenda-sort="volume" aria-pressed="false">VOLUME</button><button type="button" data-agenda-sort="az" aria-pressed="false">A–Z</button></div></div><div class="agenda-card-grid" data-agenda-card-grid>{cards}</div><div class="agenda-empty-state" data-agenda-empty hidden>{'Aucun thème ne correspond à cette recherche.' if french else 'No topic matches this search.'}</div></section>
+      {comparison_markup}
+      {f'<section class="polling-section agenda-latest"><div class="polling-section-head"><div><div class="polling-eyebrow">{"SOURCES" if french else "SOURCE-LINKED"}</div><h2>{("OBSERVATIONS HISTORIQUES SOURCÉES" if french else "SOURCE-LINKED HISTORICAL OBSERVATIONS") if history else ("DERNIÈRES OBSERVATIONS SOURCÉES" if french else "LATEST SOURCE-LINKED OBSERVATIONS")}</h2></div><span class="polling-panel-status">{len(evidence_items)} {"ÉLÉMENTS" if french else "ITEMS"}</span></div><div class="agenda-evidence-list">{evidence_rows}</div></section>' if not history or evidence_items else ''}
+      <section class="polling-section agenda-history-gateway is-compact"><div class="polling-section-head"><div><div class="polling-eyebrow">{'PROJECTION ACTUELLE' if history and french else 'CURRENT PROJECTION' if history else 'HISTORIQUE DISPONIBLE' if french else 'HISTORY AVAILABLE'}</div><h2>{'AGENDA ACTUEL' if history and french else 'CURRENT AGENDA' if history else 'HISTORIQUE DE L’AGENDA' if french else 'AGENDA HISTORY'}</h2></div><span class="polling-panel-status">{('30 J' if french else '30D') if history else f'{history_days} ' + ('JOURS' if french else 'DAYS')}</span></div><div class="agenda-history-gateway-body"><div><strong>{'REVENIR AUX 30 DERNIERS JOURS' if history and french else 'RETURN TO THE LATEST 30 DAYS' if history else '6 THÈMES SUIVIS' if french else '6 TOPICS TRACKED'}</strong><span>{_h(gateway_period)}</span></div><a class="agenda-history-gateway-cta" href="{gateway}">{'VOIR L’AGENDA ACTUEL →' if history and french else 'VIEW CURRENT AGENDA →' if history else 'EXPLORER L’HISTORIQUE →' if french else 'EXPLORE HISTORY →'}</a></div></section>
       {shell["footer"]}</main></body></html>''')
+
+
+def _current_activity_bars(topic: dict[str, Any], language: str) -> str:
+    """Issues temporal grammar, using Agenda source-days and its own windows."""
+    current = topic["current"]
+    comparison = current["comparison"]
+    series = current["daily_activity"]
+    maximum = max((point["source_day_count"] for point in series), default=0) or 1
+    bars = []
+    for point in series:
+        day = point["date"]
+        if comparison["previous_start"] <= day <= comparison["previous_end"]:
+            period_class = "is-previous"
+        elif comparison["latest_start"] <= day <= comparison["latest_end"]:
+            period_class = "is-latest"
+        elif day > comparison["latest_end"]:
+            period_class = "is-partial"
+        else:
+            period_class = "is-older"
+        value = point["source_day_count"]
+        height = 4.0 if value == 0 else 18.0 + 82.0 * value / maximum
+        unit = ("jour-source" if value == 1 else "jours-sources") if language == "fr" else ("source-day" if value == 1 else "source-days")
+        bars.append(
+            f'<i class="agenda-detail-activity-bar {period_class}" '
+            f'data-date="{_h(day)}" data-source-days="{value}" '
+            f'style="--agenda-bar:{height:.2f}%" '
+            f'title="{_h(_date(day, language))} · {value} {unit}"></i>'
+        )
+    label = "Activité quotidienne en jours-sources" if language == "fr" else "Daily source-day activity"
+    return (
+        f'<div class="agenda-detail-activity-bars" '
+        f'style="--agenda-activity-columns:{len(series)}" role="img" '
+        f'aria-label="{_h(label)}">' + "".join(bars) + "</div>"
+    )
+
+
+def _compact_history_bars(topic: dict[str, Any], language: str) -> str:
+    """Render the coverage-history source-day series in the compact component."""
+    series = topic["coverage_history"]["daily"]
+    maximum = max((point["source_day_count"] for point in series), default=0) or 1
+    bars = []
+    for point in series:
+        value = point["source_day_count"]
+        height = 4.0 if value == 0 else 16.0 + 84.0 * value / maximum
+        unit = ("jour-source" if value == 1 else "jours-sources") if language == "fr" else ("source-day" if value == 1 else "source-days")
+        bars.append(
+            f'<i class="agenda-compact-history-bar" data-date="{_h(point["date"])}" '
+            f'data-source-days="{value}" style="--agenda-bar:{height:.2f}%" '
+            f'title="{_h(_date(point["date"], language))} · {value} {unit}"></i>'
+        )
+    label = "Profil historique compact en jours-sources" if language == "fr" else "Compact historical source-day profile"
+    return (
+        f'<div class="agenda-compact-history-bars" '
+        f'style="--agenda-history-columns:{len(series)}" role="img" '
+        f'aria-label="{_h(label)}">' + "".join(bars) + "</div>"
+    )
 
 
 def _current_detail(
@@ -950,6 +1227,29 @@ def _current_detail(
     route = topic["routes"][language]
     current = topic["current"]
     comparison = current["comparison"]
+    movement_note = (
+        (
+            "Semaine complète précédente → semaine complète récente. "
+            f"Jours-sources : {comparison['previous_source_day_count']} → "
+            f"{comparison['latest_source_day_count']} "
+            f"({_signed(comparison['source_day_change'], language)}). "
+            "Part agenda : "
+            f"{_decimal(comparison['previous_agenda_share'] * 100, language)} % → "
+            f"{_decimal(comparison['latest_agenda_share'] * 100, language)} % "
+            f"({_signed(comparison['agenda_share_change_pp'], language, 'pp')})."
+        )
+        if french
+        else (
+            "Previous complete week → recent complete week. "
+            f"Source-days: {comparison['previous_source_day_count']} → "
+            f"{comparison['latest_source_day_count']} "
+            f"({_signed(comparison['source_day_change'], language)}). "
+            "Agenda share: "
+            f"{_decimal(comparison['previous_agenda_share'] * 100, language)}% → "
+            f"{_decimal(comparison['latest_agenda_share'] * 100, language)}% "
+            f"({_signed(comparison['agenda_share_change_pp'], language, 'pp')})."
+        )
+    )
     title = f"{label} — Agenda 2027 | France 2027" if french else f"{label} — France 2027 Agenda dossier"
     description = (
         f"Dossier descriptif sur {label} dans le corpus de campagne suivi : activité, signaux de classification et sources."
@@ -968,7 +1268,7 @@ def _current_detail(
         structured=[_breadcrumb_json(language=language, route=route, topic=topic)],
     )
     header = _prepare_header(shell["header"], language=language, route_fr=topic["routes"]["fr"], route_en=topic["routes"]["en"])
-    bars = _microbars(current["daily_activity"], language=language, class_name="agenda-detail-activity-bars")
+    bars = _current_activity_bars(topic, language)
     signals = "".join(
         f'<li><div><span>{_h(signal["term"])}</span><strong>{signal["item_count"]}</strong></div><i style="--agenda-subtopic-share:{signal["item_count"] / max(1, current["matched_term_counts"][0]["item_count"]):.6f}"></i></li>'
         for signal in current["matched_term_counts"]
@@ -976,10 +1276,24 @@ def _current_detail(
     evidence = "".join(
         _evidence_row({**item, "date": item["published_at"][:10]}, language)
         for item in current["supporting_items"]
-    ) or f'<p class="agenda-detail-note">{"Aucune preuve récente publiée." if french else "No recent evidence published."}</p>'
+    ) or f'<p class="agenda-detail-note">{"Aucune preuve sourcée publiée." if french else "No source-linked evidence published."}</p>'
     omission = current["omitted_item_count"]
+    evidence_cap_note = (
+        f"{omission} éléments supplémentaires ne sont pas affichés en raison du plafond de publication."
+        if french
+        else f"{omission} additional items are not shown because of the publication cap."
+    )
+    evidence_cap_tooltip = (
+        _tooltip(
+            "agenda-evidence-cap-note",
+            "Plafond de publication" if french else "Publication cap",
+            evidence_cap_note,
+        )
+        if omission
+        else ""
+    )
     candidates = topic["current_candidate_associations"]
-    candidate_rows = _candidate_rows(candidates, language)
+    candidate_ledger = _candidate_columns(candidates, language)
     sparse = ""
     if topic["lifecycle"] == "dormant":
         sparse = f'<div class="agenda-detail-note agenda-sparse-state">{"Ce thème est conservé parce qu’il a déjà été publié ; son activité actuelle est sous le seuil d’affichage." if french else "This topic is retained because it was previously published; current activity is below the display threshold."}</div>'
@@ -989,14 +1303,31 @@ def _current_detail(
         else "Candidate × topic co-occurrences observed in monitored coverage. They do not describe endorsement, position, priority, or commitment."
     )
     history_route = topic["routes"]["history_fr" if french else "history_en"]
+    history = topic["coverage_history"]
+    history_status = f'{_date(history["first_observation"], language)} → {_date(history["last_observation"], language)}'
+    method_tooltip = _tooltip(
+        "agenda-source-days-method-note",
+        "Note méthodologique" if french else "Method note",
+        "Somme des jours-sources quotidiens dans chaque semaine UTC complète. L’évolution est la différence entre la dernière semaine et la précédente."
+        if french else
+        "Sum of daily source-days in each complete UTC week. Change is the latest week minus the previous week.",
+    )
+    date_tooltips = {}
+    for window in ("previous", "latest"):
+        period_label = ("Semaine complète" if french else "Complete week") + " · " + _period(comparison[f"{window}_start"], comparison[f"{window}_end"], language)
+        date_tooltips[window] = (
+            '<span class="agenda-note-tooltip-body agenda-incidence-date-tooltip" '
+            f'id="agenda-source-days-{window}-dates" role="tooltip">{_h(period_label)}</span>'
+        )
     return _document(f'''<!doctype html><html lang="{language}">{head}<body class="polling-page poll-detail-page agenda-page agenda-detail-page agenda-current-detail-page"><main class="polling-shell">{header}<div class="poll-detail-content">
       <nav class="poll-detail-breadcrumb"><a href="{'/' if french else '/en/'}">{'ACCUEIL' if french else 'HOME'}</a><span>/</span><a href="{'/agenda/' if french else '/en/agenda/'}">AGENDA</a><span>/</span><span aria-current="page">{_h(label)}</span></nav>
-      <section class="poll-detail-hero agenda-detail-hero"><div class="poll-detail-hero-main"><div><div class="poll-detail-eyebrow">{'THÈME · AGENDA DE CAMPAGNE' if french else 'TOPIC · CAMPAIGN AGENDA'}</div><div class="poll-detail-title-line"><h1 class="poll-detail-title">{_h(label)}</h1><span class="agenda-state is-{_h(topic["lifecycle"])}">{_h(_lifecycle_label(topic["lifecycle"], language))}</span></div></div></div>{sparse}<div class="poll-detail-metrics agenda-current-kpis"><div class="poll-detail-metric"><span>{'JOURS-SOURCES · 30 J' if french else 'SOURCE-DAYS · 30D'}</span><strong>{current["source_day_count"]}</strong></div><div class="poll-detail-metric"><span>{'ARTICLES CLASSÉS · 30 J' if french else 'CLASSIFIED ITEMS · 30D'}</span><strong>{current["item_count"]}</strong></div><div class="poll-detail-metric"><span>{'MÉDIAS · BASE' if french else 'PUBLISHERS · BASE'}</span><strong>{current["publisher_count"]}</strong></div><div class="poll-detail-metric"><span>{'JOURS ACTIFS' if french else 'ACTIVE DAYS'}</span><strong>{current["active_day_count"]}</strong></div><div class="agenda-weekly-signal"><span class="agenda-weekly-signal-title">{'MOUVEMENT · SEMAINES COMPLÈTES' if french else 'MOVEMENT · COMPLETE WEEKS'}</span><div class="agenda-weekly-signal-values"><div><span>{'JOURS-SOURCES' if french else 'SOURCE-DAYS'}</span><strong>{_h(_signed(comparison["source_day_change"], language))}</strong></div><div><span>{'PART AGENDA' if french else 'AGENDA SHARE'}</span><strong>{_h(_signed(comparison["agenda_share_change_pp"], language, "pp"))}</strong></div></div></div></div></section>
-      <div class="agenda-current-detail-grid agenda-current-top-grid"><section class="poll-detail-panel agenda-current-activity"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">{'ACTIVITÉ · 30 J' if french else 'ACTIVITY · 30D'}</div><h2>{'ACTIVITÉ ACTUELLE' if french else 'CURRENT ACTIVITY'}</h2></div><span class="poll-detail-panel-status">{current["source_day_count"]} {'JOURS-SOURCES' if french else 'SOURCE-DAYS'}</span></div>{bars}<dl class="agenda-current-comparison"><div><dt>{'SEMAINE PRÉC.' if french else 'PREVIOUS WEEK'}</dt><dd>{comparison["previous_source_day_count"]}</dd><small>{_h(_period(comparison["previous_start"], comparison["previous_end"], language))}</small></div><div><dt>{'SEMAINE RÉCENTE' if french else 'RECENT WEEK'}</dt><dd>{comparison["latest_source_day_count"]}</dd><small>{_h(_period(comparison["latest_start"], comparison["latest_end"], language))}</small></div><div class="is-delta"><dt>{'PART AGENDA' if french else 'AGENDA SHARE'}</dt><dd>{_h(_decimal(comparison["latest_agenda_share"] * 100, language))}%</dd><small>{_h(_signed(comparison["agenda_share_change_pp"], language, "pp"))}</small></div></dl></section>
-      <section class="poll-detail-panel agenda-subtopics"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">{'CLASSIFICATION' if french else 'CLASSIFICATION'}</div><h2>{'SIGNAUX ASSOCIÉS' if french else 'ASSOCIATED CLASSIFIER SIGNALS'}</h2></div><span class="poll-detail-panel-status">{len(current["matched_term_counts"])}</span></div><ol class="agenda-subtopics-scroll">{signals}</ol></section></div>
-      <section class="poll-detail-panel agenda-published-evidence agenda-current-evidence"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">SOURCES</div><h2>{'PREUVES RÉCENTES' if french else 'RECENT SUPPORTING EVIDENCE'}</h2></div><span class="poll-detail-panel-status">{current["supporting_item_count"]} {'PUBLIÉES' if french else 'PUBLISHED'} · {omission} {'OMISES' if french else 'OMITTED'}</span></div><div class="agenda-evidence-list agenda-current-evidence-visible">{evidence}</div>{f'<p class="agenda-detail-note">{omission} éléments supplémentaires ne sont pas affichés en raison du plafond de publication.</p>' if omission and french else f'<p class="agenda-detail-note">{omission} additional items are not shown because of the publication cap.</p>' if omission else ''}</section>
-      <section class="poll-detail-panel agenda-candidates agenda-current-candidates"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">{'DOMAINE SÉPARÉ' if french else 'SEPARATE DOMAIN'}</div><div class="agenda-note-title-line"><h2>{'COOCCURRENCES CANDIDAT × THÈME' if french else 'CANDIDATE × TOPIC CO-OCCURRENCES'}</h2>{_tooltip('agenda-candidate-note', 'Note', candidate_note, warning=True)}</div></div><span class="poll-detail-panel-status">{candidates["candidate_count"]}</span></div><div class="agenda-candidate-ledgers"><ul class="agenda-candidate-column">{candidate_rows}</ul></div></section>
-      <section class="polling-section agenda-history-gateway is-compact"><div class="polling-section-head"><div><div class="polling-eyebrow">{'LONGUE DURÉE' if french else 'LONG RANGE'}</div><h2>{'HISTORIQUE DE CE THÈME' if french else 'THIS TOPIC’S HISTORY'}</h2></div><span class="polling-panel-status">{topic["coverage_history"]["total_source_days"]} {'JOURS-SOURCES' if french else 'SOURCE-DAYS'}</span></div><div class="agenda-history-gateway-body"><div><strong>{_h(_period(topic["coverage_history"]["first_observation"], topic["coverage_history"]["last_observation"], language))}</strong><span>{topic["coverage_history"]["active_days"]} {'jours actifs' if french else 'active days'}</span></div><a class="agenda-history-gateway-cta" href="{_h(history_route)}">{'VOIR L’HISTORIQUE →' if french else 'VIEW HISTORY →'}</a></div></section>
+      <section class="poll-detail-hero agenda-detail-hero"><div class="poll-detail-hero-main"><div><div class="poll-detail-eyebrow">{'THÈME · AGENDA DE CAMPAGNE' if french else 'TOPIC · CAMPAIGN AGENDA'}</div><div class="poll-detail-title-line"><h1 class="poll-detail-title">{_h(label)}</h1><span class="agenda-state is-{_h(topic["lifecycle"])}">{_h(_lifecycle_label(topic["lifecycle"], language))}</span></div></div></div>{sparse}<div class="poll-detail-metrics agenda-current-kpis"><div class="poll-detail-metric"><span>{'JOURS-SOURCES · 30 J' if french else 'SOURCE-DAYS · 30D'}</span><strong>{current["source_day_count"]}</strong></div><div class="poll-detail-metric"><span>{'ARTICLES CLASSÉS · 30 J' if french else 'CLASSIFIED ITEMS · 30D'}</span><strong>{current["item_count"]}</strong></div><div class="poll-detail-metric"><span>{'MÉDIAS · BASE' if french else 'PUBLISHERS · BASE'}</span><strong>{current["publisher_count"]}</strong></div><div class="poll-detail-metric"><span>{'JOURS ACTIFS' if french else 'ACTIVE DAYS'}</span><strong>{current["active_day_count"]}</strong></div><div class="agenda-weekly-signal"><span class="agenda-weekly-signal-title-line"><span class="agenda-weekly-signal-title">{'PART AGENDA HEBDOMADAIRE' if french else 'WEEKLY AGENDA SHARE'}</span>{_tooltip('agenda-weekly-signal-note', 'Détail de la part agenda' if french else 'Agenda share detail', movement_note)}</span><div class="agenda-weekly-signal-values"><div><span>{'DERNIÈRE SEM. COMPLÈTE' if french else 'LATEST COMPLETE WEEK'}</span><strong>{_h(_decimal(comparison["latest_agenda_share"] * 100, language))}%</strong></div><div><span>{'VS SEM. COMPLÈTE PRÉC.' if french else 'VS PREVIOUS COMPLETE WEEK'}</span><strong>{_h(_signed(comparison["agenda_share_change_pp"], language, "pp"))}</strong></div></div></div></div></section>
+      <div class="agenda-current-detail-grid agenda-current-top-grid"><section class="poll-detail-panel agenda-current-activity" aria-labelledby="agenda-current-activity-title"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">{'ACTIVITÉ · 30 J' if french else 'ACTIVITY · 30D'}</div><h2 id="agenda-current-activity-title">{'ACTIVITÉ ACTUELLE' if french else 'CURRENT ACTIVITY'}</h2></div><span class="poll-detail-panel-status">{current["source_day_count"]} {'JOURS-SOURCES' if french else 'SOURCE-DAYS'}</span></div><div class="agenda-current-activity-body"><div class="agenda-current-activity-key"><strong>{'JOURS-SOURCES PAR JOUR' if french else 'SOURCE-DAYS PER DAY'}</strong><div class="agenda-current-activity-legend" aria-label="{'Légende temporelle' if french else 'Temporal legend'}"><span><i class="is-older"></i>{'ANTÉRIEUR' if french else 'EARLIER'}</span><span><i class="is-previous"></i>{'SEM. COMPLÈTE PRÉC.' if french else 'PREVIOUS COMPLETE WEEK'}</span><span><i class="is-latest"></i>{'DERNIÈRE SEM. COMPLÈTE' if french else 'LATEST COMPLETE WEEK'}</span><span><i class="is-partial"></i>{'PARTIEL' if french else 'PARTIAL'}</span></div></div>{bars}<div class="agenda-current-activity-axis"><span>{_h(_date(current["daily_activity"][0]["date"], language))}</span><span>{_h(_date(current["daily_activity"][-1]["date"], language))}</span></div><div class="agenda-current-incidence"><div class="agenda-note-title-line"><h3>{'JOURS-SOURCES · SEMAINES COMPLÈTES' if french else 'SOURCE-DAYS · COMPLETE WEEKS'}</h3>{method_tooltip}</div><dl class="agenda-current-comparison"><div class="is-previous agenda-incidence-period" tabindex="0" aria-describedby="agenda-source-days-previous-dates"><dt>{'PRÉCÉDENTE' if french else 'PREVIOUS'}</dt><dd>{comparison["previous_source_day_count"]}</dd>{date_tooltips["previous"]}</div><div class="is-latest agenda-incidence-period" tabindex="0" aria-describedby="agenda-source-days-latest-dates"><dt>{'DERNIÈRE' if french else 'LATEST'}</dt><dd>{comparison["latest_source_day_count"]}</dd>{date_tooltips["latest"]}</div><div class="is-delta"><dt>{'ÉVOLUTION' if french else 'CHANGE'}</dt><dd>{_h(_signed(comparison["source_day_change"], language, digits=0))}</dd></div></dl></div></div></section>
+      <section class="poll-detail-panel agenda-subtopics"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">{'CLASSIFICATION OBSERVÉE' if french else 'OBSERVED CLASSIFICATION'}</div><h2>{'SIGNAUX ASSOCIÉS' if french else 'ASSOCIATED SIGNALS'}</h2></div><span class="poll-detail-panel-status">{len(current["matched_term_counts"])}</span></div><ol class="agenda-subtopics-scroll">{signals}</ol></section></div>
+      <section class="poll-detail-panel agenda-candidates agenda-current-candidates"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">{'CO-OCCURRENCE CANDIDATS · 30 J' if french else 'CANDIDATE CO-OCCURRENCE · 30D'}</div><div class="agenda-note-title-line"><h2>{'ASSOCIATIONS ACTUELLES DE CANDIDATS' if french else 'CURRENT CANDIDATE ASSOCIATIONS'}</h2>{_tooltip('agenda-candidate-note', 'Note', candidate_note, warning=True)}</div></div><span class="poll-detail-panel-status">{candidates["candidate_count"]}</span></div>{candidate_ledger}</section>
+      <section class="poll-detail-panel agenda-published-evidence agenda-current-evidence"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">{'SOURCES' if french else 'SOURCE-LINKED'}</div><div class="agenda-note-title-line"><h2>{'DERNIÈRES PREUVES SOURCÉES' if french else 'LATEST SOURCE-LINKED EVIDENCE'}</h2>{evidence_cap_tooltip}</div></div><span class="poll-detail-panel-status">{current["supporting_item_count"]} {'PUBLIÉES' if french else 'PUBLISHED'} · {omission} {'OMISES' if french else 'OMITTED'}</span></div><div class="agenda-evidence-list agenda-current-evidence-visible">{evidence}</div></section>
+      <section class="poll-detail-panel agenda-compact-history" aria-labelledby="agenda-compact-history-title"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">{'LONGUE DURÉE' if french else 'LONG-RANGE'}</div><h2 id="agenda-compact-history-title">{'HISTORIQUE COMPACT' if french else 'COMPACT HISTORY'}</h2></div><span class="poll-detail-panel-status">{_h(history_status)}</span></div><div class="agenda-compact-history-body"><dl class="agenda-compact-history-meta"><div><dt>{'PREMIÈRE OBS.' if french else 'FIRST OBS.'}</dt><dd>{_h(_date(history["first_observation"], language))}</dd></div><div><dt>{'DERNIÈRE OBS.' if french else 'LAST OBS.'}</dt><dd>{_h(_date(history["last_observation"], language))}</dd></div><div><dt>{'JOURS-SOURCES' if french else 'SOURCE-DAYS'}</dt><dd>{history["total_source_days"]}</dd></div><div><dt>{'JOURS ACTIFS' if french else 'ACTIVE DAYS'}</dt><dd>{history["active_days"]}</dd></div></dl>{_compact_history_bars(topic, language)}</div></section>
+      <div class="agenda-detail-crosslinks"><a class="poll-detail-back-cta agenda-history-detail-cta" href="{_h(history_route)}">{'VOIR L’HISTORIQUE DE CE THÈME →' if french else 'VIEW THIS TOPIC’S HISTORY →'}</a><a class="poll-detail-back-cta agenda-all-cta" href="{'/agenda/' if french else '/en/agenda/'}">{'TOUS LES THÈMES DE L’AGENDA →' if french else 'ALL AGENDA TOPICS →'}</a></div>
       </div>{shell["footer"]}</main></body></html>''')
 
 
@@ -1038,11 +1369,12 @@ def _history_detail(
     )[:5]
     peak_max = ranked[0]["source_day_count"] if ranked else 1
     peaks = "".join(
-        f'<li data-peak-day="{point["date"]}"><div class="agenda-history-peak-day-primary"><time>{_h(_date(point["date"], language))}</time><strong>{point["source_day_count"]}</strong></div><span>{point["item_count"]} {"articles" if french else "items"} · {_decimal(point["topic_source_day_share"] * 100, language, 2)}%</span><i class="agenda-history-peak-day-magnitude" style="--agenda-history-peak-share:{point["source_day_count"] / peak_max:.6f}"></i></li>'
+        f'<li data-peak-day="{point["date"]}"><div class="agenda-history-peak-day-primary"><time>{_h(_date(point["date"], language))}</time><strong>{point["source_day_count"]}</strong></div><span>{point["item_count"]} {("article" if point["item_count"] == 1 else "articles") if french else ("item" if point["item_count"] == 1 else "items")} · {_decimal(point["topic_source_day_share"] * 100, language, 2)}%</span><i class="agenda-history-peak-day-magnitude" style="--agenda-history-peak-share:{point["source_day_count"] / peak_max:.6f}"></i></li>'
         for point in ranked
     ) or f'<p class="agenda-detail-note">{"Aucun jour actif observé." if french else "No active day observed."}</p>'
     associations = topic["historical_candidate_associations"]
-    candidate_rows = _candidate_rows(associations, language, historical=True)
+    candidate_ledgers = _candidate_columns(associations, language, historical=True)
+    daily_peak = max((point["source_day_count"] for point in history["daily"]), default=0)
     ledger = "".join(
         f'<tr><td data-label="DATE"><time datetime="{point["date"]}">{_h(_date(point["date"], language))}</time></td><td data-label="{"ARTICLES" if french else "ITEMS"}">{point["item_count"]}</td><td data-label="{"JOURS-SOURCES" if french else "SOURCE-DAYS"}">{point["source_day_count"]}</td><td data-label="{"TOTAL ARTICLES" if french else "TOTAL ITEMS"}">{point["total_classified_agenda_items"]}</td><td data-label="{"TOTAL JOURS-SOURCES" if french else "TOTAL SOURCE-DAYS"}">{point["total_agenda_topic_source_days"]}</td><td data-label="{"PART" if french else "SHARE"}">{_decimal(point["topic_source_day_share"] * 100, language, 2)}%</td></tr>'
         for point in history["daily"]
@@ -1052,12 +1384,19 @@ def _history_detail(
         if french
         else "Observed candidate × topic associations, separate from media volumes. One article may produce multiple candidate associations."
     )
+    coverage_note = (
+        "Les barres représentent les jours-sources observés par jour. "
+        "« Part agenda » rapporte le thème à l’ensemble des thèmes classés de l’agenda."
+        if french else
+        "Bars represent observed source-days per day. "
+        "“Agenda share” measures the topic against all classified Agenda topics."
+    )
     return _document(f'''<!doctype html><html lang="{language}">{head}<body class="polling-page poll-detail-page agenda-page agenda-detail-page agenda-history-detail-page"><main class="polling-shell">{header}<div class="poll-detail-content">
-      <nav class="poll-detail-breadcrumb"><a href="{'/' if french else '/en/'}">{'ACCUEIL' if french else 'HOME'}</a><span>/</span><a href="{'/agenda/' if french else '/en/agenda/'}">AGENDA</a><span>/</span><a href="{'/agenda/historique/' if french else '/en/agenda/history/'}">{'HISTORIQUE' if french else 'HISTORY'}</a><span>/</span><span aria-current="page">{_h(label)}</span></nav>
-      <section class="poll-detail-hero agenda-detail-hero"><div class="poll-detail-hero-main"><div><div class="poll-detail-eyebrow">{'THÈME · HISTORIQUE' if french else 'TOPIC · HISTORY'}</div><div class="poll-detail-title-line"><h1 class="poll-detail-title">{_h(label)}</h1><span class="agenda-state is-{_h(topic["lifecycle"])}">{_h(_lifecycle_label(topic["lifecycle"], language))}</span></div></div></div><div class="poll-detail-metrics"><div class="poll-detail-metric"><span>{'ARTICLES CLASSÉS' if french else 'CLASSIFIED ITEMS'}</span><strong>{history["total_items"]}</strong></div><div class="poll-detail-metric"><span>{'JOURS-SOURCES' if french else 'SOURCE-DAYS'}</span><strong>{history["total_source_days"]}</strong></div><div class="poll-detail-metric"><span>{'JOURS ACTIFS' if french else 'ACTIVE DAYS'}</span><strong>{history["active_days"]}</strong></div><div class="poll-detail-metric"><span>{'PREMIÈRE OBS.' if french else 'FIRST OBS.'}</span><strong>{_h(_date(history["first_observation"], language))}</strong></div><div class="poll-detail-metric"><span>{'MAX GLISSANT · 30 J' if french else 'MAX ROLLING · 30D'}</span><strong>{history["maximum_rolling_30d_source_days"]}</strong></div></div></section>
-      <div class="agenda-history-detail-grid agenda-history-detail-top-grid"><section class="poll-detail-panel agenda-history-detail-evolution"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">LONGITUDINAL</div><h2>{'ÉVOLUTION JOURS-SOURCES / PART AGENDA' if french else 'SOURCE-DAY / AGENDA-SHARE EVOLUTION'}</h2></div><span class="poll-detail-panel-status">{history["active_days"]} {'JOURS ACTIFS' if french else 'ACTIVE DAYS'}</span></div>{_history_visual(topic, language)}</section><aside class="poll-detail-panel agenda-history-context agenda-history-peaks"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">{'REPÈRES' if french else 'HIGHLIGHTS'}</div><h2>{'JOURS DE PIC' if french else 'PEAK DAYS'}</h2></div><span class="poll-detail-panel-status">{len(ranked)}</span></div><ol class="agenda-history-peak-days">{peaks}</ol></aside></div>
-      <section class="poll-detail-panel agenda-history agenda-history-candidates"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">{'DOMAINE SÉPARÉ' if french else 'SEPARATE DOMAIN'}</div><div class="agenda-note-title-line"><h2>{'REGISTRE DES ASSOCIATIONS CANDIDAT × THÈME' if french else 'CANDIDATE × TOPIC ASSOCIATION LEDGER'}</h2>{_tooltip('agenda-history-candidate-note', 'Note', candidate_note, warning=True)}</div></div><span class="poll-detail-panel-status">{associations["candidate_count"]}</span></div><div class="agenda-history-candidate-ledgers"><ul class="agenda-history-candidate-column">{candidate_rows}</ul></div></section>
-      <section class="poll-detail-panel agenda-history-daily"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">{'DONNÉES' if french else 'DATA'}</div><h2>{'REGISTRE JOUR PAR JOUR' if french else 'DAY-BY-DAY LEDGER'}</h2></div><span class="poll-detail-panel-status">{len(history["daily"])} {'JOURS' if french else 'DAYS'}</span></div><div class="agenda-history-table-wrap agenda-history-daily-ledger"><table class="agenda-history-table"><thead><tr><th>DATE</th><th>{'ARTICLES' if french else 'ITEMS'}</th><th>{'JOURS-SOURCES' if french else 'SOURCE-DAYS'}</th><th>{'TOTAL ARTICLES' if french else 'TOTAL ITEMS'}</th><th>{'TOTAL JOURS-SOURCES' if french else 'TOTAL SOURCE-DAYS'}</th><th>{'PART AGENDA' if french else 'AGENDA SHARE'}</th></tr></thead><tbody>{ledger}</tbody></table></div></section>
+      <nav class="poll-detail-breadcrumb" aria-label="{'Fil d’Ariane' if french else 'Breadcrumb'}"><a href="{'/' if french else '/en/'}">{'ACCUEIL' if french else 'HOME'}</a><span>/</span><a href="{'/agenda/' if french else '/en/agenda/'}">AGENDA</a><span>/</span><a href="{'/agenda/historique/' if french else '/en/agenda/history/'}">{'HISTORIQUE' if french else 'HISTORY'}</a><span>/</span><span aria-current="page">{_h(label)}</span></nav>
+      <section class="poll-detail-hero agenda-detail-hero"><div class="poll-detail-hero-main"><div><div class="poll-detail-eyebrow">{'THÈME · HISTORIQUE' if french else 'TOPIC · HISTORY'}</div><div class="poll-detail-title-line"><h1 class="poll-detail-title">{_h(label)}</h1><span class="agenda-state is-{_h(topic["lifecycle"])}">{_h(_lifecycle_label(topic["lifecycle"], language))}</span></div></div></div><div class="poll-detail-metrics"><div class="poll-detail-metric"><span>{'JOURS-SOURCES · HIST.' if french else 'SOURCE-DAYS · HISTORY'}</span><strong>{history["total_source_days"]}</strong></div><div class="poll-detail-metric"><span>{'JOURS ACTIFS' if french else 'ACTIVE DAYS'}</span><strong>{history["active_days"]}</strong></div><div class="poll-detail-metric"><span>{'PIC JOURNALIER' if french else 'DAILY PEAK'}</span><strong>{daily_peak}</strong></div><div class="poll-detail-metric"><span>{'PREMIÈRE OBS.' if french else 'FIRST OBS.'}</span><strong>{_h(_date(history["first_observation"], language))}</strong></div><div class="poll-detail-metric poll-detail-metric-fieldwork"><span>{'DERNIÈRE OBS.' if french else 'LATEST OBS.'}</span><strong>{_h(_date(history["last_observation"], language))}</strong></div></div></section>
+      <div class="agenda-history-detail-grid agenda-history-detail-top-grid"><section aria-labelledby="agenda-history-coverage-title" class="poll-detail-panel agenda-history-detail-evolution"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">LONGITUDINAL</div><div class="agenda-note-title-line"><h2 id="agenda-history-coverage-title">{'HISTORIQUE DE LA COUVERTURE' if french else 'COVERAGE HISTORY'}</h2>{_tooltip('agenda-history-coverage-note', 'Note méthodologique' if french else 'Method note', coverage_note)}</div></div><span class="poll-detail-panel-status">{history["active_days"]} {'JOURS ACTIFS' if french else 'ACTIVE DAYS'}</span></div>{_history_visual(topic, language)}</section><aside aria-labelledby="agenda-history-peaks-title" class="poll-detail-panel agenda-history-context agenda-history-peaks"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">{'REPÈRES' if french else 'HIGHLIGHTS'}</div><h2 id="agenda-history-peaks-title">{'JOURS MARQUANTS' if french else 'PEAK DAYS'}</h2></div><span class="poll-detail-panel-status">{len(ranked)} {'JOURS' if french else 'DAYS'}</span></div><div class="agenda-history-peak-unit">{'JOURS-SOURCES' if french else 'SOURCE-DAYS'}</div><ol class="agenda-history-peak-days">{peaks}</ol></aside></div>
+      <section aria-labelledby="agenda-history-candidates-title" class="poll-detail-panel agenda-history agenda-history-candidates"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">{'DOMAINE SÉPARÉ' if french else 'SEPARATE DOMAIN'}</div><div class="agenda-note-title-line"><h2 id="agenda-history-candidates-title">{'HISTORIQUE DES ASSOCIATIONS CANDIDAT × THÈME' if french else 'CANDIDATE × TOPIC ASSOCIATION HISTORY'}</h2>{_tooltip('agenda-history-candidate-note', 'Note d’association' if french else 'Association note', candidate_note, warning=True)}</div></div><span class="poll-detail-panel-status">{associations["candidate_count"]} {'CANDIDATS' if french else 'CANDIDATES'}</span></div>{candidate_ledgers}</section>
+      <section aria-labelledby="agenda-history-daily-title" class="poll-detail-panel agenda-history-daily"><div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">{'DONNÉES' if french else 'DATA'}</div><h2 id="agenda-history-daily-title">{'REGISTRE JOUR PAR JOUR' if french else 'DAY-BY-DAY LEDGER'}</h2></div><span class="poll-detail-panel-status">{len(history["daily"])} {'JOURS' if french else 'DAYS'}</span></div><div class="agenda-history-table-wrap agenda-history-daily-ledger" tabindex="0" role="region" aria-labelledby="agenda-history-daily-title"><table class="agenda-history-table"><thead><tr><th>DATE</th><th>{'ARTICLES' if french else 'ITEMS'}</th><th>{'JOURS-SOURCES' if french else 'SOURCE-DAYS'}</th><th>{'TOTAL ARTICLES' if french else 'TOTAL ITEMS'}</th><th>{'TOTAL JOURS-SOURCES' if french else 'TOTAL SOURCE-DAYS'}</th><th>{'PART AGENDA' if french else 'AGENDA SHARE'}</th></tr></thead><tbody>{ledger}</tbody></table></div></section>
       <div class="agenda-history-detail-actions"><a class="poll-detail-back-cta agenda-history-current-cta" href="{_h(topic["routes"][language])}">{'VOIR L’ÉTAT ACTUEL →' if french else 'VIEW CURRENT STATE →'}</a><a class="poll-detail-back-cta agenda-history-hub-cta" href="{'/agenda/historique/' if french else '/en/agenda/history/'}">{'TOUT L’HISTORIQUE DE L’AGENDA →' if french else 'ALL AGENDA HISTORY →'}</a></div>
       </div>{shell["footer"]}</main></body></html>''')
 
@@ -1081,24 +1420,30 @@ def build_from_paths(
     candidate_history = _load_json(agenda_history_path)
     candidate_registry = _load_json(candidate_registry_path)
     candidate_index = project_candidate_route_index(candidate_registry, root)
+    coverage_history = _load_json(coverage_history_path)
     base_projection = project_agenda_pages(
         _load_json(news_wire_path),
-        _load_json(coverage_history_path),
+        coverage_history,
         previous_manifest=previous_manifest,
         candidate_history=candidate_history,
     )
     projection = _enrich_projection(
         base_projection, candidate_history, candidate_index["candidates"]
     )
-    coverage_history = _load_json(coverage_history_path)
     projection["coverage_history_period"] = coverage_history["period"]
+    projection["historical_evidence"] = _historical_evidence(coverage_history, projection["topics"])
     templates = load_shell_templates(root)
     poll_manifest = _load_json(root / "poll_pages_manifest.json")
     wave_count = poll_manifest.get("wave_count")
     if type(wave_count) is not int or wave_count < 0:
         raise AgendaPageBuildError("poll page manifest wave_count is invalid")
-    for template in templates.values():
+    for language, template in templates.items():
         template["footer"] = prepare_footer(template["footer"], wave_count)
+        if language == "en":
+            # Localize the inherited dock tooltip for this Agenda family only.
+            template["footer"] = template["footer"].replace(
+                "FR27 sur X · @fr27signal", "FR27 on X · @fr27signal"
+            )
     favicon = _site_favicon_link(root)
     og_image = _site_og_image_url(root)
     artifacts: dict[Path, bytes] = {

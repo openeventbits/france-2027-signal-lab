@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import io
 import json
+import subprocess
 import unittest
 import uuid
 from contextlib import redirect_stdout
@@ -67,9 +68,18 @@ def snapshot(
                 "daily_activity": points,
             }
         )
+    supporting_topics = []
+    for topic in topics:
+        observed = [point for point in topic["daily_activity"] if point["item_count"]]
+        supporting_topics.append({"id": topic["id"], "supporting_items": [
+            {"id": topic["id"] + point["date"], "publisher": "Retained publisher",
+             "headline": "Retained observation", "url": "https://example.org/" + topic["id"] + "/" + point["date"],
+             "published_at": point["date"] + "T00:00:00Z"} for point in observed
+        ]})
     return {
         "generated_at": generated_at,
         "campaign_agenda": {
+            "topics": supporting_topics,
             "evolution": {
                 "period_days": 30,
                 "period_start": dates[0],
@@ -123,6 +133,54 @@ class AgendaCoverageHistoryTests(unittest.TestCase):
             return builder.build_history_payload(
                 root=ROOT, news_wire_path=MemoryJsonPath(current)
             )
+
+    def test_materialized_evidence_has_retained_authority_and_exact_source_values(self):
+        section = self.artifact["historical_evidence"]
+        items = section["items"]
+        self.assertEqual(len(items), 6)
+        self.assertEqual({item["topic_id"] for item in items}, {topic["id"] for topic in self.artifact["topics"]})
+        self.assertEqual(items, sorted(items, key=lambda item: (item["date"], item["published_at"], str(item["id"])), reverse=True))
+        authority = {point["date"]: point["source_snapshot_at"] for point in self.artifact["daily"]}
+        snapshots = {}
+        for item in items:
+            self.assertEqual(item["source_snapshot_at"], authority[item["date"]])
+            commit = item["source_commit"]
+            if commit not in snapshots:
+                snapshots[commit] = json.loads(subprocess.check_output(["git", "show", f"{commit}:news_wire.json"], cwd=ROOT))
+            payload = snapshots[commit]
+            self.assertEqual(payload["generated_at"], item["source_snapshot_at"])
+            topic = next(topic for topic in payload["campaign_agenda"]["topics"] if topic["id"] == item["topic_id"])
+            original = next(row for row in topic["supporting_items"] if row["id"] == item["id"] and row["url"] == item["url"])
+            for field in ("publisher", "published_at", "headline", "url"):
+                self.assertEqual(item[field], original[field])
+
+    def test_evidence_selection_retains_source_day_peak_tie_break_and_output_order(self):
+        retained = snapshot()
+        points = retained["campaign_agenda"]["evolution"]["topics"][1]["daily_activity"]
+        topic_data = {"id": "selection_strategy", "active_days": 2, "daily": points}
+        daily = [{"date": point["date"], "source_snapshot_at": retained["generated_at"]} for point in points[:-1]]
+        observation = {"commit": "a" * 40}
+        select = lambda: builder._historical_evidence([(observation, retained)], daily, [topic_data])["items"][0]
+        row = select()
+        self.assertEqual(row["topic_id"], "selection_strategy")
+        self.assertEqual(row["date"], "2026-01-02")
+        topic = retained["campaign_agenda"]["topics"][1]
+        earlier = copy.deepcopy(topic["supporting_items"][0])
+        earlier.update(id="a-earlier", published_at="2026-01-02T00:00:00Z", url="https://example.org/unchanged?x=1&y=2")
+        topic["supporting_items"].append(earlier)
+        selected = select()
+        self.assertEqual(selected["id"], "a-earlier")
+        self.assertEqual(selected["url"], earlier["url"])
+
+    def test_evidence_has_no_current_only_fallback_or_unknown_topic(self):
+        topic = {"id": "selection_strategy", "active_days": 1,
+                 "daily": [{"date": "2026-01-02", "source_day_count": 2}]}
+        daily = [{"date": "2026-01-02", "source_snapshot_at": "2026-01-31T12:00:00Z"}]
+        with self.assertRaisesRegex(builder.AgendaCoverageHistoryError, "authoritative retained"):
+            builder._historical_evidence([], daily, [topic])
+        wrong = snapshot(generated_at="2026-01-30T12:00:00Z")
+        with self.assertRaisesRegex(builder.AgendaCoverageHistoryError, "authoritative retained"):
+            builder._historical_evidence([({"commit": "a" * 40}, wrong)], daily, [topic])
 
     def test_published_artifact_is_valid_contiguous_and_excludes_partial_day(self):
         index = validate_agenda_coverage_history(self.artifact)

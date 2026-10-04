@@ -5029,6 +5029,12 @@ html:has(> body.agenda-current-detail-page) {
   align-items: center;
 }
 
+/* Anchor the current hero note to its title row, as in the Issues hub.
+   A button-relative note can extend beyond the viewport at tablet widths. */
+.agenda-hub-page:not(.agenda-history-page) .agenda-hub-title-row > .agenda-note-tooltip {
+  position: static;
+}
+
 .agenda-hub-page .agenda-note-tooltip-trigger {
   display: inline-flex;
   width: 17px;
@@ -5108,25 +5114,6 @@ html:has(> body.agenda-current-detail-page) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .agenda-hub-page:not(.agenda-history-page) .agenda-card {
-    min-height: 230px;
-    gap: 9px;
-    padding: 14px 17px 13px;
-  }
-
-  .agenda-hub-page:not(.agenda-history-page) .agenda-card-head {
-    min-height: 40px;
-  }
-
-  .agenda-hub-page:not(.agenda-history-page)
-    .agenda-card-counts strong {
-    font-size: 22px;
-  }
-
-  .agenda-hub-page:not(.agenda-history-page)
-    .agenda-card-microbars {
-    min-height: 50px;
-  }
 }
 
 
@@ -5144,48 +5131,6 @@ html:has(> body.agenda-current-detail-page) {
 @media (max-width: 759px) {
   .agenda-hub-page:not(.agenda-history-page) .agenda-card-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-
-/* ----------------------------------------------------------
-   CURRENT HUB COMPARISON — show all six topics, no nested scroll
-   ---------------------------------------------------------- */
-
-@media (min-width: 1000px) {
-  .agenda-hub-page:not(.agenda-history-page)
-    .agenda-movement-panel,
-  .agenda-hub-page:not(.agenda-history-page)
-    .agenda-agenda-panel {
-    height: auto;
-    min-height: 0;
-    overflow: visible;
-  }
-
-  .agenda-hub-page:not(.agenda-history-page)
-    .agenda-movement-panel
-    .agenda-dumbbell {
-    min-height: 0;
-    overflow: visible;
-  }
-
-  .agenda-hub-page:not(.agenda-history-page)
-    .agenda-movement-panel
-    .agenda-dumbbell-list {
-    flex: 0 0 auto;
-    min-height: auto;
-    overflow: visible;
-    scrollbar-gutter: auto;
-    padding-right: 0;
-  }
-
-  .agenda-hub-page:not(.agenda-history-page)
-    .agenda-agenda-panel
-    .agenda-agenda-composition {
-    min-height: auto;
-    overflow: visible;
-    scrollbar-gutter: auto;
-    padding-right: 16px;
   }
 }
 
@@ -5211,5 +5156,249 @@ html:has(> body.agenda-current-detail-page) {
     .agenda-note-tooltip:focus-within
     .agenda-note-tooltip-body {
     transform: translateY(0);
+  }
+}
+
+/* Historical hub: retain six cards with the shared Issues component styles. */
+.agenda-history-page .agenda-hub-title-row > .agenda-note-tooltip {
+  position: static;
+}
+
+@media (min-width: 1100px) {
+  .agenda-history-page .agenda-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 760px) and (max-width: 1099px) {
+  .agenda-history-page .agenda-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 759px) {
+  .agenda-history-page .agenda-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* FR27 Agenda candidate association adaptive columns
+   One full-width column for small candidate sets; balanced two-column
+   ledger for larger sets. Both columns share the renderer's global
+   magnitude scale. */
+
+/* Historical-detail density: keep the source-day support line without
+   letting peak rows stretch the adjacent longitudinal chart. */
+.agenda-history-detail-page .agenda-history-peak-unit {
+  padding: 1px 12px 0;
+  color: var(--poll-detail-muted-soft);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: right;
+}
+
+@media screen and (min-width: 1000px) {
+  .agenda-history-detail-page .agenda-history-peak-days li {
+    gap: 1px;
+    padding: 2px 12px;
+  }
+
+  .agenda-history-detail-page .agenda-history-peak-day-primary strong {
+    line-height: 1.3;
+  }
+
+  .agenda-history-detail-page .agenda-history-peak-days li > span {
+    color: var(--poll-detail-muted);
+    font-size: 11px;
+    line-height: 1.25;
+  }
+}
+
+.agenda-history-detail-page .agenda-history-candidate-ledgers.is-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Small historical candidate sets fit naturally; only dense columns scroll. */
+.agenda-history-detail-page .agenda-history-candidate-ledgers.is-single
+  .agenda-history-candidate-column {
+  max-height: none;
+  overflow-y: visible;
+  scrollbar-gutter: auto;
+}
+
+.agenda-history-detail-page .agenda-history-candidate-column:focus-visible,
+.agenda-history-detail-page .agenda-history-daily-ledger:focus-visible {
+  outline: 1px solid var(--poll-detail-cyan);
+  outline-offset: -2px;
+}
+
+.agenda-history-detail-page .agenda-note-tooltip-body {
+  pointer-events: auto;
+}
+
+/* Bridge the small visual gap so a pointer can reach the note itself. */
+.agenda-history-detail-page .agenda-note-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: 7px;
+}
+
+.agenda-history-detail-page .agenda-note-tooltip.is-dismissed
+  .agenda-note-tooltip-body {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agenda-history-detail-page .agenda-note-tooltip-body {
+    transition: none;
+  }
+}
+
+.agenda-current-detail-page .agenda-candidate-ledgers.is-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.agenda-current-detail-page .agenda-candidate-ledgers.is-split {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.agenda-current-detail-page
+  .agenda-candidate-ledgers.is-single
+  .agenda-candidate-column {
+  width: 100%;
+  max-width: none;
+}
+
+@media screen and (max-width: 999px) {
+  .agenda-current-detail-page .agenda-candidate-ledgers.is-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .agenda-current-detail-page
+    .agenda-candidate-ledgers.is-split
+    .agenda-candidate-column + .agenda-candidate-column {
+    border-top: 1px solid var(--poll-detail-line);
+    border-left: 0;
+  }
+}
+/* Current detail parity: use the existing Issues-namespaced KPI/history/nav
+   rules above. Retain the full-width plot and adaptive activity fill. */
+.agenda-current-detail-page .agenda-weekly-signal-title-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.agenda-current-detail-page .agenda-detail-activity-bars {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  gap: 1px;
+  grid-template-columns:
+    repeat(var(--agenda-activity-columns), minmax(0, 1fr));
+  justify-content: stretch;
+  overflow: hidden;
+  background: none;
+}
+
+.agenda-current-detail-page .agenda-detail-activity-bar {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.agenda-current-detail-page .agenda-subtopics-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.agenda-current-detail-page .agenda-compact-history {
+  margin-top: 16px;
+}
+
+@media screen and (min-width: 1000px) {
+  .agenda-current-detail-page .agenda-current-activity {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+  }
+
+  .agenda-current-detail-page .agenda-current-activity > .poll-detail-panel-head,
+  .agenda-current-detail-page .agenda-current-activity-key,
+  .agenda-current-detail-page .agenda-current-activity-axis,
+  .agenda-current-detail-page .agenda-current-incidence {
+    flex: 0 0 auto;
+  }
+
+  .agenda-current-detail-page .agenda-current-activity-body {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+  }
+
+  .agenda-current-detail-page .agenda-detail-activity-bars {
+    flex: 1 1 84px;
+    height: auto;
+    min-height: 84px;
+  }
+
+  .agenda-current-detail-page .agenda-subtopics-scroll {
+    max-height: 248px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+}
+
+/* Current-detail evidence: keep the header and omission note above/below
+   a bounded desktop body. Use the classifier/candidate scrollbar language. */
+.agenda-current-detail-page .agenda-current-evidence .agenda-current-evidence-visible {
+  scrollbar-width: thin;
+  scrollbar-color: var(--poll-detail-line-strong) transparent;
+}
+
+.agenda-current-detail-page .agenda-current-evidence .agenda-current-evidence-visible::-webkit-scrollbar {
+  width: 5px;
+}
+
+.agenda-current-detail-page .agenda-current-evidence .agenda-current-evidence-visible::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.agenda-current-detail-page .agenda-current-evidence .agenda-current-evidence-visible::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--poll-detail-line-strong);
+}
+
+.agenda-current-detail-page .agenda-current-evidence .agenda-current-evidence-visible::-webkit-scrollbar-thumb:hover {
+  background: var(--final-cyan);
+}
+
+@media screen and (min-width: 1000px) {
+  .agenda-current-detail-page .agenda-current-evidence .agenda-current-evidence-visible {
+    max-height: 440px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+}
+
+@media screen and (max-width: 999px) {
+  .agenda-current-detail-page .agenda-current-evidence .agenda-current-evidence-visible {
+    max-height: none;
+    overflow-y: visible;
+    overflow-x: clip;
+    scrollbar-gutter: auto;
   }
 }

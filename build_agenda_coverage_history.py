@@ -3,7 +3,8 @@
 History is reconstructed from the published classifications retained in Git
 under ``news_wire.json:campaign_agenda.evolution``.  Old headlines are never
 reclassified, and candidate association history is never used as a proxy for
-media volume.
+media volume. Historical source-linked observations are materialized from the
+matching retained published supporting items for artifact-only page rendering.
 """
 
 from __future__ import annotations
@@ -21,6 +22,8 @@ from agenda_page_contract import (
     AGENDA_DEFINITIONS,
     CURRENT_SOURCE_DAY_MIN,
     HISTORY_SCHEMA_VERSION,
+    HISTORICAL_EVIDENCE_SELECTION_RULE,
+    HISTORICAL_EVIDENCE_SOURCE,
     ROLLING_HISTORY_DAYS,
     validate_agenda_coverage_history,
 )
@@ -139,7 +142,11 @@ def _read_blobs(
             if process.stderr is not None
             else ""
         )
+        process.stdout.close()
+        process.stderr.close()
         raise AgendaCoverageHistoryError(f"Git object reader failed: {detail}")
+    process.stdout.close()
+    process.stderr.close()
 
 
 def _parse_timestamp(value: Any, label: str) -> datetime:
@@ -327,6 +334,49 @@ def _rolling_30d_maximum(points: list[dict[str, Any]]) -> int:
     return maximum
 
 
+def _historical_evidence(
+    retained: list[tuple[dict[str, Any], dict[str, Any]]],
+    daily: list[dict[str, Any]],
+    topics: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Materialize the historical hub's existing per-theme selection unchanged.
+
+    Only retained published supporting items whose snapshot matches the coverage
+    day's authority are eligible. Current-only items are never a fallback.
+    """
+    authority = {point["date"]: point["source_snapshot_at"] for point in daily}
+    selected_topics = [topic for topic in topics if topic["active_days"] > 0]
+    candidates = {topic["id"]: [] for topic in selected_topics}
+    for observation, snapshot in retained:
+        snapshot_at = snapshot.get("generated_at")
+        for topic in snapshot.get("campaign_agenda", {}).get("topics", []):
+            if topic["id"] not in candidates:
+                continue
+            for item in topic.get("supporting_items", []):
+                day = item["published_at"][:10]
+                if authority.get(day) != snapshot_at:
+                    continue
+                candidates[topic["id"]].append({
+                    "id": item["id"], "topic_id": topic["id"],
+                    "publisher": item["publisher"], "published_at": item["published_at"],
+                    "date": day, "headline": item["headline"], "url": item["url"],
+                    "source_snapshot_at": snapshot_at, "source_commit": observation["commit"],
+                })
+    rows = []
+    for topic in selected_topics:
+        source_days = {point["date"]: point["source_day_count"] for point in topic["daily"]}
+        choices = candidates[topic["id"]]
+        if not choices:
+            raise AgendaCoverageHistoryError(f'No authoritative retained historical evidence for {topic["id"]}')
+        rows.append(min(choices, key=lambda item: (
+            -source_days[item["date"]], item["date"], item["published_at"], str(item["id"]), item["url"])))
+    return {
+        "source": HISTORICAL_EVIDENCE_SOURCE,
+        "selection_rule": HISTORICAL_EVIDENCE_SELECTION_RULE,
+        "items": sorted(rows, key=lambda item: (item["date"], item["published_at"], str(item["id"])), reverse=True),
+    }
+
+
 def build_history_payload(
     *,
     root: Path = ROOT,
@@ -349,7 +399,8 @@ def build_history_payload(
         for observation in _daily_latest(_history_observations(root, "news_wire.json"))
         if observation["committed_at"].date() >= introduction
     ]
-    snapshots = [payload for _, payload in _read_blobs(root, observations)]
+    retained = list(_read_blobs(root, observations))
+    snapshots = [payload for _, payload in retained]
     snapshots.append(current_payload)
     snapshots.sort(
         key=lambda payload: _parse_timestamp(payload.get("generated_at"), "news generated_at")
@@ -497,6 +548,7 @@ def build_history_payload(
         },
         "daily": daily,
         "topics": topic_payloads,
+        "historical_evidence": _historical_evidence(retained, daily, topic_payloads),
     }
     try:
         validate_agenda_coverage_history(payload)

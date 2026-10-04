@@ -10,6 +10,9 @@ from agenda_page_contract import (
     AGENDA_DEFINITIONS,
     CANONICAL_AGENDA_IDS,
     CURRENT_SOURCE_DAY_MIN,
+    HISTORICAL_EVIDENCE_SELECTION_RULE,
+    HISTORICAL_EVIDENCE_SOURCE,
+    validate_agenda_coverage_history,
     POLICY_AGENDA_IDS,
     AgendaPageContractError,
     agenda_manifest_payload,
@@ -115,6 +118,17 @@ def synthetic_history(
         "denominator": {"single_label": True},
         "daily": daily,
         "topics": topics,
+        "historical_evidence": {
+            "source": HISTORICAL_EVIDENCE_SOURCE,
+            "selection_rule": HISTORICAL_EVIDENCE_SELECTION_RULE,
+            "items": [
+                {"id": topic["id"], "topic_id": topic["id"], "publisher": "Retained publisher",
+                 "headline": "Retained classified observation", "url": "https://example.org/" + topic["id"],
+                 "date": topic["peak_day"]["date"], "published_at": topic["peak_day"]["date"] + "T00:00:00Z",
+                 "source_snapshot_at": "2026-01-31T12:00:00Z", "source_commit": "a" * 40}
+                for topic in topics if topic["active_days"] > 0
+            ],
+        },
     }
 
 
@@ -153,6 +167,41 @@ class AgendaPageContractTests(unittest.TestCase):
                 f'"agenda_topic.{definition.topic_id}": "{definition.label_fr}"',
                 locale,
             )
+
+    def test_historical_evidence_schema_and_invalid_values_fail_closed(self):
+        artifact = json.loads((ROOT / "agenda_coverage_history.json").read_text(encoding="utf-8"))
+        validate_agenda_coverage_history(artifact)
+        mutations = {
+            "topic_id": "unknown_topic", "url": "", "publisher": " ", "headline": "",
+            "date": "2026-02-30", "published_at": "invalid", "source_snapshot_at": "1900-01-01T00:00:00Z",
+            "source_commit": "invalid", "id": "",
+        }
+        for field, value in mutations.items():
+            with self.subTest(field=field):
+                malformed = copy.deepcopy(artifact)
+                malformed["historical_evidence"]["items"][0][field] = value
+                with self.assertRaises(AgendaPageContractError):
+                    validate_agenda_coverage_history(malformed)
+        for url in ("file:///example", "https://", "javascript:alert(1)", "https://example.org/bad url"):
+            malformed = copy.deepcopy(artifact)
+            malformed["historical_evidence"]["items"][0]["url"] = url
+            with self.subTest(url=url), self.assertRaises(AgendaPageContractError):
+                validate_agenda_coverage_history(malformed)
+
+    def test_historical_evidence_census_order_and_authority_fail_closed(self):
+        artifact = json.loads((ROOT / "agenda_coverage_history.json").read_text(encoding="utf-8"))
+        for case in ("missing_section", "missing_item", "duplicate_topic", "reverse_order", "wrong_authority", "wrong_rule", "wrong_date"):
+            malformed = copy.deepcopy(artifact)
+            section = malformed["historical_evidence"]
+            if case == "missing_section": del malformed["historical_evidence"]
+            elif case == "missing_item": section["items"].pop()
+            elif case == "duplicate_topic": section["items"].append(copy.deepcopy(section["items"][0]))
+            elif case == "reverse_order": section["items"].reverse()
+            elif case == "wrong_authority": section["source"] = "candidate associations"
+            elif case == "wrong_rule": section["selection_rule"] = "current-only evidence"
+            elif case == "wrong_date": section["items"][0]["date"] = "1900-01-01"
+            with self.subTest(case=case), self.assertRaises(AgendaPageContractError):
+                validate_agenda_coverage_history(malformed)
 
     def test_bilingual_slugs_are_unique(self):
         self.assertEqual(

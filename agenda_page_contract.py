@@ -8,9 +8,11 @@ history is accepted only as an independently validated association source.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
+from urllib.parse import urlparse
 
 from candidate_agenda_history_contract import (
     CandidateAgendaHistoryContractError,
@@ -26,6 +28,12 @@ from fetch_news_wire import (
 
 SCHEMA_VERSION = "1.0"
 HISTORY_SCHEMA_VERSION = "1.0"
+HISTORICAL_EVIDENCE_SOURCE = "retained news_wire.json campaign_agenda.topics[].supporting_items snapshots"
+HISTORICAL_EVIDENCE_SELECTION_RULE = (
+    "one observation per active canonical topic; matching daily source_snapshot_at; "
+    "source_day_count descending, date ascending, published_at ascending, id ascending, url ascending; "
+    "output date descending, published_at descending, id descending"
+)
 CURRENT_SOURCE_DAY_MIN = CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS
 ROLLING_HISTORY_DAYS = CAMPAIGN_AGENDA_EVOLUTION_DAYS
 
@@ -363,7 +371,55 @@ def validate_agenda_coverage_history(payload: Any) -> dict[str, dict[str, Any]]:
             raise AgendaPageContractError(
                 f"Agenda source-day denominator does not reconcile on {day}"
             )
+    validate_historical_evidence(payload, topic_index)
     return topic_index
+
+
+def validate_historical_evidence(payload: dict[str, Any], topics: dict[str, dict[str, Any]]) -> None:
+    """Validate materialized retained evidence without accessing repository history."""
+    section = _mapping(payload.get("historical_evidence"), "history.historical_evidence")
+    if section.get("source") != HISTORICAL_EVIDENCE_SOURCE or section.get("selection_rule") != HISTORICAL_EVIDENCE_SELECTION_RULE:
+        raise AgendaPageContractError("Historical evidence authority/selection contract mismatch")
+    items = _list(section.get("items"), "historical evidence items")
+    expected = {topic_id for topic_id, topic in topics.items() if topic["active_days"] > 0}
+    authority = {point["date"]: point["source_snapshot_at"] for point in payload["daily"]}
+    seen = set()
+    observations = set()
+    for raw in items:
+        item = _mapping(raw, "historical evidence item")
+        topic_id = item.get("topic_id")
+        if not isinstance(topic_id, str) or topic_id not in AGENDA_BY_ID:
+            raise AgendaPageContractError("Historical evidence contains an unknown taxonomy id")
+        if topic_id in seen:
+            raise AgendaPageContractError("Historical evidence contains a duplicate topic")
+        seen.add(topic_id)
+        for field in ("id", "publisher", "headline", "url"):
+            if not isinstance(item.get(field), str) or not item[field].strip():
+                raise AgendaPageContractError(f"Historical evidence {field} must be non-empty")
+        url = urlparse(item["url"])
+        if url.scheme not in {"http", "https"} or not url.netloc or any(character.isspace() for character in item["url"]):
+            raise AgendaPageContractError("Historical evidence URL is invalid")
+        day = _date(item.get("date"), "historical evidence date")
+        published = _timestamp(item.get("published_at"), "historical evidence published_at")
+        snapshot = _timestamp(item.get("source_snapshot_at"), "historical evidence source_snapshot_at")
+        if published.astimezone(timezone.utc).date() != day or published > snapshot:
+            raise AgendaPageContractError("Historical evidence publication date mismatch")
+        if snapshot > _timestamp(payload["data_as_of"], "history.data_as_of"):
+            raise AgendaPageContractError("Historical evidence snapshot exceeds the retained horizon")
+        if authority.get(item["date"]) != item["source_snapshot_at"]:
+            raise AgendaPageContractError("Historical evidence snapshot does not match retained history")
+        if not any(point["date"] == item["date"] and point["item_count"] > 0 for point in topics[topic_id]["daily"]):
+            raise AgendaPageContractError("Historical evidence topic is inactive on its publication date")
+        if not isinstance(item.get("source_commit"), str) or not re.fullmatch(r"[0-9a-f]{40}", item["source_commit"]):
+            raise AgendaPageContractError("Historical evidence source commit is invalid")
+        key = (item["id"], item["url"])
+        if key in observations:
+            raise AgendaPageContractError("Historical evidence contains a duplicate observation")
+        observations.add(key)
+    if seen != expected:
+        raise AgendaPageContractError("Historical evidence canonical topic census mismatch")
+    if items != sorted(items, key=lambda item: (item["date"], item["published_at"], str(item["id"])), reverse=True):
+        raise AgendaPageContractError("Historical evidence ordering is not deterministic")
 
 
 def validate_candidate_history_compatibility(payload: Any) -> None:

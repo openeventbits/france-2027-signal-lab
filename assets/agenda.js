@@ -1,6 +1,25 @@
 (function () {
   "use strict";
 
+  // Historical notes must dismiss without passing Escape to the shared dock.
+  document.querySelectorAll(
+    ".agenda-history-detail-page .agenda-note-tooltip"
+  ).forEach(function (note) {
+    function reopen() {
+      note.classList.remove("is-dismissed");
+    }
+    note.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        note.classList.add("is-dismissed");
+      }
+    });
+    note.addEventListener("focusin", reopen);
+    note.addEventListener("mouseenter", reopen);
+    note.addEventListener("click", reopen);
+  });
+
   var search = document.querySelector("[data-agenda-search]");
   var grid = document.querySelector("[data-agenda-card-grid]");
 
