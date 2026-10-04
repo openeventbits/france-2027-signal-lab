@@ -1351,6 +1351,104 @@ def _frozen_record(
     }
 
 
+def _matching_candidate_colspan_groups(
+    table: object,
+) -> dict[tuple[int, int], tuple[int, int, int]]:
+    """Prove matching physical name-header and score-cell spans by position.
+
+    Header/body sections and leading all-th rows follow read_html's ordering.
+    Each grid entry retains the physical cell and its full logical interval;
+    equal rendered text alone never establishes a shared source cell.
+    """
+
+    table = copy.deepcopy(table)
+    if table.xpath(".//table"):
+        return {}
+    for element in table.xpath(".//*[@style]"):
+        if "display:none" in element.get("style", "").replace(" ", ""):
+            element.drop_tree()
+    header_rows = table.xpath("./thead/tr")
+    # pandas concatenates tbody rows before root rows, even in malformed HTML.
+    body_rows = table.xpath("./tbody/tr") + table.xpath("./tr")
+    if not header_rows:
+        while body_rows and not body_rows[0].xpath("./td"):
+            header_rows.append(body_rows.pop(0))
+
+    def expand(rows: list[object]) -> list[list[tuple[object, int, int]]]:
+        grid = []
+        carried = {}  # logical column -> (physical cell, start, end, rows left)
+        for row in rows:
+            logical = {}
+            following = {}
+            for column, (cell, start, end, remaining) in carried.items():
+                logical[column] = (cell, start, end)
+                if remaining > 1:
+                    following[column] = (cell, start, end, remaining - 1)
+            column = 0
+            for cell in row.xpath("./th | ./td"):
+                while column in logical:
+                    column += 1
+                width = int(cell.get("colspan") or 1)
+                height = int(cell.get("rowspan") or 1)
+                if width < 1 or height < 1:
+                    raise ValueError("invalid source table span")
+                end = column + width
+                for position in range(column, end):
+                    if position in logical:
+                        raise ValueError("overlapping source table spans")
+                    logical[position] = (cell, column, end)
+                    if height > 1:
+                        following[position] = (cell, column, end, height - 1)
+                column = end
+            # A gap would be compacted by pandas, so it cannot prove positions.
+            if sorted(logical) != list(range(len(logical))):
+                raise ValueError("non-contiguous source table spans")
+            grid.append([logical[position] for position in range(len(logical))])
+            carried = following
+        # pandas appends rows implied by trailing rowspans within each section.
+        while carried:
+            grid.append([
+                (cell, start, end)
+                for _, (cell, start, end, _) in sorted(carried.items())
+            ])
+            carried = {
+                position: (cell, start, end, remaining - 1)
+                for position, (cell, start, end, remaining) in carried.items()
+                if remaining > 1
+            }
+        return grid
+
+    headers = expand(header_rows)
+    body = expand(body_rows) + expand(table.xpath("./tfoot/tr"))
+    name_headers = []
+    for row in headers:
+        for cell, _start, _end in row[3:]:
+            links = cell.xpath(".//a/@href")
+            header = ((cell.text_content(), links[0] if links else None),)
+            if _header_candidate(header)[0]:
+                name_headers = row
+                break
+    groups = {}
+    for row_index, row in enumerate(body):
+        for column, (cell, start, end) in enumerate(row[3:], start=3):
+            if cell.tag != "td" or start < 3 or end - start < 2:
+                continue
+            if end > len(name_headers):
+                continue
+            header, header_start, header_end = name_headers[column]
+            if (
+                header.tag == "th"
+                and (header_start, header_end) == (start, end)
+                and all(
+                    name_headers[position][0] is header
+                    for position in range(start, end)
+                )
+                and all(row[position][0] is cell for position in range(start, end))
+            ):
+                groups[row_index, column] = (row_index, start, end)
+    return groups
+
+
 def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
     """Parse the two audited French table families from frozen rendered HTML."""
 
@@ -1372,6 +1470,7 @@ def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
             candidate_count=3,
         )
         _validate_first_round_candidate_headers(frame, table_label=table_label)
+        colspan_groups = _matching_candidate_colspan_groups(table)
         default_year = _table_default_year(table)
         candidate_columns = [
             (index, *_header_candidate(column))
@@ -1391,6 +1490,8 @@ def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
                 continue
             candidates: list[dict[str, Any]] = []
             candidate_links: dict[str, str | None] = {}
+            candidate_groups: dict[str, tuple[int, int, int] | None] = {}
+            span_values: dict[tuple[int, int, int], tuple[str, int | float]] = {}
             rejection: str | None = None
             for column_index, header_name, generic in candidate_columns:
                 raw_score = cell_text(row.iloc[column_index])
@@ -1416,6 +1517,12 @@ def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
                 rendered_score: int | float = (
                     int(score) if score.is_integer() else score
                 )
+                group = colspan_groups.get((row_index, column_index))
+                if group is not None:
+                    value = (candidate_id, rendered_score)
+                    if group in span_values and span_values[group] != value:
+                        raise ValueError(f"{locator} has contradictory duplicate candidates")
+                    span_values[group] = value
                 existing = next(
                     (
                         item
@@ -1428,16 +1535,21 @@ def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
                 if existing is not None:
                     if (
                         existing["score"] == rendered_score
-                        and row_link
-                        and candidate_links[candidate_id] == row_link
+                        and (
+                            (row_link and candidate_links[candidate_id] == row_link)
+                            or (
+                                group is not None
+                                and candidate_groups[candidate_id] == group
+                            )
+                        )
                     ):
-                        # A body-cell colspan is expanded by pandas into the
-                        # candidate columns it covers.  Count that explicit
-                        # linked person once, not once per covered header.
+                        # Preserve explicit linked-body dedupe; unlinked cells
+                        # require matching physical header and body spans.
                         continue
                     raise ValueError(f"{locator} has contradictory duplicate candidates")
                 candidates.append({"name": name, "score": rendered_score})
                 candidate_links[candidate_id] = row_link
+                candidate_groups[candidate_id] = group
             if rejection:
                 rejected.append(
                     {

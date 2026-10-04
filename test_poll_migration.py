@@ -31,6 +31,7 @@ from poll_migration import (
     POST_AUDIT_PHILIPPE_MELENCHON_LOCATOR,
     _header_candidate,
     _header_value,
+    _matching_candidate_colspan_groups,
     _row_candidate,
     _validate_first_round_candidate_headers,
     apply_wave_scoped_pollster_alias,
@@ -1127,6 +1128,113 @@ class FrozenFixtureTests(unittest.TestCase):
                 read_post_audit_first_round(),
                 read_post_audit_second_round(),
             )
+
+    @staticmethod
+    def _candidate_colspan_fixture(
+        *, header_width: int = 2, body_width: int = 2, thead: bool = False
+    ) -> dict:
+        candidate_headers = (
+            f'<th colspan="{header_width}"><a href="/wiki/Raphaël_Glucksmann">Raphaël Glucksmann</a></th>'
+            if header_width > 1
+            else '<th><a href="/wiki/Raphaël_Glucksmann">Raphaël Glucksmann</a></th><th>Édouard Philippe</th>'
+        )
+        scores = (
+            f'<td colspan="{body_width}">11</td>'
+            if body_width > 1
+            else '<td>11</td><td>11</td>'
+        )
+        headers = (
+            '<tr><th rowspan="2">Sondeur</th><th rowspan="2">Date</th>'
+            '<th rowspan="2">Échantillon</th>'
+            f'<th colspan="{max(header_width, 2)}"><img alt="portrait"></th>'
+            '<th></th><th></th></tr>'
+            f'<tr>{candidate_headers}<th>Jean-Luc Mélenchon</th>'
+            '<th>Marine Le Pen</th></tr>'
+        )
+        rows = (
+            '<tr><td rowspan="2"><a href="https://example.test/notice">Ifop</a></td>'
+            '<td rowspan="2">25–29 septembre 2026</td>'
+            f'<td rowspan="2">1597</td>{scores}<td>20</td><td>30</td></tr>'
+            f'<tr>{scores}<td>21</td><td>31</td></tr>'
+        )
+        contents = (
+            f'<thead>{headers}</thead><tbody>{rows}</tbody>'
+            if thead else f'<tbody>{headers}{rows}</tbody>'
+        )
+        return {
+            "revid": 1,
+            "text": '<h2>Sondages concernant le premier tour</h2>'
+            f'<h3>Second semestre 2026</h3><table>{contents}</table>',
+        }
+
+    def test_matched_candidate_header_body_colspan_collapses(self) -> None:
+        for width, thead in ((2, False), (2, True), (3, False)):
+            with self.subTest(width=width, thead=thead):
+                fixture = self._candidate_colspan_fixture(
+                    header_width=width, body_width=width, thead=thead
+                )
+                table = lxml_html.fromstring(fixture["text"]).xpath("//table")[0]
+                self.assertEqual(
+                    _matching_candidate_colspan_groups(table),
+                    {(row, column): (row, 3, 3 + width)
+                     for row in range(2) for column in range(3, 3 + width)},
+                )
+                with patch("poll_migration._french_runoff_table_plan", return_value=[]):
+                    records = parse_french_frozen_fixture(fixture)["first_round"]
+                self.assertEqual(len(records), 2)
+                for record in records:
+                    self.assertEqual(len(record["candidates"]), 3)
+                    self.assertEqual(
+                        record["candidates"][0],
+                        {"name": "Raphaël Glucksmann", "score": 11},
+                    )
+
+    def test_header_only_candidate_colspan_fails_closed(self) -> None:
+        fixture = self._candidate_colspan_fixture(body_width=1)
+        table = lxml_html.fromstring(fixture["text"]).xpath("//table")[0]
+        self.assertEqual(_matching_candidate_colspan_groups(table), {})
+        with patch("poll_migration._french_runoff_table_plan", return_value=[]):
+            with self.assertRaisesRegex(ValueError, "contradictory duplicate candidates"):
+                parse_french_frozen_fixture(fixture)
+
+    def test_body_only_candidate_colspan_preserves_distinct_candidates(self) -> None:
+        fixture = self._candidate_colspan_fixture(header_width=1)
+        table = lxml_html.fromstring(fixture["text"]).xpath("//table")[0]
+        self.assertEqual(_matching_candidate_colspan_groups(table), {})
+        with patch("poll_migration._french_runoff_table_plan", return_value=[]):
+            records = parse_french_frozen_fixture(fixture)["first_round"]
+        self.assertEqual(len(records[0]["candidates"]), 4)
+        self.assertEqual(
+            [item["name"] for item in records[0]["candidates"][:2]],
+            ["Raphaël Glucksmann", "Édouard Philippe"],
+        )
+
+    def test_matched_candidate_colspan_conflicting_values_fail_closed(self) -> None:
+        fixture = self._candidate_colspan_fixture()
+        read_html = pd.read_html
+        for conflict in ("score", "identity"):
+            with self.subTest(conflict=conflict):
+                def conflicting_frame(*args, **kwargs):
+                    frames = read_html(*args, **kwargs)
+                    frame = frames[0]
+                    if conflict == "score":
+                        frame.iat[0, 4] = ("12", None)
+                    else:
+                        columns = list(frame.columns)
+                        columns[4] = (*columns[4][:-1], ("Édouard Philippe", None))
+                        frame.columns = pd.MultiIndex.from_tuples(columns)
+                    return frames
+
+                with patch("poll_migration.pd.read_html", side_effect=conflicting_frame):
+                    with self.assertRaisesRegex(ValueError, "contradictory duplicate candidates"):
+                        parse_french_frozen_fixture(fixture)
+
+    def test_candidate_colspan_different_span_boundaries_fail_closed(self) -> None:
+        fixture = self._candidate_colspan_fixture(header_width=3, body_width=2)
+        table = lxml_html.fromstring(fixture["text"]).xpath("//table")[0]
+        self.assertEqual(_matching_candidate_colspan_groups(table), {})
+        with self.assertRaisesRegex(ValueError, "contradictory duplicate candidates"):
+            parse_french_frozen_fixture(fixture)
 
     def test_reviewed_factual_change_fails_semantically(self) -> None:
         parsed = copy.deepcopy(self.reviewed_post_audit_fr)
