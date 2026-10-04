@@ -33,14 +33,20 @@
   <script src="/assets/fr27-ui.js" defer></script>
   <script src="/assets/candidate-page.js" defer></script>
   <script src="/assets/candidate-family-hud.js" defer></script>
+  <link rel="stylesheet" href="/assets/fr27-section-launcher.css">
+  <script src="/assets/fr27-section-launcher.js" defer></script>
 </head>
 <body class="candidate-page">
   <main class="candidate-shell">
-    <header class="candidate-masthead" aria-label="France 2027 Signal Lab">
-      <a class="candidate-brand" href="/" aria-label="France 2027 Signal Lab — accueil">
-        <span class="candidate-mark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" focusable="false"><rect x="1" y="1" width="30" height="30" rx="8" fill="#071522"/><path d="M6 16A10 10 0 0 1 16 6M26 16A10 10 0 0 1 16 26" fill="none" stroke="#268cff" stroke-width="2" stroke-linecap="round"/><path d="M10 16A6 6 0 0 1 16 10M22 16A6 6 0 0 1 16 22" fill="none" stroke="#35d5ff" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="16" r="2.5" fill="#35d5ff"/></svg></span>
+    <header class="candidate-masthead" aria-label="France 2027 Signal Lab" data-fr27-section-launcher>
+      <!-- FR27_SECTION_BRAND_START -->
+      <div class="fr27-masthead-brand">
+        <button class="candidate-mark fr27-section-launcher-trigger" type="button" aria-label="Explorer les sections" aria-expanded="false" aria-controls="fr27-section-menu"><span class="fr27-section-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" focusable="false"><rect x="1" y="1" width="30" height="30" rx="8" fill="#071522"/><path d="M6 16A10 10 0 0 1 16 6M26 16A10 10 0 0 1 16 26" fill="none" stroke="#268cff" stroke-width="2" stroke-linecap="round"/><path d="M10 16A6 6 0 0 1 16 10M22 16A6 6 0 0 1 16 22" fill="none" stroke="#35d5ff" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="16" r="2.5" fill="#35d5ff"/></svg></span><span class="fr27-section-caret" aria-hidden="true"></span></button>
+        <a class="candidate-brand" href="/" aria-label="France 2027 Signal Lab — accueil">
         <span class="candidate-brand-copy"><strong>FRANCE 2027 <em>SIGNAL LAB</em></strong><small>Signaux sourcés de la présidentielle française.</small></span>
       </a>
+      </div>
+      <!-- FR27_SECTION_BRAND_END -->
       <div class="candidate-masthead-tools">
         <nav class="candidate-language" aria-label="Langue de l’interface"><a href="/candidates/selma-labib/" lang="fr" hreflang="fr" aria-label="Français" aria-current="page">FR</a><span aria-hidden="true">|</span><a href="/en/candidates/selma-labib/" data-candidate-language-peer data-candidate-peer-base="/en/candidates/selma-labib/" lang="en" hreflang="en" aria-label="English" title="English candidate page">EN</a></nav>
         <div class="candidate-countdown" data-countdown aria-label="Compte à rebours avant le premier tour">
@@ -48,6 +54,14 @@
           <div class="candidate-countdown-copy"><strong class="candidate-countdown-value">—</strong><div class="candidate-countdown-text"><div class="candidate-countdown-line"><span class="candidate-countdown-unit">jours</span><span class="candidate-countdown-label">avant le premier tour</span></div><div class="candidate-countdown-date"><span>18 avr. 2027</span><span class="candidate-tooltip-mark" aria-hidden="true">i</span></div></div></div>
         </div>
       </div>
+    <!-- FR27_SECTION_MENU_START -->
+      <nav class="fr27-section-menu" id="fr27-section-menu" aria-label="Sections du site" hidden>
+        <a class="fr27-section-row" href="/candidates/" data-section-family="candidates" aria-current="true"><span class="fr27-section-label">CANDIDATS</span></a>
+        <a class="fr27-section-row" href="/sondages/" data-section-family="polls"><span class="fr27-section-label">SONDAGES</span></a>
+        <a class="fr27-section-row" href="/enjeux/" data-section-family="issues"><span class="fr27-section-label">ENJEUX</span></a>
+        <a class="fr27-section-row" href="/agenda/" data-section-family="agenda"><span class="fr27-section-label">AGENDA</span></a>
+      </nav>
+      <!-- FR27_SECTION_MENU_END -->
     </header>
 
     <nav class="candidate-breadcrumb" aria-label="Fil d’Ariane"><a href="/candidates/">CANDIDATS</a><span aria-hidden="true">/</span><span aria-current="page">SELMA LABIB</span></nav>

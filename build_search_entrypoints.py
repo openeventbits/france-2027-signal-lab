@@ -11,6 +11,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from fr27_section_launcher import install_section_launcher
+
 from build_candidate_signals import (
     CandidateSignalsError,
     validate_candidate_signals,
@@ -498,9 +500,10 @@ def build_english_entrypoint(
     model: dict[str, Any] | None = None,
 ) -> str:
     semantic_model = model if model is not None else load_semantic_model()
-    return _localize_english_head(
+    localized = _localize_english_head(
         render_semantic_regions(source, semantic_model, "en")
     )
+    return install_section_launcher(localized, "en")
 
 
 def _owned_region(text: str, start_marker: str, end_marker: str) -> str:

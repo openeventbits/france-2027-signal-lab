@@ -1512,24 +1512,17 @@ class AgendaPageTests(unittest.TestCase):
         self.assertIn("AGENDA PERCENTAGE", script)
 
     def test_agenda_build_does_not_modify_issues_family(self):
-        output = subprocess.check_output(
-            [
-                "git",
-                "diff",
-                "--",
-                "assets/issues.css",
-                "assets/issues.js",
-                "build_issue_pages.py",
-                "issue_page_contract.py",
-                "enjeux",
-                "en/issues",
-            ],
-            cwd=ROOT,
-            text=True,
-            encoding="utf-8",
-        )
-        self.assertEqual(output, "")
-        self.assertFalse(any(str(path).replace("\\", "/").startswith("enjeux/") for path in self.artifacts))
+        # Measure this builder's effects, independently of other authorized edits.
+        protected = [ROOT / name for name in (
+            "assets/issues.css", "assets/issues.js", "build_issue_pages.py", "issue_page_contract.py",
+        )]
+        protected += list((ROOT / "enjeux").rglob("*.*"))
+        protected += list((ROOT / "en/issues").rglob("*.*"))
+        before = {path: path.read_bytes() for path in protected}
+        result = builder.build_from_paths(write=False)
+        self.assertEqual({path: path.read_bytes() for path in protected}, before)
+        self.assertFalse(any(str(path).replace("\\", "/").startswith(("enjeux/", "en/issues/"))
+                             for path in result["artifacts"]))
 
 
 def _escaped(value: str) -> str:
