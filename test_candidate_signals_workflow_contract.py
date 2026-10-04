@@ -42,7 +42,8 @@ class CandidateSignalsWorkflowContractTests(unittest.TestCase):
                 self.assertIn(
                     "concurrency:\n"
                     "  group: production-data-update\n"
-                    "  cancel-in-progress: false",
+                    "  cancel-in-progress: false\n"
+                    "  queue: max",
                     workflow,
                 )
 
@@ -56,7 +57,8 @@ class CandidateSignalsWorkflowContractTests(unittest.TestCase):
         self.assertIn(
             "concurrency:\n"
             "  group: production-data-update\n"
-            "  cancel-in-progress: false",
+            "  cancel-in-progress: false\n"
+            "  queue: max",
             workflow,
         )
         self.assertIn("git push origin HEAD:main", commit)

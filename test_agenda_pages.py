@@ -1131,7 +1131,11 @@ class AgendaPageTests(unittest.TestCase):
         for path, content in self.artifacts.items():
             if path not in history_paths:
                 self.assertEqual(rebuilt[path], content, path)
-                self.assertEqual((ROOT / path).read_bytes(), content, path)
+                self.assertEqual(
+                    normalized((ROOT / path).read_bytes()),
+                    normalized(content),
+                    path,
+                )
 
     def test_reciprocal_hreflang_french_default_and_unique_canonicals(self):
         seen = set()

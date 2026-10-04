@@ -26,6 +26,7 @@ permissions:
 concurrency:
   group: production-data-update
   cancel-in-progress: false
+  queue: max
 
 jobs:
   update-claims-under-scrutiny:
