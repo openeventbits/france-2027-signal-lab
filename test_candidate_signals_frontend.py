@@ -77,11 +77,11 @@ const mount = {
 };
 const historyCalls = [];
 const windowObject = {
-  location: { hash: input.hash },
+  location: { pathname: "/", search: "", hash: input.hash },
   history: {
     replaceState(_state, _title, url) {
       historyCalls.push(url);
-      windowObject.location.hash = url;
+      windowObject.location.hash = new URL(url, "https://example.test/").hash;
     }
   },
   addEventListener() {},
@@ -745,7 +745,7 @@ class CandidateSignalsRoutingStageATests(unittest.TestCase):
                 )
                 self.assertEqual(
                     result["historyCalls"],
-                    ["#signal-candidates"],
+                    ["/#signal-candidates"],
                 )
                 self.assertEqual(
                     result["selected"],

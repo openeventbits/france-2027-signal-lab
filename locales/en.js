@@ -6,6 +6,12 @@
     (global.FR27_LOCALES = Object.create(null));
 
   const messages = Object.freeze({
+    "loading_status.updating": "Published snapshot · updating",
+    "loading_status.stale": "Published snapshot · live update unavailable",
+    "loading_status.provenance": "Source coverage mismatch · published entries retained",
+    "loading_status.comparison_updating": "Published comparison · updating",
+    "loading_status.comparison_unavailable": "Published comparison · live comparison unavailable",
+
     "agenda_topic.legal_eligibility": "Legal cases & eligibility",
     "agenda_topic.selection_strategy": "Primaries & party strategy",
     "agenda_topic.candidacies_endorsements": "Candidacies & endorsements",
