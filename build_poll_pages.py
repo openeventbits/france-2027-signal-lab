@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from fr27_section_launcher import ASSETS as SECTION_LAUNCHER_ASSETS, prepare_section_header
+
 
 ROOT = Path(__file__).resolve().parent
 MANIFEST_NAME = "poll_pages_manifest.json"
@@ -323,10 +325,10 @@ def load_shell_templates(template_root: Path) -> dict[str, dict[str, str]]:
         source = (template_root / relative).read_text(encoding="utf-8")
 
         templates[language] = {
-            "header": _extract_block(
-                source,
-                '<header class="candidate-masthead"',
-                "</header>",
+            "header": prepare_section_header(
+                _extract_block(source, '<header class="candidate-masthead"', "</header>"),
+                language,
+                "/" + relative.parent.as_posix() + "/",
             ),
             "footer": _extract_block(
                 source,
@@ -1090,6 +1092,7 @@ def render_page(
   <script type="application/ld+json">{breadcrumb_json}</script>
   <script src="{asset_prefix}/fr27-ui.js" defer></script>
   <script src="{asset_prefix}/poll-page.js" defer></script>
+{SECTION_LAUNCHER_ASSETS}
 </head>
 <body class="polling-page poll-detail-page">
   <main class="polling-shell">

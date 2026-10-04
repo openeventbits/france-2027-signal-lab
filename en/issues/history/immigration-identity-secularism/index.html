@@ -37,14 +37,20 @@
   <script src="/assets/fr27-ui.js" defer></script>
   <script src="/assets/poll-page.js" defer></script>
   <script src="/assets/issues.js" defer></script>
+  <link rel="stylesheet" href="/assets/fr27-section-launcher.css">
+  <script src="/assets/fr27-section-launcher.js" defer></script>
 </head>
 <body class="polling-page poll-detail-page issues-page issue-detail-page issue-history-detail-page">
   <main class="polling-shell">
-<header class="candidate-masthead" aria-label="France 2027 Signal Lab">
-      <a class="candidate-brand" href="/en/" aria-label="France 2027 Signal Lab — home">
-        <span class="candidate-mark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" focusable="false"><rect x="1" y="1" width="30" height="30" rx="8" fill="#071522"/><path d="M6 16A10 10 0 0 1 16 6M26 16A10 10 0 0 1 16 26" fill="none" stroke="#268cff" stroke-width="2" stroke-linecap="round"/><path d="M10 16A6 6 0 0 1 16 10M22 16A6 6 0 0 1 16 22" fill="none" stroke="#35d5ff" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="16" r="2.5" fill="#35d5ff"/></svg></span>
+<header class="candidate-masthead" aria-label="France 2027 Signal Lab" data-fr27-section-launcher>
+      <!-- FR27_SECTION_BRAND_START -->
+      <div class="fr27-masthead-brand">
+        <button class="candidate-mark fr27-section-launcher-trigger" type="button" aria-label="Explore sections" aria-expanded="false" aria-controls="fr27-section-menu"><span class="fr27-section-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" focusable="false"><rect x="1" y="1" width="30" height="30" rx="8" fill="#071522"/><path d="M6 16A10 10 0 0 1 16 6M26 16A10 10 0 0 1 16 26" fill="none" stroke="#268cff" stroke-width="2" stroke-linecap="round"/><path d="M10 16A6 6 0 0 1 16 10M22 16A6 6 0 0 1 16 22" fill="none" stroke="#35d5ff" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="16" r="2.5" fill="#35d5ff"/></svg></span><span class="fr27-section-caret" aria-hidden="true"></span></button>
+        <a class="candidate-brand" href="/en/" aria-label="France 2027 Signal Lab — home">
         <span class="candidate-brand-copy"><strong>FRANCE 2027 <em>SIGNAL LAB</em></strong><small>Source-linked signals from the French presidential race.</small></span>
       </a>
+      </div>
+      <!-- FR27_SECTION_BRAND_END -->
       <div class="candidate-masthead-tools">
         <nav class="candidate-language" aria-label="Interface language"><a href="/enjeux/historique/immigration-identite-laicite/" lang="fr" hreflang="fr" aria-label="Français">FR</a><span aria-hidden="true">|</span><a href="/en/issues/history/immigration-identity-secularism/" lang="en" hreflang="en" aria-label="English" aria-current="page">EN</a></nav>
         <div class="candidate-countdown" data-countdown aria-label="Countdown to the first round">
@@ -52,6 +58,14 @@
           <div class="candidate-countdown-copy"><strong class="candidate-countdown-value">—</strong><div class="candidate-countdown-text"><div class="candidate-countdown-line"><span class="candidate-countdown-unit">days</span><span class="candidate-countdown-label">before the first round</span></div><div class="candidate-countdown-date"><span>18 Apr 2027</span><span class="candidate-tooltip-mark" aria-hidden="true">i</span></div></div></div>
         </div>
       </div>
+    <!-- FR27_SECTION_MENU_START -->
+      <nav class="fr27-section-menu" id="fr27-section-menu" aria-label="Site sections" hidden>
+        <a class="fr27-section-row" href="/en/candidates/" data-section-family="candidates"><span class="fr27-section-label">CANDIDATES</span></a>
+        <a class="fr27-section-row" href="/en/sondages/" data-section-family="polls"><span class="fr27-section-label">POLLS</span></a>
+        <a class="fr27-section-row" href="/en/issues/" data-section-family="issues" aria-current="true"><span class="fr27-section-label">ISSUES</span></a>
+        <a class="fr27-section-row" href="/en/agenda/" data-section-family="agenda"><span class="fr27-section-label">AGENDA</span></a>
+      </nav>
+      <!-- FR27_SECTION_MENU_END -->
     </header>
 
     <div class="poll-detail-content">

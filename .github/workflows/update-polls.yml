@@ -1,6 +1,13 @@
 name: Update polls
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "fr27_section_launcher.py"
+      - "assets/fr27-section-launcher.css"
+      - "assets/fr27-section-launcher.js"
   schedule:
     - cron: "17 */6 * * *"
   workflow_dispatch:
@@ -420,6 +427,7 @@ jobs:
           set -euo pipefail
 
           python -B build_poll_explorer.py
+          python -B fr27_section_launcher.py
           python -B build_poll_pages.py
           python -B build_poll_hub_static_links.py
           python -B build_poll_pages.py --check
@@ -580,6 +588,7 @@ jobs:
           python -B build_candidate_signals.py --candidacy-status candidate_candidacy_status.json
 
           python -B build_poll_explorer.py
+          python -B fr27_section_launcher.py
           python -B build_poll_pages.py
           python -B build_poll_hub_static_links.py
           python -B build_poll_pages.py --check

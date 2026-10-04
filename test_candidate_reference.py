@@ -2413,7 +2413,7 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
                 )
 
         mark_pattern = re.compile(
-            r'<span class="candidate-mark".*?</span>',
+            r'<button class="candidate-mark fr27-section-launcher-trigger"[^>]*>.*?(<svg\b.*?</svg>)',
             flags=re.DOTALL,
         )
 
@@ -2424,8 +2424,8 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
         self.assertIsNotNone(english_mark)
 
         self.assertEqual(
-            french_mark.group(0),
-            english_mark.group(0),
+            french_mark.group(1),
+            english_mark.group(1),
         )
 
         self.assertIn(

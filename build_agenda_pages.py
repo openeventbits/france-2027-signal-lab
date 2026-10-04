@@ -13,6 +13,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from fr27_section_launcher import ASSETS as SECTION_LAUNCHER_ASSETS, prepare_section_header
+
 from agenda_page_contract import (
     AgendaPageContractError,
     agenda_manifest_payload,
@@ -145,7 +147,7 @@ def _prepare_header(
     )
     if count != 1:
         raise AgendaPageBuildError("could not prepare Agenda language navigation")
-    return prepared
+    return prepare_section_header(prepared, language, route_fr if language == "fr" else route_en)
 
 
 def _head(
@@ -206,6 +208,7 @@ def _head(
   <script src="/assets/fr27-ui.js" defer></script>
   <script src="/assets/poll-page.js" defer></script>
   <script src="/assets/agenda.js" defer></script>
+{SECTION_LAUNCHER_ASSETS}
 </head>'''
 
 

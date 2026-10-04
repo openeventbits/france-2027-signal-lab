@@ -738,4 +738,6 @@ def render_hub(
 </body>
 </html>
 '''
-    return document.encode("utf-8")
+    from fr27_section_launcher import install_section_launcher
+
+    return install_section_launcher(document, lang).encode("utf-8")

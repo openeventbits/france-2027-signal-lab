@@ -22,6 +22,8 @@ from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Any, Iterable
 
+from fr27_section_launcher import install_section_launcher
+
 from build_candidate_signals import validate_candidate_signals
 from build_poll_pages import PollPageError, validate_explorer
 from campaign_events_contract import validate_campaign_events_artifact
@@ -3816,7 +3818,7 @@ def render_html(
         )
 
     if lang == "fr":
-        return raw.encode("utf-8")
+        return install_section_launcher(raw, lang).encode("utf-8")
 
     parser = _CandidateEnglishHTMLParser()
     parser.feed(raw)
@@ -3865,7 +3867,7 @@ def render_html(
             "English candidate data URL drifted"
         )
 
-    return rendered.encode("utf-8")
+    return install_section_launcher(rendered, lang).encode("utf-8")
 
 
 def build_all_active_artifacts(

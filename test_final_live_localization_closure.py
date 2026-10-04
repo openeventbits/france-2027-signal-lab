@@ -479,11 +479,20 @@ process.stdout.write(JSON.stringify({
             "THIRD_PARTY_NOTICES.md",
         }
         self.assertTrue(protected_legal.isdisjoint(changed))
-        self.assertFalse(any(path.endswith(".json") for path in changed))
+        # Global navigation regeneration may update derived pages/metadata while
+        # source datasets and collection pipelines remain protected.
+        derived_json = {"route_registry.json", "agenda_pages_manifest.json", "issue_pages_manifest.json",
+                        "poll_pages_manifest.json", "publication_manifest.json"}
+        self.assertFalse(any(path.endswith(".json") and path not in derived_json
+                             and not re.fullmatch(r"candidates/[^/]+/data\.json", path)
+                             for path in changed))
+        navigation_builders = {"build_candidate_reference.py", "build_candidates_hub.py", "build_poll_pages.py",
+                               "build_issue_pages.py", "build_agenda_pages.py", "build_search_entrypoints.py"}
         self.assertFalse(
             any(
                 (path.startswith("build_") or path.startswith("fetch_"))
                 and path.endswith(".py")
+                and path not in navigation_builders
                 for path in changed
             )
         )

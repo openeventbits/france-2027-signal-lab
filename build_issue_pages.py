@@ -12,6 +12,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from fr27_section_launcher import ASSETS as SECTION_LAUNCHER_ASSETS, prepare_section_header
+
 from build_poll_pages import (
     _site_favicon_link,
     _site_og_image_url,
@@ -115,7 +117,7 @@ def _prepare_header(
     )
     if count != 1:
         raise IssuePageBuildError("could not prepare issue language navigation")
-    return prepared
+    return prepare_section_header(prepared, language, route_fr if language == "fr" else route_en)
 
 
 def _sparkline(issue: dict[str, Any], *, large: bool = False) -> str:
@@ -217,6 +219,7 @@ def _head(
   <script src="/assets/fr27-ui.js" defer></script>
   <script src="/assets/poll-page.js" defer></script>
   <script src="/assets/issues.js" defer></script>
+{SECTION_LAUNCHER_ASSETS}
 </head>'''
 
 

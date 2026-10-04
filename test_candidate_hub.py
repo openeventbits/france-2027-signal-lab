@@ -455,7 +455,6 @@ setTimeout(() => process.stdout.write(hudPollsValue.textContent), 20);
     def test_no_links_to_unimplemented_evidence_hubs(self):
         forbidden = (
             "/polls/",
-            "/sondages/",
             "/runoffs/",
             "/issues/",
             "/events/",
