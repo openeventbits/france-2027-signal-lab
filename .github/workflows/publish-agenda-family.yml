@@ -1,24 +1,40 @@
-name: Publish issue family
+name: Publish agenda family
 
 on:
   push:
     branches:
       - main
     paths:
-      - "build_issue_coverage_history.py"
-      - "build_issue_pages.py"
-      - "issue_page_contract.py"
+      - "build_agenda_coverage_history.py"
+      - "build_agenda_pages.py"
+      - "agenda_page_contract.py"
+      - "assets/agenda.css"
+      - "assets/agenda.js"
+      - "test_agenda_page_contract.py"
+      - "test_build_agenda_coverage_history.py"
+      - "test_agenda_pages.py"
       - "build_route_registry.py"
       - "build_sitemaps.py"
+      - "build_publication_manifest.py"
+      - "build_poll_pages.py"
+      - "candidate_page_contract.py"
+      - "candidate_agenda_history_contract.py"
+      - "news_wire.json"
+      - "candidate_agenda_history.json"
+      - "candidate_candidacy_status.json"
       - "poll_pages_manifest.json"
-      - "test_issue_pages.py"
+      - "publication_manifest.json"
+      - "index.html"
+      - "sondages/index.html"
+      - "en/sondages/index.html"
       - "test_route_registry.py"
       - "test_search_foundation.py"
-      - "test_issue_family_automation.py"
-      - ".github/workflows/publish-issue-family.yml"
+      - "test_agenda_family_automation.py"
+      - "test_production_publication_queue.py"
+      - ".github/workflows/publish-agenda-family.yml"
 
   # The production writers use GITHUB_TOKEN, so their pushes do not reliably
-  # start another push-triggered workflow. Follow both authoritative producers.
+  # start another push-triggered workflow. Follow the three authoritative producers.
   workflow_run:
     workflows:
       - "Update polls"
@@ -30,7 +46,7 @@ on:
       - main
 
   schedule:
-    - cron: "17 11 * * *"
+    - cron: "53 11 * * *"
   workflow_dispatch:
 
 permissions:
@@ -72,6 +88,11 @@ jobs:
         run: |
           set -euo pipefail
 
+          if [[ -n "$(git status --porcelain=v1 --untracked-files=all)" ]]; then
+            echo "Checkout must be clean before Agenda generation." >&2
+            exit 1
+          fi
+
           python -B - <<'PY'
           import json
           import os
@@ -89,6 +110,8 @@ jobs:
               "candidate_candidacy_status.json",
               "poll_pages_manifest.json",
               "issue_pages_manifest.json",
+              "route_registry.json",
+              "agenda_pages_manifest.json",
               "publication_manifest.json",
           )
           payloads = {}
@@ -100,6 +123,12 @@ jobs:
                   payloads[name] = json.loads(path.read_text(encoding="utf-8"))
               except (OSError, UnicodeError, json.JSONDecodeError) as error:
                   raise SystemExit(f"required input is not readable JSON: {name}: {error}")
+
+          for name in ("index.html", "sondages/index.html", "en/sondages/index.html"):
+              path = Path(name)
+              if not path.is_file() or not os.access(path, os.R_OK):
+                  raise SystemExit(f"required readable shell template is missing: {name}")
+              path.read_text(encoding="utf-8")
 
           stored = payloads["publication_manifest.json"]
           validate_manifest(stored)
@@ -140,9 +169,13 @@ jobs:
           assert_allowed_changes() {
             local entry path unexpected=0
             while IFS= read -r -d '' entry; do
+              if [[ "${entry:0:2}" == *R* || "${entry:0:2}" == *C* ]]; then
+                echo "Unexpected generated rename/copy: $entry" >&2
+                return 1
+              fi
               path="${entry:3}"
               case "$path" in
-                issue_coverage_history.json|issue_pages_manifest.json|enjeux/*|en/issues/*|route_registry.json|sitemap.xml|sitemap-core.xml|sitemap-candidates.xml|sitemap-polls.xml|sitemap-issues.xml)
+                agenda_coverage_history.json|agenda_pages_manifest.json|agenda/*|en/agenda/*|route_registry.json|sitemap.xml|sitemap-core.xml|sitemap-candidates.xml|sitemap-polls.xml|sitemap-issues.xml|sitemap-agenda.xml)
                   ;;
                 *)
                   echo "Unexpected generated path: $path" >&2
@@ -158,33 +191,34 @@ jobs:
           snapshot_generated_state() {
             local label="$1"
             git status --porcelain=v1 -z --untracked-files=all \
-              > "$RUNNER_TEMP/issues-$label.status"
+              > "$RUNNER_TEMP/agenda-$label.status"
             git diff --binary -- \
-              issue_coverage_history.json issue_pages_manifest.json \
-              enjeux en/issues route_registry.json \
+              agenda_coverage_history.json agenda_pages_manifest.json \
+              agenda en/agenda route_registry.json \
               sitemap.xml sitemap-core.xml sitemap-candidates.xml \
-              sitemap-polls.xml sitemap-issues.xml \
-              > "$RUNNER_TEMP/issues-$label.diff"
-            python -B - "$RUNNER_TEMP/issues-$label.sha256" <<'PY'
+              sitemap-polls.xml sitemap-issues.xml sitemap-agenda.xml \
+              > "$RUNNER_TEMP/agenda-$label.diff"
+            python -B - "$RUNNER_TEMP/agenda-$label.sha256" <<'PY'
           import hashlib
           import sys
           from pathlib import Path
 
           files = []
           for name in (
-              "issue_coverage_history.json",
-              "issue_pages_manifest.json",
+              "agenda_coverage_history.json",
+              "agenda_pages_manifest.json",
               "route_registry.json",
               "sitemap.xml",
               "sitemap-core.xml",
               "sitemap-candidates.xml",
               "sitemap-polls.xml",
               "sitemap-issues.xml",
+              "sitemap-agenda.xml",
           ):
               path = Path(name)
               if path.is_file():
                   files.append(path)
-          for root in (Path("enjeux"), Path("en/issues")):
+          for root in (Path("agenda"), Path("en/agenda")):
               if root.is_dir():
                   files.extend(path for path in root.rglob("*") if path.is_file())
 
@@ -196,47 +230,55 @@ jobs:
           PY
           }
 
-          python -B build_issue_coverage_history.py
-          python -B build_issue_coverage_history.py --check
+          python -B build_agenda_coverage_history.py
+          python -B build_agenda_coverage_history.py --check
 
-          python -B build_issue_pages.py
-          python -B build_issue_pages.py --check
-          python -B build_issue_pages.py --thin-audit
+          python -B build_agenda_pages.py
+          python -B build_agenda_pages.py --check
+          python -B build_agenda_pages.py --thin-audit
 
-          python -B -m unittest -v test_issue_pages
+          python -B -m unittest -v test_agenda_pages
 
           python -B build_route_registry.py \
-            --issue-manifest issue_pages_manifest.json \
+            --agenda-manifest agenda_pages_manifest.json \
             --effective-date "$ROUTE_EFFECTIVE_DATE"
           python -B build_route_registry.py \
-            --issue-manifest issue_pages_manifest.json \
+            --agenda-manifest agenda_pages_manifest.json \
             --check
 
           python -B build_sitemaps.py
           python -B build_sitemaps.py --check
 
           python -B -m unittest -v \
-            test_issue_pages \
+            test_agenda_page_contract \
+            test_build_agenda_coverage_history \
+            test_agenda_pages \
+            test_campaign_agenda_evidence \
+            test_build_candidate_agenda_history \
+            test_candidate_agenda_history_contract \
             test_route_registry \
             test_search_foundation \
-            test_issue_family_automation
+            test_publication_manifest \
+            test_publication_manifest_registry_v2 \
+            test_agenda_family_automation \
+            test_production_publication_queue
 
           git diff --check
           assert_allowed_changes
           snapshot_generated_state first
 
-          python -B build_issue_coverage_history.py
-          python -B build_issue_coverage_history.py --check
+          python -B build_agenda_coverage_history.py
+          python -B build_agenda_coverage_history.py --check
 
-          python -B build_issue_pages.py
-          python -B build_issue_pages.py --check
-          python -B build_issue_pages.py --thin-audit
+          python -B build_agenda_pages.py
+          python -B build_agenda_pages.py --check
+          python -B build_agenda_pages.py --thin-audit
 
           python -B build_route_registry.py \
-            --issue-manifest issue_pages_manifest.json \
+            --agenda-manifest agenda_pages_manifest.json \
             --effective-date "$ROUTE_EFFECTIVE_DATE"
           python -B build_route_registry.py \
-            --issue-manifest issue_pages_manifest.json \
+            --agenda-manifest agenda_pages_manifest.json \
             --check
 
           python -B build_sitemaps.py
@@ -246,23 +288,23 @@ jobs:
           assert_allowed_changes
           snapshot_generated_state second
 
-          cmp "$RUNNER_TEMP/issues-first.status" "$RUNNER_TEMP/issues-second.status"
-          cmp "$RUNNER_TEMP/issues-first.diff" "$RUNNER_TEMP/issues-second.diff"
-          cmp "$RUNNER_TEMP/issues-first.sha256" "$RUNNER_TEMP/issues-second.sha256"
+          cmp "$RUNNER_TEMP/agenda-first.status" "$RUNNER_TEMP/agenda-second.status"
+          cmp "$RUNNER_TEMP/agenda-first.diff" "$RUNNER_TEMP/agenda-second.diff"
+          cmp "$RUNNER_TEMP/agenda-first.sha256" "$RUNNER_TEMP/agenda-second.sha256"
           echo "Deterministic regeneration introduced zero additional changes."
 
-      - name: Commit generated issue publication
+      - name: Commit generated Agenda publication
         id: commit
         shell: bash
         run: |
           set -euo pipefail
 
           if [[ -z "$(git status --porcelain=v1 --untracked-files=all -- \
-            issue_coverage_history.json issue_pages_manifest.json \
-            enjeux en/issues route_registry.json \
+            agenda_coverage_history.json agenda_pages_manifest.json \
+            agenda en/agenda route_registry.json \
             sitemap.xml sitemap-core.xml sitemap-candidates.xml \
-            sitemap-polls.xml sitemap-issues.xml)" ]]; then
-            echo "Issue publication is already current."
+            sitemap-polls.xml sitemap-issues.xml sitemap-agenda.xml)" ]]; then
+            echo "Agenda publication is already current."
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -272,19 +314,19 @@ jobs:
             "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add -- \
-            issue_coverage_history.json issue_pages_manifest.json \
-            enjeux en/issues route_registry.json \
+            agenda_coverage_history.json agenda_pages_manifest.json \
+            agenda en/agenda route_registry.json \
             sitemap.xml sitemap-core.xml sitemap-candidates.xml \
-            sitemap-polls.xml sitemap-issues.xml
+            sitemap-polls.xml sitemap-issues.xml sitemap-agenda.xml
           git diff --cached --check
 
           if git diff --cached --quiet; then
-            echo "Issue publication has no staged byte change."
+            echo "Agenda publication has no staged byte change."
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          git commit -m "Refresh issue family"
+          git commit -m "Refresh Agenda family"
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
       - name: Rebase, reconcile and push
@@ -297,9 +339,13 @@ jobs:
           assert_allowed_changes() {
             local entry path unexpected=0
             while IFS= read -r -d '' entry; do
+              if [[ "${entry:0:2}" == *R* || "${entry:0:2}" == *C* ]]; then
+                echo "Unexpected generated rename/copy: $entry" >&2
+                return 1
+              fi
               path="${entry:3}"
               case "$path" in
-                issue_coverage_history.json|issue_pages_manifest.json|enjeux/*|en/issues/*|route_registry.json|sitemap.xml|sitemap-core.xml|sitemap-candidates.xml|sitemap-polls.xml|sitemap-issues.xml)
+                agenda_coverage_history.json|agenda_pages_manifest.json|agenda/*|en/agenda/*|route_registry.json|sitemap.xml|sitemap-core.xml|sitemap-candidates.xml|sitemap-polls.xml|sitemap-issues.xml|sitemap-agenda.xml)
                   ;;
                 *)
                   echo "Unexpected path after reconciliation: $path" >&2
@@ -310,6 +356,48 @@ jobs:
             if [[ "$unexpected" -ne 0 ]]; then
               return 1
             fi
+          }
+
+          snapshot_generated_state() {
+            local label="$1"
+            git status --porcelain=v1 -z --untracked-files=all \
+              > "$RUNNER_TEMP/agenda-$label.status"
+            git diff --binary -- \
+              agenda_coverage_history.json agenda_pages_manifest.json \
+              agenda en/agenda route_registry.json \
+              sitemap.xml sitemap-core.xml sitemap-candidates.xml \
+              sitemap-polls.xml sitemap-issues.xml sitemap-agenda.xml \
+              > "$RUNNER_TEMP/agenda-$label.diff"
+            python -B - "$RUNNER_TEMP/agenda-$label.sha256" <<'PY'
+          import hashlib
+          import sys
+          from pathlib import Path
+
+          files = []
+          for name in (
+              "agenda_coverage_history.json",
+              "agenda_pages_manifest.json",
+              "route_registry.json",
+              "sitemap.xml",
+              "sitemap-core.xml",
+              "sitemap-candidates.xml",
+              "sitemap-polls.xml",
+              "sitemap-issues.xml",
+              "sitemap-agenda.xml",
+          ):
+              path = Path(name)
+              if path.is_file():
+                  files.append(path)
+          for root in (Path("agenda"), Path("en/agenda")):
+              if root.is_dir():
+                  files.extend(path for path in root.rglob("*") if path.is_file())
+
+          lines = []
+          for path in sorted(files, key=lambda item: item.as_posix()):
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              lines.append(f"{digest}  {path.as_posix()}")
+          Path(sys.argv[1]).write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
           }
 
           git fetch origin main
@@ -333,6 +421,8 @@ jobs:
               "candidate_candidacy_status.json",
               "poll_pages_manifest.json",
               "issue_pages_manifest.json",
+              "route_registry.json",
+              "agenda_pages_manifest.json",
               "publication_manifest.json",
           )
           payloads = {}
@@ -344,6 +434,12 @@ jobs:
                   payloads[name] = json.loads(path.read_text(encoding="utf-8"))
               except (OSError, UnicodeError, json.JSONDecodeError) as error:
                   raise SystemExit(f"required input is not readable JSON after rebase: {name}: {error}")
+
+          for name in ("index.html", "sondages/index.html", "en/sondages/index.html"):
+              path = Path(name)
+              if not path.is_file() or not os.access(path, os.R_OK):
+                  raise SystemExit(f"required readable shell template is missing: {name}")
+              path.read_text(encoding="utf-8")
 
           stored = payloads["publication_manifest.json"]
           validate_manifest(stored)
@@ -369,37 +465,74 @@ jobs:
             --check \
             --published-at "$published_at"
 
-          python -B build_issue_coverage_history.py
-          python -B build_issue_coverage_history.py --check
+          python -B build_agenda_coverage_history.py
+          python -B build_agenda_coverage_history.py --check
 
-          python -B build_issue_pages.py
-          python -B build_issue_pages.py --check
-          python -B build_issue_pages.py --thin-audit
+          python -B build_agenda_pages.py
+          python -B build_agenda_pages.py --check
+          python -B build_agenda_pages.py --thin-audit
 
           python -B build_route_registry.py \
-            --issue-manifest issue_pages_manifest.json \
+            --agenda-manifest agenda_pages_manifest.json \
             --effective-date "$route_effective_date"
           python -B build_route_registry.py \
-            --issue-manifest issue_pages_manifest.json \
+            --agenda-manifest agenda_pages_manifest.json \
             --check
 
           python -B build_sitemaps.py
           python -B build_sitemaps.py --check
 
           python -B -m unittest -v \
-            test_issue_pages \
+            test_agenda_page_contract \
+            test_build_agenda_coverage_history \
+            test_agenda_pages \
+            test_campaign_agenda_evidence \
+            test_build_candidate_agenda_history \
+            test_candidate_agenda_history_contract \
             test_route_registry \
             test_search_foundation \
-            test_issue_family_automation
+            test_publication_manifest \
+            test_publication_manifest_registry_v2 \
+            test_agenda_family_automation \
+            test_production_publication_queue
 
           git diff --check
           assert_allowed_changes
 
+          snapshot_generated_state rebased-first
+
+          python -B build_agenda_coverage_history.py
+          python -B build_agenda_coverage_history.py --check
+
+          python -B build_agenda_pages.py
+          python -B build_agenda_pages.py --check
+          python -B build_agenda_pages.py --thin-audit
+
+          python -B build_route_registry.py \
+            --agenda-manifest agenda_pages_manifest.json \
+            --effective-date "$route_effective_date"
+          python -B build_route_registry.py \
+            --agenda-manifest agenda_pages_manifest.json \
+            --check
+
+          python -B build_sitemaps.py
+          python -B build_sitemaps.py --check
+
+          git diff --check
+          assert_allowed_changes
+          snapshot_generated_state rebased-second
+
+          cmp "$RUNNER_TEMP/agenda-rebased-first.status" "$RUNNER_TEMP/agenda-rebased-second.status"
+          cmp "$RUNNER_TEMP/agenda-rebased-first.diff" "$RUNNER_TEMP/agenda-rebased-second.diff"
+          cmp "$RUNNER_TEMP/agenda-rebased-first.sha256" "$RUNNER_TEMP/agenda-rebased-second.sha256"
+          echo "Deterministic regeneration introduced zero additional changes."
+
+
           git add -- \
-            issue_coverage_history.json issue_pages_manifest.json \
-            enjeux en/issues route_registry.json \
+            agenda_coverage_history.json agenda_pages_manifest.json \
+            agenda en/agenda route_registry.json \
             sitemap.xml sitemap-core.xml sitemap-candidates.xml \
-            sitemap-polls.xml sitemap-issues.xml
+            sitemap-polls.xml sitemap-issues.xml sitemap-agenda.xml
           git diff --cached --check
 
           if ! git diff --cached --quiet; then
@@ -407,19 +540,19 @@ jobs:
           fi
 
           if ! git diff --quiet origin/main -- \
-            issue_coverage_history.json issue_pages_manifest.json \
-            enjeux en/issues route_registry.json \
+            agenda_coverage_history.json agenda_pages_manifest.json \
+            agenda en/agenda route_registry.json \
             sitemap.xml sitemap-core.xml sitemap-candidates.xml \
-            sitemap-polls.xml sitemap-issues.xml; then
+            sitemap-polls.xml sitemap-issues.xml sitemap-agenda.xml; then
             :
           else
-            echo "The reconciled issue publication is already present on main."
+            echo "The reconciled Agenda publication is already present on main."
             echo "pushed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           if [[ -n "$(git status --porcelain=v1 --untracked-files=all)" ]]; then
-            echo "Working tree is not clean after issue reconciliation." >&2
+            echo "Working tree is not clean after Agenda reconciliation." >&2
             git status --short
             exit 1
           fi

@@ -59,6 +59,7 @@ permissions:
 concurrency:
   group: production-data-update
   cancel-in-progress: false
+  queue: max
 
 jobs:
   publish:
