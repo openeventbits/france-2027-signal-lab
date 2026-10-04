@@ -890,6 +890,94 @@ class SearchFoundationTests(unittest.TestCase):
                 self.assertIn('name="twitter:title"', document)
                 self.assertIn('"@type":"BreadcrumbList"', document)
 
+    def test_agenda_family_search_metadata_is_complete(self):
+        manifest = json.loads(
+            (ROOT / "agenda_pages_manifest.json").read_text(encoding="utf-8")
+        )
+        route_pairs = [
+            (
+                manifest["hubs"]["fr"],
+                manifest["hubs"]["en"],
+                True,
+                False,
+            ),
+            (
+                manifest["history_hubs"]["fr"],
+                manifest["history_hubs"]["en"],
+                True,
+                True,
+            ),
+        ]
+        route_pairs.extend(
+            (
+                page["page_path_fr"],
+                page["page_path_en"],
+                False,
+                False,
+            )
+            for page in manifest["pages"]
+        )
+        route_pairs.extend(
+            (
+                page["history_page_path_fr"],
+                page["history_page_path_en"],
+                False,
+                True,
+            )
+            for page in manifest["pages"]
+        )
+
+        for path_fr, path_en, is_hub, is_history in route_pairs:
+            canonical_fr = "https://france2027.app" + path_fr
+            canonical_en = "https://france2027.app" + path_en
+
+            for route_path, language, canonical in (
+                (path_fr, "fr", canonical_fr),
+                (path_en, "en", canonical_en),
+            ):
+                path = ROOT / route_path.strip("/") / "index.html"
+                document = path.read_text(encoding="utf-8")
+                with self.subTest(path=route_path):
+                    self.assertIn(f'<html lang="{language}">', document)
+                    self.assertEqual(
+                        document.count(
+                            f'<link rel="canonical" href="{canonical}">'
+                        ),
+                        1,
+                    )
+                    for hreflang, target in (
+                        ("fr", canonical_fr),
+                        ("en", canonical_en),
+                        ("x-default", canonical_fr),
+                    ):
+                        self.assertEqual(
+                            document.count(
+                                '<link rel="alternate" '
+                                f'hreflang="{hreflang}" href="{target}">'
+                            ),
+                            1,
+                        )
+                    self.assertRegex(document, r"<title>[^<]+</title>")
+                    self.assertRegex(
+                        document,
+                        r'<meta name="description" content="[^"]+">',
+                    )
+                    self.assertIn('property="og:title"', document)
+                    self.assertIn('name="twitter:title"', document)
+                    self.assertIn('"@type":"BreadcrumbList"', document)
+
+                    if is_hub:
+                        detail_field = (
+                            f"history_page_path_{language}"
+                            if is_history
+                            else f"page_path_{language}"
+                        )
+                        for page in manifest["pages"]:
+                            self.assertIn(
+                                f'href="{page[detail_field]}"',
+                                document,
+                            )
+
 
 if __name__ == "__main__":
     unittest.main()
