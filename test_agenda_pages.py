@@ -1207,6 +1207,9 @@ class AgendaPageTests(unittest.TestCase):
 
     def test_history_detail_changes_cannot_change_locked_generated_families(self):
         history_paths = {path for _, _, path, _ in self.history_details()}
+        # Checked-in publication may predate refreshed source data. Isolation
+        # requires identical renders and untouched files, not artifact freshness.
+        checked_in = {path: (ROOT / path).read_bytes() for path in self.artifacts}
         with patch.object(builder, "_history_detail", return_value=b"historical detail sentinel"):
             rebuilt = builder.build_from_paths(write=False)["artifacts"]
         for path, content in self.artifacts.items():
@@ -1214,7 +1217,7 @@ class AgendaPageTests(unittest.TestCase):
                 self.assertEqual(rebuilt[path], content, path)
                 self.assertEqual(
                     normalized((ROOT / path).read_bytes()),
-                    normalized(content),
+                    normalized(checked_in[path]),
                     path,
                 )
 

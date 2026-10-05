@@ -13,6 +13,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+import agenda_page_contract
 from fr27_section_launcher import ASSETS as SECTION_LAUNCHER_ASSETS, prepare_section_header
 
 from agenda_page_contract import (
@@ -346,20 +347,21 @@ def _window_comparison(
     def total(rows: list[dict[str, Any]], field: str, start: str, end: str) -> int:
         return sum(row[field] for row in rows if start <= row["date"] <= end)
 
-    previous_source_days = total(series, "source_day_count", previous_start, previous_end)
-    latest_source_days = total(series, "source_day_count", latest_start, latest_end)
+    metric_topics = [{"id": row["id"], "daily": row["daily_activity"]} for row in all_topics]
+    previous = agenda_page_contract.build_agenda_period_metric(
+        metric_topics, start_date=previous_start, end_date=previous_end,
+    )
+    latest = agenda_page_contract.build_agenda_period_metric(
+        metric_topics, start_date=latest_start, end_date=latest_end,
+    )
+    previous_row = next(row for row in previous.rows if row.topic_id == topic["id"])
+    latest_row = next(row for row in latest.rows if row.topic_id == topic["id"])
+    previous_source_days = previous_row.numerator
+    latest_source_days = latest_row.numerator
     previous_items = total(series, "item_count", previous_start, previous_end)
     latest_items = total(series, "item_count", latest_start, latest_end)
-    previous_denominator = sum(
-        total(row["daily_activity"], "source_day_count", previous_start, previous_end)
-        for row in all_topics
-    )
-    latest_denominator = sum(
-        total(row["daily_activity"], "source_day_count", latest_start, latest_end)
-        for row in all_topics
-    )
-    previous_share = previous_source_days / previous_denominator if previous_denominator else 0.0
-    latest_share = latest_source_days / latest_denominator if latest_denominator else 0.0
+    previous_share = previous_row.raw_share
+    latest_share = latest_row.raw_share
     return {
         "previous_start": previous_start,
         "previous_end": previous_end,
@@ -387,29 +389,21 @@ def _history_comparison(
     previous_end = latest_start - timedelta(days=1)
     previous_start = previous_end - timedelta(days=window_days - 1)
 
-    def selected(subject: dict[str, Any], start: date, end: date) -> list[dict[str, Any]]:
-        return [
-            point
-            for point in subject["coverage_history"]["daily"]
-            if start.isoformat() <= point["date"] <= end.isoformat()
-        ]
-
-    previous_points = selected(topic, previous_start, previous_end)
-    latest_points = selected(topic, latest_start, period_end)
-    if len(previous_points) != window_days or len(latest_points) != window_days:
-        raise AgendaPageBuildError("Agenda history lacks two complete comparison windows")
-    previous_sd = sum(point["source_day_count"] for point in previous_points)
-    latest_sd = sum(point["source_day_count"] for point in latest_points)
-    previous_denominator = sum(
-        sum(point["source_day_count"] for point in selected(row, previous_start, previous_end))
-        for row in all_topics
-    )
-    latest_denominator = sum(
-        sum(point["source_day_count"] for point in selected(row, latest_start, period_end))
-        for row in all_topics
-    )
-    previous_share = previous_sd / previous_denominator if previous_denominator else 0.0
-    latest_share = latest_sd / latest_denominator if latest_denominator else 0.0
+    metric_topics = [{"id": row["topic_id"], "daily": row["coverage_history"]["daily"]}
+                     for row in all_topics]
+    try:
+        previous = agenda_page_contract.build_agenda_period_metric(
+            metric_topics, start_date=previous_start.isoformat(), end_date=previous_end.isoformat(),
+        )
+        latest = agenda_page_contract.build_agenda_period_metric(
+            metric_topics, start_date=latest_start.isoformat(), end_date=period_end.isoformat(),
+        )
+    except AgendaPageContractError as error:
+        raise AgendaPageBuildError(str(error)) from error
+    previous_row = next(row for row in previous.rows if row.topic_id == topic["topic_id"])
+    latest_row = next(row for row in latest.rows if row.topic_id == topic["topic_id"])
+    previous_sd, latest_sd = previous_row.numerator, latest_row.numerator
+    previous_share, latest_share = previous_row.raw_share, latest_row.raw_share
     return {
         "previous_start": previous_start.isoformat(),
         "previous_end": previous_end.isoformat(),
@@ -433,7 +427,8 @@ def _enrich_projection(
     route_index = _candidate_routes_index(candidate_routes)
     period = result["evolution_period"]
     evolution_topics = []
-    for topic in topics:
+    # Metric membership is all six topics, independent of page lifecycle.
+    for topic in result["topics"]:
         current = topic["current_evolution_projection"]
         if current is None:
             current = {
@@ -491,7 +486,7 @@ def _enrich_projection(
             period_start=history_period[0]["date"],
             period_end=history_period[-1]["date"],
         )
-        topic["history_comparison"] = _history_comparison(topic, topics)
+        topic["history_comparison"] = _history_comparison(topic, result["topics"])
         topic["canonical"] = {
             "fr": ORIGIN + topic["routes"]["fr"],
             "en": ORIGIN + topic["routes"]["en"],
@@ -739,6 +734,23 @@ def _movement_chart(topics: list[dict[str, Any]], language: str, *, history: boo
       <div class="agenda-dumbbell-legend"><span class="agenda-dumbbell-legend-item"><i class="is-previous"></i><strong>{'PÉRIODE PRÉCÉDENTE' if language == 'fr' else 'PREVIOUS PERIOD'}</strong><small>{_h(_period(reference["previous_start"], reference["previous_end"], language))}</small></span><span class="agenda-dumbbell-legend-item"><i class="is-recent"></i><strong>{'PÉRIODE RÉCENTE' if language == 'fr' else 'RECENT PERIOD'}</strong><small>{_h(_period(reference["latest_start"], reference["latest_end"], language))}</small></span></div></div>'''
 
 
+def _comparison_totals(
+    topics: list[dict[str, Any]], reference: dict[str, Any], *, history: bool,
+) -> tuple[int, int]:
+    """Composition captions use the same authority as their metric rows."""
+    metric_topics = [{
+        "id": topic["topic_id"],
+        "daily": topic["coverage_history"]["daily"] if history else topic["current"]["daily_activity"],
+    } for topic in topics]
+    previous = agenda_page_contract.build_agenda_period_metric(
+        metric_topics, start_date=reference["previous_start"], end_date=reference["previous_end"],
+    )
+    latest = agenda_page_contract.build_agenda_period_metric(
+        metric_topics, start_date=reference["latest_start"], end_date=reference["latest_end"],
+    )
+    return previous.rows[0].denominator, latest.rows[0].denominator
+
+
 def _composition(topics: list[dict[str, Any]], language: str) -> str:
     ordered = sorted(topics, key=lambda topic: topic["labels"][language].casefold())
 
@@ -749,8 +761,7 @@ def _composition(topics: list[dict[str, Any]], language: str) -> str:
         ) + "</div>"
 
     reference = ordered[0]["current"]["comparison"]
-    previous_total = sum(topic["current"]["comparison"]["previous_source_day_count"] for topic in ordered)
-    latest_total = sum(topic["current"]["comparison"]["latest_source_day_count"] for topic in ordered)
+    previous_total, latest_total = _comparison_totals(topics, reference, history=False)
     legend = "".join(
         f'<div class="agenda-agenda-topic"><span class="agenda-agenda-key">{index}</span><span>{_h(topic["labels"][language])}</span><strong>{_h(_decimal(topic["current"]["comparison"]["previous_agenda_share"] * 100, language))}%</strong><strong>{_h(_decimal(topic["current"]["comparison"]["latest_agenda_share"] * 100, language))}%</strong></div>'
         for index, topic in enumerate(ordered, start=1)
@@ -912,8 +923,7 @@ def _historical_composition(topics: list[dict[str, Any]], language: str) -> str:
         -topic["history_comparison"]["latest_agenda_share"], topic["topic_id"]))
     reference = ordered[0]["history_comparison"]
     window_days = (date.fromisoformat(reference["latest_end"]) - date.fromisoformat(reference["latest_start"])).days + 1
-    previous_total = sum(topic["history_comparison"]["previous_source_day_count"] for topic in ordered)
-    latest_total = sum(topic["history_comparison"]["latest_source_day_count"] for topic in ordered)
+    previous_total, latest_total = _comparison_totals(topics, reference, history=True)
 
     def bar(field: str, class_name: str) -> str:
         segments = []

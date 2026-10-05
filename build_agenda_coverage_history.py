@@ -25,6 +25,8 @@ from agenda_page_contract import (
     HISTORICAL_EVIDENCE_SELECTION_RULE,
     HISTORICAL_EVIDENCE_SOURCE,
     ROLLING_HISTORY_DAYS,
+    agenda_source_day_rows,
+    agenda_source_day_share,
     validate_agenda_coverage_history,
 )
 
@@ -312,9 +314,10 @@ def _snapshot_days(
             "total_classified_agenda_items": sum(
                 point["item_count"] for point in topic_points.values()
             ),
-            "total_agenda_topic_source_days": sum(
-                point["source_day_count"] for point in topic_points.values()
-            ),
+            "total_agenda_topic_source_days": agenda_source_day_rows(
+                {key: point["source_day_count"] for key, point in topic_points.items()},
+                allow_empty_observation=True,
+            )[0].denominator,
             "topics": topic_points,
         }
     return result
@@ -573,10 +576,9 @@ def build_history_payload(
                         if item_denominator
                         else 0.0
                     ),
-                    "topic_source_day_share": (
-                        topic["source_day_count"] / source_day_denominator
-                        if source_day_denominator
-                        else 0.0
+                    "topic_source_day_share": agenda_source_day_share(
+                        topic["source_day_count"], source_day_denominator,
+                        allow_empty_observation=True,
                     ),
                 }
             )

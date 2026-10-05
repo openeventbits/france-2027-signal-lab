@@ -12,6 +12,7 @@ from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Iterable
 
+import agenda_page_contract
 from agenda_page_contract import AGENDA_DEFINITIONS
 from issue_page_contract import ISSUE_DEFINITIONS
 
@@ -306,16 +307,13 @@ def _make_row(
     current_denominator: int,
     canonical_url_fr: str,
     canonical_url_en: str,
+    raw_percentages: tuple[float, float] | None = None,
 ) -> MetricRow:
-    previous_raw = _share(
-        previous_evidence,
-        previous_denominator,
-    )
-
-    current_raw = _share(
-        current_evidence,
-        current_denominator,
-    )
+    if raw_percentages is None:
+        previous_raw = _share(previous_evidence, previous_denominator)
+        current_raw = _share(current_evidence, current_denominator)
+    else:
+        previous_raw, current_raw = raw_percentages
 
     (
         previous_display,
@@ -510,70 +508,31 @@ def build_agenda_metric_snapshot(
         window_mode,
     )
 
-    previous_set = set(previous_dates)
-    current_set = set(current_dates)
-
-    previous_denominator = _sum_field(
-        daily_denominators,
-        previous_set,
-        "total_agenda_topic_source_days",
-    )
-
-    current_denominator = _sum_field(
-        daily_denominators,
-        current_set,
-        "total_agenda_topic_source_days",
-    )
-
-    if previous_denominator <= 0 or current_denominator <= 0:
-        raise MetricContractError(
-            "Agenda source-day denominator is empty"
+    try:
+        previous = agenda_page_contract.build_agenda_period_metric(
+            root.get("topics"), start_date=previous_dates[0], end_date=previous_dates[-1],
+            daily_denominators=daily_denominators,
         )
-
-    topic_index = {
-        str(row.get("id") or ""): row
-        for row in _require_rows(
-            root.get("topics"),
-            "Agenda history topics",
+        current = agenda_page_contract.build_agenda_period_metric(
+            root.get("topics"), start_date=current_dates[0], end_date=current_dates[-1],
+            daily_denominators=daily_denominators,
         )
-    }
+    except agenda_page_contract.AgendaPageContractError as error:
+        raise MetricContractError(str(error)) from error
 
     rows = []
 
-    for definition in AGENDA_DEFINITIONS:
-        topic = topic_index.get(definition.topic_id)
-
-        if topic is None:
-            raise MetricContractError(
-                f"missing Agenda history: {definition.topic_id}"
-            )
-
-        daily = _require_rows(
-            topic.get("daily"),
-            f"{definition.topic_id}.daily",
-        )
-
-        previous_evidence = _sum_field(
-            daily,
-            previous_set,
-            "source_day_count",
-        )
-
-        current_evidence = _sum_field(
-            daily,
-            current_set,
-            "source_day_count",
-        )
-
+    for definition, previous_row, current_row in zip(AGENDA_DEFINITIONS, previous.rows, current.rows):
         rows.append(
             _make_row(
                 entity_id=definition.topic_id,
                 label_fr=definition.label_fr,
                 label_en=definition.label_en,
-                previous_evidence=previous_evidence,
-                current_evidence=current_evidence,
-                previous_denominator=previous_denominator,
-                current_denominator=current_denominator,
+                previous_evidence=previous_row.numerator,
+                current_evidence=current_row.numerator,
+                previous_denominator=previous_row.denominator,
+                current_denominator=current_row.denominator,
+                raw_percentages=(previous_row.raw_share * 100.0, current_row.raw_share * 100.0),
                 canonical_url_fr=(
                     PUBLIC_ORIGIN + definition.routes["fr"]
                 ),
@@ -581,22 +540,6 @@ def build_agenda_metric_snapshot(
                     PUBLIC_ORIGIN + definition.routes["en"]
                 ),
             )
-        )
-
-    if (
-        sum(row.previous_evidence for row in rows)
-        != previous_denominator
-    ):
-        raise MetricContractError(
-            "previous Agenda source-day denominator does not reconcile"
-        )
-
-    if (
-        sum(row.current_evidence for row in rows)
-        != current_denominator
-    ):
-        raise MetricContractError(
-            "current Agenda source-day denominator does not reconcile"
         )
 
     metric_id = (
@@ -608,8 +551,8 @@ def build_agenda_metric_snapshot(
     return MetricSnapshot(
         metric_id=metric_id,
         family="agenda",
-        aggregation_unit="agenda_topic_source_day",
-        denominator_id="all_canonical_agenda_topic_source_days",
+        aggregation_unit=current.aggregation_unit,
+        denominator_id=current.denominator_id,
         window_mode=window_mode,
         as_of=str(root.get("data_as_of") or ""),
         source_artifact="agenda_coverage_history.json",
