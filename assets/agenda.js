@@ -9,7 +9,7 @@
       note.classList.remove("is-dismissed");
     }
     note.addEventListener("keydown", function (event) {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !note.classList.contains("is-dismissed")) {
         event.preventDefault();
         event.stopPropagation();
         note.classList.add("is-dismissed");
