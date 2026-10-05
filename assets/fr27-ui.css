@@ -1,5 +1,12 @@
 /* Shared FR27 explanatory tooltip and loading vocabulary. */
 
+/* Escape dismissal persists until a fresh hover or focus entry. */
+:is(.issue-note-tooltip, .agenda-note-tooltip).is-dismissed
+  :is(.issue-note-tooltip-body, .agenda-note-tooltip-body) {
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
 [data-fr27-tooltip] {
   --fr27-tooltip-delay: 140ms;
 }

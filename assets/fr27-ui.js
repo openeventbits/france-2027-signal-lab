@@ -89,6 +89,16 @@
     return target instanceof Element ? target.closest(tooltipSelector) : null;
   }
 
+  // These CSS-driven notes share Escape ownership, but retain their own
+  // hover/focus presentation and the focus on their existing trigger.
+  const noteSelector = ".issue-note-tooltip, .agenda-note-tooltip";
+  function reopenNote(event) {
+    const note = event.target instanceof Element ? event.target.closest(noteSelector) : null;
+    if (note && !note.contains(event.relatedTarget)) note.classList.remove("is-dismissed");
+  }
+  document.addEventListener("pointerover", reopenNote);
+  document.addEventListener("focusin", reopenNote);
+
   document.addEventListener("pointerover", event => {
     if (event.pointerType === "touch") return;
     const trigger = closestTrigger(event.target);
@@ -117,7 +127,19 @@
   }, true);
 
   document.addEventListener("keydown", event => {
-    if (event.key === "Escape") hide();
+    if (event.key !== "Escape") return;
+    const note = [...document.querySelectorAll(noteSelector)].find(node => {
+      const body = node.querySelector(".issue-note-tooltip-body, .agenda-note-tooltip-body");
+      return body && getComputedStyle(body).visibility === "visible";
+    });
+    if (!activeTrigger && !note) return;
+    event.preventDefault();
+    // HUD consumers listen on window in the bubble phase. Stop here so a
+    // separate, later Escape can still reach them; same-node handlers need
+    // no stopImmediatePropagation and existing target popup handlers run first.
+    event.stopPropagation();
+    hide();
+    if (note) note.classList.add("is-dismissed");
   });
 
   window.addEventListener("resize", () => activeTrigger ? position(activeTrigger) : null);

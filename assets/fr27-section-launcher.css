@@ -13,9 +13,23 @@
 [data-fr27-section-launcher] .fr27-section-launcher-trigger {
   position: relative;
   padding: 0;
-  color: var(--final-muted);
+  color: var(--final-text);
+  border-color: #3980a3;
+  background: #0b2032;
+  box-shadow: inset 0 1px 0 rgba(195, 224, 240, .12);
   font: inherit;
   cursor: pointer;
+}
+@media (hover: hover) {
+  [data-fr27-section-launcher] .fr27-section-launcher-trigger:hover {
+    border-color: #60a6c7;
+    background: #102b40;
+  }
+}
+[data-fr27-section-launcher] .fr27-section-launcher-trigger[aria-expanded="true"] {
+  border-color: #74bddb;
+  background: #15364b;
+  box-shadow: inset 0 0 0 1px rgba(116, 189, 219, .22);
 }
 .fr27-section-icon { display: contents; }
 [data-fr27-section-launcher] :is(.fr27-section-launcher-trigger, .fr27-section-row):focus-visible {
@@ -28,8 +42,8 @@
   bottom: 4px;
   width: 5px;
   height: 5px;
-  border-right: 1px solid currentColor;
-  border-bottom: 1px solid currentColor;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
   transform: rotate(45deg);
 }
 .fr27-section-launcher-trigger[aria-expanded="true"] .fr27-section-caret { transform: rotate(225deg); }
