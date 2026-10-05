@@ -452,6 +452,54 @@ class SearchFoundationTests(unittest.TestCase):
             ):
                 generate_entrypoints(**paths)
 
+    def test_check_mode_accepts_crlf_checkout_without_rewrite(self):
+        with temporary_workspace() as temporary:
+            source = temporary / "index.html"
+            english_output = temporary / "en" / "index.html"
+            english_output.parent.mkdir()
+
+            french_lf = (
+                INDEX.read_bytes()
+                .replace(b"\r\n", b"\n")
+                .replace(b"\r", b"\n")
+            )
+            english_lf = (
+                ENGLISH_INDEX.read_bytes()
+                .replace(b"\r\n", b"\n")
+                .replace(b"\r", b"\n")
+            )
+
+            source.write_bytes(
+                french_lf.replace(b"\n", b"\r\n")
+            )
+            english_output.write_bytes(
+                english_lf.replace(b"\n", b"\r\n")
+            )
+
+            before = (
+                source.read_bytes(),
+                english_output.read_bytes(),
+            )
+
+            self.assertEqual(
+                generate_entrypoints(
+                    source_path=source,
+                    english_output_path=english_output,
+                    candidate_signals_path=CANDIDATE_SIGNALS,
+                    recent_changes_path=RECENT_CHANGES,
+                    check=True,
+                ),
+                (False, False),
+            )
+
+            self.assertEqual(
+                (
+                    source.read_bytes(),
+                    english_output.read_bytes(),
+                ),
+                before,
+            )
+
     def test_runtime_preserves_published_or_live_content_while_loading_or_unavailable(self):
         runtime = self.root_html
         unavailable_guard = (

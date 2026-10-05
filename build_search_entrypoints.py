@@ -721,6 +721,20 @@ def _write_pair(
         raise
 
 
+def _portable_text_bytes_equal(
+    expected: bytes,
+    current: bytes | None,
+) -> bool:
+    """Compare generated UTF-8 text independent of platform line endings."""
+    if current is None:
+        return False
+
+    def normalized(value: bytes) -> bytes:
+        return value.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+    return normalized(expected) == normalized(current)
+
+
 def generate_entrypoints(
     *,
     source_path: Path = SOURCE,
@@ -744,8 +758,14 @@ def generate_entrypoints(
         if english_output_path.exists()
         else None
     )
-    french_changed = french_bytes != source_bytes
-    english_changed = english_bytes != current_english
+    french_changed = not _portable_text_bytes_equal(
+        french_bytes,
+        source_bytes,
+    )
+    english_changed = not _portable_text_bytes_equal(
+        english_bytes,
+        current_english,
+    )
     if check:
         stale = []
         if french_changed:
