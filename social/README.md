@@ -1,29 +1,173 @@
 # FR27 → X publisher
 
-This directory contains the deterministic French X publishing lane for France 2027 Signal Lab.
+This directory contains the deterministic X publishing system for France 2027 Signal Lab.
 
-## What it publishes
+Nothing publishes unless the GitHub repository variable `FR27_SOCIAL_ENABLED`
+is exactly `true`, or a manual workflow run is explicitly launched with
+`publish=true`.
 
-- `updates`: newly detected Campaign / Fact-check / Legal `recent_changes.json` developments as headline + direct publisher URL, and newly added future `campaign_events.json` entries as event title + date + source URL. Google News RSS wrappers are decoded before posting; an unresolved wrapper is never posted. Near-duplicate coverage of the same development is collapsed conservatively. No screenshot and no generative rewriting. Polling and runoff changes are excluded.
-- `media`: one daily screenshot of the Media Pulse overview. Its caption deterministically surfaces the three largest comparable mention-rate changes visible in the panel.
-- `agenda`: one daily screenshot of the Agenda Evolution panel. Its caption deterministically surfaces the three largest complete-week movements visible in the panel.
-- `issues`: one daily screenshot of the Issues Evolution panel. Its caption deterministically surfaces the three largest incidence movements visible in the panel.
+## Publishing model
 
-Race-at-a-Glance, polling updates and runoff updates are deliberately excluded from this lane.
+The production model is text-first.
 
-## Safety / idempotence
+Daily core queue:
 
-The lane has three independent safeguards:
+- 08:45 — French campaign-event roundup, when events exist.
+- 10:15 — French quantitative signal.
+- 11:30 — English quantitative signal.
+- 12:15 — French quantitative signal.
+- 14:30 — French quantitative signal.
+- 16:45 — French quantitative signal.
+- 19:30 — English quantitative signal.
 
-1. A persistent state file on the `social-assets` branch records already-seen `recent_changes` and campaign-event IDs. The first manual `bootstrap` run snapshots everything that already exists, so historical items are not posted when automation is enabled.
-2. The social layer conservatively clusters same-day/adjacent-day near-duplicate `recent_changes` records. In addition to lexical similarity, a small allowlist of one-off candidate-status action groups (such as candidacy launch, withdrawal, or suspension) can collapse differently worded coverage when the same candidate and time window match. If an equivalent development already exists in the baseline/seen set, later duplicate coverage does not resurrect it as a new X post. Separate endorsements/events are kept separate.
-3. Before publishing, Buffer is queried for recent sent/scheduled text. Exact duplicates are skipped. This also protects against a successful X post followed by a failed state-file commit.
+Maximum core output:
 
-A scheduled update run publishes at most four new items, leaving any remaining unseen items for the next 30-minute run. The entire scheduled workflow is inert until the repository variable `FR27_SOCIAL_ENABLED` is exactly `true`.
+- French: 5 posts/day.
+- English: 2 posts/day.
 
-## Buffer configuration
+Dynamic French developments are checked separately at approximately:
 
-Create a Buffer personal API key and connect the FR27 X account. Configure:
+- 09:05
+- 13:05
+- 17:05
+- 20:05
+
+Each dynamic check can publish at most one item and the persistent daily
+quota is three dynamic posts per Europe/Paris calendar day.
+
+Weak, stale or cooldown-blocked quantitative signals are suppressed rather
+than replaced with filler.
+
+## Quantitative lanes
+
+The immutable daily queue can select from three quantitative families:
+
+1. Candidate visibility
+2. Issues / Enjeux
+3. Campaign Agenda
+
+The signal engine uses complete UTC history through the previous UTC day.
+The current incomplete UTC day is excluded.
+
+Candidate visibility is a share of candidate-linked campaign coverage.
+It is not polling, support, sentiment or a forecast.
+
+Issues use the accepted relevant-news corpus as denominator and are
+multilabel, so issue shares can sum above 100%.
+
+Campaign Agenda uses classified Agenda items and a single-label denominator.
+`polls_race` is excluded from social quantitative selection.
+
+Supported comparison horizons include:
+
+- daily: latest complete day vs previous complete day;
+- weekly: latest 7 complete days vs previous 7 complete days;
+- internal `four_week`: 14 complete days vs previous 14 complete days.
+
+The public wording must describe the actual measurement window.
+
+## Internal links
+
+Every quantitative core post links to the corresponding canonical FR27 page.
+
+Canonical URLs are resolved from `route_registry.json` rather than from a
+separate social-media route map.
+
+Examples:
+
+- candidate signal → candidate dossier;
+- issue signal → issue dossier;
+- Agenda signal → Agenda dossier.
+
+The daily event roundup is intentionally linkless.
+
+Dynamic developments use the original publisher/source URL.
+
+## Event roundup rule
+
+Scheduled or confirmed events occurring today in Europe/Paris are eligible
+for the morning roundup.
+
+If the event has a known clock time:
+
+`19h00 · Rencontre avec Raphaël Glucksmann à Marseille`
+
+If the event time is unknown, the event remains in the roundup but no time
+placeholder is printed:
+
+`Gabriel Attal dans « La parole est à vous » sur France 3`
+
+Never print `Heure non précisée` or an equivalent placeholder.
+
+Timed events sort before untimed events.
+
+## Daily queue
+
+`social/daily_queue.py` builds an immutable queue for the current Paris date.
+
+A same-day rebuild returns the already persisted queue rather than selecting
+new core posts.
+
+Each queue item records:
+
+- locale;
+- slot;
+- lane;
+- deterministic key;
+- exact text;
+- score when applicable;
+- pending/published state;
+- publication timestamp;
+- Buffer post ID.
+
+A successful or duplicate-resolved publication updates the queue item only
+after Buffer resolution.
+
+## Planner state and cooldowns
+
+The unified social state contains a nested `planner` object.
+
+It records:
+
+- published quantitative signals;
+- dates on which the roundup was published;
+- dynamic developments;
+- the immutable daily queue.
+
+Current cooldown policy:
+
+- daily horizon: 1 day;
+- weekly horizon: 7 days;
+- 14-vs-14 horizon: 14 days;
+- same entity across horizons: 2 days.
+
+The roundup is limited to once per Europe/Paris date.
+
+## Dynamic developments
+
+`updates` publishes source-linked campaign developments and campaign events.
+
+Polling and runoff changes are excluded.
+
+Google News RSS wrapper URLs are resolved to publisher URLs before
+publication. An unresolved wrapper fails closed for that item.
+
+Near-duplicate developments are clustered conservatively.
+
+Fresh-update diversification limits same-candidate repetition.
+
+The persistent dynamic quota is three posts/day.
+
+## Buffer and duplicate recovery
+
+Before publishing, the system checks recent Buffer content for exact text
+duplicates.
+
+If Buffer already contains the exact post text, the post is treated as
+resolved instead of being created again. This protects against the case where
+Buffer accepted a post but the subsequent state commit failed.
+
+Required configuration:
 
 GitHub secret:
 
@@ -33,36 +177,87 @@ GitHub repository variables:
 
 - `BUFFER_ORGANIZATION_ID`
 - `BUFFER_X_CHANNEL_ID`
-- `FR27_SOCIAL_ENABLED` — leave unset/false during testing, then set to `true`
+- `FR27_SOCIAL_ENABLED`
 
-To discover the Buffer organization/channel IDs, run the workflow manually in `buffer-info` mode after adding `BUFFER_API_KEY`.
+Keep `FR27_SOCIAL_ENABLED` unset or false until activation is explicitly
+approved.
 
-## Activation order
+## Persistent state
 
-1. Merge the publishing PR while `FR27_SOCIAL_ENABLED` is unset/false.
-2. Connect X in Buffer and add `BUFFER_API_KEY`.
-3. Run `buffer-info` to obtain the organization and X channel IDs; store them as repository variables.
-4. Run `bootstrap`. This writes the current `recent_changes` and event IDs into `social/x/state.json` on the `social-assets` branch without posting anything.
-5. Before committing, run `python -B social/social_publish.py preview` to inspect exact current Évolutions and event text samples.
-6. Run `media`, `agenda`, and `issues` manually with `publish=false`; inspect both the uploaded screenshots and extracted metric JSON. The dry-run log prints the exact caption that would accompany each screenshot.
-7. Run `updates` manually with `publish=false`; inspect the candidate posts.
-8. Only then set `FR27_SOCIAL_ENABLED=true`.
+Publishing state is stored at:
 
-## Schedules (Europe/Paris)
+`social/x/state.json`
 
-- update scan: 07:17–23:47, every 30 minutes
-- media visual: 12:13
-- agenda visual: 15:07
-- issues visual: 17:37
+on the `social-assets` branch.
 
-The non-round minutes reduce exposure to top-of-hour GitHub scheduled-workflow congestion.
+On the first activation, the manual `bootstrap` mode snapshots existing
+recent changes and campaign-event IDs so historical material is not dumped
+onto X.
 
-## Screenshot handling
+The workflow can create `social-assets` from zero during the approved live
+bootstrap step.
 
-Playwright renders the production French site in a fixed `1707 × 932` virtual viewport. Physical laptop dimensions are irrelevant. Agenda and Issues capture only the evolution panel; Media captures the overview panel. All three captures isolate the target DOM so fixed/sticky dashboard chrome cannot paint over the exported image. The Media capture widens the actual Media Pulse parent, forces six candidate rows visible, hides the capture-only CTA, and lets the overview grow to its natural height. Agenda/Issues use a retrying stable-element capture because their analytical workspace can be replaced asynchronously while its data contracts settle. The capture waits for real data rows rather than merely waiting for the container to exist.
+Live bootstrap is create-once. If persistent `social-assets` state already
+exists, a live bootstrap fails closed rather than replacing planner history,
+cooldowns, queue state, or publication ledgers.
 
-Published screenshots are written to the `social-assets` branch and exposed through a `raw.githubusercontent.com` URL for Buffer to fetch. Manual visual runs default to dry-run mode and upload the screenshot as a short-lived GitHub Actions artifact instead of publishing it.
+Dry runs do not persist state.
 
-## Google News URL resolution
+## Workflow safety
 
-Some FR27 discovery records originate from Google News RSS and therefore contain `news.google.com/rss/articles/...` wrapper URLs. X posts must link to the publisher, not to the wrapper. The social lane pins `googlenewsdecoder==0.2.1` (MIT) in `social/requirements.txt`, decodes wrappers at publication/preview time, and fails closed for any individual URL it cannot resolve. Direct publisher URLs pass through unchanged.
+`.github/workflows/publish-x-fr.yml` uses one serialized concurrency group:
+
+`fr27-social-publish`
+
+Scheduled runs are inert unless `FR27_SOCIAL_ENABLED=true`.
+
+Manual workflow dispatch defaults to:
+
+- `mode=full-dry-run`
+- `publish=false`
+
+The full dry run:
+
+- bootstraps temporary state;
+- builds the queue;
+- previews every generated core slot;
+- previews dynamic updates;
+- does not call Buffer;
+- does not modify persistent state.
+
+## Screenshots
+
+Custom social-card renderers are not part of the v2 production workflow.
+
+`capture_social_panel.py` is retained only as a dormant direct-panel capture
+helper. No screenshot lane is currently scheduled.
+
+If screenshots are added later, they should use actual FR27 interface panels
+and must be validated against the exact measurement window of the associated
+post before activation.
+
+## Activation sequence
+
+Do not activate directly from a development worktree.
+
+Required sequence:
+
+1. Review the complete v2 diff.
+2. Commit and push the feature branch only after explicit approval.
+3. Merge while `FR27_SOCIAL_ENABLED` remains unset/false.
+4. Run the GitHub `full-dry-run`.
+5. Review the generated queue/artifact.
+6. Configure and verify Buffer IDs if needed.
+7. Run the approved live `bootstrap` to initialize `social-assets`.
+8. Keep publishing disabled until the final explicit activation decision.
+9. Only then set `FR27_SOCIAL_ENABLED=true`.
+
+## Dependencies
+
+The social text publisher pins:
+
+- `googlenewsdecoder==0.2.1`
+- `selectolax==0.4.13`
+
+Playwright is an optional dependency for the dormant panel-capture helper and
+is not installed or invoked by the current production X workflow.

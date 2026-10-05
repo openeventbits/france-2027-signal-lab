@@ -22,6 +22,10 @@ PARIS = ZoneInfo("Europe/Paris")
 MAX_X_WEIGHTED_LENGTH = 280
 X_URL_WEIGHT = 23
 STATE_SCHEMA_VERSION = 1
+PLANNER_STATE_SCHEMA_VERSION = 1
+DYNAMIC_DAILY_LIMIT = 3
+DYNAMIC_STATE_RETENTION_DAYS = 60
+
 URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
 ELIGIBLE_RECENT_CHANGE_CATEGORIES = frozenset({"campaign", "fact_check", "legal"})
 GOOGLE_NEWS_HOSTS = frozenset({"news.google.com"})
@@ -31,6 +35,26 @@ SOCIAL_STOPWORDS = frozenset({
     "mais", "ne", "ou", "par", "pas", "plus", "pour", "presidentielle",
     "que", "qui", "sa", "se", "ses", "son", "sur", "un", "une", "2027",
 })
+SOCIAL_DEVELOPMENT_TOPIC_GROUPS = {
+    "online_political_speaking_time": {
+        "required": (
+            "temps de parole",
+        ),
+        "signals": (
+            "podcast",
+            "podcasts",
+            "influenceur",
+            "influenceurs",
+            "interview politique en ligne",
+            "interviews politiques en ligne",
+            "sam zirah",
+            "hugo decrypte",
+            "legend",
+        ),
+    },
+}
+
+
 SOCIAL_CAMPAIGN_ACTION_GROUPS = {
     "candidacy_launch": (
         "je suis candidat",
@@ -290,19 +314,96 @@ def _campaign_action_groups(value: Any) -> set[str]:
     }
 
 
+def _development_topic_groups(value: Any) -> set[str]:
+    title = _normalize_social_title(value)
+
+    groups: set[str] = set()
+
+    for group, contract in (
+        SOCIAL_DEVELOPMENT_TOPIC_GROUPS.items()
+    ):
+        required = contract["required"]
+        signals = contract["signals"]
+
+        if not all(
+            phrase in title
+            for phrase in required
+        ):
+            continue
+
+        if not any(
+            phrase in title
+            for phrase in signals
+        ):
+            continue
+
+        groups.add(group)
+
+    return groups
+
+
 def _recent_changes_social_match(left: dict[str, Any], right: dict[str, Any]) -> bool:
-    if str(left.get("category") or "").lower() != str(right.get("category") or "").lower():
-        return False
-    left_title = _normalize_social_title(left.get("headline"))
-    right_title = _normalize_social_title(right.get("headline"))
+    left_category = str(
+        left.get("category") or ""
+    ).lower()
+
+    right_category = str(
+        right.get("category") or ""
+    ).lower()
+
+    left_title = _normalize_social_title(
+        left.get("headline")
+    )
+
+    right_title = _normalize_social_title(
+        right.get("headline")
+    )
+
     if not left_title or not right_title:
         return False
+
     if left_title == right_title:
         return True
 
     left_date = _change_date(left)
     right_date = _change_date(right)
-    if left_date and right_date and abs((left_date - right_date).days) > 1:
+
+    if (
+        left_date
+        and right_date
+        and abs(
+            (left_date - right_date).days
+        ) > 1
+    ):
+        return False
+
+    # A very small explicit allowlist handles
+    # developments where publishers use
+    # radically different headlines for the
+    # same underlying regulatory announcement.
+    #
+    # This may bridge campaign/legal labels,
+    # because the same election rule can
+    # legitimately be categorized either way.
+    topic_overlap = (
+        _development_topic_groups(
+            left_title
+        )
+        & _development_topic_groups(
+            right_title
+        )
+    )
+
+    if (
+        topic_overlap
+        and left_category
+        in {"campaign", "legal"}
+        and right_category
+        in {"campaign", "legal"}
+    ):
+        return True
+
+    if left_category != right_category:
         return False
 
     left_candidates = {str(v) for v in (left.get("candidate_ids") or []) if str(v)}
@@ -397,6 +498,70 @@ def render_campaign_event(item: dict[str, Any]) -> str:
     return _fit_with_url(body, source_url)
 
 
+
+def _new_planner_state_payload() -> dict[str, Any]:
+    return {
+        "schema_version": (
+            PLANNER_STATE_SCHEMA_VERSION
+        ),
+        "published_quantitative": [],
+        "roundup_dates": [],
+        "dynamic_updates": [],
+    }
+
+
+def _validate_planner_state_payload(
+    value: Any,
+) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError(
+            "social state planner must be an object"
+        )
+
+    if (
+        value.get("schema_version")
+        != PLANNER_STATE_SCHEMA_VERSION
+    ):
+        raise ValueError(
+            "social state planner has an "
+            "unsupported schema"
+        )
+
+    if not isinstance(
+        value.get("published_quantitative"),
+        list,
+    ):
+        raise ValueError(
+            "social state planner requires "
+            "published_quantitative list"
+        )
+
+    if not isinstance(
+        value.get("roundup_dates"),
+        list,
+    ):
+        raise ValueError(
+            "social state planner requires "
+            "roundup_dates list"
+        )
+
+    # Backward-compatible upgrade from the
+    # earlier planner-state shape.
+    if "dynamic_updates" not in value:
+        value["dynamic_updates"] = []
+
+    if not isinstance(
+        value.get("dynamic_updates"),
+        list,
+    ):
+        raise ValueError(
+            "social state planner requires "
+            "dynamic_updates list"
+        )
+
+    return value
+
+
 def _state_seen(state: dict[str, Any], kind: str) -> set[str]:
     seen = state.get("seen") or {}
     key = "recent_changes" if kind == "recent_change" else "campaign_events"
@@ -417,7 +582,23 @@ def _validate_state(state: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("social state has no seen registry")
     for key in ("recent_changes", "campaign_events"):
         if not isinstance(seen.get(key), list):
-            raise ValueError(f"social state field seen.{key} must be a list")
+            raise ValueError(
+                f"social state field "
+                f"seen.{key} must be a list"
+            )
+
+    # Backward-compatible upgrade path.
+    # Existing social-assets state files from
+    # v1 did not contain planner state.
+    if "planner" not in state:
+        state["planner"] = (
+            _new_planner_state_payload()
+        )
+
+    _validate_planner_state_payload(
+        state["planner"]
+    )
+
     return state
 
 
@@ -445,6 +626,9 @@ def build_bootstrap_state(
             "recent_changes": recent_ids,
             "campaign_events": event_ids,
         },
+        "planner": (
+            _new_planner_state_payload()
+        ),
     }
 
 
@@ -629,9 +813,6 @@ def _top_delta_rows(metrics: dict[str, Any] | None, limit: int = 3) -> list[dict
 
 
 def visual_caption(kind: str, now: datetime, metrics: dict[str, Any] | None = None) -> str:
-    current = now.astimezone(PARIS)
-    date_label = f"{current.day} {FRENCH_MONTHS[current.month - 1].upper()}"
-
     if kind == "media":
         comparison = str((metrics or {}).get("comparison_label") or "").strip().lower()
         rows = _top_delta_rows(metrics, 3)
@@ -641,21 +822,17 @@ def visual_caption(kind: str, now: datetime, metrics: dict[str, Any] | None = No
             for row in rows:
                 name = str(row.get("name") or row.get("label") or "").strip()
                 delta = _signed_number(row.get("delta"))
-                if not name or delta is None:
-                    continue
-                lines.append(f"{name}  {_fr_signed_points(delta)}")
+                if name and delta is not None:
+                    lines.append(f"{name}  {_fr_signed_points(delta)}")
             if lines:
                 return (
-                    f"COUVERTURE MÉDIATIQUE · {date_label}\n\n"
-                    "Plus fortes variations du taux de mention :\n\n"
+                    "RADAR MÉDIAS · AUJOURD’HUI\n\n"
+                    "Qui monte ou recule le plus dans les médias aujourd’hui ? 👇\n\n"
                     + "\n".join(lines)
-                    + "\n\nhttps://france2027.app/"
                 )
         return (
-            f"COUVERTURE MÉDIATIQUE · {date_label}\n\n"
-            "Taux de mention des personnalités, thèmes et principaux médias "
-            "dans la couverture suivie par France 2027.\n\n"
-            "https://france2027.app/"
+            "RADAR MÉDIAS · AUJOURD’HUI\n\n"
+            "Qui monte ou recule le plus dans les médias aujourd’hui ? 👇"
         )
 
     if kind == "agenda":
@@ -664,24 +841,21 @@ def visual_caption(kind: str, now: datetime, metrics: dict[str, Any] | None = No
         for row in rows:
             full_label = str(row.get("label") or "").strip()
             label = AGENDA_SOCIAL_LABELS.get(full_label, full_label)
-            count = " ".join(str(row.get("count") or "").split())
             delta = _signed_number(row.get("delta"))
-            if label and count and delta is not None:
-                lines.append(f"{label} {count} · {_fr_signed_points(delta)}")
-        if lines:
+            if label and delta is not None:
+                lines.append(f"{label}  {_fr_signed_points(delta)}")
+        while lines:
             caption = (
-                f"AGENDA DE CAMPAGNE · {date_label}\n\n"
-                "Évolutions les plus marquées :\n\n"
+                "AGENDA · CETTE SEMAINE\n\n"
+                "Ce qui monte et ce qui recule dans la campagne 👇\n\n"
                 + "\n".join(lines)
-                + "\n\nhttps://france2027.app/#signal-agenda"
             )
             if _weighted_x_length(caption) <= MAX_X_WEIGHTED_LENGTH:
                 return caption
+            lines.pop()
         return (
-            f"AGENDA DE CAMPAGNE · {date_label}\n\n"
-            "Évolution des thèmes de campagne sur 30 jours et comparaison "
-            "des deux dernières semaines complètes.\n\n"
-            "https://france2027.app/#signal-agenda"
+            "AGENDA · CETTE SEMAINE\n\n"
+            "Ce qui monte et ce qui recule dans la campagne 👇"
         )
 
     if kind == "issues":
@@ -692,21 +866,80 @@ def visual_caption(kind: str, now: datetime, metrics: dict[str, Any] | None = No
             delta = _signed_number(row.get("delta"))
             if label and delta is not None:
                 lines.append(f"{label}  {_fr_signed_points(delta)}")
-        if lines:
-            return (
-                f"ENJEUX · {date_label}\n\n"
-                "Plus fortes évolutions d’incidence :\n\n"
+        while lines:
+            caption = (
+                "ENJEUX · CETTE SEMAINE\n\n"
+                "Les sujets qui montent et ceux qui reculent 👇\n\n"
                 + "\n".join(lines)
-                + "\n\nhttps://france2027.app/#signal-issues"
             )
+            if _weighted_x_length(caption) <= MAX_X_WEIGHTED_LENGTH:
+                return caption
+            lines.pop()
         return (
-            f"ENJEUX · {date_label}\n\n"
-            "Évolution sur 30 jours et comparaison hebdomadaire des enjeux "
-            "dans la couverture présidentielle suivie par France 2027.\n\n"
-            "https://france2027.app/#signal-issues"
+            "ENJEUX · CETTE SEMAINE\n\n"
+            "Les sujets qui montent et ceux qui reculent 👇"
         )
 
     raise ValueError(f"unsupported visual kind: {kind}")
+
+
+def _event_paris_date_and_time(value: Any) -> tuple[date | None, str]:
+    text = str(value or "").strip()
+    if not text:
+        return None, ""
+    try:
+        if len(text) <= 10:
+            return date.fromisoformat(text[:10]), ""
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None, ""
+    if parsed.tzinfo is None:
+        local = parsed.replace(tzinfo=PARIS)
+    else:
+        local = parsed.astimezone(PARIS)
+    return local.date(), f"{local.hour:02d}h{local.minute:02d}"
+
+
+def render_today_events(payload: dict[str, Any], *, now: datetime, limit: int = 4) -> str:
+    today = now.astimezone(PARIS).date()
+    rows: list[tuple[str, str, str]] = []
+    for item in payload.get("campaign_events") or []:
+        if str(item.get("status") or "").lower() not in {"scheduled", "confirmed"}:
+            continue
+        event_date, time_label = _event_paris_date_and_time(item.get("scheduled_start"))
+        if event_date != today:
+            continue
+        title = " ".join(str(item.get("title") or "").split())
+        if not title:
+            continue
+        sort_time = time_label or "99h99"
+        rows.append((sort_time, time_label, title))
+    rows.sort(key=lambda row: (row[0], row[2].casefold()))
+    if not rows:
+        return ""
+
+    header = "AUJOURD’HUI DANS LA CAMPAGNE 2027 👇"
+    selected: list[str] = []
+    for _sort_time, time_label, title in rows[: max(1, limit)]:
+        prefix = (
+            f"{time_label} · "
+            if time_label
+            else ""
+        )
+        line = prefix + _truncate_text_to_weight(title, 86)
+        candidate = header + "\n\n" + "\n".join([*selected, line])
+        if _weighted_x_length(candidate) <= MAX_X_WEIGHTED_LENGTH:
+            selected.append(line)
+    if not selected:
+        first = rows[0]
+        prefix = (
+            f"{first[1]} · "
+            if first[1]
+            else ""
+        )
+        budget = MAX_X_WEIGHTED_LENGTH - _weighted_x_length(header + "\n\n" + prefix)
+        selected = [prefix + _truncate_text_to_weight(first[2], max(1, budget))]
+    return header + "\n\n" + "\n".join(selected)
 
 
 class BufferClient:
@@ -858,6 +1091,191 @@ def run_bootstrap(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def _dynamic_paris_date(
+    now: datetime,
+) -> str:
+    return (
+        now
+        .astimezone(PARIS)
+        .date()
+        .isoformat()
+    )
+
+
+def _dynamic_update_rows(
+    state: dict[str, Any],
+) -> list[dict[str, Any]]:
+    state = _validate_state(
+        state
+    )
+
+    planner = state["planner"]
+
+    rows = planner.setdefault(
+        "dynamic_updates",
+        [],
+    )
+
+    return [
+        row
+        for row in rows
+        if isinstance(row, dict)
+    ]
+
+
+def _dynamic_updates_today(
+    state: dict[str, Any],
+    *,
+    now: datetime,
+) -> list[dict[str, Any]]:
+    today = _dynamic_paris_date(
+        now
+    )
+
+    return [
+        row
+        for row
+        in _dynamic_update_rows(
+            state
+        )
+        if str(
+            row.get("date") or ""
+        )
+        == today
+    ]
+
+
+def _dynamic_quota_remaining(
+    state: dict[str, Any],
+    *,
+    now: datetime,
+    limit: int = DYNAMIC_DAILY_LIMIT,
+) -> int:
+    limit = max(
+        0,
+        int(limit),
+    )
+
+    used = len(
+        _dynamic_updates_today(
+            state,
+            now=now,
+        )
+    )
+
+    return max(
+        0,
+        limit - used,
+    )
+
+
+def _record_dynamic_update(
+    state: dict[str, Any],
+    candidate: SocialCandidate,
+    *,
+    published_at: datetime,
+) -> None:
+    state = _validate_state(
+        state
+    )
+
+    planner = state["planner"]
+
+    rows = planner.setdefault(
+        "dynamic_updates",
+        [],
+    )
+
+    key = str(
+        candidate.key
+    )
+
+    kind = str(
+        candidate.kind
+    )
+
+    # Idempotence protects retries after a
+    # successful Buffer post.
+    for row in rows:
+        if (
+            isinstance(row, dict)
+            and str(
+                row.get("key") or ""
+            )
+            == key
+            and str(
+                row.get("kind") or ""
+            )
+            == kind
+        ):
+            return
+
+    published_utc = (
+        published_at
+        .astimezone(
+            timezone.utc
+        )
+    )
+
+    today = _dynamic_paris_date(
+        published_at
+    )
+
+    rows.append(
+        {
+            "kind": kind,
+            "key": key,
+            "date": today,
+            "published_at": (
+                _iso_z(
+                    published_utc
+                )
+            ),
+        }
+    )
+
+    # Keep the state compact while preserving
+    # enough history for diagnostics.
+    cutoff = (
+        published_at
+        .astimezone(PARIS)
+        .date()
+        - timedelta(
+            days=DYNAMIC_STATE_RETENTION_DAYS
+        )
+    )
+
+    retained = []
+
+    for row in rows:
+        if not isinstance(
+            row,
+            dict,
+        ):
+            continue
+
+        raw_date = str(
+            row.get("date") or ""
+        )
+
+        try:
+            row_date = (
+                date.fromisoformat(
+                    raw_date
+                )
+            )
+        except ValueError:
+            continue
+
+        if row_date >= cutoff:
+            retained.append(row)
+
+    planner[
+        "dynamic_updates"
+    ] = retained
+
+
 def run_updates(args: argparse.Namespace) -> int:
     now = _parse_iso(args.now) if args.now else datetime.now(timezone.utc)
     if now is None:
@@ -870,32 +1288,189 @@ def run_updates(args: argparse.Namespace) -> int:
         now=now,
         lookback_hours=args.lookback_hours,
     )
+
+    quota_remaining = (
+        _dynamic_quota_remaining(
+            state,
+            now=now,
+            limit=args.daily_limit,
+        )
+    )
+
+    effective_max = min(
+        max(
+            0,
+            args.max_posts,
+        ),
+        quota_remaining,
+    )
+
+    print(
+        "dynamic_daily_limit="
+        f"{args.daily_limit}"
+    )
+
+    print(
+        "dynamic_used_today="
+        + str(
+            len(
+                _dynamic_updates_today(
+                    state,
+                    now=now,
+                )
+            )
+        )
+    )
+
+    print(
+        "dynamic_remaining_today="
+        + str(
+            quota_remaining
+        )
+    )
+
+    print(
+        "dynamic_effective_max="
+        + str(
+            effective_max
+        )
+    )
+
     if args.dry_run:
-        _print_candidates(candidates[: args.max_posts])
+        _print_candidates(
+            candidates[
+                :effective_max
+            ]
+        )
+        return 0
+
+    if effective_max <= 0 or not candidates:
+        print(
+            "published_count=0 "
+            "resolved_count=0 "
+            "state_changed=false"
+        )
         return 0
 
     client = BufferClient.from_env()
-    recent_texts = client.recent_post_texts(since=now - timedelta(days=3))
+    recent_texts = client.recent_post_texts(
+        since=now - timedelta(days=3)
+    )
+
     published = 0
     resolved = 0
+
     for candidate in candidates:
-        if published >= args.max_posts:
+        # A duplicate already present in Buffer is a resolved
+        # publication outcome and therefore consumes this run's
+        # budget just like a newly created post. This prevents
+        # duplicate recovery from allowing an extra publication
+        # beyond the effective daily/run quota.
+        if resolved >= effective_max:
             break
         if candidate.text.strip() in recent_texts:
-            print(f"already present in Buffer; marking seen: {candidate.kind} {candidate.key}")
-            _mark_seen(state, candidate)
+            print(
+                "already present in Buffer; "
+                "marking seen: "
+                f"{candidate.kind} "
+                f"{candidate.key}"
+            )
+
+            _mark_seen(
+                state,
+                candidate,
+            )
+
+            candidate_day = (
+                candidate.observed_at
+                .astimezone(PARIS)
+                .date()
+            )
+
+            current_day = (
+                now
+                .astimezone(PARIS)
+                .date()
+            )
+
+            if candidate_day == current_day:
+                _record_dynamic_update(
+                    state,
+                    candidate,
+                    published_at=now,
+                )
+
             resolved += 1
             continue
         post_id = client.create_post(candidate.text)
         print(f"published {candidate.kind} {candidate.key}: {post_id}")
-        recent_texts.add(candidate.text.strip())
-        _mark_seen(state, candidate)
+        recent_texts.add(
+            candidate.text.strip()
+        )
+
+        _mark_seen(
+            state,
+            candidate,
+        )
+
+        _record_dynamic_update(
+            state,
+            candidate,
+            published_at=now,
+        )
+
         published += 1
         resolved += 1
 
+    if resolved == 0:
+        print(
+            "published_count=0 "
+            "resolved_count=0 "
+            "state_changed=false"
+        )
+        return 0
+
     state["updated_at"] = _iso_z(now)
-    _save_json(args.state_output, state)
-    print(f"published_count={published} resolved_count={resolved}")
+
+    _save_json(
+        args.state_output,
+        state,
+    )
+
+    print(
+        f"published_count={published} "
+        f"resolved_count={resolved} "
+        "state_changed=true"
+    )
+
+    return 0
+
+
+def run_today_events(args: argparse.Namespace) -> int:
+    now = _parse_iso(args.now) if args.now else datetime.now(timezone.utc)
+    if now is None:
+        raise ValueError("--now must be a valid ISO timestamp")
+    caption = render_today_events(
+        _load_json(args.campaign_events),
+        now=now,
+        limit=args.max_events,
+    )
+    print("template_id=today_events_v1")
+    if not caption:
+        print("no campaign events today; skipping")
+        return 0
+    if _weighted_x_length(caption) > MAX_X_WEIGHTED_LENGTH:
+        raise ValueError("today-events caption exceeds X weighted limit")
+    if args.dry_run:
+        print(caption)
+        return 0
+    client = BufferClient.from_env()
+    recent_texts = client.recent_post_texts(since=now - timedelta(days=2))
+    if caption.strip() in recent_texts:
+        print("today-events post already published; skipping")
+        return 0
+    post_id = client.create_post(caption)
+    print(f"published today-events roundup: {post_id}")
     return 0
 
 
@@ -970,6 +1545,12 @@ def run_visual(args: argparse.Namespace) -> int:
         raise ValueError("--now must be a valid ISO timestamp")
     metrics = _load_json(args.metrics_json) if args.metrics_json else None
     caption = visual_caption(args.kind, now, metrics)
+    template_id = {
+        "media": "media_daily_v2_1",
+        "agenda": "agenda_weekly_v2_1",
+        "issues": "issues_weekly_v2_1",
+    }[args.kind]
+    print(f"template_id={template_id}")
     if _weighted_x_length(caption) > MAX_X_WEIGHTED_LENGTH:
         raise ValueError("visual caption exceeds X weighted limit")
     if args.dry_run:
@@ -1055,9 +1636,34 @@ def build_parser() -> argparse.ArgumentParser:
     updates.add_argument("--state-output", required=True)
     updates.add_argument("--now")
     updates.add_argument("--lookback-hours", type=int, default=24)
-    updates.add_argument("--max-posts", type=int, default=4)
-    updates.add_argument("--dry-run", action="store_true")
+    updates.add_argument(
+        "--max-posts",
+        type=int,
+        default=4,
+    )
+
+    updates.add_argument(
+        "--daily-limit",
+        type=int,
+        default=DYNAMIC_DAILY_LIMIT,
+        help=(
+            "maximum dynamic French "
+            "update posts per Paris day"
+        ),
+    )
+
+    updates.add_argument(
+        "--dry-run",
+        action="store_true",
+    )
     updates.set_defaults(func=run_updates)
+
+    today_events = sub.add_parser("today-events", help="publish today’s campaign-event roundup")
+    today_events.add_argument("--campaign-events", default="campaign_events.json")
+    today_events.add_argument("--max-events", type=int, default=4)
+    today_events.add_argument("--now")
+    today_events.add_argument("--dry-run", action="store_true")
+    today_events.set_defaults(func=run_today_events)
 
     preview = sub.add_parser("preview", help="print exact current French text samples without publishing")
     preview.add_argument("--recent-changes", default="recent_changes.json")

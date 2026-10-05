@@ -1,6 +1,9 @@
 import importlib.util
 import sys
 import unittest
+import tempfile
+from types import SimpleNamespace
+from unittest.mock import patch
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -167,8 +170,7 @@ class SocialPublishTests(unittest.TestCase):
             with self.subTest(kind=kind):
                 caption = MODULE.visual_caption(kind, now)
                 self.assertLessEqual(MODULE._weighted_x_length(caption), 280)
-                self.assertIn("france2027.app", caption)
-
+                self.assertNotIn("http", caption)
 
     def test_recent_changes_exclude_polling_and_runoff(self):
         cutoff = datetime(2026, 9, 29, 0, tzinfo=timezone.utc)
@@ -229,29 +231,28 @@ class SocialPublishTests(unittest.TestCase):
             now,
             {
                 "rows": [
-                    {"label": "Sondages", "count": "14 → 39", "delta": "▲ +14,9pp"},
-                    {"label": "Primaires", "count": "140 → 103", "delta": "▼ -12,5pp"},
-                    {"label": "Candidatures", "count": "38 → 35", "delta": "• +0,6pp"},
+                    {"label": "Sondages", "current": "39,0%", "delta": "▲ +14,9pp"},
+                    {"label": "Primaires", "current": "20,0%", "delta": "▼ -12,5pp"},
+                    {"label": "Candidatures", "current": "10,0%", "delta": "• +0,6pp"},
                 ]
             },
         )
-        self.assertIn("Sondages 14 → 39 · +14,9 pts", agenda)
-        self.assertIn("Primaires 140 → 103 · −12,5 pts", agenda)
+        self.assertIn("Sondages  +14,9 pts", agenda)
+        self.assertIn("Primaires  −12,5 pts", agenda)
 
         issues = MODULE.visual_caption(
             "issues",
             now,
             {
                 "rows": [
-                    {"label": "Immigration & identité", "delta": "▼ -5,6pp"},
-                    {"label": "Europe & défense", "delta": "▲ +3,9pp"},
-                    {"label": "Travail & pouvoir d’achat", "delta": "• -3,2pp"},
+                    {"label": "Immigration & identité", "current": "0,0%", "delta": "▼ -5,6pp"},
+                    {"label": "Europe & défense", "current": "7,9%", "delta": "▲ +3,9pp"},
+                    {"label": "Travail & pouvoir d’achat", "current": "5,4%", "delta": "• -3,2pp"},
                 ]
             },
         )
         self.assertIn("Immigration & identité  −5,6 pts", issues)
         self.assertIn("Europe & défense  +3,9 pts", issues)
-
 
     def test_realistic_visual_captions_fit_x(self):
         now = datetime(2026, 9, 29, 12, tzinfo=timezone.utc)
@@ -266,16 +267,16 @@ class SocialPublishTests(unittest.TestCase):
             },
             "agenda": {
                 "rows": [
-                    {"label": "Sondages et rapports de force", "count": "14 → 39", "delta": "▲ +14,9pp"},
-                    {"label": "Primaires et stratégies partisanes", "count": "140 → 103", "delta": "▼ -12,5pp"},
-                    {"label": "Règles, calendrier et organisation de la campagne", "count": "3 → 0", "delta": "• -1,5pp"},
+                    {"label": "Sondages et rapports de force", "current": "39,0%", "delta": "▲ +14,9pp"},
+                    {"label": "Primaires et stratégies partisanes", "current": "20,0%", "delta": "▼ -12,5pp"},
+                    {"label": "Règles, calendrier et organisation de la campagne", "current": "3,0%", "delta": "• -1,5pp"},
                 ],
             },
             "issues": {
                 "rows": [
-                    {"label": "Immigration, identité et laïcité", "delta": "▼ -5,6pp"},
-                    {"label": "Europe, défense et affaires étrangères", "delta": "• +3,9pp"},
-                    {"label": "Travail, pouvoir d’achat et retraites", "delta": "• -3,2pp"},
+                    {"label": "Immigration, identité et laïcité", "current": "0,0%", "delta": "▼ -5,6pp"},
+                    {"label": "Europe, défense et affaires étrangères", "current": "7,9%", "delta": "• +3,9pp"},
+                    {"label": "Travail, pouvoir d’achat et retraites", "current": "5,4%", "delta": "• -3,2pp"},
                 ],
             },
         }
@@ -283,7 +284,206 @@ class SocialPublishTests(unittest.TestCase):
             with self.subTest(kind=kind):
                 caption = MODULE.visual_caption(kind, now, payload)
                 self.assertLessEqual(MODULE._weighted_x_length(caption), 280)
-                self.assertIn("france2027.app", caption)
+                self.assertNotIn("http", caption)
+
+    def test_growth_visual_captions_are_plain_and_linkless(self):
+        now = datetime(2026, 10, 4, 12, tzinfo=timezone.utc)
+        agenda = MODULE.visual_caption(
+            "agenda",
+            now,
+            {
+                "rows": [
+                    {"label": "Sondages et rapports de force", "current": "37,4%", "delta": "+25,3pp"},
+                    {"label": "Primaires et stratégies partisanes", "current": "44,4%", "delta": "−22,7pp"},
+                    {"label": "Candidatures et soutiens", "current": "15,2%", "delta": "−5,1pp"},
+                ]
+            },
+        )
+        self.assertIn("AGENDA · CETTE SEMAINE", agenda)
+        self.assertIn("Ce qui monte et ce qui recule dans la campagne 👇", agenda)
+        self.assertIn("Sondages et rapports de force  +25,3 pts", agenda)
+        self.assertNotIn("37,4%", agenda)
+        self.assertNotIn("http", agenda)
+
+        issues = MODULE.visual_caption(
+            "issues",
+            now,
+            {
+                "rows": [
+                    {"label": "Travail, pouvoir d’achat & retraites", "current": "12,8%", "delta": "+7,0pp"},
+                    {"label": "Europe, défense & affaires étrangères", "current": "4,1%", "delta": "−4,1pp"},
+                    {"label": "Économie & finances publiques", "current": "7,3%", "delta": "+3,6pp"},
+                ]
+            },
+        )
+        self.assertIn("ENJEUX · CETTE SEMAINE", issues)
+        self.assertIn("Les sujets qui montent et ceux qui reculent", issues)
+        self.assertIn("Travail, pouvoir d’achat & retraites  +7,0 pts", issues)
+        self.assertNotIn("12,8%", issues)
+        self.assertNotIn("http", issues)
+
+    def test_compact_visual_titles_and_subtitles(self):
+        now = datetime(2026, 10, 4, 12, tzinfo=timezone.utc)
+        expected = {
+            "media": ("RADAR MÉDIAS · AUJOURD’HUI", "Qui monte ou recule le plus dans les médias aujourd’hui ? 👇"),
+            "agenda": ("AGENDA · CETTE SEMAINE", "Ce qui monte et ce qui recule dans la campagne 👇"),
+            "issues": ("ENJEUX · CETTE SEMAINE", "Les sujets qui montent et ceux qui reculent 👇"),
+        }
+        for kind, (title, subtitle) in expected.items():
+            for metrics in (None, {"comparison_label": "Δ pts", "rows": [
+                {"name": "Édouard Philippe", "label": "Travail", "delta": "+7,0pp"},
+            ]}):
+                with self.subTest(kind=kind, metrics=metrics):
+                    caption = MODULE.visual_caption(kind, now, metrics)
+                    self.assertTrue(caption.startswith(title + "\n\n" + subtitle))
+                    self.assertNotIn("http", caption)
+
+    def test_today_events_without_time_keep_event_but_omit_time_placeholder(self):
+        now = datetime(
+            2026,
+            10,
+            5,
+            6,
+            30,
+            tzinfo=timezone.utc,
+        )
+
+        caption = MODULE.render_today_events(
+            {
+                "campaign_events": [
+                    {
+                        "title":
+                            "Rencontre publique",
+                        "status":
+                            "scheduled",
+                        "scheduled_start":
+                            "2026-10-05",
+                    },
+                    {
+                        "title":
+                            "Entretien",
+                        "status":
+                            "confirmed",
+                        "scheduled_start":
+                            "2026-10-05T09:00:00+02:00",
+                    },
+                ]
+            },
+            now=now,
+        )
+
+        lines = caption.splitlines()
+
+        self.assertIn(
+            "09h00 · Entretien",
+            lines,
+        )
+
+        self.assertIn(
+            "Rencontre publique",
+            lines,
+        )
+
+        self.assertNotIn(
+            "Heure non précisée",
+            caption,
+        )
+
+        self.assertNotIn(
+            "Heure non precisee",
+            caption,
+        )
+
+        self.assertLess(
+            lines.index(
+                "09h00 · Entretien"
+            ),
+            lines.index(
+                "Rencontre publique"
+            ),
+        )
+
+        self.assertLessEqual(
+            MODULE._weighted_x_length(
+                caption
+            ),
+            280,
+        )
+
+    def test_today_events_untimed_long_title_fits_x_without_placeholder(self):
+        caption = MODULE.render_today_events(
+            {
+                "campaign_events": [
+                    {
+                        "title":
+                            "Rencontre " * 100,
+                        "status":
+                            "confirmed",
+                        "scheduled_start":
+                            "2026-10-05",
+                    },
+                ]
+            },
+            now=datetime(
+                2026,
+                10,
+                5,
+                6,
+                30,
+                tzinfo=timezone.utc,
+            ),
+        )
+
+        self.assertNotIn(
+            "Heure non précisée",
+            caption,
+        )
+
+        self.assertTrue(
+            any(
+                line.startswith(
+                    "Rencontre"
+                )
+                for line
+                in caption.splitlines()
+            )
+        )
+
+        self.assertLessEqual(
+            MODULE._weighted_x_length(
+                caption
+            ),
+            280,
+        )
+
+    def test_today_events_roundup_is_daily_compact_and_linkless(self):
+        now = datetime(2026, 10, 5, 6, 30, tzinfo=timezone.utc)
+        payload = {
+            "campaign_events": [
+                {
+                    "title": "Gabriel Attal dans La parole est à vous",
+                    "status": "scheduled",
+                    "scheduled_start": "2026-10-05T20:00:00+02:00",
+                },
+                {
+                    "title": "Raphaël Glucksmann rencontre à Marseille",
+                    "status": "confirmed",
+                    "scheduled_start": "2026-10-05T19:00:00+02:00",
+                },
+                {
+                    "title": "Événement demain",
+                    "status": "scheduled",
+                    "scheduled_start": "2026-10-06T10:00:00+02:00",
+                },
+            ]
+        }
+        caption = MODULE.render_today_events(payload, now=now)
+        self.assertIn("AUJOURD’HUI DANS LA CAMPAGNE 2027", caption)
+        self.assertIn("19h00 · Raphaël Glucksmann", caption)
+        self.assertIn("20h00 · Gabriel Attal", caption)
+        self.assertNotIn("Événement demain", caption)
+        self.assertNotIn("http", caption)
+        self.assertLessEqual(MODULE._weighted_x_length(caption), 280)
 
     def test_google_news_url_is_resolved_to_publisher_url(self):
         google_url = "https://news.google.com/rss/articles/opaque?oc=5"
@@ -486,6 +686,644 @@ class SocialPublishTests(unittest.TestCase):
         self.assertLessEqual(MODULE._weighted_x_length(rendered), 280)
         self.assertTrue(rendered.endswith("https://example.test/really/long/source/url"))
         self.assertIn("…", rendered)
+
+
+    def test_online_speaking_time_development_is_collapsed(self):
+        left = {
+            "id": "arcom-a",
+            "category": "legal",
+            "headline": (
+                "Présidentielle 2027 : "
+                "l’Arcom pourrait compter le temps "
+                "de parole politique dans les "
+                "podcasts de ces influenceurs ?"
+            ),
+            "trusted_change_at": (
+                "2026-10-04T10:00:00Z"
+            ),
+        }
+
+        right = {
+            "id": "arcom-b",
+            "category": "campaign",
+            "headline": (
+                "Présidentielle 2027 : "
+                "Sam Zirah, Legend, Hugo Décrypte… "
+                "Les interviews politiques en ligne "
+                "bientôt comptabilisées dans le "
+                "temps de parole"
+            ),
+            "trusted_change_at": (
+                "2026-10-04T14:00:00Z"
+            ),
+        }
+
+        self.assertTrue(
+            MODULE._recent_changes_social_match(
+                left,
+                right,
+            )
+        )
+
+    def test_online_speaking_time_dedupe_does_not_cross_large_date_gap(self):
+        left = {
+            "category": "legal",
+            "headline": (
+                "Arcom : temps de parole politique "
+                "dans les podcasts d’influenceurs"
+            ),
+            "trusted_change_at": (
+                "2026-10-01T10:00:00Z"
+            ),
+        }
+
+        right = {
+            "category": "campaign",
+            "headline": (
+                "Interviews politiques en ligne : "
+                "nouvelle règle de temps de parole "
+                "pour Hugo Décrypte"
+            ),
+            "trusted_change_at": (
+                "2026-10-05T10:00:00Z"
+            ),
+        }
+
+        self.assertFalse(
+            MODULE._recent_changes_social_match(
+                left,
+                right,
+            )
+        )
+
+    def test_unrelated_temps_de_parole_story_is_not_collapsed(self):
+        left = {
+            "category": "legal",
+            "headline": (
+                "Temps de parole dans les podcasts "
+                "des influenceurs"
+            ),
+            "trusted_change_at": (
+                "2026-10-04T10:00:00Z"
+            ),
+        }
+
+        right = {
+            "category": "legal",
+            "headline": (
+                "Temps de parole à l’Assemblée "
+                "nationale après une polémique"
+            ),
+            "trusted_change_at": (
+                "2026-10-04T11:00:00Z"
+            ),
+        }
+
+        self.assertFalse(
+            MODULE._recent_changes_social_match(
+                left,
+                right,
+            )
+        )
+
+
+    def test_bootstrap_includes_empty_planner_state(self):
+        state = MODULE.build_bootstrap_state(
+            {
+                "items": [
+                    {
+                        "id":
+                            "existing-change"
+                    }
+                ]
+            },
+            {
+                "campaign_events": [
+                    {
+                        "event_id":
+                            "existing-event"
+                    }
+                ]
+            },
+            now=datetime(
+                2026,
+                10,
+                5,
+                6,
+                tzinfo=timezone.utc,
+            ),
+        )
+
+        self.assertEqual(
+            state["planner"],
+            {
+                "schema_version": 1,
+                "published_quantitative": [],
+                "roundup_dates": [],
+                "dynamic_updates": [],
+            },
+        )
+
+    def test_validate_state_upgrades_legacy_state_without_losing_seen_ids(self):
+        state = {
+            "schema_version": 1,
+            "initialized_at":
+                "2026-10-01T00:00:00Z",
+            "updated_at":
+                "2026-10-01T00:00:00Z",
+            "seen": {
+                "recent_changes": [
+                    "change-a"
+                ],
+                "campaign_events": [
+                    "event-a"
+                ],
+            },
+        }
+
+        result = MODULE._validate_state(
+            state
+        )
+
+        self.assertEqual(
+            result["seen"][
+                "recent_changes"
+            ],
+            ["change-a"],
+        )
+
+        self.assertEqual(
+            result["seen"][
+                "campaign_events"
+            ],
+            ["event-a"],
+        )
+
+        self.assertEqual(
+            result["planner"][
+                "schema_version"
+            ],
+            1,
+        )
+
+
+    def test_dynamic_quota_starts_at_three(self):
+        state = MODULE.build_bootstrap_state(
+            {"items": []},
+            {"campaign_events": []},
+            now=datetime(
+                2026,
+                10,
+                5,
+                6,
+                tzinfo=timezone.utc,
+            ),
+        )
+
+        self.assertEqual(
+            MODULE._dynamic_quota_remaining(
+                state,
+                now=datetime(
+                    2026,
+                    10,
+                    5,
+                    10,
+                    tzinfo=timezone.utc,
+                ),
+            ),
+            3,
+        )
+
+    def test_dynamic_quota_counts_only_same_paris_day(self):
+        state = MODULE.build_bootstrap_state(
+            {"items": []},
+            {"campaign_events": []},
+            now=datetime(
+                2026,
+                10,
+                4,
+                6,
+                tzinfo=timezone.utc,
+            ),
+        )
+
+        planner = state["planner"]
+
+        planner["dynamic_updates"] = [
+            {
+                "kind": "recent_change",
+                "key": "old",
+                "date": "2026-10-04",
+                "published_at":
+                    "2026-10-04T12:00:00Z",
+            },
+            {
+                "kind": "recent_change",
+                "key": "today-a",
+                "date": "2026-10-05",
+                "published_at":
+                    "2026-10-05T08:00:00Z",
+            },
+            {
+                "kind": "campaign_event",
+                "key": "today-b",
+                "date": "2026-10-05",
+                "published_at":
+                    "2026-10-05T09:00:00Z",
+            },
+        ]
+
+        self.assertEqual(
+            MODULE._dynamic_quota_remaining(
+                state,
+                now=datetime(
+                    2026,
+                    10,
+                    5,
+                    12,
+                    tzinfo=timezone.utc,
+                ),
+            ),
+            1,
+        )
+
+    def test_dynamic_record_is_idempotent(self):
+        state = MODULE.build_bootstrap_state(
+            {"items": []},
+            {"campaign_events": []},
+            now=datetime(
+                2026,
+                10,
+                5,
+                6,
+                tzinfo=timezone.utc,
+            ),
+        )
+
+        candidate = MODULE.SocialCandidate(
+            key="change-a",
+            kind="recent_change",
+            observed_at=datetime(
+                2026,
+                10,
+                5,
+                8,
+                tzinfo=timezone.utc,
+            ),
+            text="Example",
+            source_url=(
+                "https://example.test/a"
+            ),
+        )
+
+        now = datetime(
+            2026,
+            10,
+            5,
+            10,
+            tzinfo=timezone.utc,
+        )
+
+        MODULE._record_dynamic_update(
+            state,
+            candidate,
+            published_at=now,
+        )
+
+        MODULE._record_dynamic_update(
+            state,
+            candidate,
+            published_at=now,
+        )
+
+        self.assertEqual(
+            len(
+                state["planner"][
+                    "dynamic_updates"
+                ]
+            ),
+            1,
+        )
+
+        self.assertEqual(
+            MODULE._dynamic_quota_remaining(
+                state,
+                now=now,
+            ),
+            2,
+        )
+
+    def test_legacy_planner_gains_dynamic_ledger(self):
+        state = {
+            "schema_version": 1,
+            "initialized_at":
+                "2026-10-01T00:00:00Z",
+            "updated_at":
+                "2026-10-01T00:00:00Z",
+            "seen": {
+                "recent_changes": [],
+                "campaign_events": [],
+            },
+            "planner": {
+                "schema_version": 1,
+                "published_quantitative": [],
+                "roundup_dates": [],
+            },
+        }
+
+        MODULE._validate_state(
+            state
+        )
+
+        self.assertEqual(
+            state["planner"][
+                "dynamic_updates"
+            ],
+            [],
+        )
+
+
+
+    def test_updates_noop_does_not_write_state_or_call_buffer(self):
+        now = datetime(
+            2026,
+            10,
+            5,
+            12,
+            tzinfo=timezone.utc,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+
+            state_path = root / "state.json"
+            output_path = root / "output.json"
+            recent_path = root / "recent.json"
+            events_path = root / "events.json"
+
+            state = MODULE.build_bootstrap_state(
+                {"items": []},
+                {"campaign_events": []},
+                now=now,
+            )
+
+            MODULE._save_json(
+                str(state_path),
+                state,
+            )
+
+            MODULE._save_json(
+                str(recent_path),
+                {"items": []},
+            )
+
+            MODULE._save_json(
+                str(events_path),
+                {"campaign_events": []},
+            )
+
+            args = SimpleNamespace(
+                state=str(state_path),
+                state_output=str(output_path),
+                recent_changes=str(recent_path),
+                campaign_events=str(events_path),
+                now="2026-10-05T12:00:00Z",
+                lookback_hours=24,
+                daily_limit=3,
+                max_posts=1,
+                dry_run=False,
+            )
+
+            with patch.object(
+                MODULE,
+                "collect_update_candidates",
+                return_value=[],
+            ):
+                with patch.object(
+                    MODULE.BufferClient,
+                    "from_env",
+                    side_effect=AssertionError(
+                        "Buffer must not be touched "
+                        "for a no-op update check"
+                    ),
+                ):
+                    result = MODULE.run_updates(
+                        args
+                    )
+
+            self.assertEqual(
+                result,
+                0,
+            )
+
+            self.assertFalse(
+                output_path.exists()
+            )
+
+
+    def test_duplicate_recovery_consumes_final_daily_quota_slot(self):
+        now = datetime(
+            2026,
+            10,
+            5,
+            12,
+            tzinfo=timezone.utc,
+        )
+
+        duplicate = MODULE.SocialCandidate(
+            key="duplicate-change",
+            kind="recent_change",
+            observed_at=datetime(
+                2026,
+                10,
+                5,
+                10,
+                tzinfo=timezone.utc,
+            ),
+            text=(
+                "Duplicate development\n\n"
+                "https://example.test/duplicate"
+            ),
+            source_url=(
+                "https://example.test/duplicate"
+            ),
+        )
+
+        fresh = MODULE.SocialCandidate(
+            key="fresh-change",
+            kind="recent_change",
+            observed_at=datetime(
+                2026,
+                10,
+                5,
+                10,
+                30,
+                tzinfo=timezone.utc,
+            ),
+            text=(
+                "Fresh development\n\n"
+                "https://example.test/fresh"
+            ),
+            source_url=(
+                "https://example.test/fresh"
+            ),
+        )
+
+        class FakeBuffer:
+            def __init__(self):
+                self.created = []
+
+            def recent_post_texts(
+                self,
+                *,
+                since,
+            ):
+                return {
+                    duplicate.text.strip()
+                }
+
+            def create_post(
+                self,
+                text,
+                image_url="",
+            ):
+                self.created.append(
+                    text
+                )
+                return "unexpected-post-id"
+
+        fake_buffer = FakeBuffer()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+
+            state_path = root / "state.json"
+            output_path = root / "output.json"
+            recent_path = root / "recent.json"
+            events_path = root / "events.json"
+
+            state = MODULE.build_bootstrap_state(
+                {"items": []},
+                {"campaign_events": []},
+                now=now,
+            )
+
+            state["planner"][
+                "dynamic_updates"
+            ] = [
+                {
+                    "kind": "recent_change",
+                    "key": "already-a",
+                    "date": "2026-10-05",
+                    "published_at":
+                        "2026-10-05T08:00:00Z",
+                },
+                {
+                    "kind": "campaign_event",
+                    "key": "already-b",
+                    "date": "2026-10-05",
+                    "published_at":
+                        "2026-10-05T09:00:00Z",
+                },
+            ]
+
+            MODULE._save_json(
+                str(state_path),
+                state,
+            )
+
+            MODULE._save_json(
+                str(recent_path),
+                {"items": []},
+            )
+
+            MODULE._save_json(
+                str(events_path),
+                {"campaign_events": []},
+            )
+
+            args = SimpleNamespace(
+                state=str(state_path),
+                state_output=str(output_path),
+                recent_changes=str(recent_path),
+                campaign_events=str(events_path),
+                now="2026-10-05T12:00:00Z",
+                lookback_hours=24,
+                daily_limit=3,
+                max_posts=3,
+                dry_run=False,
+            )
+
+            with patch.object(
+                MODULE,
+                "collect_update_candidates",
+                return_value=[
+                    duplicate,
+                    fresh,
+                ],
+            ):
+                with patch.object(
+                    MODULE.BufferClient,
+                    "from_env",
+                    return_value=fake_buffer,
+                ):
+                    result = MODULE.run_updates(
+                        args
+                    )
+
+            self.assertEqual(
+                result,
+                0,
+            )
+
+            # The duplicate occupies the third and final
+            # daily slot. The fresh candidate must not be
+            # published in the same run.
+            self.assertEqual(
+                fake_buffer.created,
+                [],
+            )
+
+            self.assertTrue(
+                output_path.exists()
+            )
+
+            updated = MODULE._load_json(
+                str(output_path)
+            )
+
+            self.assertIn(
+                "duplicate-change",
+                updated["seen"][
+                    "recent_changes"
+                ],
+            )
+
+            self.assertNotIn(
+                "fresh-change",
+                updated["seen"][
+                    "recent_changes"
+                ],
+            )
+
+            self.assertEqual(
+                len(
+                    MODULE._dynamic_updates_today(
+                        updated,
+                        now=now,
+                    )
+                ),
+                3,
+            )
+
+            self.assertEqual(
+                MODULE._dynamic_quota_remaining(
+                    updated,
+                    now=now,
+                    limit=3,
+                ),
+                0,
+            )
 
 
 if __name__ == "__main__":
