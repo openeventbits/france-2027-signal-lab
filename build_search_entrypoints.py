@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from fr27_section_launcher import install_section_launcher
+from dashboard_navigation import navigation_model, poll_href
 
 from build_candidate_signals import (
     CandidateSignalsError,
@@ -44,6 +45,8 @@ RACE_END = "<!-- FR27 SEMANTIC SNAPSHOT: RACE AT A GLANCE END -->"
 MAX_RECENT_CHANGES = 3
 MEDIA_START = "<!-- FR27 SEMANTIC SNAPSHOT: MEDIA PULSE START -->"
 MEDIA_END = "<!-- FR27 SEMANTIC SNAPSHOT: MEDIA PULSE END -->"
+NAV_START = "<!-- FR27 DASHBOARD NAVIGATION START -->"
+NAV_END = "<!-- FR27 DASHBOARD NAVIGATION END -->"
 
 COPY = {
     "fr": {
@@ -74,6 +77,9 @@ COPY = {
         "poll_source": "Voir la source du sondage ↗",
         "poll_source_number": "Voir la source {number} du sondage ↗",
         "reported_scores": "Scores publiés pour l’hypothèse sélectionnée",
+        "poll_detail": "Voir le sondage →",
+        "navigation": "Dossiers FR27",
+        "hub_labels": {"candidates": "Candidats →", "polls": "Sondages →", "issues": "Enjeux →", "agenda": "Agenda →"},
     },
     "en": {
         "what_changed": "WHAT CHANGED",
@@ -103,6 +109,9 @@ COPY = {
         "poll_source": "View poll source ↗",
         "poll_source_number": "View poll source {number} ↗",
         "reported_scores": "Reported scores for the selected hypothesis",
+        "poll_detail": "View poll →",
+        "navigation": "FR27 dossiers",
+        "hub_labels": {"candidates": "Candidates →", "polls": "Polls →", "issues": "Issues →", "agenda": "Agenda →"},
     },
 }
 
@@ -330,22 +339,9 @@ def render_race(model: dict[str, Any], language: str) -> str:
     candidates = "\n".join(
         _render_candidate(candidate) for candidate in race["candidates"]
     )
-    source_links = []
-    for index, url in enumerate(race["source_urls"], start=1):
-        label = (
-            copy["poll_source"]
-            if len(race["source_urls"]) == 1
-            else copy["poll_source_number"].format(number=index)
-        )
-        identifier = ' id="race-source"' if index == 1 else ""
-        extra = (
-            ""
-            if index == 1
-            else ' data-fr27-semantic-race-source="extra"'
-        )
-        source_links.append(
-            f'        <a{identifier}{extra} class="media-pulse-dashboard-cta" href="{_escape(url)}" target="_blank" rel="noopener noreferrer">{_escape(label)}</a>'
-        )
+    routes = model.get("navigation") or navigation_model()
+    href = poll_href(routes, race["selected_event_id"], language)
+    label = copy["poll_detail"]
     return f'''      <div class="panel-head race-glance-head">
         <div class="race-heading">
           <h2 id="race-glance-title" data-i18n="dashboard.race_at_a_glance">{_escape(copy["race"])}</h2>
@@ -376,7 +372,7 @@ def render_race(model: dict[str, Any], language: str) -> str:
         <div id="race-more" hidden></div>
         <div id="meta" hidden></div>
         <div class="race-footer">
-{"\n".join(source_links)}
+        <a id="race-source" class="media-pulse-dashboard-cta" href="{_escape(href)}">{_escape(label)}</a>
         </div>
       </div>'''
 
@@ -604,7 +600,7 @@ def build_english_entrypoint(
 ) -> str:
     semantic_model = model if model is not None else load_semantic_model()
     localized = _localize_english_head(
-        render_semantic_regions(source, semantic_model, "en")
+        render_navigation(render_semantic_regions(source, semantic_model, "en"), "en")
     )
     return install_section_launcher(localized, "en")
 
@@ -653,11 +649,31 @@ def build_documents(
     recent_changes: Any,
 ) -> tuple[str, str]:
     model = construct_semantic_model(candidate_signals, recent_changes)
-    french = render_semantic_regions(source, model, "fr")
+    french = render_navigation(render_semantic_regions(source, model, "fr"), "fr")
     english = build_english_entrypoint(french, model)
     validate_document(french, "fr")
     validate_document(english, "en")
     return french, english
+
+
+def render_navigation(source: str, language: str) -> str:
+    routes = navigation_model()
+    copy = COPY[language]
+    anchors = "\n".join(
+        f'      <a class="dashboard-detail-link" data-dashboard-hub="{family}" data-i18n="navigation.hub_{family}" href="{_escape(routes["hubs"][family][language])}">{_escape(copy["hub_labels"][family])}</a>'
+        for family in ("candidates", "polls", "issues", "agenda")
+    )
+    data = json.dumps(routes, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
+    rendered = f'''    <nav class="dashboard-family-navigation" data-i18n-aria-label="navigation.families" aria-label="{_escape(copy["navigation"])}">
+{anchors}
+    </nav>
+    <script type="application/json" id="published-dashboard-navigation">{data}</script>
+    <script src="assets/dashboard-navigation.js"></script>'''
+    if NAV_START not in source:
+        source = replace_once(source, '    <section id="hybrid-signal-board"',
+                              f'{NAV_START}\n{NAV_END}\n    <section id="hybrid-signal-board"',
+                              "dashboard navigation boundary")
+    return _replace_owned_region(source, NAV_START, NAV_END, rendered, "Dashboard navigation")
 
 
 def _stage_bytes(path: Path, content: bytes) -> Path:

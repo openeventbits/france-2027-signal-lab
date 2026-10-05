@@ -81,6 +81,10 @@ const documentElement = {
 };
 const documentObject = {
   documentElement,
+  getElementById(id) {
+    if (id !== "published-dashboard-navigation") return null;
+    return {textContent: indexSource.match(/id="published-dashboard-navigation">(.*?)<\/script>/s)[1]};
+  },
   baseURI: input.href,
   readyState: "loading",
   title: "",
@@ -184,6 +188,7 @@ vm.runInNewContext(fs.readFileSync("assets/localization.js", "utf8"), context);
 for (const callback of documentListeners.get("DOMContentLoaded") || []) {
   callback();
 }
+vm.runInNewContext(fs.readFileSync("assets/dashboard-navigation.js", "utf8"), context);
 const staticResult = {
   title: raceTitle.textContent,
   scenario: scenarioLabel.textContent,
@@ -501,7 +506,8 @@ class RaceGlanceDefaultTests(unittest.TestCase):
             "Pas de comparaison antérieure",
             result["detail"],
         )
-        self.assertEqual(result["sourceText"], "Voir les résultats ↗")
+        self.assertEqual(result["sourceText"], "Voir le sondage →")
+        self.assertEqual(result["sourceHref"], "/sondages/")
         self.assertIn("Marine Le Pen", rows)
         self.assertIn("Jean-Luc Mélenchon", rows)
         self.assertIn("31.5%", rows)
@@ -539,7 +545,8 @@ class RaceGlanceDefaultTests(unittest.TestCase):
         )
         self.assertIn("Sample 1,234", result["detail"])
         self.assertIn("No comparable prior event", result["detail"])
-        self.assertEqual(result["sourceText"], "View full results ↗")
+        self.assertEqual(result["sourceText"], "View poll →")
+        self.assertEqual(result["sourceHref"], "/en/sondages/")
         self.assertIn("Marine Le Pen", rows)
         self.assertIn("Jean-Luc Mélenchon", rows)
         self.assertIn("31.5%", rows)

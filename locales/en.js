@@ -6,6 +6,16 @@
     (global.FR27_LOCALES = Object.create(null));
 
   const messages = Object.freeze({
+    "navigation.poll_detail": "View poll →",
+    "navigation.families": "FR27 dossiers",
+    "navigation.hub_candidates": "Candidates →",
+    "navigation.hub_polls": "Polls →",
+    "navigation.hub_issues": "Issues →",
+    "navigation.hub_agenda": "Agenda →",
+    "navigation.poll_detail_aria": "View {pollster} poll in Polling Lab",
+    "navigation.candidate_detail_aria": "Open the dossier for {name}",
+    "navigation.issues_detail_aria": "Open issue page: {name}",
+    "navigation.agenda_detail_aria": "Open Agenda page: {name}",
     "loading_status.updating": "Published snapshot · updating",
     "loading_status.stale": "Published snapshot · live update unavailable",
     "loading_status.provenance": "Source coverage mismatch · published entries retained",
