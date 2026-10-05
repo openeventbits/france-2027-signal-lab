@@ -4599,7 +4599,7 @@
   ],
   "historical_evidence": {
     "source": "retained news_wire.json campaign_agenda.topics[].supporting_items snapshots",
-    "selection_rule": "one observation per active canonical topic; matching daily source_snapshot_at; source_day_count descending, date ascending, published_at ascending, id ascending, url ascending; output date descending, published_at descending, id descending",
+    "selection_rule": "one observation per active canonical topic; exact daily source_snapshot_at preferred, otherwise nearest preceding retained supporting-item snapshot on an active topic-day; source_day_count descending, date ascending, evidence snapshot descending, published_at ascending, id ascending, url ascending, source_commit ascending; output date descending, published_at descending, id descending",
     "items": [
       {
         "id": "ef9c60cd00a59e782c8e",

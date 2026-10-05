@@ -30,8 +30,10 @@ SCHEMA_VERSION = "1.0"
 HISTORY_SCHEMA_VERSION = "1.0"
 HISTORICAL_EVIDENCE_SOURCE = "retained news_wire.json campaign_agenda.topics[].supporting_items snapshots"
 HISTORICAL_EVIDENCE_SELECTION_RULE = (
-    "one observation per active canonical topic; matching daily source_snapshot_at; "
-    "source_day_count descending, date ascending, published_at ascending, id ascending, url ascending; "
+    "one observation per active canonical topic; exact daily source_snapshot_at preferred, "
+    "otherwise nearest preceding retained supporting-item snapshot on an active topic-day; "
+    "source_day_count descending, date ascending, evidence snapshot descending, "
+    "published_at ascending, id ascending, url ascending, source_commit ascending; "
     "output date descending, published_at descending, id descending"
 )
 CURRENT_SOURCE_DAY_MIN = CAMPAIGN_AGENDA_DISPLAY_MIN_SOURCE_DAYS
@@ -406,8 +408,18 @@ def validate_historical_evidence(payload: dict[str, Any], topics: dict[str, dict
             raise AgendaPageContractError("Historical evidence publication date mismatch")
         if snapshot > _timestamp(payload["data_as_of"], "history.data_as_of"):
             raise AgendaPageContractError("Historical evidence snapshot exceeds the retained horizon")
-        if authority.get(item["date"]) != item["source_snapshot_at"]:
-            raise AgendaPageContractError("Historical evidence snapshot does not match retained history")
+        authority_snapshot_at = authority.get(item["date"])
+        if authority_snapshot_at is None:
+            raise AgendaPageContractError(
+                "Historical evidence date is outside retained history"
+            )
+        if snapshot > _timestamp(
+            authority_snapshot_at,
+            "historical evidence coverage authority",
+        ):
+            raise AgendaPageContractError(
+                "Historical evidence snapshot exceeds retained history authority"
+            )
         if not any(point["date"] == item["date"] and point["item_count"] > 0 for point in topics[topic_id]["daily"]):
             raise AgendaPageContractError("Historical evidence topic is inactive on its publication date")
         if not isinstance(item.get("source_commit"), str) or not re.fullmatch(r"[0-9a-f]{40}", item["source_commit"]):

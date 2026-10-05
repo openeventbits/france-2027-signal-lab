@@ -203,6 +203,41 @@ class AgendaPageContractTests(unittest.TestCase):
             with self.subTest(case=case), self.assertRaises(AgendaPageContractError):
                 validate_agenda_coverage_history(malformed)
 
+    def test_historical_evidence_allows_preceding_snapshot_but_rejects_later_snapshot(self):
+        artifact = synthetic_history(
+            "selection_strategy",
+            [1, 1],
+        )
+
+        item = artifact["historical_evidence"]["items"][0]
+        day = item["date"]
+
+        daily = next(
+            row
+            for row in artifact["daily"]
+            if row["date"] == day
+        )
+
+        daily["source_snapshot_at"] = (
+            "2026-01-30T12:00:00Z"
+        )
+        item["source_snapshot_at"] = (
+            "2026-01-30T11:00:00Z"
+        )
+
+        validate_agenda_coverage_history(artifact)
+
+        malformed = copy.deepcopy(artifact)
+        malformed["historical_evidence"]["items"][0][
+            "source_snapshot_at"
+        ] = "2026-01-30T13:00:00Z"
+
+        with self.assertRaisesRegex(
+            AgendaPageContractError,
+            "exceeds retained history authority",
+        ):
+            validate_agenda_coverage_history(malformed)
+
     def test_bilingual_slugs_are_unique(self):
         self.assertEqual(
             len({definition.slug_fr for definition in AGENDA_DEFINITIONS}), 6

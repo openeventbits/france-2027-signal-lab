@@ -335,45 +335,149 @@ def _rolling_30d_maximum(points: list[dict[str, Any]]) -> int:
 
 
 def _historical_evidence(
-    retained: list[tuple[dict[str, Any], dict[str, Any]]],
+    retained: Iterable[tuple[dict[str, Any], dict[str, Any]]],
     daily: list[dict[str, Any]],
     topics: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """Materialize the historical hub's existing per-theme selection unchanged.
+    """Materialize one retained source-linked observation per active topic.
 
-    Only retained published supporting items whose snapshot matches the coverage
-    day's authority are eligible. Current-only items are never a fallback.
+    Daily coverage authority remains unchanged. Evidence from that exact snapshot
+    is preferred. If the bounded supporting-items projection no longer carries an
+    active historical day's item, the nearest preceding retained published
+    snapshot may supply it. A later/current-only snapshot is never a fallback.
     """
     authority = {point["date"]: point["source_snapshot_at"] for point in daily}
     selected_topics = [topic for topic in topics if topic["active_days"] > 0]
-    candidates = {topic["id"]: [] for topic in selected_topics}
+    active_source_days = {
+        topic["id"]: {
+            point["date"]: point["source_day_count"]
+            for point in topic["daily"]
+            if point["item_count"] > 0
+        }
+        for topic in selected_topics
+    }
+    exact_candidates = {topic["id"]: [] for topic in selected_topics}
+    fallback_candidates = {topic["id"]: [] for topic in selected_topics}
+
     for observation, snapshot in retained:
         snapshot_at = snapshot.get("generated_at")
-        for topic in snapshot.get("campaign_agenda", {}).get("topics", []):
-            if topic["id"] not in candidates:
+        snapshot_time = _parse_timestamp(
+            snapshot_at,
+            "retained evidence snapshot generated_at",
+        )
+        agenda = snapshot.get("campaign_agenda")
+        if not isinstance(agenda, dict):
+            continue
+        retained_topics = agenda.get("topics")
+        if not isinstance(retained_topics, list):
+            continue
+
+        for topic in retained_topics:
+            if not isinstance(topic, dict):
                 continue
-            for item in topic.get("supporting_items", []):
-                day = item["published_at"][:10]
-                if authority.get(day) != snapshot_at:
+            topic_id = topic.get("id")
+            if topic_id not in exact_candidates:
+                continue
+            supporting_items = topic.get("supporting_items")
+            if not isinstance(supporting_items, list):
+                continue
+
+            for item in supporting_items:
+                if not isinstance(item, dict):
                     continue
-                candidates[topic["id"]].append({
-                    "id": item["id"], "topic_id": topic["id"],
-                    "publisher": item["publisher"], "published_at": item["published_at"],
-                    "date": day, "headline": item["headline"], "url": item["url"],
-                    "source_snapshot_at": snapshot_at, "source_commit": observation["commit"],
-                })
+                published_at = item.get("published_at")
+                if not isinstance(published_at, str) or len(published_at) < 10:
+                    continue
+                day = published_at[:10]
+
+                # Historical evidence must belong to a day on which the
+                # authoritative reconstructed history actually observed
+                # this topic.
+                if day not in active_source_days[topic_id]:
+                    continue
+
+                authority_at = authority.get(day)
+                if authority_at is None:
+                    continue
+
+                authority_time = _parse_timestamp(
+                    authority_at,
+                    "historical coverage authority",
+                )
+
+                # A later snapshot cannot retroactively create evidence
+                # for an earlier authoritative historical state.
+                if snapshot_time > authority_time:
+                    continue
+
+                row = {
+                    "id": item["id"],
+                    "topic_id": topic_id,
+                    "publisher": item["publisher"],
+                    "published_at": published_at,
+                    "date": day,
+                    "headline": item["headline"],
+                    "url": item["url"],
+                    "source_snapshot_at": snapshot_at,
+                    "source_commit": observation["commit"],
+                }
+
+                target = (
+                    exact_candidates
+                    if snapshot_at == authority_at
+                    else fallback_candidates
+                )
+                target[topic_id].append(row)
+
     rows = []
     for topic in selected_topics:
-        source_days = {point["date"]: point["source_day_count"] for point in topic["daily"]}
-        choices = candidates[topic["id"]]
+        topic_id = topic["id"]
+        source_days = active_source_days[topic_id]
+
+        # Preserve the original exact-authority behavior whenever that
+        # bounded projection still contains usable historical evidence.
+        # Only otherwise may an earlier retained published snapshot fill
+        # the evidence slot.
+        choices = (
+            exact_candidates[topic_id]
+            or fallback_candidates[topic_id]
+        )
+
         if not choices:
-            raise AgendaCoverageHistoryError(f'No authoritative retained historical evidence for {topic["id"]}')
-        rows.append(min(choices, key=lambda item: (
-            -source_days[item["date"]], item["date"], item["published_at"], str(item["id"]), item["url"])))
+            raise AgendaCoverageHistoryError(
+                f"No authoritative retained historical evidence for {topic_id}"
+            )
+
+        rows.append(
+            min(
+                choices,
+                key=lambda item: (
+                    -source_days[item["date"]],
+                    item["date"],
+                    -_parse_timestamp(
+                        item["source_snapshot_at"],
+                        "historical evidence source_snapshot_at",
+                    ).timestamp(),
+                    item["published_at"],
+                    str(item["id"]),
+                    item["url"],
+                    item["source_commit"],
+                ),
+            )
+        )
+
     return {
         "source": HISTORICAL_EVIDENCE_SOURCE,
         "selection_rule": HISTORICAL_EVIDENCE_SELECTION_RULE,
-        "items": sorted(rows, key=lambda item: (item["date"], item["published_at"], str(item["id"])), reverse=True),
+        "items": sorted(
+            rows,
+            key=lambda item: (
+                item["date"],
+                item["published_at"],
+                str(item["id"]),
+            ),
+            reverse=True,
+        ),
     }
 
 
@@ -394,13 +498,21 @@ def build_history_payload(
         raise AgendaCoverageHistoryError("no complete reconstructable UTC days")
 
     introduction = _campaign_introduction_date(root)
-    observations = [
+    history_observations = [
         observation
-        for observation in _daily_latest(_history_observations(root, "news_wire.json"))
+        for observation in _history_observations(root, "news_wire.json")
         if observation["committed_at"].date() >= introduction
     ]
-    retained = list(_read_blobs(root, observations))
-    snapshots = [payload for _, payload in retained]
+
+    # Coverage reconstruction deliberately keeps the existing one-snapshot-
+    # per-commit-day authority model.
+    coverage_observations = _daily_latest(history_observations)
+    coverage_retained = list(
+        _read_blobs(root, coverage_observations)
+    )
+    snapshots = [
+        payload for _, payload in coverage_retained
+    ]
     snapshots.append(current_payload)
     snapshots.sort(
         key=lambda payload: _parse_timestamp(payload.get("generated_at"), "news generated_at")
@@ -548,7 +660,14 @@ def build_history_payload(
         },
         "daily": daily,
         "topics": topic_payloads,
-        "historical_evidence": _historical_evidence(retained, daily, topic_payloads),
+        "historical_evidence": _historical_evidence(
+            # Evidence discovery uses every retained Git snapshot so an
+            # earlier same-day publication is not discarded merely because
+            # a later bounded supporting-items projection replaced it.
+            _read_blobs(root, history_observations),
+            daily,
+            topic_payloads,
+        ),
     }
     try:
         validate_agenda_coverage_history(payload)

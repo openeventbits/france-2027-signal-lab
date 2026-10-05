@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 import inspect
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from html.parser import HTMLParser
 import json
 from pathlib import Path
@@ -508,7 +508,20 @@ class AgendaPageTests(unittest.TestCase):
         self.assertEqual(rows, sorted(rows, key=lambda row: (row["date"], row["published_at"], str(row["id"])), reverse=True))
         authority = {point["date"]: point["source_snapshot_at"] for point in self.coverage["daily"]}
         for row, original in zip(rows, self.coverage["historical_evidence"]["items"]):
-            self.assertEqual(row["source_snapshot_at"], authority[row["date"]])
+            self.assertLessEqual(
+                datetime.fromisoformat(
+                    row["source_snapshot_at"].replace(
+                        "Z",
+                        "+00:00",
+                    )
+                ),
+                datetime.fromisoformat(
+                    authority[row["date"]].replace(
+                        "Z",
+                        "+00:00",
+                    )
+                ),
+            )
             self.assertEqual(row["topic_ids"], [original["topic_id"]])
             for field in ("id", "url", "headline", "publisher", "published_at", "date", "source_snapshot_at", "source_commit"):
                 self.assertEqual(row[field], original[field])

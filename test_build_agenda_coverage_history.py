@@ -143,7 +143,14 @@ class AgendaCoverageHistoryTests(unittest.TestCase):
         authority = {point["date"]: point["source_snapshot_at"] for point in self.artifact["daily"]}
         snapshots = {}
         for item in items:
-            self.assertEqual(item["source_snapshot_at"], authority[item["date"]])
+            self.assertLessEqual(
+                datetime.fromisoformat(
+                    item["source_snapshot_at"].replace("Z", "+00:00")
+                ),
+                datetime.fromisoformat(
+                    authority[item["date"]].replace("Z", "+00:00")
+                ),
+            )
             commit = item["source_commit"]
             if commit not in snapshots:
                 snapshots[commit] = json.loads(subprocess.check_output(["git", "show", f"{commit}:news_wire.json"], cwd=ROOT))
@@ -172,15 +179,297 @@ class AgendaCoverageHistoryTests(unittest.TestCase):
         self.assertEqual(selected["id"], "a-earlier")
         self.assertEqual(selected["url"], earlier["url"])
 
-    def test_evidence_has_no_current_only_fallback_or_unknown_topic(self):
-        topic = {"id": "selection_strategy", "active_days": 1,
-                 "daily": [{"date": "2026-01-02", "source_day_count": 2}]}
-        daily = [{"date": "2026-01-02", "source_snapshot_at": "2026-01-31T12:00:00Z"}]
-        with self.assertRaisesRegex(builder.AgendaCoverageHistoryError, "authoritative retained"):
-            builder._historical_evidence([], daily, [topic])
-        wrong = snapshot(generated_at="2026-01-30T12:00:00Z")
-        with self.assertRaisesRegex(builder.AgendaCoverageHistoryError, "authoritative retained"):
-            builder._historical_evidence([({"commit": "a" * 40}, wrong)], daily, [topic])
+    def test_evidence_uses_preceding_retained_snapshot_but_never_later_current_only(self):
+        topic = {
+            "id": "selection_strategy",
+            "active_days": 1,
+            "daily": [
+                {
+                    "date": "2026-01-02",
+                    "item_count": 2,
+                    "source_day_count": 2,
+                }
+            ],
+        }
+        daily = [
+            {
+                "date": "2026-01-02",
+                "source_snapshot_at": "2026-01-31T12:00:00Z",
+            }
+        ]
+
+        with self.assertRaisesRegex(
+            builder.AgendaCoverageHistoryError,
+            "authoritative retained",
+        ):
+            builder._historical_evidence(
+                [],
+                daily,
+                [topic],
+            )
+
+        earlier = snapshot(
+            generated_at="2026-01-30T12:00:00Z"
+        )
+        selected = builder._historical_evidence(
+            [({"commit": "a" * 40}, earlier)],
+            daily,
+            [topic],
+        )["items"][0]
+
+        self.assertEqual(
+            selected["date"],
+            "2026-01-02",
+        )
+        self.assertEqual(
+            selected["source_snapshot_at"],
+            "2026-01-30T12:00:00Z",
+        )
+        self.assertEqual(
+            selected["source_commit"],
+            "a" * 40,
+        )
+
+        later = copy.deepcopy(earlier)
+        later["generated_at"] = "2026-02-01T12:00:00Z"
+
+        with self.assertRaisesRegex(
+            builder.AgendaCoverageHistoryError,
+            "authoritative retained",
+        ):
+            builder._historical_evidence(
+                [({"commit": "c" * 40}, later)],
+                daily,
+                [topic],
+            )
+
+    def test_exact_authority_evidence_wins_over_preceding_fallback(self):
+        topic = {
+            "id": "selection_strategy",
+            "active_days": 1,
+            "daily": [
+                {
+                    "date": "2026-01-02",
+                    "item_count": 2,
+                    "source_day_count": 2,
+                }
+            ],
+        }
+        daily = [
+            {
+                "date": "2026-01-02",
+                "source_snapshot_at": "2026-01-31T12:00:00Z",
+            }
+        ]
+
+        earlier = snapshot(
+            generated_at="2026-01-30T12:00:00Z"
+        )
+        exact = copy.deepcopy(earlier)
+        exact["generated_at"] = "2026-01-31T12:00:00Z"
+
+        selected = builder._historical_evidence(
+            [
+                ({"commit": "a" * 40}, earlier),
+                ({"commit": "b" * 40}, exact),
+            ],
+            daily,
+            [topic],
+        )["items"][0]
+
+        self.assertEqual(
+            selected["source_snapshot_at"],
+            "2026-01-31T12:00:00Z",
+        )
+        self.assertEqual(
+            selected["source_commit"],
+            "b" * 40,
+        )
+
+    def test_evidence_date_must_be_authoritatively_active_for_topic(self):
+        retained = snapshot()
+
+        selection = next(
+            topic
+            for topic in retained["campaign_agenda"]["topics"]
+            if topic["id"] == "selection_strategy"
+        )
+
+        inactive = copy.deepcopy(
+            selection["supporting_items"][0]
+        )
+        inactive.update(
+            id="inactive-day",
+            published_at="2026-01-04T00:00:00Z",
+            url=(
+                "https://example.org/"
+                "selection_strategy/inactive-day"
+            ),
+        )
+        selection["supporting_items"] = [inactive]
+
+        topic = {
+            "id": "selection_strategy",
+            "active_days": 1,
+            "daily": [
+                {
+                    "date": "2026-01-02",
+                    "item_count": 1,
+                    "source_day_count": 1,
+                },
+                {
+                    "date": "2026-01-04",
+                    "item_count": 0,
+                    "source_day_count": 0,
+                },
+            ],
+        }
+
+        daily = [
+            {
+                "date": "2026-01-02",
+                "source_snapshot_at": retained["generated_at"],
+            },
+            {
+                "date": "2026-01-04",
+                "source_snapshot_at": retained["generated_at"],
+            },
+        ]
+
+        with self.assertRaisesRegex(
+            builder.AgendaCoverageHistoryError,
+            "authoritative retained",
+        ):
+            builder._historical_evidence(
+                [({"commit": "a" * 40}, retained)],
+                daily,
+                [topic],
+            )
+
+    def test_same_day_retained_snapshot_is_preserved_for_bounded_evidence_fallback(self):
+        earlier = snapshot(
+            generated_at="2026-01-31T08:00:00Z"
+        )
+        later = snapshot(
+            generated_at="2026-01-31T20:00:00Z"
+        )
+
+        later_selection = next(
+            topic
+            for topic in later["campaign_agenda"]["topics"]
+            if topic["id"] == "selection_strategy"
+        )
+
+        # Reproduce the production failure: coverage remains active,
+        # while a later bounded evidence projection has rotated the
+        # older historical item out.
+        later_selection["supporting_items"] = []
+
+        earlier_observation = {
+            "commit": "a" * 40,
+            "committed_at": datetime(
+                2026,
+                1,
+                31,
+                8,
+                tzinfo=timezone.utc,
+            ),
+            "blob": "1" * 40,
+        }
+
+        later_observation = {
+            "commit": "b" * 40,
+            "committed_at": datetime(
+                2026,
+                1,
+                31,
+                20,
+                tzinfo=timezone.utc,
+            ),
+            "blob": "2" * 40,
+        }
+
+        payloads = {
+            earlier_observation["blob"]: earlier,
+            later_observation["blob"]: later,
+        }
+
+        def fake_read_blobs(root, observations):
+            rows = list(observations)
+            return [
+                (
+                    observation,
+                    payloads[observation["blob"]],
+                )
+                for observation in rows
+            ]
+
+        with (
+            patch.object(
+                builder,
+                "_first_inventory_timestamp",
+                return_value=(
+                    datetime(
+                        2026,
+                        1,
+                        2,
+                        tzinfo=timezone.utc,
+                    ),
+                    "inventory-commit",
+                ),
+            ),
+            patch.object(
+                builder,
+                "_campaign_introduction_date",
+                return_value=date(2026, 1, 2),
+            ),
+            patch.object(
+                builder,
+                "_history_observations",
+                return_value=[
+                    earlier_observation,
+                    later_observation,
+                ],
+            ),
+            patch.object(
+                builder,
+                "_read_blobs",
+                side_effect=fake_read_blobs,
+            ),
+        ):
+            payload = builder.build_history_payload(
+                root=ROOT,
+                news_wire_path=MemoryJsonPath(later),
+            )
+
+        selected = next(
+            item
+            for item in payload["historical_evidence"]["items"]
+            if item["topic_id"] == "selection_strategy"
+        )
+
+        self.assertEqual(
+            selected["date"],
+            "2026-01-02",
+        )
+        self.assertEqual(
+            selected["source_snapshot_at"],
+            earlier["generated_at"],
+        )
+        self.assertEqual(
+            selected["source_commit"],
+            earlier_observation["commit"],
+        )
+
+        authority = {
+            point["date"]: point["source_snapshot_at"]
+            for point in payload["daily"]
+        }
+
+        self.assertEqual(
+            authority["2026-01-02"],
+            later["generated_at"],
+        )
 
     def test_published_artifact_is_valid_contiguous_and_excludes_partial_day(self):
         index = validate_agenda_coverage_history(self.artifact)
