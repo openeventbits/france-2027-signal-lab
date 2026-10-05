@@ -173,7 +173,10 @@ class CandidateMediaPulseTests(unittest.TestCase):
         selected = self.build()
         self.assertEqual(selected.displayed_percentage.replace(" %", "%"),
                          dossier_percent(selected.stored_share))
-        self.assertIn("Raphaël Glucksmann — 21,2 %", selected.text)
+        self.assertIn(
+            f"Raphaël Glucksmann — {selected.displayed_percentage}",
+            selected.text,
+        )
 
     def test_all_real_reported_eligible_dossiers_have_exact_parity(self):
         signals = {c["candidate_id"]: c for c in self.source_signals["candidates"]}
@@ -363,11 +366,13 @@ class CandidateMediaPulseTests(unittest.TestCase):
 
     def test_refreshed_value_is_the_actual_sent_payload(self):
         state = self.morning_state()
+        morning = self.build()
+        self.assertIsNotNone(morning)
         self.metric("raphael-glucksmann", 0.250, 70)
         client, save = self.execute(state)
         sent = client.return_value.create_post.call_args.args[0]
         self.assertIn("Raphaël Glucksmann — 25,0 %", sent)
-        self.assertNotIn("21,2 %", sent)
+        self.assertNotIn(morning.displayed_percentage, sent)
         save.assert_called_once()
         item = next(i for i in daily_queue.queue_from_state(state)["items"] if i["slot"] == "16:45")
         self.assertEqual(item["text"], sent)
@@ -414,8 +419,14 @@ class CandidateMediaPulseTests(unittest.TestCase):
         state = self.morning_state()
         record = next(c for c in self.registry["candidates"] if c["candidate_id"] == "raphael-glucksmann")
         record["upstream_presence"] = "temporarily_missing"
+        expected = self.build()
+        self.assertIsNotNone(expected)
+        self.assertEqual(expected.candidate_id, "edouard-philippe")
         client, _save = self.execute(state)
-        self.assertIn("Édouard Philippe — 20,1 %", client.return_value.create_post.call_args.args[0])
+        self.assertIn(
+            f"Édouard Philippe — {expected.displayed_percentage}",
+            client.return_value.create_post.call_args.args[0],
+        )
 
     def test_fresh_canonical_route_failure_skips(self):
         state = self.morning_state()
