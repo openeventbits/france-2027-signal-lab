@@ -51,6 +51,14 @@
       agendaTopicLabel(topic)
     );
 
+  function dossierNavigation(family, topic, title) {
+    const href = window.FR27DashboardNavigation?.detail(family, topic.id);
+    if (!href) return escapeHtml(title);
+    const purpose = translate(`navigation.${family}_detail_aria`, "Open page: {name}",
+      {name: agendaTopicLabel(topic)});
+    return `<a class="dashboard-detail-link" data-dashboard-detail="${family}" href="${escapeAttribute(href)}" aria-label="${escapeAttribute(purpose)}">${escapeHtml(title)} →</a>`;
+  }
+
   const agendaPresentationToken = (namespace, value) => {
     const fallback = String(value || "");
     const token = fallback.toLowerCase().replaceAll("-", "_");
@@ -5423,7 +5431,7 @@
 
     return `<section class="hybrid-agenda-v6-panel hybrid-agenda-v6-dossier">
       <header class="hybrid-agenda-v6-panel-head">
-        <h3 class="hybrid-agenda-v6-panel-title">${escapeHtml(translate("agenda_workspace.dossier", "TOPIC DOSSIER"))}</h3>
+        <h3 class="hybrid-agenda-v6-panel-title">${dossierNavigation("agenda", topic, translate("agenda_workspace.dossier", "TOPIC DOSSIER"))}</h3>
         <span class="hybrid-agenda-v6-panel-meta">${escapeHtml(translate("agenda_workspace.source_linked_evidence", "SOURCE-LINKED EVIDENCE"))}</span>
       </header>
 
@@ -6144,7 +6152,7 @@
     >
       <header class="hybrid-agenda-v6-panel-head">
         <h3 class="hybrid-agenda-v6-panel-title">
-          ${escapeHtml(translate("policy_workspace.dossier", "ISSUE DOSSIER"))}
+          ${dossierNavigation("issues", topic, translate("policy_workspace.dossier", "ISSUE DOSSIER"))}
         </h3>
 
         <span class="hybrid-agenda-v6-panel-meta">

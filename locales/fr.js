@@ -6,6 +6,16 @@
     (global.FR27_LOCALES = Object.create(null));
 
   const messages = Object.freeze({
+    "navigation.poll_detail": "Voir le sondage →",
+    "navigation.families": "Dossiers FR27",
+    "navigation.hub_candidates": "Candidats →",
+    "navigation.hub_polls": "Sondages →",
+    "navigation.hub_issues": "Enjeux →",
+    "navigation.hub_agenda": "Agenda →",
+    "navigation.poll_detail_aria": "Voir le sondage {pollster} dans le Polling Lab",
+    "navigation.candidate_detail_aria": "Ouvrir le dossier de {name}",
+    "navigation.issues_detail_aria": "Ouvrir la page de l’enjeu : {name}",
+    "navigation.agenda_detail_aria": "Ouvrir la page Agenda : {name}",
     "loading_status.updating": "Instantané publié · mise à jour en cours",
     "loading_status.stale": "Instantané publié · mise à jour indisponible",
     "loading_status.provenance": "Écart de couverture des sources · entrées publiées conservées",

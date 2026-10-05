@@ -420,6 +420,7 @@ def run_workspace(
     candidate_agenda_history=None,
     locale=None,
     normalized_state=None,
+    navigation=None,
 ):
     script = r"""
 const fs = require("fs");
@@ -521,6 +522,11 @@ const documentObject = {
   }
 };
 const windowObject = {};
+if (input.navigation) {
+  windowObject.FR27DashboardNavigation = {
+    detail(family, id) { return input.navigation[family]?.[id]?.[input.locale || "en"] || ""; }
+  };
+}
 const context = {
   window: windowObject,
   document: documentObject,
@@ -960,6 +966,7 @@ function details() {
       mount.querySelectorAll(".candidate-signals-dossier-development").length,
     buttonCount: buttons.length,
     linkHrefs: links.map(link => link.href),
+    navigationHrefs: mount.querySelectorAll(".dashboard-detail-link").map(link => link.href),
     linkTargets: links.map(link => link.target),
     linkRels: links.map(link => link.rel),
     selectCalls,
@@ -984,6 +991,7 @@ process.stdout.write(JSON.stringify(details()));
                     candidate_agenda_history,
                 "locale": locale,
                 "normalizedState": normalized_state,
+                "navigation": navigation,
             }
         ),
         cwd=ROOT,
