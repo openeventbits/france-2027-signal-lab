@@ -10,6 +10,7 @@ from typing import Any
 
 import newsroom_products
 import candidate_media_pulse
+import radar_media
 import signal_engine
 import social_publish
 
@@ -1184,6 +1185,8 @@ def _build_newsroom_fr_posts(
 
     instruction = candidate_media_pulse.slot_instruction(_planner_date(now))
     scheduled.append((instruction.slot, instruction))
+    radar_instruction = radar_media.slot_instruction(_planner_date(now))
+    scheduled.append((radar_instruction.slot, radar_instruction))
 
     for slot, product in scheduled:
         if len(posts) >= max_posts:
@@ -1193,7 +1196,8 @@ def _build_newsroom_fr_posts(
             PlannedPost(
                 locale="fr",
                 slot=slot,
-                lane=("candidate_slot" if slot == instruction.slot else "newsroom"),
+                lane=("candidate_slot" if slot == instruction.slot else
+                      "radar_slot" if slot == radar_instruction.slot else "newsroom"),
                 key=product.product_id,
                 text=product.text,
                 score=product.score,
@@ -1610,6 +1614,7 @@ def build_plan(
                 "agenda_movers": "12:15",
                 "dominance": "14:30",
                 "candidate_media_pulse_current": "16:45",
+                "radar_media_publishers_current": "18:30",
             },
             "dominance_rotation": (
                 "alternating_issues_agenda_by_paris_date"

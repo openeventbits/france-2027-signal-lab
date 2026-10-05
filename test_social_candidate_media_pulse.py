@@ -86,7 +86,8 @@ class CandidateMediaPulseTests(unittest.TestCase):
     def resolve(self, now=None):
         self.write_sources()
         return daily_queue.resolve_slot_post(
-            self.plan(now)["fr_posts"][-1], now=now or self.monday, site_root=self.site,
+            next(post for post in self.plan(now)["fr_posts"] if post["slot"] == "16:45"),
+            now=now or self.monday, site_root=self.site,
         )
 
     def morning_state(self):
@@ -124,7 +125,7 @@ class CandidateMediaPulseTests(unittest.TestCase):
             candidate_payload=legacy_history,
             issue_payload=self.issues, agenda_payload=self.agenda,
             recent_changes={"items": []}, campaign_events={"campaign_events": []},
-            now=now or self.monday, max_fr=5, max_en=2, max_updates=0,
+            now=now or self.monday, max_fr=6, max_en=2, max_updates=0,
             planner_state=daily_plan.new_planner_state(),
             candidate_signals_payload=self.signals, candidacy_payload=self.registry,
             route_payload=self.routes, candidate_site_root=self.site,
@@ -252,7 +253,7 @@ class CandidateMediaPulseTests(unittest.TestCase):
         plan = self.plan()
         self.assertEqual(plan["rules"]["newsroom_window"], "complete_week")
         self.assertEqual([p["slot"] for p in plan["fr_posts"]],
-                         ["10:15", "12:15", "14:30", "16:45"])
+                         ["10:15", "12:15", "14:30", "16:45", "18:30"])
         self.assertIn("issues_movers_complete_week", plan["fr_posts"][0]["key"])
         self.assertIn("agenda_movers_complete_week", plan["fr_posts"][1]["key"])
         self.assertEqual(plan["fr_posts"][3]["key"], "candidate_media_pulse_current:slot:2026-10-05:fr")
@@ -283,7 +284,7 @@ class CandidateMediaPulseTests(unittest.TestCase):
         with patch.object(daily_plan.social_publish, "render_today_events", return_value="ÉVÉNEMENTS DU JOUR"):
             plan = self.plan()
         self.assertEqual([p["slot"] for p in plan["fr_posts"]],
-                         ["08:45", "10:15", "12:15", "14:30", "16:45"])
+                         ["08:45", "10:15", "12:15", "14:30", "16:45", "18:30"])
 
     def test_legacy_history_cannot_replace_candidate_signals(self):
         self.only()
@@ -390,7 +391,7 @@ class CandidateMediaPulseTests(unittest.TestCase):
         self.assertEqual([i for i in original["items"] if i["slot"] != "16:45"],
                          [i for i in current["items"] if i["slot"] != "16:45"])
         for item in original["items"]:
-            if item["slot"] != "16:45":
+            if item["slot"] not in {"16:45", "18:30"}:
                 self.assertEqual(daily_queue.resolve_slot_post(item, now=self.monday).text, item["text"])
 
     def test_fresh_parity_failure_skips_before_any_buffer_call(self):

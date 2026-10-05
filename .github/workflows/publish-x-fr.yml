@@ -19,6 +19,8 @@ on:
       timezone: 'Europe/Paris'
     - cron: '45 16 * * *'
       timezone: 'Europe/Paris'
+    - cron: '30 18 * * *'
+      timezone: 'Europe/Paris'
     - cron: '30 19 * * *'
       timezone: 'Europe/Paris'
 
@@ -92,6 +94,11 @@ jobs:
           --disable-pip-version-check
           -r social/requirements.txt
 
+      - name: Set up shared Media model runtime
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
       - name: Resolve execution mode
         id: mode
         shell: bash
@@ -139,6 +146,11 @@ jobs:
               '45 16 * * *')
                 mode="slot"
                 slot="16:45"
+                ;;
+
+              '30 18 * * *')
+                mode="slot"
+                slot="18:30"
                 ;;
 
               '30 19 * * *')

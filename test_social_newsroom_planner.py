@@ -204,6 +204,7 @@ class NewsroomPlannerTests(
                 "12:15",
                 "14:30",
                 "16:45",
+                "18:30",
             ],
         )
 
@@ -217,6 +218,7 @@ class NewsroomPlannerTests(
                 "newsroom",
                 "newsroom",
                 "candidate_slot",
+                "radar_slot",
             ],
         )
 

@@ -12,6 +12,7 @@ from typing import Any
 
 import daily_plan
 import candidate_media_pulse
+import radar_media
 import signal_engine
 import social_publish
 
@@ -54,7 +55,7 @@ QUEUE_SCHEMA_VERSION = 1
 FR27_BASE_URL = "https://france2027.app"
 ROUTE_REGISTRY_PATH = ROOT / "route_registry.json"
 
-CORE_FR_MAX = 5
+CORE_FR_MAX = 6
 CORE_EN_MAX = 2
 CORE_QUANTITATIVE_MAX = 4
 
@@ -71,6 +72,11 @@ class QueueItem:
     status: str = "pending"
     published_at: str | None = None
     buffer_post_id: str | None = None
+
+
+@dataclass(frozen=True)
+class ResolvedRadarPost(daily_plan.PlannedPost):
+    radar_payload: dict[str, Any] | None = None
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -317,6 +323,13 @@ def core_post_text(
     raw: dict[str, Any],
 ) -> str:
     key = str(raw.get("key") or "")
+    if key.startswith(radar_media.PRODUCT_TYPE + ":"):
+        parts = key.split(":")
+        if (len(parts) != 4 or parts[1] != "slot" or parts[3] != "fr"
+                or raw.get("locale") != "fr" or raw.get("slot") != radar_media.SLOT
+                or raw.get("lane") != "radar_slot" or raw.get("text") != ""):
+            raise ValueError("Radar slot instruction must not contain frozen text")
+        return ""
     if key.startswith(candidate_media_pulse.PRODUCT_TYPE + ":"):
         parts = key.split(":")
         if (
@@ -409,6 +422,10 @@ def new_queue(
     items = []
 
     for raw in posts:
+        if str(raw.get("key") or "").startswith(radar_media.PRODUCT_TYPE + ":"):
+            parts = raw["key"].split(":")
+            if len(parts) != 4 or parts[2] != queue_date:
+                raise ValueError("Radar queue date must match its Paris date")
         if str(raw.get("key") or "").startswith(candidate_media_pulse.PRODUCT_TYPE + ":"):
             parts = raw["key"].split(":")
             if len(parts) != 4 or parts[2] != queue_date:
@@ -741,12 +758,34 @@ def planned_post_from_item(
 
 def resolve_slot_post(
     item: dict[str, Any], *, now: datetime, site_root: Path | None = None,
+    state: dict[str, Any] | None = None,
 ) -> daily_plan.PlannedPost | None:
-    """Resolve only the candidate slot against current checkout files.
+    """Resolve candidate and Radar instructions against current checkout files.
 
     Legacy Phase 4C candidate items are also refreshed, never replayed.
     Every other core post retains its exact morning key and text.
     """
+    if item["key"].startswith(radar_media.PRODUCT_TYPE + ":") or item.get("lane") == "radar_slot":
+        try:
+            expected = radar_media.slot_instruction(daily_plan._planner_date(now)).product_id
+            if (item["key"] != expected or item["locale"] != "fr" or item["slot"] != radar_media.SLOT
+                    or item.get("lane") != "radar_slot" or item.get("text") != ""):
+                raise ValueError("invalid Radar slot instruction")
+            if state is None:
+                raise ValueError("Radar requires last successful publication state")
+            product = radar_media.load_product(
+                root=site_root if site_root is not None else ROOT, now=now,
+                last_publication=planner_from_state(state).get(radar_media.STATE_KEY),
+            )
+            if product is None:
+                print("late_bound_radar_skipped=unchanged meaningful payload")
+                return None
+            return ResolvedRadarPost(locale="fr", slot=radar_media.SLOT, lane="newsroom",
+                                     key=product.product_id, text=product.text,
+                                     radar_payload=product.payload)
+        except (OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as error:
+            print(f"late_bound_radar_skipped={error}")
+            return None
     if not item["key"].startswith(candidate_media_pulse.PRODUCT_TYPE + ":"):
         if item.get("lane") == "candidate_slot":
             print("late_bound_candidate_skipped=invalid slot instruction")
@@ -820,6 +859,12 @@ def mark_item_published(
     ):
         return
 
+    radar_payload = getattr(resolved_post, "radar_payload", None)
+    if target["key"].startswith(radar_media.PRODUCT_TYPE + ":") and radar_payload is None:
+        raise ValueError("Radar publication requires its freshly resolved payload")
+    if radar_payload is not None and (not isinstance(buffer_post_id, str) or not buffer_post_id.strip()):
+        raise ValueError("Radar publication requires a successful Buffer receipt")
+
     if resolved_post is not None:
         # Keep the stable slot ID; retain the actual successfully sent payload
         # for deduplication and the publication receipt.
@@ -859,6 +904,17 @@ def mark_item_published(
     target["buffer_post_id"] = (
         buffer_post_id
     )
+
+    if radar_payload is not None:
+        # This function is reached only after Buffer success (or an exact
+        # existing-publication receipt). Never advance this state on resolution,
+        # dry runs, unchanged skips or publication errors.
+        planner[radar_media.STATE_KEY] = {
+            "payload": radar_payload,
+            "fingerprint": radar_media.fingerprint(radar_payload),
+            "published_at": target["published_at"],
+            "buffer_post_id": buffer_post_id,
+        }
 
     state["updated_at"] = (
         published_at
@@ -1058,7 +1114,7 @@ def run_slot(
 
         return 0
 
-    post = resolve_slot_post(item, now=now)
+    post = resolve_slot_post(item, now=now, state=state)
     if post is None:
         return 0
 

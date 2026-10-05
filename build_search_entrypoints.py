@@ -405,7 +405,9 @@ def _runtime_function(source: str, name: str, indent: int) -> str:
     return match.group(0)
 
 
-def media_snapshot_model(candidate_signals: dict[str, Any]) -> dict[str, Any]:
+def media_snapshot_model(
+    candidate_signals: dict[str, Any], *, news_payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Use the runtime model and renderer; never duplicate coverage calculations.
 
     Node is already used by dashboard validation. This runs only pure functions
@@ -463,7 +465,9 @@ def media_snapshot_model(candidate_signals: dict[str, Any]) -> dict[str, Any]:
     '''
     try:
         completed = subprocess.run([node, "-e", runner], input=json.dumps({
-            "code": code, "news": _load_json(ROOT / "news_wire.json"), "signals": candidate_signals,
+            "code": code,
+            "news": news_payload if news_payload is not None else _load_json(ROOT / "news_wire.json"),
+            "signals": candidate_signals,
         }), text=True, encoding="utf-8", capture_output=True, check=True, timeout=30)
         snapshots = json.loads(completed.stdout)
         for snapshot in snapshots.values():
