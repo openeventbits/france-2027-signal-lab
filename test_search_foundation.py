@@ -298,8 +298,13 @@ class SearchFoundationTests(unittest.TestCase):
                     f'<data class="score" value="{score}">{score}%</data>',
                     document_region,
                 )
+            from dashboard_navigation import navigation_model, poll_href
+            language = "fr" if document_region == french_race else "en"
+            href = poll_href(navigation_model(), board["selected_event_id"], language)
+            self.assertIn(html.escape(href, quote=True), document_region)
+            poll_page = (ROOT / href.split("#")[0].lstrip("/") / "index.html").read_text(encoding="utf-8")
             for url in board["source_urls"]:
-                self.assertIn(html.escape(url, quote=True), document_region)
+                self.assertIn(html.escape(url, quote=True), poll_page)
 
         for item in self.recent_changes["items"][:MAX_RECENT_CHANGES]:
             for document_region in (french_changes, english_changes):

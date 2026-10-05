@@ -5043,6 +5043,18 @@
     section.setAttribute("aria-labelledby", "candidate-signals-dossier-title");
     const header = regionHeader(translate("candidate.candidate_dossier", "CANDIDATE DOSSIER"));
     header.querySelector("h2").id = "candidate-signals-dossier-title";
+    const detailHref = window.FR27DashboardNavigation?.detail("candidates", candidate.candidate_id);
+    if (detailHref) {
+      const title = header.querySelector("h2");
+      const link = createElement("a", "dashboard-detail-link", `${title.textContent} →`);
+      link.href = detailHref;
+      link.dataset.dashboardDetail = "candidates";
+      link.setAttribute("aria-label", translate(
+        "navigation.candidate_detail_aria", "Open the dossier for {name}",
+        {name: candidate.candidate_name}
+      ));
+      title.replaceChildren(link);
+    }
 
     const headerAction = createElement(
       "button",
