@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import sys
 import unittest
 import tempfile
@@ -456,7 +457,7 @@ class SocialPublishTests(unittest.TestCase):
             280,
         )
 
-    def test_today_events_roundup_is_daily_compact_and_linkless(self):
+    def test_today_events_roundup_is_daily_compact_and_has_internal_destination(self):
         now = datetime(2026, 10, 5, 6, 30, tzinfo=timezone.utc)
         payload = {
             "campaign_events": [
@@ -482,8 +483,45 @@ class SocialPublishTests(unittest.TestCase):
         self.assertIn("19h00 · Raphaël Glucksmann", caption)
         self.assertIn("20h00 · Gabriel Attal", caption)
         self.assertNotIn("Événement demain", caption)
-        self.assertNotIn("http", caption)
+        self.assertTrue(caption.endswith("https://france2027.app/#signal-events"))
         self.assertLessEqual(MODULE._weighted_x_length(caption), 280)
+
+    def test_events_destination_is_registered_home_and_published_events_view(self):
+        root = Path(__file__).parent
+        routes = json.loads((root / "route_registry.json").read_text(encoding="utf-8"))["routes"]
+        home = [r for r in routes if r["route_id"] == "home:fr"]
+        self.assertEqual(len(home), 1)
+        self.assertEqual(MODULE.campaign_events_destination(), home[0]["canonical_url"] + "#signal-events")
+        self.assertTrue((root / home[0]["source_file"]).is_file())
+        dashboard = (root / "assets/hybrid-dashboard.js").read_text(encoding="utf-8")
+        self.assertIn('hash: "#signal-events"', dashboard)
+        self.assertIn('panelId: "signal-events-panel"', dashboard)
+        self.assertIn('hashToView.get(window.location.hash)', dashboard)
+
+    def test_long_event_roundup_keeps_complete_url_and_reduces_events(self):
+        payload = {"campaign_events": [
+            {"title": f"Rencontre {i} " + "événement 👀 " * 40,
+             "status": "confirmed", "scheduled_start": f"2026-10-05T{10+i:02d}:00:00+02:00"}
+            for i in range(4)
+        ]}
+        now = datetime(2026, 10, 5, 6, 30, tzinfo=timezone.utc)
+        text = MODULE.render_today_events(payload, now=now)
+        self.assertEqual(text, MODULE.render_today_events(payload, now=now))
+        self.assertTrue(text.endswith("https://france2027.app/#signal-events"))
+        listed = [line for line in text.splitlines() if "h00 · " in line]
+        self.assertGreater(len(listed), 0)
+        self.assertLess(len(listed), 4)
+        self.assertLessEqual(MODULE.standard_fr27_weighted_length(text), 280)
+
+    def test_event_roundup_missing_canonical_destination_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "routes.json"
+            path.write_text(json.dumps({"routes": []}), encoding="utf-8")
+            with patch.object(MODULE, "ROUTE_REGISTRY_PATH", path):
+                with self.assertRaisesRegex(ValueError, "canonical FR27"):
+                    MODULE.render_today_events({"campaign_events": [
+                        {"title": "Rencontre", "status": "confirmed", "scheduled_start": "2026-10-05"}
+                    ]}, now=datetime(2026, 10, 5, 6, 30, tzinfo=timezone.utc))
 
     def test_google_news_url_is_resolved_to_publisher_url(self):
         google_url = "https://news.google.com/rss/articles/opaque?oc=5"

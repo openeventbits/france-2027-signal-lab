@@ -13,12 +13,12 @@ The production model is text-first.
 Daily core queue:
 
 - 08:45 — French campaign-event roundup, when events exist.
-- 10:15 — French quantitative signal.
-- 11:30 — English quantitative signal.
-- 12:15 — French quantitative signal.
-- 14:30 — French quantitative signal.
-- 16:45 — French quantitative signal.
-- 19:30 — English quantitative signal.
+- 10:15 — French Issues movers.
+- 11:30 — English movers.
+- 12:15 — French Agenda movers.
+- 14:30 — French rotating Issues/Agenda dominance.
+- 16:45 — French current candidate dossier Media Pulse, resolved at execution.
+- 19:30 — English movers from a distinct family.
 
 Maximum core output:
 
@@ -46,11 +46,31 @@ The immutable daily queue can select from three quantitative families:
 2. Issues / Enjeux
 3. Campaign Agenda
 
-The signal engine uses complete UTC history through the previous UTC day.
-The current incomplete UTC day is excluded.
+Issues and Agenda use the latest complete UTC day versus the previous day.
+On Monday they use the latest complete Monday–Sunday week versus the preceding
+complete week. Their current incomplete UTC day is excluded.
 
-Candidate visibility is a share of candidate-linked campaign coverage.
-It is not polling, support, sentiment or a forecast.
+The 16:45 `candidate_media_pulse_current` product uses only the reported current
+`campaign_attention.share` in `candidate_signals.json`, ranked by the dossier's
+displayed percentage, then internal record count, then candidate ID. Eligible
+candidates come from the canonical active-monitoring rule: main/secondary and
+present upstream. Unobserved/null shares are excluded rather than shown as zero.
+
+This candidate snapshot retains the dossier's exact seven inclusive UTC dates,
+including its potentially incomplete generation day, even on Monday. Its end
+date must equal today's Paris date. Before emitting it, the selected dossier's
+share, record count and period must match, and exactly one canonical French
+candidate-detail route must exist. Missing/stale sources or failed parity leave
+16:45 empty; there is no substitute or runner-up on a parity failure.
+
+The candidate copy exposes no counts or movements. Candidate associations are
+non-exclusive and do not measure support. The morning queue stores only the
+dated instruction `candidate_media_pulse_current:slot:{Paris_date}:fr`, with empty
+text. At 16:45 it reads fresh checked-out signals, registry, routes and dossier
+data, then repeats eligibility, ranking, freshness, parity, URL and length checks.
+Failure skips publication without using any morning preview or legacy frozen text.
+After successful publication, the receipt retains the exact sent text and key
+`candidate_media_pulse_current:{candidate_id}:{current_period_end}:fr`.
 
 Issues use the accepted relevant-news corpus as denominator and are
 multilabel, so issue shares can sum above 100%.
@@ -58,11 +78,8 @@ multilabel, so issue shares can sum above 100%.
 Campaign Agenda uses classified Agenda items and a single-label denominator.
 `polls_race` is excluded from social quantitative selection.
 
-Supported comparison horizons include:
-
-- daily: latest complete day vs previous complete day;
-- weekly: latest 7 complete days vs previous 7 complete days;
-- internal `four_week`: 14 complete days vs previous 14 complete days.
+The historical signal engine's candidate mover horizons are not used by the
+immutable newsroom queue. Candidate daily and complete-week movers remain deferred.
 
 The public wording must describe the actual measurement window.
 
@@ -79,7 +96,9 @@ Examples:
 - issue signal → issue dossier;
 - Agenda signal → Agenda dossier.
 
-The daily event roundup is intentionally linkless.
+The daily event roundup links to `https://france2027.app/#signal-events`: the
+registered French dashboard and its existing Campaign Events view. Its full URL
+is always retained; long roundups deterministically list fewer events.
 
 Dynamic developments use the original publisher/source URL.
 
@@ -103,7 +122,9 @@ Timed events sort before untimed events.
 
 ## Daily queue
 
-`social/daily_queue.py` builds an immutable queue for the current Paris date.
+`social/daily_queue.py` builds the morning queue for the current Paris date.
+Events, Issues, Agenda, dominance and English text remain immutable. The 16:45
+candidate entry is an instruction resolved only when that slot executes.
 
 A same-day rebuild returns the already persisted queue rather than selecting
 new core posts.

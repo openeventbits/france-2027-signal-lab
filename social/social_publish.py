@@ -17,6 +17,11 @@ from typing import Any, Callable, Iterable
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
+try:
+    from .candidate_media_pulse import weighted_x_length as standard_fr27_weighted_length
+except ImportError:
+    from candidate_media_pulse import weighted_x_length as standard_fr27_weighted_length
+
 BUFFER_ENDPOINT = "https://api.buffer.com"
 PARIS = ZoneInfo("Europe/Paris")
 MAX_X_WEIGHTED_LENGTH = 280
@@ -27,6 +32,8 @@ DYNAMIC_DAILY_LIMIT = 3
 DYNAMIC_STATE_RETENTION_DAYS = 60
 
 URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
+ROUTE_REGISTRY_PATH = Path(__file__).resolve().parents[1] / "route_registry.json"
+EVENTS_VIEW_FRAGMENT = "#signal-events"
 ELIGIBLE_RECENT_CHANGE_CATEGORIES = frozenset({"campaign", "fact_check", "legal"})
 GOOGLE_NEWS_HOSTS = frozenset({"news.google.com"})
 SOCIAL_STOPWORDS = frozenset({
@@ -900,6 +907,17 @@ def _event_paris_date_and_time(value: Any) -> tuple[date | None, str]:
     return local.date(), f"{local.hour:02d}h{local.minute:02d}"
 
 
+def campaign_events_destination() -> str:
+    registry = json.loads(ROUTE_REGISTRY_PATH.read_text(encoding="utf-8-sig"))
+    routes = [route for route in registry["routes"]
+              if route.get("family") == "core" and route.get("kind") == "home"
+              and route.get("entity_id") == "home" and route.get("language") == "fr"]
+    if len(routes) != 1 or routes[0].get("canonical_url") != "https://france2027.app/":
+        raise ValueError("expected the canonical FR27 French dashboard route")
+    # This is the existing published Campaign Events view in hybrid-dashboard.js.
+    return routes[0]["canonical_url"] + EVENTS_VIEW_FRAGMENT
+
+
 def render_today_events(payload: dict[str, Any], *, now: datetime, limit: int = 4) -> str:
     today = now.astimezone(PARIS).date()
     rows: list[tuple[str, str, str]] = []
@@ -918,6 +936,8 @@ def render_today_events(payload: dict[str, Any], *, now: datetime, limit: int = 
     if not rows:
         return ""
 
+    destination = campaign_events_destination()
+    suffix = "\n\n" + destination
     header = "AUJOURD’HUI DANS LA CAMPAGNE 2027 👇"
     selected: list[str] = []
     for _sort_time, time_label, title in rows[: max(1, limit)]:
@@ -927,8 +947,8 @@ def render_today_events(payload: dict[str, Any], *, now: datetime, limit: int = 
             else ""
         )
         line = prefix + _truncate_text_to_weight(title, 86)
-        candidate = header + "\n\n" + "\n".join([*selected, line])
-        if _weighted_x_length(candidate) <= MAX_X_WEIGHTED_LENGTH:
+        candidate = header + "\n\n" + "\n".join([*selected, line]) + suffix
+        if standard_fr27_weighted_length(candidate) <= MAX_X_WEIGHTED_LENGTH:
             selected.append(line)
     if not selected:
         first = rows[0]
@@ -937,9 +957,13 @@ def render_today_events(payload: dict[str, Any], *, now: datetime, limit: int = 
             if first[1]
             else ""
         )
-        budget = MAX_X_WEIGHTED_LENGTH - _weighted_x_length(header + "\n\n" + prefix)
-        selected = [prefix + _truncate_text_to_weight(first[2], max(1, budget))]
-    return header + "\n\n" + "\n".join(selected)
+        budget = MAX_X_WEIGHTED_LENGTH - standard_fr27_weighted_length(header + "\n\n" + prefix + suffix)
+        # Conservative fallback: each Unicode scalar costs at most two units.
+        selected = [prefix + _truncate_text_to_weight(first[2], max(1, budget // 2))]
+    result = header + "\n\n" + "\n".join(selected) + suffix
+    if standard_fr27_weighted_length(result) > MAX_X_WEIGHTED_LENGTH:
+        raise ValueError("event roundup exceeds X weighted limit")
+    return result
 
 
 class BufferClient:

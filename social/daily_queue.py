@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import daily_plan
+import candidate_media_pulse
 import signal_engine
 import social_publish
 
@@ -315,6 +316,31 @@ def quantitative_internal_url(
 def core_post_text(
     raw: dict[str, Any],
 ) -> str:
+    key = str(raw.get("key") or "")
+    if key.startswith(candidate_media_pulse.PRODUCT_TYPE + ":"):
+        parts = key.split(":")
+        if (
+            len(parts) != 4 or parts[3] != "fr"
+            or raw.get("locale") != "fr"
+            or raw.get("slot") != candidate_media_pulse.SLOT
+        ):
+            raise ValueError("invalid current candidate Media Pulse queue identity")
+        if parts[1] == "slot":
+            if raw.get("lane") != "candidate_slot" or raw.get("text") != "":
+                raise ValueError("candidate slot instruction must not contain frozen text")
+            return ""
+        if raw.get("lane") != "newsroom":
+            raise ValueError("invalid current candidate Media Pulse queue lane")
+        canonical = candidate_media_pulse.canonical_candidate_url(
+            {"routes": list(_route_registry_entries())}, parts[1],
+        )
+        text = raw["text"]
+        if candidate_media_pulse.URL_RE.findall(text) != [canonical]:
+            raise ValueError("candidate queue requires its exact canonical FR detail URL")
+        if candidate_media_pulse.weighted_x_length(text) > 280:
+            raise ValueError("candidate queue post exceeds X weighted limit")
+        return text
+
     text = str(
         raw.get("text") or ""
     ).strip()
@@ -383,6 +409,10 @@ def new_queue(
     items = []
 
     for raw in posts:
+        if str(raw.get("key") or "").startswith(candidate_media_pulse.PRODUCT_TYPE + ":"):
+            parts = raw["key"].split(":")
+            if len(parts) != 4 or parts[2] != queue_date:
+                raise ValueError("candidate queue period must match its Paris date")
         item = QueueItem(
             id=_queue_item_id(
                 queue_date=queue_date,
@@ -581,12 +611,6 @@ def build_core_plan(
     now: datetime,
 ) -> dict[str, Any]:
     return daily_plan.build_plan(
-        candidate_payload=(
-            signal_engine._load_json(
-                signal_engine
-                .DEFAULT_CANDIDATE_HISTORY
-            )
-        ),
         issue_payload=(
             signal_engine._load_json(
                 signal_engine
@@ -715,12 +739,55 @@ def planned_post_from_item(
     )
 
 
+def resolve_slot_post(
+    item: dict[str, Any], *, now: datetime, site_root: Path | None = None,
+) -> daily_plan.PlannedPost | None:
+    """Resolve only the candidate slot against current checkout files.
+
+    Legacy Phase 4C candidate items are also refreshed, never replayed.
+    Every other core post retains its exact morning key and text.
+    """
+    if not item["key"].startswith(candidate_media_pulse.PRODUCT_TYPE + ":"):
+        if item.get("lane") == "candidate_slot":
+            print("late_bound_candidate_skipped=invalid slot instruction")
+            return None
+        return planned_post_from_item(item)
+    root = site_root if site_root is not None else ROOT
+    try:
+        parts = item["key"].split(":")
+        if (len(parts) != 4 or parts[3] != "fr"
+                or parts[2] != daily_plan._planner_date(now).isoformat()):
+            raise ValueError("invalid candidate slot identity or date")
+        if item["locale"] != "fr" or item["slot"] != candidate_media_pulse.SLOT:
+            raise ValueError("invalid candidate slot locale or time")
+        if parts[1] == "slot" and (item.get("lane") != "candidate_slot" or item.get("text") != ""):
+            raise ValueError("candidate slot instruction must not contain frozen text")
+        product = candidate_media_pulse.build_product(
+            candidate_signals=candidate_media_pulse.load_json(root / "candidate_signals.json"),
+            candidacy_registry=candidate_media_pulse.load_json(root / "candidate_candidacy_status.json"),
+            route_registry=candidate_media_pulse.load_json(root / "route_registry.json"),
+            planner_date=daily_plan._planner_date(now),
+            site_root=root,
+        )
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        print(f"late_bound_candidate_skipped={error}")
+        return None
+    if product is None:
+        print("late_bound_candidate_skipped=stale period or no eligible reported evidence")
+        return None
+    return daily_plan.PlannedPost(
+        locale=product.locale, slot=product.slot, lane="newsroom",
+        key=product.product_id, text=product.text, score=product.score,
+    )
+
+
 def mark_item_published(
     *,
     state: dict[str, Any],
     item: dict[str, Any],
     published_at: datetime,
     buffer_post_id: str,
+    resolved_post: daily_plan.PlannedPost | None = None,
 ) -> None:
     queue = queue_from_state(
         state
@@ -752,6 +819,14 @@ def mark_item_published(
         == "published"
     ):
         return
+
+    if resolved_post is not None:
+        # Keep the stable slot ID; retain the actual successfully sent payload
+        # for deduplication and the publication receipt.
+        target.update(
+            key=resolved_post.key, text=resolved_post.text,
+            lane=resolved_post.lane, score=resolved_post.score,
+        )
 
     post = planned_post_from_item(
         target
@@ -983,12 +1058,14 @@ def run_slot(
 
         return 0
 
-    print(
-        f"queue_item={item['id']}"
-    )
+    post = resolve_slot_post(item, now=now)
+    if post is None:
+        return 0
+
+    print(f"queue_item={item['id']}")
 
     print(
-        item["text"]
+        post.text
     )
 
     if args.dry_run:
@@ -1015,7 +1092,7 @@ def run_slot(
         )
     )
 
-    text = item["text"].strip()
+    text = post.text.strip()
 
     if text in recent_texts:
         post_id = (
@@ -1030,7 +1107,7 @@ def run_slot(
     else:
         post_id = (
             client.create_post(
-                item["text"]
+                post.text
             )
         )
 
@@ -1044,6 +1121,7 @@ def run_slot(
         item=item,
         published_at=now,
         buffer_post_id=post_id,
+        resolved_post=post,
     )
 
     save_state(

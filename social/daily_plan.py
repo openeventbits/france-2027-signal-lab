@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import newsroom_products
+import candidate_media_pulse
 import signal_engine
 import social_publish
 
@@ -1181,6 +1182,9 @@ def _build_newsroom_fr_posts(
             )
         )
 
+    instruction = candidate_media_pulse.slot_instruction(_planner_date(now))
+    scheduled.append((instruction.slot, instruction))
+
     for slot, product in scheduled:
         if len(posts) >= max_posts:
             break
@@ -1189,7 +1193,7 @@ def _build_newsroom_fr_posts(
             PlannedPost(
                 locale="fr",
                 slot=slot,
-                lane="newsroom",
+                lane=("candidate_slot" if slot == instruction.slot else "newsroom"),
                 key=product.product_id,
                 text=product.text,
                 score=product.score,
@@ -1419,7 +1423,7 @@ def _build_en_posts(
 
 def build_plan(
     *,
-    candidate_payload: dict[str, Any],
+    candidate_payload: dict[str, Any] | None = None,
     issue_payload: dict[str, Any],
     agenda_payload: dict[str, Any],
     recent_changes: dict[str, Any],
@@ -1432,11 +1436,13 @@ def build_plan(
     lookback_hours: int = 24,
     planner_state: dict[str, Any] | None = None,
     social_state: dict[str, Any] | None = None,
+    candidate_signals_payload: dict[str, Any] | None = None,
+    candidacy_payload: dict[str, Any] | None = None,
+    route_payload: dict[str, Any] | None = None,
+    candidate_site_root: Path = ROOT,
 ) -> dict[str, Any]:
-    # candidate_payload and max_quantitative remain
-    # in the public function signature for backward
-    # compatibility while candidate metric parity is
-    # repaired separately.
+    # Legacy history callers remain compatible; history is never used for
+    # the current dossier Media Pulse product.
     _ = candidate_payload
     _ = max_quantitative
 
@@ -1525,6 +1531,29 @@ def build_plan(
         )
     )
 
+    candidate_product = None
+    candidate_error = None
+    try:
+        candidate_product = candidate_media_pulse.build_product(
+            candidate_signals=(
+                candidate_signals_payload if candidate_signals_payload is not None
+                else candidate_media_pulse.load_json(candidate_site_root / "candidate_signals.json")
+            ),
+            candidacy_registry=(
+                candidacy_payload if candidacy_payload is not None
+                else candidate_media_pulse.load_json(candidate_site_root / "candidate_candidacy_status.json")
+            ),
+            route_registry=(
+                route_payload if route_payload is not None
+                else candidate_media_pulse.load_json(candidate_site_root / "route_registry.json")
+            ),
+            planner_date=_planner_date(now),
+            site_root=candidate_site_root,
+        )
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        # This optional preview does not control the late-bound instruction.
+        candidate_error = str(error)
+
     fr_posts = (
         _build_newsroom_fr_posts(
             products=fr_all,
@@ -1580,12 +1609,13 @@ def build_plan(
                 "issues_movers": "10:15",
                 "agenda_movers": "12:15",
                 "dominance": "14:30",
+                "candidate_media_pulse_current": "16:45",
             },
             "dominance_rotation": (
                 "alternating_issues_agenda_by_paris_date"
             ),
             "candidate_visibility_slot": (
-                "deferred_until_metric_parity"
+                "candidate_media_pulse_current"
             ),
             "english_policy": (
                 "movers_only_distinct_families"
@@ -1630,6 +1660,11 @@ def build_plan(
         },
         "update_preview_error": (
             update_error
+        ),
+        "candidate_media_pulse_error": candidate_error,
+        # Preview only: the queued candidate instruction never stores this text.
+        "candidate_media_pulse_preview": (
+            asdict(candidate_product) if candidate_product is not None else None
         ),
         "selected_quantitative": [],
         "selected_newsroom": (
@@ -1717,13 +1752,7 @@ def run_preview(
         )
 
     plan = build_plan(
-        candidate_payload=(
-            signal_engine._load_json(
-                Path(
-                    args.candidate_history
-                )
-            )
-        ),
+        candidate_signals_payload=_load_json(Path(args.candidate_signals)),
         issue_payload=(
             signal_engine._load_json(
                 Path(
@@ -1957,6 +1986,12 @@ def _parser() -> argparse.ArgumentParser:
             signal_engine
             .DEFAULT_CANDIDATE_HISTORY
         ),
+        help="Legacy compatibility option; candidate history is not used.",
+    )
+
+    preview.add_argument(
+        "--candidate-signals",
+        default=str(ROOT / "candidate_signals.json"),
     )
 
     preview.add_argument(

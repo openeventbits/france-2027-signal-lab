@@ -203,6 +203,7 @@ class NewsroomPlannerTests(
                 "10:15",
                 "12:15",
                 "14:30",
+                "16:45",
             ],
         )
 
@@ -215,6 +216,7 @@ class NewsroomPlannerTests(
                 "newsroom",
                 "newsroom",
                 "newsroom",
+                "candidate_slot",
             ],
         )
 
@@ -233,12 +235,12 @@ class NewsroomPlannerTests(
             posts[2]["key"],
         )
 
-    def test_candidate_slot_is_not_filled_yet(
+    def test_candidate_slot_uses_current_dossier_media_pulse(
         self,
     ):
         plan = self._plan()
 
-        self.assertNotIn(
+        self.assertIn(
             "16:45",
             {
                 post["slot"]
@@ -252,7 +254,7 @@ class NewsroomPlannerTests(
             plan["rules"][
                 "candidate_visibility_slot"
             ],
-            "deferred_until_metric_parity",
+            "candidate_media_pulse_current",
         )
 
     def test_english_uses_two_distinct_mover_families(
