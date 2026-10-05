@@ -1,0 +1,248 @@
+name: Publish dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      # Authored dashboard shell, navigation, rendering, and shared localization.
+      - "build_search_entrypoints.py"
+      - "dashboard_navigation.py"
+      - "fr27_section_launcher.py"
+      - "index.html"
+      - "en/index.html"
+      - "assets/candidate-signals-workspace.js"
+      - "assets/dashboard-navigation.css"
+      - "assets/dashboard-navigation.js"
+      - "assets/hybrid-dashboard.js"
+      - "assets/hybrid-dashboard.css"
+      - "assets/final-dashboard-shell.css"
+      - "assets/fr27-section-launcher.css"
+      - "assets/fr27-section-launcher.js"
+      - "assets/localization.js"
+      - "locales/fr.js"
+      - "locales/en.js"
+      # Downstream artifact builders and their publication contracts.
+      - "build_route_registry.py"
+      - "build_sitemaps.py"
+      - "test_dashboard_navigation.py"
+      - "test_candidate_signals_workspace.py"
+      - "test_race_glance_defaults.py"
+      - "test_search_foundation.py"
+      - "test_route_registry.py"
+      - "test_dashboard_publication_automation.py"
+      - "test_production_publication_queue.py"
+      - ".github/workflows/publish-dashboard.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: production-data-update
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  publish-dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Check out current main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Verify Node.js for the shared Media renderer
+        run: node --version
+
+      - name: Prepare shared publication validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Keep helpers outside the repository; never generate source or family pages.
+          cat > "$RUNNER_TEMP/dashboard-publication.sh" <<'SH'
+          readonly -a generated_files=(
+            index.html en/index.html route_registry.json
+            sitemap.xml sitemap-core.xml sitemap-candidates.xml
+            sitemap-polls.xml sitemap-issues.xml sitemap-agenda.xml
+          )
+
+          assert_allowed_changes() {
+            python -B - "${generated_files[@]}" <<'PY'
+          import os
+          import subprocess
+          import sys
+
+          allowed = set(sys.argv[1:])
+          records = subprocess.check_output([
+              "git", "status", "--porcelain=v1", "-z", "--untracked-files=all",
+          ]).split(b"\0")
+          unexpected = []
+          position = 0
+          while position < len(records):
+              record = records[position]
+              position += 1
+              if not record:
+                  continue
+              status = record[:2]
+              paths = [os.fsdecode(record[3:])]
+              # Porcelain -z puts the rename/copy destination before the source.
+              if b"R" in status or b"C" in status:
+                  if position >= len(records) or not records[position]:
+                      raise SystemExit("Malformed rename/copy status record")
+                  paths.append(os.fsdecode(records[position]))
+                  position += 1
+              unexpected.extend(path for path in paths if path not in allowed)
+          if unexpected:
+              raise SystemExit("Unexpected generated paths: " + repr(unexpected))
+          PY
+          }
+
+          snapshot_generated_state() {
+            local label="$1"
+            git status --porcelain=v1 -z --untracked-files=all -- "${generated_files[@]}" \
+              > "$RUNNER_TEMP/dashboard-${label}.status"
+            git diff --binary HEAD -- "${generated_files[@]}" \
+              > "$RUNNER_TEMP/dashboard-${label}.diff"
+            python -B - "${generated_files[@]}" > "$RUNNER_TEMP/dashboard-${label}.sha256" <<'PY'
+          import hashlib
+          import sys
+          from pathlib import Path
+
+          for name in sys.argv[1:]:
+              print(name, hashlib.sha256(Path(name).read_bytes()).hexdigest())
+          PY
+          }
+
+          generate_dashboard_publication() {
+            python -B build_search_entrypoints.py
+            python -B build_search_entrypoints.py --check
+            python -B build_route_registry.py --effective-date "$effective_date"
+            python -B build_route_registry.py --check
+            python -B build_sitemaps.py
+            python -B build_sitemaps.py --check
+          }
+
+          run_publication_tests() {
+            # test_route_registry includes the existing SitemapTests.
+            python -B -m unittest -v \
+              test_dashboard_navigation \
+              test_candidate_signals_workspace \
+              test_race_glance_defaults \
+              test_search_foundation \
+              test_route_registry \
+              test_final_dashboard_shell \
+              test_frontend_facts \
+              test_production_publication_queue \
+              test_dashboard_publication_automation
+          }
+
+          validate_deterministic_publication() {
+            generate_dashboard_publication
+            run_publication_tests
+            git diff --check
+            assert_allowed_changes
+            snapshot_generated_state first
+            generate_dashboard_publication
+            git diff --check
+            assert_allowed_changes
+            snapshot_generated_state second
+            cmp "$RUNNER_TEMP/dashboard-first.status" "$RUNNER_TEMP/dashboard-second.status"
+            cmp "$RUNNER_TEMP/dashboard-first.diff" "$RUNNER_TEMP/dashboard-second.diff"
+            cmp "$RUNNER_TEMP/dashboard-first.sha256" "$RUNNER_TEMP/dashboard-second.sha256"
+            # Final boundary check before any commit or reconciliation.
+            git diff --check
+            assert_allowed_changes
+          }
+          SH
+
+      - name: Generate and validate dashboard publication
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/dashboard-publication.sh"
+          effective_date="$(date -u +'%Y-%m-%d')"
+          echo "effective_date=$effective_date" >> "$GITHUB_OUTPUT"
+          validate_deterministic_publication
+
+      - name: Commit generated dashboard publication
+        id: commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/dashboard-publication.sh"
+          assert_allowed_changes
+          if [[ -z "$(git status --porcelain=v1 --untracked-files=all -- "${generated_files[@]}")" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "${generated_files[@]}"
+          git diff --cached --check
+          git commit -m "Refresh dashboard publication"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Reconcile current main and push dashboard publication
+        id: reconcile
+        if: steps.commit.outputs.changed == 'true'
+        shell: bash
+        env:
+          EFFECTIVE_DATE: ${{ steps.build.outputs.effective_date }}
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/dashboard-publication.sh"
+          effective_date="$EFFECTIVE_DATE"
+          git fetch origin main
+          git rebase origin/main
+          validate_deterministic_publication
+          git add -- "${generated_files[@]}"
+          git diff --cached --check
+          ahead="$(git rev-list --count origin/main..HEAD)"
+          if (( ahead > 1 )); then
+            echo "Unexpected commits ahead of main: $ahead" >&2
+            exit 1
+          fi
+          if ! git diff --cached --quiet; then
+            if (( ahead == 1 )); then
+              git commit --amend --no-edit
+            else
+              # Rebase may drop a publication already present upstream.
+              # New regenerated changes need a new commit, never an amended main.
+              git commit -m "Refresh dashboard publication"
+            fi
+          fi
+          if [[ -n "$(git status --porcelain=v1 --untracked-files=all)" ]]; then
+            echo "Working tree is not clean after reconciliation" >&2
+            exit 1
+          fi
+          if git diff --quiet origin/main HEAD -- "${generated_files[@]}"; then
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git push origin HEAD:main
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Request GitHub Pages build
+        if: >-
+          steps.commit.outputs.changed == 'true' &&
+          steps.reconcile.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --location --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "X-GitHub-Api-Version: 2026-03-10" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/pages/builds"

@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parent
 GROUP = "production-data-update"
 MINIMUM_MEMBERS = {
     "publish-candidate-family.yml", "publish-issue-family.yml",
-    "publish-agenda-family.yml", "refresh-og-cover.yml",
+    "publish-agenda-family.yml", "publish-dashboard.yml", "refresh-og-cover.yml",
     "update-candidate-attention.yml", "update-candidate-universe.yml",
     "update-claims-under-scrutiny.yml", "update-news-wire.yml", "update-polls.yml",
 }
