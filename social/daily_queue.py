@@ -319,6 +319,30 @@ def core_post_text(
         raw.get("text") or ""
     ).strip()
 
+    if raw.get("lane") == "newsroom":
+        if (
+            social_publish
+            ._weighted_x_length(
+                text
+            )
+            > social_publish.MAX_X_WEIGHTED_LENGTH
+        ):
+            raise ValueError(
+                "newsroom queue post exceeds "
+                "X weighted limit"
+            )
+
+        if (
+            "https://france2027.app/"
+            not in text
+        ):
+            raise ValueError(
+                "newsroom queue post requires "
+                "an FR27 destination URL"
+            )
+
+        return text
+
     if raw.get("lane") != "quantitative":
         return text
 
