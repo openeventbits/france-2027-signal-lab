@@ -1,0 +1,561 @@
+name: Publish FR27 to X
+
+on:
+  schedule:
+    # Build the immutable daily core queue.
+    - cron: '25 8 * * *'
+      timezone: 'Europe/Paris'
+
+    # Core queue slots.
+    - cron: '45 8 * * *'
+      timezone: 'Europe/Paris'
+    - cron: '15 10 * * *'
+      timezone: 'Europe/Paris'
+    - cron: '30 11 * * *'
+      timezone: 'Europe/Paris'
+    - cron: '15 12 * * *'
+      timezone: 'Europe/Paris'
+    - cron: '30 14 * * *'
+      timezone: 'Europe/Paris'
+    - cron: '45 16 * * *'
+      timezone: 'Europe/Paris'
+    - cron: '30 19 * * *'
+      timezone: 'Europe/Paris'
+
+    # Dynamic French developments.
+    # One maximum per check; hard daily state-backed cap = 3.
+    - cron: '5 9,13,17,20 * * *'
+      timezone: 'Europe/Paris'
+
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Publisher mode'
+        required: true
+        default: 'full-dry-run'
+        type: choice
+        options:
+          - full-dry-run
+          - bootstrap
+          - build-queue
+          - slot
+          - updates
+          - buffer-info
+
+      slot:
+        description: 'Core slot for manual slot mode (HH:MM Europe/Paris)'
+        required: false
+        default: '10:15'
+        type: string
+
+      publish:
+        description: 'Allow state mutation / Buffer publication'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fr27-social-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # Scheduled runs remain inert until explicitly enabled.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      vars.FR27_SOCIAL_ENABLED == 'true'
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      PYTHONUTF8: '1'
+
+    steps:
+      - name: Check out production main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install social dependencies
+        run: >-
+          python -m pip install
+          --disable-pip-version-check
+          -r social/requirements.txt
+
+      - name: Resolve execution mode
+        id: mode
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            mode="${{ inputs.mode }}"
+            publish="${{ inputs.publish }}"
+            slot="${{ inputs.slot }}"
+          else
+            publish="true"
+            slot=""
+
+            case "${{ github.event.schedule }}" in
+              '25 8 * * *')
+                mode="build-queue"
+                ;;
+
+              '45 8 * * *')
+                mode="slot"
+                slot="08:45"
+                ;;
+
+              '15 10 * * *')
+                mode="slot"
+                slot="10:15"
+                ;;
+
+              '30 11 * * *')
+                mode="slot"
+                slot="11:30"
+                ;;
+
+              '15 12 * * *')
+                mode="slot"
+                slot="12:15"
+                ;;
+
+              '30 14 * * *')
+                mode="slot"
+                slot="14:30"
+                ;;
+
+              '45 16 * * *')
+                mode="slot"
+                slot="16:45"
+                ;;
+
+              '30 19 * * *')
+                mode="slot"
+                slot="19:30"
+                ;;
+
+              '5 9,13,17,20 * * *')
+                mode="updates"
+                ;;
+
+              *)
+                echo "::error::Unknown schedule: ${{ github.event.schedule }}"
+                exit 2
+                ;;
+            esac
+          fi
+
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+          echo "slot=$slot" >> "$GITHUB_OUTPUT"
+
+          echo "mode=$mode"
+          echo "publish=$publish"
+          echo "slot=$slot"
+
+      - name: Validate Buffer configuration
+        if: >-
+          steps.mode.outputs.publish == 'true' &&
+          (
+            steps.mode.outputs.mode == 'slot' ||
+            steps.mode.outputs.mode == 'updates'
+          )
+        shell: bash
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_ORGANIZATION_ID: ${{ vars.BUFFER_ORGANIZATION_ID }}
+          BUFFER_X_CHANNEL_ID: ${{ vars.BUFFER_X_CHANNEL_ID }}
+        run: |
+          set -euo pipefail
+
+          [[ -n "$BUFFER_API_KEY" ]] || {
+            echo "::error::Missing BUFFER_API_KEY secret"
+            exit 2
+          }
+
+          [[ -n "$BUFFER_ORGANIZATION_ID" ]] || {
+            echo "::error::Missing BUFFER_ORGANIZATION_ID variable"
+            exit 2
+          }
+
+          [[ -n "$BUFFER_X_CHANNEL_ID" ]] || {
+            echo "::error::Missing BUFFER_X_CHANNEL_ID variable"
+            exit 2
+          }
+
+      - name: Show Buffer organization and channels
+        if: steps.mode.outputs.mode == 'buffer-info'
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+        run: python -B social/social_publish.py buffer-info
+
+      # ------------------------------------------------------
+      # FULL DRY RUN
+      #
+      # Never fetches or mutates social-assets state.
+      # Never calls Buffer.
+      # ------------------------------------------------------
+
+      - name: Bootstrap temporary dry-run state
+        if: steps.mode.outputs.mode == 'full-dry-run'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p /tmp/fr27-social
+
+          python -B social/social_publish.py bootstrap \
+            --output /tmp/fr27-social/state-bootstrap.json
+
+      - name: Build temporary dry-run queue
+        if: steps.mode.outputs.mode == 'full-dry-run'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -B social/daily_queue.py build \
+            --state /tmp/fr27-social/state-bootstrap.json \
+            --state-output /tmp/fr27-social/state-with-queue.json \
+            --queue-output /tmp/fr27-social/queue.json
+
+      - name: Dry-run every generated core slot
+        if: steps.mode.outputs.mode == 'full-dry-run'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY' > /tmp/fr27-social/slots.txt
+          import json
+          from pathlib import Path
+
+          queue = json.loads(
+              Path("/tmp/fr27-social/queue.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+
+          for slot in dict.fromkeys(
+              item["slot"]
+              for item in queue["items"]
+          ):
+              print(slot)
+          PY
+
+          while IFS= read -r slot; do
+            [[ -n "$slot" ]] || continue
+
+            echo
+            echo "===== DRY RUN SLOT $slot ====="
+
+            python -B social/daily_queue.py slot \
+              --state /tmp/fr27-social/state-with-queue.json \
+              --state-output /tmp/fr27-social/unused-slot-state.json \
+              --slot "$slot" \
+              --dry-run
+
+            test ! -e /tmp/fr27-social/unused-slot-state.json
+          done < /tmp/fr27-social/slots.txt
+
+      - name: Dry-run dynamic developments
+        if: steps.mode.outputs.mode == 'full-dry-run'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -B social/social_publish.py updates \
+            --state /tmp/fr27-social/state-with-queue.json \
+            --state-output /tmp/fr27-social/unused-update-state.json \
+            --lookback-hours 24 \
+            --max-posts 1 \
+            --daily-limit 3 \
+            --dry-run
+
+          test ! -e /tmp/fr27-social/unused-update-state.json
+
+      - name: Upload full dry-run plan
+        if: steps.mode.outputs.mode == 'full-dry-run'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fr27-x-full-dry-run
+          path: |
+            /tmp/fr27-social/state-bootstrap.json
+            /tmp/fr27-social/state-with-queue.json
+            /tmp/fr27-social/queue.json
+            /tmp/fr27-social/slots.txt
+          if-no-files-found: error
+          retention-days: 7
+
+      # ------------------------------------------------------
+      # PERSISTENT STATE PREPARATION
+      #
+      # The branch does not currently exist.
+      # Dry-run manual modes may use a temporary bootstrap.
+      # Scheduled/live runs require persistent state.
+      # ------------------------------------------------------
+
+      - name: Inspect persistent social state branch
+        id: state
+        if: >-
+          contains(
+            fromJSON('["bootstrap","build-queue","slot","updates"]'),
+            steps.mode.outputs.mode
+          )
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p /tmp/fr27-social
+
+          if git ls-remote \
+              --exit-code \
+              --heads \
+              origin \
+              social-assets \
+              >/dev/null 2>&1
+          then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+
+            git fetch \
+              origin \
+              social-assets:social-assets
+
+            git worktree add \
+              /tmp/fr27-social-assets \
+              social-assets
+
+            test -f \
+              /tmp/fr27-social-assets/social/x/state.json
+
+            cp \
+              /tmp/fr27-social-assets/social/x/state.json \
+              /tmp/fr27-social/input-state.json
+
+            echo "persistent social state found"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "social-assets branch is absent"
+
+            python -B social/social_publish.py bootstrap \
+              --output /tmp/fr27-social/input-state.json
+          fi
+
+      - name: Refuse live bootstrap over existing state
+        if: >-
+          steps.mode.outputs.publish == 'true' &&
+          steps.mode.outputs.mode == 'bootstrap' &&
+          steps.state.outputs.exists == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "::error::social-assets already exists; live bootstrap is create-once only."
+          exit 2
+
+      - name: Require persistent state for live non-bootstrap execution
+        if: >-
+          steps.mode.outputs.publish == 'true' &&
+          steps.mode.outputs.mode != 'bootstrap' &&
+          contains(
+            fromJSON('["build-queue","slot","updates"]'),
+            steps.mode.outputs.mode
+          )
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ steps.state.outputs.exists }}" != "true" ]]; then
+            echo "::error::social-assets does not exist. Run manual bootstrap first."
+            exit 2
+          fi
+
+      # ------------------------------------------------------
+      # BOOTSTRAP
+      # ------------------------------------------------------
+
+      - name: Build fresh bootstrap state
+        if: steps.mode.outputs.mode == 'bootstrap'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -B social/social_publish.py bootstrap \
+            --output /tmp/fr27-social/output-state.json
+
+      # ------------------------------------------------------
+      # DAILY CORE QUEUE
+      # ------------------------------------------------------
+
+      - name: Build immutable daily core queue
+        if: steps.mode.outputs.mode == 'build-queue'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -B social/daily_queue.py build \
+            --state /tmp/fr27-social/input-state.json \
+            --state-output /tmp/fr27-social/output-state.json \
+            --queue-output /tmp/fr27-social/queue.json
+
+      # ------------------------------------------------------
+      # CORE SLOT
+      # ------------------------------------------------------
+
+      - name: Publish or preview core queue slot
+        if: steps.mode.outputs.mode == 'slot'
+        shell: bash
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_ORGANIZATION_ID: ${{ vars.BUFFER_ORGANIZATION_ID }}
+          BUFFER_X_CHANNEL_ID: ${{ vars.BUFFER_X_CHANNEL_ID }}
+        run: |
+          set -euo pipefail
+
+          args=(
+            --state /tmp/fr27-social/input-state.json
+            --state-output /tmp/fr27-social/output-state.json
+            --slot "${{ steps.mode.outputs.slot }}"
+          )
+
+          if [[ "${{ steps.mode.outputs.publish }}" != "true" ]]; then
+            args+=(--dry-run)
+          fi
+
+          python -B social/daily_queue.py slot \
+            "${args[@]}"
+
+      # ------------------------------------------------------
+      # DYNAMIC DEVELOPMENTS
+      # ------------------------------------------------------
+
+      - name: Publish or preview one dynamic development
+        if: steps.mode.outputs.mode == 'updates'
+        shell: bash
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_ORGANIZATION_ID: ${{ vars.BUFFER_ORGANIZATION_ID }}
+          BUFFER_X_CHANNEL_ID: ${{ vars.BUFFER_X_CHANNEL_ID }}
+        run: |
+          set -euo pipefail
+
+          args=(
+            --state /tmp/fr27-social/input-state.json
+            --state-output /tmp/fr27-social/output-state.json
+            --lookback-hours 24
+            --max-posts 1
+            --daily-limit 3
+          )
+
+          if [[ "${{ steps.mode.outputs.publish }}" != "true" ]]; then
+            args+=(--dry-run)
+          fi
+
+          python -B social/social_publish.py updates \
+            "${args[@]}"
+
+      # ------------------------------------------------------
+      # PERSISTENCE
+      #
+      # No state write happens during dry-run.
+      # For slot/update publication, output-state exists only
+      # after the publishing command resolved successfully.
+      # ------------------------------------------------------
+
+      - name: Prepare social-assets branch for first bootstrap
+        if: >-
+          steps.mode.outputs.publish == 'true' &&
+          steps.mode.outputs.mode == 'bootstrap' &&
+          steps.state.outputs.exists != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git worktree add \
+            --detach \
+            /tmp/fr27-social-assets \
+            HEAD
+
+          cd /tmp/fr27-social-assets
+
+          git switch \
+            --orphan \
+            social-assets
+
+          git rm \
+            -rf \
+            . \
+            >/dev/null 2>&1 || true
+
+      - name: Persist unified social state
+        if: >-
+          steps.mode.outputs.publish == 'true' &&
+          contains(
+            fromJSON('["bootstrap","build-queue","slot","updates"]'),
+            steps.mode.outputs.mode
+          )
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          output="/tmp/fr27-social/output-state.json"
+
+          if [[ ! -f "$output" ]]; then
+            echo "No state mutation produced; nothing to persist."
+            exit 0
+          fi
+
+          rel="social/x/state.json"
+
+          mkdir -p \
+            "/tmp/fr27-social-assets/$(dirname "$rel")"
+
+          cp \
+            "$output" \
+            "/tmp/fr27-social-assets/$rel"
+
+          cd /tmp/fr27-social-assets
+
+          git config \
+            user.name \
+            'github-actions[bot]'
+
+          git config \
+            user.email \
+            '41898282+github-actions[bot]@users.noreply.github.com'
+
+          git add \
+            "$rel"
+
+          if git diff --cached --quiet
+          then
+            echo "Persistent state unchanged."
+            exit 0
+          fi
+
+          git commit \
+            -m 'Update X publishing state'
+
+          git push \
+            origin \
+            HEAD:social-assets
+
+      - name: Safety summary
+        if: always()
+        shell: bash
+        run: |
+          echo "event=${{ github.event_name }}"
+          echo "mode=${{ steps.mode.outputs.mode }}"
+          echo "publish=${{ steps.mode.outputs.publish }}"
+          echo "slot=${{ steps.mode.outputs.slot }}"
+          echo "FR27_SOCIAL_ENABLED=${{ vars.FR27_SOCIAL_ENABLED }}"
