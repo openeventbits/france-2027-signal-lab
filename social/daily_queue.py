@@ -53,7 +53,7 @@ def _configure_utf8_stdio() -> None:
 
 
 QUEUE_SCHEMA_VERSION = 1
-MAX_FALLBACK_LATENESS = timedelta(minutes=60)
+MAX_CORE_LATENESS_MINUTES = 60
 
 FR27_BASE_URL = "https://france2027.app"
 ROUTE_REGISTRY_PATH = ROOT / "route_registry.json"
@@ -75,6 +75,33 @@ class QueueItem:
     status: str = "pending"
     published_at: str | None = None
     buffer_post_id: str | None = None
+
+
+@dataclass(frozen=True)
+class CoreSlotTimeliness:
+    target: datetime
+    lateness_minutes: float
+
+    @property
+    def eligible(self) -> bool:
+        return 0 <= self.lateness_minutes <= MAX_CORE_LATENESS_MINUTES
+
+    @property
+    def reason(self) -> str:
+        if self.lateness_minutes < 0:
+            return "NOT_YET_DUE"
+        return "ELIGIBLE" if self.eligible else "EXPIRED"
+
+
+def core_slot_timeliness(*, queue_date: str, slot: str, now: datetime) -> CoreSlotTimeliness:
+    """Canonical inclusive live window for exact slots and heartbeat recovery."""
+    slot_time = datetime.strptime(slot, "%H:%M").time()
+    if slot != slot_time.strftime("%H:%M"):
+        raise ValueError("core queue slot must use HH:MM")
+    target = datetime.combine(datetime.strptime(queue_date, "%Y-%m-%d").date(),
+                              slot_time, tzinfo=social_publish.PARIS)
+    lateness = (now.astimezone(timezone.utc) - target.astimezone(timezone.utc)).total_seconds() / 60
+    return CoreSlotTimeliness(target=target, lateness_minutes=lateness)
 
 
 @dataclass(frozen=True)
@@ -1171,18 +1198,6 @@ def execute_slot(
             "no daily queue in state"
         )
 
-    today = _paris_date(
-        now
-    )
-
-    if queue["date"] != today:
-        print(
-            "queue is not for today; "
-            "skipping"
-        )
-
-        return 0
-
     item = pending_item_for_slot(
         queue,
         slot=args.slot,
@@ -1195,6 +1210,18 @@ def execute_slot(
         )
 
         return 0
+
+    timing = core_slot_timeliness(queue_date=queue["date"], slot=item["slot"], now=now)
+    print(f"slot={item['slot']} timeliness={timing.reason} "
+          f"lateness_minutes={timing.lateness_minutes:g}")
+    if not timing.eligible:
+        if not args.dry_run:
+            print(f"exact_slot=NOOP reason={timing.reason} "
+                  f"lateness_minutes={timing.lateness_minutes:g}")
+            return 0
+        preview_status = "STALE" if timing.reason == "EXPIRED" else timing.reason
+        print(f"{preview_status} / WOULD_NOT_PUBLISH_LIVE "
+              f"lateness_minutes={timing.lateness_minutes:g}")
 
     post = resolve_slot_post(item, now=now, state=state)
     if post is None:
@@ -1293,12 +1320,9 @@ def fallback_item(
             continue
         if not item["id"].startswith(queue["date"] + ":"):
             continue
-        slot_time = datetime.strptime(item["slot"], "%H:%M").time()
-        if item["slot"] != slot_time.strftime("%H:%M"):
-            raise ValueError("fallback queue slot must use HH:MM")
-        target = datetime.combine(paris_now.date(), slot_time, tzinfo=social_publish.PARIS)
-        if target <= paris_now <= target + MAX_FALLBACK_LATENESS:
-            eligible.append((target, item["id"], item))
+        timing = core_slot_timeliness(queue_date=queue["date"], slot=item["slot"], now=now)
+        if timing.eligible:
+            eligible.append((timing.target, item["id"], item))
     return min(eligible, key=lambda row: (row[0], row[1]))[2] if eligible else None
 
 
@@ -1318,12 +1342,9 @@ def run_scheduler_tick(args: argparse.Namespace) -> int:
         print("scheduler_tick=NOOP slot=NONE lateness_minutes=NONE")
         result = 0
     else:
-        paris_now = now.astimezone(social_publish.PARIS)
-        target = datetime.combine(paris_now.date(), datetime.strptime(item["slot"], "%H:%M").time(),
-                                  tzinfo=social_publish.PARIS)
-        lateness = (paris_now - target).total_seconds() / 60
+        timing = core_slot_timeliness(queue_date=queue["date"], slot=item["slot"], now=now)
         print(f"scheduler_tick=SELECTED queue_item={item['id']} slot={item['slot']} "
-              f"lateness_minutes={lateness:g}")
+              f"lateness_minutes={timing.lateness_minutes:g}")
         slot_args = argparse.Namespace(**vars(args), slot=item["slot"])
         # No separate Buffer or late-bound resolution logic. Exceptions propagate
         # without writing state, leaving the persisted item pending for retry.

@@ -417,7 +417,7 @@ class SocialPublishTests(unittest.TestCase):
                 "campaign_events": [
                     {
                         "title":
-                            "Rencontre " * 100,
+                            "Rencontre " * 15,
                         "status":
                             "confirmed",
                         "scheduled_start":
@@ -449,6 +449,9 @@ class SocialPublishTests(unittest.TestCase):
                 in caption.splitlines()
             )
         )
+
+        self.assertIn(("Rencontre " * 15).strip(), caption)
+        self.assertNotIn("…", caption)
 
         self.assertLessEqual(
             MODULE._weighted_x_length(
@@ -500,7 +503,7 @@ class SocialPublishTests(unittest.TestCase):
 
     def test_long_event_roundup_keeps_complete_url_and_reduces_events(self):
         payload = {"campaign_events": [
-            {"title": f"Rencontre {i} " + "événement 👀 " * 40,
+            {"title": f"Rencontre {i} " + "événement 👀 " * 8,
              "status": "confirmed", "scheduled_start": f"2026-10-05T{10+i:02d}:00:00+02:00"}
             for i in range(4)
         ]}
@@ -511,6 +514,8 @@ class SocialPublishTests(unittest.TestCase):
         listed = [line for line in text.splitlines() if "h00 · " in line]
         self.assertGreater(len(listed), 0)
         self.assertLess(len(listed), 4)
+        self.assertEqual(listed, ["10h00 · " + payload["campaign_events"][0]["title"].strip()])
+        self.assertNotIn("…", text)
         self.assertLessEqual(MODULE.standard_fr27_weighted_length(text), 280)
 
     def test_event_roundup_missing_canonical_destination_fails_closed(self):

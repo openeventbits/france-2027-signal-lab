@@ -53,6 +53,155 @@ class SchedulerTickTests(unittest.TestCase):
             result = args.func(args)
         return result, output.getvalue(), save, factory
 
+    def invoke_exact(self, state, clock, *, dry_run=False, client=None, day=None, slot="08:45"):
+        args = queue.build_parser().parse_args(["slot", "--state", "unused.json",
+            "--state-output", "unused-output.json", "--slot", slot,
+            "--now", self.at(clock, day).isoformat()] + (["--dry-run"] if dry_run else []))
+        output = io.StringIO()
+        with (patch.object(queue, "_load_json", return_value=state),
+              patch.object(queue, "save_state") as save,
+              patch.object(queue.social_publish.BufferClient, "from_env", return_value=client) as factory,
+              contextlib.redirect_stdout(output)):
+            result = args.func(args)
+        return result, output.getvalue(), save, factory
+
+    def test_exact_live_inclusive_window(self):
+        for clock, minutes in (("08:45", 0), ("09:44", 59), ("09:45", 60)):
+            with self.subTest(clock=clock):
+                state = self.state(("08:45",))
+                client = Mock()
+                client.recent_post_texts.return_value = set()
+                client.create_post.return_value = "mock-exact-receipt"
+                result, text, save, factory = self.invoke_exact(state, clock, client=client)
+                self.assertEqual(result, 0)
+                self.assertIn(f"timeliness=ELIGIBLE lateness_minutes={minutes}", text)
+                factory.assert_called_once()
+                client.create_post.assert_called_once_with("Frozen 08:45")
+                save.assert_called_once()
+                self.assertEqual(self.items(state)[0]["status"], "published")
+
+    def test_expired_exact_noop_zero_buffer_unchanged_pending(self):
+        for clock, minutes in (("09:46", 61), ("15:37", 412), ("09:45:01", 60 + 1 / 60)):
+            with self.subTest(clock=clock):
+                state = self.state(("08:45",))
+                before = copy.deepcopy(state)
+                client = Mock()
+                with patch.object(queue, "resolve_slot_post") as resolve:
+                    result, text, save, factory = self.invoke_exact(state, clock, client=client)
+                self.assertEqual(result, 0)
+                self.assertIn("exact_slot=NOOP reason=EXPIRED", text)
+                self.assertIn(f"lateness_minutes={minutes:g}", text)
+                factory.assert_not_called()
+                client.recent_post_texts.assert_not_called()
+                client.create_post.assert_not_called()
+                resolve.assert_not_called()
+                save.assert_not_called()
+                self.assertEqual(state, before)
+                self.assertEqual(self.items(state)[0]["status"], "pending")
+                self.assertIsNone(self.items(state)[0]["published_at"])
+                self.assertIsNone(self.items(state)[0]["buffer_post_id"])
+                self.assertIsNone(self.select(state, clock))
+
+    def test_expired_exact_does_not_touch_persisted_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source, output = Path(directory) / "state.json", Path(directory) / "output.json"
+            original = json.dumps(self.state(("08:45",))).encode("utf-8")
+            source.write_bytes(original)
+            output.write_bytes(b"existing output receipt")
+            args = queue.build_parser().parse_args(["slot", "--state", str(source),
+                "--state-output", str(output), "--slot", "08:45", "--now", self.at("15:37").isoformat()])
+            with (patch.object(queue.social_publish.BufferClient, "from_env") as factory,
+                  contextlib.redirect_stdout(io.StringIO())):
+                self.assertEqual(args.func(args), 0)
+            self.assertEqual(source.read_bytes(), original)
+            self.assertEqual(output.read_bytes(), b"existing output receipt")
+            factory.assert_not_called()
+
+    def test_exact_future_live_noop(self):
+        state = self.state(("08:45",))
+        before = copy.deepcopy(state)
+        result, text, save, factory = self.invoke_exact(state, "08:44:59")
+        self.assertEqual(result, 0)
+        self.assertIn("exact_slot=NOOP reason=NOT_YET_DUE", text)
+        self.assertEqual(state, before)
+        save.assert_not_called()
+        factory.assert_not_called()
+
+    def test_already_published_incident_item_remains_ignored(self):
+        state = self.state(("08:45",))
+        self.items(state)[0].update(status="published", published_at="2026-10-06T13:37:00Z",
+                                    buffer_post_id="incident-receipt")
+        before = copy.deepcopy(state)
+        result, text, save, factory = self.invoke_exact(state, "15:37")
+        self.assertEqual(result, 0)
+        self.assertIn("no pending item", text)
+        self.assertEqual(state, before)
+        self.assertIsNone(self.select(state, "15:37"))
+        save.assert_not_called()
+        factory.assert_not_called()
+
+    def test_manual_stale_dry_run_preview_allowed(self):
+        state = self.state(("08:45",))
+        before = copy.deepcopy(state)
+        result, text, save, factory = self.invoke_exact(state, "15:37", dry_run=True)
+        self.assertEqual(result, 0)
+        self.assertIn("Frozen 08:45", text)
+        self.assertIn("STALE / WOULD_NOT_PUBLISH_LIVE lateness_minutes=412", text)
+        self.assertIn("dry_run=true", text)
+        self.assertEqual(state, before)
+        save.assert_not_called()
+        factory.assert_not_called()
+
+    def test_manual_stale_live_execution_blocked(self):
+        # workflow_dispatch publish=true omits --dry-run, just like schedules.
+        state = self.state(("08:45",))
+        before = copy.deepcopy(state)
+        result, text, save, factory = self.invoke_exact(state, "15:37", dry_run=False)
+        self.assertEqual(result, 0)
+        self.assertIn("exact_slot=NOOP reason=EXPIRED lateness_minutes=412", text)
+        self.assertEqual(state, before)
+        save.assert_not_called()
+        factory.assert_not_called()
+
+    def test_manual_previous_day_preview_allowed_but_live_blocked(self):
+        state = self.state(("08:45",), day=self.day - timedelta(days=1))
+        before = copy.deepcopy(state)
+        for dry_run in (True, False):
+            with self.subTest(dry_run=dry_run):
+                result, text, save, factory = self.invoke_exact(state, "08:45", dry_run=dry_run)
+                self.assertEqual(result, 0)
+                self.assertIn("STALE / WOULD_NOT_PUBLISH_LIVE" if dry_run else "exact_slot=NOOP", text)
+                self.assertEqual("Frozen 08:45" in text, dry_run)
+                self.assertIn("lateness_minutes=1440", text)
+                self.assertEqual(state, before)
+                save.assert_not_called()
+                factory.assert_not_called()
+
+    def test_exact_and_heartbeat_use_same_timeliness_authority(self):
+        state = self.state(("08:45",))
+        with patch.object(queue, "core_slot_timeliness", wraps=queue.core_slot_timeliness) as gate:
+            self.invoke_exact(state, "09:45", dry_run=True)
+            gate.assert_called_once_with(queue_date=self.day.isoformat(), slot="08:45", now=self.at("09:45"))
+            gate.reset_mock()
+            self.assertIsNotNone(self.select(state, "09:45"))
+            gate.assert_called_once_with(queue_date=self.day.isoformat(), slot="08:45", now=self.at("09:45"))
+        # Changing the shared verdict closes both execution paths.
+        blocked = queue.CoreSlotTimeliness(target=self.at("08:45"), lateness_minutes=61)
+        with patch.object(queue, "core_slot_timeliness", return_value=blocked):
+            _, text, save, factory = self.invoke_exact(state, "08:45")
+            self.assertIn("exact_slot=NOOP", text)
+            self.assertIsNone(self.select(state, "08:45"))
+            save.assert_not_called()
+            factory.assert_not_called()
+
+    def test_exact_paris_timezone_in_summer_and_winter(self):
+        for day, utc_clock in ((self.day, "06:45"), (date(2026, 12, 1), "07:45")):
+            with self.subTest(day=day):
+                now = datetime.combine(day, time.fromisoformat(utc_clock), tzinfo=timezone.utc)
+                timing = queue.core_slot_timeliness(queue_date=day.isoformat(), slot="08:45", now=now)
+                self.assertTrue(timing.eligible)
+                self.assertEqual(timing.lateness_minutes, 0)
+
     def test_exact_due_slot(self):
         self.assertEqual(self.select(self.state(), "14:30")["slot"], "14:30")
 

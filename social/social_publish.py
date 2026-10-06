@@ -918,7 +918,7 @@ def campaign_events_destination() -> str:
     return routes[0]["canonical_url"] + EVENTS_VIEW_FRAGMENT
 
 
-def render_today_events(payload: dict[str, Any], *, now: datetime, limit: int = 4) -> str:
+def render_today_events(payload: dict[str, Any], *, now: datetime, limit: int | None = None) -> str:
     today = now.astimezone(PARIS).date()
     rows: list[tuple[str, str, str]] = []
     for item in payload.get("campaign_events") or []:
@@ -932,7 +932,7 @@ def render_today_events(payload: dict[str, Any], *, now: datetime, limit: int = 
             continue
         sort_time = time_label or "99h99"
         rows.append((sort_time, time_label, title))
-    rows.sort(key=lambda row: (row[0], row[2].casefold()))
+    rows.sort(key=lambda row: (row[0], row[2].casefold(), row[2]))
     if not rows:
         return ""
 
@@ -940,26 +940,20 @@ def render_today_events(payload: dict[str, Any], *, now: datetime, limit: int = 
     suffix = "\n\n" + destination
     header = "AUJOURD’HUI DANS LA CAMPAGNE 2027 👇"
     selected: list[str] = []
-    for _sort_time, time_label, title in rows[: max(1, limit)]:
+    for _sort_time, time_label, title in rows:
+        if limit is not None and len(selected) >= max(1, limit):
+            break
         prefix = (
             f"{time_label} · "
             if time_label
             else ""
         )
-        line = prefix + _truncate_text_to_weight(title, 86)
+        line = prefix + title
         candidate = header + "\n\n" + "\n".join([*selected, line]) + suffix
         if standard_fr27_weighted_length(candidate) <= MAX_X_WEIGHTED_LENGTH:
             selected.append(line)
     if not selected:
-        first = rows[0]
-        prefix = (
-            f"{first[1]} · "
-            if first[1]
-            else ""
-        )
-        budget = MAX_X_WEIGHTED_LENGTH - standard_fr27_weighted_length(header + "\n\n" + prefix + suffix)
-        # Conservative fallback: each Unicode scalar costs at most two units.
-        selected = [prefix + _truncate_text_to_weight(first[2], max(1, budget // 2))]
+        return ""
     result = header + "\n\n" + "\n".join(selected) + suffix
     if standard_fr27_weighted_length(result) > MAX_X_WEIGHTED_LENGTH:
         raise ValueError("event roundup exceeds X weighted limit")
@@ -1684,7 +1678,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     today_events = sub.add_parser("today-events", help="publish today’s campaign-event roundup")
     today_events.add_argument("--campaign-events", default="campaign_events.json")
-    today_events.add_argument("--max-events", type=int, default=4)
+    today_events.add_argument("--max-events", type=int, help="Optional cap on complete included events")
     today_events.add_argument("--now")
     today_events.add_argument("--dry-run", action="store_true")
     today_events.set_defaults(func=run_today_events)
