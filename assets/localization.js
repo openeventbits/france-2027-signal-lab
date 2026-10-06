@@ -337,7 +337,9 @@
       const label = link.querySelector(".fr27-section-label");
       if (label) label.textContent = t(`navigation.hub_${family}`).replace(/\s*\u2192$/, "");
     });
-    const trigger = global.document.querySelector(".fr27-section-launcher-trigger");
+    const trigger = global.document.querySelector(
+      '[data-fr27-section-launcher] [aria-controls="fr27-section-menu"]'
+    );
     trigger?.setAttribute("aria-label", locale === "fr" ? "Explorer les sections" : "Explore sections");
     // Synchronous presentation update: pending loaders read the current locale
     // at commit time and never carry an obsolete FR/EN document with them.
