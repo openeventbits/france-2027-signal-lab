@@ -53,6 +53,7 @@ def _configure_utf8_stdio() -> None:
 
 
 QUEUE_SCHEMA_VERSION = 1
+MAX_CORE_LATENESS_MINUTES = 60
 
 FR27_BASE_URL = "https://france2027.app"
 ROUTE_REGISTRY_PATH = ROOT / "route_registry.json"
@@ -74,6 +75,33 @@ class QueueItem:
     status: str = "pending"
     published_at: str | None = None
     buffer_post_id: str | None = None
+
+
+@dataclass(frozen=True)
+class CoreSlotTimeliness:
+    target: datetime
+    lateness_minutes: float
+
+    @property
+    def eligible(self) -> bool:
+        return 0 <= self.lateness_minutes <= MAX_CORE_LATENESS_MINUTES
+
+    @property
+    def reason(self) -> str:
+        if self.lateness_minutes < 0:
+            return "NOT_YET_DUE"
+        return "ELIGIBLE" if self.eligible else "EXPIRED"
+
+
+def core_slot_timeliness(*, queue_date: str, slot: str, now: datetime) -> CoreSlotTimeliness:
+    """Canonical inclusive live window for exact slots and heartbeat recovery."""
+    slot_time = datetime.strptime(slot, "%H:%M").time()
+    if slot != slot_time.strftime("%H:%M"):
+        raise ValueError("core queue slot must use HH:MM")
+    target = datetime.combine(datetime.strptime(queue_date, "%Y-%m-%d").date(),
+                              slot_time, tzinfo=social_publish.PARIS)
+    lateness = (now.astimezone(timezone.utc) - target.astimezone(timezone.utc)).total_seconds() / 60
+    return CoreSlotTimeliness(target=target, lateness_minutes=lateness)
 
 
 @dataclass(frozen=True)
@@ -1154,6 +1182,13 @@ def run_slot(
         state
     )
 
+    return execute_slot(args, state=state, now=now)
+
+
+def execute_slot(
+    args: argparse.Namespace, *, state: dict[str, Any], now: datetime,
+) -> int:
+    """The shared exact-slot and heartbeat executor; one publication at most."""
     queue = queue_from_state(
         state
     )
@@ -1162,18 +1197,6 @@ def run_slot(
         raise ValueError(
             "no daily queue in state"
         )
-
-    today = _paris_date(
-        now
-    )
-
-    if queue["date"] != today:
-        print(
-            "queue is not for today; "
-            "skipping"
-        )
-
-        return 0
 
     item = pending_item_for_slot(
         queue,
@@ -1187,6 +1210,18 @@ def run_slot(
         )
 
         return 0
+
+    timing = core_slot_timeliness(queue_date=queue["date"], slot=item["slot"], now=now)
+    print(f"slot={item['slot']} timeliness={timing.reason} "
+          f"lateness_minutes={timing.lateness_minutes:g}")
+    if not timing.eligible:
+        if not args.dry_run:
+            print(f"exact_slot=NOOP reason={timing.reason} "
+                  f"lateness_minutes={timing.lateness_minutes:g}")
+            return 0
+        preview_status = "STALE" if timing.reason == "EXPIRED" else timing.reason
+        print(f"{preview_status} / WOULD_NOT_PUBLISH_LIVE "
+              f"lateness_minutes={timing.lateness_minutes:g}")
 
     post = resolve_slot_post(item, now=now, state=state)
     if post is None:
@@ -1271,6 +1306,59 @@ def run_slot(
     return 0
 
 
+def fallback_item(
+    queue: dict[str, Any], *, now: datetime,
+) -> dict[str, Any] | None:
+    """Select the oldest pending slot within today's inclusive recovery window."""
+    queue = validate_queue(queue)
+    paris_now = now.astimezone(social_publish.PARIS)
+    if queue["date"] != paris_now.date().isoformat():
+        return None
+    eligible = []
+    for item in queue["items"]:
+        if item["status"] != "pending":
+            continue
+        if not item["id"].startswith(queue["date"] + ":"):
+            continue
+        timing = core_slot_timeliness(queue_date=queue["date"], slot=item["slot"], now=now)
+        if timing.eligible:
+            eligible.append((timing.target, item["id"], item))
+    return min(eligible, key=lambda row: (row[0], row[1]))[2] if eligible else None
+
+
+def run_scheduler_tick(args: argparse.Namespace) -> int:
+    now = _parse_now(args.now)
+    state = _load_json(Path(args.state))
+    social_publish._validate_state(state)
+    queue = queue_from_state(state)
+    queue_built = queue is None or queue["date"] != _paris_date(now)
+    if queue_built:
+        # The existing builder is idempotent and never bootstraps state.
+        queue = build_queue(state=state, now=now)
+        print("scheduler_queue_built=true")
+
+    item = fallback_item(queue, now=now)
+    if item is None:
+        print("scheduler_tick=NOOP slot=NONE lateness_minutes=NONE")
+        result = 0
+    else:
+        timing = core_slot_timeliness(queue_date=queue["date"], slot=item["slot"], now=now)
+        print(f"scheduler_tick=SELECTED queue_item={item['id']} slot={item['slot']} "
+              f"lateness_minutes={timing.lateness_minutes:g}")
+        slot_args = argparse.Namespace(**vars(args), slot=item["slot"])
+        # No separate Buffer or late-bound resolution logic. Exceptions propagate
+        # without writing state, leaving the persisted item pending for retry.
+        result = execute_slot(slot_args, state=state, now=now)
+
+    if args.dry_run:
+        print("scheduler_tick_dry_run=true")
+    elif queue_built:
+        # Persist a recovered queue even on NOOP/expected product skip. For an
+        # existing queue the executor writes only after success/duplicate receipt.
+        save_state(Path(args.state_output), state)
+    return result
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
         description=(
@@ -1341,6 +1429,13 @@ def build_parser():
     slot.set_defaults(
         func=run_slot
     )
+
+    tick = sub.add_parser("scheduler-tick", help="Recover one missed core slot, at most 60 minutes late")
+    tick.add_argument("--state", required=True)
+    tick.add_argument("--state-output", required=True)
+    tick.add_argument("--now")
+    tick.add_argument("--dry-run", action="store_true")
+    tick.set_defaults(func=run_scheduler_tick)
 
     return parser
 

@@ -129,7 +129,22 @@ Never print `Heure non précisée` or an equivalent placeholder.
 
 Timed events sort before untimed events.
 
+Every included line retains its complete display title. The builder keeps the
+header and canonical link, and omits whole excess event lines to respect the
+weighted X limit of 280. If no complete line fits, it skips the roundup.
+
 ## Daily queue
+
+Exact slots and the scheduler heartbeat share `core_slot_timeliness` with
+`MAX_CORE_LATENESS_MINUTES = 60`: live execution is eligible only from the
+Europe/Paris target time through exactly 60 minutes afterward, inclusive.
+Expired invocations succeed as intentional NOOPs without Buffer access or
+state writes; their items remain pending. Manual `publish=false` maps to
+`--dry-run` and permits stale previews with `STALE / WOULD_NOT_PUBLISH_LIVE`
+and lateness printed. Manual live execution has the same time gate.
+
+The heartbeat remains `2,17,32,47 8-20 * * *` in Europe/Paris, selecting the
+oldest eligible pending core item and publishing at most one per invocation.
 
 `social/daily_queue.py` builds the morning queue for the current Paris date.
 Events, Issues, Agenda, dominance and English text remain immutable. The 16:45
