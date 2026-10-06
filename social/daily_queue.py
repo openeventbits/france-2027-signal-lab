@@ -53,6 +53,7 @@ def _configure_utf8_stdio() -> None:
 
 
 QUEUE_SCHEMA_VERSION = 1
+MAX_FALLBACK_LATENESS = timedelta(minutes=60)
 
 FR27_BASE_URL = "https://france2027.app"
 ROUTE_REGISTRY_PATH = ROOT / "route_registry.json"
@@ -1154,6 +1155,13 @@ def run_slot(
         state
     )
 
+    return execute_slot(args, state=state, now=now)
+
+
+def execute_slot(
+    args: argparse.Namespace, *, state: dict[str, Any], now: datetime,
+) -> int:
+    """The shared exact-slot and heartbeat executor; one publication at most."""
     queue = queue_from_state(
         state
     )
@@ -1271,6 +1279,65 @@ def run_slot(
     return 0
 
 
+def fallback_item(
+    queue: dict[str, Any], *, now: datetime,
+) -> dict[str, Any] | None:
+    """Select the oldest pending slot within today's inclusive recovery window."""
+    queue = validate_queue(queue)
+    paris_now = now.astimezone(social_publish.PARIS)
+    if queue["date"] != paris_now.date().isoformat():
+        return None
+    eligible = []
+    for item in queue["items"]:
+        if item["status"] != "pending":
+            continue
+        if not item["id"].startswith(queue["date"] + ":"):
+            continue
+        slot_time = datetime.strptime(item["slot"], "%H:%M").time()
+        if item["slot"] != slot_time.strftime("%H:%M"):
+            raise ValueError("fallback queue slot must use HH:MM")
+        target = datetime.combine(paris_now.date(), slot_time, tzinfo=social_publish.PARIS)
+        if target <= paris_now <= target + MAX_FALLBACK_LATENESS:
+            eligible.append((target, item["id"], item))
+    return min(eligible, key=lambda row: (row[0], row[1]))[2] if eligible else None
+
+
+def run_scheduler_tick(args: argparse.Namespace) -> int:
+    now = _parse_now(args.now)
+    state = _load_json(Path(args.state))
+    social_publish._validate_state(state)
+    queue = queue_from_state(state)
+    queue_built = queue is None or queue["date"] != _paris_date(now)
+    if queue_built:
+        # The existing builder is idempotent and never bootstraps state.
+        queue = build_queue(state=state, now=now)
+        print("scheduler_queue_built=true")
+
+    item = fallback_item(queue, now=now)
+    if item is None:
+        print("scheduler_tick=NOOP slot=NONE lateness_minutes=NONE")
+        result = 0
+    else:
+        paris_now = now.astimezone(social_publish.PARIS)
+        target = datetime.combine(paris_now.date(), datetime.strptime(item["slot"], "%H:%M").time(),
+                                  tzinfo=social_publish.PARIS)
+        lateness = (paris_now - target).total_seconds() / 60
+        print(f"scheduler_tick=SELECTED queue_item={item['id']} slot={item['slot']} "
+              f"lateness_minutes={lateness:g}")
+        slot_args = argparse.Namespace(**vars(args), slot=item["slot"])
+        # No separate Buffer or late-bound resolution logic. Exceptions propagate
+        # without writing state, leaving the persisted item pending for retry.
+        result = execute_slot(slot_args, state=state, now=now)
+
+    if args.dry_run:
+        print("scheduler_tick_dry_run=true")
+    elif queue_built:
+        # Persist a recovered queue even on NOOP/expected product skip. For an
+        # existing queue the executor writes only after success/duplicate receipt.
+        save_state(Path(args.state_output), state)
+    return result
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
         description=(
@@ -1341,6 +1408,13 @@ def build_parser():
     slot.set_defaults(
         func=run_slot
     )
+
+    tick = sub.add_parser("scheduler-tick", help="Recover one missed core slot, at most 60 minutes late")
+    tick.add_argument("--state", required=True)
+    tick.add_argument("--state-output", required=True)
+    tick.add_argument("--now")
+    tick.add_argument("--dry-run", action="store_true")
+    tick.set_defaults(func=run_scheduler_tick)
 
     return parser
 
