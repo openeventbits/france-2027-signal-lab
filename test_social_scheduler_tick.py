@@ -487,8 +487,8 @@ class SchedulerTickTests(unittest.TestCase):
         self.assertIn("python -B social/daily_queue.py scheduler-tick", after)
         self.assertIn("group: fr27-social-publish\n  cancel-in-progress: false", after)
         self.assertIn("vars.FR27_SOCIAL_ENABLED == 'true'", after)
-        self.assertIn('fromJSON(\'["bootstrap","build-queue","slot","scheduler-tick","updates"]\')', after)
-        self.assertIn('fromJSON(\'["build-queue","slot","scheduler-tick","updates"]\')', after)
+        self.assertIn('fromJSON(\'["bootstrap","build-queue","slot","scheduler-tick","updates","weekly-flagship-catchup"]\')', after)
+        self.assertIn('fromJSON(\'["build-queue","slot","scheduler-tick","updates","weekly-flagship-catchup"]\')', after)
         self.assertIn('if [[ ! -f "$output" ]]; then', after)
 
 
