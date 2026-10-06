@@ -200,9 +200,7 @@ class NewsroomPlannerTests(
                 for post in posts
             ],
             [
-                "10:15",
-                "12:15",
-                "14:30",
+                "09:30",
                 "16:45",
                 "18:30",
             ],
@@ -214,28 +212,18 @@ class NewsroomPlannerTests(
                 for post in posts
             ],
             [
-                "newsroom",
-                "newsroom",
-                "newsroom",
+                "weekly_flagship_slot",
                 "candidate_slot",
                 "radar_slot",
             ],
         )
 
         self.assertIn(
-            "issues_movers_complete_week",
+            "weekly_flagship_fr:",
             posts[0]["key"],
         )
 
-        self.assertIn(
-            "agenda_movers_complete_week",
-            posts[1]["key"],
-        )
-
-        self.assertIn(
-            "_dominance_complete_week",
-            posts[2]["key"],
-        )
+        self.assertEqual(posts[0]["text"], "")
 
     def test_candidate_slot_uses_current_dossier_media_pulse(
         self,
@@ -324,7 +312,7 @@ class NewsroomPlannerTests(
         plan = self._plan()
 
         source = plan[
-            "fr_posts"
+            "en_posts"
         ][0]
 
         queue = daily_queue.new_queue(

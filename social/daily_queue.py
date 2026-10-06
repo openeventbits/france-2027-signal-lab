@@ -13,6 +13,7 @@ from typing import Any
 import daily_plan
 import candidate_media_pulse
 import radar_media
+import weekly_flagship
 import signal_engine
 import social_publish
 
@@ -77,6 +78,11 @@ class QueueItem:
 @dataclass(frozen=True)
 class ResolvedRadarPost(daily_plan.PlannedPost):
     radar_payload: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True)
+class ResolvedFlagshipPost(daily_plan.PlannedPost):
+    flagship_revision: str | None = None
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -323,6 +329,16 @@ def core_post_text(
     raw: dict[str, Any],
 ) -> str:
     key = str(raw.get("key") or "")
+    if key.startswith(weekly_flagship.PRODUCT_TYPE + ":"):
+        parts = key.split(":")
+        if (len(parts) != 4 or parts[3] != "fr" or raw.get("locale") != "fr"
+                or raw.get("slot") != weekly_flagship.SLOT or raw.get("lane") != "weekly_flagship_slot"
+                or raw.get("text") != "" or raw.get("score") is not None):
+            raise ValueError("weekly flagship instruction must not contain frozen text or a score")
+        monday = datetime.fromisoformat(parts[2]).date() + timedelta(days=1)
+        if key != weekly_flagship.slot_instruction(monday).product_id:
+            raise ValueError("invalid weekly flagship calendar-week identity")
+        return ""
     if key.startswith(radar_media.PRODUCT_TYPE + ":"):
         parts = key.split(":")
         if (len(parts) != 4 or parts[1] != "slot" or parts[3] != "fr"
@@ -422,6 +438,9 @@ def new_queue(
     items = []
 
     for raw in posts:
+        if str(raw.get("key") or "").startswith(weekly_flagship.PRODUCT_TYPE + ":"):
+            if raw["key"] != weekly_flagship.slot_instruction(datetime.fromisoformat(queue_date).date()).product_id:
+                raise ValueError("flagship queue date must match its Monday publication date")
         if str(raw.get("key") or "").startswith(radar_media.PRODUCT_TYPE + ":"):
             parts = raw["key"].split(":")
             if len(parts) != 4 or parts[2] != queue_date:
@@ -760,11 +779,35 @@ def resolve_slot_post(
     item: dict[str, Any], *, now: datetime, site_root: Path | None = None,
     state: dict[str, Any] | None = None,
 ) -> daily_plan.PlannedPost | None:
-    """Resolve candidate and Radar instructions against current checkout files.
+    """Resolve flagship, candidate and Radar instructions against current checkout files.
 
     Legacy Phase 4C candidate items are also refreshed, never replayed.
     Every other core post retains its exact morning key and text.
     """
+    # A same-day immutable queue created by an older deployment must not
+    # resurrect the Monday specialists replaced by the flagship.
+    if (daily_plan._planner_date(now).weekday() == 0 and item.get("locale") == "fr"
+            and item.get("slot") in daily_plan.MONDAY_SUPPRESSED_FR_SLOTS):
+        print("monday_specialist_skipped=replaced by weekly flagship")
+        return None
+    if item["key"].startswith(weekly_flagship.PRODUCT_TYPE + ":") or item.get("lane") == "weekly_flagship_slot":
+        try:
+            expected = weekly_flagship.slot_instruction(daily_plan._planner_date(now)).product_id
+            if (item["key"] != expected or item["locale"] != "fr" or item["slot"] != weekly_flagship.SLOT
+                    or item.get("lane") != "weekly_flagship_slot" or item.get("text") != ""
+                    or item.get("score") is not None or state is None):
+                raise ValueError("invalid weekly flagship instruction")
+            if expected in weekly_flagship.published_weeks(planner_from_state(state)):
+                print("late_bound_flagship_skipped=completed week already published")
+                return None
+            product = weekly_flagship.load_product(root=site_root if site_root is not None else ROOT, now=now)
+            if product.product_id != expected or not product.revision:
+                raise ValueError("flagship must resolve the expected week from a verified revision")
+            return ResolvedFlagshipPost(locale="fr", slot=weekly_flagship.SLOT, lane="newsroom",
+                key=product.product_id, text=product.text, score=None, flagship_revision=product.revision)
+        except (OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as error:
+            print(f"late_bound_flagship_skipped={error}")
+            return None
     if item["key"].startswith(radar_media.PRODUCT_TYPE + ":") or item.get("lane") == "radar_slot":
         try:
             expected = radar_media.slot_instruction(daily_plan._planner_date(now)).product_id
@@ -860,6 +903,13 @@ def mark_item_published(
         return
 
     radar_payload = getattr(resolved_post, "radar_payload", None)
+    flagship_revision = getattr(resolved_post, "flagship_revision", None)
+    if target["key"].startswith(weekly_flagship.PRODUCT_TYPE + ":"):
+        if not flagship_revision or not isinstance(buffer_post_id, str) or not buffer_post_id.strip():
+            raise ValueError("flagship publication requires a verified revision and successful Buffer receipt")
+        if resolved_post.key != target["key"]:
+            raise ValueError("flagship publication week changed")
+        weekly_flagship.published_weeks(planner_from_state(state))
     if target["key"].startswith(radar_media.PRODUCT_TYPE + ":") and radar_payload is None:
         raise ValueError("Radar publication requires its freshly resolved payload")
     if radar_payload is not None and (not isinstance(buffer_post_id, str) or not buffer_post_id.strip()):
@@ -904,6 +954,12 @@ def mark_item_published(
     target["buffer_post_id"] = (
         buffer_post_id
     )
+
+    if flagship_revision is not None:
+        planner.setdefault(weekly_flagship.STATE_KEY, {})[post.key] = {
+            "product_id": post.key, "revision": flagship_revision,
+            "published_at": target["published_at"], "buffer_post_id": buffer_post_id,
+        }
 
     if radar_payload is not None:
         # This function is reached only after Buffer success (or an exact

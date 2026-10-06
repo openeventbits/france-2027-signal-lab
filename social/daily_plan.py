@@ -11,6 +11,7 @@ from typing import Any
 import newsroom_products
 import candidate_media_pulse
 import radar_media
+import weekly_flagship
 import signal_engine
 import social_publish
 
@@ -46,6 +47,8 @@ EN_SLOTS = (
     "11:30",
     "19:30",
 )
+
+MONDAY_SUPPRESSED_FR_SLOTS = frozenset({"10:15", "12:15", "14:30"})
 
 CORE_FAMILIES = (
     "candidate_visibility",
@@ -1159,7 +1162,12 @@ def _build_newsroom_fr_posts(
 
     scheduled = []
 
-    if issues_movers is not None:
+    monday = _planner_date(now).weekday() == 0
+    if monday:
+        flagship_instruction = weekly_flagship.slot_instruction(_planner_date(now))
+        scheduled.append((flagship_instruction.slot, flagship_instruction))
+
+    if not monday and issues_movers is not None:
         scheduled.append(
             (
                 "10:15",
@@ -1167,7 +1175,7 @@ def _build_newsroom_fr_posts(
             )
         )
 
-    if agenda_movers is not None:
+    if not monday and agenda_movers is not None:
         scheduled.append(
             (
                 "12:15",
@@ -1175,7 +1183,7 @@ def _build_newsroom_fr_posts(
             )
         )
 
-    if dominance is not None:
+    if not monday and dominance is not None:
         scheduled.append(
             (
                 "14:30",
@@ -1197,7 +1205,8 @@ def _build_newsroom_fr_posts(
                 locale="fr",
                 slot=slot,
                 lane=("candidate_slot" if slot == instruction.slot else
-                      "radar_slot" if slot == radar_instruction.slot else "newsroom"),
+                      "radar_slot" if slot == radar_instruction.slot else
+                      "weekly_flagship_slot" if slot == weekly_flagship.SLOT else "newsroom"),
                 key=product.product_id,
                 text=product.text,
                 score=product.score,
@@ -1466,7 +1475,10 @@ def build_plan(
         planner_state
     )
 
-    fr_all = (
+    monday = _planner_date(now).weekday() == 0
+    # Monday FR descriptors must survive incomplete morning metric artifacts.
+    # The flagship checks its sources and destination at 09:30, never here.
+    fr_all = [] if monday else (
         newsroom_products
         .build_newsroom_products(
             issue_payload=issue_payload,
@@ -1475,14 +1487,16 @@ def build_plan(
         )
     )
 
-    en_all = (
-        newsroom_products
-        .build_newsroom_products(
+    try:
+        en_all = newsroom_products.build_newsroom_products(
             issue_payload=issue_payload,
             agenda_payload=agenda_payload,
             locale="en",
         )
-    )
+    except (ValueError, KeyError, TypeError):
+        if not monday:
+            raise
+        en_all = []
 
     fr_eligible = (
         _eligible_newsroom_products(
@@ -1609,13 +1623,17 @@ def build_plan(
                     now
                 )
             ),
-            "fr_newsroom_slots": {
+            "fr_newsroom_slots": ({
+                "weekly_flagship_fr": "09:30",
+                "candidate_media_pulse_current": "16:45",
+                "radar_media_publishers_current": "18:30",
+            } if monday else {
                 "issues_movers": "10:15",
                 "agenda_movers": "12:15",
                 "dominance": "14:30",
                 "candidate_media_pulse_current": "16:45",
                 "radar_media_publishers_current": "18:30",
-            },
+            }),
             "dominance_rotation": (
                 "alternating_issues_agenda_by_paris_date"
             ),

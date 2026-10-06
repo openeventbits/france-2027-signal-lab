@@ -9,6 +9,8 @@ on:
     # Core queue slots.
     - cron: '45 8 * * *'
       timezone: 'Europe/Paris'
+    - cron: '30 9 * * 1'
+      timezone: 'Europe/Paris'
     - cron: '15 10 * * *'
       timezone: 'Europe/Paris'
     - cron: '30 11 * * *'
@@ -126,6 +128,11 @@ jobs:
               '15 10 * * *')
                 mode="slot"
                 slot="10:15"
+                ;;
+
+              '30 9 * * 1')
+                mode="slot"
+                slot="09:30"
                 ;;
 
               '30 11 * * *')

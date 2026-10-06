@@ -303,17 +303,18 @@ class CandidateMediaPulseTests(unittest.TestCase):
         self.assertEqual(now.date(), self.current_end_date - timedelta(days=1))
         self.assertIsNotNone(self.resolve(now))
 
-    def test_monday_has_weekly_issues_agenda_and_current_candidate(self):
+    def test_monday_has_weekly_flagship_and_current_candidate(self):
         start = self.align_candidate_period(self.weekly_monday_date)
         plan = self.plan(self.weekly_monday_now)
         self.assertEqual(plan["rules"]["newsroom_window"], "complete_week")
         self.assertEqual([p["slot"] for p in plan["fr_posts"]],
-                         ["10:15", "12:15", "14:30", "16:45", "18:30"])
-        self.assertIn("issues_movers_complete_week", plan["fr_posts"][0]["key"])
-        self.assertIn("agenda_movers_complete_week", plan["fr_posts"][1]["key"])
-        self.assertEqual(plan["fr_posts"][3]["key"],
+                         ["09:30", "16:45", "18:30"])
+        self.assertTrue(plan["fr_posts"][0]["key"].startswith("weekly_flagship_fr:"))
+        self.assertEqual(plan["fr_posts"][0]["text"], "")
+        candidate = next(p for p in plan["fr_posts"] if p["slot"] == "16:45")
+        self.assertEqual(candidate["key"],
                          f"candidate_media_pulse_current:slot:{self.weekly_monday_date.isoformat()}:fr")
-        self.assertEqual(plan["fr_posts"][3]["text"], "")
+        self.assertEqual(candidate["text"], "")
         self.assertEqual(plan["candidate_media_pulse_preview"]["current_start"], start.isoformat())
         self.assertEqual(plan["candidate_media_pulse_preview"]["current_end"], self.weekly_monday_date.isoformat())
         self.assertIsNotNone(self.resolve(self.weekly_monday_now))
@@ -350,7 +351,7 @@ class CandidateMediaPulseTests(unittest.TestCase):
         with patch.object(daily_plan.social_publish, "render_today_events", return_value="ÉVÉNEMENTS DU JOUR"):
             plan = self.plan(self.weekly_monday_now)
         self.assertEqual([p["slot"] for p in plan["fr_posts"]],
-                         ["08:45", "10:15", "12:15", "14:30", "16:45", "18:30"])
+                         ["08:45", "09:30", "16:45", "18:30"])
 
     def test_legacy_history_cannot_replace_candidate_signals(self):
         self.only()
