@@ -193,6 +193,72 @@ class AgendaPageTests(unittest.TestCase):
     def text(self, relative: str | Path) -> str:
         return self.artifacts[Path(relative)].decode("utf-8")
 
+    def assert_serialized_bar_height(self, actual, expected, places):
+        # Match the renderer's fixed precision, including Python's half-even ties.
+        self.assertEqual(actual, f"{expected:.{places}f}")
+
+    def bar_precision_fixture(self, counts):
+        return {"current": {
+            "daily_activity": [
+                {"date": (date(2026, 1, 1) + timedelta(days=index)).isoformat(),
+                 "source_day_count": count}
+                for index, count in enumerate(counts)
+            ],
+            "comparison": {
+                "previous_start": "2026-01-01", "previous_end": "2026-01-07",
+                "latest_start": "2026-01-08", "latest_end": "2026-01-14",
+            },
+        }}
+
+    def test_current_hub_bar_precision_half_even_zero_minimum_and_maximum(self):
+        # 5 / 16 * 100 = 31.25, serialized as 31.2 rather than half-up 31.3.
+        topic = self.bar_precision_fixture([0, 1, 5, 16])
+        for language in ("fr", "en"):
+            with self.subTest(language=language):
+                bars = builder._current_card_microbars(topic, language)
+                self.assertEqual(re.findall(r"--agenda-bar:([\d.]+)%", bars),
+                                 ["6.0", "12.0", "31.2", "100.0"])
+
+    def test_current_activity_bar_precision_half_even_zero_and_maximum(self):
+        # 18 + 82 * 5 / 16 = 43.625, serialized as 43.62, not 43.63.
+        topic = self.bar_precision_fixture([0, 1, 5, 16])
+        for language in ("fr", "en"):
+            with self.subTest(language=language):
+                bars = builder._current_activity_bars(topic, language)
+                self.assertEqual(re.findall(r"--agenda-bar:([\d.]+)%", bars),
+                                 ["4.00", "23.12", "43.62", "100.00"])
+
+    def test_current_bar_precision_all_zero_series(self):
+        topic = self.bar_precision_fixture([0, 0])
+        for renderer, expected in ((builder._current_card_microbars, "6.0"),
+                                   (builder._current_activity_bars, "4.00")):
+            for language in ("fr", "en"):
+                with self.subTest(renderer=renderer.__name__, language=language):
+                    bars = renderer(topic, language)
+                    self.assertEqual(re.findall(r"--agenda-bar:([\d.]+)%", bars),
+                                     [expected, expected])
+
+    def test_current_bar_contract_rejects_wrong_value_and_precision(self):
+        for language in ("fr", "en"):
+            cases = (
+                (Path("agenda/index.html" if language == "fr" else "en/agenda/index.html"),
+                 self.test_current_hub_card_temporal_boundaries_values_and_order, 1),
+                (Path(self.projection["topics"][0]["routes"][language].strip("/")) / "index.html",
+                 self.test_current_activity_temporal_dates_and_source_day_heights, 2),
+            )
+            for path, validate, places in cases:
+                text = self.text(path)
+                height = re.search(r"--agenda-bar:([\d.]+)%", text).group(1)
+                wrong_value = f"{float(height) + 10 ** -places:.{places}f}"
+                for wrong in (wrong_value, height + "0"):
+                    with self.subTest(path=path, wrong=wrong):
+                        changed = dict(self.artifacts)
+                        changed[path] = text.replace(f"--agenda-bar:{height}%",
+                                                     f"--agenda-bar:{wrong}%", 1).encode("utf-8")
+                        with patch.object(self, "artifacts", changed):
+                            with self.assertRaises(AssertionError):
+                                validate()
+
     def test_exact_route_census_and_language_split(self):
         self.assertEqual(len(self.artifacts), 28)
         self.assertEqual(
@@ -328,7 +394,8 @@ class AgendaPageTests(unittest.TestCase):
                                 'is-previous' if day <= comparison['previous_end'] else
                                 'is-recent' if day <= comparison['latest_end'] else 'is-partial')
                     self.assertEqual(actual, expected, (language, topic['topic_id'], day))
-                    self.assertAlmostEqual(float(height), 6 if int(value) == 0 else max(12, int(value) / maximum * 100), places=1)
+                    expected_height = 6 if int(value) == 0 else max(12, int(value) / maximum * 100)
+                    self.assert_serialized_bar_height(height, expected_height, places=1)
                     periods[day] = actual
                 for boundary, expected in [('previous_start', 'is-previous'), ('previous_end', 'is-previous'),
                                            ('latest_start', 'is-recent'), ('latest_end', 'is-recent')]:
@@ -693,7 +760,8 @@ class AgendaPageTests(unittest.TestCase):
                             'is-latest' if day <= comparison['latest_end'] else 'is-partial')
                 self.assertEqual(actual, expected, (topic['topic_id'], language, day))
                 self.assertEqual(int(value), point['source_day_count'])
-                self.assertAlmostEqual(float(height), 4 if int(value) == 0 else 18 + 82 * int(value) / maximum, places=2)
+                expected_height = 4 if int(value) == 0 else 18 + 82 * int(value) / maximum
+                self.assert_serialized_bar_height(height, expected_height, places=2)
                 classes[day] = actual
             for boundary, expected in [('previous_start', 'is-previous'), ('previous_end', 'is-previous'),
                                        ('latest_start', 'is-latest'), ('latest_end', 'is-latest')]:
