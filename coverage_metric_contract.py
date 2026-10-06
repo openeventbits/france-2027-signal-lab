@@ -13,6 +13,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Iterable
 
 import agenda_page_contract
+import issue_page_contract
 from agenda_page_contract import AGENDA_DEFINITIONS
 from issue_page_contract import ISSUE_DEFINITIONS
 
@@ -22,8 +23,8 @@ PUBLIC_ORIGIN = "https://france2027.app"
 WINDOW_COMPLETE_DAY = "complete_day"
 WINDOW_COMPLETE_WEEK = "complete_week"
 
-ISSUES_DAILY_METRIC_ID = "issues_article_presence_share_complete_day"
-ISSUES_WEEKLY_METRIC_ID = "issues_article_presence_share_complete_week"
+ISSUES_DAILY_METRIC_ID = "issues_source_day_incidence_complete_day"
+ISSUES_WEEKLY_METRIC_ID = "issues_source_day_incidence_complete_week"
 
 AGENDA_DAILY_METRIC_ID = "agenda_source_day_share_complete_day"
 AGENDA_WEEKLY_METRIC_ID = "agenda_source_day_share_complete_week"
@@ -279,20 +280,10 @@ def _windows(
     )
 
 
-def _share(
-    numerator: int,
-    denominator: int,
-) -> float:
-    if denominator <= 0:
-        raise MetricContractError(
-            "metric denominator must be positive"
-        )
-
-    if numerator < 0:
-        raise MetricContractError(
-            "metric numerator must be non-negative"
-        )
-
+def _share(numerator: int, denominator: int) -> float:
+    """Legacy generic utility; active snapshots consume page-authority shares."""
+    if denominator <= 0 or numerator < 0:
+        raise MetricContractError("metric counts are invalid")
     return numerator / denominator * 100.0
 
 
@@ -307,13 +298,9 @@ def _make_row(
     current_denominator: int,
     canonical_url_fr: str,
     canonical_url_en: str,
-    raw_percentages: tuple[float, float] | None = None,
+    raw_percentages: tuple[float, float],
 ) -> MetricRow:
-    if raw_percentages is None:
-        previous_raw = _share(previous_evidence, previous_denominator)
-        current_raw = _share(current_evidence, current_denominator)
-    else:
-        previous_raw, current_raw = raw_percentages
+    previous_raw, current_raw = raw_percentages
 
     (
         previous_display,
@@ -339,18 +326,6 @@ def _make_row(
         current_denominator=current_denominator,
         canonical_url_fr=canonical_url_fr,
         canonical_url_en=canonical_url_en,
-    )
-
-
-def _sum_field(
-    rows: list[dict[str, Any]],
-    dates: set[str],
-    field: str,
-) -> int:
-    return sum(
-        int(row.get(field) or 0)
-        for row in rows
-        if str(row.get("date") or "") in dates
     )
 
 
@@ -381,78 +356,30 @@ def build_issue_metric_snapshot(
         window_mode,
     )
 
-    previous_set = set(previous_dates)
-    current_set = set(current_dates)
-
-    previous_denominator = _sum_field(
-        corpus_daily,
-        previous_set,
-        "item_count",
-    )
-
-    current_denominator = _sum_field(
-        corpus_daily,
-        current_set,
-        "item_count",
-    )
-
-    if previous_denominator <= 0 or current_denominator <= 0:
-        raise MetricContractError(
-            "issue comparison corpus is empty"
+    try:
+        previous = issue_page_contract.build_issue_history_period_metric(
+            root, start_date=previous_dates[0], end_date=previous_dates[-1],
         )
-
-    issue_index = {
-        str(row.get("id") or ""): row
-        for row in _require_rows(
-            root.get("issues"),
-            "issue history issues",
+        current = issue_page_contract.build_issue_history_period_metric(
+            root, start_date=current_dates[0], end_date=current_dates[-1],
         )
-    }
+    except issue_page_contract.IssuePageContractError as error:
+        raise MetricContractError(str(error)) from error
 
     rows = []
-
-    for definition in ISSUE_DEFINITIONS:
-        issue = issue_index.get(definition.issue_id)
-
-        if issue is None:
-            raise MetricContractError(
-                f"missing issue history: {definition.issue_id}"
-            )
-
-        daily = _require_rows(
-            issue.get("daily"),
-            f"{definition.issue_id}.daily",
-        )
-
-        previous_evidence = _sum_field(
-            daily,
-            previous_set,
-            "item_count",
-        )
-
-        current_evidence = _sum_field(
-            daily,
-            current_set,
-            "item_count",
-        )
-
-        rows.append(
-            _make_row(
-                entity_id=definition.issue_id,
-                label_fr=definition.label_fr,
-                label_en=definition.label_en,
-                previous_evidence=previous_evidence,
-                current_evidence=current_evidence,
-                previous_denominator=previous_denominator,
-                current_denominator=current_denominator,
-                canonical_url_fr=(
-                    PUBLIC_ORIGIN + definition.routes["fr"]
-                ),
-                canonical_url_en=(
-                    PUBLIC_ORIGIN + definition.routes["en"]
-                ),
-            )
-        )
+    for definition, previous_row, current_row in zip(ISSUE_DEFINITIONS, previous.rows, current.rows):
+        rows.append(_make_row(
+            entity_id=definition.issue_id,
+            label_fr=definition.label_fr,
+            label_en=definition.label_en,
+            previous_evidence=previous_row.numerator,
+            current_evidence=current_row.numerator,
+            previous_denominator=previous_row.denominator,
+            current_denominator=current_row.denominator,
+            raw_percentages=(previous_row.raw_share * 100.0, current_row.raw_share * 100.0),
+            canonical_url_fr=PUBLIC_ORIGIN + definition.routes["fr"],
+            canonical_url_en=PUBLIC_ORIGIN + definition.routes["en"],
+        ))
 
     metric_id = (
         ISSUES_DAILY_METRIC_ID
@@ -463,8 +390,8 @@ def build_issue_metric_snapshot(
     return MetricSnapshot(
         metric_id=metric_id,
         family="issues",
-        aggregation_unit="issue_classified_article",
-        denominator_id="accepted_relevant_news_article_corpus",
+        aggregation_unit=current.aggregation_unit,
+        denominator_id=current.denominator_id,
         window_mode=window_mode,
         as_of=str(root.get("data_as_of") or ""),
         source_artifact="issue_coverage_history.json",

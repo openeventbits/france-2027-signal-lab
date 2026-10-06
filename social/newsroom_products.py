@@ -576,6 +576,15 @@ def _render_product_text(
 
     length = weighted_x_length(text)
 
+    if length > MAX_X_WEIGHTED_LENGTH and family == "issues":
+        # Source-day incidence can yield longer displayed values than the old
+        # article metric. Compact row punctuation, preserving every ranked row,
+        # value, semantic boundary and complete destination URL.
+        for index in range(2, 2 + len(rows)):
+            lines[index] = lines[index].replace(" & ", "&")
+        text = "\n".join(lines)
+        length = weighted_x_length(text)
+
     if length > MAX_X_WEIGHTED_LENGTH:
         raise ValueError(
             f"{family}/{rank_kind}/"
