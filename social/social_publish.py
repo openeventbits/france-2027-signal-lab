@@ -18,8 +18,8 @@ from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 try:
-    from .candidate_media_pulse import weighted_x_length as standard_fr27_weighted_length
-except ImportError:
+    from social.candidate_media_pulse import weighted_x_length as standard_fr27_weighted_length
+except ModuleNotFoundError:
     from candidate_media_pulse import weighted_x_length as standard_fr27_weighted_length
 
 BUFFER_ENDPOINT = "https://api.buffer.com"
