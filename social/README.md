@@ -172,8 +172,17 @@ does not enrich or rewrite historical queues or receipts. Published status,
 Buffer IDs, seen registries, Radar fingerprints and flagship week receipts stay
 intact. Rebuilding today's queue returns the same object, including old items.
 
-The launch limit remains 280 weighted X characters. Long-post capability work
-is deferred until after launch.
+Issues and Agenda newsroom products may exceed 280 weighted X characters
+because the connected X account has Premium long-post capability.
+`newsroom_products.py` applies a conservative 1000 weighted-character FR27
+editorial safety ceiling for these products; this is an internal editorial
+rule, not the platform maximum.
+
+Compact products retain their existing 280-character contracts unless
+explicitly migrated: Candidate Media Pulse, Radar Médias, weekly flagship,
+dynamic developments, campaign-event copy, legacy/visual captions and generic
+short-form social helpers. `social_publish.py` therefore keeps its generic
+`MAX_X_WEIGHTED_LENGTH = 280` contract.
 
 ## Planner state and cooldowns
 

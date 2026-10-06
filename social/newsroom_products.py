@@ -23,7 +23,9 @@ if str(ROOT) not in sys.path:
 import coverage_metric_contract as contract
 
 
-MAX_X_WEIGHTED_LENGTH = 280
+# FR27 editorial safety ceiling for Premium long-form X newsroom products.
+# This is deliberately stricter than the account/platform capability.
+MAX_X_WEIGHTED_LENGTH = 1000
 X_URL_WEIGHT = 23
 URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
 
@@ -345,25 +347,25 @@ def _headline(
         if family == "issues":
             if rank_kind == "movers":
                 return (
-                    "ENJEUX EN MOUVEMENT 📊"
+                    "ENJEUX · ÉVOLUTIONS DE LA SEMAINE 📊"
                     if weekly
-                    else "ÇA BOUGE DANS LES ENJEUX 📡"
+                    else "ENJEUX · ÉVOLUTIONS DU JOUR 📡"
                 )
 
             return (
-                "ENJEUX LES PLUS PRÉSENTS 👀"
+                "ENJEUX · LES PLUS PRÉSENTS 👀"
             )
 
         if family == "agenda":
             if rank_kind == "movers":
                 return (
-                    "AGENDA 2027 EN MOUVEMENT 📊"
+                    "AGENDA 2027 · ÉVOLUTIONS DE LA SEMAINE 📊"
                     if weekly
-                    else "ÇA BOUGE DANS L’AGENDA 2027 📡"
+                    else "AGENDA 2027 · ÉVOLUTIONS DU JOUR 📡"
                 )
 
             return (
-                "CE QUI DOMINE DANS L’AGENDA 2027 👀"
+                "AGENDA 2027 · THÈMES LES PLUS PRÉSENTS 👀"
             )
 
     if locale == "en":
@@ -400,12 +402,12 @@ def _boundary(
     if locale == "fr":
         if family == "issues":
             return (
-                "Couverture · multilabel · ≠ opinion."
+                "Couverture suivie · multilabel · ≠ opinion."
             )
 
         if family == "agenda":
             return (
-                "Couverture · ≠ priorités déclarées."
+                "Couverture suivie · ≠ priorités déclarées."
             )
 
     if locale == "en":

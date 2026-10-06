@@ -250,10 +250,13 @@ class IssueSharedMetricTests(unittest.TestCase):
             issues = [p for p in products if p.family == "issues"]
             self.assertEqual(len(issues), 4)
             for product in issues:
-                self.assertLessEqual(product.weighted_length, 280)
+                self.assertLessEqual(
+                    product.weighted_length,
+                    newsroom_products.MAX_X_WEIGHTED_LENGTH,
+                )
                 self.assertEqual(len(product.rows), 5)
                 self.assertTrue(product.text.endswith(product.destination_url))
-                boundary = "Couverture · multilabel · ≠ opinion." if locale == "fr" else "Coverage · multilabel · ≠ opinion."
+                boundary = "Couverture suivie · multilabel · ≠ opinion." if locale == "fr" else "Coverage · multilabel · ≠ opinion."
                 self.assertIn(boundary, product.text)
                 self.assertEqual(product.metric_id, "issues_source_day_incidence_" + product.window_mode)
 

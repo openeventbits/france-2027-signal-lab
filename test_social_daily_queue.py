@@ -43,6 +43,29 @@ SPEC.loader.exec_module(
 class DailyQueueTests(
     unittest.TestCase
 ):
+    def test_newsroom_premium_text_is_preserved_at_editorial_ceiling(self):
+        url = "https://france2027.app/enjeux/"
+        limit = MODULE.newsroom_products.MAX_X_WEIGHTED_LENGTH
+        text = "x" * (limit - MODULE.newsroom_products.X_URL_WEIGHT - 1) + "\n" + url
+        self.assertGreater(MODULE.newsroom_products.weighted_x_length(text), 280)
+        self.assertEqual(MODULE.newsroom_products.weighted_x_length(text), limit)
+        for family in ("issues", "agenda"):
+            for rank in ("movers", "dominance"):
+                for window in ("complete_day", "complete_week"):
+                    with self.subTest(family=family, rank=rank, window=window):
+                        raw = {"lane": "newsroom", "text": text,
+                               "key": f"{family}_{rank}_{window}:metric:2026-10-05:fr"}
+                        self.assertEqual(MODULE.core_post_text(raw), text)
+                        with self.assertRaisesRegex(ValueError, "exceeds"):
+                            MODULE.core_post_text({**raw, "text": "x" + text})
+
+    def test_other_newsroom_queue_products_keep_compact_limit(self):
+        raw = {"lane": "newsroom", "key": "compact:2026-10-05:fr",
+               "text": "x" * 280 + "\nhttps://france2027.app/"}
+        with self.assertRaisesRegex(ValueError, "exceeds"):
+            MODULE.core_post_text(raw)
+        self.assertEqual(MODULE.social_publish.MAX_X_WEIGHTED_LENGTH, 280)
+
     def _state(self):
         return (
             MODULE.social_publish

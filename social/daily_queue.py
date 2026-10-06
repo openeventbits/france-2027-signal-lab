@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import daily_plan
+import newsroom_products
 import candidate_media_pulse
 import radar_media
 import weekly_flagship
@@ -375,12 +376,22 @@ def core_post_text(
     ).strip()
 
     if raw.get("lane") == "newsroom":
+        # Only Issues/Agenda products use the Premium newsroom ceiling.
+        # Other products keep the generic compact-post contract.
+        limit = (
+            newsroom_products.MAX_X_WEIGHTED_LENGTH
+            if key.startswith((
+                "issues_movers_", "issues_dominance_",
+                "agenda_movers_", "agenda_dominance_",
+            ))
+            else social_publish.MAX_X_WEIGHTED_LENGTH
+        )
         if (
             social_publish
             ._weighted_x_length(
                 text
             )
-            > social_publish.MAX_X_WEIGHTED_LENGTH
+            > limit
         ):
             raise ValueError(
                 "newsroom queue post exceeds "
