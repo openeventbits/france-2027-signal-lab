@@ -208,6 +208,116 @@ def _topic_index(value: Any, field: str) -> dict[str, dict[str, Any]]:
     return result
 
 
+AGENDA_AGGREGATION_UNIT = "agenda_topic_source_day"
+AGENDA_DENOMINATOR_ID = "all_canonical_agenda_topic_source_days"
+
+
+@dataclass(frozen=True)
+class AgendaSourceDayRow:
+    topic_id: str
+    numerator: int
+    denominator: int
+    raw_share: float  # Fraction, not percentage; display belongs to the consumer.
+
+
+@dataclass(frozen=True)
+class AgendaPeriodMetric:
+    start_date: str
+    end_date: str
+    rows: tuple[AgendaSourceDayRow, ...]
+    aggregation_unit: str = AGENDA_AGGREGATION_UNIT
+    denominator_id: str = AGENDA_DENOMINATOR_ID
+
+
+def agenda_source_day_share(
+    numerator: int, denominator: int, *, allow_empty_observation: bool = False,
+) -> float:
+    """The sole Agenda source-day division.
+
+    Retained daily ledgers explicitly encode unobserved 0/0 days as zero.
+    Publishable comparison periods never opt into that archive convention.
+    """
+    _count(numerator, "Agenda source-day numerator")
+    _count(denominator, "Agenda source-day denominator")
+    if numerator > denominator:
+        raise AgendaPageContractError("Agenda numerator exceeds denominator")
+    if denominator == 0:
+        if allow_empty_observation:
+            return 0.0
+        raise AgendaPageContractError("Agenda source-day denominator must be positive")
+    return numerator / denominator
+
+
+def agenda_source_day_rows(
+    counts: dict[str, int], *, allow_empty_observation: bool = False,
+) -> tuple[AgendaSourceDayRow, ...]:
+    """Distribute all six canonical topics, including polls, in source order."""
+    counts = _mapping(counts, "Agenda source-day counts")
+    if set(counts) != set(CANONICAL_AGENDA_IDS):
+        raise AgendaPageContractError("Agenda metric requires all six canonical topics")
+    denominator = sum(_count(counts[key], key) for key in CANONICAL_AGENDA_IDS)
+    return tuple(
+        AgendaSourceDayRow(key, counts[key], denominator, agenda_source_day_share(
+            counts[key], denominator, allow_empty_observation=allow_empty_observation,
+        ))
+        for key in CANONICAL_AGENDA_IDS
+    )
+
+
+def build_agenda_period_metric(
+    topics: list[dict[str, Any]], *, start_date: str, end_date: str,
+    daily_denominators: list[dict[str, Any]] | None = None,
+) -> AgendaPeriodMetric:
+    """Aggregate an inclusive, fully covered window of canonical topic daily rows.
+
+    Inputs use {id, daily:[{date, source_day_count}]} for both page adapters
+    and persistent history. Supplied archive denominators must reconcile per day;
+    they are checked evidence, never an alternative denominator authority.
+    """
+    required = _expected_dates(_date(start_date, "metric start"), _date(end_date, "metric end"))
+    index = {}
+    counts = {}
+    daily_totals = dict.fromkeys(required, 0)
+    for topic in _list(topics, "Agenda metric topics"):
+        topic = _mapping(topic, "Agenda metric topic")
+        key = topic.get("id")
+        if key not in CANONICAL_AGENDA_IDS or key in index:
+            raise AgendaPageContractError("Agenda metric has unknown or duplicate topic")
+        points = _metric_daily_index(topic.get("daily"), key, "source_day_count")
+        if any(day not in points for day in required):
+            raise AgendaPageContractError(f"{key} lacks complete required window coverage")
+        index[key] = points
+        counts[key] = sum(points[day] for day in required)
+        for day in required:
+            daily_totals[day] += points[day]
+    rows = agenda_source_day_rows(counts)
+    if daily_denominators is not None:
+        stored = _metric_daily_index(
+            daily_denominators, "Agenda denominator", "total_agenda_topic_source_days",
+        )
+        for day in required:
+            if day not in stored or stored[day] != daily_totals[day]:
+                raise AgendaPageContractError(f"Agenda denominator does not reconcile on {day}")
+    return AgendaPeriodMetric(start_date, end_date, rows)
+
+
+def _metric_daily_index(value: Any, label: str, field: str) -> dict[str, int]:
+    result = {}
+    for point in _list(value, f"{label}.daily"):
+        point = _mapping(point, f"{label} daily point")
+        day = _date(point.get("date"), f"{label} date").isoformat()
+        if day in result:
+            raise AgendaPageContractError(f"{label} metric history dates must be unique")
+        result[day] = _count(point.get(field), f"{label}.{day}.{field}")
+        if field == "source_day_count" and "item_count" in point:
+            items = _count(point["item_count"], f"{label}.{day}.item_count")
+            if result[day] > items:
+                raise AgendaPageContractError(f"{label}.{day} source days exceed items")
+    if list(result) != sorted(result):
+        raise AgendaPageContractError(f"{label} metric history dates must be sorted")
+    return result
+
+
 def validate_agenda_coverage_history(payload: Any) -> dict[str, dict[str, Any]]:
     """Validate persistent single-label Agenda history and return its topic index."""
 
@@ -304,8 +414,8 @@ def validate_agenda_coverage_history(payload: Any) -> dict[str, dict[str, Any]]:
             ) != day_source_days:
                 raise AgendaPageContractError(f"{topic_id}.{day} denominator mismatch")
             expected_item_share = item_count / day_items if day_items else 0.0
-            expected_source_share = (
-                source_day_count / day_source_days if day_source_days else 0.0
+            expected_source_share = agenda_source_day_share(
+                source_day_count, day_source_days, allow_empty_observation=True,
             )
             if _number(
                 point.get("topic_item_share"), f"{topic_id}.{day}.item share"

@@ -55,6 +55,7 @@ class SocialWorkflowTests(
             "15 12 * * *",
             "30 14 * * *",
             "45 16 * * *",
+            "30 18 * * *",
             "30 19 * * *",
         ):
             self.assertIn(

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterable
 import math
 import unicodedata
@@ -222,6 +222,127 @@ def _validate_iso_date(value: Any, field: str) -> str:
     except ValueError as error:
         raise IssuePageContractError(f"{field} must be an ISO date") from error
     return value
+
+
+@dataclass(frozen=True)
+class IssuePeriodRow:
+    issue_id: str
+    numerator: int
+    denominator: int
+    raw_share: float
+
+
+@dataclass(frozen=True)
+class IssuePeriodMetric:
+    start_date: str
+    end_date: str
+    denominator: int
+    rows: tuple[IssuePeriodRow, ...]
+    aggregation_unit: str = "issue_source_day"
+    denominator_id: str = "accepted_relevant_news_source_days"
+
+
+def build_issue_period_metric(
+    topics: Any,
+    *,
+    start_date: str,
+    end_date: str,
+    daily_denominators: Any,
+    allow_empty_denominator: bool = False,
+) -> IssuePeriodMetric:
+    """Canonical multilabel incidence: Issue publisher-days / accepted publisher-days.
+
+    Inputs use Policy Agenda evolution's source_day_count vocabulary. Each
+    publisher counts once per UTC date within each Issue and within the corpus.
+    Missing observations are errors, not zero evidence. Only the page's existing
+    empty-corpus presentation opts into a zero share; publication fails closed.
+    """
+    start = date.fromisoformat(_validate_iso_date(start_date, "incidence start"))
+    end = date.fromisoformat(_validate_iso_date(end_date, "incidence end"))
+    if start > end or start.isoformat() != start_date or end.isoformat() != end_date:
+        raise IssuePageContractError("incidence period is invalid")
+    expected = {
+        (start + timedelta(days=offset)).isoformat()
+        for offset in range((end - start).days + 1)
+    }
+
+    def daily_counts(values: Any, label: str) -> dict[str, int]:
+        result = {}
+        for point in _require_list(values, label):
+            point = _require_mapping(point, label + " observation")
+            day = _validate_iso_date(point.get("date"), label + " date")
+            if date.fromisoformat(day).isoformat() != day or day in result:
+                raise IssuePageContractError(label + " dates must be canonical and unique")
+            result[day] = _nonnegative_integer(
+                point.get("source_day_count"), label + " source_day_count"
+            )
+        if not expected.issubset(result):
+            raise IssuePageContractError(label + " is missing required period dates")
+        return result
+
+    accepted = daily_counts(daily_denominators, "accepted daily incidence")
+    denominator = sum(accepted[day] for day in expected)
+    if denominator == 0 and not allow_empty_denominator:
+        raise IssuePageContractError("Issue incidence denominator must be positive")
+    topic_index = {}
+    for topic in _require_list(topics, "incidence topics"):
+        topic = _require_mapping(topic, "incidence topic")
+        issue_id = topic.get("id")
+        if not isinstance(issue_id, str) or issue_id in topic_index:
+            raise IssuePageContractError("incidence taxonomy contains an invalid or duplicate ID")
+        topic_index[issue_id] = topic
+    if set(topic_index) != set(CANONICAL_ISSUE_IDS):
+        raise IssuePageContractError("incidence taxonomy must contain all canonical Issues")
+
+    rows = []
+    for definition in ISSUE_DEFINITIONS:
+        issue_id = definition.issue_id
+        counts = daily_counts(topic_index[issue_id].get("daily_activity"), issue_id)
+        if any(counts[day] > accepted[day] for day in expected):
+            raise IssuePageContractError(f"{issue_id} source-days exceed accepted source-days")
+        numerator = sum(counts[day] for day in expected)
+        rows.append(IssuePeriodRow(
+            issue_id=issue_id,
+            numerator=numerator,
+            denominator=denominator,
+            raw_share=numerator / denominator if denominator else 0.0,
+        ))
+    return IssuePeriodMetric(start_date, end_date, denominator, tuple(rows))
+
+
+def build_issue_history_period_metric(
+    payload: Any, *, start_date: str, end_date: str,
+) -> IssuePeriodMetric:
+    """Adapt retained history to page incidence without using its article shares.
+
+    History publisher_count is the page's daily source_day_count, as retained
+    by build_issue_coverage_history._snapshot_days. Its stored article-share
+    fields remain legacy historical data, not the incidence authority.
+    """
+    validate_issue_coverage_history(payload)
+    try:
+        as_of = datetime.fromisoformat(payload.get("data_as_of", "").replace("Z", "+00:00"))
+    except (ValueError, TypeError, AttributeError) as error:
+        raise IssuePageContractError("Issue history data_as_of is invalid") from error
+    if as_of.tzinfo is None or payload["period"]["end_date"] != (
+        as_of.astimezone(timezone.utc).date() - timedelta(days=1)
+    ).isoformat():
+        raise IssuePageContractError("Issue history must end on the latest complete UTC day")
+    return build_issue_period_metric(
+        [
+            {"id": issue["id"], "daily_activity": [
+                {"date": point["date"], "source_day_count": point["publisher_count"]}
+                for point in issue["daily"]
+            ]}
+            for issue in payload["issues"]
+        ],
+        start_date=start_date,
+        end_date=end_date,
+        daily_denominators=[
+            {"date": point["date"], "source_day_count": point["publisher_count"]}
+            for point in payload["corpus"]["daily"]
+        ],
+    )
 
 
 def validate_issue_coverage_history(payload: Any) -> dict[str, dict[str, Any]]:
@@ -818,16 +939,18 @@ def project_issue_pages(
             "policy agenda accepted daily dates do not match its period"
         )
 
-    previous_denominator = sum(
-        count
-        for day, count in accepted_by_date.items()
-        if previous_start <= day <= previous_end
+    # Preserve the page's empty-corpus presentation while sharing incidence
+    # calculation with social's strict, non-empty publication adapter.
+    previous_metric = build_issue_period_metric(
+        evolution_topics, start_date=previous_start, end_date=previous_end,
+        daily_denominators=accepted_daily, allow_empty_denominator=True,
     )
-    latest_denominator = sum(
-        count
-        for day, count in accepted_by_date.items()
-        if latest_start <= day <= latest_end
+    latest_metric = build_issue_period_metric(
+        evolution_topics, start_date=latest_start, end_date=latest_end,
+        daily_denominators=accepted_daily, allow_empty_denominator=True,
     )
+    previous_rows = {row.issue_id: row for row in previous_metric.rows}
+    latest_rows = {row.issue_id: row for row in latest_metric.rows}
     route_map = _candidate_route_map(candidate_routes)
     history = _history_by_issue(agenda_history, route_map)
     previously_public = _previous_public_ids(previous_manifest)
@@ -886,16 +1009,8 @@ def project_issue_pages(
             series.get("latest_source_day_count"),
             f"{issue_id} latest_source_day_count",
         )
-        reconstructed_previous_source_day_count = sum(
-            item["source_day_count"]
-            for item in evolution_30d
-            if previous_start <= item["date"] <= previous_end
-        )
-        reconstructed_latest_source_day_count = sum(
-            item["source_day_count"]
-            for item in evolution_30d
-            if latest_start <= item["date"] <= latest_end
-        )
+        reconstructed_previous_source_day_count = previous_rows[issue_id].numerator
+        reconstructed_latest_source_day_count = latest_rows[issue_id].numerator
         if previous_source_day_count != reconstructed_previous_source_day_count:
             raise IssuePageContractError(
                 f"{issue_id} previous_source_day_count is inconsistent with daily activity"
@@ -905,16 +1020,8 @@ def project_issue_pages(
                 f"{issue_id} latest_source_day_count is inconsistent with daily activity"
             )
 
-        raw_previous_incidence = (
-            previous_source_day_count / previous_denominator
-            if previous_denominator
-            else 0.0
-        )
-        raw_latest_incidence = (
-            latest_source_day_count / latest_denominator
-            if latest_denominator
-            else 0.0
-        )
+        raw_previous_incidence = previous_rows[issue_id].raw_share
+        raw_latest_incidence = latest_rows[issue_id].raw_share
         previous_incidence = _incidence(
             series.get("previous_incidence"),
             f"{issue_id} previous_incidence",

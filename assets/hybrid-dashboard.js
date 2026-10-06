@@ -1362,7 +1362,11 @@
     ]
       .map(([name, count]) => ({
         name,
-        count
+        count,
+        // One authority for page and social publisher composition. The
+        // Reader's 50-item slice is never this metric's denominator.
+        denominator: electionItems.length,
+        rawShare: electionItems.length ? count / electionItems.length : null
       }))
       .sort(
         (a, b) =>

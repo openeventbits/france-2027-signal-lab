@@ -3,12 +3,16 @@ from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-import signal_engine
+import newsroom_products
+import candidate_media_pulse
+import radar_media
+import weekly_flagship
+import queue_metadata
 import social_publish
 
 
@@ -16,6 +20,22 @@ ROOT = Path(__file__).resolve().parents[1]
 
 DEFAULT_RECENT_CHANGES = ROOT / "recent_changes.json"
 DEFAULT_CAMPAIGN_EVENTS = ROOT / "campaign_events.json"
+DEFAULT_ISSUE_HISTORY = ROOT / "issue_coverage_history.json"
+DEFAULT_AGENDA_HISTORY = ROOT / "agenda_coverage_history.json"
+
+
+def _legacy_signal_engine():
+    """Explicit compatibility access only; V2.1 planning never loads this engine."""
+    import signal_engine
+    return signal_engine
+
+
+def __getattr__(name):
+    # Keep older callers of daily_plan.signal_engine working without importing
+    # the article-share engine on the scheduled planner/queue path.
+    if name == "signal_engine":
+        return _legacy_signal_engine()
+    raise AttributeError(name)
 
 FR_SLOTS_WITH_ROUNDUP = (
     "08:45",
@@ -44,6 +64,8 @@ EN_SLOTS = (
     "19:30",
 )
 
+MONDAY_SUPPRESSED_FR_SLOTS = frozenset({"10:15", "12:15", "14:30"})
+
 CORE_FAMILIES = (
     "candidate_visibility",
     "issues",
@@ -69,6 +91,7 @@ class PlannedPost:
     key: str
     text: str
     score: float | None = None
+    metadata: dict[str, Any] | None = field(default=None, kw_only=True)
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -969,6 +992,314 @@ def collect_fresh_updates(
     return values, None
 
 
+
+def newsroom_window_mode(
+    now: datetime,
+) -> str:
+    """
+    Ordinary days use the latest complete day.
+    Monday uses the latest complete Monday-Sunday week.
+    """
+
+    if _planner_date(now).weekday() == 0:
+        return "complete_week"
+
+    return "complete_day"
+
+
+def dominance_family_for_date(
+    now: datetime,
+) -> str:
+    """
+    Issues and Agenda use different denominators,
+    so their percentage levels must never be
+    numerically ranked against one another.
+
+    Rotate the 14:30 dominance family by Paris
+    calendar date instead.
+    """
+
+    ordinal = (
+        _planner_date(now)
+        .toordinal()
+    )
+
+    return (
+        "issues"
+        if ordinal % 2
+        else "agenda"
+    )
+
+
+def newsroom_product_is_fresh(
+    product: newsroom_products.NewsroomProduct,
+    *,
+    now: datetime,
+) -> bool:
+    try:
+        end_date = datetime.strptime(
+            product.current_end,
+            "%Y-%m-%d",
+        ).date()
+    except ValueError:
+        return False
+
+    expected = (
+        expected_latest_complete_utc_day(
+            now
+        )
+    )
+
+    if product.window_mode == "complete_day":
+        return end_date == expected
+
+    if product.window_mode == "complete_week":
+        return (
+            _planner_date(now).weekday() == 0
+            and end_date == expected
+            and end_date.weekday() == 6
+        )
+
+    return False
+
+
+def _eligible_newsroom_products(
+    products: list[
+        newsroom_products.NewsroomProduct
+    ],
+    *,
+    now: datetime,
+) -> list[
+    newsroom_products.NewsroomProduct
+]:
+    wanted_window = newsroom_window_mode(
+        now
+    )
+
+    return [
+        product
+        for product in products
+        if (
+            product.window_mode
+            == wanted_window
+            and newsroom_product_is_fresh(
+                product,
+                now=now,
+            )
+        )
+    ]
+
+
+def _find_newsroom_product(
+    products: list[
+        newsroom_products.NewsroomProduct
+    ],
+    *,
+    family: str,
+    rank_kind: str,
+):
+    return next(
+        (
+            product
+            for product in products
+            if (
+                product.family == family
+                and product.rank_kind
+                == rank_kind
+            )
+        ),
+        None,
+    )
+
+
+def _build_newsroom_fr_posts(
+    *,
+    products: list[
+        newsroom_products.NewsroomProduct
+    ],
+    roundup: str,
+    now: datetime,
+    max_posts: int,
+) -> list[PlannedPost]:
+    posts: list[PlannedPost] = []
+
+    roundup = roundup.strip()
+
+    if roundup:
+        posts.append(
+            PlannedPost(
+                locale="fr",
+                slot="08:45",
+                lane="today_events",
+                key=(
+                    "today-events:"
+                    + _planner_date(
+                        now
+                    ).isoformat()
+                ),
+                text=roundup,
+                score=None,
+                metadata=queue_metadata.events(social_publish.campaign_events_destination()),
+            )
+        )
+
+    eligible = _eligible_newsroom_products(
+        products,
+        now=now,
+    )
+
+    issues_movers = (
+        _find_newsroom_product(
+            eligible,
+            family="issues",
+            rank_kind="movers",
+        )
+    )
+
+    agenda_movers = (
+        _find_newsroom_product(
+            eligible,
+            family="agenda",
+            rank_kind="movers",
+        )
+    )
+
+    dominance_family = (
+        dominance_family_for_date(
+            now
+        )
+    )
+
+    dominance = (
+        _find_newsroom_product(
+            eligible,
+            family=dominance_family,
+            rank_kind="dominance",
+        )
+    )
+
+    scheduled = []
+
+    monday = _planner_date(now).weekday() == 0
+    if monday:
+        flagship_instruction = weekly_flagship.slot_instruction(_planner_date(now))
+        scheduled.append((flagship_instruction.slot, flagship_instruction))
+
+    if not monday and issues_movers is not None:
+        scheduled.append(
+            (
+                "10:15",
+                issues_movers,
+            )
+        )
+
+    if not monday and agenda_movers is not None:
+        scheduled.append(
+            (
+                "12:15",
+                agenda_movers,
+            )
+        )
+
+    if not monday and dominance is not None:
+        scheduled.append(
+            (
+                "14:30",
+                dominance,
+            )
+        )
+
+    instruction = candidate_media_pulse.slot_instruction(_planner_date(now))
+    scheduled.append((instruction.slot, instruction))
+    radar_instruction = radar_media.slot_instruction(_planner_date(now))
+    scheduled.append((radar_instruction.slot, radar_instruction))
+
+    for slot, product in scheduled:
+        if len(posts) >= max_posts:
+            break
+
+        posts.append(
+            PlannedPost(
+                locale="fr",
+                slot=slot,
+                lane=("candidate_slot" if slot == instruction.slot else
+                      "radar_slot" if slot == radar_instruction.slot else
+                      "weekly_flagship_slot" if slot == weekly_flagship.SLOT else "newsroom"),
+                key=product.product_id,
+                text=product.text,
+                score=product.score,
+                metadata=(queue_metadata.candidate() if slot == instruction.slot else
+                          queue_metadata.radar() if slot == radar_instruction.slot else
+                          queue_metadata.flagship(_planner_date(now)) if slot == weekly_flagship.SLOT else
+                          queue_metadata.newsroom(product)),
+            )
+        )
+
+    return posts
+
+
+def _build_newsroom_en_posts(
+    *,
+    products: list[
+        newsroom_products.NewsroomProduct
+    ],
+    now: datetime,
+    max_posts: int,
+) -> list[PlannedPost]:
+    eligible = _eligible_newsroom_products(
+        products,
+        now=now,
+    )
+
+    # English is intentionally selective:
+    # movement only, one product per family.
+    movers = sorted(
+        (
+            product
+            for product in eligible
+            if product.rank_kind
+            == "movers"
+        ),
+        key=lambda product: (
+            -product.score,
+            product.family,
+            product.product_id,
+        ),
+    )
+
+    selected = []
+    used_families = set()
+
+    for product in movers:
+        if product.family in used_families:
+            continue
+
+        selected.append(product)
+        used_families.add(
+            product.family
+        )
+
+        if len(selected) >= min(
+            max_posts,
+            len(EN_SLOTS),
+        ):
+            break
+
+    return [
+        PlannedPost(
+            locale="en",
+            slot=EN_SLOTS[index],
+            lane="newsroom",
+            key=product.product_id,
+            text=product.text,
+            score=product.score,
+            metadata=queue_metadata.newsroom(product),
+        )
+        for index, product
+        in enumerate(selected)
+    ]
+
+
 def _build_fr_posts(
     *,
     roundup: str,
@@ -1029,7 +1360,7 @@ def _build_fr_posts(
                         f"{signal.entity_id}:"
                         f"{signal.current_end}"
                     ),
-                    signal_engine.render_fr(
+                    _legacy_signal_engine().render_fr(
                         signal
                     ),
                     signal.score,
@@ -1116,7 +1447,7 @@ def _build_en_posts(
                 f"{signal.entity_id}:"
                 f"{signal.current_end}"
             ),
-            text=signal_engine.render_en(
+            text=_legacy_signal_engine().render_en(
                 signal
             ),
             score=signal.score,
@@ -1128,7 +1459,7 @@ def _build_en_posts(
 
 def build_plan(
     *,
-    candidate_payload: dict[str, Any],
+    candidate_payload: dict[str, Any] | None = None,
     issue_payload: dict[str, Any],
     agenda_payload: dict[str, Any],
     recent_changes: dict[str, Any],
@@ -1141,7 +1472,16 @@ def build_plan(
     lookback_hours: int = 24,
     planner_state: dict[str, Any] | None = None,
     social_state: dict[str, Any] | None = None,
+    candidate_signals_payload: dict[str, Any] | None = None,
+    candidacy_payload: dict[str, Any] | None = None,
+    route_payload: dict[str, Any] | None = None,
+    candidate_site_root: Path = ROOT,
 ) -> dict[str, Any]:
+    # Legacy history callers remain compatible; history is never used for
+    # the current dossier Media Pulse product.
+    _ = candidate_payload
+    _ = max_quantitative
+
     if planner_state is None:
         if social_state is not None:
             planner_state = (
@@ -1158,36 +1498,41 @@ def build_plan(
         planner_state
     )
 
-    all_signals = (
-        signal_engine.build_all_signals(
-            candidate_payload=(
-                candidate_payload
-            ),
+    monday = _planner_date(now).weekday() == 0
+    # Monday FR descriptors must survive incomplete morning metric artifacts.
+    # The flagship checks its sources and destination at 09:30, never here.
+    fr_all = [] if monday else (
+        newsroom_products
+        .build_newsroom_products(
             issue_payload=issue_payload,
             agenda_payload=agenda_payload,
+            locale="fr",
         )
     )
 
-    signals = [
-        signal
-        for signal in all_signals
-        if signal_is_fresh(
-            signal,
+    try:
+        en_all = newsroom_products.build_newsroom_products(
+            issue_payload=issue_payload,
+            agenda_payload=agenda_payload,
+            locale="en",
+        )
+    except (ValueError, KeyError, TypeError):
+        if not monday:
+            raise
+        en_all = []
+
+    fr_eligible = (
+        _eligible_newsroom_products(
+            fr_all,
             now=now,
         )
-    ]
-
-    stale_signal_count = (
-        len(all_signals)
-        - len(signals)
     )
 
-    quantitative = select_quantitative(
-        signals,
-        limit=max_quantitative,
-        planner_state=planner_state,
-        locale="fr",
-        now=now,
+    en_eligible = (
+        _eligible_newsroom_products(
+            en_all,
+            now=now,
+        )
     )
 
     roundup = (
@@ -1208,6 +1553,9 @@ def build_plan(
         roundup.strip()
     )
 
+    # Fresh developments are still discovered
+    # for preview/diagnostics, but publication is
+    # handled by the separate dynamic-update lane.
     updates, update_error = (
         collect_fresh_updates(
             recent_changes,
@@ -1224,19 +1572,66 @@ def build_plan(
         )
     )
 
-    fr_posts = _build_fr_posts(
-        roundup=roundup,
-        quantitative=quantitative,
-        updates=updates,
-        max_posts=max_fr,
-        now=now,
+    candidate_product = None
+    candidate_error = None
+    try:
+        candidate_product = candidate_media_pulse.build_product(
+            candidate_signals=(
+                candidate_signals_payload if candidate_signals_payload is not None
+                else candidate_media_pulse.load_json(candidate_site_root / "candidate_signals.json")
+            ),
+            candidacy_registry=(
+                candidacy_payload if candidacy_payload is not None
+                else candidate_media_pulse.load_json(candidate_site_root / "candidate_candidacy_status.json")
+            ),
+            route_registry=(
+                route_payload if route_payload is not None
+                else candidate_media_pulse.load_json(candidate_site_root / "route_registry.json")
+            ),
+            planner_date=_planner_date(now),
+            site_root=candidate_site_root,
+        )
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        # This optional preview does not control the late-bound instruction.
+        candidate_error = str(error)
+
+    fr_posts = (
+        _build_newsroom_fr_posts(
+            products=fr_all,
+            roundup=roundup,
+            now=now,
+            max_posts=max_fr,
+        )
     )
 
-    en_posts = _build_en_posts(
-        signals,
-        max_posts=max_en,
-        planner_state=planner_state,
-        now=now,
+    en_posts = (
+        _build_newsroom_en_posts(
+            products=en_all,
+            now=now,
+            max_posts=max_en,
+        )
+    )
+
+    selected_newsroom = [
+        {
+            "locale": post.locale,
+            "slot": post.slot,
+            "lane": post.lane,
+            "key": post.key,
+            "score": post.score,
+        }
+        for post in [
+            *fr_posts,
+            *en_posts,
+        ]
+        if post.lane == "newsroom"
+    ]
+
+    stale_newsroom_count = (
+        len(fr_all)
+        + len(en_all)
+        - len(fr_eligible)
+        - len(en_eligible)
     )
 
     return {
@@ -1246,8 +1641,30 @@ def build_plan(
         "rules": {
             "fr_max": max_fr,
             "en_max": max_en,
-            "quantitative_max": (
-                max_quantitative
+            "newsroom_window": (
+                newsroom_window_mode(
+                    now
+                )
+            ),
+            "fr_newsroom_slots": ({
+                "weekly_flagship_fr": "09:30",
+                "candidate_media_pulse_current": "16:45",
+                "radar_media_publishers_current": "18:30",
+            } if monday else {
+                "issues_movers": "10:15",
+                "agenda_movers": "12:15",
+                "dominance": "14:30",
+                "candidate_media_pulse_current": "16:45",
+                "radar_media_publishers_current": "18:30",
+            }),
+            "dominance_rotation": (
+                "alternating_issues_agenda_by_paris_date"
+            ),
+            "candidate_visibility_slot": (
+                "candidate_media_pulse_current"
+            ),
+            "english_policy": (
+                "movers_only_distinct_families"
             ),
             "fresh_update_max": (
                 max_updates
@@ -1255,20 +1672,24 @@ def build_plan(
             "lookback_hours": (
                 lookback_hours
             ),
-            "quantitative_core": list(
-                CORE_FAMILIES
-            ),
+            "dynamic_updates_separate": True,
             "today_event_individual_posts_suppressed_when_roundup_present": True,
         },
         "counts": {
-            "eligible_quantitative_signals": len(
-                signals
+            "eligible_quantitative_signals": 0,
+            "stale_quantitative_signals_suppressed": 0,
+            "selected_quantitative": 0,
+            "eligible_newsroom_products_fr": len(
+                fr_eligible
             ),
-            "stale_quantitative_signals_suppressed": (
-                stale_signal_count
+            "eligible_newsroom_products_en": len(
+                en_eligible
             ),
-            "selected_quantitative": len(
-                quantitative
+            "stale_newsroom_products_suppressed": (
+                stale_newsroom_count
+            ),
+            "selected_newsroom": len(
+                selected_newsroom
             ),
             "fresh_updates": len(
                 updates
@@ -1276,16 +1697,25 @@ def build_plan(
             "roundup_present": (
                 roundup_present
             ),
-            "fr_posts": len(fr_posts),
-            "en_posts": len(en_posts),
+            "fr_posts": len(
+                fr_posts
+            ),
+            "en_posts": len(
+                en_posts
+            ),
         },
         "update_preview_error": (
             update_error
         ),
-        "selected_quantitative": [
-            asdict(item)
-            for item in quantitative
-        ],
+        "candidate_media_pulse_error": candidate_error,
+        # Preview only: the queued candidate instruction never stores this text.
+        "candidate_media_pulse_preview": (
+            asdict(candidate_product) if candidate_product is not None else None
+        ),
+        "selected_quantitative": [],
+        "selected_newsroom": (
+            selected_newsroom
+        ),
         "fresh_updates": [
             {
                 "key": item.key,
@@ -1368,22 +1798,16 @@ def run_preview(
         )
 
     plan = build_plan(
-        candidate_payload=(
-            signal_engine._load_json(
-                Path(
-                    args.candidate_history
-                )
-            )
-        ),
+        candidate_signals_payload=_load_json(Path(args.candidate_signals)),
         issue_payload=(
-            signal_engine._load_json(
+            _load_json(
                 Path(
                     args.issue_history
                 )
             )
         ),
         agenda_payload=(
-            signal_engine._load_json(
+            _load_json(
                 Path(
                     args.agenda_history
                 )
@@ -1438,19 +1862,25 @@ def run_preview(
 
     print()
     print(
-        "=== QUANTITATIVE MIX ==="
+        "=== NEWSROOM MIX ==="
     )
 
-    for signal in (
-        plan[
-            "selected_quantitative"
-        ]
+    for item in (
+        plan["selected_newsroom"]
     ):
+        score = item.get("score")
+
+        score_text = (
+            ""
+            if score is None
+            else f" score={score:.3f}"
+        )
+
         print(
-            f"{signal['family']:22} "
-            f"{signal['horizon']:10} "
-            f"{signal['entity_id']:36} "
-            f"score={signal['score']:.3f}"
+            f"{item['locale']:2} "
+            f"{item['slot']:5} "
+            f"{item['key']}"
+            f"{score_text}"
         )
 
     if args.json_output:
@@ -1599,24 +2029,27 @@ def _parser() -> argparse.ArgumentParser:
     preview.add_argument(
         "--candidate-history",
         default=str(
-            signal_engine
-            .DEFAULT_CANDIDATE_HISTORY
+            ROOT / "candidate_visibility_history.json"
         ),
+        help="Legacy compatibility option; candidate history is not used.",
+    )
+
+    preview.add_argument(
+        "--candidate-signals",
+        default=str(ROOT / "candidate_signals.json"),
     )
 
     preview.add_argument(
         "--issue-history",
         default=str(
-            signal_engine
-            .DEFAULT_ISSUE_HISTORY
+            DEFAULT_ISSUE_HISTORY
         ),
     )
 
     preview.add_argument(
         "--agenda-history",
         default=str(
-            signal_engine
-            .DEFAULT_AGENDA_HISTORY
+            DEFAULT_AGENDA_HISTORY
         ),
     )
 
