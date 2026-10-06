@@ -14,6 +14,13 @@ Rather than collapse different signals into a polling average, proprietary candi
 **English interface:** https://france2027.app/en/<br>
 **Repository:** https://github.com/openeventbits/france-2027-signal-lab
 
+The French X weekly flagship runs Monday at 09:30 Europe/Paris. A manual-only
+Tuesday/Wednesday recovery mode, `weekly-flagship-catchup`, targets only the
+immediately missed Monday, preserves the daily queue, and uses receipt and exact
+Buffer duplicate protection. It cannot replay arbitrary historical weeks and
+fails closed when current sources or published pages cannot prove that week's
+product. See [publisher instructions](social/README.md#manual-weekly-catch-up).
+
 ![Race at a Glance — France 2027 Signal Lab](docs/assets/readme-race-at-a-glance-en.jpg)
 
 *Race at a Glance presents published first-round poll events individually, with their sources, fieldwork dates, tested candidate configurations, and each candidate's raw difference from the nearest earlier first-round poll observation. A † flag marks comparisons where the polling institute or candidate field changed.*

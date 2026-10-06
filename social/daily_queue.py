@@ -919,9 +919,11 @@ def mark_item_published(
 
     radar_payload = getattr(resolved_post, "radar_payload", None)
     flagship_revision = getattr(resolved_post, "flagship_revision", None)
+    flagship_receipt = None
     if target["key"].startswith(weekly_flagship.PRODUCT_TYPE + ":"):
-        if not flagship_revision or not isinstance(buffer_post_id, str) or not buffer_post_id.strip():
-            raise ValueError("flagship publication requires a verified revision and successful Buffer receipt")
+        flagship_receipt = weekly_flagship.publication_receipt(
+            product_id=target["key"], revision=flagship_revision,
+            published_at=published_at, buffer_post_id=buffer_post_id)
         if resolved_post.key != target["key"]:
             raise ValueError("flagship publication week changed")
         weekly_flagship.published_weeks(planner_from_state(state))
@@ -974,11 +976,8 @@ def mark_item_published(
         buffer_post_id
     )
 
-    if flagship_revision is not None:
-        planner.setdefault(weekly_flagship.STATE_KEY, {})[post.key] = {
-            "product_id": post.key, "revision": flagship_revision,
-            "published_at": target["published_at"], "buffer_post_id": buffer_post_id,
-        }
+    if flagship_receipt is not None:
+        weekly_flagship.record_receipt(planner, flagship_receipt)
 
     if radar_payload is not None:
         # This function is reached only after Buffer success (or an exact

@@ -45,6 +45,7 @@ on:
           - slot
           - updates
           - buffer-info
+          - weekly-flagship-catchup
 
       slot:
         description: 'Core slot for manual slot mode (HH:MM Europe/Paris)'
@@ -189,7 +190,8 @@ jobs:
           steps.mode.outputs.publish == 'true' &&
           (
             steps.mode.outputs.mode == 'slot' ||
-            steps.mode.outputs.mode == 'updates'
+            steps.mode.outputs.mode == 'updates' ||
+            steps.mode.outputs.mode == 'weekly-flagship-catchup'
           )
         shell: bash
         env:
@@ -328,7 +330,7 @@ jobs:
         id: state
         if: >-
           contains(
-            fromJSON('["bootstrap","build-queue","slot","updates"]'),
+            fromJSON('["bootstrap","build-queue","slot","updates","weekly-flagship-catchup"]'),
             steps.mode.outputs.mode
           )
         shell: bash
@@ -387,7 +389,7 @@ jobs:
           steps.mode.outputs.publish == 'true' &&
           steps.mode.outputs.mode != 'bootstrap' &&
           contains(
-            fromJSON('["build-queue","slot","updates"]'),
+            fromJSON('["build-queue","slot","updates","weekly-flagship-catchup"]'),
             steps.mode.outputs.mode
           )
         shell: bash
@@ -483,6 +485,30 @@ jobs:
           python -B social/social_publish.py updates \
             "${args[@]}"
 
+      # Manual recovery is separate from the immutable daily queue.
+      - name: Publish or preview missed weekly flagship
+        if: >-
+          github.event_name == 'workflow_dispatch' &&
+          steps.mode.outputs.mode == 'weekly-flagship-catchup'
+        shell: bash
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_ORGANIZATION_ID: ${{ vars.BUFFER_ORGANIZATION_ID }}
+          BUFFER_X_CHANNEL_ID: ${{ vars.BUFFER_X_CHANNEL_ID }}
+        run: |
+          set -euo pipefail
+
+          args=(
+            --state /tmp/fr27-social/input-state.json
+            --state-output /tmp/fr27-social/output-state.json
+          )
+
+          if [[ "${{ steps.mode.outputs.publish }}" != "true" ]]; then
+            args+=(--dry-run)
+          fi
+
+          python -B social/weekly_flagship_catchup.py "${args[@]}"
+
       # ------------------------------------------------------
       # PERSISTENCE
       #
@@ -520,7 +546,7 @@ jobs:
         if: >-
           steps.mode.outputs.publish == 'true' &&
           contains(
-            fromJSON('["bootstrap","build-queue","slot","updates"]'),
+            fromJSON('["bootstrap","build-queue","slot","updates","weekly-flagship-catchup"]'),
             steps.mode.outputs.mode
           )
         shell: bash
