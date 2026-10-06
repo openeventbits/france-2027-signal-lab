@@ -41,11 +41,11 @@ const fr27Tier3T = (key, fallback) =>
 
   const workspaceLabels =
     Object.freeze({
-      candidates: fr27Tier3T("signal_board.candidates_847367c6", "CANDIDATES"),
-      agenda: fr27Tier3T("signal_board.agenda", "AGENDA"),
-      events: fr27Tier3T("signal_board.events", "EVENTS"),
-      issues: fr27Tier3T("signal_board.issues", "ISSUES"),
-      runoff: fr27Tier3T("signal_board.runoff", "RUNOFF")
+      get candidates() { return fr27Tier3T("signal_board.candidates_847367c6", "CANDIDATES"); },
+      get agenda() { return fr27Tier3T("signal_board.agenda", "AGENDA"); },
+      get events() { return fr27Tier3T("signal_board.events", "EVENTS"); },
+      get issues() { return fr27Tier3T("signal_board.issues", "ISSUES"); },
+      get runoff() { return fr27Tier3T("signal_board.runoff", "RUNOFF"); }
     });
 
 

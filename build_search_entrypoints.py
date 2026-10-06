@@ -662,16 +662,8 @@ def build_documents(
 
 def render_navigation(source: str, language: str) -> str:
     routes = navigation_model()
-    copy = COPY[language]
-    anchors = "\n".join(
-        f'      <a class="dashboard-detail-link" data-dashboard-hub="{family}" data-i18n="navigation.hub_{family}" href="{_escape(routes["hubs"][family][language])}">{_escape(copy["hub_labels"][family])}</a>'
-        for family in ("candidates", "polls", "issues", "agenda")
-    )
     data = json.dumps(routes, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
-    rendered = f'''    <nav class="dashboard-family-navigation" data-i18n-aria-label="navigation.families" aria-label="{_escape(copy["navigation"])}">
-{anchors}
-    </nav>
-    <script type="application/json" id="published-dashboard-navigation">{data}</script>
+    rendered = f'''    <script type="application/json" id="published-dashboard-navigation">{data}</script>
     <script src="assets/dashboard-navigation.js"></script>'''
     if NAV_START not in source:
         source = replace_once(source, '    <section id="hybrid-signal-board"',

@@ -18,10 +18,10 @@
     new URLSearchParams(global.location.search).get("lang");
   const documentLocale =
     documentElement && documentElement.lang;
-  const locale = requestedLocale
+  let locale = requestedLocale
     ? normalizeLocale(requestedLocale)
     : normalizeLocale(documentLocale);
-  const localeTag = locale === "fr" ? "fr-FR" : "en-GB";
+  let localeTag = locale === "fr" ? "fr-FR" : "en-GB";
 
   if (documentElement) {
     documentElement.lang = locale;
@@ -35,7 +35,7 @@
         ))
   );
 
-  const activeCatalog =
+  let activeCatalog =
     catalogs[locale] || catalogs[fallbackLocale];
   const fallbackCatalog =
     catalogs[fallbackLocale] || Object.create(null);
@@ -142,8 +142,9 @@
     (documentElement && documentElement.dataset.siteRoot) ||
     "./";
 
+  const initialBaseURI = global.document?.baseURI;
   const siteRootUrl = () =>
-    new URL(siteRoot, global.document.baseURI);
+    new URL(siteRoot, initialBaseURI);
 
   const siteUrl = path =>
     new URL(String(path || ""), siteRootUrl()).toString();
@@ -303,9 +304,63 @@
     });
   };
 
+  // Only the dashboard owns a retained, language-independent evidence state.
+  // Family pages keep their ordinary bilingual document navigation.
+  const isDashboard = () => Boolean(global.document.getElementById?.("hybrid-signal-board"));
+  const setDashboardLocale = (target, updateHistory = true) => {
+    if (!isDashboard()) return;
+    const next = buildLocaleUrl(target);
+    locale = normalizeLocale(target);
+    localeTag = locale === "fr" ? "fr-FR" : "en-GB";
+    activeCatalog = catalogs[locale] || fallbackCatalog;
+    documentElement.lang = locale;
+    // Keep pending relative requests on the same site root after pushState.
+    if (!global.document.querySelector("base")) {
+      const base = global.document.createElement("base");
+      base.href = siteRootUrl().toString();
+      global.document.head.prepend(base);
+    }
+    if (updateHistory) global.history.pushState(null, "", next);
+    applyDocumentTitle();
+    applyStaticTranslations();
+    applyLanguageLinks();
+    const alternate = global.document.querySelector(`link[rel="alternate"][hreflang="${locale}"]`);
+    if (alternate) {
+      global.document.querySelector('link[rel="canonical"]')?.setAttribute("href", alternate.href);
+      global.document.querySelector('meta[property="og:url"]')?.setAttribute("content", alternate.href);
+    }
+    const navigation = global.FR27DashboardNavigation;
+    global.document.querySelectorAll("[data-section-family]").forEach(link => {
+      const family = link.dataset.sectionFamily;
+      const href = navigation?.hub(family);
+      if (href) link.href = href;
+      const label = link.querySelector(".fr27-section-label");
+      if (label) label.textContent = t(`navigation.hub_${family}`).replace(/\s*\u2192$/, "");
+    });
+    const trigger = global.document.querySelector(".fr27-section-launcher-trigger");
+    trigger?.setAttribute("aria-label", locale === "fr" ? "Explorer les sections" : "Explore sections");
+    // Synchronous presentation update: pending loaders read the current locale
+    // at commit time and never carry an obsolete FR/EN document with them.
+    global.document.dispatchEvent(new CustomEvent("fr27:locale", {detail: {locale}}));
+  };
+
   const applyBootLocalization = () => {
     applyStaticTranslations();
     applyLanguageLinks();
+    if (isDashboard()) {
+      global.document.addEventListener("click", event => {
+        const link = event.target.closest?.("[data-fr27-language]");
+        if (!link || event.defaultPrevented || event.button !== 0 ||
+            event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        const target = normalizeLocale(link.getAttribute("data-fr27-language"));
+        if (target !== locale) setDashboardLocale(target);
+      });
+      global.addEventListener("popstate", () => {
+        const target = /\/en\/?$/.test(global.location.pathname) ? "en" : "fr";
+        if (target !== locale) setDashboardLocale(target, false);
+      });
+    }
 
     global.addEventListener("hashchange", () => {
       global.setTimeout(applyLanguageLinks, 0);
@@ -313,8 +368,8 @@
   };
 
   const api = Object.freeze({
-    locale,
-    localeTag,
+    get locale() { return locale; },
+    get localeTag() { return localeTag; },
     fallbackLocale,
     t,
     formatDate,
