@@ -451,6 +451,9 @@ class CandidateMediaPulseTests(unittest.TestCase):
         item = next(i for i in daily_queue.queue_from_state(state)["items"] if i["slot"] == "16:45")
         self.assertEqual(item["text"], sent)
         self.assertEqual(item["status"], "published")
+        self.assertEqual(item["metric_id"], product.METRIC_ID)
+        self.assertEqual((item["window_start"], item["window_end"]), (self.current_start, self.current_end))
+        self.assertTrue(item["late_bound"])
 
     def test_refreshed_leader_is_published_and_others_stay_immutable(self):
         self.synthetic_leaders()
@@ -462,6 +465,8 @@ class CandidateMediaPulseTests(unittest.TestCase):
         self.assertIn("Édouard Philippe — 33,3 %", sent)
         self.assertTrue(sent.endswith("https://france2027.app/candidates/edouard-philippe/"))
         current = daily_queue.queue_from_state(state)
+        candidate_item = next(i for i in current["items"] if i["slot"] == "16:45")
+        self.assertEqual(candidate_item["canonical_url"], "https://france2027.app/candidates/edouard-philippe/")
         self.assertEqual([i for i in original["items"] if i["slot"] != "16:45"],
                          [i for i in current["items"] if i["slot"] != "16:45"])
         for item in original["items"]:

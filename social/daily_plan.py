@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -12,7 +12,7 @@ import newsroom_products
 import candidate_media_pulse
 import radar_media
 import weekly_flagship
-import signal_engine
+import queue_metadata
 import social_publish
 
 
@@ -20,6 +20,22 @@ ROOT = Path(__file__).resolve().parents[1]
 
 DEFAULT_RECENT_CHANGES = ROOT / "recent_changes.json"
 DEFAULT_CAMPAIGN_EVENTS = ROOT / "campaign_events.json"
+DEFAULT_ISSUE_HISTORY = ROOT / "issue_coverage_history.json"
+DEFAULT_AGENDA_HISTORY = ROOT / "agenda_coverage_history.json"
+
+
+def _legacy_signal_engine():
+    """Explicit compatibility access only; V2.1 planning never loads this engine."""
+    import signal_engine
+    return signal_engine
+
+
+def __getattr__(name):
+    # Keep older callers of daily_plan.signal_engine working without importing
+    # the article-share engine on the scheduled planner/queue path.
+    if name == "signal_engine":
+        return _legacy_signal_engine()
+    raise AttributeError(name)
 
 FR_SLOTS_WITH_ROUNDUP = (
     "08:45",
@@ -75,6 +91,7 @@ class PlannedPost:
     key: str
     text: str
     score: float | None = None
+    metadata: dict[str, Any] | None = field(default=None, kw_only=True)
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -1122,6 +1139,7 @@ def _build_newsroom_fr_posts(
                 ),
                 text=roundup,
                 score=None,
+                metadata=queue_metadata.events(social_publish.campaign_events_destination()),
             )
         )
 
@@ -1210,6 +1228,10 @@ def _build_newsroom_fr_posts(
                 key=product.product_id,
                 text=product.text,
                 score=product.score,
+                metadata=(queue_metadata.candidate() if slot == instruction.slot else
+                          queue_metadata.radar() if slot == radar_instruction.slot else
+                          queue_metadata.flagship(_planner_date(now)) if slot == weekly_flagship.SLOT else
+                          queue_metadata.newsroom(product)),
             )
         )
 
@@ -1271,6 +1293,7 @@ def _build_newsroom_en_posts(
             key=product.product_id,
             text=product.text,
             score=product.score,
+            metadata=queue_metadata.newsroom(product),
         )
         for index, product
         in enumerate(selected)
@@ -1337,7 +1360,7 @@ def _build_fr_posts(
                         f"{signal.entity_id}:"
                         f"{signal.current_end}"
                     ),
-                    signal_engine.render_fr(
+                    _legacy_signal_engine().render_fr(
                         signal
                     ),
                     signal.score,
@@ -1424,7 +1447,7 @@ def _build_en_posts(
                 f"{signal.entity_id}:"
                 f"{signal.current_end}"
             ),
-            text=signal_engine.render_en(
+            text=_legacy_signal_engine().render_en(
                 signal
             ),
             score=signal.score,
@@ -1777,14 +1800,14 @@ def run_preview(
     plan = build_plan(
         candidate_signals_payload=_load_json(Path(args.candidate_signals)),
         issue_payload=(
-            signal_engine._load_json(
+            _load_json(
                 Path(
                     args.issue_history
                 )
             )
         ),
         agenda_payload=(
-            signal_engine._load_json(
+            _load_json(
                 Path(
                     args.agenda_history
                 )
@@ -2006,8 +2029,7 @@ def _parser() -> argparse.ArgumentParser:
     preview.add_argument(
         "--candidate-history",
         default=str(
-            signal_engine
-            .DEFAULT_CANDIDATE_HISTORY
+            ROOT / "candidate_visibility_history.json"
         ),
         help="Legacy compatibility option; candidate history is not used.",
     )
@@ -2020,16 +2042,14 @@ def _parser() -> argparse.ArgumentParser:
     preview.add_argument(
         "--issue-history",
         default=str(
-            signal_engine
-            .DEFAULT_ISSUE_HISTORY
+            DEFAULT_ISSUE_HISTORY
         ),
     )
 
     preview.add_argument(
         "--agenda-history",
         default=str(
-            signal_engine
-            .DEFAULT_AGENDA_HISTORY
+            DEFAULT_AGENDA_HISTORY
         ),
     )
 

@@ -25,6 +25,10 @@ from social.newsroom_products import _range_piece
 
 
 PRODUCT_TYPE = "candidate_media_pulse_current"
+METRIC_ID = "current_candidate_campaign_attention"
+AGGREGATION_UNIT = "candidate_linked_record"
+DENOMINATOR_ID = "candidate_linked_election_campaign_records"
+WINDOW_MODE = "current_dossier_7date"
 SLOT = "16:45"
 MAX_X_WEIGHTED_LENGTH = 280
 URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)

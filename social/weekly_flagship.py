@@ -279,7 +279,8 @@ def load_product(*, root: Path, now: datetime) -> FlagshipProduct:
     paths = ["issue_page_contract.py", "agenda_page_contract.py", "coverage_metric_contract.py",
              "candidate_agenda_history_contract.py", "fetch_news_wire.py",
              "social/weekly_flagship.py", "social/newsroom_products.py",
-             "social/candidate_media_pulse.py", "social/daily_plan.py", "social/daily_queue.py"]
+             "social/candidate_media_pulse.py", "social/daily_plan.py", "social/daily_queue.py",
+             "social/queue_metadata.py"]
 
     def read_text(path: str) -> str:
         paths.append(path)

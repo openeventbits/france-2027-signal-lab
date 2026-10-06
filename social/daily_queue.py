@@ -14,7 +14,7 @@ import daily_plan
 import candidate_media_pulse
 import radar_media
 import weekly_flagship
-import signal_engine
+import queue_metadata
 import social_publish
 
 
@@ -464,9 +464,15 @@ def new_queue(
             score=raw.get("score"),
         )
 
-        items.append(
-            asdict(item)
-        )
+        record = asdict(item)
+        metadata = raw.get("metadata")
+        if metadata is not None:
+            record.update(queue_metadata.validate(metadata))
+        else:
+            existing_metadata = queue_metadata.from_item(raw)
+            if existing_metadata is not None:
+                record.update(existing_metadata)
+        items.append(record)
 
     items.sort(
         key=lambda item: (
@@ -584,6 +590,7 @@ def validate_queue(
             )
 
         ids.add(item["id"])
+        queue_metadata.from_item(item)
 
     return value
 
@@ -648,16 +655,10 @@ def build_core_plan(
 ) -> dict[str, Any]:
     return daily_plan.build_plan(
         issue_payload=(
-            signal_engine._load_json(
-                signal_engine
-                .DEFAULT_ISSUE_HISTORY
-            )
+            _load_json(daily_plan.DEFAULT_ISSUE_HISTORY)
         ),
         agenda_payload=(
-            signal_engine._load_json(
-                signal_engine
-                .DEFAULT_AGENDA_HISTORY
-            )
+            _load_json(daily_plan.DEFAULT_AGENDA_HISTORY)
         ),
         recent_changes=_load_json(
             ROOT / "recent_changes.json"
@@ -772,6 +773,7 @@ def planned_post_from_item(
         key=item["key"],
         text=item["text"],
         score=item.get("score"),
+        metadata=queue_metadata.from_item(item),
     )
 
 
@@ -804,7 +806,8 @@ def resolve_slot_post(
             if product.product_id != expected or not product.revision:
                 raise ValueError("flagship must resolve the expected week from a verified revision")
             return ResolvedFlagshipPost(locale="fr", slot=weekly_flagship.SLOT, lane="newsroom",
-                key=product.product_id, text=product.text, score=None, flagship_revision=product.revision)
+                key=product.product_id, text=product.text, score=None, flagship_revision=product.revision,
+                metadata=queue_metadata.flagship(daily_plan._planner_date(now), product))
         except (OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as error:
             print(f"late_bound_flagship_skipped={error}")
             return None
@@ -825,7 +828,7 @@ def resolve_slot_post(
                 return None
             return ResolvedRadarPost(locale="fr", slot=radar_media.SLOT, lane="newsroom",
                                      key=product.product_id, text=product.text,
-                                     radar_payload=product.payload)
+                                     radar_payload=product.payload, metadata=queue_metadata.radar(product))
         except (OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as error:
             print(f"late_bound_radar_skipped={error}")
             return None
@@ -860,6 +863,7 @@ def resolve_slot_post(
     return daily_plan.PlannedPost(
         locale=product.locale, slot=product.slot, lane="newsroom",
         key=product.product_id, text=product.text, score=product.score,
+        metadata=queue_metadata.candidate(product),
     )
 
 
@@ -914,6 +918,8 @@ def mark_item_published(
         raise ValueError("Radar publication requires its freshly resolved payload")
     if radar_payload is not None and (not isinstance(buffer_post_id, str) or not buffer_post_id.strip()):
         raise ValueError("Radar publication requires a successful Buffer receipt")
+    resolved_metadata = (queue_metadata.validate(resolved_post.metadata)
+                         if resolved_post is not None and resolved_post.metadata is not None else None)
 
     if resolved_post is not None:
         # Keep the stable slot ID; retain the actual successfully sent payload
@@ -922,6 +928,8 @@ def mark_item_published(
             key=resolved_post.key, text=resolved_post.text,
             lane=resolved_post.lane, score=resolved_post.score,
         )
+        if resolved_metadata is not None:
+            target.update(resolved_metadata)
 
     post = planned_post_from_item(
         target

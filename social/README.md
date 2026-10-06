@@ -13,16 +13,18 @@ The production model is text-first.
 Daily core queue:
 
 - 08:45 — French campaign-event roundup, when events exist.
-- 10:15 — French Issues movers.
+- 09:30 Monday — French weekly flagship, resolved at execution.
+- 10:15 Tuesday–Sunday — French Issues movers, when qualified and fresh.
 - 11:30 — English movers.
-- 12:15 — French Agenda movers.
-- 14:30 — French rotating Issues/Agenda dominance.
+- 12:15 Tuesday–Sunday — French Agenda movers, when qualified and fresh.
+- 14:30 Tuesday–Sunday — French rotating Issues/Agenda dominance, when eligible.
 - 16:45 — French current candidate dossier Media Pulse, resolved at execution.
+- 18:30 — French conditional Radar Médias, resolved at execution.
 - 19:30 — English movers from a distinct family.
 
 Maximum core output:
 
-- French: 5 posts/day.
+- French: 6 core posts/day (4 on Monday, including events when present).
 - English: 2 posts/day.
 
 Dynamic French developments are checked separately at approximately:
@@ -47,8 +49,10 @@ The immutable daily queue can select from three quantitative families:
 3. Campaign Agenda
 
 Issues and Agenda use the latest complete UTC day versus the previous day.
-On Monday they use the latest complete Monday–Sunday week versus the preceding
-complete week. Their current incomplete UTC day is excluded.
+On Monday the French flagship and English movers use the latest complete UTC
+Monday–Sunday week versus the preceding complete week. The French flagship
+replaces the three specialist slots even if it skips. The incomplete UTC day
+is excluded from both families.
 
 The 16:45 `candidate_media_pulse_current` product uses only the reported current
 `campaign_attention.share` in `candidate_signals.json`, ranked by the dossier's
@@ -72,14 +76,19 @@ Failure skips publication without using any morning preview or legacy frozen tex
 After successful publication, the receipt retains the exact sent text and key
 `candidate_media_pulse_current:{candidate_id}:{current_period_end}:fr`.
 
-Issues use the accepted relevant-news corpus as denominator and are
-multilabel, so issue shares can sum above 100%.
+Issues consume `issue_page_contract.py`: distinct Issue source-days divided by
+all accepted relevant-news source-days for the same window. Issues are
+multilabel, so their incidences can sum above 100%.
 
-Campaign Agenda uses classified Agenda items and a single-label denominator.
-`polls_race` is excluded from social quantitative selection.
+Campaign Agenda consumes `agenda_page_contract.py`: topic source-days divided
+by the sum of source-days across all six topics. Polls stay in the denominator;
+`polls_race` is excluded only from public ranking. Visible social movement is
+current displayed percentage minus previous displayed percentage.
 
-The historical signal engine's candidate mover horizons are not used by the
-immutable newsroom queue. Candidate daily and complete-week movers remain deferred.
+`signal_engine.py` is a legacy article-share/historical-candidate preview tool.
+The scheduled V2.1 planner, queue and runner do not import or invoke it. Explicit
+legacy helper access lazily imports it for older callers; it is not a fallback
+when current authorities fail. Candidate daily/weekly movers remain deferred.
 
 The public wording must describe the actual measurement window.
 
@@ -124,7 +133,9 @@ Timed events sort before untimed events.
 
 `social/daily_queue.py` builds the morning queue for the current Paris date.
 Events, Issues, Agenda, dominance and English text remain immutable. The 16:45
-candidate entry is an instruction resolved only when that slot executes.
+candidate, 18:30 Radar and Monday 09:30 flagship entries are empty instructions
+resolved only when their slots execute. The flagship verifies one Git revision,
+matching producer timestamps, exact weeks and published-page parity.
 
 A same-day rebuild returns the already persisted queue rather than selecting
 new core posts.
@@ -143,6 +154,26 @@ Each queue item records:
 
 A successful or duplicate-resolved publication updates the queue item only
 after Buffer resolution.
+
+New queue items also expose the additive identity fields from
+`queue_metadata.py`: `post_type`, `family`, `metric_id`, `aggregation_unit`,
+`denominator_id`, `window_mode`, `window_start`, `window_end`,
+`comparison_start`, `comparison_end`, `rank_kind`, `canonical_url`, `late_bound`.
+Newsroom values are copied from canonical product objects without new metric
+arithmetic. `rank_kind` retains the existing `movers`/`dominance` vocabulary.
+Candidate and Radar boundaries are unresolved/null until successful execution;
+Candidate's URL is also unresolved until fresh selection. The composite flagship
+has no single metric, aggregation unit or denominator. Dominance, Candidate and
+Radar have no dated comparison pair; events have no analytical metric/window.
+
+Queue, planner and social state stay at schema version 1. Existing readers
+already accept extra fields. Missing metadata is valid for old items; loading
+does not enrich or rewrite historical queues or receipts. Published status,
+Buffer IDs, seen registries, Radar fingerprints and flagship week receipts stay
+intact. Rebuilding today's queue returns the same object, including old items.
+
+The launch limit remains 280 weighted X characters. Long-post capability work
+is deferred until after launch.
 
 ## Planner state and cooldowns
 

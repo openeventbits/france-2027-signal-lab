@@ -462,6 +462,11 @@ class WeeklyFlagshipTests(unittest.TestCase):
         self.assertEqual(receipt["buffer_post_id"], "successful-receipt")
         self.assertEqual(receipt["revision"], "verified-revision")
         self.assertEqual(client.create_post.call_args.args[0], self.product.text)
+        item = state["planner"]["daily_queue"]["items"][0]
+        self.assertEqual(item["post_type"], "weekly_flagship")
+        self.assertEqual((item["window_start"], item["window_end"]),
+                         (self.product.issues.current_start, self.product.issues.current_end))
+        self.assertTrue(item["late_bound"])
         save.assert_called_once()
 
     def test_execution_publishes_refreshed_values_without_morning_text(self):
@@ -505,11 +510,17 @@ class WeeklyFlagshipTests(unittest.TestCase):
         self.publish(state)
         monday = self.monday + timedelta(days=7)
         start, end = flagship.expected_weeks(monday)[2:]
+        previous_start, previous_end = flagship.expected_weeks(monday)[:2]
         new = replace(self.product, product_id=flagship.slot_instruction(monday).product_id,
+                      issues=replace(self.product.issues, previous_start=previous_start, previous_end=previous_end,
+                                     current_start=start, current_end=end),
+                      agenda=replace(self.product.agenda, previous_start=previous_start, previous_end=previous_end,
+                                     current_start=start, current_end=end),
                       text=flagship.render(self.product.issue_rows, self.product.increase, self.product.decrease, start, end))
         self.state(monday=monday, state=state)
         self.publish(state, product=new, now=self.now + timedelta(days=7))
         self.assertEqual(len(state["planner"][flagship.STATE_KEY]), 2)
+        self.assertEqual(state["planner"]["daily_queue"]["items"][0]["window_end"], end)
 
     def test_not_ready_skip_and_dry_run_never_mark_or_call_buffer(self):
         for options in ({"skip": True}, {"dry_run": True}):

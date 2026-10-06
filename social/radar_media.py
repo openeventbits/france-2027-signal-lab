@@ -28,6 +28,9 @@ from social.newsroom_products import _date_piece
 
 PRODUCT_TYPE = "radar_media_publishers_current"
 METRIC_ID = "accepted_election_news_publisher_share_snapshot_30d"
+AGGREGATION_UNIT = "accepted_election_news_article"
+DENOMINATOR_ID = "all_accepted_election_news_articles"
+WINDOW_MODE = "rolling_30d_snapshot"
 SLOT = "18:30"
 URL = "https://france2027.app/"
 STATE_KEY = "radar_media_last_published"

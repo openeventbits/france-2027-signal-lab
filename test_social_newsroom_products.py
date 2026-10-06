@@ -1,6 +1,7 @@
 import json
 import re
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from social import newsroom_products as MODULE
@@ -50,30 +51,48 @@ class NewsroomProductTests(
             for product in products
         }
 
-        expected = {
-            (
-                family,
-                rank,
-                window,
-            )
-            for family in (
-                "issues",
-                "agenda",
-            )
-            for rank in (
-                "movers",
-                "dominance",
-            )
-            for window in (
-                "complete_day",
-                "complete_week",
-            )
-        }
+        # Availability is conditional on the canonical displayed rows, not
+        # guaranteed by having a daily/weekly history artifact. Assert every
+        # qualified product exists and every unqualified product is absent.
+        expected = set()
+        for family, payload, build in (
+            ("issues", self.issues, MODULE.contract.build_issue_metric_snapshot),
+            ("agenda", self.agenda, MODULE.contract.build_agenda_metric_snapshot),
+        ):
+            for window in ("complete_day", "complete_week"):
+                snapshot = build(payload, window_mode=window)
+                excluded = MODULE.AGENDA_EXCLUDED_SOCIAL_IDS if family == "agenda" else ()
+                movers = MODULE.contract.rank_movers(snapshot, limit=5,
+                    excluded_entity_ids=excluded, require_full=True)
+                if len(movers) == 5 and sum(abs(row.display_delta) >= .1 for row in movers) >= 3:
+                    expected.add((family, "movers", window))
+                limit = 3 if family == "agenda" else 5
+                leaders = MODULE.contract.rank_current_share(snapshot, limit=limit,
+                    excluded_entity_ids=excluded, require_full=True)
+                if len(leaders) == limit and sum(row.current_display > 0 for row in leaders) >= 3:
+                    expected.add((family, "dominance", window))
 
         self.assertEqual(
             keys,
             expected,
         )
+
+    def test_insufficient_displayed_evidence_suppresses_products(self):
+        for family, payload, build in (
+            ("issues", self.issues, MODULE.contract.build_issue_metric_snapshot),
+            ("agenda", self.agenda, MODULE.contract.build_agenda_metric_snapshot),
+        ):
+            snapshot = build(payload, window_mode="complete_day")
+            silent = replace(snapshot, rows=tuple(replace(row,
+                current_display=0.0, display_delta=0.0) for row in snapshot.rows))
+            qualified = replace(snapshot, rows=tuple(replace(row,
+                current_display=1.0, display_delta=1.0) for row in snapshot.rows))
+            for rank in ("movers", "dominance"):
+                with self.subTest(family=family, rank=rank):
+                    self.assertIsNone(MODULE._make_product(snapshot=silent, family=family,
+                        rank_kind=rank, locale="fr"))
+                    self.assertIsNotNone(MODULE._make_product(snapshot=qualified, family=family,
+                        rank_kind=rank, locale="fr"))
 
     def test_no_fake_24h_language(self):
         for locale in (

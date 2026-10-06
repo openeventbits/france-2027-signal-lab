@@ -297,6 +297,11 @@ class RadarTests(unittest.TestCase):
                 self.assertEqual(receipt["fingerprint"], product.fingerprint)
                 self.assertEqual(receipt["buffer_post_id"], "mock-success")
                 self.assertEqual(saved["planner"]["daily_queue"]["items"][1]["status"], "published")
+                item = saved["planner"]["daily_queue"]["items"][1]
+                self.assertEqual(item["metric_id"], radar.METRIC_ID)
+                self.assertEqual((item["window_start"], item["window_end"]), (product.window_start, product.window_end))
+                self.assertTrue(item["late_bound"])
+                self.assertEqual(saved["planner"]["daily_queue"]["items"][0], original["planner"]["daily_queue"]["items"][0])
             if dry_run or unchanged:
                 client.create_post.assert_not_called()
             return client
