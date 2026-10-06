@@ -113,37 +113,37 @@
 
   const views = Object.freeze({
     candidates: {
-      label: translate("signal_board.candidates_847367c6", "CANDIDATES"),
-      title: translate("signal_board.candidate_signals", "Candidate Signals"),
+      get label() { return translate("signal_board.candidates_847367c6", "CANDIDATES"); },
+      get title() { return translate("signal_board.candidate_signals", "Candidate Signals"); },
       hash: "#signal-candidates",
       tabId: "signal-candidates-tab",
       panelId: "signal-candidates-panel"
     },
     agenda: {
-      label: translate("signal_board.agenda", "AGENDA"),
-      title: translate("signal_board.campaign_agenda", "Campaign Agenda"),
+      get label() { return translate("signal_board.agenda", "AGENDA"); },
+      get title() { return translate("signal_board.campaign_agenda", "Campaign Agenda"); },
       hash: "#signal-agenda",
       tabId: "signal-agenda-tab",
       panelId: "signal-agenda-panel",
       index: "3"
     },
     events: {
-      label: translate("signal_board.events", "EVENTS"),
-      title: translate("signal_board.campaign_events", "Campaign Events"),
+      get label() { return translate("signal_board.events", "EVENTS"); },
+      get title() { return translate("signal_board.campaign_events", "Campaign Events"); },
       hash: "#signal-events",
       tabId: "signal-events-tab",
       panelId: "signal-events-panel"
     },
     issues: {
-      label: translate("signal_board.issues", "ISSUES"),
-      title: translate("signal_board.policy_issues", "Policy Issues"),
+      get label() { return translate("signal_board.issues", "ISSUES"); },
+      get title() { return translate("signal_board.policy_issues", "Policy Issues"); },
       hash: "#signal-issues",
       tabId: "signal-issues-tab",
       panelId: "signal-issues-panel"
     },
     runoff: {
-      label: translate("signal_board.runoff", "RUNOFF"),
-      title: translate("signal_board.closest_runoff", "Closest Runoff"),
+      get label() { return translate("signal_board.runoff", "RUNOFF"); },
+      get title() { return translate("signal_board.closest_runoff", "Closest Runoff"); },
       hash: "#signal-runoff",
       tabId: "signal-runoff-tab",
       panelId: "signal-runoff-panel",
@@ -199,6 +199,7 @@
   })();
   const publishedMediaComparison = publishedMediaSnapshot?.activeFieldVisibility || null;
   const boundMediaActions = new WeakSet();
+  let renderedMediaLocale = null;
   let renderedMediaNews = null;
   let renderedMediaSignals = null;
   const boundMediaTabs = new WeakSet();
@@ -9254,7 +9255,7 @@
       }
       return;
     }
-    if (renderedMediaNews === dashboardState.news && renderedMediaSignals === state.candidateSignals) return;
+    if (renderedMediaLocale === globalThis.FR27I18N?.locale && renderedMediaNews === dashboardState.news && renderedMediaSignals === state.candidateSignals) return;
     const focusedTab = topMediaMount.contains(document.activeElement) ? document.activeElement.id : "";
     const panelHTML = renderTopMediaPulsePanel(model);
     topMediaMount.removeAttribute("data-fr27-semantic-snapshot");
@@ -9375,6 +9376,7 @@
     bindTopicCoverageModal(model, agendaModel);
     window.France2027TopicCoverageModal
       ?.reconcileReturnFocus?.();
+    renderedMediaLocale = globalThis.FR27I18N?.locale;
     renderedMediaNews = dashboardState.news;
     renderedMediaSignals = state.candidateSignals;
   }
@@ -9436,6 +9438,16 @@
   renderAll();
   window.addEventListener("hashchange", handleSignalHashChange);
   document.addEventListener("hybrid:dataset", renderAll);
+  document.addEventListener("fr27:locale", () => {
+    const scrollPositions = [...mount.querySelectorAll("[id]")]
+      .filter(element => element.scrollTop || element.scrollLeft)
+      .map(element => [element.id, element.scrollTop, element.scrollLeft]);
+    renderAll();
+    scrollPositions.forEach(([id, top, left]) => {
+      const element = document.getElementById(id);
+      if (element) { element.scrollTop = top; element.scrollLeft = left; }
+    });
+  });
 
   window.hybridDashboard = Object.freeze({
     isValidRunoffArchivePayload,

@@ -285,3 +285,142 @@
 .fr27-skeleton-metric .fr27-skeleton-block {
   max-width: 100%;
 }
+
+/* Shared FR27 control hierarchy. Shell, launcher and data-row geometry stay owned
+   by their existing layout styles. These selectors target equivalent actions. */
+:root {
+  --fr27-control-primary-size: 13px;
+  --fr27-control-compact-size: 11.5px;
+  --fr27-control-utility-size: 11px;
+  --fr27-control-radius: 4px;
+  --fr27-control-border: rgba(53, 216, 255, .42);
+}
+
+/* Tier 1: destination actions; natural widths and translated copy are retained. */
+html body:is(.candidate-page, .candidate-hub-page, .polling-page, .poll-detail-page, .issues-page, .agenda-page)
+  :is(.candidate-hub-open, .issue-card-open, .agenda-card-open, .poll-detail-source-cta, .issue-inspector-open,
+      .agenda-inspector-open, .issue-history-gateway-cta, .agenda-history-gateway-cta,
+      .issue-history-detail-cta, .agenda-history-detail-cta) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  box-sizing: border-box;
+  min-height: 38px;
+  max-width: 100%;
+  padding: 8px 14px;
+  border: 1px solid var(--fr27-control-border);
+  border-radius: var(--fr27-control-radius);
+  background: rgba(17, 54, 75, .35);
+  color: #dff8ff;
+  font-family: Inter, sans-serif;
+  font-size: var(--fr27-control-primary-size);
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+/* Tier 2: readable disclosure/related-row actions, below the primary weight. */
+html body :is(.poll-detail-scenario-toggle, .poll-detail-side-summary-action,
+             .poll-detail-related-open, .candidate-page .candidate-related-open) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  box-sizing: border-box;
+  min-height: 26px;
+  padding: 4px 7px;
+  border: 1px solid var(--fr27-control-border);
+  border-radius: var(--fr27-control-radius);
+  background: rgba(10, 31, 48, .5);
+  color: #35d8ff;
+  font-family: Inter, sans-serif;
+  font-size: var(--fr27-control-compact-size);
+  font-weight: 750;
+  line-height: 1.3;
+  letter-spacing: .045em;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+/* Tier 3: filters, sort, reset and expand-all keep their existing layout/height. */
+html body :is(.poll-detail-panel-actions, .polling-segments, .issue-sort-controls,
+             .agenda-sort-controls) button,
+html body :is(.polling-reset, .candidate-hub-controls select,
+             .polling-control select, .polling-wave-select-wrap select) {
+  border-color: rgba(53, 216, 255, .26);
+  border-radius: var(--fr27-control-radius);
+  color: #9bb4c3;
+  font-family: Inter, sans-serif;
+  font-size: var(--fr27-control-utility-size);
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: .035em;
+}
+
+html body :is(.candidate-hub-open, .issue-card-open, .agenda-card-open, .poll-detail-source-cta, .issue-inspector-open,
+             .agenda-inspector-open, .issue-history-gateway-cta, .agenda-history-gateway-cta,
+             .issue-history-detail-cta, .agenda-history-detail-cta):hover,
+html body :is(.poll-detail-scenario-summary, .poll-detail-side-summary, .poll-detail-related-card,
+             .candidate-related-card):hover
+  :is(.poll-detail-scenario-toggle, .poll-detail-side-summary-action,
+      .poll-detail-related-open, .candidate-related-open) {
+  border-color: #35d8ff;
+  background: rgba(18, 68, 91, .5);
+  color: #dff8ff;
+  text-decoration: none;
+}
+
+html body :is(.poll-detail-panel-actions, .polling-segments, .issue-sort-controls,
+             .agenda-sort-controls) button:hover,
+html body .polling-reset:hover {
+  border-color: #35d8ff;
+  color: #35d8ff;
+  background: rgba(18, 68, 91, .3);
+}
+
+/* A real outline, independent of hover color; Escape ownership stays in JS. */
+html body :is(.candidate-hub-open, .issue-card-open, .agenda-card-open, .poll-detail-source-cta, .poll-detail-back-cta,
+             .issue-inspector-open, .agenda-inspector-open,
+             .issue-history-gateway-cta, .agenda-history-gateway-cta,
+             .poll-detail-scenario-summary, .poll-detail-side-summary,
+             .poll-detail-related-card, .candidate-related-card, .polling-reset,
+             .fr27-info-glyph, .poll-detail-tooltip-trigger, .candidate-section-info,
+             .candidate-hub-title-info, .issue-note-tooltip-trigger,
+             .agenda-note-tooltip-trigger, .polling-title-info):focus-visible,
+html body :is(.poll-detail-panel-actions, .polling-segments, .issue-sort-controls,
+             .agenda-sort-controls, .candidate-hub-controls, .polling-control,
+             .polling-wave-select-wrap) :is(button, select, input):focus-visible {
+  outline: 2px solid #35d8ff;
+  outline-offset: 3px;
+}
+
+html body :is(.fr27-info-glyph, .poll-detail-tooltip-trigger, .candidate-section-info,
+             .candidate-hub-title-info, .issue-note-tooltip-trigger,
+             .agenda-note-tooltip-trigger, .polling-title-info) {
+  box-sizing: border-box;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  border: 1px solid var(--fr27-control-border);
+  border-radius: 50%;
+  background: rgba(18, 66, 91, .16);
+  color: #35d8ff;
+  font-family: Inter, sans-serif;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1;
+}
+html body :is(.fr27-info-glyph, .poll-detail-tooltip-trigger, .candidate-section-info,
+             .candidate-hub-title-info, .issue-note-tooltip-trigger,
+             .agenda-note-tooltip-trigger, .polling-title-info):hover {
+  border-color: #35d8ff;
+  background: rgba(18, 66, 91, .34);
+}
+
+/* Disclosure/card outlines stay within the clipped panel boundary. */
+html body :is(.poll-detail-scenario-summary, .poll-detail-side-summary,
+             .poll-detail-related-card, .candidate-related-card):focus-visible {
+  outline-offset: -3px;
+}

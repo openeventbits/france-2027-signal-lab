@@ -14,9 +14,4 @@
       : hub("polls");
   };
   window.FR27DashboardNavigation = Object.freeze({hub, detail, poll});
-  const syncHubs = () => document.querySelectorAll?.("[data-dashboard-hub]")
-    .forEach(link => { link.href = hub(link.dataset.dashboardHub); });
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", syncHubs, {once: true});
-  } else syncHubs();
 })();

@@ -67,15 +67,16 @@ class DashboardNavigationTests(unittest.TestCase):
                     self.assertTrue((ROOT / href.lstrip("/") / "index.html").is_file())
                     self.assertNotRegex(href, r"/history/|/historique/")
 
-    def test_literal_hubs_and_internal_race_snapshot_both_languages(self):
+    def test_dashboard_has_no_redundant_family_hub_strip(self):
         for language, file in (("fr", "index.html"), ("en", "en/index.html")):
             text = (ROOT / file).read_text(encoding="utf-8")
             anchors = Anchors(text).anchors
-            for family, hubs in self.routes["hubs"].items():
-                match = [a for a in anchors if a.get("data-dashboard-hub") == family]
-                self.assertEqual(len(match), 1)
-                self.assertEqual(match[0]["href"], hubs[language])
-                self.assertNotIn("target", match[0])
+            self.assertNotIn("dashboard-family-navigation", text)
+            self.assertFalse([a for a in anchors if "data-dashboard-hub" in a])
+            self.assertEqual(text.count('id="published-dashboard-navigation"'), 1)
+            self.assertEqual(text.count('src="assets/dashboard-navigation.js"'), 1)
+            embedded = re.search(r'id="published-dashboard-navigation">(.*?)</script>', text).group(1)
+            self.assertEqual(json.loads(embedded), self.routes)
             race = next(a for a in anchors if a.get("id") == "race-source")
             selected = json.loads((ROOT / "candidate_signals.json").read_text(encoding="utf-8"))["featured_poll_board"]["selected_event_id"]
             self.assertEqual(race["href"], poll_href(self.routes, selected, language))
