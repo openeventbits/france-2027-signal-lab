@@ -24,8 +24,10 @@ from build_search_entrypoints import (
     build_english_entrypoint,
     construct_semantic_model,
     generate_entrypoints,
+    render_navigation,
     render_semantic_regions,
 )
+from dashboard_navigation import navigation_model, poll_href
 
 
 ROOT = Path(__file__).resolve().parent
@@ -197,6 +199,75 @@ class SearchFoundationTests(unittest.TestCase):
             self.assertEqual(document.count(WHAT_CHANGED_END), 1)
             self.assertEqual(document.count(RACE_START), 1)
             self.assertEqual(document.count(RACE_END), 1)
+
+    @staticmethod
+    def navigation_payload(document):
+        return re.search(
+            r'id="published-dashboard-navigation">(.*?)</script>', document
+        ).group(1)
+
+    def assert_navigation_invariant_under_manifest_reordering(self, family):
+        filename = f"{family}_pages_manifest.json"
+        route_family = "issues" if family == "issue" else family
+        manifest = json.loads((ROOT / filename).read_text(encoding="utf-8"))
+        manifest["pages"].reverse()
+        original_routes = navigation_model()
+        original_payloads = {
+            language: self.navigation_payload(render_navigation(source, language))
+            for language, source in (("fr", self.root_html), ("en", self.english_html))
+        }
+        real_read = Path.read_text
+
+        def read(path, *args, **kwargs):
+            if path == ROOT / filename:
+                return json.dumps(manifest, ensure_ascii=False)
+            return real_read(path, *args, **kwargs)
+
+        with mock.patch.object(Path, "read_text", read):
+            reordered_routes = navigation_model()
+            # Prove this permutation changes insertion order but not destinations.
+            self.assertNotEqual(
+                list(original_routes[route_family]), list(reordered_routes[route_family])
+            )
+            self.assertEqual(original_routes, reordered_routes)
+            for language, source in (("fr", self.root_html), ("en", self.english_html)):
+                with self.subTest(language=language):
+                    payload = self.navigation_payload(render_navigation(source, language))
+                    self.assertEqual(
+                        payload.encode("utf-8"),
+                        original_payloads[language].encode("utf-8"),
+                    )
+
+    def test_navigation_payload_is_invariant_under_issue_page_reordering(self):
+        self.assert_navigation_invariant_under_manifest_reordering("issue")
+
+    def test_navigation_payload_is_invariant_under_agenda_page_reordering(self):
+        self.assert_navigation_invariant_under_manifest_reordering("agenda")
+
+    def test_navigation_serialization_preserves_routes_and_event_list_order(self):
+        routes = navigation_model()
+        original = copy.deepcopy(routes)
+        for language, source in (("fr", self.root_html), ("en", self.english_html)):
+            with self.subTest(language=language):
+                with mock.patch("build_search_entrypoints.navigation_model", return_value=routes):
+                    payload = self.navigation_payload(render_navigation(source, language))
+                decoded = json.loads(payload)
+                self.assertEqual(decoded, original)
+                for family in ("hubs", "candidates", "issues", "agenda", "waves"):
+                    for identity, paths in original[family].items():
+                        self.assertEqual(decoded[family][identity][language], paths[language])
+                for event_id, association in original["events"].items():
+                    wave_id, scenario_number = association
+                    self.assertEqual(decoded["events"][event_id], [wave_id, scenario_number])
+                    self.assertEqual(
+                        poll_href(decoded, event_id, language),
+                        f"{original['waves'][wave_id][language]}#scenario-{scenario_number}",
+                    )
+                self.assertEqual(
+                    poll_href(decoded, "unpublished-event", language),
+                    original["hubs"]["polls"][language],
+                )
+        self.assertEqual(routes, original)
 
     def test_model_uses_only_approved_authoritative_artifacts(self):
         script = (ROOT / "build_search_entrypoints.py").read_text(

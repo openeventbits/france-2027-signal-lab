@@ -662,7 +662,9 @@ def build_documents(
 
 def render_navigation(source: str, language: str) -> str:
     routes = navigation_model()
-    data = json.dumps(routes, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
+    data = json.dumps(
+        routes, ensure_ascii=False, separators=(",", ":"), sort_keys=True,
+    ).replace("<", "\\u003c")
     rendered = f'''    <script type="application/json" id="published-dashboard-navigation">{data}</script>
     <script src="assets/dashboard-navigation.js"></script>'''
     if NAV_START not in source:
