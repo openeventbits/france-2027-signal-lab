@@ -123,8 +123,8 @@ An existing event must have either the exact reviewed old facts or the exact alr
 
 Historical revision 240063728 is explicitly replayable. The old source representation reconstructs the same canonical result and cannot restore 1597 or remove Ruffin. The initial repair fixture records revision 240128358 at 2026-10-06T12:55:03Z. Revision 240128246 identifies the edit introducing sample drift. During validation, revision 240131611 (parent 240128358, timestamp 2026-10-06T14:47:16Z) added only the year 2026 to the YouGov September 17–21 date cell. Its raw wikitext diff and complete normalized poll records were compared independently; all poll facts, locators and source URLs are identical. Both 240128358 and 240131611 remain recorded as reviewed provenance. Revision 240133071 (2026-10-06T15:38:39Z) adds the year 2026 to five other YouGov runoff date cells; all normalized poll records are unchanged. Later page revisions may reuse only exact reviewed target facts, locator and URL. Revision 240133071 is not added to an allowlist or as another large fixture.
 
-Fixture SHA-256: `43c06ccfe504ca322a8ffb8dee3187efd0eb4debe8598afe727fa2844554ee5f`.
-Subsequent revision fixture SHA-256: `6a149affbd3acfedbf22dd7aeabe0360a87df05da758045337859d49354663eb`.
+Fixture SHA-256 (canonical Git/LF bytes): `abcb0567acbf8a2587e92bc0b49b7594270c39ec004c232959dd37b6536ed3ef`.
+Subsequent revision fixture SHA-256 (canonical Git/LF bytes): `e27e76443887fc790d6de52d8fd699752a68a47b395c6e1f2e4d2db9dc45952f`.
 Official notice SHA-256: `ed665185fb1bae1a07d477439844c359eb9e4c158ccc7f7e6fa8a7783ed82dd9`.
 The ten prior events are frozen separately for regression input; no tracked production outputs are changed.
 
