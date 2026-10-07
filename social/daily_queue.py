@@ -2359,27 +2359,6 @@ def run_reconcile_buffer(
         .from_env()
     )
 
-    posts = client.recent_posts(
-        since=(
-            now
-            - timedelta(
-                days=3
-            )
-        )
-    )
-
-    by_id = {
-        str(
-            post.get("id")
-            or ""
-        ): post
-        for post in posts
-        if str(
-            post.get("id")
-            or ""
-        )
-    }
-
     confirmed = 0
     errors = 0
     pending_delivery = 0
@@ -2394,9 +2373,9 @@ def run_reconcile_buffer(
             or ""
         ).strip()
 
-        post = by_id.get(
-            post_id
-        )
+        # Reconciliation only reads stored IDs; a list is not exhaustive.
+        # Blank IDs fail closed without a lookup or any creation fallback.
+        post = client.get_post(post_id) if post_id else None
 
         if post is None:
             missing += 1
