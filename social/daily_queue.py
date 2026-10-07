@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
@@ -997,6 +998,7 @@ def _matching_buffer_post(
     *,
     item: dict[str, Any],
     target: datetime,
+    include_errors: bool = False,
 ) -> dict[str, Any] | None:
     text = str(
         item.get("text") or ""
@@ -1015,13 +1017,13 @@ def _matching_buffer_post(
         ):
             continue
 
+        statuses = {"scheduled", "sending", "sent"}
+        if include_errors:
+            statuses.add("error")
+
         if str(
             post.get("status") or ""
-        ) not in {
-            "scheduled",
-            "sending",
-            "sent",
-        }:
+        ) not in statuses:
             continue
 
         due_at = _buffer_due_at(
@@ -1802,7 +1804,7 @@ def execute_slot(
 
             return 0
 
-        sent_candidates = []
+        live_receipts = []
 
         live_window_start = (
             timing.target
@@ -1830,7 +1832,7 @@ def execute_slot(
                     candidate.get("status")
                     or ""
                 ).strip()
-                != "sent"
+                not in {"scheduled", "sending", "sent"}
             ):
                 continue
 
@@ -1849,21 +1851,21 @@ def execute_slot(
                 <= observed
                 <= live_window_end
             ):
-                sent_candidates.append(
+                live_receipts.append(
                     (
                         observed,
                         candidate,
                     )
                 )
 
-        if sent_candidates:
-            sent_candidates.sort(
+        if live_receipts:
+            live_receipts.sort(
                 key=lambda row: row[0],
                 reverse=True,
             )
 
             publication_time, receipt = (
-                sent_candidates[0]
+                live_receipts[0]
             )
 
             post_id = str(
@@ -1871,11 +1873,14 @@ def execute_slot(
                 or ""
             ).strip()
 
-            print(
-                "recovered existing Buffer "
-                "sent shareNow delivery"
-            )
-            print("PUBLICATION=ALREADY_SENT")
+            if receipt["status"] in {"scheduled", "sending"}:
+                # Like a successful create_post receipt, this resolves shareNow
+                # submission. It does not confirm final delivery. Exact-slot
+                # customScheduled receipts above retain scheduled lifecycle.
+                print("PUBLICATION=SUBMITTED_RECOVERED")
+            else:
+                print("recovered existing Buffer sent shareNow delivery")
+                print("PUBLICATION=ALREADY_SENT")
             print("BUFFER_API_CALLED=true")
             print("BUFFER_CREATE_CALLED=false")
             print("BUFFER_POST_ID=" + post_id)
@@ -2060,6 +2065,8 @@ def run_schedule_frozen(
 
         return 0
 
+    _require_buffer_scheduling_enabled()
+
     client = (
         social_publish
         .BufferClient
@@ -2091,10 +2098,17 @@ def run_schedule_frozen(
                 recent_posts,
                 item=item,
                 target=target,
+                include_errors=True,
             )
         )
 
         if existing is not None:
+            if existing["status"] == "error":
+                mark_item_delivery_error(state=state, item=item, observed_at=now)
+                _target_item(state=state, item=item)["buffer_post_id"] = existing["id"]
+                print("PUBLICATION=ERROR queue_item=" + item["id"])
+                continue
+
             receipt = {
                 "id": str(
                     existing.get(
@@ -2252,6 +2266,11 @@ def run_schedule_frozen(
     return 0
 
 
+def _require_buffer_scheduling_enabled() -> None:
+    if os.environ.get("FR27_BUFFER_SCHEDULING_ENABLED") != "true":
+        raise ValueError("FR27_BUFFER_SCHEDULING_ENABLED must be explicitly true")
+
+
 def run_reconcile_buffer(
     args: argparse.Namespace,
 ) -> int:
@@ -2319,6 +2338,8 @@ def run_reconcile_buffer(
         )
 
         return 0
+
+    _require_buffer_scheduling_enabled()
 
     client = (
         social_publish

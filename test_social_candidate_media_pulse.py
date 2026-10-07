@@ -160,7 +160,7 @@ class CandidateMediaPulseTests(unittest.TestCase):
              patch.object(daily_queue, "save_state") as save, \
              patch.object(sys, "stdout", new_callable=io.StringIO), \
              patch.object(daily_queue.social_publish.BufferClient, "from_env") as client:
-            client.return_value.recent_post_texts.return_value = set()
+            client.return_value.recent_posts.return_value = []
             client.return_value.create_post.return_value = "mock-post-id"
             self.assertEqual(daily_queue.run_slot(args), 0)
         return client, save

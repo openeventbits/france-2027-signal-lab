@@ -276,7 +276,7 @@ class RadarTests(unittest.TestCase):
             args = argparse.Namespace(state=str(input_path), state_output=str(output_path),
                                       slot="18:30", now=NOW.isoformat(), dry_run=dry_run)
             client = mock.Mock()
-            client.recent_post_texts.return_value = set()
+            client.recent_posts.return_value = []
             client.create_post.return_value = "mock-success"
             if fail:
                 client.create_post.side_effect = RuntimeError("mock Buffer failure")
@@ -332,7 +332,8 @@ class RadarTests(unittest.TestCase):
         self.assertIn("- cron: '30 18 * * *'\n      timezone: 'Europe/Paris'", workflow)
         self.assertIn("'30 18 * * *')\n                mode=\"slot\"\n                slot=\"18:30\"", workflow)
         self.assertIn("github.event_name == 'workflow_dispatch' ||\n      vars.FR27_SOCIAL_ENABLED == 'true'", workflow)
-        self.assertIn("- cron: '5 9,13,17,20 * * *'", workflow)
+        for cron in ("5 9 * * *", "5 13 * * *", "5 17 * * *", "5 20 * * *"):
+            self.assertIn(f"- cron: '{cron}'", workflow)
 
 
 if __name__ == "__main__":

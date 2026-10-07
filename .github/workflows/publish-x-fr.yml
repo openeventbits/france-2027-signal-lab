@@ -96,6 +96,7 @@ jobs:
 
     env:
       PYTHONUTF8: '1'
+      FR27_BUFFER_SCHEDULING_ENABLED: ${{ vars.FR27_BUFFER_SCHEDULING_ENABLED }}
 
     steps:
       - name: Check out production main
@@ -227,6 +228,17 @@ jobs:
           echo "publish=$publish"
           echo "slot=$slot"
 
+      - name: Require master activation for live manual execution
+        if: >-
+          github.event_name == 'workflow_dispatch' &&
+          steps.mode.outputs.publish == 'true' &&
+          vars.FR27_SOCIAL_ENABLED != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "::error::FR27_SOCIAL_ENABLED must be explicitly true for live execution."
+          exit 2
+
       - name: Require Buffer scheduling activation for live manual delivery
         if: >-
           github.event_name == 'workflow_dispatch' &&
@@ -308,6 +320,9 @@ jobs:
               )
               output.write(
                   f"lateness_minutes={lateness:.3f}\n"
+              )
+              output.write(
+                  f"target_time={target.astimezone(timezone.utc).isoformat()}\n"
               )
 
           print(f"dynamic_slot={slot}")
@@ -815,6 +830,12 @@ jobs:
             --max-posts 1
             --daily-limit 3
           )
+
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            target="${{ steps.dynamic_timeliness.outputs.target_time }}"
+            [[ -n "$target" ]] || { echo "::error::Missing dynamic target time"; exit 2; }
+            args+=(--scheduled-target "$target")
+          fi
 
           if [[ "${{ steps.mode.outputs.publish }}" != "true" ]]; then
             args+=(--dry-run)

@@ -1,5 +1,7 @@
 import contextlib
 import io
+import copy
+import os
 import sys
 import unittest
 from datetime import datetime, timezone
@@ -14,6 +16,102 @@ import social_publish
 
 
 class BufferDeliverySafetyTests(unittest.TestCase):
+
+    def setUp(self):
+        activation = patch.dict(os.environ, {"FR27_BUFFER_SCHEDULING_ENABLED": "true"})
+        activation.start()
+        self.addCleanup(activation.stop)
+
+    def test_live_scheduled_delivery_requires_explicit_activation(self):
+        for command in ("schedule-frozen", "reconcile-buffer"):
+            for flag in (None, "false", "TRUE", "1"):
+                with self.subTest(command=command, flag=flag):
+                    item = {"slot": "10:15", "text": "Frozen"}
+                    if command == "reconcile-buffer":
+                        item.update(status="scheduled", buffer_post_id="buffer-1")
+                    state = self.state_with_queue(items=[item])
+                    before = copy.deepcopy(state)
+                    args = queue.build_parser().parse_args([
+                        command, "--state", "unused", "--state-output", "unused",
+                        "--now", self.at("2026-10-07", "08:00").isoformat(),
+                    ])
+                    with (patch.dict(os.environ, {}, clear=True),
+                          patch.object(queue, "_load_json", return_value=state),
+                          patch.object(queue, "save_state") as save,
+                          patch.object(social_publish.BufferClient, "from_env") as factory,
+                          contextlib.redirect_stdout(io.StringIO())):
+                        if flag is not None:
+                            os.environ["FR27_BUFFER_SCHEDULING_ENABLED"] = flag
+                        with self.assertRaisesRegex(ValueError, "explicitly true"):
+                            args.func(args)
+                        args.dry_run = True
+                        self.assertEqual(args.func(args), 0)
+                    factory.assert_not_called()
+                    save.assert_not_called()
+                    self.assertEqual(state, before)
+
+    def test_build_queue_without_buffer_credentials_or_scheduling_activation(self):
+        state = social_publish.build_bootstrap_state(
+            {"items": []}, {"campaign_events": []}, now=self.at("2026-10-07", "08:00"))
+        args = queue.build_parser().parse_args([
+            "build", "--state", "unused", "--state-output", "unused",
+            "--now", self.at("2026-10-07", "08:25").isoformat(),
+        ])
+        with (patch.dict(os.environ, {}, clear=True),
+              patch.object(queue, "_load_json", return_value=state),
+              patch.object(queue, "build_core_plan", return_value={"fr_posts": [], "en_posts": []}),
+              patch.object(queue, "save_state") as save,
+              patch.object(social_publish.BufferClient, "from_env") as factory,
+              contextlib.redirect_stdout(io.StringIO())):
+            self.assertEqual(args.func(args), 0)
+        self.assertEqual(queue.queue_from_state(state)["date"], "2026-10-07")
+        save.assert_called_once()
+        factory.assert_not_called()
+
+    def test_frozen_crash_window_error_is_not_rescheduled(self):
+        state = self.state_with_queue(items=[{"slot": "10:15", "text": "Frozen"}])
+        client = Mock()
+        client.recent_posts.return_value = [{
+            "id": "failed-1", "text": "Frozen", "status": "error",
+            "dueAt": "2026-10-07T08:15:00Z",
+        }]
+        args = queue.build_parser().parse_args([
+            "schedule-frozen", "--state", "unused", "--state-output", "unused",
+            "--now", self.at("2026-10-07", "08:00").isoformat(),
+        ])
+        with (patch.object(queue, "_load_json", return_value=state),
+              patch.object(queue, "save_state") as save,
+              patch.object(social_publish.BufferClient, "from_env", return_value=client),
+              contextlib.redirect_stdout(io.StringIO())):
+            self.assertEqual(args.func(args), 0)
+        client.create_scheduled_post.assert_not_called()
+        self.assertEqual(self.items(state)[0]["status"], "error")
+        self.assertEqual(self.items(state)[0]["buffer_post_id"], "failed-1")
+        save.assert_called_once()
+
+    def test_share_now_inflight_receipt_prevents_duplicate_with_scheduling_disabled(self):
+        for status in ("scheduled", "sending"):
+            with self.subTest(status=status):
+                state = self.state_with_queue(items=[{"slot": "10:15", "text": "Frozen"}])
+                client = Mock()
+                client.recent_posts.return_value = [{
+                    "id": "inflight-1", "text": "Frozen", "status": status,
+                    "createdAt": "2026-10-07T08:30:00Z", "dueAt": "",
+                }]
+                args = queue.build_parser().parse_args([
+                    "slot", "--slot", "10:15", "--state", "unused", "--state-output", "unused",
+                    "--now", self.at("2026-10-07", "10:30").isoformat(),
+                ])
+                with (patch.dict(os.environ, {"FR27_BUFFER_SCHEDULING_ENABLED": "false"}),
+                      patch.object(queue, "_load_json", return_value=state),
+                      patch.object(queue, "save_state") as save,
+                      patch.object(social_publish.BufferClient, "from_env", return_value=client),
+                      contextlib.redirect_stdout(io.StringIO())):
+                    self.assertEqual(args.func(args), 0)
+                client.create_post.assert_not_called()
+                self.assertEqual(self.items(state)[0]["status"], "published")
+                self.assertEqual(self.items(state)[0]["buffer_post_id"], "inflight-1")
+                save.assert_called_once()
 
     def at(self, day, clock):
         return datetime.fromisoformat(
