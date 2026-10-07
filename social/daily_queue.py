@@ -54,6 +54,7 @@ def _configure_utf8_stdio() -> None:
 
 QUEUE_SCHEMA_VERSION = 1
 MAX_CORE_LATENESS_MINUTES = 60
+MIN_BUFFER_SCHEDULE_LEAD_MINUTES = 10
 
 FR27_BASE_URL = "https://france2027.app"
 ROUTE_REGISTRY_PATH = ROOT / "route_registry.json"
@@ -73,8 +74,12 @@ class QueueItem:
     text: str
     score: float | None
     status: str = "pending"
+    scheduled_at: str | None = None
+    scheduled_for: str | None = None
     published_at: str | None = None
     buffer_post_id: str | None = None
+    delivery_status: str | None = None
+    error_at: str | None = None
 
 
 @dataclass(frozen=True)
@@ -617,11 +622,38 @@ def validate_queue(
 
         if item["status"] not in {
             "pending",
+            "scheduled",
             "published",
+            "error",
         }:
             raise ValueError(
                 "unsupported queue status"
             )
+
+        for optional_field in (
+            "scheduled_at",
+            "scheduled_for",
+            "published_at",
+            "buffer_post_id",
+            "delivery_status",
+            "error_at",
+        ):
+            optional_value = item.get(
+                optional_field
+            )
+
+            if (
+                optional_value is not None
+                and not isinstance(
+                    optional_value,
+                    str,
+                )
+            ):
+                raise ValueError(
+                    "daily queue item "
+                    f"{optional_field} must "
+                    "be a string or null"
+                )
 
         if item["id"] in ids:
             raise ValueError(
@@ -768,6 +800,334 @@ def build_queue(
     )
 
     return queue
+
+
+def is_late_bound_item(
+    item: dict[str, Any],
+) -> bool:
+    """Products that must still be resolved close to publication time."""
+    lane = str(
+        item.get("lane") or ""
+    )
+
+    key = str(
+        item.get("key") or ""
+    )
+
+    if lane in {
+        "today_events",
+        "candidate_slot",
+        "radar_slot",
+        "weekly_flagship_slot",
+    }:
+        return True
+
+    return key.startswith(
+        (
+            candidate_media_pulse.PRODUCT_TYPE + ":",
+            radar_media.PRODUCT_TYPE + ":",
+            weekly_flagship.PRODUCT_TYPE + ":",
+        )
+    )
+
+
+def queue_item_target(
+    queue: dict[str, Any],
+    item: dict[str, Any],
+) -> datetime:
+    slot_time = datetime.strptime(
+        item["slot"],
+        "%H:%M",
+    ).time()
+
+    queue_day = datetime.strptime(
+        queue["date"],
+        "%Y-%m-%d",
+    ).date()
+
+    return datetime.combine(
+        queue_day,
+        slot_time,
+        tzinfo=social_publish.PARIS,
+    )
+
+
+def buffer_schedulable_items(
+    queue: dict[str, Any],
+    *,
+    now: datetime,
+    min_lead_minutes: int = MIN_BUFFER_SCHEDULE_LEAD_MINUTES,
+) -> list[dict[str, Any]]:
+    """Frozen pending posts Buffer can safely own the clock for."""
+    queue = validate_queue(
+        queue
+    )
+
+    paris_now = now.astimezone(
+        social_publish.PARIS
+    )
+
+    if (
+        queue["date"]
+        != paris_now.date().isoformat()
+    ):
+        return []
+
+    selected: list[
+        tuple[
+            datetime,
+            str,
+            dict[str, Any],
+        ]
+    ] = []
+
+    for item in queue["items"]:
+        if item["status"] != "pending":
+            continue
+
+        if is_late_bound_item(
+            item
+        ):
+            continue
+
+        if not str(
+            item.get("text") or ""
+        ).strip():
+            continue
+
+        target = queue_item_target(
+            queue,
+            item,
+        )
+
+        lead_minutes = (
+            target.astimezone(timezone.utc)
+            - now.astimezone(timezone.utc)
+        ).total_seconds() / 60
+
+        if (
+            lead_minutes
+            < max(
+                0,
+                min_lead_minutes,
+            )
+        ):
+            continue
+
+        selected.append(
+            (
+                target,
+                item["id"],
+                item,
+            )
+        )
+
+    selected.sort(
+        key=lambda row: (
+            row[0],
+            row[1],
+        )
+    )
+
+    return [
+        row[2]
+        for row in selected
+    ]
+
+
+def _buffer_due_at(
+    value: Any,
+) -> datetime | None:
+    text = str(
+        value or ""
+    ).strip()
+
+    if not text:
+        return None
+
+    try:
+        return _parse_now(
+            text
+        )
+    except ValueError:
+        return None
+
+
+def _matching_buffer_post(
+    posts: list[dict[str, Any]],
+    *,
+    item: dict[str, Any],
+    target: datetime,
+) -> dict[str, Any] | None:
+    text = str(
+        item.get("text") or ""
+    ).strip()
+
+    target_utc = target.astimezone(
+        timezone.utc
+    )
+
+    for post in posts:
+        if (
+            str(
+                post.get("text") or ""
+            ).strip()
+            != text
+        ):
+            continue
+
+        if str(
+            post.get("status") or ""
+        ) not in {
+            "scheduled",
+            "sending",
+            "sent",
+        }:
+            continue
+
+        due_at = _buffer_due_at(
+            post.get("dueAt")
+        )
+
+        if due_at is None:
+            continue
+
+        delta_seconds = abs(
+            (
+                due_at
+                - target_utc
+            ).total_seconds()
+        )
+
+        if delta_seconds <= 60:
+            return post
+
+    return None
+
+
+def _target_item(
+    *,
+    state: dict[str, Any],
+    item: dict[str, Any],
+) -> dict[str, Any]:
+    queue = queue_from_state(
+        state
+    )
+
+    if queue is None:
+        raise ValueError(
+            "social state has no daily queue"
+        )
+
+    target = next(
+        (
+            row
+            for row in queue["items"]
+            if row["id"]
+            == item["id"]
+        ),
+        None,
+    )
+
+    if target is None:
+        raise ValueError(
+            "queue item disappeared"
+        )
+
+    return target
+
+
+def mark_item_scheduled(
+    *,
+    state: dict[str, Any],
+    item: dict[str, Any],
+    scheduled_at: datetime,
+    scheduled_for: datetime,
+    buffer_post_id: str,
+    delivery_status: str = "scheduled",
+) -> None:
+    target = _target_item(
+        state=state,
+        item=item,
+    )
+
+    if target["status"] == "published":
+        return
+
+    if target["status"] not in {
+        "pending",
+        "scheduled",
+    }:
+        raise ValueError(
+            "only pending/scheduled queue "
+            "items can be scheduled"
+        )
+
+    target["status"] = "scheduled"
+
+    target["scheduled_at"] = (
+        scheduled_at
+        .astimezone(timezone.utc)
+        .isoformat()
+        .replace(
+            "+00:00",
+            "Z",
+        )
+    )
+
+    target["scheduled_for"] = (
+        scheduled_for
+        .astimezone(timezone.utc)
+        .isoformat()
+        .replace(
+            "+00:00",
+            "Z",
+        )
+    )
+
+    target["buffer_post_id"] = (
+        buffer_post_id
+    )
+
+    target["delivery_status"] = (
+        delivery_status
+    )
+
+    target["published_at"] = None
+    target["error_at"] = None
+
+    state["updated_at"] = (
+        target["scheduled_at"]
+    )
+
+
+def mark_item_delivery_error(
+    *,
+    state: dict[str, Any],
+    item: dict[str, Any],
+    observed_at: datetime,
+) -> None:
+    target = _target_item(
+        state=state,
+        item=item,
+    )
+
+    target["status"] = "error"
+    target["delivery_status"] = "error"
+
+    target["error_at"] = (
+        observed_at
+        .astimezone(timezone.utc)
+        .isoformat()
+        .replace(
+            "+00:00",
+            "Z",
+        )
+    )
+
+    state["updated_at"] = (
+        target["error_at"]
+    )
 
 
 def pending_item_for_slot(
@@ -1054,9 +1414,21 @@ def queue_counts(
             for item in items
         ),
 
+        "scheduled": sum(
+            item["status"]
+            == "scheduled"
+            for item in items
+        ),
+
         "published": sum(
             item["status"]
             == "published"
+            for item in items
+        ),
+
+        "error": sum(
+            item["status"]
+            == "error"
             for item in items
         ),
     }
@@ -1359,6 +1731,564 @@ def run_scheduler_tick(args: argparse.Namespace) -> int:
     return result
 
 
+def run_schedule_frozen(
+    args: argparse.Namespace,
+) -> int:
+    now = _parse_now(
+        args.now
+    )
+
+    state = _load_json(
+        Path(
+            args.state
+        )
+    )
+
+    social_publish._validate_state(
+        state
+    )
+
+    queue = queue_from_state(
+        state
+    )
+
+    if queue is None:
+        raise ValueError(
+            "no daily queue in state"
+        )
+
+    items = buffer_schedulable_items(
+        queue,
+        now=now,
+        min_lead_minutes=(
+            args.min_lead_minutes
+        ),
+    )
+
+    print(
+        "buffer_schedulable_count="
+        + str(
+            len(items)
+        )
+    )
+
+    for item in items:
+        target = queue_item_target(
+            queue,
+            item,
+        )
+
+        print(
+            "BUFFER_SCHEDULE_PLAN "
+            f"queue_item={item['id']} "
+            f"slot={item['slot']} "
+            "due_at="
+            + target
+            .astimezone(timezone.utc)
+            .isoformat()
+            .replace(
+                "+00:00",
+                "Z",
+            )
+        )
+
+    if args.dry_run:
+        print(
+            "BUFFER_CALLED=false"
+        )
+
+        print(
+            "PUBLICATION=SCHEDULE_PREVIEW"
+        )
+
+        return 0
+
+    if not items:
+        print(
+            "BUFFER_CALLED=false"
+        )
+
+        print(
+            "PUBLICATION=NOOP"
+        )
+
+        return 0
+
+    client = (
+        social_publish
+        .BufferClient
+        .from_env()
+    )
+
+    recent_posts = (
+        client.recent_posts(
+            since=(
+                now
+                - timedelta(
+                    days=3
+                )
+            )
+        )
+    )
+
+    scheduled_count = 0
+    recovered_count = 0
+
+    for item in items:
+        target = queue_item_target(
+            queue,
+            item,
+        )
+
+        existing = (
+            _matching_buffer_post(
+                recent_posts,
+                item=item,
+                target=target,
+            )
+        )
+
+        if existing is not None:
+            receipt = {
+                "id": str(
+                    existing.get(
+                        "id"
+                    )
+                    or ""
+                ),
+                "status": str(
+                    existing.get(
+                        "status"
+                    )
+                    or "scheduled"
+                ),
+                "dueAt": str(
+                    existing.get(
+                        "dueAt"
+                    )
+                    or ""
+                ),
+            }
+
+            recovered_count += 1
+
+            print(
+                "BUFFER_SCHEDULE_RECOVERED "
+                f"queue_item={item['id']} "
+                f"buffer_post_id={receipt['id']}"
+            )
+        else:
+            receipt = (
+                client
+                .create_scheduled_post(
+                    item["text"],
+                    due_at=target,
+                )
+            )
+
+        post_id = str(
+            receipt.get("id")
+            or ""
+        ).strip()
+
+        if not post_id:
+            raise RuntimeError(
+                "Buffer scheduling receipt "
+                "has no post id"
+            )
+
+        delivery_status = str(
+            receipt.get(
+                "status"
+            )
+            or "scheduled"
+        ).strip()
+
+        if delivery_status not in {
+            "scheduled",
+            "sending",
+            "sent",
+        }:
+            raise RuntimeError(
+                "unexpected Buffer "
+                "scheduled-post status: "
+                + delivery_status
+            )
+
+        returned_due = _buffer_due_at(
+            receipt.get(
+                "dueAt"
+            )
+        )
+
+        if returned_due is not None:
+            delta_seconds = abs(
+                (
+                    returned_due
+                    - target.astimezone(
+                        timezone.utc
+                    )
+                ).total_seconds()
+            )
+
+            if delta_seconds > 60:
+                raise RuntimeError(
+                    "Buffer returned a dueAt "
+                    "that does not match the "
+                    "FR27 slot"
+                )
+
+        mark_item_scheduled(
+            state=state,
+            item=item,
+            scheduled_at=now,
+            scheduled_for=target,
+            buffer_post_id=post_id,
+            delivery_status=(
+                delivery_status
+            ),
+        )
+
+        recent_posts.append(
+            {
+                "id": post_id,
+                "text": item["text"],
+                "dueAt": (
+                    target
+                    .astimezone(
+                        timezone.utc
+                    )
+                    .isoformat()
+                    .replace(
+                        "+00:00",
+                        "Z",
+                    )
+                ),
+                "status": (
+                    delivery_status
+                ),
+            }
+        )
+
+        scheduled_count += 1
+
+        print(
+            "PUBLICATION=SCHEDULED "
+            f"queue_item={item['id']} "
+            f"buffer_post_id={post_id} "
+            f"buffer_status={delivery_status}"
+        )
+
+    save_state(
+        Path(
+            args.state_output
+        ),
+        state,
+    )
+
+    print(
+        f"BUFFER_SCHEDULED={scheduled_count}"
+    )
+
+    print(
+        f"BUFFER_RECOVERED={recovered_count}"
+    )
+
+    print(
+        "state_output="
+        + str(
+            Path(
+                args.state_output
+            ).resolve()
+        )
+    )
+
+    return 0
+
+
+def run_reconcile_buffer(
+    args: argparse.Namespace,
+) -> int:
+    now = _parse_now(
+        args.now
+    )
+
+    state = _load_json(
+        Path(
+            args.state
+        )
+    )
+
+    social_publish._validate_state(
+        state
+    )
+
+    queue = queue_from_state(
+        state
+    )
+
+    if queue is None:
+        raise ValueError(
+            "no daily queue in state"
+        )
+
+    scheduled = [
+        item
+        for item
+        in queue["items"]
+        if item["status"]
+        == "scheduled"
+    ]
+
+    print(
+        "buffer_reconcile_count="
+        + str(
+            len(scheduled)
+        )
+    )
+
+    if not scheduled:
+        print(
+            "PUBLICATION=NOOP"
+        )
+
+        return 0
+
+    if args.dry_run:
+        for item in scheduled:
+            print(
+                "BUFFER_RECONCILE_PREVIEW "
+                f"queue_item={item['id']} "
+                "buffer_post_id="
+                + str(
+                    item.get(
+                        "buffer_post_id"
+                    )
+                    or ""
+                )
+            )
+
+        print(
+            "BUFFER_CALLED=false"
+        )
+
+        return 0
+
+    client = (
+        social_publish
+        .BufferClient
+        .from_env()
+    )
+
+    posts = client.recent_posts(
+        since=(
+            now
+            - timedelta(
+                days=3
+            )
+        )
+    )
+
+    by_id = {
+        str(
+            post.get("id")
+            or ""
+        ): post
+        for post in posts
+        if str(
+            post.get("id")
+            or ""
+        )
+    }
+
+    confirmed = 0
+    errors = 0
+    pending_delivery = 0
+    missing = 0
+    mutated = False
+
+    for item in scheduled:
+        post_id = str(
+            item.get(
+                "buffer_post_id"
+            )
+            or ""
+        ).strip()
+
+        post = by_id.get(
+            post_id
+        )
+
+        if post is None:
+            missing += 1
+
+            print(
+                "BUFFER_RECONCILE_MISSING "
+                f"queue_item={item['id']} "
+                f"buffer_post_id={post_id}"
+            )
+
+            continue
+
+        status = str(
+            post.get(
+                "status"
+            )
+            or ""
+        ).strip()
+
+        print(
+            "BUFFER_RECONCILE "
+            f"queue_item={item['id']} "
+            f"buffer_post_id={post_id} "
+            f"buffer_status={status}"
+        )
+
+        if status in {
+            "scheduled",
+            "sending",
+        }:
+            pending_delivery += 1
+
+            target = _target_item(
+                state=state,
+                item=item,
+            )
+
+            if (
+                target.get(
+                    "delivery_status"
+                )
+                != status
+            ):
+                target[
+                    "delivery_status"
+                ] = status
+
+                state[
+                    "updated_at"
+                ] = (
+                    now
+                    .astimezone(
+                        timezone.utc
+                    )
+                    .isoformat()
+                    .replace(
+                        "+00:00",
+                        "Z",
+                    )
+                )
+
+                mutated = True
+
+            continue
+
+        if status == "sent":
+            published_at = (
+                _buffer_due_at(
+                    post.get(
+                        "dueAt"
+                    )
+                )
+                or now
+            )
+
+            mark_item_published(
+                state=state,
+                item=item,
+                published_at=(
+                    published_at
+                ),
+                buffer_post_id=(
+                    post_id
+                ),
+                resolved_post=(
+                    planned_post_from_item(
+                        item
+                    )
+                ),
+            )
+
+            target = _target_item(
+                state=state,
+                item=item,
+            )
+
+            target[
+                "delivery_status"
+            ] = "sent"
+
+            confirmed += 1
+            mutated = True
+
+            print(
+                "PUBLICATION=CONFIRMED "
+                f"queue_item={item['id']}"
+            )
+
+            continue
+
+        if status == "error":
+            mark_item_delivery_error(
+                state=state,
+                item=item,
+                observed_at=now,
+            )
+
+            errors += 1
+            mutated = True
+
+            print(
+                "PUBLICATION=ERROR "
+                f"queue_item={item['id']}"
+            )
+
+            continue
+
+        raise RuntimeError(
+            "unsupported Buffer delivery "
+            f"status: {status}"
+        )
+
+    if mutated:
+        save_state(
+            Path(
+                args.state_output
+            ),
+            state,
+        )
+
+        print(
+            "state_output="
+            + str(
+                Path(
+                    args.state_output
+                ).resolve()
+            )
+        )
+
+    print(
+        f"BUFFER_CONFIRMED={confirmed}"
+    )
+
+    print(
+        f"BUFFER_ERRORS={errors}"
+    )
+
+    print(
+        "BUFFER_PENDING_DELIVERY="
+        + str(
+            pending_delivery
+        )
+    )
+
+    print(
+        f"BUFFER_MISSING={missing}"
+    )
+
+    return 0
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
         description=(
@@ -1436,6 +2366,65 @@ def build_parser():
     tick.add_argument("--now")
     tick.add_argument("--dry-run", action="store_true")
     tick.set_defaults(func=run_scheduler_tick)
+
+    schedule = sub.add_parser(
+        "schedule-frozen",
+        help=(
+            "Schedule frozen core posts "
+            "into Buffer at exact slots"
+        ),
+    )
+    schedule.add_argument(
+        "--state",
+        required=True,
+    )
+    schedule.add_argument(
+        "--state-output",
+        required=True,
+    )
+    schedule.add_argument(
+        "--now",
+    )
+    schedule.add_argument(
+        "--min-lead-minutes",
+        type=int,
+        default=(
+            MIN_BUFFER_SCHEDULE_LEAD_MINUTES
+        ),
+    )
+    schedule.add_argument(
+        "--dry-run",
+        action="store_true",
+    )
+    schedule.set_defaults(
+        func=run_schedule_frozen
+    )
+
+    reconcile = sub.add_parser(
+        "reconcile-buffer",
+        help=(
+            "Reconcile scheduled Buffer "
+            "posts to sent/error state"
+        ),
+    )
+    reconcile.add_argument(
+        "--state",
+        required=True,
+    )
+    reconcile.add_argument(
+        "--state-output",
+        required=True,
+    )
+    reconcile.add_argument(
+        "--now",
+    )
+    reconcile.add_argument(
+        "--dry-run",
+        action="store_true",
+    )
+    reconcile.set_defaults(
+        func=run_reconcile_buffer
+    )
 
     return parser
 

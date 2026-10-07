@@ -1069,6 +1069,158 @@ class BufferClient:
             raise RuntimeError(f"Buffer returned no post id: {result}")
         return post_id
 
+    def recent_posts(
+        self,
+        *,
+        since: datetime,
+    ) -> list[dict[str, Any]]:
+        """Return recent Buffer delivery records for this X channel."""
+        query = """
+        query RecentPosts(
+          $organizationId: OrganizationId!,
+          $channelId: ChannelId!,
+          $startDate: DateTime!
+        ) {
+          posts(
+            first: 100,
+            input: {
+              organizationId: $organizationId,
+              filter: {
+                status: [scheduled, sending, sent, error],
+                channelIds: [$channelId],
+                startDate: $startDate
+              },
+              sort: [{ field: dueAt, direction: asc }]
+            }
+          ) {
+            edges {
+              node {
+                id
+                text
+                createdAt
+                dueAt
+                status
+              }
+            }
+          }
+        }
+        """
+        data = self.graphql(
+            query,
+            {
+                "organizationId": self.organization_id,
+                "channelId": self.channel_id,
+                "startDate": _iso_z(since),
+            },
+        )
+        edges = (((data.get("posts") or {}).get("edges")) or [])
+
+        posts: list[dict[str, Any]] = []
+
+        for edge in edges:
+            node = edge.get("node") or {}
+            post_id = str(node.get("id") or "").strip()
+
+            if not post_id:
+                continue
+
+            posts.append(
+                {
+                    "id": post_id,
+                    "text": str(node.get("text") or "").strip(),
+                    "createdAt": str(node.get("createdAt") or "").strip(),
+                    "dueAt": str(node.get("dueAt") or "").strip(),
+                    "status": str(node.get("status") or "").strip(),
+                }
+            )
+
+        return posts
+
+    def create_scheduled_post(
+        self,
+        text: str,
+        *,
+        due_at: datetime,
+        image_url: str = "",
+    ) -> dict[str, str]:
+        """Create a Buffer customScheduled post for an exact UTC instant."""
+        if due_at.tzinfo is None:
+            raise ValueError(
+                "scheduled Buffer due_at must be timezone-aware"
+            )
+
+        mutation = """
+        mutation CreatePost($input: CreatePostInput!) {
+          createPost(input: $input) {
+            ... on PostActionSuccess {
+              post {
+                id
+                text
+                status
+                dueAt
+              }
+            }
+            ... on MutationError { message }
+          }
+        }
+        """
+
+        input_payload: dict[str, Any] = {
+            "text": text,
+            "channelId": self.channel_id,
+            "schedulingType": "automatic",
+            "mode": "customScheduled",
+            "dueAt": _iso_z(
+                due_at.astimezone(timezone.utc)
+            ),
+            "aiAssisted": False,
+        }
+
+        if image_url:
+            input_payload["assets"] = [
+                {
+                    "image": {
+                        "url": image_url
+                    }
+                }
+            ]
+
+        data = self.graphql(
+            mutation,
+            {
+                "input": input_payload
+            },
+        )
+
+        result = data.get("createPost") or {}
+        message = result.get("message")
+
+        if message:
+            raise RuntimeError(
+                f"Buffer rejected scheduled post: {message}"
+            )
+
+        post = result.get("post") or {}
+
+        post_id = str(
+            post.get("id") or ""
+        ).strip()
+
+        if not post_id:
+            raise RuntimeError(
+                f"Buffer returned no scheduled post id: {result}"
+            )
+
+        return {
+            "id": post_id,
+            "status": str(
+                post.get("status") or ""
+            ).strip(),
+            "dueAt": str(
+                post.get("dueAt") or ""
+            ).strip(),
+        }
+
 
 def _load_json(path: str) -> dict[str, Any]:
     with Path(path).open("r", encoding="utf-8") as handle:
