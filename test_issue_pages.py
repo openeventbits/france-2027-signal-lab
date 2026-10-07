@@ -850,7 +850,7 @@ class IssuePageArtifactTests(unittest.TestCase):
                 legend.count('class="issue-dumbbell-legend-item"'),
                 2,
             )
-            self.assertEqual(legend.count("<small>"), 2)
+            self.assertEqual(len(re.findall(r"<small\b[^>]*>", legend)), 2)
             self.assertNotIn("title=", legend)
 
     def test_current_hub_responsive_css_has_one_ordered_contract(self):
@@ -1695,13 +1695,13 @@ class CurrentIssueDetailRedesignTests(unittest.TestCase):
                 path = self._path(issue, language)
                 self.assertEqual(first[path], second[path])
 
-    def test_current_detail_pass_does_not_change_issues_javascript(self):
-        source = (ROOT / "assets" / "issues.js").read_text(encoding="utf-8")
-        digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
-        self.assertEqual(
-            digest,
-            "9f848b85428d4c4679c27d9291e9e3079be8b61050088d6d5a8d8a7bdb6005aa",
-        )
+    def test_current_detail_pass_does_not_add_live_fetch_to_details(self):
+        # Live fetching is gated by a current-hub grid contract; detail pages stay static.
+        for issue in self.issues:
+            for language in ("fr", "en"):
+                markup = self.artifacts[self._path(issue, language)].decode("utf-8")
+                self.assertNotIn("data-issue-live-url", markup)
+
 
     def test_issue_family_tiny_mobile_masthead_contract(self):
         stylesheet = (ROOT / "assets" / "issues.css").read_text(encoding="utf-8")

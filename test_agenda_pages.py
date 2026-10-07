@@ -306,7 +306,7 @@ class AgendaPageTests(unittest.TestCase):
             "en/agenda/history/index.html",
         ):
             text = self.text(relative)
-            self.assertEqual(text.count(" data-agenda-card\n"), 6, relative)
+            self.assertEqual(len(re.findall(r" data-agenda-card(?=\s|>)", text)), 6, relative)
             for definition in AGENDA_DEFINITIONS:
                 slug = definition.slug_fr if not relative.startswith("en/") else definition.slug_en
                 history = "historique" in relative or "history" in relative
@@ -378,7 +378,7 @@ class AgendaPageTests(unittest.TestCase):
                 current = topic['current']
                 comparison = current['comparison']
                 counts = card.split('class="agenda-card-counts">', 1)[1].split('</span></span>', 1)[0]
-                self.assertEqual(re.findall(r'<strong>(.*?)</strong>', counts),
+                self.assertEqual(re.findall(r'<strong\b[^>]*>(.*?)</strong>', counts),
                                  [str(current['source_day_count']), str(current['publisher_count'])])
                 self.assertIn(f'data-sort-volume="{current["item_count"]}"', card)
                 self.assertIn(f'data-sort-activity="{comparison["latest_agenda_share"]:.8f}"', card)

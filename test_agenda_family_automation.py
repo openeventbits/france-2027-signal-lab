@@ -45,7 +45,7 @@ class AgendaFamilyAutomationContractTests(unittest.TestCase):
         self.assertTrue(self.text.startswith("name: Publish agenda family\n"))
         self.assertIn("workflow_run:", self.text)
         self.assertIn('- "Update polls"', self.text)
-        self.assertIn('- "Update Election News Wire"', self.text)
+        self.assertNotIn('- "Update Election News Wire"', self.text)
         self.assertIn('- "Update candidate universe"', self.text)
         self.assertIn("github.event.workflow_run.conclusion == 'success'", self.text)
         self.assertIn("workflow_dispatch:", self.text)
@@ -206,7 +206,7 @@ class AgendaFamilyAutomationContractTests(unittest.TestCase):
     def test_producers_are_exact_and_generated_outputs_cannot_self_trigger(self):
         producers = re.search(r"(?s)  workflow_run:\n    workflows:\n(.*?)    types:", self.text)[1]
         self.assertEqual(set(re.findall(r'- "([^"]+)"', producers)), {
-            "Update Election News Wire", "Update candidate universe", "Update polls",
+            "Update candidate universe", "Update polls",
         })
         paths = re.search(r"(?s)    paths:\n(.*?)\n  #", self.text)[1]
         paths = set(re.findall(r'- "([^"]+)"', paths))

@@ -81,7 +81,7 @@ class WorkflowMediaPulseContractTests(unittest.TestCase):
 
         fetch = self.workflow.index("python fetch_news_wire.py")
         finalized = self.workflow.index(
-            "shutil.copyfile(\n                  TEMP_WIRE,\n                  CURRENT_WIRE,"
+            "atomic_write(CURRENT_WIRE, TEMP_WIRE.read_bytes())"
         )
         derived = self.workflow.index(
             "python -B build_candidate_signals.py",

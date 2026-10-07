@@ -16,7 +16,7 @@ SCHEDULES = {
 }
 AUTHORITATIVE_MARKERS = {
     "polls": "atomic_write_bytes(current_path, fetched_path.read_bytes())",
-    "news": "shutil.copyfile(\n                  TEMP_WIRE,\n                  CURRENT_WIRE,",
+    "news": "atomic_write(CURRENT_WIRE, TEMP_WIRE.read_bytes())",
     "claims": "atomic_write_json(current_path, fetched)",
 }
 

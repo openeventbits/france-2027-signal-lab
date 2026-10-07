@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from live_hub_markup import live_hub_markup
 from datetime import date, timedelta
 import html
 import json
@@ -998,6 +999,7 @@ def _render_issue_hub_document(
     gateway_period: str,
     gateway_href: str,
     gateway_label: str,
+    live_projection: dict[str, Any] | None = None,
 ) -> bytes:
     french = language == "fr"
     document = f'''<!doctype html>
@@ -1056,6 +1058,8 @@ def _render_issue_hub_document(
 </body>
 </html>
 '''
+    if live_projection is not None:
+        document = live_hub_markup(document, family="issues", projection=live_projection, language=language)
     return ("\n".join(line.rstrip() for line in document.splitlines()) + "\n").encode("utf-8")
 
 
@@ -1180,6 +1184,7 @@ def render_hub(
 
     return _render_issue_hub_document(
         language=language,
+        live_projection=projection,
         head=head,
         header=header,
         footer=shell["footer"],
@@ -3163,8 +3168,9 @@ def build_from_paths(
     previous_manifest = _load_json(manifest_path) if manifest_path.exists() else None
     candidate_registry = _load_json(candidate_registry_path)
     candidate_index = project_candidate_route_index(candidate_registry, root)
+    news_wire = _load_json(news_wire_path)
     projection = project_issue_pages(
-        _load_json(news_wire_path),
+        news_wire,
         _load_json(agenda_history_path),
         previous_manifest=previous_manifest,
         candidate_routes=candidate_index["candidates"],
