@@ -1,11 +1,13 @@
 import importlib.util
 import json
+import contextlib
+import io
 import sys
 import unittest
 import tempfile
 from types import SimpleNamespace
-from unittest.mock import patch
-from datetime import datetime, timezone
+from unittest.mock import Mock, patch
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 MODULE_PATH = Path(__file__).parent / "social" / "social_publish.py"
@@ -16,6 +18,71 @@ SPEC.loader.exec_module(MODULE)
 
 
 class SocialPublishTests(unittest.TestCase):
+    def test_dynamic_target_boundary_and_paris_dst(self):
+        for day, offset in (("2026-03-29", "+02:00"), ("2026-10-25", "+01:00")):
+            for slot in ("09:05", "13:05", "17:05", "20:05"):
+                target = datetime.fromisoformat(f"{day}T{slot}:00{offset}")
+                self.assertEqual(target.astimezone(MODULE.PARIS).strftime("%H:%M"), slot)
+                for seconds, eligible in ((-1, False), (0, True), (3599, True), (3600, True), (3601, False), (86400, False)):
+                    with self.subTest(day=day, slot=slot, seconds=seconds):
+                        self.assertEqual(MODULE.dynamic_target_eligible(
+                            target, now=target.astimezone(timezone.utc) + timedelta(seconds=seconds)), eligible)
+
+    def test_stale_scheduled_update_skips_before_reading_state_or_buffer(self):
+        args = MODULE.build_parser().parse_args([
+            "updates", "--state", "unused", "--state-output", "unused",
+            "--scheduled-target", "2026-10-07T07:05:00Z",
+        ])
+        with (patch.object(MODULE, "datetime", wraps=datetime) as clock,
+              patch.object(MODULE, "_load_json") as load,
+              patch.object(MODULE, "_save_json") as save,
+              patch.object(MODULE.BufferClient, "from_env") as factory,
+              contextlib.redirect_stdout(io.StringIO()) as output):
+            clock.now.return_value = datetime.fromisoformat("2026-10-07T08:05:01+00:00")
+            self.assertEqual(MODULE.run_updates(args), 0)
+        self.assertIn("REASON=DYNAMIC_SLOT_STALE", output.getvalue())
+        load.assert_not_called()
+        save.assert_not_called()
+        factory.assert_not_called()
+
+    def test_update_expiration_during_resolution_and_buffer_lookup(self):
+        target = datetime.fromisoformat("2026-10-07T07:05:00+00:00")
+        for phase in ("resolution", "lookup", "manual", "boundary"):
+            with self.subTest(phase=phase):
+                args = MODULE.build_parser().parse_args([
+                    "updates", "--state", "unused", "--state-output", "unused", "--max-posts", "1",
+                ])
+                args.scheduled_target = None if phase == "manual" else target.isoformat()
+                state = MODULE.build_bootstrap_state({"items": []}, {"campaign_events": []}, now=target)
+                candidate = MODULE.SocialCandidate(
+                    kind="recent_change", key="new", observed_at=target, text="New development", source_url="https://example.test/new")
+                client = Mock()
+                client.recent_post_texts.return_value = set()
+                client.create_post.return_value = "post-1"
+                inside = target + timedelta(minutes=59)
+                outside = target + timedelta(minutes=60, seconds=1)
+                times = {
+                    "resolution": [inside, inside, outside],
+                    "lookup": [inside, inside, inside, outside],
+                    "boundary": [inside, inside, inside, target + timedelta(minutes=60)],
+                }
+                with (patch.object(MODULE, "datetime", wraps=datetime) as clock,
+                      patch.object(MODULE, "_load_json", return_value=state),
+                      patch.object(MODULE, "collect_update_candidates", return_value=[candidate]),
+                      patch.object(MODULE, "_save_json") as save,
+                      patch.object(MODULE.BufferClient, "from_env", return_value=client) as factory,
+                      contextlib.redirect_stdout(io.StringIO())):
+                    clock.now.side_effect = times.get(phase, [outside])
+                    self.assertEqual(MODULE.run_updates(args), 0)
+                if phase == "resolution":
+                    factory.assert_not_called()
+                if phase in {"resolution", "lookup"}:
+                    client.create_post.assert_not_called()
+                    save.assert_not_called()
+                else:
+                    client.create_post.assert_called_once()
+                    save.assert_called_once()
+
     def test_recent_change_is_headline_plus_source_url(self):
         item = {
             "headline": "Présidentielle 2027. Un nouvel élément de campagne est publié",

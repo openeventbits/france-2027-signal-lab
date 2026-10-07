@@ -35,7 +35,12 @@ class CatchupTests(unittest.TestCase):
         # Real rolling Tuesday artifacts. Wednesday advances only post-target
         # days and the live cards, preserving both target weeks' exact evidence.
         from build_route_registry import _semantic_html_bytes
-        args = copy.deepcopy(self.fixture.base)
+        # Anchor the rolling test evidence to Monday regardless of which day
+        # the checked-in sources were last refreshed. Shift every source date
+        # together so parity checks still compare the same retained evidence.
+        source_end = date.fromisoformat(self.fixture.base["issue_history"]["period"]["end_date"])
+        shift = self.fixture.monday - source_end
+        args = fixtures.shift_dates(copy.deepcopy(self.fixture.base), shift)
         now = self.fixture.now + timedelta(days=days)
         stamp = (now - timedelta(minutes=5)).isoformat()
         args["news"]["generated_at"] = stamp
@@ -54,6 +59,8 @@ class CatchupTests(unittest.TestCase):
                 continue
             path = route["source_file"]
             document = (ROOT / path).read_text(encoding="utf-8")
+            document = re.sub(r"\d{4}-\d{2}-\d{2}",
+                              lambda match: (date.fromisoformat(match[0]) + shift).isoformat(), document)
             files[path] = document
             route["lastmod"] = now.astimezone(timezone.utc).date().isoformat()
             route["content_sha256"] = hashlib.sha256(_semantic_html_bytes(document.encode())).hexdigest()
@@ -249,7 +256,7 @@ class CatchupTests(unittest.TestCase):
                          and r["kind"] in ("issue-history-detail", "agenda-history-detail"))
             path = route["source_file"]
             day = product.issues.current_start
-            pattern = rf'(<time datetime="{day}".*?</td>\s*<td data-label="ARTICLES">)(\d+)'
+            pattern = rf'(<time datetime="{day}">[^<]*</time>\s*</td>\s*<td data-label="ARTICLES">)(\d+)'
             files[path], count = re.subn(pattern, lambda m: m[1] + str(int(m[2]) + 1), files[path], flags=re.S)
             self.assertEqual(count, 1)
             self.rehash(files, path)

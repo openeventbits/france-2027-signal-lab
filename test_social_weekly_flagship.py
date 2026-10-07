@@ -436,7 +436,7 @@ class WeeklyFlagshipTests(unittest.TestCase):
 
     def publish(self, state, *, product=None, fail=False, dry_run=False, now=None, skip=False):
         client = Mock()
-        client.recent_post_texts.return_value = set()
+        client.recent_posts.return_value = []
         client.create_post.return_value = "successful-receipt"
         if fail:
             client.create_post.side_effect = RuntimeError("mock Buffer failure")
@@ -558,8 +558,8 @@ class WeeklyFlagshipTests(unittest.TestCase):
         self.assertIn("cron: '30 9 * * 1'\n      timezone: 'Europe/Paris'", text)
         self.assertRegex(text, r"'30 9 \* \* 1'\)\s+mode=\"slot\"\s+slot=\"09:30\"")
         self.assertIn("vars.FR27_SOCIAL_ENABLED == 'true'", text)
-        for beginning, ending in (("      '5 9,13,17,20 * * *')", "              *)"),
-                                  ("      - name: Publish or preview core queue slot", "      # ------------------------------------------------------\n      # DYNAMIC"),
+        for beginning, ending in (("      '5 9 * * *')", "              *)"),
+                                  ("      - name: Publish or preview core queue slot", "      # ------------------------------------------------------\n      # BUFFER DELIVERY"),
                                   ("      - name: Dry-run dynamic developments", "      - name: Upload full dry-run plan")):
             self.assertEqual(text[text.index(beginning):text.index(ending, text.index(beginning))],
                              old[old.index(beginning):old.index(ending, old.index(beginning))])

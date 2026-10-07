@@ -70,7 +70,7 @@ class SchedulerTickTests(unittest.TestCase):
             with self.subTest(clock=clock):
                 state = self.state(("08:45",))
                 client = Mock()
-                client.recent_post_texts.return_value = set()
+                client.recent_posts.return_value = []
                 client.create_post.return_value = "mock-exact-receipt"
                 result, text, save, factory = self.invoke_exact(state, clock, client=client)
                 self.assertEqual(result, 0)
@@ -92,7 +92,7 @@ class SchedulerTickTests(unittest.TestCase):
                 self.assertIn("exact_slot=NOOP reason=EXPIRED", text)
                 self.assertIn(f"lateness_minutes={minutes:g}", text)
                 factory.assert_not_called()
-                client.recent_post_texts.assert_not_called()
+                client.recent_posts.assert_not_called()
                 client.create_post.assert_not_called()
                 resolve.assert_not_called()
                 save.assert_not_called()
@@ -250,7 +250,7 @@ class SchedulerTickTests(unittest.TestCase):
     def test_max_one_publication(self):
         state = self.state(("14:30", "14:45", "15:00"))
         client = Mock()
-        client.recent_post_texts.return_value = set()
+        client.recent_posts.return_value = []
         client.create_post.return_value = "mock-receipt"
         result, _, save, factory = self.invoke(state, "15:12", dry_run=False, client=client)
         self.assertEqual(result, 0)
@@ -335,7 +335,7 @@ class SchedulerTickTests(unittest.TestCase):
         state = self.state()
         before = copy.deepcopy(state)
         client = Mock()
-        client.recent_post_texts.return_value = set()
+        client.recent_posts.return_value = []
         client.create_post.side_effect = RuntimeError("mock API failure")
         args = SimpleNamespace(state="unused", state_output="unused", now=self.at("14:45").isoformat(),
                                dry_run=False)
@@ -351,7 +351,7 @@ class SchedulerTickTests(unittest.TestCase):
     def test_exact_then_heartbeat_cannot_duplicate(self):
         state = self.state()
         client = Mock()
-        client.recent_post_texts.return_value = set()
+        client.recent_posts.return_value = []
         client.create_post.return_value = "exact-receipt"
         args = SimpleNamespace(slot="14:30", state_output="unused", dry_run=False)
         with (patch.object(queue.social_publish.BufferClient, "from_env", return_value=client),
@@ -366,7 +366,7 @@ class SchedulerTickTests(unittest.TestCase):
     def test_heartbeat_then_exact_cannot_duplicate(self):
         state = self.state()
         client = Mock()
-        client.recent_post_texts.return_value = set()
+        client.recent_posts.return_value = []
         client.create_post.return_value = "tick-receipt"
         self.invoke(state, "14:47", dry_run=False, client=client)
         args = SimpleNamespace(slot="14:30", state_output="unused", dry_run=False)
@@ -378,10 +378,21 @@ class SchedulerTickTests(unittest.TestCase):
     def test_existing_buffer_duplicate_resolves_without_creation(self):
         state = self.state()
         client = Mock()
-        client.recent_post_texts.return_value = {"Frozen 14:30"}
+        client.recent_posts.return_value = [
+            {
+                "id": "existing-sent",
+                "text": "Frozen 14:30",
+                "status": "sent",
+                "createdAt": "2026-10-06T12:46:00Z",
+                "dueAt": "2026-10-06T12:47:00Z",
+            }
+        ]
         self.invoke(state, "14:47", dry_run=False, client=client)
         client.create_post.assert_not_called()
-        self.assertEqual(self.items(state)[0]["buffer_post_id"], "buffer-existing")
+        self.assertEqual(
+            self.items(state)[0]["buffer_post_id"],
+            "existing-sent",
+        )
 
     def instruction_state(self, instruction, day=None):
         state = self.state((), day=day)
@@ -490,7 +501,10 @@ class SchedulerTickTests(unittest.TestCase):
                 "45 16 * * *",
                 "30 18 * * *",
                 "30 19 * * *",
-                "5 9,13,17,20 * * *",
+                "5 9 * * *",
+                "5 13 * * *",
+                "5 17 * * *",
+                "5 20 * * *",
             )
         ]
 

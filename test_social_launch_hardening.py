@@ -152,7 +152,10 @@ class LaunchHardeningTests(unittest.TestCase):
         if fail:
             client.create_post.side_effect = RuntimeError("mock rejection")
         text = state["planner"]["daily_queue"]["items"][0]["text"]
-        client.recent_post_texts.return_value = {text} if duplicate else set()
+        client.recent_posts.return_value = [{
+            "id": "buffer-existing", "text": text, "status": "sent",
+            "dueAt": self.now.isoformat(), "createdAt": self.now.isoformat(),
+        }] if duplicate else []
         args = argparse.Namespace(now=self.now.isoformat(), state="unused.json", state_output="unused.json",
                                   slot="10:15", dry_run=dry_run)
         with (patch.object(queue, "_load_json", return_value=state),
@@ -366,7 +369,8 @@ assert 'signal_engine' not in sys.modules
     def test_workflow_schedule_and_inert_gate_are_unchanged(self):
         workflow = (ROOT / ".github/workflows/publish-x-fr.yml").read_text(encoding="utf-8")
         crons = ("25 8 * * *", "45 8 * * *", "30 9 * * 1", "15 10 * * *", "30 11 * * *",
-                 "15 12 * * *", "30 14 * * *", "45 16 * * *", "30 18 * * *", "30 19 * * *", "5 9,13,17,20 * * *")
+                 "15 12 * * *", "30 14 * * *", "45 16 * * *", "30 18 * * *", "30 19 * * *",
+                 "5 9 * * *", "5 13 * * *", "5 17 * * *", "5 20 * * *")
         for cron in crons:
             self.assertIn(f"cron: '{cron}'\n      timezone: 'Europe/Paris'", workflow)
         self.assertIn("vars.FR27_SOCIAL_ENABLED == 'true'", workflow)

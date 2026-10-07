@@ -1089,8 +1089,7 @@ class BufferClient:
                 status: [scheduled, sending, sent, error],
                 channelIds: [$channelId],
                 startDate: $startDate
-              },
-              sort: [{ field: dueAt, direction: asc }]
+              }
             }
           ) {
             edges {
@@ -1446,7 +1445,30 @@ def _record_dynamic_update(
     ] = retained
 
 
+def dynamic_target_eligible(target: datetime, *, now: datetime) -> bool:
+    lateness = (now.astimezone(timezone.utc) - target.astimezone(timezone.utc)).total_seconds()
+    return 0 <= lateness <= 60 * 60
+
+
+def _dynamic_run_eligible(args: argparse.Namespace, *, buffer_api_called: bool = False) -> bool:
+    value = getattr(args, "scheduled_target", None)
+    if value is None:
+        return True  # Manual updates have no nominal schedule.
+    target = _parse_iso(value)
+    if (target is None or not value.strip()
+            or datetime.fromisoformat(value.replace("Z", "+00:00")).tzinfo is None):
+        raise ValueError("--scheduled-target must be a timezone-aware ISO timestamp")
+    if dynamic_target_eligible(target, now=datetime.now(timezone.utc)):
+        return True
+    print("PUBLICATION=SKIPPED")
+    print("REASON=DYNAMIC_SLOT_STALE")
+    print("BUFFER_API_CALLED=" + str(buffer_api_called).lower())
+    return False
+
+
 def run_updates(args: argparse.Namespace) -> int:
+    if not _dynamic_run_eligible(args):
+        return 0
     now = _parse_iso(args.now) if args.now else datetime.now(timezone.utc)
     if now is None:
         raise ValueError("--now must be a valid ISO timestamp")
@@ -1522,6 +1544,9 @@ def run_updates(args: argparse.Namespace) -> int:
         )
         return 0
 
+    # Candidate resolution can take time. Recheck before any Buffer request.
+    if not _dynamic_run_eligible(args):
+        return 0
     client = BufferClient.from_env()
     recent_texts = client.recent_post_texts(
         since=now - timedelta(days=3)
@@ -1572,6 +1597,8 @@ def run_updates(args: argparse.Namespace) -> int:
 
             resolved += 1
             continue
+        if not _dynamic_run_eligible(args, buffer_api_called=True):
+            break
         post_id = client.create_post(candidate.text)
         print(f"published {candidate.kind} {candidate.key}: {post_id}")
         recent_texts.add(
@@ -1805,6 +1832,7 @@ def build_parser() -> argparse.ArgumentParser:
     updates.add_argument("--state", required=True)
     updates.add_argument("--state-output", required=True)
     updates.add_argument("--now")
+    updates.add_argument("--scheduled-target", help="Nominal scheduled instant; expires after 60 minutes")
     updates.add_argument("--lookback-hours", type=int, default=24)
     updates.add_argument(
         "--max-posts",

@@ -3,6 +3,7 @@
 import contextlib
 import copy
 import io
+import os
 import sys
 import unittest
 from datetime import datetime, timezone
@@ -25,6 +26,11 @@ class BufferScheduledCoreTests(
     unittest.TestCase
 ):
     day = "2026-10-07"
+
+    def setUp(self):
+        activation = patch.dict(os.environ, {"FR27_BUFFER_SCHEDULING_ENABLED": "true"})
+        activation.start()
+        self.addCleanup(activation.stop)
 
     def at(
         self,

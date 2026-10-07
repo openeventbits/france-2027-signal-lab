@@ -28,7 +28,13 @@ on:
 
     # Dynamic French developments.
     # One maximum per check; hard daily state-backed cap = 3.
-    - cron: '5 9,13,17,20 * * *'
+    - cron: '5 9 * * *'
+      timezone: 'Europe/Paris'
+    - cron: '5 13 * * *'
+      timezone: 'Europe/Paris'
+    - cron: '5 17 * * *'
+      timezone: 'Europe/Paris'
+    - cron: '5 20 * * *'
       timezone: 'Europe/Paris'
 
     # Recover missed core slots only, within 60 minutes; exact crons stay authoritative.
@@ -90,6 +96,7 @@ jobs:
 
     env:
       PYTHONUTF8: '1'
+      FR27_BUFFER_SCHEDULING_ENABLED: ${{ vars.FR27_BUFFER_SCHEDULING_ENABLED }}
 
     steps:
       - name: Check out production main
@@ -186,8 +193,24 @@ jobs:
                 mode="reconcile-buffer"
                 ;;
 
-              '5 9,13,17,20 * * *')
+              '5 9 * * *')
                 mode="updates"
+                slot="09:05"
+                ;;
+
+              '5 13 * * *')
+                mode="updates"
+                slot="13:05"
+                ;;
+
+              '5 17 * * *')
+                mode="updates"
+                slot="17:05"
+                ;;
+
+              '5 20 * * *')
+                mode="updates"
+                slot="20:05"
                 ;;
 
               *)
@@ -205,17 +228,149 @@ jobs:
           echo "publish=$publish"
           echo "slot=$slot"
 
+      - name: Require master activation for live manual execution
+        if: >-
+          github.event_name == 'workflow_dispatch' &&
+          steps.mode.outputs.publish == 'true' &&
+          vars.FR27_SOCIAL_ENABLED != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "::error::FR27_SOCIAL_ENABLED must be explicitly true for live execution."
+          exit 2
+
+      - name: Require Buffer scheduling activation for live manual delivery
+        if: >-
+          github.event_name == 'workflow_dispatch' &&
+          steps.mode.outputs.publish == 'true' &&
+          vars.FR27_BUFFER_SCHEDULING_ENABLED != 'true' &&
+          (
+            steps.mode.outputs.mode == 'schedule-frozen' ||
+            steps.mode.outputs.mode == 'reconcile-buffer'
+          )
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "::error::FR27_BUFFER_SCHEDULING_ENABLED must be explicitly true for live Buffer scheduled delivery."
+          exit 2
+
+      - name: Guard scheduled dynamic update timeliness
+        id: dynamic_timeliness
+        if: >-
+          github.event_name == 'schedule' &&
+          steps.mode.outputs.mode == 'updates'
+        shell: bash
+        env:
+          TARGET_SLOT: ${{ steps.mode.outputs.slot }}
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          import os
+          from datetime import datetime, timezone
+          from zoneinfo import ZoneInfo
+
+          slot = os.environ["TARGET_SLOT"].strip()
+
+          if not slot:
+              raise SystemExit(
+                  "scheduled dynamic update missing target slot"
+              )
+
+          hour, minute = map(
+              int,
+              slot.split(":"),
+          )
+
+          now = (
+              datetime.now(timezone.utc)
+              .astimezone(
+                  ZoneInfo("Europe/Paris")
+              )
+          )
+
+          target = now.replace(
+              hour=hour,
+              minute=minute,
+              second=0,
+              microsecond=0,
+          )
+
+          lateness = (
+              now - target
+          ).total_seconds() / 60.0
+
+          eligible = (
+              0.0 <= lateness <= 60.0
+          )
+
+          with open(
+              os.environ["GITHUB_OUTPUT"],
+              "a",
+              encoding="utf-8",
+          ) as output:
+              output.write(
+                  "eligible="
+                  + (
+                      "true"
+                      if eligible
+                      else "false"
+                  )
+                  + "\n"
+              )
+              output.write(
+                  f"lateness_minutes={lateness:.3f}\n"
+              )
+              output.write(
+                  f"target_time={target.astimezone(timezone.utc).isoformat()}\n"
+              )
+
+          print(f"dynamic_slot={slot}")
+          print(
+              f"dynamic_lateness_minutes={lateness:.3f}"
+          )
+
+          if eligible:
+              print(
+                  "DYNAMIC_TIMELINESS=ELIGIBLE"
+              )
+          else:
+              print(
+                  "DYNAMIC_TIMELINESS=EXPIRED"
+              )
+              print(
+                  "PUBLICATION=SKIPPED"
+              )
+              print(
+                  "REASON=DYNAMIC_SLOT_STALE"
+              )
+              print(
+                  "BUFFER_API_CALLED=false"
+              )
+          PY
+
       - name: Validate Buffer configuration
         if: >-
           steps.mode.outputs.publish == 'true' &&
           (
-            steps.mode.outputs.mode == 'build-queue' ||
-            steps.mode.outputs.mode == 'schedule-frozen' ||
-            steps.mode.outputs.mode == 'reconcile-buffer' ||
             steps.mode.outputs.mode == 'slot' ||
             steps.mode.outputs.mode == 'scheduler-tick' ||
-            steps.mode.outputs.mode == 'updates' ||
-            steps.mode.outputs.mode == 'weekly-flagship-catchup'
+            steps.mode.outputs.mode == 'weekly-flagship-catchup' ||
+            (
+              steps.mode.outputs.mode == 'updates' &&
+              (
+                github.event_name != 'schedule' ||
+                steps.dynamic_timeliness.outputs.eligible == 'true'
+              )
+            ) ||
+            (
+              vars.FR27_BUFFER_SCHEDULING_ENABLED == 'true' &&
+              (
+                steps.mode.outputs.mode == 'build-queue' ||
+                steps.mode.outputs.mode == 'schedule-frozen' ||
+                steps.mode.outputs.mode == 'reconcile-buffer'
+              )
+            )
           )
         shell: bash
         env:
@@ -441,19 +596,57 @@ jobs:
       # DAILY CORE QUEUE
       # ------------------------------------------------------
 
+      - name: Reconcile prior Buffer delivery before queue rollover
+        if: >-
+          steps.mode.outputs.mode == 'build-queue' &&
+          (
+            steps.mode.outputs.publish != 'true' ||
+            vars.FR27_BUFFER_SCHEDULING_ENABLED == 'true'
+          )
+        shell: bash
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_ORGANIZATION_ID: ${{ vars.BUFFER_ORGANIZATION_ID }}
+          BUFFER_X_CHANNEL_ID: ${{ vars.BUFFER_X_CHANNEL_ID }}
+        run: |
+          set -euo pipefail
+
+          args=(
+            --state /tmp/fr27-social/input-state.json
+            --state-output /tmp/fr27-social/reconciled-state.json
+          )
+
+          if [[ "${{ steps.mode.outputs.publish }}" != "true" ]]; then
+            args+=(--dry-run)
+          fi
+
+          python -B social/daily_queue.py reconcile-buffer \
+            "${args[@]}"
+
       - name: Build immutable daily core queue
         if: steps.mode.outputs.mode == 'build-queue'
         shell: bash
         run: |
           set -euo pipefail
 
+          source="/tmp/fr27-social/input-state.json"
+
+          if [[ -f /tmp/fr27-social/reconciled-state.json ]]; then
+            source="/tmp/fr27-social/reconciled-state.json"
+          fi
+
           python -B social/daily_queue.py build \
-            --state /tmp/fr27-social/input-state.json \
+            --state "$source" \
             --state-output /tmp/fr27-social/output-state.json \
             --queue-output /tmp/fr27-social/queue.json
 
       - name: Schedule frozen core posts with Buffer clock
-        if: steps.mode.outputs.mode == 'build-queue'
+        if: >-
+          steps.mode.outputs.mode == 'build-queue' &&
+          (
+            steps.mode.outputs.publish != 'true' ||
+            vars.FR27_BUFFER_SCHEDULING_ENABLED == 'true'
+          )
         shell: bash
         env:
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
@@ -474,7 +667,12 @@ jobs:
           python -B social/daily_queue.py schedule-frozen             "${args[@]}"
 
       - name: Schedule or preview frozen core posts manually
-        if: steps.mode.outputs.mode == 'schedule-frozen'
+        if: >-
+          steps.mode.outputs.mode == 'schedule-frozen' &&
+          (
+            steps.mode.outputs.publish != 'true' ||
+            vars.FR27_BUFFER_SCHEDULING_ENABLED == 'true'
+          )
         shell: bash
         env:
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
@@ -486,6 +684,7 @@ jobs:
           args=(
             --state /tmp/fr27-social/input-state.json
             --state-output /tmp/fr27-social/output-state.json
+            --slot "${{ steps.mode.outputs.slot }}"
           )
 
           if [[ "${{ steps.mode.outputs.publish }}" != "true" ]]; then
@@ -517,7 +716,12 @@ jobs:
             "${args[@]}"
 
       - name: Hand future frozen posts to Buffer after heartbeat
-        if: steps.mode.outputs.mode == 'scheduler-tick'
+        if: >-
+          steps.mode.outputs.mode == 'scheduler-tick' &&
+          (
+            steps.mode.outputs.publish != 'true' ||
+            vars.FR27_BUFFER_SCHEDULING_ENABLED == 'true'
+          )
         shell: bash
         env:
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
@@ -575,7 +779,12 @@ jobs:
       # ------------------------------------------------------
 
       - name: Reconcile Buffer scheduled delivery state
-        if: steps.mode.outputs.mode == 'reconcile-buffer'
+        if: >-
+          steps.mode.outputs.mode == 'reconcile-buffer' &&
+          (
+            steps.mode.outputs.publish != 'true' ||
+            vars.FR27_BUFFER_SCHEDULING_ENABLED == 'true'
+          )
         shell: bash
         env:
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
@@ -600,7 +809,12 @@ jobs:
       # ------------------------------------------------------
 
       - name: Publish or preview one dynamic development
-        if: steps.mode.outputs.mode == 'updates'
+        if: >-
+          steps.mode.outputs.mode == 'updates' &&
+          (
+            github.event_name != 'schedule' ||
+            steps.dynamic_timeliness.outputs.eligible == 'true'
+          )
         shell: bash
         env:
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
@@ -616,6 +830,12 @@ jobs:
             --max-posts 1
             --daily-limit 3
           )
+
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            target="${{ steps.dynamic_timeliness.outputs.target_time }}"
+            [[ -n "$target" ]] || { echo "::error::Missing dynamic target time"; exit 2; }
+            args+=(--scheduled-target "$target")
+          fi
 
           if [[ "${{ steps.mode.outputs.publish }}" != "true" ]]; then
             args+=(--dry-run)
@@ -743,3 +963,6 @@ jobs:
           echo "publish=${{ steps.mode.outputs.publish }}"
           echo "slot=${{ steps.mode.outputs.slot }}"
           echo "FR27_SOCIAL_ENABLED=${{ vars.FR27_SOCIAL_ENABLED }}"
+          echo "FR27_BUFFER_SCHEDULING_ENABLED=${{ vars.FR27_BUFFER_SCHEDULING_ENABLED }}"
+          echo "dynamic_eligible=${{ steps.dynamic_timeliness.outputs.eligible }}"
+          echo "dynamic_lateness_minutes=${{ steps.dynamic_timeliness.outputs.lateness_minutes }}"
