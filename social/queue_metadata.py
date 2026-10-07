@@ -64,10 +64,14 @@ def newsroom(product: Any) -> dict[str, Any]:
 def candidate(product: Any = None) -> dict[str, Any]:
     import candidate_media_pulse as contract
     return identity(post_type="candidate_media_pulse", family="candidate", late_bound=True,
-        metric_id=contract.METRIC_ID, aggregation_unit=contract.AGGREGATION_UNIT,
-        denominator_id=contract.DENOMINATOR_ID, window_mode=contract.WINDOW_MODE,
+        metric_id=product.lane if product else contract.METRIC_ID,
+        aggregation_unit=contract.AGGREGATION_UNIT,
+        denominator_id=contract.DENOMINATOR_ID,
+        window_mode=product.window_mode if product else contract.WINDOW_MODE,
         window_start=product.current_start if product else None,
         window_end=product.current_end if product else None,
+        comparison_start=product.previous_start if product else None,
+        comparison_end=product.previous_end if product else None,
         canonical_url=product.destination_url if product else None)
 
 

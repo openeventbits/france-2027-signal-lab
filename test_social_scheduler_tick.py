@@ -410,7 +410,9 @@ class SchedulerTickTests(unittest.TestCase):
         state = self.instruction_state(contract.slot_instruction(self.day))
         product = SimpleNamespace(locale="fr", slot="16:45", product_id=f"{contract.PRODUCT_TYPE}:fresh:{self.day}:fr",
             text="Fresh candidate", score=1, current_start="2026-09-30", current_end=self.day.isoformat(),
-            destination_url="https://france2027.app/candidates/fresh/")
+            destination_url="https://france2027.app/candidates/fresh/",
+            lane="campaign_attention", window_mode="complete_day",
+            previous_start="2026-09-29", previous_end="2026-09-29")
         before = copy.deepcopy(state)
         with (patch.object(contract, "load_json", return_value={}),
               patch.object(contract, "build_product", return_value=product) as build,

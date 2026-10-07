@@ -1,5 +1,4 @@
 import json
-import re
 import unittest
 from dataclasses import replace
 from pathlib import Path
@@ -62,14 +61,14 @@ class NewsroomProductTests(
             for window in ("complete_day", "complete_week"):
                 snapshot = build(payload, window_mode=window)
                 excluded = MODULE.AGENDA_EXCLUDED_SOCIAL_IDS if family == "agenda" else ()
-                movers = MODULE.contract.rank_movers(snapshot, limit=5,
+                movers = MODULE.contract.rank_movers(snapshot, limit=1,
                     excluded_entity_ids=excluded, require_full=True)
-                if len(movers) == 5 and sum(abs(row.display_delta) >= .1 for row in movers) >= 3:
+                if len(movers) == 1 and abs(movers[0].display_delta) >= .1:
                     expected.add((family, "movers", window))
-                limit = 3 if family == "agenda" else 5
+                limit = 1
                 leaders = MODULE.contract.rank_current_share(snapshot, limit=limit,
                     excluded_entity_ids=excluded, require_full=True)
-                if len(leaders) == limit and sum(row.current_display > 0 for row in leaders) >= 3:
+                if len(leaders) == limit and sum(row.current_display > 0 for row in leaders) >= 1:
                     expected.add((family, "dominance", window))
 
         self.assertEqual(
@@ -94,46 +93,54 @@ class NewsroomProductTests(
                     self.assertIsNotNone(MODULE._make_product(snapshot=qualified, family=family,
                         rank_kind=rank, locale="fr"))
 
-    def test_no_fake_24h_language(self):
-        for locale in (
-            "fr",
-            "en",
-        ):
-            for product in self.products(
-                locale
-            ):
-                text = product.text.lower()
+    def test_daily_headline_matches_actual_complete_dates(self):
+        for product in self.products():
+            expected = "7 JOURS · VS 7 JOURS PRÉCÉDENTS" if product.window_mode == "complete_week" else "24 H · VS 24 H PRÉCÉDENTES"
+            if product.rank_kind == "movers":
+                self.assertIn(expected, product.text)
+            self.assertEqual(len(product.rows), 1)
 
-                self.assertNotIn(
-                    "24h",
-                    text,
-                )
-                self.assertNotIn(
-                    "24 h",
-                    text,
-                )
-                self.assertNotIn(
-                    "last 24",
-                    text,
-                )
+    def test_evidence_uses_source_day_contract(self):
+        for product in self.products():
+            row = product.rows[0]
+            self.assertIn("jours-sources", product.text)
+            self.assertNotIn("articles classés", product.text)
+            if product.family == "issues":
+                self.assertIn("Un même article peut relever de plusieurs enjeux.", product.text)
+            if product.rank_kind == "movers":
+                self.assertIn(f"contre {row.previous_evidence}/{row.previous_denominator}", product.text)
+                self.assertIn("Écart :", product.text)
 
-    def test_normal_posts_do_not_expose_raw_counts(self):
-        ratio = re.compile(
-            r"\b\d+/\d+\b"
-        )
+    def test_reference_shape_and_signed_delta(self):
+        snapshot = MODULE.contract.build_agenda_metric_snapshot(self.agenda, window_mode="complete_week")
+        reference = replace(snapshot.rows[0], entity_id="selection_strategy",
+            label_fr="Primaires et stratégies partisanes", current_evidence=98,
+            current_denominator=165, current_display=59.4, previous_evidence=197,
+            previous_denominator=265, previous_display=74.3, display_delta=-14.9)
+        snapshot = replace(snapshot, rows=(reference,))
+        rendered = MODULE._make_product(snapshot=snapshot, family="agenda", rank_kind="movers", locale="fr")
+        self.assertIn("Primaires et stratégies partisanes : 98/165 jours-sources affectés aux thèmes de l’agenda (59,4 %), contre 197/265 (74,3 %). Écart : −14,9 pts.", rendered.text)
+        positive = replace(reference, display_delta=14.9, current_display=74.3, previous_display=59.4,
+                           current_evidence=197, current_denominator=265, previous_evidence=98, previous_denominator=165)
+        result = MODULE._make_product(snapshot=replace(snapshot, rows=(positive,)), family="agenda", rank_kind="movers", locale="fr")
+        self.assertIn("Écart : +14,9 pts.", result.text)
 
-        for locale in (
-            "fr",
-            "en",
-        ):
-            for product in self.products(
-                locale
-            ):
-                self.assertIsNone(
-                    ratio.search(
-                        product.text
-                    )
-                )
+    def test_issue_positive_and_negative_evidence(self):
+        snapshot = MODULE.contract.build_issue_metric_snapshot(self.issues, window_mode="complete_day")
+        for delta in (6.3, -6.3):
+            row = replace(snapshot.rows[0], label_fr="Pouvoir d’achat", current_evidence=23,
+                current_denominator=63, previous_evidence=19, previous_denominator=63,
+                current_display=36.5, previous_display=30.2, display_delta=delta)
+            result = MODULE._make_product(snapshot=replace(snapshot, rows=(row,)), family="issues", rank_kind="movers", locale="fr")
+            self.assertIn("présence dans 23 des 63 jours-sources", result.text)
+            self.assertIn("contre 19/63 (30,2 %)", result.text)
+            self.assertIn(MODULE._fr_delta(delta), result.text)
+
+    def test_daily_gap_does_not_claim_previous_24h(self):
+        snapshot = MODULE.contract.build_agenda_metric_snapshot(self.agenda, window_mode="complete_day")
+        snapshot = replace(snapshot, previous_start="2026-09-01", previous_end="2026-09-01")
+        result = MODULE._make_product(snapshot=snapshot, family="agenda", rank_kind="dominance", locale="fr")
+        self.assertNotIn("24 H", result.text)
 
     def test_every_product_fits_x(self):
         for locale in (
@@ -290,66 +297,29 @@ class NewsroomProductTests(
                         text,
                     )
 
-    def test_dominance_shows_current_period_only(self):
-        for locale in (
-            "fr",
-            "en",
-        ):
-            for product in self.products(
-                locale
-            ):
-                lines = product.text.splitlines()
+    def test_dominance_has_no_invented_comparison(self):
+        for product in self.products():
+            if product.rank_kind == "dominance":
+                self.assertNotIn("contre", product.text)
+                self.assertNotIn("Écart", product.text)
+                self.assertIn("le thème le plus présent", product.text)
 
-                self.assertGreaterEqual(
-                    len(lines),
-                    2,
-                )
+    def test_french_posts_have_no_dashboard_clutter(self):
+        for product in self.products():
+            for clutter in ("↑", "↓", "👀", "📡", "📊", " & "):
+                self.assertNotIn(clutter, product.text)
 
-                period_line = lines[1]
-
-                if product.rank_kind == "dominance":
-                    self.assertNotIn(
-                        " vs ",
-                        period_line,
-                    )
-
-                if product.rank_kind == "movers":
-                    self.assertIn(
-                        " vs ",
-                        period_line,
-                    )
-
-    def test_zero_delta_movers_render_as_stable(self):
-        found = False
-
-        for locale in (
-            "fr",
-            "en",
-        ):
-            for product in self.products(
-                locale
-            ):
-                if product.rank_kind != "movers":
-                    continue
-
-                zero_rows = [
-                    row
-                    for row in product.rows
-                    if row.display_delta == 0
-                ]
-
-                if not zero_rows:
-                    continue
-
-                found = True
-
-                for row in zero_rows:
-                    self.assertIn(
-                        f"• {row.label} — stable",
-                        product.text,
-                    )
-
-        self.assertTrue(found)
+    def test_english_products_keep_the_existing_ranked_format(self):
+        for product in self.products("en"):
+            expected = 3 if product.family == "agenda" and product.rank_kind == "dominance" else 5
+            self.assertEqual(len(product.rows), expected)
+            self.assertNotIn("24 H", product.text)
+            self.assertIn(MODULE._boundary(product.family, "en"), product.text)
+            if product.rank_kind == "movers":
+                self.assertIn(" vs ", product.text.splitlines()[1])
+                for row in product.rows:
+                    if row.display_delta == 0:
+                        self.assertIn(f"• {row.label} — stable", product.text)
 
     def test_products_are_deterministic(self):
         first = self.products()

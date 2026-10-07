@@ -254,9 +254,9 @@ class IssueSharedMetricTests(unittest.TestCase):
                     product.weighted_length,
                     newsroom_products.MAX_X_WEIGHTED_LENGTH,
                 )
-                self.assertEqual(len(product.rows), 5)
+                self.assertEqual(len(product.rows), 1 if locale == "fr" else 5)
                 self.assertTrue(product.text.endswith(product.destination_url))
-                boundary = "Couverture suivie · multilabel · ≠ opinion." if locale == "fr" else "Coverage · multilabel · ≠ opinion."
+                boundary = "Un même article peut relever de plusieurs enjeux." if locale == "fr" else "Coverage · multilabel · ≠ opinion."
                 self.assertIn(boundary, product.text)
                 self.assertEqual(product.metric_id, "issues_source_day_incidence_" + product.window_mode)
 

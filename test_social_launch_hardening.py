@@ -210,8 +210,14 @@ class LaunchHardeningTests(unittest.TestCase):
     def test_candidate_metadata_uses_actual_resolved_period_and_destination(self):
         period = load("candidate_signals.json")["visibility"]["current_period"]
         product = SimpleNamespace(current_start=period["start_date"], current_end=period["end_date"],
-                                  destination_url="https://france2027.app/candidates/raphael-glucksmann/")
+                                  destination_url="https://france2027.app/candidates/raphael-glucksmann/",
+                                  lane="general_visibility", window_mode="complete_day",
+                                  previous_start="2026-10-04", previous_end="2026-10-04")
         m = metadata.candidate(product)
+        self.assertEqual(m["metric_id"], product.lane)
+        self.assertEqual(m["window_mode"], product.window_mode)
+        self.assertEqual((m["comparison_start"], m["comparison_end"]),
+                         (product.previous_start, product.previous_end))
         self.assertEqual((m["window_start"], m["window_end"]), (product.current_start, product.current_end))
         self.assertEqual(m["canonical_url"], product.destination_url)
         self.assertTrue(m["late_bound"])

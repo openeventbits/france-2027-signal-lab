@@ -18,7 +18,7 @@ Daily core queue:
 - 11:30 — English movers.
 - 12:15 Tuesday–Sunday — French Agenda movers, when qualified and fresh.
 - 14:30 Tuesday–Sunday — French rotating Issues/Agenda dominance, when eligible.
-- 16:45 — French current candidate dossier Media Pulse, resolved at execution.
+- 16:45 — French candidate visibility comparison, resolved at execution.
 - 18:30 — French conditional Radar Médias, resolved at execution.
 - 19:30 — English movers from a distinct family.
 
@@ -54,27 +54,35 @@ Monday–Sunday week versus the preceding complete week. The French flagship
 replaces the three specialist slots even if it skips. The incomplete UTC day
 is excluded from both families.
 
-The 16:45 `candidate_media_pulse_current` product uses only the reported current
-`campaign_attention.share` in `candidate_signals.json`, ranked by the dossier's
-displayed percentage, then internal record count, then candidate ID. Eligible
-candidates come from the canonical active-monitoring rule: main/secondary and
-present upstream. Unobserved/null shares are excluded rather than shown as zero.
+The existing 16:45 `candidate_media_pulse_current` product compares canonical
+`candidate_visibility_history.json` counts in both `general_visibility` (outside
+campaign coverage) and `campaign_attention` (election/campaign coverage). On
+Tuesday–Sunday it compares yesterday UTC with the immediately preceding complete
+UTC day. Monday replaces that daily comparison with the latest seven complete
+UTC days versus the preceding seven. Weekly shares divide summed numerators by
+summed denominators; they never average daily percentages.
 
-This candidate snapshot retains the dossier's exact seven inclusive UTC dates,
-including its potentially incomplete generation day, even on Monday. Its end
-date must equal today's Paris date. Before emitting it, the selected dossier's
-share, record count and period must match, and exactly one canonical French
-candidate-detail route must exist. Missing/stale sources or failed parity leave
-16:45 empty; there is no substitute or runner-up on a parity failure.
+Eligible candidates still come from the canonical active-monitoring registry:
+main/secondary and present upstream. Signals supply current-day reported-evidence
+readiness, not metric values. The strongest absolute percentage-point movement
+wins, then combined candidate evidence, candidate ID and general-before-campaign
+lane order. History must satisfy its existing complete UTC-day contract, end
+yesterday UTC and have positive daily denominators for the comparison.
 
-The candidate copy exposes no counts or movements. Candidate associations are
-non-exclusive and do not measure support. The morning queue stores only the
-dated instruction `candidate_media_pulse_current:slot:{Paris_date}:fr`, with empty
-text. At 16:45 it reads fresh checked-out signals, registry, routes and dossier
-data, then repeats eligibility, ranking, freshness, parity, URL and length checks.
-Failure skips publication without using any morning preview or legacy frozen text.
-After successful publication, the receipt retains the exact sent text and key
-`candidate_media_pulse_current:{candidate_id}:{current_period_end}:fr`.
+The morning queue still stores only
+`candidate_media_pulse_current:slot:{Paris_date}:fr`, with empty text. At execution
+it reads fresh history, Signals, registry and routes, checks eligibility,
+freshness, identity, the exact canonical French URL and the existing weighted
+280-character limit. Unavailable inputs skip without Buffer access or frozen
+copy reuse. Successful receipts keep the exact sent text and the existing key
+`candidate_media_pulse_current:{candidate_id}:{Paris_date}:fr`.
+
+French Agenda and Issues captions select one observation using the existing
+ranking functions. Comparisons retain current/previous evidence and denominators,
+percentages and signed changes; dominance describes only the current period.
+Public copy uses the existing “jours-sources” vocabulary and natural full labels.
+The Issues caveat retains its multilabel meaning. Candidate copy describes
+non-exclusive shares of candidate-linked articles, never electoral support.
 
 Issues consume `issue_page_contract.py`: distinct Issue source-days divided by
 all accepted relevant-news source-days for the same window. Issues are
@@ -88,7 +96,7 @@ current displayed percentage minus previous displayed percentage.
 `signal_engine.py` is a legacy article-share/historical-candidate preview tool.
 The scheduled V2.1 planner, queue and runner do not import or invoke it. Explicit
 legacy helper access lazily imports it for older callers; it is not a fallback
-when current authorities fail. Candidate daily/weekly movers remain deferred.
+when current authorities fail.
 
 The public wording must describe the actual measurement window.
 
@@ -174,7 +182,7 @@ The frozen-input graph is:
 | `campaign_events.json` | Reviewed manual events/updates, institutional seeds and sources; candidate-universe rebuilds on registry changes; Validate campaign events checks synchronization | Frozen event roundup |
 | `route_registry.json` | Poll, issue, agenda and candidate publication writers | Canonical frozen destinations |
 | `recent_changes.json` | News Wire and polls writers | Read for diagnostics; `max_updates=0` supplies no frozen content |
-| `candidate_signals.json`, candidate registry, dossiers | News/polls/universe and candidate-family writers | Optional morning preview; Candidate content remains late-bound |
+| `candidate_visibility_history.json`, `candidate_signals.json`, candidate registry | News/polls/universe and candidate-family writers | Optional morning preview; Candidate content remains late-bound |
 
 Live event, fallback and manual `build-queue` runs acquire the existing
 `production-data-update` lock **before checkout**, retaining it through input
@@ -285,8 +293,9 @@ Newsroom values are copied from canonical product objects without new metric
 arithmetic. `rank_kind` retains the existing `movers`/`dominance` vocabulary.
 Candidate and Radar boundaries are unresolved/null until successful execution;
 Candidate's URL is also unresolved until fresh selection. The composite flagship
-has no single metric, aggregation unit or denominator. Dominance, Candidate and
-Radar have no dated comparison pair; events have no analytical metric/window.
+has no single metric, aggregation unit or denominator. Resolved Candidate metadata
+records the selected lane, horizon and comparison dates. Dominance and Radar have
+no dated comparison pair; events have no analytical metric/window.
 
 Queue, planner and social state stay at schema version 1. Existing readers
 already accept extra fields. Missing metadata is valid for old items; loading

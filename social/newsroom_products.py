@@ -11,7 +11,7 @@ import json
 import re
 import sys
 from dataclasses import asdict, dataclass
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -114,6 +114,8 @@ class NewsroomRow:
     display_delta: float
     previous_evidence: int
     current_evidence: int
+    previous_denominator: int
+    current_denominator: int
 
 
 @dataclass(frozen=True)
@@ -344,29 +346,12 @@ def _headline(
     )
 
     if locale == "fr":
-        if family == "issues":
-            if rank_kind == "movers":
-                return (
-                    "ENJEUX · ÉVOLUTIONS DE LA SEMAINE 📊"
-                    if weekly
-                    else "ENJEUX · ÉVOLUTIONS DU JOUR 📡"
-                )
-
-            return (
-                "ENJEUX · LES PLUS PRÉSENTS 👀"
-            )
-
-        if family == "agenda":
-            if rank_kind == "movers":
-                return (
-                    "AGENDA 2027 · ÉVOLUTIONS DE LA SEMAINE 📊"
-                    if weekly
-                    else "AGENDA 2027 · ÉVOLUTIONS DU JOUR 📡"
-                )
-
-            return (
-                "AGENDA 2027 · THÈMES LES PLUS PRÉSENTS 👀"
-            )
+        name = "ENJEUX DE CAMPAGNE" if family == "issues" else "AGENDA DE CAMPAGNE"
+        horizon = "7 JOURS" if weekly else "24 H"
+        if rank_kind == "movers":
+            comparison = "7 JOURS PRÉCÉDENTS" if weekly else "24 H PRÉCÉDENTES"
+            return f"{name} · {horizon} · VS {comparison}"
+        return f"{name} · LE PLUS PRÉSENT · {horizon}"
 
     if locale == "en":
         if family == "issues":
@@ -402,12 +387,12 @@ def _boundary(
     if locale == "fr":
         if family == "issues":
             return (
-                "Couverture suivie · multilabel · ≠ opinion."
+                "Un même article peut relever de plusieurs enjeux."
             )
 
         if family == "agenda":
             return (
-                "Couverture suivie · ≠ priorités déclarées."
+                "Couverture de campagne, pas priorités déclarées des candidats."
             )
 
     if locale == "en":
@@ -466,7 +451,7 @@ def _newsroom_rows(
         output.append(
             NewsroomRow(
                 entity_id=row.entity_id,
-                label=_short_label(
+                label=fallback.replace(" & ", " et ") if locale == "fr" else _short_label(
                     row.entity_id,
                     fallback,
                     locale,
@@ -486,6 +471,8 @@ def _newsroom_rows(
                 current_evidence=(
                     row.current_evidence
                 ),
+                previous_denominator=row.previous_denominator,
+                current_denominator=row.current_denominator,
             )
         )
 
@@ -501,6 +488,41 @@ def _render_product_text(
     rows: tuple[NewsroomRow, ...],
     destination_url: str,
 ) -> str:
+    if locale == "fr":
+        headline = _headline(family=family, rank_kind=rank_kind,
+                            window_mode=snapshot.window_mode, locale=locale)
+        # A daily contract with a gap must not be described as adjacent 24 H.
+        if snapshot.window_mode == contract.WINDOW_COMPLETE_DAY and (
+            snapshot.current_start != snapshot.current_end
+            or snapshot.previous_start != snapshot.previous_end
+            or date.fromisoformat(snapshot.current_end) - date.fromisoformat(snapshot.previous_end)
+            != timedelta(days=1)
+        ):
+            headline = headline.split(" · ")[0] + " · " + _period_line(
+                snapshot, locale, compare=rank_kind == "movers")
+        row = rows[0]
+        current = _fr_percent(row.current_display)
+        if family == "agenda":
+            observation = (f"{row.label} : {row.current_evidence}/{row.current_denominator} "
+                           f"jours-sources affectés aux thèmes de l’agenda ({current})")
+        else:
+            observation = (f"{row.label} : présence dans {row.current_evidence} des "
+                           f"{row.current_denominator} jours-sources de couverture "
+                           f"présidentielle suivis ({current})")
+        if rank_kind == "movers":
+            observation += (f", contre {row.previous_evidence}/{row.previous_denominator} "
+                            f"({_fr_percent(row.previous_display)}). "
+                            f"Écart : {_fr_delta(row.display_delta)}.")
+        else:
+            observation += ", soit le thème le plus présent sur la période."
+        parts = [headline, observation]
+        parts.append(_boundary(family, locale))
+        parts.append(destination_url)
+        text = "\n\n".join(parts)
+        if weighted_x_length(text) > MAX_X_WEIGHTED_LENGTH:
+            raise ValueError("French newsroom observation exceeds X weighted limit")
+        return text
+
     lines = [
         _headline(
             family=family,
@@ -614,12 +636,12 @@ def _make_product(
     if rank_kind == "movers":
         values = contract.rank_movers(
             snapshot,
-            limit=5,
+            limit=1 if locale == "fr" else 5,
             excluded_entity_ids=excluded,
             require_full=True,
         )
 
-        if len(values) != 5:
+        if len(values) != (1 if locale == "fr" else 5):
             return None
 
         meaningful = sum(
@@ -628,9 +650,8 @@ def _make_product(
             if abs(row.display_delta) >= 0.1
         )
 
-        # A "movers" post should have actual movement,
-        # not five rows of statistical noise.
-        if meaningful < 3:
+        # Keep the existing displayed-movement gate for the selected observation(s).
+        if meaningful < (1 if locale == "fr" else 3):
             return None
 
         score = max(
@@ -639,11 +660,7 @@ def _make_product(
         )
 
     elif rank_kind == "dominance":
-        limit = (
-            3
-            if family == "agenda"
-            else 5
-        )
+        limit = 1 if locale == "fr" else (3 if family == "agenda" else 5)
 
         values = contract.rank_current_share(
             snapshot,
