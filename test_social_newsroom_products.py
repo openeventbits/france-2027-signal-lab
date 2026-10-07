@@ -104,6 +104,9 @@ class NewsroomProductTests(
         for product in self.products():
             row = product.rows[0]
             self.assertIn("jours-sources", product.text)
+            self.assertIn(f"{row.current_evidence}/{row.current_denominator}", product.text)
+            self.assertIn(MODULE._fr_percent(row.current_display), product.text)
+            self.assertIn(product.destination_url, product.text)
             self.assertNotIn("articles classés", product.text)
             if product.family == "issues":
                 self.assertIn("Un même article peut relever de plusieurs enjeux.", product.text)
@@ -119,7 +122,7 @@ class NewsroomProductTests(
             previous_denominator=265, previous_display=74.3, display_delta=-14.9)
         snapshot = replace(snapshot, rows=(reference,))
         rendered = MODULE._make_product(snapshot=snapshot, family="agenda", rank_kind="movers", locale="fr")
-        self.assertIn("Primaires et stratégies partisanes : 98/165 jours-sources affectés aux thèmes de l’agenda (59,4 %), contre 197/265 (74,3 %). Écart : −14,9 pts.", rendered.text)
+        self.assertIn("Primaires et stratégies partisanes : 98/165 jours-sources (59,4 %), contre 197/265 (74,3 %). Écart : −14,9 pts.", rendered.text)
         positive = replace(reference, display_delta=14.9, current_display=74.3, previous_display=59.4,
                            current_evidence=197, current_denominator=265, previous_evidence=98, previous_denominator=165)
         result = MODULE._make_product(snapshot=replace(snapshot, rows=(positive,)), family="agenda", rank_kind="movers", locale="fr")
@@ -132,7 +135,7 @@ class NewsroomProductTests(
                 current_denominator=63, previous_evidence=19, previous_denominator=63,
                 current_display=36.5, previous_display=30.2, display_delta=delta)
             result = MODULE._make_product(snapshot=replace(snapshot, rows=(row,)), family="issues", rank_kind="movers", locale="fr")
-            self.assertIn("présence dans 23 des 63 jours-sources", result.text)
+            self.assertIn("présence dans 23/63 jours-sources suivis", result.text)
             self.assertIn("contre 19/63 (30,2 %)", result.text)
             self.assertIn(MODULE._fr_delta(delta), result.text)
 
@@ -152,7 +155,7 @@ class NewsroomProductTests(
             ):
                 self.assertLessEqual(
                     product.weighted_length,
-                    MODULE.MAX_X_WEIGHTED_LENGTH,
+                    270 if locale == "fr" else MODULE.MAX_X_WEIGHTED_LENGTH,
                     msg=(
                         product.product_id
                         + "\n"
@@ -166,6 +169,16 @@ class NewsroomProductTests(
                         product.text
                     ),
                 )
+
+        self.assertEqual(MODULE.MAX_FR_X_WEIGHTED_LENGTH, 280)
+        self.assertEqual(MODULE.weighted_x_length("− https://example.com/"), 26)
+
+    def test_french_observation_rejects_standard_x_overflow(self):
+        snapshot = MODULE.contract.build_agenda_metric_snapshot(self.agenda, window_mode="complete_day")
+        row = replace(snapshot.rows[0], label_fr="Thème " * 50, display_delta=10.0)
+        with self.assertRaisesRegex(ValueError, "French newsroom observation exceeds"):
+            MODULE._make_product(snapshot=replace(snapshot, rows=(row,)), family="agenda",
+                                 rank_kind="movers", locale="fr")
 
     def test_agenda_products_exclude_polling_topic(self):
         for product in self.products():

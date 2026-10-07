@@ -23,9 +23,10 @@ if str(ROOT) not in sys.path:
 import coverage_metric_contract as contract
 
 
-# FR27 editorial safety ceiling for Premium long-form X newsroom products.
-# This is deliberately stricter than the account/platform capability.
+# Preserve the existing English newsroom ceiling; French observations use
+# the standard X limit and aim for 270 weighted characters in editorial tests.
 MAX_X_WEIGHTED_LENGTH = 1000
+MAX_FR_X_WEIGHTED_LENGTH = 280
 X_URL_WEIGHT = 23
 URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
 
@@ -151,15 +152,20 @@ class NewsroomProduct:
 
 
 def weighted_x_length(text: str) -> int:
+    def character_weight(character: str) -> int:
+        value = ord(character)
+        return 1 if (value <= 0x10FF or 0x2000 <= value <= 0x200D
+                     or 0x2010 <= value <= 0x201F or 0x2032 <= value <= 0x2037) else 2
+
     total = 0
     cursor = 0
 
     for match in URL_RE.finditer(text):
-        total += len(text[cursor:match.start()])
+        total += sum(character_weight(c) for c in text[cursor:match.start()])
         total += X_URL_WEIGHT
         cursor = match.end()
 
-    total += len(text[cursor:])
+    total += sum(character_weight(c) for c in text[cursor:])
 
     return total
 
@@ -392,7 +398,7 @@ def _boundary(
 
         if family == "agenda":
             return (
-                "Couverture de campagne, pas priorités déclarées des candidats."
+                "Couverture, pas priorités déclarées des candidats."
             )
 
     if locale == "en":
@@ -504,11 +510,10 @@ def _render_product_text(
         current = _fr_percent(row.current_display)
         if family == "agenda":
             observation = (f"{row.label} : {row.current_evidence}/{row.current_denominator} "
-                           f"jours-sources affectés aux thèmes de l’agenda ({current})")
+                           f"jours-sources ({current})")
         else:
-            observation = (f"{row.label} : présence dans {row.current_evidence} des "
-                           f"{row.current_denominator} jours-sources de couverture "
-                           f"présidentielle suivis ({current})")
+            observation = (f"{row.label} : présence dans {row.current_evidence}/"
+                           f"{row.current_denominator} jours-sources suivis ({current})")
         if rank_kind == "movers":
             observation += (f", contre {row.previous_evidence}/{row.previous_denominator} "
                             f"({_fr_percent(row.previous_display)}). "
@@ -519,7 +524,7 @@ def _render_product_text(
         parts.append(_boundary(family, locale))
         parts.append(destination_url)
         text = "\n\n".join(parts)
-        if weighted_x_length(text) > MAX_X_WEIGHTED_LENGTH:
+        if weighted_x_length(text) > MAX_FR_X_WEIGHTED_LENGTH:
             raise ValueError("French newsroom observation exceeds X weighted limit")
         return text
 

@@ -234,6 +234,12 @@ class CandidateMediaPulseTests(unittest.TestCase):
         self.assertEqual(selected.delta_pp, -43.7)
         self.assertNotEqual(selected.current_percentage, round((6*50+1)/7, 1))
         self.assertIn("7 JOURS · VS 7 JOURS PRÉCÉDENTS", selected.text)
+        self.assertLessEqual(selected.weighted_length, 270)
+        self.assertNotIn("articles", selected.text)
+        self.assertNotIn("mentions", selected.text)
+        self.assertIn("hors campagne", selected.text)
+        self.assertIn("pas intentions de vote", selected.text)
+        self.assertIn(selected.destination_url, selected.text)
         self.assertEqual((selected.current_start, selected.current_end), ("2026-10-05", "2026-10-11"))
         self.assertEqual((selected.previous_start, selected.previous_end), ("2026-09-28", "2026-10-04"))
 
@@ -272,11 +278,12 @@ class CandidateMediaPulseTests(unittest.TestCase):
             self.only("raphael-glucksmann")
             self.point("raphael-glucksmann", lane, -1, 10)
             selected = self.build()
-            self.assertLessEqual(selected.weighted_length, 280)
+            self.assertLessEqual(selected.weighted_length, 270)
             self.assertEqual(selected.weighted_length, product.weighted_x_length(selected.text))
             for token in ("contre", "Écart", "pas intentions de vote", selected.destination_url):
                 self.assertIn(token, selected.text)
-            for forbidden in ("👀", "↑", "↓", "popularité", "momentum", "#"):
+            self.assertIn("hors campagne" if lane == product.GENERAL_LANE else "visibilité de campagne", selected.text)
+            for forbidden in ("articles", "mentions", "👀", "↑", "↓", "popularité", "momentum", "#"):
                 self.assertNotIn(forbidden, selected.text)
         self.assertEqual(product.weighted_x_length("👀≠"), 4)
 

@@ -82,7 +82,8 @@ ranking functions. Comparisons retain current/previous evidence and denominators
 percentages and signed changes; dominance describes only the current period.
 Public copy uses the existing “jours-sources” vocabulary and natural full labels.
 The Issues caveat retains its multilabel meaning. Candidate copy describes
-non-exclusive shares of candidate-linked articles, never electoral support.
+measured visibility among followed candidates, never electoral support. Its
+contract counts candidate-linked records, not unique articles or mentions.
 
 Issues consume `issue_page_contract.py`: distinct Issue source-days divided by
 all accepted relevant-news source-days for the same window. Issues are
@@ -303,11 +304,9 @@ does not enrich or rewrite historical queues or receipts. Published status,
 Buffer IDs, seen registries, Radar fingerprints and flagship week receipts stay
 intact. Rebuilding today's queue returns the same object, including old items.
 
-Issues and Agenda newsroom products may exceed 280 weighted X characters
-because the connected X account has Premium long-post capability.
-`newsroom_products.py` applies a conservative 1000 weighted-character FR27
-editorial safety ceiling for these products; this is an internal editorial
-rule, not the platform maximum.
+French Issues and Agenda observations fit the standard 280 weighted X character
+limit, with an editorial target of 270. Candidate visibility uses the same limit.
+The existing English newsroom format retains its 1000 weighted-character ceiling.
 
 Compact products retain their existing 280-character contracts unless
 explicitly migrated: Candidate Media Pulse, Radar Médias, weekly flagship,

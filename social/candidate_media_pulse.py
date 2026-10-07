@@ -218,19 +218,12 @@ def build_product(
     horizon = "7 JOURS · VS 7 JOURS PRÉCÉDENTS" if days == 7 else "24 H · VS 24 H PRÉCÉDENTES"
     # Lane denominator counts records once even with multiple candidate matches.
     # It is not the sum of candidate shares, nor an active-field-only denominator.
-    base = "des articles de campagne liés aux candidats suivis" if campaign else "des articles hors campagne liés aux candidats suivis"
+    base = "de la visibilité de campagne mesurée parmi les candidats suivis" if campaign else "de la visibilité mesurée hors campagne parmi les candidats suivis"
     boundary = "Visibilité de campagne, pas intentions de vote." if campaign else "Visibilité médiatique, pas intentions de vote."
     text = (f"{title} · {horizon}\n\n"
             f"{name} : {_fr_percent(current)} {base}, contre {_fr_percent(previous)}. "
             f"Écart : {_fr_delta(delta)}.\n\n{boundary}\n\n{canonical}")
     length = weighted_x_length(text)
-    if length > MAX_X_WEIGHTED_LENGTH:
-        # The headline and boundary already identify the lane; shorten only the base.
-        text = text.replace(base, "des articles liés aux candidats suivis")
-        # General's out-of-campaign scope must remain explicit.
-        if not campaign:
-            text = text.replace("Visibilité médiatique,", "Visibilité hors campagne,")
-        length = weighted_x_length(text)
     if length > MAX_X_WEIGHTED_LENGTH:
         raise ValueError("candidate Media Pulse exceeds X weighted limit")
     return CandidateMediaPulseProduct(
