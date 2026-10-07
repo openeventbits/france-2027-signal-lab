@@ -155,6 +155,58 @@ matching producer timestamps, exact weeks and published-page parity.
 A same-day rebuild returns the already persisted queue rather than selecting
 new core posts.
 
+### Event-driven morning planning
+
+`Publish FR27 to X` follows successful main-branch completions of the News Wire,
+polls, candidate-universe, issue, agenda and candidate-family workflows, plus
+Campaign Events validation. These completions are retry opportunities. None is
+assumed to be the last producer. The existing **08:25 Europe/Paris** build
+schedule remains a fallback. Failed/cancelled upstreams, pull-request runs,
+forks and other branches are inert. Every automatic run still requires
+`FR27_SOCIAL_ENABLED == 'true'`.
+
+The frozen-input graph is:
+
+| Queue input | Author / dependency | Role |
+| --- | --- | --- |
+| `issue_coverage_history.json` | Publish issue family, reconstructed from retained/current News Wire | Frozen Issues and English products |
+| `agenda_coverage_history.json` | Publish agenda family, reconstructed from retained/current News Wire | Frozen Agenda and English products |
+| `campaign_events.json` | Reviewed manual events/updates, institutional seeds and sources; candidate-universe rebuilds on registry changes; Validate campaign events checks synchronization | Frozen event roundup |
+| `route_registry.json` | Poll, issue, agenda and candidate publication writers | Canonical frozen destinations |
+| `recent_changes.json` | News Wire and polls writers | Read for diagnostics; `max_updates=0` supplies no frozen content |
+| `candidate_signals.json`, candidate registry, dossiers | News/polls/universe and candidate-family writers | Optional morning preview; Candidate content remains late-bound |
+
+Live event, fallback and manual `build-queue` runs acquire the existing
+`production-data-update` lock **before checkout**, retaining it through input
+verification, queue construction, optional Buffer handoff and state persistence.
+The separate outer `fr27-social-publish` lock still serializes all social state
+writers. Both use `cancel-in-progress: false` and `queue: max`; readiness never
+depends on queue ordering or on GITHUB_TOKEN pushes triggering a push workflow.
+
+`planner_readiness.py` starts daily planning at 06:00 Paris, requires today's
+news snapshot to be no more than six hours old (and never future-dated), requires
+both histories to match its exact timestamp, then runs each history/page
+builder's read-only `--check` and the route-registry check. Campaign Events are
+reproduced locally into a temporary file from their authoritative inputs and
+compared with the tracked artifact. No remote source or Buffer is fetched.
+Long-lived event timestamps are allowed when content remains synchronized.
+
+A failed barrier resolves to `planner-deferred`: no persistent social state is
+accessed and no Buffer configuration, reconciliation or scheduling step runs.
+A successful barrier writes a temporary snapshot digest receipt. The live build
+rechecks those digests and records the receipt in the frozen queue. Repeated
+builds preserve both frozen text and the original receipt. An existing same-day
+queue without a readiness receipt is refused, rather than being relabeled after
+its inputs change; it can safely roll over on a later day subject to the existing
+unresolved-delivery guard. Dry-run builds retain their existing preview behavior.
+
+Missing/false `FR27_BUFFER_SCHEDULING_ENABLED` permits queue construction and
+persistence without Buffer credentials or API calls. Explicit true permits the
+existing scheduled-delivery path after readiness and receipt validation. Existing
+receipt recovery, late-bound products, shareNow recovery and both 60-minute
+lateness guards remain unchanged. This implementation does not activate either
+production flag.
+
 ### Manual weekly catch-up
 
 The regular French flagship remains Monday at **09:30 Europe/Paris**. A missed
