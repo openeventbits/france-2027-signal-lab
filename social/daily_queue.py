@@ -18,6 +18,7 @@ import radar_media
 import weekly_flagship
 import queue_metadata
 import social_publish
+import planner_readiness
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1538,10 +1539,21 @@ def run_build(
         state
     )
 
+    proof = None
+    if getattr(args, "readiness_proof", None):
+        proof = _load_json(Path(args.readiness_proof))
+        planner_readiness.validate_proof(proof, root=ROOT, now=now)
+        current = queue_from_state(state)
+        if current is not None and current["date"] == _paris_date(now):
+            planner_readiness.validate_queue_proof(current.get("planner_readiness"), queue_date=current["date"])
+
     queue = build_queue(
         state=state,
         now=now,
     )
+
+    if proof is not None and "planner_readiness" not in queue:
+        queue["planner_readiness"] = proof
 
     save_state(
         output_path,
@@ -2590,6 +2602,7 @@ def build_parser():
     build.add_argument(
         "--now",
     )
+    build.add_argument("--readiness-proof", help="require a verified planner snapshot receipt")
 
     build.set_defaults(
         func=run_build
