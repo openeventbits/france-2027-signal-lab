@@ -46,6 +46,15 @@ class PostAuditFirstRoundCorrectionTests(unittest.TestCase):
         return rows
 
     def test_frozen_revision_and_independent_official_scenarios(self):
+        # Keep raw-byte SHA checks portable by pinning the checkout LF contract.
+        attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8").splitlines()
+        for name in (
+            "fr_mediawiki_240128358.json", "fr_mediawiki_240131611.json",
+            "notice_10284_first_round.json", "notice_10284_previous_events.json",
+        ):
+            with self.subTest(fixture=name):
+                self.assertIn(f"/test_fixtures/fr27_polling/{name} text eol=lf", attributes)
+                self.assertNotIn(b"\r", (FIXTURES / name).read_bytes())
         self.assertEqual(self.parsed["revid"], 240128358)
         self.assertEqual(
             hashlib.sha256((FIXTURES / "fr_mediawiki_240128358.json").read_bytes()).hexdigest(),
