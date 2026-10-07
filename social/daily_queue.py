@@ -1289,6 +1289,8 @@ def resolve_slot_post(
         if parts[1] == "slot" and (item.get("lane") != "candidate_slot" or item.get("text") != ""):
             raise ValueError("candidate slot instruction must not contain frozen text")
         product = candidate_media_pulse.build_product(
+            visibility_history=candidate_media_pulse.load_json(root / "candidate_visibility_history.json"),
+            utc_date=now.astimezone(timezone.utc).date(),
             candidate_signals=candidate_media_pulse.load_json(root / "candidate_signals.json"),
             candidacy_registry=candidate_media_pulse.load_json(root / "candidate_candidacy_status.json"),
             route_registry=candidate_media_pulse.load_json(root / "route_registry.json"),

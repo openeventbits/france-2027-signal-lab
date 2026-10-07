@@ -1477,9 +1477,7 @@ def build_plan(
     route_payload: dict[str, Any] | None = None,
     candidate_site_root: Path = ROOT,
 ) -> dict[str, Any]:
-    # Legacy history callers remain compatible; history is never used for
-    # the current dossier Media Pulse product.
-    _ = candidate_payload
+    # Reuse the existing historical input for the candidate preview.
     _ = max_quantitative
 
     if planner_state is None:
@@ -1576,6 +1574,9 @@ def build_plan(
     candidate_error = None
     try:
         candidate_product = candidate_media_pulse.build_product(
+            visibility_history=(candidate_payload if candidate_payload is not None
+                else candidate_media_pulse.load_json(candidate_site_root / "candidate_visibility_history.json")),
+            utc_date=now.astimezone(timezone.utc).date(),
             candidate_signals=(
                 candidate_signals_payload if candidate_signals_payload is not None
                 else candidate_media_pulse.load_json(candidate_site_root / "candidate_signals.json")

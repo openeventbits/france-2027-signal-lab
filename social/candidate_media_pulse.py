@@ -1,8 +1,7 @@
-"""Current dossier Media Pulse resolved at execution of the French 16:45 slot.
+"""Canonical candidate visibility comparison for the existing late-bound 16:45 slot.
 
-This product uses Candidate Signals, never complete-day visibility history.
-The morning queue stores an empty instruction. Invalid sources or destination
-parity cause execution to skip without substituting a different product.
+History owns counts; Signals and the active registry own readiness and eligibility.
+Missing or stale inputs leave the existing slot unavailable.
 """
 
 from __future__ import annotations
@@ -12,7 +11,7 @@ import math
 import re
 import sys
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -21,14 +20,18 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from candidate_candidacy_status import active_candidate_records
-from social.newsroom_products import _range_piece
+from candidate_visibility_history_contract import (
+    CAMPAIGN_LANE, GENERAL_LANE, validate_candidate_visibility_history,
+)
+from coverage_metric_contract import display_triplet
+from social.newsroom_products import _fr_percent, _fr_delta
 
 
 PRODUCT_TYPE = "candidate_media_pulse_current"
-METRIC_ID = "current_candidate_campaign_attention"
+METRIC_ID = "candidate_share_of_lane_records"
 AGGREGATION_UNIT = "candidate_linked_record"
-DENOMINATOR_ID = "candidate_linked_election_campaign_records"
-WINDOW_MODE = "current_dossier_7date"
+DENOMINATOR_ID = "candidate_linked_lane_records"
+WINDOW_MODE = "complete_day_or_week"
 SLOT = "16:45"
 MAX_X_WEIGHTED_LENGTH = 280
 URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
@@ -50,6 +53,17 @@ class CandidateMediaPulseProduct:
     score: float
     text: str
     weighted_length: int
+    lane: str
+    window_mode: str
+    previous_start: str
+    previous_end: str
+    previous_percentage: float
+    current_percentage: float
+    delta_pp: float
+    current_numerator: int
+    current_denominator: int
+    previous_numerator: int
+    previous_denominator: int
 
 
 @dataclass(frozen=True)
@@ -67,11 +81,7 @@ def slot_instruction(planner_date: date) -> CandidateSlotInstruction:
 
 
 def weighted_x_length(text: str) -> int:
-    """X weights for this single-emoji template, with URLs weighted as 23.
-
-    The fixed eye emoji is two units, as is the not-equal sign. The X
-    single-weight Unicode ranges also cover the registry's French names.
-    """
+    """Preserve X Unicode weights and the fixed 23-unit URL weight."""
     def text_weight(value: str) -> int:
         return sum(
             1 if (
@@ -122,102 +132,111 @@ def build_product(
     candidacy_registry: dict[str, Any],
     route_registry: dict[str, Any],
     planner_date: date,
+    visibility_history: dict[str, Any],
     site_root: Path = ROOT,
+    utc_date: date | None = None,
 ) -> CandidateMediaPulseProduct | None:
-    visibility = candidate_signals["visibility"]
-    period = visibility["current_period"]
-    start = date.fromisoformat(period["start_date"])
+    # Runtime supplies the UTC date; planner_date still owns the Paris cadence.
+    utc_date = utc_date or planner_date
+    validate_candidate_visibility_history(visibility_history)
+    period = visibility_history["period"]
     end = date.fromisoformat(period["end_date"])
-    if end != planner_date:
+    if end != utc_date - timedelta(days=1):
         return None
-    if (end - start).days != 6:
-        raise ValueError("candidate Media Pulse must use seven inclusive dates")
-    if (
-        visibility["method"] != "share_of_candidate_linked_records"
-        or visibility["primary_scopes"] != ["election", "campaign"]
-    ):
-        raise ValueError("candidate source is not dossier campaign_attention")
+    visibility = candidate_signals["visibility"]
+    if (visibility["current_period"]["end_date"] != planner_date.isoformat()
+            or visibility["method"] != "share_of_candidate_linked_records"
+            or visibility["primary_scopes"] != ["election", "campaign"]):
+        return None
+    start = date.fromisoformat(visibility["current_period"]["start_date"])
+    if (planner_date - start).days != 6:
+        raise ValueError("candidate Signals readiness requires seven inclusive dates")
 
-    active = {
-        record["candidate_id"]: record
-        for record in active_candidate_records(candidacy_registry)
-    }
-    ranked = []
-    seen = set()
-    for candidate in candidate_signals["candidates"]:
-        identifier = candidate["candidate_id"]
-        if identifier in seen:
+    days = 7 if planner_date.weekday() == 0 else 1
+    window_mode = "complete_week" if days == 7 else "complete_day"
+    current_dates = tuple((end - timedelta(days=offset)).isoformat()
+                          for offset in reversed(range(days)))
+    previous_dates = tuple((end - timedelta(days=days + offset)).isoformat()
+                           for offset in reversed(range(days)))
+    active = {row["candidate_id"]: row for row in active_candidate_records(candidacy_registry)}
+    signals = {}
+    for row in candidate_signals["candidates"]:
+        identifier = row["candidate_id"]
+        if identifier in signals:
             raise ValueError("duplicate Candidate Signals identity")
-        seen.add(identifier)
-        if identifier not in active:
+        signals[identifier] = row
+
+    ranked = []
+    # Stable general-then-campaign lane order is the final tie-break.
+    for candidate in visibility_history["candidates"]:
+        identifier = candidate["candidate_id"]
+        if identifier not in active or identifier not in signals:
             continue
-        metric = candidate["campaign_attention"]
-        share = metric.get("share")
-        if metric.get("evidence_state") != "reported" or share is None:
-            continue
-        if (
-            isinstance(share, bool)
-            or not isinstance(share, (int, float))
-            or not math.isfinite(share)
-            or not 0 <= share <= 1
-        ):
-            raise ValueError("invalid reported Media Pulse share")
-        count = metric.get("record_count")
-        if type(count) is not int or count <= 0:
-            raise ValueError("invalid reported Media Pulse record count")
         name = candidate["candidate_name"]
-        if name != active[identifier]["candidate_name"]:
-            raise ValueError("Candidate Signals name differs from registry")
-        # Match the dossier's one-decimal percentage before ranking.
-        display = float(f"{share * 100:.1f}")
-        ranked.append(((-display, -count, identifier), candidate))
+        if name != active[identifier]["candidate_name"] or name != signals[identifier]["candidate_name"]:
+            raise ValueError("candidate history identity differs from active registry or Signals")
+        for lane_index, lane in enumerate((GENERAL_LANE, CAMPAIGN_LANE)):
+            # Reuse existing reported-evidence readiness, without borrowing its values.
+            readiness = signals[identifier][lane]
+            if readiness.get("evidence_state") != "reported" or readiness.get("share") is None:
+                continue
+            share = readiness["share"]
+            if (isinstance(share, bool) or not isinstance(share, (int, float))
+                    or not math.isfinite(share) or not 0 <= share <= 1
+                    or type(readiness.get("record_count")) is not int
+                    or readiness["record_count"] <= 0):
+                raise ValueError("invalid reported candidate visibility readiness")
+            if (lane == GENERAL_LANE and
+                    visibility["general_current_period"]["end_date"] != planner_date.isoformat()):
+                continue
+            denominator = {row["date"]: row["record_count"] for row in
+                           visibility_history["lanes"][lane]["daily_denominators"]}
+            numerator = {row["date"]: row["record_count"] for row in candidate[lane]["daily_series"]}
+            required = previous_dates + current_dates
+            if any(day not in denominator or day not in numerator or denominator[day] <= 0
+                   for day in required):
+                continue
+            previous_n = sum(numerator[day] for day in previous_dates)
+            previous_d = sum(denominator[day] for day in previous_dates)
+            current_n = sum(numerator[day] for day in current_dates)
+            current_d = sum(denominator[day] for day in current_dates)
+            previous_raw = previous_n / previous_d * 100
+            current_raw = current_n / current_d * 100
+            previous, current, delta = display_triplet(previous_raw, current_raw)
+            ranked.append(((-abs(current_raw - previous_raw), -(current_n + previous_n),
+                            identifier, lane_index), candidate, lane,
+                           previous, current, delta, previous_n, previous_d, current_n, current_d))
     if not ranked:
         return None
-
-    candidate = min(ranked, key=lambda entry: entry[0])[1]
+    (_, candidate, lane, previous, current, delta,
+     previous_n, previous_d, current_n, current_d) = min(ranked, key=lambda entry: entry[0])
     identifier = candidate["candidate_id"]
     name = candidate["candidate_name"]
-    metric = candidate["campaign_attention"]
     canonical = canonical_candidate_url(route_registry, identifier)
-    dossier = load_json(site_root / "candidates" / identifier / "data.json")
-    page_metric = dossier["dossier"]["media_pulse"]
-    if (
-        dossier["candidate_id"] != identifier
-        or page_metric.get("evidence_state") != "reported"
-        or page_metric.get("share") != metric["share"]
-        or page_metric.get("record_count") != metric["record_count"]
-        or dossier["media"]["period"] != {
-            "start_date": period["start_date"],
-            "end_date": period["end_date"],
-        }
-    ):
-        raise ValueError("selected candidate dossier Media Pulse parity failed")
-
-    display = f"{metric['share'] * 100:.1f}".replace(".", ",") + " %"
-    text = (
-        "VISIBILITÉ MÉDIATIQUE 👀\n"
-        f"{_range_piece(start.isoformat(), end.isoformat(), 'fr')}\n\n"
-        f"{name} — {display}\n\n"
-        "Couverture élection + campagne suivie.\n"
-        "Associations non exclusives · ≠ soutien.\n"
-        f"{canonical}"
-    )
+    campaign = lane == CAMPAIGN_LANE
+    title = "VISIBILITÉ DE CAMPAGNE" if campaign else "VISIBILITÉ MÉDIATIQUE"
+    horizon = "7 JOURS · VS 7 JOURS PRÉCÉDENTS" if days == 7 else "24 H · VS 24 H PRÉCÉDENTES"
+    # Lane denominator counts records once even with multiple candidate matches.
+    # It is not the sum of candidate shares, nor an active-field-only denominator.
+    base = "de la visibilité de campagne mesurée parmi les candidats suivis" if campaign else "de la visibilité mesurée hors campagne parmi les candidats suivis"
+    boundary = "Visibilité de campagne, pas intentions de vote." if campaign else "Visibilité médiatique, pas intentions de vote."
+    text = (f"{title} · {horizon}\n\n"
+            f"{name} : {_fr_percent(current)} {base}, contre {_fr_percent(previous)}. "
+            f"Écart : {_fr_delta(delta)}.\n\n{boundary}\n\n{canonical}")
     length = weighted_x_length(text)
     if length > MAX_X_WEIGHTED_LENGTH:
         raise ValueError("candidate Media Pulse exceeds X weighted limit")
     return CandidateMediaPulseProduct(
-        product_id=f"{PRODUCT_TYPE}:{identifier}:{end.isoformat()}:fr",
-        product_type=PRODUCT_TYPE,
-        locale="fr",
-        slot=SLOT,
-        candidate_id=identifier,
-        candidate_name=name,
-        current_start=start.isoformat(),
-        current_end=end.isoformat(),
-        stored_share=metric["share"],
-        displayed_percentage=display,
-        destination_url=canonical,
-        score=float(f"{metric['share'] * 100:.1f}"),
-        text=text,
-        weighted_length=length,
+        # Keep the queue's established type and publication-date identity.
+        product_id=f"{PRODUCT_TYPE}:{identifier}:{planner_date.isoformat()}:fr",
+        product_type=PRODUCT_TYPE, locale="fr", slot=SLOT,
+        candidate_id=identifier, candidate_name=name,
+        current_start=current_dates[0], current_end=current_dates[-1],
+        stored_share=current_n / current_d, displayed_percentage=_fr_percent(current),
+        destination_url=canonical, score=abs(current_n / current_d * 100 - previous_n / previous_d * 100),
+        text=text, weighted_length=length, lane=lane, window_mode=window_mode,
+        previous_start=previous_dates[0], previous_end=previous_dates[-1],
+        previous_percentage=previous, current_percentage=current, delta_pp=delta,
+        current_numerator=current_n, current_denominator=current_d,
+        previous_numerator=previous_n, previous_denominator=previous_d,
     )
