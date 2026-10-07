@@ -91,6 +91,73 @@ class BufferWorkflowTests(unittest.TestCase):
                     self.workflow,
                 )
 
+    def test_independent_buffer_scheduling_flag_exists(
+        self,
+    ):
+        self.assertIn(
+            "FR27_BUFFER_SCHEDULING_ENABLED",
+            self.workflow,
+        )
+
+        self.assertGreaterEqual(
+            self.workflow.count(
+                "vars.FR27_BUFFER_SCHEDULING_ENABLED "
+                "== 'true'"
+            ),
+            5,
+        )
+
+    def test_dynamic_crons_are_distinct(
+        self,
+    ):
+        self.assertNotIn(
+            "5 9,13,17,20 * * *",
+            self.workflow,
+        )
+
+        for cron, slot in (
+            ("5 9 * * *", "09:05"),
+            ("5 13 * * *", "13:05"),
+            ("5 17 * * *", "17:05"),
+            ("5 20 * * *", "20:05"),
+        ):
+            with self.subTest(
+                cron=cron,
+                slot=slot,
+            ):
+                self.assertIn(
+                    cron,
+                    self.workflow,
+                )
+                self.assertIn(
+                    f'slot="{slot}"',
+                    self.workflow,
+                )
+
+    def test_dynamic_stale_guard_is_sixty_minutes(
+        self,
+    ):
+        self.assertIn(
+            "0.0 <= lateness <= 60.0",
+            self.workflow,
+        )
+        self.assertIn(
+            "DYNAMIC_TIMELINESS=EXPIRED",
+            self.workflow,
+        )
+        self.assertIn(
+            "REASON=DYNAMIC_SLOT_STALE",
+            self.workflow,
+        )
+
+    def test_buffer_flag_is_in_summary(
+        self,
+    ):
+        self.assertIn(
+            "FR27_BUFFER_SCHEDULING_ENABLED",
+            self.workflow,
+        )
+
     def test_scheduled_items_are_not_pending(self):
         self.assertIn(
             '"scheduled"',
