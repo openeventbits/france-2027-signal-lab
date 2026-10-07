@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import agenda_page_contract
+from live_hub_markup import live_hub_markup
 from fr27_section_launcher import ASSETS as SECTION_LAUNCHER_ASSETS, prepare_section_header
 
 from agenda_page_contract import (
@@ -1159,7 +1160,7 @@ def _hub_common(
     )
 
     body_class = "polling-page agenda-page agenda-hub-page" + (" agenda-history-page" if history else "")
-    return _document(f'''<!doctype html><html lang="{language}">{head}<body class="{body_class}"><main class="polling-shell">{header}
+    markup = f'''<!doctype html><html lang="{language}">{head}<body class="{body_class}"><main class="polling-shell">{header}
       {breadcrumb}
       <section class="polling-intro agenda-intro"><div class="polling-eyebrow">{'AGENDA · HISTORIQUE' if history and french else 'AGENDA · HISTORY' if history else 'AGENDA'}</div><div class="polling-title-row agenda-hub-title-row"><h1>{'HISTORIQUE DE L’AGENDA' if history and french else 'AGENDA HISTORY' if history else 'OBSERVATOIRE DE L’AGENDA' if french else 'CAMPAIGN AGENDA LAB'}</h1>{_tooltip('agenda-hub-method', 'Méthode' if french else 'Method', descriptor)}</div></section>
       <section class="polling-metrics agenda-metrics" aria-label="{'Indicateurs' if french else 'Metrics'}"><div class="polling-metric"><span class="polling-metric-label">{'THÈMES' if french else 'TOPICS'}</span><strong>{metric_values[0]}</strong></div><div class="polling-metric"><span class="polling-metric-label">{'ARTICLES CLASSÉS' if french else 'CLASSIFIED ITEMS'}</span><strong>{metric_values[1]}</strong></div><div class="polling-metric"><span class="polling-metric-label">{'JOURS-SOURCES' if french else 'SOURCE-DAYS'}</span><strong>{metric_values[2]}</strong></div><div class="polling-metric"><span class="polling-metric-label">{'JOURS-THÈMES ACTIFS' if history and french else 'ACTIVE TOPIC-DAYS' if history else 'MÉDIAS' if french else 'PUBLISHERS'}</span><strong>{metric_values[3]}</strong></div><div class="polling-metric polling-metric-period"><span class="polling-metric-label">{'PÉRIODE' if french else 'PERIOD'}</span><strong>{_h(_period(period_start, period_end, language))}</strong></div></section>
@@ -1167,7 +1168,10 @@ def _hub_common(
       {comparison_markup}
       {f'<section class="polling-section agenda-latest"><div class="polling-section-head"><div><div class="polling-eyebrow">{"SOURCES" if french else "SOURCE-LINKED"}</div><h2>{("OBSERVATIONS HISTORIQUES SOURCÉES" if french else "SOURCE-LINKED HISTORICAL OBSERVATIONS") if history else ("DERNIÈRES OBSERVATIONS SOURCÉES" if french else "LATEST SOURCE-LINKED OBSERVATIONS")}</h2></div><span class="polling-panel-status">{len(evidence_items)} {"ÉLÉMENTS" if french else "ITEMS"}</span></div><div class="agenda-evidence-list">{evidence_rows}</div></section>' if not history or evidence_items else ''}
       <section class="polling-section agenda-history-gateway is-compact"><div class="polling-section-head"><div><div class="polling-eyebrow">{'PROJECTION ACTUELLE' if history and french else 'CURRENT PROJECTION' if history else 'HISTORIQUE DISPONIBLE' if french else 'HISTORY AVAILABLE'}</div><h2>{'AGENDA ACTUEL' if history and french else 'CURRENT AGENDA' if history else 'HISTORIQUE DE L’AGENDA' if french else 'AGENDA HISTORY'}</h2></div><span class="polling-panel-status">{('30 J' if french else '30D') if history else f'{history_days} ' + ('JOURS' if french else 'DAYS')}</span></div><div class="agenda-history-gateway-body"><div><strong>{'REVENIR AUX 30 DERNIERS JOURS' if history and french else 'RETURN TO THE LATEST 30 DAYS' if history else '6 THÈMES SUIVIS' if french else '6 TOPICS TRACKED'}</strong><span>{_h(gateway_period)}</span></div><a class="agenda-history-gateway-cta" href="{gateway}">{'VOIR L’AGENDA ACTUEL →' if history and french else 'VIEW CURRENT AGENDA →' if history else 'EXPLORER L’HISTORIQUE →' if french else 'EXPLORE HISTORY →'}</a></div></section>
-      {shell["footer"]}</main></body></html>''')
+      {shell["footer"]}</main></body></html>'''
+    if not history:
+        markup = live_hub_markup(markup, family="agenda", projection=projection, language=language)
+    return _document(markup)
 
 
 def _current_activity_bars(topic: dict[str, Any], language: str) -> str:

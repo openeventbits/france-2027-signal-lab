@@ -24,7 +24,7 @@ class IssueFamilyAutomationContractTests(unittest.TestCase):
         self.assertTrue(WORKFLOW.is_file())
         self.assertIn("workflow_run:", self.text)
         self.assertIn('- "Update polls"', self.text)
-        self.assertIn('- "Update Election News Wire"', self.text)
+        self.assertNotIn('- "Update Election News Wire"', self.text)
         self.assertIn('- "Update candidate universe"', self.text)
         self.assertIn("github.event.workflow_run.conclusion == 'success'", self.text)
         self.assertIn("workflow_dispatch:", self.text)

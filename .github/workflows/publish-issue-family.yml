@@ -10,6 +10,7 @@ on:
       - "assets/fr27-section-launcher.js"
       - "build_issue_coverage_history.py"
       - "build_issue_pages.py"
+      - "live_hub_markup.py"
       - "issue_page_contract.py"
       - "build_route_registry.py"
       - "build_sitemaps.py"
@@ -25,7 +26,6 @@ on:
   workflow_run:
     workflows:
       - "Update polls"
-      - "Update Election News Wire"
       - "Update candidate universe"
     types:
       - completed

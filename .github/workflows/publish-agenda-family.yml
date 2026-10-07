@@ -10,6 +10,7 @@ on:
       - "assets/fr27-section-launcher.js"
       - "build_agenda_coverage_history.py"
       - "build_agenda_pages.py"
+      - "live_hub_markup.py"
       - "agenda_page_contract.py"
       - "assets/agenda.css"
       - "assets/agenda.js"
@@ -37,11 +38,10 @@ on:
       - ".github/workflows/publish-agenda-family.yml"
 
   # The production writers use GITHUB_TOKEN, so their pushes do not reliably
-  # start another push-triggered workflow. Follow the three authoritative producers.
+  # start another push-triggered workflow. Follow polls and candidate-universe producers; News Wire serves live JSON.
   workflow_run:
     workflows:
       - "Update polls"
-      - "Update Election News Wire"
       - "Update candidate universe"
     types:
       - completed

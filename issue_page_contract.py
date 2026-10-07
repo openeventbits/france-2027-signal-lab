@@ -1240,6 +1240,7 @@ def project_issue_pages(
 
     projection = {
         "schema_version": SCHEMA_VERSION,
+        "live_source_snapshot": news_wire.get("generated_at"),
         "data_as_of": period_end,
         "period": {"start": period_start, "end": period_end, "days": 30},
         "metrics": {

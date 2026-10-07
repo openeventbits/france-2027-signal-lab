@@ -48,6 +48,7 @@ jobs:
             test_campaign_agenda_evidence.py \
             test_news_corpus_ledger.py \
             test_hud_corpus_counts.py \
+            test_live_projections.py \
             test_news_workflow_contract.py \
             test_workflow_media_pulse_contract.py \
             test_recent_changes.py \
@@ -86,6 +87,11 @@ jobs:
             --candidacy-status candidate_candidacy_status.json \
             --previous candidate_agenda_history.json \
             --output /tmp/candidate_agenda_history.json
+
+          python -B build_agenda_live_projection.py --news /tmp/news_wire.json --output /tmp/agenda_live.json
+          python -B build_issue_live_projection.py --news /tmp/news_wire.json --output /tmp/issues_live.json
+          python -B build_agenda_live_projection.py --news /tmp/news_wire.json --output /tmp/agenda_live.json --check
+          python -B build_issue_live_projection.py --news /tmp/news_wire.json --output /tmp/issues_live.json --check
 
           python generate_recent_changes.py \
             --news /tmp/news_wire.json \
@@ -136,10 +142,14 @@ jobs:
 
           import json
           import os
-          import shutil
           from pathlib import Path
           from typing import Any
 
+          from live_projection_contract import (
+              build_agenda_live_projection, build_issue_live_projection,
+              validate_live_projection,
+          )
+          from live_projection_io import atomic_write, serialize
           from fetch_news_wire import (
               INVENTORY_SCHEMA_VERSION,
               validate_output,
@@ -236,6 +246,20 @@ jobs:
           expected_direct_source_count = len(configured_sources)
 
           validate_output(wire)
+          agenda_live = load_json(Path("/tmp/agenda_live.json"))
+          issues_live = load_json(Path("/tmp/issues_live.json"))
+          validate_live_projection(agenda_live, wire, "agenda")
+          validate_live_projection(issues_live, wire, "issues")
+          # Compare with committed source, never with a fetch-only timestamp.
+          current_agenda_live = build_agenda_live_projection(current_wire)
+          current_issues_live = build_issue_live_projection(current_wire)
+          live_repair = any(
+              not path.exists() or path.read_bytes() != serialize(expected)
+              for path, expected in (
+                  (Path("agenda/live.json"), current_agenda_live),
+                  (Path("enjeux/live.json"), current_issues_live),
+              )
+          )
           validate_corpus_ledger(current_corpus)
           validate_corpus_ledger(corpus)
 
@@ -612,6 +636,7 @@ jobs:
                           "candidate_watch",
                       )
                   },
+                  "policy_agenda": payload.get("policy_agenda"),
                   "campaign_agenda": payload.get(
                       "campaign_agenda"
                   ),
@@ -680,34 +705,21 @@ jobs:
           )
 
           if changed:
-              shutil.copyfile(
-                  TEMP_INVENTORY,
-                  CURRENT_INVENTORY,
-              )
-              shutil.copyfile(
-                  TEMP_WIRE,
-                  CURRENT_WIRE,
-              )
-              shutil.copyfile(
-                  TEMP_CORPUS,
-                  CURRENT_CORPUS,
-              )
-              shutil.copyfile(
-                  TEMP_LEDGER,
-                  CURRENT_LEDGER,
-              )
-              shutil.copyfile(
-                  TEMP_HEALTH,
-                  CURRENT_HEALTH,
-              )
-              shutil.copyfile(
-                  TEMP_HISTORY,
-                  CURRENT_HISTORY,
-              )
-              shutil.copyfile(
-                  TEMP_AGENDA_HISTORY,
-                  CURRENT_AGENDA_HISTORY,
-              )
+              atomic_write(CURRENT_INVENTORY, TEMP_INVENTORY.read_bytes())
+              # Inventory bookkeeping must not advance the public snapshot.
+              if wire_changed:
+                  atomic_write(CURRENT_WIRE, TEMP_WIRE.read_bytes())
+              atomic_write(CURRENT_CORPUS, TEMP_CORPUS.read_bytes())
+              atomic_write(CURRENT_LEDGER, TEMP_LEDGER.read_bytes())
+              atomic_write(CURRENT_HEALTH, TEMP_HEALTH.read_bytes())
+              atomic_write(CURRENT_HISTORY, TEMP_HISTORY.read_bytes())
+              atomic_write(CURRENT_AGENDA_HISTORY, TEMP_AGENDA_HISTORY.read_bytes())
+
+          # All source/derived validation completed before any promotion.
+          # Each replacement is atomic; the workflow publishes the set in one commit.
+          atomic_write(Path("agenda/live.json"), serialize(agenda_live if wire_changed else current_agenda_live))
+          atomic_write(Path("enjeux/live.json"), serialize(issues_live if wire_changed else current_issues_live))
+          changed = changed or live_repair
 
           output_path = Path(os.environ["GITHUB_OUTPUT"])
 
@@ -826,6 +838,16 @@ jobs:
         run: |
           set -euo pipefail
 
+          assert_generated_scope() {
+            while IFS= read -r -d '' path; do
+              case "$path" in
+                news_inventory.json|news_corpus_ledger.json|news_wire.json|agenda/live.json|enjeux/live.json|recent_changes.json|source_health.json|candidate_signals.json|candidate_agenda_history.json|candidate_visibility_history.json|index.html|en/index.html|publication_manifest.json|source_icons.json|assets/source-icons/*) ;;
+                *) echo "Unexpected generated path: $path" >&2; return 1 ;;
+              esac
+            done < <(git diff --name-only --no-renames -z HEAD; git ls-files --others --exclude-standard -z)
+          }
+          assert_generated_scope
+
           git config user.name "github-actions[bot]"
           git config user.email \
             "41898282+github-actions[bot]@users.noreply.github.com"
@@ -834,6 +856,8 @@ jobs:
             news_inventory.json \
             news_corpus_ledger.json \
             news_wire.json \
+            agenda/live.json \
+            enjeux/live.json \
             recent_changes.json \
             source_health.json \
             candidate_signals.json \
@@ -892,6 +916,10 @@ jobs:
             --candidacy-status candidate_candidacy_status.json \
             --previous /tmp/candidate_agenda_history-upstream.json \
             --output candidate_agenda_history.json
+          python -B build_agenda_live_projection.py
+          python -B build_issue_live_projection.py
+          python -B build_agenda_live_projection.py --check
+          python -B build_issue_live_projection.py --check
           python -B build_search_entrypoints.py
           python -B build_publication_manifest.py \
             --published-at "$post_rebase_published_at"
@@ -899,15 +927,16 @@ jobs:
           if ! git diff --quiet -- \
             news_corpus_ledger.json news_wire.json \
             recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json \
-            index.html en/index.html publication_manifest.json
+            index.html en/index.html publication_manifest.json agenda/live.json enjeux/live.json
           then
             post_rebase_published_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
             python -B build_publication_manifest.py \
               --published-at "$post_rebase_published_at"
+            assert_generated_scope
             git add -- \
               news_corpus_ledger.json news_wire.json \
               recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json \
-              index.html en/index.html publication_manifest.json
+              index.html en/index.html publication_manifest.json agenda/live.json enjeux/live.json
             git commit --amend --no-edit
           fi
 
@@ -932,6 +961,10 @@ jobs:
             --previous candidate_agenda_history.json \
             --output candidate_agenda_history.json \
             --check
+          python -B build_agenda_live_projection.py
+          python -B build_issue_live_projection.py
+          python -B build_agenda_live_projection.py --check
+          python -B build_issue_live_projection.py --check
           python -B build_search_entrypoints.py
           python -B build_search_entrypoints.py --check
           python -B build_publication_manifest.py \
@@ -942,7 +975,8 @@ jobs:
           git diff --exit-code -- \
             news_corpus_ledger.json news_wire.json \
             recent_changes.json candidate_signals.json candidate_agenda_history.json candidate_visibility_history.json \
-            index.html en/index.html publication_manifest.json
+            index.html en/index.html publication_manifest.json agenda/live.json enjeux/live.json
+          assert_generated_scope
           for attempt in 1 2 3; do
             if push_output="$(git push origin "HEAD:$target_branch" 2>&1)"; then
               printf '%s\n' "$push_output"
