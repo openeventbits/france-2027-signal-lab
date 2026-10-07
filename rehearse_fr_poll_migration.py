@@ -1585,6 +1585,12 @@ def reconcile_french_production_source(
         previous_by_round,
         migration_registry,
     )
+    from post_audit_first_round_corrections import reconcile_first_round_corrections
+
+    first_round_corrections = reconcile_first_round_corrections(
+        source_records[FIRST_ROUND], parsed["revid"], previous_first,
+    )
+    previous_by_round[FIRST_ROUND] = first_round_corrections.events
     previous_ids = {
         round_name: {event["event_id"] for event in events}
         for round_name, events in previous_by_round.items()
@@ -1795,7 +1801,7 @@ def reconcile_french_production_source(
                 pass
 
     reconciled = {
-        FIRST_ROUND: copy.deepcopy(previous_first),
+        FIRST_ROUND: copy.deepcopy(first_round_corrections.events),
         SECOND_ROUND: copy.deepcopy(previous_second),
     }
     mapped = {
@@ -1828,6 +1834,16 @@ def reconcile_french_production_source(
             if raw_key in source_keys:
                 raise SourceDriftError("French source contains a duplicate factual row")
             source_keys.add(raw_key)
+            if round_name == FIRST_ROUND:
+                locator = source_record["source_locator"]
+                if locator in first_round_corrections.excluded:
+                    continue
+                if locator in first_round_corrections.handled:
+                    canonical = first_round_corrections.handled[locator]
+                    if canonical in classified_canonical_keys:
+                        raise RehearsalError("duplicate canonical factual identity")
+                    classified_canonical_keys.add(canonical)
+                    continue
             if raw_key in identity_skip_keys:
                 ambiguous_skips += 1
                 continue
@@ -2193,6 +2209,10 @@ def reconcile_french_production_source(
 
         if round_name == SECOND_ROUND:
             missing_original_ids -= superseded_second_round_event_ids
+        else:
+            missing_original_ids -= set(
+                first_round_corrections.report["superseded_event_ids"]
+            )
 
         if missing_original_ids:
             raise RehearsalError(
@@ -2226,6 +2246,7 @@ def reconcile_french_production_source(
         "audited_additions_present": audited_additions_present,
         "audited_additions_introduced": audited_additions_introduced,
         "normal_post_audit_additions": normal_additions,
+        "post_audit_first_round_corrections": first_round_corrections.report,
         "reviewed_canonical_introduced": reviewed_canonical_introduced,
         "second_round_evidence_reconciliations": (
             second_round_evidence_actions

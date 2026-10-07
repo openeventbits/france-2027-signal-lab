@@ -2059,6 +2059,24 @@ def integrate_french_migration_source(
         previous_first,
         previous_second,
     )
+    # Only explicitly reviewed corrections may replace retained first-round
+    # facts. Keep them outside ordinary new-source/official-wave discovery.
+    correction_report = migration.report["post_audit_first_round_corrections"]
+    canonical_ids = set(correction_report["canonical_event_ids"])
+    superseded_first_ids = set(correction_report["superseded_event_ids"])
+    original_first_ids = {event["event_id"] for event in previous_first}
+    if not superseded_first_ids <= original_first_ids:
+        raise ValueError("French correction reported unknown superseded first-round IDs")
+    canonical_events = {
+        event["event_id"]: event for event in migration.first_round_events
+        if event["event_id"] in canonical_ids
+    }
+    if set(canonical_events) != canonical_ids:
+        raise ValueError("French correction is missing a canonical first-round event")
+    previous_first = [
+        event for event in previous_first
+        if event["event_id"] not in canonical_ids | superseded_first_ids
+    ] + list(canonical_events.values())
     previous_first_ids = {event["event_id"] for event in previous_first}
     french_additions = [
         event
@@ -2126,10 +2144,12 @@ def integrate_french_migration_source(
 
     previous_second_ids = {event["event_id"] for event in previous_second}
     final_first_ids = {event["event_id"] for event in events}
+    if superseded_first_ids & final_first_ids:
+        raise ValueError("French correction retained a superseded first-round event")
     final_second_ids = {
         event["event_id"] for event in migration.second_round_events
     }
-    missing_first = previous_first_ids - final_first_ids
+    missing_first = original_first_ids - final_first_ids - superseded_first_ids
 
     reported_superseded_second = set(
         migration.report.get("superseded_second_round_event_ids", [])
