@@ -1089,8 +1089,7 @@ class BufferClient:
                 status: [scheduled, sending, sent, error],
                 channelIds: [$channelId],
                 startDate: $startDate
-              },
-              sort: [{ field: dueAt, direction: asc }]
+              }
             }
           ) {
             edges {

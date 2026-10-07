@@ -772,6 +772,28 @@ def build_queue(
     ):
         return current
 
+    if current is not None:
+        unresolved_delivery = [
+            item
+            for item in current["items"]
+            if item["status"] in {
+                "scheduled",
+                "error",
+            }
+        ]
+
+        if unresolved_delivery:
+            details = ", ".join(
+                f"{item['id']}={item['status']}"
+                for item in unresolved_delivery
+            )
+
+            raise ValueError(
+                "cannot replace prior daily queue "
+                "with unresolved Buffer deliveries: "
+                + details
+            )
+
     plan = build_core_plan(
         state=state,
         now=now,
@@ -856,11 +878,23 @@ def buffer_schedulable_items(
     *,
     now: datetime,
     min_lead_minutes: int = MIN_BUFFER_SCHEDULE_LEAD_MINUTES,
+    target_slot: str | None = None,
 ) -> list[dict[str, Any]]:
     """Frozen pending posts Buffer can safely own the clock for."""
     queue = validate_queue(
         queue
     )
+
+    if target_slot is not None:
+        slot_time = datetime.strptime(
+            target_slot,
+            "%H:%M",
+        ).time()
+
+        if target_slot != slot_time.strftime("%H:%M"):
+            raise ValueError(
+                "target Buffer slot must use HH:MM"
+            )
 
     paris_now = now.astimezone(
         social_publish.PARIS
@@ -882,6 +916,12 @@ def buffer_schedulable_items(
 
     for item in queue["items"]:
         if item["status"] != "pending":
+            continue
+
+        if (
+            target_slot is not None
+            and item["slot"] != target_slot
+        ):
             continue
 
         if is_late_bound_item(
@@ -1627,52 +1667,239 @@ def execute_slot(
         .from_env()
     )
 
-    recent_texts = (
-        client.recent_post_texts(
+    recent_posts = (
+        client.recent_posts(
             since=(
                 now
-                - timedelta(
-                    days=3
-                )
+                - timedelta(days=3)
             )
         )
     )
 
     text = post.text.strip()
 
-    if text in recent_texts:
-        post_id = (
-            "buffer-existing"
-        )
+    exact_delivery = _matching_buffer_post(
+        recent_posts,
+        item=item,
+        target=timing.target,
+    )
 
-        print(
-            "already present in "
-            "Buffer; resolving state"
-        )
-        print("PUBLICATION=ALREADY_PRESENT")
-        print("BUFFER_API_CALLED=true")
-        print("BUFFER_CREATE_CALLED=false")
+    publication_time = now
+
+    if exact_delivery is not None:
+        post_id = str(
+            exact_delivery.get("id") or ""
+        ).strip()
+
+        delivery_status = str(
+            exact_delivery.get("status") or ""
+        ).strip()
+
+        if delivery_status in {
+            "scheduled",
+            "sending",
+        }:
+            mark_item_scheduled(
+                state=state,
+                item=item,
+                scheduled_at=now,
+                scheduled_for=timing.target,
+                buffer_post_id=post_id,
+                delivery_status=delivery_status,
+            )
+
+            save_state(
+                Path(args.state_output),
+                state,
+            )
+
+            print("PUBLICATION=SCHEDULED_RECOVERED")
+            print("BUFFER_API_CALLED=true")
+            print("BUFFER_CREATE_CALLED=false")
+            print("BUFFER_POST_ID=" + post_id)
+
+            return 0
+
+        if delivery_status == "sent":
+            publication_time = (
+                _buffer_due_at(
+                    exact_delivery.get("dueAt")
+                )
+                or now
+            )
+
+            print("PUBLICATION=ALREADY_SENT")
+            print("BUFFER_API_CALLED=true")
+            print("BUFFER_CREATE_CALLED=false")
+
+        else:
+            raise RuntimeError(
+                "unexpected Buffer status: "
+                + delivery_status
+            )
 
     else:
-        post_id = (
-            client.create_post(
-                post.text
+        exact_error = None
+
+        for candidate in recent_posts:
+            if (
+                str(candidate.get("text") or "").strip()
+                != text
+            ):
+                continue
+
+            if (
+                str(candidate.get("status") or "").strip()
+                != "error"
+            ):
+                continue
+
+            due_at = _buffer_due_at(
+                candidate.get("dueAt")
             )
+
+            if due_at is None:
+                continue
+
+            if abs(
+                (
+                    due_at
+                    - timing.target.astimezone(
+                        timezone.utc
+                    )
+                ).total_seconds()
+            ) <= 60:
+                exact_error = candidate
+                break
+
+        if exact_error is not None:
+            post_id = str(
+                exact_error.get("id") or ""
+            ).strip()
+
+            mark_item_delivery_error(
+                state=state,
+                item=item,
+                observed_at=now,
+            )
+
+            target = _target_item(
+                state=state,
+                item=item,
+            )
+
+            target["buffer_post_id"] = post_id
+
+            save_state(
+                Path(args.state_output),
+                state,
+            )
+
+            print("PUBLICATION=ERROR")
+            print("BUFFER_API_CALLED=true")
+            print("BUFFER_CREATE_CALLED=false")
+            print("BUFFER_POST_ID=" + post_id)
+
+            return 0
+
+        sent_candidates = []
+
+        live_window_start = (
+            timing.target
+            .astimezone(timezone.utc)
+            - timedelta(minutes=5)
         )
 
-        print(
-            "published queue item: "
-            + post_id
+        live_window_end = (
+            now.astimezone(timezone.utc)
+            + timedelta(minutes=5)
         )
-        print("PUBLICATION=SUBMITTED_NOW")
-        print("BUFFER_API_CALLED=true")
-        print("BUFFER_CREATE_CALLED=true")
-        print("BUFFER_POST_ID=" + post_id)
+
+        for candidate in recent_posts:
+            if (
+                str(
+                    candidate.get("text")
+                    or ""
+                ).strip()
+                != text
+            ):
+                continue
+
+            if (
+                str(
+                    candidate.get("status")
+                    or ""
+                ).strip()
+                != "sent"
+            ):
+                continue
+
+            observed = (
+                _buffer_due_at(
+                    candidate.get("createdAt")
+                )
+                or _buffer_due_at(
+                    candidate.get("dueAt")
+                )
+            )
+
+            if (
+                observed is not None
+                and live_window_start
+                <= observed
+                <= live_window_end
+            ):
+                sent_candidates.append(
+                    (
+                        observed,
+                        candidate,
+                    )
+                )
+
+        if sent_candidates:
+            sent_candidates.sort(
+                key=lambda row: row[0],
+                reverse=True,
+            )
+
+            publication_time, receipt = (
+                sent_candidates[0]
+            )
+
+            post_id = str(
+                receipt.get("id")
+                or ""
+            ).strip()
+
+            print(
+                "recovered existing Buffer "
+                "sent shareNow delivery"
+            )
+            print("PUBLICATION=ALREADY_SENT")
+            print("BUFFER_API_CALLED=true")
+            print("BUFFER_CREATE_CALLED=false")
+            print("BUFFER_POST_ID=" + post_id)
+
+        else:
+            post_id = client.create_post(
+                post.text
+            )
+
+            publication_time = now
+
+            print(
+                "published queue item: "
+                + post_id
+            )
+            print("PUBLICATION=SUBMITTED_NOW")
+            print("BUFFER_API_CALLED=true")
+            print("BUFFER_CREATE_CALLED=true")
+            print("BUFFER_POST_ID=" + post_id)
 
     mark_item_published(
         state=state,
         item=item,
-        published_at=now,
+        published_at=publication_time,
         buffer_post_id=post_id,
         resolved_post=post,
     )
@@ -1781,6 +2008,7 @@ def run_schedule_frozen(
         min_lead_minutes=(
             args.min_lead_minutes
         ),
+        target_slot=args.slot,
     )
 
     print(
@@ -2402,6 +2630,9 @@ def build_parser():
     )
     schedule.add_argument(
         "--now",
+    )
+    schedule.add_argument(
+        "--slot",
     )
     schedule.add_argument(
         "--min-lead-minutes",

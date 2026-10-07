@@ -441,14 +441,42 @@ jobs:
       # DAILY CORE QUEUE
       # ------------------------------------------------------
 
+      - name: Reconcile prior Buffer delivery before queue rollover
+        if: steps.mode.outputs.mode == 'build-queue'
+        shell: bash
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_ORGANIZATION_ID: ${{ vars.BUFFER_ORGANIZATION_ID }}
+          BUFFER_X_CHANNEL_ID: ${{ vars.BUFFER_X_CHANNEL_ID }}
+        run: |
+          set -euo pipefail
+
+          args=(
+            --state /tmp/fr27-social/input-state.json
+            --state-output /tmp/fr27-social/reconciled-state.json
+          )
+
+          if [[ "${{ steps.mode.outputs.publish }}" != "true" ]]; then
+            args+=(--dry-run)
+          fi
+
+          python -B social/daily_queue.py reconcile-buffer \
+            "${args[@]}"
+
       - name: Build immutable daily core queue
         if: steps.mode.outputs.mode == 'build-queue'
         shell: bash
         run: |
           set -euo pipefail
 
+          source="/tmp/fr27-social/input-state.json"
+
+          if [[ -f /tmp/fr27-social/reconciled-state.json ]]; then
+            source="/tmp/fr27-social/reconciled-state.json"
+          fi
+
           python -B social/daily_queue.py build \
-            --state /tmp/fr27-social/input-state.json \
+            --state "$source" \
             --state-output /tmp/fr27-social/output-state.json \
             --queue-output /tmp/fr27-social/queue.json
 
@@ -486,6 +514,7 @@ jobs:
           args=(
             --state /tmp/fr27-social/input-state.json
             --state-output /tmp/fr27-social/output-state.json
+            --slot "${{ steps.mode.outputs.slot }}"
           )
 
           if [[ "${{ steps.mode.outputs.publish }}" != "true" ]]; then
