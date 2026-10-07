@@ -280,7 +280,8 @@ class BufferScheduledCoreTests(
                 for item in selected
             ],
             [
-                "10:15"
+                "08:45",
+                "10:15",
             ],
         )
 

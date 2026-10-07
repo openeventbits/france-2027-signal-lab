@@ -815,7 +815,6 @@ def is_late_bound_item(
     )
 
     if lane in {
-        "today_events",
         "candidate_slot",
         "radar_slot",
         "weekly_flagship_slot",
