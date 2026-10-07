@@ -472,24 +472,119 @@ class SchedulerTickTests(unittest.TestCase):
                 now = datetime.combine(day, time.fromisoformat(utc_clock), tzinfo=timezone.utc)
                 self.assertEqual(queue.fallback_item(queue.queue_from_state(self.state(day=day)), now=now)["slot"], "14:30")
 
-    def test_workflow_preserves_all_exact_schedules_adds_one_heartbeat(self):
+    def test_workflow_preserves_exact_schedules_heartbeat_and_buffer_reconciliation(self):
         path = ".github/workflows/publish-x-fr.yml"
         after = (ROOT / path).read_text(encoding="utf-8")
         pattern = r"- cron: '([^']+)'\s+timezone: '([^']+)'"
-        old = [(cron, "Europe/Paris") for cron in ("25 8 * * *", "45 8 * * *", "30 9 * * 1",
-            "15 10 * * *", "30 11 * * *", "15 12 * * *", "30 14 * * *", "45 16 * * *",
-            "30 18 * * *", "30 19 * * *", "5 9,13,17,20 * * *")]
-        new = re.findall(pattern, after)
-        self.assertEqual(new, old + [("2,17,32,47 8-20 * * *", "Europe/Paris")])
-        self.assertIn("mode=\"scheduler-tick\"", after)
-        self.assertIn("publish=\"true\"", after)
-        self.assertIn("          - scheduler-tick", after)
-        self.assertIn("python -B social/daily_queue.py scheduler-tick", after)
-        self.assertIn("group: fr27-social-publish\n  cancel-in-progress: false", after)
-        self.assertIn("vars.FR27_SOCIAL_ENABLED == 'true'", after)
-        self.assertIn('fromJSON(\'["bootstrap","build-queue","slot","scheduler-tick","updates","weekly-flagship-catchup"]\')', after)
-        self.assertIn('fromJSON(\'["build-queue","slot","scheduler-tick","updates","weekly-flagship-catchup"]\')', after)
-        self.assertIn('if [[ ! -f "$output" ]]; then', after)
+
+        existing = [
+            (cron, "Europe/Paris")
+            for cron in (
+                "25 8 * * *",
+                "45 8 * * *",
+                "30 9 * * 1",
+                "15 10 * * *",
+                "30 11 * * *",
+                "15 12 * * *",
+                "30 14 * * *",
+                "45 16 * * *",
+                "30 18 * * *",
+                "30 19 * * *",
+                "5 9,13,17,20 * * *",
+            )
+        ]
+
+        expected = existing + [
+            (
+                "2,17,32,47 8-20 * * *",
+                "Europe/Paris",
+            ),
+            (
+                "40 10,12,14,19,21 * * *",
+                "Europe/Paris",
+            ),
+        ]
+
+        actual = re.findall(
+            pattern,
+            after,
+        )
+
+        self.assertEqual(
+            actual,
+            expected,
+        )
+
+        self.assertIn(
+            'mode="scheduler-tick"',
+            after,
+        )
+
+        self.assertIn(
+            'mode="reconcile-buffer"',
+            after,
+        )
+
+        self.assertIn(
+            'publish="true"',
+            after,
+        )
+
+        self.assertIn(
+            "          - scheduler-tick",
+            after,
+        )
+
+        self.assertIn(
+            "          - schedule-frozen",
+            after,
+        )
+
+        self.assertIn(
+            "          - reconcile-buffer",
+            after,
+        )
+
+        self.assertIn(
+            "python -B social/daily_queue.py scheduler-tick",
+            after,
+        )
+
+        self.assertIn(
+            "python -B social/daily_queue.py schedule-frozen",
+            after,
+        )
+
+        self.assertIn(
+            "python -B social/daily_queue.py reconcile-buffer",
+            after,
+        )
+
+        self.assertIn(
+            "group: fr27-social-publish\n"
+            "  cancel-in-progress: false",
+            after,
+        )
+
+        self.assertIn(
+            "vars.FR27_SOCIAL_ENABLED == 'true'",
+            after,
+        )
+
+        self.assertIn(
+            'fromJSON(\'["bootstrap","build-queue","schedule-frozen","reconcile-buffer","slot","scheduler-tick","updates","weekly-flagship-catchup"]\')',
+            after,
+        )
+
+        self.assertIn(
+            'fromJSON(\'["build-queue","schedule-frozen","reconcile-buffer","slot","scheduler-tick","updates","weekly-flagship-catchup"]\')',
+            after,
+        )
+
+        self.assertIn(
+            'if [[ ! -f "$output" ]]; then',
+            after,
+        )
 
 
 if __name__ == "__main__":

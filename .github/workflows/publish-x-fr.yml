@@ -35,6 +35,11 @@ on:
     - cron: '2,17,32,47 8-20 * * *'
       timezone: 'Europe/Paris'
 
+    # Buffer owns publication timing for frozen posts.
+    # These checks only reconcile final delivery state.
+    - cron: '40 10,12,14,19,21 * * *'
+      timezone: 'Europe/Paris'
+
   workflow_dispatch:
     inputs:
       mode:
@@ -46,6 +51,8 @@ on:
           - full-dry-run
           - bootstrap
           - build-queue
+          - schedule-frozen
+          - reconcile-buffer
           - slot
           - scheduler-tick
           - updates
@@ -175,6 +182,10 @@ jobs:
                 mode="scheduler-tick"
                 ;;
 
+              '40 10,12,14,19,21 * * *')
+                mode="reconcile-buffer"
+                ;;
+
               '5 9,13,17,20 * * *')
                 mode="updates"
                 ;;
@@ -198,6 +209,9 @@ jobs:
         if: >-
           steps.mode.outputs.publish == 'true' &&
           (
+            steps.mode.outputs.mode == 'build-queue' ||
+            steps.mode.outputs.mode == 'schedule-frozen' ||
+            steps.mode.outputs.mode == 'reconcile-buffer' ||
             steps.mode.outputs.mode == 'slot' ||
             steps.mode.outputs.mode == 'scheduler-tick' ||
             steps.mode.outputs.mode == 'updates' ||
@@ -339,7 +353,7 @@ jobs:
         id: state
         if: >-
           contains(
-            fromJSON('["bootstrap","build-queue","slot","scheduler-tick","updates","weekly-flagship-catchup"]'),
+            fromJSON('["bootstrap","build-queue","schedule-frozen","reconcile-buffer","slot","scheduler-tick","updates","weekly-flagship-catchup"]'),
             steps.mode.outputs.mode
           )
         shell: bash
@@ -398,7 +412,7 @@ jobs:
           steps.mode.outputs.publish == 'true' &&
           steps.mode.outputs.mode != 'bootstrap' &&
           contains(
-            fromJSON('["build-queue","slot","scheduler-tick","updates","weekly-flagship-catchup"]'),
+            fromJSON('["build-queue","schedule-frozen","reconcile-buffer","slot","scheduler-tick","updates","weekly-flagship-catchup"]'),
             steps.mode.outputs.mode
           )
         shell: bash
@@ -438,6 +452,48 @@ jobs:
             --state-output /tmp/fr27-social/output-state.json \
             --queue-output /tmp/fr27-social/queue.json
 
+      - name: Schedule frozen core posts with Buffer clock
+        if: steps.mode.outputs.mode == 'build-queue'
+        shell: bash
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_ORGANIZATION_ID: ${{ vars.BUFFER_ORGANIZATION_ID }}
+          BUFFER_X_CHANNEL_ID: ${{ vars.BUFFER_X_CHANNEL_ID }}
+        run: |
+          set -euo pipefail
+
+          args=(
+            --state /tmp/fr27-social/output-state.json
+            --state-output /tmp/fr27-social/output-state.json
+          )
+
+          if [[ "${{ steps.mode.outputs.publish }}" != "true" ]]; then
+            args+=(--dry-run)
+          fi
+
+          python -B social/daily_queue.py schedule-frozen             "${args[@]}"
+
+      - name: Schedule or preview frozen core posts manually
+        if: steps.mode.outputs.mode == 'schedule-frozen'
+        shell: bash
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_ORGANIZATION_ID: ${{ vars.BUFFER_ORGANIZATION_ID }}
+          BUFFER_X_CHANNEL_ID: ${{ vars.BUFFER_X_CHANNEL_ID }}
+        run: |
+          set -euo pipefail
+
+          args=(
+            --state /tmp/fr27-social/input-state.json
+            --state-output /tmp/fr27-social/output-state.json
+          )
+
+          if [[ "${{ steps.mode.outputs.publish }}" != "true" ]]; then
+            args+=(--dry-run)
+          fi
+
+          python -B social/daily_queue.py schedule-frozen             "${args[@]}"
+
       - name: Recover or preview one missed core queue slot
         if: steps.mode.outputs.mode == 'scheduler-tick'
         shell: bash
@@ -459,6 +515,33 @@ jobs:
 
           python -B social/daily_queue.py scheduler-tick \
             "${args[@]}"
+
+      - name: Hand future frozen posts to Buffer after heartbeat
+        if: steps.mode.outputs.mode == 'scheduler-tick'
+        shell: bash
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_ORGANIZATION_ID: ${{ vars.BUFFER_ORGANIZATION_ID }}
+          BUFFER_X_CHANNEL_ID: ${{ vars.BUFFER_X_CHANNEL_ID }}
+        run: |
+          set -euo pipefail
+
+          source="/tmp/fr27-social/input-state.json"
+
+          if [[ -f /tmp/fr27-social/output-state.json ]]; then
+            source="/tmp/fr27-social/output-state.json"
+          fi
+
+          args=(
+            --state "$source"
+            --state-output /tmp/fr27-social/output-state.json
+          )
+
+          if [[ "${{ steps.mode.outputs.publish }}" != "true" ]]; then
+            args+=(--dry-run)
+          fi
+
+          python -B social/daily_queue.py schedule-frozen             "${args[@]}"
 
       # ------------------------------------------------------
       # CORE SLOT
@@ -486,6 +569,31 @@ jobs:
 
           python -B social/daily_queue.py slot \
             "${args[@]}"
+
+      # ------------------------------------------------------
+      # BUFFER DELIVERY RECONCILIATION
+      # ------------------------------------------------------
+
+      - name: Reconcile Buffer scheduled delivery state
+        if: steps.mode.outputs.mode == 'reconcile-buffer'
+        shell: bash
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_ORGANIZATION_ID: ${{ vars.BUFFER_ORGANIZATION_ID }}
+          BUFFER_X_CHANNEL_ID: ${{ vars.BUFFER_X_CHANNEL_ID }}
+        run: |
+          set -euo pipefail
+
+          args=(
+            --state /tmp/fr27-social/input-state.json
+            --state-output /tmp/fr27-social/output-state.json
+          )
+
+          if [[ "${{ steps.mode.outputs.publish }}" != "true" ]]; then
+            args+=(--dry-run)
+          fi
+
+          python -B social/daily_queue.py reconcile-buffer             "${args[@]}"
 
       # ------------------------------------------------------
       # DYNAMIC DEVELOPMENTS
@@ -577,7 +685,7 @@ jobs:
         if: >-
           steps.mode.outputs.publish == 'true' &&
           contains(
-            fromJSON('["bootstrap","build-queue","slot","scheduler-tick","updates","weekly-flagship-catchup"]'),
+            fromJSON('["bootstrap","build-queue","schedule-frozen","reconcile-buffer","slot","scheduler-tick","updates","weekly-flagship-catchup"]'),
             steps.mode.outputs.mode
           )
         shell: bash

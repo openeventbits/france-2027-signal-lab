@@ -1580,6 +1580,8 @@ def execute_slot(
             f"no pending item for "
             f"slot={args.slot}"
         )
+        print("PUBLICATION=NOOP")
+        print("BUFFER_API_CALLED=false")
 
         return 0
 
@@ -1590,6 +1592,9 @@ def execute_slot(
         if not args.dry_run:
             print(f"exact_slot=NOOP reason={timing.reason} "
                   f"lateness_minutes={timing.lateness_minutes:g}")
+            print("PUBLICATION=SKIPPED")
+            print(f"REASON=SLOT_{timing.reason}")
+            print("BUFFER_API_CALLED=false")
             return 0
         preview_status = "STALE" if timing.reason == "EXPIRED" else timing.reason
         print(f"{preview_status} / WOULD_NOT_PUBLISH_LIVE "
@@ -1597,6 +1602,9 @@ def execute_slot(
 
     post = resolve_slot_post(item, now=now, state=state)
     if post is None:
+        print("PUBLICATION=SKIPPED")
+        print("REASON=PRODUCT_NOT_ELIGIBLE")
+        print("BUFFER_API_CALLED=false")
         return 0
 
     print(f"queue_item={item['id']}")
@@ -1609,6 +1617,8 @@ def execute_slot(
         print(
             "dry_run=true"
         )
+        print("PUBLICATION=PREVIEW")
+        print("BUFFER_API_CALLED=false")
 
         return 0
 
@@ -1640,6 +1650,9 @@ def execute_slot(
             "already present in "
             "Buffer; resolving state"
         )
+        print("PUBLICATION=ALREADY_PRESENT")
+        print("BUFFER_API_CALLED=true")
+        print("BUFFER_CREATE_CALLED=false")
 
     else:
         post_id = (
@@ -1652,6 +1665,10 @@ def execute_slot(
             "published queue item: "
             + post_id
         )
+        print("PUBLICATION=SUBMITTED_NOW")
+        print("BUFFER_API_CALLED=true")
+        print("BUFFER_CREATE_CALLED=true")
+        print("BUFFER_POST_ID=" + post_id)
 
     mark_item_published(
         state=state,
@@ -1712,6 +1729,8 @@ def run_scheduler_tick(args: argparse.Namespace) -> int:
     item = fallback_item(queue, now=now)
     if item is None:
         print("scheduler_tick=NOOP slot=NONE lateness_minutes=NONE")
+        print("PUBLICATION=NOOP")
+        print("BUFFER_API_CALLED=false")
         result = 0
     else:
         timing = core_slot_timeliness(queue_date=queue["date"], slot=item["slot"], now=now)
