@@ -1,6 +1,7 @@
 import contextlib
 import io
 import copy
+import json
 import os
 import sys
 import unittest
@@ -166,6 +167,135 @@ class BufferDeliverySafetyTests(unittest.TestCase):
 
     def items(self, state):
         return state["planner"]["daily_queue"]["items"]
+
+    def test_exact_id_reconciliation_lifecycle_is_read_only(self):
+        for status, expected in (
+            ("scheduled", "scheduled"), ("sending", "scheduled"),
+            ("sent", "published"), ("error", "error"),
+            ("not_found", "scheduled"), ("blank_id", "scheduled"),
+            ("forbidden", "scheduled"), ("invalid_response", "scheduled"),
+        ):
+            with self.subTest(status=status):
+                post_id = "   " if status == "blank_id" else "stored-buffer-id"
+                state = self.state_with_queue(items=[{
+                    "slot": "10:15", "status": "scheduled", "buffer_post_id": post_id,
+                    "scheduled_at": "2026-10-07T06:00:00Z",
+                    "scheduled_for": "2026-10-07T08:15:00Z", "delivery_status": "scheduled",
+                }])
+                before = copy.deepcopy(state)
+                post = {
+                    "id": post_id, "text": "Frozen signal", "status": status,
+                    "createdAt": "2026-10-01T06:00:00Z", "dueAt": "2026-10-07T08:15:00Z",
+                }
+                payload = {"data": {"post": post}}
+                if status in {"not_found", "forbidden"}:
+                    payload = {"data": None, "errors": [{
+                        "message": "Lookup failed", "extensions": {
+                            "code": "NOT_FOUND" if status == "not_found" else "FORBIDDEN",
+                        },
+                        "path": ["post"],
+                    }]}
+                if status == "invalid_response":
+                    payload = {"data": {"post": None}}
+                response = Mock()
+                response.__enter__ = Mock(return_value=response)
+                response.__exit__ = Mock(return_value=False)
+                response.read.return_value = json.dumps(payload).encode("utf-8")
+                client = social_publish.BufferClient("token", "org", "channel")
+                args = queue.build_parser().parse_args([
+                    "reconcile-buffer", "--state", "unused", "--state-output", "unused",
+                    "--now", self.at("2026-10-07", "10:30").isoformat(),
+                ])
+                output = io.StringIO()
+                with (patch.object(queue, "_load_json", return_value=state),
+                      patch.object(queue, "save_state") as save,
+                      patch.object(social_publish.BufferClient, "from_env", return_value=client),
+                      patch.object(client, "recent_posts", side_effect=AssertionError("List must not be used")) as recent,
+                      patch.object(client, "create_post", side_effect=AssertionError("Must never create")) as create,
+                      patch.object(client, "create_scheduled_post", side_effect=AssertionError("Must never schedule")) as schedule,
+                      patch.object(social_publish.urllib.request, "urlopen", return_value=response) as request,
+                      contextlib.redirect_stdout(output)):
+                    if status in {"forbidden", "invalid_response"}:
+                        with self.assertRaises(RuntimeError):
+                            args.func(args)
+                    else:
+                        self.assertEqual(args.func(args), 0)
+                recent.assert_not_called()
+                create.assert_not_called()
+                schedule.assert_not_called()
+                item = self.items(state)[0]
+                self.assertEqual(item["status"], expected)
+                self.assertEqual(item["buffer_post_id"], post_id)
+                self.assertEqual(item["scheduled_for"], "2026-10-07T08:15:00Z")
+                if status == "blank_id":
+                    request.assert_not_called()
+                else:
+                    request.assert_called_once()
+                    body = json.loads(request.call_args.args[0].data)
+                    self.assertEqual(body["variables"], {"input": {"id": post_id}})
+                    self.assertIn("query GetPost($input: PostInput!)", body["query"])
+                    self.assertIn("post(input: $input)", body["query"])
+                    self.assertNotIn("mutation", body["query"])
+                if status in {"not_found", "blank_id", "scheduled", "forbidden", "invalid_response"}:
+                    self.assertEqual(state, before)
+                    save.assert_not_called()
+                else:
+                    save.assert_called_once()
+                if status in {"not_found", "blank_id"}:
+                    self.assertIn("BUFFER_RECONCILE_MISSING", output.getvalue())
+                elif status in {"forbidden", "invalid_response"}:
+                    self.assertNotIn("BUFFER_RECONCILE_MISSING", output.getvalue())
+                else:
+                    self.assertEqual(item["delivery_status"], status)
+                if status == "sent":
+                    self.assertEqual(item["published_at"], "2026-10-07T08:15:00Z")
+                else:
+                    self.assertIsNone(item["published_at"])
+
+    def test_exact_post_normalizes_fields_and_rejects_blank_id(self):
+        client = social_publish.BufferClient("token", "org", "channel")
+        with patch.object(client, "graphql", return_value={"post": {
+            "id": "stored-id", "text": " text ", "createdAt": " created ",
+            "dueAt": None, "status": "scheduled", "extra": "ignored",
+        }}) as graphql:
+            self.assertEqual(client.get_post(" stored-id "), {
+                "id": "stored-id", "text": "text", "createdAt": "created",
+                "dueAt": "", "status": "scheduled",
+            })
+            graphql.assert_called_once()
+            graphql.reset_mock()
+            with self.assertRaises(ValueError):
+                client.get_post("   ")
+            graphql.assert_not_called()
+
+    def test_exact_post_only_explicit_not_found_is_missing(self):
+        client = social_publish.BufferClient("token", "org", "channel")
+        for errors in (
+            [{"extensions": {"code": code}}]
+            for code in ("UNAUTHORIZED", "FORBIDDEN", "UNEXPECTED", "RATE_LIMIT_EXCEEDED", "")
+        ):
+            with self.subTest(errors=errors), patch.object(
+                client, "graphql", side_effect=social_publish.BufferGraphQLError(errors),
+            ):
+                with self.assertRaises(social_publish.BufferGraphQLError):
+                    client.get_post("stored-id")
+        for errors in (
+            [{"extensions": {"code": "NOT_FOUND"}, "path": ["post", "text"]}],
+            [{"extensions": {"code": "NOT_FOUND"}}, {"extensions": {"code": "FORBIDDEN"}}],
+        ):
+            with self.subTest(errors=errors), patch.object(
+                client, "graphql", side_effect=social_publish.BufferGraphQLError(errors),
+            ):
+                with self.assertRaises(social_publish.BufferGraphQLError):
+                    client.get_post("stored-id")
+        with patch.object(client, "graphql", side_effect=social_publish.BufferGraphQLError(
+            [{"extensions": {"code": "NOT_FOUND"}}],
+        )):
+            self.assertIsNone(client.get_post("stored-id"))
+        for data in ({}, {"post": None}, {"post": {}}, {"post": {"id": "other-id"}}):
+            with self.subTest(data=data), patch.object(client, "graphql", return_value=data):
+                with self.assertRaises(RuntimeError):
+                    client.get_post("stored-id")
 
     def test_recent_posts_query_has_no_sort(self):
         client = social_publish.BufferClient(

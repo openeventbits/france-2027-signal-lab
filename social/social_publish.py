@@ -960,6 +960,12 @@ def render_today_events(payload: dict[str, Any], *, now: datetime, limit: int | 
     return result
 
 
+class BufferGraphQLError(RuntimeError):
+    def __init__(self, errors: list[dict[str, Any]]):
+        self.errors = errors
+        super().__init__(f"Buffer GraphQL error: {errors}")
+
+
 class BufferClient:
     def __init__(self, token: str, organization_id: str, channel_id: str):
         self.token = token.strip()
@@ -998,7 +1004,7 @@ class BufferClient:
             raise RuntimeError(f"Buffer request failed: {exc}") from exc
         errors = payload.get("errors") or []
         if errors:
-            raise RuntimeError(f"Buffer GraphQL error: {errors}")
+            raise BufferGraphQLError(errors)
         return payload.get("data") or {}
 
     def recent_post_texts(self, *, since: datetime) -> set[str]:
@@ -1134,6 +1140,42 @@ class BufferClient:
             )
 
         return posts
+
+    def get_post(self, post_id: str) -> dict[str, str] | None:
+        """Read an exact stored ID; only an explicit NOT_FOUND means missing.
+
+        Contract: https://developers.buffer.com/reference.html#query-post
+        Errors: https://developers.buffer.com/guides/error-handling.html
+        """
+        post_id = post_id.strip()
+        if not post_id:
+            raise ValueError("Buffer post ID is required")
+
+        query = """
+        query GetPost($input: PostInput!) {
+          post(input: $input) {
+            id text createdAt dueAt status
+          }
+        }
+        """
+        try:
+            data = self.graphql(query, {"input": {"id": post_id}})
+        except BufferGraphQLError as exc:
+            if exc.errors and all(
+                (error.get("extensions") or {}).get("code") == "NOT_FOUND"
+                and error.get("path") in (None, ["post"])
+                for error in exc.errors
+            ):
+                return None
+            raise
+
+        post = data.get("post")
+        if not isinstance(post, dict) or str(post.get("id") or "").strip() != post_id:
+            raise RuntimeError("Buffer exact-post response missing or mismatched ID")
+        return {
+            field: str(post.get(field) or "").strip()
+            for field in ("id", "text", "createdAt", "dueAt", "status")
+        }
 
     def create_scheduled_post(
         self,

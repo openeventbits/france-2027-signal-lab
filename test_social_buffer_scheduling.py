@@ -657,15 +657,12 @@ class BufferScheduledCoreTests(
 
         client = Mock()
 
-        client.recent_posts.return_value = [
-            {
-                "id": "buffer-1",
-                "text": item["text"],
-                "status": "sent",
-                "dueAt":
-                    "2026-10-07T08:15:00Z",
-            }
-        ]
+        client.get_post.return_value = {
+            "id": "buffer-1",
+            "text": item["text"],
+            "status": "sent",
+            "dueAt": "2026-10-07T08:15:00Z",
+        }
 
         args = (
             queue
@@ -762,15 +759,12 @@ class BufferScheduledCoreTests(
 
         client = Mock()
 
-        client.recent_posts.return_value = [
-            {
-                "id": "buffer-1",
-                "text": item["text"],
-                "status": "error",
-                "dueAt":
-                    "2026-10-07T08:15:00Z",
-            }
-        ]
+        client.get_post.return_value = {
+            "id": "buffer-1",
+            "text": item["text"],
+            "status": "error",
+            "dueAt": "2026-10-07T08:15:00Z",
+        }
 
         args = (
             queue
