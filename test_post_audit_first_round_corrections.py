@@ -27,6 +27,8 @@ class PostAuditFirstRoundCorrectionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.registry = load_corrections()
+        cls.retained = [r for r in cls.registry["corrections"] if r["action"] != "accept_reviewed_sample"]
+        cls.historical = cls.registry["corrections"][-1]["historical_withheld_source"]
         cls.parsed = read("fr_mediawiki_240128358.json")["parse"]
         cls.rows = parse_french_frozen_fixture(cls.parsed)[FIRST_ROUND]
         cls.previous = read("notice_10284_previous_events.json")
@@ -64,7 +66,7 @@ class PostAuditFirstRoundCorrectionTests(unittest.TestCase):
         self.assertEqual(self.primary["registered_voters"], 1393)
         expected_expressed = [1027, 1003, 970, 964, 928, 974, 971, 969, 980, 1015]
         for record, official, expressed in zip(
-            self.registry["corrections"], self.primary["scenarios"], expected_expressed,
+            self.retained, self.primary["scenarios"], expected_expressed,
         ):
             with self.subTest(locator=record["source_locator"]):
                 self.assertEqual(record["source_locator"], official["source_locator"])
@@ -95,7 +97,7 @@ class PostAuditFirstRoundCorrectionTests(unittest.TestCase):
     def test_original_audit_stays_at_75_and_lane_is_separate(self):
         original = load_migration_registry()
         self.assertEqual(len(original["reviewed_reconciliations"]), 75)
-        self.assertEqual(len(self.registry["corrections"]), 10)
+        self.assertEqual(len(self.registry["corrections"]), 11)
         result = self.run_lane()
         self.assertEqual(result.report["correct_retained_sample"], 9)
         self.assertEqual(result.report["supersede_event"], 1)
@@ -106,7 +108,7 @@ class PostAuditFirstRoundCorrectionTests(unittest.TestCase):
         self.assertEqual(len(result.events), 10)
         validate_poll_events(result.events)
         by_id = {event["event_id"]: event for event in result.events}
-        for record in self.registry["corrections"]:
+        for record in self.retained:
             event = by_id[record["canonical_event_id"]]
             self.assertEqual(exact_factual_key(event).to_dict(), record["canonical_factual_key"])
             if record["action"] == "correct_retained_sample":
@@ -120,7 +122,7 @@ class PostAuditFirstRoundCorrectionTests(unittest.TestCase):
         )
 
     def test_ruffin_complete_lineup_is_independently_verified(self):
-        record = self.registry["corrections"][-1]
+        record = self.retained[-1]
         self.assertEqual(record["source_locator"], "FR-T0R10")
         event = next(e for e in self.run_lane().events if e["event_id"] == record["canonical_event_id"])
         self.assertEqual(event["reported_total"], 100)
@@ -149,9 +151,9 @@ class PostAuditFirstRoundCorrectionTests(unittest.TestCase):
 
     def test_exact_historical_representation_replays_canonical_facts(self):
         rows = copy.deepcopy(self.rows)
-        rows = [r for r in rows if r["source_url"] != self.registry["excluded_source_rows"][0]["source_url"]]
+        rows = [r for r in rows if r["source_url"] != self.historical["source_url"]]
         for row in rows:
-            if row["source_locator"] in {r["source_locator"] for r in self.registry["corrections"]}:
+            if row["source_locator"] in {r["source_locator"] for r in self.retained}:
                 row["sample_size"] = 1597
         original = self.run_lane(rows=rows, revision=240063728)
         applied = self.run_lane(rows=rows, revision=240063728, previous=original.events)
@@ -220,7 +222,7 @@ class PostAuditFirstRoundCorrectionTests(unittest.TestCase):
             self.run_lane(previous=self.previous + [successor])
 
     def test_unrelated_row_is_withheld_and_mutations_fail_closed(self):
-        exclusion = self.registry["excluded_source_rows"][0]
+        exclusion = self.historical
         result = self.run_lane()
         self.assertEqual(result.excluded, {"FR-T0R28"})
         for revision in (240128358, 240133071):
@@ -240,13 +242,170 @@ class PostAuditFirstRoundCorrectionTests(unittest.TestCase):
         by_id = {event["event_id"]: event for event in events}
         self.assertEqual(len(by_id), len(events))
         self.assertEqual(runoffs, migration.second_round_events)
-        for record in self.registry["corrections"]:
+        for record in self.retained:
             self.assertEqual(exact_factual_key(by_id[record["canonical_event_id"]]).to_dict(), record["canonical_factual_key"])
-        self.assertFalse(any(e["source_url"] == self.registry["excluded_source_rows"][0]["source_url"] for e in events))
+        self.assertFalse(any(e["source_url"] == self.historical["source_url"] for e in events))
         repeated, repeated_runoffs, _, _ = integrate_french_migration_source(parsed, events, runoffs, [])
         self.assertEqual(events, repeated)
         self.assertEqual(runoffs, repeated_runoffs)
         self.assertEqual(report["post_audit_first_round_corrections"]["correct_retained_sample"], 9)
+
+
+class Notice10292AcceptanceTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.record = load_corrections()["corrections"][-1]
+        cls.registry = {
+            "schema_version": "1.0", "corrections": [cls.record],
+            "excluded_source_rows": [],
+        }
+        cls.parsed = read("fr_mediawiki_240128358.json")["parse"]
+        rows = parse_french_frozen_fixture(cls.parsed)[FIRST_ROUND]
+        cls.row = copy.deepcopy(next(r for r in rows if r["source_url"] == cls.record["source_url"]))
+        cls.row["source_locator"] = "FR-T0R27"
+        cls.previous = read("notice_10284_previous_events.json")
+
+    def run_lane(self, *, rows=None, previous=None, revision=240180750):
+        return reconcile_first_round_corrections(
+            [self.row] if rows is None else rows, revision,
+            self.previous if previous is None else previous, registry=self.registry,
+        )
+
+    def test_reviewed_representation_becomes_registered_voter_event(self):
+        self.assertEqual((self.row["sample_size"], self.row.get("sample_scope", "reported")), (1548, "reported"))
+        result = self.run_lane()
+        event = next(e for e in result.events if e["source_url"] == self.record["source_url"])
+        self.assertEqual((event["sample_size"], event["sample_scope"]), (1443, "registered_voters"))
+        self.assertEqual((event["fieldwork_start"], event["fieldwork_end"]), ("2026-09-09", "2026-09-11"))
+        self.assertEqual(event["source_url"], self.row["source_url"])
+        self.assertEqual(event["migration_source_locator"], "FR-T0R27")
+        self.assertEqual(event["candidates"], self.row["candidates"])
+        self.assertEqual(dict(exact_factual_key(event).candidates), {
+            "nathalie-arthaud": "0.5", "jean-luc-melenchon": "17",
+            "fabien-roussel": "2", "marine-tondelier": "3",
+            "raphael-glucksmann": "9", "gabriel-attal": "7",
+            "edouard-philippe": "14", "bruno-retailleau": "6.5",
+            "nicolas-dupont-aignan": "2", "marine-le-pen": "35", "eric-zemmour": "4",
+        })
+        self.assertEqual(result.report["accept_reviewed_sample"], 1)
+        self.assertEqual(result.excluded, set())
+        self.assertEqual(set(result.handled), {"FR-T0R27"})
+        repeated = self.run_lane(previous=result.events)
+        self.assertEqual(repeated.events, result.events)
+        self.assertEqual(repeated.report["already_applied"], 1)
+        self.assertEqual(self.run_lane(revision=240180751).events, result.events)
+
+    def test_unrelated_locator_occupants_and_moved_row_are_not_accepted(self):
+        unrelated = copy.deepcopy(self.row)
+        unrelated.update(pollster="OpinionWay", fieldwork_start="2026-09-15", source_url="https://example.org/other")
+        for locator in ("FR-T0R27", "FR-T0R28"):
+            unrelated["source_locator"] = locator
+            with self.subTest(locator=locator), self.assertRaises(ValueError):
+                self.run_lane(rows=[unrelated])
+        moved = copy.deepcopy(self.row)
+        moved["source_locator"] = "FR-T0R28"
+        with self.assertRaisesRegex(ValueError, "scope/facts"):
+            self.run_lane(rows=[moved, {**unrelated, "source_locator": "FR-T0R27"}])
+        # An unrelated R28 alongside exact reviewed R27 is not handled by this lane.
+        result = self.run_lane(rows=[self.row, {**unrelated, "source_locator": "FR-T0R28"}])
+        self.assertEqual(set(result.handled), {"FR-T0R27"})
+
+    def test_score_and_candidate_lineup_changes_fail_closed(self):
+        for mutate in (
+            lambda r: r["candidates"][0].update(score=1),
+            lambda r: r["candidates"].pop(),
+            lambda r: r["candidates"][0].update(name="François Ruffin"),
+        ):
+            row = copy.deepcopy(self.row)
+            mutate(row)
+            with self.subTest(row=row), self.assertRaisesRegex(ValueError, "scope/facts"):
+                self.run_lane(rows=[row])
+
+    def test_url_dates_pollster_and_sample_representation_changes_fail_closed(self):
+        for fields in (
+            {"source_url": "https://example.org/changed"},
+            {"fieldwork_start": "2026-09-08"}, {"fieldwork_end": "2026-09-12"},
+            {"pollster": "Ipsos"}, {"sample_size": 1549}, {"sample_size": 1443},
+            {"sample_scope": "registered_voters"}, {"source_locator": "FR-T0R28"},
+        ):
+            with self.subTest(fields=fields), self.assertRaises(ValueError):
+                self.run_lane(rows=[{**self.row, **fields}], revision=240180751)
+
+    def test_unregistered_same_notice_or_wave_fails_closed(self):
+        for fields in ({"fieldwork_start": "2026-09-08"}, {"source_url": "https://example.org/other"}):
+            extra = {**copy.deepcopy(self.row), **fields, "source_locator": "FR-T0R999"}
+            with self.subTest(fields=fields), self.assertRaisesRegex(ValueError, "unregistered row"):
+                self.run_lane(rows=[self.row, extra])
+
+    def test_prior_event_drift_and_missing_reviewed_wave_fail_closed(self):
+        result = self.run_lane()
+        for mutate in (
+            lambda e: e.update(sample_size=1444),
+            lambda e: e["candidates"][0].update(score=1),
+        ):
+            previous = copy.deepcopy(result.events)
+            event = next(e for e in previous if e["source_url"] == self.row["source_url"])
+            mutate(event)
+            apply_completeness_contract(event)
+            with self.subTest(mutate=mutate), self.assertRaisesRegex(ValueError, "unexpected facts"):
+                self.run_lane(previous=previous)
+        with self.assertRaisesRegex(ValueError, "wave is missing"):
+            self.run_lane(rows=[])
+
+    def test_historical_withholding_is_superseded_only_at_review(self):
+        old = {**self.row, "source_locator": "FR-T0R28"}
+        for revision in (240128358, 240131611, 240133071):
+            result = self.run_lane(rows=[old], revision=revision)
+            self.assertEqual(result.events, self.previous)
+            self.assertEqual(result.excluded, {"FR-T0R28"})
+            self.assertEqual(result.report["accept_reviewed_sample"], 0)
+        with self.assertRaisesRegex(ValueError, "withheld"):
+            self.run_lane(revision=240180749)
+        self.assertEqual(load_corrections()["excluded_source_rows"], [])
+
+    def test_historical_blank_companion_stays_parser_rejected_and_unpublished(self):
+        parsed = parse_french_frozen_fixture(self.parsed)
+        self.assertTrue(any(r["source_locator"] == "FR-T0R27" and r["reason_code"] == "unnamed_generic_candidate" for r in parsed["rejected"]))
+        # Simulate a parseable historical companion; it still has no acceptance.
+        blank = copy.deepcopy(self.row)
+        scores = [0.5, 16, 2, 2.5, 8, 6, 13, 6, 2, 34, 4]
+        for candidate, score in zip(blank["candidates"], scores):
+            candidate["score"] = score
+        blank["candidates"].append({"name": "vote blanc", "score": 6})
+        blank["source_locator"] = "FR-T0R999"
+        with self.assertRaisesRegex(ValueError, "unregistered row"):
+            self.run_lane(rows=[self.row, blank])
+
+    def test_full_fetch_integration_accepts_only_ordinary_scenario(self):
+        from lxml import html
+        parsed = copy.deepcopy(self.parsed)
+        tree = html.fromstring(parsed["text"])
+        link = tree.xpath('//a[contains(@href,"10292-pres-vote-blanc")]')[0]
+        companion = link
+        while companion.tag != "tr":
+            companion = companion.getparent()
+        ordinary = companion.getnext()
+        # Model only the reviewed removal; existing frozen fixture stays intact.
+        for cell in reversed(list(companion)[:3]):
+            cell.attrib.pop("rowspan", None)
+            ordinary.insert(0, cell)
+        companion.getparent().remove(companion)
+        parsed["text"] = html.tostring(tree, encoding="unicode")
+        parsed["revid"] = 240180750
+        first = read("post_audit_first_round_9579b90.json") + self.previous
+        second = json.loads((ROOT / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
+        events, runoffs, report, _ = integrate_french_migration_source(parsed, first, second, [])
+        accepted = [e for e in events if e["source_url"] == self.row["source_url"]]
+        self.assertEqual(len(accepted), 1)
+        self.assertEqual(exact_factual_key(accepted[0]).to_dict(), self.record["canonical_factual_key"])
+        self.assertEqual(accepted[0]["candidates"], self.row["candidates"])
+        self.assertEqual(report["post_audit_first_round_corrections"]["accept_reviewed_sample"], 1)
+        for record in load_corrections()["corrections"]:
+            event = next(e for e in events if e["event_id"] == record["canonical_event_id"])
+            self.assertEqual(exact_factual_key(event).to_dict(), record["canonical_factual_key"])
+        repeated, repeated_runoffs, _, _ = integrate_french_migration_source(parsed, events, runoffs, [])
+        self.assertEqual(events, repeated)
+        self.assertEqual(runoffs, repeated_runoffs)
 
 
 class PostAuditCorrectionSchemaTests(unittest.TestCase):
@@ -267,12 +426,31 @@ class PostAuditCorrectionSchemaTests(unittest.TestCase):
         self.assert_invalid(lambda p: p.update(unexpected=True), "schema")
 
     def test_each_required_record_field_and_unexpected_fields(self):
-        for field in self.registry["corrections"][0]:
-            payload = copy.deepcopy(self.registry)
-            del payload["corrections"][0][field]
-            with self.subTest(field=field), self.assertRaises(ValueError):
-                validate_corrections(payload)
+        for index in (0, -1):
+            for field in self.registry["corrections"][index]:
+                payload = copy.deepcopy(self.registry)
+                del payload["corrections"][index][field]
+                with self.subTest(index=index, field=field), self.assertRaises(ValueError):
+                    validate_corrections(payload)
         self.assert_invalid(lambda p: p["corrections"][0].update(unexpected=True), "fields")
+
+    def test_acceptance_history_and_canonical_sample_only_schema_are_strict(self):
+        mutations = (
+            lambda r: r.update(unexpected=True),
+            lambda r: r.update(previous_event_id=r["canonical_event_id"]),
+            lambda r: r["historical_withheld_source"].update(source_revisions=[240180750]),
+            lambda r: r["historical_withheld_source"].update(source_url="https://example.org/changed"),
+            lambda r: r["historical_withheld_source"]["factual_key"].update(sample_size=1549),
+            lambda r: r["canonical_factual_key"].update(fieldwork_start="2026-09-08"),
+            lambda r: r["canonical_factual_key"]["candidates"][0].update(score="7"),
+            lambda r: r.update(canonical_event_id="0" * 64),
+            lambda r: r.update(canonical_hypothesis="unreviewed"),
+        )
+        for index, mutate in enumerate(mutations):
+            payload = copy.deepcopy(self.registry)
+            mutate(payload["corrections"][-1])
+            with self.subTest(mutation=index), self.assertRaises(ValueError):
+                validate_corrections(payload)
 
     def test_duplicate_locator(self):
         self.assert_invalid(lambda p: p["corrections"][1].update(source_locator="FR-T0R1"), "duplicate")
@@ -310,9 +488,10 @@ class PostAuditCorrectionSchemaTests(unittest.TestCase):
         )
 
     def test_candidate_correction_cannot_silently_retain_identity(self):
-        self.assert_invalid(lambda p: p["corrections"][-1].update(action="correct_retained_sample"), "identity")
+        self.assert_invalid(lambda p: p["corrections"][9].update(action="correct_retained_sample"), "identity")
 
     def test_exclusion_schema_and_overlapping_locators(self):
+        self.registry["excluded_source_rows"] = [copy.deepcopy(self.registry["corrections"][-1]["historical_withheld_source"])]
         self.assert_invalid(lambda p: p["excluded_source_rows"][0].update(source_locator="FR-T0R1"), "duplicate")
 
 

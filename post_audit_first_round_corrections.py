@@ -33,6 +33,10 @@ EXCLUSION_FIELDS = {
     "source_locator", "source_revisions", "source_url", "factual_key",
     "review_reason",
 }
+ACCEPTANCE_FIELDS = RECORD_FIELDS - {
+    "previous_event_id", "previous_hypothesis", "old_factual_key",
+    "historical_source_revision",
+} | {"historical_withheld_source"}
 
 
 def _url(value: object) -> None:
@@ -75,18 +79,32 @@ def validate_corrections(payload: object) -> dict:
         raise ValueError("post-audit first-round correction schema is malformed")
     locators, incoming_keys, previous_ids, canonical_ids = set(), set(), set(), set()
     for record in payload["corrections"]:
-        if not isinstance(record, dict) or set(record) != RECORD_FIELDS:
+        acceptance = isinstance(record, dict) and record.get("action") == "accept_reviewed_sample"
+        if not isinstance(record, dict) or set(record) != (ACCEPTANCE_FIELDS if acceptance else RECORD_FIELDS):
             raise ValueError("post-audit first-round correction fields are malformed")
         revisions = _provenance(record, "incoming_source_revisions")
-        historical = record["historical_source_revision"]
-        if type(historical) is not int or not 238906992 < historical < min(revisions):
-            raise ValueError("correction historical revision is malformed")
+        if acceptance:
+            historical = record["historical_withheld_source"]
+            validate_corrections({
+                "schema_version": "1.0", "corrections": [],
+                "excluded_source_rows": [historical],
+            })
+            if (
+                max(historical["source_revisions"]) >= min(revisions)
+                or historical["source_url"] != record["source_url"]
+                or historical["factual_key"] != record["incoming_factual_key"]
+            ):
+                raise ValueError("acceptance historical withholding contradicts reviewed source")
+        else:
+            historical = record["historical_source_revision"]
+            if type(historical) is not int or not 238906992 < historical < min(revisions):
+                raise ValueError("correction historical revision is malformed")
         locator = record["source_locator"]
         if locator in locators:
             raise ValueError("duplicate correction source locator")
         locators.add(locator)
         old, incoming, canonical = (
-            factual_key_from_dict(record[field], field)
+            factual_key_from_dict(record.get(field, record["incoming_factual_key"]), field)
             for field in ("old_factual_key", "incoming_factual_key", "canonical_factual_key")
         )
         if any(key.round != FIRST_ROUND for key in (old, incoming, canonical)):
@@ -95,6 +113,8 @@ def validate_corrections(payload: object) -> dict:
             raise ValueError("duplicate correction incoming factual key")
         incoming_keys.add(incoming)
         for field, seen in (("previous_event_id", previous_ids), ("canonical_event_id", canonical_ids)):
+            if acceptance and field == "previous_event_id":
+                continue
             value = record[field]
             if not isinstance(value, str) or not re.fullmatch(r"[a-f0-9]{64}", value):
                 raise ValueError("correction event ID is malformed")
@@ -133,6 +153,8 @@ def validate_corrections(payload: object) -> dict:
         if record["canonical_hypothesis"] != hypothesis:
             raise ValueError("canonical hypothesis contradicts candidate lineup")
         for prefix, key in (("previous", old), ("canonical", canonical)):
+            if acceptance and prefix == "previous":
+                continue
             hypothesis = record[prefix + "_hypothesis"]
             if not isinstance(hypothesis, str) or not hypothesis.strip():
                 raise ValueError("correction hypothesis is malformed")
@@ -143,7 +165,10 @@ def validate_corrections(payload: object) -> dict:
             if record[prefix + "_event_id"] != expected:
                 raise ValueError("correction event ID is not deterministic")
         action = record["action"]
-        if action == "correct_retained_sample":
+        if acceptance:
+            if incoming.candidates != canonical.candidates:
+                raise ValueError("reviewed sample acceptance changes candidate facts")
+        elif action == "correct_retained_sample":
             if (
                 old.candidates != canonical.candidates
                 or record["previous_event_id"] != record["canonical_event_id"]
@@ -184,6 +209,32 @@ def validate_corrections(payload: object) -> dict:
     return payload
 
 
+def _withheld_matches(rows: list[dict], record: dict) -> set[str]:
+    key = factual_key_from_dict(record["factual_key"], "excluded source factual key")
+    excluded_anchor = (
+        key.pollster_identity, key.fieldwork_start, key.fieldwork_end,
+        tuple(name for name, _ in key.candidates),
+    )
+    excluded = set()
+    for row in rows:
+        anchor = review_anchor(row)
+        if (
+            row["source_url"] == record["source_url"]
+            or row["source_locator"] == record["source_locator"]
+            or (anchor.pollster_identity, anchor.fieldwork_start, anchor.fieldwork_end,
+                anchor.candidate_ids) == excluded_anchor
+        ):
+            # Weak anchors only reject changed evidence; they never authorize it.
+            if (
+                row["source_locator"] != record["source_locator"]
+                or row["source_url"] != record["source_url"]
+                or exact_factual_key(row, sample_scope=row.get("sample_scope", "reported")) != key
+            ):
+                raise ValueError("withheld first-round source representation changed")
+            excluded.add(row["source_locator"])
+    return excluded
+
+
 def load_corrections(path: Path | str = REGISTRY) -> dict:
     return validate_corrections(json.loads(Path(path).read_text(encoding="utf-8")))
 
@@ -194,6 +245,41 @@ class CorrectionResult:
     handled: dict[str, object]
     excluded: set[str]
     report: dict
+
+
+def _make_reviewed_source_event(source_record: dict) -> dict:
+    candidates = copy.deepcopy(source_record["candidates"])
+    hypothesis = "French source — " + ", ".join(
+        candidate["name"] for candidate in candidates
+    )
+    event = apply_completeness_contract(
+        {
+            "event_id": make_event_id(
+                source_record["pollster"],
+                source_record["fieldwork_start"],
+                source_record["fieldwork_end"],
+                hypothesis,
+                source_record["source_url"],
+            ),
+            "pollster": source_record["pollster"],
+            "commissioner": None,
+            "publication_date": None,
+            "fieldwork_start": source_record["fieldwork_start"],
+            "fieldwork_end": source_record["fieldwork_end"],
+            "sample_size": source_record["sample_size"],
+            "sample_scope": "reported",
+            "round": FIRST_ROUND,
+            "hypothesis": hypothesis,
+            "scenario_key": make_scenario_key(
+                [candidate["name"] for candidate in candidates]
+            ),
+            "source_url": source_record["source_url"],
+            "candidates": candidates,
+            "migration_source_locator": source_record["source_locator"],
+        }
+    )
+    validate_poll_events([event])
+    return event
 
 
 def reconcile_first_round_corrections(
@@ -207,6 +293,7 @@ def reconcile_first_round_corrections(
     handled, excluded = {}, set()
     report = {
         "correct_retained_sample": 0, "supersede_event": 0, "already_applied": 0,
+        "accept_reviewed_sample": 0,
         "canonical_event_ids": [], "superseded_event_ids": [], "excluded_source_rows": 0,
     }
     rows_by_locator = {row["source_locator"]: row for row in rows}
@@ -215,9 +302,9 @@ def reconcile_first_round_corrections(
     # Require an exact decision for every row in a registered correction wave,
     # including rows moved away from their reviewed locator or mutated facts.
     wave_keys = {
-        (record["old_factual_key"]["pollster_identity"],
-         record["old_factual_key"]["fieldwork_start"],
-         record["old_factual_key"]["fieldwork_end"])
+        (record["incoming_factual_key"]["pollster_identity"],
+         record["incoming_factual_key"]["fieldwork_start"],
+         record["incoming_factual_key"]["fieldwork_end"])
         for record in registry["corrections"]
     }
     from poll_migration import pollster_identity
@@ -227,8 +314,14 @@ def reconcile_first_round_corrections(
         in wave_keys
     }
     for record in registry["corrections"]:
+        acceptance = record["action"] == "accept_reviewed_sample"
+        if acceptance and revision < min(record["incoming_source_revisions"]):
+            historical = record["historical_withheld_source"]
+            if revision >= min(historical["source_revisions"]):
+                excluded.update(_withheld_matches(rows, historical))
+            continue
         locator = record["source_locator"]
-        key = record["old_factual_key"]
+        key = record.get("old_factual_key", record["incoming_factual_key"])
         wave_present = any(
             (pollster_identity(row["pollster"]), row["fieldwork_start"], row["fieldwork_end"])
             == (key["pollster_identity"], key["fieldwork_start"], key["fieldwork_end"])
@@ -240,32 +333,42 @@ def reconcile_first_round_corrections(
             continue
         row = rows_by_locator.get(locator)
         expected = (
-            record["old_factual_key"] if revision == record["historical_source_revision"]
+            record["old_factual_key"] if revision == record.get("historical_source_revision")
             else record["incoming_factual_key"]
         )
         if (
             (revision < min(record["incoming_source_revisions"])
-             and revision != record["historical_source_revision"])
+             and revision != record.get("historical_source_revision"))
             or row is None or row["source_url"] != record["source_url"]
             or exact_factual_key(row, sample_scope=row.get("sample_scope", "reported"))
             != factual_key_from_dict(expected, "reviewed incoming first-round key")
         ):
             raise ValueError("reviewed first-round correction source scope/facts changed")
-        old_id, canonical_id = record["previous_event_id"], record["canonical_event_id"]
+        if acceptance and any(
+            other is not row and other["source_url"] == record["source_url"]
+            for other in rows
+        ):
+            raise ValueError("unregistered row in reviewed first-round acceptance source")
+        canonical_id = record["canonical_event_id"]
+        old_id = record.get("previous_event_id", canonical_id)
         old, canonical = events.get(old_id), events.get(canonical_id)
         if old_id != canonical_id and old is not None and canonical is not None:
             raise ValueError("first-round supersession contains both event identities")
         current = old if old is not None else canonical
         if current is None:
-            raise ValueError("reviewed first-round correction is missing its retained event")
+            if not acceptance:
+                raise ValueError("reviewed first-round correction is missing its retained event")
+            # Construct the source event only after exact reviewed
+            # provenance/facts pass; canonical metadata is applied below.
+            current = _make_reviewed_source_event(row)
         current_key = exact_factual_key(current, sample_scope=current.get("sample_scope", "reported"))
         canonical_key = factual_key_from_dict(record["canonical_factual_key"], "canonical first-round key")
-        old_key = factual_key_from_dict(record["old_factual_key"], "old first-round key")
+        old_key = factual_key_from_dict(key, "old first-round key")
         if (
             current["source_url"] != record["source_url"]
             or current_key not in {old_key, canonical_key}
             or (current_key == old_key and (current["event_id"] != old_id
-                or current["hypothesis"] != record["previous_hypothesis"]))
+                or current["hypothesis"] != record.get("previous_hypothesis", record["canonical_hypothesis"])))
             or (current_key == canonical_key and (current["event_id"] != canonical_id
                 or current["hypothesis"] != record["canonical_hypothesis"]))
         ):
@@ -295,37 +398,12 @@ def reconcile_first_round_corrections(
             report[record["action"]] += 1
         report["canonical_event_ids"].append(canonical_id)
         handled[locator] = canonical_key
-    if wave_rows != set(handled):
+    if wave_rows != set(handled) | excluded:
         raise ValueError("unregistered row in reviewed first-round correction wave")
     for record in registry["excluded_source_rows"]:
         if revision < min(record["source_revisions"]):
             continue
-        key = factual_key_from_dict(record["factual_key"], "excluded source factual key")
-        excluded_anchor = (
-            key.pollster_identity, key.fieldwork_start, key.fieldwork_end,
-            tuple(name for name, _ in key.candidates),
-        )
-        matches = []
-        for row in rows:
-            anchor = review_anchor(row)
-            if (
-                row["source_url"] == record["source_url"]
-                or row["source_locator"] == record["source_locator"]
-                or (anchor.pollster_identity, anchor.fieldwork_start, anchor.fieldwork_end,
-                    anchor.candidate_ids) == excluded_anchor
-            ):
-                # A weak anchor can only reject changed withheld evidence; it
-                # never authorizes either a correction or a new source event.
-                matches.append(row)
-        for row in matches:
-            if (
-                row["source_locator"] != record["source_locator"]
-                or row["source_url"] != record["source_url"]
-                or exact_factual_key(row, sample_scope=row.get("sample_scope", "reported"))
-                != factual_key_from_dict(record["factual_key"], "excluded source factual key")
-            ):
-                raise ValueError("withheld first-round source representation changed")
-            excluded.add(row["source_locator"])
+        excluded.update(_withheld_matches(rows, record))
     report["excluded_source_rows"] = len(excluded)
     report["canonical_event_ids"].sort()
     report["superseded_event_ids"].sort()
