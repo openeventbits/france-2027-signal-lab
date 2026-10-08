@@ -1,6 +1,6 @@
 # Reviewed post-audit first-round corrections
 
-This lane is separate from the immutable French cutover registry. The original 75 reviewed mappings, original acceptance figures and audited fixture are unchanged. It corrects Commission notice 10284 and withholds the unrelated notice-10292 source row.
+This lane is separate from the immutable French cutover registry. The original 75 reviewed mappings, original acceptance figures and audited fixture are unchanged. It corrects Commission notice 10284 and now includes a dedicated reviewed acceptance of the ordinary notice-10292 scenario.
 
 ## Sample contract
 
@@ -115,7 +115,7 @@ Old/live candidate difference: both omit François Ruffin 3%; all other scores a
 
 ## Storage and execution contract
 
-`fr27_post_audit_first_round_corrections.json` schema 1.0 contains finite reviewed corrections and finite excluded source representations. Each correction records old/incoming/canonical factual keys, explicit historical and incoming revisions, exact locator and URL, ordered canonical candidates, old/new deterministic hypotheses and IDs, a permitted treatment, official page, evidence URLs and a specific review reason. Validation rejects unexpected fields, duplicate locators or incoming keys, ambiguous targets, identity chains, malformed URLs, unsupported actions, or inconsistent candidate/hypothesis/ID representations.
+`fr27_post_audit_first_round_corrections.json` schema 1.0 contains finite reviewed corrections and finite excluded source representations. Each retained-event correction records old/incoming/canonical factual keys, explicit historical and incoming revisions, exact locator and URL, ordered canonical candidates, old/new deterministic hypotheses and IDs, a permitted treatment, official page, evidence URLs and a specific review reason. The reviewed acceptance record described below instead records incoming/canonical facts and identity plus the superseded historical withholding. Validation rejects unexpected fields, duplicate locators or incoming keys, ambiguous targets, identity chains, malformed URLs, unsupported actions, or inconsistent candidate/hypothesis/ID representations.
 
 Parsing is followed by exact correction validation before ordinary reconciliation. Reviewed page revision IDs remain recorded as provenance. At or after the earliest reviewed incoming revision, locator, URL and every factual-key field must match the reviewed incoming representation exactly; unrelated page edits do not invalidate it. The explicitly recorded historical revision remains the only replay of the old representation. A registered correction wave must be complete, with no unknown rows. Weak review anchors never authorize corrections or merging. Withheld-row anchors can only reject changed excluded evidence. Target sample/scope, candidate membership or score, dates, pollster, URL or locator mutations still fail closed. Unreviewed pre-review representations and unknown correction-wave rows also fail closed.
 
@@ -128,9 +128,21 @@ Subsequent revision fixture SHA-256 (canonical Git/LF bytes): `e27e76443887fc790
 Official notice SHA-256: `ed665185fb1bae1a07d477439844c359eb9e4c158ccc7f7e6fa8a7783ed82dd9`.
 The ten prior events are frozen separately for regression input; no tracked production outputs are changed.
 
-## Unrelated evidence
+## Reviewed notice-10292 acceptance
 
-FR-T0R28, Ifop September 9–11, 2026, n=1548, source notice 10292, is exactly withheld. Its companion new row remains parser-rejected. Neither is accepted as a new event in this repair. A changed withheld locator, source URL or factual representation fails closed; later unrelated page revisions keep the exact row withheld.
+The dedicated `accept_reviewed_sample` record supersedes the prior active exclusion of [Commission notice 10292](https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10292-pres-vote-blanc-ifop-6-octobre.pdf). Wikipedia revision **240180750** represents the ordinary without-blank scenario at **FR-T0R27**, with **1548 / reported**. Removal of the blank-vote companion in revision 240180602 moved the unchanged ordinary row from FR-T0R28 to FR-T0R27; FR-T0R28 now identifies unrelated evidence.
+
+Methodology page 2 reports 1548 adults including **1443 registered voters**, interviewed September 9–11, 2026. Page 10 explicitly gives the ordinary presidential scenario on the registered-voter base, as percentages of expressed voting intentions. Its 1077 respondents expressing intentions (873 certain voters) are separate from the canonical survey base. This record enforces **1443 / registered_voters**, preserves the exact notice URL and dates, and preserves all eleven scores: Arthaud 0.5, Mélenchon 17, Roussel 2, Tondelier 3, Glucksmann 9, Attal 7, Philippe 14, Retailleau 6.5, Dupont-Aignan 2, Le Pen 35, Zemmour 4.
+
+Acceptance uses the existing correction validation, complete wave check, canonical factual key, deterministic hypothesis/ID, completeness contract, and handled-row integration. Unlike the retained-event corrections, its strictly validated record has no previous event identity or historical correction replay. When absent, the event is built with the existing normal French event builder only after exact reviewed source checks, then receives the canonical sample. Repeat runs verify the retained facts and reuse the same event. At or after revision 240180750, only exact FR-T0R27 + URL + incoming factual key is accepted; URL, sample/scope, pollster, dates, candidate lineup or score drift fails closed. An additional parseable row from the same notice or correction wave fails closed. Locator comparison is not relaxed.
+
+`historical_withheld_source` preserves the former exact R28 withholding solely before this acceptance revision, so old frozen source replays cannot publish the uncorrected sample. It is nested within the acceptance decision, with matching URL/factual key and strictly earlier provenance; there is no active top-level 10292 exclusion. Historical drift still fails closed. The existing 10284 records and fixtures are unchanged.
+
+The page-11 **with-blank** companion is outside this acceptance. It remains parser-rejected as `unnamed_generic_candidate` in the historical fixture and has been removed from the live source. No blank-vote candidate ID or generic parsing change is introduced; no companion scenario is published.
+
+Notice-10292 repair validation: `python -B -m unittest -v test_post_audit_first_round_corrections.py` passes **38 tests**. The complete `Test polling production contract` command extracted from `.github/workflows/update-polls.yml` passes **224 tests**. The first sandboxed production-contract attempt was stopped after Windows temporary-file creation repeatedly returned permission errors; the unchanged command passes with the required temporary-file permissions. No code or tests were changed to bypass that restriction.
+
+The workflow's exact live French fetch command, using both tracked previous corpora, wave overrides and Commission registry, exits **0**, with all four outputs directed to temporary paths. Independently captured live revision **240180750** confirms **FR-T0R27**, **1548 / reported**, the exact notice URL, dates and all eleven scores. Reconciliation reports one `accept_reviewed_sample`, ten already-applied 10284 corrections and zero excluded source rows. The resulting **299 first-round / 81 second-round** corpus contains exactly one notice-10292 event, with **1443 / registered_voters** and no blank-vote companion. Its deterministic event ID is `a306d4c656d379c98b40a99d61dc57a3651f3e1bd6159747a9a160d3d967d240`. Compared with tracked first-round production, only that event is introduced: no event is removed and all 298 retained event objects are identical. Tracked production outputs remain unchanged.
 
 ## Architecture review
 
@@ -141,12 +153,12 @@ FR-T0R28, Ifop September 9–11, 2026, n=1548, source notice 10292, is exactly w
 5. Primary evidence is encoded: **yes**, with notice URL, page and independently extracted scenario fixture.
 6. Every correction is exact and deterministic: **yes**, including canonical factual-key and event-ID verification.
 7. Second-round behavior is modified: **no**; no second-round contract or registry changes.
-8. Unrelated new row is accepted: **no**; exact withholding decision.
+8. Unrelated new row is accepted: **no**; only the separately reviewed ordinary notice-10292 scenario is accepted.
 9. Another explicit post-audit review can use this lane without relaxed matching: **yes**, through a new strictly validated record with primary evidence.
 
 Production publishes corrected data through the normal Update polls workflow after merge. Do not manually promote temporary outputs.
 
-## Live production verification and semantic output comparison
+## Original notice-10284 live production verification and semantic output comparison
 
 The exact scheduled fetch command, using both tracked previous corpora, wave overrides and Commission registry and writing all four outputs to temporary paths, exited 0 at revision **240131611**. The workflow's complete `Validate and stage fetched data` Python block also exited 0 against isolated temporary copies of the tracked inputs: 298 first-round events (285 complete, 13 partial), 81 second-round events, closest-runoff status `agree`, latest first-round fieldwork September 29. The live source has 13 reviewed runoff table families, 14 parser fail-closed rows and 3 ambiguous identity rows. The post-audit lane separately withholds one exact notice-10292 row. All ten notice-10284 scenarios are corrected; none is unresolved. Commission coverage is 30 relevant notices: 3 parsed, 18 reconciled, 9 unresolved. Existing unresolved notices are not accepted through this correction lane.
 
