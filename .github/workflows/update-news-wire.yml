@@ -5,6 +5,14 @@ on:
     - cron: "23 * * * *"
   workflow_dispatch:
 
+  workflow_run:
+    workflows:
+      - "Update candidate universe"
+    types:
+      - completed
+    branches:
+      - main
+
 permissions:
   contents: write
   pages: write
@@ -16,6 +24,9 @@ concurrency:
 
 jobs:
   update-news-wire:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
 
     steps:

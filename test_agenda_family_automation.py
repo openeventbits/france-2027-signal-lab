@@ -48,7 +48,8 @@ class AgendaFamilyAutomationContractTests(unittest.TestCase):
         self.assertIn("workflow_run:", self.text)
         self.assertIn('- "Update polls"', self.text)
         self.assertNotIn('- "Update Election News Wire"', self.text)
-        self.assertIn('- "Update candidate universe"', self.text)
+        self.assertIn('- "Publish candidate family"', self.text)
+        self.assertNotIn('- "Update candidate universe"', self.text)
         self.assertIn("github.event.workflow_run.conclusion == 'success'", self.text)
         self.assertIn("workflow_dispatch:", self.text)
         self.assertRegex(self.text, r"(?m)^\s+schedule:\s*$")
@@ -170,7 +171,9 @@ class AgendaFamilyAutomationContractTests(unittest.TestCase):
             self.assertNotIn("publication_manifest.json", block)
 
     def test_search_entrypoints_are_not_rebuilt(self):
-        self.assertNotIn("build_search_entrypoints.py", self.text)
+        self.assertEqual(self.text.count("build_search_entrypoints.py"), 1)
+        self.assertIn('["build_search_entrypoints.py", "--check"]', self.text)
+        self.assertNotIn("python -B build_search_entrypoints.py", self.text)
 
     def test_no_op_avoids_commit_push_and_pages(self):
         self.assertIn('echo "changed=false" >> "$GITHUB_OUTPUT"', self.text)
@@ -208,7 +211,7 @@ class AgendaFamilyAutomationContractTests(unittest.TestCase):
     def test_producers_are_exact_and_generated_outputs_cannot_self_trigger(self):
         producers = re.search(r"(?s)  workflow_run:\n    workflows:\n(.*?)    types:", self.text)[1]
         self.assertEqual(set(re.findall(r'- "([^"]+)"', producers)), {
-            "Update candidate universe", "Update polls",
+            "Publish candidate family", "Update polls",
         })
         paths = re.search(r"(?s)    paths:\n(.*?)\n  #", self.text)[1]
         paths = set(re.findall(r'- "([^"]+)"', paths))
@@ -275,7 +278,7 @@ class AgendaFamilyAutomationContractTests(unittest.TestCase):
 
     def test_inline_python_and_shell_syntax(self):
         blocks = run_blocks(self.text)
-        self.assertEqual(len(blocks), 5)
+        self.assertEqual(len(blocks), 6)
         bash = shutil.which("bash")
         if os.name == "nt":
             bash = str(Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Git/bin/bash.exe")
