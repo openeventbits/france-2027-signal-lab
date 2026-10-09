@@ -250,7 +250,9 @@ class LiveWorkflowTests(unittest.TestCase):
             text = (ROOT / f".github/workflows/publish-{family}-family.yml").read_text(encoding="utf-8")
             upstream = text.split("workflow_run:", 1)[1].split("schedule:", 1)[0]
             self.assertNotIn('"Update Election News Wire"', upstream)
-            self.assertIn('"Update polls"', upstream); self.assertIn('"Update candidate universe"', upstream)
+            self.assertIn('"Update polls"', upstream)
+            self.assertIn('"Publish candidate family"', upstream)
+            self.assertNotIn('"Update candidate universe"', upstream)
             self.assertEqual(text.count("cron:"), 1); self.assertIn(cron, text)
             for marker in ("group: production-data-update", "cancel-in-progress: false", "queue: max"):
                 self.assertIn(marker, text)
