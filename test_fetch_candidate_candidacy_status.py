@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import copy
+import io
 import json
 import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from urllib.parse import quote
 from unittest import mock
 
 import candidate_candidacy_status
@@ -916,6 +919,425 @@ class CommandLineTests(unittest.TestCase):
         self.assertTrue(args.no_previous)
 
 
+GILLES_SOURCE_ROWS = """
+<tr><th rowspan="2"><a href="/w/index.php?title=Gilles_Platret&amp;action=edit&amp;redlink=1"
+ class="new" title="Gilles Platret (page inexistante)">Gilles Platret</a>
+<p>(53 ans)<a href="/wiki/Les_R%C3%A9publicains" title="Les Républicains">Les Républicains</a></p>
+</th><td rowspan="2"></td><td rowspan="2"></td><td rowspan="2"></td>
+<td rowspan="2"></td><td>Previous functions</td></tr>
+<tr><td>Il annonce se présente le 8 octobre 2026<sup class="reference">[71][72]</sup></td></tr>
+"""
+
+
+def parsed_table(markup):
+    parser = collector._TreeParser()
+    parser.feed(markup)
+    return collector._descendants(parser.root, "table")[0]
+
+
+class LogicalCandidateTableTests(unittest.TestCase):
+    def extract(self, markup):
+        return collector._extract_candidate_table(
+            parsed_table(markup), "Candidats déclarés", collector.PAGE_TITLE,
+        )
+
+    def test_simple_and_br_and_unlinked_presentations(self):
+        for presentation in (
+            "Gilles Platret", "<strong>Gilles Platret</strong>",
+            '<a href="/wiki/Gilles_Platret">Gilles Platret</a>',
+            '<a href="/wiki/Gilles_Platret">Gilles Platret</a><br>(53 ans)<br>Party',
+        ):
+            with self.subTest(presentation=presentation):
+                rows = self.extract('<table><tr><th>Candidat</th></tr><tr><th>' + presentation + '</th></tr></table>')
+                self.assertEqual([row.candidate_name for row in rows], ["Gilles Platret"])
+
+    def test_subordinate_metadata_never_extends_identity_or_selects_article(self):
+        for tag in ("p", "ul", "ol", "div", "dl"):
+            with self.subTest(tag=tag):
+                markup = (
+                    '<table><tr><th>Candidat</th></tr><tr><th>'
+                    '<a class="new" href="/w/index.php?title=Gilles_Platret&amp;redlink=1">Gilles Platret</a>'
+                    f'<{tag}>(53 ans)<a href="/wiki/Les_R%C3%A9publicains">Les Républicains</a></{tag}>'
+                    '</th></tr></table>'
+                )
+                rows = self.extract(markup)
+                self.assertEqual(rows[0].candidate_name, "Gilles Platret")
+                self.assertEqual(candidate_id(rows[0].candidate_name), "gilles-platret")
+                self.assertIsNone(rows[0].requested_article_title)
+                self.assertIsNone(rows[0].wikipedia_article)
+
+    def test_live_article_selection_excludes_subordinate_links(self):
+        markup = ('<table><tr><th>Candidat</th></tr><tr><th>'
+                  '<a href="/wiki/Gilles_Platret">Gilles Platret</a>'
+                  '<p><a href="/wiki/Party">Gilles Platret</a></p></th></tr></table>')
+        self.assertEqual(self.extract(markup)[0].requested_article_title, "Gilles Platret")
+
+    def test_redlink_identity_is_not_an_existing_article(self):
+        markup = ('<table><tr><th>Candidat</th></tr><tr><th>'
+                  '<a class="new" href="/wiki/Gilles_Platret?redlink=1">Gilles Platret</a>'
+                  '</th></tr></table>')
+        row = self.extract(markup)[0]
+        self.assertEqual(row.candidate_name, "Gilles Platret")
+        self.assertIsNone(row.requested_article_title)
+
+    def test_combined_row_and_column_spans_preserve_next_identity(self):
+        markup = ('<table><tr><th colspan="2">Group</th><th>Candidat</th>'
+                  '<th colspan="2">Details</th></tr>'
+                  '<tr><td colspan="2" rowspan="2"></td>'
+                  '<th rowspan="2">Alpha Candidate</th><td colspan="2"></td></tr>'
+                  '<tr><td colspan="2">Arbitrary continuation</td></tr>'
+                  '<tr><td colspan="2"></td><th>Beta Candidate</th>'
+                  '<td colspan="2"></td></tr></table>')
+        grid = collector._table_grid(parsed_table(markup))
+        self.assertEqual(grid[2][2].row_index, 1)
+        self.assertEqual(grid[2][3].column_index, 3)
+        self.assertEqual(grid[2][4].column_index, 3)
+        self.assertEqual([row.candidate_name for row in self.extract(markup)],
+                         ["Alpha Candidate", "Beta Candidate"])
+
+    def test_ambiguous_candidate_headers_fail_closed(self):
+        with self.assertRaisesRegex(collector.CandidateCandidacyFetchError, 'ambiguous candidate headers'):
+            self.extract('<table><tr><th>Candidat</th><th>Candidate</th></tr>'
+                         '<tr><th>Alpha Candidate</th><td>Details</td></tr></table>')
+
+    def test_rowspan_owns_continuation_candidate_column(self):
+        for prose in ("Il annonce se présente le 8 octobre 2026", "Completely different details", "Alice Detail"):
+            with self.subTest(prose=prose):
+                markup = '<table><tr><th colspan="3">Candidat</th><th>Functions</th><th>Campaign</th><th>Notes</th></tr>'
+                markup += GILLES_SOURCE_ROWS.replace("Il annonce se présente le 8 octobre 2026", prose) + '</table>'
+                table = parsed_table(markup)
+                grid = collector._table_grid(table)
+                self.assertEqual(grid[2][0].row_index, 1)
+                self.assertEqual(grid[2][5].row_index, 2)
+                self.assertEqual(grid[2][5].column_index, 5)
+                self.assertEqual([row.candidate_name for row in self.extract(markup)], ["Gilles Platret"])
+
+    def test_candidate_header_uses_logical_not_physical_column(self):
+        markup = ('<table><tr><th colspan="2">Other</th><th>Candidat</th></tr>'
+                  '<tr><td></td><td></td><th>Gilles Platret</th></tr></table>')
+        self.assertEqual(self.extract(markup)[0].candidate_name, "Gilles Platret")
+
+    def test_malformed_spans_fail_closed(self):
+        cases = {
+            "overlap": '<tr><td></td><td rowspan="2"></td><th>Alpha Candidate</th></tr><tr><td colspan="2"></td><th>Beta Candidate</th></tr>',
+            "incomplete": '<tr><td></td><th>Alpha Candidate</th></tr>',
+            "overrun": '<tr><td colspan="3"></td><th>Alpha Candidate</th></tr>',
+            "ambiguous ownership": '<tr><td></td><th colspan="2">Alpha Candidate</th></tr>',
+            "beyond table": '<tr><td></td><td></td><th rowspan="2">Alpha Candidate</th></tr>',
+        }
+        for label, rows in cases.items():
+            with self.subTest(label=label), self.assertRaises(collector.CandidateCandidacyFetchError):
+                self.extract('<table><tr><th>Other</th><th>Other</th><th>Candidat</th></tr>' + rows + '</table>')
+        for attribute in ("rowspan", "colspan"):
+            for value in ("0", "-1", "two", "1.5", "", "999999", " 2"):
+                with self.subTest(attribute=attribute, value=value), self.assertRaisesRegex(collector.CandidateCandidacyFetchError, 'invalid ' + attribute):
+                    self.extract(f'<table><tr><th>Candidat</th></tr><tr><th {attribute}="{value}">Alpha Candidate</th></tr></table>')
+
+    def test_ambiguous_identity_fails_closed(self):
+        for identity in (
+            '<a href="/wiki/Alpha">Alpha Candidate</a><a href="/wiki/Beta">Beta Candidate</a>',
+            '<a href="/wiki/Alpha">Alpha Candidate</a> plus unseparated party metadata',
+            '<p><a href="/wiki/Alpha">Alpha Candidate</a></p>',
+        ):
+            with self.subTest(identity=identity), self.assertRaisesRegex(collector.CandidateCandidacyFetchError, 'ambiguous|malformed name'):
+                self.extract('<table><tr><th>Candidat</th></tr><tr><th>' + identity + '</th></tr></table>')
+
+
+class ReviewedFalseAdditionRecoveryTests(unittest.TestCase):
+    def setUp(self):
+        self.origin = collector.RevisionSnapshot(240211682, "2026-10-09T11:10:48Z")
+        self.current = collector.RevisionSnapshot(240212264, "2026-10-09T11:39:38Z")
+        self.previous, _ = collector.build_payload(self.origin, fixture_html())
+        evidence = collector._status_source_fields(self.origin, collector.SECTION_RULES['Candidats déclarés'])
+        for identifier, name in collector._REVIEWED_FALSE_IDENTITIES.items():
+            self.previous['candidates'].append({
+                'candidate_id': identifier, 'candidate_name': name,
+                'status': 'declared', 'display_tier': 'main',
+                'upstream_presence': 'present', 'wikipedia_article': None,
+                'previous_names': [], **evidence,
+            })
+        self.previous['candidates'].sort(key=lambda row: (row['candidate_name'].casefold(), row['candidate_id']))
+        self.extracted = collector.extract_candidates(fixture_html())
+
+    def test_reviewed_pair_removed_without_mutating_previous_or_registry_schema(self):
+        original = copy.deepcopy(self.previous)
+        payload, extracted, preserved, new_ids, changes, repairs = collector._build_payload_details(
+            self.current, fixture_html(), previous_registry=self.previous,
+        )
+        self.assertEqual(self.previous, original)
+        self.assertEqual(len(payload['candidates']), 5)
+        self.assertEqual(len(extracted), 5)
+        self.assertEqual(len(preserved), 5)
+        self.assertEqual(new_ids, ())
+        self.assertEqual(changes, ())
+        self.assertEqual(repairs, ({
+            'type': 'remove_parser_artifacts', 'previous_source_revision': 240211682,
+            'removed_candidate_ids': sorted(collector._REVIEWED_FALSE_IDENTITIES),
+            'replacement_candidate_id': None,
+        },))
+        self.assertNotIn('reviewed_identity_repairs', payload)
+        self.assertTrue(all(not row['previous_names'] for row in payload['candidates']))
+        validate_candidate_candidacy_status(payload)
+
+    def test_recovery_report_is_exposed_by_fetch_and_cli(self):
+        fake = FakeFetch(query=query_response(revision_id=240212264, timestamp=self.current.revision_timestamp), parsed=parse_response(revision_id=240212264))
+        result = collector.fetch_candidate_candidacy_status(fake, previous_registry=self.previous)
+        self.assertEqual(len(result.reviewed_identity_repairs), 1)
+        with tempfile.TemporaryDirectory() as directory, mock.patch.object(collector, 'fetch_candidate_candidacy_status', return_value=result):
+            output = Path(directory) / 'registry.json'
+            with mock.patch('sys.stdout', new_callable=io.StringIO) as stream:
+                self.assertEqual(collector.main(['--no-previous', '--output', str(output)]), 0)
+            report = json.loads(stream.getvalue())
+            self.assertEqual(report['reviewed_identity_repairs'], list(result.reviewed_identity_repairs))
+            self.assertNotIn('reviewed_identity_repairs', json.loads(output.read_text(encoding='utf-8')))
+
+    def test_later_revision_can_remove_pair_but_already_recovered_registry_is_noop(self):
+        later = collector.RevisionSnapshot(240212265, '2026-10-10T00:00:00Z')
+        details = collector._build_payload_details(later, fixture_html(), previous_registry=self.previous)
+        self.assertEqual(len(details[-1]), 1)
+        repeat = collector._build_payload_details(later, fixture_html(), previous_registry=details[0])
+        self.assertEqual(repeat[-1], ())
+
+    def test_changed_reviewed_facts_do_not_activate_recovery(self):
+        bad_id = 'gilles-platret-53-ans-les-republicains'
+        mutations = ('only_one', 'name', 'status', 'tier', 'article', 'source_revision',
+                     'source_timestamp', 'source_page', 'legitimate_gilles', 'related_previous',
+                     'correct_gilles_extracted', 'bad_gilles_extracted', 'bad_prose_extracted',
+                     'related_extracted', 'unrelated_pair_disappears', 'same_revision',
+                     'older_timestamp', 'wrong_current_page', 'previous_names', 'record_evidence')
+        for mutation in mutations:
+            with self.subTest(mutation=mutation):
+                previous = copy.deepcopy(self.previous)
+                extracted = list(self.extracted)
+                revision = self.current
+                record = next(row for row in previous['candidates'] if row['candidate_id'] == bad_id)
+                if mutation == 'only_one':
+                    previous['candidates'].remove(record)
+                elif mutation == 'name': record['candidate_name'] += ' changed'
+                elif mutation == 'status': record.update(status='active_potential', display_tier='secondary')
+                elif mutation == 'tier': record['display_tier'] = 'secondary'
+                elif mutation == 'article': record['wikipedia_article'] = {'page_id': 999, 'title': 'Gilles Platret', 'url': collector._canonical_article_url('Gilles Platret')}
+                elif mutation == 'source_revision':
+                    previous['source']['revision_id'] = 240211681
+                    previous['source']['revision_url'] = collector.RevisionSnapshot(240211681, self.origin.revision_timestamp).permanent_url
+                elif mutation == 'source_timestamp': previous['source']['revision_timestamp'] = '2026-10-09T11:10:47Z'
+                elif mutation == 'source_page': previous['source']['page_title'] = 'Unexpected source'
+                elif mutation in ('legitimate_gilles', 'related_previous'):
+                    extra = copy.deepcopy(record)
+                    name = 'Gilles Platret' if mutation == 'legitimate_gilles' else 'Gilles Platret Extra'
+                    extra.update(candidate_id=candidate_id(name), candidate_name=name)
+                    previous['candidates'].append(extra)
+                    previous['candidates'].sort(key=lambda row: (row['candidate_name'].casefold(), row['candidate_id']))
+                elif mutation in ('correct_gilles_extracted', 'bad_gilles_extracted', 'bad_prose_extracted', 'related_extracted'):
+                    name = {'correct_gilles_extracted': 'Gilles Platret', 'bad_gilles_extracted': collector._REVIEWED_FALSE_IDENTITIES[bad_id], 'bad_prose_extracted': 'Il annonce se présente le 8 octobre 2026', 'related_extracted': 'Gilles Platret Extra'}[mutation]
+                    extracted.append(collector.ExtractedCandidate(name, 'Candidats déclarés', None))
+                elif mutation == 'unrelated_pair_disappears': extracted = [row for row in extracted if row.candidate_name not in ('Élodie Déclarée', 'François Primaire')]
+                elif mutation == 'same_revision': revision = self.origin
+                elif mutation == 'older_timestamp': revision = collector.RevisionSnapshot(self.current.revision_id, '2026-10-09T11:10:47Z')
+                elif mutation == 'wrong_current_page': revision = collector.RevisionSnapshot(self.current.revision_id, self.current.revision_timestamp, page_title='Unexpected source')
+                elif mutation == 'previous_names': record['previous_names'] = ['Gilles Previous']
+                elif mutation == 'record_evidence': record['source_date'] = '2026-10-08'
+                try:
+                    baseline, repairs = collector._reviewed_false_addition_recovery(revision, extracted, previous)
+                except collector.CandidateCandidacyFetchError as error:
+                    self.assertIn('previous registry is invalid', str(error))
+                    continue
+                self.assertIs(baseline, previous)
+                self.assertEqual(repairs, ())
+                # Compare with the ordinary guard, including its permitted
+                # single-disappearance retention; do not invent new thresholds.
+                matches, _, _ = collector.reconcile_candidate_identities(extracted, previous)
+                try:
+                    collector.validate_extraction_anomalies(extracted, previous, matches)
+                except collector.CandidateCandidacyFetchError as ordinary_error:
+                    with mock.patch.object(collector, 'extract_candidates', return_value=extracted), self.assertRaisesRegex(collector.CandidateCandidacyFetchError, str(ordinary_error)):
+                        collector._build_payload_details(revision, 'fixture', previous_registry=previous)
+                else:
+                    with mock.patch.object(collector, 'extract_candidates', return_value=extracted):
+                        details = collector._build_payload_details(revision, 'fixture', previous_registry=previous)
+                    self.assertEqual(details[-1], ())
+
+
+# Reduced identity fixtures transcribed from exact revision 240073416.
+# Revision 240211682 adds only GILLES_SOURCE_ROWS; 240212264 reverts them.
+PINNED_SECTION_IDENTITIES = {
+    'Candidats déclarés': (
+        ('Nathalie Arthaud', 'Nathalie Arthaud'),
+        ('François Asselineau', 'François Asselineau'),
+        ('Gabriel Attal', 'Gabriel Attal'),
+        ('Delphine Batho', 'Delphine Batho'),
+        ('Olivier Becht', 'Olivier Becht'),
+        ('Xavier Bertrand', 'Xavier Bertrand'),
+        ('Karim Bouamrane', 'Karim Bouamrane'),
+        ('Bernard Cazeneuve', 'Bernard Cazeneuve'),
+        ('Nicolas Dupont-Aignan', 'Nicolas Dupont-Aignan'),
+        ('Sylvain Durif', 'Sylvain Durif'),
+        ('Anasse Kazib', 'Anasse Kazib'),
+        ('Selma Labib', None),
+        ('Francis Lalanne', 'Francis Lalanne'),
+        ('Marine Le Pen', 'Marine Le Pen'),
+        ('Mira Markovic', None),
+        ('Benoît Mathieu', None),
+        ('Jean-Luc Mélenchon', 'Jean-Luc Mélenchon'),
+        ('Manolo Mlekuz', None),
+        ('Édouard Philippe', 'Édouard Philippe'),
+        ('Florian Philippot', 'Florian Philippot'),
+        ('Bruno Retailleau', 'Bruno Retailleau'),
+        ('Fabien Roussel', 'Fabien Roussel'),
+        ('Éric Zemmour', 'Éric Zemmour'),
+    ),
+    "Candidats déclarés dans le cadre d'une primaire": (
+        ('François Ruffin', 'François Ruffin'),
+        ('Marine Tondelier', 'Marine Tondelier'),
+        ('Olivier Faure', 'Olivier Faure'),
+        ('Raphaël Glucksmann', 'Raphaël Glucksmann'),
+        ('Jérôme Guedj', 'Jérôme Guedj'),
+        ('Emmanuel Maurel', 'Emmanuel Maurel'),
+        ('Ségolène Royal', 'Ségolène Royal'),
+        ('David Lisnard', 'David Lisnard'),
+    ),
+    'Candidats pressentis': (
+        ('François Baroin', 'François Baroin'),
+        ('Jean-Noël Barrot', 'Jean-Noël Barrot'),
+        ('Aurore Bergé', 'Aurore Bergé'),
+        ('François Hollande', 'François Hollande'),
+        ('Jean Lassalle', 'Jean Lassalle'),
+        ('Bruno Le Maire', 'Bruno Le Maire'),
+        ('Matthieu Pigasse', 'Matthieu Pigasse'),
+        ('Natacha Polony', 'Natacha Polony'),
+        ('Teddy Riner', 'Teddy Riner'),
+        ('Sandrine Rousseau', 'Sandrine Rousseau'),
+        ('Manuel Valls', 'Manuel Valls'),
+        ('Dominique de Villepin', 'Dominique de Villepin'),
+        ('Philippe de Villiers', 'Philippe de Villiers'),
+    ),
+    'Candidatures retirées': (
+        ('Clémentine Autain', 'Clémentine Autain'),
+        ('Benjamin Lucas-Lundy', 'Benjamin Lucas-Lundy'),
+        ('Lydie Massard', 'Lydie Massard'),
+    ),
+    'Candidats pressentis ayant décliné': (
+        ('Philippe Poutou', 'Philippe Poutou'),
+        ('Lucie Castets', 'Lucie Castets'),
+        ('Carole Delga', 'Carole Delga'),
+        ('Boris Vallaud', 'Boris Vallaud'),
+        ('Yannick Jadot', 'Yannick Jadot'),
+        ('Christiane Taubira', 'Christiane Taubira'),
+        ('François Bayrou', 'François Bayrou'),
+        ('Élisabeth Borne', 'Élisabeth Borne'),
+        ('Yaël Braun-Pivet', 'Yaël Braun-Pivet'),
+        ('Gérald Darmanin', 'Gérald Darmanin'),
+        ('Sébastien Lecornu', 'Sébastien Lecornu'),
+        ('Michel Barnier', 'Michel Barnier'),
+        ('Jean Castex', 'Jean Castex'),
+        ('Christine Lagarde', 'Christine Lagarde'),
+        ('Robert Ménard', 'Robert Ménard'),
+        ('Valérie Pécresse', 'Valérie Pécresse'),
+        ('Laurent Wauquiez', 'Laurent Wauquiez'),
+        ('Jordan Bardella', 'Jordan Bardella'),
+        ('Éric Ciotti', 'Éric Ciotti'),
+        ('Sarah Knafo', 'Sarah Knafo'),
+        ('Marion Maréchal', 'Marion Maréchal'),
+        ('Laurent Berger', 'Laurent Berger'),
+        ('Cyril Hanouna', 'Cyril Hanouna'),
+        ('Michel-Édouard Leclerc', 'Michel-Édouard Leclerc'),
+    ),
+}
+
+
+def pinned_revision_html(*, with_gilles=False):
+    """Reduced source fixtures: the complete identity roster and changed DOM.
+
+    Unchanged metadata columns are placeholders. The Gilles/continuation cell
+    structure is preserved separately in GILLES_SOURCE_ROWS, rather than
+    replacing its presentation with the expected extracted name.
+    """
+    sections = []
+    for section, identities in PINNED_SECTION_IDENTITIES.items():
+        rows = []
+        for name, article in identities:
+            if with_gilles and name == 'Bruno Retailleau':
+                rows.append(GILLES_SOURCE_ROWS)
+            label = (f'<a href="/wiki/{quote(article.replace(" ", "_"))}">{name}</a>'
+                     if article else f'<strong>{name}</strong>')
+            if collector.SECTION_RULES[section].structured_kind == 'table':
+                rows.append(f'<tr><th>{label}<br>(42 ans)<br>Parti</th>'
+                            '<td>Portrait</td><td>Profession</td><td>Mandat</td>'
+                            '<td>Logo</td><td>Présentation</td></tr>')
+            else:
+                rows.append(f'<li>{label}, présentation</li>')
+        if collector.SECTION_RULES[section].structured_kind == 'table':
+            structure = ('<table><tr><th colspan="3">Candidat</th><th>Mandat</th>'
+                         '<th>Logo</th><th>Présentation</th></tr>' + ''.join(rows) + '</table>')
+        else:
+            structure = '<ul>' + ''.join(rows) + '</ul>'
+        sections.append(f'<h2>{section}</h2>{structure}')
+    return ''.join(sections)
+
+
+class PinnedCandidateUniverseRegressionTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Immutable incident commits, available in the workflow's depth-0 checkout.
+        def registry(ref):
+            return json.loads(subprocess.check_output(
+                ['git', 'show', ref + ':candidate_candidacy_status.json'], cwd=TEST_ROOT))
+        cls.last_good = registry('e589fdc1c7795a78823c180f6c3ad16daf82bbbe^')
+        cls.polluted = registry('e589fdc1c7795a78823c180f6c3ad16daf82bbbe')
+
+    def assert_universe(self, details, raw, total, active, tiers):
+        payload, extracted = details[:2]
+        self.assertEqual(len(extracted), raw)
+        self.assertEqual(len(payload['candidates']), total)
+        self.assertEqual(len(candidate_candidacy_status.active_candidate_records(payload)), active)
+        self.assertEqual([sum(row['display_tier'] == tier for row in payload['candidates'])
+                          for tier in ('main', 'secondary', 'hidden')], tiers)
+        previous = {row['candidate_id']: row for row in self.last_good['candidates']}
+        current = {row['candidate_id']: row for row in payload['candidates']}
+        for identifier, row in previous.items():
+            self.assertEqual(current[identifier], row, identifier)
+        return current
+
+    def test_revision_240073416_last_good_parity(self):
+        details = collector._build_payload_details(
+            collector.RevisionSnapshot(240073416, '2026-10-04T17:28:26Z'),
+            pinned_revision_html(), previous_registry=self.last_good)
+        self.assert_universe(details, 71, 74, 44, [32, 13, 29])
+        self.assertEqual(details[-1], ())
+
+    def test_revision_240211682_exactly_one_gilles(self):
+        details = collector._build_payload_details(
+            collector.RevisionSnapshot(240211682, '2026-10-09T11:10:48Z'),
+            pinned_revision_html(with_gilles=True), previous_registry=self.last_good)
+        current = self.assert_universe(details, 72, 75, 45, [33, 13, 29])
+        self.assertEqual(set(current) - {row['candidate_id'] for row in self.last_good['candidates']},
+                         {'gilles-platret'})
+        gilles = [row for row in details[1] if row.candidate_name == 'Gilles Platret']
+        self.assertEqual(len(gilles), 1)
+        self.assertIsNone(gilles[0].requested_article_title)
+        self.assertIsNone(current['gilles-platret']['wikipedia_article'])
+        self.assertEqual(current['gilles-platret']['candidate_name'], 'Gilles Platret')
+        names = [row.candidate_name for row in details[1]]
+        position = names.index('Gilles Platret')
+        self.assertEqual(names[position - 1:position + 2],
+                         ['Florian Philippot', 'Gilles Platret', 'Bruno Retailleau'])
+        self.assertTrue(set(collector._REVIEWED_FALSE_IDENTITIES).isdisjoint(current))
+        self.assertEqual(details[-1], ())
+
+    def test_revision_240212264_reviewed_live_recovery(self):
+        details = collector._build_payload_details(
+            collector.RevisionSnapshot(240212264, '2026-10-09T11:39:38Z'),
+            pinned_revision_html(), previous_registry=self.polluted)
+        current = self.assert_universe(details, 71, 74, 44, [32, 13, 29])
+        self.assertTrue((set(collector._REVIEWED_FALSE_IDENTITIES) | {'gilles-platret'}).isdisjoint(current))
+        self.assertEqual(len(details[-1]), 1)
+        self.assertEqual(details[-1][0]['removed_candidate_ids'],
+                         sorted(collector._REVIEWED_FALSE_IDENTITIES))
+        self.assertIsNone(details[-1][0]['replacement_candidate_id'])
+        self.assertEqual(sum(row['upstream_presence'] == 'temporarily_missing'
+                             for row in current.values()), 3)
+
+
 class SerializationAndWriteTests(unittest.TestCase):
     def setUp(self):
         revision = collector.RevisionSnapshot(REVISION_ID, REVISION_TIMESTAMP)
@@ -931,7 +1353,7 @@ class SerializationAndWriteTests(unittest.TestCase):
     def test_output_is_not_written_when_validation_fails(self):
         invalid = copy.deepcopy(self.payload)
         invalid["candidates"] = []
-        with tempfile.TemporaryDirectory(dir=TEST_ROOT) as directory:
+        with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "registry.json"
             output.write_text("last-good\n", encoding="utf-8")
             with self.assertRaises(collector.CandidateCandidacyFetchError):
@@ -941,7 +1363,7 @@ class SerializationAndWriteTests(unittest.TestCase):
 
     def test_successful_output_is_written_atomically(self):
         real_replace = os.replace
-        with tempfile.TemporaryDirectory(dir=TEST_ROOT) as directory:
+        with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "registry.json"
             with mock.patch.object(
                 collector.os,

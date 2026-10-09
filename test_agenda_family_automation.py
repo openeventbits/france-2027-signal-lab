@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -12,6 +13,7 @@ import build_route_registry as registry_builder
 import build_sitemaps as sitemap_builder
 import build_agenda_coverage_history as history_builder
 import test_build_agenda_coverage_history as history_fixtures
+from candidate_page_contract import project_candidate_page_lifecycle
 from datetime import date, datetime, timedelta, timezone
 
 
@@ -322,6 +324,20 @@ class AgendaFamilyAutomationContractTests(unittest.TestCase):
         manifest = json.loads((ROOT / "agenda_pages_manifest.json").read_text(encoding="utf-8"))
         agenda = [route for route in prior["routes"] if route["family"] == "agenda"]
         expected_xml = sitemap_builder.expected_artifacts(prior)[Path("sitemap-agenda.xml")]
+        # This cross-family test follows the published dossiers, independently
+        # of candidate-registry updates awaiting their publication workflow.
+        candidate_registry = json.loads((ROOT / "candidate_candidacy_status.json").read_text(encoding="utf-8"))
+        lifecycle = project_candidate_page_lifecycle(candidate_registry, ROOT)
+        published_ids = set(lifecycle["published_ids"]) - set(lifecycle["missing_artifacts"])
+        self.assertTrue(published_ids)
+        candidate_registry["candidates"] = [
+            candidate for candidate in candidate_registry["candidates"]
+            if candidate["candidate_id"] in published_ids
+        ]
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        candidate_registry_path = Path(temporary.name) / "candidate_candidacy_status.json"
+        candidate_registry_path.write_text(json.dumps(candidate_registry, ensure_ascii=False), encoding="utf-8")
         original_hash = registry_builder._route_content_hash
         for family, workflow_name in (
             ("candidates", "publish-candidate-family.yml"),
@@ -337,6 +353,7 @@ class AgendaFamilyAutomationContractTests(unittest.TestCase):
                 with patch.object(registry_builder, "_route_content_hash", side_effect=changed_hash):
                     rebuilt = registry_builder.build_registry(
                         root=ROOT, effective_date="2099-01-01",
+                        candidate_registry_path=candidate_registry_path,
                         **({"issue_manifest_path": ROOT / "issue_pages_manifest.json"} if family == "issues" else {}),
                     )
                 rebuilt_agenda = [route for route in rebuilt["routes"] if route["family"] == "agenda"]
