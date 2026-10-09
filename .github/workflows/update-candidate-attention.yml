@@ -5,6 +5,14 @@ on:
     - cron: "3 9 * * *"
   workflow_dispatch:
 
+  workflow_run:
+    workflows:
+      - "Update candidate universe"
+    types:
+      - completed
+    branches:
+      - main
+
 permissions:
   contents: write
 
@@ -15,6 +23,9 @@ concurrency:
 
 jobs:
   update-candidate-attention:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
 
     env:

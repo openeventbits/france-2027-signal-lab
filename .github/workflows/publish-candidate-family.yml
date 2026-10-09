@@ -26,6 +26,7 @@ on:
       - "candidate_page_contract.py"
       - "candidate_hub.py"
       - "build_route_registry.py"
+      - "build_search_entrypoints.py"
       - "build_sitemaps.py"
       - "assets/candidate-page-shell.css"
       - "assets/candidate-page.css"
@@ -97,28 +98,58 @@ jobs:
           python -B - <<'PY'
           import json
           import os
+          from datetime import date, datetime, timezone
           from pathlib import Path
 
+          from candidate_attention_contract import (
+              CandidateAttentionContractError,
+              validate_candidate_attention,
+          )
           from candidate_candidacy_status import (
+              active_candidate_records,
+              active_projection_provenance,
               load_candidate_candidacy_status,
           )
           from fetch_claims_under_scrutiny import (
               CollectorError,
               validate_public_bundle,
           )
+          from fetch_news_wire import candidate_roster_metadata, validate_output
 
           candidacy = load_candidate_candidacy_status(
               "candidate_candidacy_status.json"
           )
+          active_candidates = active_candidate_records(
+              candidacy
+          )
+
           claims = json.loads(
               Path("claims_under_scrutiny.json").read_text(
                   encoding="utf-8"
               )
           )
+          attention = json.loads(
+              Path("candidate_attention.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+          news = json.loads(
+              Path("news_wire.json").read_text(
+                  encoding="utf-8"
+              )
+          )
 
           ready = True
-          reason = ""
+          reasons = []
 
+          # Claims: malformed content is a hard failure. Only a
+          # legitimate registry-projection lag is a clean defer.
+          validate_public_bundle(
+              claims,
+              expected_archive_window_days=365,
+          )
+          if not isinstance(claims.get("candidate_query"), dict):
+              raise SystemExit("claims_under_scrutiny.json lacks candidate query provenance")
           try:
               validate_public_bundle(
                   claims,
@@ -137,23 +168,115 @@ jobs:
                   "unknown",
               )
               registry_revision = candidacy["source"]["revision_id"]
-              reason = (
-                  "Candidate publication deferred: Claims Under Scrutiny "
-                  f"references Candidate Registry revision {claims_revision}; "
-                  f"current registry revision is {registry_revision}."
+              reasons.append(
+                  "Claims Under Scrutiny references Candidate Registry "
+                  f"revision {claims_revision}; current registry revision "
+                  f"is {registry_revision}."
+              )
+
+          # Attention: validate the artifact independently first so
+          # corruption remains a hard failure; only current-universe
+          # parity is allowed to defer candidate publication.
+          validate_candidate_attention(attention)
+
+          try:
+              validate_candidate_attention(
+                  attention,
+                  expected_candidates=active_candidates,
+              )
+          except CandidateAttentionContractError as error:
+              ready = False
+              reasons.append(
+                  "Candidate Attention does not match the current active "
+                  f"candidate universe: {error}"
+              )
+
+          attention_universe = attention["candidate_universe"]
+          if any(
+              attention_universe.get(key) != value
+              for key, value in active_projection_provenance(candidacy).items()
+          ):
+              ready = False
+              reasons.append(
+                  "Candidate Attention provenance does not match the current "
+                  "Candidate Registry projection."
+              )
+
+          # News: schema/content corruption is a hard failure.
+          # Candidate-roster lag is a clean defer.
+          validate_output(news)
+
+          candidate_roster = news.get("candidate_roster")
+
+          if not isinstance(candidate_roster, dict):
+              raise SystemExit(
+                  "news_wire.json candidate_roster must be an object"
+              )
+
+          # validate_output does not validate roster metadata. Validate it
+          # independently before treating an otherwise valid old roster as lag.
+          if set(candidate_roster) != set(candidate_roster_metadata(candidacy)):
+              raise SystemExit("news_wire.json candidate_roster fields are invalid")
+          if (
+              candidate_roster["source"] != "candidate_candidacy_status.json"
+              or candidate_roster["rule"] != "active_monitoring_field"
+          ):
+              raise SystemExit("news_wire.json candidate_roster authority is invalid")
+          names = candidate_roster["names"]
+          if (
+              not isinstance(names, list)
+              or any(not isinstance(name, str) or not name.strip() for name in names)
+              or len(set(names)) != len(names)
+              or type(candidate_roster["count"]) is not int
+              or candidate_roster["count"] != len(names)
+              or type(candidate_roster["source_revision_id"]) is not int
+              or candidate_roster["source_revision_id"] <= 0
+          ):
+              raise SystemExit("news_wire.json candidate_roster identities are invalid")
+          date.fromisoformat(candidate_roster["status_as_of"])
+          timestamp = datetime.fromisoformat(
+              candidate_roster["source_revision_timestamp"].replace("Z", "+00:00")
+          )
+          if timestamp.tzinfo is None or timestamp.utcoffset() != timezone.utc.utcoffset(None):
+              raise SystemExit("news_wire.json candidate_roster timestamp must use UTC")
+          registry_revision = candidacy["source"]["revision_id"]
+
+          news_aligned = candidate_roster == candidate_roster_metadata(candidacy)
+
+          if not news_aligned:
+              ready = False
+              reasons.append(
+                  "Election News Wire candidate_roster is not aligned "
+                  f"with Candidate Registry revision {registry_revision}."
               )
 
           with Path(os.environ["GITHUB_OUTPUT"]).open(
               "a",
               encoding="utf-8",
           ) as output:
-              output.write(f"ready={str(ready).lower()}\n")
+              output.write(
+                  f"ready={str(ready).lower()}\n"
+              )
 
           if ready:
-              print("Candidate publication dependencies are aligned.")
+              print(
+                  "Candidate publication dependencies are aligned: "
+                  "Claims, Candidate Attention and Election News Wire."
+              )
           else:
-              print(reason)
-              summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+              reason = "\n".join(
+                  f"- {item}"
+                  for item in reasons
+              )
+              print(
+                  "Candidate publication deferred:\n"
+                  + reason
+              )
+
+              summary_path = os.environ.get(
+                  "GITHUB_STEP_SUMMARY"
+              )
+
               if summary_path:
                   with Path(summary_path).open(
                       "a",
@@ -183,6 +306,9 @@ jobs:
             --effective-date "$effective_date"
           python -B build_route_registry.py --check
 
+          python -B build_search_entrypoints.py
+          python -B build_search_entrypoints.py --check
+
           python -B build_sitemaps.py
           python -B build_sitemaps.py --check
 
@@ -207,7 +333,8 @@ jobs:
           if [[ -z "$(git status --porcelain -- \
             candidates en/candidates \
             route_registry.json sitemap.xml sitemap-candidates.xml \
-            sitemap-core.xml sitemap-polls.xml)" ]]; then
+            sitemap-core.xml sitemap-polls.xml \
+            index.html en/index.html)" ]]; then
             echo "Candidate publication is already current."
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -220,7 +347,8 @@ jobs:
           git add -- \
             candidates en/candidates \
             route_registry.json sitemap.xml sitemap-candidates.xml \
-            sitemap-core.xml sitemap-polls.xml
+            sitemap-core.xml sitemap-polls.xml \
+            index.html en/index.html
           git commit -m "Refresh candidate family"
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -243,6 +371,9 @@ jobs:
             --effective-date "$ROUTE_EFFECTIVE_DATE"
           python -B build_route_registry.py --check
 
+          python -B build_search_entrypoints.py
+          python -B build_search_entrypoints.py --check
+
           python -B build_sitemaps.py
           python -B build_sitemaps.py --check
 
@@ -260,7 +391,8 @@ jobs:
           git add -- \
             candidates en/candidates \
             route_registry.json sitemap.xml sitemap-candidates.xml \
-            sitemap-core.xml sitemap-polls.xml
+            sitemap-core.xml sitemap-polls.xml \
+            index.html en/index.html
 
           if ! git diff --cached --quiet; then
             git commit --amend --no-edit
@@ -269,12 +401,14 @@ jobs:
           if [[ -n "$(git status --porcelain -- \
             candidates en/candidates \
             route_registry.json sitemap.xml sitemap-candidates.xml \
-            sitemap-core.xml sitemap-polls.xml)" ]]; then
+            sitemap-core.xml sitemap-polls.xml \
+            index.html en/index.html)" ]]; then
             echo "Candidate publication artifacts are not clean before push."
             git status --short -- \
               candidates en/candidates \
               route_registry.json sitemap.xml sitemap-candidates.xml \
-              sitemap-core.xml sitemap-polls.xml
+              sitemap-core.xml sitemap-polls.xml \
+              index.html en/index.html
             exit 1
           fi
 

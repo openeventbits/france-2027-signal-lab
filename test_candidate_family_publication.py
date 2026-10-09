@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
@@ -229,16 +230,18 @@ class CandidateFamilyPublicationWorkflowTests(
         )
 
     def test_commit_scope_is_exact(self):
-        self.assertIn(
-            (
-                "git add -- \\\n"
-                "            candidates en/candidates \\\n"
-                "            route_registry.json sitemap.xml "
-                "sitemap-candidates.xml \\\n"
-                "            sitemap-core.xml sitemap-polls.xml"
-            ),
+        blocks = re.findall(
+            r"(?m)^          git add -- \\\n((?:            .*\n)+)",
             self.text,
         )
+        self.assertEqual(len(blocks), 2)
+        expected = {
+            "candidates", "en/candidates", "route_registry.json",
+            "sitemap.xml", "sitemap-candidates.xml", "sitemap-core.xml",
+            "sitemap-polls.xml", "index.html", "en/index.html",
+        }
+        for block in blocks:
+            self.assertEqual(set(block.replace("\\", "").split()), expected)
 
         self.assertNotIn(
             "git add -A",

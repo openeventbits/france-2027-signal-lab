@@ -25,7 +25,8 @@ class IssueFamilyAutomationContractTests(unittest.TestCase):
         self.assertIn("workflow_run:", self.text)
         self.assertIn('- "Update polls"', self.text)
         self.assertNotIn('- "Update Election News Wire"', self.text)
-        self.assertIn('- "Update candidate universe"', self.text)
+        self.assertIn('- "Publish candidate family"', self.text)
+        self.assertNotIn('- "Update candidate universe"', self.text)
         self.assertIn("github.event.workflow_run.conclusion == 'success'", self.text)
         self.assertIn("workflow_dispatch:", self.text)
         self.assertRegex(self.text, r"(?m)^\s+schedule:\s*$")
@@ -144,7 +145,9 @@ class IssueFamilyAutomationContractTests(unittest.TestCase):
             self.assertNotIn("publication_manifest.json", block)
 
     def test_search_entrypoints_are_not_rebuilt(self):
-        self.assertNotIn("build_search_entrypoints.py", self.text)
+        self.assertEqual(self.text.count("build_search_entrypoints.py"), 1)
+        self.assertIn('["build_search_entrypoints.py", "--check"]', self.text)
+        self.assertNotIn("python -B build_search_entrypoints.py", self.text)
 
     def test_no_op_avoids_commit_push_and_pages(self):
         self.assertIn('echo "changed=false" >> "$GITHUB_OUTPUT"', self.text)
